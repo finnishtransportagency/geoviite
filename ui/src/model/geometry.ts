@@ -1,5 +1,7 @@
 import { Polygon } from 'ol/geom';
+import { Coordinate } from 'ol/coordinate';
 import { Range } from 'common/common-model';
+import { expectCoordinate } from 'utils/type-utils';
 
 export enum CoordinateSystem {
     TM35FIN = 'TM35FIN',
@@ -22,10 +24,11 @@ export type BoundingBox = {
 
 export type Rectangle = Polygon;
 
-export function coordsToPoint(coords: number[]): Point {
+export function coordsToPoint(coords: Coordinate): Point {
+    const [x, y] = expectCoordinate(coords);
     return {
-        x: coords[0],
-        y: coords[1],
+        x,
+        y,
     };
 }
 

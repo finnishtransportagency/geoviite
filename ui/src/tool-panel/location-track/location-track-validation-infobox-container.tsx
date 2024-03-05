@@ -1,0 +1,62 @@
+import * as React from 'react';
+import { useLoaderWithStatus } from 'utils/react-utils';
+import { AssetValidationInfobox } from 'tool-panel/asset-validation-infobox';
+import { getLocationTrackValidation } from 'track-layout/layout-location-track-api';
+import { PublishType } from 'common/common-model';
+import { LocationTrackId } from 'track-layout/track-layout-model';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { useTranslation } from 'react-i18next';
+import { useCommonDataAppSelector } from 'store/hooks';
+
+type LocationTrackValidationInfoboxProps = {
+    id: LocationTrackId;
+    publishType: PublishType;
+    contentVisible: boolean;
+    onContentVisibilityChange: () => void;
+    showLinkedSwitchesRelinkingDialog: () => void;
+    editingDisabled: boolean;
+};
+
+export const LocationTrackValidationInfoboxContainer: React.FC<
+    LocationTrackValidationInfoboxProps
+> = ({
+    id,
+    publishType,
+    contentVisible,
+    onContentVisibilityChange,
+    showLinkedSwitchesRelinkingDialog,
+    editingDisabled,
+}) => {
+    const { t } = useTranslation();
+    const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
+
+    const [validation, validationLoaderStatus] = useLoaderWithStatus(
+        () => getLocationTrackValidation(publishType, id),
+        [id, publishType, changeTimes.layoutLocationTrack],
+    );
+
+    const errors = validation?.errors.filter((err) => err.type === 'ERROR') || [];
+    const warnings = validation?.errors.filter((err) => err.type === 'WARNING') || [];
+
+    return (
+        <AssetValidationInfobox
+            contentVisible={contentVisible}
+            onContentVisibilityChange={onContentVisibilityChange}
+            type={'LOCATION_TRACK'}
+            errors={errors}
+            warnings={warnings}
+            validationLoaderStatus={validationLoaderStatus}>
+            {publishType === 'OFFICIAL' || (
+                <div>
+                    <Button
+                        size={ButtonSize.SMALL}
+                        variant={ButtonVariant.SECONDARY}
+                        disabled={editingDisabled}
+                        onClick={showLinkedSwitchesRelinkingDialog}>
+                        {t('tool-panel.location-track.open-switch-relinking-dialog')}
+                    </Button>
+                </div>
+            )}
+        </AssetValidationInfobox>
+    );
+};

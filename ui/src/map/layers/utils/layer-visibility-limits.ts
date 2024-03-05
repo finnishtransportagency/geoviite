@@ -64,7 +64,7 @@ export const BADGE_DRAW_DISTANCES = [
     [11, 2560],
     [16, 5120],
     [24, 10240],
-];
+] as const;
 
 // Switches
 export const SWITCH_SHOW = 3.2;

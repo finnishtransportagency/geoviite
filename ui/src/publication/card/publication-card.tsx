@@ -23,6 +23,7 @@ import {
     ProgressIndicatorType,
     ProgressIndicatorWrapper,
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import { first } from 'utils/array-utils';
 
 type PublishListProps = {
     publicationChangeTime: TimeStamp;
@@ -108,9 +109,9 @@ const PublicationCard: React.FC<PublishListProps> = ({
         ratkoPushSucceeded(publication.ratkoPushStatus),
     );
 
-    const latestFailure = allPublications.filter((publication) =>
-        ratkoPushFailed(publication.ratkoPushStatus),
-    )?.[0];
+    const latestFailure = first(
+        allPublications.filter((publication) => ratkoPushFailed(publication.ratkoPushStatus)),
+    );
 
     const ratkoConnectionError =
         ratkoStatus && !ratkoStatus.isOnline && ratkoStatus.statusCode >= 300;

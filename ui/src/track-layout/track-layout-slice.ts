@@ -19,30 +19,16 @@ import {
 import { linkingReducers } from 'linking/linking-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { LayoutMode, PublishType } from 'common/common-model';
-import {
-    GeometryPlanLayout,
-    LayoutKmPostId,
-    LayoutSwitchId,
-    LayoutTrackNumberId,
-    LocationTrackId,
-    ReferenceLineId,
-} from 'track-layout/track-layout-model';
+import { GeometryPlanLayout, LocationTrackId } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
+import { first } from 'utils/array-utils';
 import { PublishRequestIds } from 'publication/publication-model';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
-import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { exhaustiveMatchingGuard, ifDefined } from 'utils/type-utils';
 import { splitReducers, SplittingState } from 'tool-panel/location-track/split-store';
 import { addPublishRequestIds, subtractPublishRequestIds } from 'publication/publication-utils';
 import { PURGE } from 'redux-persist';
 import { previewReducers, PreviewState } from 'preview/preview-store';
-
-export type SelectedPublishChange = {
-    trackNumber: LayoutTrackNumberId | undefined;
-    referenceLine: ReferenceLineId | undefined;
-    locationTrack: LocationTrackId | undefined;
-    switch: LayoutSwitchId | undefined;
-    kmPost: LayoutKmPostId | undefined;
-};
 
 export type InfoboxVisibilities = {
     trackNumber: TrackNumberInfoboxVisibilities;
@@ -184,6 +170,15 @@ export const initialPublicationRequestIds: PublishRequestIds = {
     kmPosts: [],
 };
 
+export enum LocationTrackTaskListType {
+    RELINKING_SWITCH_VALIDATION,
+}
+
+export type SwitchRelinkingValidationTaskList = {
+    type: LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION;
+    locationTrackId: LocationTrackId;
+};
+
 export type TrackLayoutState = {
     publishType: PublishType;
     layoutMode: LayoutMode;
@@ -196,6 +191,7 @@ export type TrackLayoutState = {
     switchLinkingSelectedBeforeLinking: boolean;
     selectedToolPanelTab: ToolPanelAsset | undefined;
     infoboxVisibilities: InfoboxVisibilities;
+    locationTrackTaskList?: SwitchRelinkingValidationTaskList;
     previewState: PreviewState;
 };
 
@@ -209,6 +205,7 @@ export const initialTrackLayoutState: TrackLayoutState = {
     switchLinkingSelectedBeforeLinking: false,
     selectedToolPanelTab: undefined,
     infoboxVisibilities: initialInfoboxVisibilities,
+    locationTrackTaskList: undefined,
     previewState: {
         showOnlyOwnUnstagedChanges: false,
     },
@@ -299,11 +296,12 @@ const trackLayoutSlice = createSlice({
 
         // Intercept select/highlight reducers to modify options
         onSelect: function (state: TrackLayoutState, action: PayloadAction<OnSelectOptions>): void {
-            if (state.splittingState && action.payload.switches?.length) {
+            const firstSwitchId = ifDefined(action.payload.switches, first);
+            if (state.splittingState && firstSwitchId) {
                 if (state.splittingState.state === 'SETUP') {
                     splitReducers.addSplit(state, {
                         ...action,
-                        payload: action.payload.switches[0],
+                        payload: firstSwitchId,
                     });
                 }
                 return;
@@ -316,34 +314,41 @@ const trackLayoutSlice = createSlice({
                 payload: options,
             });
 
+            const onlyLayoutLinkPoint =
+                options.layoutLinkPoints?.length === 1 &&
+                ifDefined(options.layoutLinkPoints, first);
+            const onlyGeometryLinkPoint =
+                options.geometryLinkPoints?.length === 1 &&
+                ifDefined(options.geometryLinkPoints, first);
+
             // Set linking information
             switch (state.linkingState?.type) {
                 case LinkingType.LinkingGeometryWithAlignment:
                 case LinkingType.LinkingGeometryWithEmptyAlignment:
-                    if (options.layoutLinkPoints?.length === 1) {
+                    if (onlyLayoutLinkPoint) {
                         linkingReducers.setLayoutLinkPoint(state, {
                             type: '',
-                            payload: options.layoutLinkPoints[0],
+                            payload: onlyLayoutLinkPoint,
                         });
                     }
-                    if (options.geometryLinkPoints?.length === 1) {
+                    if (onlyGeometryLinkPoint) {
                         linkingReducers.setGeometryLinkPoint(state, {
                             type: '',
-                            payload: options.geometryLinkPoints[0],
+                            payload: onlyGeometryLinkPoint,
                         });
                     }
                     break;
 
                 case LinkingType.LinkingAlignment:
-                    if (options.layoutLinkPoints?.length === 1) {
+                    if (onlyLayoutLinkPoint) {
                         linkingReducers.setLayoutLinkPoint(state, {
                             type: '',
-                            payload: options.layoutLinkPoints[0],
+                            payload: onlyLayoutLinkPoint,
                         });
                     }
                     break;
                 case LinkingType.LinkingSwitch: {
-                    const selectedSwitch = state.selection.selectedItems.switches[0];
+                    const selectedSwitch = first(state.selection.selectedItems.switches);
                     linkingReducers.lockSwitchSelection(state, {
                         type: '',
                         payload: selectedSwitch,
@@ -464,6 +469,15 @@ const trackLayoutSlice = createSlice({
             { payload }: PayloadAction<ToolPanelAsset | undefined>,
         ): void => {
             state.selectedToolPanelTab = payload;
+        },
+        showLocationTrackTaskList: (
+            state: TrackLayoutState,
+            { payload }: PayloadAction<TrackLayoutState['locationTrackTaskList']>,
+        ) => {
+            state.locationTrackTaskList = payload;
+        },
+        hideLocationTrackTaskList: (state: TrackLayoutState) => {
+            state.locationTrackTaskList = undefined;
         },
     },
 });

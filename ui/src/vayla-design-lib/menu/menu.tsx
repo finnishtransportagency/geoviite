@@ -3,23 +3,62 @@ import styles from './menu.scss';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
 import { createClassName } from 'vayla-design-lib/utils';
 
-type MenuOption = { name: string | number; disabled?: boolean; qaId?: string };
+export type MenuOption<TValue> = MenuValueOption<TValue> | MenuSelectOption | MenuDividerOption;
+
+type MenuOptionBase = { disabled: boolean; qaId?: string };
 
 export type MenuValueOption<TValue> = {
+    type: 'VALUE';
+    name: string;
     value: TValue;
-    onSelect?: never;
-} & MenuOption;
+} & MenuOptionBase;
 
 export type MenuSelectOption = {
-    value?: never;
+    type: 'SELECT';
+    name: string;
     onSelect: () => void;
-} & MenuOption;
+} & MenuOptionBase;
+
+export type MenuDividerOption = {
+    type: 'DIVIDER';
+};
+
+export const menuValueOption = <TValue,>(
+    value: TValue,
+    name: string,
+    qaId?: string,
+    disabled: boolean = false,
+): MenuValueOption<TValue> => ({
+    type: 'VALUE',
+    name,
+    value,
+    disabled,
+    qaId,
+});
+
+export const menuSelectOption = (
+    onSelect: () => void,
+    name: string,
+    qaId: string,
+    disabled: boolean = false,
+): MenuSelectOption => ({
+    type: 'SELECT',
+    onSelect,
+    name,
+    disabled,
+    qaId,
+});
+
+export const menuDividerOption = (): MenuDividerOption => ({
+    type: 'DIVIDER',
+});
 
 type MenuProps<TValue> = {
     positionRef: React.MutableRefObject<HTMLElement | null>;
     onClickOutside: () => void;
     onSelect?: (item: TValue) => void;
-    items: (MenuValueOption<TValue> | MenuSelectOption)[];
+    items: MenuOption<TValue>[];
+    opensTowardsLeft?: boolean;
 } & Omit<React.HTMLAttributes<HTMLElement>, 'onSelect'>;
 
 export const Menu = function <TValue>({
@@ -28,6 +67,7 @@ export const Menu = function <TValue>({
     items,
     onSelect,
     className,
+    opensTowardsLeft,
     ...props
 }: MenuProps<TValue>) {
     const { height: offsetY } = positionRef.current?.getBoundingClientRect() ?? { height: 0 };
@@ -37,27 +77,32 @@ export const Menu = function <TValue>({
             className={createClassName(styles['menu'], className)}
             onClickOutside={onClickOutside}
             positionRef={positionRef}
+            openTowardsLeft={opensTowardsLeft}
             offsetY={offsetY + 6}>
             <ol className={styles['menu__items']} {...props}>
                 {items.map((i, index) => {
-                    return (
-                        <li
-                            key={`${index}_${i.name}`}
-                            qa-id={i.qaId}
-                            title={`${i.name}`}
-                            className={createClassName(
-                                styles['menu__item'],
-                                i.disabled && styles['menu__item--disabled'],
-                            )}
-                            onClick={() => {
-                                if (!i.disabled) {
-                                    if (i.onSelect) i.onSelect();
-                                    else if (onSelect) onSelect(i.value);
-                                }
-                            }}>
-                            {i.name}
-                        </li>
-                    );
+                    if (i.type === 'DIVIDER') {
+                        return <div key={`${index}`} className={styles['menu__divider']} />;
+                    } else {
+                        return (
+                            <li
+                                key={`${index}`}
+                                qa-id={i.qaId}
+                                title={`${i.name}`}
+                                className={createClassName(
+                                    styles['menu__item'],
+                                    i.disabled && styles['menu__item--disabled'],
+                                )}
+                                onClick={() => {
+                                    if (!i.disabled) {
+                                        if (i.type === 'SELECT') i.onSelect();
+                                        else if (onSelect) onSelect(i.value);
+                                    }
+                                }}>
+                                {i.name}
+                            </li>
+                        );
+                    }
                 })}
             </ol>
         </CloseableModal>

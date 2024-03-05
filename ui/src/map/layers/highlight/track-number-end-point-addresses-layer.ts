@@ -1,5 +1,5 @@
 import { Point as OlPoint } from 'ol/geom';
-import { MapTile, TrackNumberDiagramLayerSetting } from 'map/map-model';
+import { MapLayerName, MapTile, TrackNumberDiagramLayerSetting } from 'map/map-model';
 import {
     AlignmentDataHolder,
     getReferenceLineMapAlignmentsByTiles,
@@ -12,7 +12,7 @@ import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import Feature from 'ol/Feature';
 import { Style } from 'ol/style';
 import { AlignmentPoint, LayoutTrackNumberId } from 'track-layout/track-layout-model';
-import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
+import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
 import {
     getColor,
     getDefaultColorKey,
@@ -33,8 +33,8 @@ import {
     indicatorTextBackgroundHeight,
     indicatorTextPadding,
 } from 'map/layers/utils/dashed-line-indicator-utils';
-
-let newestLayerId = 0;
+import { expectCoordinate } from 'utils/type-utils';
+import { first, last } from 'utils/array-utils';
 
 type AlignmentDataHolderWithAddresses = {
     data: AlignmentDataHolder;
@@ -67,7 +67,8 @@ function createAddressFeature(
         pointToCoords(controlPoint),
     );
 
-    const renderer = ([x, y]: Coordinate, { pixelRatio, context }: State) => {
+    const renderer = (coord: Coordinate, { pixelRatio, context }: State) => {
+        const [x, y] = expectCoordinate(coord);
         const ctx = context;
 
         ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${
@@ -132,20 +133,17 @@ function createAddressFeatures(
 
         const features: Feature<OlPoint>[] = [];
         const points = referenceLine.points;
+        const [startPoint, startControlPoint] = [points[0], points[1]];
 
-        if (startAddress && color) {
-            features.push(createAddressFeature(points[0], points[1], startAddress, false, color));
+        if (startAddress && startPoint && startControlPoint && color) {
+            features.push(
+                createAddressFeature(startPoint, startControlPoint, startAddress, false, color),
+            );
         }
 
-        if (endAddress && color) {
-            const lastIndex = points.length - 1;
-            const f = createAddressFeature(
-                points[lastIndex - 1],
-                points[lastIndex],
-                endAddress,
-                true,
-                color,
-            );
+        const [endPoint, endControlPoint] = [points[points.length - 1], points[points.length - 2]];
+        if (endAddress && endPoint && endControlPoint && color) {
+            const f = createAddressFeature(endPoint, endControlPoint, endAddress, true, color);
 
             features.push(f);
         }
@@ -154,6 +152,8 @@ function createAddressFeatures(
     });
 }
 
+const layerName: MapLayerName = 'track-number-addresses-layer';
+
 export function createTrackNumberEndPointAddressesLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
@@ -161,58 +161,51 @@ export function createTrackNumberEndPointAddressesLayer(
     publishType: PublishType,
     resolution: number,
     layerSettings: TrackNumberDiagramLayerSetting,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    const dataPromise: Promise<AlignmentDataHolderWithAddresses[]> =
+        resolution <= Limits.ALL_ALIGNMENTS
+            ? getTrackNumberEndPointData(mapTiles, changeTimes, publishType, layerSettings)
+            : Promise.resolve([]);
 
-    let inFlight = false;
-    if (resolution <= Limits.ALL_ALIGNMENTS) {
-        inFlight = true;
-        getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
-            .then((referenceLines) => {
-                const showAll = Object.values(layerSettings).every((s) => !s.selected);
-                const filteredReferenceLines = showAll
-                    ? referenceLines
-                    : referenceLines.filter((r) => {
-                          const trackNumberId = r.trackNumber?.id;
-                          return trackNumberId ? !!layerSettings[trackNumberId]?.selected : false;
-                      });
+    const createFeatures = (referenceLines: AlignmentDataHolderWithAddresses[]) =>
+        createAddressFeatures(referenceLines, layerSettings);
 
-                return filteredReferenceLines.filter((r) => {
-                    const trackNumberId = r.trackNumber?.id;
-                    return trackNumberId
-                        ? layerSettings[trackNumberId]?.color !== TrackNumberColor.TRANSPARENT
-                        : false;
-                });
-            })
-            .then((referenceLines) =>
-                getEndPointAddresses(referenceLines, publishType, changeTimes.layoutTrackNumber),
-            )
-            .then((referenceLines) => {
-                if (layerId === newestLayerId) {
-                    const features = createAddressFeatures(referenceLines, layerSettings);
+    loadLayerData(source, isLatest, onLoadingData, dataPromise, createFeatures);
 
-                    clearFeatures(vectorSource);
-                    vectorSource.addFeatures(features);
-                }
-            })
-            .catch(() => {
-                if (layerId === newestLayerId) clearFeatures(vectorSource);
-            })
-            .finally(() => {
-                inFlight = false;
-            });
-    } else {
-        clearFeatures(vectorSource);
-    }
+    return { name: layerName, layer: layer };
+}
 
-    return {
-        name: 'track-number-addresses-layer',
-        layer: layer,
-        requestInFlight: () => inFlight,
-    };
+async function getTrackNumberEndPointData(
+    mapTiles: MapTile[],
+    changeTimes: ChangeTimes,
+    publishType: PublishType,
+    layerSettings: TrackNumberDiagramLayerSetting,
+): Promise<AlignmentDataHolderWithAddresses[]> {
+    const referenceLines = await getReferenceLineMapAlignmentsByTiles(
+        changeTimes,
+        mapTiles,
+        publishType,
+    );
+
+    const showAll = Object.values(layerSettings).every((s) => !s.selected);
+    const shownReferenceLines = showAll
+        ? referenceLines
+        : referenceLines.filter((r) => {
+              const trackNumberId = r.trackNumber?.id;
+              return trackNumberId ? !!layerSettings[trackNumberId]?.selected : false;
+          });
+
+    const filteredReferenceLines = shownReferenceLines.filter((r) => {
+        const trackNumberId = r.trackNumber?.id;
+        return trackNumberId
+            ? layerSettings[trackNumberId]?.color !== TrackNumberColor.TRANSPARENT
+            : false;
+    });
+
+    return getEndPointAddresses(filteredReferenceLines, publishType, changeTimes.layoutTrackNumber);
 }
 
 const getEndPointAddresses = (
@@ -226,8 +219,8 @@ const getEndPointAddresses = (
             .flatMap((referenceLine) => {
                 const trackNumberId = referenceLine.header.trackNumberId as LayoutTrackNumberId;
 
-                const firstPoint = referenceLine.points[0];
-                const lastPoint = referenceLine.points[referenceLine.points.length - 1];
+                const firstPoint = first(referenceLine.points);
+                const lastPoint = last(referenceLine.points);
 
                 return Promise.all([
                     firstPoint?.m === 0

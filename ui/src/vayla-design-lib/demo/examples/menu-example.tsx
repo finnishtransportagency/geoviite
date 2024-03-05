@@ -1,12 +1,12 @@
 import * as React from 'react';
-import { Menu } from 'vayla-design-lib/menu/menu';
+import { Menu, menuValueOption } from 'vayla-design-lib/menu/menu';
 import { Button } from 'vayla-design-lib/button/button';
 
 export const MenuExample: React.FC = () => {
     const items = [
-        { value: 'MENU1', name: 'Menu option 1' },
-        { value: 'MENU2', name: 'Menu option 2' },
-        { value: 'MENU3', name: 'Menu option 3' },
+        menuValueOption('MENU1', 'Menu option 1'),
+        menuValueOption('MENU2', 'Menu option 2'),
+        menuValueOption('MENU3', 'Menu option 3'),
     ];
 
     const [chosenItem, setChosenItem] = React.useState<string>('');

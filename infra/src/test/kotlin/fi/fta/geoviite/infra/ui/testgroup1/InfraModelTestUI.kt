@@ -32,7 +32,7 @@ class InfraModelTestUI @Autowired constructor(
 
     @BeforeAll
     fun clearDb() {
-        initUserMdc()
+        initUser()
         clearAllTestData()
     }
 
@@ -121,7 +121,7 @@ class InfraModelTestUI @Autowired constructor(
         //Sijaintitiedot
         val sijaintitiedot = uploadForm.locationFormGroup
         val ratanumero = "123E2E"
-        sijaintitiedot.selectNewTrackNumber(ratanumero, "kaunis kuvaus")
+        sijaintitiedot.createAndSelectNewTrackNumber(ratanumero, "kaunis kuvaus")
         assertEquals(ratanumero, sijaintitiedot.trackNumber)
 
         //Tilanne ja laatutiedot

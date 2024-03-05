@@ -1,5 +1,5 @@
 import { LineString } from 'ol/geom';
-import { MapTile, TrackNumberDiagramLayerSetting } from 'map/map-model';
+import { MapLayerName, MapTile, TrackNumberDiagramLayerSetting } from 'map/map-model';
 import {
     AlignmentDataHolder,
     getMapAlignmentsByTiles,
@@ -13,7 +13,7 @@ import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import Feature from 'ol/Feature';
 import { Stroke, Style } from 'ol/style';
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
-import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
+import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
 import {
     getColor,
     getDefaultColorKey,
@@ -21,8 +21,6 @@ import {
 } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
-
-let newestLayerId = 0;
 
 const getColorForTrackNumber = (
     id: LayoutTrackNumberId,
@@ -63,6 +61,8 @@ function createDiagramFeatures(
     });
 }
 
+const layerName: MapLayerName = 'track-number-diagram-layer';
+
 export function createTrackNumberDiagramLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
@@ -70,51 +70,38 @@ export function createTrackNumberDiagramLayer(
     publishType: PublishType,
     resolution: number,
     layerSettings: TrackNumberDiagramLayerSetting,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
-    const alignmentPromise =
+    const alignmentPromise: Promise<AlignmentDataHolder[]> =
         resolution > Limits.ALL_ALIGNMENTS
             ? getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
             : getMapAlignmentsByTiles(changeTimes, mapTiles, publishType);
 
-    let inFlight = true;
-    alignmentPromise
-        .then((alignments) => {
-            if (layerId !== newestLayerId) return;
+    const createFeatures = (alignments: AlignmentDataHolder[]) => {
+        const showAll = Object.values(layerSettings).every((s) => !s.selected);
+        const filteredAlignments = showAll
+            ? alignments
+            : alignments.filter((a) => {
+                  const trackNumberId = a.trackNumber?.id;
+                  return trackNumberId ? !!layerSettings[trackNumberId]?.selected : false;
+              });
 
-            const showAll = Object.values(layerSettings).every((s) => !s.selected);
-            const filteredAlignments = showAll
-                ? alignments
-                : alignments.filter((a) => {
-                      const trackNumberId = a.trackNumber?.id;
-                      return trackNumberId ? !!layerSettings[trackNumberId]?.selected : false;
-                  });
-
-            const alignmentsWithColor = filteredAlignments.filter((a) => {
-                const trackNumberId = a.trackNumber?.id;
-                return trackNumberId
-                    ? layerSettings[trackNumberId]?.color !== TrackNumberColor.TRANSPARENT
-                    : false;
-            });
-
-            const features = createDiagramFeatures(alignmentsWithColor, layerSettings);
-
-            clearFeatures(vectorSource);
-            vectorSource.addFeatures(features);
-        })
-        .catch(() => {
-            if (layerId === newestLayerId) clearFeatures(vectorSource);
-        })
-        .finally(() => {
-            inFlight = false;
+        const alignmentsWithColor = filteredAlignments.filter((a) => {
+            const trackNumberId = a.trackNumber?.id;
+            return trackNumberId
+                ? layerSettings[trackNumberId]?.color !== TrackNumberColor.TRANSPARENT
+                : false;
         });
 
+        return createDiagramFeatures(alignmentsWithColor, layerSettings);
+    };
+
+    loadLayerData(source, isLatest, onLoadingData, alignmentPromise, createFeatures);
+
     return {
-        name: 'track-number-diagram-layer',
+        name: layerName,
         layer: layer,
-        requestInFlight: () => inFlight,
     };
 }

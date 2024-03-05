@@ -31,6 +31,7 @@ import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import i18next from 'i18next';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { SwitchOnLocationTrack } from 'tool-panel/location-track/split-store';
+import { ChangeTimes } from 'common/common-slice';
 
 const locationTrackCache = asyncCache<string, LayoutLocationTrack | undefined>();
 const locationTrackInfoboxExtrasCache = asyncCache<
@@ -84,11 +85,13 @@ export async function getLocationTrack(
 export async function getLocationTrackInfoboxExtras(
     id: LocationTrackId,
     publishType: PublishType,
-    changeTime: TimeStamp = getMaxTimestamp(
-        getChangeTimes().layoutLocationTrack,
-        getChangeTimes().layoutSwitch,
-    ),
+    changeTimes: ChangeTimes,
 ): Promise<LocationTrackInfoboxExtras | undefined> {
+    const changeTime = getMaxTimestamp(
+        changeTimes.layoutLocationTrack,
+        changeTimes.layoutSwitch,
+        changeTimes.split,
+    );
     return locationTrackInfoboxExtrasCache.get(changeTime, cacheKey(id, publishType), () =>
         getNullable<LocationTrackInfoboxExtras>(
             `${layoutUri('location-tracks', publishType, id)}/infobox-extras`,
@@ -130,7 +133,7 @@ export function getLocationTrackDescriptions(
 ): Promise<LocationTrackDescription[] | undefined> {
     const params = queryParams({ ids: locationTrackIds.join(',') });
     return getNullable<LocationTrackDescription[]>(
-        `${layoutUri('location-tracks', publishType)}/description/${params}`,
+        `${layoutUri('location-tracks', publishType)}/description${params}`,
     );
 }
 
@@ -276,7 +279,7 @@ export const getLocationTrackSectionsByPlan = async (
 ) => {
     const params = queryParams({ bbox: bbox ? bboxString(bbox) : undefined });
     return getNullable<AlignmentPlanSection[]>(
-        `${layoutUri('location-tracks', publishType, id)}/plan-geometry/${params}`,
+        `${layoutUri('location-tracks', publishType, id)}/plan-geometry${params}`,
     );
 };
 
@@ -292,8 +295,8 @@ export const getSplittingInitializationParameters = async (
 export async function getLocationTrackValidation(
     publishType: PublishType,
     id: LocationTrackId,
-): Promise<ValidatedAsset> {
-    return getNonNull<ValidatedAsset>(
+): Promise<ValidatedAsset | undefined> {
+    return getNullable<ValidatedAsset>(
         `${layoutUri('location-tracks', publishType, id)}/validation`,
     );
 }

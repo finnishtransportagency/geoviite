@@ -11,7 +11,7 @@ import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { AppNavigateFunction } from 'common/navigate';
-import { Menu } from 'vayla-design-lib/menu/menu';
+import { Menu, menuSelectOption, MenuSelectOption } from 'vayla-design-lib/menu/menu';
 import { SplitDetailsDialog } from 'publication/split/split-details-dialog';
 import { putBulkTransferState } from 'publication/split/split-api';
 import { success } from 'geoviite-design-lib/snackbar/snackbar';
@@ -82,17 +82,17 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
     );
     const menuRef = React.createRef<HTMLDivElement>();
 
-    const actions = [
-        {
-            onSelect: () => {
+    const actions: MenuSelectOption[] = [
+        menuSelectOption(
+            () => {
                 setMenuOpen(false);
                 setSplitDetailsDialogOpen(true);
             },
-            qaId: 'show-split-info-link',
-            name: t('publication-card.show-split-info'),
-        },
-        {
-            onSelect: () => {
+            t('publication-card.show-split-info'),
+            'show-split-info-link',
+        ),
+        menuSelectOption(
+            () => {
                 if (publication.split)
                     putBulkTransferState(publication.split.id, 'DONE')
                         .then(() => {
@@ -101,9 +101,9 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
                         .then(() => updateSplitChangeTime());
                 setMenuOpen(false);
             },
-            qaId: 'mark-bulk-transfer-as-finished-link',
-            name: t('publication-card.mark-as-successful'),
-        },
+            t('publication-card.mark-as-successful'),
+            'mark-bulk-transfer-as-finished-link',
+        ),
     ];
 
     return (

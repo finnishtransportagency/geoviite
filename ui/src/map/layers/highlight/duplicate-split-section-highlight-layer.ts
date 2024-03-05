@@ -1,10 +1,10 @@
-import { MapTile } from 'map/map-model';
+import { MapLayerName, MapTile } from 'map/map-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { AlignmentDataHolder, getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
-import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
+import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { LineString } from 'ol/geom';
@@ -16,11 +16,12 @@ import {
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { getLocationTrackInfoboxExtras } from 'track-layout/layout-location-track-api';
+import { filterNotEmpty } from 'utils/array-utils';
 
 function createFeatures(
     alignments: AlignmentDataHolder[],
     duplicateIds: LocationTrackId[],
-    linkedDuplicates: (LocationTrackId | undefined)[],
+    linkedDuplicates: LocationTrackId[],
 ): Feature<LineString>[] {
     return alignments
         .filter((alignment) => duplicateIds.includes(alignment.header.id))
@@ -39,7 +40,38 @@ function createFeatures(
         });
 }
 
-let newestLayerId = 0;
+type DuplicateSplitSectionData = {
+    linkedDuplicates: LocationTrackId[];
+    duplicates: LocationTrackId[];
+    alignments: AlignmentDataHolder[];
+};
+
+async function getDuplicateSplitSectionData(
+    splittingState: SplittingState | undefined,
+    publishType: PublishType,
+    changeTimes: ChangeTimes,
+    mapTiles: MapTile[],
+    resolution: number,
+): Promise<DuplicateSplitSectionData> {
+    if (resolution <= HIGHLIGHTS_SHOW && splittingState) {
+        const linkedDuplicates = splittingState.splits
+            .map((split) => split.duplicateOf)
+            .concat(splittingState.firstSplit.duplicateOf)
+            .filter(filterNotEmpty);
+
+        const [alignments, extras] = await Promise.all([
+            getMapAlignmentsByTiles(changeTimes, mapTiles, publishType),
+            getLocationTrackInfoboxExtras(splittingState.originLocationTrack.id, publishType, changeTimes),
+        ]);
+        const duplicates = extras?.duplicates?.map((dupe) => dupe.id) || [];
+
+        return { linkedDuplicates, duplicates, alignments };
+    } else {
+        return { linkedDuplicates: [], duplicates: [], alignments: [] };
+    }
+}
+
+const layerName: MapLayerName = 'duplicate-split-section-highlight-layer';
 
 export function createDuplicateSplitSectionHighlightLayer(
     mapTiles: MapTile[],
@@ -48,46 +80,22 @@ export function createDuplicateSplitSectionHighlightLayer(
     changeTimes: ChangeTimes,
     resolution: number,
     splittingState: SplittingState | undefined,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    const dataPromise: Promise<DuplicateSplitSectionData> = getDuplicateSplitSectionData(
+        splittingState,
+        publishType,
+        changeTimes,
+        mapTiles,
+        resolution,
+    );
 
-    let inFlight = false;
-    if (resolution <= HIGHLIGHTS_SHOW && splittingState) {
-        inFlight = true;
-        const linkedDuplicates = splittingState.splits
-            .map((split) => split.duplicateOf)
-            .concat(splittingState.firstSplit.duplicateOf);
-        getLocationTrackInfoboxExtras(splittingState.originLocationTrack.id, publishType)
-            .then((extras) => {
-                getMapAlignmentsByTiles(changeTimes, mapTiles, publishType).then((alignments) => {
-                    if (layerId === newestLayerId) {
-                        const features = createFeatures(
-                            alignments,
-                            extras?.duplicates.map((dupe) => dupe.id) || [],
-                            linkedDuplicates,
-                        );
+    const createOlFeatures = (data: DuplicateSplitSectionData) =>
+        createFeatures(data.alignments, data.duplicates, data.linkedDuplicates);
 
-                        clearFeatures(vectorSource);
-                        vectorSource.addFeatures(features);
-                    }
-                });
-            })
-            .catch(() => {
-                if (layerId === newestLayerId) clearFeatures(vectorSource);
-            })
-            .finally(() => {
-                inFlight = false;
-            });
-    } else {
-        clearFeatures(vectorSource);
-    }
+    loadLayerData(source, isLatest, onLoadingData, dataPromise, createOlFeatures);
 
-    return {
-        name: 'duplicate-split-section-highlight-layer',
-        layer: layer,
-        requestInFlight: () => inFlight,
-    };
+    return { name: layerName, layer: layer };
 }

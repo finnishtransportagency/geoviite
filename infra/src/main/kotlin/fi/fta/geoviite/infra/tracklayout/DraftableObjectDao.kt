@@ -49,6 +49,7 @@ interface IDraftableObjectReader<T : Draftable<T>> {
     fun fetchAllVersions(): List<RowVersion<T>>
     fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean): List<RowVersion<T>>
 
+    fun fetchPublicationVersions(): List<ValidationVersion<T>>
     fun fetchPublicationVersions(ids: List<IntId<T>>): List<ValidationVersion<T>>
 
     fun draftExists(id: IntId<T>): Boolean
@@ -119,6 +120,15 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
 
     abstract fun preloadCache()
 
+    private val allPublicationVersionsSql = """
+        select
+          coalesce(${table.draftLink}, id) as official_id,
+          id as row_id,
+          version as row_version
+        from ${table.fullName}
+        where draft = true
+    """.trimIndent()
+
     private val publicationVersionsSql = """
         select
           coalesce(${table.draftLink}, id) as official_id,
@@ -128,6 +138,15 @@ abstract class DraftableDaoBase<T : Draftable<T>>(
         where coalesce(${table.draftLink}, id) in (:ids)
           and draft = true
     """.trimIndent()
+
+    override fun fetchPublicationVersions(): List<ValidationVersion<T>> {
+        return jdbcTemplate.query<ValidationVersion<T>>(allPublicationVersionsSql, emptyMap<String, Any>()) { rs, _ ->
+            ValidationVersion(
+                rs.getIntId("official_id"),
+                rs.getRowVersion("row_id", "row_version"),
+            )
+        }
+    }
 
     override fun fetchPublicationVersions(ids: List<IntId<T>>): List<ValidationVersion<T>> {
         // Empty lists don't play nice in the SQL, but the result would be empty anyhow

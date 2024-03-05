@@ -112,7 +112,9 @@
     }
 
     &--warning {
+        display: flex;
         cursor: pointer;
+
         border: 1px solid vayla-design.$color-lemon;
         background-color: vayla-design.$color-lemon-light;
 

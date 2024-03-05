@@ -4,11 +4,12 @@ import { formatTrackMeterWithoutMeters } from 'utils/geography-utils';
 
 import { Coordinates, heightToY, mToX } from 'vertical-geometry/coordinates';
 import { TrackKmHeights } from 'geometry/geometry-api';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, first, last } from 'utils/array-utils';
 import { approximateHeightAtM, polylinePoints } from 'vertical-geometry/util';
 import { radsToDegrees } from 'utils/math-utils';
 import styles from 'vertical-geometry/vertical-geometry-diagram.scss';
 import { TrackMeter } from 'common/common-model';
+import { expectDefined } from 'utils/type-utils';
 
 const minimumSpacePxForPviPointSideLabels = 14;
 const minimumSpacePxForPviPointTopLabel = 16;
@@ -304,7 +305,9 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
     coordinates,
     drawTangentArrows,
 }) => {
-    if (geometry.length == 0) {
+    const firstItem = first(geometry);
+    const lastItem = last(geometry);
+    if (!firstItem) {
         return <React.Fragment />;
     }
     const pvis: JSX.Element[] = [];
@@ -319,32 +322,32 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
     );
     const rightPviI = pastRightmostPviInViewR == -1 ? geometry.length - 1 : pastRightmostPviInViewR;
 
-    if (leftPviI === 0 && geometry[0].start && geometry[0].point) {
+    if (leftPviI === 0 && firstItem.start && firstItem.point) {
         pvis.push(
             <LeftMostStartingLine
                 key={pviKey++}
                 coordinates={coordinates}
-                verticalGeometryItem={geometry[0]}
+                verticalGeometryItem={firstItem}
             />,
         );
     }
 
-    if (rightPviI == geometry.length - 1) {
+    if (rightPviI == geometry.length - 1 && lastItem) {
         pvis.push(
             <RightMostEndingLine
                 key={pviKey++}
                 coordinates={coordinates}
-                verticalGeometryItem={geometry[geometry.length - 1]}
+                verticalGeometryItem={lastItem}
             />,
         );
     }
 
-    for (let i = leftPviI; i <= Math.min(rightPviI, geometry.length - 2); i++) {
-        const geo = geometry[i];
-        const nextGeo = geometry[i + 1];
+    geometry.every((geo, index) => {
+        if (index === geometry.length - 1) return false;
+        const nextGeo = expectDefined(geometry[index + 1]);
 
         if (!geo.point || !geo.end || !nextGeo.point) {
-            continue;
+            return true;
         }
 
         pvis.push(
@@ -356,11 +359,12 @@ export const PviGeometry: React.FC<PviGeometryProps> = ({
             />,
         );
         pvis.push(<GeoLine key={pviKey++} coordinates={coordinates} geo={geo} nextGeo={nextGeo} />);
-    }
+        return true;
+    });
 
     for (let i = leftPviI; i <= rightPviI; i++) {
         const geo = geometry[i];
-        if (!geo.point) {
+        if (!geo?.point) {
             continue;
         }
 

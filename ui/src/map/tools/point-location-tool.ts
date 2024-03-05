@@ -2,6 +2,7 @@ import OlMap from 'ol/Map';
 import { MapTool, MapToolActivateOptions } from './tool-model';
 import { debounce } from 'ts-debounce';
 import { MapLayer } from 'map/layers/utils/layer-model';
+import { expectCoordinate } from 'utils/type-utils';
 
 export const pointLocationTool: MapTool = {
     activate: (map: OlMap, _: MapLayer[], options: MapToolActivateOptions) => {
@@ -18,9 +19,10 @@ export const pointLocationTool: MapTool = {
             },
         );
         const clickEvent = map.on('click', ({ coordinate }) => {
+            const [x, y] = expectCoordinate(coordinate);
             options.onClickLocation({
-                x: coordinate[0],
-                y: coordinate[1],
+                x,
+                y,
             });
         });
         const pointerMoveEvent = map.on('pointermove', debouncedMoveHandlerPointLocation);

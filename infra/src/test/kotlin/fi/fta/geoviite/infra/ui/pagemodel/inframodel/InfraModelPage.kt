@@ -32,6 +32,8 @@ class E2EInfraModelPage : E2EViewFragment(By.className("infra-model-main")) {
 
         waitUntilChildVisible(By.className("infra-model-list-search-result__table"))
         childTextInput(By.cssSelector(".infra-model-search-form__auto-complete input")).replaceValue(query)
+
+        infraModelsList.waitUntilReady()
     }
 
     fun openVelhoWaitingForApprovalList(): E2EProjektiVelhoPage {

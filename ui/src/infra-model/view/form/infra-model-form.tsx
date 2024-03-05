@@ -34,7 +34,7 @@ import InfraModelFormChosenDateDropDowns from 'infra-model/view/form/fields/infr
 import FormgroupField from 'infra-model/view/formgroup/formgroup-field';
 import { formatDateShort } from 'utils/date-utils';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, first, last } from 'utils/array-utils';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import {
@@ -52,6 +52,7 @@ import FormgroupTextarea from 'infra-model/view/formgroup/formgroup-textarea';
 import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 import { useLoader } from 'utils/react-utils';
 import i18next from 'i18next';
+import { menuValueOption } from 'vayla-design-lib/menu/menu';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -93,7 +94,7 @@ function getKmRangePresentation(kmPosts: GeometryKmPost[]): string {
         .filter(filterNotEmpty)
         .sort((a, b) => a.localeCompare(b));
     if (sorted.length == 0) return '';
-    else return `${sorted[0]} - ${sorted[sorted.length - 1]}`;
+    else return `${first(sorted)} - ${last(sorted)}`;
 }
 
 function profileInformationAvailable(alignments: GeometryAlignment[]): boolean {
@@ -128,14 +129,8 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const authors = useLoader(() => fetchAuthors(), [changeTimes.author]) || [];
 
     const planSourceOptions = [
-        {
-            name: t('enum.plan-source.GEOMETRIAPALVELU'),
-            value: 'GEOMETRIAPALVELU' as PlanSource,
-        },
-        {
-            name: t('enum.plan-source.PAIKANNUSPALVELU'),
-            value: 'PAIKANNUSPALVELU' as PlanSource,
-        },
+        menuValueOption('GEOMETRIAPALVELU' as PlanSource, t('enum.plan-source.GEOMETRIAPALVELU')),
+        menuValueOption('PAIKANNUSPALVELU' as PlanSource, t('enum.plan-source.PAIKANNUSPALVELU')),
     ];
 
     function changeInExtraParametersField<
@@ -356,10 +351,9 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                     <Dropdown
                                         wide
                                         value={geometryPlan.author?.id}
-                                        options={authorsIncludingFromPlan().map((author) => ({
-                                            name: author.companyName,
-                                            value: author.id,
-                                        }))}
+                                        options={authorsIncludingFromPlan().map((author) =>
+                                            menuValueOption(author.id, author.companyName),
+                                        )}
                                         onChange={(authorId) => {
                                             authorId &&
                                                 authorId != geometryPlan.author?.id &&
@@ -403,10 +397,12 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                             options={
                                                 trackNumberList
                                                     ? trackNumberList
-                                                          .map((tn) => ({
-                                                              name: `${tn.number}`,
-                                                              value: tn.id,
-                                                          }))
+                                                          .map((tn) =>
+                                                              menuValueOption(
+                                                                  tn.id,
+                                                                  `${tn.number}`,
+                                                              ),
+                                                          )
                                                           .sort(compareNamed)
                                                     : []
                                             }
@@ -449,10 +445,12 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                         options={
                                             sridList
                                                 ? sridList
-                                                      .map((srid) => ({
-                                                          name: `${srid.name} ${srid.srid}`,
-                                                          value: srid.srid,
-                                                      }))
+                                                      .map((srid) =>
+                                                          menuValueOption(
+                                                              srid.srid,
+                                                              `${srid.name} ${srid.srid}`,
+                                                          ),
+                                                      )
                                                       .sort(compareNamed)
                                                 : []
                                         }

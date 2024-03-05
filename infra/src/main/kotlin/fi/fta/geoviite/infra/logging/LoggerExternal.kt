@@ -4,13 +4,13 @@ import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.VERSION_FETCH
 import fi.fta.geoviite.infra.util.formatForLog
 import fi.fta.geoviite.infra.util.resetCollected
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 import org.slf4j.Logger
 import org.springframework.web.reactive.function.client.ClientRequest
 import org.springframework.web.reactive.function.client.ClientResponse
 import java.time.Duration
 import java.time.Instant
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
 import kotlin.reflect.KClass
 
 fun Logger.apiRequest(req: HttpServletRequest, requestIp: String) {

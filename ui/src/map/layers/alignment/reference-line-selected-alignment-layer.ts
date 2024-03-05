@@ -1,18 +1,20 @@
 import { LineString, Point as OlPoint } from 'ol/geom';
-import { MapTile } from 'map/map-model';
+import { MapLayerName, MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
-import { clearFeatures } from 'map/layers/utils/layer-utils';
+import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { getSelectedReferenceLineMapAlignmentByTiles } from 'track-layout/layout-map-api';
+import {
+    AlignmentDataHolder,
+    getSelectedReferenceLineMapAlignmentByTiles,
+} from 'track-layout/layout-map-api';
 import { createAlignmentFeature } from '../utils/alignment-layer-utils';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
-
-let newestLayerId = 0;
+import { first } from 'utils/array-utils';
 
 const selectedReferenceLineStyle = new Style({
     stroke: new Stroke({
@@ -22,21 +24,20 @@ const selectedReferenceLineStyle = new Style({
     zIndex: 1,
 });
 
+const layerName: MapLayerName = 'reference-line-selected-alignment-layer';
+
 export function createSelectedReferenceLineAlignmentLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
     selection: Selection,
     publishType: PublishType,
     changeTimes: ChangeTimes,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
-
-    let inFlight = true;
-    const selectedTrackNumber = selection.selectedItems.trackNumbers[0];
-    const alignmentPromise = selectedTrackNumber
+    const selectedTrackNumber = first(selection.selectedItems.trackNumbers);
+    const dataPromise: Promise<AlignmentDataHolder[]> = selectedTrackNumber
         ? getSelectedReferenceLineMapAlignmentByTiles(
               changeTimes,
               mapTiles,
@@ -45,31 +46,14 @@ export function createSelectedReferenceLineAlignmentLayer(
           )
         : Promise.resolve([]);
 
-    alignmentPromise
-        .then((referenceLines) => {
-            if (layerId !== newestLayerId) return;
+    const createFeatures = (referenceLines: AlignmentDataHolder[]) => {
+        const selectedReferenceLine = first(referenceLines);
+        if (!selectedReferenceLine) return [];
 
-            const alignmentFeatures = createAlignmentFeature(
-                referenceLines[0],
-                false,
-                selectedReferenceLineStyle,
-            );
-
-            clearFeatures(vectorSource);
-            vectorSource.addFeatures(alignmentFeatures);
-        })
-        .catch(() => {
-            if (layerId === newestLayerId) {
-                clearFeatures(vectorSource);
-            }
-        })
-        .finally(() => {
-            inFlight = false;
-        });
-
-    return {
-        name: 'reference-line-selected-alignment-layer',
-        layer: layer,
-        requestInFlight: () => inFlight,
+        return createAlignmentFeature(selectedReferenceLine, false, selectedReferenceLineStyle);
     };
+
+    loadLayerData(source, isLatest, onLoadingData, dataPromise, createFeatures);
+
+    return { name: layerName, layer };
 }

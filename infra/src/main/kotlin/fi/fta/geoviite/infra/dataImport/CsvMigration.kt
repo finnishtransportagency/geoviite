@@ -19,7 +19,7 @@ abstract class CsvMigration : BaseJavaMigration() {
     private val fileList by lazy { getFiles() }
     private val fileNames by lazy { fileList.joinToString(", ") { it.file.absolutePath } }
 
-    final override fun migrate(context: Context?) = withUser(ImportUser.CSV_IMPORT) {
+    final override fun migrate(context: Context?) = withImportUser(ImportUser.CSV_IMPORT) {
         logger.info("CSV Import files: $fileNames")
         if (importEnabled && fileList.all { f -> f.file.exists() }) {
             logger.info("Running CSV import: version=$version description=$description")

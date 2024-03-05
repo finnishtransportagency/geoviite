@@ -1,4 +1,8 @@
 import { TimeStamp } from 'common/common-model';
+import { expectDefined } from 'utils/type-utils';
+
+export const first = <T>(arr: readonly T[]) => arr[0];
+export const last = <T>(arr: readonly T[]) => arr[arr.length - 1];
 
 export function nonEmptyArray<T>(...values: Array<T | undefined>): T[] {
     return values.filter(filterNotEmpty);
@@ -153,10 +157,13 @@ export function groupBy<T, K extends string | number>(
     array: T[],
     getKey: (item: T) => K,
 ): Record<K, T[]> {
-    return array.reduce((acc, item) => {
-        (acc[getKey(item)] ||= []).push(item);
-        return acc;
-    }, {} as Record<K, T[]>);
+    return array.reduce(
+        (acc, item) => {
+            (acc[getKey(item)] ||= []).push(item);
+            return acc;
+        },
+        {} as Record<K, T[]>,
+    );
 }
 
 /**
@@ -217,20 +224,6 @@ export function avg(values: number[]): number {
     return values.length > 0 ? sum(values) / values.length : Number.NaN;
 }
 
-export function first<T>(array: T[]): T {
-    return array[0];
-}
-
-export function last<T>(array: T[]): T {
-    return array[array.length - 1];
-}
-
-export function removeIfExists<T>(originalCollection: T[], valueToRemove: T | undefined) {
-    return valueToRemove
-        ? originalCollection.filter((changeId) => changeId != valueToRemove)
-        : originalCollection;
-}
-
 export function addIfExists<T>(originalCollection: T[], newValue: T | undefined): T[] {
     return newValue ? [...originalCollection, newValue] : [...originalCollection];
 }
@@ -244,14 +237,14 @@ export function minimumIndexBy<T, B>(objs: readonly T[], by: (obj: T) => B): num
         return undefined;
     }
     const values = objs.map((obj) => by(obj));
-    let min = values[0];
+    let min = expectDefined(first(values));
     let minIndex = 0;
-    for (let i = 1; i < values.length; i++) {
-        if (values[i] < min) {
-            min = values[i];
-            minIndex = i;
+    values.forEach((value, index) => {
+        if (value < min) {
+            min = expectDefined(value);
+            minIndex = index;
         }
-    }
+    });
     return minIndex;
 }
 
@@ -266,10 +259,8 @@ export function partitionBy<T>(list: T[], by: (item: T) => boolean): [T[], T[]] 
 }
 
 export function findLastIndex<T, B>(objs: readonly T[], predicate: (obj: T) => B): number {
-    for (let i = objs.length - 1; i >= 0; i--) {
-        if (predicate(objs[i])) return i;
-    }
-    return -1;
+    const reverseIndex = [...objs].reverse().findIndex(predicate);
+    return reverseIndex >= 0 ? objs.length - 1 - reverseIndex : -1;
 }
 
 export const findById = <T extends { id: string }>(objs: T[], id: string): T | undefined =>

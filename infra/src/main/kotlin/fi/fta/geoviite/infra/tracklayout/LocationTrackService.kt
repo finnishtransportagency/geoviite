@@ -168,6 +168,16 @@ class LocationTrackService(
     }
 
     @Transactional
+    fun fetchDuplicates(publishType: PublishType, id: IntId<LocationTrack>): List<LocationTrack> {
+        logger.serviceCall(
+            "fetchDuplicates",
+            "publishType" to publishType,
+            "locationTrackId" to id,
+        )
+        return dao.fetchDuplicateVersions(id, publishType).map(dao::fetch)
+    }
+
+    @Transactional
     fun clearDuplicateReferences(id: IntId<LocationTrack>) = dao
         .fetchDuplicateVersions(id, DRAFT, includeDeleted = true)
         .map(dao::fetch)
@@ -396,10 +406,24 @@ class LocationTrackService(
             val endSwitch = (alignment.segments.lastOrNull()?.switchId as IntId?
                 ?: locationTrack.topologyEndSwitch?.switchId)?.let { id -> fetchSwitchAtEndById(id, publishType) }
             val partOfUnfinishedSplit = splitDao.locationTracksPartOfAnyUnfinishedSplit(listOf(id)).isNotEmpty()
+            val linkedSwitchesCount = countLinkedSwitches(locationTrack, alignment)
 
-            LocationTrackInfoboxExtras(duplicateOf, sortedDuplicates, startSwitch, endSwitch, partOfUnfinishedSplit)
+            LocationTrackInfoboxExtras(
+                duplicateOf,
+                sortedDuplicates,
+                startSwitch,
+                endSwitch,
+                partOfUnfinishedSplit,
+                linkedSwitchesCount
+            )
         }
     }
+
+    private fun countLinkedSwitches(locationTrack: LocationTrack, alignment: LayoutAlignment): Int =
+        (alignment.segments.mapNotNull { it.switchId } + listOfNotNull(
+            locationTrack.topologyStartSwitch?.switchId,
+            locationTrack.topologyEndSwitch?.switchId
+        )).distinct().size
 
     private fun getLocationTrackDuplicates(
         id: IntId<LocationTrack>,
@@ -544,6 +568,16 @@ class LocationTrackService(
         return getWithAlignment(publishType, locationTrackId)?.let { (track, alignment) ->
             collectAllSwitches(track, alignment)
         } ?: emptyList()
+    }
+
+    @Transactional(readOnly = true)
+    fun getAlignmentsForTracks(tracks: List<LocationTrack>): List<Pair<LocationTrack, LayoutAlignment>> {
+        return tracks.map { track ->
+            val alignment = track.alignmentVersion?.let(alignmentDao::fetch)
+                ?: error("All location tracks should have an alignment. Alignment was not found for track=${track.id}")
+
+            track to alignment
+        }
     }
 }
 

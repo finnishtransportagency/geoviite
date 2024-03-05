@@ -4,13 +4,14 @@ import { LineString, Point as OlPoint } from 'ol/geom';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
 import { Coordinate } from 'ol/coordinate';
 import { State } from 'ol/render';
-import { MapTile } from 'map/map-model';
+import { MapLayerName, MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import {
     centroid,
-    clearFeatures,
+    createLayer,
     findIntersectingFeatures,
     getPlanarDistanceUnwrapped,
+    loadLayerData,
     pointToCoords,
     sortFeaturesByDistance,
 } from 'map/layers/utils/layer-utils';
@@ -18,13 +19,16 @@ import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/
 import { LINKING_DOTS } from 'map/layers/utils/layer-visibility-limits';
 import {
     ClusterPoint,
+    LinkingAlignment,
+    LinkingGeometryWithAlignment,
+    LinkingGeometryWithEmptyAlignment,
     LinkingState,
     LinkingType,
     LinkInterval,
     LinkPoint,
 } from 'linking/linking-model';
 import { createUpdatedInterval } from 'linking/linking-store';
-import { filterNotEmpty, nonEmptyArray } from 'utils/array-utils';
+import { filterNotEmpty, first, last, nonEmptyArray } from 'utils/array-utils';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { getGeometryLinkPointsByTiles, getLinkPointsByTiles } from 'track-layout/layout-map-api';
 import { ChangeTimes } from 'common/common-slice';
@@ -40,6 +44,7 @@ import { formatTrackMeter } from 'utils/geography-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import { expectCoordinate, expectDefined } from 'utils/type-utils';
 
 const linkPointRadius = 4;
 const linkPointSelectedRadius = 6;
@@ -352,8 +357,11 @@ function getPointsByOrder(
     orderStart?: number,
     orderEnd?: number,
 ): LinkPoint[] {
-    if (points.length === 0 || orderStart === undefined || orderEnd === undefined) return [];
-    else if (orderEnd < points[0].m || orderStart > points[points.length - 1].m) return [];
+    const firstPoint = first(points);
+    const lastPoint = last(points);
+
+    if (!firstPoint || !lastPoint || orderStart === undefined || orderEnd === undefined) return [];
+    else if (orderEnd < firstPoint.m || orderStart > lastPoint.m) return [];
     else return points.filter((p) => p.m >= orderStart && p.m <= orderEnd);
 }
 
@@ -374,7 +382,8 @@ function createPointTagFeature(
     const rotationByPointDirection = point.direction ? -point.direction + Math.PI / 2 : 0;
     const rotation = rotationByPointDirection + (showAtLeftSide ? Math.PI : 0);
 
-    const renderer = ([x, y]: Coordinate, { pixelRatio, context }: State) => {
+    const renderer = (coord: Coordinate, { pixelRatio, context }: State) => {
+        const [x, y] = expectCoordinate(coord);
         const fontSize = 12;
         const textPadding = 3 * pixelRatio;
         const textBackgroundHeight = (fontSize + 4) * pixelRatio;
@@ -403,7 +412,7 @@ function createPointTagFeature(
             [arrowLength, arrowHeight / 2],
             [arrowLength, -arrowHeight / 2],
             [arrowTipLength, -arrowHeight / 2],
-        ];
+        ] as const;
 
         ctx.translate(x, y);
         ctx.rotate(rotation);
@@ -414,8 +423,8 @@ function createPointTagFeature(
         ctx.moveTo(x + arrowSpacing + arrowShapePolygon[0][0], y + arrowShapePolygon[0][1]);
         arrowShapePolygon
             .slice(1)
-            .forEach((coordinate) =>
-                ctx.lineTo(x + arrowSpacing + coordinate[0], y + coordinate[1]),
+            .forEach(([coordinateX, coordinateY]) =>
+                ctx.lineTo(x + arrowSpacing + coordinateX, y + coordinateY),
             );
         ctx.closePath();
         ctx.fill();
@@ -616,8 +625,8 @@ function createLinkingGeometryWithAlignmentFeatures(
 ): Feature<OlPoint | LineString>[] {
     const features: Feature<OlPoint | LineString>[] = [];
     const [clusterPoints, overlappingPoints] = getClusterPoints(layoutPoints, geometryPoints);
-    const highlightedLayoutPoint = selection.highlightedItems.layoutLinkPoints[0];
-    const highlightedGeometryPoint = selection.highlightedItems.geometryLinkPoints[0];
+    const highlightedLayoutPoint = first(selection.highlightedItems.layoutLinkPoints);
+    const highlightedGeometryPoint = first(selection.highlightedItems.geometryLinkPoints);
 
     if (showDots) {
         features.push(
@@ -754,7 +763,258 @@ async function getLinkPointsWithAddresses<
     });
 }
 
-let newestLayerId = 0;
+type LayoutSection = {
+    layoutStart: LinkPoint | undefined;
+    layoutEnd: LinkPoint | undefined;
+    layoutHighlight: LinkPoint;
+};
+
+type GeometrySection = {
+    geometryStart: LinkPoint | undefined;
+    geometryEnd: LinkPoint | undefined;
+    geometryHighlight: LinkPoint;
+};
+
+type AlignmentLinkingData = {
+    type: LinkingType.LinkingAlignment;
+    state: LinkingAlignment;
+    points: LinkPoint[];
+    pointAddresses: LayoutSection;
+};
+
+type GeometryWithEmptyAlignmentLinkingData = {
+    type: LinkingType.LinkingGeometryWithEmptyAlignment;
+    state: LinkingGeometryWithEmptyAlignment;
+    points: LinkPoint[];
+    pointAddresses: GeometrySection;
+};
+
+type GeometryWithAlignmentLinkingData = {
+    type: LinkingType.LinkingGeometryWithAlignment;
+    state: LinkingGeometryWithAlignment;
+    layoutPoints: LinkPoint[];
+    geometryPoints: LinkPoint[];
+    pointAddresses: GeometrySection & LayoutSection;
+};
+
+type EmptyData = {
+    type: 'empty';
+};
+
+type LinkingData =
+    | AlignmentLinkingData
+    | GeometryWithEmptyAlignmentLinkingData
+    | GeometryWithAlignmentLinkingData
+    | EmptyData;
+
+async function getLinkingData(
+    mapTiles: MapTile[],
+    selection: Selection,
+    state: LinkingState | undefined,
+    changeTimes: ChangeTimes,
+): Promise<LinkingData> {
+    const changeTime = getMaxTimestamp(
+        changeTimes.layoutReferenceLine,
+        changeTimes.layoutLocationTrack,
+    );
+    const { highlightedItems } = selection;
+
+    if (state === undefined || state.state === 'preliminary') {
+        return { type: 'empty' };
+    } else if (state.type === LinkingType.LinkingAlignment) {
+        const [points, pointAddresses] = await Promise.all([
+            getLinkPointsByTiles(
+                changeTime,
+                mapTiles,
+                state.layoutAlignmentId,
+                state.layoutAlignmentType,
+            ),
+            getLinkPointsWithAddresses(state.layoutAlignmentType, state.layoutAlignmentId, {
+                layoutStart: state.layoutAlignmentInterval.start,
+                layoutEnd: state.layoutAlignmentInterval.end,
+                layoutHighlight: expectDefined(first(highlightedItems.layoutLinkPoints)),
+            }),
+        ]);
+        return { type: LinkingType.LinkingAlignment, state, points, pointAddresses };
+    } else if (state.type === LinkingType.LinkingGeometryWithEmptyAlignment) {
+        const [points, pointAddresses] = await Promise.all([
+            getGeometryLinkPointsByTiles(
+                state.geometryPlanId,
+                state.geometryAlignmentId,
+                mapTiles,
+                [state.geometryAlignmentInterval.start, state.geometryAlignmentInterval.end].filter(
+                    filterNotEmpty,
+                ),
+            ),
+            getLinkPointsWithAddresses(state.layoutAlignmentType, state.layoutAlignmentId, {
+                geometryStart: state.geometryAlignmentInterval.start,
+                geometryEnd: state.geometryAlignmentInterval.end,
+                geometryHighlight: expectDefined(first(highlightedItems.geometryLinkPoints)),
+            }),
+        ]);
+        return {
+            type: LinkingType.LinkingGeometryWithEmptyAlignment,
+            state,
+            points,
+            pointAddresses,
+        };
+    } else if (state.type === LinkingType.LinkingGeometryWithAlignment) {
+        const [geometryPoints, layoutPoints, pointAddresses] = await Promise.all([
+            getGeometryLinkPointsByTiles(
+                state.geometryPlanId,
+                state.geometryAlignmentId,
+                mapTiles,
+                [
+                    state.geometryAlignmentInterval.start,
+                    state.geometryAlignmentInterval.end,
+                    state.layoutAlignmentInterval.start,
+                    state.layoutAlignmentInterval.end,
+                ].filter(filterNotEmpty),
+            ),
+            getLinkPointsByTiles(
+                changeTime,
+                mapTiles,
+                state.layoutAlignmentId,
+                state.layoutAlignmentType,
+            ),
+            getLinkPointsWithAddresses(state.layoutAlignmentType, state.layoutAlignmentId, {
+                layoutStart: state.layoutAlignmentInterval.start,
+                layoutEnd: state.layoutAlignmentInterval.end,
+                layoutHighlight: expectDefined(first(highlightedItems.layoutLinkPoints)),
+                geometryStart: state.geometryAlignmentInterval.start,
+                geometryEnd: state.geometryAlignmentInterval.end,
+                geometryHighlight: expectDefined(first(highlightedItems.geometryLinkPoints)),
+            }),
+        ]);
+        return {
+            type: LinkingType.LinkingGeometryWithAlignment,
+            state: state,
+            layoutPoints,
+            geometryPoints,
+            pointAddresses,
+        };
+    } else {
+        return { type: 'empty' };
+    }
+}
+
+const createFeatures = (
+    data: LinkingData,
+    selection: Selection,
+    drawLinkingDots: boolean,
+): Feature<LineString | OlPoint>[] => {
+    switch (data.type) {
+        case LinkingType.LinkingAlignment:
+            return createLinkingAlignmentFeatures(
+                data.points,
+                {
+                    ...data.state.layoutAlignmentInterval,
+                    start: data.pointAddresses.layoutStart,
+                    end: data.pointAddresses.layoutEnd,
+                },
+                data.pointAddresses.layoutHighlight,
+                drawLinkingDots,
+            );
+
+        case LinkingType.LinkingGeometryWithEmptyAlignment:
+            return createAlignmentFeatures(
+                data.points,
+                data.pointAddresses.geometryHighlight,
+                [],
+                {
+                    ...data.state.geometryAlignmentInterval,
+                    start: data.pointAddresses.geometryStart,
+                    end: data.pointAddresses.geometryEnd,
+                },
+                drawLinkingDots,
+                true,
+                geometryPointStyle,
+                geometryAlignmentStyle,
+                geometryPointSelectedStyle,
+                geometryPointSelectedLargeStyle,
+                geometryAlignmentSelectedStyle,
+            );
+
+        case LinkingType.LinkingGeometryWithAlignment:
+            return createLinkingGeometryWithAlignmentFeatures(
+                {
+                    ...selection,
+                    highlightedItems: {
+                        ...selection.highlightedItems,
+                        layoutLinkPoints: [data.pointAddresses.layoutHighlight],
+                        geometryLinkPoints: [data.pointAddresses.geometryHighlight],
+                    },
+                },
+                {
+                    ...data.state.layoutAlignmentInterval,
+                    start: data.pointAddresses.layoutStart,
+                    end: data.pointAddresses.layoutEnd,
+                },
+                {
+                    ...data.state.geometryAlignmentInterval,
+                    start: data.pointAddresses.geometryStart,
+                    end: data.pointAddresses.geometryEnd,
+                },
+                drawLinkingDots,
+                data.layoutPoints,
+                data.geometryPoints,
+            );
+
+        case 'empty':
+            return [];
+    }
+};
+
+const emptySearchResult = {
+    layoutLinkPoints: [],
+    geometryLinkPoints: [],
+    clusterPoints: [],
+};
+
+const searchItems = (source: VectorSource, hitArea: Rectangle): LayerItemSearchResult => {
+    const features = findIntersectingFeatures<OlPoint | LineString>(hitArea, source);
+
+    const clusterPoint: ClusterPoint | undefined = findFirstOfType<ClusterPoint>(
+        features,
+        FeatureType.ClusterPoint,
+    );
+
+    let layoutLinkPoint: LinkPoint | undefined;
+    let geometryLinkPoint: LinkPoint | undefined;
+
+    if (!clusterPoint) {
+        const linkPointFeatures = getSortedLinkPointFeatures(
+            source.getFeatures(),
+            centroid(hitArea),
+        );
+
+        const onLayoutLine = containsType(features, FeatureType.LayoutLine);
+        const onGeometryLine = containsType(features, FeatureType.GeometryLine);
+
+        if (onLayoutLine && onGeometryLine) {
+            const closestPoint = first(linkPointFeatures);
+            const closestPointType = getFeatureType(closestPoint);
+
+            if (closestPoint && closestPointType === FeatureType.GeometryPoint) {
+                geometryLinkPoint = getFeatureData(closestPoint);
+            } else if (closestPoint && closestPointType === FeatureType.LayoutPoint) {
+                layoutLinkPoint = getFeatureData(closestPoint);
+            }
+        } else if (onGeometryLine) {
+            geometryLinkPoint = findFirstOfType(linkPointFeatures, FeatureType.GeometryPoint);
+        } else if (onLayoutLine) {
+            layoutLinkPoint = findFirstOfType(linkPointFeatures, FeatureType.LayoutPoint);
+        }
+    }
+
+    return {
+        layoutLinkPoints: layoutLinkPoint ? [layoutLinkPoint] : [],
+        geometryLinkPoints: geometryLinkPoint ? [geometryLinkPoint] : [],
+        clusterPoints: clusterPoint ? [clusterPoint] : [],
+    };
+};
+
+const layerName: MapLayerName = 'alignment-linking-layer';
 
 export function createAlignmentLinkingLayer(
     mapTiles: MapTile[],
@@ -763,254 +1023,29 @@ export function createAlignmentLinkingLayer(
     linkingState: LinkingState | undefined,
     changeTimes: ChangeTimes,
     resolution: number,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
     const drawLinkingDots = resolution <= LINKING_DOTS;
 
-    let inFlight = false;
-    if (linkingState?.state === 'setup' || linkingState?.state === 'allSet') {
-        if (linkingState.type === LinkingType.LinkingAlignment) {
-            const changeTime = getMaxTimestamp(
-                changeTimes.layoutReferenceLine,
-                changeTimes.layoutLocationTrack,
-            );
+    const dataPromise = getLinkingData(mapTiles, selection, linkingState, changeTimes);
 
-            inFlight = true;
-            Promise.all([
-                getLinkPointsByTiles(
-                    changeTime,
-                    mapTiles,
-                    linkingState.layoutAlignmentId,
-                    linkingState.layoutAlignmentType,
-                ),
-                getLinkPointsWithAddresses(
-                    linkingState.layoutAlignmentType,
-                    linkingState.layoutAlignmentId,
-                    {
-                        layoutStart: linkingState.layoutAlignmentInterval.start,
-                        layoutEnd: linkingState.layoutAlignmentInterval.end,
-                        layoutHighlight: selection.highlightedItems.layoutLinkPoints[0],
-                    },
-                ),
-            ])
-                .then(([points, linkPointAddresses]) => {
-                    if (layerId !== newestLayerId) return;
-                    const features = createLinkingAlignmentFeatures(
-                        points,
-                        {
-                            ...linkingState.layoutAlignmentInterval,
-                            start: linkPointAddresses.layoutStart,
-                            end: linkPointAddresses.layoutEnd,
-                        },
-                        linkPointAddresses.layoutHighlight,
-                        drawLinkingDots,
-                    );
-
-                    clearFeatures(vectorSource);
-                    vectorSource.addFeatures(features);
-                })
-                .catch(() => {
-                    if (layerId === newestLayerId) clearFeatures(vectorSource);
-                })
-                .finally(() => {
-                    inFlight = false;
-                });
-        } else if (linkingState.type === LinkingType.LinkingGeometryWithEmptyAlignment) {
-            inFlight = true;
-            Promise.all([
-                getGeometryLinkPointsByTiles(
-                    linkingState.geometryPlanId,
-                    linkingState.geometryAlignmentId,
-                    mapTiles,
-                    [
-                        linkingState.geometryAlignmentInterval.start,
-                        linkingState.geometryAlignmentInterval.end,
-                    ].filter(filterNotEmpty),
-                ),
-                getLinkPointsWithAddresses(
-                    linkingState.layoutAlignmentType,
-                    linkingState.layoutAlignmentId,
-                    {
-                        geometryStart: linkingState.geometryAlignmentInterval.start,
-                        geometryEnd: linkingState.geometryAlignmentInterval.end,
-                        geometryHighlight: selection.highlightedItems.geometryLinkPoints[0],
-                    },
-                ),
-            ])
-                .then(([points, linkPointAddresses]) => {
-                    if (layerId !== newestLayerId) return;
-
-                    const features = createAlignmentFeatures(
-                        points,
-                        linkPointAddresses.geometryHighlight,
-                        [],
-                        {
-                            ...linkingState.geometryAlignmentInterval,
-                            start: linkPointAddresses.geometryStart,
-                            end: linkPointAddresses.geometryEnd,
-                        },
-                        drawLinkingDots,
-                        true,
-                        geometryPointStyle,
-                        geometryAlignmentStyle,
-                        geometryPointSelectedStyle,
-                        geometryPointSelectedLargeStyle,
-                        geometryAlignmentSelectedStyle,
-                    );
-
-                    clearFeatures(vectorSource);
-                    vectorSource.addFeatures(features);
-                })
-                .catch(() => {
-                    if (layerId === newestLayerId) clearFeatures(vectorSource);
-                })
-                .finally(() => {
-                    inFlight = false;
-                });
-        } else if (linkingState?.type === LinkingType.LinkingGeometryWithAlignment) {
-            inFlight = true;
-            const geometryPointsPromise = getGeometryLinkPointsByTiles(
-                linkingState.geometryPlanId,
-                linkingState.geometryAlignmentId,
-                mapTiles,
-                [
-                    linkingState.geometryAlignmentInterval.start,
-                    linkingState.geometryAlignmentInterval.end,
-                    linkingState.layoutAlignmentInterval.start,
-                    linkingState.layoutAlignmentInterval.end,
-                ].filter(filterNotEmpty),
-            );
-
-            const changeTime = getMaxTimestamp(
-                changeTimes.layoutReferenceLine,
-                changeTimes.layoutLocationTrack,
-            );
-
-            const layoutPointsPromise = getLinkPointsByTiles(
-                changeTime,
-                mapTiles,
-                linkingState.layoutAlignmentId,
-                linkingState.layoutAlignmentType,
-            );
-
-            const linkPointAddressesPromise = getLinkPointsWithAddresses(
-                linkingState.layoutAlignmentType,
-                linkingState.layoutAlignmentId,
-                {
-                    layoutStart: linkingState.layoutAlignmentInterval.start,
-                    layoutEnd: linkingState.layoutAlignmentInterval.end,
-                    layoutHighlight: selection.highlightedItems.layoutLinkPoints[0],
-                    geometryStart: linkingState.geometryAlignmentInterval.start,
-                    geometryEnd: linkingState.geometryAlignmentInterval.end,
-                    geometryHighlight: selection.highlightedItems.geometryLinkPoints[0],
-                },
-            );
-
-            Promise.all([layoutPointsPromise, geometryPointsPromise, linkPointAddressesPromise])
-                .then(([layoutPoints, geometryPoints, linkPointAddresses]) => {
-                    if (layerId !== newestLayerId) return;
-
-                    const features = createLinkingGeometryWithAlignmentFeatures(
-                        {
-                            ...selection,
-                            highlightedItems: {
-                                ...selection.highlightedItems,
-                                layoutLinkPoints: [linkPointAddresses.layoutHighlight],
-                                geometryLinkPoints: [linkPointAddresses.geometryHighlight],
-                            },
-                        },
-                        {
-                            ...linkingState.layoutAlignmentInterval,
-                            start: linkPointAddresses.layoutStart,
-                            end: linkPointAddresses.layoutEnd,
-                        },
-                        {
-                            ...linkingState.geometryAlignmentInterval,
-                            start: linkPointAddresses.geometryStart,
-                            end: linkPointAddresses.geometryEnd,
-                        },
-                        drawLinkingDots,
-                        layoutPoints,
-                        geometryPoints,
-                    );
-
-                    clearFeatures(vectorSource);
-                    vectorSource.addFeatures(features);
-                })
-                .catch(() => {
-                    if (layerId === newestLayerId) clearFeatures(vectorSource);
-                })
-                .finally(() => {
-                    inFlight = false;
-                });
-        } else {
-            clearFeatures(vectorSource);
-        }
-    } else {
-        clearFeatures(vectorSource);
-    }
+    loadLayerData(source, isLatest, onLoadingData, dataPromise, (data) =>
+        createFeatures(data, selection, drawLinkingDots),
+    );
 
     return {
-        name: 'alignment-linking-layer',
+        name: layerName,
         layer: layer,
         searchItems: (hitArea: Rectangle, _options: SearchItemsOptions): LayerItemSearchResult => {
-            //If dots are not drawn, do not select anything
             if (!drawLinkingDots) {
-                return {
-                    layoutLinkPoints: [],
-                    geometryLinkPoints: [],
-                    clusterPoints: [],
-                };
+                //If dots are not drawn, do not select anything
+                return emptySearchResult;
+            } else {
+                return searchItems(source, hitArea);
             }
-
-            const features = findIntersectingFeatures<OlPoint | LineString>(hitArea, vectorSource);
-
-            const clusterPoint: ClusterPoint | undefined = findFirstOfType<ClusterPoint>(
-                features,
-                FeatureType.ClusterPoint,
-            );
-
-            let layoutLinkPoint: LinkPoint | undefined;
-            let geometryLinkPoint: LinkPoint | undefined;
-
-            if (!clusterPoint) {
-                const linkPointFeatures = getSortedLinkPointFeatures(
-                    vectorSource.getFeatures(),
-                    centroid(hitArea),
-                );
-
-                const onLayoutLine = containsType(features, FeatureType.LayoutLine);
-                const onGeometryLine = containsType(features, FeatureType.GeometryLine);
-
-                if (onLayoutLine && onGeometryLine) {
-                    const closestPoint = linkPointFeatures[0];
-                    const closestPointType = getFeatureType(closestPoint);
-
-                    if (closestPointType === FeatureType.GeometryPoint) {
-                        geometryLinkPoint = getFeatureData(closestPoint);
-                    } else if (closestPointType === FeatureType.LayoutPoint) {
-                        layoutLinkPoint = getFeatureData(closestPoint);
-                    }
-                } else if (onGeometryLine) {
-                    geometryLinkPoint = findFirstOfType(
-                        linkPointFeatures,
-                        FeatureType.GeometryPoint,
-                    );
-                } else if (onLayoutLine) {
-                    layoutLinkPoint = findFirstOfType(linkPointFeatures, FeatureType.LayoutPoint);
-                }
-            }
-
-            return {
-                layoutLinkPoints: layoutLinkPoint ? [layoutLinkPoint] : [],
-                geometryLinkPoints: geometryLinkPoint ? [geometryLinkPoint] : [],
-                clusterPoints: clusterPoint ? [clusterPoint] : [],
-            };
         },
-        requestInFlight: () => inFlight,
     };
 }
 

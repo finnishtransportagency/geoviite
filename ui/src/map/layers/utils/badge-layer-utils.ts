@@ -7,12 +7,13 @@ import mapStyles from 'map/map.module.scss';
 import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { findOrInterpolateXY } from 'utils/math-utils';
 import { pointToCoords } from 'map/layers/utils/layer-utils';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, last } from 'utils/array-utils';
 import { AlignmentDataHolder } from 'track-layout/layout-map-api';
 import { Selection } from 'selection/selection-model';
 import { LinkingState } from 'linking/linking-model';
 import { getAlignmentHeaderStates } from 'map/layers/utils/alignment-layer-utils';
 import { BADGE_DRAW_DISTANCES } from 'map/layers/utils/layer-visibility-limits';
+import { expectCoordinate, ifDefined } from 'utils/type-utils';
 
 type MapAlignmentBadgePoint = {
     point: number[];
@@ -40,7 +41,8 @@ export function createBadgeFeatures(
         const fontSize = 12;
         const badgeNoseWidth = 4;
 
-        const renderer = ([x, y]: Coordinate, state: State) => {
+        const renderer = (coord: Coordinate, state: State) => {
+            const [x, y] = expectCoordinate(coord);
             const ctx = state.context;
             ctx.font = `${mapStyles['alignmentBadge-font-weight']} ${
                 state.pixelRatio * fontSize
@@ -134,9 +136,12 @@ function getBadgeStyle(badgeColor: AlignmentBadgeColor, contrast: boolean) {
     };
 }
 
-function getBadgeRotation(start: Coordinate, end: Coordinate) {
-    const dx = end[0] - start[0];
-    const dy = end[1] - start[1];
+function getBadgeRotation(startCoord: Coordinate, endCoord: Coordinate) {
+    const [startX, startY] = expectCoordinate(startCoord);
+    const [endX, endY] = expectCoordinate(endCoord);
+
+    const dx = endX - startX;
+    const dy = endY - startY;
     const angle = Math.atan2(dy, dx);
     let rotation: number;
     let drawFromEnd = true;
@@ -161,10 +166,11 @@ export function getBadgePoints(
     points: AlignmentPoint[],
     drawDistance: number,
 ): MapAlignmentBadgePoint[] {
-    if (points.length < 3) return [];
+    const [second, last] = [points[1], points[points.length - 1]];
+    if (!second || !last) return [];
 
-    const start = Math.ceil(points[1].m / drawDistance);
-    const end = Math.floor(points[points.length - 1].m / drawDistance);
+    const start = Math.ceil(second.m / drawDistance);
+    const end = Math.floor(last.m / drawDistance);
 
     if (start > end) return [];
 
@@ -186,7 +192,7 @@ export function getBadgePoints(
 
 export function getBadgeDrawDistance(resolution: number): number | undefined {
     const distance = BADGE_DRAW_DISTANCES.find((d) => resolution < d[0]);
-    return distance?.[1];
+    return ifDefined(distance, last);
 }
 
 export function createAlignmentBadgeFeatures(

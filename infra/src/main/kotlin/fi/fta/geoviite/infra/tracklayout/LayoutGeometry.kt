@@ -63,10 +63,19 @@ interface IAlignment : Loggable {
     val start: AlignmentPoint? get() = segments.firstOrNull()?.alignmentStart
     val end: AlignmentPoint? get() = segments.lastOrNull()?.alignmentEnd
 
-    val allSegmentPoints: Sequence<SegmentPoint> get() = segments.asSequence().flatMapIndexed { index, segment ->
-        if (index == segments.lastIndex) segment.segmentPoints.asSequence()
-        else segment.segmentPoints.asSequence().take(segment.segmentPoints.size - 1)
-    }
+    private fun getSegmentPoints(downward: Boolean): Sequence<Pair<SegmentPoint, ISegment>> =
+        (if (downward) segments.asReversed() else segments).asSequence().flatMapIndexed { index, segment ->
+            (if (downward && index == 0 || !downward && index == segments.lastIndex) segment.segmentPoints
+            else segment.segmentPoints.subList(0, segment.segmentPoints.size - 1))
+                .let { if (downward) it.asReversed() else it }
+                .map { it to segment }
+        }
+
+    val allSegmentPoints: Sequence<SegmentPoint> get() = getSegmentPoints(false).map { (point) -> point }
+    val allAlignmentPoints: Sequence<AlignmentPoint>
+        get() = getSegmentPoints(false).map { (point, segment) -> point.toAlignmentPoint(segment.startM) }
+    val allAlignmentPointsDownward: Sequence<AlignmentPoint>
+        get() = getSegmentPoints(true).map { (point, segment) -> point.toAlignmentPoint(segment.startM) }
 
     fun filterSegmentsByBbox(bbox: BoundingBox): List<ISegment> {
         return if (!bbox.intersects(boundingBox)) {
@@ -178,6 +187,12 @@ interface IAlignment : Loggable {
     fun getMaxDirectionDeltaRads(): Double =
         allSegmentPoints.zipWithNext(::directionBetweenPoints).zipWithNext(::angleDiffRads).maxOrNull() ?: 0.0
 
+    fun isWithinDistanceOfPoint(point: Point, distance: Double): Boolean =
+        (boundingBox?.intersects(boundingBoxAroundPoint(point, distance))
+            ?: false) && getClosestPoint(point)?.let { closestPoint ->
+            lineLength(point, closestPoint.first.toPoint()) <= distance
+        } ?: false
+
     override fun toLog(): String = logFormat("id" to id, "segments" to segments.size, "length" to round(length, 3))
 }
 
@@ -212,9 +227,9 @@ data class LayoutAlignment(
 
     fun withSegments(newSegments: List<LayoutSegment>) = copy(segments = newSegments)
 
-    fun takeFirst(count: Int): List<AlignmentPoint> = segments.firstOrNull()?.takeFirst(count) ?: listOf()
+    fun takeFirst(count: Int): List<AlignmentPoint> = allAlignmentPoints.take(count).toList()
 
-    fun takeLast(count: Int): List<AlignmentPoint> = segments.lastOrNull()?.takeLast(count) ?: listOf()
+    fun takeLast(count: Int): List<AlignmentPoint> = allAlignmentPointsDownward.take(count).toList().asReversed()
 }
 
 data class LayoutSegmentMetadata(

@@ -4,6 +4,8 @@
 @use '../layers';
 
 .datepicker {
+    display: inline-block;
+
     &__current-month {
         @include typography.typography-sub-heading;
 

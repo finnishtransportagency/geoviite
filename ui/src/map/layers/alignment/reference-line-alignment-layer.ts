@@ -1,12 +1,15 @@
-import { MapTile, OptionalShownItems } from 'map/map-model';
+import { MapLayerName, MapTile, OptionalShownItems } from 'map/map-model';
 import { LineString, Point as OlPoint } from 'ol/geom';
 import { Selection } from 'selection/selection-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
-import { clearFeatures } from 'map/layers/utils/layer-utils';
+import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { deduplicate, filterNotEmpty } from 'utils/array-utils';
-import { getReferenceLineMapAlignmentsByTiles } from 'track-layout/layout-map-api';
+import {
+    AlignmentDataHolder,
+    getReferenceLineMapAlignmentsByTiles,
+} from 'track-layout/layout-map-api';
 import {
     createAlignmentFeatures,
     findMatchingAlignments,
@@ -21,7 +24,6 @@ import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
 
 let shownReferenceLinesCompare: string;
-let newestLayerId = 0;
 
 const highlightedReferenceLineStyle = new Style({
     stroke: new Stroke({
@@ -39,6 +41,8 @@ const referenceLineStyle = new Style({
     zIndex: 0,
 });
 
+const layerName: MapLayerName = 'reference-line-alignment-layer';
+
 export function createReferenceLineAlignmentLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
@@ -47,11 +51,10 @@ export function createReferenceLineAlignmentLayer(
     publishType: PublishType,
     changeTimes: ChangeTimes,
     onViewContentChanged: (items: OptionalShownItems) => void,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
     layer.setOpacity(
         isSplitting ? OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING : NORMAL_ALIGNMENT_OPACITY,
     );
@@ -65,49 +68,49 @@ export function createReferenceLineAlignmentLayer(
         }
     }
 
-    let inFlight = true;
-    getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
-        .then((referenceLines) => {
-            if (layerId !== newestLayerId) return;
+    const dataPromise: Promise<AlignmentDataHolder[]> = getReferenceLineMapAlignmentsByTiles(
+        changeTimes,
+        mapTiles,
+        publishType,
+    );
 
-            const features = createAlignmentFeatures(
-                referenceLines,
-                selection,
-                false,
-                referenceLineStyle,
-                highlightedReferenceLineStyle,
-            );
+    const createFeatures = (referenceLines: AlignmentDataHolder[]) =>
+        createAlignmentFeatures(
+            referenceLines,
+            selection,
+            false,
+            referenceLineStyle,
+            highlightedReferenceLineStyle,
+        );
 
-            clearFeatures(vectorSource);
-            vectorSource.addFeatures(features);
-            updateShownReferenceLines(referenceLines.map(({ header }) => header.id));
-        })
-        .catch(() => {
-            if (layerId === newestLayerId) {
-                clearFeatures(vectorSource);
-                updateShownReferenceLines([]);
-            }
-        })
-        .finally(() => {
-            inFlight = false;
-        });
+    const onLoadingChange = (
+        loading: boolean,
+        referenceLines: AlignmentDataHolder[] | undefined,
+    ) => {
+        if (!loading) {
+            updateShownReferenceLines(referenceLines?.map(({ header }) => header.id) ?? []);
+        }
+        onLoadingData(loading);
+    };
+
+    loadLayerData(source, isLatest, onLoadingChange, dataPromise, createFeatures);
+
+    const searchItems = (hitArea: Rectangle, options: SearchItemsOptions) => {
+        const referenceLines = findMatchingAlignments(hitArea, source, options);
+        const trackNumberIds = deduplicate(
+            referenceLines.map((rl) => rl.header.trackNumberId).filter(filterNotEmpty),
+        );
+
+        return {
+            referenceLines: referenceLines.map((r) => r.header.id),
+            trackNumbers: trackNumberIds,
+        };
+    };
 
     return {
-        name: 'reference-line-alignment-layer',
+        name: layerName,
         layer: layer,
-        searchItems: (hitArea: Rectangle, options: SearchItemsOptions) => {
-            const referenceLines = findMatchingAlignments(hitArea, vectorSource, options);
-
-            const trackNumberIds = deduplicate(
-                referenceLines.map((rl) => rl.header.trackNumberId).filter(filterNotEmpty),
-            );
-
-            return {
-                referenceLines: referenceLines.map((r) => r.header.id),
-                trackNumbers: trackNumberIds,
-            };
-        },
+        searchItems: searchItems,
         onRemove: () => updateShownReferenceLines([]),
-        requestInFlight: () => inFlight,
     };
 }

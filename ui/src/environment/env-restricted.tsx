@@ -10,7 +10,7 @@ type EnvRestrictedProps = {
 
 //Local is only shown in local environment,
 //Test is only shown in local, dev and test environment etc.
-const slackRestrictionRules: { [key: string]: Environment[] } = {
+const slackRestrictionRules: { [key in Environment]: Environment[] } = {
     local: ['local'],
     dev: ['local', 'dev'],
     test: ['local', 'dev', 'test'],

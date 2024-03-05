@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.publication
 
+import daoResponseToValidationVersion
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TEST_USER
 import fi.fta.geoviite.infra.authorization.UserName
@@ -274,14 +275,16 @@ class PublicationDaoIT @Autowired constructor(
                 topologyStartSwitch = TopologyLocationTrackSwitch(switchByTopo, JointNumber(1)),
                 alignmentVersion = dummyAlignment,
             )
-        ).rowVersion
-        val draftLinkedTopo = locationTrackDao.insert(draft(
-            locationTrack(
-                trackNumberId,
-                topologyStartSwitch = TopologyLocationTrackSwitch(switchByTopo, JointNumber(3)),
-                alignmentVersion = dummyAlignment,
+        )
+        val draftLinkedTopo = locationTrackDao.insert(
+            draft(
+                locationTrack(
+                    trackNumberId,
+                    topologyStartSwitch = TopologyLocationTrackSwitch(switchByTopo, JointNumber(3)),
+                    alignmentVersion = dummyAlignment,
+                )
             )
-        )).rowVersion
+        )
         val officialLinkedAlignment = locationTrackDao.insert(
             locationTrack(
                 trackNumberId, alignmentVersion = alignmentDao.insert(
@@ -295,7 +298,7 @@ class PublicationDaoIT @Autowired constructor(
                     )
                 )
             )
-        ).rowVersion
+        )
         val draftLinkedAlignment = locationTrackDao.insert(
             draft(
                 locationTrack(
@@ -311,29 +314,29 @@ class PublicationDaoIT @Autowired constructor(
                     )
                 )
             )
-        ).rowVersion
+        )
         assertEquals(
-            setOf(officialLinkedAlignment, draftLinkedAlignment),
+            setOf(daoResponseToValidationVersion(officialLinkedAlignment), daoResponseToValidationVersion(draftLinkedAlignment)),
             publicationDao.fetchLinkedLocationTracks(listOf(switchByAlignment))[switchByAlignment]
         )
         assertEquals(
-            setOf(officialLinkedAlignment),
+            setOf(daoResponseToValidationVersion(officialLinkedAlignment)),
             publicationDao.fetchLinkedLocationTracks(listOf(switchByAlignment), listOf())[switchByAlignment]
         )
         assertEquals(
-            setOf(officialLinkedAlignment, draftLinkedAlignment),
+            setOf(daoResponseToValidationVersion(officialLinkedAlignment), daoResponseToValidationVersion(draftLinkedAlignment)),
             publicationDao.fetchLinkedLocationTracks(listOf(switchByAlignment), listOf(draftLinkedAlignment.id))[switchByAlignment]
         )
         assertEquals(
-            setOf(officialLinkedTopo, draftLinkedTopo),
+            setOf(daoResponseToValidationVersion(officialLinkedTopo), daoResponseToValidationVersion(draftLinkedTopo)),
             publicationDao.fetchLinkedLocationTracks(listOf(switchByTopo))[switchByTopo]
         )
         assertEquals(
-            setOf(officialLinkedTopo),
+            setOf(daoResponseToValidationVersion(officialLinkedTopo)),
             publicationDao.fetchLinkedLocationTracks(listOf(switchByTopo), listOf())[switchByTopo]
         )
         assertEquals(
-            setOf(officialLinkedTopo, draftLinkedTopo),
+            setOf(daoResponseToValidationVersion(officialLinkedTopo), daoResponseToValidationVersion(draftLinkedTopo)),
             publicationDao.fetchLinkedLocationTracks(listOf(switchByTopo), listOf(draftLinkedTopo.id))[switchByTopo]
         )
     }

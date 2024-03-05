@@ -3,7 +3,7 @@ import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './app-bar.scss';
-import { Menu } from 'vayla-design-lib/menu/menu';
+import { Menu, menuSelectOption } from 'vayla-design-lib/menu/menu';
 import { createClassName } from 'vayla-design-lib/utils';
 
 const DataProductsMenu: React.FC = () => {
@@ -13,30 +13,30 @@ const DataProductsMenu: React.FC = () => {
     const navigate = useNavigate();
 
     const dataProducts = [
-        {
-            onSelect: () => {
+        menuSelectOption(
+            () => {
                 setShowMenu(false);
                 navigate('data-products/element-list');
             },
-            qaId: 'element-list-menu-link',
-            name: t('app-bar.data-products.element-list'),
-        },
-        {
-            onSelect: () => {
+            t('app-bar.data-products.element-list'),
+            'element-list-menu-link',
+        ),
+        menuSelectOption(
+            () => {
                 setShowMenu(false);
                 navigate('data-products/vertical-geometry');
             },
-            qaId: 'vertical-geometry-menu-link',
-            name: t('app-bar.data-products.vertical-geometry'),
-        },
-        {
-            onSelect: () => {
+            t('app-bar.data-products.vertical-geometry'),
+            'vertical-geometry-menu-link',
+        ),
+        menuSelectOption(
+            () => {
                 setShowMenu(false);
                 navigate('data-products/kilometer-lengths');
             },
-            qaId: 'kilometer-length-menu-link',
-            name: t('app-bar.data-products.km-lengths'),
-        },
+            t('app-bar.data-products.km-lengths'),
+            'kilometer-length-menu-link',
+        ),
     ];
 
     return (

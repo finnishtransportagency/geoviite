@@ -143,7 +143,7 @@ class PVClient @Autowired constructor(
     }
 
     private inline fun <reified T> get404toNull(message: String): (ex: WebClientResponseException) -> Mono<T> = { ex ->
-        if (ex.rawStatusCode == 404) {
+        if (ex.statusCode.value() == 404) {
             logger.warn("Could not GET ${T::class.simpleName} from ProjektiVelho: " +
                     "$message status=${ex.statusCode} result=${ex.message?.let(::formatForLog) ?: "" }")
             Mono.empty()

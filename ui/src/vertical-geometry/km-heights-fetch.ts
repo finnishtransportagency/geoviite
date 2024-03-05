@@ -9,6 +9,8 @@ import { ChangeTimes } from 'common/common-slice';
 import { getMaxTimestamp, toDate } from 'utils/date-utils';
 import { VerticalGeometryDiagramAlignmentId } from 'vertical-geometry/store';
 import { TimeStamp } from 'common/common-model';
+import { expectDefined } from 'utils/type-utils';
+import { first } from 'utils/array-utils';
 
 type HeightCacheKey = string;
 type HeightCacheItem = {
@@ -88,14 +90,14 @@ export function weaveKms<T>(getFirstM: (km: T) => number, left: T[], right: T[])
         rightI = 0;
 
     while (leftI < left.length && rightI < right.length) {
-        const leftM = getFirstM(left[leftI]);
-        const rightM = getFirstM(right[rightI]);
+        const leftM = getFirstM(expectDefined(left[leftI]));
+        const rightM = getFirstM(expectDefined(right[rightI]));
         if (leftM < rightM) {
-            rv.push(left[leftI++]);
+            rv.push(expectDefined(left[leftI++]));
         } else if (rightM < leftM) {
-            rv.push(right[rightI++]);
+            rv.push(expectDefined(right[rightI++]));
         } else {
-            rv.push(left[leftI++]);
+            rv.push(expectDefined(left[leftI++]));
             rightI++;
         }
     }
@@ -139,23 +141,23 @@ export function getMissingCoveringRange(
 ): undefined | [number, number] {
     const leftStart = ranges.findIndex(([_, rangeEnd]) => rangeEnd >= queryStart);
     if (leftStart !== -1) {
-        for (let i = 0; i < ranges.length; i++) {
-            if (ranges[i][0] <= queryStart && ranges[i][1] >= queryStart) {
-                queryStart = ranges[i][1];
+        ranges.forEach((range) => {
+            if (range[0] <= queryStart && range[1] >= queryStart) {
+                queryStart = range[1];
             } else {
-                break;
+                return;
             }
-        }
+        });
     }
     const rightStart = ranges.findIndex(([_, rangeEnd]) => rangeEnd >= queryEnd);
     if (rightStart !== -1) {
-        for (let i = rightStart; i >= 0; i--) {
-            if (ranges[i][0] <= queryEnd && ranges[i][1] >= queryEnd) {
-                queryEnd = ranges[i][0];
+        [...ranges].reverse().forEach((range) => {
+            if (range[0] <= queryEnd && range[1] >= queryEnd) {
+                queryEnd = range[0];
             } else {
-                break;
+                return;
             }
-        }
+        });
     }
     return queryStart >= queryEnd ? undefined : [queryStart, queryEnd];
 }
@@ -166,7 +168,7 @@ function getQueryableRange(
     endM: number,
 ): [number, number] | undefined {
     return getMissingCoveringRange(
-        resolved.map((r) => [r.trackMeterHeights[0].m, r.endM]),
+        resolved.map((r) => [expectDefined(first(r.trackMeterHeights)).m, r.endM]),
         startM,
         endM,
     );
@@ -193,7 +195,8 @@ export function useAlignmentHeights(
         if (cacheItem) {
             setLoadedHeights(
                 cacheItem.resolved.filter(
-                    (item) => item.trackMeterHeights[0].m <= eM && item.endM >= sM,
+                    (item) =>
+                        expectDefined(first(item.trackMeterHeights)).m <= eM && item.endM >= sM,
                 ),
             );
         }
@@ -229,7 +232,7 @@ export function useAlignmentHeights(
                 );
 
                 loadedCacheItem.resolved = weaveKms(
-                    (kms) => kms.trackMeterHeights[0].m,
+                    (kms) => expectDefined(first(kms.trackMeterHeights)).m,
                     loadedCacheItem.resolved,
                     loadedKms,
                 );

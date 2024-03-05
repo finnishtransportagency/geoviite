@@ -1,15 +1,15 @@
 package fi.fta.geoviite.infra
 
+import currentUser
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.configuration.USER_HEADER
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
 import org.junit.jupiter.api.BeforeEach
-import org.slf4j.MDC
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.support.TransactionTemplate
@@ -67,12 +67,12 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
     val trackNumberDescription by lazy { "Test track number ${this::class.simpleName}" }
 
     @BeforeEach
-    fun initUserMdc() {
-        MDC.put(USER_HEADER, testUser)
+    fun initUser() {
+        currentUser.set(UserName(testUser))
     }
 
     fun <T> transactional(op: () -> T): T = transaction.execute {
-        initUserMdc()
+        initUser()
         jdbc.setUser()
         op()
     } ?: throw IllegalStateException("Transaction returned nothing")
@@ -141,6 +141,9 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
 
     fun insertUniqueSwitch(): DaoResponse<TrackLayoutSwitch> =
         insertSwitch(switch(name = getUnusedSwitchName().toString()))
+
+    fun insertUniqueDraftSwitch(): DaoResponse<TrackLayoutSwitch> =
+        insertSwitch(draft(switch(name = getUnusedSwitchName().toString())))
 
     fun insertSwitch(switch: TrackLayoutSwitch): DaoResponse<TrackLayoutSwitch> = transactional {
         jdbc.setUser()

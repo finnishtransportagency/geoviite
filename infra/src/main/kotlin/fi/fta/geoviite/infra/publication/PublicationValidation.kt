@@ -40,20 +40,12 @@ fun validateTrackNumberReferences(
     referenceLine: ReferenceLine?,
     kmPosts: List<TrackLayoutKmPost>,
     locationTracks: List<LocationTrack>,
-    publishKmPostIds: List<IntId<TrackLayoutKmPost>>,
-    publishedTrackIds: List<IntId<LocationTrack>>,
 ): List<PublishValidationError> = listOfNotNull(
-    validate(referenceLine != null) { "$VALIDATION_TRACK_NUMBER.reference-line.null" },
+    validate(referenceLine != null) { "$VALIDATION_TRACK_NUMBER.reference-line.not-published" },
     locationTracks.filter(LocationTrack::exists).let { existingTracks ->
         validateWithParams(trackNumber.exists || existingTracks.isEmpty()) {
             val existingNames = existingTracks.joinToString(", ") { track -> track.name }
             "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted" to localizationParams("locationTracks" to existingNames)
-        }
-    },
-    locationTracks.filterNot { track -> isPublished(track, publishedTrackIds) }.let { unpublishedTracks ->
-        validateWithParams(unpublishedTracks.isEmpty()) {
-            val unpublishedNames = unpublishedTracks.joinToString(", ") { track -> track.name }
-            "$VALIDATION_TRACK_NUMBER.location-track.not-published" to localizationParams("locationTracks" to unpublishedNames)
         }
     },
     kmPosts.filter(TrackLayoutKmPost::exists).let { existingKmPosts ->
@@ -62,13 +54,28 @@ fun validateTrackNumberReferences(
             "$VALIDATION_TRACK_NUMBER.km-post.reference-deleted" to localizationParams("kmPosts" to existingNames)
         }
     },
-    kmPosts.filterNot { kmPost -> isPublished(kmPost, publishKmPostIds) }.let { unpublishedKmPosts ->
-        validateWithParams(unpublishedKmPosts.isEmpty()) {
-            val unpublishedNames = unpublishedKmPosts.joinToString(", ") { post -> post.kmNumber.toString() }
-            "$VALIDATION_TRACK_NUMBER.km-post.not-published" to localizationParams("kmPosts" to unpublishedNames)
-        }
-    },
 )
+
+fun validateTrackNumberNumberDuplication(
+    trackNumber: TrackLayoutTrackNumber,
+    duplicates: List<TrackLayoutTrackNumber>,
+): List<PublishValidationError> {
+    return if (trackNumber.exists) {
+        val officialDuplicateExists = duplicates.any { d -> d.id != trackNumber.id && d.isOfficial() }
+        val draftDuplicateExists = duplicates.any { d -> d.id != trackNumber.id && d.isDraft() }
+
+        listOfNotNull(
+            if (!draftDuplicateExists && officialDuplicateExists) PublishValidationError(
+                ERROR, "$VALIDATION_TRACK_NUMBER.duplicate-name-official", mapOf("trackNumber" to trackNumber.number)
+            ) else null,
+            if (draftDuplicateExists) PublishValidationError(
+                ERROR, "$VALIDATION_TRACK_NUMBER.duplicate-name-draft", mapOf("trackNumber" to trackNumber.number)
+            ) else null,
+        )
+    } else {
+        emptyList()
+    }
+}
 
 //Location is validated by GeocodingContext
 fun validateDraftKmPostFields(kmPost: TrackLayoutKmPost): List<PublishValidationError> =
@@ -78,18 +85,19 @@ fun validateKmPostReferences(
     kmPost: TrackLayoutKmPost,
     trackNumber: TrackLayoutTrackNumber?,
     referenceLine: ReferenceLine?,
-    publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+    trackNumberNumber: TrackNumber?,
 ): List<PublishValidationError> = listOfNotNull(
-    validate(trackNumber != null) { "$VALIDATION_KM_POST.track-number.null" },
-    validate(referenceLine != null) { "$VALIDATION_KM_POST.reference-line.null" },
+    validateWithParams(trackNumber != null) {
+        "$VALIDATION_KM_POST.track-number.not-published" to localizationParams("trackNumber" to trackNumberNumber)
+    },
+    validateWithParams(referenceLine != null) {
+        "$VALIDATION_KM_POST.reference-line.not-published" to localizationParams("trackNumber" to trackNumberNumber)
+    },
     validateWithParams(!kmPost.exists || trackNumber == null || trackNumber.state.isLinkable()) {
         "$VALIDATION_KM_POST.track-number.state.${trackNumber?.state}" to localizationParams("trackNumber" to trackNumber?.number)
     },
     validateWithParams(trackNumber == null || kmPost.trackNumberId == trackNumber.id) {
         "$VALIDATION_KM_POST.track-number.not-official" to localizationParams("trackNumber" to trackNumber?.number)
-    },
-    validateWithParams(trackNumber == null || isPublished(trackNumber, publishTrackNumberIds)) {
-        "$VALIDATION_KM_POST.track-number.not-published" to localizationParams("trackNumber" to trackNumber?.number)
     },
 )
 
@@ -100,22 +108,13 @@ fun validateDraftSwitchFields(switch: TrackLayoutSwitch): List<PublishValidation
 fun validateSwitchLocationTrackLinkReferences(
     switch: TrackLayoutSwitch,
     locationTracks: List<LocationTrack>,
-    publishLocationTrackIds: List<IntId<LocationTrack>>,
 ): List<PublishValidationError> {
-    val notPublishedTracks = locationTracks.mapNotNull { locationTrack ->
-        validateWithParams(isPublished(locationTrack, publishLocationTrackIds)) {
-            "$VALIDATION_SWITCH.location-track.not-published" to localizationParams("locationTrack" to locationTrack.name)
-        }
-    }
-
-    val noReferenceTracks = listOfNotNull(locationTracks.filter(LocationTrack::exists).let { existingTracks ->
+    return listOfNotNull(locationTracks.filter(LocationTrack::exists).let { existingTracks ->
         validateWithParams(switch.exists || existingTracks.isEmpty()) {
             val existingNames = existingTracks.joinToString(", ") { track -> track.name }
             "$VALIDATION_SWITCH.location-track.reference-deleted" to localizationParams("locationTracks" to existingNames)
         }
     })
-
-    return notPublishedTracks + noReferenceTracks
 }
 
 fun validateSwitchLocation(switch: TrackLayoutSwitch): List<PublishValidationError> =
@@ -125,18 +124,17 @@ fun validateSwitchLocation(switch: TrackLayoutSwitch): List<PublishValidationErr
 
 fun validateSwitchNameDuplication(
     switch: TrackLayoutSwitch,
-    draftsBySameName: List<TrackLayoutSwitch>,
-    officialsBySameName: List<TrackLayoutSwitch>,
+    duplicates: List<TrackLayoutSwitch>,
 ): List<PublishValidationError> {
     return if (switch.exists) {
-        val officialDuplicateExists = officialsBySameName.any { official -> official.id != switch.id }
-        val stagedDuplicateExists = draftsBySameName.any { draft -> draft.id != switch.id }
+        val officialDuplicateExists = duplicates.any { d -> d.id != switch.id && d.isOfficial() }
+        val draftDuplicateExists = duplicates.any { d -> d.id != switch.id && d.isDraft() }
 
         listOfNotNull(
-            validateWithParams(stagedDuplicateExists || !officialDuplicateExists) {
+            validateWithParams(draftDuplicateExists || !officialDuplicateExists) {
                 "$VALIDATION_SWITCH.duplicate-name-official" to localizationParams("switch" to switch.name)
             },
-            validateWithParams(!stagedDuplicateExists) {
+            validateWithParams(!draftDuplicateExists) {
                 "$VALIDATION_SWITCH.duplicate-name-draft" to localizationParams("switch" to switch.name)
             },
         )
@@ -145,14 +143,36 @@ fun validateSwitchNameDuplication(
     }
 }
 
+fun validateLocationTrackNameDuplication(
+    track: LocationTrack,
+    trackNumber: TrackNumber?,
+    duplicates: List<LocationTrack>,
+): List<PublishValidationError> {
+    return if (track.exists && duplicates.any { d -> d.id != track.id }) {
+        val officialDuplicateExists = duplicates.any { d -> d.id != track.id && d.isOfficial() }
+        val draftDuplicateExists = duplicates.any { d -> d.id != track.id && d.isDraft() }
+        val localizationParams = localizationParams(
+            "locationTrack" to track.name,
+            "trackNumber" to trackNumber,
+        )
+        return listOfNotNull(
+            validateWithParams(draftDuplicateExists || !officialDuplicateExists) {
+                "$VALIDATION_LOCATION_TRACK.duplicate-name-official" to localizationParams
+            },
+            validateWithParams(!draftDuplicateExists) {
+                "$VALIDATION_LOCATION_TRACK.duplicate-name-draft" to localizationParams
+            },
+        )
+    } else emptyList()
+}
+
 fun validateSwitchLocationTrackLinkStructure(
     switch: TrackLayoutSwitch,
     structure: SwitchStructure,
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
 ): List<PublishValidationError> {
     val existingTracks = locationTracks.filter { (track, _) -> track.exists }
-    val segmentGroups = locationTracks
-        .filter { (track, _) -> track.exists } // Only consider the non-deleted tracks for switch alignments
+    val segmentGroups = existingTracks // Only consider the non-deleted tracks for switch alignments
         .map { (track, alignment) -> track to alignment.segments.filter { segment -> segment.switchId == switch.id } }
         .filter { (_, segments) -> segments.isNotEmpty() }
 
@@ -189,6 +209,66 @@ fun validateSwitchLocationTrackLinkStructure(
     ) + validateSwitchTopologicalConnectivity(switch, structure, locationTracks, null) else listOf()
 }
 
+fun validateLocationTrackSwitchConnectivity(
+    layoutTrack: LocationTrack,
+    alignment: LayoutAlignment,
+): List<PublishValidationError> {
+    val startSegment = alignment.segments.firstOrNull()
+    val endSegment = alignment.segments.lastOrNull()
+    val topologyStartSwitch = layoutTrack.topologyStartSwitch?.switchId
+    val topologyEndSwitch = layoutTrack.topologyEndSwitch?.switchId
+
+    val hasStartSwitch =
+        (startSegment?.switchId != null && startSegment.startJointNumber != null) || topologyStartSwitch != null
+    val hasEndSwitch = (endSegment?.switchId != null && endSegment.endJointNumber != null) || topologyEndSwitch != null
+
+    return when (layoutTrack.topologicalConnectivity) {
+        TopologicalConnectivityType.NONE -> {
+            listOfNotNull(
+                validate(!hasStartSwitch, WARNING) {
+                    "$VALIDATION_LOCATION_TRACK.topological-connectivity.start-switch-is-topologically-connected"
+                },
+                validate(!hasEndSwitch, WARNING) {
+                    "$VALIDATION_LOCATION_TRACK.topological-connectivity.end-switch-is-topologically-connected"
+                },
+            )
+        }
+
+        TopologicalConnectivityType.START -> {
+            listOfNotNull(
+                validate(hasStartSwitch, WARNING) {
+                    "$VALIDATION_LOCATION_TRACK.topological-connectivity.start-switch-missing"
+                },
+                validate(!hasEndSwitch, WARNING) {
+                    "$VALIDATION_LOCATION_TRACK.topological-connectivity.end-switch-is-topologically-connected"
+                },
+            )
+        }
+
+        TopologicalConnectivityType.END -> {
+            listOfNotNull(
+                validate(!hasStartSwitch, WARNING) {
+                    "$VALIDATION_LOCATION_TRACK.topological-connectivity.start-switch-is-topologically-connected"
+                },
+                validate(hasEndSwitch, WARNING) {
+                    "$VALIDATION_LOCATION_TRACK.topological-connectivity.end-switch-missing"
+                },
+            )
+        }
+
+        TopologicalConnectivityType.START_AND_END -> {
+            listOfNotNull(
+                validate(hasStartSwitch, WARNING) {
+                    "$VALIDATION_LOCATION_TRACK.topological-connectivity.start-switch-missing"
+                },
+                validate(hasEndSwitch, WARNING) {
+                    "$VALIDATION_LOCATION_TRACK.topological-connectivity.end-switch-missing"
+                }
+            )
+        }
+    }
+}
+
 fun validateSwitchTopologicalConnectivity(
     switch: TrackLayoutSwitch,
     structure: SwitchStructure,
@@ -208,11 +288,11 @@ fun validateSwitchTopologicalConnectivity(
 fun switchOrTrackLinkageKey(validatingTrack: LocationTrack?) =
     if (validatingTrack != null) "$VALIDATION_LOCATION_TRACK.switch-linkage" else "$VALIDATION_SWITCH.track-linkage"
 
-private fun <T> getTracksThroughJoints(
+private fun getTracksThroughJoints(
     structure: SwitchStructure,
-    tracks: List<Pair<T, LayoutAlignment>>,
+    tracks: List<Pair<LocationTrack, LayoutAlignment>>,
     switch: TrackLayoutSwitch,
-): Map<JointNumber, List<T>> {
+): Map<JointNumber, List<LocationTrack>> {
     val tracksThroughJoint = structure.joints.map { it.number }.associateWith { jointNumber ->
         tracks.filter { (_, alignment) ->
             val jointLinkedIndexRange = alignment.segments.mapIndexedNotNull { i, segment ->
@@ -266,7 +346,7 @@ private fun validateExcessTracksThroughJoint(
     validatingTrack: LocationTrack?,
 ): PublishValidationError? {
     val excesses = tracksThroughJoint.filter { (joint, tracks) ->
-        joint != connectivityType.sharedJoint && tracks.count(LocationTrack::isDraft) > 1
+        joint != connectivityType.sharedPassThroughJoint && tracks.size > 1
     }
     val someoneElseIsResponsible = validatingTrack?.let {
         excesses.values.flatten().none { excess -> excess.id == validatingTrack.id }
@@ -334,8 +414,11 @@ fun validateSwitchAlignmentTopology(
         val alignmentsString = switchAlignmentsUnlinkedToNonduplicates.joinToString { alignment ->
             alignment.joinToString("-") { joint -> joint.intValue.toString() }
         }
-        val key =
-            "${switchOrTrackLinkageKey(validatingTrack)}.switch-alignment-${if (switchAlignmentsLinkedToOnlyDuplicates.isEmpty()) "not-connected" else "only-connected-to-duplicate"}"
+        val key = if (switchAlignmentsLinkedToOnlyDuplicates.isEmpty()) {
+            "${switchOrTrackLinkageKey(validatingTrack)}.switch-alignment-not-connected"
+        } else {
+            "${switchOrTrackLinkageKey(validatingTrack)}.switch-alignment-only-connected-to-duplicate"
+        }
 
         key to localizationParams("locationTracks" to alignmentsString, "switch" to switchName.toString())
     }
@@ -360,7 +443,7 @@ fun validateDuplicateOfState(
     val duplicateNameParams = localizationParams(
         "duplicateTrack" to (duplicateOfLocationTrack?.name ?: duplicateOfLocationTrackDraftName)
     )
-    return if (duplicateOfLocationTrack == null) {
+    val ownDuplicateOfErrors = if (duplicateOfLocationTrack == null) {
         listOfNotNull(
             // Non-null reference, but the duplicateOf track doesn't exist in validation context
             validateWithParams(locationTrack.duplicateOf == null) {
@@ -384,6 +467,19 @@ fun validateDuplicateOfState(
             },
         )
     }
+    val otherDuplicateReferenceErrors = if (!locationTrack.exists) {
+        val existingDuplicates = duplicates.filter { d -> d.exists }
+        listOfNotNull(
+            validateWithParams(existingDuplicates.isEmpty()) {
+                "$VALIDATION_LOCATION_TRACK.deleted-duplicated-by-existing" to localizationParams(
+                    "duplicates" to existingDuplicates.joinToString(",") { track -> track.name },
+                )
+            },
+        )
+    } else {
+        emptyList()
+    }
+    return ownDuplicateOfErrors + otherDuplicateReferenceErrors
 }
 
 fun validateDraftLocationTrackFields(locationTrack: LocationTrack): List<PublishValidationError> = listOfNotNull(
@@ -392,43 +488,33 @@ fun validateDraftLocationTrackFields(locationTrack: LocationTrack): List<Publish
 
 fun validateReferenceLineReference(
     referenceLine: ReferenceLine,
+    trackNumberNumber: TrackNumber?,
     trackNumber: TrackLayoutTrackNumber?,
-    publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
 ): List<PublishValidationError> {
-    return if (trackNumber == null) listOf(
-        PublishValidationError(ERROR, "$VALIDATION_REFERENCE_LINE.track-number.null")
+    val numberParams = localizationParams("trackNumber" to trackNumberNumber)
+    return listOfNotNull(
+        validateWithParams(trackNumber != null) {
+            "$VALIDATION_REFERENCE_LINE.track-number.not-published" to numberParams
+        },
+        validateWithParams(trackNumber == null || referenceLine.trackNumberId == trackNumber.id) {
+            "$VALIDATION_REFERENCE_LINE.track-number.not-official" to numberParams
+        },
     )
-    else {
-        val numberParams = localizationParams("trackNumber" to trackNumber.number)
-
-        listOfNotNull(
-            validateWithParams(referenceLine.trackNumberId == trackNumber.id) {
-                "$VALIDATION_REFERENCE_LINE.track-number.not-official" to numberParams
-            },
-            validateWithParams(isPublished(trackNumber, publishTrackNumberIds)) {
-                "$VALIDATION_REFERENCE_LINE.track-number.not-published" to numberParams
-            },
-        )
-    }
 }
 
 fun validateLocationTrackReference(
     locationTrack: LocationTrack,
     trackNumber: TrackLayoutTrackNumber?,
-    publishTrackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+    trackNumberName: TrackNumber?,
 ): List<PublishValidationError> {
     return if (trackNumber == null) listOf(
-        PublishValidationError(ERROR, "$VALIDATION_LOCATION_TRACK.track-number.null")
+        validationError("$VALIDATION_LOCATION_TRACK.track-number.not-published", "trackNumber" to trackNumberName),
     )
     else {
         val numberParams = localizationParams("trackNumber" to trackNumber.number)
-
         listOfNotNull(
             validateWithParams(locationTrack.trackNumberId == trackNumber.id) {
                 "$VALIDATION_LOCATION_TRACK.track-number.not-official" to numberParams
-            },
-            validateWithParams(isPublished(trackNumber, publishTrackNumberIds)) {
-                "$VALIDATION_LOCATION_TRACK.track-number.not-published" to numberParams
             },
             validateWithParams(locationTrack.state.isRemoved() || trackNumber.state.isLinkable()) {
                 "$VALIDATION_LOCATION_TRACK.track-number.state.${trackNumber.state}" to numberParams
@@ -438,67 +524,74 @@ fun validateLocationTrackReference(
 }
 
 data class SegmentSwitch(
-    val switch: TrackLayoutSwitch,
-    val switchStructure: SwitchStructure,
+    val switchId: IntId<TrackLayoutSwitch>,
+    val switchName: SwitchName?,
+    val switch: TrackLayoutSwitch?,
+    val switchStructure: SwitchStructure?,
     val segments: List<LayoutSegment>,
 )
 
 fun validateSegmentSwitchReferences(
     locationTrack: LocationTrack,
     segmentSwitches: List<SegmentSwitch>,
-    publishSwitchIds: List<IntId<TrackLayoutSwitch>>,
 ): List<PublishValidationError> {
     return segmentSwitches.flatMap { segmentSwitch ->
         val switch = segmentSwitch.switch
+        val switchStructure = segmentSwitch.switchStructure
         val segments = segmentSwitch.segments
 
-        val nameLocalizationParams = localizationParams("switch" to switch.name)
+        val nameLocalizationParams = localizationParams("switch" to segmentSwitch.switchName)
 
-        val stateErrors: List<PublishValidationError> = listOfNotNull(
-            validateWithParams(segments.all { segment -> switch.id == segment.switchId }) {
-                "$VALIDATION_LOCATION_TRACK.switch.not-official" to nameLocalizationParams
-            },
-            validateWithParams(isPublished(switch, publishSwitchIds)) {
-                "$VALIDATION_LOCATION_TRACK.switch.not-published" to nameLocalizationParams
-            },
-            validateWithParams(!locationTrack.exists || switch.stateCategory.isLinkable()) {
-                "$VALIDATION_LOCATION_TRACK.switch.state-category.${switch.stateCategory}" to nameLocalizationParams
-            },
-        )
-
-        val geometryErrors: List<PublishValidationError> = if (locationTrack.exists && switch.exists) {
-            val structureJoints = collectJoints(segmentSwitch.switchStructure)
-            val segmentJoints = collectJoints(segments)
-            listOfNotNull(
-                validateWithParams(areSegmentsContinuous(segments)) {
-                    "$VALIDATION_LOCATION_TRACK.switch.alignment-not-continuous" to nameLocalizationParams
+        if (switch == null || switchStructure == null) {
+            listOf(validationError("$VALIDATION_LOCATION_TRACK.switch.not-published", nameLocalizationParams))
+        } else {
+            val stateErrors: List<PublishValidationError> = listOfNotNull(
+                validateWithParams(segments.all { segment -> switch.id == segment.switchId }) {
+                    "$VALIDATION_LOCATION_TRACK.switch.not-official" to nameLocalizationParams
                 },
-                validateWithParams(segmentAndJointLocationsAgree(switch, segments), WARNING) {
-                    "$VALIDATION_LOCATION_TRACK.switch.joint-location-mismatch" to nameLocalizationParams
-                },
-                validateWithParams(alignmentJointGroupFound(segmentJoints, structureJoints)) {
-                    "$VALIDATION_LOCATION_TRACK.switch.wrong-joint-sequence" to localizationParams(
-                        "switch" to switch.name,
-                        "switchType" to segmentSwitch.switchStructure.baseType.name,
-                        "switchJoints" to jointSequence(segmentJoints),
-                    )
-                },
-                validateWithParams(segmentJoints.isNotEmpty()) {
-                    "$VALIDATION_LOCATION_TRACK.switch.wrong-links" to nameLocalizationParams
+                validateWithParams(!locationTrack.exists || switch.stateCategory.isLinkable()) {
+                    "$VALIDATION_LOCATION_TRACK.switch.state-category.${switch.stateCategory}" to nameLocalizationParams
                 },
             )
-        } else listOf()
 
-        stateErrors + geometryErrors
+            val geometryErrors: List<PublishValidationError> = if (locationTrack.exists && switch.exists) {
+                val structureJoints = collectJoints(segmentSwitch.switchStructure)
+                val segmentJoints = collectJoints(segments)
+                listOfNotNull(
+                    validateWithParams(areSegmentsContinuous(segments)) {
+                        "$VALIDATION_LOCATION_TRACK.switch.alignment-not-continuous" to nameLocalizationParams
+                    },
+                    validateWithParams(segmentAndJointLocationsAgree(switch, segments), WARNING) {
+                        "$VALIDATION_LOCATION_TRACK.switch.joint-location-mismatch" to nameLocalizationParams
+                    },
+                    validateWithParams(alignmentJointGroupFound(segmentJoints, structureJoints)) {
+                        "$VALIDATION_LOCATION_TRACK.switch.wrong-joint-sequence" to localizationParams(
+                            "switch" to switch.name,
+                            "switchType" to segmentSwitch.switchStructure.baseType.name,
+                            "switchJoints" to jointSequence(segmentJoints),
+                        )
+                    },
+                    validateWithParams(segmentJoints.isNotEmpty()) {
+                        "$VALIDATION_LOCATION_TRACK.switch.wrong-links" to nameLocalizationParams
+                    },
+                )
+            } else listOf()
+            stateErrors + geometryErrors
+        }
     }
 }
 
 fun validateTopologicallyConnectedSwitchReferences(
-    topologicallyConnectedSwitches: List<TrackLayoutSwitch>,
-    publishSwitchIds: List<IntId<TrackLayoutSwitch>>,
-) = topologicallyConnectedSwitches.mapNotNull { switch ->
-    validateWithParams(isPublished(switch, publishSwitchIds)) {
-        "$VALIDATION_LOCATION_TRACK.switch.not-published" to localizationParams("switch" to switch.name)
+    locationTrack: LocationTrack,
+    topologicallyConnectedSwitches: List<Pair<SwitchName, TrackLayoutSwitch?>>,
+): List<PublishValidationError> = topologicallyConnectedSwitches.mapNotNull { (name, switch) ->
+    val nameParams = localizationParams("switch" to name)
+    if (switch == null) {
+        validationError("$VALIDATION_LOCATION_TRACK.switch.not-published", nameParams)
+    } else {
+        validateWithParams(!locationTrack.exists || switch.stateCategory.isLinkable()) {
+            "$VALIDATION_LOCATION_TRACK.switch.state-category.${switch.stateCategory}" to nameParams
+        }
     }
 }
 
@@ -745,8 +838,11 @@ private fun validateWithParams(
     valid: Boolean,
     type: PublishValidationErrorType = ERROR,
     error: () -> Pair<String, LocalizationParams>,
-) = if (!valid) error().let { (key, params) -> PublishValidationError(type, LocalizationKey(key), params) }
-else null
+): PublishValidationError? = if (!valid) {
+    error().let { (key, params) -> PublishValidationError(type, LocalizationKey(key), params) }
+} else {
+    null
+}
 
 private fun <T : Draftable<T>> isPublished(item: T, publishItemIds: List<IntId<T>>) =
     item.draft == null || publishItemIds.contains(item.id)
@@ -779,3 +875,15 @@ fun <T> combineVersions(
     val validationVersions = validations.map { it.validatedAssetVersion }
     return (officialVersions + validationVersions).distinct()
 }
+
+fun validationError(key: String, vararg params: Pair<String, Any?>): PublishValidationError =
+    PublishValidationError(ERROR, key, params.associate { it })
+
+fun validationError(key: String, params: LocalizationParams): PublishValidationError =
+    PublishValidationError(ERROR, LocalizationKey(key), params)
+
+fun validationWarning(key: String, vararg params: Pair<String, Any?>): PublishValidationError =
+    PublishValidationError(WARNING, key, params.associate { it })
+
+fun validationWarning(key: String, params: LocalizationParams): PublishValidationError =
+    PublishValidationError(WARNING, LocalizationKey(key), params)

@@ -74,6 +74,8 @@ const DatePickerInput = React.forwardRef<
 
 DatePickerInput.displayName = 'DatePickerInput';
 
+const DATE_PICKER_POPUP_LEFT_PAD_PX = 14;
+
 export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, ...props }) => {
     return (
         <div className={'datepicker'}>
@@ -88,9 +90,10 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, ...prop
                 popperModifiers={[
                     {
                         name: 'offset',
-                        options: {
-                            offset: [0, 6],
-                        },
+                        fn: (state) => ({
+                            ...state,
+                            x: state.x + DATE_PICKER_POPUP_LEFT_PAD_PX,
+                        }),
                     },
                 ]}
                 customInput={<DatePickerInput {...props} />}

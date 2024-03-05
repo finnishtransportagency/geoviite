@@ -10,7 +10,12 @@ import { defaults as defaultInteractions } from 'ol/interaction';
 import DragPan from 'ol/interaction/DragPan.js';
 import 'ol/ol.css';
 import OlView from 'ol/View';
-import { Map, MapViewport, OptionalShownItems } from 'map/map-model';
+import {
+    HELSINKI_RAILWAY_STATION_COORDS,
+    Map,
+   MapLayerName, MapViewport,
+    OptionalShownItems,
+} from 'map/map-model';
 import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
 import styles from './map.module.scss';
 import { selectTool } from './tools/select-tool';
@@ -48,7 +53,7 @@ import { createBackgroundMapLayer } from 'map/layers/background-map-layer';
 import TileSource from 'ol/source/Tile';
 import TileLayer from 'ol/layer/Tile';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, first } from 'utils/array-utils';
 import { mapLayerZIndexes } from 'map/layers/utils/layer-visibility-limits';
 import { createLocationTrackAlignmentLayer } from 'map/layers/alignment/location-track-alignment-layer';
 import { createReferenceLineAlignmentLayer } from 'map/layers/alignment/reference-line-alignment-layer';
@@ -99,7 +104,6 @@ export type MapViewProps = {
     onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
     hoveredOverPlanSection?: HighlightedAlignment | undefined;
     manuallySetPlan?: GeometryPlanLayout;
-    onDoneLoading: () => void;
 };
 
 export type ClickType = 'all' | 'geometryPoint' | 'layoutPoint' | 'remove';
@@ -111,7 +115,10 @@ const defaultScaleLine: ScaleLine = new ScaleLine({
 
 function getOlViewByDomainViewport(viewport: MapViewport): OlView {
     return new OlView({
-        center: [viewport.center.x, viewport.center.y],
+        center: [
+            viewport.center?.x ?? HELSINKI_RAILWAY_STATION_COORDS.x,
+            viewport.center?.y ?? HELSINKI_RAILWAY_STATION_COORDS.y,
+        ],
         resolution: viewport.resolution,
         maxZoom: 32,
         minZoom: 6,
@@ -122,13 +129,15 @@ function getOlViewByDomainViewport(viewport: MapViewport): OlView {
 
 function getDomainViewportByOlView(map: OlMap): MapViewport {
     const view = map.getView();
-    const center = view.getCenter() as number[];
-    const extent = map.getView().calculateExtent();
+    const center = view.getCenter() as [number, number] | undefined;
+    const extent = map.getView().calculateExtent() as [number, number, number, number];
     return {
-        center: {
-            x: center[0],
-            y: center[1],
-        },
+        center: center
+            ? {
+                  x: center[0],
+                  y: center[1],
+              }
+            : undefined,
         resolution: view.getResolution() as number,
         area: {
             x: { min: extent[0], max: extent[2] },
@@ -156,21 +165,35 @@ const MapView: React.FC<MapViewProps> = ({
     onShownLayerItemsChange,
     onHighlightItems,
     onClickLocation,
-    onDoneLoading,
 }: MapViewProps) => {
     const { t } = useTranslation();
 
     // State to store OpenLayers map object between renders
     const [olMap, setOlMap] = React.useState<OlMap>();
     const olMapContainer = React.useRef<HTMLDivElement>(null);
-    const visibleLayers = React.useRef<MapLayer[]>([]);
+    const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
     const [measurementToolActive, setMeasurementToolActive] = React.useState(false);
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
+
+    const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
+
+    const onLayerLoading = (name: MapLayerName, isLoading: boolean) => {
+        setLayersLoadingData((prevLoadingLayers) => {
+            if (isLoading && !prevLoadingLayers.includes(name)) {
+                return [...prevLoadingLayers, name];
+            } else if (!isLoading && prevLoadingLayers.includes(name)) {
+                return prevLoadingLayers.filter((n) => n !== name);
+            } else {
+                return prevLoadingLayers;
+            }
+        });
+    };
+    const isLoading = () => [...map.visibleLayers].some((l) => layersLoadingData.includes(l));
 
     const mapLayers = [...map.visibleLayers].sort().join();
 
     const handleClusterPointClick = (clickType: ClickType) => {
-        const clusterPoint = selection.selectedItems.clusterPoints[0];
+        const clusterPoint = first(selection.selectedItems.clusterPoints);
         if (clusterPoint) {
             switch (clickType) {
                 case 'all':
@@ -223,12 +246,6 @@ const MapView: React.FC<MapViewProps> = ({
                 view: getOlViewByDomainViewport(map.viewport),
             });
 
-            window.map.on('rendercomplete', () => {
-                if (!visibleLayers.current.some((l) => l.requestInFlight())) {
-                    onDoneLoading();
-                }
-            });
-
             setOlMap(window.map);
         }
     }, []);
@@ -246,11 +263,10 @@ const MapView: React.FC<MapViewProps> = ({
         };
     }, [olMap]);
 
+    const firstClusterPoint = first(selection.selectedItems.clusterPoints);
     React.useEffect(() => {
-        const clusterPoint = selection.selectedItems.clusterPoints[0];
-
-        if (!olMap || !clusterPoint) return;
-        const pos = pointToCoords(clusterPoint);
+        if (!olMap || !firstClusterPoint) return;
+        const pos = pointToCoords(firstClusterPoint);
         const popupElement = document.getElementById('clusteroverlay') || undefined;
         const popup = new Overlay({
             position: pos,
@@ -258,7 +274,7 @@ const MapView: React.FC<MapViewProps> = ({
             element: popupElement,
         });
         olMap.addOverlay(popup);
-    }, [olMap, selection.selectedItems.clusterPoints[0]]);
+    }, [olMap, firstClusterPoint]);
 
     // Update the view"port" of the map
     React.useEffect(() => {
@@ -290,8 +306,7 @@ const MapView: React.FC<MapViewProps> = ({
                 // Step 2. create the layer
                 // In some cases an adapter wants to reuse existing OL layer,
                 // e.g. tile layers cause flickering if recreated every time
-                const existingOlLayer = visibleLayers.current.find((l) => l.name === layerName)
-                    ?.layer;
+                const existingOlLayer = visibleLayers.find((l) => l.name === layerName)?.layer;
 
                 switch (layerName) {
                     case 'background-map-layer':
@@ -304,6 +319,7 @@ const MapView: React.FC<MapViewProps> = ({
                             publishType,
                             resolution,
                             map.layerSettings['track-number-diagram-layer'],
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'track-number-addresses-layer':
                         return createTrackNumberEndPointAddressesLayer(
@@ -313,6 +329,7 @@ const MapView: React.FC<MapViewProps> = ({
                             publishType,
                             resolution,
                             map.layerSettings['track-number-diagram-layer'],
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'reference-line-alignment-layer':
                         return createReferenceLineAlignmentLayer(
@@ -323,6 +340,7 @@ const MapView: React.FC<MapViewProps> = ({
                             publishType,
                             changeTimes,
                             onShownLayerItemsChange,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'reference-line-background-layer':
                         return createReferenceLineBackgroundLayer(
@@ -331,6 +349,7 @@ const MapView: React.FC<MapViewProps> = ({
                             !!splittingState,
                             publishType,
                             changeTimes,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'reference-line-badge-layer':
                         return createReferenceLineBadgeLayer(
@@ -341,6 +360,7 @@ const MapView: React.FC<MapViewProps> = ({
                             linkingState,
                             changeTimes,
                             resolution,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'location-track-alignment-layer':
                         return createLocationTrackAlignmentLayer(
@@ -352,6 +372,7 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             olView,
                             onShownLayerItemsChange,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'location-track-background-layer':
                         return createLocationTrackBackgroundLayer(
@@ -362,6 +383,7 @@ const MapView: React.FC<MapViewProps> = ({
                             resolution,
                             selection,
                             !!splittingState,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'location-track-badge-layer':
                         return createLocationTrackBadgeLayer(
@@ -372,6 +394,7 @@ const MapView: React.FC<MapViewProps> = ({
                             linkingState,
                             changeTimes,
                             resolution,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'missing-linking-highlight-layer':
                         return createMissingLinkingHighlightLayer(
@@ -380,6 +403,7 @@ const MapView: React.FC<MapViewProps> = ({
                             publishType,
                             changeTimes,
                             resolution,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'duplicate-tracks-highlight-layer':
                         return createDuplicateTracksHighlightLayer(
@@ -388,6 +412,7 @@ const MapView: React.FC<MapViewProps> = ({
                             publishType,
                             changeTimes,
                             resolution,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'missing-profile-highlight-layer':
                         return createMissingProfileHighlightLayer(
@@ -396,6 +421,7 @@ const MapView: React.FC<MapViewProps> = ({
                             publishType,
                             changeTimes,
                             resolution,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'plan-section-highlight-layer':
                         return createPlanSectionHighlightLayer(
@@ -405,6 +431,7 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             resolution,
                             hoveredOverPlanSection,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'km-post-layer':
                         return createKmPostLayer(
@@ -415,6 +442,7 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             olView,
                             onShownLayerItemsChange,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'switch-layer':
                         return createSwitchLayer(
@@ -426,6 +454,7 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             olView,
                             onShownLayerItemsChange,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'geometry-alignment-layer':
                         return createGeometryAlignmentLayer(
@@ -436,6 +465,7 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             resolution,
                             manuallySetPlan,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'geometry-km-post-layer':
                         return createGeometryKmPostLayer(
@@ -446,6 +476,7 @@ const MapView: React.FC<MapViewProps> = ({
                             publishType,
                             changeTimes,
                             manuallySetPlan,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'geometry-switch-layer':
                         return createGeometrySwitchLayer(
@@ -456,6 +487,7 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             resolution,
                             manuallySetPlan,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'alignment-linking-layer':
                         return createAlignmentLinkingLayer(
@@ -465,6 +497,7 @@ const MapView: React.FC<MapViewProps> = ({
                             linkingState,
                             changeTimes,
                             resolution,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'switch-linking-layer':
                         return createSwitchLinkingLayer(
@@ -473,11 +506,13 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             selection,
                             linkingState as LinkingSwitch | undefined,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'location-track-split-location-layer':
                         return createLocationTrackSplitLocationLayer(
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             splittingState,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'duplicate-split-section-highlight-layer':
                         return createDuplicateSplitSectionHighlightLayer(
@@ -487,6 +522,7 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             resolution,
                             splittingState,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'location-track-duplicate-endpoint-address-layer':
                         return createDuplicateTrackEndpointAddressLayer(
@@ -496,6 +532,7 @@ const MapView: React.FC<MapViewProps> = ({
                             changeTimes,
                             resolution,
                             splittingState,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'location-track-split-badge-layer':
                         return createLocationTrackSplitBadgeLayer(
@@ -505,6 +542,7 @@ const MapView: React.FC<MapViewProps> = ({
                             splittingState,
                             changeTimes,
                             resolution,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'location-track-selected-alignment-layer':
                         return createLocationTrackSelectedAlignmentLayer(
@@ -515,6 +553,7 @@ const MapView: React.FC<MapViewProps> = ({
                             splittingState,
                             changeTimes,
                             olView,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'reference-line-selected-alignment-layer':
                         return createSelectedReferenceLineAlignmentLayer(
@@ -523,12 +562,14 @@ const MapView: React.FC<MapViewProps> = ({
                             selection,
                             publishType,
                             changeTimes,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'plan-area-layer':
                         return createPlanAreaLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<Polygon>>,
                             changeTimes,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'debug-1m-points-layer':
                         return createDebug1mPointsLayer(
@@ -536,6 +577,7 @@ const MapView: React.FC<MapViewProps> = ({
                             selection,
                             publishType,
                             resolution,
+                            (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'debug-layer':
                         return createDebugLayer(
@@ -551,11 +593,11 @@ const MapView: React.FC<MapViewProps> = ({
 
         updatedLayers.forEach((l) => l.layer.setZIndex(mapLayerZIndexes[l.name]));
 
-        visibleLayers.current
+        visibleLayers
             .filter((vl) => !updatedLayers.some((ul) => ul.name === vl.name))
             .forEach((l) => l.onRemove && l.onRemove());
 
-        visibleLayers.current = updatedLayers;
+        setVisibleLayers(updatedLayers);
 
         // Set converted layers into map object
         const olLayers = updatedLayers.map((l) => l.layer);
@@ -586,16 +628,16 @@ const MapView: React.FC<MapViewProps> = ({
         };
 
         const deactivateCallbacks = [
-            pointLocationTool.activate(olMap, visibleLayers.current, toolActivateOptions),
+            pointLocationTool.activate(olMap, visibleLayers, toolActivateOptions),
         ];
 
         if (!measurementToolActive) {
             deactivateCallbacks.push(
-                selectTool.activate(olMap, visibleLayers.current, toolActivateOptions),
+                selectTool.activate(olMap, visibleLayers, toolActivateOptions),
             );
 
             deactivateCallbacks.push(
-                highlightTool.activate(olMap, visibleLayers.current, toolActivateOptions),
+                highlightTool.activate(olMap, visibleLayers, toolActivateOptions),
             );
         }
 
@@ -603,7 +645,7 @@ const MapView: React.FC<MapViewProps> = ({
         return () => {
             deactivateCallbacks.forEach((f) => f());
         };
-    }, [olMap, visibleLayers.current, measurementToolActive]);
+    }, [olMap, visibleLayers, measurementToolActive]);
 
     React.useEffect(() => {
         if (measurementToolActive && olMap) {
@@ -639,7 +681,7 @@ const MapView: React.FC<MapViewProps> = ({
             />
 
             <div id="clusteroverlay">
-                {selection.selectedItems.clusterPoints[0] && (
+                {first(selection.selectedItems.clusterPoints) && (
                     <div className={styles['map__popup-menu']}>
                         <div
                             className={styles['map__popup-item']}
@@ -672,7 +714,7 @@ const MapView: React.FC<MapViewProps> = ({
                 publishType={publishType}
             />
 
-            {map.loadingIndicatorVisible && (
+            {isLoading() && (
                 <div className={styles['map__loading-spinner']} qa-id="map-loading-spinner">
                     <Spinner />
                 </div>

@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.projektivelho
 
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.authorization.withUser
 import fi.fta.geoviite.infra.common.FeatureTypeCode
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.error.InframodelParsingException
@@ -20,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
+import withUser
 import java.time.Duration
 import java.time.Instant
 
