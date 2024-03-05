@@ -60,6 +60,7 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
 
     React.useEffect(() => {
         if (refPosition && modalRef.current) {
+            console.log(modalSize);
             const windowHeight = window.innerHeight;
             const windowWidth = window.innerWidth;
 
@@ -76,7 +77,7 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
             const newPosition: ModalPosition = { left: x, top: y };
 
             setModalSize({
-                ...modalSize,
+                width: modalWidth,
                 maxHeight:
                     maxHeight === undefined || maxHeight <= calculatedMaxHeight
                         ? maxHeight
