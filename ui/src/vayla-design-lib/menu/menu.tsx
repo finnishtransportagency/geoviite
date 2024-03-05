@@ -58,6 +58,7 @@ type MenuProps<TValue> = {
     onClickOutside: () => void;
     onSelect?: (item: TValue) => void;
     items: MenuOption<TValue>[];
+    opensTowardsLeft?: boolean;
 } & Omit<React.HTMLAttributes<HTMLElement>, 'onSelect'>;
 
 export const Menu = function <TValue>({
@@ -66,6 +67,7 @@ export const Menu = function <TValue>({
     items,
     onSelect,
     className,
+    opensTowardsLeft,
     ...props
 }: MenuProps<TValue>) {
     const { height: offsetY } = positionRef.current?.getBoundingClientRect() ?? { height: 0 };
@@ -75,6 +77,7 @@ export const Menu = function <TValue>({
             className={createClassName(styles['menu'], className)}
             onClickOutside={onClickOutside}
             positionRef={positionRef}
+            openTowardsLeft={opensTowardsLeft}
             offsetY={offsetY + 6}>
             <ol className={styles['menu__items']} {...props}>
                 {items.map((i, index) => {

@@ -50,6 +50,7 @@ const AppBarMoreMenu: React.FC = () => {
                     items={moreActions}
                     className={styles['app-bar__more-menu']}
                     onClickOutside={() => setShowMenu(false)}
+                    opensTowardsLeft={true}
                 />
             )}
 
