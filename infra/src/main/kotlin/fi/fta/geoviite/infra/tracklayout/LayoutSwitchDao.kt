@@ -443,9 +443,7 @@ class LayoutSwitchDao(
                 rowVersion = rs.getRowVersion("row_id", "row_version"),
                 externalId = rs.getOidOrNull("external_id"),
             )
-        }.also { logger.daoAccess(
-            FETCH,
-            "${TrackLayoutSwitch::class.simpleName}<-${LocationTrackIdentifiers::class.simpleName}",
+        }.also { logger.daoAccess(FETCH, "LocationTracks linked to switch",
             switchIds,
         ) }
     }
@@ -487,11 +485,7 @@ class LayoutSwitchDao(
                 rowVersion = rs.getRowVersion("id", "version"),
                 externalId = rs.getOidOrNull("external_id"),
             )
-        }.also { logger.daoAccess(
-            FETCH,
-            "${TrackLayoutSwitch::class.simpleName}<-${LocationTrackIdentifiers::class.simpleName}",
-            switchId,
-        ) }
+        }.also { logger.daoAccess(FETCH, "LocationTracks linked to switch at moment", switchId) }
     }
 
     fun findOfficialNameDuplicates(names: List<SwitchName>): Map<SwitchName, List<RowVersion<TrackLayoutSwitch>>> {
@@ -513,7 +507,7 @@ class LayoutSwitchDao(
             }
             // Ensure that the result contains all asked-for names, even if there are no matches
             names.associateWith { n -> found.filter { (name, _) -> name == n }.map { (_, v) -> v } }.also { dups ->
-                logger.daoAccess(FETCH, "Switch->List<${RowVersion::class.simpleName}>", dups.keys)
+                logger.daoAccess(FETCH, "Switch name duplicates", dups.keys)
             }
         }
     }

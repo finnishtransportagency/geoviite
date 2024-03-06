@@ -965,11 +965,11 @@ const createFeatures = (
     }
 };
 
-const emptySearchResult = {
+const emptySearchResult = (): LayerItemSearchResult => ({
     layoutLinkPoints: [],
     geometryLinkPoints: [],
     clusterPoints: [],
-};
+});
 
 const searchItems = (source: VectorSource, hitArea: Rectangle): LayerItemSearchResult => {
     const features = findIntersectingFeatures<OlPoint | LineString>(hitArea, source);
@@ -1041,7 +1041,7 @@ export function createAlignmentLinkingLayer(
         searchItems: (hitArea: Rectangle, _options: SearchItemsOptions): LayerItemSearchResult => {
             if (!drawLinkingDots) {
                 //If dots are not drawn, do not select anything
-                return emptySearchResult;
+                return emptySearchResult();
             } else {
                 return searchItems(source, hitArea);
             }

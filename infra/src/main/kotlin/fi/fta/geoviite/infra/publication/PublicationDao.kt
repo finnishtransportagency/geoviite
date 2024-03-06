@@ -365,7 +365,7 @@ class PublicationDao(
         }
         return ids.associateWith { id ->
             rows.filter { (duplicateOfId, _) -> duplicateOfId == id }.map { (_, rv) -> rv }
-        }
+        }.also { logger.daoAccess(FETCH, "Duplicate track versions", ids) }
     }
 
     fun getPublication(publicationId: IntId<Publication>): Publication {
