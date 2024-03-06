@@ -76,7 +76,7 @@ class LocationTrackDao(
             select 
               ltv.id as row_id,
               ltv.version as row_version,
-              coalesce(ltv.draft_of_location_track_id, ltv.id) as official_id, 
+              coalesce(ltv.official_row_id, ltv.id) as official_id, 
               case when ltv.draft then ltv.id end as draft_id,
               ltv.alignment_id,
               ltv.alignment_version,
@@ -126,7 +126,7 @@ class LocationTrackDao(
             select 
               lt.id as row_id,
               lt.version as row_version,
-              coalesce(lt.draft_of_location_track_id, lt.id) as official_id, 
+              coalesce(lt.official_row_id, lt.id) as official_id, 
               case when lt.draft then lt.id end as draft_id,
               lt.alignment_id,
               lt.alignment_version,
@@ -215,7 +215,7 @@ class LocationTrackDao(
               type,
               state,
               draft, 
-              draft_of_location_track_id,            
+              official_row_id,            
               duplicate_of_location_track_id,
               topological_connectivity,
               topology_start_switch_id,
@@ -235,7 +235,7 @@ class LocationTrackDao(
               :type::layout.track_type,
               :state::layout.state,
               :draft, 
-              :draft_of_location_track_id,            
+              :official_row_id,            
               :duplicate_of_location_track_id,
               :topological_connectivity::layout.track_topological_connectivity_type,
               :topology_start_switch_id,
@@ -245,7 +245,7 @@ class LocationTrackDao(
               :owner_id
             ) 
             returning 
-              coalesce(draft_of_location_track_id, id) as official_id,
+              coalesce(official_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -260,7 +260,7 @@ class LocationTrackDao(
             "type" to newItem.type.name,
             "state" to newItem.state.name,
             "draft" to (newItem.draft != null),
-            "draft_of_location_track_id" to draftOfId(newItem.id, newItem.draft)?.intValue,
+            "official_row_id" to draftOfId(newItem.id, newItem.draft)?.intValue,
             "duplicate_of_location_track_id" to newItem.duplicateOf?.intValue,
             "topological_connectivity" to newItem.topologicalConnectivity.name,
             "topology_start_switch_id" to newItem.topologyStartSwitch?.switchId?.intValue,
@@ -294,7 +294,7 @@ class LocationTrackDao(
               type = :type::layout.track_type,
               state = :state::layout.state,
               draft = :draft,
-              draft_of_location_track_id = :draft_of_location_track_id,
+              official_row_id = :official_row_id,
               duplicate_of_location_track_id = :duplicate_of_location_track_id,
               topological_connectivity = :topological_connectivity::layout.track_topological_connectivity_type,
               topology_start_switch_id = :topology_start_switch_id,
@@ -304,7 +304,7 @@ class LocationTrackDao(
               owner_id = :owner_id
             where id = :id
             returning 
-              coalesce(draft_of_location_track_id, id) as official_id,
+              coalesce(official_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -321,7 +321,7 @@ class LocationTrackDao(
             "type" to updatedItem.type.name,
             "state" to updatedItem.state.name,
             "draft" to (updatedItem.draft != null),
-            "draft_of_location_track_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
+            "official_row_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
             "duplicate_of_location_track_id" to updatedItem.duplicateOf?.intValue,
             "topological_connectivity" to updatedItem.topologicalConnectivity.name,
             "topology_start_switch_id" to updatedItem.topologyStartSwitch?.switchId?.intValue,

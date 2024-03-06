@@ -1,0 +1,23 @@
+alter table layout.track_number rename column draft_of_track_number_id to official_row_id;
+alter table layout.track_number_version rename column draft_of_track_number_id to official_row_id;
+alter table layout.track_number rename constraint track_number_draft_of_track_number_id_fkey to track_number_official_row_id_fkey;
+alter table layout.track_number rename constraint track_number_draft_of_track_number_id_unique to track_number_official_row_id_unique;
+
+alter table layout.reference_line rename column draft_of_reference_line_id to official_row_id;
+alter table layout.reference_line_version rename column draft_of_reference_line_id to official_row_id;
+alter table layout.reference_line rename constraint reference_line_draft_of_reference_line_id_fkey to reference_line_official_row_id_fkey;
+alter table layout.reference_line rename constraint reference_line_draft_of_reference_line_id_unique to reference_line_official_row_id_unique;
+
+alter table layout.location_track rename column draft_of_location_track_id to official_row_id;
+alter table layout.location_track_version rename column draft_of_location_track_id to official_row_id;
+alter table layout.location_track rename constraint location_track_draft_of_location_track_id_fkey to location_track_official_row_id_fkey;
+alter table layout.location_track rename constraint location_track_draft_of_location_track_id_unique to location_track_official_row_id_unique;
+
+alter table layout.km_post rename column draft_of_km_post_id to official_row_id;
+alter table layout.km_post_version rename column draft_of_km_post_id to official_row_id;
+alter table layout.km_post rename constraint km_post_draft_of_alignment_id_unique to km_post_official_row_id_unique;
+
+alter table layout.switch rename column draft_of_switch_id to official_row_id;
+alter table layout.switch_version rename column draft_of_switch_id to official_row_id;
+alter table layout.switch rename constraint switch_draft_of_switch_id_fkey to switch_official_row_id_fkey;
+alter table layout.switch rename constraint switch_draft_of_switch_id_unique to switch_official_row_id_unique;

@@ -145,7 +145,7 @@ class LayoutSwitchDao(
                 trap_point,
                 owner_id,
                 draft,
-                draft_of_switch_id,
+                official_row_id,
                 source
             )
             values (
@@ -157,11 +157,11 @@ class LayoutSwitchDao(
               :trap_point,
               :owner_id,
               :draft,
-              :draft_of_switch_id,
+              :official_row_id,
               :source::layout.geometry_source
             )
             returning 
-              coalesce(draft_of_switch_id, id) as official_id,
+              coalesce(official_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -176,7 +176,7 @@ class LayoutSwitchDao(
                 "trap_point" to newItem.trapPoint,
                 "owner_id" to newItem.ownerId?.intValue,
                 "draft" to (newItem.draft != null),
-                "draft_of_switch_id" to draftOfId(newItem.id, newItem.draft)?.intValue,
+                "official_row_id" to draftOfId(newItem.id, newItem.draft)?.intValue,
                 "source" to newItem.source.name
             )
         ) { rs, _ -> rs.getDaoResponse("official_id", "row_id", "row_version") }
@@ -199,11 +199,11 @@ class LayoutSwitchDao(
               state_category = :state_category::layout.state_category,
               trap_point = :trap_point,
               draft = :draft,
-              draft_of_switch_id = :draft_of_switch_id,
+              official_row_id = :official_row_id,
               owner_id = :owner_id
             where id = :id
             returning 
-              coalesce(draft_of_switch_id, id) as official_id,
+              coalesce(official_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -216,7 +216,7 @@ class LayoutSwitchDao(
             "state_category" to updatedItem.stateCategory.name,
             "trap_point" to updatedItem.trapPoint,
             "draft" to (updatedItem.draft != null),
-            "draft_of_switch_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
+            "official_row_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
             "owner_id" to updatedItem.ownerId?.intValue
         )
         jdbcTemplate.setUser()
@@ -289,7 +289,7 @@ class LayoutSwitchDao(
             select 
               sv.id as row_id,
               sv.version as row_version,
-              coalesce(sv.draft_of_switch_id, sv.id) as official_id, 
+              coalesce(sv.official_row_id, sv.id) as official_id, 
               case when sv.draft then sv.id end as draft_id,
               sv.geometry_switch_id, 
               sv.external_id, 
@@ -324,7 +324,7 @@ class LayoutSwitchDao(
             select 
               s.id as row_id,
               s.version as row_version,
-              coalesce(s.draft_of_switch_id, s.id) as official_id, 
+              coalesce(s.official_row_id, s.id) as official_id, 
               case when s.draft then s.id end as draft_id,
               s.geometry_switch_id, 
               s.external_id, 

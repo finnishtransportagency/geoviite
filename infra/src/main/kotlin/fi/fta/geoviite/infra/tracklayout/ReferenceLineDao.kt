@@ -29,7 +29,7 @@ class ReferenceLineDao(
             select
               rlv.id as row_id,
               rlv.version as row_version,
-              coalesce(rlv.draft_of_reference_line_id, rlv.id) as official_id, 
+              coalesce(rlv.official_row_id, rlv.id) as official_id, 
               case when rlv.draft then rlv.id end as draft_id,
               rlv.alignment_id,
               rlv.alignment_version,
@@ -58,7 +58,7 @@ class ReferenceLineDao(
             select
               rl.id as row_id,
               rl.version as row_version,
-              coalesce(rl.draft_of_reference_line_id, rl.id) as official_id, 
+              coalesce(rl.official_row_id, rl.id) as official_id, 
               case when rl.draft then rl.id end as draft_id,
               rl.alignment_id,
               rl.alignment_version,
@@ -101,7 +101,7 @@ class ReferenceLineDao(
               alignment_version,
               start_address,
               draft, 
-              draft_of_reference_line_id
+              official_row_id
             ) 
             values (
               :track_number_id,
@@ -109,10 +109,10 @@ class ReferenceLineDao(
               :alignment_version,
               :start_address, 
               :draft, 
-              :draft_of_reference_line_id
+              :official_row_id
             ) 
             returning 
-              coalesce(draft_of_reference_line_id, id) as official_id,
+              coalesce(official_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -123,7 +123,7 @@ class ReferenceLineDao(
             "alignment_version" to newItem.alignmentVersion.version,
             "start_address" to newItem.startAddress.toString(),
             "draft" to (newItem.draft != null),
-            "draft_of_reference_line_id" to draftOfId(newItem.id, newItem.draft)?.intValue,
+            "official_row_id" to draftOfId(newItem.id, newItem.draft)?.intValue,
         )
 
         jdbcTemplate.setUser()
@@ -145,10 +145,10 @@ class ReferenceLineDao(
               alignment_version = :alignment_version,
               start_address = :start_address,
               draft = :draft,
-              draft_of_reference_line_id = :draft_of_reference_line_id
+              official_row_id = :official_row_id
             where id = :id
             returning 
-              coalesce(draft_of_reference_line_id, id) as official_id,
+              coalesce(official_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -160,7 +160,7 @@ class ReferenceLineDao(
             "alignment_version" to updatedItem.alignmentVersion.version,
             "start_address" to updatedItem.startAddress.toString(),
             "draft" to (updatedItem.draft != null),
-            "draft_of_reference_line_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
+            "official_row_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
         )
         jdbcTemplate.setUser()
         val result: DaoResponse<ReferenceLine> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->

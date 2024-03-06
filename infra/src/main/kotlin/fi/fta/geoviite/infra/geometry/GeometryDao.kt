@@ -226,20 +226,20 @@ class GeometryDao @Autowired constructor(
             with
               location_tracks as (
                 select
-                  distinct ga.plan_id, coalesce(track.draft_of_location_track_id, track.id) as id
+                  distinct ga.plan_id, coalesce(track.official_row_id, track.id) as id
                   from layout.location_track track
                     left join layout.segment_version sv on sv.alignment_id = track.alignment_id and sv.alignment_version = track.alignment_version
                     left join geometry.alignment ga on ga.id = sv.geometry_alignment_id
               ),
               switches as (
                 select
-                  distinct gs.plan_id, coalesce(switch.draft_of_switch_id, switch.id) as id
+                  distinct gs.plan_id, coalesce(switch.official_row_id, switch.id) as id
                   from layout.switch
                     left join geometry.switch gs on gs.id = switch.geometry_switch_id
               ),
               km_posts as (
                 select
-                  distinct gp.plan_id, coalesce(km_post.draft_of_km_post_id, km_post.id) as id
+                  distinct gp.plan_id, coalesce(km_post.official_row_id, km_post.id) as id
                   from layout.km_post
                     left join geometry.km_post gp on gp.id = km_post.geometry_km_post_id
               )
