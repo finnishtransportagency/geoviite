@@ -123,7 +123,7 @@ class ReferenceLineDao(
             "alignment_version" to newItem.alignmentVersion.version,
             "start_address" to newItem.startAddress.toString(),
             "draft" to (newItem.draft != null),
-            "official_row_id" to draftOfId(newItem.id, newItem.draft)?.intValue,
+            "official_row_id" to officialRowId(newItem.id, newItem.draft)?.intValue,
         )
 
         jdbcTemplate.setUser()
@@ -160,7 +160,7 @@ class ReferenceLineDao(
             "alignment_version" to updatedItem.alignmentVersion.version,
             "start_address" to updatedItem.startAddress.toString(),
             "draft" to (updatedItem.draft != null),
-            "official_row_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
+            "official_row_id" to officialRowId(updatedItem.id, updatedItem.draft)?.intValue,
         )
         jdbcTemplate.setUser()
         val result: DaoResponse<ReferenceLine> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->

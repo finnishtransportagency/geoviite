@@ -162,7 +162,7 @@ class LayoutTrackNumberDao(
             "description" to newItem.description,
             "state" to newItem.state.name,
             "draft" to (newItem.draft != null),
-            "official_row_id" to draftOfId(newItem)?.intValue,
+            "official_row_id" to officialRowId(newItem)?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
@@ -197,7 +197,7 @@ class LayoutTrackNumberDao(
             "description" to updatedItem.description,
             "state" to updatedItem.state.name,
             "draft" to (updatedItem.draft != null),
-            "official_row_id" to draftOfId(updatedItem)?.intValue,
+            "official_row_id" to officialRowId(updatedItem)?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->

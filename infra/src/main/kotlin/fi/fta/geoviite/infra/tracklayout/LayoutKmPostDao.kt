@@ -224,7 +224,7 @@ class LayoutKmPostDao(
             "srid" to LAYOUT_SRID.code,
             "state" to newItem.state.name,
             "draft" to (newItem.draft != null),
-            "official_row_id" to draftOfId(newItem.id, newItem.draft)?.intValue,
+            "official_row_id" to officialRowId(newItem.id, newItem.draft)?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
@@ -268,7 +268,7 @@ class LayoutKmPostDao(
             "srid" to LAYOUT_SRID.code,
             "state" to updatedItem.state.name,
             "draft" to (updatedItem.draft != null),
-            "official_row_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
+            "official_row_id" to officialRowId(updatedItem.id, updatedItem.draft)?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->

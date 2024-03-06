@@ -372,9 +372,9 @@ private fun draftFetchSql(table: DbTable, fetchType: FetchType) = """
           and not exists(select 1 from ${table.fullName} d where d.${table.draftLink} = o.id))
 """
 
-inline fun <reified T : Draftable<T>> draftOfId(item: T) = draftOfId(item.id, item.draft)
+inline fun <reified T : Draftable<T>> officialRowId(item: T) = officialRowId(item.id, item.draft)
 
-inline fun <reified T : Draftable<T>> draftOfId(id: DomainId<T>, draft: Draft<T>?): IntId<T>? =
+inline fun <reified T : Draftable<T>> officialRowId(id: DomainId<T>, draft: Draft<T>?): IntId<T>? =
     if (draft != null && draft.draftRowId != id) {
         toDbId(T::class, id)
     } else {

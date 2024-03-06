@@ -176,7 +176,7 @@ class LayoutSwitchDao(
                 "trap_point" to newItem.trapPoint,
                 "owner_id" to newItem.ownerId?.intValue,
                 "draft" to (newItem.draft != null),
-                "official_row_id" to draftOfId(newItem.id, newItem.draft)?.intValue,
+                "official_row_id" to officialRowId(newItem.id, newItem.draft)?.intValue,
                 "source" to newItem.source.name
             )
         ) { rs, _ -> rs.getDaoResponse("official_id", "row_id", "row_version") }
@@ -216,7 +216,7 @@ class LayoutSwitchDao(
             "state_category" to updatedItem.stateCategory.name,
             "trap_point" to updatedItem.trapPoint,
             "draft" to (updatedItem.draft != null),
-            "official_row_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
+            "official_row_id" to officialRowId(updatedItem.id, updatedItem.draft)?.intValue,
             "owner_id" to updatedItem.ownerId?.intValue
         )
         jdbcTemplate.setUser()
