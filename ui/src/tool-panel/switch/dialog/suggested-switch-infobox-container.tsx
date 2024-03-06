@@ -6,10 +6,10 @@ import {
     GeometrySwitchInfoboxVisibilities,
     trackLayoutActionCreators as TrackLayoutActions,
 } from 'track-layout/track-layout-slice';
-import { SuggestedSwitch } from 'linking/linking-model';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
+import { SuggestedSwitch } from 'linking/linking-model';
 
 type SuggestedSwitchInfoboxContainerProps = {
     onVisibilityChange: (visibilities: GeometrySwitchInfoboxVisibilities) => void;

@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.linking
 
-import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
@@ -61,59 +60,71 @@ enum class SuggestedSwitchJointMatchType {
     START, END, LINE,
 }
 
-data class SuggestedSwitchJointMatch(
-    val locationTrackId: DomainId<LocationTrack>,
+data class FittedSwitchJointMatch(
+    val locationTrackId: IntId<LocationTrack>,
     val segmentIndex: Int,
     val m: Double,
-    val layoutSwitchId: DomainId<TrackLayoutSwitch>?,
-    @JsonIgnore val switchJoint: SwitchJoint,
-    @JsonIgnore val matchType: SuggestedSwitchJointMatchType,
-    @JsonIgnore val distance: Double,
-    @JsonIgnore val distanceToAlignment: Double,
-    @JsonIgnore val alignmentId: IntId<LayoutAlignment>?,
+    val switchJoint: SwitchJoint,
+    val matchType: SuggestedSwitchJointMatchType,
+    val distance: Double,
+    val distanceToAlignment: Double,
+    val alignmentId: IntId<LayoutAlignment>?,
 )
-
-data class SuggestedSwitchJoint(
+data class FittedSwitchJoint(
     override val number: JointNumber,
     override val location: Point,
-    val matches: List<SuggestedSwitchJointMatch>,
     val locationAccuracy: LocationAccuracy?,
+    val matches: List<FittedSwitchJointMatch>,
 ) : ISwitchJoint
 
-data class SuggestedSwitch(
+data class TopologyLinkFindingSwitch(
+    val joints: List<ISwitchJoint>,
+    val id: IntId<TrackLayoutSwitch>,
+)
+
+data class FittedSwitch(
     val name: SwitchName,
-    val switchStructure: SwitchStructure,
-    val joints: List<SuggestedSwitchJoint>,
+    val switchStructureId: IntId<SwitchStructure>,
+    val joints: List<FittedSwitchJoint>,
     val alignmentEndPoint: LocationTrackEndpoint?,
-    val geometryPlanId: IntId<GeometryPlan>? = null,
     val geometrySwitchId: IntId<GeometrySwitch>? = null,
-    val topologicalJointConnections: List<TopologicalJointConnection>? = null,
+    val geometryPlanId: IntId<GeometryPlan>? = null,
 )
 
-data class TopologicalJointConnection(
-    val jointNumber: JointNumber,
-    val locationTrackIds: List<IntId<LocationTrack>>,
+data class SuggestedSwitch(
+    val switchStructureId: IntId<SwitchStructure>,
+    val joints: List<TrackLayoutSwitchJoint>,
+    val trackLinks: Map<IntId<LocationTrack>, SwitchLinkingTrackLinks>,
+    val geometrySwitchId: IntId<GeometrySwitch>? = null,
+    val alignmentEndPoint: LocationTrackEndpoint? = null,
+    val name: SwitchName,
 )
 
-data class SwitchLinkingSegment(
-    val locationTrackId: IntId<LocationTrack>,
-    val m: Double,
-    val segmentIndex: Int,
+enum class TrackEnd {
+    START, END
+}
+
+data class SwitchLinkingTopologicalTrackLink(
+    val number: JointNumber,
+    val trackEnd: TrackEnd,
 )
+
+data class SwitchLinkingTrackLinks(
+    val segmentJoints: List<SwitchLinkingJoint>,
+    val topologyJoint: SwitchLinkingTopologicalTrackLink?,
+) {
+    init {
+        // linking to neither is OK; that just communicates cleaning up all links
+        check(topologyJoint == null || segmentJoints.isEmpty()) { "Switch linking track link links both to segment and topology"}
+        check(segmentJoints.zipWithNext { a, b -> a.m < b.m }.all { it }) { "Switch linking track link segment joints should be m-ordered"}
+    }
+}
 
 data class SwitchLinkingJoint(
-    val jointNumber: JointNumber,
+    val number: JointNumber,
+    val segmentIndex: Int,
+    val m: Double,
     val location: Point,
-    val locationAccuracy: LocationAccuracy?,
-    val segments: List<SwitchLinkingSegment>,
-)
-
-data class SwitchLinkingParameters(
-    val layoutSwitchId: IntId<TrackLayoutSwitch>,
-    val switchStructureId: IntId<SwitchStructure>,
-    val joints: List<SwitchLinkingJoint>,
-    val geometryPlanId: IntId<GeometryPlan>? = null,
-    val geometrySwitchId: IntId<GeometrySwitch>?,
 )
 
 data class TrackLayoutSwitchSaveRequest(

@@ -1119,6 +1119,12 @@ class GeometryDao @Autowired constructor(
     @Cacheable(CACHE_GEOMETRY_SWITCH, sync = true)
     fun getSwitch(id: IntId<GeometrySwitch>) = getOne(id, fetchSwitches(planId = null, switchId = id))
 
+    fun getSwitchPlanId(id: IntId<GeometrySwitch>): IntId<GeometryPlan>? = jdbcTemplate.queryOptional(
+        "select plan_id from geometry.switch where id = :id", mapOf("id" to id.intValue)
+    ) { rs, _ ->
+        rs.getIntId("plan_id")
+    }
+
     private fun fetchSwitches(planId: IntId<GeometryPlan>?, switchId: IntId<GeometrySwitch>?): List<GeometrySwitch> {
         val sql = """
             select
