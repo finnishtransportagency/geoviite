@@ -183,8 +183,7 @@ data class LocationTrack(
     val externalId: Oid<LocationTrack>?,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val sourceId: IntId<GeometryAlignment>?,
-    override val id: DomainId<LocationTrack> = deriveFromSourceId("LT", sourceId),
-    override val dataType: DataType = DataType.TEMP,
+//    override val id: DomainId<LocationTrack> = deriveFromSourceId("LT", sourceId),
     override val version: RowVersion<LocationTrack>? = null,
     val boundingBox: BoundingBox?,
     val length: Double,
@@ -195,9 +194,13 @@ data class LocationTrack(
     val topologyEndSwitch: TopologyLocationTrackSwitch?,
     val ownerId: IntId<LocationTrackOwner>,
     @JsonIgnore val alignmentVersion: RowVersion<LayoutAlignment>? = null,
-    @JsonIgnore override val draft: Draft<LocationTrack>? = null,
+    @JsonIgnore override val contextData: LayoutContextData<LocationTrack> = LayoutContextData.newDraft(
+        id = deriveFromSourceId("LT", sourceId)
+    ),
+//    @JsonIgnore override val draft: Draft<LocationTrack>? = null,
     @JsonIgnore val segmentSwitchIds: List<IntId<TrackLayoutSwitch>> = listOf(),
-) : Draftable<LocationTrack> {
+) : LayoutConcept<LocationTrack>(contextData) {
+//) : Draftable<LocationTrack> {
 
     @JsonIgnore
     val exists = !state.isRemoved()
@@ -226,7 +229,7 @@ data class LocationTrack(
 
     override fun toLog(): String = logFormat(
         "version" to version,
-        "draft" to getDraftType(),
+        "context" to contextData::class.simpleName,
         "name" to name,
         "trackNumber" to trackNumberId,
         "alignment" to alignmentVersion,
