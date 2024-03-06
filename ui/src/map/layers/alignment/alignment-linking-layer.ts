@@ -44,7 +44,7 @@ import { formatTrackMeter } from 'utils/geography-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { expectCoordinate, expectDefined } from 'utils/type-utils';
+import { expectCoordinate } from 'utils/type-utils';
 
 const linkPointRadius = 4;
 const linkPointSelectedRadius = 6;
@@ -766,13 +766,13 @@ async function getLinkPointsWithAddresses<
 type LayoutSection = {
     layoutStart: LinkPoint | undefined;
     layoutEnd: LinkPoint | undefined;
-    layoutHighlight: LinkPoint;
+    layoutHighlight: LinkPoint | undefined;
 };
 
 type GeometrySection = {
     geometryStart: LinkPoint | undefined;
     geometryEnd: LinkPoint | undefined;
-    geometryHighlight: LinkPoint;
+    geometryHighlight: LinkPoint | undefined;
 };
 
 type AlignmentLinkingData = {
@@ -832,7 +832,7 @@ async function getLinkingData(
             getLinkPointsWithAddresses(state.layoutAlignmentType, state.layoutAlignmentId, {
                 layoutStart: state.layoutAlignmentInterval.start,
                 layoutEnd: state.layoutAlignmentInterval.end,
-                layoutHighlight: expectDefined(first(highlightedItems.layoutLinkPoints)),
+                layoutHighlight: first(highlightedItems.layoutLinkPoints),
             }),
         ]);
         return { type: LinkingType.LinkingAlignment, state, points, pointAddresses };
@@ -849,7 +849,7 @@ async function getLinkingData(
             getLinkPointsWithAddresses(state.layoutAlignmentType, state.layoutAlignmentId, {
                 geometryStart: state.geometryAlignmentInterval.start,
                 geometryEnd: state.geometryAlignmentInterval.end,
-                geometryHighlight: expectDefined(first(highlightedItems.geometryLinkPoints)),
+                geometryHighlight: first(highlightedItems.geometryLinkPoints),
             }),
         ]);
         return {
@@ -880,10 +880,10 @@ async function getLinkingData(
             getLinkPointsWithAddresses(state.layoutAlignmentType, state.layoutAlignmentId, {
                 layoutStart: state.layoutAlignmentInterval.start,
                 layoutEnd: state.layoutAlignmentInterval.end,
-                layoutHighlight: expectDefined(first(highlightedItems.layoutLinkPoints)),
+                layoutHighlight: first(highlightedItems.layoutLinkPoints),
                 geometryStart: state.geometryAlignmentInterval.start,
                 geometryEnd: state.geometryAlignmentInterval.end,
-                geometryHighlight: expectDefined(first(highlightedItems.geometryLinkPoints)),
+                geometryHighlight: first(highlightedItems.geometryLinkPoints),
             }),
         ]);
         return {
@@ -941,8 +941,12 @@ const createFeatures = (
                     ...selection,
                     highlightedItems: {
                         ...selection.highlightedItems,
-                        layoutLinkPoints: [data.pointAddresses.layoutHighlight],
-                        geometryLinkPoints: [data.pointAddresses.geometryHighlight],
+                        layoutLinkPoints: data.pointAddresses.layoutHighlight
+                            ? [data.pointAddresses.layoutHighlight]
+                            : [],
+                        geometryLinkPoints: data.pointAddresses.geometryHighlight
+                            ? [data.pointAddresses.geometryHighlight]
+                            : [],
                     },
                 },
                 {
