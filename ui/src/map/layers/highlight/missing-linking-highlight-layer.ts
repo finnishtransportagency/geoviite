@@ -1,8 +1,9 @@
 import mapStyles from 'map/map.module.scss';
 import { LineString } from 'ol/geom';
 import { Stroke, Style } from 'ol/style';
-import { MapTile } from 'map/map-model';
+import { AlignmentHighlight, MapLayerName, MapTile } from 'map/map-model';
 import {
+    AlignmentDataHolder,
     getAlignmentSectionsWithoutLinkingByTiles,
     getLocationTrackMapAlignmentsByTiles,
 } from 'track-layout/layout-map-api';
@@ -12,7 +13,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { createHighlightFeatures } from 'map/layers/utils/highlight-layer-utils';
-import { clearFeatures } from 'map/layers/utils/layer-utils';
+import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 
@@ -23,7 +24,12 @@ const highlightBackgroundStyle = new Style({
     }),
 });
 
-let newestLayerId = 0;
+type MissingLinkingLayerData = {
+    alignments: AlignmentDataHolder[];
+    sections: AlignmentHighlight[];
+};
+
+const layerName: MapLayerName = 'missing-linking-highlight-layer';
 
 export function createMissingLinkingHighlightLayer(
     mapTiles: MapTile[],
@@ -31,54 +37,32 @@ export function createMissingLinkingHighlightLayer(
     publishType: PublishType,
     changeTimes: ChangeTimes,
     resolution: number,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    const alignmentPromise: Promise<AlignmentDataHolder[]> =
+        resolution <= HIGHLIGHTS_SHOW
+            ? getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
+            : Promise.resolve([]);
+    const linkingStatusPromise: Promise<AlignmentHighlight[]> =
+        resolution <= HIGHLIGHTS_SHOW
+            ? getAlignmentSectionsWithoutLinkingByTiles(
+                  getMaxTimestamp(changeTimes.layoutLocationTrack, changeTimes.layoutReferenceLine),
+                  publishType,
+                  'ALL',
+                  mapTiles,
+              )
+            : Promise.resolve([]);
+    const dataPromise: Promise<MissingLinkingLayerData> = Promise.all([
+        alignmentPromise,
+        linkingStatusPromise,
+    ]).then(([alignments, sections]) => ({ alignments, sections }));
 
-    let inFlight = false;
-    if (resolution <= HIGHLIGHTS_SHOW) {
-        inFlight = true;
-        const alignmentPromise = getLocationTrackMapAlignmentsByTiles(
-            changeTimes,
-            mapTiles,
-            publishType,
-        );
+    const createFeatures = (data: MissingLinkingLayerData) =>
+        createHighlightFeatures(data.alignments, data.sections, highlightBackgroundStyle);
 
-        const linkingStatusPromise = getAlignmentSectionsWithoutLinkingByTiles(
-            getMaxTimestamp(changeTimes.layoutLocationTrack, changeTimes.layoutReferenceLine),
-            publishType,
-            'ALL',
-            mapTiles,
-        );
+    loadLayerData(source, isLatest, onLoadingData, dataPromise, createFeatures);
 
-        Promise.all([alignmentPromise, linkingStatusPromise])
-            .then(([alignments, sections]) => {
-                if (layerId !== newestLayerId) return;
-
-                const features = createHighlightFeatures(
-                    alignments,
-                    sections,
-                    highlightBackgroundStyle,
-                );
-
-                clearFeatures(vectorSource);
-                vectorSource.addFeatures(features);
-            })
-            .catch(() => {
-                if (layerId === newestLayerId) clearFeatures(vectorSource);
-            })
-            .finally(() => {
-                inFlight = false;
-            });
-    } else {
-        clearFeatures(vectorSource);
-    }
-
-    return {
-        name: 'missing-linking-highlight-layer',
-        layer: layer,
-        requestInFlight: () => inFlight,
-    };
+    return { name: layerName, layer: layer };
 }

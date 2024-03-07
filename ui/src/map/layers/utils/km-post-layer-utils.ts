@@ -18,6 +18,7 @@ import { Point as OlPoint, Polygon } from 'ol/geom';
 import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-utils';
 import VectorSource from 'ol/source/Vector';
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
+import { expectCoordinate } from 'utils/type-utils';
 
 const kmPostImg: HTMLImageElement = new Image();
 kmPostImg.src = `data:image/svg+xml;utf8,${encodeURIComponent(KmPost)}`;
@@ -119,13 +120,14 @@ function getSelectedKmPostRenderer(
     dFunctions.push(
         (
             _: LayoutKmPost,
-            [x, y]: Coordinate,
+            coord: Coordinate,
             ctx: CanvasRenderingContext2D,
             { pixelRatio }: State,
         ) => {
             ctx.fillStyle = mapStyles['selectedKmPostDot'];
             ctx.strokeStyle = mapStyles['selectedKmPostDotBorder'];
 
+            const [x, y] = expectCoordinate(coord);
             drawCircle(ctx, x, y, iconRadius * pixelRatio);
         },
     );
@@ -133,13 +135,14 @@ function getSelectedKmPostRenderer(
     dFunctions.push(
         (
             { kmNumber }: LayoutKmPost,
-            [x, y]: Coordinate,
+            coord: Coordinate,
             ctx: CanvasRenderingContext2D,
             { pixelRatio }: State,
         ) => {
             ctx.fillStyle = fillColor;
             ctx.strokeStyle = mapStyles['selectedKmPostLabelBorder'];
 
+            const [x, y] = expectCoordinate(coord);
             drawRoundedRect(
                 ctx,
                 x + (iconRadius + 10) * pixelRatio,
@@ -155,10 +158,11 @@ function getSelectedKmPostRenderer(
     dFunctions.push(
         (
             _: LayoutKmPost,
-            [x, y]: Coordinate,
+            coord: Coordinate,
             ctx: CanvasRenderingContext2D,
             { pixelRatio }: State,
         ) => {
+            const [x, y] = expectCoordinate(coord);
             ctx.drawImage(
                 kmPostImg,
                 x + (iconRadius + 10 + paddingRl) * pixelRatio,
@@ -172,7 +176,7 @@ function getSelectedKmPostRenderer(
     dFunctions.push(
         (
             { kmNumber }: LayoutKmPost,
-            [x, y]: Coordinate,
+            coord: Coordinate,
             ctx: CanvasRenderingContext2D,
             state: State,
         ) => {
@@ -180,6 +184,7 @@ function getSelectedKmPostRenderer(
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
 
+            const [x, y] = expectCoordinate(coord);
             const paddingX = iconRadius + 10 + paddingRl + iconSize + textMargin;
             ctx.fillText(kmNumber, x + paddingX * state.pixelRatio, y + 2 * state.pixelRatio);
         },
@@ -203,11 +208,12 @@ function getKmPostRenderer(
     dFunctions.push(
         (
             { kmNumber }: LayoutKmPost,
-            [x, y]: Coordinate,
+            coord: Coordinate,
             ctx: CanvasRenderingContext2D,
             { pixelRatio }: State,
         ) => {
             const textWidth = ctx.measureText(kmNumber).width;
+            const [x, y] = expectCoordinate(coord);
 
             if (kmPostType === 'layoutKmPost') {
                 ctx.fillStyle = mapStyles['kmPostLabel'];
@@ -239,10 +245,11 @@ function getKmPostRenderer(
     dFunctions.push(
         (
             _: LayoutKmPost,
-            [x, y]: Coordinate,
+            coord: Coordinate,
             ctx: CanvasRenderingContext2D,
             { pixelRatio }: State,
         ) => {
+            const [x, y] = expectCoordinate(coord);
             ctx.drawImage(
                 kmPostImg,
                 x - iconRadius * pixelRatio,
@@ -256,7 +263,7 @@ function getKmPostRenderer(
     dFunctions.push(
         (
             { kmNumber }: LayoutKmPost,
-            [x, y]: Coordinate,
+            coord: Coordinate,
             ctx: CanvasRenderingContext2D,
             state: State,
         ) => {
@@ -264,6 +271,7 @@ function getKmPostRenderer(
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
 
+            const [x, y] = expectCoordinate(coord);
             ctx.fillText(
                 kmNumber,
                 x + (iconRadius + textMargin) * state.pixelRatio,

@@ -40,6 +40,7 @@ import { useLoader } from 'utils/react-utils';
 import { Link } from 'vayla-design-lib/link/link';
 import { getSaveDisabledReasons } from 'track-layout/track-layout-react-utils';
 import SwitchDeleteConfirmationDialog from './switch-delete-confirmation-dialog';
+import { first } from 'utils/array-utils';
 
 const SWITCH_NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 \-_/]+$/g;
 
@@ -156,7 +157,7 @@ export const SwitchEditDialog = ({
             setSwitchOwnerId(existingSwitch.ownerId ?? undefined);
         } else if (switchOwners.length > 0) {
             const vayla = switchOwners.find((o) => o.name === 'Väylävirasto');
-            setSwitchOwnerId(vayla ? vayla.id : switchOwners[0].id);
+            setSwitchOwnerId(vayla ? vayla.id : first(switchOwners)?.id);
         }
     }, [switchOwners, existingSwitch]);
 

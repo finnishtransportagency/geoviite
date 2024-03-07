@@ -27,6 +27,8 @@ import { Rectangle } from 'model/geometry';
 import { ValidatedAsset } from 'publication/publication-model';
 import { Selection } from 'selection/selection-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
+import { expectCoordinate, expectDefined } from 'utils/type-utils';
+import { first } from 'utils/array-utils';
 
 const switchImage: HTMLImageElement = new Image();
 switchImage.src = `data:image/svg+xml;utf8,${encodeURIComponent(SwitchIcon)}`;
@@ -59,7 +61,8 @@ export function getSelectedSwitchLabelRenderer(
             ctx.lineWidth = strokeWidth * pixelRatio;
         },
         [
-            ({ name }, [x, y], ctx, { pixelRatio }) => {
+            ({ name }, coord, ctx, { pixelRatio }) => {
+                const [x, y] = expectCoordinate(coord);
                 ctx.fillStyle = isGeometrySwitch
                     ? linked
                         ? styles.linkedSwitchLabel
@@ -82,7 +85,8 @@ export function getSelectedSwitchLabelRenderer(
                     2 * pixelRatio,
                 );
             },
-            (_, [x, y], ctx, { pixelRatio }) => {
+            (_, coord, ctx, { pixelRatio }) => {
+                const [x, y] = expectCoordinate(coord);
                 ctx.fillStyle = valid ? styles.switchTextColor : styles.errorDefault;
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
@@ -96,7 +100,8 @@ export function getSelectedSwitchLabelRenderer(
                 );
             },
 
-            ({ name }, [x, y], ctx, { pixelRatio }) => {
+            ({ name }, coord, ctx, { pixelRatio }) => {
+                const [x, y] = expectCoordinate(coord);
                 ctx.fillStyle = styles.switchTextColor;
                 ctx.fillStyle = valid ? styles.switchTextColor : styles.errorDefault;
                 ctx.textAlign = 'left';
@@ -130,7 +135,7 @@ export function getSwitchRenderer(
             ctx.lineWidth = pixelRatio;
         },
         [
-            (_, [x, y], ctx, { pixelRatio }) => {
+            (_, coord, ctx, { pixelRatio }) => {
                 ctx.fillStyle = isGeometrySwitch
                     ? linked
                         ? styles.linkedSwitchJoint
@@ -141,17 +146,19 @@ export function getSwitchRenderer(
                         ? styles.linkedSwitchJointBorder
                         : styles.unlinkedSwitchJointBorder
                     : valid
-                    ? styles.switchJointBorder
-                    : styles.errorBright;
+                      ? styles.switchJointBorder
+                      : styles.errorBright;
                 ctx.lineWidth = (valid ? 1 : 3) * pixelRatio;
 
+                const [x, y] = expectCoordinate(coord);
                 drawCircle(ctx, x, y, circleRadius * pixelRatio);
             },
-            ({ name }, [x, y], ctx, { pixelRatio }) => {
+            ({ name }, coord, ctx, { pixelRatio }) => {
                 if (showLabel) {
                     ctx.fillStyle = styles.switchBackground;
                     ctx.textAlign = 'left';
                     ctx.textBaseline = 'middle';
+                    const [x, y] = expectCoordinate(coord);
 
                     const textWidth = ctx.measureText(name).width;
                     const textX = x + (circleRadius + textCirclePadding) * pixelRatio;
@@ -191,24 +198,26 @@ export function getJointRenderer(
             ctx.lineWidth = (!valid && mainJoint ? 3 : 1) * pixelRatio;
         },
         [
-            (_, [x, y], ctx, { pixelRatio }) => {
+            (_, coord, ctx, { pixelRatio }) => {
                 ctx.fillStyle = mainJoint ? styles.switchMainJoint : styles.switchJoint;
                 ctx.strokeStyle = showErrorStyle
                     ? styles.errorBright
                     : mainJoint
-                    ? styles.switchMainJointBorder
-                    : styles.switchJointBorder;
+                      ? styles.switchMainJointBorder
+                      : styles.switchJointBorder;
 
+                const [x, y] = expectCoordinate(coord);
                 drawCircle(ctx, x, y, circleRadius * pixelRatio);
             },
 
-            ({ number }, [x, y], ctx) => {
+            ({ number }, coord, ctx) => {
                 ctx.fillStyle = mainJoint
                     ? styles.switchMainJointTextColor
                     : styles.switchJointTextColor;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
 
+                const [x, y] = expectCoordinate(coord);
                 ctx.fillText(switchJointNumberToString(number), x, y);
             },
         ],
@@ -230,7 +239,7 @@ export function getLinkingJointRenderer(
             ctx.lineWidth = pixelRatio;
         },
         [
-            (_, [x, y], ctx, { pixelRatio }) => {
+            (_, coord, ctx, { pixelRatio }) => {
                 ctx.fillStyle = hasMatch
                     ? linked
                         ? styles.linkedSwitchJoint
@@ -242,14 +251,16 @@ export function getLinkingJointRenderer(
                         : styles.unlinkedSwitchJointBorder
                     : styles.switchJointBorder;
 
+                const [x, y] = expectCoordinate(coord);
                 drawCircle(ctx, x, y, circleRadius * pixelRatio);
             },
 
-            ({ number }, [x, y], ctx) => {
+            ({ number }, coord, ctx) => {
                 ctx.fillStyle = '#ffffff';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
 
+                const [x, y] = expectCoordinate(coord);
                 ctx.fillText(switchJointNumberToString(number), x, y);
             },
         ],
@@ -366,15 +377,15 @@ function createSwitchFeature(
     presentationJointNumber?: string | undefined,
     validationResult?: ValidatedAsset | undefined,
 ): Feature<OlPoint>[] {
+    const firstJoint = expectDefined(first(layoutSwitch.joints));
+
     const presentationJoint = layoutSwitch.joints.find(
         (joint) => joint.number == presentationJointNumber,
     );
 
     // Use presentation joint as main joint if possible, otherwise use first joint
     const switchFeature = new Feature({
-        geometry: new OlPoint(
-            pointToCoords(presentationJoint?.location ?? layoutSwitch.joints[0].location),
-        ),
+        geometry: new OlPoint(pointToCoords(presentationJoint?.location ?? firstJoint.location)),
     });
     const valid = !validationResult?.errors || validationResult?.errors?.length === 0;
 

@@ -308,7 +308,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             requestedRevertChange: {
                 type: RevertRequestType.PUBLICATION_GROUP,
                 source: revertRequestSource,
-                amount: publicationAssetChangeAmounts.groupAmounts[publicationGroup.id],
+                amount: publicationAssetChangeAmounts.groupAmounts[publicationGroup.id] ?? 0,
                 publicationGroup: publicationGroup,
             },
             changeIncludingDependencies: idsByPublicationGroup(entireChangeset, publicationGroup),

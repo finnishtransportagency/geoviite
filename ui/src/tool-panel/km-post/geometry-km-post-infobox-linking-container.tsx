@@ -8,6 +8,7 @@ import GeometryKmPostLinkingInfobox from 'tool-panel/km-post/geometry-km-post-li
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { LinkingType } from 'linking/linking-model';
 import { MapLayerName } from 'map/map-model';
+import { first } from 'utils/array-utils';
 
 type GeometryKmPostLinkingContainerProps = {
     geometryKmPost: LayoutKmPost;
@@ -26,7 +27,7 @@ const GeometryKmPostLinkingContainer: React.FC<GeometryKmPostLinkingContainerPro
     const state = useTrackLayoutAppSelector((state) => state);
     const kmPostChangeTime = useCommonDataAppSelector((state) => state.changeTimes.layoutKmPost);
     const selectedLayoutKmPost = useKmPost(
-        state.selection.selectedItems.kmPosts[0],
+        first(state.selection.selectedItems.kmPosts),
         state.publishType,
         kmPostChangeTime,
     );

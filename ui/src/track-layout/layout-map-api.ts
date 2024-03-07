@@ -18,13 +18,20 @@ import { BoundingBox, boundingBoxContains, combineBoundingBoxes, Point } from 'm
 import { MAP_RESOLUTION_MULTIPLIER } from 'map/layers/utils/layer-visibility-limits';
 import { getChangeTimes } from 'common/change-time-api';
 import { PublishType, RowVersion, TimeStamp, TrackMeter } from 'common/common-model';
-import { LinkInterval, LinkPoint } from 'linking/linking-model';
+import { LinkInterval, LinkPoint, MapAlignmentEndPoints } from 'linking/linking-model';
 import { bboxString, pointString } from 'common/common-api';
 import { getTrackLayoutPlan } from 'geometry/geometry-api';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
 import { createLinkPoints, alignmentPointToLinkPoint } from 'linking/linking-store';
-import { deduplicate, filterNotEmpty, indexIntoMap, partitionBy } from 'utils/array-utils';
+import {
+    deduplicate,
+    filterNotEmpty,
+    first,
+    indexIntoMap,
+    last,
+    partitionBy,
+} from 'utils/array-utils';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { getTrackNumbers } from './layout-track-number-api';
 import { directionBetweenPoints } from 'utils/math-utils';
@@ -67,8 +74,8 @@ const locationTrackPolyLineCache = asyncCache<string, AlignmentPolyLine | undefi
 const locationTrackSegmentMCache = asyncCache<string, number[]>();
 const referenceLineSegmentMCache = asyncCache<string, number[]>();
 
-const locationTrackEndsCache = asyncCache<string, AlignmentPoint[]>();
-const referenceLineEndsCache = asyncCache<string, AlignmentPoint[]>();
+const locationTrackEndsCache = asyncCache<string, MapAlignmentEndPoints>();
+const referenceLineEndsCache = asyncCache<string, MapAlignmentEndPoints>();
 const sectionsWithoutProfileCache = asyncCache<string, AlignmentHighlight[]>();
 const sectionsWithoutLinkingCache = asyncCache<string, AlignmentHighlight[]>();
 const trackNumberTrackMeterCache = asyncCache<LayoutTrackNumberId, TrackMeter | undefined>();
@@ -103,7 +110,7 @@ export async function getMapAlignmentsByTiles(
     changeTimes: ChangeTimes,
     mapTiles: MapTile[],
     publishType: PublishType,
-) {
+): Promise<AlignmentDataHolder[]> {
     const polyLines = await Promise.all(
         mapTiles.map((tile) =>
             getPolyLines(tile, changeTimes.layoutReferenceLine, publishType, 'ALL'),
@@ -126,7 +133,7 @@ export async function getSelectedReferenceLineMapAlignmentByTiles(
     mapTiles: MapTile[],
     publishType: PublishType,
     trackNumberId: LayoutTrackNumberId,
-) {
+): Promise<AlignmentDataHolder[]> {
     return getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, publishType).then(
         (alignments) => {
             const alignment = alignments.find(
@@ -143,7 +150,7 @@ export async function getReferenceLineMapAlignmentsByTiles(
     changeTimes: ChangeTimes,
     mapTiles: MapTile[],
     publishType: PublishType,
-) {
+): Promise<AlignmentDataHolder[]> {
     const changeTime = getMaxTimestamp(
         changeTimes.layoutReferenceLine,
         changeTimes.layoutTrackNumber,
@@ -322,18 +329,23 @@ export async function getEndLinkPoints(
     type: MapAlignmentType,
     changeTime: TimeStamp,
 ): Promise<LinkInterval> {
+    const alignmentEndpointsToLinkPoint = (end: AlignmentPoint, next: AlignmentPoint) =>
+        alignmentPointToLinkPoint(type, id, end, directionBetweenPoints(end, next), true, true);
+
     return (type === 'LOCATION_TRACK' ? locationTrackEndsCache : referenceLineEndsCache)
         .get(changeTime, cacheKey(id, publishType), () =>
-            getNonNull<AlignmentPoint[]>(mapAlignmentUri(publishType, type, `${id}/ends`)),
+            getNonNull<MapAlignmentEndPoints>(mapAlignmentUri(publishType, type, `${id}/ends`)),
         )
-        .then(([start, startPlusOne, endMinusOne, end]) => {
-            const startDir = directionBetweenPoints(start, startPlusOne);
-            const endDir = directionBetweenPoints(endMinusOne, end);
-            return {
-                start: alignmentPointToLinkPoint(type, id, start, startDir, true, true),
-                end: alignmentPointToLinkPoint(type, id, end, endDir, true, true),
-            };
-        });
+        .then(({ start: startPoints, end: endPoints }) => ({
+            start:
+                startPoints[0] === undefined || startPoints[1] === undefined
+                    ? undefined
+                    : alignmentEndpointsToLinkPoint(startPoints[0], startPoints[1]),
+            end:
+                endPoints[0] === undefined || endPoints[1] === undefined || endPoints.length != 2
+                    ? undefined
+                    : alignmentEndpointsToLinkPoint(endPoints[1], endPoints[0]),
+        }));
 }
 
 export async function getLinkPointsByTiles(
@@ -350,13 +362,10 @@ export async function getLinkPointsByTiles(
         .flat()
         .filter((a) => a.alignmentType === alignmentType && a.id === alignmentId);
     const allPoints = combineAlignmentPoints(allPieces.map((a) => a.points));
-    return createLinkPoints(
-        alignmentType,
-        alignmentId,
-        segmentEndMs[segmentEndMs.length - 1],
-        segmentEndMs,
-        allPoints,
-    );
+    const lastSegmentEndM = last(segmentEndMs);
+    return lastSegmentEndM
+        ? createLinkPoints(alignmentType, alignmentId, lastSegmentEndM, segmentEndMs, allPoints)
+        : [];
 }
 
 export async function getGeometryLinkPointsByTiles(
@@ -366,7 +375,10 @@ export async function getGeometryLinkPointsByTiles(
     alwaysIncludePoints: LinkPoint[] = [],
     changeTime: TimeStamp = getChangeTimes().geometryPlan,
 ): Promise<LinkPoint[]> {
-    const resolution = toMapAlignmentResolution(mapTiles[0].resolution);
+    const firstMapTile = first(mapTiles);
+    if (!firstMapTile) return [];
+
+    const resolution = toMapAlignmentResolution(firstMapTile.resolution);
     const bounds = combineBoundingBoxes(mapTiles.map((tile) => tile.area));
     const plan = await getTrackLayoutPlan(geometryPlanId, changeTime, true);
     const alignment = plan?.alignments?.find((a) => a.header.id === geometryAlignmentId);

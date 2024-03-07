@@ -18,7 +18,7 @@ import { LinkingState, LinkingType, SuggestedSwitch } from 'linking/linking-mode
 import { SelectedGeometryItem } from 'selection/selection-model';
 import GeometryAlignmentLinkingContainer from 'tool-panel/geometry-alignment/geometry-alignment-linking-container';
 import { PublishType } from 'common/common-model';
-import { filterNotEmpty, filterUnique } from 'utils/array-utils';
+import { filterNotEmpty, filterUnique, first } from 'utils/array-utils';
 import LocationTrackInfoboxLinkingContainer from 'tool-panel/location-track/location-track-infobox-linking-container';
 import { getKmPosts } from 'track-layout/layout-km-post-api';
 import TrackNumberInfoboxLinkingContainer from 'tool-panel/track-number/track-number-infobox-linking-container';
@@ -37,13 +37,13 @@ import {
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { SplittingState } from 'tool-panel/location-track/split-store';
-import { createClassName } from 'vayla-design-lib/utils';
 import { KmPostInfoboxContainer } from 'tool-panel/km-post/km-post-infobox-container';
 import { GeometryKmPostInfoboxContainer } from 'tool-panel/km-post/geometry-km-post-infobox-container';
 import { SwitchInfoboxContainer } from 'tool-panel/switch/switch-infobox-container';
 import { SuggestedSwitchInfoboxContainer } from 'tool-panel/switch/dialog/suggested-switch-infobox-container';
 import { GeometrySwitchInfoboxContainer } from 'tool-panel/switch/dialog/geometry-switch-infobox-container';
 import { LocationTrackTaskListContainer } from 'tool-panel/location-track/location-track-task-list/location-track-task-list-container';
+import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -297,7 +297,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         onVisibilityChange={(visibilities) =>
                             infoboxVisibilityChange('geometrySwitch', visibilities)
                         }
-                        layoutSwitch={switches ? switches[0] : undefined}
+                        layoutSwitch={first(switches)}
                         suggestedSwitch={ss}
                     />
                 ),
@@ -319,7 +319,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                                 infoboxVisibilityChange('geometrySwitch', visibilities)
                             }
                             switchId={s.geometryId}
-                            layoutSwitch={switches ? switches[0] : undefined}
+                            layoutSwitch={first(switches)}
                             planId={s.planId ?? undefined}
                         />
                     ),
@@ -360,8 +360,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             infoboxVisibilityChange('geometryAlignment', visibilities)
                         }
                         geometryAlignment={header}
-                        selectedLocationTrackId={locationTrackIds[0]}
-                        selectedTrackNumberId={trackNumberIds[0]}
+                        selectedLocationTrackId={first(locationTrackIds)}
+                        selectedTrackNumberId={first(trackNumberIds)}
                         planId={aId.planId}
                     />
                 ) : (
@@ -407,11 +407,12 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             (t) => !previousTabs.some((pt) => isSameAsset(t.asset, pt.asset)),
         );
 
-        if (newTabs.length) {
+        const firstTab = first(newTabs);
+        if (firstTab) {
             if (selectedAsset && newTabs.some((nt) => isSameAsset(nt.asset, selectedAsset))) {
                 changeTab(selectedAsset);
             } else {
-                changeTab(tabs[0].asset);
+                changeTab(firstTab.asset);
             }
         }
 
@@ -469,24 +470,20 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         const selected = anyTabSelected
                             ? isSameAsset(t.asset, selectedAsset)
                             : tabIndex === 0;
-                        const className = createClassName(
-                            'tool-panel__tab',
-                            selected && 'tool-panel__tab--selected',
-                        );
                         return (
-                            <button
-                                className={className}
+                            <TabHeader
                                 key={t.asset.type + '_' + t.asset.id}
+                                selected={selected}
                                 onClick={() => changeTab(t.asset)}>
                                 {t.title}
-                            </button>
+                            </TabHeader>
                         );
                     })}
                 </div>
             )}
             {anyTabSelected
                 ? tabs.find((t) => isSameAsset(t.asset, selectedAsset))?.element
-                : tabs[0]?.element}
+                : first(tabs)?.element}
             <LocationTrackTaskListContainer />
         </div>
     );

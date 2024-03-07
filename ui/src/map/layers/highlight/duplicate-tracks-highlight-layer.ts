@@ -1,11 +1,11 @@
 import Feature from 'ol/Feature';
 import { LineString } from 'ol/geom';
-import { MapTile } from 'map/map-model';
+import { MapLayerName, MapTile } from 'map/map-model';
 import {
     AlignmentDataHolder,
     getLocationTrackMapAlignmentsByTiles,
 } from 'track-layout/layout-map-api';
-import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
+import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
@@ -26,7 +26,7 @@ function createHighlightFeatures(locationTracks: AlignmentDataHolder[]): Feature
         });
 }
 
-let newestLayerId = 0;
+const layerName: MapLayerName = 'duplicate-tracks-highlight-layer';
 
 export function createDuplicateTracksHighlightLayer(
     mapTiles: MapTile[],
@@ -34,37 +34,19 @@ export function createDuplicateTracksHighlightLayer(
     publishType: PublishType,
     changeTimes: ChangeTimes,
     resolution: number,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer {
-    const layerId = ++newestLayerId;
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
+    const dataPromise: Promise<AlignmentDataHolder[]> =
+        resolution <= HIGHLIGHTS_SHOW
+            ? getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
+            : Promise.resolve([]);
 
-    let inFlight = false;
-    if (resolution <= HIGHLIGHTS_SHOW) {
-        inFlight = true;
-        getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
-            .then((locationTracks) => {
-                if (layerId === newestLayerId) {
-                    const features = createHighlightFeatures(locationTracks);
+    const createFeatures = (locationTracks: AlignmentDataHolder[]) =>
+        createHighlightFeatures(locationTracks);
 
-                    clearFeatures(vectorSource);
-                    vectorSource.addFeatures(features);
-                }
-            })
-            .catch(() => {
-                if (layerId === newestLayerId) clearFeatures(vectorSource);
-            })
-            .finally(() => {
-                inFlight = false;
-            });
-    } else {
-        clearFeatures(vectorSource);
-    }
+    loadLayerData(source, isLatest, onLoadingData, dataPromise, createFeatures);
 
-    return {
-        name: 'duplicate-tracks-highlight-layer',
-        layer: layer,
-        requestInFlight: () => inFlight,
-    };
+    return { name: layerName, layer: layer };
 }

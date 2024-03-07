@@ -54,6 +54,7 @@ class PublicationServiceIT @Autowired constructor(
     val localizationService: LocalizationService,
     val switchStructureDao: SwitchStructureDao,
     val splitDao: SplitDao,
+    val splitService: SplitService,
 ) : DBTestBase() {
 
     @BeforeEach
@@ -2682,6 +2683,7 @@ class PublicationServiceIT @Autowired constructor(
             sourceTrackId,
             targetTrackIds.map { id -> SplitTarget(id, 0..0) },
             listOf(),
+            updatedDuplicates = emptyList(),
         )
     }
 
@@ -2694,6 +2696,7 @@ class PublicationServiceIT @Autowired constructor(
             sourceTrackId,
             targetTrackIds.map { id -> SplitTarget(id, 0..0) },
             switches,
+            updatedDuplicates = emptyList(),
         )
     }
 
@@ -2876,6 +2879,279 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals(true, splitInPublication.targetLocationTracks[0].newlyCreated)
         assertEquals(endTargetTrack.id, splitInPublication.targetLocationTracks[1].id)
         assertEquals(true, splitInPublication.targetLocationTracks[1].newlyCreated)
+    }
+
+    @Test
+    fun `Publication group should not be set for assets unrelated to a split`() {
+        // Add some additional assets as "noise", other assets should not have publication
+        // groups even if there are unpublished splits.
+        insertPublicationGroupTestData()
+
+        val trackNumberId = insertOfficialTrackNumber()
+        insertReferenceLine(
+            referenceLine(trackNumberId = trackNumberId),
+            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+
+        val someTrack = insertLocationTrack(
+            draft(locationTrack(trackNumberId = trackNumberId)),
+            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+
+        val someDuplicateTrack = insertLocationTrack(
+            draft(locationTrack(
+                trackNumberId = trackNumberId,
+                duplicateOf = someTrack.id,
+            )),
+            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+
+        val someTrackIds = listOf(
+            someTrack.id,
+            someDuplicateTrack.id,
+        )
+
+        val someSwitchId = insertUniqueDraftSwitch().id
+
+        val publishCandidates = publicationService.collectPublishCandidates()
+
+        publishCandidates.locationTracks
+            .filter { locationTrackPublishCandidate ->
+                locationTrackPublishCandidate.id in someTrackIds
+            }
+            .also { filteredLocationTrackPublishCandidates ->
+                assertEquals(2, filteredLocationTrackPublishCandidates.size)
+            }
+            .forEach { locationTrackPublishCandidate ->
+                assertEquals(null, locationTrackPublishCandidate.publicationGroup)
+            }
+
+        publishCandidates.switches
+            .filter { switchPublishCandidate ->
+                switchPublishCandidate.id == someSwitchId
+            }
+            .also { filteredLocationTracks ->
+                assertEquals(1, filteredLocationTracks.size)
+            }
+            .forEach { switchPublishCandidate ->
+                assertEquals(null, switchPublishCandidate.publicationGroup)
+            }
+    }
+
+    @Test
+    fun `Publication group should be set for assets related to a split`() {
+        (1..4).forEach { testIndex ->
+            val testData = insertPublicationGroupTestData()
+            val splits = splitService.findUnfinishedSplitsForLocationTracks(
+                listOf(testData.sourceLocationTrackId)
+            )
+
+            assertEquals(1, splits.size)
+            val splitId = splits[0].id
+
+            val publishCandidates = publicationService.collectPublishCandidates()
+
+            val amountOfNonDuplicatesInCurrentTest = 3
+            val amountOfDuplicatesInCurrentTest = 5
+            val expectedTotalUnpublishedLocationTrackAmount =
+                testIndex * (amountOfNonDuplicatesInCurrentTest + amountOfDuplicatesInCurrentTest)
+
+            assertEquals(expectedTotalUnpublishedLocationTrackAmount, publishCandidates.locationTracks.size)
+
+            publishCandidates.locationTracks
+                .filter { locationTrackPublishCandidate ->
+                    locationTrackPublishCandidate.id in testData.allLocationTrackIds
+                }
+                .also { filteredLocationTrackPublishCandidates ->
+                    assertEquals(
+                        amountOfNonDuplicatesInCurrentTest + amountOfDuplicatesInCurrentTest,
+                        filteredLocationTrackPublishCandidates.size
+                    )
+                }
+                .forEach { locationTrackPublishCandidate ->
+                    assertEquals(splitId, locationTrackPublishCandidate.publicationGroup?.id)
+                }
+
+            val amountOfSwitchesInCurrentTest = 6
+            val expectedTotalUnpublishedSwitchAmount = testIndex * amountOfSwitchesInCurrentTest
+            assertEquals(expectedTotalUnpublishedSwitchAmount, publishCandidates.switches.size)
+
+            publishCandidates.switches
+                .filter { switchPublishCandidate ->
+                    switchPublishCandidate.id in testData.switchIds
+                }
+                .also { filteredLocationTracks ->
+                    assertEquals(
+                        amountOfSwitchesInCurrentTest,
+                        filteredLocationTracks.size
+                    )
+                }
+                .forEach { switchPublishCandidate ->
+                    assertEquals(splitId, switchPublishCandidate.publicationGroup?.id)
+                }
+        }
+    }
+
+    data class PublicationGroupTestData(
+        val sourceLocationTrackId: IntId<LocationTrack>,
+        val allLocationTrackIds: List<IntId<LocationTrack>>,
+        val duplicateLocationTrackIds: List<IntId<LocationTrack>>,
+        val switchIds: List<IntId<TrackLayoutSwitch>>,
+    )
+
+    private fun insertPublicationGroupTestData(): PublicationGroupTestData {
+        val trackNumberId = insertOfficialTrackNumber()
+        insertReferenceLine(
+            referenceLine(trackNumberId = trackNumberId),
+            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+
+        // Due to using splitDao.saveSplit and not actually running a split,
+        // the sourceTrack is created as a draft as well.
+        val sourceTrack = insertLocationTrack(
+            draft(locationTrack(trackNumberId = trackNumberId)),
+            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+
+        val middleTrack = insertLocationTrack(
+            draft(locationTrack(trackNumberId = trackNumberId)),
+            alignment(segment(Point(2.0, 0.0), Point(3.0, 0.0))),
+        )
+
+        val endTrack = insertLocationTrack(
+            draft(locationTrack(trackNumberId = trackNumberId)),
+            alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
+        )
+
+        val someSwitches = (0..5).map {
+            insertUniqueDraftSwitch().id
+        }
+
+        val someDuplicates = (0..4).map { i ->
+            insertLocationTrack(
+                draft(
+                    locationTrack(
+                        trackNumberId = trackNumberId,
+                        duplicateOf = sourceTrack.id,
+                    )
+                ),
+                alignment(segment(Point(i.toDouble(), 0.0), Point(i + 0.75, 0.0))),
+            ).id
+        }
+
+        splitDao.saveSplit(
+            sourceTrack.id,
+            listOf(
+                SplitTarget(middleTrack.id, 0..0),
+                SplitTarget(endTrack.id, 0..0),
+            ),
+            relinkedSwitches = someSwitches,
+            updatedDuplicates = someDuplicates,
+        )
+
+        return PublicationGroupTestData(
+            sourceLocationTrackId = sourceTrack.id,
+            allLocationTrackIds = listOf(
+                listOf(
+                    sourceTrack.id,
+                    middleTrack.id,
+                    endTrack.id,
+                ),
+                someDuplicates
+            ).flatten(),
+            switchIds = someSwitches,
+            duplicateLocationTrackIds = someDuplicates,
+        )
+    }
+
+    @Test
+    fun `Published split should not be deleted when a target location track is later modified and reverted`() {
+        val (
+            sourceTrack,
+            startTargetTrack,
+            endTargetTrack
+        ) = simpleSplitSetup()
+
+        val splitId = saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+
+        splitDao.get(splitId).let { split ->
+            assertNotNull(split)
+            assertEquals(null, split.publicationId)
+        }
+
+        val publishId = publicationService.getValidationVersions(
+            publishRequest(locationTracks = listOf(sourceTrack.id, startTargetTrack.id, endTargetTrack.id))
+        ).let { versions ->
+            publicationService.publishChanges(versions, getCalculatedChangesInRequest(versions), "").publishId
+        }
+
+        splitDao.get(splitId).let { split ->
+            assertNotNull(split)
+            assertEquals(publishId, split.publicationId)
+        }
+
+        val (targetTrackToModify, targetAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, startTargetTrack.id)
+        locationTrackService.saveDraft(
+            draft = targetTrackToModify.copy(
+                name = AlignmentName("Some other draft name"),
+            ),
+            alignment = targetAlignment
+        )
+
+        publicationService.revertPublishCandidates(
+            publishRequestIds(
+                locationTracks = listOf(targetTrackToModify.id as IntId)
+            )
+        )
+
+        // Split should be found and not be deleted even after reverting the draft change to the modified locationTrack.
+        assertNotNull(splitDao.get(splitId))
+    }
+
+    @Test
+    fun `Published split should not be deleted when a relinked switch is later modified and reverted`() {
+        val (
+            sourceTrack,
+            startTargetTrack,
+            endTargetTrack
+        ) = simpleSplitSetup()
+
+        val someSwitch = insertUniqueDraftSwitch()
+
+       val splitId = saveSplit(
+            sourceTrackId = sourceTrack.id,
+            targetTrackIds = listOf(startTargetTrack.id, endTargetTrack.id),
+            switches = listOf(someSwitch.id)
+       )
+
+        publicationService.getValidationVersions(
+            publishRequest(
+                locationTracks = listOf(sourceTrack.id, startTargetTrack.id, endTargetTrack.id),
+                switches = listOf(someSwitch.id),
+            )
+        ).let { versions ->
+            publicationService.publishChanges(versions, getCalculatedChangesInRequest(versions), "").publishId
+        }
+
+        switchService.get(DRAFT, someSwitch.id).let { publishedSwitch ->
+            assertNotNull(publishedSwitch)
+            assertEquals(true, publishedSwitch.isOfficial())
+
+            switchService.saveDraft(
+                draft = publishedSwitch.copy(
+                    name = SwitchName("some other switch name"),
+                )
+            )
+        }
+
+        publicationService.revertPublishCandidates(
+            publishRequestIds(
+                switches = listOf(someSwitch.id)
+            )
+        )
+
+        // Split should be found and not be deleted even after reverting the draft change to the modified switch.
+        assertNotNull(splitDao.get(splitId))
     }
 }
 

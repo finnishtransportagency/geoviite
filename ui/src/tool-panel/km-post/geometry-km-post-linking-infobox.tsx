@@ -154,7 +154,10 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                                 <Button
                                     size={ButtonSize.SMALL}
                                     qa-id="start-geometry-km-post-linking"
-                                    onClick={() => startLinking(geometryKmPost.id)}>
+                                    onClick={() =>
+                                        geometryKmPost.sourceId &&
+                                        startLinking(geometryKmPost.sourceId)
+                                    }>
                                     {t('tool-panel.km-post.geometry.linking.start-linking-command')}
                                 </Button>
                             </InfoboxButtons>

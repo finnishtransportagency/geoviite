@@ -14,7 +14,10 @@ import { getPlanLinkStatus, getPlanLinkStatuses } from 'linking/linking-api';
 import { PublishType } from 'common/common-model';
 import { getPlanAreasByTile, getTrackLayoutPlans } from 'geometry/geometry-api';
 import { ChangeTimes } from 'common/common-slice';
-import { MapTile } from 'map/map-model';
+import { MapLayerName, MapTile } from 'map/map-model';
+import VectorLayer from 'ol/layer/Vector';
+import BaseLayer from 'ol/layer/Base';
+import { expectCoordinate, tuple } from 'utils/type-utils';
 
 proj4.defs(LAYOUT_SRID, '+proj=utm +zone=35 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs');
 register(proj4);
@@ -48,15 +51,10 @@ export function centroid(polygon: Polygon): OlPoint {
  * @param pointB
  */
 function getPlanarDistancePointAndPoint(pointA: OlPoint, pointB: OlPoint): number {
-    const pointACoords = pointA.getCoordinates();
-    const pointBCoords = pointB.getCoordinates();
+    const [aX, aY] = expectCoordinate(pointA.getCoordinates());
+    const [bX, bY] = expectCoordinate(pointB.getCoordinates());
 
-    return getPlanarDistanceUnwrapped(
-        pointACoords[0],
-        pointACoords[1],
-        pointBCoords[0],
-        pointBCoords[1],
-    );
+    return getPlanarDistanceUnwrapped(aX, aY, bX, bY);
 }
 
 export function getPlanarDistanceUnwrapped(x1: number, y1: number, x2: number, y2: number): number {
@@ -74,9 +72,10 @@ export function getDistancePointAndLine(olPoint: OlPoint, line: LineString): num
     const segments = line
         .getCoordinates()
         .map((coordinate) => coordsToPoint(coordinate))
-        .map((_, index, points) =>
-            index < points.length - 1 ? [points[index], points[index + 1]] : undefined,
-        )
+        .map((point, index, points) => {
+            const nextPoint = points[index + 1];
+            return nextPoint ? tuple(point, nextPoint) : undefined;
+        })
         .filter(filterNotEmpty);
     const squaredDistances = segments.map((segment) =>
         distToSegmentSquared(point, segment[0], segment[1]),
@@ -145,6 +144,61 @@ export function sortFeaturesByDistance<T extends Geometry>(features: Feature<T>[
         else if (geometryB) return 1;
         else return 0;
     });
+}
+
+const latestLayerIds: Map<MapLayerName, number> = new Map();
+const incrementAndGetLayerId = (name: MapLayerName) => {
+    const id = (latestLayerIds.get(name) ?? 0) + 1;
+    latestLayerIds.set(name, id);
+    return id;
+};
+const isLatestLayerId = (name: MapLayerName, id: number) => latestLayerIds.get(name) === id;
+
+export type LayerResult<FeatureType extends Geometry> = {
+    layer: BaseLayer;
+    source: VectorSource<FeatureType>;
+    isLatest: () => boolean;
+};
+
+export function createLayer<FeatureType extends Geometry>(
+    name: MapLayerName,
+    existingLayer: VectorLayer<VectorSource<FeatureType>> | undefined,
+    allowDefaultStyle: boolean = true,
+): LayerResult<FeatureType> {
+    const id = incrementAndGetLayerId(name);
+    const source = existingLayer?.getSource() || new VectorSource();
+    const options = allowDefaultStyle ? { source: source } : { source: source, style: null };
+    const layer = existingLayer || new VectorLayer(options);
+    return {
+        layer,
+        source,
+        isLatest: () => isLatestLayerId(name, id),
+    };
+}
+
+export function loadLayerData<Data, FeatureType extends Geometry>(
+    source: VectorSource<FeatureType>,
+    isLatest: () => boolean,
+    onLoadingData: (loading: boolean, loadedData: Data | undefined) => void,
+    dataPromise: Promise<Data>,
+    createFeatures: (data: Data) => Feature<FeatureType>[],
+) {
+    onLoadingData(true, undefined);
+    dataPromise
+        .then((data) => {
+            if (isLatest()) {
+                clearFeatures(source);
+                const features = createFeatures(data);
+                if (features.length > 0) source.addFeatures(features);
+                onLoadingData(false, data);
+            }
+        })
+        .catch(() => {
+            if (isLatest()) {
+                clearFeatures(source);
+                onLoadingData(false, undefined);
+            }
+        });
 }
 
 export const clearFeatures = (vectorSource: VectorSource) => vectorSource.clear();

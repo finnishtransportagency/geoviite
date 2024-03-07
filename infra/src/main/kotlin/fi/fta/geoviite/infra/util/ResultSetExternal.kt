@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.projektivelho.PVId
 import fi.fta.geoviite.infra.projektivelho.PVProjectName
 import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import java.sql.ResultSet
 import java.time.Instant
 
@@ -227,6 +228,35 @@ fun ResultSet.getChangePoint(nameX: String, nameY: String) =
 
 fun <T> ResultSet.getChangeRowVersion(idName: String, versionName: String): Change<RowVersion<T>> =
     Change(getRowVersionOrNull("old_$idName", "old_$versionName"), getRowVersionOrNull(idName, versionName))
+
+fun ResultSet.getLayoutContext(designIdName: String, draftFlagName: String): LayoutContext =
+    toLayoutContext(getPublicationState(draftFlagName), getIntIdOrNull(designIdName))
+
+fun ResultSet.getLayoutContextOrNull(designIdName: String, draftFlagName: String): LayoutContext? =
+    getPublicationStateOrNull(draftFlagName)?.let { state -> toLayoutContext(state, getIntIdOrNull(designIdName)) }
+
+fun ResultSet.getDesignLayoutContext(designIdName: String, draftFlagName: String): DesignLayoutContext =
+    DesignLayoutContext.of(getIntId(designIdName), getPublicationState(draftFlagName))
+
+fun ResultSet.getDesignLayoutContextOrNull(designIdName: String, draftFlagName: String): DesignLayoutContext? =
+    getIntIdOrNull<LayoutDesign>(designIdName)
+        ?.let { id -> id to getPublicationState(draftFlagName) }
+        ?.let { (id, state) -> DesignLayoutContext.of(id, state) }
+
+fun ResultSet.getMainLayoutContext(draftFlagName: String): MainLayoutContext =
+    MainLayoutContext.of(getPublicationState(draftFlagName))
+
+fun ResultSet.getMainLayoutContextOrNull(draftFlagName: String): MainLayoutContext? =
+    getPublicationStateOrNull(draftFlagName)?.let(MainLayoutContext::of)
+
+private fun toLayoutContext(state: PublicationState, designId: IntId<LayoutDesign>?): LayoutContext =
+    designId?.let { id -> DesignLayoutContext.of(id, state) } ?: MainLayoutContext.of(state)
+
+fun ResultSet.getPublicationState(draftFlagName: String): PublicationState =
+    requireNotNull(getPublicationStateOrNull(draftFlagName)) { "Value was null: type=Boolean column=$draftFlagName" }
+
+fun ResultSet.getPublicationStateOrNull(draftFlagName: String): PublicationState? =
+    getBooleanOrNull(draftFlagName)?.let { draft -> if (draft) PublicationState.DRAFT else PublicationState.OFFICIAL }
 
 inline fun <reified T> verifyNotNull(column: String, nullableGet: (column: String) -> T?): T =
     requireNotNull(nullableGet(column)) { "Value was null: type=${T::class.simpleName} column=$column" }

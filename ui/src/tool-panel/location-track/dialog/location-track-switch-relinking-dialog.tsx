@@ -10,21 +10,46 @@ import { getSwitchesValidation } from 'track-layout/layout-switch-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import {
     LocationTrackTaskListType,
-    SwitchRelinkingValidationTaskList,
+    trackLayoutActionCreators as TrackLayoutActions,
+    TrackLayoutState,
 } from 'track-layout/track-layout-slice';
+import { useLocationTrackInfoboxExtras } from 'track-layout/track-layout-react-utils';
+import { useCommonDataAppSelector } from 'store/hooks';
+import { PublishType } from 'common/common-model';
+import { createDelegates } from 'store/store-utils';
 
-export type LocationTrackSwitchRelinkingDialogProps = {
+type LocationTrackSwitchRelinkingDialogContainerProps = {
     locationTrackId: LocationTrackId;
+    publishType: PublishType;
     name: string;
-    linkedSwitchesCount: number;
     closeDialog: () => void;
-    showLocationTrackTaskList: (taskList: SwitchRelinkingValidationTaskList | undefined) => void;
 };
+
+export const LocationTrackSwitchRelinkingDialogContainer: React.FC<
+    LocationTrackSwitchRelinkingDialogContainerProps
+> = (props) => {
+    const delegates = createDelegates(TrackLayoutActions);
+
+    return (
+        <LocationTrackSwitchRelinkingDialog
+            {...props}
+            showLocationTrackTaskList={delegates.showLocationTrackTaskList}
+        />
+    );
+};
+
+type LocationTrackSwitchRelinkingDialogProps = LocationTrackSwitchRelinkingDialogContainerProps & {
+    showLocationTrackTaskList: (state: TrackLayoutState['locationTrackTaskList']) => void;
+};
+
 export const LocationTrackSwitchRelinkingDialog: React.FC<
     LocationTrackSwitchRelinkingDialogProps
-> = ({ locationTrackId, name, linkedSwitchesCount, closeDialog, showLocationTrackTaskList }) => {
+> = ({ locationTrackId, publishType, name, showLocationTrackTaskList, closeDialog }) => {
     const { t } = useTranslation();
     const [isRelinking, setIsRelinking] = React.useState(false);
+    const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
+
+    const [extraInfo, _] = useLocationTrackInfoboxExtras(locationTrackId, publishType, changeTimes);
 
     const startRelinking = async () => {
         setIsRelinking(true);
@@ -60,43 +85,45 @@ export const LocationTrackSwitchRelinkingDialog: React.FC<
         }
     };
     return (
-        <Dialog
-            title={t('tool-panel.location-track.switch-relinking-dialog.title')}
-            onClose={closeDialog}
-            footerContent={
-                <div className={dialogStyles['dialog__footer-content--centered']}>
-                    <Button
-                        onClick={closeDialog}
-                        variant={ButtonVariant.SECONDARY}
-                        disabled={isRelinking}>
-                        {t('button.cancel')}
-                    </Button>
-                    <Button
-                        onClick={startRelinking}
-                        variant={ButtonVariant.PRIMARY}
-                        disabled={isRelinking}>
-                        {isRelinking && (
-                            <>
-                                <Spinner inline size={SpinnerSize.SMALL} />{' '}
-                            </>
-                        )}
-                        {t('tool-panel.location-track.switch-relinking-dialog.confirm-button', {
-                            linkedSwitchesCount,
-                        })}
-                    </Button>
-                </div>
-            }>
-            <p>
-                {t('tool-panel.location-track.switch-relinking-dialog.confirm-relinking', {
-                    name,
-                    linkedSwitchesCount,
-                })}
-            </p>
-            <p>
-                {t(
-                    'tool-panel.location-track.switch-relinking-dialog.confirm-relinking-clarification',
-                )}
-            </p>
-        </Dialog>
+        extraInfo && (
+            <Dialog
+                title={t('tool-panel.location-track.switch-relinking-dialog.title')}
+                onClose={closeDialog}
+                footerContent={
+                    <div className={dialogStyles['dialog__footer-content--centered']}>
+                        <Button
+                            onClick={closeDialog}
+                            variant={ButtonVariant.SECONDARY}
+                            disabled={isRelinking}>
+                            {t('button.cancel')}
+                        </Button>
+                        <Button
+                            onClick={startRelinking}
+                            variant={ButtonVariant.PRIMARY}
+                            disabled={isRelinking}>
+                            {isRelinking && (
+                                <>
+                                    <Spinner inline size={SpinnerSize.SMALL} />{' '}
+                                </>
+                            )}
+                            {t('tool-panel.location-track.switch-relinking-dialog.confirm-button', {
+                                linkedSwitchesCount: extraInfo.linkedSwitchesCount,
+                            })}
+                        </Button>
+                    </div>
+                }>
+                <p>
+                    {t('tool-panel.location-track.switch-relinking-dialog.confirm-relinking', {
+                        name,
+                        linkedSwitchesCount: extraInfo.linkedSwitchesCount,
+                    })}
+                </p>
+                <p>
+                    {t(
+                        'tool-panel.location-track.switch-relinking-dialog.confirm-relinking-clarification',
+                    )}
+                </p>
+            </Dialog>
+        )
     );
 };

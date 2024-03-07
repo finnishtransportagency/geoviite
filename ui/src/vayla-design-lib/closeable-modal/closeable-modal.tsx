@@ -12,6 +12,7 @@ type CloseableModalProps = {
     useRefWidth?: boolean;
     refWidthOffset?: number;
     maxHeight?: number;
+    openTowardsLeft?: boolean;
 };
 
 const WINDOW_MARGIN = 6;
@@ -36,6 +37,7 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
     offsetY = 0,
     refWidthOffset = 0,
     useRefWidth = false,
+    openTowardsLeft = false,
 }: CloseableModalProps) => {
     const [modalPosition, setModalPosition] = React.useState<ModalPosition>();
     const [modalSize, setModalSize] = React.useState<ModalSize>();
@@ -61,18 +63,20 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
             const windowHeight = window.innerHeight;
             const windowWidth = window.innerWidth;
 
-            const x = refPosition.left + offsetX;
+            const parentWidth = positionRef.current?.getBoundingClientRect().width ?? 0;
+            const modalWidth = modalRef.current.getBoundingClientRect().width ?? 0;
+            const x = openTowardsLeft
+                ? refPosition.left + parentWidth + offsetX - modalWidth
+                : refPosition.left + offsetX;
             const y = refPosition.top + offsetY;
 
             const calculatedMaxHeight = windowHeight - y - WINDOW_MARGIN;
-
-            const modalWidth = modalSize?.width ?? 0;
             const widthOverflow = x + modalWidth + WINDOW_MARGIN - windowWidth;
 
             const newPosition: ModalPosition = { left: x, top: y };
 
             setModalSize({
-                ...modalSize,
+                width: modalWidth,
                 maxHeight:
                     maxHeight === undefined || maxHeight <= calculatedMaxHeight
                         ? maxHeight

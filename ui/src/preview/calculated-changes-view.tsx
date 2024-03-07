@@ -142,7 +142,7 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
                                 disabled: disabledMessage,
                             })}
                             onToggle={() => toggle(trackNumberId)}
-                            open={openTrackNumbers[trackNumberId]}
+                            open={openTrackNumbers[trackNumberId] ?? false}
                             disabled={!hasCalculatedChanges}>
                             <React.Fragment>
                                 <ul

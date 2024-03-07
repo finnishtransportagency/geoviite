@@ -197,14 +197,18 @@ const SvgIcon: SvgIconComponent = ({
 
 function parseViewBox(svg: string): string {
     const viewBoxMatch = /viewBox="([\s0-9]+)"/.exec(svg);
-    return viewBoxMatch && viewBoxMatch.length >= 2 ? viewBoxMatch[1] : '0 0 24 24';
+    const viewBox = viewBoxMatch && viewBoxMatch[1];
+    return viewBox ? viewBox : '0 0 24 24';
 }
 
 function parseSize(svg: string): number[] | undefined {
     const heightMatch = /height="([0-9]+)"/.exec(svg);
     const widthMatch = /width="([0-9]+)"/.exec(svg);
-    if (heightMatch && heightMatch.length >= 2 && widthMatch && widthMatch.length >= 2) {
-        return [parseInt(widthMatch[1]), parseInt(heightMatch[1])];
+
+    const height = heightMatch && heightMatch[1];
+    const width = widthMatch && widthMatch[1];
+    if (height && width) {
+        return [parseInt(width, 10), parseInt(height, 10)];
     } else {
         return undefined;
     }

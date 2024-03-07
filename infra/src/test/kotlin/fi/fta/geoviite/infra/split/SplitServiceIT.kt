@@ -319,6 +319,7 @@ class SplitServiceIT @Autowired constructor(
             sourceTrack.id,
             listOf(SplitTarget(endTrack.id, 0..0)),
             listOf(relinkedSwitchId),
+            updatedDuplicates = emptyList(),
         )
     }
 

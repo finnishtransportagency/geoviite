@@ -1,6 +1,6 @@
 import { TrackLayoutState } from 'track-layout/track-layout-slice';
 import { PayloadAction } from '@reduxjs/toolkit';
-import { fieldComparator, filterNotEmpty } from 'utils/array-utils';
+import { fieldComparator, filterNotEmpty, first, last } from 'utils/array-utils';
 import {
     emptyLinkInterval,
     GeometryLinkingAlignmentLockParameters,
@@ -24,7 +24,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { GeometryKmPostId } from 'geometry/geometry-model';
 import { angleDiffRads, directionBetweenPoints, interpolateXY } from 'utils/math-utils';
-import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
 
 export const linkingReducers = {
     startAlignmentLinking: (
@@ -59,7 +59,6 @@ export const linkingReducers = {
                 errors: [],
             };
         }
-        state.map.loadingIndicatorVisible = true;
     },
     stopLinking: function (state: TrackLayoutState): void {
         state.linkingState = undefined;
@@ -275,8 +274,8 @@ export function createUpdatedInterval(
             .filter(filterNotEmpty)
             .sort(fieldComparator((p) => p.m));
         return {
-            start: points.length > 0 ? points[0] : undefined,
-            end: points.length > 0 ? points[points.length - 1] : undefined,
+            start: points.length > 0 ? first(points) : undefined,
+            end: points.length > 0 ? last(points) : undefined,
         };
     }
 }
@@ -443,27 +442,27 @@ export function createLinkPoints(
     segmentEndMs: number[],
     points: AlignmentPoint[],
 ): LinkPoint[] {
-    let segmentMIndex = 0;
     return points.flatMap((point, pIdx) => {
         const linkPoints: LinkPoint[] = [];
 
-        // Generate points for segment start/end markers if needed
-        while (segmentMIndex < segmentEndMs.length && segmentEndMs[segmentMIndex] <= point.m) {
-            const newM = segmentEndMs[segmentMIndex];
-            segmentMIndex++;
+        segmentEndMs.every((endM) => {
+            // Generate points for segment start/end markers if needed
+            if (endM <= point.m) return false;
+
             // Only do the interpolated point if it's not in the actual points already
-            if (pIdx > 0 && newM < point.m) {
+            const previousPoint = points[pIdx - 1];
+            if (previousPoint && endM < point.m) {
                 linkPoints.push(
-                    interpolateSegmentEndLinkPoint(type, id, points[pIdx - 1], point, newM),
+                    interpolateSegmentEndLinkPoint(type, id, previousPoint, point, endM),
                 );
             }
-        }
+        });
 
         // Create the linkpoint from layout point
         const direction =
             pIdx === 0
-                ? directionBetweenPoints(point, points[pIdx + 1])
-                : directionBetweenPoints(points[pIdx - 1], point);
+                ? directionBetweenPoints(point, expectDefined(points[pIdx + 1]))
+                : directionBetweenPoints(expectDefined(points[pIdx - 1]), point);
         const segmentEnd = segmentEndMs.includes(point.m);
         const alignmentEnd = point.m === 0 || point.m === alignmentLength;
         linkPoints.push(

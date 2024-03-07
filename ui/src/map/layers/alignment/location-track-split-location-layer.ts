@@ -6,13 +6,12 @@ import Feature from 'ol/Feature';
 import Style from 'ol/style/Style';
 import { Circle, Fill, Stroke } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
-import { clearFeatures, pointToCoords } from 'map/layers/utils/layer-utils';
+import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { getSwitches } from 'track-layout/layout-switch-api';
-import { LayoutSwitchId } from 'track-layout/track-layout-model';
+import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
-
-let newestLayerId = 0;
+import { MapLayerName } from 'map/map-model';
 
 const splitPointStyle = new Style({
     image: new Circle({
@@ -35,21 +34,24 @@ type SwitchIdAndLocation = {
     location: Point;
 };
 
+const layerName: MapLayerName = 'location-track-split-location-layer';
+
 export const createLocationTrackSplitLocationLayer = (
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     splittingState: SplittingState | undefined,
+    onLoadingData: (loading: boolean) => void,
 ): MapLayer => {
-    const layerId = ++newestLayerId;
+    const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const vectorSource = existingOlLayer?.getSource() || new VectorSource();
-    const layer = existingOlLayer || new VectorLayer({ source: vectorSource });
-    if (splittingState) {
-        getSwitches(
-            splittingState.splits.map((sw) => sw.switchId),
-            'DRAFT',
-        ).then((switches) => {
-            if (layerId !== newestLayerId) return;
+    const dataPromise: Promise<LayoutSwitch[]> = splittingState
+        ? getSwitches(
+              splittingState.splits.map((sw) => sw.switchId),
+              'DRAFT',
+          )
+        : Promise.resolve([]);
 
+    const createFeatures = (switches: LayoutSwitch[]) => {
+        if (splittingState) {
             const firstAndLast: SwitchIdAndLocation[] = [
                 { location: splittingState.firstSplit.location, switchId: undefined },
                 { location: splittingState.endLocation, switchId: undefined },
@@ -60,7 +62,7 @@ export const createLocationTrackSplitLocationLayer = (
             }));
             const switchesAndLocations = firstAndLast.concat(splits);
 
-            const features = switchesAndLocations.map(({ location, switchId }) => {
+            return switchesAndLocations.map(({ location, switchId }) => {
                 const isDeleted =
                     switches.find((sw) => sw.id === switchId)?.stateCategory === 'NOT_EXISTING';
                 const feature = new Feature({
@@ -69,17 +71,12 @@ export const createLocationTrackSplitLocationLayer = (
                 feature.setStyle(isDeleted ? deletedSplitPointStyle : splitPointStyle);
                 return feature;
             });
-
-            clearFeatures(vectorSource);
-            vectorSource.addFeatures(features);
-        });
-    } else {
-        clearFeatures(vectorSource);
-    }
-
-    return {
-        name: 'location-track-split-location-layer',
-        layer: layer,
-        requestInFlight: () => false,
+        } else {
+            return [];
+        }
     };
+
+    loadLayerData(source, isLatest, onLoadingData, dataPromise, createFeatures);
+
+    return { name: layerName, layer: layer };
 };

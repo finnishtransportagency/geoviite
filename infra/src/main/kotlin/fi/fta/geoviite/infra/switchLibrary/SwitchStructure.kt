@@ -335,18 +335,22 @@ fun transformSwitchPoint(transformation: SwitchPositionTransformation, point: Po
 data class SwitchConnectivityType(
     val trackLinkedAlignmentsJoints: List<List<JointNumber>>,
     val frontJoint: JointNumber?,
-    val sharedJoint: JointNumber?,
+    val sharedPassThroughJoint: JointNumber?,
 )
 
-fun switchConnectivityType(structure: SwitchStructure) = when (structure.baseType) {
+fun switchConnectivityType(structure: SwitchStructure): SwitchConnectivityType = when (structure.baseType) {
     SwitchBaseType.YV, SwitchBaseType.TYV, SwitchBaseType.YRV, SwitchBaseType.SKV, SwitchBaseType.UKV, SwitchBaseType.KV -> SwitchConnectivityType(
-        structure.alignments.map { it.jointNumbers }, JointNumber(1), null
+        trackLinkedAlignmentsJoints = structure.alignments.map { it.jointNumbers },
+        frontJoint = JointNumber(1),
+        sharedPassThroughJoint = null,
     )
 
-    SwitchBaseType.KRV, SwitchBaseType.RR, SwitchBaseType.SRR -> SwitchConnectivityType(structure.alignments.filter { it.jointNumbers.size == 3 }
-        .flatMap { alignment ->
+    SwitchBaseType.KRV, SwitchBaseType.RR, SwitchBaseType.SRR -> SwitchConnectivityType(
+        trackLinkedAlignmentsJoints = structure.alignments.filter { it.jointNumbers.size == 3 }.flatMap { alignment ->
             val joints = alignment.jointNumbers
             listOf(listOf(joints[0], joints[1]), listOf(joints[1], joints[2]))
-        }, null, JointNumber(5),
+        },
+        frontJoint = null,
+        sharedPassThroughJoint = JointNumber(5),
     )
 }

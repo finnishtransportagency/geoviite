@@ -6,12 +6,13 @@ import { useTranslation } from 'react-i18next';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Dialog } from 'geoviite-design-lib/dialog/dialog';
 import { Dropdown, Item } from 'vayla-design-lib/dropdown/dropdown';
+import { menuValueOption } from 'vayla-design-lib/menu/menu';
 
 const xmlEncodingOptions: Item<XmlCharset>[] = [
-    { name: 'ISO-8859-1', value: 'ISO_8859_1' },
-    { name: 'UTF-8', value: 'UTF_8' },
-    { name: 'UTF-16', value: 'UTF_16' },
-    { name: 'US ASCII', value: 'US_ASCII' },
+    menuValueOption('ISO_8859_1', 'ISO-8859-1'),
+    menuValueOption('UTF_8', 'UTF-8'),
+    menuValueOption('UTF_16', 'UTF-16'),
+    menuValueOption('US_ASCII', 'US ASCII'),
 ];
 
 export type CharsetSelectDialogProps = {

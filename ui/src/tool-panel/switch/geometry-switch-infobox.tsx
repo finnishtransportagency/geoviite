@@ -20,6 +20,7 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { Point } from 'model/geometry';
 import { getSwitchStructure } from 'common/common-api';
 import { GeometrySwitchInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import { first } from 'utils/array-utils';
 
 type GeometrySwitchInfoboxProps = {
     switchId?: GeometrySwitchId;
@@ -62,7 +63,7 @@ const GeometrySwitchInfobox: React.FC<GeometrySwitchInfoboxProps> = ({
                 : undefined,
         [switchItem],
     );
-    const switchLocation = geometrySwitchLayout && geometrySwitchLayout.joints[0]?.location;
+    const switchLocation = geometrySwitchLayout && first(geometrySwitchLayout.joints)?.location;
 
     const SwitchImage =
         switchStructure && makeSwitchImage(switchStructure.baseType, switchStructure.hand);

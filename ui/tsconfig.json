@@ -4,6 +4,8 @@
         "outDir": "./dist/",
         "sourceMap": true,
         "noImplicitAny": true,
+        // TODO: Turn this back on in GVT-2510
+        // "noUncheckedIndexedAccess": true,
         "module": "commonjs",
         "lib": ["DOM", "ES6", "DOM.Iterable", "ScriptHost", "ES2019.array"],
         "target": "es5",

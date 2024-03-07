@@ -6,6 +6,7 @@ import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { ExamplePerson } from 'vayla-design-lib/demo/examples/dropdown-examples';
 import examplePersonsData from 'vayla-design-lib/demo/example-persons.json';
+import { menuValueOption } from 'vayla-design-lib/menu/menu';
 
 export const ButtonExamples: React.FC = () => {
     const [isProcessing, setProcessing] = React.useState(false);
@@ -136,10 +137,9 @@ export const ButtonExamples: React.FC = () => {
                     placeholder="Select person"
                     value={person}
                     onChange={(person) => setPerson(person)}
-                    options={examplePersonsData.map((person) => ({
-                        name: person.name,
-                        value: person,
-                    }))}
+                    options={examplePersonsData.map((person) =>
+                        menuValueOption(person, person.name),
+                    )}
                     attachRight
                 />
                 <Button variant={ButtonVariant.SECONDARY} icon={Icons.Append} attachLeft />

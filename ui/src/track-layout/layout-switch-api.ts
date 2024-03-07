@@ -20,7 +20,7 @@ import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
 import { Result } from 'neverthrow';
 import { TrackLayoutSaveError, TrackLayoutSwitchSaveRequest } from 'linking/linking-model';
-import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
+import { filterNotEmpty, first, indexIntoMap } from 'utils/array-utils';
 import { ValidatedAsset } from 'publication/publication-model';
 import { getMaxTimestamp } from 'utils/date-utils';
 
@@ -151,9 +151,7 @@ export const getSwitchValidation = async (
     publishType: PublishType,
     id: LayoutSwitchId,
 ): Promise<ValidatedAsset | undefined> =>
-    getSwitchesValidation(publishType, [id]).then((switches) =>
-        switches.length > 0 ? switches[0] : undefined,
-    );
+    getSwitchesValidation(publishType, [id]).then((switches) => first(switches));
 
 export const getSwitchesValidation = async (publishType: PublishType, ids: LayoutSwitchId[]) => {
     const changeTimes = getChangeTimes();

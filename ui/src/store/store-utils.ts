@@ -12,7 +12,9 @@ export type WrappedReducers<TRootState, TState, TReducers> = {
 export function wrapReducers<
     TRootState,
     TState,
-    TReducers extends { [key: string]: ReducerFunc<TState, unknown> },
+    TReducers extends {
+        [key in keyof WrappedReducers<TRootState, TState, TReducers>]: ReducerFunc<TState, unknown>;
+    },
 >(
     getMapFunc: (state: TRootState) => TState,
     reducers: TReducers,
@@ -22,19 +24,19 @@ export function wrapReducers<
     } = {};
     Object.keys(reducers).map((key) => {
         mappedReducers[key] = (state: TRootState, action: unknown) =>
-            reducers[key](getMapFunc(state), action);
+            reducers[key as keyof typeof reducers](getMapFunc(state), action);
     });
     return mappedReducers as WrappedReducers<TRootState, TState, TReducers>;
 }
 
 export function createDelegates<
-    TActionCreators extends { [key: string]: CreateActionFunc<unknown, unknown> },
+    TActionCreators extends { [key in keyof TActionCreators]: CreateActionFunc<unknown, unknown> },
 >(actionCreators: TActionCreators): TActionCreators {
     const delegates: { [key: string]: unknown } = {};
     const dispatch: React.Dispatch<unknown> = appStore.dispatch;
     Object.keys(actionCreators).forEach((key) => {
         delegates[key] = function (payload: unknown) {
-            dispatch(actionCreators[key](payload));
+            dispatch(actionCreators[key as keyof typeof actionCreators](payload));
         };
     });
     return delegates as TActionCreators;
@@ -42,12 +44,12 @@ export function createDelegates<
 
 export function createDelegatesWithDispatcher<
     TDispatch extends React.Dispatch<unknown>,
-    TActionCreators extends { [key: string]: CreateActionFunc<unknown, unknown> },
+    TActionCreators extends { [key in keyof TActionCreators]: CreateActionFunc<unknown, unknown> },
 >(dispatch: TDispatch, actionCreators: TActionCreators): TActionCreators {
     const delegates: { [key: string]: unknown } = {};
     Object.keys(actionCreators).forEach((key) => {
         delegates[key] = function (payload: unknown) {
-            dispatch(actionCreators[key](payload));
+            dispatch(actionCreators[key as keyof typeof actionCreators](payload));
         };
     });
     return delegates as TActionCreators;

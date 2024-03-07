@@ -10,13 +10,19 @@ export const FileInputExamples: React.FC = () => {
 
             <h3>Text as a visualization</h3>
             <FileInput
-                onChange={(e) => alert(e.target.files ? e.target.files[0].name : 'no file chosen')}>
+                onChange={(e) => {
+                    const file = e.target.files?.item(0);
+                    alert(file ? file.name : 'no file chosen');
+                }}>
                 Upload
             </FileInput>
 
             <h3>Button as a visualization</h3>
             <FileInput
-                onChange={(e) => alert(e.target.files ? e.target.files[0].name : 'no file chosen')}>
+                onChange={(e) => {
+                    const file = e.target.files?.item(0);
+                    alert(file ? file.name : 'no file chosen');
+                }}>
                 <Button icon={Icons.Download}>Upload a file</Button>
             </FileInput>
         </div>

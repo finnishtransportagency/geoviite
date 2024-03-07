@@ -12,7 +12,13 @@ import { createClassName } from 'vayla-design-lib/utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { ChangesBeingReverted, PreviewOperations } from 'preview/preview-view';
-import { Menu, MenuSelectOption } from 'vayla-design-lib/menu/menu';
+import {
+    Menu,
+    menuDividerOption,
+    MenuOption,
+    menuSelectOption,
+    MenuSelectOption,
+} from 'vayla-design-lib/menu/menu';
 import { PreviewSelectType, PreviewTableEntry, PublicationId } from 'preview/preview-table';
 import { BoundingBox } from 'model/geometry';
 import { RevertRequestSource } from 'preview/preview-view-revert-request';
@@ -98,20 +104,21 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         setActionMenuVisible(false);
     };
 
-    const menuOptionMoveStageChanges: MenuSelectOption = {
-        onSelect: menuAction(() =>
+    const menuOptionMoveStageChanges: MenuSelectOption = menuSelectOption(
+        menuAction(() =>
             previewOperations.setPublicationStage.forAllStageChanges(
                 displayedPublicationStage,
                 moveTargetStage,
             ),
         ),
-        name: t('publish.move-stage-changes', {
+        t('publish.move-stage-changes', {
             amount: stagePublicationAssetAmount,
         }),
-    };
+        'preview-move-stage-changes',
+    );
 
-    const menuOptionMovePublicationGroupStage: MenuSelectOption = {
-        onSelect: menuAction(() => {
+    const menuOptionMovePublicationGroupStage: MenuSelectOption = menuSelectOption(
+        menuAction(() => {
             if (tableEntry.publicationGroup) {
                 previewOperations.setPublicationStage.forPublicationGroup(
                     tableEntry.publicationGroup,
@@ -119,35 +126,38 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                 );
             }
         }),
-        name: t('publish.move-publication-group', {
+        t('publish.move-publication-group', {
             amount: publicationGroupAssetAmount,
         }),
-    };
+        'preview-move-publication-group',
+    );
 
-    const menuOptionRevertSingleChange: MenuSelectOption = {
-        name: t('publish.revert-change'),
-        onSelect: menuAction(() =>
+    const menuOptionRevertSingleChange: MenuSelectOption = menuSelectOption(
+        menuAction(() =>
             previewOperations.revert.changesWithDependencies(
                 tableEntryAsPublishRequestIds,
                 tableEntryAsRevertRequestSource,
             ),
         ),
-    };
+        t('publish.revert-change'),
+        'preview-revert-change',
+    );
 
-    const menuOptionRevertStageChanges: MenuSelectOption = {
-        onSelect: menuAction(() => {
+    const menuOptionRevertStageChanges: MenuSelectOption = menuSelectOption(
+        menuAction(() => {
             previewOperations.revert.stageChanges(
                 displayedPublicationStage,
                 tableEntryAsRevertRequestSource,
             );
         }),
-        name: t('publish.revert-stage-changes', {
+        t('publish.revert-stage-changes', {
             amount: stagePublicationAssetAmount,
         }),
-    };
+        'preview-revert-stage-changes',
+    );
 
-    const menuOptionPublicationGroupRevert: MenuSelectOption = {
-        onSelect: menuAction(() => {
+    const menuOptionPublicationGroupRevert: MenuSelectOption = menuSelectOption(
+        menuAction(() => {
             if (tableEntry.publicationGroup) {
                 previewOperations.revert.publicationGroup(
                     tableEntry.publicationGroup,
@@ -155,23 +165,27 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                 );
             }
         }),
-        name: t('publish.revert-publication-group', {
+        t('publish.revert-publication-group', {
             amount: publicationGroupAssetAmount,
         }),
-    };
+        'preview-revert-publication-group',
+    );
 
-    const menuOptionShowOnMap: MenuSelectOption = {
-        disabled: !tableEntry.boundingBox,
-        onSelect: menuAction(() => {
+    const menuOptionShowOnMap: MenuSelectOption = menuSelectOption(
+        menuAction(() => {
             tableEntry.boundingBox && onShowOnMap(tableEntry.boundingBox);
         }),
-        name: t('publish.show-on-map'),
-    };
+        t('publish.show-on-map'),
+        'preview-show-on-map',
+        !tableEntry.boundingBox,
+    );
 
-    const menuOptions: MenuSelectOption[] = [
+    const menuOptions: MenuOption<never>[] = [
         ...conditionalMenuOption(tableEntry.publicationGroup, menuOptionMovePublicationGroupStage),
         menuOptionMoveStageChanges,
+        menuDividerOption(),
         menuOptionShowOnMap,
+        menuDividerOption(),
         ...conditionalMenuOption(!tableEntry.publicationGroup, menuOptionRevertSingleChange),
         ...conditionalMenuOption(tableEntry.publicationGroup, menuOptionPublicationGroupRevert),
         menuOptionRevertStageChanges,

@@ -1,4 +1,5 @@
 import {
+    AlignmentPoint,
     LayoutKmPostId,
     LayoutState,
     LayoutStateCategory,
@@ -97,6 +98,11 @@ export type LinkInterval = {
     end?: LinkPoint;
 };
 export const emptyLinkInterval = { start: undefined, end: undefined };
+
+export type MapAlignmentEndPoints = {
+    start: AlignmentPoint[];
+    end: AlignmentPoint[];
+};
 
 export type LinkingPhase = 'preliminary' | 'setup' | 'allSet';
 

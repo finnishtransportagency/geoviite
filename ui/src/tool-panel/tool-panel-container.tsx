@@ -7,6 +7,7 @@ import { LinkingType, SuggestedSwitch } from 'linking/linking-model';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
 import { getSuggestedSwitchByPoint } from 'linking/linking-api';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
+import { first } from 'utils/array-utils';
 
 type ToolPanelContainerProps = {
     setHoveredOverItem: (item: HighlightedAlignment | undefined) => void;
@@ -43,8 +44,10 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
             getSuggestedSwitchByPoint(linkingState.location, linkingState.layoutSwitch.id).then(
                 (suggestedSwitches) => {
                     delegates.stopLinking();
-                    if (suggestedSwitches.length) {
-                        startSwitchLinking(suggestedSwitches[0], linkingState.layoutSwitch);
+
+                    const suggestedSwitch = first(suggestedSwitches);
+                    if (suggestedSwitch) {
+                        startSwitchLinking(suggestedSwitch, linkingState.layoutSwitch);
                     } else {
                         delegates.hideLayers(['switch-linking-layer']);
                     }
