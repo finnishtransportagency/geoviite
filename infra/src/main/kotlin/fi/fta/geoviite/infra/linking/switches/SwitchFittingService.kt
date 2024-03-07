@@ -273,7 +273,7 @@ fun fitSwitch(
         name = geometrySwitch?.name ?: SwitchName(switchStructure.baseType.name),
         switchStructureId = switchStructure.id as IntId,
         joints = suggestedJoints,
-        geometrySwitchId = geometrySwitch?.id?.let { id -> if (id is IntId) id else null },
+        geometrySwitchId = geometrySwitch?.id?.let { id -> id as? IntId },
         alignmentEndPoint = alignmentEndPoint,
         geometryPlanId = geometryPlanId,
     )
