@@ -1,6 +1,6 @@
 import * as React from 'react';
 import styles from './menu.scss';
-import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
+import { CloseableModal, OpenTowards } from 'vayla-design-lib/closeable-modal/closeable-modal';
 import { createClassName } from 'vayla-design-lib/utils';
 
 export type MenuOption<TValue> = MenuValueOption<TValue> | MenuSelectOption | MenuDividerOption;
@@ -58,7 +58,7 @@ type MenuProps<TValue> = {
     onClickOutside: () => void;
     onSelect?: (item: TValue) => void;
     items: MenuOption<TValue>[];
-    opensTowardsLeft?: boolean;
+    opensTowards?: OpenTowards;
 } & Omit<React.HTMLAttributes<HTMLElement>, 'onSelect'>;
 
 export const Menu = function <TValue>({
@@ -67,7 +67,7 @@ export const Menu = function <TValue>({
     items,
     onSelect,
     className,
-    opensTowardsLeft,
+    opensTowards = 'RIGHT',
     ...props
 }: MenuProps<TValue>) {
     const { height: offsetY } = positionRef.current?.getBoundingClientRect() ?? { height: 0 };
@@ -77,7 +77,7 @@ export const Menu = function <TValue>({
             className={createClassName(styles['menu'], className)}
             onClickOutside={onClickOutside}
             positionRef={positionRef}
-            openTowardsLeft={opensTowardsLeft}
+            openTowards={opensTowards}
             offsetY={offsetY + 6}>
             <ol className={styles['menu__items']} {...props}>
                 {items.map((i, index) => {

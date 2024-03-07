@@ -144,8 +144,9 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             return t('tool-panel.disabled.activity-disabled-in-official-mode');
         } else if (splittingState || extraInfo?.partOfUnfinishedSplit) {
             return t('tool-panel.location-track.splitting-blocks-geometry-changes');
+        } else {
+            return undefined;
         }
-        return undefined;
     };
 
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
