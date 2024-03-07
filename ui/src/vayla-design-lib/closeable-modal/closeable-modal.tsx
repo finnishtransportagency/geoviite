@@ -2,6 +2,8 @@ import * as React from 'react';
 import { createPortal } from 'react-dom';
 import useResizeObserver from 'use-resize-observer';
 
+export type OpenTowards = 'LEFT' | 'RIGHT';
+
 type CloseableModalProps = {
     positionRef: React.MutableRefObject<HTMLElement | null>;
     onClickOutside: () => void;
@@ -12,7 +14,7 @@ type CloseableModalProps = {
     useRefWidth?: boolean;
     refWidthOffset?: number;
     maxHeight?: number;
-    openTowardsLeft?: boolean;
+    openTowards?: OpenTowards;
 };
 
 const WINDOW_MARGIN = 6;
@@ -37,7 +39,7 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
     offsetY = 0,
     refWidthOffset = 0,
     useRefWidth = false,
-    openTowardsLeft = false,
+    openTowards = 'RIGHT',
 }: CloseableModalProps) => {
     const [modalPosition, setModalPosition] = React.useState<ModalPosition>();
     const [modalSize, setModalSize] = React.useState<ModalSize>();
@@ -65,9 +67,10 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
 
             const parentWidth = positionRef.current?.getBoundingClientRect().width ?? 0;
             const modalWidth = modalRef.current.getBoundingClientRect().width ?? 0;
-            const x = openTowardsLeft
-                ? refPosition.left + parentWidth + offsetX - modalWidth
-                : refPosition.left + offsetX;
+            const x =
+                openTowards === 'LEFT'
+                    ? refPosition.left + parentWidth + offsetX - modalWidth
+                    : refPosition.left + offsetX;
             const y = refPosition.top + offsetY;
 
             const calculatedMaxHeight = windowHeight - y - WINDOW_MARGIN;
