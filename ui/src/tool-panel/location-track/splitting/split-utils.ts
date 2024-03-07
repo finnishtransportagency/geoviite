@@ -17,6 +17,7 @@ import {
     validateLocationTrackDescriptionBase,
     validateLocationTrackName,
 } from 'tool-panel/location-track/dialog/location-track-validation';
+import { isEqualUppercase } from 'utils/string-utils';
 
 export type ValidatedSplit = {
     split: SplitTargetCandidate | FirstSplitTargetCandidate;
@@ -75,10 +76,7 @@ const validateSplitName = (
 ) => {
     const errors: ValidationError<SplitTargetCandidate>[] = validateLocationTrackName(splitName);
 
-    if (
-        allSplitNames.filter((s) => s !== '' && s.toLowerCase() === splitName.toLowerCase())
-            .length > 1
-    )
+    if (allSplitNames.filter((s) => s !== '' && isEqualUppercase(s, splitName)).length > 1)
         errors.push({
             field: 'name',
             reason: 'conflicts-with-split',

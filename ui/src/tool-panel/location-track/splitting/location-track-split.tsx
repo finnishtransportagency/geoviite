@@ -21,6 +21,7 @@ import {
 } from 'tool-panel/location-track/split-store';
 import { MAP_POINT_NEAR_BBOX_OFFSET } from 'map/map-utils';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
+import { isEqualUppercase } from 'utils/string-utils';
 
 type EndpointProps = {
     addressPoint: AddressPoint | undefined;
@@ -174,13 +175,18 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             hasError={nameErrorsVisible}
                             disabled={editingDisabled}
                             onChange={(e) => {
-                                const duplicateId = allDuplicateLocationTracks.find(
-                                    (lt) => lt.name === e.target.value,
-                                )?.id;
+                                const duplicate = allDuplicateLocationTracks.find((lt) =>
+                                    isEqualUppercase(lt.name, e.target.value),
+                                );
+
+                                if (duplicate && nameRef.current) {
+                                    nameRef.current.value = duplicate.name;
+                                }
+
                                 updateSplit({
                                     ...split,
                                     name: e.target.value,
-                                    duplicateOf: duplicateId,
+                                    duplicateOf: duplicate?.id,
                                 });
                             }}
                             onBlur={() => {

@@ -11,3 +11,6 @@ export function isEqualWithoutWhitespace(str1: string, str2: string): boolean {
 export function isEmpty(str: string) {
     return str.length == 0 || isNilOrBlank(str);
 }
+
+export const isEqualUppercase = (str1: string, str2: string): boolean =>
+    str1.toUpperCase() === str2.toUpperCase();
