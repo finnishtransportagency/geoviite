@@ -149,8 +149,12 @@ fun validateLocationTrackNameDuplication(
     duplicates: List<LocationTrack>,
 ): List<PublishValidationError> {
     return if (track.exists && duplicates.any { d -> d.id != track.id }) {
-        val officialDuplicateExists = duplicates.any { d -> d.id != track.id && d.isOfficial() }
-        val draftDuplicateExists = duplicates.any { d -> d.id != track.id && d.isDraft() }
+        // Location track names must be unique within the same track number, but there can be location tracks with the
+        // same name on other track numbers
+        val officialDuplicateExists =
+            duplicates.any { d -> d.id != track.id && d.isOfficial() && d.trackNumberId == track.trackNumberId }
+        val draftDuplicateExists =
+            duplicates.any { d -> d.id != track.id && d.isDraft() && d.trackNumberId == track.trackNumberId }
         val localizationParams = localizationParams(
             "locationTrack" to track.name,
             "trackNumber" to trackNumber,
