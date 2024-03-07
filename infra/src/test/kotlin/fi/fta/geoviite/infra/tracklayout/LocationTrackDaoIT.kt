@@ -105,7 +105,7 @@ class LocationTrackDaoIT @Autowired constructor(
         assertEquals(id, inserted.id)
         assertEquals(VersionPair(insertVersion, null), locationTrackDao.fetchVersionPair(id))
 
-        val tempDraft1 = draft(inserted).copy(name = AlignmentName("test2"))
+        val tempDraft1 = asMainDraft(inserted).copy(name = AlignmentName("test2"))
         val (draftId1, draftVersion1) = locationTrackDao.insert(tempDraft1)
         val draft1 = locationTrackDao.fetch(draftVersion1)
         assertEquals(id, draftId1)
@@ -275,9 +275,9 @@ class LocationTrackDaoIT @Autowired constructor(
     }
 
     private fun insertOfficialLocationTrack(tnId: IntId<TrackLayoutTrackNumber>): DaoResponse<LocationTrack> {
-        val (track, alignment) = locationTrackAndAlignment(tnId)
+        val (track, alignment) = locationTrackAndAlignment(tnId, draft = false)
         val alignmentVersion = alignmentDao.insert(alignment)
-        return locationTrackDao.insert(track.copy(draft = null, alignmentVersion = alignmentVersion))
+        return locationTrackDao.insert(track.copy(alignmentVersion = alignmentVersion))
     }
 
     private fun insertDraftLocationTrack(
@@ -286,7 +286,7 @@ class LocationTrackDaoIT @Autowired constructor(
     ): DaoResponse<LocationTrack> {
         val (track, alignment) = locationTrackAndAlignment(tnId)
         val alignmentVersion = alignmentDao.insert(alignment)
-        return locationTrackDao.insert(draft(track).copy(state = state, alignmentVersion = alignmentVersion))
+        return locationTrackDao.insert(asMainDraft(track).copy(state = state, alignmentVersion = alignmentVersion))
     }
 
     private fun createDraftWithNewTrackNumber(
@@ -294,10 +294,10 @@ class LocationTrackDaoIT @Autowired constructor(
         newTrackNumber: IntId<TrackLayoutTrackNumber>,
     ): DaoResponse<LocationTrack> {
         val track = locationTrackDao.fetch(trackVersion)
-        assertNull(track.draft)
+        assertNull(track.isDraft)
         val alignmentVersion = alignmentService.duplicate(track.alignmentVersion!!)
         return locationTrackDao.insert(
-            draft(track).copy(
+            asMainDraft(track).copy(
                 alignmentVersion = alignmentVersion,
                 trackNumberId = newTrackNumber,
             )
@@ -306,7 +306,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     private fun updateOfficial(originalVersion: RowVersion<LocationTrack>): DaoResponse<LocationTrack> {
         val original = locationTrackDao.fetch(originalVersion)
-        assertNull(original.draft)
+        assertNull(original.isDraft)
         return locationTrackDao.update(original.copy(descriptionBase = original.descriptionBase + "_update"))
     }
 }

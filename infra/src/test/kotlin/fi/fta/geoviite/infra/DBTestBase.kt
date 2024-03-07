@@ -143,7 +143,7 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
         insertSwitch(switch(name = getUnusedSwitchName().toString()))
 
     fun insertUniqueDraftSwitch(): DaoResponse<TrackLayoutSwitch> =
-        insertSwitch(draft(switch(name = getUnusedSwitchName().toString())))
+        insertSwitch(asMainDraft(switch(name = getUnusedSwitchName().toString())))
 
     fun insertSwitch(switch: TrackLayoutSwitch): DaoResponse<TrackLayoutSwitch> = transactional {
         jdbc.setUser()

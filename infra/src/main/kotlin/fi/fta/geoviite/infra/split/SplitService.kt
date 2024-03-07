@@ -466,6 +466,7 @@ private fun createSplitTarget(
         segmentCount = newAlignment.segments.size,
         length = newAlignment.length,
         boundingBox = newAlignment.boundingBox,
+        contextData = LayoutContextData.newDraft(),
     )
     return newTrack to newAlignment
 }

@@ -33,6 +33,7 @@ class LayoutTrackNumberService(
                 description = saveRequest.description,
                 state = saveRequest.state,
                 externalId = null,
+                contextData = LayoutContextData.newDraft(),
             )
         )
         referenceLineService.addTrackNumberReferenceLine(draftSaveResponse.id, saveRequest.startAddress)

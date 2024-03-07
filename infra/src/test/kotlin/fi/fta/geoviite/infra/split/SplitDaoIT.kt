@@ -6,7 +6,7 @@ import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.tracklayout.alignment
-import fi.fta.geoviite.infra.tracklayout.draft
+import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
 import org.junit.jupiter.api.Test
@@ -34,7 +34,7 @@ class SplitDaoIT @Autowired constructor(
         )
 
         val targetTrack = insertLocationTrack(
-            draft(locationTrack(trackNumberId = trackNumberId)) to alignment
+            asMainDraft(locationTrack(trackNumberId = trackNumberId)) to alignment
         )
 
         val relinkedSwitchId = insertUniqueSwitch().id
@@ -62,7 +62,7 @@ class SplitDaoIT @Autowired constructor(
         )
 
         val targetTrack = insertLocationTrack(
-            draft(locationTrack(trackNumberId = trackNumberId)) to alignment
+            asMainDraft(locationTrack(trackNumberId = trackNumberId)) to alignment
         )
 
         val relinkedSwitchId = insertUniqueSwitch().id
@@ -95,11 +95,11 @@ class SplitDaoIT @Autowired constructor(
         )
 
         val targetTrack1 = insertLocationTrack(
-            draft(locationTrack(trackNumberId = trackNumberId)) to alignment
+            asMainDraft(locationTrack(trackNumberId = trackNumberId)) to alignment
         )
 
         val targetTrack2 = insertLocationTrack(
-            draft(locationTrack(trackNumberId = trackNumberId)) to alignment
+            asMainDraft(locationTrack(trackNumberId = trackNumberId)) to alignment
         )
 
         val relinkedSwitchId1 = insertUniqueSwitch().id
@@ -137,11 +137,11 @@ class SplitDaoIT @Autowired constructor(
         )
 
         val someDuplicateTrack = insertLocationTrack(
-            draft(locationTrack(trackNumberId = trackNumberId)) to alignment
+            asMainDraft(locationTrack(trackNumberId = trackNumberId)) to alignment
         )
 
         val targetTrack1 = insertLocationTrack(
-            draft(locationTrack(trackNumberId = trackNumberId)) to alignment
+            asMainDraft(locationTrack(trackNumberId = trackNumberId)) to alignment
         )
 
         val relinkedSwitchId = insertUniqueSwitch().id
@@ -169,7 +169,7 @@ class SplitDaoIT @Autowired constructor(
         )
 
         val targetTrack1 = insertLocationTrack(
-            draft(locationTrack(trackNumberId = trackNumberId)) to alignment
+            asMainDraft(locationTrack(trackNumberId = trackNumberId)) to alignment
         )
 
         val relinkedSwitchId = insertUniqueSwitch().id
@@ -211,7 +211,7 @@ class SplitDaoIT @Autowired constructor(
         )
 
         val targetTrack = insertLocationTrack(
-            draft(locationTrack(trackNumberId = trackNumberId)) to alignment
+            asMainDraft(locationTrack(trackNumberId = trackNumberId)) to alignment
         )
 
         val relinkedSwitchId = insertUniqueSwitch().id

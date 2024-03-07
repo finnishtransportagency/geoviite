@@ -26,13 +26,20 @@ class ReferenceLineService(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         startAddress: TrackMeter,
     ): DaoResponse<ReferenceLine> {
-        logger.serviceCall("insertTrackNumberReferenceLine",
-            "trackNumberId" to trackNumberId, "startAddress" to startAddress)
-        return saveDraftInternal(ReferenceLine(
-            trackNumberId = trackNumberId,
-            startAddress = startAddress,
-            sourceId = null,
-        ), emptyAlignment())
+        logger.serviceCall(
+            "insertTrackNumberReferenceLine",
+            "trackNumberId" to trackNumberId,
+            "startAddress" to startAddress,
+        )
+        return saveDraftInternal(
+            ReferenceLine(
+                trackNumberId = trackNumberId,
+                startAddress = startAddress,
+                sourceId = null,
+                contextData = LayoutContextData.newDraft(),
+            ),
+            emptyAlignment(),
+        )
     }
 
     @Transactional

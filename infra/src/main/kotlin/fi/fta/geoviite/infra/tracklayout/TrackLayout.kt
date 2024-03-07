@@ -70,11 +70,12 @@ data class TrackLayoutTrackNumber(
     val description: FreeText,
     val state: LayoutState,
     val externalId: Oid<TrackLayoutTrackNumber>?,
+    @JsonIgnore override val contextData: LayoutContextData<TrackLayoutTrackNumber>,
     override val version: RowVersion<TrackLayoutTrackNumber>? = null,
     @JsonIgnore val referenceLineId: IntId<ReferenceLine>? = null,
-    @JsonIgnore override val contextData: LayoutContextData<TrackLayoutTrackNumber> = LayoutContextData.newDraft(
-        id = StringId(),
-    ),
+//    @JsonIgnore override val contextData: LayoutContextData<TrackLayoutTrackNumber> = LayoutContextData.newDraft(
+//        id = StringId(),
+//    ),
 ) : LayoutConcept<TrackLayoutTrackNumber>(contextData) {
     @JsonIgnore
     val exists = !state.isRemoved()
@@ -107,10 +108,8 @@ data class ReferenceLine(
     val boundingBox: BoundingBox? = null,
     val length: Double = 0.0,
     val segmentCount: Int = 0,
+    @JsonIgnore override val contextData: LayoutContextData<ReferenceLine>,
     @JsonIgnore val alignmentVersion: RowVersion<LayoutAlignment>? = null,
-    @JsonIgnore override val contextData: LayoutContextData<ReferenceLine> = LayoutContextData.newDraft(
-        id = deriveFromSourceId("RL", sourceId),
-    ),
 ) : LayoutConcept<ReferenceLine>(contextData) {
 
     init {
@@ -189,7 +188,6 @@ data class LocationTrack(
     val externalId: Oid<LocationTrack>?,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val sourceId: IntId<GeometryAlignment>?,
-//    override val id: DomainId<LocationTrack> = deriveFromSourceId("LT", sourceId),
     override val version: RowVersion<LocationTrack>? = null,
     val boundingBox: BoundingBox?,
     val length: Double,
@@ -199,14 +197,10 @@ data class LocationTrack(
     val topologyStartSwitch: TopologyLocationTrackSwitch?,
     val topologyEndSwitch: TopologyLocationTrackSwitch?,
     val ownerId: IntId<LocationTrackOwner>,
+    @JsonIgnore override val contextData: LayoutContextData<LocationTrack>,
     @JsonIgnore val alignmentVersion: RowVersion<LayoutAlignment>? = null,
-    @JsonIgnore override val contextData: LayoutContextData<LocationTrack> = LayoutContextData.newDraft(
-        id = deriveFromSourceId("LT", sourceId)
-    ),
-//    @JsonIgnore override val draft: Draft<LocationTrack>? = null,
     @JsonIgnore val segmentSwitchIds: List<IntId<TrackLayoutSwitch>> = listOf(),
 ) : LayoutConcept<LocationTrack>(contextData) {
-//) : Draftable<LocationTrack> {
 
     @JsonIgnore
     val exists = !state.isRemoved()
@@ -258,11 +252,9 @@ data class TrackLayoutSwitch(
     val sourceId: DomainId<GeometrySwitch>?,
     val trapPoint: Boolean?,
     val ownerId: IntId<SwitchOwner>?,
-    override val version: RowVersion<TrackLayoutSwitch>? = null,
     val source: GeometrySource,
-    @JsonIgnore override val contextData: LayoutContextData<TrackLayoutSwitch> = LayoutContextData.newDraft(
-        id = deriveFromSourceId("S", sourceId),
-    ),
+    @JsonIgnore override val contextData: LayoutContextData<TrackLayoutSwitch>,
+    override val version: RowVersion<TrackLayoutSwitch>? = null,
 ) : LayoutConcept<TrackLayoutSwitch>(contextData) {
     @JsonIgnore
     val exists = !stateCategory.isRemoved()
@@ -298,10 +290,8 @@ data class TrackLayoutKmPost(
     val state: LayoutState,
     val trackNumberId: IntId<TrackLayoutTrackNumber>?,
     val sourceId: DomainId<GeometryKmPost>?,
+    @JsonIgnore override val contextData: LayoutContextData<TrackLayoutKmPost>,
     override val version: RowVersion<TrackLayoutKmPost>? = null,
-    @JsonIgnore override val contextData: LayoutContextData<TrackLayoutKmPost> = LayoutContextData.newDraft(
-        id = deriveFromSourceId("S", sourceId),
-    ),
 ) : LayoutConcept<TrackLayoutKmPost>(contextData) {
     @JsonIgnore
     val exists = !state.isRemoved()

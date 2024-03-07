@@ -58,6 +58,7 @@ class LocationTrackService(
             topologyStartSwitch = null,
             topologyEndSwitch = null,
             ownerId = request.ownerId,
+            contextData = LayoutContextData.newDraft(),
         )
         return saveDraftInternal(locationTrack)
     }

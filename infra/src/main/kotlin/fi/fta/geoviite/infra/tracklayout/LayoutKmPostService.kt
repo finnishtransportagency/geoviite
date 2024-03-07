@@ -28,6 +28,7 @@ class LayoutKmPostService(
             state = request.state,
             trackNumberId = request.trackNumberId,
             sourceId = null,
+            contextData = LayoutContextData.newDraft(),
         )
         return saveDraftInternal(kmPost).id
     }

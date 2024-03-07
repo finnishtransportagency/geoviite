@@ -33,6 +33,7 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
             description = FreeText("empty-test-track-number"),
             state = IN_USE,
             externalId = null,
+            contextData = LayoutContextData.newDraft(),
         )
         val (id, version) = trackNumberDao.insert(original)
         val fromDb = trackNumberDao.fetch(version)
@@ -64,7 +65,7 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
         assertMatches(tempTrackNumber, inserted)
         assertEquals(VersionPair(insertVersion, null), trackNumberDao.fetchVersionPair(id))
 
-        val tempDraft1 = draft(inserted).copy(description = FreeText("test 2"))
+        val tempDraft1 = asMainDraft(inserted).copy(description = FreeText("test 2"))
         val draftVersion1 = trackNumberDao.insert(tempDraft1).rowVersion
         val draft1 = trackNumberDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1)
@@ -130,7 +131,7 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
         originalVersion: RowVersion<TrackLayoutTrackNumber>,
     ): DaoResponse<TrackLayoutTrackNumber> {
         val original = trackNumberDao.fetch(originalVersion)
-        assertNull(original.draft)
+        assertNull(original.isDraft)
         return trackNumberDao.update(original.copy(description = original.description + "_update"))
     }
 }

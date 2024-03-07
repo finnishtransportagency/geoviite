@@ -65,7 +65,7 @@ class ReferenceLineDaoIT @Autowired constructor(
         assertMatches(tempTrack, inserted)
         assertEquals(VersionPair(insertVersion, null), referenceLineDao.fetchVersionPair(id))
 
-        val tempDraft1 = draft(inserted).copy(startAddress = TrackMeter(2, 4))
+        val tempDraft1 = asMainDraft(inserted).copy(startAddress = TrackMeter(2, 4))
         val draftVersion1 = referenceLineDao.insert(tempDraft1).rowVersion
         val draft1 = referenceLineDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1)

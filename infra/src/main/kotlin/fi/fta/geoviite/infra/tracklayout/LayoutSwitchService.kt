@@ -40,6 +40,7 @@ class LayoutSwitchService @Autowired constructor(
             trapPoint = request.trapPoint,
             ownerId = request.ownerId,
             source = GeometrySource.GENERATED,
+            contextData = LayoutContextData.newDraft(),
         )
         return saveDraftInternal(switch).id
     }

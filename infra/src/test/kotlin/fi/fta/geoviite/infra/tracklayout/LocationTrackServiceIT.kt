@@ -583,13 +583,13 @@ class LocationTrackServiceIT @Autowired constructor(
         locationTrackId: IntId<LocationTrack>,
     ): Pair<DaoResponse<LocationTrack>, LocationTrack> {
         val (draft, draftAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
-        assertNotNull(draft.draft)
+        assertNotNull(draft.isDraft)
 
         val publishedVersion = publish(draft.id as IntId)
         val (published, publishedAlignment) = locationTrackService.getWithAlignmentOrThrow(
             OFFICIAL, publishedVersion.id
         )
-        assertNull(published.draft)
+        assertNull(published.isDraft)
         assertEquals(draft.id, published.id)
         assertEquals(published.id, publishedVersion.id)
         assertEquals(draft.alignmentVersion, published.alignmentVersion)
@@ -601,14 +601,14 @@ class LocationTrackServiceIT @Autowired constructor(
     private fun getAndVerifyDraft(id: IntId<LocationTrack>): LocationTrack {
         val draft = locationTrackService.get(DRAFT, id)!!
         assertEquals(id, draft.id)
-        assertNotNull(draft.draft)
+        assertNotNull(draft.isDraft)
         return draft
     }
 
     private fun getAndVerifyDraftWithAlignment(id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
         val (draft, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, id)
         assertEquals(id, draft.id)
-        assertNotNull(draft.draft)
+        assertNotNull(draft.isDraft)
         assertEquals(draft.alignmentVersion!!.id, alignment.id)
         return draft to alignment
     }
