@@ -73,7 +73,7 @@ class PublicationValidationTest {
         val trackNumberId = IntId<TrackLayoutTrackNumber>(1)
         val referenceLine = referenceLine(trackNumberId = IntId(1)).copy(id = IntId(1))
         val kmPost = kmPost(trackNumberId, KmNumber(1))
-        val trackNumber = trackNumber().copy(draft = Draft(IntId(2)), id = trackNumberId)
+        val trackNumber = trackNumber().copy(draft = LayoutContextData(IntId(2)), id = trackNumberId)
         assertKmPostReferenceError(
             true,
             kmPost,
@@ -867,7 +867,7 @@ class PublicationValidationTest {
         val switch = switch(123).copy(
             id = IntId(1),
             stateCategory = switchStateCategory,
-            draft = if (switchDraft) Draft(IntId(2)) else null,
+            draft = if (switchDraft) LayoutContextData(IntId(2)) else null,
         )
         val joint1 = switch.joints.first()
         val joint2 = switch.joints.last()

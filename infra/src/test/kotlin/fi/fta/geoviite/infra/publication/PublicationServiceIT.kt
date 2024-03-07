@@ -3232,14 +3232,14 @@ private fun verifyVersions(publishRequestIds: PublishRequestIds, validationVersi
     verifyVersions(publishRequestIds.switches, validationVersions.switches)
 }
 
-private fun <T : Draftable<T>> verifyVersions(ids: List<IntId<T>>, versions: List<ValidationVersion<T>>) {
+private fun <T : LayoutContextAware<T>> verifyVersions(ids: List<IntId<T>>, versions: List<ValidationVersion<T>>) {
     assertEquals(ids.size, versions.size)
     ids.forEach { id -> assertTrue(versions.any { v -> v.officialId == id }) }
 }
 
-private fun <T : Draftable<T>, S : DraftableDaoBase<T>> verifyPublishingWorks(
+private fun <T : LayoutContextAware<T>, S : LayoutConceptDao<T>> verifyPublishingWorks(
     dao: S,
-    service: DraftableObjectService<T, S>,
+    service: LayoutConceptService<T, S>,
     create: () -> T,
     mutate: (orig: T) -> T,
 ) {
@@ -3261,10 +3261,10 @@ private fun <T : Draftable<T>, S : DraftableDaoBase<T>> verifyPublishingWorks(
     assertEquals(3, officialVersion2.version)
 }
 
-fun <T : Draftable<T>, S : DraftableDaoBase<T>> publishAndCheck(
+fun <T : LayoutContextAware<T>, S : LayoutConceptDao<T>> publishAndCheck(
     rowVersion: RowVersion<T>,
     dao: S,
-    service: DraftableObjectService<T, S>,
+    service: LayoutConceptService<T, S>,
 ): Pair<RowVersion<T>, T> {
     val draft = dao.fetch(rowVersion)
     val id = draft.id
@@ -3288,13 +3288,13 @@ fun <T : Draftable<T>, S : DraftableDaoBase<T>> publishAndCheck(
     return publishedVersion to publishedItem
 }
 
-fun <T : Draftable<T>, S : DraftableDaoBase<T>> verifyPublished(
+fun <T : LayoutContextAware<T>, S : LayoutConceptDao<T>> verifyPublished(
     validationVersions: List<ValidationVersion<T>>,
     dao: S,
     checkMatch: (draft: T, published: T) -> Unit,
 ) = validationVersions.forEach { v -> verifyPublished(v, dao, checkMatch) }
 
-fun <T : Draftable<T>, S : DraftableDaoBase<T>> verifyPublished(
+fun <T : LayoutContextAware<T>, S : LayoutConceptDao<T>> verifyPublished(
     validationVersion: ValidationVersion<T>,
     dao: S,
     checkMatch: (draft: T, published: T) -> Unit,

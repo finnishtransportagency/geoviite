@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.integration
 
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.tracklayout.Draftable
+import fi.fta.geoviite.infra.tracklayout.LayoutContextAware
 import java.time.Instant
 
 enum class RatkoPushErrorType { PROPERTIES, LOCATION, GEOMETRY, STATE }
@@ -30,7 +30,7 @@ data class RatkoPushErrorWithAsset(
     val errorType: RatkoPushErrorType,
     val operation: RatkoOperation,
     val assetType: RatkoAssetType,
-    val asset: Draftable<*>
+    val asset: LayoutContextAware<*>
 )
 
 enum class RatkoPushStatus {

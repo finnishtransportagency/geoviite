@@ -1,8 +1,10 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geography.create2DPolygonString
-import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -22,7 +24,7 @@ const val KM_POST_CACHE_SIZE = 10000L
 class LayoutKmPostDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
-) : DraftableDaoBase<TrackLayoutKmPost>(jdbcTemplateParam, LAYOUT_KM_POST, cacheEnabled, KM_POST_CACHE_SIZE) {
+) : LayoutConceptDao<TrackLayoutKmPost>(jdbcTemplateParam, LAYOUT_KM_POST, cacheEnabled, KM_POST_CACHE_SIZE) {
 
     override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
         fetchVersions(publicationState, includeDeleted, null, null)
@@ -131,7 +133,7 @@ class LayoutKmPostDao(
               id as row_id,
               version as row_version,
               coalesce(draft_of_km_post_id, id) as official_id, 
-              case when draft then id end as draft_id,
+              draft,
               track_number_id,
               geometry_km_post_id,
               km_number,
@@ -174,23 +176,20 @@ class LayoutKmPostDao(
     }
 
     private fun getLayoutKmPost(rs: ResultSet): TrackLayoutKmPost = TrackLayoutKmPost(
-        id = rs.getIntId("official_id"),
-        dataType = DataType.STORED,
         trackNumberId = rs.getIntId("track_number_id"),
         kmNumber = rs.getKmNumber("km_number"),
         location = rs.getPointOrNull("point_x", "point_y"),
         state = rs.getEnum("state"),
         sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
-        draft = rs.getIntIdOrNull<TrackLayoutKmPost>("draft_id")?.let { id -> Draft(id) },
         version = rs.getRowVersion("row_id", "row_version"),
+        contextData = rs.getLayoutContextData("official_id", "row_id", "draft"),
     )
 
     @Transactional
     override fun insert(newItem: TrackLayoutKmPost): DaoResponse<TrackLayoutKmPost> {
-        verifyDraftableInsert(newItem.id, newItem.draft)
-
-        val trackNumberId = if (newItem.trackNumberId is IntId) newItem.trackNumberId
-        else throw IllegalArgumentException("KM post not linked to TrackNumber: kmPost=$newItem")
+        val trackNumberId = toDbId(requireNotNull(newItem.trackNumberId) {
+            "KM post not linked to TrackNumber: kmPost=$newItem"
+        })
         val sql = """
             insert into layout.km_post(
               track_number_id, 
@@ -217,14 +216,14 @@ class LayoutKmPostDao(
         """.trimIndent()
         val params = mapOf(
             "track_number_id" to trackNumberId.intValue,
-            "geometry_km_post_id" to newItem.sourceId.let { if (it is IntId<GeometryKmPost>) it.intValue else null },
+            "geometry_km_post_id" to newItem.sourceId?.let(::toDbId)?.intValue,
             "km_number" to newItem.kmNumber.toString(),
             "point_x" to newItem.location?.x,
             "point_y" to newItem.location?.y,
             "srid" to LAYOUT_SRID.code,
             "state" to newItem.state.name,
-            "draft" to (newItem.draft != null),
-            "draft_of_km_post_id" to draftOfId(newItem.id, newItem.draft)?.intValue,
+            "draft" to newItem.contextData.isDraft,
+            "draft_of_km_post_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
@@ -236,9 +235,9 @@ class LayoutKmPostDao(
 
     @Transactional
     override fun update(updatedItem: TrackLayoutKmPost): DaoResponse<TrackLayoutKmPost> {
-        val rowId = toDbId(updatedItem.draft?.draftRowId ?: updatedItem.id)
-        val trackNumberId = if (updatedItem.trackNumberId is IntId) updatedItem.trackNumberId
-        else throw IllegalArgumentException("KM post not linked to TrackNumber: kmPost=$updatedItem")
+        val trackNumberId = toDbId(requireNotNull(updatedItem.trackNumberId) {
+            "KM post not linked to TrackNumber: kmPost=$updatedItem"
+        })
         val sql = """
             update layout.km_post 
             set
@@ -258,23 +257,23 @@ class LayoutKmPostDao(
               version as row_version
         """.trimIndent()
         val params = mapOf(
-            "km_post_id" to rowId.intValue,
+            "km_post_id" to toDbId(updatedItem.rowId).intValue,
             "track_number_id" to trackNumberId.intValue,
-            "geometry_km_post_id" to if (updatedItem.sourceId is IntId) updatedItem.sourceId.intValue else null,
+            "geometry_km_post_id" to updatedItem.sourceId?.let(::toDbId)?.intValue,
             "km_number" to updatedItem.kmNumber.toString(),
             "hasLocation" to (updatedItem.location != null),
             "point_x" to updatedItem.location?.x,
             "point_y" to updatedItem.location?.y,
             "srid" to LAYOUT_SRID.code,
             "state" to updatedItem.state.name,
-            "draft" to (updatedItem.draft != null),
-            "draft_of_km_post_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
+            "draft" to updatedItem.isDraft,
+            "draft_of_km_post_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to generate ID for new row version of updated km-post")
-        logger.daoAccess(AccessType.UPDATE, TrackLayoutKmPost::class, rowId)
+        logger.daoAccess(AccessType.UPDATE, TrackLayoutKmPost::class, response)
         return response
     }
 

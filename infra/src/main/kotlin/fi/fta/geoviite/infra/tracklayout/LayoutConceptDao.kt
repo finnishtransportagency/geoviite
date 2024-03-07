@@ -2,7 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
-import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
@@ -30,7 +30,7 @@ data class VersionPair<T>(val official: RowVersion<T>?, val draft: RowVersion<T>
 
 data class DaoResponse<T>(val id: IntId<T>, val rowVersion: RowVersion<T>)
 
-interface IDraftableObjectWriter<T : Draftable<T>> {
+interface ILayoutConceptWriter<T : LayoutContextAware<T>> {
     fun insert(newItem: T): DaoResponse<T>
 
     fun update(updatedItem: T): DaoResponse<T>
@@ -40,7 +40,7 @@ interface IDraftableObjectWriter<T : Draftable<T>> {
 }
 
 @Transactional(readOnly = true)
-interface IDraftableObjectReader<T : Draftable<T>> {
+interface ILayoutConceptReader<T : LayoutContextAware<T>> {
     fun fetch(version: RowVersion<T>): T
 
     fun fetchChangeTime(): Instant
@@ -96,15 +96,15 @@ interface IDraftableObjectReader<T : Draftable<T>> {
         fetchVersions(publishType, includeDeleted).map(::fetch)
 }
 
-interface IDraftableObjectDao<T : Draftable<T>> : IDraftableObjectReader<T>, IDraftableObjectWriter<T>
+interface ILayoutConceptDao<T : LayoutConcept<T>> : ILayoutConceptReader<T>, ILayoutConceptWriter<T>
 
 @Transactional(readOnly = true)
-abstract class DraftableDaoBase<T : Draftable<T>>(
+abstract class LayoutConceptDao<T : LayoutConcept<T>>(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     val table: DbTable,
     val cacheEnabled: Boolean,
     cacheSize: Long,
-) : DaoBase(jdbcTemplateParam), IDraftableObjectDao<T> {
+) : DaoBase(jdbcTemplateParam), ILayoutConceptDao<T> {
 
     protected val cache: Cache<RowVersion<T>, T> =
         Caffeine.newBuilder().maximumSize(cacheSize).expireAfterAccess(layoutCacheDuration).build()
@@ -372,18 +372,16 @@ private fun draftFetchSql(table: DbTable, fetchType: FetchType) = """
           and not exists(select 1 from ${table.fullName} d where d.${table.draftLink} = o.id))
 """
 
-inline fun <reified T : Draftable<T>> draftOfId(item: T) = draftOfId(item.id, item.draft)
+fun <T : LayoutConcept<T>> verifyForLayoutUpdate(item: T) = verifyForLayoutUpdate(item.contextData)
 
-inline fun <reified T : Draftable<T>> draftOfId(id: DomainId<T>, draft: Draft<T>?): IntId<T>? =
-    if (draft != null && draft.draftRowId != id) {
-        toDbId(T::class, id)
-    } else {
-        null
-    }
+fun <T : LayoutConcept<T>> verifyForLayoutUpdate(contextData: LayoutContextData<T>) {
+    require(contextData.dataType == DataType.STORED) { "Cannot update TEMP row: context=$contextData" }
+    require(contextData.rowId is IntId) { "DB row should have DB ID: context=$contextData" }
+}
 
-inline fun <reified T : Draftable<T>> verifyDraftableInsert(item: T) = verifyDraftableInsert(item.id, item.draft)
+fun <T : LayoutConcept<T>> verifyForLayoutInsert(item: T) = verifyForLayoutInsert(item.contextData)
 
-inline fun <reified T : Draftable<T>> verifyDraftableInsert(id: DomainId<T>, draft: Draft<T>?) {
-    require(id !is IntId || draft != null) { "Cannot insert existing official ${T::class.simpleName} as new" }
-    require(draft?.draftRowId !is IntId) { "Cannot insert existing draft ${T::class.simpleName} as new" }
+fun <T : LayoutConcept<T>> verifyForLayoutInsert(contextData: LayoutContextData<T>) {
+    require(contextData.dataType == DataType.TEMP) { "Cannot insert existing row as new: context=$contextData" }
+    require(contextData.rowId !is IntId) { "TEMP row should not have DB ID: context=$contextData" }
 }

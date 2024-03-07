@@ -10,8 +10,7 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
 import fi.fta.geoviite.infra.projektivelho.PVId
 import fi.fta.geoviite.infra.projektivelho.PVProjectName
 import fi.fta.geoviite.infra.publication.Change
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
-import fi.fta.geoviite.infra.tracklayout.LayoutDesign
+import fi.fta.geoviite.infra.tracklayout.*
 import java.sql.ResultSet
 import java.time.Instant
 
@@ -265,3 +264,29 @@ inline fun <reified T> verifyType(value: Any?): T = value.let { v ->
     require(v is T) { "Value is of unexpected type: expected=${T::class.simpleName} value=${v}" }
     v
 }
+
+fun <T> ResultSet.getLayoutContextData(
+    officialIdName: String,
+    rowIdName: String,
+    draftFlagName: String,
+): LayoutContextData<T> {
+    // TODO: GVT-2395 Read design context data
+    val officialId = getIntId<T>(officialIdName)
+    val rowId = getIntId<T>(rowIdName)
+    val isDraft = getBoolean(draftFlagName)
+    return if (isDraft) {
+        MainDraftContextData(
+            officialRowId = officialId,
+            rowId = rowId,
+            designRowId = null,
+            dataType = DataType.STORED,
+        )
+    } else {
+        require(officialId == rowId) {
+            "For official rows, row ID should equal official ID: officialId=$officialId rowId=$rowId draft=$isDraft"
+        }
+        MainOfficialContextData(officialId, DataType.STORED)
+    }
+}
+
+inline fun <reified T, S> mapIfTypeMatces(value: Any, getter: (T) -> S): S? = if (value is T) getter(value) else null

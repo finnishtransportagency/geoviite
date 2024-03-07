@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
-abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoType : IDraftableObjectDao<ObjectType>>(
+abstract class LayoutConceptService<ObjectType : LayoutConcept<ObjectType>, DaoType : ILayoutConceptDao<ObjectType>>(
     protected open val dao: DaoType,
 ) {
 
@@ -79,10 +79,6 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
         return dao.officialExists(id)
     }
 
-    protected abstract fun createDraft(item: ObjectType): ObjectType
-
-    protected abstract fun createPublished(item: ObjectType): ObjectType
-
     protected open fun sortSearchResult(list: List<ObjectType>): List<ObjectType> = list
 
     protected open fun idMatches(term: String, item: ObjectType): Boolean = false
@@ -96,13 +92,15 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
     }
 
     protected fun saveDraftInternal(item: ObjectType): DaoResponse<ObjectType> {
-        val draft = createDraft(item)
-        require(draft.draft != null) { "Item is not a draft: id=${draft.id}" }
+        val draft = asMainDraft(item)
+        require(draft.isDraft) { "Item is not a draft: id=${draft.id}" }
         val officialId = if (item.id is IntId) item.id as IntId else null
         return if (draft.dataType == DataType.TEMP) {
+            verifyForLayoutInsert(item)
             dao.insert(draft).also { response -> verifyInsertResponse(officialId, response) }
         } else {
             requireNotNull(officialId) { "Updating item that has no known official ID" }
+            verifyForLayoutUpdate(item)
             val previousVersion = requireNotNull(draft.version) { "Updating item without rowVersion: $item" }
             dao.update(draft).also { response -> verifyUpdateResponse(officialId, previousVersion, response) }
         }
@@ -121,13 +119,15 @@ abstract class DraftableObjectService<ObjectType : Draftable<ObjectType>, DaoTyp
     }
 
     protected fun publishInternal(versions: VersionPair<ObjectType>): DaoResponse<ObjectType> {
-        val draft = versions.draft?.let(dao::fetch)
+        val draftVersion = requireNotNull(versions.draft) { "No draft to publish: versions=$versions" }
+        val draft = dao.fetch(draftVersion)
+        require(draft.isDraft) { "Object to publish is not a draft: versions=$versions context=${draft.contextData}" }
+        val published = asMainOfficial(draft)
+        require(published.isDraft) { "Published object is still a draft: context=${published.contextData}" }
+        verifyForLayoutUpdate(published)
 
-        if (draft?.draft == null) throw IllegalStateException("Object to publish is not a draft $versions $draft")
-        val published = createPublished(draft)
-        if (published.draft != null) throw IllegalStateException("Published object is still a draft")
         val publishResponse = dao.update(published)
-        verifyUpdateResponse(draft.id as IntId, versions.official ?: versions.draft, publishResponse)
+        verifyUpdateResponse(draft.id as IntId, versions.official ?: draftVersion, publishResponse)
         if (versions.official != null && versions.draft.id != versions.official.id) {
             // Draft data is saved on official id -> delete the draft row
             dao.deleteDraft(versions.draft.id)

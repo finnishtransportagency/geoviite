@@ -59,6 +59,8 @@ export type LocationTrackId = string;
 export type LocationTrackType = 'MAIN' | 'SIDE' | 'TRAP' | 'CHORD';
 export type MapAlignmentSource = 'LAYOUT' | 'GEOMETRY';
 export type MapAlignmentType = 'LOCATION_TRACK' | 'REFERENCE_LINE';
+// TODO: GVT-2426 The replacement of DraftType: value range is now bigger. It would be better to remove this enum entirely
+//export type ContextType = OFFICIAL, NEW_DRAFT, EDITED_DRAFT, DESIGN, NEW_DESIGN_DRAFT, EDITED_DESIGN_DRAFT
 export type DraftType = 'NEW_DRAFT' | 'EDITED_DRAFT' | 'OFFICIAL';
 export type TopologicalConnectivityType = 'NONE' | 'START' | 'END' | 'START_AND_END';
 export type LocationTrackDescriptionSuffixMode =

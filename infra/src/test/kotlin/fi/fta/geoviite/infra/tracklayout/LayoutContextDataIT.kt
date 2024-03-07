@@ -19,7 +19,7 @@ import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class DraftIT @Autowired constructor(
+class LayoutContextDataIT @Autowired constructor(
     private val switchDao: LayoutSwitchDao,
     private val switchService: LayoutSwitchService,
     private val kmPostService: LayoutKmPostService,

@@ -35,29 +35,34 @@ class ChangeContext(
         geocodingKeysAfter[id]?.let(geocodingService::getGeocodingContext)
 }
 
-inline fun <reified T: Draftable<T>> createTypedContext(dao: DraftableDaoBase<T>, versions: List<ValidationVersion<T>>) =
-    createTypedContext(
-        dao,
-        { id -> dao.fetchVersion(id, OFFICIAL) },
-        { id -> versions.find { v -> v.officialId == id }?.validatedAssetVersion ?: dao.fetchVersion(id, OFFICIAL) },
-    )
+inline fun <reified T : LayoutConcept<T>> createTypedContext(
+    dao: LayoutConceptDao<T>,
+    versions: List<ValidationVersion<T>>
+): TypedChangeContext<T> = createTypedContext(
+    dao,
+    { id -> dao.fetchVersion(id, OFFICIAL) },
+    { id -> versions.find { v -> v.officialId == id }?.validatedAssetVersion ?: dao.fetchVersion(id, OFFICIAL) },
+)
 
-inline fun <reified T: Draftable<T>> createTypedContext(dao: DraftableDaoBase<T>, before: Instant, after: Instant) =
-    createTypedContext(
-        dao,
-        { id -> dao.fetchOfficialVersionAtMoment(id, before) },
-        { id -> dao.fetchOfficialVersionAtMoment(id, after) },
-    )
+inline fun <reified T : LayoutConcept<T>> createTypedContext(
+    dao: LayoutConceptDao<T>,
+    before: Instant,
+    after: Instant,
+): TypedChangeContext<T> = createTypedContext(
+    dao,
+    { id -> dao.fetchOfficialVersionAtMoment(id, before) },
+    { id -> dao.fetchOfficialVersionAtMoment(id, after) },
+)
 
-inline fun <reified T: Draftable<T>> createTypedContext(
-    dao: DraftableDaoBase<T>,
+inline fun <reified T : LayoutConcept<T>> createTypedContext(
+    dao: LayoutConceptDao<T>,
     noinline getBeforeVersion: (id: IntId<T>) -> RowVersion<T>?,
     noinline getAfterVersion: (id: IntId<T>) -> RowVersion<T>?,
 ) = TypedChangeContext(T::class, dao, LazyMap(getBeforeVersion), LazyMap(getAfterVersion))
 
-class TypedChangeContext<T : Draftable<T>>(
+class TypedChangeContext<T : LayoutConcept<T>>(
     private val klass: KClass<T>,
-    private val dao: DraftableDaoBase<T>,
+    private val dao: LayoutConceptDao<T>,
     private val beforeVersions: LazyMap<IntId<T>, RowVersion<T>?>,
     private val afterVersions: LazyMap<IntId<T>, RowVersion<T>?>,
 ) {
@@ -68,5 +73,4 @@ class TypedChangeContext<T : Draftable<T>>(
     fun getBefore(id: IntId<T>) = beforeVersion(id)?.let(dao::fetch)
     fun getAfter(id: IntId<T>) = dao.fetch(afterVersion(id))
     fun getAfterIfExists(id: IntId<T>) = afterVersionIfExists(id)?.let(dao::fetch)
-
 }

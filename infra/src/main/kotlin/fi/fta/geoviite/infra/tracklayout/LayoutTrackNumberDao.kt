@@ -1,6 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
@@ -18,7 +21,7 @@ const val TRACK_NUMBER_CACHE_SIZE = 1000L
 class LayoutTrackNumberDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
-) : DraftableDaoBase<TrackLayoutTrackNumber>(
+) : LayoutConceptDao<TrackLayoutTrackNumber>(
     jdbcTemplateParam,
     LAYOUT_TRACK_NUMBER,
     cacheEnabled,
@@ -102,7 +105,7 @@ class LayoutTrackNumberDao(
               tn.id as row_id,
               tn.version as row_version,
               coalesce(tn.draft_of_track_number_id, tn.id) as official_id, 
-              case when tn.draft then tn.id end as draft_id,
+              tn.draft,
               tn.external_id, 
               tn.number, 
               tn.description,
@@ -119,21 +122,18 @@ class LayoutTrackNumberDao(
     }
 
     private fun getLayoutTrackNumber(rs: ResultSet): TrackLayoutTrackNumber = TrackLayoutTrackNumber(
-        id = rs.getIntId("official_id"),
         number = rs.getTrackNumber("number"),
         description = rs.getFreeText("description"),
         state = rs.getEnum("state"),
         externalId = rs.getOidOrNull("external_id"),
-        dataType = DataType.STORED,
-        draft = rs.getIntIdOrNull<TrackLayoutTrackNumber>("draft_id")?.let { id -> Draft(id) },
         version = rs.getRowVersion("row_id", "row_version"),
         // TODO: GVT-2442 This should be non-null but we have a lot of tests that produce broken data
         referenceLineId = rs.getIntIdOrNull("reference_line_id"),
+        contextData = rs.getLayoutContextData("official_id", "row_id", "draft"),
     )
 
     @Transactional
     override fun insert(newItem: TrackLayoutTrackNumber): DaoResponse<TrackLayoutTrackNumber> {
-        verifyDraftableInsert(newItem)
         val sql = """
             insert into layout.track_number(
               external_id, 
@@ -161,8 +161,8 @@ class LayoutTrackNumberDao(
             "number" to newItem.number,
             "description" to newItem.description,
             "state" to newItem.state.name,
-            "draft" to (newItem.draft != null),
-            "draft_of_track_number_id" to draftOfId(newItem)?.intValue,
+            "draft" to newItem.isDraft,
+            "draft_of_track_number_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
@@ -174,7 +174,6 @@ class LayoutTrackNumberDao(
 
     @Transactional
     override fun update(updatedItem: TrackLayoutTrackNumber): DaoResponse<TrackLayoutTrackNumber> {
-        val rowId = toDbId(updatedItem.draft?.draftRowId ?: updatedItem.id)
         val sql = """
             update layout.track_number
             set
@@ -191,13 +190,13 @@ class LayoutTrackNumberDao(
               version as row_version
         """.trimIndent()
         val params = mapOf(
-            "id" to rowId.intValue,
+            "id" to toDbId(updatedItem.rowId).intValue,
             "external_id" to updatedItem.externalId,
             "number" to updatedItem.number,
             "description" to updatedItem.description,
             "state" to updatedItem.state.name,
-            "draft" to (updatedItem.draft != null),
-            "draft_of_track_number_id" to draftOfId(updatedItem)?.intValue,
+            "draft" to updatedItem.isDraft,
+            "draft_of_track_number_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
