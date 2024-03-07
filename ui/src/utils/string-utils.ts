@@ -1,3 +1,5 @@
+import i18next from 'i18next';
+
 export function isNilOrBlank(str: string | undefined): boolean {
     return !str || !str.trim();
 }
@@ -12,5 +14,5 @@ export function isEmpty(str: string) {
     return str.length == 0 || isNilOrBlank(str);
 }
 
-export const isEqualUppercase = (str1: string, str2: string): boolean =>
-    str1.toUpperCase() === str2.toUpperCase();
+export const isEqualIgnoreCase = (str1: string, str2: string): boolean =>
+    str1.localeCompare(str2, i18next.language, { sensitivity: 'accent' }) === 0;

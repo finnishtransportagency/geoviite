@@ -40,7 +40,7 @@ import { Link } from 'vayla-design-lib/link/link';
 import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
 import { getChangeTimes } from 'common/change-time-api';
 import { ChangesBeingReverted } from 'preview/preview-view';
-import { isEqualUppercase } from 'utils/string-utils';
+import { isEqualIgnoreCase } from 'utils/string-utils';
 
 type TrackNumberEditDialogContainerProps = {
     editTrackNumberId?: LayoutTrackNumberId;
@@ -163,7 +163,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
 
     const otherTrackNumber = trackNumbers.find(
         (tn) =>
-            isEqualUppercase(tn.number, state.request.number) && tn.id !== inEditTrackNumber?.id,
+            isEqualIgnoreCase(tn.number, state.request.number) && tn.id !== inEditTrackNumber?.id,
     );
 
     const moveToEditLinkText = (tn: LayoutTrackNumber) => {
