@@ -18,8 +18,6 @@ fun assertMatches(expected: TrackLayoutTrackNumber, actual: TrackLayoutTrackNumb
             version = expected.version,
         )
         assertEquals(expected, unified)
-        assertEquals(expected.isDraft, actual.isDraft)
-        assertEquals(expected.isDesign, actual.isDesign)
     }
 }
 
@@ -36,9 +34,6 @@ fun assertMatches(expected: ReferenceLine, actual: ReferenceLine, contextMatch: 
             version = expected.version,
         )
         assertEquals(expectedWithSameFloats, unified)
-        assertEquals(expected.sourceId != null, actual.sourceId != null)
-        assertEquals(expected.isDraft, actual.isDraft)
-        assertEquals(expected.isDesign, actual.isDesign)
     }
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
 }
@@ -56,9 +51,6 @@ fun assertMatches(expected: LocationTrack, actual: LocationTrack, contextMatch: 
             version = expected.version,
         )
         assertEquals(expectedWithSameFloats, unified)
-        assertEquals(expected.sourceId != null, actual.sourceId != null)
-        assertEquals(expected.isDraft, actual.isDraft)
-        assertEquals(expected.isDesign, actual.isDesign)
     }
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
 }
@@ -119,7 +111,6 @@ fun assertMatches(expected: TrackLayoutKmPost, actual: TrackLayoutKmPost, contex
         )
         assertEquals(expected, unified)
         assertEquals(expected.sourceId != null, actual.sourceId != null)
-        assertEquals(expected.isDraft, actual.isDraft)
     }
     assertEquals(expected.location == null, actual.location == null)
     if (expected.location != null) {
@@ -137,8 +128,6 @@ fun assertMatches(expected: TrackLayoutSwitch, actual: TrackLayoutSwitch, contex
             version = expected.version,
         )
         assertEquals(expectedWithSameFloats, unified)
-        assertEquals(expected.sourceId != null, actual.sourceId != null)
-        assertEquals(expected.isDraft, actual.isDraft)
     }
     assertEquals(expected.switchStructureId, actual.switchStructureId)
     assertEquals(expected.joints.size, actual.joints.size)

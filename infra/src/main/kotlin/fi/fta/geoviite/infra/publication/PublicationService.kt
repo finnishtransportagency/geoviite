@@ -365,7 +365,7 @@ class PublicationService @Autowired constructor(
             referenceLines = referenceLines.toList(),
             locationTracks = (revertLocationTrackIds + revertSplitTracks).distinct(),
             switches = requestIds.switches.distinct(),
-            kmPosts = revertKmPostIds.toList()
+            kmPosts = revertKmPostIds.toList(),
         )
     }
 

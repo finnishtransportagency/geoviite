@@ -47,7 +47,7 @@ class LocationTrackDaoIT @Autowired constructor(
         assertEquals(version, locationTrackDao.fetchVersion(id, OFFICIAL))
         assertEquals(version, locationTrackDao.fetchVersion(id, DRAFT))
         val fromDb = locationTrackDao.fetch(version)
-        assertMatches(locationTrack, fromDb)
+        assertMatches(locationTrack, fromDb, contextMatch = false)
         assertEquals(id, fromDb.id)
 
         val updatedTrack = fromDb.copy(
@@ -63,7 +63,7 @@ class LocationTrackDaoIT @Autowired constructor(
         assertEquals(updatedVersion, locationTrackDao.fetchVersion(version.id, OFFICIAL))
         assertEquals(updatedVersion, locationTrackDao.fetchVersion(version.id, DRAFT))
         val updatedFromDb = locationTrackDao.fetch(updatedVersion)
-        assertMatches(updatedTrack, updatedFromDb)
+        assertMatches(updatedTrack, updatedFromDb, contextMatch = false)
         assertEquals(id, updatedFromDb.id)
     }
 

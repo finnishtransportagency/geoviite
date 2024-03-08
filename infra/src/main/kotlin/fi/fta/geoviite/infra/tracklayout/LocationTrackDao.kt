@@ -79,7 +79,7 @@ class LocationTrackDao(
             select 
               ltv.id as row_id,
               ltv.version as row_version,
-              coalesce(ltv.draft_of_location_track_id, ltv.id) as official_id, 
+              ltv.draft_of_location_track_id as official_row_id, 
               ltv.draft,
               ltv.alignment_id,
               ltv.alignment_version,
@@ -129,7 +129,7 @@ class LocationTrackDao(
             select 
               lt.id as row_id,
               lt.version as row_version,
-              coalesce(lt.draft_of_location_track_id, lt.id) as official_id, 
+              lt.draft_of_location_track_id as official_row_id, 
               lt.draft,
               lt.alignment_id,
               lt.alignment_version,
@@ -199,7 +199,7 @@ class LocationTrackDao(
             )
         },
         segmentSwitchIds = rs.getIntIdArray("segment_switch_ids"),
-        contextData = rs.getLayoutContextData("official_id", "row_id", "draft"),
+        contextData = rs.getLayoutContextData("official_row_id", "row_id", "draft"),
     )
 
     @Transactional

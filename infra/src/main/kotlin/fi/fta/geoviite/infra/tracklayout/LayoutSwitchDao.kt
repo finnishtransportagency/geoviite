@@ -285,7 +285,7 @@ class LayoutSwitchDao(
             select 
               sv.id as row_id,
               sv.version as row_version,
-              coalesce(sv.draft_of_switch_id, sv.id) as official_id, 
+              sv.draft_of_switch_id as official_row_id, 
               sv.draft,
               sv.geometry_switch_id, 
               sv.external_id, 
@@ -320,7 +320,7 @@ class LayoutSwitchDao(
             select 
               s.id as row_id,
               s.version as row_version,
-              coalesce(s.draft_of_switch_id, s.id) as official_id, 
+              s.draft_of_switch_id as official_row_id, 
               s.draft,
               s.geometry_switch_id, 
               s.external_id, 
@@ -366,7 +366,7 @@ class LayoutSwitchDao(
             ownerId = rs.getIntIdOrNull("owner_id"),
             version = switchVersion,
             source = rs.getEnum("source"),
-            contextData = rs.getLayoutContextData("official_id", "row_id", "draft"),
+            contextData = rs.getLayoutContextData("official_row_id", "row_id", "draft"),
         )
     }
 

@@ -266,26 +266,29 @@ inline fun <reified T> verifyType(value: Any?): T = value.let { v ->
 }
 
 fun <T> ResultSet.getLayoutContextData(
-    officialIdName: String,
+    officialRowIdName: String,
     rowIdName: String,
     draftFlagName: String,
 ): LayoutContextData<T> {
     // TODO: GVT-2395 Read design context data
-    val officialId = getIntId<T>(officialIdName)
+    val officialRowId = getIntIdOrNull<T>(officialRowIdName)
     val rowId = getIntId<T>(rowIdName)
     val isDraft = getBoolean(draftFlagName)
     return if (isDraft) {
+        require(officialRowId != rowId) {
+            "Draft row ID should not refer to itself as official: officialRow=$officialRowId row=$rowId draft=$isDraft"
+        }
         MainDraftContextData(
-            officialRowId = officialId,
+            officialRowId = officialRowId,
             rowId = rowId,
             designRowId = null,
             dataType = DataType.STORED,
         )
     } else {
-        require(officialId == rowId) {
-            "For official rows, row ID should equal official ID: officialId=$officialId rowId=$rowId draft=$isDraft"
+        require(officialRowId == null) {
+            "For official rows, row ID should be null: officialRow=$officialRowId rowId=$rowId draft=$isDraft"
         }
-        MainOfficialContextData(officialId, DataType.STORED)
+        MainOfficialContextData(rowId, DataType.STORED)
     }
 }
 

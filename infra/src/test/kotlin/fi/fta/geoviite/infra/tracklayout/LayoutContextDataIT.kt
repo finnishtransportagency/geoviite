@@ -1,12 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
-import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.math.Point
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -137,7 +134,6 @@ class LayoutContextDataIT @Autowired constructor(
         assertMatches(dbDraft, switchService.get(DRAFT, dbDraft.id as IntId)!!, true)
         assertMatches(dbDraft, switchService.get(DRAFT, dbDraft.contextData.rowId as IntId)!!, true)
     }
-
 
     @Test
     fun draftAndOfficialKmPostsAreFoundWithEachOthersIds() {
@@ -368,6 +364,7 @@ class LayoutContextDataIT @Autowired constructor(
         assertEquals(dbAlignment.id, dbLine.alignmentVersion?.id)
         assertFalse(dbLine.isDraft)
         val draft = asMainDraft(dbLine)
+        assertTrue(draft.isDraft)
         assertEquals(dbLine.id, draft.id)
         assertNotEquals(dbLine.id, draft.contextData.rowId)
         assertMatches(dbLine, draft, contextMatch = false)
@@ -383,6 +380,7 @@ class LayoutContextDataIT @Autowired constructor(
         assertEquals(dbAlignment.id, dbTrack.alignmentVersion?.id)
         assertFalse(dbTrack.isDraft)
         val draft = asMainDraft(dbTrack)
+        assertTrue(draft.isDraft)
         assertEquals(dbTrack.id, draft.id)
         assertNotEquals(dbTrack.id, draft.contextData.rowId)
         assertMatches(dbTrack, draft, contextMatch = false)
@@ -393,6 +391,7 @@ class LayoutContextDataIT @Autowired constructor(
         assertTrue(dbSwitch.id is IntId)
         assertFalse(dbSwitch.isDraft)
         val draft = asMainDraft(dbSwitch)
+        assertTrue(draft.isDraft)
         assertEquals(dbSwitch.id, draft.id)
         assertNotEquals(dbSwitch.id, draft.contextData.rowId)
         assertMatches(dbSwitch, draft, contextMatch = false)
@@ -403,6 +402,7 @@ class LayoutContextDataIT @Autowired constructor(
         assertTrue(dbKmPost.id is IntId)
         assertFalse(dbKmPost.isDraft)
         val draft = asMainDraft(dbKmPost)
+        assertTrue(draft.isDraft)
         assertEquals(dbKmPost.id, draft.id)
         assertNotEquals(dbKmPost.id, draft.contextData.rowId)
         assertMatches(dbKmPost, draft, contextMatch = false)
@@ -422,19 +422,20 @@ class LayoutContextDataIT @Autowired constructor(
     private fun alter(kmPost: TrackLayoutKmPost): TrackLayoutKmPost =
         kmPost.copy(kmNumber = KmNumber(kmPost.kmNumber.number, (kmPost.kmNumber.extension ?: "") + "B"))
 
-
     private fun insertAndVerifyLine(
         lineAndAlignment: Pair<ReferenceLine, LayoutAlignment>,
     ): Pair<ReferenceLine, LayoutAlignment> {
         val (line, alignment) = lineAndAlignment
+        assertEquals(DataType.TEMP, line.dataType)
         val alignmentVersion = alignmentDao.insert(alignment)
         val lineWithAlignment = line.copy(alignmentVersion = alignmentVersion)
         val lineResponse = referenceLineDao.insert(lineWithAlignment)
         val alignmentFromDb = alignmentDao.fetch(alignmentVersion)
         assertMatches(alignment, alignmentFromDb)
         val lineFromDb = referenceLineDao.fetch(lineResponse.rowVersion)
+        assertEquals(DataType.STORED, lineFromDb.dataType)
         assertEquals(lineResponse.id, lineFromDb.id)
-        assertMatches(lineWithAlignment, lineFromDb)
+        assertMatches(lineWithAlignment, lineFromDb, contextMatch = false)
         return lineFromDb to alignmentFromDb
     }
 
@@ -442,37 +443,45 @@ class LayoutContextDataIT @Autowired constructor(
         trackAndAlignment: Pair<LocationTrack, LayoutAlignment>,
     ): Pair<LocationTrack, LayoutAlignment> {
         val (track, alignment) = trackAndAlignment
+        assertEquals(DataType.TEMP, track.dataType)
         val alignmentVersion = alignmentDao.insert(alignment)
         val trackWithAlignment = track.copy(alignmentVersion = alignmentVersion)
         val trackResponse = locationTrackDao.insert(trackWithAlignment)
         val alignmentFromDb = alignmentDao.fetch(alignmentVersion)
         assertMatches(alignment, alignmentFromDb)
         val trackFromDb = locationTrackDao.fetch(trackResponse.rowVersion)
+        assertEquals(DataType.STORED, trackFromDb.dataType)
         assertEquals(trackResponse.id, trackFromDb.id)
-        assertMatches(trackWithAlignment, trackFromDb)
+        assertMatches(trackWithAlignment, trackFromDb, contextMatch = false)
         return trackFromDb to alignmentFromDb
     }
 
     private fun insertAndVerify(switch: TrackLayoutSwitch): TrackLayoutSwitch {
+        assertEquals(DataType.TEMP, switch.dataType)
         val response = switchDao.insert(switch)
         val fromDb = switchDao.fetch(response.rowVersion)
-        assertMatches(switch, fromDb)
+        assertEquals(DataType.STORED, fromDb.dataType)
+        assertMatches(switch, fromDb, contextMatch = false)
         assertEquals(response.id, fromDb.id)
         return fromDb
     }
 
     private fun insertAndVerify(kmPost: TrackLayoutKmPost): TrackLayoutKmPost {
+        assertEquals(DataType.TEMP, kmPost.dataType)
         val response = kmPostDao.insert(kmPost)
         val fromDb = kmPostDao.fetch(response.rowVersion)
-        assertMatches(kmPost, fromDb)
+        assertEquals(DataType.STORED, fromDb.dataType)
+        assertMatches(kmPost, fromDb, contextMatch = false)
         assertEquals(response.id, fromDb.id)
         return fromDb
     }
 
     private fun insertAndVerify(trackNumber: TrackLayoutTrackNumber): TrackLayoutTrackNumber {
+        assertEquals(DataType.TEMP, trackNumber.dataType)
         val response = trackNumberDao.insert(trackNumber)
         val fromDb = trackNumberDao.fetch(response.rowVersion)
-        assertMatches(trackNumber, fromDb)
+        assertEquals(DataType.STORED, fromDb.dataType)
+        assertMatches(trackNumber, fromDb, contextMatch = false)
         assertEquals(response.id, fromDb.id)
         return fromDb
     }

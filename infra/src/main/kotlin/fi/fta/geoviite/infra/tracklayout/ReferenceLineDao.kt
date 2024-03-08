@@ -28,7 +28,7 @@ class ReferenceLineDao(
             select
               rlv.id as row_id,
               rlv.version as row_version,
-              coalesce(rlv.draft_of_reference_line_id, rlv.id) as official_id, 
+              rlv.draft_of_reference_line_id as official_row_id, 
               rlv.draft,
               rlv.alignment_id,
               rlv.alignment_version,
@@ -57,7 +57,7 @@ class ReferenceLineDao(
             select
               rl.id as row_id,
               rl.version as row_version,
-              coalesce(rl.draft_of_reference_line_id, rl.id) as official_id, 
+              rl.draft_of_reference_line_id as official_row_id, 
               rl.draft,
               rl.alignment_id,
               rl.alignment_version,
@@ -86,7 +86,7 @@ class ReferenceLineDao(
         length = rs.getDouble("length"),
         segmentCount = rs.getInt("segment_count"),
         version = rs.getRowVersion("row_id", "row_version"),
-        contextData = rs.getLayoutContextData("official_id", "row_id", "draft"),
+        contextData = rs.getLayoutContextData("official_row_id", "row_id", "draft"),
     )
 
     @Transactional

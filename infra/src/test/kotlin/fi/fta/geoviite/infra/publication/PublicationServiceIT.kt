@@ -3303,7 +3303,11 @@ fun <T : LayoutContextAware<T>, S : LayoutConceptDao<T>> verifyPublished(
     val currentDraftVersion = dao.fetchDraftVersionOrThrow(validationVersion.officialId)
     assertEquals(currentDraftVersion.id, currentOfficialVersion.id)
     assertEquals(currentOfficialVersion, currentDraftVersion)
-    checkMatch(dao.fetch(validationVersion.validatedAssetVersion), dao.fetch(currentOfficialVersion))
+    val draft = dao.fetch(validationVersion.validatedAssetVersion)
+    assertTrue(draft.isDraft)
+    val official = dao.fetch(currentOfficialVersion)
+    assertTrue(official.isOfficial)
+    checkMatch(draft, official)
 }
 
 private fun getTopologicalSwitchConnectionTestCases(

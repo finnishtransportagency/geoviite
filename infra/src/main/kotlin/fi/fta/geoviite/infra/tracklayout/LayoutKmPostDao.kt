@@ -132,7 +132,7 @@ class LayoutKmPostDao(
             select 
               id as row_id,
               version as row_version,
-              coalesce(draft_of_km_post_id, id) as official_id, 
+              draft_of_km_post_id as official_row_id, 
               draft,
               track_number_id,
               geometry_km_post_id,
@@ -140,8 +140,8 @@ class LayoutKmPostDao(
               postgis.st_x(location) as point_x, postgis.st_y(location) as point_y,
               state
             from layout.km_post_version
-            where id=:id 
-              and version=:version
+            where id = :id 
+              and version = :version
               and deleted = false
         """.trimIndent()
         val params = mapOf(
@@ -158,8 +158,8 @@ class LayoutKmPostDao(
             select 
               id as row_id,
               version as row_version,
-              coalesce(draft_of_km_post_id, id) as official_id, 
-              case when draft then id end as draft_id,
+              draft_of_km_post_id as official_row_id, 
+              draft,
               track_number_id,
               geometry_km_post_id,
               km_number,
@@ -182,7 +182,7 @@ class LayoutKmPostDao(
         state = rs.getEnum("state"),
         sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
         version = rs.getRowVersion("row_id", "row_version"),
-        contextData = rs.getLayoutContextData("official_id", "row_id", "draft"),
+        contextData = rs.getLayoutContextData("official_row_id", "row_id", "draft"),
     )
 
     @Transactional

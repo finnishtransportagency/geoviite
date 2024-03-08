@@ -136,7 +136,7 @@ class LinkingServiceIT @Autowired constructor(
         val kmPostId = kmPostDao.insert(kmPost).id
         val officialKmPost = kmPostService.get(OFFICIAL, kmPostId)
 
-        assertMatches(officialKmPost!!, kmPostService.getOrThrow(DRAFT, kmPostId))
+        assertMatches(officialKmPost!!, kmPostService.getOrThrow(DRAFT, kmPostId), contextMatch = false)
 
         val trackNumberId = trackNumberDao.insert(
             trackNumber(TrackNumber(System.currentTimeMillis().toString()))

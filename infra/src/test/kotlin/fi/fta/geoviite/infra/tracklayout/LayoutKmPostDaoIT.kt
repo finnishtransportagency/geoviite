@@ -2,12 +2,9 @@ package fi.fta.geoviite.infra.tracklayout
 
 import daoResponseToValidationVersion
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.ValidationVersion
@@ -64,8 +61,8 @@ class LayoutKmPostDaoIT @Autowired constructor(
         assertEquals(officialId, kmPostDao.fetchOfficialVersion(officialId)?.id)
 
         val draftId = kmPostDao.insert(kmPost(trackNumberId, KmNumber(432), draft = true)).id
-        assertNull(kmPostDao.fetchOfficialVersion(draftId)?.id)
-        assertNull(kmPostDao.fetchDraftVersion(draftId)?.id)
+        assertNull(kmPostDao.fetchOfficialVersion(draftId))
+        assertEquals(draftId, kmPostDao.fetchDraftVersion(draftId)?.id)
     }
 
     @Test
@@ -74,19 +71,19 @@ class LayoutKmPostDaoIT @Autowired constructor(
         val tempPost = kmPost(trackNumberId, KmNumber(1), Point(1.0, 1.0))
         val insertVersion = kmPostDao.insert(tempPost).rowVersion
         val inserted = kmPostDao.fetch(insertVersion)
-        assertMatches(tempPost, inserted)
+        assertMatches(tempPost, inserted, contextMatch = false)
         assertEquals(VersionPair(insertVersion, null), kmPostDao.fetchVersionPair(insertVersion.id))
 
         val tempDraft1 = asMainDraft(inserted).copy(location = Point(2.0, 2.0))
         val draftVersion1 = kmPostDao.insert(tempDraft1).rowVersion
         val draft1 = kmPostDao.fetch(draftVersion1)
-        assertMatches(tempDraft1, draft1)
+        assertMatches(tempDraft1, draft1, contextMatch = false)
         assertEquals(VersionPair(insertVersion, draftVersion1), kmPostDao.fetchVersionPair(insertVersion.id))
 
         val tempDraft2 = draft1.copy(location = Point(3.0, 3.0))
         val draftVersion2 = kmPostDao.update(tempDraft2).rowVersion
         val draft2 = kmPostDao.fetch(draftVersion2)
-        assertMatches(tempDraft2, draft2)
+        assertMatches(tempDraft2, draft2, contextMatch = false)
         assertEquals(VersionPair(insertVersion, draftVersion2), kmPostDao.fetchVersionPair(insertVersion.id))
 
         kmPostDao.deleteDraft(insertVersion.id)
@@ -243,7 +240,10 @@ class LayoutKmPostDaoIT @Autowired constructor(
 
     fun insertAndVerify(post: TrackLayoutKmPost) {
         val rowVersion = kmPostDao.insert(post).rowVersion
-        assertMatches(post, kmPostDao.fetch(rowVersion))
+        val fromDb = kmPostDao.fetch(rowVersion)
+        assertEquals(DataType.TEMP, post.dataType)
+        assertEquals(DataType.STORED, fromDb.dataType)
+        assertMatches(post, fromDb, contextMatch = false)
     }
 
     private fun fetchTrackNumberKmPosts(

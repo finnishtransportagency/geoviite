@@ -73,7 +73,7 @@ class LayoutTrackNumberDao(
             select distinct on (tn.id, tn.version)
               tn.id as row_id,
               tn.version as row_version,
-              coalesce(tn.draft_of_track_number_id, tn.id) as official_id,
+              tn.draft_of_track_number_id official_row_id,
               tn.draft,
               tn.external_id,
               tn.number,
@@ -104,7 +104,7 @@ class LayoutTrackNumberDao(
             select distinct on (tn.id)
               tn.id as row_id,
               tn.version as row_version,
-              coalesce(tn.draft_of_track_number_id, tn.id) as official_id, 
+              tn.draft_of_track_number_id as official_row_id, 
               tn.draft,
               tn.external_id, 
               tn.number, 
@@ -129,7 +129,7 @@ class LayoutTrackNumberDao(
         version = rs.getRowVersion("row_id", "row_version"),
         // TODO: GVT-2442 This should be non-null but we have a lot of tests that produce broken data
         referenceLineId = rs.getIntIdOrNull("reference_line_id"),
-        contextData = rs.getLayoutContextData("official_id", "row_id", "draft"),
+        contextData = rs.getLayoutContextData("official_row_id", "row_id", "draft"),
     )
 
     @Transactional

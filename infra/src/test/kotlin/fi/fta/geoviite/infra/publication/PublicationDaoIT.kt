@@ -345,7 +345,9 @@ class PublicationDaoIT @Autowired constructor(
         val (officialId, rowVersion) = trackNumberDao.insert(trackNumber)
         val fromDb = trackNumberDao.fetch(rowVersion)
         assertEquals(officialId, fromDb.id)
-        assertMatches(trackNumber, fromDb)
+        assertMatches(trackNumber, fromDb, contextMatch = false)
+        assertEquals(DataType.TEMP, trackNumber.dataType)
+        assertEquals(DataType.STORED, fromDb.dataType)
         assertTrue { fromDb.id is IntId }
         return rowVersion to fromDb
     }
@@ -354,7 +356,9 @@ class PublicationDaoIT @Autowired constructor(
         val (officialId, rowVersion) = switchDao.insert(switch)
         val fromDb = switchDao.fetch(rowVersion)
         assertEquals(officialId, fromDb.id)
-        assertMatches(switch, fromDb)
+        assertMatches(switch, fromDb, contextMatch = false)
+        assertEquals(DataType.TEMP, switch.dataType)
+        assertEquals(DataType.STORED, fromDb.dataType)
         assertTrue(fromDb.id is IntId)
         return rowVersion to fromDb
     }
@@ -365,7 +369,9 @@ class PublicationDaoIT @Autowired constructor(
         val (officialId, rowVersion) = referenceLineDao.insert(lineWithAlignment)
         val fromDb = referenceLineDao.fetch(rowVersion)
         assertEquals(officialId, fromDb.id)
-        assertMatches(lineWithAlignment, fromDb)
+        assertMatches(lineWithAlignment, fromDb, contextMatch = false)
+        assertEquals(DataType.TEMP, referenceLine.dataType)
+        assertEquals(DataType.STORED, fromDb.dataType)
         assertTrue(fromDb.id is IntId)
         return rowVersion to fromDb
     }
@@ -376,7 +382,9 @@ class PublicationDaoIT @Autowired constructor(
         val (officialId, rowVersion) = locationTrackDao.insert(trackWithAlignment)
         val fromDb = locationTrackDao.fetch(rowVersion)
         assertEquals(officialId, fromDb.id)
-        assertMatches(trackWithAlignment, fromDb)
+        assertMatches(trackWithAlignment, fromDb, contextMatch = false)
+        assertEquals(DataType.TEMP, locationTrack.dataType)
+        assertEquals(DataType.STORED, fromDb.dataType)
         assertTrue(fromDb.id is IntId)
         return rowVersion to fromDb
     }
