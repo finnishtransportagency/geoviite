@@ -99,6 +99,18 @@ data class MainDraftContextData<T>(
     override val draftType: ContextType
         get() = if (officialRowId == null) ContextType.NEW_DRAFT else ContextType.EDITED_DRAFT
 
+    init {
+        require(rowId != officialRowId) {
+            "Draft row should not refer to itself as official: contextData=$this"
+        }
+        require(rowId != designRowId) {
+            "Draft row should not refer to itself as design: contextData=$this"
+        }
+        require(designRowId == null || designRowId != officialRowId) {
+            "Draft row should not refer to the same row as official and design: contextData=$this"
+        }
+    }
+
     fun asMainOfficial(): MainOfficialContextData<T> {
         require(dataType == STORED) { "The draft is not stored in DB and can't be published: contextData=$this" }
         return MainOfficialContextData(
@@ -116,6 +128,12 @@ data class DesignOfficialContextData<T>(
 ) : DesignContextData<T>() {
     override val id: DomainId<T> get() = officialRowId ?: rowId
     override val draftType: ContextType get() = ContextType.DESIGN
+
+    init {
+        require(rowId != officialRowId) {
+            "Design row should not refer to itself as official: contextData=$this"
+        }
+    }
 
     fun asMainDraft(): MainDraftContextData<T> = MainDraftContextData(
         // TODO: GVT-2426 This is the old way of things, but do we actually need to support switching context in temp objects?
@@ -149,6 +167,18 @@ data class DesignDraftContextData<T>(
     override val id: DomainId<T> get() = officialRowId ?: designRowId ?: rowId
     override val draftType: ContextType
         get() = if (designRowId == null) ContextType.NEW_DESIGN_DRAFT else ContextType.EDITED_DESIGN_DRAFT
+
+    init {
+        require(rowId != officialRowId) {
+            "DesignDraft row should not refer to itself as official: contextData=$this"
+        }
+        require(rowId != designRowId) {
+            "DesignDraft row should not refer to itself as design: contextData=$this"
+        }
+        require(designRowId == null || designRowId != officialRowId) {
+            "DesignDraft row should not refer to the same row as official and design: contextData=$this"
+        }
+    }
 
     fun asDesignOfficial(): DesignOfficialContextData<T> {
         require(dataType == STORED) { "The design draft is not stored in DB and can't be published: context=$this" }

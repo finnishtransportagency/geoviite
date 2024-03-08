@@ -275,9 +275,6 @@ fun <T> ResultSet.getLayoutContextData(
     val rowId = getIntId<T>(rowIdName)
     val isDraft = getBoolean(draftFlagName)
     return if (isDraft) {
-        require(officialRowId != rowId) {
-            "Draft row ID should not refer to itself as official: officialRow=$officialRowId row=$rowId draft=$isDraft"
-        }
         MainDraftContextData(
             officialRowId = officialRowId,
             rowId = rowId,
@@ -286,7 +283,7 @@ fun <T> ResultSet.getLayoutContextData(
         )
     } else {
         require(officialRowId == null) {
-            "For official rows, row ID should be null: officialRow=$officialRowId rowId=$rowId draft=$isDraft"
+            "For official rows, official row ref should be null: officialRow=$officialRowId rowId=$rowId draft=$isDraft"
         }
         MainOfficialContextData(rowId, DataType.STORED)
     }
