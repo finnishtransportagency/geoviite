@@ -336,8 +336,11 @@ class LocationTrackService(
             "publishType" to publishType,
             "boundingBox" to boundingBox
         )
-        val locationTrack = getOrThrow(publishType, locationTrackId)
-        val geocodingContext = geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId)
+        val locationTrack = get(publishType, locationTrackId)
+        val geocodingContext = locationTrack?.let {
+            geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId)
+        }
+
         return if (geocodingContext != null && locationTrack.alignmentVersion != null) {
             alignmentService.getGeometryMetadataSections(
                 locationTrack.alignmentVersion,
