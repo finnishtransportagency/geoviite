@@ -231,13 +231,13 @@ class LayoutKmPostDaoIT @Autowired constructor(
         newTrackNumber: IntId<TrackLayoutTrackNumber>,
     ): DaoResponse<TrackLayoutKmPost> {
         val track = kmPostDao.fetch(trackVersion)
-        assertNull(track.isDraft)
+        assertFalse(track.isDraft)
         return kmPostDao.insert(asMainDraft(track).copy(trackNumberId = newTrackNumber))
     }
 
     private fun updateOfficial(originalVersion: RowVersion<TrackLayoutKmPost>): DaoResponse<TrackLayoutKmPost> {
         val original = kmPostDao.fetch(originalVersion)
-        assertNull(original.isDraft)
+        assertFalse(original.isDraft)
         return kmPostDao.update(original.copy(location = original.location!!.copy(x = original.location!!.x + 1.0)))
     }
 

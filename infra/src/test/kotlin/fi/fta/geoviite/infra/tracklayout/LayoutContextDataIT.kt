@@ -79,50 +79,50 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun draftAndOfficialReferenceLinesAreFoundWithEachOthersIds() {
-        val dbLineAndAlignment = insertAndVerifyLine(createReferenceLineAndAlignment())
+        val dbLineAndAlignment = insertAndVerifyLine(createReferenceLineAndAlignment(false))
         val dbDraft = insertAndVerifyLine(alterLine(createAndVerifyDraftLine(dbLineAndAlignment)))
 
         assertNotEquals(dbLineAndAlignment.first, dbDraft.first)
         assertEquals(dbLineAndAlignment.first.id, dbDraft.first.id)
         assertFalse(dbLineAndAlignment.first.isDraft)
         assertTrue(dbDraft.first.isDraft)
-        assertNotEquals(dbDraft.first.isDraft.draftRowId, dbDraft.first.id)
+        assertNotEquals(dbDraft.first.contextData.rowId, dbDraft.first.id)
 
         assertMatches(
             dbLineAndAlignment.first, referenceLineService.get(OFFICIAL, dbLineAndAlignment.first.id as IntId)!!, true
         )
         assertMatches(
             dbLineAndAlignment.first,
-            referenceLineService.get(OFFICIAL, dbDraft.first.isDraft.draftRowId as IntId)!!,
+            referenceLineService.get(OFFICIAL, dbDraft.first.contextData.rowId as IntId)!!,
             true
         )
 
         assertMatches(dbDraft.first, referenceLineService.get(DRAFT, dbDraft.first.id as IntId)!!, true)
-        assertMatches(dbDraft.first, referenceLineService.get(DRAFT, dbDraft.first.isDraft.draftRowId as IntId)!!, true)
+        assertMatches(dbDraft.first, referenceLineService.get(DRAFT, dbDraft.first.contextData.rowId as IntId)!!, true)
     }
 
     @Test
     fun draftAndOfficialLocationTracksAreFoundWithEachOthersIds() {
-        val dbTrackAndAlignment = insertAndVerifyTrack(createLocationTrackAndAlignment())
+        val dbTrackAndAlignment = insertAndVerifyTrack(createLocationTrackAndAlignment(false))
         val dbDraft = insertAndVerifyTrack(alterTrack(createAndVerifyDraftTrack(dbTrackAndAlignment)))
 
         assertNotEquals(dbTrackAndAlignment.first, dbDraft.first)
         assertEquals(dbTrackAndAlignment.first.id, dbDraft.first.id)
         assertFalse(dbTrackAndAlignment.first.isDraft)
         assertTrue(dbDraft.first.isDraft)
-        assertNotEquals(dbDraft.first.isDraft.draftRowId, dbDraft.first.id)
+        assertNotEquals(dbDraft.first.contextData.rowId, dbDraft.first.id)
 
         assertMatches(
             dbTrackAndAlignment.first, locationTrackService.get(OFFICIAL, dbTrackAndAlignment.first.id as IntId)!!, true
         )
         assertMatches(
             dbTrackAndAlignment.first,
-            locationTrackService.get(OFFICIAL, dbDraft.first.isDraft.draftRowId as IntId)!!,
+            locationTrackService.get(OFFICIAL, dbDraft.first.contextData.rowId as IntId)!!,
             true
         )
 
         assertMatches(dbDraft.first, locationTrackService.get(DRAFT, dbDraft.first.id as IntId)!!, true)
-        assertMatches(dbDraft.first, locationTrackService.get(DRAFT, dbDraft.first.isDraft.draftRowId as IntId)!!, true)
+        assertMatches(dbDraft.first, locationTrackService.get(DRAFT, dbDraft.first.contextData.rowId as IntId)!!, true)
     }
 
     @Test
@@ -132,10 +132,10 @@ class LayoutContextDataIT @Autowired constructor(
         assertNotEquals(dbSwitch, dbDraft)
 
         assertMatches(dbSwitch, switchService.get(OFFICIAL, dbSwitch.id as IntId)!!, true)
-        assertMatches(dbSwitch, switchService.get(OFFICIAL, dbDraft.isDraft.draftRowId as IntId)!!, true)
+        assertMatches(dbSwitch, switchService.get(OFFICIAL, dbDraft.contextData.rowId as IntId)!!, true)
 
         assertMatches(dbDraft, switchService.get(DRAFT, dbDraft.id as IntId)!!, true)
-        assertMatches(dbDraft, switchService.get(DRAFT, dbDraft.isDraft.draftRowId as IntId)!!, true)
+        assertMatches(dbDraft, switchService.get(DRAFT, dbDraft.contextData.rowId as IntId)!!, true)
     }
 
 
@@ -146,34 +146,34 @@ class LayoutContextDataIT @Autowired constructor(
         assertNotEquals(dbKmPost, dbDraft)
 
         assertMatches(dbKmPost, kmPostService.get(OFFICIAL, dbKmPost.id as IntId)!!, true)
-        assertMatches(dbKmPost, kmPostService.get(OFFICIAL, dbDraft.isDraft.draftRowId as IntId)!!, true)
+        assertMatches(dbKmPost, kmPostService.get(OFFICIAL, dbDraft.contextData.rowId as IntId)!!, true)
 
         assertMatches(dbDraft, kmPostService.get(DRAFT, dbDraft.id as IntId)!!, true)
-        assertMatches(dbDraft, kmPostService.get(DRAFT, dbDraft.isDraft.draftRowId as IntId)!!, true)
+        assertMatches(dbDraft, kmPostService.get(DRAFT, dbDraft.contextData.rowId as IntId)!!, true)
     }
 
     @Test
     fun draftAndOfficialReferenceLinesHaveSameOfficialId() {
-        val dbAlignment = insertAndVerifyLine(createReferenceLineAndAlignment())
+        val dbAlignment = insertAndVerifyLine(createReferenceLineAndAlignment(false))
         val (dbDraft, _) = insertAndVerifyLine(alterLine(createAndVerifyDraftLine(dbAlignment)))
 
         assertNotEquals(dbAlignment, dbDraft)
         assertEquals(dbAlignment.first.id, dbDraft.id)
         assertFalse(dbAlignment.first.isDraft)
         assertTrue(dbDraft.isDraft)
-        assertNotEquals(dbDraft.isDraft.draftRowId, dbDraft.id)
+        assertNotEquals(dbDraft.contextData.rowId, dbDraft.id)
     }
 
     @Test
     fun draftAndOfficialLocationTracksHaveSameOfficialId() {
-        val dbAlignment = insertAndVerifyTrack(createLocationTrackAndAlignment())
+        val dbAlignment = insertAndVerifyTrack(createLocationTrackAndAlignment(false))
         val (dbDraft, _) = insertAndVerifyTrack(alterTrack(createAndVerifyDraftTrack(dbAlignment)))
 
         assertNotEquals(dbAlignment, dbDraft)
         assertEquals(dbAlignment.first.id, dbDraft.id)
         assertFalse(dbAlignment.first.isDraft)
         assertTrue(dbDraft.isDraft)
-        assertNotEquals(dbDraft.isDraft.draftRowId, dbDraft.id)
+        assertNotEquals(dbDraft.contextData.rowId, dbDraft.id)
     }
 
     @Test
@@ -185,7 +185,7 @@ class LayoutContextDataIT @Autowired constructor(
         assertEquals(dbSwitch.id, dbDraft.id)
         assertFalse(dbSwitch.isDraft)
         assertTrue(dbDraft.isDraft)
-        assertNotEquals(dbDraft.isDraft.draftRowId, dbDraft.id)
+        assertNotEquals(dbDraft.contextData.rowId, dbDraft.id)
     }
 
     @Test
@@ -197,12 +197,12 @@ class LayoutContextDataIT @Autowired constructor(
         assertEquals(dbKmPost.id, dbDraft.id)
         assertFalse(dbKmPost.isDraft)
         assertTrue(dbDraft.isDraft)
-        assertNotEquals(dbDraft.isDraft.draftRowId, dbDraft.id)
+        assertNotEquals(dbDraft.contextData.rowId, dbDraft.id)
     }
 
     @Test
     fun draftReferenceLinesAreIncludedInDraftListingsOnly() {
-        val dbOfficial = insertAndVerifyLine(createReferenceLineAndAlignment())
+        val dbOfficial = insertAndVerifyLine(createReferenceLineAndAlignment(false))
         val dbDraft = insertAndVerifyLine(alterLine(createAndVerifyDraftLine(dbOfficial)))
 
         val officials = referenceLineService.list(OFFICIAL)
@@ -217,7 +217,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun draftLocationTracksAreIncludedInDraftListingsOnly() {
-        val dbOfficial = insertAndVerifyTrack(createLocationTrackAndAlignment())
+        val dbOfficial = insertAndVerifyTrack(createLocationTrackAndAlignment(false))
         val dbDraft = insertAndVerifyTrack(alterTrack(createAndVerifyDraftTrack(dbOfficial)))
 
         val officials = locationTrackService.list(OFFICIAL)
@@ -262,7 +262,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun referenceLineCanOnlyHaveOneDraft() {
-        val (line, _) = insertAndVerifyLine(createReferenceLineAndAlignment())
+        val (line, _) = insertAndVerifyLine(createReferenceLineAndAlignment(false))
 
         val draft1 = asMainDraft(line)
         val draft2 = asMainDraft(line)
@@ -273,7 +273,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun locationTrackCanOnlyHaveOneDraft() {
-        val (track, _) = insertAndVerifyTrack(createLocationTrackAndAlignment())
+        val (track, _) = insertAndVerifyTrack(createLocationTrackAndAlignment(false))
 
         val draft1 = asMainDraft(track)
         val draft2 = asMainDraft(track)
@@ -318,31 +318,31 @@ class LayoutContextDataIT @Autowired constructor(
     @Test
     fun draftTypeOfNewDraftIsReturnedCorrectly() {
         val draft = asMainDraft(kmPost(null, someKmNumber()))
-        assertEquals(draft.getDraftType(), DraftType.NEW_DRAFT)
-        assertFalse(draft.isOfficial())
-        assertTrue(draft.isDraft())
-        assertTrue(draft.isNewDraft())
-        assertFalse(draft.isEditedDraft())
+        assertEquals(draft.draftType, ContextType.NEW_DRAFT)
+        assertFalse(draft.isOfficial)
+        assertTrue(draft.isDraft)
+        assertTrue(draft.isNewDraft)
+        assertFalse(draft.isEditedDraft)
     }
 
     @Test
     fun draftTypeOfOfficialIsReturnedCorrectly() {
         val official = insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber()))
-        assertEquals(official.getDraftType(), DraftType.OFFICIAL)
-        assertTrue(official.isOfficial())
-        assertFalse(official.isDraft())
-        assertFalse(official.isNewDraft())
-        assertFalse(official.isEditedDraft())
+        assertEquals(official.draftType, ContextType.OFFICIAL)
+        assertTrue(official.isOfficial)
+        assertFalse(official.isDraft)
+        assertFalse(official.isNewDraft)
+        assertFalse(official.isEditedDraft)
     }
 
     @Test
     fun draftTypeOfChangedDraftIsReturnedCorrectly() {
         val edited = asMainDraft(insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber())))
-        assertEquals(edited.getDraftType(), DraftType.EDITED_DRAFT)
-        assertFalse(edited.isOfficial())
-        assertTrue(edited.isDraft())
-        assertFalse(edited.isNewDraft())
-        assertTrue(edited.isEditedDraft())
+        assertEquals(edited.draftType, ContextType.EDITED_DRAFT)
+        assertFalse(edited.isOfficial)
+        assertTrue(edited.isDraft)
+        assertFalse(edited.isNewDraft)
+        assertTrue(edited.isEditedDraft)
     }
 
     private fun createReferenceLineAndAlignment(draft: Boolean): Pair<ReferenceLine, LayoutAlignment> =
@@ -369,8 +369,8 @@ class LayoutContextDataIT @Autowired constructor(
         assertFalse(dbLine.isDraft)
         val draft = asMainDraft(dbLine)
         assertEquals(dbLine.id, draft.id)
-        assertNotEquals(dbLine.id, draft.isDraft.draftRowId)
-        assertMatches(dbLine, draft.copy(draft = null))
+        assertNotEquals(dbLine.id, draft.contextData.rowId)
+        assertMatches(dbLine, draft, contextMatch = false)
         return draft to dbAlignment
     }
 
@@ -384,8 +384,8 @@ class LayoutContextDataIT @Autowired constructor(
         assertFalse(dbTrack.isDraft)
         val draft = asMainDraft(dbTrack)
         assertEquals(dbTrack.id, draft.id)
-        assertNotEquals(dbTrack.id, draft.isDraft.draftRowId)
-        assertMatches(dbTrack, draft.copy(draft = null))
+        assertNotEquals(dbTrack.id, draft.contextData.rowId)
+        assertMatches(dbTrack, draft, contextMatch = false)
         return draft to dbAlignment
     }
 
@@ -394,8 +394,8 @@ class LayoutContextDataIT @Autowired constructor(
         assertFalse(dbSwitch.isDraft)
         val draft = asMainDraft(dbSwitch)
         assertEquals(dbSwitch.id, draft.id)
-        assertNotEquals(dbSwitch.id, draft.isDraft.draftRowId)
-        assertMatches(dbSwitch, draft.copy(draft = null))
+        assertNotEquals(dbSwitch.id, draft.contextData.rowId)
+        assertMatches(dbSwitch, draft, contextMatch = false)
         return draft
     }
 
@@ -404,8 +404,8 @@ class LayoutContextDataIT @Autowired constructor(
         assertFalse(dbKmPost.isDraft)
         val draft = asMainDraft(dbKmPost)
         assertEquals(dbKmPost.id, draft.id)
-        assertNotEquals(dbKmPost.id, draft.isDraft.draftRowId)
-        assertMatches(dbKmPost, draft.copy(draft = null))
+        assertNotEquals(dbKmPost.id, draft.contextData.rowId)
+        assertMatches(dbKmPost, draft, contextMatch = false)
         return draft
     }
 

@@ -49,7 +49,7 @@ class ReferenceLineServiceIT @Autowired constructor(
         val referenceLineId = referenceLineService.getByTrackNumber(DRAFT, trackNumber)?.id as IntId
         publish(referenceLineId)
         val (line, _) = referenceLineService.getWithAlignmentOrThrow(OFFICIAL, referenceLineId)
-        assertNull(line.isDraft)
+        assertFalse(line.isDraft)
         assertThrows<DeletingFailureException> { referenceLineService.deleteDraft(referenceLineId) }
     }
 
@@ -59,7 +59,7 @@ class ReferenceLineServiceIT @Autowired constructor(
 
         val referenceLine = referenceLineService.getByTrackNumber(DRAFT, trackNumberId)
         assertNotNull(referenceLine)
-        assertNotNull(referenceLine?.isDraft)
+        assertTrue(referenceLine?.isDraft ?: false)
         assertEquals(0.0, referenceLine?.length)
         assertEquals(trackNumberId, referenceLine?.trackNumberId)
         val changeTimeAfterInsert = referenceLineService.getChangeTime()
@@ -190,14 +190,14 @@ class ReferenceLineServiceIT @Autowired constructor(
     private fun getAndVerifyDraft(id: IntId<ReferenceLine>): ReferenceLine {
         val draft = referenceLineService.get(DRAFT, id)!!
         assertEquals(id, draft.id)
-        assertNotNull(draft.isDraft)
+        assertTrue(draft.isDraft)
         return draft
     }
 
     private fun getAndVerifyDraftWithAlignment(id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
         val (draft, alignment) = referenceLineService.getWithAlignmentOrThrow(DRAFT, id)
         assertEquals(id, draft.id)
-        assertNotNull(draft.isDraft)
+        assertTrue(draft.isDraft)
         assertEquals(draft.alignmentVersion!!.id, alignment.id)
         return draft to alignment
     }
@@ -207,7 +207,7 @@ class ReferenceLineServiceIT @Autowired constructor(
         referenceLineId: IntId<ReferenceLine>,
     ): Pair<DaoResponse<ReferenceLine>, ReferenceLine> {
         val (draft, draftAlignment) = referenceLineService.getWithAlignmentOrThrow(DRAFT, referenceLineId)
-        assertNotNull(draft.isDraft)
+        assertTrue(draft.isDraft)
         assertEquals(draft, referenceLineService.getByTrackNumber(DRAFT, trackNumberId))
         assertNull(referenceLineService.getByTrackNumber(OFFICIAL, trackNumberId))
 
@@ -217,7 +217,7 @@ class ReferenceLineServiceIT @Autowired constructor(
         )
         val publishedByTrackNumber = referenceLineService.getByTrackNumber(OFFICIAL, trackNumberId)
         assertEquals(published, publishedByTrackNumber)
-        assertNull(published.isDraft)
+        assertFalse(published.isDraft)
         assertEquals(draft.id, published.id)
         assertEquals(published.id, publishedVersion.id)
         assertEquals(draft.alignmentVersion, published.alignmentVersion)

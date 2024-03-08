@@ -80,7 +80,7 @@ class LocationTrackDao(
               ltv.id as row_id,
               ltv.version as row_version,
               coalesce(ltv.draft_of_location_track_id, ltv.id) as official_id, 
-              case when ltv.draft then ltv.id end as draft_id,
+              ltv.draft,
               ltv.alignment_id,
               ltv.alignment_version,
               ltv.track_number_id, 

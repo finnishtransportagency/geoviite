@@ -10,7 +10,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -131,7 +130,7 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
         originalVersion: RowVersion<TrackLayoutTrackNumber>,
     ): DaoResponse<TrackLayoutTrackNumber> {
         val original = trackNumberDao.fetch(originalVersion)
-        assertNull(original.isDraft)
+        assertFalse(original.isDraft)
         return trackNumberDao.update(original.copy(description = original.description + "_update"))
     }
 }

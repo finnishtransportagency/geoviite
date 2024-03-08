@@ -100,7 +100,7 @@ data class MainDraftContextData<T>(
         get() = if (officialRowId == null) ContextType.NEW_DRAFT else ContextType.EDITED_DRAFT
 
     fun asMainOfficial(): MainOfficialContextData<T> {
-        require(dataType == TEMP) { "The draft is not stored in DB and can't be published: contextData=$this" }
+        require(dataType == STORED) { "The draft is not stored in DB and can't be published: contextData=$this" }
         return MainOfficialContextData(
             rowId = id, // The official ID points to the row that needs to be written over
             dataType = STORED, // There will always be an existing row to update: the draft-row or the original official
@@ -151,7 +151,7 @@ data class DesignDraftContextData<T>(
         get() = if (designRowId == null) ContextType.NEW_DESIGN_DRAFT else ContextType.EDITED_DESIGN_DRAFT
 
     fun asDesignOfficial(): DesignOfficialContextData<T> {
-        require(dataType == TEMP) { "The design draft is not stored in DB and can't be published: context=$this" }
+        require(dataType == STORED) { "The design draft is not stored in DB and can't be published: context=$this" }
         return DesignOfficialContextData(
             rowId = designRowId ?: rowId, // The publishing should update either the official or the draft row
             officialRowId = officialRowId,

@@ -3272,7 +3272,7 @@ fun <T : LayoutConcept<T>, S : LayoutConceptDao<T>> publishAndCheck(
     assertTrue(id is IntId)
     assertNotEquals(rowVersion, dao.fetchOfficialVersion(id))
     assertEquals(rowVersion, dao.fetchDraftVersion(id))
-    assertNotNull(draft.isDraft)
+    assertTrue(draft.isDraft)
     assertEquals(DataType.STORED, draft.dataType)
 
     val (publishedId, publishedVersion) = service.publish(ValidationVersion(id, rowVersion))
@@ -3282,7 +3282,7 @@ fun <T : LayoutConcept<T>, S : LayoutConceptDao<T>> publishAndCheck(
     assertEquals(VersionPair(publishedVersion, null), dao.fetchVersionPair(id))
 
     val publishedItem = dao.fetch(publishedVersion)
-    assertNull(publishedItem.isDraft)
+    assertFalse(publishedItem.isDraft)
     assertEquals(id, publishedVersion.id)
 
     return publishedVersion to publishedItem

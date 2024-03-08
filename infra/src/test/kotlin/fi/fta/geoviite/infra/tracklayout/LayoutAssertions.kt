@@ -119,7 +119,7 @@ fun assertMatches(expected: TrackLayoutKmPost, actual: TrackLayoutKmPost, contex
         )
         assertEquals(expected, unified)
         assertEquals(expected.sourceId != null, actual.sourceId != null)
-        assertEquals(expected.isDraft != null, actual.isDraft != null)
+        assertEquals(expected.isDraft, actual.isDraft)
     }
     assertEquals(expected.location == null, actual.location == null)
     if (expected.location != null) {
@@ -138,7 +138,7 @@ fun assertMatches(expected: TrackLayoutSwitch, actual: TrackLayoutSwitch, contex
         )
         assertEquals(expectedWithSameFloats, unified)
         assertEquals(expected.sourceId != null, actual.sourceId != null)
-        assertEquals(expected.isDraft != null, actual.isDraft != null)
+        assertEquals(expected.isDraft, actual.isDraft)
     }
     assertEquals(expected.switchStructureId, actual.switchStructureId)
     assertEquals(expected.joints.size, actual.joints.size)

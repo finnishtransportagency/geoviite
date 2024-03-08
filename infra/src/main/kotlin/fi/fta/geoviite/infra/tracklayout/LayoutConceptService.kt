@@ -96,11 +96,11 @@ abstract class LayoutConceptService<ObjectType : LayoutConcept<ObjectType>, DaoT
         require(draft.isDraft) { "Item is not a draft: id=${draft.id}" }
         val officialId = if (item.id is IntId) item.id as IntId else null
         return if (draft.dataType == DataType.TEMP) {
-            verifyForLayoutInsert(item)
+            verifyForLayoutInsert(draft)
             dao.insert(draft).also { response -> verifyInsertResponse(officialId, response) }
         } else {
             requireNotNull(officialId) { "Updating item that has no known official ID" }
-            verifyForLayoutUpdate(item)
+            verifyForLayoutUpdate(draft)
             val previousVersion = requireNotNull(draft.version) { "Updating item without rowVersion: $item" }
             dao.update(draft).also { response -> verifyUpdateResponse(officialId, previousVersion, response) }
         }
@@ -123,7 +123,7 @@ abstract class LayoutConceptService<ObjectType : LayoutConcept<ObjectType>, DaoT
         val draft = dao.fetch(draftVersion)
         require(draft.isDraft) { "Object to publish is not a draft: versions=$versions context=${draft.contextData}" }
         val published = asMainOfficial(draft)
-        require(published.isDraft) { "Published object is still a draft: context=${published.contextData}" }
+        require(!published.isDraft) { "Published object is still a draft: context=${published.contextData}" }
         verifyForLayoutUpdate(published)
 
         val publishResponse = dao.update(published)

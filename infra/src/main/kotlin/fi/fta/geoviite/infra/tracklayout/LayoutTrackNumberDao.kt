@@ -74,7 +74,7 @@ class LayoutTrackNumberDao(
               tn.id as row_id,
               tn.version as row_version,
               coalesce(tn.draft_of_track_number_id, tn.id) as official_id,
-              case when tn.draft then tn.id end as draft_id,
+              tn.draft,
               tn.external_id,
               tn.number,
               tn.description,

@@ -14,7 +14,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType.MAIN
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType.SIDE
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -294,7 +293,7 @@ class LocationTrackDaoIT @Autowired constructor(
         newTrackNumber: IntId<TrackLayoutTrackNumber>,
     ): DaoResponse<LocationTrack> {
         val track = locationTrackDao.fetch(trackVersion)
-        assertNull(track.isDraft)
+        assertFalse(track.isDraft)
         val alignmentVersion = alignmentService.duplicate(track.alignmentVersion!!)
         return locationTrackDao.insert(
             asMainDraft(track).copy(
@@ -306,7 +305,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     private fun updateOfficial(originalVersion: RowVersion<LocationTrack>): DaoResponse<LocationTrack> {
         val original = locationTrackDao.fetch(originalVersion)
-        assertNull(original.isDraft)
+        assertFalse(original.isDraft)
         return locationTrackDao.update(original.copy(descriptionBase = original.descriptionBase + "_update"))
     }
 }

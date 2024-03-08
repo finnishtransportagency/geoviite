@@ -8,7 +8,8 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -157,7 +158,7 @@ class LayoutSwitchDaoIT @Autowired constructor(
 
     private fun updateOfficial(originalVersion: RowVersion<TrackLayoutSwitch>): DaoResponse<TrackLayoutSwitch> {
         val original = switchDao.fetch(originalVersion)
-        assertNull(original.isDraft)
+        assertFalse(original.isDraft)
         return switchDao.update(original.copy(name = SwitchName("${original.name}U")))
     }
 }
