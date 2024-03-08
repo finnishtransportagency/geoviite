@@ -7,6 +7,7 @@ const ESLintWebpackPlugin = require('eslint-webpack-plugin');
 const LicensePlugin = require('webpack-license-plugin');
 const CspHtmlWebpackPlugin = require('csp-html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const { execSync } = require('child_process');
 
 dotenv.config();
 
@@ -37,6 +38,25 @@ const glyphLocations = [
     path.resolve(__dirname, 'src/geoviite-design-lib/glyphs'),
     path.resolve(__dirname, 'src/vayla-design-lib/icon'),
 ];
+
+// Used when building the frontend without the development server, such as in a CI pipeline.
+class SynchronizedScssTypingsPlugin {
+    createScssTypings() {
+        console.log('Updating SCSS typings...');
+        try {
+            execSync('npm run scss', { stdio: 'inherit' });
+            console.log('SCSS typings updated.');
+        } catch (error) {
+            console.error('Error updating SCSS typings:', error);
+        }
+    }
+
+    apply(compiler) {
+        compiler.hooks.afterEnvironment.tap('SynchronizedScssTypingsPlugin', (compilation) => {
+            this.createScssTypings();
+        });
+    }
+}
 
 module.exports = (env) => {
     return {
@@ -163,6 +183,7 @@ module.exports = (env) => {
             ],
         },
         plugins: [
+            new SynchronizedScssTypingsPlugin(),
             new HtmlWebpackPlugin({
                 template: './src/index.html',
                 favicon: './src/geoviite-design-lib/geoviite-logo.svg',
