@@ -125,9 +125,16 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     );
 
     const getSplittingDisabledReasonsTranslated = () => {
-        const reasons = [];
-        if (!publishTypeIsDraft)
-            reasons.push(t('tool-panel.disabled.activity-disabled-in-official-mode'));
+        const reasons: string[] = [];
+
+        if (!publishTypeIsDraft) {
+            return t('tool-panel.disabled.activity-disabled-in-official-mode');
+        }
+
+        if (extraInfo?.partOfUnfinishedSplit) {
+            return t('tool-panel.location-track.splitting-blocks-geometry-changes');
+        }
+
         if (locationTrackIsDraft)
             reasons.push(t('tool-panel.location-track.splitting.validation.track-draft-exists'));
         if (duplicatesOnOtherTracks)
@@ -136,6 +143,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                     'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
                 ),
             );
+
         return reasons.join('\n\n');
     };
 
@@ -336,7 +344,8 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 disabled={
                                                     !publishTypeIsDraft ||
                                                     locationTrackIsDraft ||
-                                                    duplicatesOnOtherTracks
+                                                    duplicatesOnOtherTracks ||
+                                                    extraInfo?.partOfUnfinishedSplit
                                                 }
                                                 title={getSplittingDisabledReasonsTranslated()}
                                                 onClick={startSplitting}>
