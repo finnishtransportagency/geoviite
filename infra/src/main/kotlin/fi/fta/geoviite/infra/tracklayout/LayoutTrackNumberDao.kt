@@ -190,7 +190,7 @@ class LayoutTrackNumberDao(
               version as row_version
         """.trimIndent()
         val params = mapOf(
-            "id" to toDbId(updatedItem.rowId).intValue,
+            "id" to toDbId(updatedItem.contextData.rowId).intValue,
             "external_id" to updatedItem.externalId,
             "number" to updatedItem.number,
             "description" to updatedItem.description,

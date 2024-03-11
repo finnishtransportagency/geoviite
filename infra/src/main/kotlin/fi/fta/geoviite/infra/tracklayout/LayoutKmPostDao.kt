@@ -257,7 +257,7 @@ class LayoutKmPostDao(
               version as row_version
         """.trimIndent()
         val params = mapOf(
-            "km_post_id" to toDbId(updatedItem.rowId).intValue,
+            "km_post_id" to toDbId(updatedItem.contextData.rowId).intValue,
             "track_number_id" to trackNumberId.intValue,
             "geometry_km_post_id" to updatedItem.sourceId?.let(::toDbId)?.intValue,
             "km_number" to updatedItem.kmNumber.toString(),

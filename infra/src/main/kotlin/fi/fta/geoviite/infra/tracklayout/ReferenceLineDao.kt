@@ -149,7 +149,7 @@ class ReferenceLineDao(
               version as row_version
         """.trimIndent()
         val params = mapOf(
-            "id" to toDbId(updatedItem.rowId).intValue,
+            "id" to toDbId(updatedItem.contextData.rowId).intValue,
             "track_number_id" to updatedItem.trackNumberId.intValue,
             "alignment_id" to updatedItem.getAlignmentVersionOrThrow().id.intValue,
             "alignment_version" to updatedItem.getAlignmentVersionOrThrow().version,

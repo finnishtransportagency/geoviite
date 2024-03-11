@@ -41,7 +41,7 @@ class LayoutContextDataIT @Autowired constructor(
         assertEquals(track.id, draft.id)
         assertFalse(track.isDraft)
         assertTrue(draft.isDraft)
-        assertEquals(draft.id, draft.rowId)
+        assertEquals(draft.id, draft.contextData.rowId)
     }
 
     @Test
@@ -51,7 +51,7 @@ class LayoutContextDataIT @Autowired constructor(
         assertEquals(track.id, draft.id)
         assertFalse(track.isDraft)
         assertTrue(draft.isDraft)
-        assertEquals(draft.id, draft.rowId)
+        assertEquals(draft.id, draft.contextData.rowId)
     }
 
     @Test
@@ -61,7 +61,7 @@ class LayoutContextDataIT @Autowired constructor(
         assertEquals(switch.id, draft.id)
         assertFalse(switch.isDraft)
         assertTrue(draft.isDraft)
-        assertEquals(draft.id, draft.rowId)
+        assertEquals(draft.id, draft.contextData.rowId)
     }
 
     @Test
@@ -71,7 +71,7 @@ class LayoutContextDataIT @Autowired constructor(
         assertEquals(kmPost.id, draft.id)
         assertFalse(kmPost.isDraft)
         assertTrue(draft.isDraft)
-        assertEquals(kmPost.id, draft.rowId)
+        assertEquals(kmPost.id, draft.contextData.rowId)
     }
 
     @Test
@@ -317,8 +317,6 @@ class LayoutContextDataIT @Autowired constructor(
         assertEquals(draft.draftType, ContextType.NEW_DRAFT)
         assertFalse(draft.isOfficial)
         assertTrue(draft.isDraft)
-        assertTrue(draft.isNewDraft)
-        assertFalse(draft.isEditedDraft)
     }
 
     @Test
@@ -327,8 +325,6 @@ class LayoutContextDataIT @Autowired constructor(
         assertEquals(official.draftType, ContextType.OFFICIAL)
         assertTrue(official.isOfficial)
         assertFalse(official.isDraft)
-        assertFalse(official.isNewDraft)
-        assertFalse(official.isEditedDraft)
     }
 
     @Test
@@ -337,8 +333,6 @@ class LayoutContextDataIT @Autowired constructor(
         assertEquals(edited.draftType, ContextType.EDITED_DRAFT)
         assertFalse(edited.isOfficial)
         assertTrue(edited.isDraft)
-        assertFalse(edited.isNewDraft)
-        assertTrue(edited.isEditedDraft)
     }
 
     private fun createReferenceLineAndAlignment(draft: Boolean): Pair<ReferenceLine, LayoutAlignment> =

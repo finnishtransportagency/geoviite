@@ -342,8 +342,13 @@ class PublicationService @Autowired constructor(
             rlId.trackNumberId
         }
         val trackNumbers = trackNumberService.getMany(DRAFT, referenceLineTrackNumberIds + requestIds.trackNumbers)
-        val revertTrackNumberIds = trackNumbers.filter(TrackLayoutTrackNumber::isDraft).map { it.id as IntId }
-        val draftOnlyTrackNumberIds = trackNumbers.filter(TrackLayoutTrackNumber::isNewDraft).map { it.id as IntId }
+        val revertTrackNumberIds = trackNumbers
+            .filter(TrackLayoutTrackNumber::isDraft)
+            .map { it.id as IntId }
+        // If revert breaks other draft row references, they should be reverted too
+        val draftOnlyTrackNumberIds = trackNumbers
+            .filter { tn -> tn.isDraft && tn.contextData.officialRowId == null }
+            .map { it.id as IntId }
 
         val revertLocationTrackIds = requestIds.locationTracks + draftOnlyTrackNumberIds.flatMap { tnId ->
             locationTrackDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)

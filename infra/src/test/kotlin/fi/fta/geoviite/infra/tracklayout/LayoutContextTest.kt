@@ -41,8 +41,6 @@ class LayoutContextTest {
         assertFalse(context.isDesign)
         assertTrue(context.isOfficial)
         assertFalse(context.isDraft)
-        assertFalse(context.isEditedDraft)
-        assertFalse(context.isNewDraft)
     }
 
     @Test
@@ -56,24 +54,18 @@ class LayoutContextTest {
         assertFalse(editedContext.isDesign)
         assertFalse(editedContext.isOfficial)
         assertTrue(editedContext.isDraft)
-        assertTrue(editedContext.isEditedDraft)
-        assertFalse(editedContext.isNewDraft)
 
         val newContext = MainDraftContextData(id, null, designRowId, TEMP)
         assertEquals(ContextType.NEW_DRAFT, newContext.draftType)
         assertFalse(newContext.isDesign)
         assertFalse(newContext.isOfficial)
         assertTrue(newContext.isDraft)
-        assertFalse(newContext.isEditedDraft)
-        assertTrue(newContext.isNewDraft)
 
         val newContext2 = MainDraftContextData(id, null, null, TEMP)
         assertEquals(ContextType.NEW_DRAFT, newContext2.draftType)
         assertFalse(newContext2.isDesign)
         assertFalse(newContext2.isOfficial)
         assertTrue(newContext2.isDraft)
-        assertFalse(newContext2.isEditedDraft)
-        assertTrue(newContext2.isNewDraft)
     }
 
     @Test
@@ -86,16 +78,12 @@ class LayoutContextTest {
         assertTrue(context.isDesign)
         assertFalse(context.isOfficial)
         assertFalse(context.isDraft)
-        assertFalse(context.isEditedDraft)
-        assertFalse(context.isNewDraft)
 
         val newContext = DesignOfficialContextData(id, null, IntId(1), TEMP)
         assertEquals(ContextType.DESIGN, newContext.draftType)
         assertTrue(newContext.isDesign)
         assertFalse(newContext.isOfficial)
         assertFalse(newContext.isDraft)
-        assertFalse(newContext.isEditedDraft)
-        assertFalse(newContext.isNewDraft)
     }
 
     @Test
@@ -109,24 +97,18 @@ class LayoutContextTest {
         assertTrue(context.isDesign)
         assertFalse(context.isOfficial)
         assertTrue(context.isDraft)
-        assertTrue(context.isEditedDraft)
-        assertFalse(context.isNewDraft)
 
         val newContext = DesignDraftContextData(id, null, officialRowId, IntId(1), TEMP)
         assertEquals(ContextType.NEW_DESIGN_DRAFT, newContext.draftType)
         assertTrue(newContext.isDesign)
         assertFalse(newContext.isOfficial)
         assertTrue(newContext.isDraft)
-        assertFalse(newContext.isEditedDraft)
-        assertTrue(newContext.isNewDraft)
 
         val newContext2 = DesignDraftContextData(id, null, null, IntId(1), TEMP)
         assertEquals(ContextType.NEW_DESIGN_DRAFT, newContext2.draftType)
         assertTrue(newContext2.isDesign)
         assertFalse(newContext2.isOfficial)
         assertTrue(newContext2.isDraft)
-        assertFalse(newContext2.isEditedDraft)
-        assertTrue(newContext2.isNewDraft)
     }
 
     @Test

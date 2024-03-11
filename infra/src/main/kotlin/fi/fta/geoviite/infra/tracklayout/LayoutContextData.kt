@@ -17,12 +17,9 @@ interface LayoutContextAware<T> {
     // TODO: GVT-2426 if we keep this, the field should be renamed
 //    val contextType: ContextType
     val draftType: ContextType
-    @get:JsonIgnore val rowId: DomainId<T>
-    @get:JsonIgnore val isDraft: Boolean
-    @get:JsonIgnore val isOfficial: Boolean
-    @get:JsonIgnore val isDesign: Boolean
-    @get:JsonIgnore val isEditedDraft: Boolean
-    @get:JsonIgnore val isNewDraft: Boolean
+    @get:JsonIgnore val isDraft: Boolean get() = false
+    @get:JsonIgnore val isOfficial: Boolean get() = false
+    @get:JsonIgnore val isDesign: Boolean get() = false
 }
 
 sealed class LayoutConcept<T : LayoutConcept<T>>(contextData: LayoutContextData<T>) :
@@ -33,35 +30,17 @@ sealed class LayoutConcept<T : LayoutConcept<T>>(contextData: LayoutContextData<
 }
 
 sealed class LayoutContextData<T> : LayoutContextAware<T> {
-    @get:JsonIgnore
-    override val isDraft: Boolean get() = this is MainDraftContextData || this is DesignDraftContextData
 
-    @get:JsonIgnore
-    override val isOfficial: Boolean get() = this is MainOfficialContextData
-
-    @get:JsonIgnore
-    override val isDesign: Boolean get() = this is DesignContextData
-
-    @get:JsonIgnore
-    override val isEditedDraft: Boolean
-        get() = when (this) {
-            is MainDraftContextData -> officialRowId != null
-            is DesignDraftContextData -> designRowId != null
-            else -> false
-        }
-
-    @get:JsonIgnore
-    override val isNewDraft: Boolean get() = this.isDraft && !isEditedDraft
-
-    @get:JsonIgnore
-    open val officialRowId: DomainId<T>? get() = null
-
-    @get:JsonIgnore
-    open val designRowId: DomainId<T>? get() = null
+    @get:JsonIgnore abstract val rowId: DomainId<T>
+    @get:JsonIgnore open val officialRowId: DomainId<T>? get() = null
+    @get:JsonIgnore open val designRowId: DomainId<T>? get() = null
 
     companion object {
-        fun <T> newDraft(id: DomainId<T> = StringId()) = MainDraftContextData(id, null, null, TEMP)
-        fun <T> newOfficial(id: DomainId<T> = StringId()) = MainOfficialContextData(id, TEMP)
+        fun <T> newDraft(id: DomainId<T> = StringId()): MainDraftContextData<T> =
+            MainDraftContextData(id, null, null, TEMP)
+
+        fun <T> newOfficial(id: DomainId<T> = StringId()): MainOfficialContextData<T> =
+            MainOfficialContextData(id, TEMP)
     }
 }
 
@@ -77,6 +56,7 @@ data class MainOfficialContextData<T>(
 ) : MainContextData<T>() {
     override val id: DomainId<T> = rowId
     override val draftType: ContextType get() = ContextType.OFFICIAL
+    override val isOfficial: Boolean get() = true
 
     fun asMainDraft(): MainDraftContextData<T> = MainDraftContextData(
         // TODO: GVT-2426 This is the old way of things, but do we actually need to support switching context in temp objects?
@@ -109,6 +89,7 @@ data class MainDraftContextData<T>(
     override val id: DomainId<T> get() = officialRowId ?: designRowId ?: rowId
     override val draftType: ContextType
         get() = if (officialRowId == null) ContextType.NEW_DRAFT else ContextType.EDITED_DRAFT
+    override val isDraft: Boolean get() = true
 
     init {
         require(rowId != officialRowId) {
@@ -139,6 +120,7 @@ data class DesignOfficialContextData<T>(
 ) : DesignContextData<T>() {
     override val id: DomainId<T> get() = officialRowId ?: rowId
     override val draftType: ContextType get() = ContextType.DESIGN
+    override val isDesign: Boolean get() = true
 
     init {
         require(rowId != officialRowId) {
@@ -178,6 +160,8 @@ data class DesignDraftContextData<T>(
     override val id: DomainId<T> get() = officialRowId ?: designRowId ?: rowId
     override val draftType: ContextType
         get() = if (designRowId == null) ContextType.NEW_DESIGN_DRAFT else ContextType.EDITED_DESIGN_DRAFT
+    override val isDraft: Boolean get() = true
+    override val isDesign: Boolean get() = true
 
     init {
         require(rowId != officialRowId) {

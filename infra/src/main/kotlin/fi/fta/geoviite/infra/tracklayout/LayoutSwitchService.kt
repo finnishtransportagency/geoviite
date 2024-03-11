@@ -70,7 +70,8 @@ class LayoutSwitchService @Autowired constructor(
     @Transactional
     override fun deleteDraft(id: IntId<TrackLayoutSwitch>): DaoResponse<TrackLayoutSwitch> {
         val draft = dao.getOrThrow(DRAFT, id)
-        if (draft.isNewDraft) {
+        // If removal also breaks references, clear them out first
+        if (draft.contextData.officialRowId == null) {
             clearSwitchInformationFromSegments(id)
         }
         return super.deleteDraft(id)

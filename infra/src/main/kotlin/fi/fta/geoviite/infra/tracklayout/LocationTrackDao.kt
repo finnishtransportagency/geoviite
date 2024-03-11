@@ -309,7 +309,7 @@ class LocationTrackDao(
               version as row_version
         """.trimIndent()
         val params = mapOf(
-            "id" to toDbId(updatedItem.rowId).intValue,
+            "id" to toDbId(updatedItem.contextData.rowId).intValue,
             "track_number_id" to updatedItem.trackNumberId.intValue,
             "external_id" to updatedItem.externalId,
             "alignment_id" to (updatedItem.alignmentVersion?.id?.intValue

@@ -160,7 +160,8 @@ class LocationTrackService(
     @Transactional
     override fun deleteDraft(id: IntId<LocationTrack>): DaoResponse<LocationTrack> {
         val draft = dao.getOrThrow(DRAFT, id)
-        if (draft.isNewDraft) {
+        // If removal also breaks references, clear them out first
+        if (draft.contextData.officialRowId == null) {
             clearDuplicateReferences(id)
         }
         val deletedVersion = super.deleteDraft(id)
