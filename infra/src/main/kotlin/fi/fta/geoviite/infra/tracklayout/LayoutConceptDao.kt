@@ -30,7 +30,7 @@ data class VersionPair<T>(val official: RowVersion<T>?, val draft: RowVersion<T>
 
 data class DaoResponse<T>(val id: IntId<T>, val rowVersion: RowVersion<T>)
 
-interface ILayoutConceptWriter<T : LayoutContextAware<T>> {
+interface ILayoutConceptWriter<T : LayoutConcept<T>> {
     fun insert(newItem: T): DaoResponse<T>
 
     fun update(updatedItem: T): DaoResponse<T>
@@ -40,7 +40,7 @@ interface ILayoutConceptWriter<T : LayoutContextAware<T>> {
 }
 
 @Transactional(readOnly = true)
-interface ILayoutConceptReader<T : LayoutContextAware<T>> {
+interface ILayoutConceptReader<T : LayoutConcept<T>> {
     fun fetch(version: RowVersion<T>): T
 
     fun fetchChangeTime(): Instant

@@ -3301,13 +3301,13 @@ fun <T : LayoutConcept<T>, S : LayoutConceptDao<T>> publishAndCheck(
     return publishedVersion to publishedItem
 }
 
-fun <T : LayoutContextAware<T>, S : LayoutConceptDao<T>> verifyPublished(
+fun <T : LayoutConcept<T>, S : LayoutConceptDao<T>> verifyPublished(
     validationVersions: List<ValidationVersion<T>>,
     dao: S,
     checkMatch: (draft: T, published: T) -> Unit,
 ) = validationVersions.forEach { v -> verifyPublished(v, dao, checkMatch) }
 
-fun <T : LayoutContextAware<T>, S : LayoutConceptDao<T>> verifyPublished(
+fun <T : LayoutConcept<T>, S : LayoutConceptDao<T>> verifyPublished(
     validationVersion: ValidationVersion<T>,
     dao: S,
     checkMatch: (draft: T, published: T) -> Unit,
