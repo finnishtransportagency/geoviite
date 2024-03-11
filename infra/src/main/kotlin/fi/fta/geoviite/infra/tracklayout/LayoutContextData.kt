@@ -202,44 +202,6 @@ data class DesignDraftContextData<T>(
     }
 }
 
-//data class LayoutContextData2<T>(
-//    // Database ID of this concept instance
-//    val rowId: DomainId<T>,
-//    // Reference to the design row that this instance would edit (if a design-draft) or remove on publish (if a draft)
-//    val designRowId: DomainId<T>?,
-//    // Reference to the official row that this instance would edit (as a published draft or implemented design)
-//    val officialRowId: DomainId<T>?,
-//    // Reference to the LayoutDesign that this row is a part of (if a design)
-//    val designId: IntId<LayoutDesign>?,
-//    // Flag indicating if this version is a (new of edited) draft
-//    override val isDraft: Boolean,
-//) : LayoutContextAware<T> {
-//    init {
-//        if (isOfficial) require(designRowId == null && officialRowId == null)
-//        if (isDesign) require(designId != null)
-//    }
-//
-//    // Official ID of the concept, same across LayoutContexts
-//    override val id: DomainId<T> = officialRowId ?: designRowId ?: rowId
-//
-//    override val isOfficial: Boolean get() = !isDraft && !isDesign
-//    override val isDesign: Boolean get() = designId != null
-//    override val isEditedDraft: Boolean get() = isDraft && draftOfRowId != null
-//    override val isNewDraft: Boolean get() = isDraft && draftOfRowId == null
-//    val draftOfRowId: DomainId<T>? get() = if (isDesign) designRowId else officialRowId
-//
-//    override val contextType: ContextType
-//        get() = if (isDesign) when {
-//            isNewDraft -> ContextType.NEW_DESIGN_DRAFT
-//            isEditedDraft -> ContextType.EDITED_DESIGN_DRAFT
-//            else -> ContextType.DESIGN
-//        } else when {
-//            isNewDraft -> ContextType.NEW_DRAFT
-//            isEditedDraft -> ContextType.EDITED_DRAFT
-//            else -> ContextType.OFFICIAL
-//        }
-//}
-
 @Suppress("UNCHECKED_CAST")
 fun <T : LayoutConcept<T>> asMainDraft(item: LayoutConcept<T>): T = when (item) {
     is LocationTrack -> asMainDraft(item) { contextData -> item.copy(contextData = contextData) }

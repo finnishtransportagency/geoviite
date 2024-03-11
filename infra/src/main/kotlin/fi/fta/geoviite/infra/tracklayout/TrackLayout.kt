@@ -73,9 +73,6 @@ data class TrackLayoutTrackNumber(
     @JsonIgnore override val contextData: LayoutContextData<TrackLayoutTrackNumber>,
     override val version: RowVersion<TrackLayoutTrackNumber>? = null,
     @JsonIgnore val referenceLineId: IntId<ReferenceLine>? = null,
-//    @JsonIgnore override val contextData: LayoutContextData<TrackLayoutTrackNumber> = LayoutContextData.newDraft(
-//        id = StringId(),
-//    ),
 ) : LayoutConcept<TrackLayoutTrackNumber>(contextData) {
     @JsonIgnore
     val exists = !state.isRemoved()
