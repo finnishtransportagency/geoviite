@@ -87,6 +87,17 @@ data class MainOfficialContextData<T>(
         designRowId = null,
         dataType = TEMP,
     )
+
+    fun asDesignDraft(designId: IntId<LayoutDesign>): DesignDraftContextData<T> = DesignDraftContextData(
+        // TODO: GVT-2426 This is the old way of things, but do we actually need to support switching context in temp objects?
+        // If datatype is TEMP, the official row doesn't actually exist in DB -> alter the context to desired form
+        // Otherwise, we're creating the draft by copying the row -> new ID in a new TEMP object
+        rowId = if (dataType == TEMP) rowId else StringId(),
+        officialRowId = if (dataType == TEMP) null else rowId,
+        designRowId = null,
+        designId = designId,
+        dataType = TEMP,
+    )
 }
 
 data class MainDraftContextData<T>(

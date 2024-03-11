@@ -288,5 +288,3 @@ fun <T> ResultSet.getLayoutContextData(
         MainOfficialContextData(rowId, DataType.STORED)
     }
 }
-
-inline fun <reified T, S> mapIfTypeMatces(value: Any, getter: (T) -> S): S? = if (value is T) getter(value) else null
