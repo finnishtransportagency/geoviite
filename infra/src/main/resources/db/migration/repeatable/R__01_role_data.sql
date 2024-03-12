@@ -5,7 +5,8 @@ with temp(code, name, user_group) as (
       ('operator', 'Operaattori', 'geoviite_operaattori'),
       ('browser', 'Selaaja', 'geoviite_selaaja'), -- Deprecated: remove when users are updated in AD to "authority"
       ('authority', 'Virastokäyttäjä', 'geoviite_virasto'),
-      ('consultant', 'Konsultti', 'geoviite_konsultti')
+      ('consultant', 'Konsultti', 'geoviite_konsultti'),
+      ('team', 'Kehitystiimi', 'geoviite_tiimi')
 )
 select *
   from temp;
@@ -13,11 +14,17 @@ select *
 create temp table new_privilege on commit drop as
 with temp(code, name, description) as (
     values
-      ('ui-read', 'Lukuoikeus', 'Oikeus tarkastella Geoviitteen tietoja käyttöliittymältä'),
-      ('all-write', 'Kirjoitusoikeus', 'Oikeus muokata kaikkia Geoviitteen tietoja'),
-      ('inframodel-download', 'InfraModel latausoikeus', 'Oikeus ladata Geoviitteestä InfraModel-tiedostoja'),
-      ('dataproduct-download', 'Tietotuotteiden latausoikeus', 'Oikeus ladata Geoviitteestä CSV-muotoisia tietotuote-tiedostoja'),
-      ('publication-download', 'Julkaisulokin latausoikeus', 'Oikeus ladata Geoviitteen julkaisuloki CSV-muodossa')
+      ('view-basic', 'Perustietojen lukuoikeus', 'Oikeus autentikoitua Geoviitteeseen ja lukea käyttäjä- ja ympäristötietoja'),
+      ('view-layout', 'Paikannuspohjan lukuoikeus', 'Oikeus tarkastella virallista paikannuspohjaa'),
+      ('view-layout-draft', 'Paikannuspohjaluonnoksen luku', 'Oikeus tarkastella paikannuspohjaa luonnostilassa'),
+      ('edit-layout', 'Paikannuspohjan muokkaus', 'Oikeus muokata Geoviitteen paikannuspohjaa'),
+      ('view-geometry', 'Raidegeometrioiden luku', 'Oikeus listata ja tarkastella raidegeometrioita'),
+      ('edit-geometry', 'Raidegeometrioiden muokkaus', 'Oikeus luoda, poistaa ja piilottaa inframalleja ja muokata niihin liittyvää metatietoa'),
+      ('download-geometry', 'Inframallien lataus', 'Oikeus ladata Geoviitteestä InfraModel-tiedostoja'),
+      ('view-pv-documents', 'Projektivelhoaineistojen luku', 'Oikeus listata ja tarkastella ProjektiVelhosta ladattuja aineistoja'),
+      ('view-inframodel', 'Inframallien luku', 'Oikeus listata ja tarkastella Geoviitteen InfraModel-tiedostoja'),
+      ('view-publication', 'Julkaisujen luku', 'Oikeus listata ja tarkastella julkaisuja'),
+      ('download-publication', 'Julkaisujen lataus', 'Oikeus ladata julkaisuja')
 )
 select *
   from temp;
@@ -25,15 +32,46 @@ select *
 create temp table new_role_privilege on commit drop as
 with temp(role_code, privilege_code) as (
     values
-      ('browser', 'ui-read'),
-      ('browser', 'publication-download'),
-      ('authority', 'ui-read'),
-      ('authority', 'publication-download'),
-      ('operator', 'ui-read'),
-      ('operator', 'all-write'),
-      ('operator', 'inframodel-download'),
-      ('operator', 'dataproduct-download'),
-      ('operator', 'publication-download')
+      ('operator', 'view-basic'),
+      ('operator', 'view-layout'),
+      ('operator', 'view-layout-draft'),
+      ('operator', 'edit-layout'),
+      ('operator', 'view-geometry'),
+      ('operator', 'edit-geometry'),
+      ('operator', 'download-geometry'),
+      ('operator', 'view-pv-documents'),
+      ('operator', 'view-inframodel'),
+      ('operator', 'view-publication'),
+      ('operator', 'download-publication'),
+
+      ('team', 'view-basic'),
+      ('team', 'view-layout'),
+      ('team', 'view-layout-draft'),
+      ('team', 'view-geometry'),
+      ('team', 'view-publication'),
+      ('team', 'download-publication'),
+      ('team', 'download-geometry'),
+      ('team', 'view-pv-documents'),
+      ('team', 'view-inframodel'),
+
+      ('browser', 'view-basic'),
+      ('browser', 'view-layout'),
+      ('browser', 'view-geometry'),
+      ('browser', 'view-inframodel'),
+      ('browser', 'view-publication'),
+      ('browser', 'download-publication'),
+
+      ('authority', 'view-basic'),
+      ('authority', 'view-layout'),
+      ('authority', 'view-geometry'),
+      ('authority', 'view-inframodel'),
+      ('authority', 'view-publication'),
+      ('authority', 'download-publication'),
+
+      ('consultant', 'view-basic'),
+      ('consultant', 'view-publication'),
+      ('consultant', 'download-publication'),
+      ('consultant', 'view-layout')
 )
 select *
   from temp;

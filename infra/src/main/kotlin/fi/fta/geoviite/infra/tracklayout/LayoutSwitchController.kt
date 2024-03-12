@@ -1,7 +1,8 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
-import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
+import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE
+import fi.fta.geoviite.infra.authorization.PUBLISH_TYPE
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.SwitchName
@@ -26,10 +27,10 @@ class LayoutSwitchController(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/{$PUBLISH_TYPE}")
     fun getTrackLayoutSwitches(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @RequestParam("bbox") bbox: BoundingBox?,
         @RequestParam("namePart") namePart: String?,
         @RequestParam("exactName") exactName: SwitchName?,
@@ -42,7 +43,7 @@ class LayoutSwitchController(
     ): List<TrackLayoutSwitch> {
         logger.apiCall(
             "getTrackLayoutSwitches",
-            "publishType" to publishType,
+            "$PUBLISH_TYPE" to publishType,
             "bbox" to bbox,
             "namePart" to namePart,
             "exactName" to exactName,
@@ -57,44 +58,44 @@ class LayoutSwitchController(
         return pageSwitches(switches, offset ?: 0, limit, comparisonPoint).items
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}/{id}")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/{$PUBLISH_TYPE}/{id}")
     fun getTrackLayoutSwitch(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("id") id: IntId<TrackLayoutSwitch>,
     ): ResponseEntity<TrackLayoutSwitch> {
-        logger.apiCall("getTrackLayoutSwitch", "id" to id, "publishType" to publishType)
+        logger.apiCall("getTrackLayoutSwitch", "id" to id, "$PUBLISH_TYPE" to publishType)
         return toResponse(switchService.get(publishType, id))
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}", params = ["ids"])
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/{$PUBLISH_TYPE}", params = ["ids"])
     fun getTrackLayoutSwitches(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @RequestParam("ids", required = true) ids: List<IntId<TrackLayoutSwitch>>,
     ): List<TrackLayoutSwitch> {
-        logger.apiCall("getTrackLayoutSwitches", "ids" to ids, "publishType" to publishType)
+        logger.apiCall("getTrackLayoutSwitches", "ids" to ids, "$PUBLISH_TYPE" to publishType)
         return switchService.getMany(publishType, ids)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}/{id}/joint-connections")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/{$PUBLISH_TYPE}/{id}/joint-connections")
     fun getSwitchJointConnections(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("id") id: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
-        logger.apiCall("getSwitchJointConnections", "switchId" to id, "publishType" to publishType)
+        logger.apiCall("getSwitchJointConnections", "switchId" to id, "$PUBLISH_TYPE" to publishType)
         return switchService.getSwitchJointConnections(publishType, id)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("{publishType}/validation")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("{$PUBLISH_TYPE}/validation")
     fun validateSwitches(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @RequestParam("ids") ids: List<IntId<TrackLayoutSwitch>>?,
         @RequestParam("bbox") bbox: BoundingBox?,
     ): List<ValidatedAsset<TrackLayoutSwitch>> {
-        logger.apiCall("validateSwitches", "publishType" to publishType, "ids" to ids, "bbox" to bbox)
+        logger.apiCall("validateSwitches", "$PUBLISH_TYPE" to publishType, "ids" to ids, "bbox" to bbox)
         val switches = if (ids != null) {
             switchService.getMany(publishType, ids)
         } else {
@@ -106,14 +107,14 @@ class LayoutSwitchController(
         return publicationService.validateSwitches(switchIds, publishType)
     }
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/draft")
     fun insertTrackLayoutSwitch(@RequestBody request: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
         logger.apiCall("insertTrackLayoutSwitch", "request" to request)
         return switchService.insertSwitch(request)
     }
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PutMapping("/draft/{id}")
     fun updateSwitch(
         @PathVariable("id") switchId: IntId<TrackLayoutSwitch>,
@@ -123,20 +124,20 @@ class LayoutSwitchController(
         return switchService.updateSwitch(switchId, switch)
     }
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
     @DeleteMapping("/draft/{id}")
     fun deleteDraftSwitch(@PathVariable("id") switchId: IntId<TrackLayoutSwitch>): IntId<TrackLayoutSwitch> {
         logger.apiCall("deleteDraftSwitch", "switchId" to switchId)
         return switchService.deleteDraft(switchId).id
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}/{id}/change-times")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/{$PUBLISH_TYPE}/{id}/change-times")
     fun getSwitchChangeInfo(
         @PathVariable("id") switchId: IntId<TrackLayoutSwitch>,
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
     ): ResponseEntity<DraftableChangeInfo> {
-        logger.apiCall("getSwitchChangeTimes", "id" to switchId)
+        logger.apiCall("getSwitchChangeTimes", "id" to switchId, "$PUBLISH_TYPE" to publishType)
         return toResponse(switchService.getDraftableChangeInfo(switchId, publishType))
     }
 }

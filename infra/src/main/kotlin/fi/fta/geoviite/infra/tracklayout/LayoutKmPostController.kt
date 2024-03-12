@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
-import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
+import fi.fta.geoviite.infra.authorization.*
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
@@ -27,51 +26,51 @@ class LayoutKmPostController(
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}/{id}")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/{$PUBLISH_TYPE}/{id}")
     fun getKmPost(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("id") id: IntId<TrackLayoutKmPost>,
     ): ResponseEntity<TrackLayoutKmPost> {
-        logger.apiCall("getKmPost", "publishType" to publishType, "id" to id)
+        logger.apiCall("getKmPost", "$PUBLISH_TYPE" to publishType, "id" to id)
         return toResponse(kmPostService.get(publishType, id))
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}", params = ["ids"])
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/{$PUBLISH_TYPE}", params = ["ids"])
     fun getKmPosts(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @RequestParam("ids", required = true) ids: List<IntId<TrackLayoutKmPost>>,
     ): List<TrackLayoutKmPost> {
-        logger.apiCall("getKmPost", "publishType" to publishType, "ids" to ids)
+        logger.apiCall("getKmPost", "$PUBLISH_TYPE" to publishType, "ids" to ids)
         return kmPostService.getMany(publishType, ids)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}/on-track-number/{trackNumberId}")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/{$PUBLISH_TYPE}/on-track-number/{trackNumberId}")
     fun getKmPostsOnTrackNumber(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("trackNumberId") id: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmPost> {
-        logger.apiCall("getKmPostsOnTrackNumber", "publishType" to publishType, "id" to id)
+        logger.apiCall("getKmPostsOnTrackNumber", "$PUBLISH_TYPE" to publishType, "id" to id)
         return kmPostService.list(publishType, id)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}", params = ["bbox", "step"])
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/{$PUBLISH_TYPE}", params = ["bbox", "step"])
     fun findKmPosts(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @RequestParam("bbox") bbox: BoundingBox,
         @RequestParam("step") step: Int,
     ): List<TrackLayoutKmPost> {
-        logger.apiCall("getKmPosts", "publishType" to publishType, "bbox" to bbox, "step" to step)
+        logger.apiCall("getKmPosts", "$PUBLISH_TYPE" to publishType, "bbox" to bbox, "step" to step)
         return kmPostService.list(publishType, bbox, step)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}", params = ["location", "offset", "limit"])
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/{$PUBLISH_TYPE}", params = ["location", "offset", "limit"])
     fun findKmPosts(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @RequestParam("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>?,
         @RequestParam("location") location: Point,
         @RequestParam("offset") offset: Int,
@@ -79,7 +78,7 @@ class LayoutKmPostController(
     ): List<TrackLayoutKmPost> {
         logger.apiCall(
             "getNearbyKmPostsOnTrack",
-            "publishType" to publishType,
+            "$PUBLISH_TYPE" to publishType,
             "trackNumberId" to trackNumberId,
             "location" to location,
             "offset" to offset,
@@ -94,17 +93,17 @@ class LayoutKmPostController(
         )
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}", params = ["trackNumberId", "kmNumber"])
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/{$PUBLISH_TYPE}", params = ["trackNumberId", "kmNumber"])
     fun getKmPost(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @RequestParam("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
         @RequestParam("kmNumber") kmNumber: KmNumber,
         @RequestParam("includeDeleted") includeDeleted: Boolean,
     ): ResponseEntity<TrackLayoutKmPost> {
         logger.apiCall(
             "getKmPostOnTrack",
-            "publishType" to publishType,
+            "$PUBLISH_TYPE" to publishType,
             "trackNumberId" to trackNumberId,
             "kmNumber" to kmNumber,
             "includeDeleted" to includeDeleted,
@@ -112,24 +111,24 @@ class LayoutKmPostController(
         return toResponse(kmPostService.getByKmNumber(publishType, trackNumberId, kmNumber, includeDeleted))
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("{publishType}/{id}/validation")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("{$PUBLISH_TYPE}/{id}/validation")
     fun validateKmPost(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("id") id: IntId<TrackLayoutKmPost>,
     ): ResponseEntity<ValidatedAsset<TrackLayoutKmPost>> {
-        logger.apiCall("validateKmPost", "publishType" to publishType, "id" to id)
+        logger.apiCall("validateKmPost", "$PUBLISH_TYPE" to publishType, "id" to id)
         return publicationService.validateKmPosts(listOf(id), publishType).firstOrNull().let(::toResponse)
     }
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/draft")
     fun insertTrackLayoutKmPost(@RequestBody request: TrackLayoutKmPostSaveRequest): IntId<TrackLayoutKmPost> {
         logger.apiCall("insertTrackLayoutKmPost", "request" to request)
         return kmPostService.insertKmPost(request)
     }
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PutMapping("/draft/{id}")
     fun updateKmPost(
         @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
@@ -139,30 +138,30 @@ class LayoutKmPostController(
         return kmPostService.updateKmPost(kmPostId, request)
     }
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
     @DeleteMapping("/draft/{id}")
     fun deleteDraftKmPost(@PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>): IntId<TrackLayoutKmPost> {
         logger.apiCall("deleteDraftKmPost", "kmPostId" to kmPostId)
         return kmPostService.deleteDraft(kmPostId).id
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}/{id}/change-times")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/{$PUBLISH_TYPE}/{id}/change-times")
     fun getKmPostChangeInfo(
         @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
     ): ResponseEntity<DraftableChangeInfo> {
         logger.apiCall("getKmPostChangeTimes", "id" to kmPostId)
         return toResponse(kmPostService.getDraftableChangeInfo(kmPostId, publishType))
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}/{id}/km-length")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/{$PUBLISH_TYPE}/{id}/km-length")
     fun getKmLength(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
     ): ResponseEntity<Double> {
-        logger.apiCall("getKmLength", "id" to kmPostId, "publishType" to publishType)
+        logger.apiCall("getKmLength", "id" to kmPostId, "$PUBLISH_TYPE" to publishType)
         return toResponse(kmPostService.getSingleKmPostLength(publishType, kmPostId))
     }
 }

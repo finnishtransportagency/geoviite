@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
-import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
+import fi.fta.geoviite.infra.authorization.*
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
@@ -33,54 +32,54 @@ class LocationTrackController(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/location-tracks/{publishType}", params = ["bbox"])
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/location-tracks/{$PUBLISH_TYPE}", params = ["bbox"])
     fun getLocationTracksNear(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @RequestParam("bbox") bbox: BoundingBox,
     ): List<LocationTrack> {
-        logger.apiCall("getLocationTracksNear", "publishType" to publishType, "bbox" to bbox)
+        logger.apiCall("getLocationTracksNear", "$PUBLISH_TYPE" to publishType, "bbox" to bbox)
         return locationTrackService.listNear(publishType, bbox)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/location-tracks/{publishType}", params = ["searchTerm", "limit"])
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/location-tracks/{$PUBLISH_TYPE}", params = ["searchTerm", "limit"])
     fun searchLocationTracks(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @RequestParam("searchTerm", required = true) searchTerm: FreeText,
         @RequestParam("limit", required = true) limit: Int,
     ): List<LocationTrack> {
-        logger.apiCall("searchLocationTracks", "searchTerm" to searchTerm, "limit" to limit)
+        logger.apiCall("searchLocationTracks", "$PUBLISH_TYPE" to publishType, "searchTerm" to searchTerm, "limit" to limit)
         return locationTrackService.list(publishType, searchTerm, limit)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/location-tracks/{publishType}/{id}")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/location-tracks/{$PUBLISH_TYPE}/{id}")
     fun getLocationTrack(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<LocationTrack> {
-        logger.apiCall("getLocationTrack", "publishType" to publishType, "id" to id)
+        logger.apiCall("getLocationTrack", "$PUBLISH_TYPE" to publishType, "id" to id)
         return toResponse(locationTrackService.get(publishType, id))
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/location-tracks/{publishType}", params = ["ids"])
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/location-tracks/{$PUBLISH_TYPE}", params = ["ids"])
     fun getLocationTracks(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @RequestParam("ids", required = true) ids: List<IntId<LocationTrack>>,
     ): List<LocationTrack> {
-        logger.apiCall("getLocationTracks", "publishType" to publishType, "ids" to ids)
+        logger.apiCall("getLocationTracks", "$PUBLISH_TYPE" to publishType, "ids" to ids)
         return locationTrackService.getMany(publishType, ids)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/location-tracks/{publishType}/{id}/start-and-end")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/location-tracks/{$PUBLISH_TYPE}/{id}/start-and-end")
     fun getLocationTrackStartAndEnd(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<AlignmentStartAndEndWithId<*>> {
-        logger.apiCall("getLocationTrackStartAndEnd", "publishType" to publishType, "id" to id)
+        logger.apiCall("getLocationTrackStartAndEnd", "$PUBLISH_TYPE" to publishType, "id" to id)
         val locationTrackAndAlignment = locationTrackService.getWithAlignment(publishType, id)
         return toResponse(locationTrackAndAlignment?.let { (locationTrack, alignment) ->
             geocodingService.getLocationTrackStartAndEnd(
@@ -89,13 +88,13 @@ class LocationTrackController(
         })
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/location-tracks/{publishType}/start-and-end")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/location-tracks/{$PUBLISH_TYPE}/start-and-end")
     fun getManyLocationTracksStartsAndEnds(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @RequestParam("ids") ids: List<IntId<LocationTrack>>,
     ): List<AlignmentStartAndEndWithId<*>> {
-        logger.apiCall("getLocationTrackStartAndEnd", "publishType" to publishType, "ids" to ids)
+        logger.apiCall("getLocationTrackStartAndEnd", "$PUBLISH_TYPE" to publishType, "ids" to ids)
         return ids.mapNotNull { id ->
             locationTrackService.getWithAlignment(publishType, id)?.let { (locationTrack, alignment) ->
                 geocodingService.getLocationTrackStartAndEnd(
@@ -105,23 +104,23 @@ class LocationTrackController(
         }
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/location-tracks/{publishType}/{id}/infobox-extras")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/location-tracks/{$PUBLISH_TYPE}/{id}/infobox-extras")
     fun getLocationTrackInfoboxExtras(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<LocationTrackInfoboxExtras> {
-        logger.apiCall("getLocationTrackInfoboxExtras", "publishType" to publishType, "id" to id)
+        logger.apiCall("getLocationTrackInfoboxExtras", "$PUBLISH_TYPE" to publishType, "id" to id)
         return toResponse(locationTrackService.getInfoboxExtras(publishType, id))
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/location-tracks/{publishType}/description")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/location-tracks/{$PUBLISH_TYPE}/description")
     fun getDescription(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @RequestParam("ids") ids: List<IntId<LocationTrack>>,
     ): List<LocationTrackDescription> {
-        logger.apiCall("getDescription", "publishType" to publishType, "ids" to ids)
+        logger.apiCall("getDescription", "$PUBLISH_TYPE" to publishType, "ids" to ids)
         return ids.mapNotNull { id ->
             id.let { locationTrackService.get(publishType, it) }?.let { lt ->
                 LocationTrackDescription(
@@ -133,33 +132,33 @@ class LocationTrackController(
         }
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/location-tracks/{publishType}/end-points")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/location-tracks/{$PUBLISH_TYPE}/end-points")
     fun getLocationTrackAlignmentEndpoints(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @RequestParam("bbox") bbox: BoundingBox,
     ): List<LocationTrackEndpoint> {
-        logger.apiCall("getLocationTrackAlignmentEndpoints", "bbox" to bbox)
+        logger.apiCall("getLocationTrackAlignmentEndpoints", "$PUBLISH_TYPE" to publishType, "bbox" to bbox)
         return locationTrackService.getLocationTrackEndpoints(bbox, publishType)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/location-tracks/{publishType}/{id}/validation")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/location-tracks/{$PUBLISH_TYPE}/{id}/validation")
     fun validateLocationTrack(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<ValidatedAsset<LocationTrack>> {
-        logger.apiCall("validateLocationTrack", "publishType" to publishType, "id" to id)
+        logger.apiCall("validateLocationTrack", "$PUBLISH_TYPE" to publishType, "id" to id)
         return publicationService.validateLocationTracks(listOf(id), publishType).firstOrNull().let(::toResponse)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/location-tracks/{publishType}/{id}/validation/switches")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/location-tracks/{$PUBLISH_TYPE}/{id}/validation/switches")
     fun validateLocationTrackSwitches(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): List<SwitchValidationWithSuggestedSwitch> {
-        logger.apiCall("validateLocationTrackSwitches", "publishType" to publishType, "id" to id)
+        logger.apiCall("validateLocationTrackSwitches", "$PUBLISH_TYPE" to publishType, "id" to id)
         val switchSuggestions = switchLinkingService.getTrackSwitchSuggestions(publishType, id)
         val switchValidation = publicationService.validateSwitches(switchSuggestions.map { (id, _) -> id }, publishType)
         return switchValidation.map { validatedAsset ->
@@ -169,14 +168,14 @@ class LocationTrackController(
         }
     }
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/location-tracks/draft")
     fun insertLocationTrack(@RequestBody request: LocationTrackSaveRequest): IntId<LocationTrack> {
         logger.apiCall("insertLocationTrack", "request" to request)
         return locationTrackService.insert(request).id
     }
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PutMapping("/location-tracks/draft/{id}")
     fun updateLocationTrack(
         @PathVariable("id") locationTrackId: IntId<LocationTrack>,
@@ -186,75 +185,75 @@ class LocationTrackController(
         return locationTrackService.update(locationTrackId, request).id
     }
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
     @DeleteMapping("/location-tracks/draft/{id}")
     fun deleteLocationTrack(@PathVariable("id") id: IntId<LocationTrack>): IntId<LocationTrack> {
         logger.apiCall("deleteLocationTrack", "id" to id)
         return locationTrackService.deleteDraft(id).id
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
     @GetMapping("/location-tracks/draft/non-linked")
     fun getNonLinkedLocationTracks(): List<LocationTrack> {
         logger.apiCall("getNonLinkedLocationTracks")
         return locationTrackService.listNonLinked()
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/location-tracks/{publishType}/{id}/change-times")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/location-tracks/{$PUBLISH_TYPE}/{id}/change-times")
     fun getLocationTrackChangeInfo(
         @PathVariable("id") id: IntId<LocationTrack>,
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
     ): ResponseEntity<DraftableChangeInfo> {
-        logger.apiCall("getLocationTrackChangeInfo", "id" to id)
+        logger.apiCall("getLocationTrackChangeInfo", "id" to id, "$PUBLISH_TYPE" to publishType)
         return toResponse(locationTrackService.getDraftableChangeInfo(id, publishType))
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/location-tracks/{publishType}/{id}/plan-geometry")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/location-tracks/{$PUBLISH_TYPE}/{id}/plan-geometry")
     fun getTrackSectionsByPlan(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
         @RequestParam("bbox") boundingBox: BoundingBox? = null,
     ): List<AlignmentPlanSection> {
         logger.apiCall(
-            "getTrackSectionsByPlan", "publishType" to publishType, "id" to id, "bbox" to boundingBox
+            "getTrackSectionsByPlan", "$PUBLISH_TYPE" to publishType, "id" to id, "bbox" to boundingBox
         )
         return locationTrackService.getMetadataSections(id, publishType, boundingBox)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/track-numbers/{publicationState}/{trackNumberId}/location-tracks")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/track-numbers/{$PUBLISH_TYPE}/{trackNumberId}/location-tracks")
     fun getTrackNumberTracksByName(
-        @PathVariable("publicationState") publicationState: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publicationState: PublishType,
         @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
         @RequestParam("locationTrackNames") names: List<AlignmentName>,
     ): List<LocationTrack> {
         logger.apiCall(
             "getTrackNumberTracksByName",
-            "publicationState" to publicationState,
+            "$PUBLISH_TYPE" to publicationState,
             "trackNumberId" to trackNumberId,
             "names" to names,
         )
         return locationTrackService.list(publicationState, trackNumberId, names)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
     @GetMapping("/location-track-owners")
     fun getLocationTrackOwners(): List<LocationTrackOwner> {
         logger.apiCall("getLocationTrackOwners")
         return locationTrackService.getLocationTrackOwners()
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/location-tracks/{publishType}/{id}/splitting-initialization-parameters")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/location-tracks/{$PUBLISH_TYPE}/{id}/splitting-initialization-parameters")
     fun getSplittingInitializationParameters(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<SplittingInitializationParameters> {
         logger.apiCall(
             "getSplittingInitializationParameters",
-            "publishType" to publishType,
+            "$PUBLISH_TYPE" to publishType,
             "id" to id,
         )
         return toResponse(locationTrackService.getSplittingInitializationParameters(id, publishType))

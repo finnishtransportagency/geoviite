@@ -1,8 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
-import fi.fta.geoviite.infra.authorization.AUTH_DATAPRODUCT_DOWNLOAD
-import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
+import fi.fta.geoviite.infra.authorization.*
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublishType
@@ -35,47 +33,47 @@ class LayoutTrackNumberController(
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/{$PUBLISH_TYPE}")
     fun getTrackNumbers(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @RequestParam("includeDeleted", defaultValue = "false") includeDeleted: Boolean,
     ): List<TrackLayoutTrackNumber> {
-        logger.apiCall("getTrackNumbers", "publishType" to publishType)
+        logger.apiCall("getTrackNumbers", "$PUBLISH_TYPE" to publishType)
         return trackNumberService.list(publishType, includeDeleted)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}/{id}")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/{$PUBLISH_TYPE}/{id}")
     fun getTrackNumber(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
     ): ResponseEntity<TrackLayoutTrackNumber> {
-        logger.apiCall("getTrackNumber", "publishType" to publishType, "id" to id)
+        logger.apiCall("getTrackNumber", "$PUBLISH_TYPE" to publishType, "id" to id)
         return toResponse(trackNumberService.get(publishType, id))
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("{publishType}/{id}/validation")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("{$PUBLISH_TYPE}/{id}/validation")
     fun validateTrackNumberAndReferenceLine(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
     ): ResponseEntity<ValidatedAsset<TrackLayoutTrackNumber>> {
-        logger.apiCall("validateTrackNumberAndReferenceLine", "publishType" to publishType, "id" to id)
+        logger.apiCall("validateTrackNumberAndReferenceLine", "$PUBLISH_TYPE" to publishType, "id" to id)
         return publicationService
             .validateTrackNumbersAndReferenceLines(listOf(id), publishType)
             .firstOrNull()
             .let(::toResponse)
     }
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/draft")
     fun insertTrackNumber(@RequestBody saveRequest: TrackNumberSaveRequest): IntId<TrackLayoutTrackNumber> {
         logger.apiCall("insertTrackNumber", "trackNumber" to saveRequest)
         return trackNumberService.insert(saveRequest)
     }
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PutMapping("/draft/{id}")
     fun updateTrackNumber(
         @PathVariable id: IntId<TrackLayoutTrackNumber>,
@@ -86,50 +84,50 @@ class LayoutTrackNumberController(
         return id
     }
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
     @DeleteMapping("/draft/{id}")
     fun deleteDraftTrackNumber(@PathVariable("id") id: IntId<TrackLayoutTrackNumber>): IntId<TrackLayoutTrackNumber> {
         logger.apiCall("deleteDraftTrackNumber", "id" to id)
         return trackNumberService.deleteDraftAndReferenceLine(id)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}/{id}/plan-geometry")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/{$PUBLISH_TYPE}/{id}/plan-geometry")
     fun getTrackSectionsByPlan(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
         @RequestParam("bbox") boundingBox: BoundingBox? = null,
     ): List<AlignmentPlanSection> {
         logger.apiCall(
-            "getTrackSectionsByPlan", "publishType" to publishType, "id" to id, "bbox" to boundingBox
+            "getTrackSectionsByPlan", "$PUBLISH_TYPE" to publishType, "id" to id, "bbox" to boundingBox
         )
         return trackNumberService.getMetadataSections(id, publishType, boundingBox)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}/{id}/km-lengths")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/{$PUBLISH_TYPE}/{id}/km-lengths")
     fun getTrackNumberKmLengths(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmLengthDetails> {
         logger.apiCall(
-            "getTrackNumberKmLengths", "publishType" to publishType, "id" to id
+            "getTrackNumberKmLengths", "$PUBLISH_TYPE" to publishType, "id" to id
         )
 
         return trackNumberService.getKmLengths(publishType, id) ?: emptyList()
     }
 
-    @PreAuthorize(AUTH_DATAPRODUCT_DOWNLOAD)
-    @GetMapping("/{publishType}/{id}/km-lengths/as-csv")
+    @PreAuthorize(AUTH_DOWNLOAD_GEOMETRY)
+    @GetMapping("/{$PUBLISH_TYPE}/{id}/km-lengths/as-csv")
     fun getTrackNumberKmLengthsAsCsv(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
         @RequestParam("startKmNumber") startKmNumber: KmNumber? = null,
         @RequestParam("endKmNumber") endKmNumber: KmNumber? = null,
     ): ResponseEntity<ByteArray> {
         logger.apiCall(
             "getTrackNumberKmLengthsAsCsv",
-            "publishType" to publishType,
+            "$PUBLISH_TYPE" to publishType,
             "id" to id,
             "startKmNumber" to startKmNumber,
             "endKmNumber" to endKmNumber
@@ -145,7 +143,7 @@ class LayoutTrackNumberController(
         return getCsvResponseEntity(csv, fileName)
     }
 
-    @PreAuthorize(AUTH_DATAPRODUCT_DOWNLOAD)
+    @PreAuthorize(AUTH_DOWNLOAD_GEOMETRY)
     @GetMapping("/rail-network/km-lengths/file")
     fun getEntireRailNetworkKmLengthsAsCsv(
         @RequestParam(name = "lang", defaultValue = "fi") lang: String,
@@ -167,13 +165,13 @@ class LayoutTrackNumberController(
         return getCsvResponseEntity(csv, FileName("$fileDescription $fileDate.csv"))
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}/{id}/change-times")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/{$PUBLISH_TYPE}/{id}/change-times")
     fun getTrackNumberChangeInfo(
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
     ): ResponseEntity<DraftableChangeInfo> {
-        logger.apiCall("getTrackNumberChangeInfo", "id" to id)
+        logger.apiCall("getTrackNumberChangeInfo", "id" to id, "$PUBLISH_TYPE" to publishType)
         return toResponse(trackNumberService.getDraftableChangeInfo(id, publishType))
     }
 }

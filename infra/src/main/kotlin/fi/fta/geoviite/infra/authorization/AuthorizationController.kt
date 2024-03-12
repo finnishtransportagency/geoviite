@@ -20,14 +20,14 @@ class AuthorizationController @Autowired constructor(private val signer: CookieS
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/own-details")
     fun getOwnDetails(): User {
         logger.apiCall("getOwnDetails")
         return SecurityContextHolder.getContext().authentication.principal as User
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/cf-cookies")
     fun getCloudFrontCookies(@RequestParam("redirect") redirectPath: String?): ResponseEntity<CloudFrontCookies> {
         val cloudFrontCookies = signer.createSignedCustomCookies()
@@ -44,19 +44,19 @@ class AuthorizationController @Autowired constructor(private val signer: CookieS
             .body(cloudFrontCookies)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @PutMapping("/not-allowed")
     fun csrfPutForbidden(): Nothing = throw ApiUnauthorizedException("not allowed")
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @PostMapping("/not-allowed")
     fun csrfPostForbidden(): Nothing = throw ApiUnauthorizedException("not allowed")
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @DeleteMapping("/not-allowed")
     fun csrfDeleteForbidden(): Nothing = throw ApiUnauthorizedException("not allowed")
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @PatchMapping("/not-allowed")
     fun csrfPatchForbidden(): Nothing = throw ApiUnauthorizedException("not allowed")
 }

@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.ratko
 
-import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
+import fi.fta.geoviite.infra.authorization.*
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.error.Integration
 import fi.fta.geoviite.infra.error.IntegrationNotConfiguredException
@@ -29,7 +28,7 @@ class RatkoController(
         ratkoServiceParam ?: throw IntegrationNotConfiguredException(Integration.RATKO)
     }
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/push")
     fun pushChangesToRatko(): HttpStatus {
         logger.apiCall("pushChangesToRatko")
@@ -38,7 +37,7 @@ class RatkoController(
         return HttpStatus.NO_CONTENT
     }
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
     @PostMapping("/push-location-tracks")
     fun pushLocationTracksToRatko(@RequestBody changes: List<LocationTrackChange>): ResponseEntity<String> {
         logger.apiCall("pushLocationTracksToRatko", "changes" to changes)
@@ -46,7 +45,7 @@ class RatkoController(
         return ResponseEntity(HttpStatus.OK)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
     @GetMapping("/errors/{publishId}")
     fun getRatkoPushErrors(
         @PathVariable("publishId") publishId: IntId<Publication>,
@@ -55,7 +54,7 @@ class RatkoController(
         return toResponse(ratkoStatusService.getRatkoPushError(publishId))
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/is-online")
     fun getRatkoOnlineStatus(): RatkoClient.RatkoStatus {
         logger.apiCall("ratkoIsOnline")
