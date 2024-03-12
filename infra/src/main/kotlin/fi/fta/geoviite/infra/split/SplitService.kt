@@ -259,10 +259,9 @@ class SplitService(
         // references which they referenced before the split (request source track).
         // If the references are not updated, the duplicate-of reference will be removed entirely when the
         // source track's layout state is set to "DELETED".
-        val sourceTrackDuplicateIds = locationTrackService.fetchDuplicates(DRAFT, request.sourceTrackId)
-            .map { duplicateTrack ->
-                duplicateTrack.id as IntId
-            }
+        val sourceTrackDuplicateIds = locationTrackService
+            .fetchDuplicates(DRAFT, request.sourceTrackId)
+            .map { duplicateTrack -> duplicateTrack.id as IntId }
 
         val sourceTrack = locationTrackDao.getOrThrow(DRAFT, request.sourceTrackId)
         val suggestions = verifySwitchSuggestions(switchLinkingService.getTrackSwitchSuggestions(DRAFT, sourceTrack))
@@ -276,13 +275,11 @@ class SplitService(
             targets = collectSplitTargetParams(request.targetTracks, suggestions),
         )
 
-        val savedSplitTargetLocationTracks = targetTracks.map { targetTrack ->
-            targetTrack.copy(
-                locationTrack = targetTrack.locationTrack.copy(
-                    id = saveTargetTrack(targetTrack)
-                ),
-            )
-        }
+        val savedSplitTargetLocationTracks = targetTracks
+            .map { targetTrack -> targetTrack to saveTargetTrack(targetTrack) }
+            .map { (targetTrack, response) ->
+                targetTrack.copy(locationTrack = locationTrackDao.fetch(response.rowVersion))
+            }
 
         geocodingService.getGeocodingContext(DRAFT, sourceTrack.trackNumberId)?.let { geocodingContext ->
             val splitTargetTracksWithAlignments = savedSplitTargetLocationTracks.map { splitTargetResult ->
@@ -333,8 +330,8 @@ class SplitService(
         }
     }
 
-    private fun saveTargetTrack(target: SplitTargetResult): IntId<LocationTrack> {
-        return locationTrackService.saveDraft(
+    private fun saveTargetTrack(target: SplitTargetResult): DaoResponse<LocationTrack> =
+        locationTrackService.saveDraft(
             draft = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
                 track = target.locationTrack,
                 alignment = target.alignment,
@@ -342,8 +339,7 @@ class SplitService(
                 endChanged = true,
             ),
             alignment = target.alignment,
-        ).id
-    }
+        )
 
     private fun collectSplitTargetParams(
         targets: List<SplitRequestTarget>,
@@ -470,6 +466,7 @@ private fun createSplitTarget(
         segmentCount = newAlignment.segments.size,
         length = newAlignment.length,
         boundingBox = newAlignment.boundingBox,
+        contextData = LayoutContextData.newDraft(),
     )
     return newTrack to newAlignment
 }
@@ -623,4 +620,3 @@ private fun getAlignmentStartAndEndM(
         null
     }
 }
-

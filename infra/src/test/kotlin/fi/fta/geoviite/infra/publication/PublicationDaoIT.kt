@@ -58,7 +58,7 @@ class PublicationDaoIT @Autowired constructor(
     fun referenceLinePublishCandidatesAreFound() {
         val trackNumberId = insertAndCheck(trackNumber(getUnusedTrackNumber())).first.id
         val (_, line) = insertAndCheck(referenceLine(trackNumberId))
-        val (_, draft) = insertAndCheck(draft(line).copy(
+        val (_, draft) = insertAndCheck(asMainDraft(line).copy(
             startAddress = TrackMeter("0123", 658.321, 3),
         ))
         val candidates = publicationDao.fetchReferenceLinePublishCandidates()
@@ -72,7 +72,7 @@ class PublicationDaoIT @Autowired constructor(
     @Test
     fun locationTrackPublishCandidatesAreFound() {
         val (_, track) = insertAndCheck(locationTrack(insertOfficialTrackNumber()))
-        val (_, draft) = insertAndCheck(draft(track).copy(
+        val (_, draft) = insertAndCheck(asMainDraft(track).copy(
             name = AlignmentName("${track.name} DRAFT"),
         ))
         val candidates = publicationDao.fetchLocationTrackPublishCandidates()
@@ -87,7 +87,7 @@ class PublicationDaoIT @Autowired constructor(
     @Test
     fun switchPublishCandidatesAreFound() {
         val (_, switch) = insertAndCheck(switch(987))
-        val (_, draft) = insertAndCheck(draft(switch).copy(name = SwitchName("${switch.name} DRAFT")))
+        val (_, draft) = insertAndCheck(asMainDraft(switch).copy(name = SwitchName("${switch.name} DRAFT")))
         val candidates = publicationDao.fetchSwitchPublishCandidates()
         assertEquals(1, candidates.size)
         assertEquals(switch.id, candidates.first().id)
@@ -98,7 +98,7 @@ class PublicationDaoIT @Autowired constructor(
 
     @Test
     fun createOperationIsInferredCorrectly() {
-        val (_, track) = insertAndCheck(draft(locationTrack(insertOfficialTrackNumber())))
+        val (_, track) = insertAndCheck(asMainDraft(locationTrack(insertOfficialTrackNumber())))
         val candidates = publicationDao.fetchLocationTrackPublishCandidates()
         assertEquals(1, candidates.size)
         assertEquals(track.id, candidates.first().id)
@@ -108,10 +108,10 @@ class PublicationDaoIT @Autowired constructor(
     @Test
     fun modifyOperationIsInferredCorrectly() {
         val (_, track) = insertAndCheck(locationTrack(insertOfficialTrackNumber()))
-        val (version, draft) = insertAndCheck(draft(track).copy(name = AlignmentName("${track.name} DRAFT")))
+        val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
         publishAndCheck(version)
         locationTrackService.saveDraft(
-            draft(locationTrackService.getOrThrow(OFFICIAL, draft.id as IntId)).let { lt -> lt.copy(
+            asMainDraft(locationTrackService.getOrThrow(OFFICIAL, draft.id as IntId)).let { lt -> lt.copy(
                 name = AlignmentName("${lt.name} TEST"),
             ) }
         )
@@ -124,10 +124,10 @@ class PublicationDaoIT @Autowired constructor(
     @Test
     fun deleteOperationIsInferredCorrectly() {
         val (_, track) = insertAndCheck(locationTrack(insertOfficialTrackNumber()))
-        val (version, draft) = insertAndCheck(draft(track).copy(name = AlignmentName("${track.name} DRAFT")))
+        val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
         publishAndCheck(version)
         locationTrackService.saveDraft(
-            draft(locationTrackService.getOrThrow(OFFICIAL, draft.id as IntId)).copy(
+            asMainDraft(locationTrackService.getOrThrow(OFFICIAL, draft.id as IntId)).copy(
                 state = LayoutState.DELETED,
             )
         )
@@ -140,12 +140,12 @@ class PublicationDaoIT @Autowired constructor(
     @Test
     fun restoreOperationIsInferredCorrectly() {
         val (_, track) = insertAndCheck(locationTrack(insertOfficialTrackNumber()))
-        val (version, draft) = insertAndCheck(draft(track).copy(
+        val (version, draft) = insertAndCheck(asMainDraft(track).copy(
             name = AlignmentName("${track.name} DRAFT"),
             state = LayoutState.DELETED,
         ))
         publishAndCheck(version)
-        locationTrackService.saveDraft(draft(locationTrackService.getOrThrow(OFFICIAL, draft.id as IntId).copy(
+        locationTrackService.saveDraft(asMainDraft(locationTrackService.getOrThrow(OFFICIAL, draft.id as IntId).copy(
             state = LayoutState.IN_USE,
         )))
         val candidates = publicationDao.fetchLocationTrackPublishCandidates()
@@ -236,7 +236,7 @@ class PublicationDaoIT @Autowired constructor(
                 topologyEndSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1))
             )
         )
-        insertAndCheck(draft(switch.copy(name = SwitchName("FooEdited"))))
+        insertAndCheck(asMainDraft(switch.copy(name = SwitchName("FooEdited"))))
 
         val publishCandidates = publicationDao.fetchSwitchPublishCandidates()
         val editedCandidate = publishCandidates.first { s -> s.name == SwitchName("FooEdited") }
@@ -246,10 +246,10 @@ class PublicationDaoIT @Autowired constructor(
     @Test
     fun fetchDraftOnlySwitchTrackNumbers() {
         val trackNumberId = insertOfficialTrackNumber()
-        val (_, switch) = insertAndCheck(draft(switch(345, name = "Foo")))
+        val (_, switch) = insertAndCheck(asMainDraft(switch(345, name = "Foo")))
         val switchId = switch.id as IntId
         insertAndCheck(
-            draft(
+            asMainDraft(
                 locationTrack(trackNumberId).copy(
                     topologyEndSwitch = TopologyLocationTrackSwitch(
                         switchId,
@@ -277,7 +277,7 @@ class PublicationDaoIT @Autowired constructor(
             )
         )
         val draftLinkedTopo = locationTrackDao.insert(
-            draft(
+            asMainDraft(
                 locationTrack(
                     trackNumberId,
                     topologyStartSwitch = TopologyLocationTrackSwitch(switchByTopo, JointNumber(3)),
@@ -300,7 +300,7 @@ class PublicationDaoIT @Autowired constructor(
             )
         )
         val draftLinkedAlignment = locationTrackDao.insert(
-            draft(
+            asMainDraft(
                 locationTrack(
                     trackNumberId, alignmentVersion = alignmentDao.insert(
                         alignment(
@@ -345,7 +345,9 @@ class PublicationDaoIT @Autowired constructor(
         val (officialId, rowVersion) = trackNumberDao.insert(trackNumber)
         val fromDb = trackNumberDao.fetch(rowVersion)
         assertEquals(officialId, fromDb.id)
-        assertMatches(trackNumber, fromDb)
+        assertMatches(trackNumber, fromDb, contextMatch = false)
+        assertEquals(DataType.TEMP, trackNumber.dataType)
+        assertEquals(DataType.STORED, fromDb.dataType)
         assertTrue { fromDb.id is IntId }
         return rowVersion to fromDb
     }
@@ -354,7 +356,9 @@ class PublicationDaoIT @Autowired constructor(
         val (officialId, rowVersion) = switchDao.insert(switch)
         val fromDb = switchDao.fetch(rowVersion)
         assertEquals(officialId, fromDb.id)
-        assertMatches(switch, fromDb)
+        assertMatches(switch, fromDb, contextMatch = false)
+        assertEquals(DataType.TEMP, switch.dataType)
+        assertEquals(DataType.STORED, fromDb.dataType)
         assertTrue(fromDb.id is IntId)
         return rowVersion to fromDb
     }
@@ -365,7 +369,9 @@ class PublicationDaoIT @Autowired constructor(
         val (officialId, rowVersion) = referenceLineDao.insert(lineWithAlignment)
         val fromDb = referenceLineDao.fetch(rowVersion)
         assertEquals(officialId, fromDb.id)
-        assertMatches(lineWithAlignment, fromDb)
+        assertMatches(lineWithAlignment, fromDb, contextMatch = false)
+        assertEquals(DataType.TEMP, referenceLine.dataType)
+        assertEquals(DataType.STORED, fromDb.dataType)
         assertTrue(fromDb.id is IntId)
         return rowVersion to fromDb
     }
@@ -376,7 +382,9 @@ class PublicationDaoIT @Autowired constructor(
         val (officialId, rowVersion) = locationTrackDao.insert(trackWithAlignment)
         val fromDb = locationTrackDao.fetch(rowVersion)
         assertEquals(officialId, fromDb.id)
-        assertMatches(trackWithAlignment, fromDb)
+        assertMatches(trackWithAlignment, fromDb, contextMatch = false)
+        assertEquals(DataType.TEMP, locationTrack.dataType)
+        assertEquals(DataType.STORED, fromDb.dataType)
         assertTrue(fromDb.id is IntId)
         return rowVersion to fromDb
     }

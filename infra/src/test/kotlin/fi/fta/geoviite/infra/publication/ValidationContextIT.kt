@@ -46,9 +46,9 @@ class ValidationContextIT @Autowired constructor(
     fun `ValidationContext returns correct versions for TrackNumber`() {
         val trackNumber1 = trackNumber(getUnusedTrackNumber())
         val (tn1Id, tn1OfficialVersion) = trackNumberDao.insert(trackNumber1)
-        val (_, tn1DraftVersion) = trackNumberDao.insert(draft(trackNumberDao.fetch(tn1OfficialVersion)))
+        val (_, tn1DraftVersion) = trackNumberDao.insert(asMainDraft(trackNumberDao.fetch(tn1OfficialVersion)))
         val trackNumber2 = trackNumber(getUnusedTrackNumber())
-        val (tn2Id, tn2DraftVersion) = trackNumberDao.insert(draft(trackNumber2))
+        val (tn2Id, tn2DraftVersion) = trackNumberDao.insert(asMainDraft(trackNumber2))
         assertEquals(
             trackNumberDao.fetch(tn1OfficialVersion),
             validationContext().getTrackNumber(tn1Id),
@@ -86,9 +86,9 @@ class ValidationContextIT @Autowired constructor(
     fun `ValidationContext returns correct versions for LocationTrack`() {
         val trackNumberId = getUnusedTrackNumberId()
         val (lt1Id, lt1OfficialVersion) = insertLocationTrack(locationTrackAndAlignment(trackNumberId))
-        val (_, lt1DraftVersion) = locationTrackDao.insert(draft(locationTrackDao.fetch(lt1OfficialVersion)))
+        val (_, lt1DraftVersion) = locationTrackDao.insert(asMainDraft(locationTrackDao.fetch(lt1OfficialVersion)))
         val (lt2Id, lt2DraftVersion) = insertLocationTrack(
-            locationTrackAndAlignment(trackNumberId).let { (t, a) -> draft(t) to a }
+            locationTrackAndAlignment(trackNumberId).let { (t, a) -> asMainDraft(t) to a }
         )
 
         assertEquals(
@@ -110,9 +110,9 @@ class ValidationContextIT @Autowired constructor(
     fun `ValidationContext returns correct versions for Switch`() {
         val switchName1 = getUnusedSwitchName()
         val (s1Id, s1OfficialVersion) = switchDao.insert(switch(name = switchName1.toString()))
-        val (_, s1DraftVersion) = switchDao.insert(draft(switchDao.fetch(s1OfficialVersion)))
+        val (_, s1DraftVersion) = switchDao.insert(asMainDraft(switchDao.fetch(s1OfficialVersion)))
         val switchName2 = getUnusedSwitchName()
-        val (s2Id, s2DraftVersion) = switchDao.insert(draft(switch(name = switchName2.toString())))
+        val (s2Id, s2DraftVersion) = switchDao.insert(asMainDraft(switch(name = switchName2.toString())))
 
         assertEquals(
             switchDao.fetch(s1OfficialVersion),
@@ -147,8 +147,8 @@ class ValidationContextIT @Autowired constructor(
     fun `ValidationContext returns correct versions for KM-Post`() {
         val trackNumberId = getUnusedTrackNumberId()
         val (kmp1Id, kmp1OfficialVersion) = kmPostDao.insert(kmPost(trackNumberId, KmNumber(1)))
-        val (_, kmp1DraftVersion) = kmPostDao.insert(draft(kmPostDao.fetch(kmp1OfficialVersion)))
-        val (kmp2Id, kmp2DraftVersion) = kmPostDao.insert(draft(kmPost(trackNumberId, KmNumber(2))))
+        val (_, kmp1DraftVersion) = kmPostDao.insert(asMainDraft(kmPostDao.fetch(kmp1OfficialVersion)))
+        val (kmp2Id, kmp2DraftVersion) = kmPostDao.insert(asMainDraft(kmPost(trackNumberId, KmNumber(2))))
         assertEquals(
             kmPostDao.fetch(kmp1OfficialVersion),
             validationContext().getKmPost(kmp1Id),

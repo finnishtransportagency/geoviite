@@ -1,6 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.CACHE_COMMON_LOCATION_TRACK_OWNER
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.logging.AccessType
@@ -23,7 +26,7 @@ const val LOCATIONTRACK_CACHE_SIZE = 10000L
 class LocationTrackDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
-) : DraftableDaoBase<LocationTrack>(jdbcTemplateParam, LAYOUT_LOCATION_TRACK, cacheEnabled, LOCATIONTRACK_CACHE_SIZE) {
+) : LayoutAssetDao<LocationTrack>(jdbcTemplateParam, LAYOUT_LOCATION_TRACK, cacheEnabled, LOCATIONTRACK_CACHE_SIZE) {
 
     fun fetchDuplicateVersions(
         id: IntId<LocationTrack>,
@@ -76,8 +79,8 @@ class LocationTrackDao(
             select 
               ltv.id as row_id,
               ltv.version as row_version,
-              coalesce(ltv.draft_of_location_track_id, ltv.id) as official_id, 
-              case when ltv.draft then ltv.id end as draft_id,
+              ltv.draft_of_location_track_id as official_row_id, 
+              ltv.draft,
               ltv.alignment_id,
               ltv.alignment_version,
               ltv.track_number_id, 
@@ -126,8 +129,8 @@ class LocationTrackDao(
             select 
               lt.id as row_id,
               lt.version as row_version,
-              coalesce(lt.draft_of_location_track_id, lt.id) as official_id, 
-              case when lt.draft then lt.id end as draft_id,
+              lt.draft_of_location_track_id as official_row_id, 
+              lt.draft,
               lt.alignment_id,
               lt.alignment_version,
               lt.track_number_id, 
@@ -167,8 +170,6 @@ class LocationTrackDao(
     }
 
     private fun getLocationTrack(rs: ResultSet): LocationTrack = LocationTrack(
-        dataType = DataType.STORED,
-        id = rs.getIntId("official_id"),
         alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
         sourceId = null,
         externalId = rs.getOidOrNull("external_id"),
@@ -181,7 +182,6 @@ class LocationTrackDao(
         boundingBox = rs.getBboxOrNull("bounding_box"),
         length = rs.getDouble("length"),
         segmentCount = rs.getInt("segment_count"),
-        draft = rs.getIntIdOrNull<LocationTrack>("draft_id")?.let { id -> Draft(id) },
         version = rs.getRowVersion("row_id", "row_version"),
         duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
         topologicalConnectivity = rs.getEnum("topological_connectivity"),
@@ -199,6 +199,7 @@ class LocationTrackDao(
             )
         },
         segmentSwitchIds = rs.getIntIdArray("segment_switch_ids"),
+        contextData = rs.getLayoutContextData("official_row_id", "row_id", "draft"),
     )
 
     @Transactional
@@ -259,8 +260,8 @@ class LocationTrackDao(
             "description_suffix" to newItem.descriptionSuffix.name,
             "type" to newItem.type.name,
             "state" to newItem.state.name,
-            "draft" to (newItem.draft != null),
-            "draft_of_location_track_id" to draftOfId(newItem.id, newItem.draft)?.intValue,
+            "draft" to newItem.isDraft,
+            "draft_of_location_track_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
             "duplicate_of_location_track_id" to newItem.duplicateOf?.intValue,
             "topological_connectivity" to newItem.topologicalConnectivity.name,
             "topology_start_switch_id" to newItem.topologyStartSwitch?.switchId?.intValue,
@@ -280,7 +281,6 @@ class LocationTrackDao(
 
     @Transactional
     override fun update(updatedItem: LocationTrack): DaoResponse<LocationTrack> {
-        val rowId = toDbId(updatedItem.draft?.draftRowId ?: updatedItem.id)
         val sql = """
             update layout.location_track
             set
@@ -309,7 +309,7 @@ class LocationTrackDao(
               version as row_version
         """.trimIndent()
         val params = mapOf(
-            "id" to rowId.intValue,
+            "id" to toDbId(updatedItem.contextData.rowId).intValue,
             "track_number_id" to updatedItem.trackNumberId.intValue,
             "external_id" to updatedItem.externalId,
             "alignment_id" to (updatedItem.alignmentVersion?.id?.intValue
@@ -320,8 +320,8 @@ class LocationTrackDao(
             "description_suffix" to updatedItem.descriptionSuffix.name,
             "type" to updatedItem.type.name,
             "state" to updatedItem.state.name,
-            "draft" to (updatedItem.draft != null),
-            "draft_of_location_track_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
+            "draft" to updatedItem.isDraft,
+            "draft_of_location_track_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
             "duplicate_of_location_track_id" to updatedItem.duplicateOf?.intValue,
             "topological_connectivity" to updatedItem.topologicalConnectivity.name,
             "topology_start_switch_id" to updatedItem.topologyStartSwitch?.switchId?.intValue,
@@ -334,7 +334,7 @@ class LocationTrackDao(
         val response: DaoResponse<LocationTrack> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to get new version for Location Track")
-        logger.daoAccess(AccessType.UPDATE, LocationTrack::class, rowId)
+        logger.daoAccess(AccessType.UPDATE, LocationTrack::class, response)
         return response
     }
 

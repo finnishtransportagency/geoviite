@@ -100,8 +100,12 @@ class LocationTrackEndpointTest {
     @Test
     fun shouldIgnoreLocationTrackEndpointsOutsideBbox() {
         val alignmentsWithEndpointsOutsideBbox = listOf(
-            locationTrackAndAlignment(IntId(0), segment(pointOutsideBbox, otherPointOutsideBbox)),
-        ).map { (track, alignment) -> track.copy(id = IntId(1)) to alignment }
+            locationTrackAndAlignment(
+                trackNumberId = IntId(0),
+                id = IntId(0),
+                segments = listOf(segment(pointOutsideBbox, otherPointOutsideBbox)),
+            ),
+        )
 
         val endpoints = getLocationTrackEndpoints(alignmentsWithEndpointsOutsideBbox, bbox)
 

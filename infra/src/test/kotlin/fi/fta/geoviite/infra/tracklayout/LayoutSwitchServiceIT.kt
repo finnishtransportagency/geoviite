@@ -437,6 +437,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
             trapPoint = true,
             ownerId = switchOwnerVayla().id,
             source = GeometrySource.GENERATED,
+            contextData = LayoutContextData.newOfficial(),
         )
     }
 

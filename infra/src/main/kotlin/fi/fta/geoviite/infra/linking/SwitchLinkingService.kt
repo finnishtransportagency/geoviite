@@ -761,7 +761,7 @@ private fun findTrackIntersections(
     }
     return trackPairs.flatMap { (track1, track2) ->
         val closestPointAsIntersection = getClosestPointAsIntersection(track1, track2, desiredLocation)
-        
+
         // Take two closest intersections instead of one because there might
         // be two points very close to each other and it is cheap to
         // calculate additional suggested switch and then select the best one.
@@ -1453,7 +1453,7 @@ private fun findExistingSwitchEdgeSegmentWithSwitchFreeAdjacentSegment(
     }
 
     for (i in searchIndexRange) {
-        val segment = layoutSegments[i];
+        val segment = layoutSegments[i]
 
         val existingSwitchIdMatchesSegment = existingSwitchId == segment.switchId
         if (!existingSwitchIdMatchesSegment) {
@@ -1607,7 +1607,7 @@ private fun getLocationTrackChangesFromLinkingSwitch(
 
 // some validation logic depends on draftness state, so we need to pre-draft tracks for online validation
 private fun draft(tracks: List<Pair<LocationTrack, LayoutAlignment>>) =
-    tracks.map { (track, alignment) -> draft(track) to alignment }
+    tracks.map { (track, alignment) -> asMainDraft(track) to alignment }
 
 private fun addTopologicalLink(
     locationTrack: LocationTrack,
