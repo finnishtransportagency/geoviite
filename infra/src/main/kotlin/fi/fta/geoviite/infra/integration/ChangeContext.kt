@@ -35,8 +35,8 @@ class ChangeContext(
         geocodingKeysAfter[id]?.let(geocodingService::getGeocodingContext)
 }
 
-inline fun <reified T : LayoutConcept<T>> createTypedContext(
-    dao: LayoutConceptDao<T>,
+inline fun <reified T : LayoutAsset<T>> createTypedContext(
+    dao: LayoutAssetDao<T>,
     versions: List<ValidationVersion<T>>
 ): TypedChangeContext<T> = createTypedContext(
     dao,
@@ -44,8 +44,8 @@ inline fun <reified T : LayoutConcept<T>> createTypedContext(
     { id -> versions.find { v -> v.officialId == id }?.validatedAssetVersion ?: dao.fetchVersion(id, OFFICIAL) },
 )
 
-inline fun <reified T : LayoutConcept<T>> createTypedContext(
-    dao: LayoutConceptDao<T>,
+inline fun <reified T : LayoutAsset<T>> createTypedContext(
+    dao: LayoutAssetDao<T>,
     before: Instant,
     after: Instant,
 ): TypedChangeContext<T> = createTypedContext(
@@ -54,15 +54,15 @@ inline fun <reified T : LayoutConcept<T>> createTypedContext(
     { id -> dao.fetchOfficialVersionAtMoment(id, after) },
 )
 
-inline fun <reified T : LayoutConcept<T>> createTypedContext(
-    dao: LayoutConceptDao<T>,
+inline fun <reified T : LayoutAsset<T>> createTypedContext(
+    dao: LayoutAssetDao<T>,
     noinline getBeforeVersion: (id: IntId<T>) -> RowVersion<T>?,
     noinline getAfterVersion: (id: IntId<T>) -> RowVersion<T>?,
 ) = TypedChangeContext(T::class, dao, LazyMap(getBeforeVersion), LazyMap(getAfterVersion))
 
-class TypedChangeContext<T : LayoutConcept<T>>(
+class TypedChangeContext<T : LayoutAsset<T>>(
     private val klass: KClass<T>,
-    private val dao: LayoutConceptDao<T>,
+    private val dao: LayoutAssetDao<T>,
     private val beforeVersions: LazyMap<IntId<T>, RowVersion<T>?>,
     private val afterVersions: LazyMap<IntId<T>, RowVersion<T>?>,
 ) {

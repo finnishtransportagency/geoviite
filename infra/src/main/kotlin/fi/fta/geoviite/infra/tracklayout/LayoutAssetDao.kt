@@ -30,7 +30,7 @@ data class VersionPair<T>(val official: RowVersion<T>?, val draft: RowVersion<T>
 
 data class DaoResponse<T>(val id: IntId<T>, val rowVersion: RowVersion<T>)
 
-interface ILayoutConceptWriter<T : LayoutConcept<T>> {
+interface LayoutAssetWriter<T : LayoutAsset<T>> {
     fun insert(newItem: T): DaoResponse<T>
 
     fun update(updatedItem: T): DaoResponse<T>
@@ -40,7 +40,7 @@ interface ILayoutConceptWriter<T : LayoutConcept<T>> {
 }
 
 @Transactional(readOnly = true)
-interface ILayoutConceptReader<T : LayoutConcept<T>> {
+interface LayoutAssetReader<T : LayoutAsset<T>> {
     fun fetch(version: RowVersion<T>): T
 
     fun fetchChangeTime(): Instant
@@ -96,15 +96,15 @@ interface ILayoutConceptReader<T : LayoutConcept<T>> {
         fetchVersions(publishType, includeDeleted).map(::fetch)
 }
 
-interface ILayoutConceptDao<T : LayoutConcept<T>> : ILayoutConceptReader<T>, ILayoutConceptWriter<T>
+interface ILayoutAssetDao<T : LayoutAsset<T>> : LayoutAssetReader<T>, LayoutAssetWriter<T>
 
 @Transactional(readOnly = true)
-abstract class LayoutConceptDao<T : LayoutConcept<T>>(
+abstract class LayoutAssetDao<T : LayoutAsset<T>>(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     val table: DbTable,
     val cacheEnabled: Boolean,
     cacheSize: Long,
-) : DaoBase(jdbcTemplateParam), ILayoutConceptDao<T> {
+) : DaoBase(jdbcTemplateParam), ILayoutAssetDao<T> {
 
     protected val cache: Cache<RowVersion<T>, T> =
         Caffeine.newBuilder().maximumSize(cacheSize).expireAfterAccess(layoutCacheDuration).build()
@@ -372,16 +372,16 @@ private fun draftFetchSql(table: DbTable, fetchType: FetchType) = """
           and not exists(select 1 from ${table.fullName} d where d.${table.draftLink} = o.id))
 """
 
-fun <T : LayoutConcept<T>> verifyForLayoutUpdate(item: T) = verifyForLayoutUpdate(item.contextData)
+fun <T : LayoutAsset<T>> verifyObjectIsExisting(item: T) = verifyObjectIsExisting(item.contextData)
 
-fun <T : LayoutConcept<T>> verifyForLayoutUpdate(contextData: LayoutContextData<T>) {
+fun <T : LayoutAsset<T>> verifyObjectIsExisting(contextData: LayoutContextData<T>) {
     require(contextData.dataType == DataType.STORED) { "Cannot update TEMP row: context=$contextData" }
     require(contextData.rowId is IntId) { "DB row should have DB ID: context=$contextData" }
 }
 
-fun <T : LayoutConcept<T>> verifyForLayoutInsert(item: T) = verifyForLayoutInsert(item.contextData)
+fun <T : LayoutAsset<T>> verifyObjectIsNew(item: T) = verifyObjectIsNew(item.contextData)
 
-fun <T : LayoutConcept<T>> verifyForLayoutInsert(contextData: LayoutContextData<T>) {
+fun <T : LayoutAsset<T>> verifyObjectIsNew(contextData: LayoutContextData<T>) {
     require(contextData.dataType == DataType.TEMP) { "Cannot insert existing row as new: context=$contextData" }
     require(contextData.rowId !is IntId) { "TEMP row should not have DB ID: context=$contextData" }
 }

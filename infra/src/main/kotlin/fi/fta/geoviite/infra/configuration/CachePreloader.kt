@@ -56,7 +56,7 @@ class CachePreloader(
         }
     }
 
-    private fun <T : LayoutConcept<T>> refreshCache(dao: LayoutConceptDao<T>) =
+    private fun <T : LayoutAsset<T>> refreshCache(dao: LayoutAssetDao<T>) =
         refreshCache(dao.table.name, dao::preloadCache)
 
     private fun refreshCache(name: String, refresh: () -> Unit) {

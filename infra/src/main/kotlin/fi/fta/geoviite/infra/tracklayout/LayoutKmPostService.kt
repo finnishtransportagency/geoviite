@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional
 class LayoutKmPostService(
     dao: LayoutKmPostDao,
     private val referenceLineService: ReferenceLineService,
-) : LayoutConceptService<TrackLayoutKmPost, LayoutKmPostDao>(dao) {
+) : LayoutAssetService<TrackLayoutKmPost, LayoutKmPostDao>(dao) {
 
     @Transactional
     fun insertKmPost(request: TrackLayoutKmPostSaveRequest): IntId<TrackLayoutKmPost> {

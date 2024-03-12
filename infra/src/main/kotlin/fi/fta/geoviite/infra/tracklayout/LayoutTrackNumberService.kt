@@ -22,7 +22,7 @@ class LayoutTrackNumberService(
     private val referenceLineService: ReferenceLineService,
     private val geocodingService: GeocodingService,
     private val alignmentService: LayoutAlignmentService,
-) : LayoutConceptService<TrackLayoutTrackNumber, LayoutTrackNumberDao>(dao) {
+) : LayoutAssetService<TrackLayoutTrackNumber, LayoutTrackNumberDao>(dao) {
 
     @Transactional
     fun insert(saveRequest: TrackNumberSaveRequest): IntId<TrackLayoutTrackNumber> {

@@ -3232,14 +3232,14 @@ private fun verifyVersions(publishRequestIds: PublishRequestIds, validationVersi
     verifyVersions(publishRequestIds.switches, validationVersions.switches)
 }
 
-private fun <T : LayoutConcept<T>> verifyVersions(ids: List<IntId<T>>, versions: List<ValidationVersion<T>>) {
+private fun <T : LayoutAsset<T>> verifyVersions(ids: List<IntId<T>>, versions: List<ValidationVersion<T>>) {
     assertEquals(ids.size, versions.size)
     ids.forEach { id -> assertTrue(versions.any { v -> v.officialId == id }) }
 }
 
-private fun <T : LayoutConcept<T>, S : LayoutConceptDao<T>> verifyPublishingWorks(
+private fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> verifyPublishingWorks(
     dao: S,
-    service: LayoutConceptService<T, S>,
+    service: LayoutAssetService<T, S>,
     create: () -> T,
     mutate: (orig: T) -> T,
 ) {
@@ -3261,10 +3261,10 @@ private fun <T : LayoutConcept<T>, S : LayoutConceptDao<T>> verifyPublishingWork
     assertEquals(3, officialVersion2.version)
 }
 
-fun <T : LayoutConcept<T>, S : LayoutConceptDao<T>> publishAndCheck(
+fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> publishAndCheck(
     rowVersion: RowVersion<T>,
     dao: S,
-    service: LayoutConceptService<T, S>,
+    service: LayoutAssetService<T, S>,
 ): Pair<RowVersion<T>, T> {
     val draft = dao.fetch(rowVersion)
     val id = draft.id
@@ -3301,13 +3301,13 @@ fun <T : LayoutConcept<T>, S : LayoutConceptDao<T>> publishAndCheck(
     return publishedVersion to publishedItem
 }
 
-fun <T : LayoutConcept<T>, S : LayoutConceptDao<T>> verifyPublished(
+fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> verifyPublished(
     validationVersions: List<ValidationVersion<T>>,
     dao: S,
     checkMatch: (draft: T, published: T) -> Unit,
 ) = validationVersions.forEach { v -> verifyPublished(v, dao, checkMatch) }
 
-fun <T : LayoutConcept<T>, S : LayoutConceptDao<T>> verifyPublished(
+fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> verifyPublished(
     validationVersion: ValidationVersion<T>,
     dao: S,
     checkMatch: (draft: T, published: T) -> Unit,

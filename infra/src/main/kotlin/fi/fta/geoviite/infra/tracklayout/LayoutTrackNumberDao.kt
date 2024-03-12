@@ -21,7 +21,7 @@ const val TRACK_NUMBER_CACHE_SIZE = 1000L
 class LayoutTrackNumberDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
-) : LayoutConceptDao<TrackLayoutTrackNumber>(
+) : LayoutAssetDao<TrackLayoutTrackNumber>(
     jdbcTemplateParam,
     LAYOUT_TRACK_NUMBER,
     cacheEnabled,

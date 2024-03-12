@@ -22,7 +22,7 @@ interface LayoutContextAware<T> {
     @get:JsonIgnore val isDesign: Boolean get() = false
 }
 
-sealed class LayoutConcept<T : LayoutConcept<T>>(contextData: LayoutContextData<T>) :
+sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) :
     LayoutContextAware<T> by contextData, Loggable {
 
     abstract val version: RowVersion<T>?
@@ -187,7 +187,7 @@ data class DesignDraftContextData<T>(
 }
 
 @Suppress("UNCHECKED_CAST")
-fun <T : LayoutConcept<T>> asMainDraft(item: LayoutConcept<T>): T = when (item) {
+fun <T : LayoutAsset<T>> asMainDraft(item: LayoutAsset<T>): T = when (item) {
     is LocationTrack -> asMainDraft(item) { contextData -> item.copy(contextData = contextData) }
     is TrackLayoutSwitch -> asMainDraft(item) { contextData -> item.copy(contextData = contextData) }
     is TrackLayoutKmPost -> asMainDraft(item) { contextData -> item.copy(contextData = contextData) }
@@ -196,7 +196,7 @@ fun <T : LayoutConcept<T>> asMainDraft(item: LayoutConcept<T>): T = when (item) 
 } as T
 
 @Suppress("UNCHECKED_CAST")
-fun <T : LayoutConcept<T>> asMainOfficial(item: LayoutConcept<T>): T = when (item) {
+fun <T : LayoutAsset<T>> asMainOfficial(item: LayoutAsset<T>): T = when (item) {
     is LocationTrack -> asMainOfficial(item) { contextData -> item.copy(contextData = contextData) }
     is TrackLayoutSwitch -> asMainOfficial(item) { contextData -> item.copy(contextData = contextData) }
     is TrackLayoutKmPost -> asMainOfficial(item) { contextData -> item.copy(contextData = contextData) }
@@ -204,7 +204,7 @@ fun <T : LayoutConcept<T>> asMainOfficial(item: LayoutConcept<T>): T = when (ite
     is ReferenceLine -> asMainOfficial(item) { contextData -> item.copy(contextData = contextData) }
 } as T
 
-private fun <T : LayoutConcept<T>> asMainDraft(item: T, withContext: (LayoutContextData<T>) -> T): T =
+private fun <T : LayoutAsset<T>> asMainDraft(item: T, withContext: (LayoutContextData<T>) -> T): T =
     item.contextData.let { ctx ->
         when (ctx) {
             is MainDraftContextData -> item
@@ -216,7 +216,7 @@ private fun <T : LayoutConcept<T>> asMainDraft(item: T, withContext: (LayoutCont
         }
     }
 
-private fun <T : LayoutConcept<T>> asMainOfficial(item: T, withContext: (LayoutContextData<T>) -> T): T =
+private fun <T : LayoutAsset<T>> asMainOfficial(item: T, withContext: (LayoutContextData<T>) -> T): T =
     item.contextData.let { ctx ->
         if (ctx is MainDraftContextData) {
             withContext(ctx.asMainOfficial())

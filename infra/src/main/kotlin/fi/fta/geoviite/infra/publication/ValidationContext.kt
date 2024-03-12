@@ -28,7 +28,7 @@ class NullableCache<K, V> {
     data class NullableValue<T>(val value: T?)
 }
 
-class NameCache<Field, T : LayoutConcept<T>>(val fetch: (List<Field>) -> Map<Field, List<IntId<T>>>) {
+class NameCache<Field, T : LayoutAsset<T>>(val fetch: (List<Field>) -> Map<Field, List<IntId<T>>>) {
     val map: ConcurrentHashMap<Field, List<IntId<T>>> = ConcurrentHashMap()
 
     fun get(name: Field) = map.computeIfAbsent(name) { n -> fetch(listOf(n))[n] ?: emptyList() }
@@ -361,10 +361,10 @@ class ValidationContext(
     }
 }
 
-private fun <T : LayoutConcept<T>> getObject(
+private fun <T : LayoutAsset<T>> getObject(
     id: IntId<T>,
     publicationVersions: List<ValidationVersion<T>>,
-    dao: ILayoutConceptDao<T>,
+    dao: ILayoutAssetDao<T>,
     versionCache: RowVersionCache<T>,
 ): T? {
     val version = publicationVersions.find { v -> v.officialId == id }?.validatedAssetVersion
@@ -372,22 +372,22 @@ private fun <T : LayoutConcept<T>> getObject(
     return version?.let(dao::fetch)
 }
 
-private fun <T : LayoutConcept<T>> preloadOfficialVersions(
+private fun <T : LayoutAsset<T>> preloadOfficialVersions(
     ids: List<IntId<T>>,
-    dao: ILayoutConceptDao<T>,
+    dao: ILayoutAssetDao<T>,
     versionCache: RowVersionCache<T>,
 ) = cacheOfficialVersions(dao.fetchOfficialVersions(ids), versionCache)
 
-private fun <T : LayoutConcept<T>> cacheOfficialVersions(versions: List<RowVersion<T>>, cache: RowVersionCache<T>) {
+private fun <T : LayoutAsset<T>> cacheOfficialVersions(versions: List<RowVersion<T>>, cache: RowVersionCache<T>) {
     cache.putAll(versions.filterNot { (id) -> cache.contains(id) }.associateBy { v -> v.id })
 }
 
-private fun <T : LayoutConcept<T>, Field> mapIdsByField(
+private fun <T : LayoutAsset<T>, Field> mapIdsByField(
     fields: List<Field>,
     getField: (T) -> Field,
     publicationVersions: List<ValidationVersion<T>>,
     matchingOfficialVersions: Map<Field, List<RowVersion<T>>>,
-    dao: ILayoutConceptDao<T>,
+    dao: ILayoutAssetDao<T>,
 ): Map<Field, List<IntId<T>>> {
     return fields.associateWith { field ->
         val draftMatches = publicationVersions.mapNotNull { v ->

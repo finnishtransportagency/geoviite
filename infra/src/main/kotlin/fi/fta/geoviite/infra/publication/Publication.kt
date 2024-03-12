@@ -447,7 +447,7 @@ data class KmPostChanges(
     val location: Change<Point>,
 )
 
-fun <T : LayoutConcept<T>> toValidationVersion(draftableObject: T) = ValidationVersion(
+fun <T : LayoutAsset<T>> toValidationVersion(draftableObject: T) = ValidationVersion(
     officialId = draftableObject.id as IntId, validatedAssetVersion = draftableObject.version as RowVersion<T>
 )
 

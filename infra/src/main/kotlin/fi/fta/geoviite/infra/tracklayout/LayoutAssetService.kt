@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
-abstract class LayoutConceptService<ObjectType : LayoutConcept<ObjectType>, DaoType : ILayoutConceptDao<ObjectType>>(
+abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType : ILayoutAssetDao<ObjectType>>(
     protected open val dao: DaoType,
 ) {
 
@@ -96,11 +96,11 @@ abstract class LayoutConceptService<ObjectType : LayoutConcept<ObjectType>, DaoT
         require(draft.isDraft) { "Item is not a draft: id=${draft.id}" }
         val officialId = if (item.id is IntId) item.id as IntId else null
         return if (draft.dataType == DataType.TEMP) {
-            verifyForLayoutInsert(draft)
+            verifyObjectIsNew(draft)
             dao.insert(draft).also { response -> verifyInsertResponse(officialId, response) }
         } else {
             requireNotNull(officialId) { "Updating item that has no known official ID" }
-            verifyForLayoutUpdate(draft)
+            verifyObjectIsExisting(draft)
             val previousVersion = requireNotNull(draft.version) { "Updating item without rowVersion: $item" }
             dao.update(draft).also { response -> verifyUpdateResponse(officialId, previousVersion, response) }
         }
@@ -124,7 +124,7 @@ abstract class LayoutConceptService<ObjectType : LayoutConcept<ObjectType>, DaoT
         require(draft.isDraft) { "Object to publish is not a draft: versions=$versions context=${draft.contextData}" }
         val published = asMainOfficial(draft)
         require(!published.isDraft) { "Published object is still a draft: context=${published.contextData}" }
-        verifyForLayoutUpdate(published)
+        verifyObjectIsExisting(published)
 
         val publishResponse = dao.update(published)
         verifyUpdateResponse(draft.id as IntId, versions.official ?: draftVersion, publishResponse)

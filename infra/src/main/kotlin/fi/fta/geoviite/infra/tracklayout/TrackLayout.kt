@@ -73,7 +73,7 @@ data class TrackLayoutTrackNumber(
     @JsonIgnore override val contextData: LayoutContextData<TrackLayoutTrackNumber>,
     override val version: RowVersion<TrackLayoutTrackNumber>? = null,
     @JsonIgnore val referenceLineId: IntId<ReferenceLine>? = null,
-) : LayoutConcept<TrackLayoutTrackNumber>(contextData) {
+) : LayoutAsset<TrackLayoutTrackNumber>(contextData) {
     @JsonIgnore
     val exists = !state.isRemoved()
 
@@ -107,7 +107,7 @@ data class ReferenceLine(
     val segmentCount: Int = 0,
     @JsonIgnore override val contextData: LayoutContextData<ReferenceLine>,
     @JsonIgnore val alignmentVersion: RowVersion<LayoutAlignment>? = null,
-) : LayoutConcept<ReferenceLine>(contextData) {
+) : LayoutAsset<ReferenceLine>(contextData) {
 
     init {
         require(dataType == DataType.TEMP || alignmentVersion != null) {
@@ -197,7 +197,7 @@ data class LocationTrack(
     @JsonIgnore override val contextData: LayoutContextData<LocationTrack>,
     @JsonIgnore val alignmentVersion: RowVersion<LayoutAlignment>? = null,
     @JsonIgnore val segmentSwitchIds: List<IntId<TrackLayoutSwitch>> = listOf(),
-) : LayoutConcept<LocationTrack>(contextData) {
+) : LayoutAsset<LocationTrack>(contextData) {
 
     @JsonIgnore
     val exists = !state.isRemoved()
@@ -252,7 +252,7 @@ data class TrackLayoutSwitch(
     val source: GeometrySource,
     @JsonIgnore override val contextData: LayoutContextData<TrackLayoutSwitch>,
     override val version: RowVersion<TrackLayoutSwitch>? = null,
-) : LayoutConcept<TrackLayoutSwitch>(contextData) {
+) : LayoutAsset<TrackLayoutSwitch>(contextData) {
     @JsonIgnore
     val exists = !stateCategory.isRemoved()
     val shortName = name.split(" ").lastOrNull()?.let { last ->
@@ -289,7 +289,7 @@ data class TrackLayoutKmPost(
     val sourceId: DomainId<GeometryKmPost>?,
     @JsonIgnore override val contextData: LayoutContextData<TrackLayoutKmPost>,
     override val version: RowVersion<TrackLayoutKmPost>? = null,
-) : LayoutConcept<TrackLayoutKmPost>(contextData) {
+) : LayoutAsset<TrackLayoutKmPost>(contextData) {
     @JsonIgnore
     val exists = !state.isRemoved()
 

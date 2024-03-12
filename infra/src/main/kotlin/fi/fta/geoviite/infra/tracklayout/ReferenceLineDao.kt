@@ -21,7 +21,7 @@ const val REFERENCE_LINE_CACHE_SIZE = 1000L
 class ReferenceLineDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
-) : LayoutConceptDao<ReferenceLine>(jdbcTemplateParam, LAYOUT_REFERENCE_LINE, cacheEnabled, REFERENCE_LINE_CACHE_SIZE) {
+) : LayoutAssetDao<ReferenceLine>(jdbcTemplateParam, LAYOUT_REFERENCE_LINE, cacheEnabled, REFERENCE_LINE_CACHE_SIZE) {
 
     override fun fetchInternal(version: RowVersion<ReferenceLine>): ReferenceLine {
         val sql = """

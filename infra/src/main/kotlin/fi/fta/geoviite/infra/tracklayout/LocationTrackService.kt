@@ -34,7 +34,7 @@ class LocationTrackService(
     private val switchDao: LayoutSwitchDao,
     private val switchLibraryService: SwitchLibraryService,
     private val splitDao: SplitDao,
-) : LayoutConceptService<LocationTrack, LocationTrackDao>(locationTrackDao) {
+) : LayoutAssetService<LocationTrack, LocationTrackDao>(locationTrackDao) {
 
     @Transactional
     fun insert(request: LocationTrackSaveRequest): DaoResponse<LocationTrack> {

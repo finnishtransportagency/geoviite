@@ -24,7 +24,7 @@ class LayoutSwitchService @Autowired constructor(
     dao: LayoutSwitchDao,
     private val switchLibraryService: SwitchLibraryService,
     private val locationTrackService: LocationTrackService,
-) : LayoutConceptService<TrackLayoutSwitch, LayoutSwitchDao>(dao) {
+) : LayoutAssetService<TrackLayoutSwitch, LayoutSwitchDao>(dao) {
 
     @Transactional
     fun insertSwitch(request: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {

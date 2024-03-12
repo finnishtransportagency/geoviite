@@ -19,7 +19,7 @@ class ReferenceLineService(
     private val alignmentService: LayoutAlignmentService,
     private val alignmentDao: LayoutAlignmentDao,
     private val referenceLineDao: ReferenceLineDao,
-): LayoutConceptService<ReferenceLine, ReferenceLineDao>(dao) {
+): LayoutAssetService<ReferenceLine, ReferenceLineDao>(dao) {
 
     @Transactional
     fun addTrackNumberReferenceLine(
