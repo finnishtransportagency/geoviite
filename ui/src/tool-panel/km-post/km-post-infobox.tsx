@@ -93,8 +93,8 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
         kmPostLength == undefined
             ? t('tool-panel.km-post.layout.no-kilometer-length')
             : kmPostLength < 0
-            ? t('tool-panel.km-post.layout.negative-kilometer-length')
-            : `${roundToPrecision(kmPostLength, 3)} m`;
+              ? t('tool-panel.km-post.layout.negative-kilometer-length')
+              : `${roundToPrecision(kmPostLength, 3)} m`;
 
     return (
         <React.Fragment>
@@ -166,16 +166,19 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     />
                 </InfoboxContent>
             </Infobox>
-            {kmPost.draftType !== 'NEW_DRAFT' && (
-                <AssetValidationInfoboxContainer
-                    contentVisible={visibilities.validation}
-                    onContentVisibilityChange={() => visibilityChange('validation')}
-                    id={kmPost.id}
-                    type={'KM_POST'}
-                    publishType={publishType}
-                    changeTime={kmPostChangeTime}
-                />
-            )}
+            {
+                // TODO: GVT-2522
+                kmPost.editState !== 'CREATED' && (
+                    <AssetValidationInfoboxContainer
+                        contentVisible={visibilities.validation}
+                        onContentVisibilityChange={() => visibilityChange('validation')}
+                        id={kmPost.id}
+                        type={'KM_POST'}
+                        publishType={publishType}
+                        changeTime={kmPostChangeTime}
+                    />
+                )
+            }
             <Infobox
                 title={t('tool-panel.km-post.layout.change-info-heading')}
                 contentVisible={visibilities.log}
@@ -196,7 +199,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                             />
                         </React.Fragment>
                     )}
-                    {kmPost?.draftType === 'NEW_DRAFT' && (
+                    {kmPost?.editState === 'CREATED' && (
                         <InfoboxButtons>
                             <Button
                                 onClick={() => setConfirmingDraftDelete(true)}

@@ -6,17 +6,13 @@ import fi.fta.geoviite.infra.common.DataType.STORED
 import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.logging.Loggable
 
-// TODO: GVT-2426 This enum is an outdated concept that won't serve well with designs. It's only used by the front. Can we refactor it out?
-enum class ContextType {
-    OFFICIAL, NEW_DRAFT, EDITED_DRAFT, DESIGN, NEW_DESIGN_DRAFT, EDITED_DESIGN_DRAFT
-}
+enum class EditState { UNEDITED, EDITED, CREATED }
 
 interface LayoutContextAware<T> {
     val id: DomainId<T>
     val dataType: DataType
-    // TODO: GVT-2426 if we keep this, the field should be renamed
-//    val contextType: ContextType
-    val draftType: ContextType
+    val editState: EditState
+
     @get:JsonIgnore val isDraft: Boolean get() = false
     @get:JsonIgnore val isOfficial: Boolean get() = false
     @get:JsonIgnore val isDesign: Boolean get() = false
@@ -24,9 +20,8 @@ interface LayoutContextAware<T> {
 
 sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) :
     LayoutContextAware<T> by contextData, Loggable {
-
     abstract val version: RowVersion<T>?
-    abstract val contextData: LayoutContextData<T>
+    @get:JsonIgnore abstract val contextData: LayoutContextData<T>
 }
 
 sealed class LayoutContextData<T> : LayoutContextAware<T> {
@@ -55,7 +50,7 @@ data class MainOfficialContextData<T>(
     override val dataType: DataType,
 ) : MainContextData<T>() {
     override val id: DomainId<T> = rowId
-    override val draftType: ContextType get() = ContextType.OFFICIAL
+    override val editState: EditState get() = EditState.UNEDITED
     override val isOfficial: Boolean get() = true
 
     fun asMainDraft(): MainDraftContextData<T> = MainDraftContextData(
@@ -87,8 +82,7 @@ data class MainDraftContextData<T>(
     override val dataType: DataType,
 ) : MainContextData<T>() {
     override val id: DomainId<T> get() = officialRowId ?: designRowId ?: rowId
-    override val draftType: ContextType
-        get() = if (officialRowId == null) ContextType.NEW_DRAFT else ContextType.EDITED_DRAFT
+    override val editState: EditState get() = if (officialRowId != null) EditState.EDITED else EditState.CREATED
     override val isDraft: Boolean get() = true
 
     init {
@@ -119,7 +113,7 @@ data class DesignOfficialContextData<T>(
     override val dataType: DataType,
 ) : DesignContextData<T>() {
     override val id: DomainId<T> get() = officialRowId ?: rowId
-    override val draftType: ContextType get() = ContextType.DESIGN
+    override val editState: EditState get() = EditState.UNEDITED
     override val isDesign: Boolean get() = true
 
     init {
@@ -158,8 +152,7 @@ data class DesignDraftContextData<T>(
     override val dataType: DataType,
 ) : DesignContextData<T>() {
     override val id: DomainId<T> get() = officialRowId ?: designRowId ?: rowId
-    override val draftType: ContextType
-        get() = if (designRowId == null) ContextType.NEW_DESIGN_DRAFT else ContextType.EDITED_DESIGN_DRAFT
+    override val editState: EditState get() = if (designRowId != null) EditState.EDITED else EditState.CREATED
     override val isDraft: Boolean get() = true
     override val isDesign: Boolean get() = true
 
