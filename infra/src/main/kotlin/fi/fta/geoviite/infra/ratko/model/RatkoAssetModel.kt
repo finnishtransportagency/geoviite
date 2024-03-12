@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.ratko.model
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 
@@ -30,7 +32,7 @@ data class RatkoMetadataAsset(
 }
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-data class RatkoSwitchAsset(
+data class RatkoSwitchAsset constructor(
     val id: String?,
     override val state: RatkoAssetState,
     override val properties: Collection<RatkoAssetProperty>,
@@ -129,5 +131,28 @@ enum class RatkoAssetState(@get:JsonValue val value: String, val category: Layou
 
 enum class RatkoAssetType(@get:JsonValue val value: String) {
     TURNOUT("turnout"),
-    METADATA("metadata_location_accuracy")
+    METADATA("metadata_location_accuracy"),
+    RAILWAY_TRAFFIC_OPERATING_POINT("railway_traffic_operating_point"),
 }
+
+
+data class RatkoOperatingPointAssetsResponse(val assets: List<RatkoOperatingPointAsset>)
+data class RatkoOperatingPointAsset(
+    val id: String,
+    val properties: Collection<RatkoAssetProperty>,
+    val locations: List<IncomingRatkoAssetLocation>,
+) {
+    fun getIntProperty(name: String): Int? = properties.find { it.name == name }?.integerValue
+    fun getStringProperty(name: String): String? = properties.find { it.name == name }?.stringValue
+    inline fun <reified T : Enum<T>> getEnumProperty(name: String): T? =
+        properties.find { it.name == name }?.enumValue?.let { v ->
+            T::class.java.enumConstants.find { c -> c.name == v }
+        }
+}
+
+data class IncomingRatkoAssetLocation(val nodecollection: IncomingRatkoNodes)
+data class IncomingRatkoNodes(val nodes: Collection<IncomingRatkoNode> = listOf())
+data class IncomingRatkoNode(val point: IncomingRatkoPoint, val nodeType: RatkoNodeType)
+data class IncomingRatkoPoint(val geometry: IncomingRatkoGeometry, val routenumber: RatkoOid<RatkoRouteNumber>)
+data class IncomingRatkoGeometry(val type: RatkoGeometryType, val coordinates: List<Double>, val crs: RatkoCrs)
+

@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.PublishRequestIds
 import fi.fta.geoviite.infra.ratko.model.*
@@ -816,6 +817,46 @@ class RatkoServiceIT @Autowired constructor(
         val pushedNodes = pushedMetadata[0].locations[0].nodecollection.nodes.toList()
         assertEquals("0000+0000", pushedNodes[0].point.kmM.toString())
         assertEquals("0000+0005", pushedNodes[1].point.kmM.toString())
+    }
+
+    @Test
+    fun fetchAndFindOperatingPoints() {
+        val trackNumberId =
+            trackNumberService.saveDraft(trackNumber(getUnusedTrackNumber(), externalId = Oid("5.5.5.5.5"))).id
+        val kannustamoOperatingPoint = RatkoOperatingPointParse(
+            Oid("1.2.3.4.5"),
+            "Kannustamo",
+            "KST",
+            "KST-123",
+            OperationalPointType.LPO,
+            Point(100.0, 100.0),
+            Oid("5.5.5.5.5"),
+        )
+        fakeRatko.hasOperatingPoints(
+            listOf(
+                RatkoOperatingPointParse(
+                    Oid("1.2.3.4.6"),
+                    "Turpeela",
+                    "TRP",
+                    "ABC-123",
+                    OperationalPointType.LP,
+                    Point(10.0, 10.0),
+                    Oid("5.5.5.5.5"),
+                ),
+                kannustamoOperatingPoint
+            )
+        )
+        ratkoService.fetchOperatingPointsFromRatko()
+        val pointsFromDatabase = ratkoService.getOperatingPoints(boundingBoxAroundPoint(Point(95.0, 95.0), 10.0))
+        assertEquals(1, pointsFromDatabase.size)
+        val point = pointsFromDatabase[0]
+        assertEquals("1.2.3.4.5", point.externalId.toString())
+        assertEquals("Kannustamo", point.name)
+        assertEquals("KST", point.abbreviation)
+        assertEquals("KST-123", point.uicCode)
+        assertEquals(OperationalPointType.LPO, point.type)
+        assertEquals(Point(100.0, 100.0), point.location)
+        assertEquals(trackNumberId, point.trackNumberId)
     }
 
     private fun insertSomeOfficialReferenceLineFor(trackNumberId: IntId<TrackLayoutTrackNumber>): DaoResponse<ReferenceLine> {

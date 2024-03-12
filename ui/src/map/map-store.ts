@@ -89,6 +89,7 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'geometry-switch': ['geometry-switch-layer'],
     'plan-area': ['plan-area-layer'],
     'geometry-km-post': ['geometry-km-post-layer'],
+    'operating-points': ['operating-points-layer'],
     'debug-1m': ['debug-1m-points-layer'],
     'debug': ['debug-layer'],
 };
@@ -110,6 +111,7 @@ export const initialMapState: Map = {
         'geometry-km-post-layer',
         'location-track-selected-alignment-layer',
         'reference-line-selected-alignment-layer',
+        'operating-points-layer',
     ],
     layerMenu: {
         layout: [
@@ -132,6 +134,7 @@ export const initialMapState: Map = {
             { name: 'switch', visible: true, qaId: 'switch-layer' },
             { name: 'km-post', visible: true, qaId: 'km-post-layer' },
             { name: 'track-number-diagram', visible: false, qaId: 'track-number-diagram-layer' },
+            { name: 'operating-points', visible: false, qaId: 'operating-points-layer' },
         ],
         geometry: [
             { name: 'geometry-alignment', visible: true, qaId: 'geometry-alignment-layer' },

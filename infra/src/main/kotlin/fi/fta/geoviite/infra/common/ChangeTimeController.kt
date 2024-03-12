@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.projektivelho.PVDocumentService
 import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.ratko.RatkoOperatingPointDao
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.*
@@ -30,6 +31,7 @@ data class CollectedChangeTimes(
     val ratkoPush: Instant,
     val pvDocument: Instant,
     val split: Instant,
+    val operatingPoints: Instant,
 )
 
 @RestController
@@ -45,6 +47,7 @@ class ChangeTimeController(
     private val ratkoPushDao: RatkoPushDao,
     private val pvDocumentService: PVDocumentService,
     private val splitService: SplitService,
+    private val ratkoOperatingPointDao: RatkoOperatingPointDao,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -67,6 +70,7 @@ class ChangeTimeController(
             ratkoPush = ratkoPushDao.getRatkoPushChangeTime(),
             pvDocument = pvDocumentService.getDocumentChangeTime(),
             split = splitService.getChangeTime(),
+            operatingPoints = ratkoOperatingPointDao.getChangeTime(),
         )
     }
 

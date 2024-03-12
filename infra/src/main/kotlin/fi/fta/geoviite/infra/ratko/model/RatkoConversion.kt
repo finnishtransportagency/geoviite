@@ -10,7 +10,6 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchHand
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.util.FreeText
 import java.time.ZoneId
 
 fun mapToRatkoLocationTrackState(layoutState: LayoutState) = when (layoutState) {

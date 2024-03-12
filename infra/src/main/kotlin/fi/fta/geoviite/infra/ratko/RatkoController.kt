@@ -8,7 +8,9 @@ import fi.fta.geoviite.infra.error.IntegrationNotConfiguredException
 import fi.fta.geoviite.infra.integration.LocationTrackChange
 import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset
 import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -61,4 +63,20 @@ class RatkoController(
         logger.apiCall("ratkoIsOnline")
         return ratkoStatusService.getRatkoOnlineStatus()
     }
+
+    @PreAuthorize(AUTH_ALL_WRITE)
+    @PostMapping("/fetch-operating-points-from-ratko")
+    fun fetchOperatingPointsFromRatko(): HttpStatus {
+        logger.apiCall("fetchOperatingPointsFromRatko")
+        ratkoService.fetchOperatingPointsFromRatko()
+
+        return HttpStatus.NO_CONTENT
+    }
+
+    @PreAuthorize(AUTH_UI_READ)
+    @GetMapping("/operating-points")
+    fun getOperatingPoints(bbox: BoundingBox): List<RatkoOperatingPoint> {
+        return ratkoService.getOperatingPoints(bbox);
+    }
+
 }

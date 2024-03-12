@@ -13,7 +13,8 @@ import OlView from 'ol/View';
 import {
     HELSINKI_RAILWAY_STATION_COORDS,
     Map,
-   MapLayerName, MapViewport,
+    MapLayerName,
+    MapViewport,
     OptionalShownItems,
 } from 'map/map-model';
 import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
@@ -77,6 +78,7 @@ import { createDuplicateTrackEndpointAddressLayer } from 'map/layers/alignment/l
 import { createLocationTrackSelectedAlignmentLayer } from 'map/layers/alignment/location-track-selected-alignment-layer';
 import { createLocationTrackSplitBadgeLayer } from 'map/layers/alignment/location-track-split-badge-layer';
 import { createSelectedReferenceLineAlignmentLayer } from './layers/alignment/reference-line-selected-alignment-layer';
+import { createOperatingPointLayer } from 'map/layers/operating-point/operating-points-layer';
 
 declare global {
     interface Window {
@@ -570,6 +572,12 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<Polygon>>,
                             changeTimes,
                             (loading) => onLayerLoading(layerName, loading),
+                        );
+                    case 'operating-points-layer':
+                        return createOperatingPointLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
+                            olView,
                         );
                     case 'debug-1m-points-layer':
                         return createDebug1mPointsLayer(

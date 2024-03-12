@@ -13,6 +13,8 @@ import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.publication.ValidationVersion
+import fi.fta.geoviite.infra.ratko.RatkoOperatingPointDao
+import fi.fta.geoviite.infra.ratko.model.OperationalPointType
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.util.FreeText
@@ -21,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
+const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
 
 const val BUFFER_TRANSLATION = "Puskin"
 const val OWNERSHIP_BOUNDARY_TRANSLATION = "Omistusraja"
@@ -34,6 +37,7 @@ class LocationTrackService(
     private val switchDao: LayoutSwitchDao,
     private val switchLibraryService: SwitchLibraryService,
     private val splitDao: SplitDao,
+    private val ratkoOperatingPointDao: RatkoOperatingPointDao,
 ) : LayoutAssetService<LocationTrack, LocationTrackDao>(locationTrackDao) {
 
     @Transactional
@@ -537,7 +541,14 @@ class LocationTrackService(
                         .getGeocodingContext(publishType, locationTrack.trackNumberId)
                         ?.getAddressAndM(location)
                     val mAlongAlignment = alignment.getClosestPointM(location)?.first
-                    SwitchOnLocationTrack(switch.id as IntId, switch.name, address?.address, location, mAlongAlignment)
+                    SwitchOnLocationTrack(
+                        switch.id as IntId,
+                        switch.name,
+                        address?.address,
+                        location,
+                        mAlongAlignment,
+                        getNearestOperatingPoint(location),
+                    )
                 }
 
             val duplicateTracks = getLocationTrackDuplicates(locationTrackId, publishType).mapNotNull { duplicate ->
@@ -553,10 +564,21 @@ class LocationTrackService(
             }
 
             SplittingInitializationParameters(
-                locationTrackId, switches, duplicateTracks
+                locationTrackId, switches, duplicateTracks,
+                nearestOperatingPointToStart = getNearestOperatingPoint(alignment.firstSegmentStart!!.toPoint()),
+                nearestOperatingPointToEnd = getNearestOperatingPoint(alignment.lastSegmentEnd!!.toPoint())
             )
         }
     }
+
+    private fun getNearestOperatingPoint(location: Point) = ratkoOperatingPointDao
+        .getOperatingPoints(
+            boundingBoxAroundPoint(
+                location, OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE
+            )
+        )
+        .filter { op -> op.type == OperationalPointType.LPO || op.type == OperationalPointType.LP }
+        .minByOrNull { operatingPoint -> lineLength(operatingPoint.location, location) }
 
     @Transactional(readOnly = true)
     fun getSwitchesForLocationTrack(

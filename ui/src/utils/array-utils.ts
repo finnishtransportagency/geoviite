@@ -263,5 +263,17 @@ export function findLastIndex<T, B>(objs: readonly T[], predicate: (obj: T) => B
     return reverseIndex >= 0 ? objs.length - 1 - reverseIndex : -1;
 }
 
+export function findInsertionIndex<T>(
+    things: readonly T[],
+    isInsertBefore: (v: T) => boolean,
+): number {
+    const i = things.findIndex(isInsertBefore);
+    return i == -1 ? things.length : i;
+}
+
+export function insertAtIndex<T>(things: readonly T[], thing: T, index: number): T[] {
+    return [...things.slice(0, index), thing, ...things.slice(index)];
+}
+
 export const findById = <T extends { id: string }>(objs: T[], id: string): T | undefined =>
     objs.find((obj) => obj.id == id);

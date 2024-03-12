@@ -289,6 +289,12 @@ export type SwitchJointTrackMeter = {
     location: Point;
 };
 
+export type OperatingPoint = {
+    name: string;
+    abbreviation: string;
+    location: Point;
+};
+
 export function combineAlignmentPoints(points: AlignmentPoint[][]): AlignmentPoint[] {
     return deduplicateById(points.flat(), (p) => p.m).sort((p1, p2) => p1.m - p2.m);
 }
