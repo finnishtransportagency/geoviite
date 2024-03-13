@@ -15,7 +15,7 @@ import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track
 import { useTranslation } from 'react-i18next';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import {
-    DraftType,
+    EditState,
     LayoutLocationTrack,
     LayoutReferenceLine,
     LocationTrackId,
@@ -91,10 +91,10 @@ function toBoundingBoxSearchResults<T extends object>(
     }));
 }
 
-function byDraftsFirst<T extends { draftType: DraftType }>(a: T, b: T) {
-    if ((a.draftType === 'OFFICIAL' || b.draftType === 'OFFICIAL') && a.draftType !== b.draftType) {
+function byDraftsFirst<T extends { editState: EditState }>(a: T, b: T) {
+    if ((a.editState === 'UNEDITED' || b.editState === 'UNEDITED') && a.editState !== b.editState) {
         // Actual drafts should be first. The order between drafts is however kept in place.
-        return a.draftType !== 'OFFICIAL' ? -1 : 1;
+        return a.editState !== 'UNEDITED' ? -1 : 1;
     }
 
     return 0;
@@ -193,7 +193,7 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
             .includes(referenceLineSearchInput);
 
         const trackNumberWithEmptyGeometryIsAlreadyPublished =
-            !line.foundWithBoundingBox && line.draftType === 'OFFICIAL';
+            !line.foundWithBoundingBox && line.editState === 'UNEDITED';
 
         const displayTrackNumberOption =
             (hasSearchInput && trackNumberMatchesSearchInput) ||

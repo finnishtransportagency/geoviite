@@ -119,7 +119,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     );
 
     const publishTypeIsDraft = publishType === 'DRAFT';
-    const locationTrackIsDraft = locationTrack.draftType !== 'OFFICIAL';
+    const locationTrackIsDraft = locationTrack.editState !== 'UNEDITED';
     const duplicatesOnOtherTracks = extraInfo?.duplicates?.some(
         (dupe) => dupe.trackNumberId !== trackNumber?.id,
     );

@@ -103,7 +103,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
     );
 
     React.useEffect(() => {
-        locationTrack && delegates.setDisabled(locationTrack?.draftType !== 'OFFICIAL');
+        locationTrack && delegates.setDisabled(locationTrack?.editState !== 'UNEDITED');
     }, [locationTrack, changeTimes.layoutLocationTrack]);
 
     const onShowTaskList = (locationTrack: LocationTrackId) => {
@@ -256,7 +256,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     const isPostingSplit = splittingState.state === 'POSTING';
 
     const firstChangedDuplicateInSplits = duplicateTracksInCurrentSplits.find(
-        (dupe) => dupe.draftType !== 'OFFICIAL',
+        (dupe) => dupe.editState !== 'UNEDITED',
     );
 
     const postSplit = () => {

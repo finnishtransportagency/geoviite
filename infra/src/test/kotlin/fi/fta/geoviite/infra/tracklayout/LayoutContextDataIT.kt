@@ -312,25 +312,25 @@ class LayoutContextDataIT @Autowired constructor(
     }
 
     @Test
-    fun draftTypeOfNewDraftIsReturnedCorrectly() {
+    fun editStateOfNewDraftIsReturnedCorrectly() {
         val draft = asMainDraft(kmPost(null, someKmNumber()))
-        assertEquals(draft.draftType, ContextType.NEW_DRAFT)
+        assertEquals(draft.editState, EditState.CREATED)
         assertFalse(draft.isOfficial)
         assertTrue(draft.isDraft)
     }
 
     @Test
-    fun draftTypeOfOfficialIsReturnedCorrectly() {
+    fun editStateOfOfficialIsReturnedCorrectly() {
         val official = insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber()))
-        assertEquals(official.draftType, ContextType.OFFICIAL)
+        assertEquals(official.editState, EditState.UNEDITED)
         assertTrue(official.isOfficial)
         assertFalse(official.isDraft)
     }
 
     @Test
-    fun draftTypeOfChangedDraftIsReturnedCorrectly() {
+    fun editStateOfChangedDraftIsReturnedCorrectly() {
         val edited = asMainDraft(insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber())))
-        assertEquals(edited.draftType, ContextType.EDITED_DRAFT)
+        assertEquals(edited.editState, EditState.EDITED)
         assertFalse(edited.isOfficial)
         assertTrue(edited.isDraft)
     }

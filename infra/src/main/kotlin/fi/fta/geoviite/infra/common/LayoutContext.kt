@@ -96,7 +96,6 @@ data class MainLayoutContext private constructor(override val state: Publication
             PublicationState.OFFICIAL -> official
             PublicationState.DRAFT -> draft
         }
-
     }
 }
 

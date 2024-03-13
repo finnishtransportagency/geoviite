@@ -132,7 +132,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 }
                 verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
             />
-            {locationTrack.draftType !== 'NEW_DRAFT' && (
+            {locationTrack.editState !== 'CREATED' && (
                 <LocationTrackValidationInfoboxContainer
                     contentVisible={visibilities.validation}
                     onContentVisibilityChange={() => visibilityChange('validation')}
