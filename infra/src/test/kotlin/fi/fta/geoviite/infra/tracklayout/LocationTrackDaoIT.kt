@@ -14,7 +14,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType.MAIN
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType.SIDE
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -48,7 +47,7 @@ class LocationTrackDaoIT @Autowired constructor(
         assertEquals(version, locationTrackDao.fetchVersion(id, OFFICIAL))
         assertEquals(version, locationTrackDao.fetchVersion(id, DRAFT))
         val fromDb = locationTrackDao.fetch(version)
-        assertMatches(locationTrack, fromDb)
+        assertMatches(locationTrack, fromDb, contextMatch = false)
         assertEquals(id, fromDb.id)
 
         val updatedTrack = fromDb.copy(
@@ -64,7 +63,7 @@ class LocationTrackDaoIT @Autowired constructor(
         assertEquals(updatedVersion, locationTrackDao.fetchVersion(version.id, OFFICIAL))
         assertEquals(updatedVersion, locationTrackDao.fetchVersion(version.id, DRAFT))
         val updatedFromDb = locationTrackDao.fetch(updatedVersion)
-        assertMatches(updatedTrack, updatedFromDb)
+        assertMatches(updatedTrack, updatedFromDb, contextMatch = false)
         assertEquals(id, updatedFromDb.id)
     }
 
@@ -105,7 +104,7 @@ class LocationTrackDaoIT @Autowired constructor(
         assertEquals(id, inserted.id)
         assertEquals(VersionPair(insertVersion, null), locationTrackDao.fetchVersionPair(id))
 
-        val tempDraft1 = draft(inserted).copy(name = AlignmentName("test2"))
+        val tempDraft1 = asMainDraft(inserted).copy(name = AlignmentName("test2"))
         val (draftId1, draftVersion1) = locationTrackDao.insert(tempDraft1)
         val draft1 = locationTrackDao.fetch(draftVersion1)
         assertEquals(id, draftId1)
@@ -275,9 +274,9 @@ class LocationTrackDaoIT @Autowired constructor(
     }
 
     private fun insertOfficialLocationTrack(tnId: IntId<TrackLayoutTrackNumber>): DaoResponse<LocationTrack> {
-        val (track, alignment) = locationTrackAndAlignment(tnId)
+        val (track, alignment) = locationTrackAndAlignment(tnId, draft = false)
         val alignmentVersion = alignmentDao.insert(alignment)
-        return locationTrackDao.insert(track.copy(draft = null, alignmentVersion = alignmentVersion))
+        return locationTrackDao.insert(track.copy(alignmentVersion = alignmentVersion))
     }
 
     private fun insertDraftLocationTrack(
@@ -286,7 +285,7 @@ class LocationTrackDaoIT @Autowired constructor(
     ): DaoResponse<LocationTrack> {
         val (track, alignment) = locationTrackAndAlignment(tnId)
         val alignmentVersion = alignmentDao.insert(alignment)
-        return locationTrackDao.insert(draft(track).copy(state = state, alignmentVersion = alignmentVersion))
+        return locationTrackDao.insert(asMainDraft(track).copy(state = state, alignmentVersion = alignmentVersion))
     }
 
     private fun createDraftWithNewTrackNumber(
@@ -294,10 +293,10 @@ class LocationTrackDaoIT @Autowired constructor(
         newTrackNumber: IntId<TrackLayoutTrackNumber>,
     ): DaoResponse<LocationTrack> {
         val track = locationTrackDao.fetch(trackVersion)
-        assertNull(track.draft)
+        assertFalse(track.isDraft)
         val alignmentVersion = alignmentService.duplicate(track.alignmentVersion!!)
         return locationTrackDao.insert(
-            draft(track).copy(
+            asMainDraft(track).copy(
                 alignmentVersion = alignmentVersion,
                 trackNumberId = newTrackNumber,
             )
@@ -306,7 +305,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     private fun updateOfficial(originalVersion: RowVersion<LocationTrack>): DaoResponse<LocationTrack> {
         val original = locationTrackDao.fetch(originalVersion)
-        assertNull(original.draft)
+        assertFalse(original.isDraft)
         return locationTrackDao.update(original.copy(descriptionBase = original.descriptionBase + "_update"))
     }
 }

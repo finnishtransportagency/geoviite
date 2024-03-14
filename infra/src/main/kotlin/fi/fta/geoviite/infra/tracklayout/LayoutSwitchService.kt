@@ -24,7 +24,7 @@ class LayoutSwitchService @Autowired constructor(
     dao: LayoutSwitchDao,
     private val switchLibraryService: SwitchLibraryService,
     private val locationTrackService: LocationTrackService,
-) : DraftableObjectService<TrackLayoutSwitch, LayoutSwitchDao>(dao) {
+) : LayoutAssetService<TrackLayoutSwitch, LayoutSwitchDao>(dao) {
 
     @Transactional
     fun insertSwitch(request: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
@@ -40,6 +40,7 @@ class LayoutSwitchService @Autowired constructor(
             trapPoint = request.trapPoint,
             ownerId = request.ownerId,
             source = GeometrySource.GENERATED,
+            contextData = LayoutContextData.newDraft(),
         )
         return saveDraftInternal(switch).id
     }
@@ -56,7 +57,6 @@ class LayoutSwitchService @Autowired constructor(
         }
 
         val updatedLayoutSwitch = layoutSwitch.copy(
-            id = id,
             name = switch.name,
             switchStructureId = switch.switchStructureId,
             stateCategory = switch.stateCategory,
@@ -70,7 +70,8 @@ class LayoutSwitchService @Autowired constructor(
     @Transactional
     override fun deleteDraft(id: IntId<TrackLayoutSwitch>): DaoResponse<TrackLayoutSwitch> {
         val draft = dao.getOrThrow(DRAFT, id)
-        if (draft.isNewDraft()) {
+        // If removal also breaks references, clear them out first
+        if (draft.contextData.officialRowId == null) {
             clearSwitchInformationFromSegments(id)
         }
         return super.deleteDraft(id)
@@ -137,10 +138,6 @@ class LayoutSwitchService @Autowired constructor(
 
     private fun withStructure(switch: TrackLayoutSwitch): Pair<TrackLayoutSwitch, SwitchStructure> =
         switch to switchLibraryService.getSwitchStructure(switch.switchStructureId)
-
-    override fun createDraft(item: TrackLayoutSwitch) = draft(item)
-
-    override fun createPublished(item: TrackLayoutSwitch) = published(item)
 
     @Transactional(readOnly = true)
     fun getSwitchJointConnections(

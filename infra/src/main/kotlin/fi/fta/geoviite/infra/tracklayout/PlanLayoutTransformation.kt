@@ -56,7 +56,6 @@ fun toTrackLayoutKmPosts(
     kmPosts: List<GeometryKmPost>,
     planToLayout: Transformation,
 ): List<TrackLayoutKmPost> {
-
     return kmPosts.mapNotNull { kmPost ->
         if (kmPost.location != null && kmPost.kmNumber != null) {
             TrackLayoutKmPost(
@@ -65,6 +64,7 @@ fun toTrackLayoutKmPosts(
                 state = getLayoutStateOrDefault(kmPost.state),
                 sourceId = kmPost.id,
                 trackNumberId = trackNumberId,
+                contextData = LayoutContextData.newDraft(deriveFromSourceId("KMP_", kmPost.id)),
             )
         } else null
     }
@@ -88,6 +88,7 @@ fun toTrackLayoutSwitch(switch: GeometrySwitch, toMapCoordinate: Transformation)
         trapPoint = null,
         ownerId = null,
         source = GeometrySource.PLAN,
+        contextData = LayoutContextData.newDraft(deriveFromSourceId("S_", switch.id)),
     )
 
 fun toTrackLayoutSwitches(

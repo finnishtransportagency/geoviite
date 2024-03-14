@@ -9,59 +9,48 @@ private const val LENGTH_DELTA: Double = 0.00001
 private const val HEIGHT_DELTA: Double = 0.000001
 private const val CANT_DELTA: Double = 0.000001
 
-fun assertMatches(expected: TrackLayoutTrackNumber, actual: TrackLayoutTrackNumber, idMatch: Boolean = false) {
-    if (idMatch) {
+fun assertMatches(expected: TrackLayoutTrackNumber, actual: TrackLayoutTrackNumber, contextMatch: Boolean = false) {
+    if (contextMatch) {
         assertEquals(expected, actual)
     } else {
         val unified = actual.copy(
-            id = expected.id,
-            dataType = expected.dataType,
-            draft = expected.draft,
+            contextData = expected.contextData,
             version = expected.version,
         )
         assertEquals(expected, unified)
-        assertEquals(expected.draft != null, actual.draft != null)
     }
 }
 
-fun assertMatches(expected: ReferenceLine, actual: ReferenceLine, idMatch: Boolean = false) {
+fun assertMatches(expected: ReferenceLine, actual: ReferenceLine, contextMatch: Boolean = false) {
     val expectedWithSameFloats = expected.copy(
         boundingBox = actual.boundingBox,
         length = actual.length,
     )
-    if (idMatch) {
+    if (contextMatch) {
         assertEquals(expectedWithSameFloats, actual)
     } else {
         val unified = actual.copy(
-            id = expected.id,
-            dataType = expected.dataType,
-            draft = expected.draft,
+            contextData = expected.contextData,
             version = expected.version,
         )
         assertEquals(expectedWithSameFloats, unified)
-        assertEquals(expected.sourceId != null, actual.sourceId != null)
-        assertEquals(expected.draft != null, actual.draft != null)
     }
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
 }
 
-fun assertMatches(expected: LocationTrack, actual: LocationTrack, idMatch: Boolean = false) {
+fun assertMatches(expected: LocationTrack, actual: LocationTrack, contextMatch: Boolean = false) {
     val expectedWithSameFloats = expected.copy(
         boundingBox = actual.boundingBox,
         length = actual.length,
     )
-    if (idMatch) {
+    if (contextMatch) {
         assertEquals(expectedWithSameFloats, actual)
     } else {
         val unified = actual.copy(
-            id = expected.id,
-            dataType = expected.dataType,
-            draft = expected.draft,
+            contextData = expected.contextData,
             version = expected.version,
         )
         assertEquals(expectedWithSameFloats, unified)
-        assertEquals(expected.sourceId != null, actual.sourceId != null)
-        assertEquals(expected.draft != null, actual.draft != null)
     }
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
 }
@@ -111,20 +100,17 @@ fun assertMatches(expected: AlignmentPoint, actual: AlignmentPoint) {
     else assertEquals(expected.cant!!, actual.cant!!, CANT_DELTA)
 }
 
-fun assertMatches(expected: TrackLayoutKmPost, actual: TrackLayoutKmPost, idMatch: Boolean = false) {
-    if (idMatch) {
+fun assertMatches(expected: TrackLayoutKmPost, actual: TrackLayoutKmPost, contextMatch: Boolean = false) {
+    if (contextMatch) {
         assertEquals(expected, actual)
     } else {
         val unified = actual.copy(
-            id = expected.id,
+            contextData = expected.contextData,
             sourceId = expected.sourceId,
-            dataType = expected.dataType,
-            draft = expected.draft,
             version = expected.version,
         )
         assertEquals(expected, unified)
         assertEquals(expected.sourceId != null, actual.sourceId != null)
-        assertEquals(expected.draft != null, actual.draft != null)
     }
     assertEquals(expected.location == null, actual.location == null)
     if (expected.location != null) {
@@ -132,20 +118,16 @@ fun assertMatches(expected: TrackLayoutKmPost, actual: TrackLayoutKmPost, idMatc
     }
 }
 
-fun assertMatches(expected: TrackLayoutSwitch, actual: TrackLayoutSwitch, idMatch: Boolean = false) {
+fun assertMatches(expected: TrackLayoutSwitch, actual: TrackLayoutSwitch, contextMatch: Boolean = false) {
     val expectedWithSameFloats = expected.copy(joints = actual.joints, switchStructureId = actual.switchStructureId)
-    if (idMatch) {
+    if (contextMatch) {
         assertEquals(expectedWithSameFloats, actual)
     } else {
         val unified = actual.copy(
-            id = expected.id,
-            dataType = expected.dataType,
-            draft = expected.draft,
+            contextData = expected.contextData,
             version = expected.version,
         )
         assertEquals(expectedWithSameFloats, unified)
-        assertEquals(expected.sourceId != null, actual.sourceId != null)
-        assertEquals(expected.draft != null, actual.draft != null)
     }
     assertEquals(expected.switchStructureId, actual.switchStructureId)
     assertEquals(expected.joints.size, actual.joints.size)

@@ -34,7 +34,7 @@ class LocationTrackService(
     private val switchDao: LayoutSwitchDao,
     private val switchLibraryService: SwitchLibraryService,
     private val splitDao: SplitDao,
-) : DraftableObjectService<LocationTrack, LocationTrackDao>(locationTrackDao) {
+) : LayoutAssetService<LocationTrack, LocationTrackDao>(locationTrackDao) {
 
     @Transactional
     fun insert(request: LocationTrackSaveRequest): DaoResponse<LocationTrack> {
@@ -58,6 +58,7 @@ class LocationTrackService(
             topologyStartSwitch = null,
             topologyEndSwitch = null,
             ownerId = request.ownerId,
+            contextData = LayoutContextData.newDraft(),
         )
         return saveDraftInternal(locationTrack)
     }
@@ -108,9 +109,9 @@ class LocationTrackService(
     override fun saveDraft(draft: LocationTrack): DaoResponse<LocationTrack> =
         super.saveDraft(draft.copy(alignmentVersion = updatedAlignmentVersion(draft)))
 
-    private fun updatedAlignmentVersion(track: LocationTrack) =
+    private fun updatedAlignmentVersion(track: LocationTrack): RowVersion<LayoutAlignment>? =
         // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
-        if (track.dataType == TEMP || track.draft == null) alignmentService.duplicateOrNew(track.alignmentVersion)
+        if (track.dataType == TEMP || track.isOfficial) alignmentService.duplicateOrNew(track.alignmentVersion)
         else track.alignmentVersion
 
     @Transactional
@@ -118,7 +119,7 @@ class LocationTrackService(
         logger.serviceCall("save", "locationTrack" to draft, "alignment" to alignment)
         val alignmentVersion =
             // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
-            if (draft.dataType == TEMP || draft.draft == null) {
+            if (draft.dataType == TEMP || draft.isOfficial) {
                 alignmentService.saveAsNew(alignment)
             }
             // Ensure that we update the correct one.
@@ -159,7 +160,8 @@ class LocationTrackService(
     @Transactional
     override fun deleteDraft(id: IntId<LocationTrack>): DaoResponse<LocationTrack> {
         val draft = dao.getOrThrow(DRAFT, id)
-        if (draft.isNewDraft()) {
+        // If removal also breaks references, clear them out first
+        if (draft.contextData.officialRowId == null) {
             clearDuplicateReferences(id)
         }
         val deletedVersion = super.deleteDraft(id)
@@ -181,12 +183,8 @@ class LocationTrackService(
     fun clearDuplicateReferences(id: IntId<LocationTrack>) = dao
         .fetchDuplicateVersions(id, DRAFT, includeDeleted = true)
         .map(dao::fetch)
-        .map(::draft)
+        .map(::asMainDraft)
         .forEach { duplicate -> saveDraft(duplicate.copy(duplicateOf = null)) }
-
-    override fun createDraft(item: LocationTrack) = draft(item)
-
-    override fun createPublished(item: LocationTrack) = published(item)
 
     fun listNonLinked(): List<LocationTrack> {
         logger.serviceCall("listNonLinked")
@@ -336,8 +334,11 @@ class LocationTrackService(
             "publishType" to publishType,
             "boundingBox" to boundingBox
         )
-        val locationTrack = getOrThrow(publishType, locationTrackId)
-        val geocodingContext = geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId)
+        val locationTrack = get(publishType, locationTrackId)
+        val geocodingContext = locationTrack?.let {
+            geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId)
+        }
+
         return if (geocodingContext != null && locationTrack.alignmentVersion != null) {
             alignmentService.getGeometryMetadataSections(
                 locationTrack.alignmentVersion,

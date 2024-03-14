@@ -199,7 +199,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                 onClose={close}
                 footerContent={
                     <React.Fragment>
-                        {state.existingKmPost?.draftType === 'NEW_DRAFT' && !state.isNewKmPost && (
+                        {state.existingKmPost?.editState === 'CREATED' && !state.isNewKmPost && (
                             <Button
                                 onClick={() =>
                                     props.kmPostId
@@ -213,7 +213,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                         )}
                         <div
                             className={
-                                state.existingKmPost?.draftType === 'NEW_DRAFT'
+                                state.existingKmPost?.editState === 'CREATED'
                                     ? dialogStyles['dialog__footer-content--right-aligned']
                                     : dialogStyles['dialog__footer-content--centered']
                             }>
@@ -263,7 +263,8 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             errors={getVisibleErrorsByProp('kmNumber')}>
                             {state.trackNumberKmPost &&
                                 state.trackNumberKmPost.id !== state.existingKmPost?.id && (
-                                    <Link className={dialogStyles['dialog__alert']}
+                                    <Link
+                                        className={dialogStyles['dialog__alert']}
                                         onClick={() =>
                                             props.onEditKmPost(state.trackNumberKmPost?.id)
                                         }>

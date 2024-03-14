@@ -19,20 +19,27 @@ class ReferenceLineService(
     private val alignmentService: LayoutAlignmentService,
     private val alignmentDao: LayoutAlignmentDao,
     private val referenceLineDao: ReferenceLineDao,
-): DraftableObjectService<ReferenceLine, ReferenceLineDao>(dao) {
+): LayoutAssetService<ReferenceLine, ReferenceLineDao>(dao) {
 
     @Transactional
     fun addTrackNumberReferenceLine(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         startAddress: TrackMeter,
     ): DaoResponse<ReferenceLine> {
-        logger.serviceCall("insertTrackNumberReferenceLine",
-            "trackNumberId" to trackNumberId, "startAddress" to startAddress)
-        return saveDraftInternal(ReferenceLine(
-            trackNumberId = trackNumberId,
-            startAddress = startAddress,
-            sourceId = null,
-        ), emptyAlignment())
+        logger.serviceCall(
+            "insertTrackNumberReferenceLine",
+            "trackNumberId" to trackNumberId,
+            "startAddress" to startAddress,
+        )
+        return saveDraftInternal(
+            ReferenceLine(
+                trackNumberId = trackNumberId,
+                startAddress = startAddress,
+                sourceId = null,
+                contextData = LayoutContextData.newDraft(),
+            ),
+            emptyAlignment(),
+        )
     }
 
     @Transactional
@@ -72,7 +79,7 @@ class ReferenceLineService(
         }
         val alignmentVersion =
             // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
-            if (draft.dataType == TEMP || draft.draft == null) {
+            if (draft.dataType == TEMP || draft.isOfficial) {
                 alignmentService.saveAsNew(alignment)
             }
             // Ensure that we update the correct one.
@@ -86,7 +93,7 @@ class ReferenceLineService(
 
     private fun updatedAlignmentVersion(line: ReferenceLine) =
         // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
-        if (line.dataType == TEMP || line.draft == null) alignmentService.duplicateOrNew(line.alignmentVersion)
+        if (line.dataType == TEMP || line.isOfficial) alignmentService.duplicateOrNew(line.alignmentVersion)
         else line.alignmentVersion
 
     @Transactional
@@ -117,12 +124,8 @@ class ReferenceLineService(
         val referenceLine = requireNotNull(referenceLineDao.getByTrackNumber(DRAFT, trackNumberId)) {
             "Found Track Number without Reference Line $trackNumberId"
         }
-        return if (referenceLine.isDraft()) deleteDraft(referenceLine.id as IntId) else null
+        return if (referenceLine.isDraft) deleteDraft(referenceLine.id as IntId) else null
     }
-
-    override fun createDraft(item: ReferenceLine) = draft(item)
-
-    override fun createPublished(item: ReferenceLine) = published(item)
 
     fun getByTrackNumber(publishType: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? {
         logger.serviceCall("getByTrackNumber",

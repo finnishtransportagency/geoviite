@@ -186,6 +186,54 @@ class SplitService(
     ): List<PublishValidationError> {
         val pendingSplits = splits.filter { it.isPending }
 
+        val trackNumberMismatchErrors = splits
+            .firstOrNull { it.targetLocationTracks.any { tlt -> tlt.locationTrackId == trackId } }
+            ?.let { split ->
+                val sourceLocationTrack = locationTrackDao.getOrThrow(OFFICIAL, split.locationTrackId)
+                split.targetLocationTracks.mapNotNull { targetLt ->
+                    val targetLocationTrack = locationTrackService.getOrThrow(DRAFT, targetLt.locationTrackId)
+                    validateTargetTrackNumber(sourceLocationTrack, targetLocationTrack)
+                }
+            } ?: emptyList()
+
+        // As an optimization, geometry error checking is skipped if the track numbers are different
+        // between any source & target location tracks. The geometry check will rarely if ever succeed
+        // for differing track numbers on source & target tracks, and differing track number for any
+        // source & target track is already a considered a publication-blocking error.
+        val splitGeometryErrors = when {
+            trackNumberMismatchErrors.isEmpty() -> validateSplitGeometries(trackId, pendingSplits)
+            else -> emptyList()
+        }
+
+        val splitSourceLocationTrackError = splits
+            .firstOrNull { it.locationTrackId == trackId }
+            ?.let {
+                validateSplitSourceLocationTrack(locationTrackService.getOrThrow(DRAFT, trackId))
+            }
+
+        val statusError = splits
+            .firstOrNull { !it.isPending }
+            ?.let {
+                PublishValidationError(
+                    PublishValidationErrorType.ERROR,
+                    "$VALIDATION_SPLIT.split-in-progress",
+                )
+            }
+
+        return listOf(
+            listOfNotNull(
+                statusError,
+                splitSourceLocationTrackError,
+            ),
+            trackNumberMismatchErrors,
+            splitGeometryErrors,
+        ).flatten()
+    }
+
+    fun validateSplitGeometries(
+        trackId: IntId<LocationTrack>,
+        pendingSplits: Collection<Split>,
+    ): List<PublishValidationError> {
         val targetGeometryError = pendingSplits
             .firstOrNull { it.targetLocationTracks.any { tlt -> tlt.locationTrackId == trackId } }
             ?.let { split ->
@@ -203,33 +251,10 @@ class SplitService(
                 validateSourceGeometry(draftAddresses, officialAddresses)
             }
 
-        val splitSourceLocationTrackErrors = splits
-            .firstOrNull { it.locationTrackId == trackId }
-            ?.let {
-                validateSplitSourceLocationTrack(locationTrackService.getOrThrow(DRAFT, trackId))
-            }
-
-        val sourceDuplicateTrackErrors = splits
-            .firstOrNull { it.targetLocationTracks.any { tlt -> tlt.locationTrackId == trackId } }
-            ?.let { split ->
-                val sourceLocationTrack = locationTrackDao.getOrThrow(DRAFT, split.locationTrackId)
-                split.targetLocationTracks.mapNotNull { targetLt ->
-                    val targetLocationTrack = locationTrackService.getOrThrow(DRAFT, targetLt.locationTrackId)
-                    validateTargetTrackNumber(sourceLocationTrack, targetLocationTrack)
-                }
-            } ?: emptyList()
-
-        val statusError = splits
-            .firstOrNull { !it.isPending }
-            ?.let {
-                PublishValidationError(
-                    PublishValidationErrorType.ERROR,
-                    "$VALIDATION_SPLIT.split-in-progress",
-                )
-            }
-
-        return sourceDuplicateTrackErrors +
-                listOfNotNull(targetGeometryError, sourceGeometryErrors, splitSourceLocationTrackErrors, statusError)
+        return listOfNotNull(
+            targetGeometryError,
+            sourceGeometryErrors,
+        )
     }
 
     fun validateSplitReferencesByTrackNumber(
@@ -259,10 +284,9 @@ class SplitService(
         // references which they referenced before the split (request source track).
         // If the references are not updated, the duplicate-of reference will be removed entirely when the
         // source track's layout state is set to "DELETED".
-        val sourceTrackDuplicateIds = locationTrackService.fetchDuplicates(DRAFT, request.sourceTrackId)
-            .map { duplicateTrack ->
-                duplicateTrack.id as IntId
-            }
+        val sourceTrackDuplicateIds = locationTrackService
+            .fetchDuplicates(DRAFT, request.sourceTrackId)
+            .map { duplicateTrack -> duplicateTrack.id as IntId }
 
         val sourceTrack = locationTrackDao.getOrThrow(DRAFT, request.sourceTrackId)
         val suggestions = verifySwitchSuggestions(switchLinkingService.getTrackSwitchSuggestions(DRAFT, sourceTrack))
@@ -276,13 +300,11 @@ class SplitService(
             targets = collectSplitTargetParams(request.targetTracks, suggestions),
         )
 
-        val savedSplitTargetLocationTracks = targetTracks.map { targetTrack ->
-            targetTrack.copy(
-                locationTrack = targetTrack.locationTrack.copy(
-                    id = saveTargetTrack(targetTrack)
-                ),
-            )
-        }
+        val savedSplitTargetLocationTracks = targetTracks
+            .map { targetTrack -> targetTrack to saveTargetTrack(targetTrack) }
+            .map { (targetTrack, response) ->
+                targetTrack.copy(locationTrack = locationTrackDao.fetch(response.rowVersion))
+            }
 
         geocodingService.getGeocodingContext(DRAFT, sourceTrack.trackNumberId)?.let { geocodingContext ->
             val splitTargetTracksWithAlignments = savedSplitTargetLocationTracks.map { splitTargetResult ->
@@ -333,8 +355,8 @@ class SplitService(
         }
     }
 
-    private fun saveTargetTrack(target: SplitTargetResult): IntId<LocationTrack> {
-        return locationTrackService.saveDraft(
+    private fun saveTargetTrack(target: SplitTargetResult): DaoResponse<LocationTrack> =
+        locationTrackService.saveDraft(
             draft = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
                 track = target.locationTrack,
                 alignment = target.alignment,
@@ -342,8 +364,7 @@ class SplitService(
                 endChanged = true,
             ),
             alignment = target.alignment,
-        ).id
-    }
+        )
 
     private fun collectSplitTargetParams(
         targets: List<SplitRequestTarget>,
@@ -470,6 +491,7 @@ private fun createSplitTarget(
         segmentCount = newAlignment.segments.size,
         length = newAlignment.length,
         boundingBox = newAlignment.boundingBox,
+        contextData = LayoutContextData.newDraft(),
     )
     return newTrack to newAlignment
 }
@@ -623,4 +645,3 @@ private fun getAlignmentStartAndEndM(
         null
     }
 }
-

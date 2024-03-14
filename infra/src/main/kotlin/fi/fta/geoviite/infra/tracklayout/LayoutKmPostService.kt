@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional
 class LayoutKmPostService(
     dao: LayoutKmPostDao,
     private val referenceLineService: ReferenceLineService,
-) : DraftableObjectService<TrackLayoutKmPost, LayoutKmPostDao>(dao) {
+) : LayoutAssetService<TrackLayoutKmPost, LayoutKmPostDao>(dao) {
 
     @Transactional
     fun insertKmPost(request: TrackLayoutKmPostSaveRequest): IntId<TrackLayoutKmPost> {
@@ -28,6 +28,7 @@ class LayoutKmPostService(
             state = request.state,
             trackNumberId = request.trackNumberId,
             sourceId = null,
+            contextData = LayoutContextData.newDraft(),
         )
         return saveDraftInternal(kmPost).id
     }
@@ -41,10 +42,6 @@ class LayoutKmPostService(
         )
         return saveDraftInternal(trackLayoutKmPost).id
     }
-
-    override fun createDraft(item: TrackLayoutKmPost) = draft(item)
-
-    override fun createPublished(item: TrackLayoutKmPost) = published(item)
 
     fun list(
         publicationState: PublishType,

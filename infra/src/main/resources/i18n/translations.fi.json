@@ -1323,11 +1323,12 @@
             },
             "split": {
                 "source-not-deleted": "Jaettava raide ei ole Poistettu-tilassa",
+                "source-and-target-track-numbers-are-different": "Jakamisessa syntynyt raide {{trackName}} on eri ratanumerolla on kuin alkuperäinen jaettu raide",
                 "duplicate-on-different-track-number": "Duplikaattiraide {{duplicateTrack}} on eri ratanumerolla kuin jaettava raide",
                 "split-missing-location-tracks": "Kaikki jakoon liittyvät sijaintiraiteet eivät ole mukana julkaisussa",
                 "split-missing-switches": "Kaikki jakoon liittyvät vaihteet eivät ole mukana julkaisussa",
                 "multiple-splits-not-allowed": "Julkaisussa on mukana useampi jaettu raide",
-                "geometry-changed": "Raiteen geometria on muuttunut",
+                "geometry-changed": "Jaettavan raiteen geometria on muuttunut",
                 "no-geometry": "Raiteella ei ole geometriaa"
             }
         }

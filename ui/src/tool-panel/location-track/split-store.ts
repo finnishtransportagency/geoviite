@@ -105,7 +105,7 @@ export const splitReducers = {
             duplicateTracks: payload.duplicateTracks,
             splits: [],
             endLocation: payload.endLocation,
-            disabled: payload.locationTrack.draftType !== 'OFFICIAL',
+            disabled: payload.locationTrack.editState !== 'UNEDITED',
             firstSplit: {
                 type: 'FIRST_SPLIT',
                 name:

@@ -61,8 +61,8 @@ fun validateTrackNumberNumberDuplication(
     duplicates: List<TrackLayoutTrackNumber>,
 ): List<PublishValidationError> {
     return if (trackNumber.exists) {
-        val officialDuplicateExists = duplicates.any { d -> d.id != trackNumber.id && d.isOfficial() }
-        val draftDuplicateExists = duplicates.any { d -> d.id != trackNumber.id && d.isDraft() }
+        val officialDuplicateExists = duplicates.any { d -> d.id != trackNumber.id && d.isOfficial }
+        val draftDuplicateExists = duplicates.any { d -> d.id != trackNumber.id && d.isDraft }
 
         listOfNotNull(
             if (!draftDuplicateExists && officialDuplicateExists) PublishValidationError(
@@ -127,8 +127,8 @@ fun validateSwitchNameDuplication(
     duplicates: List<TrackLayoutSwitch>,
 ): List<PublishValidationError> {
     return if (switch.exists) {
-        val officialDuplicateExists = duplicates.any { d -> d.id != switch.id && d.isOfficial() }
-        val draftDuplicateExists = duplicates.any { d -> d.id != switch.id && d.isDraft() }
+        val officialDuplicateExists = duplicates.any { d -> d.id != switch.id && d.isOfficial }
+        val draftDuplicateExists = duplicates.any { d -> d.id != switch.id && d.isDraft }
 
         listOfNotNull(
             validateWithParams(draftDuplicateExists || !officialDuplicateExists) {
@@ -149,8 +149,12 @@ fun validateLocationTrackNameDuplication(
     duplicates: List<LocationTrack>,
 ): List<PublishValidationError> {
     return if (track.exists && duplicates.any { d -> d.id != track.id }) {
-        val officialDuplicateExists = duplicates.any { d -> d.id != track.id && d.isOfficial() }
-        val draftDuplicateExists = duplicates.any { d -> d.id != track.id && d.isDraft() }
+        // Location track names must be unique within the same track number, but there can be location tracks with the
+        // same name on other track numbers
+        val officialDuplicateExists =
+            duplicates.any { d -> d.id != track.id && d.isOfficial && d.trackNumberId == track.trackNumberId }
+        val draftDuplicateExists =
+            duplicates.any { d -> d.id != track.id && d.isDraft && d.trackNumberId == track.trackNumberId }
         val localizationParams = localizationParams(
             "locationTrack" to track.name,
             "trackNumber" to trackNumber,
@@ -843,9 +847,6 @@ private fun validateWithParams(
 } else {
     null
 }
-
-private fun <T : Draftable<T>> isPublished(item: T, publishItemIds: List<IntId<T>>) =
-    item.draft == null || publishItemIds.contains(item.id)
 
 data class TopologyEndLink(
     val topologySwitch: TopologyLocationTrackSwitch,

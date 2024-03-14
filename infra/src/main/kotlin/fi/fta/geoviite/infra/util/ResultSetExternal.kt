@@ -10,8 +10,7 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
 import fi.fta.geoviite.infra.projektivelho.PVId
 import fi.fta.geoviite.infra.projektivelho.PVProjectName
 import fi.fta.geoviite.infra.publication.Change
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
-import fi.fta.geoviite.infra.tracklayout.LayoutDesign
+import fi.fta.geoviite.infra.tracklayout.*
 import java.sql.ResultSet
 import java.time.Instant
 
@@ -264,4 +263,28 @@ inline fun <reified T> verifyNotNull(column: String, nullableGet: (column: Strin
 inline fun <reified T> verifyType(value: Any?): T = value.let { v ->
     require(v is T) { "Value is of unexpected type: expected=${T::class.simpleName} value=${v}" }
     v
+}
+
+fun <T> ResultSet.getLayoutContextData(
+    officialRowIdName: String,
+    rowIdName: String,
+    draftFlagName: String,
+): LayoutContextData<T> {
+    // TODO: GVT-2395 Read design context data
+    val officialRowId = getIntIdOrNull<T>(officialRowIdName)
+    val rowId = getIntId<T>(rowIdName)
+    val isDraft = getBoolean(draftFlagName)
+    return if (isDraft) {
+        MainDraftContextData(
+            officialRowId = officialRowId,
+            rowId = rowId,
+            designRowId = null,
+            dataType = DataType.STORED,
+        )
+    } else {
+        require(officialRowId == null) {
+            "For official rows, official row ref should be null: officialRow=$officialRowId rowId=$rowId draft=$isDraft"
+        }
+        MainOfficialContextData(rowId, DataType.STORED)
+    }
 }
