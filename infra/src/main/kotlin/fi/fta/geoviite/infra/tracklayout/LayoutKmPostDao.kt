@@ -132,7 +132,7 @@ class LayoutKmPostDao(
             select 
               id as row_id,
               version as row_version,
-              draft_of_km_post_id as official_row_id, 
+              official_row_id, 
               draft,
               track_number_id,
               geometry_km_post_id,
@@ -158,7 +158,7 @@ class LayoutKmPostDao(
             select 
               id as row_id,
               version as row_version,
-              draft_of_km_post_id as official_row_id, 
+              official_row_id, 
               draft,
               track_number_id,
               geometry_km_post_id,
@@ -198,7 +198,7 @@ class LayoutKmPostDao(
               location, 
               state,
               draft,
-              draft_of_km_post_id
+              official_row_id
             )
             values (
               :track_number_id, 
@@ -207,10 +207,10 @@ class LayoutKmPostDao(
               postgis.st_setsrid(postgis.st_point(:point_x, :point_y), :srid), 
               :state::layout.state,
               :draft,
-              :draft_of_km_post_id
+              :official_row_id
             )
             returning 
-              coalesce(draft_of_km_post_id, id) as official_id,
+              coalesce(official_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -223,7 +223,7 @@ class LayoutKmPostDao(
             "srid" to LAYOUT_SRID.code,
             "state" to newItem.state.name,
             "draft" to newItem.contextData.isDraft,
-            "draft_of_km_post_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
+            "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
@@ -249,10 +249,10 @@ class LayoutKmPostDao(
               end,
               state = :state::layout.state,
               draft = :draft,
-              draft_of_km_post_id = :draft_of_km_post_id
+              official_row_id = :official_row_id
             where id = :km_post_id
             returning 
-              coalesce(draft_of_km_post_id, id) as official_id,
+              coalesce(official_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -267,7 +267,7 @@ class LayoutKmPostDao(
             "srid" to LAYOUT_SRID.code,
             "state" to updatedItem.state.name,
             "draft" to updatedItem.isDraft,
-            "draft_of_km_post_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
+            "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->

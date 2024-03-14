@@ -17,9 +17,9 @@ select
   row.draft,
   (case
      when row.draft = true then '{"DRAFT"}'
-     when exists(select 1 from layout.track_number as d where d.draft_of_track_number_id = row.id) then '{"OFFICIAL"}'
+     when exists(select 1 from layout.track_number as d where d.official_row_id = row.id) then '{"OFFICIAL"}'
      else '{"DRAFT","OFFICIAL"}'
    end)::varchar[] as publication_states
   from layout.track_number row
-    left join layout.track_number official on row.draft_of_track_number_id = official.id
+    left join layout.track_number official on row.official_row_id = official.id
 );

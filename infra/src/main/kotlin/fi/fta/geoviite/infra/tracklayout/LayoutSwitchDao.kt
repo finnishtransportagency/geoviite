@@ -142,7 +142,7 @@ class LayoutSwitchDao(
                 trap_point,
                 owner_id,
                 draft,
-                draft_of_switch_id,
+                official_row_id,
                 source
             )
             values (
@@ -154,11 +154,11 @@ class LayoutSwitchDao(
               :trap_point,
               :owner_id,
               :draft,
-              :draft_of_switch_id,
+              :official_row_id,
               :source::layout.geometry_source
             )
             returning 
-              coalesce(draft_of_switch_id, id) as official_id,
+              coalesce(official_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -173,7 +173,7 @@ class LayoutSwitchDao(
                 "trap_point" to newItem.trapPoint,
                 "owner_id" to newItem.ownerId?.intValue,
                 "draft" to newItem.isDraft,
-                "draft_of_switch_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
+                "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
                 "source" to newItem.source.name
             )
         ) { rs, _ -> rs.getDaoResponse("official_id", "row_id", "row_version") }
@@ -195,11 +195,11 @@ class LayoutSwitchDao(
               state_category = :state_category::layout.state_category,
               trap_point = :trap_point,
               draft = :draft,
-              draft_of_switch_id = :draft_of_switch_id,
+              official_row_id = :official_row_id,
               owner_id = :owner_id
             where id = :id
             returning 
-              coalesce(draft_of_switch_id, id) as official_id,
+              coalesce(official_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -212,7 +212,7 @@ class LayoutSwitchDao(
             "state_category" to updatedItem.stateCategory.name,
             "trap_point" to updatedItem.trapPoint,
             "draft" to updatedItem.isDraft,
-            "draft_of_switch_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
+            "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
             "owner_id" to updatedItem.ownerId?.intValue
         )
         jdbcTemplate.setUser()
@@ -285,7 +285,7 @@ class LayoutSwitchDao(
             select 
               sv.id as row_id,
               sv.version as row_version,
-              sv.draft_of_switch_id as official_row_id, 
+              sv.official_row_id, 
               sv.draft,
               sv.geometry_switch_id, 
               sv.external_id, 
@@ -320,7 +320,7 @@ class LayoutSwitchDao(
             select 
               s.id as row_id,
               s.version as row_version,
-              s.draft_of_switch_id as official_row_id, 
+              s.official_row_id, 
               s.draft,
               s.geometry_switch_id, 
               s.external_id, 

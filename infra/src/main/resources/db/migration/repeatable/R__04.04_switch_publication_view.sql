@@ -21,9 +21,9 @@ select
   row.draft,
   (case
      when row.draft = true then '{"DRAFT"}'
-     when exists(select 1 from layout.switch as d where d.draft_of_switch_id = row.id) then '{"OFFICIAL"}'
+     when exists(select 1 from layout.switch as d where d.official_row_id = row.id) then '{"OFFICIAL"}'
      else '{"DRAFT","OFFICIAL"}'
    end)::varchar[] as publication_states
   from layout.switch row
-    left join layout.switch official on row.draft_of_switch_id = official.id
+    left join layout.switch official on row.official_row_id = official.id
 );

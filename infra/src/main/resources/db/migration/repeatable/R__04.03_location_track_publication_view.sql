@@ -31,11 +31,11 @@ select
   alignment.segment_count,
   (case
      when row.draft = true then '{"DRAFT"}'
-     when exists(select 1 from layout.location_track as d where d.draft_of_location_track_id = row.id)
+     when exists(select 1 from layout.location_track as d where d.official_row_id = row.id)
        then '{"OFFICIAL"}'
      else '{"DRAFT","OFFICIAL"}'
    end)::varchar[] as publication_states
   from layout.location_track row
-    left join layout.location_track official on row.draft_of_location_track_id = official.id
+    left join layout.location_track official on row.official_row_id = official.id
     left join layout.alignment on row.alignment_id = alignment.id
     );
