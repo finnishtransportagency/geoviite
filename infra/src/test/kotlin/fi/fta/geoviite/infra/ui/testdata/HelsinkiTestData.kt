@@ -11,7 +11,7 @@ import fi.fta.geoviite.infra.util.FreeText
 import java.math.BigDecimal
 import java.time.Instant
 
-class HelsinkiTestData {
+class HelsinkiTestData private constructor() {
     companion object {
         const val GEOMETRY_PLAN_NAME = "Helsinki test project"
         var WEST_LT_NAME = "lt-west"
@@ -84,6 +84,7 @@ class HelsinkiTestData {
                 trackNumber = trackNumber,
                 basePoint = HKI_BASE_POINT + Point(x = 675.0, y = 410.0),
                 incrementPoints = listOf(Point(x = 15.0, y = 90.0), Point(x = 5.0, y = 60.0)),
+                draft = false,
             )
         }
 
@@ -98,6 +99,7 @@ class HelsinkiTestData {
                 alignment = alignment,
                 trackNumberId = trackNumber,
                 startAddress = TrackMeter(KmNumber(2), 150),
+                draft = false,
             ) to alignment
         }
 
@@ -112,6 +114,7 @@ class HelsinkiTestData {
                 alignment = alignment,
                 trackNumberId = trackNumber,
                 startAddress = TrackMeter(KmNumber(2), 150),
+                draft = false,
             ) to alignment
         }
 
@@ -121,6 +124,7 @@ class HelsinkiTestData {
                 trackNumber = trackNumberId,
                 basePoint = HKI_BASE_POINT + Point(x = 752.0, y = 410.0),
                 incrementPoints = listOf(Point(x = 0.0, y = 150.0)),
+                draft = false,
             )
         }
 
@@ -134,7 +138,6 @@ class HelsinkiTestData {
                 trackLayoutKmPost("0002we", trackNumber, point2),
                 trackLayoutKmPost("0003we", trackNumber, point3)
             )
-
         }
 
         fun eastTrackLayoutKmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> {

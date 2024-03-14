@@ -141,7 +141,12 @@ class GeometryElementListTestUI @Autowired constructor(
             )
         )
         locationTrackDao.insert(
-            locationTrack(trackNumberId, name = "foo test track").copy(alignmentVersion = locationTrackAlignment)
+            locationTrack(
+                trackNumberId = trackNumberId,
+                name = "foo test track",
+                alignmentVersion = locationTrackAlignment,
+                draft = false,
+            )
         )
     }
 }

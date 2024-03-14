@@ -140,10 +140,10 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
     }
 
     fun insertUniqueSwitch(): DaoResponse<TrackLayoutSwitch> =
-        insertSwitch(switch(name = getUnusedSwitchName().toString()))
+        insertSwitch(switch(name = getUnusedSwitchName().toString(), draft = false))
 
     fun insertUniqueDraftSwitch(): DaoResponse<TrackLayoutSwitch> =
-        insertSwitch(asMainDraft(switch(name = getUnusedSwitchName().toString())))
+        insertSwitch(asMainDraft(switch(name = getUnusedSwitchName().toString(), draft = true)))
 
     fun insertSwitch(switch: TrackLayoutSwitch): DaoResponse<TrackLayoutSwitch> = transactional {
         jdbc.setUser()

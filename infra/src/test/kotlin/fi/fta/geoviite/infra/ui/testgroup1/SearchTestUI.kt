@@ -28,7 +28,14 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
             "test-lt B3" to "test-desc-3",
         )
         ltNames.forEach { (name, desc) ->
-            locationTrackAndAlignment(trackNumberId = tnId, name = name, description = desc).let(::insertLocationTrack)
+            insertLocationTrack(
+                locationTrackAndAlignment(
+                    trackNumberId = tnId,
+                    name = name,
+                    description = desc,
+                    draft = false,
+                )
+            )
         }
 
         startGeoviite()
@@ -50,7 +57,8 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
         val (track, alignment) = locationTrackAndAlignment(
             trackNumberId = trackNumber.id as IntId,
             name = "test-lt specific 001",
-            description = "specific track selection test track 001"
+            description = "specific track selection test track 001",
+            draft = false,
         )
         insertLocationTrack(track, alignment)
 

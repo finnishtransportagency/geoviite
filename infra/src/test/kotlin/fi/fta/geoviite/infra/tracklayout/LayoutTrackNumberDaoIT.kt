@@ -52,15 +52,15 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
             jdbc.update(deleteSql, mapOf("external_id" to oid))
         }
 
-        val tn1 = trackNumber(getUnusedTrackNumber()).copy(externalId = oid)
-        val tn2 = trackNumber(getUnusedTrackNumber()).copy(externalId = oid)
+        val tn1 = trackNumber(getUnusedTrackNumber(), externalId = oid, draft = false)
+        val tn2 = trackNumber(getUnusedTrackNumber(), externalId = oid, draft = false)
         trackNumberDao.insert(tn1)
         assertThrows<DuplicateKeyException> { trackNumberDao.insert(tn2) }
     }
 
     @Test
     fun trackNumberVersioningWorks() {
-        val tempTrackNumber = trackNumber(getUnusedTrackNumber(), description = "test 1")
+        val tempTrackNumber = trackNumber(getUnusedTrackNumber(), description = "test 1", draft = false)
         val (id, insertVersion) = trackNumberDao.insert(tempTrackNumber)
         val inserted = trackNumberDao.fetch(insertVersion)
         assertMatches(tempTrackNumber, inserted, contextMatch = false)

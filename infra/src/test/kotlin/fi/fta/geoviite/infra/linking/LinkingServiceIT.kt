@@ -39,16 +39,14 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun alignmentGeometryLinkingWorks() {
-        val trackNumberId = trackNumberDao.insert(
-            trackNumber(TrackNumber(System.currentTimeMillis().toString()))
-        )
+        val trackNumberId = getUnusedTrackNumberId()
 
         val geometryStart = Point(377680.0, 6676160.0)
         // 6m of geometry to replace
         val geometrySegmentChange = geometryStart + Point(3.0, 3.5)
         val geometryEnd = geometrySegmentChange + Point(3.0, 2.5)
         val plan = plan(
-            trackNumberId.id, Srid(3067), geometryAlignment(
+            trackNumberId, Srid(3067), geometryAlignment(
                 line(geometryStart, geometrySegmentChange),
                 line(geometrySegmentChange, geometryEnd),
             )
@@ -81,7 +79,7 @@ class LinkingServiceIT @Autowired constructor(
         )
 
         val (locationTrack, alignment) = locationTrackAndAlignment(
-            insertOfficialTrackNumber(), segment1, segment2, segment3
+            insertOfficialTrackNumber(), segment1, segment2, segment3, draft = true
         )
         val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(locationTrack, alignment)
         locationTrackService.publish(ValidationVersion(locationTrackId, locationTrackVersion))
@@ -124,7 +122,10 @@ class LinkingServiceIT @Autowired constructor(
         assertEquals(geometryLayoutAlignment.segments.size + 3, draftAlignment.segments.size)
         assertEquals(6, draftAlignment.segments[0].alignmentPoints.size)
         for (i in 0..geometryLayoutAlignment.segments.lastIndex) {
-            assertEquals(geometryLayoutAlignment.segments[i].alignmentPoints.size, draftAlignment.segments[i].alignmentPoints.size)
+            assertEquals(
+                geometryLayoutAlignment.segments[i].alignmentPoints.size,
+                draftAlignment.segments[i].alignmentPoints.size,
+            )
         }
         assertEquals(2, draftAlignment.segments[1 + geometryLayoutAlignment.segments.size].alignmentPoints.size)
         assertEquals(3, draftAlignment.segments[2 + geometryLayoutAlignment.segments.size].alignmentPoints.size)
@@ -132,14 +133,14 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun kmPostGeometryLinkingWorks() {
-        val kmPost = kmPost(insertOfficialTrackNumber(), someKmNumber())
+        val kmPost = kmPost(insertOfficialTrackNumber(), someKmNumber(), draft = false)
         val kmPostId = kmPostDao.insert(kmPost).id
         val officialKmPost = kmPostService.get(OFFICIAL, kmPostId)
 
         assertMatches(officialKmPost!!, kmPostService.getOrThrow(DRAFT, kmPostId), contextMatch = false)
 
         val trackNumberId = trackNumberDao.insert(
-            trackNumber(TrackNumber(System.currentTimeMillis().toString()))
+            trackNumber(TrackNumber(System.currentTimeMillis().toString()), draft = false)
         )
         val plan = plan(trackNumberId.id)
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null).id
@@ -163,18 +164,17 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun `Linking alignments throws if alignment is deleted`() {
-        val trackNumberId = trackNumberDao.insert(
-            trackNumber(TrackNumber(System.currentTimeMillis().toString()))
-        )
-        val plan = plan(trackNumberId.id, LAYOUT_SRID)
+        val trackNumberId = getUnusedTrackNumberId()
+        val plan = plan(trackNumberId, LAYOUT_SRID)
 
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
-        val (locationTrack, alignment) = locationTrackAndAlignment(insertOfficialTrackNumber())
-        val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(
-            locationTrack.copy(state = LayoutState.DELETED),
-            alignment
+        val (locationTrack, alignment) = locationTrackAndAlignment(
+            trackNumberId = insertOfficialTrackNumber(),
+            state = LayoutState.DELETED,
+            draft = true,
         )
+        val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(locationTrack, alignment)
         locationTrackService.publish(ValidationVersion(locationTrackId, locationTrackVersion))
 
         val geometryInterval = GeometryInterval(
@@ -192,7 +192,7 @@ class LinkingServiceIT @Autowired constructor(
                 LinkingParameters(
                     geometryPlanId.id,
                     geometryInterval,
-                    layoutInterval
+                    layoutInterval,
                 )
             )
         }
@@ -201,14 +201,12 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun `Linking alignments throws if alignment has splits`() {
-        val trackNumberId = trackNumberDao.insert(
-            trackNumber(TrackNumber(System.currentTimeMillis().toString()))
-        )
-        val plan = plan(trackNumberId.id, LAYOUT_SRID)
+        val trackNumberId = getUnusedTrackNumberId()
+        val plan = plan(trackNumberId, LAYOUT_SRID)
 
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
-        val (locationTrack, alignment) = locationTrackAndAlignment(insertOfficialTrackNumber())
+        val (locationTrack, alignment) = locationTrackAndAlignment(insertOfficialTrackNumber(), draft = true)
         val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(locationTrack, alignment)
         locationTrackService.publish(ValidationVersion(locationTrackId, locationTrackVersion))
 
@@ -239,16 +237,14 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun `Linking alignments works if all alignment splits are finished`() {
-        val trackNumberId = trackNumberDao.insert(
-            trackNumber(TrackNumber(System.currentTimeMillis().toString()))
-        )
+        val trackNumberId = getUnusedTrackNumberId()
 
         val geometryStart = Point(377680.0, 6676160.0)
         // 6m of geometry to replace
         val geometrySegmentChange = geometryStart + Point(3.0, 3.5)
         val geometryEnd = geometrySegmentChange + Point(3.0, 2.5)
         val plan = plan(
-            trackNumberId.id, LAYOUT_SRID, geometryAlignment(
+            trackNumberId, LAYOUT_SRID, geometryAlignment(
                 line(geometryStart, geometrySegmentChange),
                 line(geometrySegmentChange, geometryEnd),
             )
@@ -268,7 +264,7 @@ class LinkingServiceIT @Autowired constructor(
         )
 
         val (locationTrack, alignment) = locationTrackAndAlignment(
-            insertOfficialTrackNumber(), segment1
+            insertOfficialTrackNumber(), segment1, draft = true,
         )
         val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(locationTrack, alignment)
         locationTrackService.publish(ValidationVersion(locationTrackId, locationTrackVersion))

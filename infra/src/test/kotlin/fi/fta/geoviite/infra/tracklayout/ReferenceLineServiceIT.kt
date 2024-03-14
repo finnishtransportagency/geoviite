@@ -172,14 +172,16 @@ class ReferenceLineServiceIT @Autowired constructor(
 
     @Test
     fun `should throw exception when there are switches linked to reference line`() {
-        val trackNumberId = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
+        val trackNumberId = getUnusedTrackNumberId()
 
         val (referenceLine, alignment) = referenceLineAndAlignment(
-            trackNumberId = trackNumberId, segments = listOf(
+            trackNumberId = trackNumberId,
+            segments = listOf(
                 segment(
                     Point(0.0, 0.0), Point(1.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)
                 ),
-            )
+            ),
+            draft = false,
         )
 
         assertThrows<IllegalArgumentException> {

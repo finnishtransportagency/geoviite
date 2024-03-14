@@ -14,7 +14,7 @@ class SplitTest {
 
     @Test
     fun `minimal location track split works`() {
-        val track = locationTrack(trackNumberId = IntId(123))
+        val track = locationTrack(trackNumberId = IntId(123), draft = false)
         val alignment = alignment(
             linearSegment(0..1, switchId = null, startJoint = null, endJoint = null),
             linearSegment(1..2, switchId = IntId(1), startJoint = 1, endJoint = 2),
@@ -32,12 +32,12 @@ class SplitTest {
 
     @Test
     fun `location track split works when overriding existing duplicate`() {
-        val track = locationTrack(trackNumberId = IntId(123))
+        val track = locationTrack(trackNumberId = IntId(123), draft = false)
         val alignment = alignment(
             linearSegment(0..1, switchId = null, startJoint = null, endJoint = null),
             linearSegment(1..2, switchId = IntId(1), startJoint = 1, endJoint = 2),
         )
-        val dupTrack = locationTrack(trackNumberId = IntId(123))
+        val dupTrack = locationTrack(trackNumberId = IntId(123), draft = false)
         // over-large duplicate, but the geometry should be overridden anyhow, so just make it different
         val dupAlignment = alignment(linearSegment(-1..5))
         val targets = listOf(
@@ -55,7 +55,7 @@ class SplitTest {
 
     @Test
     fun `complex location track split works`() {
-        val track = locationTrack(trackNumberId = IntId(123))
+        val track = locationTrack(trackNumberId = IntId(123), draft = false)
         val alignment = alignment(
             linearSegment(0..2, switchId = null, startJoint = null, endJoint = null),
             linearSegment(2..5, switchId = IntId(1), startJoint = 5, endJoint = 4),

@@ -27,7 +27,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
     val locationTrackService: LocationTrackService,
     val publicationDao: PublicationDao,
     val locationTrackDao: LocationTrackDao,
-): DBTestBase() {
+) : DBTestBase() {
     lateinit var trackNumberId: IntId<TrackLayoutTrackNumber>
     lateinit var layoutPublishId: IntId<Publication>
     lateinit var locationTrackId: IntId<LocationTrack>
@@ -40,9 +40,9 @@ internal class RatkoPushDaoIT @Autowired constructor(
             val lastSuccessTime = ratkoPushDao.getLatestPushedPublicationMoment()
             val hangingPublications = publicationDao.fetchPublicationsBetween(lastSuccessTime, null)
                 .filterNot { it.publicationTime == lastSuccessTime }
-            if (hangingPublications.isNotEmpty()) ratkoPushDao.startPushing(
-                hangingPublications.map { publication -> publication.id },
-            )
+            if (hangingPublications.isNotEmpty()) {
+                ratkoPushDao.startPushing(hangingPublications.map { publication -> publication.id })
+            }
             val markEverythingComplete = "update integrations.ratko_push set status='SUCCESSFUL' where true"
             jdbc.update(markEverythingComplete, mapOf<String, Unit>())
         }
@@ -64,10 +64,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
             "select start_time, end_time from integrations.ratko_push where id = :id",
             mapOf("id" to ratkoPublishId.intValue)
         ) { rs, _ ->
-            Pair(
-                rs.getInstantOrNull("start_time"),
-                rs.getInstantOrNull("end_time")
-            )
+            Pair(rs.getInstantOrNull("start_time"), rs.getInstantOrNull("end_time"))
         }.first()
 
         assertNotNull(startTime)
@@ -79,7 +76,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
         val ratkoPublishId = ratkoPushDao.startPushing(listOf(layoutPublishId))
         val startTime = jdbc.query(
             "select start_time from integrations.ratko_push where id = :id",
-            mapOf("id" to ratkoPublishId.intValue)
+            mapOf("id" to ratkoPublishId.intValue),
         ) { rs, _ ->
             rs.getInstantOrNull("start_time")
         }.first()
@@ -93,9 +90,9 @@ internal class RatkoPushDaoIT @Autowired constructor(
         ratkoPushDao.updatePushStatus(ratkoPublishId, status = RatkoPushStatus.SUCCESSFUL)
         val endTime = jdbc.query(
             "select end_time from integrations.ratko_push where id = :id",
-            mapOf("id" to ratkoPublishId.intValue)
+            mapOf("id" to ratkoPublishId.intValue),
         ) { rs, _ ->
-                rs.getInstantOrNull("end_time")
+            rs.getInstantOrNull("end_time")
         }.first()
         val changeTime = ratkoPushDao.getRatkoPushChangeTime()
         assertEquals(endTime, changeTime)
@@ -111,7 +108,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
         ) { rs, _ ->
             Pair(
                 rs.getInstantOrNull("end_time"),
-                rs.getEnum<RatkoPushStatus>("status")
+                rs.getEnum<RatkoPushStatus>("status"),
             )
         }.first()
 
@@ -176,7 +173,6 @@ internal class RatkoPushDaoIT @Autowired constructor(
         val (publishLocationTracks, _) = publicationDao.fetchPublishedLocationTracks(fetchedLayoutPublish.id)
         val (publish2LocationTracks, _) = publicationDao.fetchPublishedLocationTracks(fetchedLayoutPublish2.id)
 
-
         assertEquals(1, publishLocationTracks.size)
         assertEquals(1, publish2LocationTracks.size)
 
@@ -225,10 +221,11 @@ internal class RatkoPushDaoIT @Autowired constructor(
         assertEquals(RatkoOperation.CREATE, ratkoPushError.operation)
     }
 
-    fun insertAndPublishLocationTrack() = locationTrackAndAlignment(trackNumberId).let { (track, alignment) ->
-        val draftVersion = locationTrackService.saveDraft(track, alignment)
-        locationTrackService.publish(ValidationVersion(draftVersion.id, draftVersion.rowVersion))
-    }
+    fun insertAndPublishLocationTrack(): DaoResponse<LocationTrack> =
+        locationTrackAndAlignment(trackNumberId, draft = true).let { (track, alignment) ->
+            val draftVersion = locationTrackService.saveDraft(track, alignment)
+            locationTrackService.publish(ValidationVersion(draftVersion.id, draftVersion.rowVersion))
+        }
 
     fun createPublication(
         trackNumbers: List<IntId<TrackLayoutTrackNumber>> = listOf(),
@@ -237,36 +234,35 @@ internal class RatkoPushDaoIT @Autowired constructor(
         switches: List<IntId<TrackLayoutSwitch>> = listOf(),
         kmPosts: List<IntId<TrackLayoutKmPost>> = listOf(),
         message: String = "",
-    ) = publicationDao.createPublication(message = message)
-        .also { publicationId ->
-            val calculatedChanges = CalculatedChanges(
-                directChanges = DirectChanges(
-                    kmPostChanges = kmPosts,
-                    referenceLineChanges = referenceLines,
-                    trackNumberChanges = trackNumbers.map {
-                        TrackNumberChange(
-                            trackNumberId = it,
-                            changedKmNumbers = emptySet(),
-                            isStartChanged = false,
-                            isEndChanged = false
-                        )
-                    },
-                    locationTrackChanges = locationTracks.map {
-                        LocationTrackChange(
-                            locationTrackId = it,
-                            changedKmNumbers = emptySet(),
-                            isStartChanged = false,
-                            isEndChanged = false
-                        )
-                    },
-                    switchChanges = switches.map { SwitchChange(it, emptyList()) }
-                ),
-                indirectChanges = IndirectChanges(
-                    trackNumberChanges = emptyList(),
-                    locationTrackChanges = emptyList(),
-                    switchChanges = emptyList(),
-                ),
-            )
-            publicationDao.insertCalculatedChanges(publicationId, calculatedChanges)
-        }
+    ): IntId<Publication> = publicationDao.createPublication(message = message).also { publicationId ->
+        val calculatedChanges = CalculatedChanges(
+            directChanges = DirectChanges(
+                kmPostChanges = kmPosts,
+                referenceLineChanges = referenceLines,
+                trackNumberChanges = trackNumbers.map {
+                    TrackNumberChange(
+                        trackNumberId = it,
+                        changedKmNumbers = emptySet(),
+                        isStartChanged = false,
+                        isEndChanged = false,
+                    )
+                },
+                locationTrackChanges = locationTracks.map {
+                    LocationTrackChange(
+                        locationTrackId = it,
+                        changedKmNumbers = emptySet(),
+                        isStartChanged = false,
+                        isEndChanged = false
+                    )
+                },
+                switchChanges = switches.map { SwitchChange(it, emptyList()) },
+            ),
+            indirectChanges = IndirectChanges(
+                trackNumberChanges = emptyList(),
+                locationTrackChanges = emptyList(),
+                switchChanges = emptyList(),
+            ),
+        )
+        publicationDao.insertCalculatedChanges(publicationId, calculatedChanges)
+    }
 }

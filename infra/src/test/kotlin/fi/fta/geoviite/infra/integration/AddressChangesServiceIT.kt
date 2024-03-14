@@ -291,10 +291,10 @@ class AddressChangesServiceIT @Autowired constructor(
         assertEquals(
             setOf(
                 KmNumber(0),
-                KmNumber(3)
+                KmNumber(3),
             ),
             differences,
-            "Contains wrong km numbers"
+            "Contains wrong km numbers",
         )
     }
 
@@ -328,7 +328,7 @@ class AddressChangesServiceIT @Autowired constructor(
                 KmNumber(3),
             ),
             differences,
-            "Contains wrong km numbers"
+            "Contains wrong km numbers",
         )
     }
 
@@ -362,7 +362,7 @@ class AddressChangesServiceIT @Autowired constructor(
                 KmNumber(3),
             ),
             differences,
-            "Contains wrong km numbers"
+            "Contains wrong km numbers",
         )
     }
 
@@ -396,7 +396,7 @@ class AddressChangesServiceIT @Autowired constructor(
                 KmNumber(3),
             ),
             differences,
-            "Contains wrong km numbers"
+            "Contains wrong km numbers",
         )
     }
 
@@ -437,10 +437,10 @@ class AddressChangesServiceIT @Autowired constructor(
         assertEquals(
             setOf(
                 KmNumber(1),
-                KmNumber(2)
+                KmNumber(2),
             ),
             differences,
-            "Contains wrong km numbers"
+            "Contains wrong km numbers",
         )
     }
 
@@ -482,7 +482,7 @@ class AddressChangesServiceIT @Autowired constructor(
                 KmNumber(2),
             ),
             differences,
-            "Contains wrong km numbers"
+            "Contains wrong km numbers",
         )
     }
 
@@ -516,7 +516,7 @@ class AddressChangesServiceIT @Autowired constructor(
                 KmNumber(1),
             ),
             differences,
-            "Contains wrong km numbers"
+            "Contains wrong km numbers",
         )
     }
 
@@ -557,10 +557,10 @@ class AddressChangesServiceIT @Autowired constructor(
         assertEquals(
             setOf(
                 KmNumber(1),
-                KmNumber(3)
+                KmNumber(3),
             ),
             differences,
-            "Contains wrong km numbers"
+            "Contains wrong km numbers",
         )
     }
 
@@ -587,8 +587,9 @@ class AddressChangesServiceIT @Autowired constructor(
         val differences = resolveChangedGeometryKilometers(origAddresses, newAddresses)
 
         assertEquals(
-            differences, emptySet(),
-            "Should not contain differences"
+            differences,
+            emptySet(),
+            "Should not contain differences",
         )
     }
 
@@ -608,7 +609,7 @@ class AddressChangesServiceIT @Autowired constructor(
         assertNotNull(addressChanges)
         assertEquals(
             setOf(KmNumber(1), KmNumber(2)),
-            addressChanges.changedKmNumbers
+            addressChanges.changedKmNumbers,
         )
         assertTrue(addressChanges.startPointChanged)
         assertTrue(addressChanges.endPointChanged)
@@ -627,14 +628,15 @@ class AddressChangesServiceIT @Autowired constructor(
         val sequence = System.currentTimeMillis().toString().takeLast(8)
         val refPoint = Point(370000.0, 7100000.0) // any point in Finland
         val trackNumber = layoutTrackNumberDao.fetch(
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber("TEST TN $sequence"))).rowVersion
+            layoutTrackNumberDao.insert(trackNumber(TrackNumber("TEST TN $sequence"), draft = false)).rowVersion
         )
         val kmPost1 = layoutKmPostDao.fetch(
             layoutKmPostDao.insert(
                 kmPost(
                     trackNumberId = trackNumber.id as IntId,
                     km = KmNumber(1),
-                    location = refPoint + 5.0
+                    location = refPoint + 5.0,
+                    draft = false,
                 )
             ).rowVersion
         )
@@ -643,7 +645,8 @@ class AddressChangesServiceIT @Autowired constructor(
                 kmPost(
                     trackNumberId = trackNumber.id as IntId,
                     km = KmNumber(2),
-                    location = refPoint + 10.0
+                    location = refPoint + 10.0,
+                    draft = false,
                 )
             ).rowVersion
         )
@@ -658,9 +661,9 @@ class AddressChangesServiceIT @Autowired constructor(
             referenceLineDao.insert(
                 referenceLine(
                     trackNumber.id as IntId<TrackLayoutTrackNumber>,
-                    alignment = referenceLineGeometry
-                ).copy(
-                    alignmentVersion = referenceLineGeometryVersion
+                    alignment = referenceLineGeometry,
+                    alignmentVersion = referenceLineGeometryVersion,
+                    draft = false,
                 )
             ).rowVersion
         )
@@ -676,9 +679,9 @@ class AddressChangesServiceIT @Autowired constructor(
                 locationTrack(
                     trackNumberId = trackNumber.id as IntId,
                     alignment = locationTrackGeometry,
-                    name = "TEST LocTr $sequence"
-                ).copy(
-                    alignmentVersion = locationTrackGeometryVersion
+                    name = "TEST LocTr $sequence",
+                    alignmentVersion = locationTrackGeometryVersion,
+                    draft = false,
                 )
             ).rowVersion
         )
@@ -793,7 +796,7 @@ class AddressChangesServiceIT @Autowired constructor(
             endPoint = addressPoints.lastOrNull() ?: someAddressPoint(),
             startIntersect = IntersectType.WITHIN,
             endIntersect = IntersectType.WITHIN,
-            midPoints = addressPoints.slice(1..addressPoints.size-2),
+            midPoints = addressPoints.slice(1..addressPoints.size - 2),
         )
     }
 

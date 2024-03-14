@@ -30,14 +30,21 @@ class KilometerLengthsTestUI @Autowired constructor(
     fun cleanup() {
         clearAllTestData()
 
-        val trackNumberId = trackNumberDao.insert(trackNumber(TrackNumber("foo"))).id
+        val trackNumberId = trackNumberDao.insert(trackNumber(TrackNumber("foo"), draft = false)).id
 
         val alignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
-        referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = alignment))
-        locationTrackDao.insert(locationTrack(trackNumberId, name = "foo bar", alignmentVersion = alignment))
-        kmPostDao.insert(kmPost(trackNumberId, KmNumber(1), Point(900.0, 1.0)))
-        kmPostDao.insert(kmPost(trackNumberId, KmNumber(2), Point(2000.0, -1.0)))
-        kmPostDao.insert(kmPost(trackNumberId, KmNumber(3), Point(3000.0, 0.0)))
+        referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = alignment, draft = false))
+        locationTrackDao.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                name = "foo bar",
+                alignmentVersion = alignment,
+                draft = false,
+            )
+        )
+        kmPostDao.insert(kmPost(trackNumberId, KmNumber(1), Point(900.0, 1.0), draft = false))
+        kmPostDao.insert(kmPost(trackNumberId, KmNumber(2), Point(2000.0, -1.0), draft = false))
+        kmPostDao.insert(kmPost(trackNumberId, KmNumber(3), Point(3000.0, 0.0), draft = false))
     }
 
     @Test

@@ -33,16 +33,22 @@ class VerticalGeometryDiagramTestUI @Autowired constructor(
 
     @Test
     fun `Vertical geometry diagram for location track loads`() {
-        val trackNumber = insertOfficialTrackNumber()
+        val trackNumberId = insertOfficialTrackNumber()
         referenceLineService.saveDraft(
-            referenceLine(trackNumber),
+            referenceLine(trackNumberId, draft = true),
             alignment(segment(DEFAULT_BASE_POINT + Point(0.0, 0.0), DEFAULT_BASE_POINT + Point(1000.0, 0.0)))
         )
-        kmPostDao.insert(kmPost(trackNumber, km = KmNumber(0), location = DEFAULT_BASE_POINT + Point(0.0, 0.0)))
+        kmPostDao.insert(
+            kmPost(
+                trackNumberId = trackNumberId,
+                km = KmNumber(0), location = DEFAULT_BASE_POINT + Point(0.0, 0.0),
+                draft = false,
+            )
+        )
         val plan = geometryDao.fetchPlan(
             geometryDao.insertPlan(
                 plan(
-                    trackNumber, units = GeometryUnits(
+                    trackNumberId, units = GeometryUnits(
                         coordinateSystemSrid = LAYOUT_SRID,
                         coordinateSystemName = null,
                         verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
@@ -73,12 +79,13 @@ class VerticalGeometryDiagramTestUI @Autowired constructor(
             )
         )
         locationTrackService.saveDraft(
-            locationTrack(trackNumber, name = "foo bar"), alignment(
+            locationTrack(trackNumberId = trackNumberId, name = "foo bar", draft = true),
+            alignment(
                 segment(DEFAULT_BASE_POINT + Point(0.0, 0.0), DEFAULT_BASE_POINT + Point(1000.0, 0.0)).copy(
                     sourceId = plan.alignments[0].elements[0].id,
                     sourceStart = 0.0,
                 )
-            )
+            ),
         )
         startGeoviite()
         val page = goToMap().switchToDraftMode().zoomToScale(E2ETrackLayoutPage.MapScale.M_500)

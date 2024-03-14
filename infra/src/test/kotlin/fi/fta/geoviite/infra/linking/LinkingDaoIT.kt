@@ -27,7 +27,7 @@ class LinkingDaoIT @Autowired constructor(
 
     @Test
     fun noSwitchBoundsAreFoundWhenNotLinkedToTracks() {
-        val switch = switchService.getOrThrow(DRAFT, switchService.saveDraft(switch(1)).id)
+        val switch = switchService.getOrThrow(DRAFT, switchService.saveDraft(switch(1, draft = true)).id)
         assertEquals(null, linkingDao.getSwitchBoundsFromTracks(OFFICIAL, switch.id as IntId))
         assertEquals(null, linkingDao.getSwitchBoundsFromTracks(DRAFT, switch.id as IntId))
     }
@@ -36,7 +36,7 @@ class LinkingDaoIT @Autowired constructor(
     fun switchBoundsAreFoundFromTracks() {
         val trackNumber = getOrCreateTrackNumber(TrackNumber("123"))
         val tnId = trackNumber.id as IntId
-        val switch = switchService.getOrThrow(DRAFT, switchService.saveDraft(switch(1)).id)
+        val switch = switchService.getOrThrow(DRAFT, switchService.saveDraft(switch(1, draft = true)).id)
 
         val point1 = Point(10.0, 10.0)
         val point2 = Point(12.0, 10.0)
@@ -45,19 +45,19 @@ class LinkingDaoIT @Autowired constructor(
 
         // Linked from the start only -> second point shouldn't matter
         locationTrackService.saveDraft(
-            locationTrack(tnId, externalId = someOid()).copy(
+            locationTrack(tnId, externalId = someOid(), draft = true).copy(
                 topologyStartSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(1)),
             ), alignment(segment(point1, point1 + Point(5.0, 5.0)))
         )
         // Linked from the end only -> first point shouldn't matter
         locationTrackService.saveDraft(
-            locationTrack(tnId, externalId = null).copy(
+            locationTrack(tnId, externalId = null, draft = true).copy(
                 topologyEndSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(2)),
             ), alignment(segment(point2 - Point(5.0, 5.0), point2))
         )
         // Linked by segment ends -> both points matter
         locationTrackService.saveDraft(
-            locationTrack(tnId, externalId = someOid()),
+            locationTrack(tnId, externalId = someOid(), draft = true),
             alignment(
                 segment(point3_1, point3_2).copy(
                     switchId = switch.id as IntId,

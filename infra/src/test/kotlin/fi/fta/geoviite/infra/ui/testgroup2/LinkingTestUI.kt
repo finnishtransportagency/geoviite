@@ -103,7 +103,8 @@ class LinkingTestUI @Autowired constructor(
                 name = "A",
                 trackNumber = trackNumberId,
                 basePoint = DEFAULT_BASE_POINT - Point(10.0, 10.0),
-                incrementPoints = listOf(Point(10.0, 20.0), Point(10.0, 15.0), Point(40.0, 47.0))
+                incrementPoints = listOf(Point(10.0, 20.0), Point(10.0, 15.0), Point(40.0, 47.0)),
+                draft = false,
             )
         )
 
@@ -172,7 +173,8 @@ class LinkingTestUI @Autowired constructor(
                 basePoint = DEFAULT_BASE_POINT - Point(1.0, 1.0),
                 incrementPoints = listOf(
                     Point(1.0, 2.0), Point(1.0, 1.5), Point(4.0, 4.7)
-                )
+                ),
+                draft = false,
             )
         )
         val locationTrackAlignment =
@@ -203,10 +205,13 @@ class LinkingTestUI @Autowired constructor(
         val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
         createAndInsertCommonReferenceLine(trackNumberId)
         val originalLocationTrack = saveLocationTrackWithAlignment(
-            locationTrack(name = "A",
+            locationTrack(
+                name = "A",
                 trackNumber = trackNumberId,
                 basePoint = DEFAULT_BASE_POINT - Point(1.0, 1.0),
-                incrementPoints = (1..10).map { Point(2.0, 3.0) })
+                incrementPoints = (1..10).map { Point(2.0, 3.0) },
+                draft = false,
+            ),
         )
         val locationTrackAlignment =
             alignmentDao.fetch(locationTrackDao.fetch(originalLocationTrack).alignmentVersion!!)
@@ -235,8 +240,22 @@ class LinkingTestUI @Autowired constructor(
     @Test
     fun `Link geometry KM-Post to nearest track layout KM-post`() {
         val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
-        kmPostDao.insert(kmPost(trackNumberId, KmNumber("0123"), DEFAULT_BASE_POINT + Point(5.0, 5.0)))
-        kmPostDao.insert(kmPost(trackNumberId, KmNumber("0124"), DEFAULT_BASE_POINT + Point(17.0, 18.0)))
+        kmPostDao.insert(
+            kmPost(
+                trackNumberId,
+                KmNumber("0123"),
+                DEFAULT_BASE_POINT + Point(5.0, 5.0),
+                draft = false,
+            )
+        )
+        kmPostDao.insert(
+            kmPost(
+                trackNumberId,
+                KmNumber("0124"),
+                DEFAULT_BASE_POINT + Point(17.0, 18.0),
+                draft = false,
+            )
+        )
 
         testGeometryPlanService
             .buildPlan(trackNumberId)
@@ -406,6 +425,7 @@ class LinkingTestUI @Autowired constructor(
                 trackNumber = trackNumberId,
                 basePoint = DEFAULT_BASE_POINT + Point(12.0, 12.0),
                 incrementPoints = (1..10).map { Point(1.0, 1.0) },
+                draft = false,
             )
         )
         val originalLocationTrackAlignment =
@@ -475,6 +495,7 @@ class LinkingTestUI @Autowired constructor(
                 trackNumber = trackNumberId,
                 basePoint = DEFAULT_BASE_POINT + Point(12.0, 12.0),
                 incrementPoints = (1..10).map { Point(1.0, 1.0) },
+                draft = false,
             )
         )
         val originalLocationTrackAlignment =
@@ -534,13 +555,12 @@ class LinkingTestUI @Autowired constructor(
         val originalReferenceLine = referenceLine(
             trackNumber = trackNumberId,
             basePoint = DEFAULT_BASE_POINT + Point(15.0, 35.0),
-            incrementPoints = listOf(Point(5.0, 10.0), Point(3.0, 5.0), Point(4.0, 5.0))
+            incrementPoints = listOf(Point(5.0, 10.0), Point(3.0, 5.0), Point(4.0, 5.0)),
+            draft = false,
         )
         referenceLineDao.insert(
             originalReferenceLine.first.copy(
-                alignmentVersion = alignmentDao.insert(
-                    originalReferenceLine.second
-                )
+                alignmentVersion = alignmentDao.insert(originalReferenceLine.second)
             )
         )
 
@@ -598,6 +618,7 @@ class LinkingTestUI @Autowired constructor(
             trackNumber = trackNumberId,
             basePoint = DEFAULT_BASE_POINT + Point(12.0, 12.0),
             incrementPoints = (1..10).map { Point(1.0, 1.0) },
+            draft = false,
         )
         saveLocationTrackWithAlignment(originalLocationTrack)
         saveLocationTrackWithAlignment(
@@ -606,6 +627,7 @@ class LinkingTestUI @Autowired constructor(
                 trackNumber = trackNumberId,
                 basePoint = DEFAULT_BASE_POINT + Point(18.0, 6.0),
                 incrementPoints = (1..10).map { Point(1.0, -1.0) },
+                draft = false,
             )
         )
 
@@ -634,24 +656,25 @@ class LinkingTestUI @Autowired constructor(
     @Test
     fun `Delete track layout switch`() {
         val switchToDelete = switch(
-            123, name = "switch to delete", joints = listOf(
-                TrackLayoutSwitchJoint(
-                    JointNumber(1), Point(DEFAULT_BASE_POINT + Point(1.0, 1.0)), null
-                ), TrackLayoutSwitchJoint(
-                    JointNumber(3), Point(DEFAULT_BASE_POINT + Point(3.0, 3.0)), null
-                )
-            )
+            seed = 123,
+            name = "switch to delete",
+            joints = listOf(
+                switchJoint(1, Point(DEFAULT_BASE_POINT + Point(1.0, 1.0))),
+                switchJoint(3, Point(DEFAULT_BASE_POINT + Point(3.0, 3.0))),
+            ),
+            draft = false,
         )
         switchDao.insert(switchToDelete)
 
         // unrelated switch
         switchDao.insert(
             switch(
-                124, name = "unrelated switch", joints = listOf(
-                    TrackLayoutSwitchJoint(
-                        JointNumber(1), Point(DEFAULT_BASE_POINT + Point(6.0, 1.0)), null
-                    ),
-                )
+                seed = 124,
+                name = "unrelated switch",
+                joints = listOf(
+                    switchJoint(1, Point(DEFAULT_BASE_POINT + Point(6.0, 1.0))),
+                ),
+                draft = false,
             )
         )
         val trackLayoutPage = startGeoviiteAndGoToWork()
@@ -719,7 +742,8 @@ class LinkingTestUI @Autowired constructor(
         val commonReferenceLine = referenceLine(
             alignment = alignment,
             trackNumberId = trackNumber,
-            startAddress = TrackMeter(KmNumber(0), 0),
+            startAddress = TrackMeter(KmNumber(0), 0,),
+            draft = false,
         )
         referenceLineDao.insert(commonReferenceLine.copy(alignmentVersion = alignmentDao.insert(alignment)))
         return alignment
