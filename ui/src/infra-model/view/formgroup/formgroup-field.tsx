@@ -1,7 +1,8 @@
 import React from 'react';
 import styles from './formgroup.module.scss';
 import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import { WriteAccessRequired } from 'user/write-access-required';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { PRIV_EDIT_GEOMETRY } from 'user/user-model';
 
 type InfoboxFieldProps = {
     label: string;
@@ -27,11 +28,11 @@ const FormgroupField: React.FC<InfoboxFieldProps> = ({
             <div className={styles['formgroup__field-value']}>{children || value}</div>
             <div className={styles['formgroup__edit-icon']}>
                 {!inEditMode && props.onEdit && (
-                    <WriteAccessRequired>
+                    <PrivilegeRequired privilege={PRIV_EDIT_GEOMETRY}>
                         <div onClick={() => props.onEdit && props.onEdit()}>
                             <Icons.Edit size={IconSize.SMALL} />
                         </div>
-                    </WriteAccessRequired>
+                    </PrivilegeRequired>
                 )}
                 {inEditMode && props.onClose && (
                     <div onClick={() => props.onClose && props.onClose()}>

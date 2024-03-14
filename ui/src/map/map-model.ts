@@ -39,12 +39,13 @@ export type MapLayerName =
     | 'geometry-switch-layer'
     | 'alignment-linking-layer'
     | 'switch-linking-layer'
-    | 'virtual-km-post-linking-layer'
     | 'location-track-duplicate-endpoint-address-layer'
     | 'location-track-split-location-layer'
     | 'plan-area-layer'
     | 'debug-1m-points-layer'
-    | 'debug-layer';
+    | 'debug-layer'
+    | 'virtual-km-post-linking-layer'
+    | 'virtual-hide-geometry-layer';
 
 export type MapViewportSource = 'Map';
 

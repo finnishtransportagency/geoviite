@@ -45,7 +45,6 @@ import {
 import { OnSelectFunction } from 'selection/selection-model';
 import { ProjectDropdown } from 'infra-model/view/form/fields/infra-model-project-field';
 import { ChangeTimes } from 'common/common-slice';
-import { WriteAccessRequired } from 'user/write-access-required';
 import { usePvDocumentHeader } from 'track-layout/track-layout-react-utils';
 import { PVOid } from 'infra-model/projektivelho/pv-oid';
 import FormgroupTextarea from 'infra-model/view/formgroup/formgroup-textarea';
@@ -53,6 +52,8 @@ import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 import { useLoader } from 'utils/react-utils';
 import i18next from 'i18next';
 import { menuValueOption } from 'vayla-design-lib/menu/menu';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { PRIV_EDIT_GEOMETRY } from 'user/user-model';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -162,7 +163,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     }
 
     function updateTrackNumbers() {
-        getTrackNumbers('DRAFT').then((trackNumbers) => setTrackNumberList(trackNumbers));
+        getTrackNumbers('OFFICIAL').then((trackNumbers) => setTrackNumberList(trackNumbers));
     }
 
     function handleDayChange(chosenDate: Date) {
@@ -244,7 +245,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     return (
         <React.Fragment>
             {upLoading && <div> {t('im-form.uploading-file-msg')}</div>}
-            <WriteAccessRequired>
+            <PrivilegeRequired privilege={PRIV_EDIT_GEOMETRY}>
                 <Formgroup>
                     <FieldLayout
                         label={t('im-form.observations-field')}
@@ -264,7 +265,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         }
                     />
                 </Formgroup>
-            </WriteAccessRequired>
+            </PrivilegeRequired>
             <Formgroup qa-id="im-form-project">
                 {pvDocument && (
                     <FormgroupContent title={t('im-form.pv-document-information.title')}>

@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.switchLibrary
 
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_GEOMETRY
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT
 import fi.fta.geoviite.infra.logging.apiCall
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -15,14 +16,14 @@ class SwitchLibraryController(private val switchLibraryService: SwitchLibrarySer
 
     private val log: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_VIEW_GEOMETRY)
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
     @GetMapping("/switch-structures")
     fun getSwitchStructures(): List<SwitchStructure> {
         log.apiCall("getSwitchStructures")
         return switchLibraryService.getSwitchStructures()
     }
 
-    @PreAuthorize(AUTH_VIEW_GEOMETRY)
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
     @GetMapping("/switch-owners")
     fun getSwitchOwners(): List<SwitchOwner> {
         log.apiCall("getSwitchOwners")

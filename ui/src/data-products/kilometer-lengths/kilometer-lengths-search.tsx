@@ -17,6 +17,7 @@ import {
 import { getVisibleErrorsByProp } from 'data-products/data-products-utils';
 import { KmLengthsSearchState } from 'data-products/data-products-slice';
 import { PrivilegeRequired } from 'user/privilege-required';
+import { PRIV_DOWNLOAD_GEOMETRY } from 'user/user-model';
 
 type KilometerLengthsSearchProps = {
     state: KmLengthsSearchState;
@@ -129,7 +130,7 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                         'endKm',
                     ).map((error) => t(`data-products.search.${error}`))}
                 />
-                <PrivilegeRequired privilege="dataproduct-download">
+                <PrivilegeRequired privilege={PRIV_DOWNLOAD_GEOMETRY}>
                     <a
                         qa-id="km-lengths-csv-download"
                         {...(state.trackNumber && {

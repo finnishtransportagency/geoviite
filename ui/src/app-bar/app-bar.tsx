@@ -10,6 +10,8 @@ import DataProductsMenu from 'app-bar/data-products-menu';
 import AppBarMoreMenu from 'app-bar/app-bar-more-menu';
 import { FrontpageLink } from 'app-bar/links/frontpage-link';
 import { AppBarLink } from 'app-bar/links/app-bar-link';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { PRIV_VIEW_GEOMETRY } from 'user/user-model';
 
 type Link = {
     link: string;
@@ -41,7 +43,11 @@ export const AppBar: React.FC = () => {
                 return <FrontpageLink />;
 
             case '/infra-model':
-                return <InfraModelLink />;
+                return (
+                    <PrivilegeRequired privilege={PRIV_VIEW_GEOMETRY}>
+                        <InfraModelLink />
+                    </PrivilegeRequired>
+                );
 
             default:
                 return <AppBarLink linkAddress={link.link} linkName={t(link.name)} />;

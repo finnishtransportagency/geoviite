@@ -10,6 +10,7 @@ import { useDataProductsAppSelector } from 'store/hooks';
 import { dataProductsActions, SelectedGeometrySearch } from 'data-products/data-products-slice';
 import { EntireRailNetworkElementListing } from 'data-products/element-list/entire-rail-network-element-listing';
 import { PrivilegeRequired } from 'user/privilege-required';
+import { PRIV_DOWNLOAD_GEOMETRY } from 'user/user-model';
 
 const ElementListView = () => {
     const { t } = useTranslation();
@@ -39,7 +40,7 @@ const ElementListView = () => {
                             checked={state.selectedSearch === 'PLAN'}>
                             {t('data-products.element-list.plan-geometry')}
                         </Radio>
-                        <PrivilegeRequired privilege="dataproduct-download">
+                        <PrivilegeRequired privilege={PRIV_DOWNLOAD_GEOMETRY}>
                             <Radio
                                 qaId={'select-entire-rail-network'}
                                 onChange={() => handleRadioClick('ENTIRE_RAIL_NETWORK')}

@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { WriteAccessRequired } from 'user/write-access-required';
 import Infobox from 'tool-panel/infobox/infobox';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
@@ -9,6 +8,8 @@ import { useLocationTrack } from 'track-layout/track-layout-react-utils';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { useCommonDataAppSelector } from 'store/hooks';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { PRIV_EDIT_LAYOUT } from 'user/user-model';
 
 type LocationTrackRatkoSyncInfoboxProps = {
     locationTrackId: LocationTrackId;
@@ -32,7 +33,7 @@ export const LocationTrackRatkoSyncInfobox: React.FC<LocationTrackRatkoSyncInfob
         changeTimes.layoutLocationTrack,
     );
     return officialLocationTrack ? (
-        <WriteAccessRequired>
+        <PrivilegeRequired privilege={PRIV_EDIT_LAYOUT}>
             <Infobox
                 contentVisible={visibilities.ratkoPush}
                 onContentVisibilityChange={() => visibilityChange('ratkoPush')}
@@ -49,7 +50,7 @@ export const LocationTrackRatkoSyncInfobox: React.FC<LocationTrackRatkoSyncInfob
                     </InfoboxButtons>
                 </InfoboxContent>
             </Infobox>
-        </WriteAccessRequired>
+        </PrivilegeRequired>
     ) : (
         <React.Fragment />
     );

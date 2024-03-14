@@ -170,7 +170,7 @@ class GeometryController @Autowired constructor(
         return geometryService.createAuthor(author)
     }
 
-    @PreAuthorize(AUTH_EDIT_GEOMETRY)
+    @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @PostMapping("/plans/linking-summaries")
     fun getLinkingSummaries(
         @RequestBody planIds: List<IntId<GeometryPlan>>,

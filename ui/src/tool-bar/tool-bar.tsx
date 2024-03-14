@@ -24,7 +24,6 @@ import { SwitchEditDialogContainer } from 'tool-panel/switch/dialog/switch-edit-
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { Menu, MenuOption, menuValueOption } from 'vayla-design-lib/menu/menu';
-import { WriteAccessRequired } from 'user/write-access-required';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import { MapLayerMenuChange, MapLayerMenuGroups, MapLayerName } from 'map/map-model';
@@ -39,6 +38,8 @@ import {
 import { getBySearchTerm } from 'track-layout/track-layout-search-api';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { PRIV_EDIT_LAYOUT } from 'user/user-model';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
@@ -304,7 +305,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     visibleLayers={visibleLayers}
                 />
                 <div className={styles['tool-bar__new-menu-button']} qa-id={'tool-bar.new'}>
-                    <WriteAccessRequired>
+                    <PrivilegeRequired privilege={PRIV_EDIT_LAYOUT}>
                         <Button
                             ref={menuRef}
                             title={t('tool-bar.new')}
@@ -313,7 +314,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                             disabled={publishType !== 'DRAFT' || disableNewAssetMenu}
                             onClick={() => setShowNewAssetMenu(!showNewAssetMenu)}
                         />
-                    </WriteAccessRequired>
+                    </PrivilegeRequired>
                 </div>
             </div>
 
@@ -323,14 +324,14 @@ export const ToolBar: React.FC<ToolbarParams> = ({
 
             <div className={styles['tool-bar__right-section']}>
                 {publishType === 'OFFICIAL' && (
-                    <WriteAccessRequired>
+                    <PrivilegeRequired privilege={PRIV_EDIT_LAYOUT}>
                         <Button
                             variant={ButtonVariant.PRIMARY}
                             qa-id="switch-to-draft-mode"
                             onClick={() => onPublishTypeChange('DRAFT')}>
                             {t('tool-bar.draft-mode.enable')}
                         </Button>
-                    </WriteAccessRequired>
+                    </PrivilegeRequired>
                 )}
                 {publishType === 'DRAFT' && (
                     <React.Fragment>

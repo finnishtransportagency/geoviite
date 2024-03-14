@@ -11,6 +11,7 @@ import { dataProductsActions, SelectedKmLengthsSearch } from 'data-products/data
 import { Radio } from 'vayla-design-lib/radio/radio';
 import { EntireRailNetworkKmLengthsListing } from 'data-products/kilometer-lengths/entire-rail-network-km-lengths-listing';
 import { PrivilegeRequired } from 'user/privilege-required';
+import { PRIV_DOWNLOAD_GEOMETRY } from 'user/user-model';
 
 export const KilometerLengthsView = () => {
     const dataProductsDelegates = React.useMemo(() => createDelegates(dataProductsActions), []);
@@ -43,7 +44,7 @@ export const KilometerLengthsView = () => {
                             checked={state.selectedSearch === 'TRACK_NUMBER'}>
                             {t('data-products.km-lengths.track-number-km-lengths')}
                         </Radio>
-                        <PrivilegeRequired privilege="dataproduct-download">
+                        <PrivilegeRequired privilege={PRIV_DOWNLOAD_GEOMETRY}>
                             <Radio
                                 qaId="select-entire-rail-network"
                                 onChange={() => handleRadioClick('ENTIRE_RAIL_NETWORK')}

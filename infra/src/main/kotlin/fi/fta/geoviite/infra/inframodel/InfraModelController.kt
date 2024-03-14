@@ -117,7 +117,7 @@ class InfraModelController @Autowired constructor(
         return pvDocumentService.getDocumentHeader(id)
     }
 
-    @PreAuthorize(AUTH_VIEW_PV_DOCUMENTS)
+    @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @GetMapping("/projektivelho/documents/count")
     fun getPVDocumentCounts(): PVDocumentCounts {
         logger.apiCall("getPVDocumentCounts")

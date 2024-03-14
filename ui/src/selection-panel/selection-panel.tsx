@@ -45,6 +45,8 @@ import { ChangeTimes } from 'common/common-slice';
 import { Eye } from 'geoviite-design-lib/eye/eye';
 import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { PRIV_VIEW_GEOMETRY } from 'user/user-model';
 
 type SelectionPanelProps = {
     changeTimes: ChangeTimes;
@@ -230,25 +232,27 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                     />
                 </div>
             </section>
-            <SelectionPanelGeometrySection
-                publishType={publishType}
-                changeTimes={changeTimes}
-                selectedItems={selectedItems}
-                visiblePlans={visiblePlans}
-                viewport={viewport}
-                onToggleAlignmentVisibility={onToggleAlignmentVisibility}
-                onToggleKmPostVisibility={onToggleKmPostVisibility}
-                onTogglePlanVisibility={onTogglePlanVisibility}
-                onToggleSwitchVisibility={onToggleSwitchVisibility}
-                openPlans={openPlans}
-                togglePlanKmPostsOpen={togglePlanKmPostsOpen}
-                togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
-                togglePlanSwitchesOpen={togglePlanSwitchesOpen}
-                selectedTrackNumbers={selectedTrackNumberIds}
-                togglePlanOpen={togglePlanOpen}
-                onSelect={onSelect}
-                disabled={!!splittingState}
-            />
+            <PrivilegeRequired privilege={PRIV_VIEW_GEOMETRY}>
+                <SelectionPanelGeometrySection
+                    publishType={publishType}
+                    changeTimes={changeTimes}
+                    selectedItems={selectedItems}
+                    visiblePlans={visiblePlans}
+                    viewport={viewport}
+                    onToggleAlignmentVisibility={onToggleAlignmentVisibility}
+                    onToggleKmPostVisibility={onToggleKmPostVisibility}
+                    onTogglePlanVisibility={onTogglePlanVisibility}
+                    onToggleSwitchVisibility={onToggleSwitchVisibility}
+                    openPlans={openPlans}
+                    togglePlanKmPostsOpen={togglePlanKmPostsOpen}
+                    togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
+                    togglePlanSwitchesOpen={togglePlanSwitchesOpen}
+                    selectedTrackNumbers={selectedTrackNumberIds}
+                    togglePlanOpen={togglePlanOpen}
+                    onSelect={onSelect}
+                    disabled={!!splittingState}
+                />
+            </PrivilegeRequired>
             <section>
                 <h3 className={styles['selection-panel__title']}>
                     {t('selection-panel.km-posts-title')} ({filteredKmPosts.length}/{kmPosts.length}

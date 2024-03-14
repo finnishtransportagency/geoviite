@@ -23,6 +23,7 @@ import { GeometryPlanLinkingSummary, getGeometryPlanLinkingSummaries } from 'geo
 import { ConfirmHideInfraModel } from './confirm-hide-infra-model-dialog';
 import { ConfirmDownloadUnreliableInfraModelDialog } from './confirm-download-unreliable-infra-model-dialog';
 import { PrivilegeRequired } from 'user/privilege-required';
+import { PRIV_DOWNLOAD_GEOMETRY, PRIV_EDIT_GEOMETRY } from 'user/user-model';
 
 export type InfraModelSearchResultProps = Pick<
     InfraModelListState,
@@ -44,8 +45,8 @@ function toggleSortOrder(
             sortOrder === undefined
                 ? GeometrySortOrder.ASCENDING
                 : sortOrder === GeometrySortOrder.ASCENDING
-                ? GeometrySortOrder.DESCENDING
-                : undefined;
+                  ? GeometrySortOrder.DESCENDING
+                  : undefined;
 
         return {
             sortBy: o ? sortBy : GeometrySortBy.NO_SORTING,
@@ -62,7 +63,7 @@ function toggleSortOrder(
 export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
     props: InfraModelSearchResultProps,
 ) => {
-    const trackNumbers = useTrackNumbers('DRAFT');
+    const trackNumbers = useTrackNumbers('OFFICIAL');
 
     const [linkingSummaries, setLinkingSummaries] = useState<
         Map<GeometryPlanId, GeometryPlanLinkingSummary | undefined>
@@ -329,7 +330,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         <td>{linkingSummaryDate(plan.id)}</td>
                                         <td>{linkingSummaryUsers(plan.id)}</td>
                                         <td onClick={(e) => e.stopPropagation()}>
-                                            <PrivilegeRequired privilege="inframodel-download">
+                                            <PrivilegeRequired privilege={PRIV_DOWNLOAD_GEOMETRY}>
                                                 <Button
                                                     title={t('im-form.download-file')}
                                                     onClick={() => downloadPlan(plan)}
@@ -340,7 +341,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                             </PrivilegeRequired>
                                         </td>
                                         <td onClick={(e) => e.stopPropagation()}>
-                                            <PrivilegeRequired privilege="all-write">
+                                            <PrivilegeRequired privilege={PRIV_EDIT_GEOMETRY}>
                                                 <Button
                                                     title={
                                                         isCurrentlyLinked(plan.id)

@@ -21,9 +21,10 @@ import { getKmPostForLinking, getKmPosts } from 'track-layout/layout-km-post-api
 import { TextField, TextFieldVariant } from 'vayla-design-lib/text-field/text-field';
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { filterNotEmpty } from 'utils/array-utils';
-import { WriteAccessRequired } from 'user/write-access-required';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { refereshKmPostSelection, useTrackNumbers } from 'track-layout/track-layout-react-utils';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { PRIV_EDIT_LAYOUT } from 'user/user-model';
 
 type GeometryKmPostLinkingInfoboxProps = {
     geometryKmPost: LayoutKmPost;
@@ -149,7 +150,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                         }
                     />
                     {!linkingState && (
-                        <WriteAccessRequired>
+                        <PrivilegeRequired privilege={PRIV_EDIT_LAYOUT}>
                             <InfoboxButtons>
                                 <Button
                                     size={ButtonSize.SMALL}
@@ -161,7 +162,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                                     {t('tool-panel.km-post.geometry.linking.start-linking-command')}
                                 </Button>
                             </InfoboxButtons>
-                        </WriteAccessRequired>
+                        </PrivilegeRequired>
                     )}
 
                     {linkingState && (

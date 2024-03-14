@@ -5,6 +5,7 @@ import { getEntireRailNetworkElementsCsvUrl } from 'geometry/geometry-api';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
 import { PrivilegeRequired } from 'user/privilege-required';
+import { PRIV_DOWNLOAD_GEOMETRY } from 'user/user-model';
 
 export const EntireRailNetworkElementListing = () => {
     const { t } = useTranslation();
@@ -17,7 +18,7 @@ export const EntireRailNetworkElementListing = () => {
             <p className={styles['data-product__search-legend']}>
                 {t('data-products.element-list.entire-rail-network-length-warning')}
             </p>
-            <PrivilegeRequired privilege="dataproduct-download">
+            <PrivilegeRequired privilege={PRIV_DOWNLOAD_GEOMETRY}>
                 <div className={styles['data-products__search']}>
                     <a
                         qa-id={'element-list-csv-download'}

@@ -50,7 +50,6 @@ import {
     GeometryAlignmentLinkingLocationTrackCandidates,
     GeometryAlignmentLinkingReferenceLineCandidates,
 } from 'tool-panel/geometry-alignment/geometry-alignment-linking-candidates';
-import { WriteAccessRequired } from 'user/write-access-required';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
 import {
     refreshLocationTrackSelection,
@@ -59,6 +58,8 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { Radio } from 'vayla-design-lib/radio/radio';
 import { ChangeTimes } from 'common/common-slice';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { PRIV_EDIT_LAYOUT } from 'user/user-model';
 
 function createLinkingGeometryWithAlignmentParameters(
     alignmentLinking: LinkingGeometryWithAlignment,
@@ -382,7 +383,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     )}
 
                     {linkingState === undefined && (
-                        <WriteAccessRequired>
+                        <PrivilegeRequired privilege={PRIV_EDIT_LAYOUT}>
                             <InfoboxButtons>
                                 <Button
                                     size={ButtonSize.SMALL}
@@ -395,7 +396,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                     )}
                                 </Button>
                             </InfoboxButtons>
-                        </WriteAccessRequired>
+                        </PrivilegeRequired>
                     )}
                     {linkingState?.state === 'preliminary' && (
                         <InfoboxButtons>

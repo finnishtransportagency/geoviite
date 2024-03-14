@@ -22,7 +22,7 @@ export type InfraModelListViewProps = Pick<
 export const InfraModelListView: React.FC<InfraModelListViewProps> = (
     props: InfraModelListViewProps,
 ) => {
-    const trackNumbers = useTrackNumbers('DRAFT');
+    const trackNumbers = useTrackNumbers('OFFICIAL');
     React.useEffect(() => {
         props.clearInfraModelState();
     }, []);
