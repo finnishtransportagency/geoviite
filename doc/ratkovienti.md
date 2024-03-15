@@ -10,6 +10,67 @@ Ratkovienti tapahtuu erillisellä asynkronisella prosessilla ja ylätasolla se k
 - Yhdistetään julkaisujen muutokset, jotta saadaan erotus Ratkon ja Geoviitteen nykytilan välillä
 - Viedään tähän liittyvät käsitteet käsite kerrallaan Ratkoon (ratanumerot, raiteet, vaihteet)
 
+## Ylätason kuvaus ratkoviennistä järjestelmien välillä
+
+```mermaid
+sequenceDiagram
+  participant g as Geoviite
+  participant r as Ratko
+  loop
+    g ->> g: Hae julkaisuja
+  end
+  rect rgba(3, 129, 255, 0.1)
+    note right of g: Ratanumeron vienti
+    opt Ratanumeron poistaminen
+      g ->> r: Merkkaa sekä päätepisteet että ratanumero poistetuksi
+      g ->> r: Poista ratanumeron geometria
+    end
+    opt Ratanumeron päivittäminen
+      g ->> r: Päivitä ratanumeron ominaisuustiedot
+      g ->> r: Poista muuttuneet ratakilometrit
+      g ->> r: Vie uusi geometria ratakilometri kerrallaan
+    end
+    opt Ratanumeron luonti
+      g ->> r: Luo uusi ratanumero ilman geometriaa
+      g ->> r: Vie ratanumeron geometria
+    end
+  end
+  rect rgba(224, 119, 100, 0.1)
+    note right of g: Sijaintiraiteen vienti
+    opt Sijaintiraiteen poistaminen
+      g ->> r: Merkkaa sekä päätepisteet että sijaintiraide poistetuksi
+      g ->> r: Poista sijaintiraiteen geometria
+    end
+    opt Sijaintiraiteen päivittäminen
+      g ->> r: Päivitä sijaintiraiteen ominaisuustiedot
+      g ->> r: Poista muuttuneet ratakilometrit
+      g ->> r: Vie päivittyneet tasametripisteet sekä vaihteiden epätasametripisteet
+      g ->> r: Vie sijaintiraiteen suunnitelman metatiedot muuttuneille osuuksille
+    end
+    opt Sijaintiraiteen luonti
+      g ->> r: Luo uusi sijaintiraide ilman geometriaa
+      g ->> r: Vie uudet epätasametri- ja tasametripisteet
+      g ->> r: Vie sijaintiraiteen suunnitelman metatiedot
+    end
+  end
+  rect rgba(74, 188, 74, 0.1)
+    note right of g: Vaihteen vienti
+    opt Vaihteen päivittäminen
+      g ->> r: Päivitä vaihteen ominaisuustiedot
+      g ->> r: Päivitä ainoastaan muuttuneet vaihteen linjat
+      g ->> r: Päivitä vaihtepisteiden koordinaattisijainnit
+    end
+    opt Vaihteen luonti
+      g ->> r: Luo uusi vaihde ilman linjoja
+      g ->> r: Vie vaihteen linjat
+      g ->> r: Vie vaihdepisteiden koordinaattisijainnit
+    end
+  end
+  g ->> g: Merkitse ratkovienti onnistuneeksi
+  note right of g: M-arvojen laskenta ei vaikuta Ratkoviennin onnistumiseen, <br> sillä Ratko laskee ne joka tapauksessa joka päivä
+  g ->> r: Käynnistä M-arvojen laskenta ratanumeroille
+  g ->> r: Käynnistä M-arvojen laskenta sijaintiraiteille
+```
 
 ## Julkaisuiden koostaminen
 Julkaisujen yhdistäminen tehdään, jotta virhetilanteissa on mahdollista korjata tilannetta toisella julkaisulla.
@@ -17,7 +78,6 @@ Yhteysvirheiden tapauksessa julkaisua yritetään automaattisesti uudelleen seur
 ole syytä olettaa että tilanne korjaantuisi automaattisesti. Tällöin virhe voidaan korjata joko Ratkon puolella tai
 muuttamalla vietävää datajoukkoa uudella julkaisulla, jolloin datan koostamisen ansiosta virheellistä välitilaa ei
 tarvitse saada menemään läpi.
-
 
 ## Tietomalli
 Alla on kuvattuna yksikertaistettu malli ratkoviennin käsitteistä.
