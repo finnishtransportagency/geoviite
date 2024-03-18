@@ -107,7 +107,7 @@ export const LocationTrackSwitchRelinkingDialog: React.FC<
                                 </>
                             )}
                             {t('tool-panel.location-track.switch-relinking-dialog.confirm-button', {
-                                linkedSwitchesCount: extraInfo.linkedSwitchesCount,
+                                linkedSwitchesCount: extraInfo.relinkableSwitchesCount,
                             })}
                         </Button>
                     </div>
@@ -115,7 +115,7 @@ export const LocationTrackSwitchRelinkingDialog: React.FC<
                 <p>
                     {t('tool-panel.location-track.switch-relinking-dialog.confirm-relinking', {
                         name,
-                        linkedSwitchesCount: extraInfo.linkedSwitchesCount,
+                        linkedSwitchesCount: extraInfo.relinkableSwitchesCount,
                     })}
                 </p>
                 <p>

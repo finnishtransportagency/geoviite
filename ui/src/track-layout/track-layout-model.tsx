@@ -135,7 +135,7 @@ export type LocationTrackInfoboxExtras = {
     switchAtStart?: LayoutSwitchIdAndName;
     switchAtEnd?: LayoutSwitchIdAndName;
     partOfUnfinishedSplit?: boolean;
-    linkedSwitchesCount: number;
+    relinkableSwitchesCount: number;
 };
 
 export type AlignmentId = LocationTrackId | ReferenceLineId | GeometryAlignmentId;
