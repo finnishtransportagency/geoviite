@@ -22,15 +22,6 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.logger
 import java.math.BigDecimal
 
-fun createTrackLayoutTrackNumber(number: String, description: String = "description for $number") =
-    TrackLayoutTrackNumber(
-        number = TrackNumber(number),
-        description = FreeText(description),
-        state = LayoutState.IN_USE,
-        externalId = null,
-        contextData = LayoutContextData.newOfficial(),
-    )
-
 fun createGeometryKmPost(
     location: Point?,
     kmNumber: String,
@@ -43,15 +34,6 @@ fun createGeometryKmPost(
     description = PlanElementName("0"),
     state = PlanState.PROPOSED,
     location = location,
-)
-
-fun trackLayoutKmPost(kmNumber: String, trackNumberId: IntId<TrackLayoutTrackNumber>, point: Point) = TrackLayoutKmPost(
-    kmNumber = KmNumber(kmNumber),
-    location = point,
-    trackNumberId = trackNumberId,
-    sourceId = null,
-    state = LayoutState.IN_USE,
-    contextData = LayoutContextData.newOfficial(),
 )
 
 fun createGeometryAlignment(
@@ -320,7 +302,6 @@ fun getTransformedPoint(
     val jointPointOrig = structureJointsByNumber[number]!!.location
     return rotateAroundOrigin(switchAngle, jointPointOrig) + orig
 }
-
 
 data class SwitchJointData(
     val switchId: DomainId<GeometrySwitch>,

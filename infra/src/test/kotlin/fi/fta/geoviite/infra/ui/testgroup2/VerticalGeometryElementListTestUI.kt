@@ -11,7 +11,6 @@ import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.LocalHostWebClient
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.testdata.createGeometryKmPost
-import fi.fta.geoviite.infra.ui.testdata.createTrackLayoutTrackNumber
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -28,7 +27,6 @@ class VerticalGeometryElementListTestUI
 @Autowired constructor(
     private val geometryDao: GeometryDao,
     private val geometryService: GeometryService,
-    private val trackNumberDao: LayoutTrackNumberDao,
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val webClient: LocalHostWebClient,
@@ -41,7 +39,7 @@ class VerticalGeometryElementListTestUI
 
     @Test
     fun `List plan vertical geometry`() {
-        val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
+        val trackNumberId = insertOfficialTrackNumber()
         insertGoodPlan(trackNumberId)
         insertMinimalPlan(trackNumberId)
         startGeoviite()
@@ -61,7 +59,7 @@ class VerticalGeometryElementListTestUI
 
     @Test
     fun `List layout vertical geometry`() {
-        val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
+        val trackNumberId = insertOfficialTrackNumber()
         val goodPlan = insertGoodPlan(trackNumberId)
         insertMinimalPlan(trackNumberId)
 
@@ -83,7 +81,7 @@ class VerticalGeometryElementListTestUI
 
     @Test
     fun `List entire track vertical geometry`() {
-        val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
+        val trackNumberId = insertOfficialTrackNumber()
         val goodPlan = insertGoodPlan(trackNumberId)
         insertMinimalPlan(trackNumberId)
 

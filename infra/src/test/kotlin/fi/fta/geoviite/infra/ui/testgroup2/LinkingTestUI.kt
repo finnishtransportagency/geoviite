@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.ui.pagemodel.map.E2EKmPostEditDialog
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ELayoutSwitchEditDialog
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ELocationTrackEditDialog
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ETrackLayoutPage
-import fi.fta.geoviite.infra.ui.testdata.createTrackLayoutTrackNumber
 import fi.fta.geoviite.infra.ui.testdata.locationTrack
 import fi.fta.geoviite.infra.ui.testdata.pointsFromIncrementList
 import fi.fta.geoviite.infra.ui.testdata.referenceLine
@@ -39,7 +38,6 @@ const val LINKING_TEST_PLAN_NAME = "Linking test plan"
 class LinkingTestUI @Autowired constructor(
     private val testGeometryPlanService: TestGeometryPlanService,
     private val switchDao: LayoutSwitchDao,
-    private val trackNumberDao: LayoutTrackNumberDao,
     private val kmPostDao: LayoutKmPostDao,
     private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
@@ -57,7 +55,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Create a new location track and link geometry`() {
-        val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
+        val trackNumberId = insertOfficialTrackNumber(TrackNumber("foo"))
         createAndInsertCommonReferenceLine(trackNumberId)
         val geometryPlan = testGeometryPlanService.buildPlan(trackNumberId).alignment(
             "geo-alignment-a", Point(50.0, 25.0),
@@ -96,7 +94,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Replace existing location track geometry with new geometry`() {
-        val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
+        val trackNumberId = insertOfficialTrackNumber()
         createAndInsertCommonReferenceLine(trackNumberId)
         val originalLocationTrack = saveLocationTrackWithAlignment(
             locationTrack(
@@ -164,7 +162,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Edit location track end coordinate`() {
-        val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
+        val trackNumberId = insertOfficialTrackNumber()
         createAndInsertCommonReferenceLine(trackNumberId)
         val originalLocationTrack = saveLocationTrackWithAlignment(
             locationTrack(
@@ -202,7 +200,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Edit location track start coordinate`() {
-        val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
+        val trackNumberId = insertOfficialTrackNumber()
         createAndInsertCommonReferenceLine(trackNumberId)
         val originalLocationTrack = saveLocationTrackWithAlignment(
             locationTrack(
@@ -239,7 +237,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Link geometry KM-Post to nearest track layout KM-post`() {
-        val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
+        val trackNumberId = insertOfficialTrackNumber()
         kmPostDao.insert(
             kmPost(
                 trackNumberId,
@@ -292,7 +290,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Link geometry KM-post to new KM-post`() {
-        val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
+        val trackNumberId = insertOfficialTrackNumber()
         val lastKmPostLocation = Point(34.0, 30.0)
 
         testGeometryPlanService
@@ -336,7 +334,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Link geometry switch to new location tracks and layout switch`() {
-        val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo tracknumber")).id
+        val trackNumberId = insertOfficialTrackNumber(TrackNumber("foo tracknumber"))
         val plan = testGeometryPlanService
             .buildPlan(trackNumberId)
             .switch("switch to link", "YV54-200N-1:9-O", Point(5.0, 5.0))
@@ -411,7 +409,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Continue location track using geometry`() {
-        val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo tracknumber")).id
+        val trackNumberId = insertOfficialTrackNumber()
         createAndInsertCommonReferenceLine(trackNumberId)
         val plan = testGeometryPlanService
             .buildPlan(trackNumberId)
@@ -481,7 +479,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Continue and replace location track using geometry`() {
-        val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo tracknumber")).id
+        val trackNumberId = insertOfficialTrackNumber()
         createAndInsertCommonReferenceLine(trackNumberId)
         val plan = testGeometryPlanService
             .buildPlan(trackNumberId)
@@ -550,7 +548,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `link track to a reference line`() {
-        val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo tracknumber")).id
+        val trackNumberId = insertOfficialTrackNumber(TrackNumber("foo tracknumber"))
 
         val originalReferenceLine = referenceLine(
             trackNumber = trackNumberId,
@@ -610,7 +608,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Delete location track`() {
-        val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo tracknumber")).id
+        val trackNumberId = insertOfficialTrackNumber()
         createAndInsertCommonReferenceLine(trackNumberId)
 
         val originalLocationTrack = locationTrack(

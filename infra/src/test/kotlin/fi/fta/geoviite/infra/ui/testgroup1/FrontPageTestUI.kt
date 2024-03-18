@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.ratko.ratkoRouteNumber
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
-import fi.fta.geoviite.infra.ui.testdata.createTrackLayoutTrackNumber
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -41,7 +40,7 @@ class FrontPageTestUI @Autowired constructor(
     @Test
     fun `Retry failed publication`() {
         val originalTrackNumberVersion = trackNumberDao.insert(
-            createTrackLayoutTrackNumber("original name").copy(externalId = Oid("1.2.3.4.5"))
+            trackNumber(TrackNumber("original name"), externalId = Oid("1.2.3.4.5"), draft = false)
         ).rowVersion
         val trackNumberId = originalTrackNumberVersion.id
         val alignmentVersion = alignmentDao.insert(

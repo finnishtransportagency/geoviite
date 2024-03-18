@@ -14,14 +14,14 @@ import java.time.Instant
 class HelsinkiTestData private constructor() {
     companion object {
         const val GEOMETRY_PLAN_NAME = "Helsinki test project"
-        var WEST_LT_NAME = "lt-west"
-        var EAST_LT_NAME = "lt-east"
+        val WEST_LT_NAME = AlignmentName("lt-west")
+        val EAST_LT_NAME = AlignmentName("lt-east")
 
         const val HKI_BASE_POINT_X = 385000.00
         const val HKI_BASE_POINT_Y = 6672000.00
 
-        const val HKI_TRACK_NUMBER_1 = "HKI1"
-        const val HKI_TRACK_NUMBER_2 = "HKI2"
+        val HKI_TRACK_NUMBER_1 = TrackNumber("HKI1")
+        val HKI_TRACK_NUMBER_2 = TrackNumber("HKI2")
 
         val HKI_BASE_POINT = Point(HKI_BASE_POINT_X, HKI_BASE_POINT_Y)
 
@@ -128,15 +128,15 @@ class HelsinkiTestData private constructor() {
             )
         }
 
-        fun westTrackLayoutKmPosts(trackNumber: IntId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> {
+        fun westTrackLayoutKmPosts(trackNumberId: IntId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> {
             val point1 = HKI_BASE_POINT + Point(x = 690.00, y = 410.00)
             val point2 = HKI_BASE_POINT + Point(x = 690.00, y = 485.00)
             val point3 = HKI_BASE_POINT + Point(x = 690.00, y = 560.00)
 
             return arrayListOf(
-                trackLayoutKmPost("0001we", trackNumber, point1),
-                trackLayoutKmPost("0002we", trackNumber, point2),
-                trackLayoutKmPost("0003we", trackNumber, point3)
+                kmPost(trackNumberId = trackNumberId, km = KmNumber("0001we"), location = point1, draft = false),
+                kmPost(trackNumberId = trackNumberId, km = KmNumber("0002we"), location = point2, draft = false),
+                kmPost(trackNumberId = trackNumberId, km = KmNumber("0003we"), location = point3, draft = false),
             )
         }
 
@@ -146,9 +146,9 @@ class HelsinkiTestData private constructor() {
             val point3 = HKI_BASE_POINT + Point(x = 752.00, y = 560.00)
 
             return arrayListOf(
-                trackLayoutKmPost("0001es", trackNumberId, point1),
-                trackLayoutKmPost("0002es", trackNumberId, point2),
-                trackLayoutKmPost("0003es", trackNumberId, point3)
+                kmPost(trackNumberId = trackNumberId, km = KmNumber("0001es"), location = point1, draft = false),
+                kmPost(trackNumberId = trackNumberId, km = KmNumber("0002es"), location = point2, draft = false),
+                kmPost(trackNumberId = trackNumberId, km = KmNumber("0003es"), location = point3, draft = false),
             )
         }
 

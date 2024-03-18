@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.ui.testgroup2
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geometry.*
@@ -9,7 +10,6 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.LocalHostWebClient
 import fi.fta.geoviite.infra.ui.SeleniumTest
-import fi.fta.geoviite.infra.ui.testdata.createTrackLayoutTrackNumber
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -23,7 +23,6 @@ import kotlin.test.assertNotNull
 @SpringBootTest
 class GeometryElementListTestUI @Autowired constructor(
     private val geometryDao: GeometryDao,
-    private val trackNumberDao: LayoutTrackNumberDao,
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val geometryService: GeometryService,
@@ -37,7 +36,7 @@ class GeometryElementListTestUI @Autowired constructor(
 
     @Test
     fun `List layout geometry`() {
-        val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
+        val trackNumberId = insertOfficialTrackNumber(TrackNumber("foo"))
         val planVersion = insertSomePlan(trackNumberId)
         linkPlanToSomeLocationTrack(planVersion, trackNumberId)
 
@@ -64,7 +63,7 @@ class GeometryElementListTestUI @Autowired constructor(
 
     @Test
     fun `List plan geometry`() {
-        insertSomePlan(trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id)
+        insertSomePlan(insertOfficialTrackNumber())
         startGeoviite()
         val planListPage = navigationBar.goToElementListPage().planListPage()
         planListPage.selectPlan("testfile")
@@ -89,7 +88,7 @@ class GeometryElementListTestUI @Autowired constructor(
 
     @Test
     fun `List whole network geometry`() {
-        val trackNumberId = trackNumberDao.insert(createTrackLayoutTrackNumber("foo")).id
+        val trackNumberId = insertOfficialTrackNumber()
         val planVersion = insertSomePlan(trackNumberId)
         linkPlanToSomeLocationTrack(planVersion, trackNumberId)
         geometryService.makeElementListingCsv()
