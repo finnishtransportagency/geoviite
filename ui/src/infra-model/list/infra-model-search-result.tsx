@@ -23,7 +23,13 @@ import { GeometryPlanLinkingSummary, getGeometryPlanLinkingSummaries } from 'geo
 import { ConfirmHideInfraModel } from './confirm-hide-infra-model-dialog';
 import { ConfirmDownloadUnreliableInfraModelDialog } from './confirm-download-unreliable-infra-model-dialog';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { DOWNLOAD_GEOMETRY, EDIT_GEOMETRY_FILE } from 'user/user-model';
+import {
+    DOWNLOAD_GEOMETRY,
+    EDIT_GEOMETRY_FILE,
+    userHasPrivilege,
+    VIEW_LAYOUT_DRAFT,
+} from 'user/user-model';
+import { useCommonDataAppSelector } from 'store/hooks';
 
 export type InfraModelSearchResultProps = Pick<
     InfraModelListState,
@@ -63,7 +69,10 @@ function toggleSortOrder(
 export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
     props: InfraModelSearchResultProps,
 ) => {
-    const trackNumbers = useTrackNumbers('OFFICIAL');
+    const privileges = useCommonDataAppSelector((state) => state.userPrivileges).map((p) => p.code);
+    const trackNumbers = useTrackNumbers(
+        userHasPrivilege(privileges, VIEW_LAYOUT_DRAFT) ? 'DRAFT' : 'OFFICIAL',
+    );
 
     const [linkingSummaries, setLinkingSummaries] = useState<
         Map<GeometryPlanId, GeometryPlanLinkingSummary | undefined>
