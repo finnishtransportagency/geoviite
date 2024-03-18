@@ -364,7 +364,8 @@
         "name-in-use": "Huomaa, että ratanumerolla on toinen sijaintiraide samalla tunnuksella",
         "move-to-edit": "Voit siirtyä muokkaamaan raidetta {{name}} tästä",
         "name-in-use-deleted": "Huomaa, että ratanumerolla on poistettu raide samalla tunnuksella",
-        "move-to-edit-deleted": "Voit siirtyä palauttamaan poistetun raiteen tästä"
+        "move-to-edit-deleted": "Voit siirtyä palauttamaan poistetun raiteen tästä",
+        "track-already-has-duplicates": "Tällä raiteella on jo duplikaattiraiteita"
     },
     "location-track-delete-dialog": {
         "title": "Sijaintiraiteen poistaminen paikannuspohjasta",
