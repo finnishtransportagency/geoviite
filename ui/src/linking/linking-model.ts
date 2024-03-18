@@ -30,7 +30,6 @@ import {
     Range,
     SwitchAlignmentId,
     SwitchOwnerId,
-    SwitchStructure,
     SwitchStructureId,
     TrackMeter,
 } from 'common/common-model';
@@ -272,37 +271,42 @@ export type TopologicalJointConnection = {
     locationTrackIds: LocationTrackId[];
 };
 
-export type SuggestedSwitch = {
-    name: string;
-    geometryPlanId?: GeometryPlanId;
-    id: SuggestedSwitchId;
-    switchStructure: SwitchStructure;
-    joints: SuggestedSwitchJoint[];
-    geometrySwitchId?: GeometrySwitchId;
-    alignmentEndPoint?: LocationTrackEndpoint;
-    topologicalJointConnections?: TopologicalJointConnection[];
-};
-
-export type SwitchLinkingSegment = {
-    locationTrackId: LocationTrackId;
-    segmentIndex: number;
-    m: number;
-};
-
-export type SwitchLinkingJoint = {
-    jointNumber: JointNumber;
+export type TrackLayoutSwitchJoint = {
+    number: JointNumber;
     location: Point;
-    segments: SwitchLinkingSegment[];
     locationAccuracy?: LocationAccuracy;
 };
 
-export type SwitchLinkingParameters = {
+export type SwitchLinkingJoint = {
+    number: JointNumber;
+    segmentIndex: number;
+    m: number;
+    location: Point;
+};
+
+export type SwitchLinkingTrackLinks = {
+    segmentJoints: SwitchLinkingJoint[];
+    topologyJoint?: SwitchLinkingTopologicalTrackLink;
+};
+
+export type TrackEnd = 'START' | 'END';
+
+export type SwitchLinkingTopologicalTrackLink = {
+    number: JointNumber;
+    trackEnd: TrackEnd;
+};
+
+export type SuggestedSwitch = {
+    id: SuggestedSwitchId;
+    switchStructureId: SwitchStructureId;
+    joints: TrackLayoutSwitchJoint[];
+    trackLinks: { [k: LocationTrackId]: SwitchLinkingTrackLinks };
     geometryPlanId?: GeometryPlanId;
     geometrySwitchId?: GeometrySwitchId;
-    layoutSwitchId: LayoutSwitchId;
-    joints: SwitchLinkingJoint[];
-    switchStructureId: SwitchStructureId;
+    alignmentEndPoint?: LocationTrackEndpoint;
+    name: string;
 };
+
 export type KmPostLinkingParameters = {
     geometryPlanId?: GeometryPlanId;
     geometryKmPostId: GeometryKmPostId;

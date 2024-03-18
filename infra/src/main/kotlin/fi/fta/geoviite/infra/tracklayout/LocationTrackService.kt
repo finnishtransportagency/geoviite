@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.START_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
+import fi.fta.geoviite.infra.linking.TopologyLinkFindingSwitch
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.publication.ValidationVersion
@@ -34,7 +35,7 @@ class LocationTrackService(
     private val switchDao: LayoutSwitchDao,
     private val switchLibraryService: SwitchLibraryService,
     private val splitDao: SplitDao,
-) : DraftableObjectService<LocationTrack, LocationTrackDao>(locationTrackDao) {
+) : LayoutAssetService<LocationTrack, LocationTrackDao>(locationTrackDao) {
 
     @Transactional
     fun insert(request: LocationTrackSaveRequest): DaoResponse<LocationTrack> {
@@ -58,6 +59,7 @@ class LocationTrackService(
             topologyStartSwitch = null,
             topologyEndSwitch = null,
             ownerId = request.ownerId,
+            contextData = LayoutContextData.newDraft(),
         )
         return saveDraftInternal(locationTrack)
     }
@@ -108,9 +110,9 @@ class LocationTrackService(
     override fun saveDraft(draft: LocationTrack): DaoResponse<LocationTrack> =
         super.saveDraft(draft.copy(alignmentVersion = updatedAlignmentVersion(draft)))
 
-    private fun updatedAlignmentVersion(track: LocationTrack) =
+    private fun updatedAlignmentVersion(track: LocationTrack): RowVersion<LayoutAlignment>? =
         // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
-        if (track.dataType == TEMP || track.draft == null) alignmentService.duplicateOrNew(track.alignmentVersion)
+        if (track.dataType == TEMP || track.isOfficial) alignmentService.duplicateOrNew(track.alignmentVersion)
         else track.alignmentVersion
 
     @Transactional
@@ -118,7 +120,7 @@ class LocationTrackService(
         logger.serviceCall("save", "locationTrack" to draft, "alignment" to alignment)
         val alignmentVersion =
             // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
-            if (draft.dataType == TEMP || draft.draft == null) {
+            if (draft.dataType == TEMP || draft.isOfficial) {
                 alignmentService.saveAsNew(alignment)
             }
             // Ensure that we update the correct one.
@@ -159,7 +161,8 @@ class LocationTrackService(
     @Transactional
     override fun deleteDraft(id: IntId<LocationTrack>): DaoResponse<LocationTrack> {
         val draft = dao.getOrThrow(DRAFT, id)
-        if (draft.isNewDraft()) {
+        // If removal also breaks references, clear them out first
+        if (draft.contextData.officialRowId == null) {
             clearDuplicateReferences(id)
         }
         val deletedVersion = super.deleteDraft(id)
@@ -181,12 +184,8 @@ class LocationTrackService(
     fun clearDuplicateReferences(id: IntId<LocationTrack>) = dao
         .fetchDuplicateVersions(id, DRAFT, includeDeleted = true)
         .map(dao::fetch)
-        .map(::draft)
+        .map(::asMainDraft)
         .forEach { duplicate -> saveDraft(duplicate.copy(duplicateOf = null)) }
-
-    override fun createDraft(item: LocationTrack) = draft(item)
-
-    override fun createPublished(item: LocationTrack) = published(item)
 
     fun listNonLinked(): List<LocationTrack> {
         logger.serviceCall("listNonLinked")
@@ -481,17 +480,16 @@ class LocationTrackService(
         alignment: LayoutAlignment,
         startChanged: Boolean = false,
         endChanged: Boolean = false,
-        overlaidTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>> = mapOf(),
     ): LocationTrack {
         val nearbyTracksAroundStart =
             (alignment.start?.let(::fetchNearbyLocationTracksWithAlignments)?.filter { (nearbyLocationTrack, _) ->
                 nearbyLocationTrack.id != track.id
-            } ?: listOf()).map { nearbyTrack -> overlaidTracks.getOrDefault(nearbyTrack.first.id, nearbyTrack)  }
+            } ?: listOf())
 
         val nearbyTracksAroundEnd =
             (alignment.end?.let(::fetchNearbyLocationTracksWithAlignments)?.filter { (nearbyLocationTrack, _) ->
                 nearbyLocationTrack.id != track.id
-            } ?: listOf()).map { nearbyTrack -> overlaidTracks.getOrDefault(nearbyTrack.first.id, nearbyTrack)  }
+            } ?: listOf())
 
         return calculateLocationTrackTopology(
             track, alignment, startChanged, endChanged, NearbyTracks(
@@ -603,18 +601,23 @@ fun calculateLocationTrackTopology(
     startChanged: Boolean = false,
     endChanged: Boolean = false,
     nearbyTracks: NearbyTracks,
+    newSwitch: TopologyLinkFindingSwitch? = null,
 ): LocationTrack {
     val startPoint = alignment.firstSegmentStart
     val endPoint = alignment.lastSegmentEnd
     val ownSwitches = alignment.segments.mapNotNull { segment -> segment.switchId }.toSet()
 
     val startSwitch = if (!track.exists || startPoint == null) null
-    else if (startChanged) findBestTopologySwitchMatch(startPoint, ownSwitches, nearbyTracks.aroundStart, null)
-    else findBestTopologySwitchMatch(startPoint, ownSwitches, nearbyTracks.aroundStart, track.topologyStartSwitch)
+    else if (startChanged) {
+        findBestTopologySwitchMatch(startPoint, ownSwitches, nearbyTracks.aroundStart, null, newSwitch)
+    }
+    else findBestTopologySwitchMatch(startPoint, ownSwitches, nearbyTracks.aroundStart, track.topologyStartSwitch, newSwitch)
 
     val endSwitch = if (!track.exists || endPoint == null) null
-    else if (endChanged) findBestTopologySwitchMatch(endPoint, ownSwitches, nearbyTracks.aroundEnd, null)
-    else findBestTopologySwitchMatch(endPoint, ownSwitches, nearbyTracks.aroundEnd, track.topologyEndSwitch)
+    else if (endChanged) {
+        findBestTopologySwitchMatch(endPoint, ownSwitches, nearbyTracks.aroundEnd, null, newSwitch)
+    }
+    else findBestTopologySwitchMatch(endPoint, ownSwitches, nearbyTracks.aroundEnd, track.topologyEndSwitch, newSwitch)
 
     return if (track.topologyStartSwitch == startSwitch && track.topologyEndSwitch == endSwitch) {
         track
@@ -632,10 +635,11 @@ fun findBestTopologySwitchMatch(
     ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
     nearbyTracksForSearch: List<Pair<LocationTrack, LayoutAlignment>>,
     currentTopologySwitch: TopologyLocationTrackSwitch?,
+    newSwitch: TopologyLinkFindingSwitch?,
 ): TopologyLocationTrackSwitch? {
     val defaultSwitch = if (currentTopologySwitch?.switchId?.let(ownSwitches::contains) != false) null
     else currentTopologySwitch
-    return findBestTopologySwitchFromSegments(target, ownSwitches, nearbyTracksForSearch) ?: defaultSwitch
+    return findBestTopologySwitchFromSegments(target, ownSwitches, nearbyTracksForSearch, newSwitch) ?: defaultSwitch
     ?: findBestTopologySwitchFromOtherTopology(target, ownSwitches, nearbyTracksForSearch)
 }
 
@@ -643,9 +647,10 @@ private fun findBestTopologySwitchFromSegments(
     target: IPoint,
     ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
     nearbyTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    newSwitch: TopologyLinkFindingSwitch?,
 ): TopologyLocationTrackSwitch? = nearbyTracks.flatMap { (_, otherAlignment) ->
     otherAlignment.segments.flatMap { segment ->
-        if (segment.switchId !is IntId || ownSwitches.contains(segment.switchId)) listOf()
+        if (segment.switchId !is IntId || ownSwitches.contains(segment.switchId) || segment.switchId == newSwitch?.id) listOf()
         else listOfNotNull(
             segment.startJointNumber?.let { number ->
                 pickIfClose(
@@ -654,7 +659,9 @@ private fun findBestTopologySwitchFromSegments(
             },
             segment.endJointNumber?.let { number -> pickIfClose(segment.switchId, number, target, segment.segmentEnd) },
         )
-    }
+    } + (newSwitch?.joints?.mapNotNull { sj ->
+        pickIfClose(newSwitch.id, sj.number, target, sj.location)
+    } ?: listOf())
 }.minByOrNull { (_, distance) -> distance }?.first
 
 private fun findBestTopologySwitchFromOtherTopology(

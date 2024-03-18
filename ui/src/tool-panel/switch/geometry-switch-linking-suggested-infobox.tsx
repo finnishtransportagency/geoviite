@@ -8,9 +8,11 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { SwitchSuggestionCreatorDialog } from 'linking/switch/switch-suggestion-creator-dialog';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
+import { SwitchStructure } from 'common/common-model';
 
 type GeometrySwitchLinkingSuggestedInfoboxProps = {
     suggestedSwitch: SuggestedSwitch;
+    suggestedSwitchStructure: SwitchStructure;
     alignmentEndPoint: LocationTrackEndpoint;
     onSuggestedSwitchChange: (suggestedSwitch: SuggestedSwitch) => void;
     contentVisible: boolean;
@@ -21,6 +23,7 @@ export const GeometrySwitchLinkingSuggestedInfobox: React.FC<
     GeometrySwitchLinkingSuggestedInfoboxProps
 > = ({
     suggestedSwitch,
+    suggestedSwitchStructure,
     alignmentEndPoint,
     onSuggestedSwitchChange,
     contentVisible,
@@ -54,7 +57,7 @@ export const GeometrySwitchLinkingSuggestedInfobox: React.FC<
                     />
                     <InfoboxField
                         label={t('tool-panel.switch.geometry.switch-structure-type')}
-                        value={suggestedSwitch.switchStructure.type}
+                        value={suggestedSwitchStructure.type}
                     />
                     <InfoboxButtons>
                         <Button

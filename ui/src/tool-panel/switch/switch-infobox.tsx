@@ -349,16 +349,19 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                     />
                 </InfoboxContent>
             </Infobox>
-            {layoutSwitch && layoutSwitch.draftType !== 'NEW_DRAFT' && (
-                <AssetValidationInfoboxContainer
-                    contentVisible={visibilities.validation}
-                    onContentVisibilityChange={() => visibilityChange('validation')}
-                    id={layoutSwitch.id}
-                    type={'SWITCH'}
-                    publishType={publishType}
-                    changeTime={changeTimes.layoutSwitch}
-                />
-            )}
+            {
+                // TODO: GVT-2522
+                layoutSwitch && layoutSwitch.editState !== 'CREATED' && (
+                    <AssetValidationInfoboxContainer
+                        contentVisible={visibilities.validation}
+                        onContentVisibilityChange={() => visibilityChange('validation')}
+                        id={layoutSwitch.id}
+                        type={'SWITCH'}
+                        publishType={publishType}
+                        changeTime={changeTimes.layoutSwitch}
+                    />
+                )
+            }
             <Infobox
                 contentVisible={visibilities.log}
                 onContentVisibilityChange={() => visibilityChange('log')}
@@ -380,7 +383,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             />
                         </React.Fragment>
                     )}
-                    {layoutSwitch?.draftType === 'NEW_DRAFT' && (
+                    {layoutSwitch?.editState === 'CREATED' && (
                         <InfoboxButtons>
                             <Button
                                 onClick={() => setShowDeleteDialog(true)}

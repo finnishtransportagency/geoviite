@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
+import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.publication.PublishValidationError
 import fi.fta.geoviite.infra.publication.PublishValidationErrorType.ERROR
 import fi.fta.geoviite.infra.publication.VALIDATION
@@ -8,6 +9,7 @@ import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.publication.validate
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.util.LocalizationKey
 import kotlin.math.max
 import kotlin.math.min
 
@@ -103,8 +105,8 @@ internal fun validateTargetTrackNumber(
 ) = if (sourceLocationTrack.trackNumberId != targetLocationTrack.trackNumberId) {
     PublishValidationError(
         ERROR,
-        "$VALIDATION_SPLIT.duplicate-on-different-track-number",
-        mapOf("duplicateTrack" to targetLocationTrack.name)
+        LocalizationKey("$VALIDATION_SPLIT.source-and-target-track-numbers-are-different"),
+        localizationParams("trackName" to targetLocationTrack.name),
     )
 } else {
     null

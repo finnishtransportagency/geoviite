@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
+import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -150,10 +151,10 @@ class LinkingController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PostMapping("/switches/geometry")
-    fun saveSwitchLinking(@RequestBody linkingParameters: SwitchLinkingParameters): IntId<TrackLayoutSwitch> {
-        logger.apiCall("saveSwitchLinking", "linkingParameters" to linkingParameters)
-        return switchLinkingService.saveSwitchLinking(linkingParameters).id
+    @PostMapping("/switches/{switchId}/geometry")
+    fun saveSwitchLinking(@RequestBody suggestedSwitch: SuggestedSwitch, @PathVariable switchId: IntId<TrackLayoutSwitch>): IntId<TrackLayoutSwitch> {
+        logger.apiCall("saveSwitchLinking", "switchLinkingParameters" to suggestedSwitch, "switchId" to switchId)
+        return switchLinkingService.saveSwitchLinking(suggestedSwitch, switchId).id
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)

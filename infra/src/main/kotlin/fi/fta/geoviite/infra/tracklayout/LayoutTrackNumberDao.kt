@@ -1,6 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
@@ -18,7 +21,7 @@ const val TRACK_NUMBER_CACHE_SIZE = 1000L
 class LayoutTrackNumberDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
-) : DraftableDaoBase<TrackLayoutTrackNumber>(
+) : LayoutAssetDao<TrackLayoutTrackNumber>(
     jdbcTemplateParam,
     LAYOUT_TRACK_NUMBER,
     cacheEnabled,
@@ -70,17 +73,17 @@ class LayoutTrackNumberDao(
             select distinct on (tn.id, tn.version)
               tn.id as row_id,
               tn.version as row_version,
-              coalesce(tn.draft_of_track_number_id, tn.id) as official_id,
-              case when tn.draft then tn.id end as draft_id,
+              tn.official_row_id,
+              tn.draft,
               tn.external_id,
               tn.number,
               tn.description,
               tn.state,
-              coalesce(rl.draft_of_reference_line_id, rl.id) reference_line_id
+              coalesce(rl.official_row_id, rl.id) reference_line_id
             from layout.track_number_version tn
               -- TrackNumber reference line identity should never change, so we can join version 1
               left join layout.reference_line_version rl on 
-                rl.track_number_id = coalesce(tn.draft_of_track_number_id, tn.id) and rl.version = 1
+                rl.track_number_id = coalesce(tn.official_row_id, tn.id) and rl.version = 1
             where tn.id = :id
               and tn.version = :version
               and tn.deleted = false
@@ -101,15 +104,15 @@ class LayoutTrackNumberDao(
             select distinct on (tn.id)
               tn.id as row_id,
               tn.version as row_version,
-              coalesce(tn.draft_of_track_number_id, tn.id) as official_id, 
-              case when tn.draft then tn.id end as draft_id,
+              tn.official_row_id, 
+              tn.draft,
               tn.external_id, 
               tn.number, 
               tn.description,
               tn.state,
-              coalesce(rl.draft_of_reference_line_id, rl.id) as reference_line_id
+              coalesce(rl.official_row_id, rl.id) as reference_line_id
             from layout.track_number tn
-              left join layout.reference_line rl on rl.track_number_id = coalesce(tn.draft_of_track_number_id, tn.id)
+              left join layout.reference_line rl on rl.track_number_id = coalesce(tn.official_row_id, tn.id)
             order by tn.id, rl.id
         """.trimIndent()
         val trackNumbers = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutTrackNumber(rs) }
@@ -119,21 +122,18 @@ class LayoutTrackNumberDao(
     }
 
     private fun getLayoutTrackNumber(rs: ResultSet): TrackLayoutTrackNumber = TrackLayoutTrackNumber(
-        id = rs.getIntId("official_id"),
         number = rs.getTrackNumber("number"),
         description = rs.getFreeText("description"),
         state = rs.getEnum("state"),
         externalId = rs.getOidOrNull("external_id"),
-        dataType = DataType.STORED,
-        draft = rs.getIntIdOrNull<TrackLayoutTrackNumber>("draft_id")?.let { id -> Draft(id) },
         version = rs.getRowVersion("row_id", "row_version"),
         // TODO: GVT-2442 This should be non-null but we have a lot of tests that produce broken data
         referenceLineId = rs.getIntIdOrNull("reference_line_id"),
+        contextData = rs.getLayoutContextData("official_row_id", "row_id", "draft"),
     )
 
     @Transactional
     override fun insert(newItem: TrackLayoutTrackNumber): DaoResponse<TrackLayoutTrackNumber> {
-        verifyDraftableInsert(newItem)
         val sql = """
             insert into layout.track_number(
               external_id, 
@@ -141,7 +141,7 @@ class LayoutTrackNumberDao(
               description, 
               state, 
               draft, 
-              draft_of_track_number_id
+              official_row_id
             ) 
             values (
               :external_id, 
@@ -149,10 +149,10 @@ class LayoutTrackNumberDao(
               :description, 
               :state::layout.state,
               :draft, 
-              :draft_of_track_number_id
+              :official_row_id
             ) 
             returning 
-              coalesce(draft_of_track_number_id, id) as official_id,
+              coalesce(official_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -161,8 +161,8 @@ class LayoutTrackNumberDao(
             "number" to newItem.number,
             "description" to newItem.description,
             "state" to newItem.state.name,
-            "draft" to (newItem.draft != null),
-            "draft_of_track_number_id" to draftOfId(newItem)?.intValue,
+            "draft" to newItem.isDraft,
+            "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
@@ -174,7 +174,6 @@ class LayoutTrackNumberDao(
 
     @Transactional
     override fun update(updatedItem: TrackLayoutTrackNumber): DaoResponse<TrackLayoutTrackNumber> {
-        val rowId = toDbId(updatedItem.draft?.draftRowId ?: updatedItem.id)
         val sql = """
             update layout.track_number
             set
@@ -183,21 +182,21 @@ class LayoutTrackNumberDao(
               description = :description,
               state = :state::layout.state,
               draft = :draft,
-              draft_of_track_number_id = :draft_of_track_number_id
+              official_row_id = :official_row_id
             where id = :id
             returning 
-              coalesce(draft_of_track_number_id, id) as official_id,
+              coalesce(official_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
         val params = mapOf(
-            "id" to rowId.intValue,
+            "id" to toDbId(updatedItem.contextData.rowId).intValue,
             "external_id" to updatedItem.externalId,
             "number" to updatedItem.number,
             "description" to updatedItem.description,
             "state" to updatedItem.state.name,
-            "draft" to (updatedItem.draft != null),
-            "draft_of_track_number_id" to draftOfId(updatedItem)?.intValue,
+            "draft" to updatedItem.isDraft,
+            "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->

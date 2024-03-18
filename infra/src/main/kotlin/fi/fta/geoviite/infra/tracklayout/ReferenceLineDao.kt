@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublishType
 import fi.fta.geoviite.infra.common.RowVersion
@@ -22,15 +21,15 @@ const val REFERENCE_LINE_CACHE_SIZE = 1000L
 class ReferenceLineDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
-) : DraftableDaoBase<ReferenceLine>(jdbcTemplateParam, LAYOUT_REFERENCE_LINE, cacheEnabled, REFERENCE_LINE_CACHE_SIZE) {
+) : LayoutAssetDao<ReferenceLine>(jdbcTemplateParam, LAYOUT_REFERENCE_LINE, cacheEnabled, REFERENCE_LINE_CACHE_SIZE) {
 
     override fun fetchInternal(version: RowVersion<ReferenceLine>): ReferenceLine {
         val sql = """
             select
               rlv.id as row_id,
               rlv.version as row_version,
-              coalesce(rlv.draft_of_reference_line_id, rlv.id) as official_id, 
-              case when rlv.draft then rlv.id end as draft_id,
+              rlv.official_row_id, 
+              rlv.draft,
               rlv.alignment_id,
               rlv.alignment_version,
               rlv.track_number_id, 
@@ -58,8 +57,8 @@ class ReferenceLineDao(
             select
               rl.id as row_id,
               rl.version as row_version,
-              coalesce(rl.draft_of_reference_line_id, rl.id) as official_id, 
-              case when rl.draft then rl.id end as draft_id,
+              rl.official_row_id, 
+              rl.draft,
               rl.alignment_id,
               rl.alignment_version,
               rl.track_number_id, 
@@ -79,8 +78,6 @@ class ReferenceLineDao(
     }
 
     private fun getReferenceLine(rs: ResultSet): ReferenceLine = ReferenceLine(
-        dataType = DataType.STORED,
-        id = rs.getIntId("official_id"),
         alignmentVersion = rs.getRowVersion("alignment_id", "alignment_version"),
         sourceId = null,
         trackNumberId = rs.getIntId("track_number_id"),
@@ -88,8 +85,8 @@ class ReferenceLineDao(
         boundingBox = rs.getBboxOrNull("bounding_box"),
         length = rs.getDouble("length"),
         segmentCount = rs.getInt("segment_count"),
-        draft = rs.getIntIdOrNull<ReferenceLine>("draft_id")?.let { id -> Draft(id) },
         version = rs.getRowVersion("row_id", "row_version"),
+        contextData = rs.getLayoutContextData("official_row_id", "row_id", "draft"),
     )
 
     @Transactional
@@ -101,7 +98,7 @@ class ReferenceLineDao(
               alignment_version,
               start_address,
               draft, 
-              draft_of_reference_line_id
+              official_row_id
             ) 
             values (
               :track_number_id,
@@ -109,10 +106,10 @@ class ReferenceLineDao(
               :alignment_version,
               :start_address, 
               :draft, 
-              :draft_of_reference_line_id
+              :official_row_id
             ) 
             returning 
-              coalesce(draft_of_reference_line_id, id) as official_id,
+              coalesce(official_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -122,8 +119,8 @@ class ReferenceLineDao(
                 ?: throw IllegalStateException("ReferenceLine in DB needs an alignment")),
             "alignment_version" to newItem.alignmentVersion.version,
             "start_address" to newItem.startAddress.toString(),
-            "draft" to (newItem.draft != null),
-            "draft_of_reference_line_id" to draftOfId(newItem.id, newItem.draft)?.intValue,
+            "draft" to newItem.isDraft,
+            "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
         )
 
         jdbcTemplate.setUser()
@@ -136,7 +133,6 @@ class ReferenceLineDao(
 
     @Transactional
     override fun update(updatedItem: ReferenceLine): DaoResponse<ReferenceLine> {
-        val rowId = toDbId(updatedItem.draft?.draftRowId ?: updatedItem.id)
         val sql = """
             update layout.reference_line
             set
@@ -145,28 +141,27 @@ class ReferenceLineDao(
               alignment_version = :alignment_version,
               start_address = :start_address,
               draft = :draft,
-              draft_of_reference_line_id = :draft_of_reference_line_id
+              official_row_id = :official_row_id
             where id = :id
             returning 
-              coalesce(draft_of_reference_line_id, id) as official_id,
+              coalesce(official_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
         val params = mapOf(
-            "id" to rowId.intValue,
+            "id" to toDbId(updatedItem.contextData.rowId).intValue,
             "track_number_id" to updatedItem.trackNumberId.intValue,
-            "alignment_id" to (updatedItem.alignmentVersion?.id?.intValue
-                ?: throw IllegalStateException("ReferenceLine in DB needs an alignment")),
-            "alignment_version" to updatedItem.alignmentVersion.version,
+            "alignment_id" to updatedItem.getAlignmentVersionOrThrow().id.intValue,
+            "alignment_version" to updatedItem.getAlignmentVersionOrThrow().version,
             "start_address" to updatedItem.startAddress.toString(),
-            "draft" to (updatedItem.draft != null),
-            "draft_of_reference_line_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
+            "draft" to updatedItem.isDraft,
+            "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
         )
         jdbcTemplate.setUser()
         val result: DaoResponse<ReferenceLine> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to get new version for Reference Line")
-        logger.daoAccess(AccessType.UPDATE, ReferenceLine::class, rowId)
+        logger.daoAccess(AccessType.UPDATE, ReferenceLine::class, result)
         return result
     }
 

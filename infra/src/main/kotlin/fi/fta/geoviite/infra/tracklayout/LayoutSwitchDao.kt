@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.logging.AccessType.*
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
@@ -24,7 +23,7 @@ const val SWITCH_CACHE_SIZE = 10000L
 class LayoutSwitchDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
-) : DraftableDaoBase<TrackLayoutSwitch>(jdbcTemplateParam, LAYOUT_SWITCH, cacheEnabled, SWITCH_CACHE_SIZE) {
+) : LayoutAssetDao<TrackLayoutSwitch>(jdbcTemplateParam, LAYOUT_SWITCH, cacheEnabled, SWITCH_CACHE_SIZE) {
 
     override fun fetchVersions(
         publicationState: PublishType,
@@ -132,8 +131,6 @@ class LayoutSwitchDao(
 
     @Transactional
     override fun insert(newItem: TrackLayoutSwitch): DaoResponse<TrackLayoutSwitch> {
-        verifyDraftableInsert(newItem.id, newItem.draft)
-
         val sql = """
             insert into 
               layout.switch(
@@ -145,7 +142,7 @@ class LayoutSwitchDao(
                 trap_point,
                 owner_id,
                 draft,
-                draft_of_switch_id,
+                official_row_id,
                 source
             )
             values (
@@ -157,11 +154,11 @@ class LayoutSwitchDao(
               :trap_point,
               :owner_id,
               :draft,
-              :draft_of_switch_id,
+              :official_row_id,
               :source::layout.geometry_source
             )
             returning 
-              coalesce(draft_of_switch_id, id) as official_id,
+              coalesce(official_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -169,14 +166,14 @@ class LayoutSwitchDao(
         val response: DaoResponse<TrackLayoutSwitch> = jdbcTemplate.queryForObject(
             sql, mapOf(
                 "external_id" to newItem.externalId,
-                "geometry_switch_id" to if (newItem.sourceId is IntId) newItem.sourceId.intValue else null,
+                "geometry_switch_id" to newItem.sourceId?.let(::toDbId)?.intValue,
                 "name" to newItem.name,
                 "switch_structure_id" to newItem.switchStructureId.intValue,
                 "state_category" to newItem.stateCategory.name,
                 "trap_point" to newItem.trapPoint,
                 "owner_id" to newItem.ownerId?.intValue,
-                "draft" to (newItem.draft != null),
-                "draft_of_switch_id" to draftOfId(newItem.id, newItem.draft)?.intValue,
+                "draft" to newItem.isDraft,
+                "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
                 "source" to newItem.source.name
             )
         ) { rs, _ -> rs.getDaoResponse("official_id", "row_id", "row_version") }
@@ -188,7 +185,6 @@ class LayoutSwitchDao(
 
     @Transactional
     override fun update(updatedItem: TrackLayoutSwitch): DaoResponse<TrackLayoutSwitch> {
-        val rowId = toDbId(updatedItem.draft?.draftRowId ?: updatedItem.id)
         val sql = """
             update layout.switch
             set
@@ -199,24 +195,24 @@ class LayoutSwitchDao(
               state_category = :state_category::layout.state_category,
               trap_point = :trap_point,
               draft = :draft,
-              draft_of_switch_id = :draft_of_switch_id,
+              official_row_id = :official_row_id,
               owner_id = :owner_id
             where id = :id
             returning 
-              coalesce(draft_of_switch_id, id) as official_id,
+              coalesce(official_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
         val params = mapOf(
-            "id" to rowId.intValue,
+            "id" to toDbId(updatedItem.contextData.rowId).intValue,
             "external_id" to updatedItem.externalId,
-            "geometry_switch_id" to if (updatedItem.sourceId is IntId<GeometrySwitch>) updatedItem.sourceId.intValue else null,
+            "geometry_switch_id" to updatedItem.sourceId?.let(::toDbId)?.intValue,
             "name" to updatedItem.name,
             "switch_structure_id" to updatedItem.switchStructureId.intValue,
             "state_category" to updatedItem.stateCategory.name,
             "trap_point" to updatedItem.trapPoint,
-            "draft" to (updatedItem.draft != null),
-            "draft_of_switch_id" to draftOfId(updatedItem.id, updatedItem.draft)?.intValue,
+            "draft" to updatedItem.isDraft,
+            "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
             "owner_id" to updatedItem.ownerId?.intValue
         )
         jdbcTemplate.setUser()
@@ -289,8 +285,8 @@ class LayoutSwitchDao(
             select 
               sv.id as row_id,
               sv.version as row_version,
-              coalesce(sv.draft_of_switch_id, sv.id) as official_id, 
-              case when sv.draft then sv.id end as draft_id,
+              sv.official_row_id, 
+              sv.draft,
               sv.geometry_switch_id, 
               sv.external_id, 
               sv.name, 
@@ -324,8 +320,8 @@ class LayoutSwitchDao(
             select 
               s.id as row_id,
               s.version as row_version,
-              coalesce(s.draft_of_switch_id, s.id) as official_id, 
-              case when s.draft then s.id end as draft_id,
+              s.official_row_id, 
+              s.draft,
               s.geometry_switch_id, 
               s.external_id, 
               s.name, 
@@ -355,8 +351,6 @@ class LayoutSwitchDao(
         val switchStructureId = rs.getIntId<SwitchStructure>("switch_structure_id")
         val switchVersion = rs.getRowVersion<TrackLayoutSwitch>("row_id", "row_version")
         return TrackLayoutSwitch(
-            id = rs.getIntId("official_id"),
-            dataType = DataType.STORED,
             externalId = rs.getOidOrNull("external_id"),
             sourceId = rs.getIntIdOrNull("geometry_switch_id"),
             name = SwitchName(rs.getString("name")),
@@ -370,9 +364,9 @@ class LayoutSwitchDao(
             ),
             trapPoint = rs.getBooleanOrNull("trap_point"),
             ownerId = rs.getIntIdOrNull("owner_id"),
-            draft = rs.getIntIdOrNull<TrackLayoutSwitch>("draft_id")?.let { id -> Draft(id) },
             version = switchVersion,
             source = rs.getEnum("source"),
+            contextData = rs.getLayoutContextData("official_row_id", "row_id", "draft"),
         )
     }
 

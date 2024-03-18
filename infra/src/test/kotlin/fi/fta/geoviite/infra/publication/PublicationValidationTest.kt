@@ -35,8 +35,8 @@ class PublicationValidationTest {
 
     @Test
     fun trackNumberValidationCatchesLocationTrackReferencingDeletedTrackNumber() {
-        val trackNumber = trackNumber().copy(id = IntId(1))
-        val referenceLine = referenceLine(trackNumberId = trackNumber.id as IntId).copy(id = IntId(1))
+        val trackNumber = trackNumber(id = IntId(1))
+        val referenceLine = referenceLine(trackNumberId = trackNumber.id as IntId, id = IntId(1))
         val alignment = locationTrack(IntId(0)).copy(trackNumberId = IntId(1))
         assertTrackNumberReferenceError(
             true,
@@ -71,9 +71,9 @@ class PublicationValidationTest {
     @Test
     fun `Km-post validation catches un-published track number or reference line`() {
         val trackNumberId = IntId<TrackLayoutTrackNumber>(1)
-        val referenceLine = referenceLine(trackNumberId = IntId(1)).copy(id = IntId(1))
+        val referenceLine = referenceLine(trackNumberId = IntId(1), id = IntId(1))
         val kmPost = kmPost(trackNumberId, KmNumber(1))
-        val trackNumber = trackNumber().copy(draft = Draft(IntId(2)), id = trackNumberId)
+        val trackNumber = trackNumber(id = IntId(2), draft = false, draftOfId = IntId(1))
         assertKmPostReferenceError(
             true,
             kmPost,
@@ -124,7 +124,7 @@ class PublicationValidationTest {
 
     @Test
     fun switchValidationCatchesNonContinuousAlignment() {
-        val switch = switch(structureId = structure.id as IntId).copy(id = IntId(1))
+        val switch = switch(structureId = structure.id as IntId, id = IntId(1))
         val good = locationTrackAndAlignment(
             IntId(0),
             segment(Point(0.0, 0.0), Point(10.0, 10.0)).copy(
@@ -238,7 +238,7 @@ class PublicationValidationTest {
         assertSegmentSwitchError(
             true,
             editSegment(segmentSwitch) { segment ->
-                segment.copy(switchId = segmentSwitch.switch?.draft?.draftRowId!!)
+                segment.copy(switchId = segmentSwitch.switch?.contextData?.rowId!!)
             },
             "$VALIDATION_LOCATION_TRACK.switch.not-official",
         )
@@ -250,19 +250,19 @@ class PublicationValidationTest {
             false,
             segmentSwitchPair(switchDraft = false, switchInPublication = false),
             "$VALIDATION_LOCATION_TRACK.switch.not-published",
-            locationTrack(IntId(1)).copy(draft = null),
+            locationTrack(IntId(1), draft = false),
         )
         assertSegmentSwitchError(
             false,
             segmentSwitchPair(EXISTING, switchDraft = true, switchInPublication = true),
             "$VALIDATION_LOCATION_TRACK.switch.not-published",
-            locationTrack(IntId(1)).copy(draft = null),
+            locationTrack(IntId(1), draft = false),
         )
         assertSegmentSwitchError(
             true,
             segmentSwitchPair(EXISTING, switchDraft = true, switchInPublication = false),
             "$VALIDATION_LOCATION_TRACK.switch.not-published",
-            locationTrack(IntId(1)).copy(draft = null),
+            locationTrack(IntId(1), draft = false),
         )
     }
 
@@ -272,13 +272,13 @@ class PublicationValidationTest {
             false,
             segmentSwitchPair(switchStateCategory = EXISTING),
             "$VALIDATION_LOCATION_TRACK.switch.state-category.EXISTING",
-            locationTrack(IntId(1)).copy(draft = null),
+            locationTrack(IntId(1), draft = false),
         )
         assertSegmentSwitchError(
             true,
             segmentSwitchPair(switchStateCategory = NOT_EXISTING),
             "$VALIDATION_LOCATION_TRACK.switch.state-category.NOT_EXISTING",
-            locationTrack(IntId(1)).copy(draft = null),
+            locationTrack(IntId(1), draft = false),
         )
     }
 
@@ -531,14 +531,20 @@ class PublicationValidationTest {
 
     @Test
     fun validationCatchesMisplacedTopologyLink() {
-        val wrongPlaceSwitch =
-            switch(seed = 123, joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(100.0, 100.0), null))).copy(
-                id = IntId(1)
-            )
-        val rightPlaceSwitch =
-            switch(seed = 124, joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(200.0, 200.0), null))).copy(
-                id = IntId(2)
-            )
+        val wrongPlaceSwitch = switch(
+            seed = 123,
+            joints = listOf(
+                TrackLayoutSwitchJoint(JointNumber(1), Point(100.0, 100.0), null),
+            ),
+            id = IntId(1),
+        )
+        val rightPlaceSwitch = switch(
+            seed = 124,
+            joints = listOf(
+                TrackLayoutSwitchJoint(JointNumber(1), Point(200.0, 200.0), null),
+            ),
+            id = IntId(2),
+        )
         val unlinkedTrack = locationTrackAndAlignment(
             IntId(0), segment(Point(150.0, 150.0), Point(200.0, 200.0))
         )
@@ -864,10 +870,12 @@ class PublicationValidationTest {
         switchDraft: Boolean = false,
         switchInPublication: Boolean = true,
     ): SegmentSwitch {
-        val switch = switch(123).copy(
-            id = IntId(1),
+        val switch = switch(
+            seed = 123,
+            id = if (switchDraft) IntId(2) else IntId(1),
             stateCategory = switchStateCategory,
-            draft = if (switchDraft) Draft(IntId(2)) else null,
+            draft = switchDraft,
+            draftOfId = if (switchDraft) IntId(1) else null,
         )
         val joint1 = switch.joints.first()
         val joint2 = switch.joints.last()

@@ -23,7 +23,7 @@ import { boundingBoxAroundPoints, expandBoundingBox } from 'model/geometry';
 import { createSuggestedSwitch } from 'linking/linking-api';
 import { filterNotEmpty, first } from 'utils/array-utils';
 import {
-    asTrackLayoutSwitchJointConnection,
+    suggestedSwitchJointsAsLayoutSwitchJointConnections,
     getMatchingLocationTrackIdsForJointNumbers,
 } from 'linking/linking-utils';
 import { getLocationTracksNear } from 'track-layout/layout-location-track-api';
@@ -64,7 +64,7 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
 }) => {
     const { t } = useTranslation();
     const [switchStructureId, setSwitchStructureId] = React.useState<SwitchStructureId | undefined>(
-        prefilledSwitchStructureId || suggestedSwitch?.switchStructure.id,
+        prefilledSwitchStructureId || suggestedSwitch?.switchStructureId,
     );
     const switchStructures = useLoader(() => getSwitchStructures(), []);
     const nearbyLocationTracks = useLoader(() => {
@@ -77,9 +77,9 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
     const [switchAlignmentConfigs, setSwitchAlignmentConfigs] = React.useState<
         SwitchAlignmentConfig[]
     >([]);
-    const jointConnections = suggestedSwitch?.joints.map((j) =>
-        asTrackLayoutSwitchJointConnection(j),
-    );
+    const jointConnections = suggestedSwitch
+        ? suggestedSwitchJointsAsLayoutSwitchJointConnections(suggestedSwitch)
+        : [];
 
     // When switch structure changes, re-create switch alignment configs
     React.useEffect(() => {
@@ -94,13 +94,13 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
                 const locationTrackId = alignmentConfig
                     ? alignmentConfig.locationTrackId
                     : jointConnections
-                    ? first(
-                          getMatchingLocationTrackIdsForJointNumbers(
-                              switchAlignment.jointNumbers,
-                              jointConnections,
-                          ),
-                      )
-                    : undefined;
+                      ? first(
+                            getMatchingLocationTrackIdsForJointNumbers(
+                                switchAlignment.jointNumbers,
+                                jointConnections,
+                            ),
+                        )
+                      : undefined;
 
                 const jointPlainNumbers =
                     switchAlignment.jointNumbers.map(switchJointNumberToString);

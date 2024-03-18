@@ -18,9 +18,9 @@ select
   row.draft,
   (case
      when row.draft = true then '{"DRAFT"}'
-     when exists(select 1 from layout.km_post as d where d.draft_of_km_post_id = row.id) then '{"OFFICIAL"}'
+     when exists(select 1 from layout.km_post as d where d.official_row_id = row.id) then '{"OFFICIAL"}'
      else '{"DRAFT","OFFICIAL"}'
    end)::varchar[] as publication_states
   from layout.km_post row
-    left join layout.km_post official on row.draft_of_km_post_id = official.id
+    left join layout.km_post official on row.official_row_id = official.id
 );

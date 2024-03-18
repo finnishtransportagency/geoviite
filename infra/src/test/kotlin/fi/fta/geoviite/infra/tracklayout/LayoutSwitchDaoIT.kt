@@ -8,7 +8,8 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -61,7 +62,7 @@ class LayoutSwitchDaoIT @Autowired constructor(
         assertMatches(tempSwitch, inserted)
         assertEquals(VersionPair(insertVersion, null), switchDao.fetchVersionPair(insertId))
 
-        val tempDraft1 = draft(inserted).copy(name = SwitchName("TST002"))
+        val tempDraft1 = asMainDraft(inserted).copy(name = SwitchName("TST002"))
         val draftVersion1 = switchDao.insert(tempDraft1).rowVersion
         val draft1 = switchDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1)
@@ -84,7 +85,7 @@ class LayoutSwitchDaoIT @Autowired constructor(
 
     @Test
     fun shouldSuccessfullyDeleteDraftSwitches() {
-        val draftSwitch = draft(switch(0))
+        val draftSwitch = asMainDraft(switch(0))
         val (insertedId, insertedVersion) = switchDao.insert(draftSwitch)
         val insertedSwitch = switchDao.fetch(insertedVersion)
 
@@ -148,16 +149,16 @@ class LayoutSwitchDaoIT @Autowired constructor(
     }
 
     private fun insertOfficial(): DaoResponse<TrackLayoutSwitch> {
-        return switchDao.insert(switch(456).copy(draft = null))
+        return switchDao.insert(switch(456, draft = false))
     }
 
     private fun insertDraft(state: LayoutStateCategory = LayoutStateCategory.EXISTING): DaoResponse<TrackLayoutSwitch> {
-        return switchDao.insert(draft(switch(654)).copy(stateCategory = state))
+        return switchDao.insert(switch(654, stateCategory = state, draft = true))
     }
 
     private fun updateOfficial(originalVersion: RowVersion<TrackLayoutSwitch>): DaoResponse<TrackLayoutSwitch> {
         val original = switchDao.fetch(originalVersion)
-        assertNull(original.draft)
+        assertFalse(original.isDraft)
         return switchDao.update(original.copy(name = SwitchName("${original.name}U")))
     }
 }

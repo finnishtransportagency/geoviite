@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublishType.DRAFT
 import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
@@ -10,7 +11,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -33,11 +33,13 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
             description = FreeText("empty-test-track-number"),
             state = IN_USE,
             externalId = null,
+            contextData = LayoutContextData.newDraft(),
         )
         val (id, version) = trackNumberDao.insert(original)
         val fromDb = trackNumberDao.fetch(version)
         assertEquals(id, fromDb.id)
-        assertMatches(original, fromDb)
+        assertEquals(DataType.STORED, fromDb.dataType)
+        assertMatches(original, fromDb, contextMatch = false)
     }
 
     @Test
@@ -61,19 +63,19 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
         val tempTrackNumber = trackNumber(getUnusedTrackNumber(), description = "test 1")
         val (id, insertVersion) = trackNumberDao.insert(tempTrackNumber)
         val inserted = trackNumberDao.fetch(insertVersion)
-        assertMatches(tempTrackNumber, inserted)
+        assertMatches(tempTrackNumber, inserted, contextMatch = false)
         assertEquals(VersionPair(insertVersion, null), trackNumberDao.fetchVersionPair(id))
 
-        val tempDraft1 = draft(inserted).copy(description = FreeText("test 2"))
+        val tempDraft1 = asMainDraft(inserted).copy(description = FreeText("test 2"))
         val draftVersion1 = trackNumberDao.insert(tempDraft1).rowVersion
         val draft1 = trackNumberDao.fetch(draftVersion1)
-        assertMatches(tempDraft1, draft1)
+        assertMatches(tempDraft1, draft1, contextMatch = false)
         assertEquals(VersionPair(insertVersion, draftVersion1), trackNumberDao.fetchVersionPair(id))
 
         val tempDraft2 = draft1.copy(description = FreeText("test 3"))
         val draftVersion2 = trackNumberDao.update(tempDraft2).rowVersion
         val draft2 = trackNumberDao.fetch(draftVersion2)
-        assertMatches(tempDraft2, draft2)
+        assertMatches(tempDraft2, draft2, contextMatch = false)
         assertEquals(VersionPair(insertVersion, draftVersion2), trackNumberDao.fetchVersionPair(id))
 
         trackNumberDao.deleteDraft(insertVersion.id).rowVersion
@@ -130,7 +132,7 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
         originalVersion: RowVersion<TrackLayoutTrackNumber>,
     ): DaoResponse<TrackLayoutTrackNumber> {
         val original = trackNumberDao.fetch(originalVersion)
-        assertNull(original.draft)
+        assertFalse(original.isDraft)
         return trackNumberDao.update(original.copy(description = original.description + "_update"))
     }
 }

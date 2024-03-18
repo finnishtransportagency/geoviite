@@ -136,7 +136,7 @@ class LinkingServiceIT @Autowired constructor(
         val kmPostId = kmPostDao.insert(kmPost).id
         val officialKmPost = kmPostService.get(OFFICIAL, kmPostId)
 
-        assertMatches(officialKmPost!!, kmPostService.getOrThrow(DRAFT, kmPostId))
+        assertMatches(officialKmPost!!, kmPostService.getOrThrow(DRAFT, kmPostId), contextMatch = false)
 
         val trackNumberId = trackNumberDao.insert(
             trackNumber(TrackNumber(System.currentTimeMillis().toString()))
@@ -316,7 +316,7 @@ class LinkingServiceIT @Autowired constructor(
         trackAndAlignment1: Pair<LocationTrack, LayoutAlignment>,
         trackAndAlignment2: Pair<LocationTrack, LayoutAlignment>,
     ) {
-        assertMatches(trackAndAlignment1.first.copy(draft = null), trackAndAlignment2.first.copy(draft = null))
+        assertMatches(trackAndAlignment1.first, trackAndAlignment2.first, contextMatch = false)
         assertMatches(trackAndAlignment1.second, trackAndAlignment2.second)
     }
 }

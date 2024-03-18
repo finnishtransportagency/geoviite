@@ -14,6 +14,7 @@ import {
     LocationAccuracy,
     LocationTrackOwnerId,
     Oid,
+    RowVersion,
     Srid,
     SwitchOwnerId,
     SwitchStructureId,
@@ -59,13 +60,26 @@ export type LocationTrackId = string;
 export type LocationTrackType = 'MAIN' | 'SIDE' | 'TRAP' | 'CHORD';
 export type MapAlignmentSource = 'LAYOUT' | 'GEOMETRY';
 export type MapAlignmentType = 'LOCATION_TRACK' | 'REFERENCE_LINE';
-export type DraftType = 'NEW_DRAFT' | 'EDITED_DRAFT' | 'OFFICIAL';
+export type EditState = 'UNEDITED' | 'EDITED' | 'CREATED';
 export type TopologicalConnectivityType = 'NONE' | 'START' | 'END' | 'START_AND_END';
 export type LocationTrackDescriptionSuffixMode =
     | 'NONE'
     | 'SWITCH_TO_SWITCH'
     | 'SWITCH_TO_BUFFER'
     | 'SWITCH_TO_OWNERSHIP_BOUNDARY';
+
+export type LayoutAssetFields = {
+    version?: RowVersion;
+    dataType: DataType;
+    editState: EditState;
+};
+
+export type LayoutAsset =
+    | LayoutReferenceLine
+    | LayoutLocationTrack
+    | LayoutSwitch
+    | LayoutTrackNumber
+    | LayoutKmPost;
 
 export type LayoutReferenceLine = {
     id: ReferenceLineId;
@@ -75,9 +89,7 @@ export type LayoutReferenceLine = {
     length: number;
     sourceId?: GeometryAlignmentId;
     segmentCount: number;
-    version?: string;
-    draftType: DraftType;
-};
+} & LayoutAssetFields;
 
 export type TopologyLocationTrackSwitch = {
     switchId: LayoutSwitchId;
@@ -99,18 +111,15 @@ export type LayoutLocationTrack = {
     trackNumberId: LayoutTrackNumberId;
     sourceId?: GeometryAlignmentId;
     id: LocationTrackId;
-    dataType: DataType;
-    version: string;
     boundingBox?: BoundingBox;
     length: number;
     segmentCount: number;
-    draftType: DraftType;
     duplicateOf?: LocationTrackId;
     topologicalConnectivity: TopologicalConnectivityType;
     topologyStartSwitch?: TopologyLocationTrackSwitch;
     topologyEndSwitch?: TopologyLocationTrackSwitch;
     ownerId: LocationTrackOwnerId;
-};
+} & LayoutAssetFields;
 
 export type LocationTrackDuplicate = {
     id: LocationTrackId;
@@ -175,10 +184,7 @@ export type LayoutSwitch = {
     sourceId?: GeometrySwitchId;
     trapPoint?: boolean;
     ownerId?: SwitchOwnerId;
-    version?: string;
-    dataType?: DataType;
-    draftType: DraftType;
-};
+} & LayoutAssetFields;
 
 export type LayoutSwitchJoint = {
     number: JointNumber;
@@ -195,9 +201,7 @@ export type LayoutKmPost = {
     state: LayoutState;
     trackNumberId: LayoutTrackNumberId;
     sourceId?: GeometryKmPostId;
-    version?: string;
-    draftType: DraftType;
-};
+} & LayoutAssetFields;
 
 export type LayoutKmLengthDetails = {
     trackNumber: TrackNumber;
@@ -246,8 +250,7 @@ export type LayoutTrackNumber = {
     number: TrackNumber;
     state: LayoutState;
     sourceId?: GeometryTrackNumberId;
-    draftType: DraftType;
-};
+} & LayoutAssetFields;
 
 export type AddressPoint = {
     point: AlignmentPoint;
