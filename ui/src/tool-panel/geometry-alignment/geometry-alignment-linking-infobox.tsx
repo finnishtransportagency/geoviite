@@ -59,7 +59,7 @@ import {
 import { Radio } from 'vayla-design-lib/radio/radio';
 import { ChangeTimes } from 'common/common-slice';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_EDIT_LAYOUT } from 'user/user-model';
+import { EDIT_LAYOUT } from 'user/user-model';
 
 function createLinkingGeometryWithAlignmentParameters(
     alignmentLinking: LinkingGeometryWithAlignment,
@@ -383,7 +383,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     )}
 
                     {linkingState === undefined && (
-                        <PrivilegeRequired privilege={PRIV_EDIT_LAYOUT}>
+                        <PrivilegeRequired privilege={EDIT_LAYOUT}>
                             <InfoboxButtons>
                                 <Button
                                     size={ButtonSize.SMALL}

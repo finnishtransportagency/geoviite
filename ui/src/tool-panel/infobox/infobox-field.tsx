@@ -4,7 +4,7 @@ import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import { useTranslation } from 'react-i18next';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_EDIT_LAYOUT } from 'user/user-model';
+import { EDIT_LAYOUT } from 'user/user-model';
 
 type InfoboxFieldProps = {
     label: React.ReactNode;
@@ -58,7 +58,7 @@ const InfoboxField: React.FC<InfoboxFieldProps> = ({
                 </div>
             )}
             {iconDisabled && !iconHidden && (
-                <PrivilegeRequired privilege={PRIV_EDIT_LAYOUT}>
+                <PrivilegeRequired privilege={EDIT_LAYOUT}>
                     <div className={styles['infobox__edit-icon']}>
                         <span title={t('tool-panel.disabled.activity-disabled-in-official-mode')}>
                             <Icons.Edit size={IconSize.SMALL} color={IconColor.DISABLED} />

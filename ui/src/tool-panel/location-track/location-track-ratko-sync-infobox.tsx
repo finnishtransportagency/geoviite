@@ -9,7 +9,7 @@ import { LocationTrackId } from 'track-layout/track-layout-model';
 import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { useCommonDataAppSelector } from 'store/hooks';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_EDIT_LAYOUT } from 'user/user-model';
+import { EDIT_LAYOUT } from 'user/user-model';
 
 type LocationTrackRatkoSyncInfoboxProps = {
     locationTrackId: LocationTrackId;
@@ -33,7 +33,7 @@ export const LocationTrackRatkoSyncInfobox: React.FC<LocationTrackRatkoSyncInfob
         changeTimes.layoutLocationTrack,
     );
     return officialLocationTrack ? (
-        <PrivilegeRequired privilege={PRIV_EDIT_LAYOUT}>
+        <PrivilegeRequired privilege={EDIT_LAYOUT}>
             <Infobox
                 contentVisible={visibilities.ratkoPush}
                 onContentVisibilityChange={() => visibilityChange('ratkoPush')}

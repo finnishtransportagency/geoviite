@@ -44,7 +44,7 @@ import { MapLayerName } from 'map/map-model';
 import { updateLocationTrackGeometry } from 'linking/linking-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_EDIT_LAYOUT } from 'user/user-model';
+import { EDIT_LAYOUT } from 'user/user-model';
 
 type LocationTrackLocationInfoboxContainerProps = {
     locationTrack: LayoutLocationTrack;
@@ -245,7 +245,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             </InfoboxField>
 
                             {linkingState === undefined && (
-                                <PrivilegeRequired privilege={PRIV_EDIT_LAYOUT}>
+                                <PrivilegeRequired privilege={EDIT_LAYOUT}>
                                     {publishTypeIsDraft && extraInfo?.partOfUnfinishedSplit && (
                                         <InfoboxContentSpread>
                                             <MessageBox>
@@ -314,7 +314,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                 </React.Fragment>
                             )}
                             <EnvRestricted restrictTo="test">
-                                <PrivilegeRequired privilege={PRIV_EDIT_LAYOUT}>
+                                <PrivilegeRequired privilege={EDIT_LAYOUT}>
                                     {publishTypeIsDraft &&
                                         locationTrackIsDraft &&
                                         !extraInfo?.partOfUnfinishedSplit && (

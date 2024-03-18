@@ -20,7 +20,7 @@ import {
 } from 'data-products/data-products-utils';
 import { PlanGeometrySearchState, selectedElementTypes } from 'data-products/data-products-slice';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_DOWNLOAD_GEOMETRY } from 'user/user-model';
+import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 
 type PlanGeometryElementListingSearchProps = {
     state: PlanGeometrySearchState;
@@ -169,7 +169,7 @@ const PlanGeometryElementListingSearch = ({
                         ).map((error) => t(`data-products.search.${error}`))}
                     />
                 </div>
-                <PrivilegeRequired privilege={PRIV_DOWNLOAD_GEOMETRY}>
+                <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
                     <a
                         qa-id={'plan-element-list-csv-download'}
                         {...(state.plan && {

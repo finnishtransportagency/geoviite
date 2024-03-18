@@ -9,7 +9,7 @@ import { useCommonDataAppSelector, useInfraModelAppSelector } from 'store/hooks'
 import { InfraModelTabType } from 'infra-model/infra-model-slice';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { NavLink } from 'react-router-dom';
-import { PRIV_VIEW_PV_DOCUMENTS, userHasPrivilege } from 'user/user-model';
+import { VIEW_PV_DOCUMENTS, userHasPrivilege } from 'user/user-model';
 
 export const InfraModelLink: React.FC = () => {
     const { t } = useTranslation();
@@ -20,7 +20,7 @@ export const InfraModelLink: React.FC = () => {
     const changeTimes = getChangeTimes();
     const pvDocumentCounts = useLoader(() => getPVDocumentCount(), [changeTimes.pvDocument]);
     const exclamationPointVisibility =
-        userHasPrivilege(userPrivileges, PRIV_VIEW_PV_DOCUMENTS) &&
+        userHasPrivilege(userPrivileges, VIEW_PV_DOCUMENTS) &&
         !!pvDocumentCounts &&
         pvDocumentCounts?.suggested > 0;
 

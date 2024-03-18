@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Dialog } from 'geoviite-design-lib/dialog/dialog';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_EDIT_LAYOUT } from 'user/user-model';
+import { EDIT_LAYOUT } from 'user/user-model';
 
 type RatkoPublishButtonProps = {
     size?: ButtonSize;
@@ -26,7 +26,7 @@ const RatkoPublishButton: React.FC<RatkoPublishButtonProps> = ({ size, disabled 
 
     return (
         <React.Fragment>
-            <PrivilegeRequired privilege={PRIV_EDIT_LAYOUT}>
+            <PrivilegeRequired privilege={EDIT_LAYOUT}>
                 <Button
                     onClick={() => setShowingConfirmation(true)}
                     disabled={isPublishing || disabled}

@@ -27,7 +27,7 @@ import {
 } from 'data-products/data-products-slice';
 import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_DOWNLOAD_GEOMETRY } from 'user/user-model';
+import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 
 type LocationTrackVerticalGeometrySearchProps = {
     state: LocationTrackVerticalGeometrySearchState;
@@ -163,7 +163,7 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
                         'endTrackMeter',
                     ).map((error) => t(`data-products.search.${error}`))}
                 />
-                <PrivilegeRequired privilege={PRIV_DOWNLOAD_GEOMETRY}>
+                <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
                     <a
                         qa-id="vertical-geometry-csv-download"
                         {...(state.searchParameters.locationTrack && {

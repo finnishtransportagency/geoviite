@@ -31,7 +31,7 @@ import { Menu, MenuSelectOption, menuSelectOption } from 'vayla-design-lib/menu/
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 import { PrivilegedLink } from 'user/privileged-link';
-import { PRIV_DOWNLOAD_GEOMETRY, PRIV_EDIT_GEOMETRY_FILE } from 'user/user-model';
+import { DOWNLOAD_GEOMETRY, EDIT_GEOMETRY_FILE } from 'user/user-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 
 type ListMode = 'SUGGESTED' | 'REJECTED';
@@ -193,7 +193,7 @@ export const PVFileList = ({
                         'projektivelho.file-list.header.document-modified',
                         'projektivelho.document-modified',
                     )}
-                    <PrivilegeRequired privilege={PRIV_EDIT_GEOMETRY_FILE}>
+                    <PrivilegeRequired privilege={EDIT_GEOMETRY_FILE}>
                         <Th></Th>
                     </PrivilegeRequired>
                 </tr>
@@ -413,7 +413,7 @@ const PVFileListRow = ({
                 <td>{item.project && item.project.name}</td>
                 <td>
                     <PrivilegedLink
-                        privilege={PRIV_DOWNLOAD_GEOMETRY}
+                        privilege={DOWNLOAD_GEOMETRY}
                         className={styles['projektivelho-file-list__link']}
                         href={projektivelhoDocumentDownloadUri(item.document.id)}>
                         {item.document.name}
@@ -421,7 +421,7 @@ const PVFileListRow = ({
                 </td>
                 <td>{item.document.description}</td>
                 <td>{formatDateFull(item.document.modified)}</td>
-                <PrivilegeRequired privilege={PRIV_EDIT_GEOMETRY_FILE}>
+                <PrivilegeRequired privilege={EDIT_GEOMETRY_FILE}>
                     <td>
                         <div
                             className={styles['projektivelho-file-list__buttons']}

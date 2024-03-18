@@ -23,7 +23,7 @@ import { GeometryPlanLinkingSummary, getGeometryPlanLinkingSummaries } from 'geo
 import { ConfirmHideInfraModel } from './confirm-hide-infra-model-dialog';
 import { ConfirmDownloadUnreliableInfraModelDialog } from './confirm-download-unreliable-infra-model-dialog';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_DOWNLOAD_GEOMETRY, PRIV_EDIT_GEOMETRY_FILE } from 'user/user-model';
+import { DOWNLOAD_GEOMETRY, EDIT_GEOMETRY_FILE } from 'user/user-model';
 
 export type InfraModelSearchResultProps = Pick<
     InfraModelListState,
@@ -330,7 +330,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                         <td>{linkingSummaryDate(plan.id)}</td>
                                         <td>{linkingSummaryUsers(plan.id)}</td>
                                         <td onClick={(e) => e.stopPropagation()}>
-                                            <PrivilegeRequired privilege={PRIV_DOWNLOAD_GEOMETRY}>
+                                            <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
                                                 <Button
                                                     title={t('im-form.download-file')}
                                                     onClick={() => downloadPlan(plan)}
@@ -341,7 +341,7 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                                             </PrivilegeRequired>
                                         </td>
                                         <td onClick={(e) => e.stopPropagation()}>
-                                            <PrivilegeRequired privilege={PRIV_EDIT_GEOMETRY_FILE}>
+                                            <PrivilegeRequired privilege={EDIT_GEOMETRY_FILE}>
                                                 <Button
                                                     title={
                                                         isCurrentlyLinked(plan.id)

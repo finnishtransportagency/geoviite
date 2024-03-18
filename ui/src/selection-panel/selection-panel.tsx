@@ -46,7 +46,7 @@ import { Eye } from 'geoviite-design-lib/eye/eye';
 import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_VIEW_GEOMETRY } from 'user/user-model';
+import { VIEW_GEOMETRY } from 'user/user-model';
 
 type SelectionPanelProps = {
     changeTimes: ChangeTimes;
@@ -232,7 +232,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                     />
                 </div>
             </section>
-            <PrivilegeRequired privilege={PRIV_VIEW_GEOMETRY}>
+            <PrivilegeRequired privilege={VIEW_GEOMETRY}>
                 <SelectionPanelGeometrySection
                     publishType={publishType}
                     changeTimes={changeTimes}

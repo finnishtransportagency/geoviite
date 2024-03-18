@@ -10,7 +10,7 @@ import VerticalGeometryTable from 'data-products/vertical-geometry/vertical-geom
 import { dataProductsActions, SelectedGeometrySearch } from 'data-products/data-products-slice';
 import { EntireRailNetworkVerticalGeometryListing } from 'data-products/vertical-geometry/entire-rail-network-vertical-geometry-listing';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_DOWNLOAD_GEOMETRY } from 'user/user-model';
+import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 
 const VerticalGeometryView = () => {
     const dataProductsDelegates = React.useMemo(() => createDelegates(dataProductsActions), []);
@@ -41,7 +41,7 @@ const VerticalGeometryView = () => {
                             qaId="select-plan-geometry">
                             {t('data-products.vertical-geometry.plan-vertical-geometry')}
                         </Radio>
-                        <PrivilegeRequired privilege={PRIV_DOWNLOAD_GEOMETRY}>
+                        <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
                             <Radio
                                 onChange={() => handleRadioClick('ENTIRE_RAIL_NETWORK')}
                                 checked={state.selectedSearch === 'ENTIRE_RAIL_NETWORK'}

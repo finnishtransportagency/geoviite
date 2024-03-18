@@ -53,7 +53,7 @@ import { useLoader } from 'utils/react-utils';
 import i18next from 'i18next';
 import { menuValueOption } from 'vayla-design-lib/menu/menu';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_EDIT_GEOMETRY_FILE, PRIV_EDIT_LAYOUT, userHasPrivilege } from 'user/user-model';
+import { EDIT_GEOMETRY_FILE, EDIT_LAYOUT, userHasPrivilege } from 'user/user-model';
 import { useCommonDataAppSelector } from 'store/hooks';
 
 type InframodelViewFormContainerProps = {
@@ -161,7 +161,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
         setShowNewTrackNumberDialog(true);
     }
 
-    const newTrackNumberOptionFn = userHasPrivilege(privileges, PRIV_EDIT_LAYOUT)
+    const newTrackNumberOptionFn = userHasPrivilege(privileges, EDIT_LAYOUT)
         ? openAddTrackNumberDialog
         : undefined;
 
@@ -252,7 +252,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     return (
         <React.Fragment>
             {upLoading && <div> {t('im-form.uploading-file-msg')}</div>}
-            <PrivilegeRequired privilege={PRIV_EDIT_GEOMETRY_FILE}>
+            <PrivilegeRequired privilege={EDIT_GEOMETRY_FILE}>
                 <Formgroup>
                     <FieldLayout
                         label={t('im-form.observations-field')}

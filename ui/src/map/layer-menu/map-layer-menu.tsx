@@ -17,7 +17,7 @@ import {
     layersToHideByProxy,
     relatedMapLayers,
 } from 'map/map-store';
-import { PRIV_VIEW_GEOMETRY } from 'user/user-model';
+import { VIEW_GEOMETRY } from 'user/user-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 
 type MapLayerMenuProps = {
@@ -181,7 +181,7 @@ export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
                         onMenuChange={onMenuChange}
                         mapLayerVisibilities={visibleLayers}
                     />
-                    <PrivilegeRequired privilege={PRIV_VIEW_GEOMETRY}>
+                    <PrivilegeRequired privilege={VIEW_GEOMETRY}>
                         <MapLayerGroup
                             title={t('map-layer-menu.geometry-title')}
                             menuItemVisibilities={mapLayerMenuGroups.geometry}

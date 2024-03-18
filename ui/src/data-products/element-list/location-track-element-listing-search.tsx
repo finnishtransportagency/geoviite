@@ -26,7 +26,7 @@ import {
 } from 'data-products/data-products-slice';
 import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_DOWNLOAD_GEOMETRY } from 'user/user-model';
+import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 
 type LocationTrackElementListingSearchProps = {
     state: ElementListContinuousGeometrySearchState;
@@ -223,7 +223,7 @@ const LocationTrackElementListingSearch = ({
                         ).map((error) => t(`data-products.search.${error}`))}
                     />
                 </div>
-                <PrivilegeRequired privilege={PRIV_DOWNLOAD_GEOMETRY}>
+                <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
                     <a
                         qa-id={'location-track-element-list-csv-download'}
                         {...(state.searchParameters.locationTrack && {

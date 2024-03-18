@@ -6,7 +6,7 @@ import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize } from 'vayla-design-lib/button/button';
 import { LinkingState } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_EDIT_LAYOUT } from 'user/user-model';
+import { EDIT_LAYOUT } from 'user/user-model';
 
 type GeometrySwitchLinkingInitiationProps = {
     linkingState: LinkingState | undefined;
@@ -23,7 +23,7 @@ export const GeometrySwitchLinkingInitiation: React.FC<GeometrySwitchLinkingInit
 }) => {
     const { t } = useTranslation();
     return (
-        <PrivilegeRequired privilege={PRIV_EDIT_LAYOUT}>
+        <PrivilegeRequired privilege={EDIT_LAYOUT}>
             {linkingState === undefined &&
                 (!isValidGeometrySwitch ? (
                     <InfoboxContentSpread>

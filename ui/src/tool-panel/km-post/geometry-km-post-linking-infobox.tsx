@@ -24,7 +24,7 @@ import { filterNotEmpty } from 'utils/array-utils';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { refereshKmPostSelection, useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_EDIT_LAYOUT } from 'user/user-model';
+import { EDIT_LAYOUT } from 'user/user-model';
 
 type GeometryKmPostLinkingInfoboxProps = {
     geometryKmPost: LayoutKmPost;
@@ -150,7 +150,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                         }
                     />
                     {!linkingState && (
-                        <PrivilegeRequired privilege={PRIV_EDIT_LAYOUT}>
+                        <PrivilegeRequired privilege={EDIT_LAYOUT}>
                             <InfoboxButtons>
                                 <Button
                                     size={ButtonSize.SMALL}

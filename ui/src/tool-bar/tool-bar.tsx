@@ -39,7 +39,7 @@ import { getBySearchTerm } from 'track-layout/track-layout-search-api';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_EDIT_LAYOUT } from 'user/user-model';
+import { EDIT_LAYOUT } from 'user/user-model';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
@@ -305,7 +305,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     visibleLayers={visibleLayers}
                 />
                 <div className={styles['tool-bar__new-menu-button']} qa-id={'tool-bar.new'}>
-                    <PrivilegeRequired privilege={PRIV_EDIT_LAYOUT}>
+                    <PrivilegeRequired privilege={EDIT_LAYOUT}>
                         <Button
                             ref={menuRef}
                             title={t('tool-bar.new')}
@@ -324,7 +324,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
 
             <div className={styles['tool-bar__right-section']}>
                 {publishType === 'OFFICIAL' && (
-                    <PrivilegeRequired privilege={PRIV_EDIT_LAYOUT}>
+                    <PrivilegeRequired privilege={EDIT_LAYOUT}>
                         <Button
                             variant={ButtonVariant.PRIMARY}
                             qa-id="switch-to-draft-mode"

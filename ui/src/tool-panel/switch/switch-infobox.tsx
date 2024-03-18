@@ -47,7 +47,7 @@ import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/
 import SwitchDeleteConfirmationDialog from './dialog/switch-delete-confirmation-dialog';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_EDIT_LAYOUT } from 'user/user-model';
+import { EDIT_LAYOUT } from 'user/user-model';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -307,7 +307,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             onSelectLocationTrackBadge={onSelectLocationTrackBadge}
                         />
                     )}
-                    <PrivilegeRequired privilege={PRIV_EDIT_LAYOUT}>
+                    <PrivilegeRequired privilege={EDIT_LAYOUT}>
                         <InfoboxButtons>
                             {!canStartPlacing && (
                                 <Button

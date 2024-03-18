@@ -33,7 +33,7 @@ import PublicationLog from 'publication/log/publication-log';
 import { PublicationDetailsContainer } from 'publication/publication-details-container';
 import { purgePersistentState } from 'index';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
-import { PRIV_VIEW_GEOMETRY } from 'user/user-model';
+import { VIEW_GEOMETRY } from 'user/user-model';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -111,7 +111,7 @@ export const MainContainer: React.FC = () => {
         getOwnUser().then((user) => {
             delegates.setUserPrivileges(user.role.privileges);
 
-            if (!user.role.privileges.map((priv) => priv.code).includes(PRIV_VIEW_GEOMETRY)) {
+            if (!user.role.privileges.map((priv) => priv.code).includes(VIEW_GEOMETRY)) {
                 mapDelegates.showLayers(['virtual-hide-geometry-layer']);
             }
         });

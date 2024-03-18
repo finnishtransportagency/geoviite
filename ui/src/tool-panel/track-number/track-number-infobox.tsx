@@ -43,7 +43,7 @@ import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 import { ChangesBeingReverted } from 'preview/preview-view';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_EDIT_LAYOUT, PRIV_VIEW_GEOMETRY } from 'user/user-model';
+import { EDIT_LAYOUT, VIEW_GEOMETRY } from 'user/user-model';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -206,7 +206,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             }
                         />
                         {linkingState === undefined && referenceLine && (
-                            <PrivilegeRequired privilege={PRIV_EDIT_LAYOUT}>
+                            <PrivilegeRequired privilege={EDIT_LAYOUT}>
                                 <InfoboxButtons>
                                     <Button
                                         variant={ButtonVariant.SECONDARY}
@@ -307,7 +307,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                 </Infobox>
             )}
             {referenceLine && (
-                <PrivilegeRequired privilege={PRIV_VIEW_GEOMETRY}>
+                <PrivilegeRequired privilege={VIEW_GEOMETRY}>
                     <TrackNumberGeometryInfobox
                         contentVisible={visibilities.geometry}
                         onContentVisibilityChange={() => visibilityChange('geometry')}

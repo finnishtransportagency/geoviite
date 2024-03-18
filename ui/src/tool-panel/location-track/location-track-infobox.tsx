@@ -28,7 +28,7 @@ import { LocationTrackLocationInfoboxContainer } from 'tool-panel/location-track
 import { LocationTrackChangeInfoInfobox } from 'tool-panel/location-track/location-track-change-info-infobox';
 import { LocationTrackRatkoSyncInfobox } from 'tool-panel/location-track/location-track-ratko-sync-infobox';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_VIEW_GEOMETRY } from 'user/user-model';
+import { VIEW_GEOMETRY } from 'user/user-model';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -118,7 +118,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 splittingState={splittingState}
                 publishType={publishType}
             />
-            <PrivilegeRequired privilege={PRIV_VIEW_GEOMETRY}>
+            <PrivilegeRequired privilege={VIEW_GEOMETRY}>
                 <LocationTrackGeometryInfobox
                     contentVisible={visibilities.geometry}
                     onContentVisibilityChange={() => visibilityChange('geometry')}
