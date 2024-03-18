@@ -45,7 +45,7 @@ export type DropdownProps<TItemValue> = {
     onAddClick?: () => void;
     wideList?: boolean;
     qaId?: string;
-} & Pick<React.HTMLProps<HTMLInputElement>, 'disabled'>;
+} & Pick<React.HTMLProps<HTMLInputElement>, 'disabled' | 'title'>;
 
 function isOptionsArray<TItemValue>(
     options: DropdownOptions<TItemValue>,
@@ -318,7 +318,7 @@ export const Dropdown = function <TItemValue>({
                         open ? closeList() : openList();
                     }
                 }}
-                title={selectedName}>
+                title={props.title ? props.title : selectedName}>
                 <div className={styles['dropdown__title']}>
                     <input
                         className={styles['dropdown__input']}
