@@ -22,7 +22,7 @@ import { CharsetSelectDialog } from './dialogs/charset-select-dialog';
 import { MapContext } from 'map/map-store';
 import { MapViewContainer } from 'map/map-view-container';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_EDIT_GEOMETRY } from 'user/user-model';
+import { PRIV_EDIT_GEOMETRY_FILE } from 'user/user-model';
 
 export type InfraModelBaseProps = InfraModelState & {
     onExtraParametersChange: <TKey extends keyof ExtraInfraModelParameters>(
@@ -136,7 +136,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             {t('button.return')}
                         </Button>
                     )}
-                    <PrivilegeRequired privilege={PRIV_EDIT_GEOMETRY}>
+                    <PrivilegeRequired privilege={PRIV_EDIT_GEOMETRY_FILE}>
                         <Button
                             qa-id="infra-model-save-button"
                             title={getVisibleErrors()}

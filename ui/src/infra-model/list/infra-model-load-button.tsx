@@ -6,7 +6,7 @@ import { convertToSerializableFile, SerializableFile } from 'utils/file-utils';
 import { useAppNavigate } from 'common/navigate';
 import { useTranslation } from 'react-i18next';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_EDIT_GEOMETRY } from 'user/user-model';
+import { PRIV_EDIT_GEOMETRY_FILE } from 'user/user-model';
 
 export type InframodelLoadButtonProps = {
     onFileSelected: (file: SerializableFile) => void;
@@ -29,7 +29,7 @@ const InfraModelLoadButton: React.FC<InframodelLoadButtonProps> = ({
     return (
         <React.Fragment>
             <FileInput onChange={(e) => handleFileInputEvent(e)} accept=".xml">
-                <PrivilegeRequired privilege={PRIV_EDIT_GEOMETRY}>
+                <PrivilegeRequired privilege={PRIV_EDIT_GEOMETRY_FILE}>
                     <Button icon={Icons.Append}>{t('im-form.toolbar.upload')}</Button>
                 </PrivilegeRequired>
             </FileInput>

@@ -53,7 +53,8 @@ import { useLoader } from 'utils/react-utils';
 import i18next from 'i18next';
 import { menuValueOption } from 'vayla-design-lib/menu/menu';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { PRIV_EDIT_GEOMETRY } from 'user/user-model';
+import { PRIV_EDIT_GEOMETRY_FILE, PRIV_EDIT_LAYOUT, userHasPrivilege } from 'user/user-model';
+import { useCommonDataAppSelector } from 'store/hooks';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -115,6 +116,8 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     onSelect,
 }: InframodelViewFormContainerProps) => {
     const { t } = useTranslation();
+    const privileges = useCommonDataAppSelector((state) => state.userPrivileges).map((p) => p.code);
+
     const [coordinateSystem, setCoordinateSystem] = React.useState<
         CoordinateSystemModel | undefined
     >();
@@ -157,6 +160,10 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     function openAddTrackNumberDialog() {
         setShowNewTrackNumberDialog(true);
     }
+
+    const newTrackNumberOptionFn = userHasPrivilege(privileges, PRIV_EDIT_LAYOUT)
+        ? openAddTrackNumberDialog
+        : undefined;
 
     function closeAddTrackNumberDialog() {
         setShowNewTrackNumberDialog(false);
@@ -245,7 +252,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     return (
         <React.Fragment>
             {upLoading && <div> {t('im-form.uploading-file-msg')}</div>}
-            <PrivilegeRequired privilege={PRIV_EDIT_GEOMETRY}>
+            <PrivilegeRequired privilege={PRIV_EDIT_GEOMETRY_FILE}>
                 <Formgroup>
                     <FieldLayout
                         label={t('im-form.observations-field')}
@@ -411,7 +418,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                             onChange={(tn) =>
                                                 changeInOverrideParametersField(tn, 'trackNumberId')
                                             }
-                                            onAddClick={openAddTrackNumberDialog}
+                                            onAddClick={newTrackNumberOptionFn}
                                         />
                                     }
                                 />
