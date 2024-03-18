@@ -12,6 +12,7 @@ import { getPVDocumentCount } from 'infra-model/infra-model-api';
 import { getGeometryPlanHeadersBySearchTerms } from 'geometry/geometry-api';
 import { createDelegates } from 'store/store-utils';
 import { PrivilegeRequired } from 'user/privilege-required';
+import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 
 export type TabsProps = {
     activeTab: InfraModelTabType;
@@ -69,7 +70,7 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
                     activeTab={activeTab}
                     exclamationPointVisible={false}
                 />
-                <PrivilegeRequired privilege="inframodel-download">
+                <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
                     <InfraModelTabNavItem
                         title={t('im-form.tabs.projektivelho-files-waiting', {
                             number: documentCounts?.suggested,

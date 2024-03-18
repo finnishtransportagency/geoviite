@@ -13,11 +13,11 @@ class AuthorizationTestController @Autowired constructor() {
     @GetMapping("/test-auth/public")
     fun testPublic() = OK
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/test-auth/read")
     fun testRead() = OK
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
     @GetMapping("/test-auth/write")
     fun testWrite() = OK
 

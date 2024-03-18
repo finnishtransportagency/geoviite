@@ -5,17 +5,24 @@ import { useTranslation } from 'react-i18next';
 import { getChangeTimes } from 'common/change-time-api';
 import { useLoader } from 'utils/react-utils';
 import { getPVDocumentCount } from 'infra-model/infra-model-api';
-import { useInfraModelAppSelector } from 'store/hooks';
+import { useCommonDataAppSelector, useInfraModelAppSelector } from 'store/hooks';
 import { InfraModelTabType } from 'infra-model/infra-model-slice';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { NavLink } from 'react-router-dom';
+import { VIEW_PV_DOCUMENTS, userHasPrivilege } from 'user/user-model';
 
 export const InfraModelLink: React.FC = () => {
     const { t } = useTranslation();
+    const userPrivileges = useCommonDataAppSelector((state) => state.userPrivileges).map(
+        (p) => p.code,
+    );
 
     const changeTimes = getChangeTimes();
     const pvDocumentCounts = useLoader(() => getPVDocumentCount(), [changeTimes.pvDocument]);
-    const exclamationPointVisibility = !!pvDocumentCounts && pvDocumentCounts?.suggested > 0;
+    const exclamationPointVisibility =
+        userHasPrivilege(userPrivileges, VIEW_PV_DOCUMENTS) &&
+        !!pvDocumentCounts &&
+        pvDocumentCounts?.suggested > 0;
 
     const selectedInfraModelTab = useInfraModelAppSelector((state) => state.infraModelActiveTab);
 

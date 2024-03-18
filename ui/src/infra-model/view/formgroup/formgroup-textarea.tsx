@@ -1,8 +1,9 @@
 import React from 'react';
 import styles from './formgroup.module.scss';
 import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
-import { WriteAccessRequired } from 'user/write-access-required';
 import { TextAreaAutoResizing } from 'vayla-design-lib/text-area/text-area-autoresizing';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { EDIT_GEOMETRY_FILE } from 'user/user-model';
 
 type TextareaProps = {
     label: string;
@@ -43,11 +44,11 @@ const FormgroupTextarea: React.FC<TextareaProps> = ({
 
             <div className={styles['formgroup__edit-icon']}>
                 {!inEditMode && props.onEdit && (
-                    <WriteAccessRequired>
+                    <PrivilegeRequired privilege={EDIT_GEOMETRY_FILE}>
                         <div onClick={() => props.onEdit && props.onEdit()}>
                             <Icons.Edit size={IconSize.SMALL} />
                         </div>
-                    </WriteAccessRequired>
+                    </PrivilegeRequired>
                 )}
                 {inEditMode && props.onClose && (
                     <div onClick={() => props.onClose && props.onClose()}>
