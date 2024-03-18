@@ -13,7 +13,8 @@ import OlView from 'ol/View';
 import {
     HELSINKI_RAILWAY_STATION_COORDS,
     Map,
-   MapLayerName, MapViewport,
+    MapLayerName,
+    MapViewport,
     OptionalShownItems,
 } from 'map/map-model';
 import { createSwitchLinkingLayer } from './layers/switch/switch-linking-layer';
@@ -584,6 +585,7 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                         );
                     case 'virtual-km-post-linking-layer': // Virtual map layers
+                    case 'virtual-hide-geometry-layer':
                         return undefined;
                     default:
                         return exhaustiveMatchingGuard(layerName);

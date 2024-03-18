@@ -32,7 +32,7 @@ class GeometryController @Autowired constructor(
 ) {
     private val log: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_VIEW_INFRAMODEL)
+    @PreAuthorize(AUTH_VIEW_GEOMETRY_FILE)
     @GetMapping("/plan-headers")
     fun getPlanHeaders(
         @RequestParam("bbox") bbox: BoundingBox?,
@@ -149,7 +149,7 @@ class GeometryController @Autowired constructor(
         return geometryService.getProject(projectId)
     }
 
-    @PreAuthorize(AUTH_EDIT_GEOMETRY)
+    @PreAuthorize(AUTH_EDIT_GEOMETRY_FILE)
     @PostMapping("/projects")
     fun createProject(@RequestBody project: Project): IntId<Project> {
         log.apiCall("createProject", "project" to project)
@@ -163,14 +163,14 @@ class GeometryController @Autowired constructor(
         return geometryService.getAuthors()
     }
 
-    @PreAuthorize(AUTH_EDIT_GEOMETRY)
+    @PreAuthorize(AUTH_EDIT_GEOMETRY_FILE)
     @PostMapping("/authors")
     fun createAuthor(@RequestBody author: Author): Author {
         log.apiCall("createAuthor", "author" to author)
         return geometryService.createAuthor(author)
     }
 
-    @PreAuthorize(AUTH_EDIT_GEOMETRY)
+    @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @PostMapping("/plans/linking-summaries")
     fun getLinkingSummaries(
         @RequestBody planIds: List<IntId<GeometryPlan>>,
@@ -179,7 +179,7 @@ class GeometryController @Autowired constructor(
         return geometryService.getLinkingSummaries(planIds)
     }
 
-    @PreAuthorize(AUTH_VIEW_INFRAMODEL)
+    @PreAuthorize(AUTH_VIEW_GEOMETRY_FILE)
     @GetMapping("/plans/{id}/element-listing")
     fun getPlanElementListing(
         @PathVariable("id") id: IntId<GeometryPlan>,
@@ -200,7 +200,7 @@ class GeometryController @Autowired constructor(
         return toFileDownloadResponse(filename.withSuffix(CSV), content.toByteArray(Charsets.UTF_8))
     }
 
-    @PreAuthorize(AUTH_VIEW_INFRAMODEL)
+    @PreAuthorize(AUTH_VIEW_GEOMETRY_FILE)
     @GetMapping("/layout/location-tracks/{id}/element-listing")
     fun getTrackElementListing(
         @PathVariable("id") id: IntId<LocationTrack>,
@@ -249,7 +249,7 @@ class GeometryController @Autowired constructor(
         } ?: ResponseEntity(HttpStatus.NO_CONTENT)
     }
 
-    @PreAuthorize(AUTH_VIEW_INFRAMODEL)
+    @PreAuthorize(AUTH_VIEW_GEOMETRY_FILE)
     @GetMapping("/plans/{id}/vertical-geometry")
     fun getPlanVerticalGeometryListing(
         @PathVariable("id") id: IntId<GeometryPlan>,
@@ -268,7 +268,7 @@ class GeometryController @Autowired constructor(
         return toFileDownloadResponse(filename.withSuffix(CSV), content)
     }
 
-    @PreAuthorize(AUTH_VIEW_INFRAMODEL)
+    @PreAuthorize(AUTH_VIEW_GEOMETRY_FILE)
     @GetMapping("/layout/{publicationType}/location-tracks/{id}/vertical-geometry")
     fun getTrackVerticalGeometryListing(
         @PathVariable("publicationType") publicationType: PublishType,

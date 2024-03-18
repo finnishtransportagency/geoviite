@@ -14,15 +14,15 @@ select *
 create temp table new_privilege on commit drop as
 with temp(code, name, description) as (
     values
-      ('view-basic', 'Perustietojen lukuoikeus', 'Oikeus autentikoitua Geoviitteeseen ja lukea käyttäjä- ja ympäristötietoja'),
-      ('view-layout', 'Paikannuspohjan lukuoikeus', 'Oikeus tarkastella virallista paikannuspohjaa'),
+      ('view-basic', 'Perustietojen luku', 'Oikeus autentikoitua Geoviitteeseen ja lukea käyttäjä- ja ympäristötietoja'),
+      ('view-layout', 'Paikannuspohjan luku', 'Oikeus tarkastella virallista paikannuspohjaa'),
       ('view-layout-draft', 'Paikannuspohjaluonnoksen luku', 'Oikeus tarkastella paikannuspohjaa luonnostilassa'),
       ('edit-layout', 'Paikannuspohjan muokkaus', 'Oikeus muokata Geoviitteen paikannuspohjaa'),
       ('view-geometry', 'Raidegeometrioiden luku', 'Oikeus listata ja tarkastella raidegeometrioita'),
-      ('edit-geometry', 'Raidegeometrioiden muokkaus', 'Oikeus luoda, poistaa ja piilottaa inframalleja ja muokata niihin liittyvää metatietoa'),
+      ('edit-geometry-file', 'Raidegeometrioiden muokkaus', 'Oikeus luoda, poistaa ja piilottaa inframalleja ja muokata niihin liittyvää metatietoa'),
       ('download-geometry', 'Inframallien lataus', 'Oikeus ladata Geoviitteestä InfraModel-tiedostoja'),
       ('view-pv-documents', 'Projektivelhoaineistojen luku', 'Oikeus listata ja tarkastella ProjektiVelhosta ladattuja aineistoja'),
-      ('view-inframodel', 'Inframallien luku', 'Oikeus listata ja tarkastella Geoviitteen InfraModel-tiedostoja'),
+      ('view-geometry-file', 'Geometriatiedostojen luku', 'Oikeus listata ja tarkastella Geoviitteen InfraModel-tiedostoja'),
       ('view-publication', 'Julkaisujen luku', 'Oikeus listata ja tarkastella julkaisuja'),
       ('download-publication', 'Julkaisujen lataus', 'Oikeus ladata julkaisuja')
 )
@@ -37,10 +37,10 @@ with temp(role_code, privilege_code) as (
       ('operator', 'view-layout-draft'),
       ('operator', 'edit-layout'),
       ('operator', 'view-geometry'),
-      ('operator', 'edit-geometry'),
+      ('operator', 'edit-geometry-file'),
       ('operator', 'download-geometry'),
       ('operator', 'view-pv-documents'),
-      ('operator', 'view-inframodel'),
+      ('operator', 'view-geometry-file'),
       ('operator', 'view-publication'),
       ('operator', 'download-publication'),
 
@@ -52,19 +52,19 @@ with temp(role_code, privilege_code) as (
       ('team', 'download-publication'),
       ('team', 'download-geometry'),
       ('team', 'view-pv-documents'),
-      ('team', 'view-inframodel'),
+      ('team', 'view-geometry-file'),
 
       ('browser', 'view-basic'),
       ('browser', 'view-layout'),
       ('browser', 'view-geometry'),
-      ('browser', 'view-inframodel'),
+      ('browser', 'view-geometry-file'),
       ('browser', 'view-publication'),
       ('browser', 'download-publication'),
 
       ('authority', 'view-basic'),
       ('authority', 'view-layout'),
       ('authority', 'view-geometry'),
-      ('authority', 'view-inframodel'),
+      ('authority', 'view-geometry-file'),
       ('authority', 'view-publication'),
       ('authority', 'download-publication'),
 

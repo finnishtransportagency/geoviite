@@ -5,6 +5,7 @@ import { Button } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { getEntireRailNetworkVerticalGeometryCsvUrl } from 'geometry/geometry-api';
 import { PrivilegeRequired } from 'user/privilege-required';
+import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 
 export const EntireRailNetworkVerticalGeometryListing = () => {
     const { t } = useTranslation();
@@ -17,7 +18,7 @@ export const EntireRailNetworkVerticalGeometryListing = () => {
             <p className={styles['data-product__search-legend']}>
                 {t('data-products.vertical-geometry.entire-rail-network-length-warning')}
             </p>
-            <PrivilegeRequired privilege="dataproduct-download">
+            <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
                 <div className={styles['data-products__search']}>
                     <a
                         href={getEntireRailNetworkVerticalGeometryCsvUrl()}

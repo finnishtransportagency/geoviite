@@ -22,6 +22,7 @@ import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { useAppNavigate } from 'common/navigate';
 import { defaultPublicationSearch } from 'publication/publication-utils';
+import { DOWNLOAD_PUBLICATION } from 'user/user-model';
 
 const PublicationLog: React.FC = () => {
     const { t } = useTranslation();
@@ -129,7 +130,7 @@ const PublicationLog: React.FC = () => {
                         value={<DatePicker value={storedEndDate} onChange={setEndDate} />}
                         errors={endDateErrors}
                     />
-                    <PrivilegeRequired privilege="publication-download">
+                    <PrivilegeRequired privilege={DOWNLOAD_PUBLICATION}>
                         <div className={styles['publication-log__export_button']}>
                             <Button
                                 icon={Icons.Download}

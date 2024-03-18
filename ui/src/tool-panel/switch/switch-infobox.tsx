@@ -38,7 +38,6 @@ import { getSwitch, getSwitchJointConnections } from 'track-layout/layout-switch
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { ChangeTimes } from 'common/common-slice';
 import { SwitchInfoboxVisibilities } from 'track-layout/track-layout-slice';
-import { WriteAccessRequired } from 'user/write-access-required';
 import { formatDateShort } from 'utils/date-utils';
 import {
     refreshSwitchSelection,
@@ -47,6 +46,8 @@ import {
 import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import SwitchDeleteConfirmationDialog from './dialog/switch-delete-confirmation-dialog';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { EDIT_LAYOUT } from 'user/user-model';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -306,7 +307,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                             onSelectLocationTrackBadge={onSelectLocationTrackBadge}
                         />
                     )}
-                    <WriteAccessRequired>
+                    <PrivilegeRequired privilege={EDIT_LAYOUT}>
                         <InfoboxButtons>
                             {!canStartPlacing && (
                                 <Button
@@ -325,7 +326,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                 {t('tool-panel.switch.layout.start-switch-placing')}
                             </Button>
                         </InfoboxButtons>
-                    </WriteAccessRequired>
+                    </PrivilegeRequired>
                     {placingSwitchLinkingState && (
                         <InfoboxContentSpread>
                             <MessageBox>

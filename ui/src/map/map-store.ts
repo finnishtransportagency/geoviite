@@ -73,6 +73,12 @@ export const layersToHideByProxy: LayerCollection = {
         'plan-area-layer',
         'track-number-diagram-layer',
     ],
+    'virtual-hide-geometry-layer': [
+        'geometry-alignment-layer',
+        'geometry-switch-layer',
+        'geometry-km-post-layer',
+        'plan-area-layer',
+    ],
 };
 
 const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {

@@ -28,7 +28,7 @@ class InfraModelController @Autowired constructor(
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_EDIT_GEOMETRY)
+    @PreAuthorize(AUTH_EDIT_GEOMETRY_FILE)
     @PostMapping
     fun saveInfraModel(
         @RequestPart(value = "file") file: MultipartFile,
@@ -68,7 +68,7 @@ class InfraModelController @Autowired constructor(
         return infraModelService.validateGeometryPlan(planId, overrides)
     }
 
-    @PreAuthorize(AUTH_EDIT_GEOMETRY)
+    @PreAuthorize(AUTH_EDIT_GEOMETRY_FILE)
     @PutMapping("/{planId}")
     fun updateInfraModel(
         @PathVariable("planId") planId: IntId<GeometryPlan>,
@@ -79,7 +79,7 @@ class InfraModelController @Autowired constructor(
         return infraModelService.updateInfraModel(planId, overrides, extraInfo).id
     }
 
-    @PreAuthorize(AUTH_EDIT_GEOMETRY)
+    @PreAuthorize(AUTH_EDIT_GEOMETRY_FILE)
     @PutMapping("/{planId}/hidden")
     fun setInfraModelHidden(
         @PathVariable("planId") planId: IntId<GeometryPlan>,
@@ -117,14 +117,14 @@ class InfraModelController @Autowired constructor(
         return pvDocumentService.getDocumentHeader(id)
     }
 
-    @PreAuthorize(AUTH_VIEW_PV_DOCUMENTS)
+    @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @GetMapping("/projektivelho/documents/count")
     fun getPVDocumentCounts(): PVDocumentCounts {
         logger.apiCall("getPVDocumentCounts")
         return pvDocumentService.getDocumentCounts()
     }
 
-    @PreAuthorize(AUTH_EDIT_GEOMETRY)
+    @PreAuthorize(AUTH_EDIT_GEOMETRY_FILE)
     @PutMapping("/projektivelho/documents/{ids}/status")
     fun updatePVDocumentsStatuses(
         @PathVariable("ids") ids: List<IntId<PVDocument>>,
@@ -144,7 +144,7 @@ class InfraModelController @Autowired constructor(
         return pvDocumentService.validatePVDocument(documentId, overrides)
     }
 
-    @PreAuthorize(AUTH_EDIT_GEOMETRY)
+    @PreAuthorize(AUTH_EDIT_GEOMETRY_FILE)
     @PostMapping("/projektivelho/documents/{documentId}")
     fun importPVDocument(
         @PathVariable("documentId") documentId: IntId<PVDocument>,
