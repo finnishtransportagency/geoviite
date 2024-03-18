@@ -41,7 +41,7 @@ class SwitchFittingService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getFitsInArea(bbox: BoundingBox): List<FittedSwitch> {
-        logger.serviceCall("getSuggestedSwitches", "bbox" to bbox)
+        logger.serviceCall("getFitsInArea", "bbox" to bbox)
         val missing = linkingDao.getMissingLayoutSwitchLinkings(bbox)
         return missing.mapNotNull { missingLayoutSwitchLinking ->
             // Transform joints to layout space and calculate missing joints
@@ -90,7 +90,7 @@ class SwitchFittingService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getFitAtEndpoint(createParams: SuggestedSwitchCreateParams): FittedSwitch? {
-        logger.serviceCall("getSuggestedSwitch", "createParams" to createParams)
+        logger.serviceCall("getFitAtEndpoint", "createParams" to createParams)
 
         val switchStructure =
             createParams.switchStructureId?.let(switchLibraryService::getSwitchStructure) ?: return null
