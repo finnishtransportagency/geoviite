@@ -1,4 +1,8 @@
-import { PublishRequestIds } from 'publication/publication-model';
+import {
+    DraftChangeType,
+    PublishCandidateReference,
+    PublishRequestIds,
+} from 'publication/publication-model';
 import * as React from 'react';
 import {
     LayoutKmPostId,
@@ -17,7 +21,6 @@ import {
     useTrackNumbersIncludingDeleted,
 } from 'track-layout/track-layout-react-utils';
 import { ChangeTimes } from 'common/common-slice';
-import { PreviewSelectType } from 'preview/preview-table';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { RevertRequestType } from 'preview/preview-view-revert-request';
 import { ChangesBeingReverted } from 'preview/preview-view';
@@ -127,47 +130,37 @@ const KmPostItem: React.FC<{ layoutContext: LayoutContext; kmPostId: LayoutKmPos
     );
 };
 
-export const publicationRequestTypeTranslationKey = (type: PreviewSelectType) => {
+export const publicationRequestTypeTranslationKey = (type: DraftChangeType) => {
     switch (type) {
-        case 'trackNumber':
+        case DraftChangeType.TRACK_NUMBER:
             return 'track-number';
-        case 'referenceLine':
-            return 'reference-line';
-        case 'locationTrack':
+        case DraftChangeType.LOCATION_TRACK:
             return 'location-track';
-        case 'switch':
+        case DraftChangeType.REFERENCE_LINE:
+            return 'reference-line';
+        case DraftChangeType.SWITCH:
             return 'switch';
-        case 'kmPost':
+        case DraftChangeType.KM_POST:
             return 'km-post';
+
+        default:
+            return exhaustiveMatchingGuard(type);
     }
 };
 
-export const onlyDependencies = (changesBeingReverted: ChangesBeingReverted): PublishRequestIds => {
+export const onlyDependencies = (
+    changesBeingReverted: ChangesBeingReverted,
+): PublishCandidateReference[] => {
     const allChanges = changesBeingReverted.changeIncludingDependencies;
     const reqType = changesBeingReverted.requestedRevertChange.source.type;
     const reqId = changesBeingReverted.requestedRevertChange.source.id;
-    return {
-        trackNumbers: allChanges.trackNumbers.filter(
-            (tn) => reqType != PreviewSelectType.trackNumber || tn !== reqId,
-        ),
-        kmPosts: allChanges.kmPosts.filter(
-            (kmPost) => reqType != PreviewSelectType.kmPost || kmPost !== reqId,
-        ),
-        referenceLines: allChanges.referenceLines.filter(
-            (rl) => reqType != PreviewSelectType.referenceLine || rl !== reqId,
-        ),
-        switches: allChanges.switches.filter(
-            (sw) => reqType != PreviewSelectType.switch || sw !== reqId,
-        ),
-        locationTracks: allChanges.locationTracks.filter(
-            (lt) => reqType != PreviewSelectType.locationTrack || lt !== reqId,
-        ),
-    };
+
+    return allChanges.filter((candidate) => candidate.id !== reqId && candidate.type !== reqType);
 };
 
 const filterDisplayedDependencies = (
     changesBeingReverted: ChangesBeingReverted,
-): PublishRequestIds => {
+): PublishCandidateReference[] => {
     const revertRequestType = changesBeingReverted.requestedRevertChange.type;
 
     switch (revertRequestType) {
@@ -183,6 +176,88 @@ const filterDisplayedDependencies = (
     }
 };
 
+const getPublicationCandidateComponent = (
+    layoutContext: LayoutContext,
+    candidate: PublishCandidateReference,
+    changeTimes: ChangeTimes,
+): JSX.Element => {
+    const candidateType = candidate.type;
+    const candidateComponentKey = `${candidateType}-${candidate.id}`;
+
+    switch (candidateType) {
+        case DraftChangeType.TRACK_NUMBER:
+            return (
+                <TrackNumberItem
+                    layoutContext={layoutContext}
+                    key={candidateComponentKey}
+                    trackNumberId={candidate.id}
+                    changeTime={changeTimes.layoutTrackNumber}
+                />
+            );
+
+        case DraftChangeType.LOCATION_TRACK:
+            return (
+                <LocationTrackItem
+                    layoutContext={layoutContext}
+                    key={candidateComponentKey}
+                    locationTrackId={candidate.id}
+                    changeTime={changeTimes.layoutLocationTrack}
+                />
+            );
+
+        case DraftChangeType.REFERENCE_LINE:
+            return (
+                <ReferenceLineItem
+                    layoutContext={layoutContext}
+                    key={candidateComponentKey}
+                    referenceLineId={candidate.id}
+                    changeTimes={changeTimes}
+                />
+            );
+
+        case DraftChangeType.SWITCH:
+            return (
+                <SwitchItem
+                    layoutContext={layoutContext}
+                    switchId={candidate.id}
+                    key={candidateComponentKey}
+                />
+            );
+
+        case DraftChangeType.KM_POST:
+            return (
+                <KmPostItem
+                    layoutContext={layoutContext}
+                    kmPostId={candidate.id}
+                    key={candidateComponentKey}
+                />
+            );
+
+        default:
+            return exhaustiveMatchingGuard(candidateType);
+    }
+};
+
+const sortCandidatesByDisplayPriority = (
+    candidates: PublishCandidateReference[],
+): PublishCandidateReference[] => {
+    const candidateDisplayOrder = {
+        [DraftChangeType.TRACK_NUMBER]: 1,
+        [DraftChangeType.REFERENCE_LINE]: 2,
+        [DraftChangeType.LOCATION_TRACK]: 3,
+        [DraftChangeType.SWITCH]: 4,
+        [DraftChangeType.KM_POST]: 5,
+    };
+
+    return [...candidates].sort((a, b) => {
+        if (candidateDisplayOrder[a.type] !== candidateDisplayOrder[b.type]) {
+            return candidateDisplayOrder[a.type] - candidateDisplayOrder[b.type];
+        }
+
+        return 0;
+    });
+};
+
 export interface PublicationRequestDependencyListProps {
     layoutContext: LayoutContext;
     changesBeingReverted: ChangesBeingReverted;
@@ -195,50 +270,24 @@ export const PublicationRequestDependencyList: React.FC<PublicationRequestDepend
     changeTimes,
 }) => {
     const { t } = useTranslation();
+
     const dependencies = filterDisplayedDependencies(changesBeingReverted);
+    const sortedDependencies = sortCandidatesByDisplayPriority(dependencies);
 
     const displayExtraDependencyInformation =
         changesBeingReverted.requestedRevertChange.type ===
         RevertRequestType.CHANGES_WITH_DEPENDENCIES;
 
     return (
-        publicationRequestSize(dependencies) > 0 && (
+        sortedDependencies.length > 0 && (
             <>
                 <div>
                     {displayExtraDependencyInformation && t(`publish.revert-confirm.dependencies`)}
                 </div>
                 <ul>
-                    {dependencies.trackNumbers.map((tn) => (
-                        <TrackNumberItem
-                            layoutContext={layoutContext}
-                            trackNumberId={tn}
-                            changeTime={changeTimes.layoutTrackNumber}
-                            key={tn}
-                        />
-                    ))}
-
-                    {dependencies.referenceLines.map((rl) => (
-                        <ReferenceLineItem
-                            layoutContext={layoutContext}
-                            referenceLineId={rl}
-                            changeTimes={changeTimes}
-                            key={rl}
-                        />
-                    ))}
-                    {dependencies.locationTracks.map((lt) => (
-                        <LocationTrackItem
-                            layoutContext={layoutContext}
-                            locationTrackId={lt}
-                            changeTime={changeTimes.layoutLocationTrack}
-                            key={lt}
-                        />
-                    ))}
-                    {dependencies.switches.map((sw) => (
-                        <SwitchItem layoutContext={layoutContext} switchId={sw} key={sw} />
-                    ))}
-                    {dependencies.kmPosts.map((kmPost) => (
-                        <KmPostItem layoutContext={layoutContext} kmPostId={kmPost} key={kmPost} />
-                    ))}
+                    {sortedDependencies.map((candidate) =>
+                        getPublicationCandidateComponent(layoutContext, candidate, changeTimes),
+                    )}
                 </ul>
             </>
         )

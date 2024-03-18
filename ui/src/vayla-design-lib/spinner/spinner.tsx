@@ -10,15 +10,18 @@ export enum SpinnerSize {
 export type SpinnerProps = {
     size?: SpinnerSize;
     inline?: boolean;
+    tableHeader?: boolean;
 };
 
 export const Spinner: React.FC<SpinnerProps> = ({
     size = SpinnerSize.NORMAL,
     inline = false,
+    tableHeader = false,
 }: SpinnerProps) => {
     const className = createClassName(
         styles.spinner,
         inline && styles['spinner--inline'],
+        tableHeader && styles['spinner--table-header'],
         size === SpinnerSize.SMALL && styles['spinner--small'],
     );
 

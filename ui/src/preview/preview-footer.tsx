@@ -16,55 +16,40 @@ import {
 } from 'common/change-time-api';
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import {
-    PublishCandidates,
-    PublishRequestIds,
+    PublishCandidate,
     PublishResult,
     PublishValidationError,
 } from 'publication/publication-model';
 import { OnSelectFunction } from 'selection/selection-model';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { TextArea } from 'vayla-design-lib/text-area/text-area';
-import { PreviewCandidates } from 'preview/preview-view-data';
 import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
+import { pendingValidations } from 'preview/preview-view-filters';
 
 type PreviewFooterProps = {
     onSelect: OnSelectFunction;
-    request: PublishRequestIds;
     onPublish: () => void;
     layoutContext: LayoutContext;
     onChangeLayoutContext: (context: LayoutContext) => void;
-    previewChanges: PreviewCandidates;
+    stagedPublishCandidates: PublishCandidate[];
 };
 
-function previewChangesCanBePublished(previewChanges: PublishCandidates) {
-    return (
-        previewChanges.kmPosts.length != 0 ||
-        previewChanges.trackNumbers.length != 0 ||
-        previewChanges.locationTracks.length != 0 ||
-        previewChanges.switches.length != 0 ||
-        previewChanges.referenceLines.length != 0
-    );
+function previewChangesCanBePublished(publishCandidates: PublishCandidate[]) {
+    return publishCandidates.length !== 0;
 }
 
 function describe(name: string, value: number | undefined): string | undefined {
     return value !== undefined && value > 0 ? `${name}: ${value}` : undefined;
 }
 
-function publishErrors(previewChanges: PublishCandidates): PublishValidationError[] {
-    return previewChanges.locationTracks
-        .flatMap((l) => l.errors)
-        .concat(
-            previewChanges.kmPosts.flatMap((k) => k.errors),
-            previewChanges.referenceLines.flatMap((r) => r.errors),
-            previewChanges.switches.flatMap((s) => s.errors),
-            previewChanges.trackNumbers.flatMap((t) => t.errors),
-        );
+function publishErrors(publishCandidates: PublishCandidate[]): PublishValidationError[] {
+    return publishCandidates.flatMap((candidate) => candidate.errors);
 }
 
 export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooterProps) => {
-    const allPublishErrors =
-        props.previewChanges &&
-        publishErrors(props.previewChanges).filter((error) => error.type == 'ERROR');
+    const allPublishErrors = publishErrors(props.stagedPublishCandidates).filter(
+        (error) => error.type == 'ERROR',
+    );
     const describeResult = (result: PublishResult | undefined): string => {
         return [
             describe(t('publish.track-numbers'), result?.trackNumbers),
@@ -77,7 +62,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
             .join('\n');
     };
 
-    const publishPreviewChanges = previewChangesCanBePublished(props.previewChanges);
+    const publishPreviewChanges = previewChangesCanBePublished(props.stagedPublishCandidates);
 
     const updateChangeTimes = (result: PublishResult | undefined) => {
         if (result?.trackNumbers || 0 > 0) updateTrackNumberChangeTime();
@@ -93,23 +78,9 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
     const [isPublishing, setPublishing] = React.useState(false);
     const [message, setMessage] = React.useState('');
 
-    const emptyRequest =
-        props.request.trackNumbers.length == 0 &&
-        props.request.kmPosts.length == 0 &&
-        props.request.referenceLines.length == 0 &&
-        props.request.locationTracks.length == 0 &&
-        props.request.switches.length == 0;
-
-    const validationPending =
-        props.previewChanges.trackNumbers.some((tn) => tn.pendingValidation) ||
-        props.previewChanges.referenceLines.some((rl) => rl.pendingValidation) ||
-        props.previewChanges.locationTracks.some((lt) => lt.pendingValidation) ||
-        props.previewChanges.switches.some((sw) => sw.pendingValidation) ||
-        props.previewChanges.kmPosts.some((km) => km.pendingValidation);
-
     const publish = () => {
         setPublishing(true);
-        publishCandidates({ content: props.request, message })
+        publishCandidates(props.stagedPublishCandidates, message)
             .then((r) => {
                 Snackbar.success('publish.publish-success', describeResult(r));
                 updateChangeTimes(r);
@@ -121,12 +92,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
             });
     };
 
-    const candidateCount =
-        props.request.kmPosts.length +
-        props.request.trackNumbers.length +
-        props.request.locationTracks.length +
-        props.request.switches.length +
-        props.request.referenceLines.length;
+    const candidateCount = props.stagedPublishCandidates.length;
 
     return (
         <footer className={styles['preview-footer']}>
@@ -135,9 +101,9 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                     onClick={() => setPublishConfirmVisible(true)}
                     variant={ButtonVariant.PRIMARY}
                     disabled={
-                        emptyRequest ||
+                        candidateCount === 0 ||
                         publishConfirmVisible ||
-                        validationPending ||
+                        pendingValidations(props.stagedPublishCandidates) ||
                         (allPublishErrors && allPublishErrors?.length > 0) ||
                         !publishPreviewChanges
                     }>
@@ -167,7 +133,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                         <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 onClick={() => setPublishConfirmVisible(false)}
-                                disabled={emptyRequest || isPublishing}
+                                disabled={candidateCount === 0 || isPublishing}
                                 variant={ButtonVariant.SECONDARY}>
                                 {t('publish.publish-confirm.cancel')}
                             </Button>

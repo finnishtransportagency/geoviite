@@ -1,57 +1,61 @@
 import { subMonths } from 'date-fns';
 import {
+    PublicationGroupId,
     PublicationSearch,
-    PublishCandidates,
-    PublishRequestIds,
+    PublicationStage,
+    PublishCandidate,
 } from 'publication/publication-model';
-import { filterByIdNotIn, filterIn, filterNotIn } from 'utils/array-utils';
 import { currentDay } from 'utils/date-utils';
-
-export const addPublishRequestIds = (
-    a: PublishRequestIds,
-    b: PublishRequestIds,
-): PublishRequestIds => ({
-    trackNumbers: [...new Set([...a.trackNumbers, ...b.trackNumbers])],
-    locationTracks: [...new Set([...a.locationTracks, ...b.locationTracks])],
-    referenceLines: [...new Set([...a.referenceLines, ...b.referenceLines])],
-    switches: [...new Set([...a.switches, ...b.switches])],
-    kmPosts: [...new Set([...a.kmPosts, ...b.kmPosts])],
-});
-
-export const subtractPublishRequestIds = (a: PublishRequestIds, b: PublishRequestIds) => ({
-    trackNumbers: a.trackNumbers.filter(filterNotIn(b.trackNumbers)),
-    locationTracks: a.locationTracks.filter(filterNotIn(b.locationTracks)),
-    referenceLines: a.referenceLines.filter(filterNotIn(b.referenceLines)),
-    switches: a.switches.filter(filterNotIn(b.switches)),
-    kmPosts: a.kmPosts.filter(filterNotIn(b.kmPosts)),
-});
-
-export const intersectPublishRequestIds = (a: PublishRequestIds, b: PublishRequestIds) => ({
-    trackNumbers: a.trackNumbers.filter(filterIn(b.trackNumbers)),
-    locationTracks: a.locationTracks.filter(filterIn(b.locationTracks)),
-    referenceLines: a.referenceLines.filter(filterIn(b.referenceLines)),
-    switches: a.switches.filter(filterIn(b.switches)),
-    kmPosts: a.kmPosts.filter(filterIn(b.kmPosts)),
-});
-
-export const dropIdsFromPublishCandidates = (
-    publishCandidates: PublishCandidates,
-    ids: PublishRequestIds,
-): PublishCandidates => ({
-    trackNumbers: publishCandidates.trackNumbers.filter(
-        filterByIdNotIn(ids.trackNumbers, ({ id }) => id),
-    ),
-    referenceLines: publishCandidates.referenceLines.filter(
-        filterByIdNotIn(ids.referenceLines, ({ id }) => id),
-    ),
-    switches: publishCandidates.switches.filter(filterByIdNotIn(ids.switches, ({ id }) => id)),
-    locationTracks: publishCandidates.locationTracks.filter(
-        filterByIdNotIn(ids.locationTracks, ({ id }) => id),
-    ),
-    kmPosts: publishCandidates.kmPosts.filter(filterByIdNotIn(ids.kmPosts, ({ id }) => id)),
-});
 
 export const defaultPublicationSearch: PublicationSearch = {
     startDate: subMonths(currentDay, 1).toISOString(),
     endDate: currentDay.toISOString(),
+};
+
+export const conditionallyUpdateCandidates = (
+    publishCandidates: PublishCandidate[],
+    condition: (candidate: PublishCandidate) => boolean,
+    transform: (candidate: PublishCandidate) => PublishCandidate,
+): PublishCandidate[] => {
+    return publishCandidates.map((candidate): PublishCandidate => {
+        if (condition(candidate)) {
+            return transform(candidate);
+        }
+
+        return candidate;
+    });
+};
+
+export const stageTransform = (
+    newStage: PublicationStage,
+): ((candidate: PublishCandidate) => PublishCandidate) => {
+    return (candidate) => ({
+        ...candidate,
+        stage: newStage,
+        pendingValidation: true,
+    });
+};
+
+export type PublicationAssetChangeAmounts = {
+    total: number;
+    staged: number;
+    unstaged: number;
+    groupAmounts: Record<PublicationGroupId, number>;
+    ownUnstaged: number;
+};
+
+export const countPublicationGroupAmounts = (
+    publishCandidates: PublishCandidate[],
+): Record<PublicationGroupId, number> => {
+    return publishCandidates.reduce((groupSizes, candidate) => {
+        const publicationGroupId = candidate.publicationGroup?.id;
+
+        if (publicationGroupId) {
+            publicationGroupId in groupSizes
+                ? (groupSizes[publicationGroupId] += 1)
+                : (groupSizes[publicationGroupId] = 1);
+        }
+
+        return groupSizes;
+    }, {} as Record<PublicationGroupId, number>);
 };

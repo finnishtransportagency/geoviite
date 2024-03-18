@@ -8,6 +8,7 @@ import { combineReducers } from 'redux';
 
 import thunk from 'redux-thunk';
 import { commonReducer } from 'common/common-slice';
+import { publishCandidateValidationMiddleware } from 'preview/validation-middleware';
 
 const persistedTrackLayoutReducer = persistReducer(
     {
@@ -55,6 +56,7 @@ export const appStore = configureStore({
             },
         }),
         thunk,
+        publishCandidateValidationMiddleware.middleware,
     ],
 });
 

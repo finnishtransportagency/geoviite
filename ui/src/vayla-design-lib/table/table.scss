@@ -26,6 +26,7 @@ $table-cell-padding: 10px 16px;
                     background: colors.$color-white-darker;
                 }
             }
+
             &--has-background {
                 background: colors.$color-white-dark;
             }
@@ -111,6 +112,11 @@ td,
 
 .table__th-children {
     width: 100%;
+}
+
+.table__th-children--vertically-aligned {
+    display: flex;
+    align-items: center;
 }
 
 .table__th-icons {

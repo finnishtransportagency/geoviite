@@ -27,11 +27,10 @@ import {
 import { GeometryPlanLayout, LocationTrackId } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { first } from 'utils/array-utils';
-import { PublishRequestIds } from 'publication/publication-model';
+import { CalculatedChanges, PublishCandidate } from 'publication/publication-model';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 import { exhaustiveMatchingGuard, ifDefined } from 'utils/type-utils';
 import { splitReducers, SplittingState } from 'tool-panel/location-track/split-store';
-import { addPublishRequestIds, subtractPublishRequestIds } from 'publication/publication-utils';
 import { PURGE } from 'redux-persist';
 import { previewReducers, PreviewState } from 'preview/preview-store';
 
@@ -167,14 +166,6 @@ const initialInfoboxVisibilities: InfoboxVisibilities = {
     },
 };
 
-export const initialPublicationRequestIds: PublishRequestIds = {
-    trackNumbers: [],
-    referenceLines: [],
-    locationTracks: [],
-    switches: [],
-    kmPosts: [],
-};
-
 export enum LocationTrackTaskListType {
     RELINKING_SWITCH_VALIDATION,
 }
@@ -189,7 +180,8 @@ export type TrackLayoutState = {
     layoutMode: LayoutMode;
     map: Map;
     selection: Selection;
-    stagedPublicationRequestIds: PublishRequestIds;
+    publishCandidates: PublishCandidate[];
+    calculatedChanges?: CalculatedChanges;
     linkingState?: LinkingState;
     splittingState?: SplittingState;
     linkingIssuesSelectedBeforeLinking: boolean;
@@ -205,7 +197,8 @@ export const initialTrackLayoutState: TrackLayoutState = {
     layoutMode: 'DEFAULT',
     map: initialMapState,
     selection: initialSelectionState,
-    stagedPublicationRequestIds: initialPublicationRequestIds,
+    publishCandidates: [],
+    calculatedChanges: undefined,
     linkingIssuesSelectedBeforeLinking: false,
     switchLinkingSelectedBeforeLinking: false,
     selectedToolPanelTab: undefined,
@@ -363,26 +356,18 @@ const trackLayoutSlice = createSlice({
             }
         },
 
-        onPublishPreviewSelect: function (
+        setPublishCandidates: function (
             state: TrackLayoutState,
-            action: PayloadAction<PublishRequestIds>,
+            action: PayloadAction<PublishCandidate[]>,
         ): void {
-            const stateCandidates = state.stagedPublicationRequestIds;
-            const toAdd = action.payload;
-
-            state.stagedPublicationRequestIds = addPublishRequestIds(stateCandidates, toAdd);
+            state.publishCandidates = action.payload;
         },
 
-        onPublishPreviewRemove: function (
+        setCalculatedChanges: function (
             state: TrackLayoutState,
-            action: PayloadAction<PublishRequestIds>,
+            action: PayloadAction<CalculatedChanges | undefined>,
         ): void {
-            const stateCandidates = state.stagedPublicationRequestIds;
-            const toRemove = action.payload;
-            state.stagedPublicationRequestIds = subtractPublishRequestIds(
-                stateCandidates,
-                toRemove,
-            );
+            state.calculatedChanges = action.payload;
         },
 
         onHighlightItems: function (
@@ -470,7 +455,6 @@ const trackLayoutSlice = createSlice({
         },
         onPublish: (state: TrackLayoutState): void => {
             state.layoutMode = 'DEFAULT';
-            state.stagedPublicationRequestIds = initialPublicationRequestIds;
         },
         setToolPanelTab: (
             state: TrackLayoutState,

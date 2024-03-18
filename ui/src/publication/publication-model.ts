@@ -56,13 +56,32 @@ export type PublishCandidateId =
     | LayoutSwitchId
     | LayoutKmPostId;
 
-export type PublishCandidate = {
+export type BasePublishCandidate = {
+    // id: PublishCandidateId;
+    type: DraftChangeType;
     draftChangeTime: TimeStamp;
     userName: string;
     operation: Operation;
     publicationGroup?: PublicationGroup;
     errors: PublishValidationError[];
+    validated: boolean;
+    pendingValidation: boolean;
+    stage: PublicationStage;
 };
+
+export type PublishCandidate =
+    | TrackNumberPublishCandidate
+    | LocationTrackPublishCandidate
+    | ReferenceLinePublishCandidate
+    | SwitchPublishCandidate
+    | KmPostPublishCandidate;
+
+export type PublishCandidateReference =
+    | { id: LayoutTrackNumberId; type: DraftChangeType.TRACK_NUMBER }
+    | { id: ReferenceLineId; type: DraftChangeType.REFERENCE_LINE }
+    | { id: LocationTrackId; type: DraftChangeType.LOCATION_TRACK }
+    | { id: LayoutSwitchId; type: DraftChangeType.SWITCH }
+    | { id: LayoutKmPostId; type: DraftChangeType.KM_POST };
 
 export type WithBoundingBox = {
     boundingBox?: BoundingBox;
@@ -72,18 +91,14 @@ export type WithLocation = {
     location?: Point;
 };
 
-export type WithId<Id extends PublishCandidateId> = {
-    id: Id;
-};
-
-export type TrackNumberPublishCandidate = PublishCandidate &
+export type TrackNumberPublishCandidate = BasePublishCandidate &
     WithBoundingBox & {
         type: DraftChangeType.TRACK_NUMBER;
         number: TrackNumber;
         id: LayoutTrackNumberId;
     };
 
-export type LocationTrackPublishCandidate = PublishCandidate &
+export type LocationTrackPublishCandidate = BasePublishCandidate &
     WithBoundingBox & {
         type: DraftChangeType.LOCATION_TRACK;
         id: LocationTrackId;
@@ -92,7 +107,7 @@ export type LocationTrackPublishCandidate = PublishCandidate &
         duplicateOf: LocationTrackId;
     };
 
-export type ReferenceLinePublishCandidate = PublishCandidate &
+export type ReferenceLinePublishCandidate = BasePublishCandidate &
     WithBoundingBox & {
         type: DraftChangeType.REFERENCE_LINE;
         id: ReferenceLineId;
@@ -102,7 +117,7 @@ export type ReferenceLinePublishCandidate = PublishCandidate &
         boundingBox?: BoundingBox;
     };
 
-export type SwitchPublishCandidate = PublishCandidate &
+export type SwitchPublishCandidate = BasePublishCandidate &
     WithLocation & {
         type: DraftChangeType.SWITCH;
         id: LayoutSwitchId;
@@ -110,7 +125,7 @@ export type SwitchPublishCandidate = PublishCandidate &
         trackNumberIds: LayoutTrackNumberId[];
     };
 
-export type KmPostPublishCandidate = PublishCandidate &
+export type KmPostPublishCandidate = BasePublishCandidate &
     WithLocation & {
         type: DraftChangeType.KM_POST;
         id: LayoutKmPostId;
@@ -119,17 +134,9 @@ export type KmPostPublishCandidate = PublishCandidate &
         location?: Point;
     };
 
-export type PublishCandidates = {
-    trackNumbers: TrackNumberPublishCandidate[];
-    locationTracks: LocationTrackPublishCandidate[];
-    referenceLines: ReferenceLinePublishCandidate[];
-    switches: SwitchPublishCandidate[];
-    kmPosts: KmPostPublishCandidate[];
-};
-
 export type ValidatedPublishCandidates = {
-    validatedAsPublicationUnit: PublishCandidates;
-    allChangesValidated: PublishCandidates;
+    validatedAsPublicationUnit: PublishCandidate[];
+    allChangesValidated: PublishCandidate[];
 };
 
 export type BulkTransferState = 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'FAILED' | 'TEMPORARY_FAILURE';
@@ -209,14 +216,6 @@ export type PublishRequestIds = {
     locationTracks: LocationTrackId[];
     switches: LayoutSwitchId[];
     kmPosts: LayoutKmPostId[];
-};
-
-export const publishNothing: PublishRequestIds = {
-    trackNumbers: [],
-    referenceLines: [],
-    locationTracks: [],
-    switches: [],
-    kmPosts: [],
 };
 
 export type PropKey = {
@@ -308,6 +307,21 @@ export interface CalculatedChanges {
     directChanges: DirectChanges;
     indirectChanges: IndirectChanges;
 }
+
+export const emptyCalculatedChanges = (): CalculatedChanges => ({
+    directChanges: {
+        kmPostChanges: [],
+        referenceLineChanges: [],
+        trackNumberChanges: [],
+        locationTrackChanges: [],
+        switchChanges: [],
+    },
+    indirectChanges: {
+        trackNumberChanges: [],
+        locationTrackChanges: [],
+        switchChanges: [],
+    },
+});
 
 export type PublishedCalculatedChanges = {
     trackNumbers: PublishedTrackNumber[];
