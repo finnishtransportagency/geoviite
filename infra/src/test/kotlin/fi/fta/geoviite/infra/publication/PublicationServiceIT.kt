@@ -959,7 +959,13 @@ class PublicationServiceIT @Autowired constructor(
             asMainDraft(locationTrackDao.fetch(lt1OriginalVersion).copy(name = AlignmentName("LT2")))
         )
 
-        val lt2 = locationTrack(trackNumberId, name = "LT2", alignmentVersion = someAlignment, externalId = null, draft = false)
+        val lt2 = locationTrack(
+            trackNumberId = trackNumberId,
+            name = "LT2",
+            alignmentVersion = someAlignment,
+            externalId = null,
+            draft = false,
+        )
         val lt2OriginalVersion = locationTrackDao.insert(lt2).rowVersion
         val lt2RenamedDraft = locationTrackDao.insert(
             asMainDraft(locationTrackDao.fetch(lt2OriginalVersion).copy(name = AlignmentName("LT1")))
@@ -1008,7 +1014,9 @@ class PublicationServiceIT @Autowired constructor(
         // In new draft, middle wants to duplicate big (leading to: small->middle->big)
         locationTrackService.saveDraft(locationTrackDao.fetch(middleTrack.rowVersion).copy(duplicateOf = bigTrack.id))
 
-        fun getPublishingDuplicateWhileDuplicatedValidationError(vararg publishableTracks: IntId<LocationTrack>): PublishValidationError? {
+        fun getPublishingDuplicateWhileDuplicatedValidationError(
+            vararg publishableTracks: IntId<LocationTrack>,
+        ): PublishValidationError? {
             val validation = publicationService.validatePublishCandidates(
                 publicationService.collectPublishCandidates(),
                 PublishRequestIds(
