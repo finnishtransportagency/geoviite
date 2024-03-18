@@ -225,17 +225,17 @@ class LocationTrackController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
     @GetMapping("/track-numbers/{$PUBLISH_TYPE}/{trackNumberId}/location-tracks")
     fun getTrackNumberTracksByName(
-        @PathVariable("$PUBLISH_TYPE") publicationState: PublishType,
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
         @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
         @RequestParam("locationTrackNames") names: List<AlignmentName>,
     ): List<LocationTrack> {
         logger.apiCall(
             "getTrackNumberTracksByName",
-            "$PUBLISH_TYPE" to publicationState,
+            "$PUBLISH_TYPE" to publishType,
             "trackNumberId" to trackNumberId,
             "names" to names,
         )
-        return locationTrackService.list(publicationState, trackNumberId, names)
+        return locationTrackService.list(publishType, trackNumberId, names)
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)

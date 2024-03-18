@@ -53,7 +53,12 @@ import { useLoader } from 'utils/react-utils';
 import i18next from 'i18next';
 import { menuValueOption } from 'vayla-design-lib/menu/menu';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { EDIT_GEOMETRY_FILE, EDIT_LAYOUT, userHasPrivilege } from 'user/user-model';
+import {
+    EDIT_GEOMETRY_FILE,
+    EDIT_LAYOUT,
+    userHasPrivilege,
+    VIEW_LAYOUT_DRAFT,
+} from 'user/user-model';
 import { useCommonDataAppSelector } from 'store/hooks';
 
 type InframodelViewFormContainerProps = {
@@ -170,7 +175,9 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     }
 
     function updateTrackNumbers() {
-        getTrackNumbers('OFFICIAL').then((trackNumbers) => setTrackNumberList(trackNumbers));
+        getTrackNumbers(
+            userHasPrivilege(privileges, VIEW_LAYOUT_DRAFT) ? 'DRAFT' : 'OFFICIAL',
+        ).then((trackNumbers) => setTrackNumberList(trackNumbers));
     }
 
     function handleDayChange(chosenDate: Date) {
