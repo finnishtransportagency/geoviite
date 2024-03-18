@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.geography.crs
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
+import fi.fta.geoviite.infra.linking.FittedSwitch
 import fi.fta.geoviite.infra.linking.SuggestedSwitch
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -152,7 +153,7 @@ data class LocationTrackInfoboxExtras(
 data class SwitchValidationWithSuggestedSwitch(
     val switchId: IntId<TrackLayoutSwitch>,
     val switchValidation: ValidatedAsset<TrackLayoutSwitch>,
-    val suggestedSwitch: SuggestedSwitch?,
+    val switchSuggestion: SuggestedSwitch?,
 )
 
 data class SwitchOnLocationTrack(

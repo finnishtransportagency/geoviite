@@ -5,16 +5,14 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.KkjTm35finTriangulationDao
 import fi.fta.geoviite.infra.geography.TriangulationDirection
 import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.publication.PublishValidationError
 import fi.fta.geoviite.infra.publication.PublishValidationErrorType
-import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
-import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
+import fi.fta.geoviite.infra.switchLibrary.*
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.testdata.createSwitchAndAlignments
 import fi.fta.geoviite.infra.ui.testdata.locationTrackAndAlignmentForGeometryAlignment
@@ -76,14 +74,17 @@ class SwitchLinkingServiceIT @Autowired constructor(
         val insertedSwitch = switchDao.fetch(
             switchDao.insert(switch(665)).rowVersion
         )
-        val switchLinkingParameters =
-            SwitchLinkingParameters(
-                layoutSwitchId = insertedSwitch.id as IntId,
+        val suggestedSwitch = switchLinkingService.matchFittedSwitch(
+            FittedSwitch(
                 joints = emptyList(),
                 geometrySwitchId = null,
-                switchStructureId = insertedSwitch.switchStructureId
-            )
-        val rowVersion = switchLinkingService.saveSwitchLinking(switchLinkingParameters).rowVersion
+                switchStructureId = insertedSwitch.switchStructureId,
+                name = SwitchName("Foo V123"),
+                alignmentEndPoint = null,
+            ),
+            insertedSwitch.id as IntId
+        )
+        val rowVersion = switchLinkingService.saveSwitchLinking(suggestedSwitch, insertedSwitch.id as IntId).rowVersion
         val switch = switchDao.fetch(rowVersion)
         assertEquals(switch.source, GeometrySource.GENERATED)
     }
@@ -127,36 +128,36 @@ class SwitchLinkingServiceIT @Autowired constructor(
         val insertedSwitch = switchDao.fetch(switchDao.insert(switch(665)).rowVersion)
 
         val linkingJoints = listOf(
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(1),
                 Point(x = 9.5, y = 9.5),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(
-                    SwitchLinkingSegment(
+                matches = listOf(
+                    suggestedSwitchJointMatch(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
                         m = segments[1].startM,
                     )
                 ),
             ),
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(2),
                 Point(x = 20.0, y = 20.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(
-                    SwitchLinkingSegment(
+                matches = listOf(
+                    suggestedSwitchJointMatch(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
                         m = segments[1].endM,
                     )
                 ),
             ),
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(3),
                 Point(x = 20.0, y = 20.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(
-                    SwitchLinkingSegment(
+                matches = listOf(
+                    suggestedSwitchJointMatch(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
                         m = segments[1].endM,
@@ -166,12 +167,13 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         switchLinkingService.saveSwitchLinking(
-            SwitchLinkingParameters(
-                layoutSwitchId = insertedSwitch.id as IntId,
-                joints = linkingJoints,
-                geometrySwitchId = null,
-                switchStructureId = insertedSwitch.switchStructureId
-            )
+            switchLinkingService.matchFittedSwitch(
+                suggestedSwitchFitting(
+                    joints = linkingJoints,
+                    geometrySwitchId = null,
+                    switchStructureId = insertedSwitch.switchStructureId
+                ), insertedSwitch.id as IntId,
+            ), insertedSwitch.id as IntId,
         )
 
         val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, locationTrackId.id)
@@ -202,36 +204,36 @@ class SwitchLinkingServiceIT @Autowired constructor(
         val insertedSwitch = switchDao.fetch(switchDao.insert(switch(665)).rowVersion)
 
         val linkingJoints = listOf(
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(1),
                 Point(x = 9.5, y = 9.5),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(
-                    SwitchLinkingSegment(
+                matches = listOf(
+                    suggestedSwitchJointMatch(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
                         m = segments[1].startM,
                     )
                 ),
             ),
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(5),
                 Point(x = 20.0, y = 20.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(
-                    SwitchLinkingSegment(
+                matches = listOf(
+                    suggestedSwitchJointMatch(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
                         m = segments[1].endM,
                     )
                 ),
             ),
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(3),
                 Point(x = 20.0, y = 20.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(
-                    SwitchLinkingSegment(
+                matches = listOf(
+                    suggestedSwitchJointMatch(
                         locationTrackId = locationTrackId.id,
                         segmentIndex = 1,
                         m = segments[1].endM,
@@ -241,12 +243,13 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         switchLinkingService.saveSwitchLinking(
-            SwitchLinkingParameters(
-                layoutSwitchId = insertedSwitch.id as IntId,
-                joints = linkingJoints,
-                geometrySwitchId = null,
-                switchStructureId = insertedSwitch.switchStructureId
-            )
+            switchLinkingService.matchFittedSwitch(
+                suggestedSwitchFitting(
+                    joints = linkingJoints,
+                    geometrySwitchId = null,
+                    switchStructureId = insertedSwitch.switchStructureId
+                ), insertedSwitch.id as IntId,
+            ), insertedSwitch.id as IntId,
         )
 
         val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, locationTrackId.id)
@@ -262,7 +265,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     private fun createAndLinkSwitch(
         seed: Int = 123768,
-        linkedJoints: List<SwitchLinkingJoint>,
+        linkedJoints: List<FittedSwitchJoint>,
     ): TrackLayoutSwitch {
         return switch(
             seed = seed,
@@ -272,12 +275,14 @@ class SwitchLinkingServiceIT @Autowired constructor(
             .let { switch -> switchDao.insert(switch).rowVersion }
             .let { switchRowVersion -> switchDao.fetch(switchRowVersion) }
             .let { storedSwitch ->
-                switchLinkingService.saveSwitchLinking(SwitchLinkingParameters(
-                    layoutSwitchId = storedSwitch.id as IntId,
-                    joints = linkedJoints,
-                    geometrySwitchId = null,
-                    switchStructureId = storedSwitch.switchStructureId,
-                ))
+                switchLinkingService.saveSwitchLinking(
+                    switchLinkingService.matchFittedSwitch(
+                        suggestedSwitchFitting(
+                            switchStructureId = storedSwitch.switchStructureId,
+                            joints = linkedJoints,
+                        ), storedSwitch.id as IntId,
+                    ), storedSwitch.id as IntId,
+                )
             }
             .let { switchDaoResponse -> switchDao.fetch(switchDaoResponse.rowVersion) }
     }
@@ -313,40 +318,40 @@ class SwitchLinkingServiceIT @Autowired constructor(
         val switchJoints = listOf(
 
             // Continuing track
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(1),
                 Point(20.0, 0.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(
+                matches = listOf(
                     switchLinkingAtStart(straightTrack.id, straightAlignment, 1),
                     switchLinkingAtStart(divertingTrack.id, divertingAlignment, 0),
                 ),
             ),
 
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(5),
                 Point(40.0, 0.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(
+                matches = listOf(
                     switchLinkingAtStart(straightTrack.id, straightAlignment, 2),
                 ),
             ),
 
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(2),
                 Point(60.0, 0.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(
+                matches = listOf(
                     switchLinkingAtEnd(straightTrack.id, straightAlignment, 2),
                 ),
             ),
 
             // Diverting track
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(3),
                 Point(100.0, 60.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(
+                matches = listOf(
                     switchLinkingAtEnd(divertingTrack.id, divertingAlignment, 0),
                 ),
             ),
@@ -371,12 +376,12 @@ class SwitchLinkingServiceIT @Autowired constructor(
         assertEquals(null, linkedStraightTrackAlignment.segments[0].endJointNumber)
 
         assertEquals(linkedSwitch.id, linkedStraightTrackAlignment.segments[1].switchId)
-        assertEquals(switchJoints[0].jointNumber, linkedStraightTrackAlignment.segments[1].startJointNumber)
-        assertEquals(switchJoints[1].jointNumber, linkedStraightTrackAlignment.segments[1].endJointNumber)
+        assertEquals(switchJoints[0].number, linkedStraightTrackAlignment.segments[1].startJointNumber)
+        assertEquals(switchJoints[1].number, linkedStraightTrackAlignment.segments[1].endJointNumber)
 
         assertEquals(linkedSwitch.id, linkedStraightTrackAlignment.segments[2].switchId)
-        assertEquals(switchJoints[1].jointNumber, linkedStraightTrackAlignment.segments[2].startJointNumber)
-        assertEquals(switchJoints[2].jointNumber, linkedStraightTrackAlignment.segments[2].endJointNumber)
+        assertEquals(switchJoints[1].number, linkedStraightTrackAlignment.segments[2].startJointNumber)
+        assertEquals(switchJoints[2].number, linkedStraightTrackAlignment.segments[2].endJointNumber)
 
         assertEquals(null, linkedStraightTrackAlignment.segments[3].switchId)
         assertEquals(null, linkedStraightTrackAlignment.segments[3].startJointNumber)
@@ -385,8 +390,8 @@ class SwitchLinkingServiceIT @Autowired constructor(
         // The diverting track segments should not have been split either.
         assertEquals(1, linkedDivertingTrackAlignment.segments.size)
         assertEquals(linkedSwitch.id, linkedDivertingTrackAlignment.segments[0].switchId)
-        assertEquals(switchJoints[0].jointNumber, linkedDivertingTrackAlignment.segments[0].startJointNumber)
-        assertEquals(switchJoints[3].jointNumber, linkedDivertingTrackAlignment.segments[0].endJointNumber)
+        assertEquals(switchJoints[0].number, linkedDivertingTrackAlignment.segments[0].startJointNumber)
+        assertEquals(switchJoints[3].number, linkedDivertingTrackAlignment.segments[0].endJointNumber)
 
         return LocationTracksWithLinkedSwitch(
             straightTrack = linkedStraightTrack,
@@ -411,12 +416,12 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
         val overlappingSwitchJoints = listOf(
             // Continuing track
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(1),
                 Point(60.0 - switchOverlapAmount, 0.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(
-                    SwitchLinkingSegment(
+                matches = listOf(
+                    suggestedSwitchJointMatch(
                         locationTrackId = testLocation.straightTrack.id as IntId,
                         segmentIndex = 2,
                         m = testLocation.straightTrackAlignment.segments[2].endM - switchOverlapAmount,
@@ -426,30 +431,30 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 ),
             ),
 
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(5),
                 Point(80.0, 0.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(
+                matches = listOf(
                     switchLinkingAtStart(testLocation.straightTrack.id, testLocation.straightTrackAlignment, 4),
                 ),
             ),
 
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(2),
                 Point(100.0, 0.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(
+                matches = listOf(
                     switchLinkingAtEnd(testLocation.straightTrack.id, testLocation.straightTrackAlignment, 4),
                 ),
             ),
 
             // Diverting track
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(3),
                 Point(100.0, 100.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(
+                matches = listOf(
                     switchLinkingAtEnd(testLocation.divertingTrack.id, testLocation.divertingTrackAlignment, 0),
                 ),
             ),
@@ -481,12 +486,12 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
         // New switch
         assertEquals(newSwitch.id, overlapLinkedStraightAlignment.segments[3].switchId)
-        assertEquals(overlappingSwitchJoints[0].jointNumber, overlapLinkedStraightAlignment.segments[3].startJointNumber)
-        assertEquals(overlappingSwitchJoints[1].jointNumber, overlapLinkedStraightAlignment.segments[3].endJointNumber)
+        assertEquals(overlappingSwitchJoints[0].number, overlapLinkedStraightAlignment.segments[3].startJointNumber)
+        assertEquals(overlappingSwitchJoints[1].number, overlapLinkedStraightAlignment.segments[3].endJointNumber)
 
         assertEquals(newSwitch.id, overlapLinkedStraightAlignment.segments[4].switchId)
-        assertEquals(overlappingSwitchJoints[1].jointNumber, overlapLinkedStraightAlignment.segments[4].startJointNumber)
-        assertEquals(overlappingSwitchJoints[2].jointNumber, overlapLinkedStraightAlignment.segments[4].endJointNumber)
+        assertEquals(overlappingSwitchJoints[1].number, overlapLinkedStraightAlignment.segments[4].startJointNumber)
+        assertEquals(overlappingSwitchJoints[2].number, overlapLinkedStraightAlignment.segments[4].endJointNumber)
 
         assertEquals(null, overlapLinkedStraightAlignment.segments[5].switchId)
         assertEquals(null, overlapLinkedStraightAlignment.segments[5].startJointNumber)
@@ -512,25 +517,25 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         val existingSwitchJoints = listOf(
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(1),
                 Point(21.0, 0.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 3))
+                matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 3))
             ),
 
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(5),
                 Point(40.0, 0.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 8))
+                matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 8))
             ),
 
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(2),
                 Point(60.0, 0.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 9))
+                matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 9))
             ),
         )
 
@@ -540,25 +545,25 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         val overlappingSwitchJoints = listOf(
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(1),
                 Point(0.0, 0.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 0))
+                matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 0))
             ),
 
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(5),
                 Point(10.0, 0.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 1))
+                matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 1))
             ),
 
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(2),
                 Point(25.0, 0.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 7))
+                matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 7))
             ),
         )
 
@@ -572,14 +577,14 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
         assertEquals(testAlignment.segments.size, linkedTestAlignment.segments.size)
 
-        assertEquals(existingSwitchJoints[0].jointNumber, linkedTestAlignment.segments[0].startJointNumber)
-        assertEquals(existingSwitchJoints[1].jointNumber, linkedTestAlignment.segments[0].endJointNumber)
+        assertEquals(existingSwitchJoints[0].number, linkedTestAlignment.segments[0].startJointNumber)
+        assertEquals(existingSwitchJoints[1].number, linkedTestAlignment.segments[0].endJointNumber)
 
-        assertEquals(existingSwitchJoints[1].jointNumber, linkedTestAlignment.segments[1].startJointNumber)
+        assertEquals(existingSwitchJoints[1].number, linkedTestAlignment.segments[1].startJointNumber)
         assertEquals(null, linkedTestAlignment.segments[1].endJointNumber)
 
         assertEquals(null, linkedTestAlignment.segments[2].startJointNumber)
-        assertEquals(existingSwitchJoints[2].jointNumber, linkedTestAlignment.segments[2].endJointNumber)
+        assertEquals(existingSwitchJoints[2].number, linkedTestAlignment.segments[2].endJointNumber)
 
         (0..2).forEach { segmentIndex ->
             assertEquals(linkedSwitchWithOverlap.id, linkedTestAlignment.segments[segmentIndex].switchId)
@@ -594,13 +599,13 @@ class SwitchLinkingServiceIT @Autowired constructor(
             assertEquals(null, linkedTestAlignment.segments[segmentIndex].endJointNumber)
         }
 
-        assertEquals(overlappingSwitchJoints[0].jointNumber, linkedTestAlignment.segments[3].startJointNumber)
+        assertEquals(overlappingSwitchJoints[0].number, linkedTestAlignment.segments[3].startJointNumber)
         assertEquals(null, linkedTestAlignment.segments[3].endJointNumber)
 
-        assertEquals(overlappingSwitchJoints[1].jointNumber, linkedTestAlignment.segments[8].startJointNumber)
-        assertEquals(overlappingSwitchJoints[2].jointNumber, linkedTestAlignment.segments[8].endJointNumber)
+        assertEquals(overlappingSwitchJoints[1].number, linkedTestAlignment.segments[8].startJointNumber)
+        assertEquals(overlappingSwitchJoints[2].number, linkedTestAlignment.segments[8].endJointNumber)
 
-        assertEquals(overlappingSwitchJoints[2].jointNumber, linkedTestAlignment.segments[9].startJointNumber)
+        assertEquals(overlappingSwitchJoints[2].number, linkedTestAlignment.segments[9].startJointNumber)
         assertEquals(null, linkedTestAlignment.segments[9].endJointNumber)
 
         assertEquals(null, linkedTestAlignment.segments[10].switchId)
@@ -629,25 +634,25 @@ class SwitchLinkingServiceIT @Autowired constructor(
             )
 
             val existingSwitchJoints = listOf(
-                SwitchLinkingJoint(
+                FittedSwitchJoint(
                     JointNumber(1),
                     Point(20.0, 0.0),
                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                    segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 1))
+                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 1))
                 ),
 
-                SwitchLinkingJoint(
+                FittedSwitchJoint(
                     JointNumber(5),
                     Point(40.0, 0.0),
                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                    segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 2))
+                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 2))
                 ),
 
-                SwitchLinkingJoint(
+                FittedSwitchJoint(
                     JointNumber(2),
                     Point(60.0, 0.0),
                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                    segments = listOf(switchLinkingAtEnd(testLocationTrack.id, testAlignment, 2))
+                    matches = listOf(switchLinkingAtEnd(testLocationTrack.id, testAlignment, 2))
                 )
             )
 
@@ -659,29 +664,31 @@ class SwitchLinkingServiceIT @Autowired constructor(
             val linkedSwitchWithOverlap = createAndLinkSwitch(
                 seed = 1000 + index,
                 linkedJoints = listOf(
-                    SwitchLinkingJoint(
+                    FittedSwitchJoint(
                         firstJointNumber,
                         Point(60.0 - overlapAmount, 0.0),
                         LocationAccuracy.DESIGNED_GEOLOCATION,
-                        segments = listOf(SwitchLinkingSegment(
+                        matches = listOf(
+                            suggestedSwitchJointMatch(
                             locationTrackId = testLocationTrack.id as IntId,
                             segmentIndex = 2,
                             m = testAlignment.segments[2].endM - overlapAmount,
-                        )),
+                        )
+                        ),
                     ),
 
-                    SwitchLinkingJoint(
+                    FittedSwitchJoint(
                         secondJointNumber,
                         Point(80.0, 0.0),
                         LocationAccuracy.DESIGNED_GEOLOCATION,
-                        segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 4))
+                        matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 4))
                     ),
 
-                    SwitchLinkingJoint(
+                    FittedSwitchJoint(
                         thirdJointNumber,
                         Point(100.0, 0.0),
                         LocationAccuracy.DESIGNED_GEOLOCATION,
-                        segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 5))
+                        matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 5))
                     ),
                 )
             )
@@ -697,11 +704,11 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 assertEquals(existingLayoutSwitch.id, linkedTestAlignment.segments[segmentIndex].switchId)
             }
 
-            assertEquals(existingSwitchJoints[0].jointNumber, linkedTestAlignment.segments[1].startJointNumber)
-            assertEquals(existingSwitchJoints[1].jointNumber, linkedTestAlignment.segments[1].endJointNumber)
+            assertEquals(existingSwitchJoints[0].number, linkedTestAlignment.segments[1].startJointNumber)
+            assertEquals(existingSwitchJoints[1].number, linkedTestAlignment.segments[1].endJointNumber)
 
-            assertEquals(existingSwitchJoints[1].jointNumber, linkedTestAlignment.segments[2].startJointNumber)
-            assertEquals(existingSwitchJoints[2].jointNumber, linkedTestAlignment.segments[2].endJointNumber)
+            assertEquals(existingSwitchJoints[1].number, linkedTestAlignment.segments[2].startJointNumber)
+            assertEquals(existingSwitchJoints[2].number, linkedTestAlignment.segments[2].endJointNumber)
 
             (3..5).forEach { segmentIndex ->
                 assertEquals(linkedSwitchWithOverlap.id, linkedTestAlignment.segments[segmentIndex].switchId)
@@ -736,25 +743,25 @@ class SwitchLinkingServiceIT @Autowired constructor(
         val linkedSwitch = createAndLinkSwitch(
             seed = 98765_1,
             linkedJoints = listOf(
-                SwitchLinkingJoint(
+                FittedSwitchJoint(
                     JointNumber(1),
                     Point(20.0, 0.0),
                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                    segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 1))
+                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 1))
                 ),
 
-                SwitchLinkingJoint(
+                FittedSwitchJoint(
                     JointNumber(5),
                     Point(40.0, 0.0),
                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                    segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 2))
+                    matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 2))
                 ),
 
-                SwitchLinkingJoint(
+                FittedSwitchJoint(
                     JointNumber(2),
                     Point(60.0, 0.0),
                     LocationAccuracy.DESIGNED_GEOLOCATION,
-                    segments = listOf(switchLinkingAtEnd(testLocationTrack.id, testAlignment, 2))
+                    matches = listOf(switchLinkingAtEnd(testLocationTrack.id, testAlignment, 2))
                 ),
             )
         )
@@ -767,29 +774,31 @@ class SwitchLinkingServiceIT @Autowired constructor(
         }
 
         val jointsForSwitchWithTooMuchOverlap = listOf(
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(1),
                 Point(60.0 - moreThanAllowedOverlap, 0.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(SwitchLinkingSegment(
-                    locationTrackId = testLocationTrack.id as IntId,
-                    segmentIndex = 2,
-                    m = testAlignment.segments[2].endM - moreThanAllowedOverlap,
-                )),
+                matches = listOf(
+                    suggestedSwitchJointMatch(
+                        locationTrackId = testLocationTrack.id as IntId,
+                        segmentIndex = 2,
+                        m = testAlignment.segments[2].endM - moreThanAllowedOverlap,
+                    )
+                ),
             ),
 
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(5),
                 Point(80.0, 0.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 4))
+                matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 4))
             ),
 
-            SwitchLinkingJoint(
+            FittedSwitchJoint(
                 JointNumber(2),
                 Point(100.0, 0.0),
                 LocationAccuracy.DESIGNED_GEOLOCATION,
-                segments = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 5))
+                matches = listOf(switchLinkingAtStart(testLocationTrack.id, testAlignment, 5))
             ),
         )
 
@@ -813,16 +822,16 @@ class SwitchLinkingServiceIT @Autowired constructor(
             assertEquals(linkedSwitchWithTooMuchOverlap.id, linkedTestAlignment.segments[segmentIndex].switchId)
         }
 
-        assertEquals(jointsForSwitchWithTooMuchOverlap[0].jointNumber, linkedTestAlignment.segments[3].startJointNumber)
+        assertEquals(jointsForSwitchWithTooMuchOverlap[0].number, linkedTestAlignment.segments[3].startJointNumber)
         assertEquals(null, linkedTestAlignment.segments[4].endJointNumber)
 
         assertEquals(null, linkedTestAlignment.segments[4].startJointNumber)
         assertEquals(null, linkedTestAlignment.segments[4].endJointNumber)
 
-        assertEquals(jointsForSwitchWithTooMuchOverlap[1].jointNumber, linkedTestAlignment.segments[5].startJointNumber)
-        assertEquals(jointsForSwitchWithTooMuchOverlap[2].jointNumber, linkedTestAlignment.segments[5].endJointNumber)
+        assertEquals(jointsForSwitchWithTooMuchOverlap[1].number, linkedTestAlignment.segments[5].startJointNumber)
+        assertEquals(jointsForSwitchWithTooMuchOverlap[2].number, linkedTestAlignment.segments[5].endJointNumber)
 
-        assertEquals(jointsForSwitchWithTooMuchOverlap[2].jointNumber, linkedTestAlignment.segments[6].startJointNumber)
+        assertEquals(jointsForSwitchWithTooMuchOverlap[2].number, linkedTestAlignment.segments[6].startJointNumber)
         assertEquals(null, linkedTestAlignment.segments[6].endJointNumber)
     }
     private fun shiftSegmentGeometry(source: LayoutSegment, switchId: DomainId<TrackLayoutSwitch>?, shiftVector: Point) = source.copy(
@@ -1030,7 +1039,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             alignment(shiftTrack(branchingTrackSegments, switch.id, Point(134.321, 0.0)))
         )
         val suggestedSwitch = switchLinkingService.getSuggestedSwitch(Point(134.321, 0.0), switch.id)!!
-        switchLinkingService.saveSwitchLinking(createSwitchLinkingParameters(suggestedSwitch, switch.id))
+        switchLinkingService.saveSwitchLinking(suggestedSwitch, switch.id)
         assertTrackDraftVersionSwitchLinks(originallyLinkedBranchingTrack.id, null, null, listOf(0.0..34.3 to null))
         assertTrackDraftVersionSwitchLinks(
             newBranchingTrack.id,
@@ -1097,7 +1106,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         val suggestedSwitch = switchLinkingService.getSuggestedSwitch(Point(0.0, 0.0), switch.id)!!
-        switchLinkingService.saveSwitchLinking(createSwitchLinkingParameters(suggestedSwitch, switch.id))
+        switchLinkingService.saveSwitchLinking(suggestedSwitch, switch.id)
 
         assertTrackDraftVersionSwitchLinks(oneFiveTrack.id, null, null, listOf(0.0..5.2 to switch.id))
         assertTrackDraftVersionSwitchLinks(fiveTwoTrack.id, null, null, listOf(0.0..5.2 to switch.id))
@@ -1142,7 +1151,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         val suggestedSwitch = switchLinkingService.getSuggestedSwitch(fullShift, switch.id)!!
-        switchLinkingService.saveSwitchLinking(createSwitchLinkingParameters(suggestedSwitch, switch.id))
+        switchLinkingService.saveSwitchLinking(suggestedSwitch, switch.id)
 
         assertTrackDraftVersionSwitchLinks(
             throughTrackStart.id, null, switch.id, listOf(0.0..134.4 to null)
@@ -1162,7 +1171,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
     }
 
     @Test
-    fun `relinking moves mislinked topo link to correct switch and does not pointlessly update alignments or tracks`() {
+    fun `relinking moves mislinked topo link to correct switch despite confuser branching track, and does not pointlessly update alignments or tracks`() {
         val trackNumberId = getUnusedTrackNumberId()
         referenceLineDao.insert(
             referenceLine(
@@ -1195,6 +1204,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 shiftTrack(templateThroughTrackSegments, switch.id, fullShift)
             )
         )
+        // confuser branching track is misleadingly placed starting at the origin, while the switch is at x=134.43
         locationTrackService.saveDraft(
             locationTrack(trackNumberId, name = "branching track"),
             alignment(setSwitchId(templateBranchingTrackSegments, switch.id))
@@ -1204,7 +1214,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             alignment(shiftTrack(templateThroughTrackSegments, null, fullShift - Point(1.0, 1.0))),
         )
         val suggestedSwitch = switchLinkingService.getSuggestedSwitch(fullShift, switch.id)!!
-        switchLinkingService.saveSwitchLinking(createSwitchLinkingParameters(suggestedSwitch, switch.id))
+        switchLinkingService.saveSwitchLinking(suggestedSwitch, switch.id)
 
         assertTrackDraftVersionSwitchLinks(
             throughTrackStart.id, null, switch.id, listOf(0.0..134.4 to null)
@@ -1240,11 +1250,15 @@ class SwitchLinkingServiceIT @Autowired constructor(
             )
         }
         val otherLocationTrackWithTopoSwitchLink = locationTrackService.saveDraft(
-            locationTrack(trackNumberId, topologyEndSwitch = TopologyLocationTrackSwitch(switch.id, JointNumber(1))),
+            locationTrack(
+                trackNumberId,
+                name = "unrelated mislinked track",
+                topologyEndSwitch = TopologyLocationTrackSwitch(switch.id, JointNumber(1))
+            ),
             alignment(segment(Point(456.7, 345.5), Point(457.8, 346.9)))
         )
         val suggestedSwitch = switchLinkingService.getSuggestedSwitch(Point(0.0, 0.0), switch.id)!!
-        switchLinkingService.saveSwitchLinking(createSwitchLinkingParameters(suggestedSwitch, switch.id))
+        switchLinkingService.saveSwitchLinking(suggestedSwitch, switch.id)
         assertTrackDraftVersionSwitchLinks(
             otherLocationTrackWithTopoSwitchLink.id, null, null, listOf(0.0..1.7 to null)
         )
@@ -1253,9 +1267,9 @@ class SwitchLinkingServiceIT @Autowired constructor(
     @Test
     fun `nearby track end not within bounding box of switch joints still gets topologically connected when linking single switch`() {
         val (_, branchingTrackContinuation, switchId) = setupForLinkingTopoLinkToTrackOutsideSwitchJointBoundingBox()
-        switchLinkingService.saveSwitchLinking(createSwitchLinkingParameters(
+        switchLinkingService.saveSwitchLinking(
             switchLinkingService.getSuggestedSwitch(Point(0.0, 0.0), switchId)!!, switchId
-        ))
+        )
         val expected = TopologyLocationTrackSwitch(switchId, JointNumber(3))
         val actual = locationTrackDao.fetch(
             locationTrackDao.fetchVersion(branchingTrackContinuation, PublishType.DRAFT)!!
@@ -1465,3 +1479,32 @@ class SwitchLinkingServiceIT @Autowired constructor(
             ))
         }
 }
+
+fun suggestedSwitchJointMatch(
+    locationTrackId: IntId<LocationTrack>,
+    segmentIndex: Int,
+    m: Double,
+): FittedSwitchJointMatch = FittedSwitchJointMatch(
+    locationTrackId,
+    segmentIndex,
+    m,
+    SwitchJoint(JointNumber(1), Point(1.0, 2.0)),
+    SuggestedSwitchJointMatchType.START,
+    0.1,
+    0.1,
+    null
+)
+
+fun suggestedSwitchFitting(
+    switchStructureId: IntId<SwitchStructure>,
+    joints: List<FittedSwitchJoint>,
+    name: SwitchName? = null,
+    alignmentEndPoint: LocationTrackEndpoint? = null,
+    geometrySwitchId: IntId<GeometrySwitch>? = null,
+    ): FittedSwitch = FittedSwitch(
+    name = name ?: SwitchName("Foo V123"),
+    switchStructureId = switchStructureId,
+    joints = joints,
+    alignmentEndPoint = alignmentEndPoint,
+    geometrySwitchId = geometrySwitchId
+)

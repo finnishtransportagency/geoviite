@@ -3,6 +3,8 @@ package fi.fta.geoviite.infra.linking
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.linking.switches.fitSwitch
+import fi.fta.geoviite.infra.linking.switches.inferSwitchTransformation
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
 import fi.fta.geoviite.infra.tracklayout.*
@@ -11,7 +13,7 @@ import kotlin.math.absoluteValue
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
-class SuggestedSwitchTest {
+class FittedSwitchTest {
     private val switchStructure = switchStructureYV60_300_1_9()
     private val switchAlignment_1_5_2 = switchStructure.alignments.find { alignment ->
         alignment.jointNumbers.contains(JointNumber(5))
@@ -129,13 +131,13 @@ class SuggestedSwitchTest {
     private enum class SegmentEndPoint { START, END }
 
     private fun assertSuggestedSwitchContainsMatch(
-        suggestedSwitch: SuggestedSwitch,
+        switchSuggestion: FittedSwitch,
         jointNumber: JointNumber,
         alignmentId: IntId<LocationTrack>,
         m: Double,
         endPoint: SegmentEndPoint,
     ) {
-        val joint = suggestedSwitch.joints.find { joint -> joint.number == jointNumber }
+        val joint = switchSuggestion.joints.find { joint -> joint.number == jointNumber }
             ?: throw Exception("Switch structure does not contain joint ${jointNumber.intValue}")
         if (!joint.matches.any { match ->
                 match.locationTrackId == alignmentId &&
@@ -165,7 +167,7 @@ class SuggestedSwitchTest {
             LocationTrackPointUpdateType.START_POINT
         )
 
-        val suggestedSwitch = createSuggestedSwitch(
+        val suggestedSwitch = fitSwitch(
             locationTrackEndpoint = missingLocationTrackEndpoint,
             switchStructure,
             alignmentMappings = listOf(

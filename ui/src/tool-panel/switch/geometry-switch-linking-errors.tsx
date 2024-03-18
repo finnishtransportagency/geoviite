@@ -4,20 +4,19 @@ import styles from 'tool-panel/switch/switch-infobox.scss';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import { useTranslation } from 'react-i18next';
-import { SuggestedSwitch } from 'linking/linking-model';
 import { SwitchStructure } from 'common/common-model';
 import { SwitchTypeMatch } from 'linking/linking-utils';
 
 type GeometrySwitchLinkingErrorsProps = {
     selectedLayoutSwitchStructure: SwitchStructure | undefined;
     switchTypeMatch: SwitchTypeMatch;
-    suggestedSwitch: SuggestedSwitch;
+    suggestedSwitchStructure: SwitchStructure;
     onConfirmChanged: (confirmed: boolean) => void;
 };
 
 export const GeometrySwitchLinkingErrors: React.FC<GeometrySwitchLinkingErrorsProps> = ({
     selectedLayoutSwitchStructure,
-    suggestedSwitch,
+    suggestedSwitchStructure,
     switchTypeMatch,
     onConfirmChanged,
 }) => {
@@ -33,7 +32,7 @@ export const GeometrySwitchLinkingErrors: React.FC<GeometrySwitchLinkingErrorsPr
                 }>
                 <div className={styles['geometry-switch-infobox__switch-type-warning-msg']}>
                     {t('tool-panel.switch.geometry.cannot-link-invalid-switch-type', {
-                        suggestedType: suggestedSwitch?.switchStructure.type,
+                        suggestedType: suggestedSwitchStructure.type,
                         selectedType: selectedLayoutSwitchStructure?.type,
                     })}
                 </div>
@@ -45,7 +44,7 @@ export const GeometrySwitchLinkingErrors: React.FC<GeometrySwitchLinkingErrorsPr
                 }>
                 <div className={styles['geometry-switch-infobox__switch-type-warning-msg']}>
                     {t('tool-panel.switch.geometry.switch-type-differs-warning', {
-                        suggestedType: suggestedSwitch?.switchStructure.type,
+                        suggestedType: suggestedSwitchStructure.type,
                         selectedType: selectedLayoutSwitchStructure?.type,
                     })}
                 </div>

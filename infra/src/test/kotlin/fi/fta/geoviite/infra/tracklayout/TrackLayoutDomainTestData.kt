@@ -6,7 +6,8 @@ import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.getSomeNullableValue
 import fi.fta.geoviite.infra.getSomeValue
-import fi.fta.geoviite.infra.linking.SwitchLinkingSegment
+import fi.fta.geoviite.infra.linking.FittedSwitchJointMatch
+import fi.fta.geoviite.infra.linking.SuggestedSwitchJointMatchType
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.map.AlignmentHeader
 import fi.fta.geoviite.infra.map.MapAlignmentSource
@@ -263,8 +264,9 @@ fun locationTrackAndAlignment(
     vararg segments: LayoutSegment,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
+    id: IntId<LocationTrack>? = null,
 ): Pair<LocationTrack, LayoutAlignment> =
-    locationTrackAndAlignment(IntId(0), segments.toList(), name = name, description = description)
+    locationTrackAndAlignment(IntId(0), segments.toList(), id = id ?: StringId(), name = name, description = description)
 
 fun locationTrackAndAlignment(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
@@ -273,6 +275,7 @@ fun locationTrackAndAlignment(
     description: String = "test-alignment 001",
     duplicateOf: IntId<LocationTrack>? = null,
     state: LayoutState = LayoutState.IN_USE,
+    id: IntId<LocationTrack>? = null,
     draft: Boolean = false,
 ): Pair<LocationTrack, LayoutAlignment> = locationTrackAndAlignment(
     trackNumberId,
@@ -281,6 +284,7 @@ fun locationTrackAndAlignment(
     description = description,
     duplicateOf = duplicateOf,
     state = state,
+    id = id ?: StringId(),
     draft = draft,
 )
 
@@ -908,26 +912,32 @@ fun externalIdForTrackNumber(): Oid<TrackLayoutTrackNumber> {
     return Oid("$first.$second.$third.$fourth")
 }
 
-fun switchLinkingAtStart(locationTrackId: DomainId<LocationTrack>, alignment: LayoutAlignment, segmentIndex: Int) =
-    switchLinkingAtStart(locationTrackId, alignment.segments, segmentIndex)
+fun switchLinkingAtStart(locationTrackId: DomainId<LocationTrack>, alignment: LayoutAlignment, segmentIndex: Int, jointNumber: Int = 1) =
+    switchLinkingAtStart(locationTrackId, alignment.segments, segmentIndex, jointNumber)
 
-fun switchLinkingAtStart(locationTrackId: DomainId<LocationTrack>, segments: List<LayoutSegment>, segmentIndex: Int) =
-    switchLinkingAt(locationTrackId, segmentIndex, segments[segmentIndex].alignmentPoints.first().m)
+fun switchLinkingAtStart(locationTrackId: DomainId<LocationTrack>, segments: List<LayoutSegment>, segmentIndex: Int, jointNumber: Int = 1) =
+    switchLinkingAt(locationTrackId, segmentIndex, segments[segmentIndex].alignmentPoints.first().m, jointNumber)
 
-fun switchLinkingAtEnd(locationTrackId: DomainId<LocationTrack>, alignment: LayoutAlignment, segmentIndex: Int) =
-    switchLinkingAtEnd(locationTrackId, alignment.segments, segmentIndex)
+fun switchLinkingAtEnd(locationTrackId: DomainId<LocationTrack>, alignment: LayoutAlignment, segmentIndex: Int, jointNumber: Int = 1) =
+    switchLinkingAtEnd(locationTrackId, alignment.segments, segmentIndex, jointNumber)
 
-fun switchLinkingAtEnd(locationTrackId: DomainId<LocationTrack>, segments: List<LayoutSegment>, segmentIndex: Int) =
-    switchLinkingAt(locationTrackId, segmentIndex, segments[segmentIndex].alignmentPoints.last().m)
+fun switchLinkingAtEnd(locationTrackId: DomainId<LocationTrack>, segments: List<LayoutSegment>, segmentIndex: Int, jointNumber: Int = 1) =
+    switchLinkingAt(locationTrackId, segmentIndex, segments[segmentIndex].alignmentPoints.last().m, jointNumber)
 
-fun switchLinkingAtHalf(locationTrackId: DomainId<LocationTrack>, alignment: LayoutAlignment, segmentIndex: Int) =
-    switchLinkingAtHalf(locationTrackId, alignment.segments, segmentIndex)
+fun switchLinkingAtHalf(locationTrackId: DomainId<LocationTrack>, alignment: LayoutAlignment, segmentIndex: Int, jointNumber: Int = 1) =
+    switchLinkingAtHalf(locationTrackId, alignment.segments, segmentIndex, jointNumber)
 
-fun switchLinkingAtHalf(locationTrackId: DomainId<LocationTrack>, segments: List<LayoutSegment>, segmentIndex: Int) =
-    switchLinkingAt(locationTrackId, segmentIndex, segments[segmentIndex].let { s -> (s.endM + s.startM) / 2 })
+fun switchLinkingAtHalf(locationTrackId: DomainId<LocationTrack>, segments: List<LayoutSegment>, segmentIndex: Int, jointNumber: Int = 1) =
+    switchLinkingAt(locationTrackId, segmentIndex, segments[segmentIndex].let { s -> (s.endM + s.startM) / 2 }, jointNumber)
 
-fun switchLinkingAt(locationTrackId: DomainId<LocationTrack>, segmentIndex: Int, m: Double) = SwitchLinkingSegment(
-    locationTrackId = locationTrackId as IntId<LocationTrack>,
-    segmentIndex = segmentIndex,
-    m = m,
-)
+fun switchLinkingAt(locationTrackId: DomainId<LocationTrack>, segmentIndex: Int, m: Double, jointNumber: Int = 1) =
+    FittedSwitchJointMatch(
+        locationTrackId = locationTrackId as IntId<LocationTrack>,
+        segmentIndex = segmentIndex,
+        m = m,
+        alignmentId = null,
+        distance = 0.1,
+        switchJoint = SwitchJoint(JointNumber(jointNumber), Point(0.0, 0.0)),
+        distanceToAlignment = 0.1,
+        matchType = SuggestedSwitchJointMatchType.LINE,
+    )

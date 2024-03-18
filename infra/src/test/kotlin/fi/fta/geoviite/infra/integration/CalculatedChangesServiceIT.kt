@@ -2,9 +2,9 @@ package fi.fta.geoviite.infra.integration
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.linking.SwitchLinkingJoint
-import fi.fta.geoviite.infra.linking.SwitchLinkingParameters
-import fi.fta.geoviite.infra.linking.SwitchLinkingService
+import fi.fta.geoviite.infra.linking.FittedSwitch
+import fi.fta.geoviite.infra.linking.FittedSwitchJoint
+import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Line
 import fi.fta.geoviite.infra.math.Point
@@ -1239,39 +1239,38 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val segIndexA = alignmentA.findClosestSegmentIndex(switchLocation) as Int
         val segIndexB = alignmentB.findClosestSegmentIndex(switchLocation) as Int
 
-        switchLinkingService.saveSwitchLinking(
-            SwitchLinkingParameters(
-                layoutSwitchId = switch.id as IntId<TrackLayoutSwitch>,
+        val suggestedFitting =
+            FittedSwitch(
                 joints = listOf(
-                    SwitchLinkingJoint(
-                        jointNumber = JointNumber(1),
+                    FittedSwitchJoint(
+                        number = JointNumber(1),
                         location = firstPoint(alignmentA, segIndexA).toPoint(),
-                        segments = listOf(
+                        matches = listOf(
                             switchLinkingAtStart(locationTrackA.id, alignmentA, segIndexA),
                             switchLinkingAtStart(locationTrackB.id, alignmentB, segIndexB),
                         ),
                         locationAccuracy = null
                     ),
-                    SwitchLinkingJoint(
-                        jointNumber = JointNumber(5),
+                    FittedSwitchJoint(
+                        number = JointNumber(5),
                         location = lastPoint(alignmentA, segIndexA).toPoint(),
-                        segments = listOf(
+                        matches = listOf(
                             switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA),
                         ),
                         locationAccuracy = null
                     ),
-                    SwitchLinkingJoint(
-                        jointNumber = JointNumber(2),
+                    FittedSwitchJoint(
+                        number = JointNumber(2),
                         location = lastPoint(alignmentA, segIndexA + 2).toPoint(),
-                        segments = listOf(
+                        matches = listOf(
                             switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA + 2),
                         ),
                         locationAccuracy = null
                     ),
-                    SwitchLinkingJoint(
-                        jointNumber = JointNumber(3),
+                    FittedSwitchJoint(
+                        number = JointNumber(3),
                         location = lastPoint(alignmentB, segIndexB + 1).toPoint(),
-                        segments = listOf(
+                        matches = listOf(
                             switchLinkingAtEnd(locationTrackB.id, alignmentB, segIndexB + 1),
                         ),
                         locationAccuracy = null
@@ -1279,7 +1278,13 @@ class CalculatedChangesServiceIT @Autowired constructor(
                 ),
                 geometrySwitchId = null,
                 switchStructureId = switch.switchStructureId,
+                alignmentEndPoint = null,
+                name = SwitchName("abc"),
             )
+        switchLinkingService.saveSwitchLinking(
+            switchLinkingService.matchFittedSwitch(
+                suggestedFitting, switch.id as IntId
+            ), switch.id as IntId
         )
         return switch
     }

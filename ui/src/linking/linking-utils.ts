@@ -1,5 +1,9 @@
 import { filterNotEmpty, filterUnique, first, last } from 'utils/array-utils';
-import { SuggestedSwitch, SuggestedSwitchJoint } from 'linking/linking-model';
+import {
+    SuggestedSwitch,
+    SuggestedSwitchJoint,
+    TopologicalJointConnection,
+} from 'linking/linking-model';
 import { JointNumber, PublishType } from 'common/common-model';
 import {
     LayoutLocationTrack,
@@ -91,9 +95,13 @@ export function getLocationTracksForJointConnections(
 }
 
 export function getSuggestedSwitchId(suggestedSwitch: SuggestedSwitch): string {
-    return `${suggestedSwitch.geometrySwitchId}_${suggestedSwitch.alignmentEndPoint
-        ?.locationTrackId}_${suggestedSwitch.joints.map(
-        (j) => j.number + j.matches.map((m) => m.locationTrackId + m.segmentIndex + m.m),
+    return `${suggestedSwitch.geometrySwitchId}_${
+        suggestedSwitch.alignmentEndPoint?.locationTrackId
+    }_${Object.entries(suggestedSwitch.trackLinks).map(
+        ([t, js]) =>
+            t +
+            js.segmentJoints.map((j) => j.number + j.segmentIndex + j.m) +
+            (js.topologyJoint ? js.topologyJoint.number + js.topologyJoint.trackEnd : ''),
     )}`;
 }
 
@@ -111,6 +119,43 @@ export function asTrackLayoutSwitchJointConnection({
         number: number,
         locationAccuracy: locationAccuracy,
     };
+}
+
+export function suggestedSwitchJointsAsLayoutSwitchJointConnections(
+    ss: SuggestedSwitch,
+): LayoutSwitchJointConnection[] {
+    const tracks = Object.entries(ss.trackLinks).flatMap(([locationTrackId, links]) =>
+        links.segmentJoints.map((sj) => ({
+            number: sj.number,
+            locationTrackId,
+            location: sj.location,
+        })),
+    );
+    return ss.joints.map((joint) => ({
+        number: joint.number,
+        locationAccuracy: joint.locationAccuracy,
+        accurateMatches: tracks
+            .filter(({ number }) => number === joint.number)
+            .map(({ locationTrackId, location }) => ({
+                locationTrackId,
+                location,
+            })),
+    }));
+}
+
+export function suggestedSwitchTopoLinksAsTopologicalJointConnections(
+    ss: SuggestedSwitch,
+): TopologicalJointConnection[] {
+    return Object.entries(
+        Object.entries(ss.trackLinks)
+            .map(([id, link]) => link.topologyJoint && [link.topologyJoint.number, id])
+            .filter(filterNotEmpty)
+            .reduce<{ [key in JointNumber]: LocationTrackId[] }>((acc, [jointNumber, id]) => {
+                acc[jointNumber] ||= [];
+                acc[jointNumber].push(id);
+                return acc;
+            }, {}),
+    ).map(([jointNumber, locationTrackIds]) => ({ jointNumber, locationTrackIds }));
 }
 
 export function combineLocationTrackIds(

@@ -8,7 +8,7 @@ import fi.fta.geoviite.infra.error.SplitFailureException
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.SuggestedSwitch
-import fi.fta.geoviite.infra.linking.SwitchLinkingService
+import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublishValidationError
 import fi.fta.geoviite.infra.publication.PublishValidationErrorType
 import fi.fta.geoviite.infra.publication.ValidationVersions
+import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -32,6 +33,7 @@ class SplitService(
     private val locationTrackDao: LocationTrackDao,
     private val locationTrackService: LocationTrackService,
     private val switchLinkingService: SwitchLinkingService,
+    private val switchLibraryService: SwitchLibraryService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -373,9 +375,9 @@ class SplitService(
         return targets.map { target ->
             val startSwitch = target.startAtSwitchId?.let { switchId ->
                 val jointNumber = suggestions
-                    .find { (id, _) -> id == switchId }
-                    ?.let { (_, suggestion) -> suggestion.switchStructure.presentationJointNumber }
-                    ?: throw SplitFailureException(
+                    .find { (id, _) -> id == switchId }?.let { (_, suggestion) ->
+                        switchLibraryService.getSwitchStructure(suggestion.switchStructureId).presentationJointNumber
+                    } ?: throw SplitFailureException(
                         message = "No re-linked switch for switch: id=${switchId}",
                         localizedMessageKey = "no-switch-suggestion",
                     )
