@@ -114,12 +114,12 @@ class PublicationDao(
                     split.id as split_id,
                     split.source_location_track_id as source_track_id,
                     array_agg(stlt.location_track_id) as target_track_ids,
-                    array_agg(split_updated_duplicates.duplicate_id) as split_updated_duplicate_ids
+                    array_agg(split_updated_duplicates.duplicate_location_track_id) as split_updated_duplicate_ids
                 from publication.split
                     inner join publication.split_target_location_track stlt on stlt.split_id = split.id
                     left join publication.split_updated_duplicate split_updated_duplicates 
                         on split_updated_duplicates.split_id = split.id
-                where split.bulk_transfer_state = 'PENDING' and split.publication_id is null
+                where split.publication_id is null
                 group by split.id, split.source_location_track_id
             )
             select 
@@ -165,6 +165,7 @@ class PublicationDao(
             )
         }
         logger.daoAccess(FETCH, LocationTrackPublishCandidate::class, candidates.map(LocationTrackPublishCandidate::id))
+        requireUniqueIds(candidates)
         return candidates
     }
 
@@ -177,8 +178,8 @@ class PublicationDao(
                 from publication.split
                     inner join publication.split_relinked_switch split_relinked_switches 
                         on split_relinked_switches.split_id = split.id
-                where split.bulk_transfer_state = 'PENDING' and split.publication_id is null
-                group by split.id, split.source_location_track_id
+                where split.publication_id is null
+                group by split.id
             )
             select 
               draft_switch.row_id,
@@ -229,6 +230,7 @@ class PublicationDao(
             )
         }
         logger.daoAccess(FETCH, SwitchPublishCandidate::class, candidates.map(SwitchPublishCandidate::id))
+        requireUniqueIds(candidates)
         return candidates
     }
 
@@ -365,7 +367,7 @@ class PublicationDao(
         }
         return ids.associateWith { id ->
             rows.filter { (duplicateOfId, _) -> duplicateOfId == id }.map { (_, rv) -> rv }
-        }
+        }.also { logger.daoAccess(FETCH, "Duplicate track versions", ids) }
     }
 
     fun getPublication(publicationId: IntId<Publication>): Publication {
@@ -1569,3 +1571,18 @@ private fun <T> partitionDirectIndirectChanges(rows: List<Pair<Boolean, T>>) =
         PublishedItemListing(directChanges = directChanges.map { it.second },
             indirectChanges = indirectChanges.map { it.second })
     }
+
+private inline fun <reified T> requireUniqueIds(candidates: List<PublishCandidate<T>>) {
+    filterNonUniqueIds(candidates).let { nonUniqueIds ->
+        require(nonUniqueIds.isEmpty()) {
+            "${T::class.simpleName} publish candidates contained non-unique ids: $nonUniqueIds"
+        }
+    }
+}
+
+private fun <T> filterNonUniqueIds(candidates: List<PublishCandidate<T>>): Map<IntId<T>, Int> {
+    return candidates
+        .groupingBy { candidate -> candidate.id }
+        .eachCount()
+        .filter { candidateAmount -> candidateAmount.value > 1 }
+}

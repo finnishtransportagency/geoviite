@@ -13,14 +13,14 @@ import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 
-private fun ResultSet.toSplit(targetLocationTracks: List<SplitTarget>) = Split(
-    id = getIntId("id"),
-    locationTrackId = getIntId("source_location_track_id"),
-    bulkTransferState = getEnum("bulk_transfer_state"),
-    publicationId = getIntIdOrNull("publication_id"),
+private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>) = Split(
+    id = rs.getIntId("id"),
+    locationTrackId = rs.getIntId("source_location_track_id"),
+    bulkTransferState = rs.getEnum("bulk_transfer_state"),
+    publicationId = rs.getIntIdOrNull("publication_id"),
     targetLocationTracks = targetLocationTracks,
-    relinkedSwitches = getIntIdArray("switch_ids"),
-    updatedDuplicates = getIntIdArray("updated_duplicate_ids"),
+    relinkedSwitches = rs.getIntIdArray("switch_ids"),
+    updatedDuplicates = rs.getIntIdArray("updated_duplicate_ids"),
 )
 
 @Transactional(readOnly = true)
@@ -74,14 +74,14 @@ class SplitDao(
 
     private fun saveUpdatedDuplicates(splitId: IntId<Split>, updatedDuplicates: Collection<IntId<LocationTrack>>) {
         val sql = """
-            insert into publication.split_updated_duplicate(split_id, duplicate_id)
-            values (:splitId, :duplicateId)
+            insert into publication.split_updated_duplicate(split_id, duplicate_location_track_id)
+            values (:splitId, :duplicateLocationTrackId)
         """.trimIndent()
 
         val params = updatedDuplicates.map { duplicateId ->
             mapOf(
                 "splitId" to splitId.intValue,
-                "duplicateId" to duplicateId.intValue,
+                "duplicateLocationTrackId" to duplicateId.intValue,
             )
         }
 
@@ -135,7 +135,7 @@ class SplitDao(
               split.publication_id,
               split.source_location_track_id,
               array_agg(split_relinked_switch.switch_id) as switch_ids,
-              array_agg(split_updated_duplicate.duplicate_id) as updated_duplicate_ids
+              array_agg(split_updated_duplicate.duplicate_location_track_id) as updated_duplicate_ids
           from publication.split 
               left join publication.split_relinked_switch on split.id = split_relinked_switch.split_id
               left join publication.split_updated_duplicate on split.id = split_updated_duplicate.split_id
@@ -145,7 +145,7 @@ class SplitDao(
 
     fun get(splitId: IntId<Split>): Split? {
         return jdbcTemplate.queryOptional(splitFetchSql, mapOf("id" to splitId.intValue)) { rs, _ ->
-            rs.toSplit(getSplitTargets(splitId))
+            toSplit(rs, getSplitTargets(splitId))
         }.also {
             logger.daoAccess(AccessType.FETCH, Split::class, splitId)
         }
@@ -153,7 +153,7 @@ class SplitDao(
 
     fun getOrThrow(splitId: IntId<Split>): Split {
         return jdbcTemplate.queryOne(splitFetchSql, mapOf("id" to splitId.intValue)) { rs, _ ->
-            rs.toSplit(getSplitTargets(splitId))
+            toSplit(rs, getSplitTargets(splitId))
         }.also {
             logger.daoAccess(AccessType.FETCH, Split::class, splitId)
         }
@@ -236,7 +236,7 @@ class SplitDao(
               split.publication_id,
               split.source_location_track_id,
               array_agg(split_relinked_switch.switch_id) as switch_ids,
-              array_agg(split_updated_duplicate.duplicate_id) as updated_duplicate_ids
+              array_agg(split_updated_duplicate.duplicate_location_track_id) as updated_duplicate_ids
           from publication.split 
               left join publication.split_relinked_switch on split.id = split_relinked_switch.split_id
               left join publication.split_updated_duplicate on split.id = split_updated_duplicate.split_id
@@ -246,7 +246,7 @@ class SplitDao(
 
         return jdbcTemplate.query(sql) { rs, _ ->
             val splitId = rs.getIntId<Split>("id")
-            rs.toSplit(getSplitTargets(splitId))
+            toSplit(rs, getSplitTargets(splitId))
         }.also { ids ->
             logger.daoAccess(AccessType.FETCH, SplitTarget::class, ids.map { it.id })
         }

@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.common
 
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.*
 
 data class IdTestObject(
@@ -28,7 +27,7 @@ data class SridTestObject(
 )
 
 @RestController
-class IdTestController @Autowired constructor() {
+class IdTestController {
 
     @GetMapping("/id-test-path/{id}")
     fun requestWithIdPath(@PathVariable("id") id: DomainId<IdTestObject>): IdTestObject {

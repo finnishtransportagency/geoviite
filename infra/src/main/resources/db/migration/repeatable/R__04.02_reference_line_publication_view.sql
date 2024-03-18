@@ -20,11 +20,11 @@ select
   alignment.segment_count,
   (case
      when row.draft = true then '{"DRAFT"}'
-     when exists(select 1 from layout.reference_line as d where d.draft_of_reference_line_id = row.id)
+     when exists(select 1 from layout.reference_line as d where d.official_row_id = row.id)
        then '{"OFFICIAL"}'
      else '{"DRAFT","OFFICIAL"}'
    end)::varchar[] as publication_states
   from layout.reference_line row
-    left join layout.reference_line official on row.draft_of_reference_line_id = official.id
+    left join layout.reference_line official on row.official_row_id = official.id
     left join layout.alignment on row.alignment_id = alignment.id
     );

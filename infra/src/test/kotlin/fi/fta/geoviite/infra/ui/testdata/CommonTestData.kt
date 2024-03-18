@@ -28,6 +28,7 @@ fun createTrackLayoutTrackNumber(number: String, description: String = "descript
         description = FreeText(description),
         state = LayoutState.IN_USE,
         externalId = null,
+        contextData = LayoutContextData.newOfficial(),
     )
 
 fun createGeometryKmPost(
@@ -49,7 +50,8 @@ fun trackLayoutKmPost(kmNumber: String, trackNumberId: IntId<TrackLayoutTrackNum
     location = point,
     trackNumberId = trackNumberId,
     sourceId = null,
-    state = LayoutState.IN_USE
+    state = LayoutState.IN_USE,
+    contextData = LayoutContextData.newOfficial(),
 )
 
 fun createGeometryAlignment(
@@ -145,6 +147,7 @@ fun trackLayoutSwitch(name: String, jointPoints: List<Point>, switchStructure: S
     trapPoint = false,
     ownerId = switchOwnerVayla().id,
     source = GeometrySource.GENERATED,
+    contextData = LayoutContextData.newOfficial(),
 )
 
 fun switchJoint(location: Point) = TrackLayoutSwitchJoint(

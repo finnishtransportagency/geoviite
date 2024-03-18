@@ -47,7 +47,7 @@ enum class DbTable(schema: String, table: String, sortColumns: List<String> = li
 
     val fullName: String = "$schema.$table"
     val versionTable = "$schema.${table}_version"
-    val draftLink: String = "draft_of_${table}_id"
+    val draftLink: String = "official_row_id"
     val orderBy: String = sortColumns.joinToString(",")
 
     //language=SQL
@@ -133,8 +133,8 @@ fun <T, S> getOne(name: String, id: DomainId<T>, result: List<S>): S {
     return result.first()
 }
 
-inline fun <reified T> toDbId(id: DomainId<T>): IntId<T> = if (id is IntId) id
-else throw NoSuchEntityException(T::class, id)
+inline fun <reified T> toDbId(id: DomainId<T>): IntId<T> =
+    if (id is IntId) id else throw NoSuchEntityException(T::class, id)
 
-fun <T> toDbId(clazz: KClass<*>, id: DomainId<T>): IntId<T> = if (id is IntId) id
-else throw NoSuchEntityException(clazz, id)
+fun <T> toDbId(clazz: KClass<*>, id: DomainId<T>): IntId<T> =
+    if (id is IntId) id else throw NoSuchEntityException(clazz, id)

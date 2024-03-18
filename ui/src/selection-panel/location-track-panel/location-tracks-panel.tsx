@@ -8,7 +8,7 @@ import {
 import { createClassName } from 'vayla-design-lib/utils';
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
 import { useTranslation } from 'react-i18next';
-import { compareByField } from 'utils/array-utils';
+import { fieldComparator } from 'utils/array-utils';
 import { ShowMoreButton } from 'show-more-button/show-more-button';
 
 type LocationTracksPanelProps = {
@@ -35,15 +35,7 @@ export const LocationTracksPanel: React.FC<LocationTracksPanelProps> = ({
     const locationTrackCount = locationTracks.length;
 
     React.useEffect(() => {
-        const sortedLocationTracks = [...locationTracks].sort((a, b) => {
-            if (a.type === 'MAIN' && b.type !== 'MAIN') {
-                return -1;
-            } else if (b.type === 'MAIN' && a.type !== 'MAIN') {
-                return 1;
-            }
-
-            return compareByField(a, b, (lt) => lt.id);
-        });
+        const sortedLocationTracks = [...locationTracks].sort(fieldComparator((lt) => lt.name));
 
         if (sortedLocationTracks.length <= max) {
             //Just show everything since there aren't that many location tracks

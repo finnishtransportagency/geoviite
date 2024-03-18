@@ -59,24 +59,22 @@ function getAlignments(
     resolution: number,
     hoveredOverItem: HighlightedAlignment | undefined,
 ): Promise<AlignmentDataHolder[]> {
-    if (resolution <= HIGHLIGHTS_SHOW && hoveredOverItem) {
-        if (hoveredOverItem.type === 'REFERENCE_LINE') {
-            return getSelectedReferenceLineMapAlignmentByTiles(
-                changeTimes,
-                mapTiles,
-                publishType,
-                hoveredOverItem.id,
-            );
-        } else {
-            return getSelectedLocationTrackMapAlignmentByTiles(
-                changeTimes,
-                mapTiles,
-                publishType,
-                hoveredOverItem.id,
-            );
-        }
-    } else {
+    if (resolution > HIGHLIGHTS_SHOW || !hoveredOverItem) {
         return Promise.resolve([]);
+    } else if (hoveredOverItem.type === 'REFERENCE_LINE') {
+        return getSelectedReferenceLineMapAlignmentByTiles(
+            changeTimes,
+            mapTiles,
+            publishType,
+            hoveredOverItem.id,
+        );
+    } else {
+        return getSelectedLocationTrackMapAlignmentByTiles(
+            changeTimes,
+            mapTiles,
+            publishType,
+            hoveredOverItem.id,
+        );
     }
 }
 

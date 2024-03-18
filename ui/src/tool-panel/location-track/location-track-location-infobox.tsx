@@ -119,15 +119,22 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     );
 
     const publishTypeIsDraft = publishType === 'DRAFT';
-    const locationTrackIsDraft = locationTrack.draftType !== 'OFFICIAL';
+    const locationTrackIsDraft = locationTrack.editState !== 'UNEDITED';
     const duplicatesOnOtherTracks = extraInfo?.duplicates?.some(
         (dupe) => dupe.trackNumberId !== trackNumber?.id,
     );
 
     const getSplittingDisabledReasonsTranslated = () => {
-        const reasons = [];
-        if (!publishTypeIsDraft)
-            reasons.push(t('tool-panel.disabled.activity-disabled-in-official-mode'));
+        const reasons: string[] = [];
+
+        if (!publishTypeIsDraft) {
+            return t('tool-panel.disabled.activity-disabled-in-official-mode');
+        }
+
+        if (extraInfo?.partOfUnfinishedSplit) {
+            return t('tool-panel.location-track.splitting-blocks-geometry-changes');
+        }
+
         if (locationTrackIsDraft)
             reasons.push(t('tool-panel.location-track.splitting.validation.track-draft-exists'));
         if (duplicatesOnOtherTracks)
@@ -136,6 +143,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                     'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
                 ),
             );
+
         return reasons.join('\n\n');
     };
 
@@ -144,8 +152,9 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             return t('tool-panel.disabled.activity-disabled-in-official-mode');
         } else if (splittingState || extraInfo?.partOfUnfinishedSplit) {
             return t('tool-panel.location-track.splitting-blocks-geometry-changes');
+        } else {
+            return undefined;
         }
-        return undefined;
     };
 
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
@@ -335,7 +344,8 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 disabled={
                                                     !publishTypeIsDraft ||
                                                     locationTrackIsDraft ||
-                                                    duplicatesOnOtherTracks
+                                                    duplicatesOnOtherTracks ||
+                                                    extraInfo?.partOfUnfinishedSplit
                                                 }
                                                 title={getSplittingDisabledReasonsTranslated()}
                                                 onClick={startSplitting}>

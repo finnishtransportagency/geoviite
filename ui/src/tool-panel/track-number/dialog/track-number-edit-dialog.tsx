@@ -40,6 +40,7 @@ import { Link } from 'vayla-design-lib/link/link';
 import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
 import { getChangeTimes } from 'common/change-time-api';
 import { ChangesBeingReverted } from 'preview/preview-view';
+import { isEqualIgnoreCase } from 'utils/string-utils';
 
 type TrackNumberEditDialogContainerProps = {
     editTrackNumberId?: LayoutTrackNumberId;
@@ -67,7 +68,7 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
         editTrackNumberId,
     );
     const editReferenceLine = useTrackNumberReferenceLine(trackNumberId, 'DRAFT');
-    const isDeletable = editReferenceLine?.draftType === 'NEW_DRAFT';
+    const isDeletable = editReferenceLine?.editState === 'CREATED';
 
     if (trackNumbers !== undefined && trackNumberId == editReferenceLine?.trackNumberId) {
         return (
@@ -162,8 +163,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
 
     const otherTrackNumber = trackNumbers.find(
         (tn) =>
-            tn.number.toLowerCase() === state.request.number.toLowerCase() &&
-            tn.id !== inEditTrackNumber?.id,
+            isEqualIgnoreCase(tn.number, state.request.number) && tn.id !== inEditTrackNumber?.id,
     );
 
     const moveToEditLinkText = (tn: LayoutTrackNumber) => {

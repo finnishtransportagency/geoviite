@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {
-    DraftType,
+    LayoutAssetFields,
     LayoutLocationTrack,
     LayoutState,
     LayoutSwitch,
@@ -12,7 +12,14 @@ import {
     LocationTrackBadgeStatus,
 } from 'geoviite-design-lib/alignment/location-track-badge';
 
+const layoutAssetFields: LayoutAssetFields = {
+    version: 'version',
+    dataType: 'TEMP',
+    editState: 'CREATED',
+};
+
 const layoutLocationTrack: LayoutLocationTrack = {
+    ...layoutAssetFields,
     id: '',
     name: 'name',
     descriptionBase: 'description',
@@ -24,9 +31,6 @@ const layoutLocationTrack: LayoutLocationTrack = {
     sourceId: '',
     type: undefined,
     externalId: undefined,
-    dataType: 'TEMP',
-    version: 'version',
-    draftType: 'NEW_DRAFT',
     duplicateOf: undefined,
     topologicalConnectivity: 'NONE',
     topologyStartSwitch: undefined,
@@ -34,20 +38,20 @@ const layoutLocationTrack: LayoutLocationTrack = {
     ownerId: '',
 };
 const kmPost = {
+    ...layoutAssetFields,
     id: '',
     kmNumber: '123',
     location: { x: 0, y: 0 },
     state: 'IN_USE' as LayoutState,
     trackNumberId: '',
-    draftType: 'NEW_DRAFT' as DraftType,
 };
 const layoutSwitch: LayoutSwitch = {
+    ...layoutAssetFields,
     id: '',
     name: 'V1234',
     switchStructureId: '',
     stateCategory: 'EXISTING',
     joints: [],
-    draftType: 'NEW_DRAFT' as DraftType,
 };
 
 export const BadgeExamples: React.FC = () => {

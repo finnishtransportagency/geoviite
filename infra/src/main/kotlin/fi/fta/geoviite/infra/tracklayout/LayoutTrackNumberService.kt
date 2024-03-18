@@ -22,7 +22,7 @@ class LayoutTrackNumberService(
     private val referenceLineService: ReferenceLineService,
     private val geocodingService: GeocodingService,
     private val alignmentService: LayoutAlignmentService,
-) : DraftableObjectService<TrackLayoutTrackNumber, LayoutTrackNumberDao>(dao) {
+) : LayoutAssetService<TrackLayoutTrackNumber, LayoutTrackNumberDao>(dao) {
 
     @Transactional
     fun insert(saveRequest: TrackNumberSaveRequest): IntId<TrackLayoutTrackNumber> {
@@ -33,6 +33,7 @@ class LayoutTrackNumberService(
                 description = saveRequest.description,
                 state = saveRequest.state,
                 externalId = null,
+                contextData = LayoutContextData.newDraft(),
             )
         )
         referenceLineService.addTrackNumberReferenceLine(draftSaveResponse.id, saveRequest.startAddress)
@@ -88,10 +89,6 @@ class LayoutTrackNumberService(
     fun mapById(publishType: PublishType) = list(publishType).associateBy { tn -> tn.id as IntId }
 
     fun mapByNumber(publishType: PublishType) = list(publishType).associateBy(TrackLayoutTrackNumber::number)
-
-    override fun createDraft(item: TrackLayoutTrackNumber) = draft(item)
-
-    override fun createPublished(item: TrackLayoutTrackNumber) = published(item)
 
     fun find(trackNumber: TrackNumber, publishType: PublishType): List<TrackLayoutTrackNumber> {
         logger.serviceCall("find", "trackNumber" to trackNumber, "publishType" to publishType)

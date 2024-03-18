@@ -46,14 +46,14 @@ class GeocodingDaoIT @Autowired constructor(
         val tnOfficialResponse = trackNumberDao.insert(trackNumber(getUnusedTrackNumber()))
         val tnId = tnOfficialResponse.id
         val tnOfficialVersion = tnOfficialResponse.rowVersion
-        val tnDraftVersion = trackNumberDao.insert(draft(trackNumberDao.fetch(tnOfficialVersion))).rowVersion
+        val tnDraftVersion = trackNumberDao.insert(asMainDraft(trackNumberDao.fetch(tnOfficialVersion))).rowVersion
 
         val alignmentVersion = alignmentDao.insert(alignment())
         val rlOfficialVersion = referenceLineDao.insert(referenceLine(tnId).copy(alignmentVersion = alignmentVersion)).rowVersion
         val rlDraftVersion = createDraftReferenceLine(rlOfficialVersion)
 
         val kmPostOneOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(1))).rowVersion
-        val kmPostOneDraftVersion = kmPostDao.insert(draft(kmPostDao.fetch(kmPostOneOfficialVersion))).rowVersion
+        val kmPostOneDraftVersion = kmPostDao.insert(asMainDraft(kmPostDao.fetch(kmPostOneOfficialVersion))).rowVersion
         val kmPostTwoOnlyDraftVersion = kmPostService.saveDraft(kmPost(tnId, KmNumber(2))).rowVersion
         val kmPostThreeOnlyOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(3))).rowVersion
 
@@ -152,7 +152,7 @@ class GeocodingDaoIT @Autowired constructor(
         )
 
         // Add some draft changes as well. These shouldn't affect the results
-        trackNumberDao.insert(draft(trackNumberDao.fetch(tnOfficialVersion)))
+        trackNumberDao.insert(asMainDraft(trackNumberDao.fetch(tnOfficialVersion)))
         createDraftReferenceLine(rlOfficialVersion)
         kmPostService.saveDraft(kmPost(tnId, KmNumber(10)))
 
@@ -200,9 +200,9 @@ class GeocodingDaoIT @Autowired constructor(
 
     private fun createDraftReferenceLine(officialVersion: RowVersion<ReferenceLine>): RowVersion<ReferenceLine> {
         val original = referenceLineDao.fetch(officialVersion)
-        assertNull(original.draft)
+        assertFalse(original.isDraft)
         return referenceLineDao.insert(
-            draft(original).copy(alignmentVersion = alignmentService.duplicate(original.alignmentVersion!!))
+            asMainDraft(original).copy(alignmentVersion = alignmentService.duplicate(original.alignmentVersion!!))
         ).rowVersion
     }
 }

@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.linking
 
-
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.KkjTm35finTriangulationDao
@@ -42,7 +41,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
     private val alignmentDao: LayoutAlignmentDao,
     private val switchLibraryService: SwitchLibraryService,
     private val locationTrackDao: LocationTrackDao,
-    ) : DBTestBase() {
+) : DBTestBase() {
 
     lateinit var switchStructure: SwitchStructure
     lateinit var switchAlignment_1_5_2: SwitchAlignment
@@ -844,7 +843,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
     )
 
     private fun shiftSwitch(source: TrackLayoutSwitch, name: String, shiftVector: Point) = source.copy(
-        id = StringId(),
+        contextData = LayoutContextData.newOfficial(),
         joints = source.joints.map { joint -> joint.copy(location = joint.location + shiftVector) },
         name = SwitchName(name)
     )
@@ -1020,7 +1019,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         val (templateSwitch, templateTrackSections) = switchAndMatchingAlignments(trackNumberId, switchStructure)
         val templateThroughTrackSegments = templateTrackSections[0].second.segments
         val branchingTrackSegments = templateTrackSections[1].second.segments
-        val switch = switchDao.insert(templateSwitch.copy(id = StringId()))
+        val switch = switchDao.insert(templateSwitch.copy(contextData = LayoutContextData.newOfficial()))
         val throughTrack = locationTrackService.saveDraft(
             locationTrack(trackNumberId, name = "through track"), alignment(
                 pasteTrackSegmentsWithSpacers(
@@ -1080,7 +1079,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         val templateFourThreeTrackSegments = templateTrackSections[1].second.segments
         val oneFive = templateOneTwoTrackSegments[0]
         val fiveTwo = templateOneTwoTrackSegments[1]
-        val switch = switchDao.insert(templateSwitch.copy(id = StringId()))
+        val switch = switchDao.insert(templateSwitch.copy(contextData = LayoutContextData.newOfficial()))
 
         val oneFiveTrack = locationTrackService.saveDraft(
             locationTrack(
@@ -1127,7 +1126,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         val (templateSwitch, templateTrackSections) = switchAndMatchingAlignments(trackNumberId, switchStructure)
         val templateThroughTrackSegments = templateTrackSections[0].second.segments
         val templateBranchingTrackSegments = templateTrackSections[1].second.segments
-        val switch = switchDao.insert(templateSwitch.copy(id = StringId()))
+        val switch = switchDao.insert(templateSwitch.copy(contextData = LayoutContextData.newOfficial()))
         val shift =
             templateThroughTrackSegments.last().segmentEnd.toPoint() - templateThroughTrackSegments.first().segmentStart.toPoint()
         val fullShift = shift + Point(100.0, 0.0)
@@ -1184,7 +1183,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         val (templateSwitch, templateTrackSections) = switchAndMatchingAlignments(trackNumberId, switchStructure)
         val templateThroughTrackSegments = templateTrackSections[0].second.segments
         val templateBranchingTrackSegments = templateTrackSections[1].second.segments
-        val switch = switchDao.insert(templateSwitch.copy(id = StringId()))
+        val switch = switchDao.insert(templateSwitch.copy(contextData = LayoutContextData.newOfficial()))
         val someOtherSwitch = switchDao.insert(switch(123))
 
         val shift =
@@ -1243,7 +1242,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
         val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "RR54-4x1:9" }!!
         val (templateSwitch, templateTrackSections) = switchAndMatchingAlignments(trackNumberId, switchStructure)
-        val switch = switchDao.insert(templateSwitch.copy(id = StringId()))
+        val switch = switchDao.insert(templateSwitch.copy(contextData = LayoutContextData.newOfficial()))
         templateTrackSections.forEach { (_, a) ->
             locationTrackService.saveDraft(
                 locationTrack(trackNumberId),

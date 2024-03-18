@@ -312,7 +312,7 @@ export const SwitchEditDialog = ({
                 onClose={onClose}
                 footerContent={
                     <React.Fragment>
-                        {existingSwitch?.draftType === 'NEW_DRAFT' && isExistingSwitch && (
+                        {existingSwitch?.editState === 'CREATED' && isExistingSwitch && (
                             <Button
                                 onClick={() => setShowDeleteDraftConfirmDialog(true)}
                                 icon={Icons.Delete}
@@ -322,7 +322,7 @@ export const SwitchEditDialog = ({
                         )}
                         <div
                             className={
-                                existingSwitch?.draftType === 'NEW_DRAFT'
+                                existingSwitch?.editState === 'CREATED'
                                     ? dialogStyles['dialog__footer-content--right-aligned']
                                     : dialogStyles['dialog__footer-content--centered']
                             }>

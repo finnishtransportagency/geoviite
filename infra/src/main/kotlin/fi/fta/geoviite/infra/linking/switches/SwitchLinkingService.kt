@@ -160,7 +160,7 @@ class SwitchLinkingService @Autowired constructor(
                 locationTrackService.getWithAlignment(it.rowVersion)
             }
             // might have found both an official and a draft version of a track, we prefer the drafts
-            .sortedBy { if (it.first.isDraft()) 0 else 1 }.distinct()
+            .sortedBy { if (it.first.isDraft) 0 else 1 }.distinct()
             .flatMap { trackAndAlignment ->
                 trackAndAlignment.first.switchIds.map { switchId -> switchId to trackAndAlignment }
             }
@@ -634,7 +634,7 @@ private fun withExistingLinksToSwitchCleared(
 
 // some validation logic depends on draftness state, so we need to pre-draft tracks for online validation
 private fun draft(tracks: List<Pair<LocationTrack, LayoutAlignment>>) =
-    tracks.map { (track, alignment) -> draft(track) to alignment }
+    tracks.map { (track, alignment) -> asMainDraft(track) to alignment }
 
 
 fun updateLocationTrackWithTopologyEndLinking(

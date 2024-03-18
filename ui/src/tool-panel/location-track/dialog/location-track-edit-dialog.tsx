@@ -357,7 +357,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                 width={DialogWidth.TWO_COLUMNS}
                 footerContent={
                     <React.Fragment>
-                        {state.existingLocationTrack?.draftType === 'NEW_DRAFT' &&
+                        {state.existingLocationTrack?.editState === 'CREATED' &&
                             !state.isNewLocationTrack && (
                                 <div
                                     className={

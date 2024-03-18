@@ -123,9 +123,9 @@ class LayoutKmPostServiceIT @Autowired constructor(
     @Test
     fun draftKmPostIsDeletedOk() {
         val trackNumberId = insertOfficialTrackNumber()
-        val kmPost = TrackLayoutKmPost(KmNumber(7654), Point(123.4, 234.5), LayoutState.IN_USE, trackNumberId, null)
+        val kmPost = kmPost(trackNumberId, KmNumber(7654), draft = true)
 
-        val draftId = kmPostService.saveDraft(draft(kmPost)).id
+        val draftId = kmPostService.saveDraft(asMainDraft(kmPost)).id
         val draftFromDb = kmPostService.get(DRAFT, draftId)
 
         assertEquals(1, kmPostService.list(DRAFT) { k -> k == draftFromDb }.size)
