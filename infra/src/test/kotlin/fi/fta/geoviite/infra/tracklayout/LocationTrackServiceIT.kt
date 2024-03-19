@@ -507,7 +507,7 @@ class LocationTrackServiceIT @Autowired constructor(
                     name = name,
                     alignmentVersion = duplicateAlignment,
                     duplicateOf = fullTrack.id,
-                    draft = false
+                    draft = false,
                 )
             )
         }
@@ -587,8 +587,8 @@ class LocationTrackServiceIT @Autowired constructor(
 
     private fun createPublishedLocationTrack(seed: Int): Pair<DaoResponse<LocationTrack>, LocationTrack> {
         val trackNumberId = insertOfficialTrackNumber()
-        val (insertedTrackVersion, _) = createAndVerifyTrack(trackNumberId, seed)
-        return publishAndVerify(insertedTrackVersion.id)
+        val (trackInsertResponse, _) = createAndVerifyTrack(trackNumberId, seed)
+        return publishAndVerify(trackInsertResponse.id)
     }
 
     private fun createAndVerifyTrack(
@@ -596,10 +596,10 @@ class LocationTrackServiceIT @Autowired constructor(
         seed: Int,
     ): Pair<DaoResponse<LocationTrack>, LocationTrack> {
         val insertRequest = saveRequest(trackNumberId, seed)
-        val insertedTrackVersion = locationTrackService.insert(insertRequest)
-        val insertedTrack = locationTrackService.get(DRAFT, insertedTrackVersion.id)!!
+        val insertResponse = locationTrackService.insert(insertRequest)
+        val insertedTrack = locationTrackService.get(DRAFT, insertResponse.id)!!
         assertMatches(insertRequest, insertedTrack)
-        return insertedTrackVersion to insertedTrack
+        return insertResponse to insertedTrack
     }
 
     private fun publishAndVerify(
@@ -608,17 +608,17 @@ class LocationTrackServiceIT @Autowired constructor(
         val (draft, draftAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
         assertTrue(draft.isDraft)
 
-        val publishedVersion = publish(draft.id as IntId)
+        val publicationResponse = publish(draft.id as IntId)
         val (published, publishedAlignment) = locationTrackService.getWithAlignmentOrThrow(
-            OFFICIAL, publishedVersion.id
+            OFFICIAL, publicationResponse.id
         )
         assertFalse(published.isDraft)
         assertEquals(draft.id, published.id)
-        assertEquals(published.id, publishedVersion.id)
+        assertEquals(published.id, publicationResponse.id)
         assertEquals(draft.alignmentVersion, published.alignmentVersion)
         assertEquals(draftAlignment, publishedAlignment)
 
-        return publishedVersion to published
+        return publicationResponse to published
     }
 
     private fun getAndVerifyDraft(id: IntId<LocationTrack>): LocationTrack {
@@ -639,8 +639,7 @@ class LocationTrackServiceIT @Autowired constructor(
     private fun alignmentExists(id: IntId<LayoutAlignment>): Boolean {
         val sql = "select exists(select 1 from layout.alignment where id = :id) as exists"
         val params = mapOf("id" to id.intValue)
-        return jdbc.queryForObject(sql, params) { rs, _ -> rs.getBoolean("exists") }
-            ?: throw IllegalStateException("Exists-check failed")
+        return requireNotNull(jdbc.queryForObject(sql, params) { rs, _ -> rs.getBoolean("exists") })
     }
 
     private fun assertMatches(saveRequest: LocationTrackSaveRequest, locationTrack: LocationTrack) {
