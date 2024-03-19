@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.ratko.ratkoRouteNumber
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
-import fi.fta.geoviite.infra.ui.testdata.createTrackLayoutTrackNumber
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -40,12 +39,14 @@ class FrontPageTestUI @Autowired constructor(
 
     @Test
     fun `Retry failed publication`() {
-        val originalTrackNumberVersion =
-            trackNumberDao.insert(createTrackLayoutTrackNumber("original name").copy(externalId = Oid("1.2.3.4.5"))).rowVersion
+        val originalTrackNumberVersion = trackNumberDao.insert(
+            trackNumber(TrackNumber("original name"), externalId = Oid("1.2.3.4.5"), draft = false)
+        ).rowVersion
         val trackNumberId = originalTrackNumberVersion.id
-        val alignmentVersion =
-            alignmentDao.insert(alignment(segment(toSegmentPoints(Point(0.0, 0.0), Point(10.0, 0.0)))))
-        referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = alignmentVersion))
+        val alignmentVersion = alignmentDao.insert(
+            alignment(segment(toSegmentPoints(Point(0.0, 0.0), Point(10.0, 0.0))))
+        )
+        referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = alignmentVersion, draft = false))
 
         val successfulPublicationId = publicationDao.createPublication("successful")
         publicationDao.insertCalculatedChanges(successfulPublicationId, changesTouchingTrackNumber(trackNumberId))
@@ -100,7 +101,7 @@ class FrontPageTestUI @Autowired constructor(
                         trackNumberId,
                         changedKmNumbers = setOf(),
                         isStartChanged = false,
-                        isEndChanged = false
+                        isEndChanged = false,
                     )
                 ),
                 kmPostChanges = listOf(),
@@ -111,7 +112,7 @@ class FrontPageTestUI @Autowired constructor(
             IndirectChanges(
                 trackNumberChanges = listOf(),
                 switchChanges = listOf(),
-                locationTrackChanges = listOf()
-            )
+                locationTrackChanges = listOf(),
+            ),
         )
 }

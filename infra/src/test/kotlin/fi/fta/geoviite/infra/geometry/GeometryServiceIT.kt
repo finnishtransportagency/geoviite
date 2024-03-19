@@ -54,19 +54,23 @@ class GeometryServiceIT @Autowired constructor(
 
     @Test
     fun getLocationTrackHeightsCoversTrackStartsAndEnds() {
-        val trackNumber = trackNumber(getUnusedTrackNumber())
+        val trackNumber = trackNumber(getUnusedTrackNumber(), draft = true)
         val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
         referenceLineService.saveDraft(
-            referenceLine(trackNumberId, startAddress = TrackMeter("0154", BigDecimal("123.4"))),
-            alignment(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
+            referenceLine(
+                trackNumberId = trackNumberId,
+                startAddress = TrackMeter("0154", BigDecimal("123.4")),
+                draft = true,
+            ),
+            alignment(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
         )
         val locationTrackId = locationTrackService.saveDraft(
-            locationTrack(trackNumberId),
-            alignment(segment(yRangeToSegmentPoints(1..29)))
+            locationTrack(trackNumberId, draft = true),
+            alignment(segment(yRangeToSegmentPoints(1..29))),
         ).id
 
-        kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0155"), Point(0.0, 14.5)))
-        kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0156"), Point(0.0, 27.6)))
+        kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0155"), Point(0.0, 14.5), draft = true))
+        kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0156"), Point(0.0, 27.6), draft = true))
 
         // tickLength = 5 => normal ticks less than 2.5 distance apart from a neighbor get dropped
         val actual = geometryService.getLocationTrackHeights(locationTrackId, PublishType.DRAFT, 0.0, 30.0, 5)!!
@@ -113,17 +117,17 @@ class GeometryServiceIT @Autowired constructor(
 
     @Test
     fun getLocationTrackHeightsReturnsBothOrdinaryTicksAndPlanBoundaries() {
-        val trackNumber = trackNumber(getUnusedTrackNumber())
+        val trackNumber = trackNumber(getUnusedTrackNumber(), draft = true)
         val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
         referenceLineService.saveDraft(
-            referenceLine(trackNumberId),
-            alignment(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
+            referenceLine(trackNumberId, draft = true),
+            alignment(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
         )
         val p1 = insertPlanWithGeometry("plan1.xml", trackNumberId)
         val p2 = insertPlanWithGeometry("plan2.xml", trackNumberId)
         val p3 = insertPlanWithGeometry("plan3.xml", trackNumberId)
         val locationTrackId = locationTrackService.saveDraft(
-            locationTrack(trackNumberId),
+            locationTrack(trackNumberId, draft = true),
             alignment(
                 segment(yRangeToSegmentPoints(0..6), sourceId = p1.alignments[0].elements[0].id, sourceStart = 0.0),
                 segment(yRangeToSegmentPoints(6..10)),
@@ -131,7 +135,7 @@ class GeometryServiceIT @Autowired constructor(
                 segment(yRangeToSegmentPoints(12..13)),
                 segment(yRangeToSegmentPoints(13..15), sourceId = p3.alignments[0].elements[0].id, sourceStart = 0.0),
                 segment(yRangeToSegmentPoints(15..17), sourceId = p1.alignments[0].elements[0].id, sourceStart = 0.0),
-            )
+            ),
         ).id
         val kmHeights = geometryService.getLocationTrackHeights(locationTrackId, PublishType.DRAFT, 0.0, 20.0, 5)!!
         // this track is exactly straight on the reference line, so m-values and track meters coincide perfectly; also,
@@ -148,7 +152,7 @@ class GeometryServiceIT @Autowired constructor(
             13 to null,
             13 to 50,
             15 to 50,
-            17 to 50
+            17 to 50,
         ).map { (m, h) -> TrackMeterHeight(m.toDouble(), m.toDouble(), h?.toDouble(), Point(0.0, m.toDouble())) }
         assertEquals(expected, kmHeights[0].trackMeterHeights)
         val linkingSummary =
@@ -162,32 +166,32 @@ class GeometryServiceIT @Autowired constructor(
                 Triple(13.0, 15.0, FileName("plan3.xml")),
                 Triple(15.0, 17.0, FileName("plan1.xml")),
             ),
-            linkingSummary.map { item -> Triple(item.startM, item.endM, item.filename) }
+            linkingSummary.map { item -> Triple(item.startM, item.endM, item.filename) },
         )
     }
 
     @Test
     fun getLocationTrackHeightsHandlesSegmentChangeAtRightBeforeKilometerStart() {
-        val trackNumber = trackNumber(getUnusedTrackNumber())
+        val trackNumber = trackNumber(getUnusedTrackNumber(), draft = true)
         val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
         referenceLineService.saveDraft(
-            referenceLine(trackNumberId, startAddress = TrackMeter("0154", 400)),
+            referenceLine(trackNumberId, startAddress = TrackMeter("0154", 400), draft = true),
             alignment(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
         )
         val sourceId = insertPlanWithGeometry("plan1.xml", trackNumberId).alignments[0].elements[0].id
         val locationTrackId = locationTrackService.saveDraft(
-            locationTrack(trackNumberId),
+            locationTrack(trackNumberId, draft = true),
             alignment(
                 segment(yRangeToSegmentPoints(0..2)),
                 segment(yRangeToSegmentPoints(2..9), sourceId = sourceId, sourceStart = 0.0),
                 segment(yRangeToSegmentPoints(9..10)),
                 segment(yRangeToSegmentPoints(10..20), sourceId = sourceId, sourceStart = 0.0)
-            )
+            ),
         ).id
         // geocoding rounds m-values to three decimals half-up, so placing the km post juuuuuuuust here in fact rounds
         // its position back to exactly 10, causing the 9..10 connection segment's end address to also be in
         // track km 0155
-        kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0155"), Point(0.0, 10.00001)))
+        kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0155"), Point(0.0, 10.00001), draft = true))
         val actual = geometryService.getLocationTrackHeights(locationTrackId, PublishType.DRAFT, 0.0, 20.0, 5)!!
 
         val expected = listOf(
@@ -203,7 +207,7 @@ class GeometryServiceIT @Autowired constructor(
                 0.0 to null,
                 0.0 to 50.0,
                 5.0 to 50.0,
-                10.0 to 50.0
+                10.0 to 50.0,
             ),
         )
         assertEquals(expected.size, actual.size)
@@ -220,20 +224,20 @@ class GeometryServiceIT @Autowired constructor(
 
     @Test
     fun getLocationTrackHeightsHandlesKmShorterThanTickLength() {
-        val trackNumber = trackNumber(getUnusedTrackNumber())
+        val trackNumber = trackNumber(getUnusedTrackNumber(), draft = true)
         val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
         referenceLineService.saveDraft(
-            referenceLine(trackNumberId, startAddress = TrackMeter("0154", 0)),
+            referenceLine(trackNumberId, startAddress = TrackMeter("0154", 0), draft = true),
             alignment(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
         )
         val locationTrackId = locationTrackService.saveDraft(
-            locationTrack(trackNumberId),
+            locationTrack(trackNumberId, draft = true),
             alignment(
                 segment(yRangeToSegmentPoints(0..10)),
             ),
         ).id
-        kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0155"), Point(0.0, 8.0)))
-        kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0156"), Point(0.0, 9.0)))
+        kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0155"), Point(0.0, 8.0), draft = true))
+        kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0156"), Point(0.0, 9.0), draft = true))
         val actual = geometryService.getLocationTrackHeights(locationTrackId, PublishType.DRAFT, 0.0, 20.0, 5)!!
         assertEquals(3, actual.size)
         assertEquals(2, actual[0].trackMeterHeights.size)

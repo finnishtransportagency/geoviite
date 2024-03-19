@@ -35,7 +35,7 @@ class LocationTrackDaoIT @Autowired constructor(
     fun locationTrackSaveAndLoadWorks() {
         val alignment = alignment()
         val alignmentVersion = alignmentDao.insert(alignment)
-        val locationTrack = locationTrack(insertOfficialTrackNumber(), alignment).copy(
+        val locationTrack = locationTrack(insertOfficialTrackNumber(), alignment, draft = false).copy(
             name = AlignmentName("ORIG"),
             descriptionBase = FreeText("Oridinal location track"),
             type = MAIN,
@@ -79,9 +79,19 @@ class LocationTrackDaoIT @Autowired constructor(
 
         val trackNumberId = insertOfficialTrackNumber()
         val alignmentVersion1 = alignmentDao.insert(alignment())
-        val locationTrack1 = locationTrack(trackNumberId).copy(externalId = oid, alignmentVersion = alignmentVersion1)
+        val locationTrack1 = locationTrack(
+            trackNumberId = trackNumberId,
+            externalId = oid,
+            alignmentVersion = alignmentVersion1,
+            draft = false,
+        )
         val alignmentVersion2 = alignmentDao.insert(alignment())
-        val locationTrack2 = locationTrack(trackNumberId).copy(externalId = oid, alignmentVersion = alignmentVersion2)
+        val locationTrack2 = locationTrack(
+            trackNumberId = trackNumberId,
+            externalId = oid,
+            alignmentVersion = alignmentVersion2,
+            draft = false,
+        )
 
         locationTrackDao.insert(locationTrack1)
         assertThrows<DuplicateKeyException> { locationTrackDao.insert(locationTrack2) }
@@ -97,6 +107,7 @@ class LocationTrackDaoIT @Autowired constructor(
             name = "test1",
             alignment = tempAlignment,
             alignmentVersion = alignmentVersion,
+            draft = false,
         )
         val (id, insertVersion) = locationTrackDao.insert(tempTrack)
         val inserted = locationTrackDao.fetch(insertVersion)
@@ -283,9 +294,13 @@ class LocationTrackDaoIT @Autowired constructor(
         tnId: IntId<TrackLayoutTrackNumber>,
         state: LayoutState = IN_USE,
     ): DaoResponse<LocationTrack> {
-        val (track, alignment) = locationTrackAndAlignment(tnId)
+        val (track, alignment) = locationTrackAndAlignment(
+            trackNumberId = tnId,
+            state = state,
+            draft = true,
+        )
         val alignmentVersion = alignmentDao.insert(alignment)
-        return locationTrackDao.insert(asMainDraft(track).copy(state = state, alignmentVersion = alignmentVersion))
+        return locationTrackDao.insert(track.copy(alignmentVersion = alignmentVersion))
     }
 
     private fun createDraftWithNewTrackNumber(

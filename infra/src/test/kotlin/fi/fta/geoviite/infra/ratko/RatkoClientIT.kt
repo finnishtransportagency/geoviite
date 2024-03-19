@@ -1,10 +1,12 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.ratko.model.*
+import fi.fta.geoviite.infra.ratko.model.RatkoOid
+import fi.fta.geoviite.infra.ratko.model.RatkoSwitchAsset
+import fi.fta.geoviite.infra.ratko.model.convertToRatkoSwitch
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.switch
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
@@ -56,7 +58,7 @@ class RatkoClientIT @Autowired constructor(
     fun shouldUpdateRatkoSwitchProperties() {
         val oid = "1.2.3.4.5"
         fakeRatko.hasSwitch(ratkoSwitch(oid))
-        val layoutSwitch = switch(123).copy(externalId = Oid(oid))
+        val layoutSwitch = switch(123, externalId = oid, draft = false)
         val basicUpdateSwitch = createRatkoBasicUpdateSwitch(layoutSwitch)
         ratkoClient.updateAssetProperties(RatkoOid(oid), basicUpdateSwitch.properties)
     }

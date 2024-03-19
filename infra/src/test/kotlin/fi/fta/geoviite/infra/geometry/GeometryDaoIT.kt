@@ -208,6 +208,7 @@ class GeometryDaoIT @Autowired constructor(
         val track = locationTrackAndAlignment(
             trackNumberId,
             segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(sourceId = element.id),
+            draft = true,
         )
         val trackVersion = locationTrackService.saveDraft(track.first, track.second)
         locationTrackService.publish(ValidationVersion(trackVersion.id, trackVersion.rowVersion))

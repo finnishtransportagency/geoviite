@@ -75,9 +75,9 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
         initUser()
         jdbc.setUser()
         op()
-    } ?: throw IllegalStateException("Transaction returned nothing")
+    } ?: error("Transaction returned nothing")
 
-    fun getUnusedTrackNumberId() =
+    fun getUnusedTrackNumberId(): IntId<TrackLayoutTrackNumber> =
         getOrCreateTrackNumber(getUnusedTrackNumber()).id as IntId
 
     fun getOrCreateTrackNumber(trackNumber: TrackNumber): TrackLayoutTrackNumber {
@@ -86,11 +86,11 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
         return version.let(trackNumberDao::fetch)
     }
 
-    fun insertDraftTrackNumber(): IntId<TrackLayoutTrackNumber> =
-        insertNewTrackNumber(getUnusedTrackNumber(), true).id
+    fun insertDraftTrackNumber(number: TrackNumber = getUnusedTrackNumber()): IntId<TrackLayoutTrackNumber> =
+        insertNewTrackNumber(number, true).id
 
-    fun insertOfficialTrackNumber(): IntId<TrackLayoutTrackNumber> =
-        insertNewTrackNumber(getUnusedTrackNumber(), false).id
+    fun insertOfficialTrackNumber(number: TrackNumber = getUnusedTrackNumber()): IntId<TrackLayoutTrackNumber> =
+        insertNewTrackNumber(number, false).id
 
     fun getDbTime(): Instant = requireNotNull(
         jdbc.queryForObject("select now() as now", mapOf<String, Any>()) { rs, _ -> rs.getInstant("now") }
@@ -140,10 +140,10 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
     }
 
     fun insertUniqueSwitch(): DaoResponse<TrackLayoutSwitch> =
-        insertSwitch(switch(name = getUnusedSwitchName().toString()))
+        insertSwitch(switch(name = getUnusedSwitchName().toString(), draft = false))
 
     fun insertUniqueDraftSwitch(): DaoResponse<TrackLayoutSwitch> =
-        insertSwitch(asMainDraft(switch(name = getUnusedSwitchName().toString())))
+        insertSwitch(asMainDraft(switch(name = getUnusedSwitchName().toString(), draft = true)))
 
     fun insertSwitch(switch: TrackLayoutSwitch): DaoResponse<TrackLayoutSwitch> = transactional {
         jdbc.setUser()

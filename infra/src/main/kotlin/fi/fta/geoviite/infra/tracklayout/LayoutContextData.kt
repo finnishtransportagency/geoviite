@@ -30,6 +30,10 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
     @get:JsonIgnore open val officialRowId: DomainId<T>? get() = null
     @get:JsonIgnore open val designRowId: DomainId<T>? get() = null
 
+    protected fun requireStored() = require(dataType == STORED) {
+        "Only ${STORED} rows can transition to a different context: context=${this::class.simpleName} dataType=$dataType"
+    }
+
     companion object {
         fun <T> newDraft(id: DomainId<T> = StringId()): MainDraftContextData<T> =
             MainDraftContextData(id, null, null, TEMP)
@@ -53,26 +57,26 @@ data class MainOfficialContextData<T>(
     override val editState: EditState get() = EditState.UNEDITED
     override val isOfficial: Boolean get() = true
 
-    fun asMainDraft(): MainDraftContextData<T> = MainDraftContextData(
-        // TODO: GVT-2426 This is the old way of things, but do we actually need to support switching context in temp objects?
-        // If datatype is TEMP, the official row doesn't actually exist in DB -> alter the context to desired form
-        // Otherwise, we're creating the draft by copying the row -> new ID in a new TEMP object
-        rowId = if (dataType == TEMP) rowId else StringId(),
-        officialRowId = if (dataType == TEMP) null else rowId,
-        designRowId = null,
-        dataType = TEMP,
-    )
+    fun asMainDraft(): MainDraftContextData<T> {
+        requireStored()
+        return MainDraftContextData(
+            rowId = StringId(),
+            officialRowId = rowId,
+            designRowId = null,
+            dataType = TEMP,
+        )
+    }
 
-    fun asDesignDraft(designId: IntId<LayoutDesign>): DesignDraftContextData<T> = DesignDraftContextData(
-        // TODO: GVT-2426 This is the old way of things, but do we actually need to support switching context in temp objects?
-        // If datatype is TEMP, the official row doesn't actually exist in DB -> alter the context to desired form
-        // Otherwise, we're creating the draft by copying the row -> new ID in a new TEMP object
-        rowId = if (dataType == TEMP) rowId else StringId(),
-        officialRowId = if (dataType == TEMP) null else rowId,
-        designRowId = null,
-        designId = designId,
-        dataType = TEMP,
-    )
+    fun asDesignDraft(designId: IntId<LayoutDesign>): DesignDraftContextData<T> {
+        requireStored()
+        return DesignDraftContextData(
+            rowId = StringId(),
+            officialRowId = rowId,
+            designRowId = null,
+            designId = designId,
+            dataType = TEMP,
+        )
+    }
 }
 
 data class MainDraftContextData<T>(
@@ -98,7 +102,7 @@ data class MainDraftContextData<T>(
     }
 
     fun asMainOfficial(): MainOfficialContextData<T> {
-        require(dataType == STORED) { "The draft is not stored in DB and can't be published: contextData=$this" }
+        requireStored()
         return MainOfficialContextData(
             rowId = id, // The official ID points to the row that needs to be written over
             dataType = STORED, // There will always be an existing row to update: the draft-row or the original official
@@ -122,26 +126,26 @@ data class DesignOfficialContextData<T>(
         }
     }
 
-    fun asMainDraft(): MainDraftContextData<T> = MainDraftContextData(
-        // TODO: GVT-2426 This is the old way of things, but do we actually need to support switching context in temp objects?
-        // If datatype is TEMP, the official design doesn't actually exist in DB -> alter the context to desired form
-        // Otherwise, we're creating the draft by copying the row -> new ID in a new TEMP object
-        rowId = if (dataType == TEMP) rowId else StringId(),
-        officialRowId = officialRowId,
-        designRowId = if (dataType == TEMP) null else rowId,
-        dataType = TEMP,
-    )
+    fun asMainDraft(): MainDraftContextData<T> {
+        requireStored()
+        return MainDraftContextData(
+            rowId = StringId(),
+            officialRowId = officialRowId,
+            designRowId = rowId,
+            dataType = TEMP,
+        )
+    }
 
-    fun asDesignDraft(): DesignDraftContextData<T> = DesignDraftContextData(
-        // TODO: GVT-2426 This is the old way of things, but do we actually need to support switching context in temp objects?
-        // If datatype is TEMP, the official design doesn't actually exist in DB -> alter the context to desired form
-        // Otherwise, we're creating the draft-design by copying the row -> new ID in a new TEMP object
-        rowId = if (dataType == TEMP) rowId else StringId(),
-        officialRowId = officialRowId,
-        designRowId = if (dataType == TEMP) null else rowId,
-        designId = designId,
-        dataType = TEMP,
-    )
+    fun asDesignDraft(): DesignDraftContextData<T> {
+        requireStored()
+        return DesignDraftContextData(
+            rowId = StringId(),
+            officialRowId = officialRowId,
+            designRowId = rowId,
+            designId = designId,
+            dataType = TEMP,
+        )
+    }
 }
 
 data class DesignDraftContextData<T>(
@@ -169,7 +173,7 @@ data class DesignDraftContextData<T>(
     }
 
     fun asDesignOfficial(): DesignOfficialContextData<T> {
-        require(dataType == STORED) { "The design draft is not stored in DB and can't be published: context=$this" }
+        requireStored()
         return DesignOfficialContextData(
             rowId = designRowId ?: rowId, // The publishing should update either the official or the draft row
             officialRowId = officialRowId,

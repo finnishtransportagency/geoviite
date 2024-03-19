@@ -40,15 +40,15 @@ class LayoutSwitchDaoIT @Autowired constructor(
             jdbc.update(deleteSql, mapOf("external_id" to oid))
         }
 
-        val switch1 = switch(5).copy(externalId = oid)
-        val switch2 = switch(6).copy(externalId = oid)
+        val switch1 = switch(5, externalId = oid.toString(), draft = false)
+        val switch2 = switch(6, externalId = oid.toString(), draft = false)
         switchDao.insert(switch1)
         assertThrows<DuplicateKeyException> { switchDao.insert(switch2) }
     }
 
     @Test
     fun switchesAreStoredAndLoadedOk() {
-        (1..10).map { seed -> switch(seed) }.forEach { switch ->
+        (1..10).map { seed -> switch(seed, draft = false) }.forEach { switch ->
             val rowVersion = switchDao.insert(switch).rowVersion
             assertMatches(switch, switchDao.fetch(rowVersion))
         }
@@ -56,7 +56,7 @@ class LayoutSwitchDaoIT @Autowired constructor(
 
     @Test
     fun switchVersioningWorks() {
-        val tempSwitch = switch(2, name = "TST001", joints = joints(3, 5))
+        val tempSwitch = switch(2, name = "TST001", joints = joints(3, 5), draft = false)
         val (insertId, insertVersion) = switchDao.insert(tempSwitch)
         val inserted = switchDao.fetch(insertVersion)
         assertMatches(tempSwitch, inserted)
@@ -85,7 +85,7 @@ class LayoutSwitchDaoIT @Autowired constructor(
 
     @Test
     fun shouldSuccessfullyDeleteDraftSwitches() {
-        val draftSwitch = asMainDraft(switch(0))
+        val draftSwitch = switch(0, draft = true)
         val (insertedId, insertedVersion) = switchDao.insert(draftSwitch)
         val insertedSwitch = switchDao.fetch(insertedVersion)
 
@@ -99,7 +99,7 @@ class LayoutSwitchDaoIT @Autowired constructor(
 
     @Test
     fun shouldThrowExceptionWhenDeletingNormalSwitch() {
-        val switch = switch(1)
+        val switch = switch(1, draft = false)
         val insertedSwitch = switchDao.insert(switch)
 
         assertThrows<DeletingFailureException> {

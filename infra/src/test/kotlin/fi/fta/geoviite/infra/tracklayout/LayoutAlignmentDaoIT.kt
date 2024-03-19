@@ -98,11 +98,21 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         val orphanAlignmentVersion = alignmentDao.insert(alignmentOrphan)
         val locationTrackAlignmentVersion = alignmentDao.insert(alignmentLocationTrack)
         locationTrackDao.insert(
-            locationTrack(trackNumberId, alignmentLocationTrack).copy(alignmentVersion = locationTrackAlignmentVersion)
+            locationTrack(
+                trackNumberId = trackNumberId,
+                alignment = alignmentLocationTrack,
+                alignmentVersion = locationTrackAlignmentVersion,
+                draft = false,
+            )
         )
         val referenceLineAlignmentVersion = alignmentDao.insert(alignmentReferenceLine)
         referenceLineDao.insert(
-            referenceLine(trackNumberId, alignmentReferenceLine).copy(alignmentVersion = referenceLineAlignmentVersion)
+            referenceLine(
+                trackNumberId = trackNumberId,
+                alignment = alignmentReferenceLine,
+                alignmentVersion = referenceLineAlignmentVersion,
+                draft = false,
+            )
         )
 
         val orphanAlignmentBeforeDelete = alignmentDao.fetch(orphanAlignmentVersion)
@@ -286,7 +296,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
             segment(points = points5, source = GeometrySource.PLAN, sourceId = geometryElement.id),
         )
         val version = alignmentDao.insert(alignment)
-        locationTrackDao.insert(locationTrack(trackNumberId, alignmentVersion = version))
+        locationTrackDao.insert(locationTrack(trackNumberId, alignmentVersion = version, draft = false))
 
         val profileInfo = alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
             PublishType.OFFICIAL, boundingBoxAroundPoints((points + points2 + points3 + points4 + points5).toList())

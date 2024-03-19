@@ -22,15 +22,6 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.logger
 import java.math.BigDecimal
 
-fun createTrackLayoutTrackNumber(number: String, description: String = "description for $number") =
-    TrackLayoutTrackNumber(
-        number = TrackNumber(number),
-        description = FreeText(description),
-        state = LayoutState.IN_USE,
-        externalId = null,
-        contextData = LayoutContextData.newOfficial(),
-    )
-
 fun createGeometryKmPost(
     location: Point?,
     kmNumber: String,
@@ -43,15 +34,6 @@ fun createGeometryKmPost(
     description = PlanElementName("0"),
     state = PlanState.PROPOSED,
     location = location,
-)
-
-fun trackLayoutKmPost(kmNumber: String, trackNumberId: IntId<TrackLayoutTrackNumber>, point: Point) = TrackLayoutKmPost(
-    kmNumber = KmNumber(kmNumber),
-    location = point,
-    trackNumberId = trackNumberId,
-    sourceId = null,
-    state = LayoutState.IN_USE,
-    contextData = LayoutContextData.newOfficial(),
 )
 
 fun createGeometryAlignment(
@@ -100,6 +82,7 @@ fun locationTrack(
     basePoint: Point,
     incrementPoints: List<Point>,
     description: String = "$name location track description",
+    draft: Boolean,
 ): Pair<LocationTrack, LayoutAlignment> {
     val alignment = alignmentFromPointIncrementList(basePoint, incrementPoints)
     val track = locationTrack(
@@ -109,6 +92,7 @@ fun locationTrack(
         description = description,
         type = layoutAlignmentType,
         state = LayoutState.IN_USE,
+        draft = draft,
     )
     return track to alignment
 }
@@ -117,11 +101,13 @@ fun referenceLine(
     trackNumber: IntId<TrackLayoutTrackNumber>,
     basePoint: Point,
     incrementPoints: List<Point>,
+    draft: Boolean,
 ): Pair<ReferenceLine, LayoutAlignment> {
     val alignment = alignmentFromPointIncrementList(basePoint, incrementPoints)
     val line = referenceLine(
         trackNumberId = trackNumber,
         alignment = alignment,
+        draft = draft,
     )
     return line to alignment
 }
@@ -176,6 +162,7 @@ fun locationTrackAndAlignmentForGeometryAlignment(
     ykjToEtrsTriangulationNetwork: RTree<KkjTm35finTriangle, Rectangle>,
     etrsToYkjTriangulationNetwork: RTree<KkjTm35finTriangle, Rectangle>,
     planSrid: Srid = LAYOUT_SRID,
+    draft: Boolean,
 ): Pair<LocationTrack, LayoutAlignment> {
     val transformation = Transformation.possiblyTriangulableTransform(
         planSrid,
@@ -204,7 +191,7 @@ fun locationTrackAndAlignmentForGeometryAlignment(
             switchId = null,
         ).also { startM += it.length }
     }
-    return locationTrackAndAlignment(trackNumberId, segments)
+    return locationTrackAndAlignment(trackNumberId, segments, draft = draft)
 }
 
 fun createSwitchAndAlignments(
@@ -315,7 +302,6 @@ fun getTransformedPoint(
     val jointPointOrig = structureJointsByNumber[number]!!.location
     return rotateAroundOrigin(switchAngle, jointPointOrig) + orig
 }
-
 
 data class SwitchJointData(
     val switchId: DomainId<GeometrySwitch>,

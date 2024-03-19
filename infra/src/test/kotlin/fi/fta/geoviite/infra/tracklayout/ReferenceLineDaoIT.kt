@@ -27,7 +27,7 @@ class ReferenceLineDaoIT @Autowired constructor(
         val trackNumberId = insertOfficialTrackNumber()
         val alignment = alignment()
         val alignmentVersion = alignmentDao.insert(alignment)
-        val referenceLine = referenceLine(trackNumberId, alignment).copy(
+        val referenceLine = referenceLine(trackNumberId, alignment, draft = false).copy(
             startAddress = TrackMeter(KmNumber(10), 125.5, 3),
             alignmentVersion = alignmentVersion,
         )
@@ -63,6 +63,7 @@ class ReferenceLineDaoIT @Autowired constructor(
             startAddress = TrackMeter(12, 13),
             alignment = tempAlignment,
             alignmentVersion = alignmentVersion,
+            draft = false,
         )
         val (id, insertVersion) = referenceLineDao.insert(tempTrack)
         val inserted = referenceLineDao.fetch(insertVersion)
