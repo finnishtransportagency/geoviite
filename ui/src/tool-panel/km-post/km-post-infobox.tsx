@@ -166,19 +166,14 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     />
                 </InfoboxContent>
             </Infobox>
-            {
-                // TODO: GVT-2522
-                kmPost.editState !== 'CREATED' && (
-                    <AssetValidationInfoboxContainer
-                        contentVisible={visibilities.validation}
-                        onContentVisibilityChange={() => visibilityChange('validation')}
-                        id={kmPost.id}
-                        type={'KM_POST'}
-                        publishType={publishType}
-                        changeTime={kmPostChangeTime}
-                    />
-                )
-            }
+            <AssetValidationInfoboxContainer
+                contentVisible={visibilities.validation}
+                onContentVisibilityChange={() => visibilityChange('validation')}
+                id={kmPost.id}
+                type={'KM_POST'}
+                publishType={publishType}
+                changeTime={kmPostChangeTime}
+            />
             <Infobox
                 title={t('tool-panel.km-post.layout.change-info-heading')}
                 contentVisible={visibilities.log}

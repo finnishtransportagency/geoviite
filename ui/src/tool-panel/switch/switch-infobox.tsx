@@ -349,19 +349,16 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                     />
                 </InfoboxContent>
             </Infobox>
-            {
-                // TODO: GVT-2522
-                layoutSwitch && layoutSwitch.editState !== 'CREATED' && (
-                    <AssetValidationInfoboxContainer
-                        contentVisible={visibilities.validation}
-                        onContentVisibilityChange={() => visibilityChange('validation')}
-                        id={layoutSwitch.id}
-                        type={'SWITCH'}
-                        publishType={publishType}
-                        changeTime={changeTimes.layoutSwitch}
-                    />
-                )
-            }
+            {layoutSwitch && (
+                <AssetValidationInfoboxContainer
+                    contentVisible={visibilities.validation}
+                    onContentVisibilityChange={() => visibilityChange('validation')}
+                    id={layoutSwitch.id}
+                    type={'SWITCH'}
+                    publishType={publishType}
+                    changeTime={changeTimes.layoutSwitch}
+                />
+            )}
             <Infobox
                 contentVisible={visibilities.log}
                 onContentVisibilityChange={() => visibilityChange('log')}
