@@ -13,25 +13,36 @@ interface LayoutContextAware<T> {
     val dataType: DataType
     val editState: EditState
 
-    @get:JsonIgnore val isDraft: Boolean get() = false
-    @get:JsonIgnore val isOfficial: Boolean get() = false
-    @get:JsonIgnore val isDesign: Boolean get() = false
+    @get:JsonIgnore
+    val isDraft: Boolean get() = false
+
+    @get:JsonIgnore
+    val isOfficial: Boolean get() = false
+
+    @get:JsonIgnore
+    val isDesign: Boolean get() = false
 }
 
 sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) :
     LayoutContextAware<T> by contextData, Loggable {
     abstract val version: RowVersion<T>?
-    @get:JsonIgnore abstract val contextData: LayoutContextData<T>
+
+    @get:JsonIgnore
+    abstract val contextData: LayoutContextData<T>
 }
 
 sealed class LayoutContextData<T> : LayoutContextAware<T> {
 
     @get:JsonIgnore abstract val rowId: DomainId<T>
-    @get:JsonIgnore open val officialRowId: DomainId<T>? get() = null
-    @get:JsonIgnore open val designRowId: DomainId<T>? get() = null
+
+    @get:JsonIgnore
+    open val officialRowId: DomainId<T>? get() = null
+
+    @get:JsonIgnore
+    open val designRowId: DomainId<T>? get() = null
 
     protected fun requireStored() = require(dataType == STORED) {
-        "Only ${STORED} rows can transition to a different context: context=${this::class.simpleName} dataType=$dataType"
+        "Only $STORED rows can transition to a different context: context=${this::class.simpleName} dataType=$dataType"
     }
 
     companion object {
