@@ -26,7 +26,7 @@ class LayoutSwitchDao(
 ) : LayoutAssetDao<TrackLayoutSwitch>(jdbcTemplateParam, LAYOUT_SWITCH, cacheEnabled, SWITCH_CACHE_SIZE) {
 
     override fun fetchVersions(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         includeDeleted: Boolean,
     ): List<RowVersion<TrackLayoutSwitch>> {
         val sql = """
@@ -47,7 +47,7 @@ class LayoutSwitchDao(
     }
 
     fun fetchSegmentSwitchJointConnections(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         switchId: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
         val sql = """
@@ -399,12 +399,12 @@ class LayoutSwitchDao(
     )
 
     fun findLocationTracksLinkedToSwitch(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         switchId: IntId<TrackLayoutSwitch>,
     ): List<LocationTrackIdentifiers> = findLocationTracksLinkedToSwitches(publicationState, listOf(switchId))
 
     fun findLocationTracksLinkedToSwitches(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         switchIds: List<IntId<TrackLayoutSwitch>>,
     ): List<LocationTrackIdentifiers> {
         if (switchIds.isEmpty()) return emptyList()

@@ -1208,8 +1208,8 @@ class CalculatedChangesServiceIT @Autowired constructor(
             val rowVersion = locationTrackDao.fetchDraftVersionOrThrow(id)
             val (edited, editedAlignment) = locationTrackService.getWithAlignment(rowVersion)
             if (edited.isDraft) {
-                val publishResponse = locationTrackService.publish(ValidationVersion(id, rowVersion))
-                locationTrackService.getWithAlignment(publishResponse.rowVersion)
+                val publicationResponse = locationTrackService.publish(ValidationVersion(id, rowVersion))
+                locationTrackService.getWithAlignment(publicationResponse.rowVersion)
             } else {
                 edited to editedAlignment
             }
@@ -1219,8 +1219,8 @@ class CalculatedChangesServiceIT @Autowired constructor(
             val rowVersion = switchDao.fetchDraftVersionOrThrow(id)
             val edited = switchDao.fetch(rowVersion)
             if (edited.isDraft) {
-                val publishResponse = switchService.publish(ValidationVersion(id, rowVersion))
-                switchDao.fetch(publishResponse.rowVersion)
+                val publicationResponse = switchService.publish(ValidationVersion(id, rowVersion))
+                switchDao.fetch(publicationResponse.rowVersion)
             } else {
                 edited
             }
@@ -1257,52 +1257,50 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val segIndexA = alignmentA.findClosestSegmentIndex(switchLocation) as Int
         val segIndexB = alignmentB.findClosestSegmentIndex(switchLocation) as Int
 
-        val suggestedFitting =
-            FittedSwitch(
-                joints = listOf(
-                    FittedSwitchJoint(
-                        number = JointNumber(1),
-                        location = firstPoint(alignmentA, segIndexA).toPoint(),
-                        matches = listOf(
-                            switchLinkingAtStart(locationTrackA.id, alignmentA, segIndexA),
-                            switchLinkingAtStart(locationTrackB.id, alignmentB, segIndexB),
-                        ),
-                        locationAccuracy = null,
+        val suggestedFitting = FittedSwitch(
+            joints = listOf(
+                FittedSwitchJoint(
+                    number = JointNumber(1),
+                    location = firstPoint(alignmentA, segIndexA).toPoint(),
+                    matches = listOf(
+                        switchLinkingAtStart(locationTrackA.id, alignmentA, segIndexA),
+                        switchLinkingAtStart(locationTrackB.id, alignmentB, segIndexB),
                     ),
-                    FittedSwitchJoint(
-                        number = JointNumber(5),
-                        location = lastPoint(alignmentA, segIndexA).toPoint(),
-                        matches = listOf(
-                            switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA),
-                        ),
-                        locationAccuracy = null,
-                    ),
-                    FittedSwitchJoint(
-                        number = JointNumber(2),
-                        location = lastPoint(alignmentA, segIndexA + 2).toPoint(),
-                        matches = listOf(
-                            switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA + 2),
-                        ),
-                        locationAccuracy = null,
-                    ),
-                    FittedSwitchJoint(
-                        number = JointNumber(3),
-                        location = lastPoint(alignmentB, segIndexB + 1).toPoint(),
-                        matches = listOf(
-                            switchLinkingAtEnd(locationTrackB.id, alignmentB, segIndexB + 1),
-                        ),
-                        locationAccuracy = null,
-                    ),
+                    locationAccuracy = null,
                 ),
-                geometrySwitchId = null,
-                switchStructureId = switch.switchStructureId,
-                alignmentEndPoint = null,
-                name = SwitchName("abc"),
-            )
+                FittedSwitchJoint(
+                    number = JointNumber(5),
+                    location = lastPoint(alignmentA, segIndexA).toPoint(),
+                    matches = listOf(
+                        switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA),
+                    ),
+                    locationAccuracy = null,
+                ),
+                FittedSwitchJoint(
+                    number = JointNumber(2),
+                    location = lastPoint(alignmentA, segIndexA + 2).toPoint(),
+                    matches = listOf(
+                        switchLinkingAtEnd(locationTrackA.id, alignmentA, segIndexA + 2),
+                    ),
+                    locationAccuracy = null,
+                ),
+                FittedSwitchJoint(
+                    number = JointNumber(3),
+                    location = lastPoint(alignmentB, segIndexB + 1).toPoint(),
+                    matches = listOf(
+                        switchLinkingAtEnd(locationTrackB.id, alignmentB, segIndexB + 1),
+                    ),
+                    locationAccuracy = null,
+                ),
+            ),
+            geometrySwitchId = null,
+            switchStructureId = switch.switchStructureId,
+            alignmentEndPoint = null,
+            name = SwitchName("abc"),
+        )
         switchLinkingService.saveSwitchLinking(
-            switchLinkingService.matchFittedSwitch(
-                suggestedFitting, switch.id as IntId
-            ), switch.id as IntId
+            switchLinkingService.matchFittedSwitch(suggestedFitting, switch.id as IntId),
+            switch.id as IntId,
         )
         return switch
     }

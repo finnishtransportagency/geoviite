@@ -2,19 +2,19 @@ package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.error.SplitFailureException
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.SuggestedSwitch
-import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
+import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.Publication
-import fi.fta.geoviite.infra.publication.PublishValidationError
-import fi.fta.geoviite.infra.publication.PublishValidationErrorType
+import fi.fta.geoviite.infra.publication.PublicationValidationError
+import fi.fta.geoviite.infra.publication.PublicationValidationErrorType
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.*
@@ -115,7 +115,7 @@ class SplitService(
         splitDao.deleteSplit(splitId)
     }
 
-    fun validateSplit(candidates: ValidationVersions, allowMultipleSplits: Boolean): SplitPublishValidationErrors {
+    fun validateSplit(candidates: ValidationVersions, allowMultipleSplits: Boolean): SplitPublicationValidationErrors {
         val splitsByLocationTracks = candidates.locationTracks.map { locationTrackValidationVersion ->
             locationTrackValidationVersion.officialId
         }.let(::findUnpublishedSplitsForLocationTracks)
@@ -155,7 +155,7 @@ class SplitService(
             }
         }
 
-        return SplitPublishValidationErrors(
+        return SplitPublicationValidationErrors(
             tnSplitErrors,
             rlSplitErrors,
             kpSplitErrors,
@@ -185,7 +185,7 @@ class SplitService(
     private fun validateSplitForLocationTrack(
         trackId: IntId<LocationTrack>,
         splits: Collection<Split>,
-    ): List<PublishValidationError> {
+    ): List<PublicationValidationError> {
         val pendingSplits = splits.filter { it.isPending }
 
         val trackNumberMismatchErrors = splits
@@ -216,8 +216,8 @@ class SplitService(
         val statusError = splits
             .firstOrNull { !it.isPending }
             ?.let {
-                PublishValidationError(
-                    PublishValidationErrorType.ERROR,
+                PublicationValidationError(
+                    PublicationValidationErrorType.ERROR,
                     "$VALIDATION_SPLIT.split-in-progress",
                 )
             }
@@ -235,7 +235,7 @@ class SplitService(
     fun validateSplitGeometries(
         trackId: IntId<LocationTrack>,
         pendingSplits: Collection<Split>,
-    ): List<PublishValidationError> {
+    ): List<PublicationValidationError> {
         val targetGeometryError = pendingSplits
             .firstOrNull { it.targetLocationTracks.any { tlt -> tlt.locationTrackId == trackId } }
             ?.let { split ->
@@ -261,11 +261,11 @@ class SplitService(
 
     fun validateSplitReferencesByTrackNumber(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-    ): PublishValidationError? {
+    ): PublicationValidationError? {
         val splitIds = splitDao.fetchUnfinishedSplitIdsByTrackNumber(trackNumberId)
         return if (splitIds.isNotEmpty())
-            PublishValidationError(
-                PublishValidationErrorType.ERROR,
+            PublicationValidationError(
+                PublicationValidationErrorType.ERROR,
                 "$VALIDATION_SPLIT.split-in-progress",
             )
         else null

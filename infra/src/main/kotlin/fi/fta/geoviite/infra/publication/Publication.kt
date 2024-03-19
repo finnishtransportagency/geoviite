@@ -55,7 +55,9 @@ data class ChangeValue<T>(
     val localizationKey: LocalizationKey? = null,
 ) {
     constructor(oldValue: T?, newValue: T?, localizationKey: String?) : this(
-        oldValue, newValue, localizationKey?.let(::LocalizationKey)
+        oldValue,
+        newValue,
+        localizationKey?.let(::LocalizationKey),
     )
 }
 
@@ -69,9 +71,7 @@ data class PropKey(
     val key: LocalizationKey,
     val params: LocalizationParams = LocalizationParams.empty,
 ) {
-    constructor(key: String, params: LocalizationParams = LocalizationParams.empty) : this(
-        LocalizationKey(key), params
-    )
+    constructor(key: String, params: LocalizationParams = LocalizationParams.empty) : this(LocalizationKey(key), params)
 }
 
 open class Publication(
@@ -159,24 +159,24 @@ enum class Operation(val priority: Int) {
     CREATE(0), MODIFY(1), DELETE(2), RESTORE(3), CALCULATED(4),
 }
 
-data class ValidatedPublishCandidates(
-    val validatedAsPublicationUnit: PublishCandidates,
-    val allChangesValidated: PublishCandidates,
+data class ValidatedPublicationCandidates(
+    val validatedAsPublicationUnit: PublicationCandidates,
+    val allChangesValidated: PublicationCandidates,
 )
 
 data class ValidatedAsset<T>(
     val id: IntId<T>,
-    val errors: List<PublishValidationError>,
+    val errors: List<PublicationValidationError>,
 )
 
-data class PublishCandidates(
-    val trackNumbers: List<TrackNumberPublishCandidate>,
-    val locationTracks: List<LocationTrackPublishCandidate>,
-    val referenceLines: List<ReferenceLinePublishCandidate>,
-    val switches: List<SwitchPublishCandidate>,
-    val kmPosts: List<KmPostPublishCandidate>,
+data class PublicationCandidates(
+    val trackNumbers: List<TrackNumberPublicationCandidate>,
+    val locationTracks: List<LocationTrackPublicationCandidate>,
+    val referenceLines: List<ReferenceLinePublicationCandidate>,
+    val switches: List<SwitchPublicationCandidate>,
+    val kmPosts: List<KmPostPublicationCandidate>,
 ) : Loggable {
-    fun ids(): PublishRequestIds = PublishRequestIds(
+    fun ids(): PublicationRequestIds = PublicationRequestIds(
         trackNumbers.map { candidate -> candidate.id },
         locationTracks.map { candidate -> candidate.id },
         referenceLines.map { candidate -> candidate.id },
@@ -185,14 +185,14 @@ data class PublishCandidates(
     )
 
     fun getValidationVersions() = ValidationVersions(
-        trackNumbers = trackNumbers.map(TrackNumberPublishCandidate::getPublicationVersion),
-        referenceLines = referenceLines.map(ReferenceLinePublishCandidate::getPublicationVersion),
-        locationTracks = locationTracks.map(LocationTrackPublishCandidate::getPublicationVersion),
-        switches = switches.map(SwitchPublishCandidate::getPublicationVersion),
-        kmPosts = kmPosts.map(KmPostPublishCandidate::getPublicationVersion),
+        trackNumbers = trackNumbers.map(TrackNumberPublicationCandidate::getPublicationVersion),
+        referenceLines = referenceLines.map(ReferenceLinePublicationCandidate::getPublicationVersion),
+        locationTracks = locationTracks.map(LocationTrackPublicationCandidate::getPublicationVersion),
+        switches = switches.map(SwitchPublicationCandidate::getPublicationVersion),
+        kmPosts = kmPosts.map(KmPostPublicationCandidate::getPublicationVersion),
     )
 
-    fun filter(request: PublishRequestIds) = PublishCandidates(
+    fun filter(request: PublicationRequestIds) = PublicationCandidates(
         trackNumbers = trackNumbers.filter { candidate -> request.trackNumbers.contains(candidate.id) },
         referenceLines = referenceLines.filter { candidate -> request.referenceLines.contains(candidate.id) },
         locationTracks = locationTracks.filter { candidate -> request.locationTracks.contains(candidate.id) },
@@ -208,7 +208,7 @@ data class PublishCandidates(
         "kmPosts" to toLog(kmPosts),
     )
 
-    private fun <T : PublishCandidate<*>> toLog(list: List<T>): String = "${list.map(PublishCandidate<*>::rowVersion)}"
+    private fun <T : PublicationCandidate<*>> toLog(list: List<T>): String = "${list.map(PublicationCandidate<*>::rowVersion)}"
 }
 
 data class ValidationVersions(
@@ -239,14 +239,14 @@ data class PublicationGroup(
 
 data class ValidationVersion<T>(val officialId: IntId<T>, val validatedAssetVersion: RowVersion<T>)
 
-data class PublishRequestIds(
+data class PublicationRequestIds(
     val trackNumbers: List<IntId<TrackLayoutTrackNumber>>,
     val locationTracks: List<IntId<LocationTrack>>,
     val referenceLines: List<IntId<ReferenceLine>>,
     val switches: List<IntId<TrackLayoutSwitch>>,
     val kmPosts: List<IntId<TrackLayoutKmPost>>,
 ) {
-    operator fun minus(other: PublishRequestIds) = PublishRequestIds(
+    operator fun minus(other: PublicationRequestIds) = PublicationRequestIds(
         trackNumbers - other.trackNumbers.toSet(),
         locationTracks - other.locationTracks.toSet(),
         referenceLines - other.referenceLines.toSet(),
@@ -255,13 +255,13 @@ data class PublishRequestIds(
     )
 }
 
-data class PublishRequest(
-    val content: PublishRequestIds,
+data class PublicationRequest(
+    val content: PublicationRequestIds,
     val message: String,
 )
 
-data class PublishResult(
-    val publishId: IntId<Publication>?,
+data class PublicationResult(
+    val publicationId: IntId<Publication>?,
     val trackNumbers: Int,
     val locationTracks: Int,
     val referenceLines: Int,
@@ -269,62 +269,62 @@ data class PublishResult(
     val kmPosts: Int,
 )
 
-enum class PublishValidationErrorType { ERROR, WARNING }
-data class PublishValidationError(
-    val type: PublishValidationErrorType,
+enum class PublicationValidationErrorType { ERROR, WARNING }
+data class PublicationValidationError(
+    val type: PublicationValidationErrorType,
     val localizationKey: LocalizationKey,
     val params: LocalizationParams = LocalizationParams.empty,
 ) {
     constructor(
-        type: PublishValidationErrorType,
+        type: PublicationValidationErrorType,
         key: String,
         params: Map<String, Any?> = emptyMap(),
     ) : this(type, LocalizationKey(key), localizationParams(params))
 }
 
-interface PublishCandidate<T> {
+interface PublicationCandidate<T> {
     val type: DraftChangeType
     val id: IntId<T>
     val rowVersion: RowVersion<T>
     val draftChangeTime: Instant
     val userName: UserName
-    val errors: List<PublishValidationError>
+    val errors: List<PublicationValidationError>
     val operation: Operation?
     val publicationGroup: PublicationGroup?
 
     fun getPublicationVersion() = ValidationVersion(id, rowVersion)
 }
 
-data class TrackNumberPublishCandidate(
+data class TrackNumberPublicationCandidate(
     override val id: IntId<TrackLayoutTrackNumber>,
     override val rowVersion: RowVersion<TrackLayoutTrackNumber>,
     val number: TrackNumber,
     override val draftChangeTime: Instant,
     override val userName: UserName,
-    override val errors: List<PublishValidationError> = listOf(),
+    override val errors: List<PublicationValidationError> = listOf(),
     override val operation: Operation,
     override val publicationGroup: PublicationGroup? = null,
     val boundingBox: BoundingBox?,
-) : PublishCandidate<TrackLayoutTrackNumber> {
+) : PublicationCandidate<TrackLayoutTrackNumber> {
     override val type = DraftChangeType.TRACK_NUMBER
 }
 
-data class ReferenceLinePublishCandidate(
+data class ReferenceLinePublicationCandidate(
     override val id: IntId<ReferenceLine>,
     override val rowVersion: RowVersion<ReferenceLine>,
     val name: TrackNumber,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     override val draftChangeTime: Instant,
     override val userName: UserName,
-    override val errors: List<PublishValidationError> = listOf(),
+    override val errors: List<PublicationValidationError> = listOf(),
     override val operation: Operation?,
     override val publicationGroup: PublicationGroup? = null,
     val boundingBox: BoundingBox?,
-) : PublishCandidate<ReferenceLine> {
+) : PublicationCandidate<ReferenceLine> {
     override val type = DraftChangeType.REFERENCE_LINE
 }
 
-data class LocationTrackPublishCandidate(
+data class LocationTrackPublicationCandidate(
     override val id: IntId<LocationTrack>,
     override val rowVersion: RowVersion<LocationTrack>,
     val name: AlignmentName,
@@ -332,41 +332,41 @@ data class LocationTrackPublishCandidate(
     override val draftChangeTime: Instant,
     val duplicateOf: IntId<LocationTrack>?,
     override val userName: UserName,
-    override val errors: List<PublishValidationError> = listOf(),
+    override val errors: List<PublicationValidationError> = listOf(),
     override val operation: Operation,
     override val publicationGroup: PublicationGroup? = null,
     val boundingBox: BoundingBox?,
-) : PublishCandidate<LocationTrack> {
+) : PublicationCandidate<LocationTrack> {
     override val type = DraftChangeType.LOCATION_TRACK
 }
 
-data class SwitchPublishCandidate(
+data class SwitchPublicationCandidate(
     override val id: IntId<TrackLayoutSwitch>,
     override val rowVersion: RowVersion<TrackLayoutSwitch>,
     val name: SwitchName,
     val trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
     override val draftChangeTime: Instant,
     override val userName: UserName,
-    override val errors: List<PublishValidationError> = listOf(),
+    override val errors: List<PublicationValidationError> = listOf(),
     override val operation: Operation,
     override val publicationGroup: PublicationGroup? = null,
     val location: Point?,
-) : PublishCandidate<TrackLayoutSwitch> {
+) : PublicationCandidate<TrackLayoutSwitch> {
     override val type = DraftChangeType.SWITCH
 }
 
-data class KmPostPublishCandidate(
+data class KmPostPublicationCandidate(
     override val id: IntId<TrackLayoutKmPost>,
     override val rowVersion: RowVersion<TrackLayoutKmPost>,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val kmNumber: KmNumber,
     override val draftChangeTime: Instant,
     override val userName: UserName,
-    override val errors: List<PublishValidationError> = listOf(),
+    override val errors: List<PublicationValidationError> = listOf(),
     override val operation: Operation,
     override val publicationGroup: PublicationGroup? = null,
     val location: Point?,
-) : PublishCandidate<TrackLayoutKmPost> {
+) : PublicationCandidate<TrackLayoutKmPost> {
     override val type = DraftChangeType.KM_POST
 }
 
@@ -447,22 +447,9 @@ data class KmPostChanges(
     val location: Change<Point>,
 )
 
-fun <T : LayoutAsset<T>> toValidationVersion(draftableObject: T) = ValidationVersion(
-    officialId = draftableObject.id as IntId, validatedAssetVersion = draftableObject.version as RowVersion<T>
-)
-
-fun toValidationVersions(
-    trackNumbers: List<TrackLayoutTrackNumber> = emptyList(),
-    referenceLines: List<ReferenceLine> = emptyList(),
-    kmPosts: List<TrackLayoutKmPost> = emptyList(),
-    locationTracks: List<LocationTrack> = emptyList(),
-    switches: List<TrackLayoutSwitch> = emptyList(),
-) = ValidationVersions(
-    trackNumbers = trackNumbers.map(::toValidationVersion),
-    referenceLines = referenceLines.map(::toValidationVersion),
-    kmPosts = kmPosts.map(::toValidationVersion),
-    locationTracks = locationTracks.map(::toValidationVersion),
-    switches = switches.map(::toValidationVersion)
+fun <T : LayoutAsset<T>> toValidationVersion(layoutAsset: T): ValidationVersion<T> = ValidationVersion(
+    officialId = layoutAsset.id as IntId,
+    validatedAssetVersion = layoutAsset.version as RowVersion<T>,
 )
 
 data class SwitchChangeIds(val name: String, val externalId: Oid<TrackLayoutSwitch>?)

@@ -1,6 +1,9 @@
 package fi.fta.geoviite.infra.publication
 
-import fi.fta.geoviite.infra.authorization.*
+import fi.fta.geoviite.infra.authorization.AUTH_DOWNLOAD_PUBLICATION
+import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT_DRAFT
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_PUBLICATION
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.integration.CalculatedChanges
@@ -24,7 +27,6 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 
-
 val publicationMaxDuration: Duration = Duration.ofMinutes(15)
 
 @RestController
@@ -40,31 +42,34 @@ class PublicationController @Autowired constructor(
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
     @GetMapping("/candidates")
-    fun getPublishCandidates(): PublishCandidates {
-        logger.apiCall("getPublishCandidates")
-        return publicationService.collectPublishCandidates()
+    fun getPublicationCandidates(): PublicationCandidates {
+        logger.apiCall("getPublicationCandidates")
+        return publicationService.collectPublicationCandidates()
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
     @PostMapping("/validate")
-    fun validatePublishCandidates(@RequestBody request: PublishRequestIds): ValidatedPublishCandidates {
-        logger.apiCall("validatePublishCandidates", "request" to request)
-        return publicationService.validatePublishCandidates(publicationService.collectPublishCandidates(), request)
+    fun validatePublicationCandidates(@RequestBody request: PublicationRequestIds): ValidatedPublicationCandidates {
+        logger.apiCall("validatePublicationCandidates", "request" to request)
+        return publicationService.validatePublicationCandidates(
+            publicationService.collectPublicationCandidates(),
+            request,
+        )
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
     @PostMapping("/calculated-changes")
-    fun getCalculatedChanges(@RequestBody request: PublishRequestIds): CalculatedChanges {
+    fun getCalculatedChanges(@RequestBody request: PublicationRequestIds): CalculatedChanges {
         logger.apiCall("getCalculatedChanges", "request" to request)
         return calculatedChangesService.getCalculatedChanges(publicationService.getValidationVersions(request))
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @DeleteMapping("/candidates")
-    fun revertPublishCandidates(@RequestBody toDelete: PublishRequestIds): PublishResult {
-        logger.apiCall("revertPublishCandidates", "toDelete" to toDelete)
+    fun revertPublicationCandidates(@RequestBody toDelete: PublicationRequestIds): PublicationResult {
+        logger.apiCall("revertPublicationCandidates", "toDelete" to toDelete)
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
-            publicationService.revertPublishCandidates(toDelete)
+            publicationService.revertPublicationCandidates(toDelete)
         } ?: throw PublicationFailureException(
             message = "Could not reserve publication lock",
             localizedMessageKey = "lock-obtain-failed",
@@ -73,19 +78,19 @@ class PublicationController @Autowired constructor(
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
     @PostMapping("/candidates/revert-request-dependencies")
-    fun getRevertRequestDependencies(@RequestBody toDelete: PublishRequestIds): PublishRequestIds {
+    fun getRevertRequestDependencies(@RequestBody toDelete: PublicationRequestIds): PublicationRequestIds {
         logger.apiCall("getRevertRequestDependencies")
         return publicationService.getRevertRequestDependencies(toDelete)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping
-    fun publishChanges(@RequestBody request: PublishRequest): PublishResult {
+    fun publishChanges(@RequestBody request: PublicationRequest): PublicationResult {
         logger.apiCall("publishChanges", "request" to request)
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
             publicationService.updateExternalId(request.content)
             val versions = publicationService.getValidationVersions(request.content)
-            publicationService.validatePublishRequest(versions)
+            publicationService.validatePublicationRequest(versions)
             val calculatedChanges = publicationService.getCalculatedChanges(versions)
             publicationService.publishChanges(versions, calculatedChanges, request.message)
         } ?: throw PublicationFailureException(
@@ -118,9 +123,7 @@ class PublicationController @Autowired constructor(
         logger.apiCall("getLatestPublications", "count" to count)
         val publications = publicationService.fetchLatestPublicationDetails(count)
 
-        return Page(
-            totalCount = publications.size, start = 0, items = publications
-        )
+        return Page(totalCount = publications.size, start = 0, items = publications)
     }
 
     @PreAuthorize(AUTH_DOWNLOAD_PUBLICATION)
@@ -216,8 +219,6 @@ class PublicationController @Autowired constructor(
         logger.apiCall("getSplitDetailsAsCsv", "id" to id)
         return publicationService
             .getSplitInPublicationCsv(id)
-            .let { (csv, ltName) ->
-                getCsvResponseEntity(csv, FileName("Raiteen jakaminen $ltName.csv"))
-            }
+            .let { (csv, ltName) -> getCsvResponseEntity(csv, FileName("Raiteen jakaminen $ltName.csv")) }
     }
 }

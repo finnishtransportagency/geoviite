@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.configuration.CACHE_RATKO_HEALTH_STATUS
 import fi.fta.geoviite.infra.integration.RatkoAssetType.*
 import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset

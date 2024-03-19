@@ -1,10 +1,10 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT_DRAFT
-import fi.fta.geoviite.infra.authorization.PUBLISH_TYPE
+import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.logging.apiCall
@@ -24,57 +24,57 @@ class ReferenceLineController(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
-    @GetMapping("/{$PUBLISH_TYPE}/{id}")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/{$PUBLICATION_STATE}/{id}")
     fun getReferenceLine(
-        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
+        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
         @PathVariable("id") id: IntId<ReferenceLine>,
     ): ResponseEntity<ReferenceLine> {
-        logger.apiCall("getReferenceLine", "$PUBLISH_TYPE" to publishType, "id" to id)
-        return toResponse(referenceLineService.get(publishType, id))
+        logger.apiCall("getReferenceLine", "$PUBLICATION_STATE" to publicationState, "id" to id)
+        return toResponse(referenceLineService.get(publicationState, id))
     }
 
-    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
-    @GetMapping("/{$PUBLISH_TYPE}", params = ["ids"])
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/{$PUBLICATION_STATE}", params = ["ids"])
     fun getReferenceLines(
-        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
+        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
         @RequestParam("ids", required = true) ids: List<IntId<ReferenceLine>>,
     ): List<ReferenceLine> {
-        logger.apiCall("getReferenceLines", "$PUBLISH_TYPE" to publishType, "ids" to ids)
-        return referenceLineService.getMany(publishType, ids)
+        logger.apiCall("getReferenceLines", "$PUBLICATION_STATE" to publicationState, "ids" to ids)
+        return referenceLineService.getMany(publicationState, ids)
     }
 
-    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
-    @GetMapping("/{$PUBLISH_TYPE}/by-track-number/{trackNumberId}")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/{$PUBLICATION_STATE}/by-track-number/{trackNumberId}")
     fun getTrackNumberReferenceLine(
-        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
+        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
         @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): ResponseEntity<ReferenceLine> {
         logger.apiCall(
-            "getTrackNumberReferenceLine", "$PUBLISH_TYPE" to publishType, "trackNumberId" to trackNumberId
+            "getTrackNumberReferenceLine", "$PUBLICATION_STATE" to publicationState, "trackNumberId" to trackNumberId
         )
-        return toResponse(referenceLineService.getByTrackNumber(publishType, trackNumberId))
+        return toResponse(referenceLineService.getByTrackNumber(publicationState, trackNumberId))
     }
 
-    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
-    @GetMapping("/{$PUBLISH_TYPE}", params = ["bbox"])
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/{$PUBLICATION_STATE}", params = ["bbox"])
     fun getReferenceLinesNear(
-        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
+        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
         @RequestParam("bbox") bbox: BoundingBox,
     ): List<ReferenceLine> {
-        logger.apiCall("getReferenceLinesNear", "$PUBLISH_TYPE" to publishType, "bbox" to bbox)
-        return referenceLineService.listNear(publishType, bbox)
+        logger.apiCall("getReferenceLinesNear", "$PUBLICATION_STATE" to publicationState, "bbox" to bbox)
+        return referenceLineService.listNear(publicationState, bbox)
     }
 
-    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
-    @GetMapping("/{$PUBLISH_TYPE}/{id}/start-and-end")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/{$PUBLICATION_STATE}/{id}/start-and-end")
     fun getReferenceLineStartAndEnd(
-        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
+        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
         @PathVariable("id") id: IntId<ReferenceLine>,
     ): ResponseEntity<AlignmentStartAndEnd> {
-        logger.apiCall("getReferenceLineStartAndEnd", "$PUBLISH_TYPE" to publishType, "id" to id)
-        return toResponse(referenceLineService.getWithAlignment(publishType, id)?.let { (referenceLine, alignment) ->
-            geocodingService.getReferenceLineStartAndEnd(publishType, referenceLine, alignment)
+        logger.apiCall("getReferenceLineStartAndEnd", "$PUBLICATION_STATE" to publicationState, "id" to id)
+        return toResponse(referenceLineService.getWithAlignment(publicationState, id)?.let { (referenceLine, alignment) ->
+            geocodingService.getReferenceLineStartAndEnd(publicationState, referenceLine, alignment)
         })
     }
 
@@ -85,13 +85,13 @@ class ReferenceLineController(
         return referenceLineService.listNonLinked()
     }
 
-    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
-    @GetMapping("/{$PUBLISH_TYPE}/{id}/change-times")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/{$PUBLICATION_STATE}/{id}/change-times")
     fun getReferenceLineChangeInfo(
         @PathVariable("id") id: IntId<ReferenceLine>,
-        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
-    ): ResponseEntity<DraftableChangeInfo> {
+        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+    ): ResponseEntity<LayoutAssetChangeInfo> {
         logger.apiCall("getReferenceLineChangeInfo", "id" to id)
-        return toResponse(referenceLineService.getDraftableChangeInfo(id, publishType))
+        return toResponse(referenceLineService.getLayoutAssetChangeInfo(id, publicationState))
     }
 }

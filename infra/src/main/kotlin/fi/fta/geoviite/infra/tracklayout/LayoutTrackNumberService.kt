@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
@@ -86,32 +86,32 @@ class LayoutTrackNumberService(
     override fun contentMatches(term: String, item: TrackLayoutTrackNumber) =
         item.exists && item.number.toString().replace("  ", " ").contains(term, true)
 
-    fun mapById(publishType: PublishType) = list(publishType).associateBy { tn -> tn.id as IntId }
+    fun mapById(publicationState: PublicationState) = list(publicationState).associateBy { tn -> tn.id as IntId }
 
-    fun mapByNumber(publishType: PublishType) = list(publishType).associateBy(TrackLayoutTrackNumber::number)
+    fun mapByNumber(publicationState: PublicationState) = list(publicationState).associateBy(TrackLayoutTrackNumber::number)
 
-    fun find(trackNumber: TrackNumber, publishType: PublishType): List<TrackLayoutTrackNumber> {
-        logger.serviceCall("find", "trackNumber" to trackNumber, "publishType" to publishType)
-        return dao.list(trackNumber, publishType)
+    fun find(trackNumber: TrackNumber, publicationState: PublicationState): List<TrackLayoutTrackNumber> {
+        logger.serviceCall("find", "trackNumber" to trackNumber, "publicationState" to publicationState)
+        return dao.list(trackNumber, publicationState)
     }
 
     fun getKmLengths(
-        publishType: PublishType,
+        publicationState: PublicationState,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmLengthDetails>? {
         logger.serviceCall(
             "getKmLengths",
             "trackNumberId" to trackNumberId,
-            "publishType" to publishType,
+            "publicationState" to publicationState,
         )
 
-        return geocodingService.getGeocodingContextCreateResult(publishType, trackNumberId)?.let { contextResult ->
+        return geocodingService.getGeocodingContextCreateResult(publicationState, trackNumberId)?.let { contextResult ->
             extractTrackKmLengths(contextResult.geocodingContext, contextResult)
         }
     }
 
     fun getKmLengthsAsCsv(
-        publishType: PublishType,
+        publicationState: PublicationState,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         startKmNumber: KmNumber? = null,
         endKmNumber: KmNumber? = null,
@@ -119,12 +119,12 @@ class LayoutTrackNumberService(
         logger.serviceCall(
             "getKmLengthsAsCsv",
             "trackNumberId" to trackNumberId,
-            "publishType" to publishType,
+            "publicationState" to publicationState,
             "startKmNumber" to startKmNumber,
             "endKmNumber" to endKmNumber,
         )
 
-        val kmLengths = getKmLengths(publishType, trackNumberId) ?: emptyList()
+        val kmLengths = getKmLengths(publicationState, trackNumberId) ?: emptyList()
 
         val filteredKmLengths = kmLengths.filter { kmPost ->
             val start = startKmNumber ?: kmLengths.first().kmNumber
@@ -137,12 +137,12 @@ class LayoutTrackNumberService(
     }
 
     fun getAllKmLengthsAsCsv(
-        publishType: PublishType,
+        publicationState: PublicationState,
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
     ): String {
         val kmLengths = trackNumberIds
             .parallelStream()
-            .flatMap { trackNumberId -> (getKmLengths(publishType, trackNumberId) ?: emptyList()).stream() }
+            .flatMap { trackNumberId -> (getKmLengths(publicationState, trackNumberId) ?: emptyList()).stream() }
             .sorted(compareBy { kmLengthDetails -> kmLengthDetails.trackNumber })
             .collect(Collectors.toList())
 
@@ -152,19 +152,19 @@ class LayoutTrackNumberService(
     @Transactional(readOnly = true)
     fun getMetadataSections(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-        publishType: PublishType,
+        publicationState: PublicationState,
         boundingBox: BoundingBox?,
     ): List<AlignmentPlanSection> {
         logger.serviceCall(
             "getSectionsByPlan",
             "trackNumberId" to trackNumberId,
-            "publishType" to publishType,
+            "publicationState" to publicationState,
             "boundingBox" to boundingBox,
         )
-        return get(publishType, trackNumberId)?.let { trackNumber ->
-            val referenceLine = referenceLineService.getByTrackNumber(publishType, trackNumberId)
+        return get(publicationState, trackNumberId)?.let { trackNumber ->
+            val referenceLine = referenceLineService.getByTrackNumber(publicationState, trackNumberId)
                 ?: throw NoSuchEntityException("No ReferenceLine for TrackNumber", trackNumberId)
-            val geocodingContext = geocodingService.getGeocodingContext(publishType, trackNumberId)
+            val geocodingContext = geocodingService.getGeocodingContext(publicationState, trackNumberId)
             if (geocodingContext != null && referenceLine.alignmentVersion != null) {
                 alignmentService.getGeometryMetadataSections(
                     referenceLine.alignmentVersion,
@@ -187,10 +187,15 @@ private fun asCsvFile(items: List<TrackLayoutKmLengthDetails>): String {
         TrackLayoutKmPostTableColumn.LOCATION_E to { it.location?.x?.let(::roundTo3Decimals) },
         TrackLayoutKmPostTableColumn.LOCATION_N to { it.location?.y?.let(::roundTo3Decimals) },
         TrackLayoutKmPostTableColumn.WARNING to { kmPost ->
-            if (kmPost.location != null && kmPost.locationSource == GeometrySource.IMPORTED) getTranslation("projected-location-warning")
-            else if (kmPost.location != null && kmPost.locationSource == GeometrySource.GENERATED) getTranslation("start-address-location-warning")
-            else ""
-        }).map { (column, fn) ->
+            if (kmPost.location != null && kmPost.locationSource == GeometrySource.IMPORTED) {
+                getTranslation("projected-location-warning")
+            } else if (kmPost.location != null && kmPost.locationSource == GeometrySource.GENERATED) {
+                getTranslation("start-address-location-warning")
+            } else {
+                ""
+            }
+        },
+    ).map { (column, fn) ->
         CsvEntry(getTranslation("$column-header"), fn)
     }
 

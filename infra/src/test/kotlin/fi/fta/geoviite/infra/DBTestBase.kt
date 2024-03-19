@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra
 import currentUser
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.DbTable

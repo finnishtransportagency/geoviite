@@ -2,7 +2,7 @@ package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.geometryAlignment
 import fi.fta.geoviite.infra.geometry.lineFromOrigin
@@ -10,8 +10,8 @@ import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.PublicationRequestIds
 import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.publication.PublishRequestIds
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FileName
@@ -174,7 +174,7 @@ class RatkoServiceIT @Autowired constructor(
         fakeRatko.acceptsNewLocationTrackGivingItOid("2.3.4.5.6")
         publishAndPush(locationTracks = listOf(locationTrackOriginalVersion))
         fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
-        val officialVersion = locationTrackDao.fetchVersion(locationTrackOriginalVersion.id, PublishType.OFFICIAL)!!
+        val officialVersion = locationTrackDao.fetchVersion(locationTrackOriginalVersion.id, PublicationState.OFFICIAL)!!
         val createdPush = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")
         assertEquals("abcde", createdPush.name)
         assertEquals("cdefg", createdPush.description)
@@ -216,7 +216,7 @@ class RatkoServiceIT @Autowired constructor(
         fakeRatko.acceptsNewLocationTrackGivingItOid("2.3.4.5.6")
         publishAndPush(locationTracks = listOf(locationTrackOriginalVersion))
         fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
-        val officialVersion = locationTrackDao.fetchVersion(locationTrackOriginalVersion.id, PublishType.OFFICIAL)!!
+        val officialVersion = locationTrackDao.fetchVersion(locationTrackOriginalVersion.id, PublicationState.OFFICIAL)!!
         locationTrackService.saveDraft(
             asMainDraft(
                 locationTrackDao.fetch(officialVersion).copy(
@@ -267,7 +267,7 @@ class RatkoServiceIT @Autowired constructor(
         fakeRatko.acceptsNewLocationTrackGivingItOid("2.3.4.5.6")
         publishAndPush(locationTracks = listOf(locationTrackOriginalVersion))
         fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
-        val officialVersion = locationTrackDao.fetchVersion(locationTrackOriginalVersion.id, PublishType.OFFICIAL)!!
+        val officialVersion = locationTrackDao.fetchVersion(locationTrackOriginalVersion.id, PublicationState.OFFICIAL)!!
         locationTrackService.saveDraft(
             asMainDraft(locationTrackDao.fetch(officialVersion)), alignment(segment(Point(2.0, 0.0), Point(8.0, 0.0)))
         )
@@ -308,7 +308,7 @@ class RatkoServiceIT @Autowired constructor(
         fakeRatko.acceptsNewLocationTrackGivingItOid("2.3.4.5.6")
         publishAndPush(locationTracks = listOf(locationTrackOriginalVersion))
         fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
-        val officialVersion = locationTrackDao.fetchVersion(locationTrackOriginalVersion.id, PublishType.OFFICIAL)!!
+        val officialVersion = locationTrackDao.fetchVersion(locationTrackOriginalVersion.id, PublicationState.OFFICIAL)!!
         locationTrackService.saveDraft(
             asMainDraft(locationTrackDao.fetch(officialVersion)), alignment(segment(Point(4.0, 0.0), Point(6.0, 0.0)))
         )
@@ -349,7 +349,7 @@ class RatkoServiceIT @Autowired constructor(
         fakeRatko.acceptsNewLocationTrackGivingItOid("2.3.4.5.6")
         publishAndPush(locationTracks = listOf(locationTrackOriginalVersion))
         fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
-        val officialVersion = locationTrackDao.fetchVersion(locationTrackOriginalVersion.id, PublishType.OFFICIAL)!!
+        val officialVersion = locationTrackDao.fetchVersion(locationTrackOriginalVersion.id, PublicationState.OFFICIAL)!!
         locationTrackService.saveDraft(
             asMainDraft(locationTrackDao.fetch(officialVersion)), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         )
@@ -492,7 +492,7 @@ class RatkoServiceIT @Autowired constructor(
             asMainDraft(
                 referenceLineDao.fetch(
                     referenceLineDao.fetchVersionByTrackNumberId(
-                        PublishType.OFFICIAL, originalTrackNumberVersion.id
+                        PublicationState.OFFICIAL, originalTrackNumberVersion.id
                     )!!
                 )
             ), alignment(segment(Point(0.0, 0.0), Point(5.0, 0.0)))
@@ -545,7 +545,7 @@ class RatkoServiceIT @Autowired constructor(
             asMainDraft(
                 referenceLineDao.fetch(
                     referenceLineDao.fetchVersionByTrackNumberId(
-                        PublishType.OFFICIAL, originalTrackNumberVersion.id
+                        PublicationState.OFFICIAL, originalTrackNumberVersion.id
                     )!!
                 )
             ), alignment(segment(Point(0.0, 0.0), Point(40.0, 0.0)))
@@ -598,7 +598,7 @@ class RatkoServiceIT @Autowired constructor(
         )
 
         kmPostService.saveDraft(
-            asMainDraft(kmPostDao.fetch(kmPostDao.fetchVersion(kmPost2.id, PublishType.OFFICIAL)!!)).copy(
+            asMainDraft(kmPostDao.fetch(kmPostDao.fetchVersion(kmPost2.id, PublicationState.OFFICIAL)!!)).copy(
                 state = LayoutState.DELETED
             )
         )
@@ -635,7 +635,7 @@ class RatkoServiceIT @Autowired constructor(
             kmPosts = listOf(kmPost1.rowVersion, kmPost2.rowVersion),
         )
         listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostPushedLocationTrack)
-        val officialThroughTrackVersion = locationTrackDao.fetchVersion(throughTrack.id, PublishType.OFFICIAL)!!
+        val officialThroughTrackVersion = locationTrackDao.fetchVersion(throughTrack.id, PublicationState.OFFICIAL)!!
         locationTrackService.saveDraft(
             locationTrackDao.fetch(officialThroughTrackVersion).copy(state = LayoutState.DELETED)
         )
@@ -675,7 +675,7 @@ class RatkoServiceIT @Autowired constructor(
         listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostPushedLocationTrack)
         fakeRatko.hostPushedSwitch("3.4.5.6.7")
 
-        val officialSwitchVersion = switchDao.fetchVersion(switch.id, PublishType.OFFICIAL)!!
+        val officialSwitchVersion = switchDao.fetchVersion(switch.id, PublicationState.OFFICIAL)!!
         val officialSwitch = switchDao.fetch(officialSwitchVersion)
         switchService.saveDraft(
             officialSwitch.copy(
@@ -793,7 +793,7 @@ class RatkoServiceIT @Autowired constructor(
             kmPosts = listOf(kmPost1.rowVersion, kmPost2.rowVersion),
         )
         fakeRatko.hostPushedSwitch("3.4.5.6.7")
-        val officialSwitchVersion = switchDao.fetchVersion(switch.id, PublishType.OFFICIAL)!!
+        val officialSwitchVersion = switchDao.fetchVersion(switch.id, PublicationState.OFFICIAL)!!
         switchService.saveDraft(
             switchDao.fetch(officialSwitchVersion).copy(stateCategory = LayoutStateCategory.FUTURE_EXISTING)
         )
@@ -944,7 +944,7 @@ class RatkoServiceIT @Autowired constructor(
         switches: List<RowVersion<TrackLayoutSwitch>> = listOf(),
         kmPosts: List<RowVersion<TrackLayoutKmPost>> = listOf(),
     ) {
-        val ids = PublishRequestIds(
+        val ids = PublicationRequestIds(
             trackNumbers = trackNumbers.map { it.id },
             referenceLines = referenceLines.map { it.id },
             locationTracks = locationTracks.map { it.id },

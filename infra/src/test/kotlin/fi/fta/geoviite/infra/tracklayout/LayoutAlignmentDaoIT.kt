@@ -2,7 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.error.NoSuchEntityException
@@ -299,7 +299,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         locationTrackDao.insert(locationTrack(trackNumberId, alignmentVersion = version, draft = false))
 
         val profileInfo = alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
-            PublishType.OFFICIAL, boundingBoxAroundPoints((points + points2 + points3 + points4 + points5).toList())
+            PublicationState.OFFICIAL, boundingBoxAroundPoints((points + points2 + points3 + points4 + points5).toList())
         )
         assertEquals(5, profileInfo.size)
         assertTrue(profileInfo[0].hasProfile)

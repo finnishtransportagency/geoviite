@@ -3,8 +3,8 @@ package fi.fta.geoviite.infra.tracklayout
 import daoResponseToValidationVersion
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.ValidationVersion
@@ -249,9 +249,9 @@ class LayoutKmPostDaoIT @Autowired constructor(
     }
 
     private fun fetchTrackNumberKmPosts(
-        publishType: PublishType,
+        publicationState: PublicationState,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmPost> {
-        return kmPostDao.fetchVersions(publishType, false, trackNumberId, null).map(kmPostDao::fetch)
+        return kmPostDao.fetchVersions(publicationState, false, trackNumberId, null).map(kmPostDao::fetch)
     }
 }

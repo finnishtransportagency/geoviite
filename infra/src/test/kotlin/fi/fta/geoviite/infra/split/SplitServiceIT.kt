@@ -2,7 +2,7 @@ package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao

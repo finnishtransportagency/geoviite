@@ -458,7 +458,7 @@ class LinkingTestUI @Autowired constructor(
         val lengthAfterLinking = metersToDouble(locationTrackLocationInfobox.trueLength)
 
         Assertions.assertThat(locationTrackLengthBeforeLinking).isLessThan(lengthAfterLinking)
-        val editedLocationTrack = getLocationTrackAndAlignment(PublishType.DRAFT, originalLocationTrack.id)
+        val editedLocationTrack = getLocationTrackAndAlignment(PublicationState.DRAFT, originalLocationTrack.id)
 
         //Check that there's a new segment between GT-end and old LT-start
         assertTrue(
@@ -526,7 +526,7 @@ class LinkingTestUI @Autowired constructor(
         alignmentLinkinInfobox.link()
         waitAndClearToast("linking-succeeded-and-previous-unlinked")
 
-        val locationTrackAfterLinking = getLocationTrackAndAlignment(PublishType.DRAFT, originalLocationTrack.id)
+        val locationTrackAfterLinking = getLocationTrackAndAlignment(PublicationState.DRAFT, originalLocationTrack.id)
 
         toolPanel.selectToolPanelTab("lt-track to extend")
         val lengthAfterLinking = metersToDouble(locationTrackLocationInfobox.trueLength)
@@ -758,10 +758,10 @@ class LinkingTestUI @Autowired constructor(
     }
 
     fun getLocationTrackAndAlignment(
-        publishType: PublishType,
+        publicationState: PublicationState,
         id: IntId<LocationTrack>,
     ): Pair<LocationTrack, LayoutAlignment> {
-        val locationTrack = locationTrackDao.fetch(locationTrackDao.fetchVersion(id, publishType)!!)
+        val locationTrack = locationTrackDao.fetch(locationTrackDao.fetchVersion(id, publicationState)!!)
         val alignment = alignmentDao.fetch(locationTrack.alignmentVersion!!)
         return locationTrack to alignment
     }
