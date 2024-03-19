@@ -408,7 +408,6 @@ class LocationTrackService(
             val endSwitch = (alignment.segments.lastOrNull()?.switchId as IntId?
                 ?: locationTrack.topologyEndSwitch?.switchId)?.let { id -> fetchSwitchAtEndById(id, publishType) }
             val partOfUnfinishedSplit = splitDao.locationTracksPartOfAnyUnfinishedSplit(listOf(id)).isNotEmpty()
-            val relinkableSwitchesCount = countRelinkableSwitches(locationTrack, locationTrack.alignmentVersion!!, alignment)
 
             LocationTrackInfoboxExtras(
                 duplicateOf,
@@ -416,8 +415,15 @@ class LocationTrackService(
                 startSwitch,
                 endSwitch,
                 partOfUnfinishedSplit,
-                relinkableSwitchesCount
             )
+        }
+    }
+
+    @Transactional(readOnly = true)
+    fun getRelinkableSwitchesCount(publishType: PublishType, id: IntId<LocationTrack>): Int? {
+        val locationTrack = get(publishType, id)
+        return locationTrack?.alignmentVersion?.let { alignmentVersion ->
+            countRelinkableSwitches(locationTrack, alignmentVersion, alignmentDao.fetch(alignmentVersion))
         }
     }
 
