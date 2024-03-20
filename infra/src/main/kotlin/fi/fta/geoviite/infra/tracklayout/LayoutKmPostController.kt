@@ -153,7 +153,7 @@ class LayoutKmPostController(
         @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
         @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
     ): ResponseEntity<LayoutAssetChangeInfo> {
-        logger.apiCall("getKmPostChangeTimes", "id" to kmPostId)
+        logger.apiCall("getKmPostChangeInfo", "id" to kmPostId, "publicationState" to publicationState)
         return toResponse(kmPostService.getLayoutAssetChangeInfo(kmPostId, publicationState))
     }
 

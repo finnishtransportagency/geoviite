@@ -137,7 +137,7 @@ class LayoutSwitchController(
         @PathVariable("id") switchId: IntId<TrackLayoutSwitch>,
         @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
     ): ResponseEntity<LayoutAssetChangeInfo> {
-        logger.apiCall("getSwitchChangeTimes", "id" to switchId, "$PUBLICATION_STATE" to publicationState)
+        logger.apiCall("getSwitchChangeInfo", "id" to switchId, "$PUBLICATION_STATE" to publicationState)
         return toResponse(switchService.getLayoutAssetChangeInfo(switchId, publicationState))
     }
 }

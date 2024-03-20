@@ -91,7 +91,7 @@ class ReferenceLineController(
         @PathVariable("id") id: IntId<ReferenceLine>,
         @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
     ): ResponseEntity<LayoutAssetChangeInfo> {
-        logger.apiCall("getReferenceLineChangeInfo", "id" to id)
+        logger.apiCall("getReferenceLineChangeInfo", "id" to id, "publicationState" to publicationState)
         return toResponse(referenceLineService.getLayoutAssetChangeInfo(id, publicationState))
     }
 }

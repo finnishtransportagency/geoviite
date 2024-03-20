@@ -69,7 +69,11 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     }
 
     fun getLayoutAssetChangeInfo(id: IntId<ObjectType>, publicationState: PublicationState): LayoutAssetChangeInfo? {
-        logger.serviceCall("getChangeTimes", "id" to id)
+        logger.serviceCall(
+            "getLayoutAssetChangeInfo",
+            "id" to id,
+            "publicationState" to publicationState,
+        )
         return dao.fetchLayoutAssetChangeInfo(id, publicationState)
     }
 
