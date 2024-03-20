@@ -946,6 +946,50 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
     }
 
+    @Test
+    fun `relinkTrack and validateRelinkingTrack find nearby switches`() {
+        val trackNumberId = getUnusedTrackNumberId()
+        referenceLineDao.insert(
+            referenceLine(
+                trackNumberId,
+                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0)))),
+                draft = false,
+            )
+        )
+
+        val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
+        val (templateSwitch, templateTrackSections) = switchAndMatchingAlignments(trackNumberId, switchStructure, draft = false)
+        val templateThroughTrackSegments = templateTrackSections[0].second.segments
+        val templateBranchingTrackSegments = templateTrackSections[1].second.segments
+        val track152 = locationTrackService.saveDraft(
+            locationTrack(trackNumberId, name = "track152", draft = true), alignment(
+                listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))) + shiftTrack(
+                    templateThroughTrackSegments,
+                    null,
+                    Point(10.0, 0.0)
+                )
+            )
+        ).id
+        locationTrackService.saveDraft(
+            locationTrack(trackNumberId, name = "track13", draft = true),
+            alignment(shiftTrack(templateBranchingTrackSegments, null, Point(10.0, 0.0)))
+        )
+        val okSwitch = switchDao.insert(shiftSwitch(templateSwitch, "ok", Point(10.0, 0.0)))
+
+        val validationResult = switchLinkingService.validateRelinkingTrack(track152)
+        val relinkingResult = switchLinkingService.relinkTrack(track152)
+        assertEquals(
+            listOf(
+                SwitchRelinkingValidationResult(
+                    okSwitch.id, SwitchRelinkingSuggestion(Point(10.0, 0.0), TrackMeter("0000+0010.000")), listOf()
+                )
+            ), validationResult
+        )
+        assertEquals(
+            listOf(TrackSwitchRelinkingResult(okSwitch.id, TrackSwitchRelinkingResultType.RELINKED)),
+            relinkingResult
+        )
+    }
 
     @Test
     fun `validateRelinkingTrack relinks switches that don't end up linked to the original track as well`() {

@@ -115,6 +115,16 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
+    @GetMapping("/location-tracks/{$PUBLISH_TYPE}/{id}/relinkable-switches-count")
+    fun getLocationRelinkableSwitchesCount(
+        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
+        @PathVariable("id") id: IntId<LocationTrack>,
+    ): ResponseEntity<Int> {
+        logger.apiCall("getLocationTrackRelinkableSwitchesCount", "$PUBLISH_TYPE" to publishType, "id" to id)
+        return toResponse(locationTrackService.getRelinkableSwitchesCount(publishType, id))
+    }
+
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
     @GetMapping("/location-tracks/{$PUBLISH_TYPE}/description")
     fun getDescription(
         @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
