@@ -13,7 +13,7 @@ import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils'
 import { getSwitchStructures } from 'common/common-api';
 import {
     JointNumber,
-    PublishType,
+    LayoutContext,
     SwitchAlignmentId,
     SwitchStructureId,
 } from 'common/common-model';
@@ -35,7 +35,7 @@ export type SwitchSuggestionCreatorProps = {
     locationTrackEndpoint: LocationTrackEndpoint;
     onSuggestedSwitchCreated: (suggestedSwitch: SuggestedSwitch) => void;
     onClose: () => void;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     suggestedSwitch?: SuggestedSwitch;
     prefilledSwitchStructureId?: SwitchStructureId;
 };
@@ -58,7 +58,7 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
     locationTrackEndpoint,
     onSuggestedSwitchCreated,
     onClose,
-    publishType,
+    layoutContext,
     suggestedSwitch,
     prefilledSwitchStructureId,
 }) => {
@@ -72,7 +72,7 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
             boundingBoxAroundPoints([locationTrackEndpoint.location]),
             100,
         );
-        return getLocationTracksNear(publishType, bbox);
+        return getLocationTracksNear(layoutContext, bbox);
     }, []);
     const [switchAlignmentConfigs, setSwitchAlignmentConfigs] = React.useState<
         SwitchAlignmentConfig[]

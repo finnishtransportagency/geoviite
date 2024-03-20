@@ -34,6 +34,7 @@ import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
 import { useLoader } from 'utils/react-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { PreviewCandidates, PublicationAssetChangeAmounts } from 'preview/preview-view-data';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
 
 export type PublicationId =
     | LayoutTrackNumberId
@@ -58,6 +59,7 @@ export enum PreviewSelectType {
 }
 
 type PreviewTableProps = {
+    layoutContext: LayoutContext;
     previewChanges: PreviewCandidates;
     staged: boolean;
     changesBeingReverted?: ChangesBeingReverted;
@@ -68,6 +70,7 @@ type PreviewTableProps = {
 };
 
 const PreviewTable: React.FC<PreviewTableProps> = ({
+    layoutContext,
     previewChanges,
     staged,
     changesBeingReverted,
@@ -79,7 +82,12 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     const { t } = useTranslation();
     const trackNumbers =
         useLoader(
-            () => getTrackNumbers('DRAFT', changeTimes.layoutTrackNumber, true),
+            () =>
+                getTrackNumbers(
+                    draftLayoutContext(layoutContext),
+                    changeTimes.layoutTrackNumber,
+                    true,
+                ),
             [changeTimes.layoutTrackNumber],
         ) || [];
 

@@ -58,7 +58,7 @@ async function getStartAndEnd(
         ? getPlanAlignmentStartAndEnd(alignmentId.planId, alignmentId.alignmentId)
         : getLocationTrackStartAndEnd(
               alignmentId.locationTrackId,
-              alignmentId.publishType,
+              alignmentId.layoutContext,
               changeTimes.layoutLocationTrack,
           );
 }
@@ -73,7 +73,7 @@ async function getVerticalGeometry(
           )
         : getLocationTrackVerticalGeometry(
               changeTimes.layoutLocationTrack,
-              alignmentId.publishType,
+              alignmentId.layoutContext,
               alignmentId.locationTrackId,
               undefined,
               undefined,
@@ -141,7 +141,7 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
                 : getLocationTrackLinkingSummary(
                       getMaxTimestamp(changeTimes.geometryPlan, changeTimes.layoutLocationTrack),
                       alignmentId.locationTrackId,
-                      alignmentId.publishType,
+                      alignmentId.layoutContext,
                   );
 
         const geometryPromise = getVerticalGeometry(changeTimes, alignmentId);

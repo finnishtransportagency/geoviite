@@ -1,6 +1,6 @@
 import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { useTrackNumberWithStatus } from 'track-layout/track-layout-react-utils';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { LayoutContext, TimeStamp } from 'common/common-model';
 import { Link } from 'vayla-design-lib/link/link';
 import React from 'react';
 import { createDelegates } from 'store/store-utils';
@@ -17,7 +17,7 @@ export type TrackNumberLinkContainerProps = {
 
 export type TrackNumberLinkProps = {
     trackNumberId?: LayoutTrackNumberId;
-    publicationType: PublishType;
+    layoutContext: LayoutContext;
     changeTime: TimeStamp;
     onClick?: (trackNumberId: LayoutTrackNumberId) => void;
 };
@@ -34,13 +34,13 @@ function createSelectAction() {
 export const TrackNumberLinkContainer: React.FC<TrackNumberLinkContainerProps> = ({
     trackNumberId,
 }) => {
-    const publicationType = useTrackLayoutAppSelector((state) => state.publishType);
+    const layoutContext = useTrackLayoutAppSelector((state) => state.layoutContext);
     const changeTime = useCommonDataAppSelector((state) => state.changeTimes.layoutTrackNumber);
 
     return (
         <TrackNumberLink
             trackNumberId={trackNumberId}
-            publicationType={publicationType}
+            layoutContext={layoutContext}
             changeTime={changeTime}
         />
     );
@@ -48,14 +48,14 @@ export const TrackNumberLinkContainer: React.FC<TrackNumberLinkContainerProps> =
 
 export const TrackNumberLink: React.FC<TrackNumberLinkProps> = ({
     trackNumberId,
-    publicationType,
+    layoutContext,
     changeTime,
     onClick,
 }: TrackNumberLinkProps) => {
     const { t } = useTranslation();
     const [trackNumber, status] = useTrackNumberWithStatus(
-        publicationType,
         trackNumberId,
+        layoutContext,
         changeTime,
     );
 

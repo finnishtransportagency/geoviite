@@ -3,9 +3,9 @@ import {
     LayoutSwitch,
     LayoutTrackNumber,
 } from 'track-layout/track-layout-model';
-import { PublishType } from 'common/common-model';
 import { getNonNull, queryParams } from 'api/api-fetch';
 import { TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
+import { LayoutContext } from 'common/common-model';
 
 export interface LayoutSearchResult {
     switches: LayoutSwitch[];
@@ -15,10 +15,10 @@ export interface LayoutSearchResult {
 
 export async function getBySearchTerm(
     searchTerm: string,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     limitPerResultType: number = 10,
 ): Promise<LayoutSearchResult> {
-    const uri = `${TRACK_LAYOUT_URI}/search/${publishType.toLowerCase()}`;
+    const uri = `${TRACK_LAYOUT_URI}/search/${layoutContext.publicationState.toLowerCase()}`;
 
     const params = queryParams({
         searchTerm: searchTerm,

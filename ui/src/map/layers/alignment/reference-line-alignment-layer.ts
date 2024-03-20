@@ -1,7 +1,7 @@
 import { MapLayerName, MapTile, OptionalShownItems } from 'map/map-model';
 import { LineString, Point as OlPoint } from 'ol/geom';
 import { Selection } from 'selection/selection-model';
-import { PublishType } from 'common/common-model';
+import { LayoutContext } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
@@ -48,7 +48,7 @@ export function createReferenceLineAlignmentLayer(
     existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
     selection: Selection,
     isSplitting: boolean,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     onViewContentChanged: (items: OptionalShownItems) => void,
     onLoadingData: (loading: boolean) => void,
@@ -71,7 +71,7 @@ export function createReferenceLineAlignmentLayer(
     const dataPromise: Promise<AlignmentDataHolder[]> = getReferenceLineMapAlignmentsByTiles(
         changeTimes,
         mapTiles,
-        publishType,
+        layoutContext,
     );
 
     const createFeatures = (referenceLines: AlignmentDataHolder[]) =>

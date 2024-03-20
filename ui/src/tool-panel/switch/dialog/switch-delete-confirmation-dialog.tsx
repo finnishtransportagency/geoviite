@@ -6,21 +6,24 @@ import { LayoutSwitchId } from 'track-layout/track-layout-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { deleteDraftSwitch } from 'track-layout/layout-switch-api';
+import { LayoutContext } from 'common/common-model';
 
 type SwitchDeleteConfirmationDialogProps = {
+    layoutContext: LayoutContext;
     switchId: LayoutSwitchId;
     onSave: (id: LayoutSwitchId) => void;
     onClose: () => void;
 };
 
 const SwitchDeleteConfirmationDialog: React.FC<SwitchDeleteConfirmationDialogProps> = ({
+    layoutContext,
     switchId,
     onSave,
     onClose,
 }) => {
     const { t } = useTranslation();
     const deleteSwitch = () => {
-        deleteDraftSwitch(switchId).then((id) => {
+        deleteDraftSwitch(layoutContext, switchId).then((id) => {
             if (id) {
                 Snackbar.success('switch-delete-dialog.success');
                 onSave(id);

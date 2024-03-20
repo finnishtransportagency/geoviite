@@ -5,13 +5,14 @@ import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switc
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { getSwitchesByBoundingBox } from 'track-layout/layout-switch-api';
 import { SuggestedSwitch } from 'linking/linking-model';
-import { TimeStamp } from 'common/common-model';
+import { draftLayoutContext, LayoutContext, TimeStamp } from 'common/common-model';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 type GeometrySwitchLinkingCandidatesProps = {
+    layoutContext: LayoutContext;
     suggestedSwitch?: SuggestedSwitch;
     selectedSwitchId?: LayoutSwitchId;
     onSelectSwitch: (selectedSwitch: LayoutSwitch) => void;
@@ -20,6 +21,7 @@ type GeometrySwitchLinkingCandidatesProps = {
 };
 
 export const GeometrySwitchLinkingCandidates: React.FC<GeometrySwitchLinkingCandidatesProps> = ({
+    layoutContext,
     suggestedSwitch,
     selectedSwitchId,
     onSelectSwitch,
@@ -39,7 +41,7 @@ export const GeometrySwitchLinkingCandidates: React.FC<GeometrySwitchLinkingCand
                 y: { min: point.y - bboxSize, max: point.y + bboxSize },
             };
 
-            return getSwitchesByBoundingBox(bbox, 'DRAFT', point, true);
+            return getSwitchesByBoundingBox(bbox, draftLayoutContext(layoutContext), point, true);
         } else {
             return undefined;
         }

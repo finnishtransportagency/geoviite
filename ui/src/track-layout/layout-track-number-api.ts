@@ -4,7 +4,12 @@ import {
     LayoutTrackNumberId,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
-import { DraftableChangeInfo, PublishType, TimeStamp } from 'common/common-model';
+import {
+    DraftableChangeInfo,
+    draftLayoutContext,
+    LayoutContext,
+    TimeStamp,
+} from 'common/common-model';
 import {
     deleteNonNullAdt,
     getNonNull,
@@ -31,50 +36,53 @@ const trackNumbersCache = asyncCache<string, LayoutTrackNumber[]>();
 
 export async function getTrackNumberById(
     trackNumberId: LayoutTrackNumberId,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime?: TimeStamp,
 ): Promise<LayoutTrackNumber | undefined> {
-    return getTrackNumbers(publishType, changeTime, true).then((trackNumbers) =>
+    return getTrackNumbers(layoutContext, changeTime, true).then((trackNumbers) =>
         trackNumbers.find((trackNumber) => trackNumber.id == trackNumberId),
     );
 }
 
 export async function getTrackNumbers(
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime: TimeStamp = getChangeTimes().layoutTrackNumber,
     includeDeleted = false,
 ): Promise<LayoutTrackNumber[]> {
-    const cacheKey = `${includeDeleted}_${publishType}`;
+    const cacheKey = `${includeDeleted}_${layoutContext.publicationState}_${layoutContext.designId}`;
     return trackNumbersCache.get(changeTime, cacheKey, () =>
         getNonNull<LayoutTrackNumber[]>(
-            layoutUri('track-numbers', publishType) + queryParams({ includeDeleted }),
+            layoutUri('track-numbers', layoutContext) + queryParams({ includeDeleted }),
         ),
     );
 }
 
 export async function updateTrackNumber(
+    layoutContext: LayoutContext,
     trackNumberId: LayoutTrackNumberId,
     request: TrackNumberSaveRequest,
 ): Promise<LayoutTrackNumberId | undefined> {
-    const path = layoutUri('track-numbers', 'DRAFT', trackNumberId);
+    const path = layoutUri('track-numbers', draftLayoutContext(layoutContext), trackNumberId);
     return await putNonNull<TrackNumberSaveRequest, LayoutTrackNumberId>(path, request).then((rs) =>
         updateTrackNumberChangeTime().then((_) => rs),
     );
 }
 
 export async function createTrackNumber(
+    layoutContext: LayoutContext,
     request: TrackNumberSaveRequest,
 ): Promise<LayoutTrackNumberId | undefined> {
-    const path = layoutUri('track-numbers', 'DRAFT');
+    const path = layoutUri('track-numbers', draftLayoutContext(layoutContext));
     return await postNonNull<TrackNumberSaveRequest, LayoutTrackNumberId>(path, request).then(
         (rs) => updateTrackNumberChangeTime().then((_) => rs),
     );
 }
 
 export async function deleteTrackNumber(
+    layoutContext: LayoutContext,
     trackNumberId: LayoutTrackNumberId,
 ): Promise<Result<LocationTrackId, LocationTrackSaveError>> {
-    const path = layoutUri('track-numbers', 'DRAFT', trackNumberId);
+    const path = layoutUri('track-numbers', draftLayoutContext(layoutContext), trackNumberId);
     const apiResult = await deleteNonNullAdt<undefined, LayoutTrackNumberId>(path, undefined);
 
     await updateTrackNumberChangeTime();
@@ -87,26 +95,28 @@ export async function deleteTrackNumber(
 }
 
 export async function getTrackNumberValidation(
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     id: LayoutTrackNumberId,
 ): Promise<ValidatedAsset | undefined> {
-    return getNullable<ValidatedAsset>(`${layoutUri('track-numbers', publishType, id)}/validation`);
+    return getNullable<ValidatedAsset>(
+        `${layoutUri('track-numbers', layoutContext, id)}/validation`,
+    );
 }
 
 export const getTrackNumberReferenceLineSectionsByPlan = async (
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     id: LayoutTrackNumberId,
     bbox: BoundingBox | undefined = undefined,
 ) => {
     const params = queryParams({ bbox: bbox ? bboxString(bbox) : undefined });
     return getNonNull<AlignmentPlanSection[]>(
-        `${layoutUri('track-numbers', publishType, id)}/plan-geometry${params}`,
+        `${layoutUri('track-numbers', layoutContext, id)}/plan-geometry${params}`,
     );
 };
 
 export const getTrackNumberChangeTimes = (
     id: LayoutTrackNumberId,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
 ): Promise<DraftableChangeInfo | undefined> => {
-    return getNullable<DraftableChangeInfo>(changeTimeUri('track-numbers', id, publishType));
+    return getNullable<DraftableChangeInfo>(changeTimeUri('track-numbers', id, layoutContext));
 };

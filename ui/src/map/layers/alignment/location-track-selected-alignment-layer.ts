@@ -5,7 +5,6 @@ import { Selection } from 'selection/selection-model';
 import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
-import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -18,6 +17,7 @@ import { createAlignmentFeature } from '../utils/alignment-layer-utils';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
 import { first } from 'utils/array-utils';
+import { LayoutContext } from 'common/common-model';
 
 const selectedLocationTrackStyle = new Style({
     stroke: new Stroke({
@@ -41,7 +41,7 @@ export function createLocationTrackSelectedAlignmentLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
     selection: Selection,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     splittingState: SplittingState | undefined,
     changeTimes: ChangeTimes,
     olView: OlView,
@@ -56,7 +56,7 @@ export function createLocationTrackSelectedAlignmentLayer(
         ? getSelectedLocationTrackMapAlignmentByTiles(
               changeTimes,
               mapTiles,
-              publishType,
+              layoutContext,
               selectedTrack,
           )
         : Promise.resolve([]);

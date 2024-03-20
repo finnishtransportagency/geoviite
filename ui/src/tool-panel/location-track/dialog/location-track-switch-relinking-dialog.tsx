@@ -15,12 +15,12 @@ import {
 } from 'track-layout/track-layout-slice';
 import { useLocationTrackInfoboxExtras } from 'track-layout/track-layout-react-utils';
 import { useCommonDataAppSelector } from 'store/hooks';
-import { PublishType } from 'common/common-model';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { createDelegates } from 'store/store-utils';
 
 type LocationTrackSwitchRelinkingDialogContainerProps = {
     locationTrackId: LocationTrackId;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     name: string;
     closeDialog: () => void;
 };
@@ -44,19 +44,23 @@ type LocationTrackSwitchRelinkingDialogProps = LocationTrackSwitchRelinkingDialo
 
 export const LocationTrackSwitchRelinkingDialog: React.FC<
     LocationTrackSwitchRelinkingDialogProps
-> = ({ locationTrackId, publishType, name, showLocationTrackTaskList, closeDialog }) => {
+> = ({ locationTrackId, layoutContext, name, showLocationTrackTaskList, closeDialog }) => {
     const { t } = useTranslation();
     const [isRelinking, setIsRelinking] = React.useState(false);
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
-    const [extraInfo, _] = useLocationTrackInfoboxExtras(locationTrackId, publishType, changeTimes);
+    const [extraInfo, _] = useLocationTrackInfoboxExtras(
+        locationTrackId,
+        layoutContext,
+        changeTimes,
+    );
 
     const startRelinking = async () => {
         setIsRelinking(true);
         const relinkingResult = await relinkTrackSwitches(locationTrackId);
         closeDialog();
         const validation = await getSwitchesValidation(
-            'DRAFT',
+            draftLayoutContext(layoutContext),
             relinkingResult.map((r) => r.id),
         );
         const relinkedCount = validation.length;

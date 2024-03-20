@@ -10,6 +10,7 @@ export const PreviewContainer: React.FC = () => {
     const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
 
     const props: PreviewProps = {
+        layoutContext: trackLayoutState.layoutContext,
         changeTimes: changeTimes,
         selectedPublishCandidateIds: trackLayoutState.stagedPublicationRequestIds,
         showOnlyOwnUnstagedChanges: trackLayoutState.previewState.showOnlyOwnUnstagedChanges,

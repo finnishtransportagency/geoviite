@@ -1,5 +1,5 @@
 import { MapLayerName, MapTile } from 'map/map-model';
-import { PublishType } from 'common/common-model';
+import { LayoutContext } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
@@ -54,7 +54,7 @@ const layerName: MapLayerName = 'plan-section-highlight-layer';
 
 function getAlignments(
     mapTiles: MapTile[],
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,
     hoveredOverItem: HighlightedAlignment | undefined,
@@ -65,14 +65,14 @@ function getAlignments(
         return getSelectedReferenceLineMapAlignmentByTiles(
             changeTimes,
             mapTiles,
-            publishType,
+            layoutContext,
             hoveredOverItem.id,
         );
     } else {
         return getSelectedLocationTrackMapAlignmentByTiles(
             changeTimes,
             mapTiles,
-            publishType,
+            layoutContext,
             hoveredOverItem.id,
         );
     }
@@ -81,7 +81,7 @@ function getAlignments(
 export function createPlanSectionHighlightLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,
     hoveredOverItem: HighlightedAlignment | undefined,
@@ -91,7 +91,7 @@ export function createPlanSectionHighlightLayer(
 
     const dataPromise: Promise<AlignmentDataHolder[]> = getAlignments(
         mapTiles,
-        publishType,
+        layoutContext,
         changeTimes,
         resolution,
         hoveredOverItem,

@@ -16,7 +16,31 @@ export type AngularUnit = 'RADIANS' | 'GRADS';
 
 export type DataType = 'STORED' | 'TEMP';
 
-export type PublishType = 'OFFICIAL' | 'DRAFT';
+export type LayoutBranchId = string;
+export type PublicationState = 'OFFICIAL' | 'DRAFT';
+export type LayoutContext = {
+    publicationState: PublicationState;
+    designId: LayoutBranchId | undefined;
+};
+
+export const officialLayoutContext = (layoutContext: LayoutContext): LayoutContext => ({
+    publicationState: 'OFFICIAL',
+    designId: layoutContext.designId,
+});
+export const draftLayoutContext = (layoutContext: LayoutContext): LayoutContext => ({
+    publicationState: 'DRAFT',
+    designId: layoutContext.designId,
+});
+
+export const officialMainLayoutContext = (): LayoutContext => ({
+    publicationState: 'OFFICIAL',
+    designId: undefined,
+});
+export const draftMainLayoutContext = (): LayoutContext => ({
+    publicationState: 'DRAFT',
+    designId: undefined,
+});
+
 export type LayoutMode = 'DEFAULT' | 'PREVIEW';
 
 export type LocationAccuracy =

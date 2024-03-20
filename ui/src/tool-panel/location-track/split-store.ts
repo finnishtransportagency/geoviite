@@ -7,7 +7,7 @@ import {
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { TrackLayoutState } from 'track-layout/track-layout-slice';
-import { TrackMeter } from 'common/common-model';
+import { draftLayoutContext, TrackMeter } from 'common/common-model';
 import { Point } from 'model/geometry';
 import { SplitDuplicate } from 'track-layout/layout-location-track-api';
 import { getPlanarDistanceUnwrapped } from 'map/layers/utils/layer-utils';
@@ -96,7 +96,7 @@ export const splitReducers = {
             payload.duplicateTracks,
             payload.startLocation,
         );
-        state.publishType = 'DRAFT';
+        state.layoutContext = draftLayoutContext(state.layoutContext);
         state.splittingState = {
             state: 'SETUP',
             originLocationTrack: payload.locationTrack,

@@ -11,6 +11,7 @@ import { dataProductsActions, SelectedGeometrySearch } from 'data-products/data-
 import { EntireRailNetworkElementListing } from 'data-products/element-list/entire-rail-network-element-listing';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { DOWNLOAD_GEOMETRY } from 'user/user-model';
+import { officialMainLayoutContext } from 'common/common-model';
 
 const ElementListView = () => {
     const { t } = useTranslation();
@@ -73,6 +74,7 @@ const ElementListView = () => {
             </div>
             {state.selectedSearch !== 'ENTIRE_RAIL_NETWORK' && (
                 <ElementTable
+                    layoutContext={officialMainLayoutContext()}
                     elements={
                         state.selectedSearch === 'LOCATION_TRACK'
                             ? state.locationTrackSearch.elements

@@ -16,7 +16,7 @@ import {
     createLayoutSwitchFeatures,
     findMatchingSwitches,
 } from 'map/layers/utils/switch-layer-utils';
-import { PublishType, SwitchStructure, TimeStamp } from 'common/common-model';
+import { LayoutContext, SwitchStructure, TimeStamp } from 'common/common-model';
 import { getSwitchStructures } from 'common/common-api';
 import { ChangeTimes } from 'common/common-slice';
 import { filterUniqueById } from 'utils/array-utils';
@@ -32,11 +32,11 @@ let shownSwitchesCompare: string;
 
 const getTiledSwitchValidation = (
     mapTiles: MapTile[],
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     switchChangeTime: TimeStamp,
 ) =>
     Promise.all(
-        mapTiles.map((tile) => getSwitchesValidationByTile(switchChangeTime, tile, publishType)),
+        mapTiles.map((tile) => getSwitchesValidationByTile(switchChangeTime, tile, layoutContext)),
     ).then((results) => results.flat());
 
 type SwitchLayerData = {
@@ -52,7 +52,7 @@ export function createSwitchLayer(
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     selection: Selection,
     splittingState: SplittingState | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     olView: OlView,
     onViewContentChanged: (items: OptionalShownItems) => void,
@@ -69,15 +69,15 @@ export function createSwitchLayer(
                     .map((sw) => sw.switchId)
                     .concat(splittingState?.startAndEndSwitches) || [];
 
-            const switches = await getSwitches(switchIds, publishType);
+            const switches = await getSwitches(switchIds, layoutContext);
             return switches.filter((sw_1) => sw_1.stateCategory !== 'NOT_EXISTING');
         } else if (resolution <= Limits.SWITCH_SHOW) {
             const switchGroups = await Promise.all(
-                mapTiles.map((t) => getSwitchesByTile(changeTimes.layoutSwitch, t, publishType)),
+                mapTiles.map((t) => getSwitchesByTile(changeTimes.layoutSwitch, t, layoutContext)),
             );
             return switchGroups.flat().filter(filterUniqueById((s) => s.id));
         } else {
-            return getSwitches(selection.selectedItems.switches, publishType);
+            return getSwitches(selection.selectedItems.switches, layoutContext);
         }
     };
 
@@ -88,15 +88,15 @@ export function createSwitchLayer(
                     .map((sw) => sw.switchId)
                     .concat(splittingState?.startAndEndSwitches) || [];
 
-            return getSwitchesValidation(publishType, switchIds);
+            return getSwitchesValidation(layoutContext, switchIds);
         } else if (resolution <= Limits.SWITCH_SHOW) {
             return getTiledSwitchValidation(
                 mapTiles,
-                publishType,
+                layoutContext,
                 getMaxTimestamp(changeTimes.layoutSwitch, changeTimes.layoutLocationTrack),
             ).then((tile) => tile.flat());
         } else {
-            return getSwitchesValidation(publishType, selection.selectedItems.switches);
+            return getSwitchesValidation(layoutContext, selection.selectedItems.switches);
         }
     };
 

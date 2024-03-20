@@ -5,18 +5,18 @@ import {
     suggestedSwitchTopoLinksAsTopologicalJointConnections,
 } from 'linking/linking-utils';
 import { SuggestedSwitch } from 'linking/linking-model';
-import { PublishType, SwitchStructure } from 'common/common-model';
+import { LayoutContext, SwitchStructure } from 'common/common-model';
 
 type SwitchJointInfoboxContainerProps = {
     suggestedSwitch: SuggestedSwitch;
     suggestedSwitchStructure: SwitchStructure;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
 };
 
 export const SwitchJointInfoboxContainer: React.FC<SwitchJointInfoboxContainerProps> = ({
     suggestedSwitch,
     suggestedSwitchStructure,
-    publishType,
+    layoutContext,
 }) => {
     const jointConnections = suggestedSwitchJointsAsLayoutSwitchJointConnections(suggestedSwitch);
     const switchAlignments = suggestedSwitchStructure.alignments;
@@ -28,7 +28,7 @@ export const SwitchJointInfoboxContainer: React.FC<SwitchJointInfoboxContainerPr
             switchAlignments={switchAlignments}
             jointConnections={jointConnections}
             topologicalJointConnections={topologicalJointConnections}
-            publishType={publishType}
+            layoutContext={layoutContext}
         />
     ) : (
         <React.Fragment />

@@ -8,7 +8,7 @@ import {
     getLocationTrackSectionsWithoutProfileByTiles,
 } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import { PublishType } from 'common/common-model';
+import { LayoutContext } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { createHighlightFeatures } from 'map/layers/utils/highlight-layer-utils';
@@ -28,7 +28,7 @@ const layerName: MapLayerName = 'missing-profile-highlight-layer';
 export function createMissingProfileHighlightLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,
     onLoadingData: (loading: boolean) => void,
@@ -38,10 +38,10 @@ export function createMissingProfileHighlightLayer(
     const dataPromise: Promise<[AlignmentDataHolder[], AlignmentHighlight[]]> =
         resolution <= HIGHLIGHTS_SHOW
             ? Promise.all([
-                  getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, publishType),
+                  getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext),
                   getLocationTrackSectionsWithoutProfileByTiles(
                       changeTimes.layoutLocationTrack,
-                      publishType,
+                      layoutContext,
                       mapTiles,
                   ),
               ])

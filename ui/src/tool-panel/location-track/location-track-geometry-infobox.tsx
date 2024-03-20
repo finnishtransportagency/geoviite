@@ -6,7 +6,6 @@ import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { getLocationTrackSectionsByPlan } from 'track-layout/layout-location-track-api';
-import { PublishType } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
 import {
     AlignmentPlanSectionInfoboxContent,
@@ -17,9 +16,10 @@ import {
     ProgressIndicatorType,
     ProgressIndicatorWrapper,
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
+import { LayoutContext } from 'common/common-model';
 
 type LocationTrackGeometryInfoboxProps = {
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     locationTrackId: LocationTrackId;
     viewport: MapViewport;
     contentVisible: boolean;
@@ -28,7 +28,7 @@ type LocationTrackGeometryInfoboxProps = {
 };
 
 export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfoboxProps> = ({
-    publishType,
+    layoutContext,
     locationTrackId,
     viewport,
     contentVisible,
@@ -41,12 +41,12 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
     const [sections, elementFetchStatus] = useRateLimitedLoaderWithStatus(
         () =>
             getLocationTrackSectionsByPlan(
-                publishType,
+                layoutContext,
                 locationTrackId,
                 useBoundingBox ? viewport.area : undefined,
             ),
         1000,
-        [locationTrackId, publishType, viewportDep],
+        [locationTrackId, layoutContext.publicationState, layoutContext.designId, viewportDep],
     );
 
     return (

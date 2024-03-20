@@ -29,7 +29,7 @@ import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
 import { GeometryPlanLayout, LAYOUT_SRID } from 'track-layout/track-layout-model';
-import { PublishType } from 'common/common-model';
+import { LayoutContext } from 'common/common-model';
 import Overlay from 'ol/Overlay';
 import { useTranslation } from 'react-i18next';
 import { createDebugLayer } from 'map/layers/debug/debug-layer';
@@ -88,7 +88,7 @@ declare global {
 export type MapViewProps = {
     map: Map;
     selection: Selection;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     linkingState: LinkingState | undefined;
     splittingState: SplittingState | undefined;
     onSelect: OnSelectFunction;
@@ -151,7 +151,7 @@ function getDomainViewportByOlView(map: OlMap): MapViewport {
 const MapView: React.FC<MapViewProps> = ({
     map,
     selection,
-    publishType,
+    layoutContext,
     linkingState,
     splittingState,
     changeTimes,
@@ -317,7 +317,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
                             changeTimes,
-                            publishType,
+                            layoutContext,
                             resolution,
                             map.layerSettings['track-number-diagram-layer'],
                             (loading) => onLayerLoading(layerName, loading),
@@ -327,7 +327,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             changeTimes,
-                            publishType,
+                            layoutContext,
                             resolution,
                             map.layerSettings['track-number-diagram-layer'],
                             (loading) => onLayerLoading(layerName, loading),
@@ -338,7 +338,7 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<LineString | OlPoint>>,
                             selection,
                             !!splittingState,
-                            publishType,
+                            layoutContext,
                             changeTimes,
                             onShownLayerItemsChange,
                             (loading) => onLayerLoading(layerName, loading),
@@ -348,7 +348,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
                             !!splittingState,
-                            publishType,
+                            layoutContext,
                             changeTimes,
                             (loading) => onLayerLoading(layerName, loading),
                         );
@@ -357,7 +357,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             selection,
-                            publishType,
+                            layoutContext,
                             linkingState,
                             changeTimes,
                             resolution,
@@ -369,7 +369,7 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<LineString | OlPoint>>,
                             selection,
                             !!splittingState,
-                            publishType,
+                            layoutContext,
                             changeTimes,
                             olView,
                             onShownLayerItemsChange,
@@ -379,7 +379,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return createLocationTrackBackgroundLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
-                            publishType,
+                            layoutContext,
                             changeTimes,
                             resolution,
                             selection,
@@ -391,7 +391,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             selection,
-                            publishType,
+                            layoutContext,
                             linkingState,
                             changeTimes,
                             resolution,
@@ -401,7 +401,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return createMissingLinkingHighlightLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
-                            publishType,
+                            layoutContext,
                             changeTimes,
                             resolution,
                             (loading) => onLayerLoading(layerName, loading),
@@ -410,7 +410,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return createDuplicateTracksHighlightLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
-                            publishType,
+                            layoutContext,
                             changeTimes,
                             resolution,
                             (loading) => onLayerLoading(layerName, loading),
@@ -419,7 +419,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return createMissingProfileHighlightLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
-                            publishType,
+                            layoutContext,
                             changeTimes,
                             resolution,
                             (loading) => onLayerLoading(layerName, loading),
@@ -428,7 +428,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return createPlanSectionHighlightLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
-                            publishType,
+                            layoutContext,
                             changeTimes,
                             resolution,
                             hoveredOverPlanSection,
@@ -439,7 +439,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<OlPoint | Rectangle>>,
                             selection,
-                            publishType,
+                            layoutContext,
                             changeTimes,
                             olView,
                             onShownLayerItemsChange,
@@ -451,7 +451,7 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             selection,
                             splittingState,
-                            publishType,
+                            layoutContext,
                             changeTimes,
                             olView,
                             onShownLayerItemsChange,
@@ -462,7 +462,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
                             selection,
-                            publishType,
+                            layoutContext,
                             changeTimes,
                             resolution,
                             manuallySetPlan,
@@ -474,7 +474,7 @@ const MapView: React.FC<MapViewProps> = ({
                             resolution,
                             existingOlLayer as VectorLayer<VectorSource<OlPoint | Rectangle>>,
                             selection,
-                            publishType,
+                            layoutContext,
                             changeTimes,
                             manuallySetPlan,
                             (loading) => onLayerLoading(layerName, loading),
@@ -484,7 +484,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             selection,
-                            publishType,
+                            layoutContext,
                             changeTimes,
                             resolution,
                             manuallySetPlan,
@@ -494,6 +494,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return createAlignmentLinkingLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<OlPoint | LineString>>,
+                            layoutContext,
                             selection,
                             linkingState,
                             changeTimes,
@@ -512,6 +513,7 @@ const MapView: React.FC<MapViewProps> = ({
                     case 'location-track-split-location-layer':
                         return createLocationTrackSplitLocationLayer(
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
+                            layoutContext,
                             splittingState,
                             (loading) => onLayerLoading(layerName, loading),
                         );
@@ -519,7 +521,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return createDuplicateSplitSectionHighlightLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
-                            publishType,
+                            layoutContext,
                             changeTimes,
                             resolution,
                             splittingState,
@@ -529,7 +531,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return createDuplicateTrackEndpointAddressLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
-                            publishType,
+                            layoutContext,
                             changeTimes,
                             resolution,
                             splittingState,
@@ -539,7 +541,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return createLocationTrackSplitBadgeLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
-                            publishType,
+                            layoutContext,
                             splittingState,
                             changeTimes,
                             resolution,
@@ -550,7 +552,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
                             selection,
-                            publishType,
+                            layoutContext,
                             splittingState,
                             changeTimes,
                             olView,
@@ -561,7 +563,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
                             selection,
-                            publishType,
+                            layoutContext,
                             changeTimes,
                             (loading) => onLayerLoading(layerName, loading),
                         );
@@ -576,7 +578,7 @@ const MapView: React.FC<MapViewProps> = ({
                         return createDebug1mPointsLayer(
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             selection,
-                            publishType,
+                            layoutContext,
                             resolution,
                             (loading) => onLayerLoading(layerName, loading),
                         );
@@ -610,7 +612,7 @@ const MapView: React.FC<MapViewProps> = ({
         mapLayers,
         selection,
         changeTimes,
-        publishType,
+        layoutContext,
         linkingState,
         splittingState,
         map.layerSettings,
@@ -713,7 +715,7 @@ const MapView: React.FC<MapViewProps> = ({
                 hoveredCoordinate={hoveredLocation}
                 trackNumbers={selection.selectedItems.trackNumbers}
                 locationTracks={selection.selectedItems.locationTracks}
-                publishType={publishType}
+                layoutContext={layoutContext}
             />
 
             {isLoading() && (

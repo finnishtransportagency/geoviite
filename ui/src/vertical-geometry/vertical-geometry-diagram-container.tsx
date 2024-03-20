@@ -35,7 +35,7 @@ export const VerticalGeometryDiagramContainer: React.FC = () => {
         } else if (state.selectedToolPanelTab?.type === 'LOCATION_TRACK' && selectedLocationTrack) {
             setAlignmentId({
                 locationTrackId: selectedLocationTrack,
-                publishType: state.publishType,
+                layoutContext: state.layoutContext,
             });
         } else {
             setAlignmentId(undefined);

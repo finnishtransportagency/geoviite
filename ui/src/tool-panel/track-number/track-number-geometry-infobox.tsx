@@ -5,7 +5,7 @@ import { LoaderStatus, useRateLimitedLoaderWithStatus } from 'utils/react-utils'
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { LayoutContext, TimeStamp } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
 import {
     AlignmentPlanSectionInfoboxContent,
@@ -19,7 +19,7 @@ import {
 import { getTrackNumberReferenceLineSectionsByPlan } from 'track-layout/layout-track-number-api';
 
 type TrackNumberGeometryInfoboxProps = {
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     trackNumberId: LayoutTrackNumberId;
     viewport: MapViewport;
     contentVisible: boolean;
@@ -29,7 +29,7 @@ type TrackNumberGeometryInfoboxProps = {
 };
 
 export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProps> = ({
-    publishType,
+    layoutContext,
     trackNumberId,
     viewport,
     contentVisible,
@@ -43,12 +43,18 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
     const [sections, elementFetchStatus] = useRateLimitedLoaderWithStatus(
         () =>
             getTrackNumberReferenceLineSectionsByPlan(
-                publishType,
+                layoutContext,
                 trackNumberId,
                 useBoundingBox ? viewport.area : undefined,
             ),
         1000,
-        [trackNumberId, publishType, viewportDep, changeTime],
+        [
+            trackNumberId,
+            layoutContext.publicationState,
+            layoutContext.designId,
+            viewportDep,
+            changeTime,
+        ],
     );
 
     return (

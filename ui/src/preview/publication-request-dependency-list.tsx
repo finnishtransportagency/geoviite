@@ -7,7 +7,7 @@ import {
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import { TimeStamp } from 'common/common-model';
+import { draftLayoutContext, LayoutContext, TimeStamp } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
 import {
     useKmPost,
@@ -29,11 +29,16 @@ const publicationRequestSize = (req: PublishRequestIds): number =>
     req.referenceLines.length +
     req.kmPosts.length;
 
-const TrackNumberItem: React.FC<{ trackNumberId: LayoutTrackNumberId; changeTime: TimeStamp }> = (
-    props,
-) => {
+const TrackNumberItem: React.FC<{
+    layoutContext: LayoutContext;
+    trackNumberId: LayoutTrackNumberId;
+    changeTime: TimeStamp;
+}> = (props) => {
     const { t } = useTranslation();
-    const trackNumbers = useTrackNumbersIncludingDeleted('DRAFT', props.changeTime);
+    const trackNumbers = useTrackNumbersIncludingDeleted(
+        draftLayoutContext(props.layoutContext),
+        props.changeTime,
+    );
     const trackNumber = trackNumbers && trackNumbers.find((tn) => tn.id === props.trackNumberId);
     return trackNumber === undefined ? (
         <li />
@@ -45,17 +50,18 @@ const TrackNumberItem: React.FC<{ trackNumberId: LayoutTrackNumberId; changeTime
 };
 
 const ReferenceLineItem: React.FC<{
+    layoutContext: LayoutContext;
     referenceLineId: ReferenceLineId;
     changeTimes: ChangeTimes;
 }> = (props) => {
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbersIncludingDeleted(
-        'DRAFT',
+        draftLayoutContext(props.layoutContext),
         props.changeTimes.layoutTrackNumber,
     );
     const referenceLine = useReferenceLine(
         props.referenceLineId,
-        'DRAFT',
+        draftLayoutContext(props.layoutContext),
         props.changeTimes.layoutReferenceLine,
     );
     if (referenceLine === undefined || trackNumbers === undefined) {
@@ -71,11 +77,17 @@ const ReferenceLineItem: React.FC<{
     );
 };
 
-const LocationTrackItem: React.FC<{ locationTrackId: LocationTrackId; changeTime: TimeStamp }> = (
-    props,
-) => {
+const LocationTrackItem: React.FC<{
+    layoutContext: LayoutContext;
+    locationTrackId: LocationTrackId;
+    changeTime: TimeStamp;
+}> = (props) => {
     const { t } = useTranslation();
-    const locationTrack = useLocationTrack(props.locationTrackId, 'DRAFT', props.changeTime);
+    const locationTrack = useLocationTrack(
+        props.locationTrackId,
+        draftLayoutContext(props.layoutContext),
+        props.changeTime,
+    );
     return locationTrack === undefined ? (
         <li />
     ) : (
@@ -85,9 +97,12 @@ const LocationTrackItem: React.FC<{ locationTrackId: LocationTrackId; changeTime
     );
 };
 
-const SwitchItem: React.FC<{ switchId: LayoutSwitchId }> = ({ switchId }) => {
+const SwitchItem: React.FC<{ layoutContext: LayoutContext; switchId: LayoutSwitchId }> = ({
+    layoutContext,
+    switchId,
+}) => {
     const { t } = useTranslation();
-    const switchObj = useSwitch(switchId, 'DRAFT');
+    const switchObj = useSwitch(switchId, draftLayoutContext(layoutContext));
     return switchObj === undefined ? (
         <li />
     ) : (
@@ -97,9 +112,12 @@ const SwitchItem: React.FC<{ switchId: LayoutSwitchId }> = ({ switchId }) => {
     );
 };
 
-const KmPostItem: React.FC<{ kmPostId: LayoutKmPostId }> = ({ kmPostId }) => {
+const KmPostItem: React.FC<{ layoutContext: LayoutContext; kmPostId: LayoutKmPostId }> = ({
+    layoutContext,
+    kmPostId,
+}) => {
     const { t } = useTranslation();
-    const kmPost = useKmPost(kmPostId, 'DRAFT');
+    const kmPost = useKmPost(kmPostId, draftLayoutContext(layoutContext));
     return kmPost === undefined ? (
         <li />
     ) : (
@@ -166,11 +184,13 @@ const filterDisplayedDependencies = (
 };
 
 export interface PublicationRequestDependencyListProps {
+    layoutContext: LayoutContext;
     changesBeingReverted: ChangesBeingReverted;
     changeTimes: ChangeTimes;
 }
 
 export const PublicationRequestDependencyList: React.FC<PublicationRequestDependencyListProps> = ({
+    layoutContext,
     changesBeingReverted,
     changeTimes,
 }) => {
@@ -190,6 +210,7 @@ export const PublicationRequestDependencyList: React.FC<PublicationRequestDepend
                 <ul>
                     {dependencies.trackNumbers.map((tn) => (
                         <TrackNumberItem
+                            layoutContext={draftLayoutContext(layoutContext)}
                             trackNumberId={tn}
                             changeTime={changeTimes.layoutTrackNumber}
                             key={tn}
@@ -198,6 +219,7 @@ export const PublicationRequestDependencyList: React.FC<PublicationRequestDepend
 
                     {dependencies.referenceLines.map((rl) => (
                         <ReferenceLineItem
+                            layoutContext={draftLayoutContext(layoutContext)}
                             referenceLineId={rl}
                             changeTimes={changeTimes}
                             key={rl}
@@ -205,16 +227,25 @@ export const PublicationRequestDependencyList: React.FC<PublicationRequestDepend
                     ))}
                     {dependencies.locationTracks.map((lt) => (
                         <LocationTrackItem
+                            layoutContext={draftLayoutContext(layoutContext)}
                             locationTrackId={lt}
                             changeTime={changeTimes.layoutLocationTrack}
                             key={lt}
                         />
                     ))}
                     {dependencies.switches.map((sw) => (
-                        <SwitchItem switchId={sw} key={sw} />
+                        <SwitchItem
+                            layoutContext={draftLayoutContext(layoutContext)}
+                            switchId={sw}
+                            key={sw}
+                        />
                     ))}
                     {dependencies.kmPosts.map((kmPost) => (
-                        <KmPostItem kmPostId={kmPost} key={kmPost} />
+                        <KmPostItem
+                            layoutContext={draftLayoutContext(layoutContext)}
+                            kmPostId={kmPost}
+                            key={kmPost}
+                        />
                     ))}
                 </ul>
             </>

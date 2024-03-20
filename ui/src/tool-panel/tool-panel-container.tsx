@@ -17,7 +17,10 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
     const store = useTrackLayoutAppSelector((state) => state);
 
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
-    const typeChange = React.useCallback(() => delegates.onPublishTypeChange('DRAFT'), [delegates]);
+    const typeChange = React.useCallback(
+        () => delegates.onPublicationStateChange('DRAFT'),
+        [delegates],
+    );
     const kmPostIds = store.selection.selectedItems.kmPosts;
     const switchIds = store.selection.selectedItems.switches;
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
@@ -71,7 +74,7 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
             linkingState={store.linkingState}
             splittingState={store.splittingState}
             changeTimes={changeTimes}
-            publishType={store.publishType}
+            layoutContext={store.layoutContext}
             suggestedSwitches={store.selection.selectedItems.suggestedSwitches}
             onDataChange={typeChange}
             setSelectedAsset={delegates.setToolPanelTab}

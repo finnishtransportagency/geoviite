@@ -8,7 +8,6 @@ import { GeometryPlanId } from 'geometry/geometry-model';
 import { usePlanHeader } from 'track-layout/track-layout-react-utils';
 import GeometryPlanInfobox from 'tool-panel/geometry-plan-infobox';
 import GeometryAlignmentLinkingInfobox from 'tool-panel/geometry-alignment/geometry-alignment-linking-infobox';
-import { PublishType } from 'common/common-model';
 import {
     GeometryLinkingAlignmentLockParameters,
     GeometryPreliminaryLinkingParameters,
@@ -23,6 +22,7 @@ import { AlignmentHeader } from 'track-layout/layout-map-api';
 import { GeometryAlignmentInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { GeometryAlignmentVerticalGeometryInfobox } from 'tool-panel/geometry-alignment/geometry-alignment-vertical-geometry-infobox';
 import { ChangeTimes } from 'common/common-slice';
+import { LayoutContext } from 'common/common-model';
 
 type GeometryAlignmentInfoboxProps = {
     onSelect: (options: OnSelectOptions) => void;
@@ -37,7 +37,7 @@ type GeometryAlignmentInfoboxProps = {
     onLockAlignment: (lockParameters: GeometryLinkingAlignmentLockParameters) => void;
     onStopLinking: () => void;
     resolution: number;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     showArea: (area: BoundingBox) => void;
     visibilities: GeometryAlignmentInfoboxVisibilities;
     onVisibilityChange: (visibilities: GeometryAlignmentInfoboxVisibilities) => void;
@@ -58,7 +58,7 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
     onStopLinking,
     onLockAlignment,
     resolution,
-    publishType,
+    layoutContext,
     showArea,
     visibilities,
     onVisibilityChange,
@@ -125,7 +125,7 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
                     onStopLinking={onStopLinking}
                     onLockAlignment={onLockAlignment}
                     resolution={resolution}
-                    publishType={publishType}
+                    layoutContext={layoutContext}
                 />
             )}
 

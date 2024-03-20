@@ -17,7 +17,6 @@ import {
 import { LinkingState, LinkingType, SuggestedSwitch } from 'linking/linking-model';
 import { SelectedGeometryItem } from 'selection/selection-model';
 import GeometryAlignmentLinkingContainer from 'tool-panel/geometry-alignment/geometry-alignment-linking-container';
-import { PublishType } from 'common/common-model';
 import { filterNotEmpty, filterUnique, first } from 'utils/array-utils';
 import LocationTrackInfoboxLinkingContainer from 'tool-panel/location-track/location-track-infobox-linking-container';
 import { getKmPosts } from 'track-layout/layout-km-post-api';
@@ -44,6 +43,7 @@ import { SuggestedSwitchInfoboxContainer } from 'tool-panel/switch/dialog/sugges
 import { GeometrySwitchInfoboxContainer } from 'tool-panel/switch/dialog/geometry-switch-infobox-container';
 import { LocationTrackTaskListContainer } from 'tool-panel/location-track/location-track-task-list/location-track-task-list-container';
 import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
+import { LayoutContext } from 'common/common-model';
 
 type ToolPanelProps = {
     planIds: GeometryPlanId[];
@@ -58,7 +58,7 @@ type ToolPanelProps = {
     linkingState?: LinkingState;
     splittingState?: SplittingState;
     changeTimes: ChangeTimes;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     onDataChange: () => void;
     selectedAsset: ToolPanelAsset | undefined;
     setSelectedAsset: (id: ToolPanelAsset | undefined) => void;
@@ -105,7 +105,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     linkingState,
     splittingState,
     changeTimes,
-    publishType,
+    layoutContext,
     onDataChange,
     selectedAsset,
     setSelectedAsset,
@@ -120,13 +120,13 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
 
     const tracksSwitchesKmPostsPlans = useLoader(() => {
         const trackNumbersPromise = getTrackNumbers(
-            publishType,
+            layoutContext,
             changeTimes.layoutTrackNumber,
             true,
         );
-        const locationTracksPromise = getLocationTracks(locationTrackIds, publishType);
-        const switchesPromise = getSwitches(switchIds, publishType);
-        const kmPostsPromise = getKmPosts(kmPostIds, publishType);
+        const locationTracksPromise = getLocationTracks(locationTrackIds, layoutContext);
+        const switchesPromise = getSwitches(switchIds, layoutContext);
+        const kmPostsPromise = getKmPosts(kmPostIds, layoutContext);
         const plansPromise = getGeometryPlanHeaders(planIds);
         const elementPlanIds = [
             ...geometryKmPostIds.map((kmp) => kmp.planId),
@@ -154,7 +154,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     }, [
         locationTrackIds,
         changeTimes.layoutLocationTrack,
-        publishType,
+        layoutContext,
         switchIds,
         changeTimes.layoutSwitch,
         kmPostIds,
@@ -188,7 +188,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
 
     // Draft-only entities should be hidden when viewing in official mode. Show everything in draft mode
     const visibleByTypeAndPublishType = ({ editState }: { editState: EditState }) =>
-        publishType === 'DRAFT' || editState !== 'CREATED';
+        layoutContext.publicationState === 'DRAFT' || editState !== 'CREATED';
 
     React.useEffect(() => {
         if (tracksSwitchesKmPostsPlans === undefined) {
@@ -395,7 +395,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         geometryAlignmentIds,
         linkingState,
         splittingState,
-        publishType,
+        layoutContext,
         viewport,
         changeTimes,
         infoboxVisibilities,

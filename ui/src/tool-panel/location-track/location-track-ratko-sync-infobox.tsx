@@ -10,8 +10,10 @@ import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slic
 import { useCommonDataAppSelector } from 'store/hooks';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
+import { LayoutContext, officialLayoutContext } from 'common/common-model';
 
 type LocationTrackRatkoSyncInfoboxProps = {
+    layoutContext: LayoutContext;
     locationTrackId: LocationTrackId;
     visibilities: LocationTrackInfoboxVisibilities;
     visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
@@ -19,6 +21,7 @@ type LocationTrackRatkoSyncInfoboxProps = {
 };
 
 export const LocationTrackRatkoSyncInfobox: React.FC<LocationTrackRatkoSyncInfoboxProps> = ({
+    layoutContext,
     locationTrackId,
     visibilities,
     visibilityChange,
@@ -29,7 +32,7 @@ export const LocationTrackRatkoSyncInfobox: React.FC<LocationTrackRatkoSyncInfob
 
     const officialLocationTrack = useLocationTrack(
         locationTrackId,
-        'OFFICIAL',
+        officialLayoutContext(layoutContext),
         changeTimes.layoutLocationTrack,
     );
     return officialLocationTrack ? (

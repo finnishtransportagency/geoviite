@@ -28,7 +28,7 @@ const GeometryKmPostLinkingContainer: React.FC<GeometryKmPostLinkingContainerPro
     const kmPostChangeTime = useCommonDataAppSelector((state) => state.changeTimes.layoutKmPost);
     const selectedLayoutKmPost = useKmPost(
         first(state.selection.selectedItems.kmPosts),
-        state.publishType,
+        state.layoutContext,
         kmPostChangeTime,
     );
 
@@ -62,7 +62,7 @@ const GeometryKmPostLinkingContainer: React.FC<GeometryKmPostLinkingContainerPro
             }}
             onSelect={delegates.onSelect}
             onUnselect={delegates.onUnselect}
-            publishType={state.publishType}
+            layoutContext={state.layoutContext}
         />
     );
 };

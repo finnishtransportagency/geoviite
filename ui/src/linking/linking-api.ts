@@ -32,7 +32,7 @@ import {
     updateReferenceLineChangeTime,
     updateSwitchChangeTime,
 } from 'common/change-time-api';
-import { PublishType, Range } from 'common/common-model';
+import { LayoutContext, Range } from 'common/common-model';
 import { asyncCache } from 'cache/cache';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { MapTile } from 'map/map-model';
@@ -153,16 +153,16 @@ export async function updateLocationTrackGeometry(
 
 export async function getLinkedAlignmentIdsInPlan(
     planId: GeometryPlanId,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
 ): Promise<GeometryAlignmentId[]> {
-    return getPlanLinkStatus(planId, publishType).then((planStatus) =>
+    return getPlanLinkStatus(planId, layoutContext).then((planStatus) =>
         planStatus.alignments.filter((a) => a.isLinked).map((a) => a.id),
     );
 }
 
 export async function getPlanLinkStatus(
     planId: GeometryPlanId,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
 ): Promise<GeometryPlanLinkStatus> {
     const changeTimes = getChangeTimes();
     const maxChangeTime = getMaxTimestamp(
@@ -172,14 +172,16 @@ export async function getPlanLinkStatus(
         changeTimes.layoutKmPost,
     );
 
-    return geometryElementsLinkedStatusCache.get(maxChangeTime, `${publishType}_${planId}`, () =>
-        getNonNull(`${LINKING_URI}/${publishType}/plans/${planId}/status`),
+    return geometryElementsLinkedStatusCache.get(
+        maxChangeTime,
+        `${layoutContext.publicationState}_${layoutContext.designId}_${planId}`,
+        () => getNonNull(`${LINKING_URI}/${layoutContext.publicationState}/plans/${planId}/status`),
     );
 }
 
 export async function getPlanLinkStatuses(
     planIds: GeometryPlanId[],
-    publishType: PublishType,
+    layoutContext: LayoutContext,
 ): Promise<GeometryPlanLinkStatus[]> {
     const changeTimes = getChangeTimes();
     const maxChangeTime = getMaxTimestamp(
@@ -193,10 +195,10 @@ export async function getPlanLinkStatuses(
         .getMany(
             maxChangeTime,
             planIds,
-            (planId) => `${publishType}_${planId}`,
+            (planId) => `${layoutContext.publicationState}_${layoutContext.designId}_${planId}`,
             (planIds) =>
                 getNonNull<GeometryPlanLinkStatus[]>(
-                    `${LINKING_URI}/${publishType}/plans/status?ids=${planIds}`,
+                    `${LINKING_URI}/${layoutContext.publicationState}/plans/status?ids=${planIds}`,
                 ).then((tracks) => {
                     const trackMap = indexIntoMap(tracks);
                     return (id) => trackMap.get(id)!;

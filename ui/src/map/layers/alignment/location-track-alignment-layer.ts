@@ -6,7 +6,6 @@ import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { ALL_ALIGNMENTS } from 'map/layers/utils/layer-visibility-limits';
-import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import {
     createAlignmentFeatures,
@@ -24,6 +23,7 @@ import {
 } from 'track-layout/layout-map-api';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
+import { LayoutContext } from 'common/common-model';
 
 let shownLocationTracksCompare = '';
 
@@ -50,7 +50,7 @@ export function createLocationTrackAlignmentLayer(
     existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
     selection: Selection,
     isSplitting: boolean,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     olView: OlView,
     onViewContentChanged: (items: OptionalShownItems) => void,
@@ -75,7 +75,7 @@ export function createLocationTrackAlignmentLayer(
 
     const alignmentPromise =
         resolution <= ALL_ALIGNMENTS
-            ? getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
+            ? getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext)
             : Promise.resolve([]);
 
     const createFeatures = (locationTracks: AlignmentDataHolder[]) => {

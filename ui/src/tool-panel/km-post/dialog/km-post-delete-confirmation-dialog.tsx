@@ -6,14 +6,17 @@ import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { deleteDraftKmPost } from 'track-layout/layout-km-post-api';
+import { LayoutContext } from 'common/common-model';
 
 type KmPostDeleteConfirmationDialogProps = {
+    layoutContext: LayoutContext;
     id: LayoutKmPostId;
     onSave?: (id: LayoutKmPostId) => void;
     onClose: () => void;
 };
 
 const KmPostDeleteConfirmationDialog: React.FC<KmPostDeleteConfirmationDialogProps> = ({
+    layoutContext,
     id,
     onSave,
     onClose,
@@ -21,7 +24,7 @@ const KmPostDeleteConfirmationDialog: React.FC<KmPostDeleteConfirmationDialogPro
     const { t } = useTranslation();
 
     const deleteKmPost = (id: LayoutKmPostId) =>
-        deleteDraftKmPost(id).then((result) => {
+        deleteDraftKmPost(layoutContext, id).then((result) => {
             result
                 .map((kmPostId) => {
                     Snackbar.success('km-post-delete-draft-dialog.delete-succeeded');

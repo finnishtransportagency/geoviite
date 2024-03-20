@@ -10,7 +10,7 @@ import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
 import { SwitchEditDialogContainer } from './dialog/switch-edit-dialog';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { draftLayoutContext, LayoutContext, TimeStamp } from 'common/common-model';
 import { SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { getSuggestedSwitchesByTile, linkSwitch } from 'linking/linking-api';
 import * as SnackBar from 'geoviite-design-lib/snackbar/snackbar';
@@ -48,7 +48,7 @@ type GeometrySwitchLinkingInfoboxProps = {
     onStopLinking: () => void;
     onSuggestedSwitchChange?: (suggestedSwitch: SuggestedSwitch) => void;
     planId?: GeometryPlanId;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     visibilities: GeometrySwitchLinkingInfoboxVisibilities;
     onVisibilityChange: (visibilities: GeometrySwitchLinkingInfoboxVisibilities) => void;
 };
@@ -71,7 +71,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
     onStopLinking,
     onSuggestedSwitchChange,
     planId,
-    publishType,
+    layoutContext,
     visibilities,
     onVisibilityChange,
 }) => {
@@ -104,7 +104,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
     const switchStructure = useSwitchStructure(suggestedSwitch?.switchStructureId);
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
-    const selectedLayoutSwitch = useSwitch(linkingState?.layoutSwitchId, publishType);
+    const selectedLayoutSwitch = useSwitch(linkingState?.layoutSwitchId, layoutContext);
     const selectedLayoutSwitchStructure = useSwitchStructure(
         selectedLayoutSwitch?.switchStructureId,
     );
@@ -145,7 +145,11 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
         }
     }
 
-    const handleSwitchSave = refreshSwitchSelection('DRAFT', onSelect, onUnselect);
+    const handleSwitchSave = refreshSwitchSelection(
+        draftLayoutContext(layoutContext),
+        onSelect,
+        onUnselect,
+    );
 
     async function link() {
         if (linkingState?.suggestedSwitch && linkingState.layoutSwitchId) {
@@ -166,6 +170,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                 switchStructure &&
                 onSuggestedSwitchChange && (
                     <GeometrySwitchLinkingSuggestedInfobox
+                        layoutContext={layoutContext}
                         contentVisible={visibilities.suggestedSwitch}
                         onContentVisibilityChange={() =>
                             onVisibilityChange({
@@ -195,7 +200,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                             <LinkingStatus
                                 switchId={switchId}
                                 planId={planId}
-                                publishType={publishType}
+                                layoutContext={layoutContext}
                                 switchChangeTime={switchChangeTime}
                                 locationTrackChangeTime={locationTrackChangeTime}
                             />
@@ -218,6 +223,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                                     {t('tool-panel.switch.geometry.select-switch-msg')}
                                 </span>
                                 <GeometrySwitchLinkingCandidates
+                                    layoutContext={layoutContext}
                                     onSelectSwitch={(s) => onSelect({ switches: [s.id] })}
                                     selectedSwitchId={layoutSwitch?.id}
                                     switchChangeTime={switchChangeTime}
@@ -228,7 +234,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                                     <SwitchJointInfoboxContainer
                                         suggestedSwitch={suggestedSwitch}
                                         suggestedSwitchStructure={switchStructure}
-                                        publishType={publishType}
+                                        layoutContext={layoutContext}
                                     />
                                 )}
                             </div>

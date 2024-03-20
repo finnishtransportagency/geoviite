@@ -19,7 +19,7 @@ import {
     linkGeometryWithReferenceLine,
 } from 'linking/linking-api';
 import { GeometryPlanId } from 'geometry/geometry-model';
-import { PublishType } from 'common/common-model';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
@@ -121,7 +121,7 @@ type GeometryAlignmentLinkingInfoboxProps = {
     onLinkingStart: (startParams: GeometryPreliminaryLinkingParameters) => void;
     onStopLinking: () => void;
     resolution: number;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
 };
@@ -141,7 +141,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     onLockAlignment,
     onStopLinking,
     resolution,
-    publishType,
+    layoutContext,
     contentVisible,
     onContentVisibilityChange,
 }) => {
@@ -157,8 +157,14 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
 
     const planStatus = useLoader(
-        () => (planId ? getPlanLinkStatus(planId, publishType) : undefined),
-        [planId, changeTimes.layoutLocationTrack, changeTimes.layoutReferenceLine, publishType],
+        () => (planId ? getPlanLinkStatus(planId, layoutContext) : undefined),
+        [
+            planId,
+            changeTimes.layoutLocationTrack,
+            changeTimes.layoutReferenceLine,
+            layoutContext.publicationState,
+            layoutContext.designId,
+        ],
     );
 
     const linkedReferenceLines = useLoader(() => {
@@ -167,7 +173,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
             .filter((linkStatus) => linkStatus.id === geometryAlignment.id)
             .flatMap((linkStatus) => linkStatus.linkedReferenceLineIds);
         const referenceLinePromises = referenceLineIds.map((referenceLineId) =>
-            getReferenceLine(referenceLineId, publishType),
+            getReferenceLine(referenceLineId, layoutContext),
         );
         return Promise.all(referenceLinePromises).then((lines) => lines.filter(filterNotEmpty));
     }, [planStatus, geometryAlignment]);
@@ -177,12 +183,12 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
         const locationTrackIds = planStatus.alignments
             .filter((linkStatus) => linkStatus.id === geometryAlignment.id)
             .flatMap((linkStatus) => linkStatus.linkedLocationTrackIds);
-        return getLocationTracks(locationTrackIds, publishType);
+        return getLocationTracks(locationTrackIds, layoutContext);
     }, [planStatus, geometryAlignment]);
 
     const [selectedLocationTrackInfoboxExtras, _] = useLocationTrackInfoboxExtras(
         selectedLayoutLocationTrack?.id,
-        publishType,
+        layoutContext,
         changeTimes,
     );
 
@@ -198,13 +204,27 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
             !selectedLocationTrackInfoboxExtras?.partOfUnfinishedSplit);
 
     React.useEffect(() => {
-        getLinkedAlignmentIdsInPlan(planId, publishType).then((linkedIds) => {
+        getLinkedAlignmentIdsInPlan(planId, layoutContext).then((linkedIds) => {
             setLinkedAlignmentIds(linkedIds);
         });
-    }, [planId, publishType, changeTimes.layoutLocationTrack, changeTimes.layoutReferenceLine]);
+    }, [
+        planId,
+        layoutContext.publicationState,
+        layoutContext.designId,
+        changeTimes.layoutLocationTrack,
+        changeTimes.layoutReferenceLine,
+    ]);
 
-    const handleTrackNumberSave = refreshTrackNumberSelection('DRAFT', onSelect, onUnselect);
-    const handleLocationTrackSave = refreshLocationTrackSelection('DRAFT', onSelect, onUnselect);
+    const handleTrackNumberSave = refreshTrackNumberSelection(
+        draftLayoutContext(layoutContext),
+        onSelect,
+        onUnselect,
+    );
+    const handleLocationTrackSave = refreshLocationTrackSelection(
+        draftLayoutContext(layoutContext),
+        onSelect,
+        onUnselect,
+    );
 
     function lockAlignment() {
         const selectedAlignment =
@@ -300,7 +320,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     {linkedReferenceLines && linkedReferenceLines.length > 0 && (
                         <ReferenceLineNames
                             linkedReferenceLines={linkedReferenceLines}
-                            publishType={publishType}
+                            layoutContext={layoutContext}
                             changeTimes={changeTimes}
                         />
                     )}
@@ -329,7 +349,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                             {linkingAlignmentType === 'REFERENCE_LINE' ? (
                                 <GeometryAlignmentLinkingReferenceLineCandidates
                                     geometryAlignment={geometryAlignment}
-                                    publishType={publishType}
+                                    layoutContext={layoutContext}
                                     trackNumberChangeTime={changeTimes.layoutTrackNumber}
                                     onSelect={onSelect}
                                     selectedLayoutReferenceLine={selectedLayoutReferenceLine}
@@ -343,7 +363,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                             ) : (
                                 <GeometryAlignmentLinkingLocationTrackCandidates
                                     geometryAlignment={geometryAlignment}
-                                    publishType={publishType}
+                                    layoutContext={layoutContext}
                                     locationTrackChangeTime={changeTimes.layoutLocationTrack}
                                     onSelect={onSelect}
                                     selectedLayoutLocationTrack={selectedLayoutLocationTrack}

@@ -16,7 +16,12 @@ import {
     OverrideInfraModelParameters,
 } from 'infra-model/infra-model-slice';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
-import { compareNamed, CoordinateSystem as CoordinateSystemModel } from 'common/common-model';
+import {
+    compareNamed,
+    CoordinateSystem as CoordinateSystemModel,
+    draftMainLayoutContext,
+    officialMainLayoutContext,
+} from 'common/common-model';
 import { getCoordinateSystem, getSridList } from 'common/common-api';
 import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
 import { Prop } from 'utils/type-utils';
@@ -176,7 +181,9 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
     function updateTrackNumbers() {
         getTrackNumbers(
-            userHasPrivilege(privileges, VIEW_LAYOUT_DRAFT) ? 'DRAFT' : 'OFFICIAL',
+            userHasPrivilege(privileges, VIEW_LAYOUT_DRAFT)
+                ? draftMainLayoutContext()
+                : officialMainLayoutContext(),
         ).then((trackNumbers) => setTrackNumberList(trackNumbers));
     }
 

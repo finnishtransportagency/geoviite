@@ -18,7 +18,12 @@ import {
 } from 'selection/selection-store';
 import { linkingReducers } from 'linking/linking-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
-import { LayoutMode, PublishType } from 'common/common-model';
+import {
+    LayoutContext,
+    LayoutMode,
+    officialMainLayoutContext,
+    PublicationState,
+} from 'common/common-model';
 import { GeometryPlanLayout, LocationTrackId } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { first } from 'utils/array-utils';
@@ -180,7 +185,7 @@ export type SwitchRelinkingValidationTaskList = {
 };
 
 export type TrackLayoutState = {
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     layoutMode: LayoutMode;
     map: Map;
     selection: Selection;
@@ -196,7 +201,7 @@ export type TrackLayoutState = {
 };
 
 export const initialTrackLayoutState: TrackLayoutState = {
-    publishType: 'OFFICIAL',
+    layoutContext: officialMainLayoutContext(),
     layoutMode: 'DEFAULT',
     map: initialMapState,
     selection: initialSelectionState,
@@ -447,12 +452,15 @@ const trackLayoutSlice = createSlice({
 
             selectionReducers.toggleKmPostsVisibility(state.selection, action);
         },
-        onPublishTypeChange: (
+        onPublicationStateChange: (
             state: TrackLayoutState,
-            { payload: publishType }: PayloadAction<PublishType>,
+            { payload: publicationState }: PayloadAction<PublicationState>,
         ): void => {
-            state.publishType = publishType;
-            if (publishType == 'OFFICIAL') linkingReducers.stopLinking(state);
+            state.layoutContext = {
+                publicationState: publicationState,
+                designId: state.layoutContext.designId,
+            };
+            if (publicationState === 'OFFICIAL') linkingReducers.stopLinking(state);
         },
         onLayoutModeChange: (
             state: TrackLayoutState,

@@ -7,7 +7,7 @@ import {
 } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { LinkingState } from 'linking/linking-model';
-import { PublishType } from 'common/common-model';
+import { LayoutContext } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import {
     createAlignmentBadgeFeatures,
@@ -23,7 +23,7 @@ export function createReferenceLineBadgeLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     selection: Selection,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     linkingState: LinkingState | undefined,
     changeTimes: ChangeTimes,
     resolution: number,
@@ -34,7 +34,7 @@ export function createReferenceLineBadgeLayer(
     const dataPromise: Promise<AlignmentDataHolder[]> = getReferenceLineMapAlignmentsByTiles(
         changeTimes,
         mapTiles,
-        publishType,
+        layoutContext,
     );
 
     const createFeatures = (referenceLines: AlignmentDataHolder[]) => {

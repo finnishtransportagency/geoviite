@@ -11,16 +11,23 @@ import {
     numericHeading,
     withClassName,
 } from 'data-products/data-products-utils';
+import { LayoutContext, officialLayoutContext } from 'common/common-model';
 
 type ElementTableProps = {
+    layoutContext: LayoutContext;
     elements: ElementItem[];
     showLocationTrackName: boolean;
     isLoading: boolean;
 };
 
-const ElementTable = ({ elements, showLocationTrackName, isLoading }: ElementTableProps) => {
+const ElementTable = ({
+    layoutContext,
+    elements,
+    showLocationTrackName,
+    isLoading,
+}: ElementTableProps) => {
     const { t } = useTranslation();
-    const trackNumbers = useTrackNumbers('OFFICIAL');
+    const trackNumbers = useTrackNumbers(officialLayoutContext(layoutContext));
     const amount = elements.length;
     const commonTableHeadings: ElementHeadingWithClassName[] = [
         withClassName(

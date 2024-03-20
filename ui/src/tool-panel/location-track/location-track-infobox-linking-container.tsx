@@ -30,7 +30,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
     const locationTrack = useLocationTrack(
         locationTrackId,
-        trackLayoutState.publishType,
+        trackLayoutState.layoutContext,
         changeTimes.layoutLocationTrack,
     );
 
@@ -45,7 +45,7 @@ const LocationTrackInfoboxLinkingContainer: React.FC<LocationTrackInfoboxLinking
                 splittingState={trackLayoutState.splittingState}
                 onDataChange={onDataChange}
                 showArea={delegates.showArea}
-                publishType={trackLayoutState.publishType}
+                layoutContext={trackLayoutState.layoutContext}
                 changeTimes={changeTimes}
                 onSelect={delegates.onSelect}
                 onUnselect={delegates.onUnselect}

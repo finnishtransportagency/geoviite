@@ -7,7 +7,6 @@ import {
 } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { ALL_ALIGNMENTS } from 'map/layers/utils/layer-visibility-limits';
-import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { createAlignmentBackgroundFeatures } from 'map/layers/utils/background-layer-utils';
 import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
@@ -20,13 +19,14 @@ import {
 } from 'map/layers/utils/alignment-layer-utils';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { first } from 'utils/array-utils';
+import { LayoutContext } from 'common/common-model';
 
 const layerName: MapLayerName = 'location-track-background-layer';
 
 export function createLocationTrackBackgroundLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,
     selection: Selection,
@@ -45,7 +45,7 @@ export function createLocationTrackBackgroundLayer(
         changeTimes,
         mapTiles,
         resolution,
-        publishType,
+        layoutContext,
         selectedTrack,
     );
 
@@ -61,16 +61,16 @@ function getMapAlignments(
     changeTimes: ChangeTimes,
     mapTiles: MapTile[],
     resolution: number,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     selectedLocationTrackId: LocationTrackId | undefined,
 ): Promise<AlignmentDataHolder[]> {
     if (resolution <= ALL_ALIGNMENTS) {
-        return getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, publishType);
+        return getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext);
     } else if (selectedLocationTrackId) {
         return getSelectedLocationTrackMapAlignmentByTiles(
             changeTimes,
             mapTiles,
-            publishType,
+            layoutContext,
             selectedLocationTrackId,
         );
     } else {

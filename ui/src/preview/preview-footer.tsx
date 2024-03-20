@@ -15,7 +15,6 @@ import {
     updateTrackNumberChangeTime,
 } from 'common/change-time-api';
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
-import { PublishType } from 'common/common-model';
 import {
     PublishCandidates,
     PublishRequestIds,
@@ -26,13 +25,14 @@ import { OnSelectFunction } from 'selection/selection-model';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { TextArea } from 'vayla-design-lib/text-area/text-area';
 import { PreviewCandidates } from 'preview/preview-view-data';
+import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
 
 type PreviewFooterProps = {
     onSelect: OnSelectFunction;
     request: PublishRequestIds;
     onPublish: () => void;
-    mapMode: PublishType;
-    onChangeMapMode: (type: PublishType) => void;
+    layoutContext: LayoutContext;
+    onChangeLayoutContext: (context: LayoutContext) => void;
     previewChanges: PreviewCandidates;
 };
 
@@ -146,8 +146,14 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
             </div>
             <div className={styles['preview-footer__map-toggle']}>
                 <Switch
-                    onCheckedChange={(check) => props.onChangeMapMode(check ? 'DRAFT' : 'OFFICIAL')}
-                    checked={props.mapMode == 'DRAFT'}>
+                    onCheckedChange={(check) =>
+                        props.onChangeLayoutContext(
+                            check
+                                ? draftLayoutContext(props.layoutContext)
+                                : officialLayoutContext(props.layoutContext),
+                        )
+                    }
+                    checked={props.layoutContext.publicationState === 'DRAFT'}>
                     {t('preview-footer.publish-tracklayout')}
                 </Switch>
             </div>

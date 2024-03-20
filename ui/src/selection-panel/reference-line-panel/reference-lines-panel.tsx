@@ -13,10 +13,10 @@ import {
     ReferenceLineBadgeStatus,
 } from 'geoviite-design-lib/alignment/reference-line-badge';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { LayoutContext, TimeStamp } from 'common/common-model';
 
 type ReferenceLinesPanelProps = {
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     trackNumberChangeTime: TimeStamp;
     referenceLines: LayoutReferenceLine[];
     onToggleReferenceLineSelection: (
@@ -30,7 +30,7 @@ type ReferenceLinesPanelProps = {
 };
 
 const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
-    publishType,
+    layoutContext,
     trackNumberChangeTime,
     referenceLines,
     onToggleReferenceLineSelection,
@@ -42,7 +42,7 @@ const ReferenceLinesPanel: React.FC<ReferenceLinesPanelProps> = ({
     const { t } = useTranslation();
     const [linesCount, setLinesCount] = React.useState(0);
     const [visibleLines, setVisibleLines] = React.useState<LayoutReferenceLine[]>([]);
-    const trackNumbers = useTrackNumbers(publishType, trackNumberChangeTime);
+    const trackNumbers = useTrackNumbers(layoutContext, trackNumberChangeTime);
     React.useEffect(() => {
         if (referenceLines) {
             const sortedLines = [...referenceLines].sort((a, b) => {

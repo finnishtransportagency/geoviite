@@ -5,7 +5,13 @@ import {
     LayoutKmPostId,
     LayoutTrackNumberId,
 } from 'track-layout/track-layout-model';
-import { DraftableChangeInfo, KmNumber, PublishType, TimeStamp } from 'common/common-model';
+import {
+    DraftableChangeInfo,
+    draftLayoutContext,
+    KmNumber,
+    LayoutContext,
+    TimeStamp,
+} from 'common/common-model';
 import {
     deleteNonNullAdt,
     getNonNull,
@@ -27,31 +33,32 @@ const kmPostListCache = asyncCache<string, LayoutKmPost[]>();
 const kmPostForLinkingCache = asyncCache<string, LayoutKmPost[]>();
 const kmPostCache = asyncCache<string, LayoutKmPost | undefined>();
 
-const cacheKey = (id: LayoutKmPostId, publishType: PublishType) => `${id}_${publishType}`;
+const cacheKey = (id: LayoutKmPostId, layoutContext: LayoutContext) =>
+    `${id}_${layoutContext.publicationState}_${layoutContext.designId}`;
 
 export async function getKmPost(
     id: LayoutKmPostId,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime: TimeStamp = getChangeTimes().layoutKmPost,
 ): Promise<LayoutKmPost | undefined> {
-    return kmPostCache.get(changeTime, cacheKey(id, publishType), () =>
-        getNullable<LayoutKmPost>(layoutUri('km-posts', publishType, id)),
+    return kmPostCache.get(changeTime, cacheKey(id, layoutContext), () =>
+        getNullable<LayoutKmPost>(layoutUri('km-posts', layoutContext, id)),
     );
 }
 
 export async function getKmPosts(
     ids: LayoutKmPostId[],
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime: TimeStamp = getChangeTimes().layoutKmPost,
 ): Promise<LayoutKmPost[]> {
     return kmPostCache
         .getMany(
             changeTime,
             ids,
-            (id) => cacheKey(id, publishType),
+            (id) => cacheKey(id, layoutContext),
             (fetchIds) =>
                 getNonNull<LayoutKmPost[]>(
-                    `${layoutUri('km-posts', publishType)}?ids=${fetchIds}`,
+                    `${layoutUri('km-posts', layoutContext)}?ids=${fetchIds}`,
                 ).then((kmPosts) => {
                     const kmPostMap = indexIntoMap(kmPosts);
                     return (id) => kmPostMap.get(id);
@@ -61,7 +68,7 @@ export async function getKmPosts(
 }
 
 export async function getKmPostByNumber(
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     trackNumberId: LayoutTrackNumberId,
     kmNumber: KmNumber,
     includeDeleted: boolean,
@@ -71,11 +78,11 @@ export async function getKmPostByNumber(
         kmNumber: kmNumber,
         includeDeleted: includeDeleted,
     });
-    return getNullable<LayoutKmPost>(`${layoutUri('km-posts', publishType)}${params}`);
+    return getNullable<LayoutKmPost>(`${layoutUri('km-posts', layoutContext)}${params}`);
 }
 
 export async function getKmPostsByTile(
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime: TimeStamp,
     bbox: BoundingBox,
     step: number,
@@ -83,15 +90,17 @@ export async function getKmPostsByTile(
     const params = queryParams({
         bbox: bboxString(bbox),
         step: Math.ceil(step),
-        publishType,
+        publishType: layoutContext.publicationState,
     });
-    return kmPostListCache.get(changeTime, `${publishType}_${JSON.stringify(params)}`, () =>
-        getNonNull(`${layoutUri('km-posts', publishType)}${params}`),
+    return kmPostListCache.get(
+        changeTime,
+        `${layoutContext.publicationState}_${layoutContext.designId}_${JSON.stringify(params)}`,
+        () => getNonNull(`${layoutUri('km-posts', layoutContext)}${params}`),
     );
 }
 
 export async function getKmPostForLinking(
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     trackNumberId: LayoutTrackNumberId,
     location: Point,
     offset = 0,
@@ -105,15 +114,16 @@ export async function getKmPostForLinking(
         limit: limit,
     });
     return kmPostForLinkingCache.get(kmPostChangeTime, params, () =>
-        getNonNull(`${layoutUri('km-posts', publishType)}${params}`),
+        getNonNull(`${layoutUri('km-posts', layoutContext)}${params}`),
     );
 }
 
 export async function insertKmPost(
+    layoutContext: LayoutContext,
     kmPost: KmPostSaveRequest,
 ): Promise<Result<LayoutKmPostId, KmPostSaveError>> {
     const apiResult = await postNonNullAdt<KmPostSaveRequest, LayoutKmPostId>(
-        layoutUri('km-posts', 'DRAFT'),
+        layoutUri('km-posts', draftLayoutContext(layoutContext)),
         kmPost,
     );
 
@@ -126,11 +136,12 @@ export async function insertKmPost(
 }
 
 export async function updateKmPost(
+    layoutContext: LayoutContext,
     id: LayoutKmPostId,
     kmPost: KmPostSaveRequest,
 ): Promise<Result<LayoutKmPostId, KmPostSaveError>> {
     const apiResult = await putNonNullAdt<KmPostSaveRequest, LayoutKmPostId>(
-        layoutUri('km-posts', 'DRAFT', id),
+        layoutUri('km-posts', draftLayoutContext(layoutContext), id),
         kmPost,
     );
 
@@ -143,10 +154,11 @@ export async function updateKmPost(
 }
 
 export const deleteDraftKmPost = async (
+    layoutContext: LayoutContext,
     id: LayoutKmPostId,
 ): Promise<Result<LayoutKmPostId, KmPostSaveError>> => {
     const apiResult = await deleteNonNullAdt<undefined, LayoutKmPostId>(
-        layoutUri('km-posts', 'DRAFT', id),
+        layoutUri('km-posts', draftLayoutContext(layoutContext), id),
         undefined,
     );
 
@@ -159,39 +171,39 @@ export const deleteDraftKmPost = async (
 };
 
 export async function getKmPostValidation(
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     id: LayoutKmPostId,
 ): Promise<ValidatedAsset | undefined> {
-    return getNullable<ValidatedAsset>(`${layoutUri('km-posts', publishType, id)}/validation`);
+    return getNullable<ValidatedAsset>(`${layoutUri('km-posts', layoutContext, id)}/validation`);
 }
 
 export async function getKmPostsOnTrackNumber(
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     id: LayoutTrackNumberId,
 ): Promise<LayoutKmPost[]> {
     return getNonNull<LayoutKmPost[]>(
-        `${layoutUri('km-posts', publishType)}/on-track-number/${id}`,
+        `${layoutUri('km-posts', layoutContext)}/on-track-number/${id}`,
     );
 }
 
 export async function getKmLengths(
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     id: LayoutTrackNumberId,
 ): Promise<LayoutKmLengthDetails[]> {
     return getNonNull<LayoutKmLengthDetails[]>(
-        `${layoutUri('track-numbers', publishType, id)}/km-lengths`,
+        `${layoutUri('track-numbers', layoutContext, id)}/km-lengths`,
     );
 }
 
 export async function getSingleKmPostKmLength(
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     id: LayoutKmPostId,
 ): Promise<number | undefined> {
-    return getNullable<number>(`${layoutUri('km-posts', publishType, id)}/km-length`);
+    return getNullable<number>(`${layoutUri('km-posts', layoutContext, id)}/km-length`);
 }
 
 export const getKmLengthsAsCsv = (
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     trackNumberId: LayoutTrackNumberId,
     startKmNumber: KmNumber | undefined,
     endKmNumber: KmNumber | undefined,
@@ -201,11 +213,11 @@ export const getKmLengthsAsCsv = (
         endKmNumber,
     });
 
-    return `${layoutUri('track-numbers', publishType, trackNumberId)}/km-lengths/as-csv${params}`;
+    return `${layoutUri('track-numbers', layoutContext, trackNumberId)}/km-lengths/as-csv${params}`;
 };
 
-export const getKmPostChangeTimes = (id: LayoutKmPostId, publishType: PublishType) =>
-    getNullable<DraftableChangeInfo>(changeTimeUri('km-posts', id, publishType));
+export const getKmPostChangeTimes = (id: LayoutKmPostId, layoutContext: LayoutContext) =>
+    getNullable<DraftableChangeInfo>(changeTimeUri('km-posts', id, layoutContext));
 
 export const getEntireRailNetworkKmLengthsCsvUrl = () =>
     `${TRACK_LAYOUT_URI}/track-numbers/rail-network/km-lengths/file`;
