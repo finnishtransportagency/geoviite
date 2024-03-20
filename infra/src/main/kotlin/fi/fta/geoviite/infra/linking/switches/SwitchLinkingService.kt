@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.linking.switches
 
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geometry.GeometryDao
@@ -9,9 +9,10 @@ import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.*
-import fi.fta.geoviite.infra.publication.PublishValidationError
+import fi.fta.geoviite.infra.publication.PublicationValidationError
 import fi.fta.geoviite.infra.publication.validateSwitchLocationTrackLinkStructure
-import fi.fta.geoviite.infra.switchLibrary.*
+import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -257,12 +258,12 @@ class SwitchLinkingService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getTrackSwitchSuggestions(publishType: PublishType, trackId: IntId<LocationTrack>) =
-        getTrackSwitchSuggestions(publishType, locationTrackDao.getOrThrow(publishType, trackId))
+    fun getTrackSwitchSuggestions(publicationState: PublicationState, trackId: IntId<LocationTrack>) =
+        getTrackSwitchSuggestions(publicationState, locationTrackDao.getOrThrow(publicationState, trackId))
 
     @Transactional(readOnly = true)
     fun getTrackSwitchSuggestions(
-        publishType: PublishType,
+        publicationState: PublicationState,
         track: LocationTrack
     ): List<Pair<IntId<TrackLayoutSwitch>, SuggestedSwitch?>> {
         logger.serviceCall("getTrackSwitchSuggestions", "track" to track)
@@ -273,7 +274,7 @@ class SwitchLinkingService @Autowired constructor(
 
         val switchIds = collectAllSwitches(track, alignment)
         val replacementSwitchLocations = switchIds.map { switchId ->
-            val switch = switchService.getOrThrow(publishType, switchId)
+            val switch = switchService.getOrThrow(publicationState, switchId)
             switchService.getPresentationJointOrThrow(switch).location to switchId
         }
         val switchSuggestions = getSuggestedSwitches(replacementSwitchLocations)
@@ -298,7 +299,7 @@ class SwitchLinkingService @Autowired constructor(
         suggestedSwitch: SuggestedSwitch,
         switchId: IntId<TrackLayoutSwitch>,
         relevantLocationTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>,
-    ): Pair<List<PublishValidationError>, Point> {
+    ): Pair<List<PublicationValidationError>, Point> {
 
         val changedTracks = withChangesFromLinkingSwitch(
             suggestedSwitch,
@@ -494,7 +495,7 @@ private fun findExistingSwitchEdgeSegmentWithSwitchFreeAdjacentSegment(
     }
 
     for (i in searchIndexRange) {
-        val segment = layoutSegments[i];
+        val segment = layoutSegments[i]
 
         val existingSwitchIdMatchesSegment = existingSwitchId == segment.switchId
         if (!existingSwitchIdMatchesSegment) {

@@ -73,7 +73,7 @@ class GeometryServiceIT @Autowired constructor(
         kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0156"), Point(0.0, 27.6), draft = true))
 
         // tickLength = 5 => normal ticks less than 2.5 distance apart from a neighbor get dropped
-        val actual = geometryService.getLocationTrackHeights(locationTrackId, PublishType.DRAFT, 0.0, 30.0, 5)!!
+        val actual = geometryService.getLocationTrackHeights(locationTrackId, PublicationState.DRAFT, 0.0, 30.0, 5)!!
 
         // location track starts 1 m after reference line start; reference line start address is 123.4; so first address
         // is 124.4. First km post is at m 14.5 -> 13.5 in location track. Ordinary ticks always start at track meter 0
@@ -137,7 +137,7 @@ class GeometryServiceIT @Autowired constructor(
                 segment(yRangeToSegmentPoints(15..17), sourceId = p1.alignments[0].elements[0].id, sourceStart = 0.0),
             ),
         ).id
-        val kmHeights = geometryService.getLocationTrackHeights(locationTrackId, PublishType.DRAFT, 0.0, 20.0, 5)!!
+        val kmHeights = geometryService.getLocationTrackHeights(locationTrackId, PublicationState.DRAFT, 0.0, 20.0, 5)!!
         // this track is exactly straight on the reference line, so m-values and track meters coincide perfectly; also,
         // the profile is at exactly 50 meters height at every point where it's linked
         val expected = listOf(
@@ -156,7 +156,7 @@ class GeometryServiceIT @Autowired constructor(
         ).map { (m, h) -> TrackMeterHeight(m.toDouble(), m.toDouble(), h?.toDouble(), Point(0.0, m.toDouble())) }
         assertEquals(expected, kmHeights[0].trackMeterHeights)
         val linkingSummary =
-            geometryService.getLocationTrackGeometryLinkingSummary(locationTrackId, PublishType.DRAFT)!!
+            geometryService.getLocationTrackGeometryLinkingSummary(locationTrackId, PublicationState.DRAFT)!!
         assertEquals(
             listOf(
                 Triple(0.0, 6.0, FileName("plan1.xml")),
@@ -192,7 +192,7 @@ class GeometryServiceIT @Autowired constructor(
         // its position back to exactly 10, causing the 9..10 connection segment's end address to also be in
         // track km 0155
         kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0155"), Point(0.0, 10.00001), draft = true))
-        val actual = geometryService.getLocationTrackHeights(locationTrackId, PublishType.DRAFT, 0.0, 20.0, 5)!!
+        val actual = geometryService.getLocationTrackHeights(locationTrackId, PublicationState.DRAFT, 0.0, 20.0, 5)!!
 
         val expected = listOf(
             "0154" to listOf(
@@ -238,7 +238,7 @@ class GeometryServiceIT @Autowired constructor(
         ).id
         kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0155"), Point(0.0, 8.0), draft = true))
         kmPostService.saveDraft(kmPost(trackNumberId, KmNumber("0156"), Point(0.0, 9.0), draft = true))
-        val actual = geometryService.getLocationTrackHeights(locationTrackId, PublishType.DRAFT, 0.0, 20.0, 5)!!
+        val actual = geometryService.getLocationTrackHeights(locationTrackId, PublicationState.DRAFT, 0.0, 20.0, 5)!!
         assertEquals(3, actual.size)
         assertEquals(2, actual[0].trackMeterHeights.size)
         assertEquals(1, actual[1].trackMeterHeights.size)

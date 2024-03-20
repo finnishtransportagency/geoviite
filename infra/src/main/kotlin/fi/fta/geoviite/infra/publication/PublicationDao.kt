@@ -28,7 +28,7 @@ class PublicationDao(
     val alignmentDao: LayoutAlignmentDao,
 ) : DaoBase(jdbcTemplateParam) {
 
-    fun fetchTrackNumberPublishCandidates(): List<TrackNumberPublishCandidate> {
+    fun fetchTrackNumberPublicationCandidates(): List<TrackNumberPublicationCandidate> {
         val sql = """
             select
               draft_track_number.row_id,
@@ -49,22 +49,22 @@ class PublicationDao(
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             val id = rs.getIntId<TrackLayoutTrackNumber>("official_id")
-            TrackNumberPublishCandidate(
+            TrackNumberPublicationCandidate(
                 id = id,
                 rowVersion = rs.getRowVersion("row_id", "row_version"),
                 number = rs.getTrackNumber("number"),
                 draftChangeTime = rs.getInstant("change_time"),
                 operation = rs.getEnum("operation"),
                 userName = UserName(rs.getString("change_user")),
-                boundingBox = referenceLineDao.fetchVersionByTrackNumberId(PublishType.DRAFT, id)
+                boundingBox = referenceLineDao.fetchVersionByTrackNumberId(PublicationState.DRAFT, id)
                     ?.let(referenceLineDao::fetch)?.boundingBox
             )
         }
-        logger.daoAccess(FETCH, TrackNumberPublishCandidate::class, candidates.map(TrackNumberPublishCandidate::id))
+        logger.daoAccess(FETCH, TrackNumberPublicationCandidate::class, candidates.map(TrackNumberPublicationCandidate::id))
         return candidates
     }
 
-    fun fetchReferenceLinePublishCandidates(): List<ReferenceLinePublishCandidate> {
+    fun fetchReferenceLinePublicationCandidates(): List<ReferenceLinePublicationCandidate> {
         val sql = """
             select 
               draft_reference_line.row_id,
@@ -92,7 +92,7 @@ class PublicationDao(
             where draft_reference_line.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            ReferenceLinePublishCandidate(
+            ReferenceLinePublicationCandidate(
                 id = rs.getIntId("official_id"),
                 rowVersion = rs.getRowVersion("row_id", "row_version"),
                 name = rs.getTrackNumber("name"),
@@ -103,11 +103,11 @@ class PublicationDao(
                 boundingBox = rs.getBboxOrNull("bounding_box"),
             )
         }
-        logger.daoAccess(FETCH, ReferenceLinePublishCandidate::class, candidates.map(ReferenceLinePublishCandidate::id))
+        logger.daoAccess(FETCH, ReferenceLinePublicationCandidate::class, candidates.map(ReferenceLinePublicationCandidate::id))
         return candidates
     }
 
-    fun fetchLocationTrackPublishCandidates(): List<LocationTrackPublishCandidate> {
+    fun fetchLocationTrackPublicationCandidates(): List<LocationTrackPublicationCandidate> {
         val sql = """
             with splits as (
                 select
@@ -151,7 +151,7 @@ class PublicationDao(
             where draft_location_track.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            LocationTrackPublishCandidate(
+            LocationTrackPublicationCandidate(
                 id = rs.getIntId("official_id"),
                 rowVersion = rs.getRowVersion("row_id", "row_version"),
                 name = AlignmentName(rs.getString("name")),
@@ -164,12 +164,12 @@ class PublicationDao(
                 publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup)
             )
         }
-        logger.daoAccess(FETCH, LocationTrackPublishCandidate::class, candidates.map(LocationTrackPublishCandidate::id))
+        logger.daoAccess(FETCH, LocationTrackPublicationCandidate::class, candidates.map(LocationTrackPublicationCandidate::id))
         requireUniqueIds(candidates)
         return candidates
     }
 
-    fun fetchSwitchPublishCandidates(): List<SwitchPublishCandidate> {
+    fun fetchSwitchPublicationCandidates(): List<SwitchPublicationCandidate> {
         val sql = """
             with splits as (
                 select
@@ -214,10 +214,10 @@ class PublicationDao(
         """.trimIndent()
         val candidates = jdbcTemplate.query(
             sql, mapOf<String, Any>(
-                "publication_state" to PublishType.DRAFT.name,
+                "publication_state" to PublicationState.DRAFT.name,
             )
         ) { rs, _ ->
-            SwitchPublishCandidate(
+            SwitchPublicationCandidate(
                 id = rs.getIntId("official_id"),
                 rowVersion = rs.getRowVersion("row_id", "row_version"),
                 name = SwitchName(rs.getString("name")),
@@ -229,12 +229,12 @@ class PublicationDao(
                 publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup)
             )
         }
-        logger.daoAccess(FETCH, SwitchPublishCandidate::class, candidates.map(SwitchPublishCandidate::id))
+        logger.daoAccess(FETCH, SwitchPublicationCandidate::class, candidates.map(SwitchPublicationCandidate::id))
         requireUniqueIds(candidates)
         return candidates
     }
 
-    fun fetchKmPostPublishCandidates(): List<KmPostPublishCandidate> {
+    fun fetchKmPostPublicationCandidates(): List<KmPostPublicationCandidate> {
         val sql = """
             select
               draft_km_post.row_id,
@@ -258,7 +258,7 @@ class PublicationDao(
             order by km_number
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            KmPostPublishCandidate(
+            KmPostPublicationCandidate(
                 id = rs.getIntId("official_id"),
                 rowVersion = rs.getRowVersion("row_id", "row_version"),
                 trackNumberId = rs.getIntId("track_number_id"),
@@ -269,7 +269,7 @@ class PublicationDao(
                 location = rs.getPointOrNull("point_x", "point_y"),
             )
         }
-        logger.daoAccess(FETCH, KmPostPublishCandidate::class, candidates.map(KmPostPublishCandidate::id))
+        logger.daoAccess(FETCH, KmPostPublicationCandidate::class, candidates.map(KmPostPublicationCandidate::id))
         return candidates
     }
 
@@ -284,7 +284,7 @@ class PublicationDao(
         val publicationId: IntId<Publication> =
             jdbcTemplate.queryForObject(sql, mapOf<String, Any>("message" to message)) { rs, _ ->
                 rs.getIntId("id")
-            } ?: throw IllegalStateException("Failed to generate ID for new publish row")
+            } ?: error("Failed to generate ID for new publication row")
 
         logger.daoAccess(INSERT, Publication::class, publicationId)
         return publicationId
@@ -1572,15 +1572,15 @@ private fun <T> partitionDirectIndirectChanges(rows: List<Pair<Boolean, T>>) =
             indirectChanges = indirectChanges.map { it.second })
     }
 
-private inline fun <reified T> requireUniqueIds(candidates: List<PublishCandidate<T>>) {
+private inline fun <reified T> requireUniqueIds(candidates: List<PublicationCandidate<T>>) {
     filterNonUniqueIds(candidates).let { nonUniqueIds ->
         require(nonUniqueIds.isEmpty()) {
-            "${T::class.simpleName} publish candidates contained non-unique ids: $nonUniqueIds"
+            "${T::class.simpleName} publication candidates contained non-unique ids: $nonUniqueIds"
         }
     }
 }
 
-private fun <T> filterNonUniqueIds(candidates: List<PublishCandidate<T>>): Map<IntId<T>, Int> {
+private fun <T> filterNonUniqueIds(candidates: List<PublicationCandidate<T>>): Map<IntId<T>, Int> {
     return candidates
         .groupingBy { candidate -> candidate.id }
         .eachCount()

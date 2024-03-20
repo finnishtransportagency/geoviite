@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.ratko
 
-import fi.fta.geoviite.infra.authorization.*
+import fi.fta.geoviite.infra.authorization.AUTH_BASIC
+import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.error.Integration
 import fi.fta.geoviite.infra.error.IntegrationNotConfiguredException
@@ -46,12 +48,12 @@ class RatkoController(
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)
-    @GetMapping("/errors/{publishId}")
+    @GetMapping("/errors/{publicationId}")
     fun getRatkoPushErrors(
-        @PathVariable("publishId") publishId: IntId<Publication>,
+        @PathVariable("publicationId") publicationId: IntId<Publication>,
     ): ResponseEntity<RatkoPushErrorWithAsset> {
-        logger.apiCall("getRatkoPushErrors", "publishId" to publishId)
-        return toResponse(ratkoStatusService.getRatkoPushError(publishId))
+        logger.apiCall("getRatkoPushErrors", "publicationId" to publicationId)
+        return toResponse(ratkoStatusService.getRatkoPushError(publicationId))
     }
 
     @PreAuthorize(AUTH_BASIC)

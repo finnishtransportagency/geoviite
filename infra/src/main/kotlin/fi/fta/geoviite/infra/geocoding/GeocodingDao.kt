@@ -1,8 +1,8 @@
 package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.tracklayout.*
@@ -25,17 +25,17 @@ class GeocodingDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
 ) : DaoBase(jdbcTemplateParam) {
 
-    fun listLayoutGeocodingContextCacheKeys(publicationState: PublishType): List<LayoutGeocodingContextCacheKey> =
+    fun listLayoutGeocodingContextCacheKeys(publicationState: PublicationState): List<LayoutGeocodingContextCacheKey> =
         getLayoutGeocodingContextCacheKeysInternal(publicationState, null)
 
     fun getLayoutGeocodingContextCacheKey(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): LayoutGeocodingContextCacheKey? =
         getOptional(trackNumberId, getLayoutGeocodingContextCacheKeysInternal(publicationState, trackNumberId))
 
     private fun getLayoutGeocodingContextCacheKeysInternal(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         trackNumberId: IntId<TrackLayoutTrackNumber>?,
     ): List<LayoutGeocodingContextCacheKey> {
         //language=SQL

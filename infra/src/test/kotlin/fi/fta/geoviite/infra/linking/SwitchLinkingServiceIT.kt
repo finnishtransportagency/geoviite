@@ -10,8 +10,8 @@ import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
-import fi.fta.geoviite.infra.publication.PublishValidationError
-import fi.fta.geoviite.infra.publication.PublishValidationErrorType
+import fi.fta.geoviite.infra.publication.PublicationValidationError
+import fi.fta.geoviite.infra.publication.PublicationValidationErrorType
 import fi.fta.geoviite.infra.switchLibrary.*
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.ui.testdata.createSwitchAndAlignments
@@ -180,7 +180,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             ), insertedSwitch.id as IntId,
         )
 
-        val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, locationTrackId.id)
+        val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(PublicationState.DRAFT, locationTrackId.id)
         val joint12Segment = alignment.segments[1]
 
         assertEquals(JointNumber(1), joint12Segment.startJointNumber)
@@ -258,7 +258,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             ), insertedSwitch.id as IntId,
         )
 
-        val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, locationTrackId.id)
+        val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(PublicationState.DRAFT, locationTrackId.id)
         val joint12Segment = alignment.segments[1]
 
         assertEquals(JointNumber(1), joint12Segment.startJointNumber)
@@ -370,10 +370,10 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         val (linkedStraightTrack, linkedStraightTrackAlignment) =
-            locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, straightTrack.id as IntId)
+            locationTrackService.getWithAlignmentOrThrow(PublicationState.DRAFT, straightTrack.id as IntId)
 
         val (linkedDivertingTrack, linkedDivertingTrackAlignment) =
-            locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, divertingTrack.id as IntId)
+            locationTrackService.getWithAlignmentOrThrow(PublicationState.DRAFT, divertingTrack.id as IntId)
 
         // No segment splits are excepted to have happened.
         assertEquals(straightAlignment.segments.size, linkedStraightTrackAlignment.segments.size)
@@ -473,7 +473,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         val (_, overlapLinkedStraightAlignment) =
-            locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, testLocation.straightTrack.id as IntId)
+            locationTrackService.getWithAlignmentOrThrow(PublicationState.DRAFT, testLocation.straightTrack.id as IntId)
 
         // The overlapping segment has not been split, the next segment is used.
         assertEquals(testLocation.straightTrackAlignment.segments.size, overlapLinkedStraightAlignment.segments.size)
@@ -580,7 +580,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         val (_, linkedTestAlignment) =
-            locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, testLocationTrack.id as IntId)
+            locationTrackService.getWithAlignmentOrThrow(PublicationState.DRAFT, testLocationTrack.id as IntId)
 
         assertEquals(testAlignment.segments.size, linkedTestAlignment.segments.size)
 
@@ -701,7 +701,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             )
 
             val (_, linkedTestAlignment) =
-                locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, testLocationTrack.id as IntId)
+                locationTrackService.getWithAlignmentOrThrow(PublicationState.DRAFT, testLocationTrack.id as IntId)
 
             assertEquals(null, linkedTestAlignment.segments[0].switchId)
             assertEquals(null, linkedTestAlignment.segments[0].startJointNumber)
@@ -774,7 +774,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         val (_, linkedTestAlignmentBeforeTryingOverlap) =
-            locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, testLocationTrack.id as IntId)
+            locationTrackService.getWithAlignmentOrThrow(PublicationState.DRAFT, testLocationTrack.id as IntId)
 
         (1..2).forEach { segmentIndex ->
             assertEquals(linkedSwitch.id, linkedTestAlignmentBeforeTryingOverlap.segments[segmentIndex].switchId)
@@ -815,7 +815,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         val (_, linkedTestAlignment) =
-            locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, testLocationTrack.id as IntId)
+            locationTrackService.getWithAlignmentOrThrow(PublicationState.DRAFT, testLocationTrack.id as IntId)
 
         // The original alignment is expected to have been split at the desired starting point of the new switch,
         // as it was not possible to snap it to a nearby segment without overlap.
@@ -930,8 +930,8 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     id = okButValidationErrorSwitch.id,
                     successfulSuggestion = SwitchRelinkingSuggestion(shift1, TrackMeter("0000+0044.430")),
                     validationErrors = listOf(
-                        PublishValidationError(
-                            type = PublishValidationErrorType.WARNING,
+                        PublicationValidationError(
+                            type = PublicationValidationErrorType.WARNING,
                             localizationKey = LocalizationKey("validation.layout.switch.track-linkage.switch-alignment-only-connected-to-duplicate"),
                             params = LocalizationParams(mapOf("locationTracks" to "1-3", "switch" to "ok but val"))
                         )
@@ -1063,8 +1063,8 @@ class SwitchLinkingServiceIT @Autowired constructor(
                     id = switchSomewhereElse.id,
                     successfulSuggestion = SwitchRelinkingSuggestion(somewhereElse, TrackMeter("0000+0100.000")),
                     validationErrors = listOf(
-                        PublishValidationError(
-                            PublishValidationErrorType.WARNING,
+                        PublicationValidationError(
+                            PublicationValidationErrorType.WARNING,
                             localizationKey = LocalizationKey("validation.layout.switch.track-linkage.front-joint-not-connected"),
                             params = LocalizationParams(mapOf("switch" to "somewhere else")),
                         )
@@ -1312,10 +1312,10 @@ class SwitchLinkingServiceIT @Autowired constructor(
         assertEquals(
             locationTrackDao.fetch(throughTrackStart.rowVersion).alignmentVersion!!,
             locationTrackDao.fetch(
-                locationTrackDao.fetchVersion(throughTrackStart.id, PublishType.DRAFT)!!
+                locationTrackDao.fetchVersion(throughTrackStart.id, PublicationState.DRAFT)!!
             ).alignmentVersion!!,
         )
-        assertEquals(uninvolvedTrack.rowVersion, locationTrackDao.fetchVersion(uninvolvedTrack.id, PublishType.DRAFT))
+        assertEquals(uninvolvedTrack.rowVersion, locationTrackDao.fetchVersion(uninvolvedTrack.id, PublicationState.DRAFT))
     }
 
     @Test
@@ -1365,7 +1365,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
         val expected = TopologyLocationTrackSwitch(switchId, JointNumber(3))
         val actual = locationTrackDao.fetch(
-            locationTrackDao.fetchVersion(branchingTrackContinuation, PublishType.DRAFT)!!
+            locationTrackDao.fetchVersion(branchingTrackContinuation, PublicationState.DRAFT)!!
         ).topologyStartSwitch
         assertEquals(expected, actual)
     }
@@ -1376,7 +1376,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         switchLinkingService.relinkTrack(throughTrack)
         val expected = TopologyLocationTrackSwitch(switchId, JointNumber(3))
         val actual = locationTrackDao.fetch(
-            locationTrackDao.fetchVersion(branchingTrackContinuation, PublishType.DRAFT)!!
+            locationTrackDao.fetchVersion(branchingTrackContinuation, PublicationState.DRAFT)!!
         ).topologyStartSwitch
         assertEquals(expected, actual)
     }
@@ -1434,7 +1434,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         topologyEndSwitchId: IntId<TrackLayoutSwitch>?,
         segmentSwitchesByMRange: List<Pair<ClosedRange<Double>, IntId<TrackLayoutSwitch>?>>,
     ) {
-        val track = locationTrackService.get(PublishType.DRAFT, trackId)!!
+        val track = locationTrackService.get(PublicationState.DRAFT, trackId)!!
         val (_, alignment) = locationTrackService.getWithAlignment(track.version!!)
         assertEquals(topologyStartSwitchId, track.topologyStartSwitch?.switchId)
         assertEquals(topologyEndSwitchId, track.topologyEndSwitch?.switchId)
@@ -1502,7 +1502,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             draft = true,
         )
         val locationTrackId = locationTrackService.saveDraft(locationTrack, alignment).id
-        return locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, locationTrackId)
+        return locationTrackService.getWithAlignmentOrThrow(PublicationState.DRAFT, locationTrackId)
     }
 
     private fun setupJointLocationAccuracyTest(): SuggestedSwitchCreateParams {

@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.linking.switches
 
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geometry.GeometryDao
@@ -54,7 +53,7 @@ class SwitchFittingService @Autowired constructor(
                 geomSwitch, structure, toLayoutCoordinate
             )?.let { calculatedJoints ->
                 val switchBoundingBox = boundingBoxAroundPoints(calculatedJoints.map { it.location }) * 1.5
-                val nearAlignmentIds = locationTrackDao.fetchVersionsNear(PublishType.DRAFT, switchBoundingBox)
+                val nearAlignmentIds = locationTrackDao.fetchVersionsNear(PublicationState.DRAFT, switchBoundingBox)
 
                 val alignments = (nearAlignmentIds + missingLayoutSwitchLinking.locationTrackIds)
                     .distinct()
@@ -81,7 +80,7 @@ class SwitchFittingService @Autowired constructor(
     @Transactional(readOnly = true)
     fun getFitsAtPoints(points: List<Pair<IPoint, IntId<SwitchStructure>>>): List<FittedSwitch?> {
         val nearbyLocationTracks =
-            points.map { (location) -> locationTrackService.getLocationTracksNear(location, PublishType.DRAFT) }
+            points.map { (location) -> locationTrackService.getLocationTracksNear(location, PublicationState.DRAFT) }
         val switchStructures = points.map { (_, id) -> switchLibraryService.getSwitchStructure(id) }
         return points.mapIndexed { index, point -> index to point }.parallelStream().map { (index, point) ->
             createSuggestedSwitchByPoint(point.first, switchStructures[index], nearbyLocationTracks[index])
@@ -96,13 +95,13 @@ class SwitchFittingService @Autowired constructor(
             createParams.switchStructureId?.let(switchLibraryService::getSwitchStructure) ?: return null
         val locationTracks = createParams.alignmentMappings
             .map { mapping -> mapping.locationTrackId }
-            .associateWith { id -> locationTrackService.getWithAlignmentOrThrow(PublishType.DRAFT, id) }
+            .associateWith { id -> locationTrackService.getWithAlignmentOrThrow(PublicationState.DRAFT, id) }
 
         val areaSize = switchStructure.bbox.width.coerceAtLeast(switchStructure.bbox.height) * 2.0
         val switchAreaBbox = BoundingBox(
             Point(0.0, 0.0), Point(areaSize, areaSize)
         ).centerAt(createParams.locationTrackEndpoint.location)
-        val nearbyLocationTracks = locationTrackService.listNearWithAlignments(PublishType.DRAFT, switchAreaBbox)
+        val nearbyLocationTracks = locationTrackService.listNearWithAlignments(PublicationState.DRAFT, switchAreaBbox)
 
         return fitSwitch(
             createParams.locationTrackEndpoint,

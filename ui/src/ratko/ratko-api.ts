@@ -8,15 +8,10 @@ const RATKO_URI = `${API_URI}/ratko`;
 
 export const pushToRatko = () => postNullable(`${RATKO_URI}/push`, undefined);
 
-export const getRatkoPushError = (publishId: PublicationId) =>
-    getNonNull<RatkoPushError>(`${RATKO_URI}/errors/${publishId}`);
+export const getRatkoPushError = (publicationId: PublicationId) =>
+    getNonNull<RatkoPushError>(`${RATKO_URI}/errors/${publicationId}`);
 
-export type RatkoStatus =
-    | { isOnline: true }
-    | {
-          isOnline: false;
-          statusCode: number;
-      };
+export type RatkoStatus = { isOnline: true } | { isOnline: false; statusCode: number };
 
 export const getRatkoStatus: () => Promise<RatkoStatus> = () =>
     getNonNullAdt<RatkoStatus>(`${RATKO_URI}/is-online`).then((result) => {

@@ -356,7 +356,7 @@ data class TrackLayoutSwitchJointConnection(
     }
 }
 
-data class DraftableChangeInfo(
+data class LayoutAssetChangeInfo(
     val created: Instant,
     val changed: Instant?,
 )
