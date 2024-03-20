@@ -12,7 +12,7 @@ export async function getOperatingPoints(
     changeTime: TimeStamp,
 ): Promise<OperatingPoint[]> {
     return operatingPointCache.get(changeTime, mapTile.id, () => {
-        const params = queryParams({ boundingBox: bboxString(mapTile.area) });
+        const params = queryParams({ bbox: bboxString(mapTile.area) });
         return getNonNull<OperatingPoint[]>(`api/ratko/operating-points${params}`);
     });
 }

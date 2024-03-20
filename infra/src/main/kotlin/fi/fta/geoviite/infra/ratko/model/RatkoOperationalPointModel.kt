@@ -45,7 +45,7 @@ fun parseAsset(asset: RatkoOperatingPointAsset): RatkoOperatingPointParse? {
         node.nodeType == RatkoNodeType.MIDDLE_POINT
     }?.point
     val location = middlePoint?.geometry?.coordinates?.let { cs -> Point(cs[0], cs[1])}
-    val trackNumberExternalId = middlePoint?.routenumber?.toString()?.let { Oid<RatkoRouteNumber>(it) }
+    val trackNumberExternalId: Oid<RatkoRouteNumber>? = middlePoint?.routenumber?.toString()?.let(::Oid)
     return if (type == null || location == null || trackNumberExternalId == null) null else RatkoOperatingPointParse(
         externalId = externalId,
         name = asset.getStringProperty("name") ?: "",
