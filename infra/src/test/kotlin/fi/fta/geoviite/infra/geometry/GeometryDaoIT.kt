@@ -4,7 +4,7 @@ import assertPlansMatch
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.ProjectName
-import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.ValidationVersion
@@ -208,11 +208,12 @@ class GeometryDaoIT @Autowired constructor(
         val track = locationTrackAndAlignment(
             trackNumberId,
             segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(sourceId = element.id),
+            draft = true,
         )
         val trackVersion = locationTrackService.saveDraft(track.first, track.second)
         locationTrackService.publish(ValidationVersion(trackVersion.id, trackVersion.rowVersion))
         val trackChangeTime =
-            locationTrackService.getDraftableChangeInfo(trackVersion.id, PublishType.OFFICIAL)?.changed
+            locationTrackService.getLayoutAssetChangeInfo(trackVersion.id, PublicationState.OFFICIAL)?.changed
 
         val expectedSummary = GeometryPlanLinkingSummary(trackChangeTime, listOf(UserName("TEST_USER")), true)
         val summaries = geometryDao.getLinkingSummaries(listOf(planVersion.id))

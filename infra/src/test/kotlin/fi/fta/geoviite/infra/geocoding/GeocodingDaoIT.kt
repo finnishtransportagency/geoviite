@@ -2,8 +2,8 @@ package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.tracklayout.*
 import org.junit.jupiter.api.Assertions.*
@@ -27,38 +27,40 @@ class GeocodingDaoIT @Autowired constructor(
 
     @Test
     fun trackNumberWithoutReferenceLineHasNoContext() {
-        val id = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
+        val id = trackNumberDao.insert(trackNumber(getUnusedTrackNumber(), draft = false)).id
         assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(DRAFT, id))
         assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, id))
     }
 
     @Test
     fun trackNumberWithoutKmPostsHasAContext() {
-        val id = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
+        val id = trackNumberDao.insert(trackNumber(getUnusedTrackNumber(), draft = false)).id
         val alignmentVersion = alignmentDao.insert(alignment())
-        referenceLineDao.insert(referenceLine(id).copy(alignmentVersion = alignmentVersion))
+        referenceLineDao.insert(referenceLine(id, alignmentVersion = alignmentVersion, draft = false))
         assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(DRAFT, id))
         assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, id))
     }
 
     @Test
     fun cacheKeysAreCalculatedCorrectly() {
-        val tnOfficialResponse = trackNumberDao.insert(trackNumber(getUnusedTrackNumber()))
+        val tnOfficialResponse = trackNumberDao.insert(trackNumber(getUnusedTrackNumber(), draft = false))
         val tnId = tnOfficialResponse.id
         val tnOfficialVersion = tnOfficialResponse.rowVersion
         val tnDraftVersion = trackNumberDao.insert(asMainDraft(trackNumberDao.fetch(tnOfficialVersion))).rowVersion
 
         val alignmentVersion = alignmentDao.insert(alignment())
-        val rlOfficialVersion = referenceLineDao.insert(referenceLine(tnId).copy(alignmentVersion = alignmentVersion)).rowVersion
+        val rlOfficialVersion = referenceLineDao.insert(
+            referenceLine(tnId, alignmentVersion = alignmentVersion, draft = false)
+        ).rowVersion
         val rlDraftVersion = createDraftReferenceLine(rlOfficialVersion)
 
-        val kmPostOneOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(1))).rowVersion
+        val kmPostOneOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(1), draft = false)).rowVersion
         val kmPostOneDraftVersion = kmPostDao.insert(asMainDraft(kmPostDao.fetch(kmPostOneOfficialVersion))).rowVersion
-        val kmPostTwoOnlyDraftVersion = kmPostService.saveDraft(kmPost(tnId, KmNumber(2))).rowVersion
-        val kmPostThreeOnlyOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(3))).rowVersion
+        val kmPostTwoOnlyDraftVersion = kmPostService.saveDraft(kmPost(tnId, KmNumber(2), draft = true)).rowVersion
+        val kmPostThreeOnlyOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(3), draft = false)).rowVersion
 
         // Add a deleted post - should not appear in results
-        kmPostDao.insert(kmPost(tnId, KmNumber(4), state = LayoutState.DELETED))
+        kmPostDao.insert(kmPost(tnId, KmNumber(4), state = LayoutState.DELETED, draft = false))
 
         val officialKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, tnId)!!
         assertEquals(
@@ -131,15 +133,17 @@ class GeocodingDaoIT @Autowired constructor(
 
     @Test
     fun cacheKeysAreCorrectlyFetchedByMoment() {
-        val tnOfficialResponse = trackNumberDao.insert(trackNumber(getUnusedTrackNumber()))
+        val tnOfficialResponse = trackNumberDao.insert(trackNumber(getUnusedTrackNumber(), draft = false))
         val tnId = tnOfficialResponse.id
         val tnOfficialVersion = tnOfficialResponse.rowVersion
         val alignmentVersion = alignmentDao.insert(alignment())
-        val rlOfficialVersion = referenceLineDao.insert(referenceLine(tnId).copy(alignmentVersion = alignmentVersion)).rowVersion
-        val kmPostOneOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(1))).rowVersion
+        val rlOfficialVersion = referenceLineDao.insert(
+            referenceLine(tnId, alignmentVersion = alignmentVersion, draft = false)
+        ).rowVersion
+        val kmPostOneOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(1), draft = false)).rowVersion
 
         val originalTime = kmPostDao.fetchChangeTime()
-        Thread.sleep(1)
+        Thread.sleep(1) // Ensure that later objects get a new changetime so that moment-fetch makes sense
 
         val originalKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, tnId)!!
         assertEquals(
@@ -154,15 +158,15 @@ class GeocodingDaoIT @Autowired constructor(
         // Add some draft changes as well. These shouldn't affect the results
         trackNumberDao.insert(asMainDraft(trackNumberDao.fetch(tnOfficialVersion)))
         createDraftReferenceLine(rlOfficialVersion)
-        kmPostService.saveDraft(kmPost(tnId, KmNumber(10)))
+        kmPostService.saveDraft(kmPost(tnId, KmNumber(10), draft = true))
 
         // Update the official stuff
         val updatedTrackNumberVersion = updateTrackNumber(tnOfficialVersion)
         val updatedReferenceLineVersion = updateReferenceLine(rlOfficialVersion)
         val updatedKmPostOneOfficialVersion = updateKmPost(kmPostOneOfficialVersion)
-        val kmPostTwoOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(2))).rowVersion
+        val kmPostTwoOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(2), draft = false)).rowVersion
         // Add a deleted post - should not appear in results
-        kmPostDao.insert(kmPost(tnId, KmNumber(3), state = LayoutState.DELETED))
+        kmPostDao.insert(kmPost(tnId, KmNumber(3), state = LayoutState.DELETED, draft = false))
 
         val updatedTime = kmPostDao.fetchChangeTime()
 

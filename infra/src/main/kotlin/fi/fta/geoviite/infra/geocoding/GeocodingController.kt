@@ -1,9 +1,11 @@
 package fi.fta.geoviite.infra.geocoding
 
-import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT
+import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.Point
@@ -25,18 +27,18 @@ class GeocodingController(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}/address/{trackNumberId}")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/{$PUBLICATION_STATE}/address/{trackNumberId}")
     fun getTrackAddress(
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
         @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
         @RequestParam("coordinate") coordinate: Point,
     ): ResponseEntity<TrackMeter> {
         logger.apiCall("getTrackAddress", "trackNumberId" to trackNumberId, "coordinate" to coordinate)
-        return toResponse(geocodingService.getAddressIfWithin(publishType, trackNumberId, coordinate))
+        return toResponse(geocodingService.getAddressIfWithin(publicationState, trackNumberId, coordinate))
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
     @GetMapping("/location/{locationTrackId}")
     fun getTrackPoint(
         @PathVariable("locationTrackId") locationTrackId: IntId<LocationTrack>,
@@ -46,13 +48,13 @@ class GeocodingController(
         return toResponse(locationTrackService.getTrackPoint(OFFICIAL, locationTrackId, address))
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/{publishType}/address-pointlist/{alignmentId}")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/{$PUBLICATION_STATE}/address-pointlist/{alignmentId}")
     fun getAlignmentAddressPoints(
         @PathVariable("alignmentId") locationTrackId: IntId<LocationTrack>,
-        @PathVariable("publishType") publishType: PublishType,
+        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
     ): ResponseEntity<AlignmentAddresses> {
         logger.apiCall("getAlignmentAddressPoints", "locationTrackId" to locationTrackId)
-        return toResponse(geocodingService.getAddressPoints(locationTrackId, publishType))
+        return toResponse(geocodingService.getAddressPoints(locationTrackId, publicationState))
     }
 }

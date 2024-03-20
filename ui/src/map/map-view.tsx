@@ -592,6 +592,7 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                         );
                     case 'virtual-km-post-linking-layer': // Virtual map layers
+                    case 'virtual-hide-geometry-layer':
                         return undefined;
                     default:
                         return exhaustiveMatchingGuard(layerName);

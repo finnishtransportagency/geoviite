@@ -5,7 +5,8 @@ import { pushToRatko } from 'ratko/ratko-api';
 import { useTranslation } from 'react-i18next';
 import { Dialog } from 'geoviite-design-lib/dialog/dialog';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import { WriteAccessRequired } from 'user/write-access-required';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { EDIT_LAYOUT } from 'user/user-model';
 
 type RatkoPublishButtonProps = {
     size?: ButtonSize;
@@ -25,7 +26,7 @@ const RatkoPublishButton: React.FC<RatkoPublishButtonProps> = ({ size, disabled 
 
     return (
         <React.Fragment>
-            <WriteAccessRequired>
+            <PrivilegeRequired privilege={EDIT_LAYOUT}>
                 <Button
                     onClick={() => setShowingConfirmation(true)}
                     disabled={isPublishing || disabled}
@@ -36,7 +37,7 @@ const RatkoPublishButton: React.FC<RatkoPublishButtonProps> = ({ size, disabled 
                     qa-id="publish-to-ratko">
                     {t('publishing.publish-to-ratko')}
                 </Button>
-            </WriteAccessRequired>
+            </PrivilegeRequired>
             {showingConfirmation && (
                 <Dialog
                     title={t('publishing.publish-to-ratko')}

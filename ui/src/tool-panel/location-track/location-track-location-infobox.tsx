@@ -8,7 +8,6 @@ import {
 import { LoaderStatus } from 'utils/react-utils';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
-import { WriteAccessRequired } from 'user/write-access-required';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -44,6 +43,8 @@ import { createDelegates } from 'store/store-utils';
 import { MapLayerName } from 'map/map-model';
 import { updateLocationTrackGeometry } from 'linking/linking-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { EDIT_LAYOUT } from 'user/user-model';
 
 type LocationTrackLocationInfoboxContainerProps = {
     locationTrack: LayoutLocationTrack;
@@ -249,7 +250,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             </InfoboxField>
 
                             {linkingState === undefined && (
-                                <WriteAccessRequired>
+                                <PrivilegeRequired privilege={EDIT_LAYOUT}>
                                     {publishTypeIsDraft && extraInfo?.partOfUnfinishedSplit && (
                                         <InfoboxContentSpread>
                                             <MessageBox>
@@ -286,7 +287,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                             {t('tool-panel.location-track.modify-start-or-end')}
                                         </Button>
                                     </InfoboxButtons>
-                                </WriteAccessRequired>
+                                </PrivilegeRequired>
                             )}
                             {linkingState?.type === LinkingType.LinkingAlignment && (
                                 <React.Fragment>
@@ -318,7 +319,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                 </React.Fragment>
                             )}
                             <EnvRestricted restrictTo="test">
-                                <WriteAccessRequired>
+                                <PrivilegeRequired privilege={EDIT_LAYOUT}>
                                     {publishTypeIsDraft &&
                                         locationTrackIsDraft &&
                                         !extraInfo?.partOfUnfinishedSplit && (
@@ -358,7 +359,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                             </Button>
                                         )}
                                     </InfoboxButtons>
-                                </WriteAccessRequired>
+                                </PrivilegeRequired>
                             </EnvRestricted>
 
                             <InfoboxField

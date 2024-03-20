@@ -102,6 +102,15 @@ export async function getLocationTrackInfoboxExtras(
     );
 }
 
+export async function getRelinkableSwitchesCount(
+    id: LocationTrackId,
+    publishType: PublishType,
+): Promise<number | undefined> {
+    return getNullable<number>(
+        `${layoutUri('location-tracks', publishType, id)}/relinkable-switches-count`,
+    );
+}
+
 export async function getLocationTracksByName(
     trackNumberId: LayoutTrackNumberId,
     locationTrackNames: string[],

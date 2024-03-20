@@ -487,7 +487,7 @@ class LayoutAlignmentDao(
     }
 
     fun <T> fetchProfileInfoForSegmentsInBoundingBox(
-        publishType: PublishType,
+        publicationState: PublicationState,
         bbox: BoundingBox,
     ): List<MapSegmentProfileInfo<T>> {
         //language=SQL
@@ -520,7 +520,7 @@ class LayoutAlignmentDao(
             "x_max" to bbox.max.x,
             "y_max" to bbox.max.y,
             "layout_srid" to LAYOUT_SRID.code,
-            "publication_state" to publishType.name,
+            "publication_state" to publicationState.name,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->

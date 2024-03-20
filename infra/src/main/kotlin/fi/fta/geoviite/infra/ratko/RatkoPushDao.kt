@@ -19,7 +19,7 @@ import java.time.Instant
 class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     @Transactional
-    fun startPushing(layoutPublishIds: List<IntId<Publication>>): IntId<RatkoPush> {
+    fun startPushing(layoutPublicationIds: List<IntId<Publication>>): IntId<RatkoPush> {
         val sql = """
             insert into integrations.ratko_push(start_time, status)
             values (now(), 'IN_PROGRESS')
@@ -31,7 +31,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             rs.getIntId<RatkoPush>("id")
         }.first()
 
-        updatePushContent(ratkoPushId, publicationIds = layoutPublishIds)
+        updatePushContent(ratkoPushId, publicationIds = layoutPublicationIds)
 
         return ratkoPushId.also { logger.daoAccess(AccessType.INSERT, "${RatkoPush::class}.id", ratkoPushId) }
     }
@@ -172,7 +172,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         }.also { errorId -> logger.daoAccess(AccessType.INSERT, RatkoPushError::class, errorId) }
     }
 
-    fun getLatestRatkoPushErrorFor(publishId: IntId<Publication>): RatkoPushError<*>? {
+    fun getLatestRatkoPushErrorFor(publicationId: IntId<Publication>): RatkoPushError<*>? {
         //language=SQL
         val sql = """
             select 
@@ -192,7 +192,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             limit 1;
         """.trimIndent()
 
-        return jdbcTemplate.queryOptional(sql, mapOf("id" to publishId.intValue)) { rs, _ ->
+        return jdbcTemplate.queryOptional(sql, mapOf("id" to publicationId.intValue)) { rs, _ ->
             val errorId = rs.getIntId<RatkoPushError<*>>("id")
             val trackNumberId = rs.getIntIdOrNull<TrackLayoutTrackNumber>("track_number_id")
             val locationTrackId = rs.getIntIdOrNull<LocationTrack>("location_track_id")
@@ -205,10 +205,10 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                 assetId = trackNumberId
                     ?: locationTrackId
                     ?: switchId
-                    ?: throw IllegalStateException("Encountered Ratko push error without asset! id: $errorId"),
+                    ?: error { "Encountered Ratko push error without asset! id: $errorId" },
                 assetType = trackNumberId?.let { RatkoAssetType.TRACK_NUMBER }
                     ?: locationTrackId?.let { RatkoAssetType.LOCATION_TRACK }
-                    ?: switchId.let { RatkoAssetType.SWITCH }
+                    ?: switchId.let { RatkoAssetType.SWITCH },
             )
         }?.also { pushError -> logger.daoAccess(AccessType.FETCH, RatkoPushError::class, pushError) }
     }

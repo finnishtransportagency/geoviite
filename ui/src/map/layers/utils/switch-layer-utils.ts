@@ -15,8 +15,12 @@ import Style, { RenderFunction } from 'ol/style/Style';
 import SwitchIcon from 'vayla-design-lib/icon/glyphs/misc/switch.svg';
 import SwitchErrorIcon from 'vayla-design-lib/icon/glyphs/misc/switch-error.svg';
 import { switchJointNumberToString } from 'utils/enum-localization-utils';
-import { GeometryPlanLinkStatus, SuggestedSwitchJoint } from 'linking/linking-model';
-import { SwitchStructure } from 'common/common-model';
+import {
+    GeometryPlanLinkStatus,
+    SuggestedSwitch,
+    TrackLayoutSwitchJoint,
+} from 'linking/linking-model';
+import { JointNumber, SwitchStructure } from 'common/common-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import Feature from 'ol/Feature';
 import { Point as OlPoint } from 'ol/geom';
@@ -224,13 +228,24 @@ export function getJointRenderer(
     );
 }
 
+export function suggestedSwitchHasMatchOnJoint(
+    suggestedSwitch: SuggestedSwitch,
+    joint: JointNumber,
+) {
+    return Object.values(suggestedSwitch.trackLinks).some(
+        (link) =>
+            link.segmentJoints.some((sj) => sj.number == joint) ||
+            link.topologyJoint?.number == joint,
+    );
+}
+
 export function getLinkingJointRenderer(
-    joint: SuggestedSwitchJoint,
+    joint: TrackLayoutSwitchJoint,
+    hasMatch: boolean,
     linked = false,
 ): RenderFunction {
     const fontSize = TEXT_FONT_SMALL;
     const circleRadius = CIRCLE_RADIUS_LARGE;
-    const hasMatch = joint.matches.length > 0;
 
     return getCanvasRenderer(
         joint,

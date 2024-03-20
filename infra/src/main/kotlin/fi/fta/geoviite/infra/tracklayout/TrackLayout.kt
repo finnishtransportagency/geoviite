@@ -147,13 +147,12 @@ data class LocationTrackInfoboxExtras(
     val switchAtStart: LayoutSwitchIdAndName?,
     val switchAtEnd: LayoutSwitchIdAndName?,
     val partOfUnfinishedSplit: Boolean?,
-    val linkedSwitchesCount: Int,
 )
 
 data class SwitchValidationWithSuggestedSwitch(
     val switchId: IntId<TrackLayoutSwitch>,
     val switchValidation: ValidatedAsset<TrackLayoutSwitch>,
-    val suggestedSwitch: SuggestedSwitch?,
+    val switchSuggestion: SuggestedSwitch?,
 )
 
 data class SwitchOnLocationTrack(
@@ -361,7 +360,7 @@ data class TrackLayoutSwitchJointConnection(
     }
 }
 
-data class DraftableChangeInfo(
+data class LayoutAssetChangeInfo(
     val created: Instant,
     val changed: Instant?,
 )

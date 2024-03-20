@@ -2,8 +2,8 @@ package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.localization.localizationParams
-import fi.fta.geoviite.infra.publication.PublishValidationError
-import fi.fta.geoviite.infra.publication.PublishValidationErrorType.ERROR
+import fi.fta.geoviite.infra.publication.PublicationValidationError
+import fi.fta.geoviite.infra.publication.PublicationValidationErrorType.ERROR
 import fi.fta.geoviite.infra.publication.VALIDATION
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.publication.validate
@@ -18,9 +18,9 @@ const val VALIDATION_SPLIT = "$VALIDATION.split"
 internal fun validateSourceGeometry(
     draftAddresses: AlignmentAddresses?,
     officialAddressPoint: AlignmentAddresses?,
-): PublishValidationError? {
+): PublicationValidationError? {
     return if (draftAddresses == null || officialAddressPoint == null) {
-        PublishValidationError(ERROR, "$VALIDATION_SPLIT.no-geometry")
+        PublicationValidationError(ERROR, "$VALIDATION_SPLIT.no-geometry")
     } else {
         val officialPoints = officialAddressPoint.allPoints
 
@@ -30,8 +30,9 @@ internal fun validateSourceGeometry(
             .firstOrNull { (targetIndex, targetPoint) ->
                 val idx = min(officialPoints.lastIndex, targetIndex)
                 !targetPoint.isSame(officialPoints[idx])
-            }?.let { (_, point) ->
-                PublishValidationError(
+            }
+            ?.let { (_, point) ->
+                PublicationValidationError(
                     ERROR,
                     "$VALIDATION_SPLIT.geometry-changed",
                     mapOf("point" to point),
@@ -45,9 +46,11 @@ internal fun validateSplitContent(
     switchVersions: List<ValidationVersion<TrackLayoutSwitch>>,
     splits: Collection<Split>,
     allowMultipleSplits: Boolean,
-): List<Pair<Split, PublishValidationError>> {
+): List<Pair<Split, PublicationValidationError>> {
     val multipleSplitsStagedErrors = if (!allowMultipleSplits && splits.size > 1) {
-        splits.map { split -> split to PublishValidationError(ERROR, "$VALIDATION_SPLIT.multiple-splits-not-allowed")}
+        splits.map { split ->
+            split to PublicationValidationError(ERROR, "$VALIDATION_SPLIT.multiple-splits-not-allowed")
+        }
     } else {
         emptyList()
     }
@@ -76,9 +79,9 @@ internal fun validateSplitContent(
 internal fun validateTargetGeometry(
     targetAddresses: AlignmentAddresses?,
     sourceAddresses: AlignmentAddresses?,
-): PublishValidationError? {
+): PublicationValidationError? {
     return if (targetAddresses == null || sourceAddresses == null) {
-        PublishValidationError(ERROR, "$VALIDATION_SPLIT.no-geometry")
+        PublicationValidationError(ERROR, "$VALIDATION_SPLIT.no-geometry")
     } else {
         val targetPoints = targetAddresses.allPoints.filter { addressPoint -> addressPoint.address.hasZeroMillimeters }
         val sourcePoints = sourceAddresses.allPoints.filter { addressPoint -> addressPoint.address.hasZeroMillimeters }
@@ -90,7 +93,7 @@ internal fun validateTargetGeometry(
                 val idx = min(sourcePoints.lastIndex, startIndex + targetIndex)
                 !targetPoint.isSame(sourcePoints[idx])
             }?.let { (_, point) ->
-                PublishValidationError(
+                PublicationValidationError(
                     ERROR,
                     "$VALIDATION_SPLIT.geometry-changed",
                     mapOf("point" to point),
@@ -103,7 +106,7 @@ internal fun validateTargetTrackNumber(
     sourceLocationTrack: LocationTrack,
     targetLocationTrack: LocationTrack,
 ) = if (sourceLocationTrack.trackNumberId != targetLocationTrack.trackNumberId) {
-    PublishValidationError(
+    PublicationValidationError(
         ERROR,
         LocalizationKey("$VALIDATION_SPLIT.source-and-target-track-numbers-are-different"),
         localizationParams("trackName" to targetLocationTrack.name),
@@ -114,9 +117,9 @@ internal fun validateTargetTrackNumber(
 
 internal fun validateSplitSourceLocationTrack(
     locationTrack: LocationTrack,
-): PublishValidationError? {
+): PublicationValidationError? {
     return if (locationTrack.exists) {
-        PublishValidationError(ERROR, "$VALIDATION_SPLIT.source-not-deleted")
+        PublicationValidationError(ERROR, "$VALIDATION_SPLIT.source-not-deleted")
     } else {
         null
     }

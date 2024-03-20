@@ -17,11 +17,12 @@ import { FileMenuOption, InfraModelToolbar } from 'infra-model/view/infra-model-
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import InfraModelValidationErrorList from 'infra-model/view/infra-model-validation-error-list';
 import { ChangeTimes } from 'common/common-slice';
-import { WriteAccessRequired } from 'user/write-access-required';
 import { Item } from 'vayla-design-lib/dropdown/dropdown';
 import { CharsetSelectDialog } from './dialogs/charset-select-dialog';
 import { MapContext } from 'map/map-store';
 import { MapViewContainer } from 'map/map-view-container';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { EDIT_GEOMETRY_FILE } from 'user/user-model';
 
 export type InfraModelBaseProps = InfraModelState & {
     onExtraParametersChange: <TKey extends keyof ExtraInfraModelParameters>(
@@ -135,7 +136,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             {t('button.return')}
                         </Button>
                     )}
-                    <WriteAccessRequired>
+                    <PrivilegeRequired privilege={EDIT_GEOMETRY_FILE}>
                         <Button
                             qa-id="infra-model-save-button"
                             title={getVisibleErrors()}
@@ -150,7 +151,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             isProcessing={props.isLoading}>
                             {t(isNewPlan ? 'button.save' : 'im-form.save-changes')}
                         </Button>
-                    </WriteAccessRequired>
+                    </PrivilegeRequired>
                 </div>
             </div>
             <div className={styles['infra-model-upload__map-container']}>

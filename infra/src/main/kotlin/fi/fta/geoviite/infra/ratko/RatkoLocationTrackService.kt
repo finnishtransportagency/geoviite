@@ -112,7 +112,7 @@ class RatkoLocationTrackService @Autowired constructor(
             nodeCollection = ratkoNodes,
             duplicateOfOid = duplicateOfOidLocationTrack,
             descriptionGetter = { locationTrack ->
-                locationTrackService.getFullDescription(PublishType.OFFICIAL, locationTrack).toString()
+                locationTrackService.getFullDescription(PublicationState.OFFICIAL, locationTrack).toString()
             })
         val locationTrackOid = ratkoClient.newLocationTrack(ratkoLocationTrack)
         checkNotNull(locationTrackOid) {
@@ -349,7 +349,7 @@ class RatkoLocationTrackService @Autowired constructor(
             nodeCollection = changedNodeCollection,
             duplicateOfOid = duplicateOfOidLocationTrack,
             descriptionGetter = { locationTrack ->
-                locationTrackService.getFullDescription(PublishType.OFFICIAL, locationTrack).toString()
+                locationTrackService.getFullDescription(PublicationState.OFFICIAL, locationTrack).toString()
             })
 
         ratkoClient.updateLocationTrackProperties(ratkoLocationTrack)

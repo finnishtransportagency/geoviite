@@ -2,7 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geography.create2DPolygonString
 import fi.fta.geoviite.infra.logging.AccessType
@@ -26,18 +26,18 @@ class LayoutKmPostDao(
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) : LayoutAssetDao<TrackLayoutKmPost>(jdbcTemplateParam, LAYOUT_KM_POST, cacheEnabled, KM_POST_CACHE_SIZE) {
 
-    override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
+    override fun fetchVersions(publicationState: PublicationState, includeDeleted: Boolean) =
         fetchVersions(publicationState, includeDeleted, null, null)
 
     fun list(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         bbox: BoundingBox? = null,
     ): List<TrackLayoutKmPost> = fetchVersions(publicationState, includeDeleted, trackNumberId, bbox).map(::fetch)
 
     fun fetchVersions(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         bbox: BoundingBox? = null,
@@ -102,7 +102,7 @@ class LayoutKmPostDao(
     }
 
     fun fetchVersion(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         kmNumber: KmNumber,
         includeDeleted: Boolean,
@@ -297,7 +297,7 @@ class LayoutKmPostDao(
     fun fetchNextWithLocationAfter(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         kmNumber: KmNumber,
-        publicationState: PublishType,
+        publicationState: PublicationState,
         state: LayoutState,
     ): RowVersion<TrackLayoutKmPost>? {
         val sql = """

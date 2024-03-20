@@ -35,7 +35,6 @@ import { TrackNumberGeometryInfobox } from 'tool-panel/track-number/track-number
 import { MapViewport } from 'map/map-model';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { TrackNumberInfoboxVisibilities } from 'track-layout/track-layout-slice';
-import { WriteAccessRequired } from 'user/write-access-required';
 import { getEndLinkPoints } from 'track-layout/layout-map-api';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { ChangeTimes } from 'common/common-slice';
@@ -43,6 +42,8 @@ import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection
 import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 import { ChangesBeingReverted } from 'preview/preview-view';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { EDIT_LAYOUT, VIEW_GEOMETRY } from 'user/user-model';
 
 type TrackNumberInfoboxProps = {
     trackNumber: LayoutTrackNumber;
@@ -205,7 +206,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                             }
                         />
                         {linkingState === undefined && referenceLine && (
-                            <WriteAccessRequired>
+                            <PrivilegeRequired privilege={EDIT_LAYOUT}>
                                 <InfoboxButtons>
                                     <Button
                                         variant={ButtonVariant.SECONDARY}
@@ -221,7 +222,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                                         {t('tool-panel.location-track.modify-start-or-end')}
                                     </Button>
                                 </InfoboxButtons>
-                            </WriteAccessRequired>
+                            </PrivilegeRequired>
                         )}
                         {linkingState?.type === LinkingType.LinkingAlignment && (
                             <React.Fragment>
@@ -306,29 +307,26 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                 </Infobox>
             )}
             {referenceLine && (
-                <TrackNumberGeometryInfobox
-                    contentVisible={visibilities.geometry}
-                    onContentVisibilityChange={() => visibilityChange('geometry')}
-                    trackNumberId={trackNumber.id}
-                    publishType={publishType}
-                    viewport={viewport}
-                    onHighlightItem={onHighlightItem}
-                    changeTime={trackNumberChangeTime}
-                />
-            )}
-            {
-                // TODO: GVT-2522
-                trackNumber.editState !== 'CREATED' && (
-                    <AssetValidationInfoboxContainer
-                        contentVisible={visibilities.validation}
-                        onContentVisibilityChange={() => visibilityChange('validation')}
-                        id={trackNumber.id}
-                        type={'TRACK_NUMBER'}
+                <PrivilegeRequired privilege={VIEW_GEOMETRY}>
+                    <TrackNumberGeometryInfobox
+                        contentVisible={visibilities.geometry}
+                        onContentVisibilityChange={() => visibilityChange('geometry')}
+                        trackNumberId={trackNumber.id}
                         publishType={publishType}
+                        viewport={viewport}
+                        onHighlightItem={onHighlightItem}
                         changeTime={trackNumberChangeTime}
                     />
-                )
-            }
+                </PrivilegeRequired>
+            )}
+            <AssetValidationInfoboxContainer
+                contentVisible={visibilities.validation}
+                onContentVisibilityChange={() => visibilityChange('validation')}
+                id={trackNumber.id}
+                type={'TRACK_NUMBER'}
+                publishType={publishType}
+                changeTime={trackNumberChangeTime}
+            />
             {createdTime && changedTime && (
                 <Infobox
                     contentVisible={visibilities.log}

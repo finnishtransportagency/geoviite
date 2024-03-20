@@ -537,6 +537,14 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             label={`${t('location-track-dialog.duplicate-of')}`}
                             value={
                                 <Dropdown
+                                    disabled={!!extraInfo?.duplicates?.length}
+                                    title={
+                                        extraInfo?.duplicates?.length
+                                            ? t(
+                                                  'location-track-dialog.track-already-has-duplicates',
+                                              )
+                                            : ''
+                                    }
                                     value={
                                         selectedDuplicateTrack && {
                                             type: 'locationTrackSearchItem',

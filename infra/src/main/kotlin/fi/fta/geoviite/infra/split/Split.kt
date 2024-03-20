@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.publication.Publication
-import fi.fta.geoviite.infra.publication.PublishValidationError
+import fi.fta.geoviite.infra.publication.PublicationValidationError
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
 
@@ -55,12 +55,12 @@ data class SplitTarget(
     val segmentIndices: IntRange,
 )
 
-data class SplitPublishValidationErrors(
-    val trackNumbers: Map<IntId<TrackLayoutTrackNumber>, List<PublishValidationError>>,
-    val referenceLines: Map<IntId<ReferenceLine>, List<PublishValidationError>>,
-    val kmPosts: Map<IntId<TrackLayoutKmPost>, List<PublishValidationError>>,
-    val locationTracks: Map<IntId<LocationTrack>, List<PublishValidationError>>,
-    val switches: Map<IntId<TrackLayoutSwitch>, List<PublishValidationError>>,
+data class SplitPublicationValidationErrors(
+    val trackNumbers: Map<IntId<TrackLayoutTrackNumber>, List<PublicationValidationError>>,
+    val referenceLines: Map<IntId<ReferenceLine>, List<PublicationValidationError>>,
+    val kmPosts: Map<IntId<TrackLayoutKmPost>, List<PublicationValidationError>>,
+    val locationTracks: Map<IntId<LocationTrack>, List<PublicationValidationError>>,
+    val switches: Map<IntId<TrackLayoutSwitch>, List<PublicationValidationError>>,
 )
 
 data class SplitRequestTarget(

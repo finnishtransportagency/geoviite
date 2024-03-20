@@ -21,6 +21,7 @@ import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button } from 'vayla-design-lib/button/button';
 import { PlanVerticalGeometrySearchState } from 'data-products/data-products-slice';
 import { PrivilegeRequired } from 'user/privilege-required';
+import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 
 type PlanVerticalGeometrySearchProps = {
     state: PlanVerticalGeometrySearchState;
@@ -112,7 +113,7 @@ export const PlanVerticalGeometrySearch: React.FC<PlanVerticalGeometrySearchProp
                         }
                     />
                 </div>
-                <PrivilegeRequired privilege="dataproduct-download">
+                <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
                     <a
                         qa-id="vertical-geometry-csv-download"
                         {...(state.plan && {

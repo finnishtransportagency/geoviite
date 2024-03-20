@@ -45,7 +45,6 @@ import {
 import { OnSelectFunction } from 'selection/selection-model';
 import { ProjectDropdown } from 'infra-model/view/form/fields/infra-model-project-field';
 import { ChangeTimes } from 'common/common-slice';
-import { WriteAccessRequired } from 'user/write-access-required';
 import { usePvDocumentHeader } from 'track-layout/track-layout-react-utils';
 import { PVOid } from 'infra-model/projektivelho/pv-oid';
 import FormgroupTextarea from 'infra-model/view/formgroup/formgroup-textarea';
@@ -53,6 +52,14 @@ import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 import { useLoader } from 'utils/react-utils';
 import i18next from 'i18next';
 import { menuValueOption } from 'vayla-design-lib/menu/menu';
+import { PrivilegeRequired } from 'user/privilege-required';
+import {
+    EDIT_GEOMETRY_FILE,
+    EDIT_LAYOUT,
+    userHasPrivilege,
+    VIEW_LAYOUT_DRAFT,
+} from 'user/user-model';
+import { useCommonDataAppSelector } from 'store/hooks';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -114,6 +121,8 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     onSelect,
 }: InframodelViewFormContainerProps) => {
     const { t } = useTranslation();
+    const privileges = useCommonDataAppSelector((state) => state.userPrivileges).map((p) => p.code);
+
     const [coordinateSystem, setCoordinateSystem] = React.useState<
         CoordinateSystemModel | undefined
     >();
@@ -157,12 +166,18 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
         setShowNewTrackNumberDialog(true);
     }
 
+    const newTrackNumberOptionFn = userHasPrivilege(privileges, EDIT_LAYOUT)
+        ? openAddTrackNumberDialog
+        : undefined;
+
     function closeAddTrackNumberDialog() {
         setShowNewTrackNumberDialog(false);
     }
 
     function updateTrackNumbers() {
-        getTrackNumbers('DRAFT').then((trackNumbers) => setTrackNumberList(trackNumbers));
+        getTrackNumbers(
+            userHasPrivilege(privileges, VIEW_LAYOUT_DRAFT) ? 'DRAFT' : 'OFFICIAL',
+        ).then((trackNumbers) => setTrackNumberList(trackNumbers));
     }
 
     function handleDayChange(chosenDate: Date) {
@@ -244,7 +259,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     return (
         <React.Fragment>
             {upLoading && <div> {t('im-form.uploading-file-msg')}</div>}
-            <WriteAccessRequired>
+            <PrivilegeRequired privilege={EDIT_GEOMETRY_FILE}>
                 <Formgroup>
                     <FieldLayout
                         label={t('im-form.observations-field')}
@@ -264,7 +279,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         }
                     />
                 </Formgroup>
-            </WriteAccessRequired>
+            </PrivilegeRequired>
             <Formgroup qa-id="im-form-project">
                 {pvDocument && (
                     <FormgroupContent title={t('im-form.pv-document-information.title')}>
@@ -410,7 +425,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                             onChange={(tn) =>
                                                 changeInOverrideParametersField(tn, 'trackNumberId')
                                             }
-                                            onAddClick={openAddTrackNumberDialog}
+                                            onAddClick={newTrackNumberOptionFn}
                                         />
                                     }
                                 />

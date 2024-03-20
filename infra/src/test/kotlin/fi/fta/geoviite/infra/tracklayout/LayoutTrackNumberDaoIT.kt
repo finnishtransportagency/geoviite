@@ -3,8 +3,8 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
@@ -52,15 +52,15 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
             jdbc.update(deleteSql, mapOf("external_id" to oid))
         }
 
-        val tn1 = trackNumber(getUnusedTrackNumber()).copy(externalId = oid)
-        val tn2 = trackNumber(getUnusedTrackNumber()).copy(externalId = oid)
+        val tn1 = trackNumber(getUnusedTrackNumber(), externalId = oid, draft = false)
+        val tn2 = trackNumber(getUnusedTrackNumber(), externalId = oid, draft = false)
         trackNumberDao.insert(tn1)
         assertThrows<DuplicateKeyException> { trackNumberDao.insert(tn2) }
     }
 
     @Test
     fun trackNumberVersioningWorks() {
-        val tempTrackNumber = trackNumber(getUnusedTrackNumber(), description = "test 1")
+        val tempTrackNumber = trackNumber(getUnusedTrackNumber(), description = "test 1", draft = false)
         val (id, insertVersion) = trackNumberDao.insert(tempTrackNumber)
         val inserted = trackNumberDao.fetch(insertVersion)
         assertMatches(tempTrackNumber, inserted, contextMatch = false)
