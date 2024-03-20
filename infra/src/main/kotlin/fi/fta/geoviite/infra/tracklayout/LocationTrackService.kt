@@ -426,8 +426,8 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
-    fun getRelinkableSwitchesCount(publishType: PublishType, id: IntId<LocationTrack>): Int? {
-        val locationTrack = get(publishType, id)
+    fun getRelinkableSwitchesCount(publicationState: PublicationState, id: IntId<LocationTrack>): Int? {
+        val locationTrack = get(publicationState, id)
         return locationTrack?.alignmentVersion?.let { alignmentVersion ->
             countRelinkableSwitches(locationTrack, alignmentVersion, alignmentDao.fetch(alignmentVersion))
         }
