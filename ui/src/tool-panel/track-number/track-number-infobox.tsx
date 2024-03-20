@@ -319,19 +319,14 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
                     />
                 </PrivilegeRequired>
             )}
-            {
-                // TODO: GVT-2522
-                trackNumber.editState !== 'CREATED' && (
-                    <AssetValidationInfoboxContainer
-                        contentVisible={visibilities.validation}
-                        onContentVisibilityChange={() => visibilityChange('validation')}
-                        id={trackNumber.id}
-                        type={'TRACK_NUMBER'}
-                        publishType={publishType}
-                        changeTime={trackNumberChangeTime}
-                    />
-                )
-            }
+            <AssetValidationInfoboxContainer
+                contentVisible={visibilities.validation}
+                onContentVisibilityChange={() => visibilityChange('validation')}
+                id={trackNumber.id}
+                type={'TRACK_NUMBER'}
+                publishType={publishType}
+                changeTime={trackNumberChangeTime}
+            />
             {createdTime && changedTime && (
                 <Infobox
                     contentVisible={visibilities.log}
