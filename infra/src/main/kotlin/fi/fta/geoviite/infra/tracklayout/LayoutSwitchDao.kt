@@ -507,4 +507,29 @@ class LayoutSwitchDao(
             names.associateWith { n -> found.filter { (name, _) -> name == n }.map { (_, v) -> v } }
         }
     }
+
+    fun findSwitchesNearAlignment(alignmentVersion: RowVersion<LayoutAlignment>, maxDistance: Double = 1.0): List<IntId<TrackLayoutSwitch>> {
+        val sql = """
+            select distinct switch_publication_view.official_id as switch_id
+              from layout.segment_version
+                join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+                join layout.switch_joint on
+                  postgis.st_contains(postgis.st_expand(segment_geometry.bounding_box, :dist), switch_joint.location)
+                  and postgis.st_distance(segment_geometry.geometry, switch_joint.location) < :dist
+                join layout.switch_publication_view on switch_joint.switch_id = switch_publication_view.row_id
+              where segment_version.alignment_id = :alignmentId
+                and segment_version.alignment_version = :alignmentVersion
+                and switch_publication_view.state_category != 'NOT_EXISTING';
+        """.trimIndent()
+        return jdbcTemplate.query(
+            sql,
+            mapOf(
+                "alignmentId" to alignmentVersion.id.intValue,
+                "alignmentVersion" to alignmentVersion.version,
+                "dist" to maxDistance,
+            )
+        ) { rs, _ ->
+            rs.getIntId<TrackLayoutSwitch>("switch_id")
+        }.also { results -> logger.daoAccess(FETCH, "Switches near alignment", results)}
+    }
 }

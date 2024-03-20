@@ -13,7 +13,6 @@ type LocationTrackValidationInfoboxProps = {
     changeTime: TimeStamp;
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
-    linkedSwitchesCount: number;
     showLinkedSwitchesRelinkingDialog: () => void;
     editingDisabled: boolean;
 };

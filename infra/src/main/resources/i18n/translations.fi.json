@@ -632,9 +632,9 @@
             "unset": "Ei asetettu",
             "switch-relinking-dialog": {
                 "title": "Linkitä raiteen vaihteet",
-                "confirm-relinking": "Haluatko linkittää kaikki \"{{name}}\" raiteen vaihteet ({{linkedSwitchesCount}} kpl)?",
+                "confirm-relinking": "Haluatko linkittää kaikki \"{{name}}\" raiteen vaihteet ({{relinkableSwitchesCount}} kpl)?",
                 "confirm-relinking-clarification": "Automaattinen linkitys ei välttämättä korjaa kaikkia vaihteiden ongelmia. Linkityksen jälkeen ongelmalliset vaihteet näytetään tehtävälistassa ja ongelmat voi korjata manuaalisesti.",
-                "confirm-button": "Linkitä vaihteet ({{linkedSwitchesCount}} kpl)",
+                "confirm-button": "Linkitä vaihteet ({{relinkableSwitchesCount}} kpl)",
                 "relinking-finished-title": "Vaihteiden uudelleenlinkitys",
                 "relinking-finished-with-no-errors": "{{relinkedCount}} vaihdetta linkitetty.",
                 "relinking-finished-with-errors": "{{relinkedCount}} vaihdetta linkitetty. Ongelmia sisältävät vaihteet ({{invalidCount}} kpl) näytetään tehtävälistassa."

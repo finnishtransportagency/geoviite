@@ -72,7 +72,7 @@ import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import { filterNotEmpty } from 'utils/array-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { LocationTrackValidationInfoboxContainer } from 'tool-panel/location-track/location-track-validation-infobox-container';
-import { LocationTrackSwitchRelinkingDialog } from 'tool-panel/location-track/dialog/location-track-switch-relinking-dialog';
+import { LocationTrackSwitchRelinkingDialogContainer } from 'tool-panel/location-track/dialog/location-track-switch-relinking-dialog';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -615,7 +615,6 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     id={locationTrack.id}
                     publishType={publishType}
                     changeTime={changeTimes.layoutLocationTrack}
-                    linkedSwitchesCount={extraInfo.linkedSwitchesCount}
                     showLinkedSwitchesRelinkingDialog={() => setConfirmingSwitchRelinking(true)}
                     editingDisabled={editingDisabled}
                 />
@@ -700,13 +699,13 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 />
             )}
 
-            {confirmingSwitchRelinking && extraInfo && (
-                <LocationTrackSwitchRelinkingDialog
+            {confirmingSwitchRelinking && (
+                <LocationTrackSwitchRelinkingDialogContainer
                     locationTrackId={locationTrack.id}
                     name={locationTrack.name}
-                    linkedSwitchesCount={extraInfo.linkedSwitchesCount}
                     closeDialog={() => setConfirmingSwitchRelinking(false)}
                     showLocationTrackTaskList={showLocationTrackTaskList}
+                    publishType={publishType}
                 />
             )}
         </React.Fragment>
