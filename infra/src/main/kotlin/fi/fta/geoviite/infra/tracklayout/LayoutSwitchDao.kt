@@ -524,7 +524,7 @@ class LayoutSwitchDao(
             mapOf(
                 "alignmentId" to alignmentVersion.id.intValue,
                 "alignmentVersion" to alignmentVersion.version,
-                "dist" to maxDistance
+                "dist" to maxDistance,
             )
         ) { rs, _ ->
             rs.getIntId<TrackLayoutSwitch>("switch_id")
