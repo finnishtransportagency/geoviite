@@ -65,7 +65,7 @@ class RatkoController(
         return ratkoStatusService.getRatkoOnlineStatus()
     }
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/fetch-operating-points-from-ratko")
     fun fetchOperatingPointsFromRatko(): HttpStatus {
         logger.apiCall("fetchOperatingPointsFromRatko")
@@ -74,7 +74,7 @@ class RatkoController(
         return HttpStatus.NO_CONTENT
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
     @GetMapping("/operating-points")
     fun getOperatingPoints(bbox: BoundingBox): List<RatkoOperatingPoint> {
         return ratkoService.getOperatingPoints(bbox);
