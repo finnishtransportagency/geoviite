@@ -23,6 +23,11 @@ spring:
       connection-timeout: 10000
       leak-detection-threshold: 60000
       validation-timeout: 5000
+  jdbc:
+    template:
+      query-timeout: 15
+  transaction:
+    default-timeout: 60
   flyway:
     clean-disabled: true
     clean-on-validation-error: false
@@ -70,6 +75,7 @@ geoviite:
   rail-network-export:
     schedule: "0 0 3 * * *"
     vertical-geometry-schedule: "0 0 4 * * *"
+
 server:
   compression:
     enabled: true
