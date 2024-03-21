@@ -40,6 +40,7 @@ import { getChangeTimes } from 'common/change-time-api';
 import {
     ElevationMeasurementMethod,
     KmNumber,
+    LayoutDesignId,
     LayoutContext,
     PublicationState,
     TimeStamp,
@@ -64,7 +65,7 @@ const planVerticalGeometryCache = asyncCache<
     PlanVerticalGeometryKey,
     VerticalGeometryItem[] | undefined
 >;
-type LocationTrackVerticalGeometryKey = `${LocationTrackId}_${PublicationState}`;
+type LocationTrackVerticalGeometryKey = `${LocationTrackId}_${PublicationState}_${LayoutDesignId}`;
 const locationTrackVerticalGeometryCache = asyncCache<
     LocationTrackVerticalGeometryKey,
     VerticalGeometryItem[] | undefined
@@ -185,7 +186,7 @@ export async function getLocationTrackVerticalGeometry(
         ? fetch()
         : locationTrackVerticalGeometryCache.get(
               changeTime,
-              `${id}_${layoutContext.publicationState}`,
+              `${id}_${layoutContext.publicationState}_${layoutContext.designId}`,
               fetch,
           );
 }
