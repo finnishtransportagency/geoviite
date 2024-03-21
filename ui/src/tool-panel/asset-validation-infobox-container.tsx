@@ -33,7 +33,7 @@ export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxPro
             case 'KM_POST':
                 return getKmPostValidation(layoutContext, id);
             case 'SWITCH':
-                return getSwitchValidation(id, layoutContext);
+                return getSwitchValidation(layoutContext, id);
             default:
                 return exhaustiveMatchingGuard(type);
         }

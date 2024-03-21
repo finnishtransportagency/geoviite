@@ -158,8 +158,8 @@ export async function deleteDraftSwitch(
 }
 
 export const getSwitchValidation = async (
-    id: LayoutSwitchId,
     layoutContext: LayoutContext,
+    id: LayoutSwitchId,
 ): Promise<ValidatedAsset | undefined> =>
     getSwitchesValidation(layoutContext, [id]).then((switches) => first(switches));
 
