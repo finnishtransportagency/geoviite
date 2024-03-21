@@ -112,7 +112,8 @@
         "coordinate-transformation-failed": "Koordinaattimuunnos epäonnistui",
         "copy-details-to-clipboard": "Kopioi tiedot leikepöydälle",
         "expected-non-null": "Pyyntö palautti null-arvon",
-        "file-size-limit-exceeded": "Tiedosto ylittää suurimman sallitun koon"
+        "file-size-limit-exceeded": "Tiedosto ylittää suurimman sallitun koon",
+        "request-timed-out": "Pyyntö katkaistiin, koska se kesti liian kauan"
     },
     "unauthorized-request": {
         "title": "Istunto on vanhentunut.",

@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.util.LocalizationKey
 import jakarta.xml.bind.UnmarshalException
-import org.apache.catalina.connector.ClientAbortException
 import org.geotools.api.referencing.operation.TransformException
 import org.springframework.beans.ConversionNotSupportedException
 import org.springframework.beans.TypeMismatchException
@@ -131,7 +130,6 @@ fun getStatusCode(exception: Exception): HttpStatus? = when (exception) {
     is NoHandlerFoundException -> NOT_FOUND
     is AsyncRequestTimeoutException -> SERVICE_UNAVAILABLE
     is MaxUploadSizeExceededException -> BAD_REQUEST
-    is ClientAbortException -> REQUEST_TIMEOUT
     is TransactionTimedOutException -> REQUEST_TIMEOUT
     // We don't know -> return nothing to continue resolving through the cause chain
     else -> null
@@ -275,11 +273,6 @@ fun describe(ex: Exception): ErrorDescription? {
 
         is TransactionTimedOutException -> ErrorDescription(
             message = "Request timed out",
-            key = "error.request-timed-out",
-        )
-
-        is ClientAbortException -> ErrorDescription(
-            message = "Request timed out: $message",
             key = "error.request-timed-out",
         )
 
