@@ -417,7 +417,7 @@ export async function getLocationTrackHeights(
 }
 
 const locationTrackLinkingSummaryCache = asyncCache<
-    `${LocationTrackId}_${PublicationState}`,
+    `${LocationTrackId}_${PublicationState}_${LayoutDesignId}`,
     PlanLinkingSummaryItem[]
 >();
 
@@ -428,7 +428,7 @@ export async function getLocationTrackLinkingSummary(
 ): Promise<PlanLinkingSummaryItem[]> {
     return locationTrackLinkingSummaryCache.get(
         changeTime,
-        `${locationTrackId}_${layoutContext.publicationState}`,
+        `${locationTrackId}_${layoutContext.publicationState}_${layoutContext.designId}`,
         () =>
             getNonNull(
                 `${GEOMETRY_URI}/${layoutContext.publicationState}/layout/location-tracks/${locationTrackId}/linking-summary`,
