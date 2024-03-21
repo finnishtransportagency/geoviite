@@ -12,5 +12,5 @@ const val AUTH_VIEW_PUBLICATION = "hasAuthority('view-publication')"
 const val AUTH_DOWNLOAD_PUBLICATION = "hasAuthority('download-publication')"
 const val AUTH_VIEW_PV_DOCUMENTS = "hasAuthority('view-pv-documents')"
 
-const val PUBLISH_TYPE = "publishType"
-const val AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE = "(#$PUBLISH_TYPE.name() == 'DRAFT' && $AUTH_VIEW_LAYOUT_DRAFT) || (#$PUBLISH_TYPE.name() == 'OFFICIAL' && $AUTH_VIEW_LAYOUT)"
+const val PUBLICATION_STATE = "publicationState"
+const val AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE = "(#$PUBLICATION_STATE.name() == 'DRAFT' && $AUTH_VIEW_LAYOUT_DRAFT) || (#$PUBLICATION_STATE.name() == 'OFFICIAL' && $AUTH_VIEW_LAYOUT)"

@@ -2,7 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.ValidationVersion
@@ -18,35 +18,39 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
 
     protected open val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun list(publishType: PublishType, includeDeleted: Boolean = false): List<ObjectType> {
-        logger.serviceCall("list", "publishType" to publishType)
-        return dao.list(publishType, includeDeleted)
+    fun list(publicationState: PublicationState, includeDeleted: Boolean = false): List<ObjectType> {
+        logger.serviceCall("list", "publicationState" to publicationState)
+        return dao.list(publicationState, includeDeleted)
     }
 
     fun list(
-        publishType: PublishType,
+        publicationState: PublicationState,
         searchTerm: FreeText,
         limit: Int?,
     ): List<ObjectType> {
         logger.serviceCall(
-            "list", "publishType" to publishType, "searchTerm" to searchTerm, "limit" to limit
+            "list",
+            "publicationState" to publicationState,
+            "searchTerm" to searchTerm,
+            "limit" to limit,
         )
 
         return searchTerm.toString().trim().takeIf(String::isNotEmpty)?.let { term ->
-            dao.list(publishType, true).filter { item ->
-                    idMatches(term, item) || contentMatches(term, item)
-                }.let { list -> sortSearchResult(list) }.let { list -> if (limit != null) list.take(limit) else list }
+            dao.list(publicationState, true)
+                .filter { item -> idMatches(term, item) || contentMatches(term, item) }
+                .let { list -> sortSearchResult(list) }
+                .let { list -> if (limit != null) list.take(limit) else list }
         } ?: listOf()
     }
 
-    fun get(publishType: PublishType, id: IntId<ObjectType>): ObjectType? {
-        logger.serviceCall("get", "publishType" to publishType, "id" to id)
-        return dao.get(publishType, id)
+    fun get(publicationState: PublicationState, id: IntId<ObjectType>): ObjectType? {
+        logger.serviceCall("get", "publicationState" to publicationState, "id" to id)
+        return dao.get(publicationState, id)
     }
 
-    fun getMany(publishType: PublishType, ids: List<IntId<ObjectType>>): List<ObjectType> {
-        logger.serviceCall("getMany", "publishType" to publishType, "ids" to ids)
-        return dao.getMany(publishType, ids)
+    fun getMany(publicationState: PublicationState, ids: List<IntId<ObjectType>>): List<ObjectType> {
+        logger.serviceCall("getMany", "publicationState" to publicationState, "ids" to ids)
+        return dao.getMany(publicationState, ids)
     }
 
     fun getOfficialAtMoment(id: IntId<ObjectType>, moment: Instant): ObjectType? {
@@ -54,9 +58,9 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         return dao.getOfficialAtMoment(id, moment)
     }
 
-    fun getOrThrow(publishType: PublishType, id: IntId<ObjectType>): ObjectType {
-        logger.serviceCall("get", "publishType" to publishType, "id" to id)
-        return dao.getOrThrow(publishType, id)
+    fun getOrThrow(publicationState: PublicationState, id: IntId<ObjectType>): ObjectType {
+        logger.serviceCall("get", "publicationState" to publicationState, "id" to id)
+        return dao.getOrThrow(publicationState, id)
     }
 
     fun getChangeTime(): Instant {
@@ -64,19 +68,13 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         return dao.fetchChangeTime()
     }
 
-    fun getDraftableChangeInfo(id: IntId<ObjectType>, publishType: PublishType): DraftableChangeInfo? {
-        logger.serviceCall("getChangeTimes", "id" to id)
-        return dao.fetchDraftableChangeInfo(id, publishType)
-    }
-
-    fun draftExists(id: IntId<ObjectType>): Boolean {
-        logger.serviceCall("draftExists", "id" to id)
-        return dao.draftExists(id)
-    }
-
-    fun officialExists(id: IntId<ObjectType>): Boolean {
-        logger.serviceCall("officialExists", "id" to id)
-        return dao.officialExists(id)
+    fun getLayoutAssetChangeInfo(id: IntId<ObjectType>, publicationState: PublicationState): LayoutAssetChangeInfo? {
+        logger.serviceCall(
+            "getLayoutAssetChangeInfo",
+            "id" to id,
+            "publicationState" to publicationState,
+        )
+        return dao.fetchLayoutAssetChangeInfo(id, publicationState)
     }
 
     protected open fun sortSearchResult(list: List<ObjectType>): List<ObjectType> = list
@@ -160,7 +158,8 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         if (response.rowVersion.version != previousVersion.version + 1) {
             // We could do optimistic locking here by throwing
             logger.warn(
-                "Updated version isn't the next one: a concurrent change may have been overwritten: " + "id=$id previous=$previousVersion updated=$response"
+                "Updated version isn't the next one: a concurrent change may have been overwritten: " +
+                        "id=$id previous=$previousVersion updated=$response"
             )
         }
     }

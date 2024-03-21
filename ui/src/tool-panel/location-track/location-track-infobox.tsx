@@ -64,7 +64,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     onVerticalGeometryDiagramVisibilityChange,
     onHighlightItem,
 }: LocationTrackInfoboxProps) => {
-    const trackNumber = useTrackNumber(locationTrack?.trackNumberId, layoutContext);
+    const trackNumber = useTrackNumber(locationTrack.trackNumberId, layoutContext);
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState<boolean>();
@@ -95,17 +95,15 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
 
     return (
         <React.Fragment>
-            {locationTrack && (
-                <LocationTrackBasicInfoInfoboxContainer
-                    locationTrack={locationTrack}
-                    layoutContext={layoutContext}
-                    trackNumber={trackNumber}
-                    editingDisabled={editingDisabled}
-                    visibilities={visibilities}
-                    visibilityChange={visibilityChange}
-                    openEditLocationTrackDialog={openEditLocationTrackDialog}
-                />
-            )}
+            <LocationTrackBasicInfoInfoboxContainer
+                locationTrack={locationTrack}
+                layoutContext={layoutContext}
+                trackNumber={trackNumber}
+                editingDisabled={editingDisabled}
+                visibilities={visibilities}
+                visibilityChange={visibilityChange}
+                openEditLocationTrackDialog={openEditLocationTrackDialog}
+            />
             {splittingState && (
                 <EnvRestricted restrictTo="test">
                     <LocationTrackSplittingInfoboxContainer
@@ -142,16 +140,14 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 }
                 verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
             />
-            {locationTrack.editState !== 'CREATED' && (
-                <LocationTrackValidationInfoboxContainer
-                    contentVisible={visibilities.validation}
-                    onContentVisibilityChange={() => visibilityChange('validation')}
-                    id={locationTrack.id}
-                    layoutContext={layoutContext}
-                    showLinkedSwitchesRelinkingDialog={() => setConfirmingSwitchRelinking(true)}
-                    editingDisabled={editingDisabled}
-                />
-            )}
+            <LocationTrackValidationInfoboxContainer
+                contentVisible={visibilities.validation}
+                onContentVisibilityChange={() => visibilityChange('validation')}
+                id={locationTrack.id}
+                layoutContext={layoutContext}
+                showLinkedSwitchesRelinkingDialog={() => setConfirmingSwitchRelinking(true)}
+                editingDisabled={editingDisabled}
+            />
             <LocationTrackChangeInfoInfobox
                 locationTrackId={locationTrack.id}
                 layoutContext={layoutContext}

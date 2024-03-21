@@ -125,6 +125,8 @@ class PublicationUtilsTest {
         assertEquals(12.0, result[1].changedLengthM)
     }
 
-    private fun xAxisGeocodingContext() = geocodingContext((0..60).map { x -> Point(x.toDouble(), 0.0)})
+    private fun xAxisGeocodingContext() = geocodingContext(
+        (0..60).map { x -> Point(x.toDouble(), 0.0)},
+        draft = false,
+    )
 }
-

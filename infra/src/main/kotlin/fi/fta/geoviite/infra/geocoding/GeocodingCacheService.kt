@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.CACHE_GEOCODING_CONTEXTS
 import fi.fta.geoviite.infra.configuration.CACHE_PLAN_GEOCODING_CONTEXTS
@@ -109,7 +109,7 @@ class GeocodingCacheService(
 
     @Transactional(readOnly = true)
     fun getGeocodingContextCreateResult(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): GeocodingContextCreateResult? = geocodingDao
         .getLayoutGeocodingContextCacheKey(publicationState, trackNumberId)
@@ -128,6 +128,6 @@ class GeocodingCacheService(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         plan: RowVersion<GeometryPlan>,
     ): GeocodingContext? = trackNumberDao
-        .fetchVersion(trackNumberId, PublishType.OFFICIAL)
+        .fetchVersion(trackNumberId, PublicationState.OFFICIAL)
         ?.let { trackNumberVersion -> getGeocodingContext(GeometryGeocodingContextCacheKey(trackNumberVersion, plan)) }
 }

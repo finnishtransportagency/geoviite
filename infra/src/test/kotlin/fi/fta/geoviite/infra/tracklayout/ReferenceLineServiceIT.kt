@@ -4,8 +4,8 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
@@ -74,7 +74,7 @@ class ReferenceLineServiceIT @Autowired constructor(
         assertEquals(referenceLine.alignmentVersion, updatedLine.alignmentVersion)
         val changeTimeAfterUpdate = referenceLineService.getChangeTime()
 
-        val changeInfo = referenceLineService.getDraftableChangeInfo(referenceLineId, DRAFT)
+        val changeInfo = referenceLineService.getLayoutAssetChangeInfo(referenceLineId, DRAFT)
         assertEquals(changeTimeAfterInsert, changeInfo?.created)
         assertEquals(changeTimeAfterUpdate, changeInfo?.changed)
     }
@@ -84,22 +84,22 @@ class ReferenceLineServiceIT @Autowired constructor(
         val trackNumberId = createAndPublishTrackNumber() // First version is created automatically
 
         val referenceLineId = referenceLineService.getByTrackNumber(DRAFT, trackNumberId)!!.id as IntId
-        val (publishedVersion, published) = publishAndVerify(trackNumberId, referenceLineId)
+        val (publishResponse, published) = publishAndVerify(trackNumberId, referenceLineId)
 
         val editResponse = referenceLineService.updateTrackNumberReferenceLine(trackNumberId, TrackMeter(3, 5))
-        assertEquals(publishedVersion.id, editResponse?.id)
-        assertNotEquals(publishedVersion.rowVersion.id, editResponse?.rowVersion?.id)
+        assertEquals(publishResponse.id, editResponse?.id)
+        assertNotEquals(publishResponse.rowVersion.id, editResponse?.rowVersion?.id)
 
-        val editedDraft = getAndVerifyDraft(publishedVersion.id)
+        val editedDraft = getAndVerifyDraft(publishResponse.id)
         assertEquals(TrackMeter(3, 5), editedDraft.startAddress)
         // Creating a draft should duplicate the alignment
         assertNotEquals(published.alignmentVersion!!.id, editedDraft.alignmentVersion!!.id)
 
         val editResponse2 = referenceLineService.updateTrackNumberReferenceLine(trackNumberId, TrackMeter(8, 9))
-        assertEquals(publishedVersion.id, editResponse2?.id)
-        assertNotEquals(publishedVersion.rowVersion.id, editResponse2?.rowVersion?.id)
+        assertEquals(publishResponse.id, editResponse2?.id)
+        assertNotEquals(publishResponse.rowVersion.id, editResponse2?.rowVersion?.id)
 
-        val editedDraft2 = referenceLineService.get(DRAFT, publishedVersion.id)!!
+        val editedDraft2 = referenceLineService.get(DRAFT, publishResponse.id)!!
         assertEquals(TrackMeter(8, 9), editedDraft2.startAddress)
         assertNotEquals(published.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
         // Second edit to same draft should not duplicate alignment again
@@ -111,22 +111,22 @@ class ReferenceLineServiceIT @Autowired constructor(
         val trackNumberId = createAndPublishTrackNumber() // First version is created automatically
 
         val referenceLineId = referenceLineService.getByTrackNumber(DRAFT, trackNumberId)!!.id as IntId
-        val (publishedVersion, published) = publishAndVerify(trackNumberId, referenceLineId)
+        val (publishResponse, published) = publishAndVerify(trackNumberId, referenceLineId)
 
         val editedVersion = referenceLineService.saveDraft(published.copy(startAddress = TrackMeter(1, 1)))
-        assertEquals(publishedVersion.id, editedVersion.id)
-        assertNotEquals(publishedVersion.rowVersion.id, editedVersion.rowVersion.id)
+        assertEquals(publishResponse.id, editedVersion.id)
+        assertNotEquals(publishResponse.rowVersion.id, editedVersion.rowVersion.id)
 
-        val editedDraft = getAndVerifyDraft(publishedVersion.id)
+        val editedDraft = getAndVerifyDraft(publishResponse.id)
         assertEquals(TrackMeter(1, 1), editedDraft.startAddress)
         // Creating a draft should duplicate the alignment
         assertNotEquals(published.alignmentVersion!!.id, editedDraft.alignmentVersion!!.id)
 
         val editedVersion2 = referenceLineService.saveDraft(editedDraft.copy(startAddress = TrackMeter(2, 2)))
-        assertEquals(publishedVersion.id, editedVersion2.id)
-        assertNotEquals(publishedVersion.rowVersion.id, editedVersion2.rowVersion.id)
+        assertEquals(publishResponse.id, editedVersion2.id)
+        assertNotEquals(publishResponse.rowVersion.id, editedVersion2.rowVersion.id)
 
-        val editedDraft2 = getAndVerifyDraft(publishedVersion.id)
+        val editedDraft2 = getAndVerifyDraft(publishResponse.id)
         assertEquals(TrackMeter(2, 2), editedDraft2.startAddress)
         assertNotEquals(published.alignmentVersion!!.id, editedDraft2.alignmentVersion!!.id)
         // Second edit to same draft should not duplicate alignment again
@@ -138,14 +138,14 @@ class ReferenceLineServiceIT @Autowired constructor(
         val trackNumberId = createAndPublishTrackNumber() // First version is created automatically
 
         val referenceLineId = referenceLineService.getByTrackNumber(DRAFT, trackNumberId)!!.id as IntId
-        val (publishedVersion, published) = publishAndVerify(trackNumberId, referenceLineId)
+        val (publishResponse, published) = publishAndVerify(trackNumberId, referenceLineId)
 
         val alignmentTmp = alignment(segment(2, 10.0, 20.0, 10.0, 20.0))
         val editedVersion = referenceLineService.saveDraft(published, alignmentTmp)
-        assertEquals(publishedVersion.id, editedVersion.id)
-        assertNotEquals(publishedVersion.rowVersion.id, editedVersion.rowVersion.id)
+        assertEquals(publishResponse.id, editedVersion.id)
+        assertNotEquals(publishResponse.rowVersion.id, editedVersion.rowVersion.id)
 
-        val (editedDraft, editedAlignment) = getAndVerifyDraftWithAlignment(publishedVersion.id)
+        val (editedDraft, editedAlignment) = getAndVerifyDraftWithAlignment(publishResponse.id)
         assertEquals(
             alignmentTmp.segments.flatMap(LayoutSegment::alignmentPoints),
             editedAlignment.segments.flatMap(LayoutSegment::alignmentPoints),
@@ -156,10 +156,10 @@ class ReferenceLineServiceIT @Autowired constructor(
 
         val alignmentTmp2 = alignment(segment(4, 10.0, 20.0, 10.0, 20.0))
         val editedVersion2 = referenceLineService.saveDraft(editedDraft, alignmentTmp2)
-        assertEquals(publishedVersion.id, editedVersion2.id)
-        assertNotEquals(publishedVersion.rowVersion.id, editedVersion2.rowVersion.id)
+        assertEquals(publishResponse.id, editedVersion2.id)
+        assertNotEquals(publishResponse.rowVersion.id, editedVersion2.rowVersion.id)
 
-        val (editedDraft2, editedAlignment2) = getAndVerifyDraftWithAlignment(publishedVersion.id)
+        val (editedDraft2, editedAlignment2) = getAndVerifyDraftWithAlignment(publishResponse.id)
         assertEquals(
             alignmentTmp2.segments.flatMap(LayoutSegment::alignmentPoints),
             editedAlignment2.segments.flatMap(LayoutSegment::alignmentPoints),
@@ -172,14 +172,16 @@ class ReferenceLineServiceIT @Autowired constructor(
 
     @Test
     fun `should throw exception when there are switches linked to reference line`() {
-        val trackNumberId = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
+        val trackNumberId = getUnusedTrackNumberId()
 
         val (referenceLine, alignment) = referenceLineAndAlignment(
-            trackNumberId = trackNumberId, segments = listOf(
+            trackNumberId = trackNumberId,
+            segments = listOf(
                 segment(
                     Point(0.0, 0.0), Point(1.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)
                 ),
-            )
+            ),
+            draft = false,
         )
 
         assertThrows<IllegalArgumentException> {

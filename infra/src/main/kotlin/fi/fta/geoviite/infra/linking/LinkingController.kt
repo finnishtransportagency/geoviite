@@ -1,8 +1,11 @@
 package fi.fta.geoviite.infra.linking
 
-import fi.fta.geoviite.infra.authorization.*
+import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT_DRAFT
+import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
@@ -10,7 +13,10 @@ import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -83,24 +89,24 @@ class LinkingController @Autowired constructor(
         return linkingService.updateReferenceLineGeometry(alignmentId, mRange)
     }
 
-    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
-    @GetMapping("{$PUBLISH_TYPE}/plans/{id}/status")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("{$PUBLICATION_STATE}/plans/{id}/status")
     fun getPlanLinkStatus(
         @PathVariable("id") planId: IntId<GeometryPlan>,
-        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
+        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
     ): GeometryPlanLinkStatus {
-        logger.apiCall("getPlanLinkStatus", "planId" to planId, "$PUBLISH_TYPE" to publishType)
-        return linkingService.getGeometryPlanLinkStatus(planId = planId, publishType = publishType)
+        logger.apiCall("getPlanLinkStatus", "planId" to planId, "$PUBLICATION_STATE" to publicationState)
+        return linkingService.getGeometryPlanLinkStatus(planId = planId, publicationState = publicationState)
     }
 
-    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
-    @GetMapping("{$PUBLISH_TYPE}/plans/status")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("{$PUBLICATION_STATE}/plans/status")
     fun getManyPlanLinkStatuses(
         @RequestParam("ids") planIds: List<IntId<GeometryPlan>>,
-        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
+        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
     ): List<GeometryPlanLinkStatus> {
-        logger.apiCall("getManyPlanLinkStatuses", "$PUBLISH_TYPE" to publishType)
-        return linkingService.getGeometryPlanLinkStatuses(planIds = planIds, publishType = publishType)
+        logger.apiCall("getManyPlanLinkStatuses", "$PUBLICATION_STATE" to publicationState)
+        return linkingService.getGeometryPlanLinkStatuses(planIds = planIds, publicationState = publicationState)
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)

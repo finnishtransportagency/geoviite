@@ -3,13 +3,13 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.publication.*
 import fi.fta.geoviite.infra.tracklayout.*
 
-fun publishRequest(
+fun publicationRequest(
     trackNumbers: List<IntId<TrackLayoutTrackNumber>> = listOf(),
     kmPosts: List<IntId<TrackLayoutKmPost>> = listOf(),
     switches: List<IntId<TrackLayoutSwitch>> = listOf(),
     referenceLines: List<IntId<ReferenceLine>> = listOf(),
     locationTracks: List<IntId<LocationTrack>> = listOf(),
-) = PublishRequestIds(
+) = PublicationRequestIds(
     trackNumbers = trackNumbers,
     kmPosts = kmPosts,
     switches = switches,
@@ -38,9 +38,9 @@ fun publish(
     switches: List<IntId<TrackLayoutSwitch>> = listOf(),
     referenceLines: List<IntId<ReferenceLine>> = listOf(),
     locationTracks: List<IntId<LocationTrack>> = listOf(),
-) = publish(publicationService, publishRequest(trackNumbers, kmPosts, switches, referenceLines, locationTracks))
+) = publish(publicationService, publicationRequest(trackNumbers, kmPosts, switches, referenceLines, locationTracks))
 
-fun publish(publicationService: PublicationService, request: PublishRequestIds): PublishResult {
+fun publish(publicationService: PublicationService, request: PublicationRequestIds): PublicationResult {
     val versions = publicationService.getValidationVersions(request)
     val calculatedChanges = publicationService.getCalculatedChanges(versions)
     return publicationService.publishChanges(versions, calculatedChanges, "Test")

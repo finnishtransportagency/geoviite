@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -165,11 +165,11 @@ class ReferenceLineDao(
         return result
     }
 
-    fun getByTrackNumber(publicationState: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? =
+    fun getByTrackNumber(publicationState: PublicationState, trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? =
         fetchVersionByTrackNumberId(publicationState, trackNumberId)?.let(::fetch)
 
     fun fetchVersionByTrackNumberId(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): RowVersion<ReferenceLine>? {
         //language=SQL
@@ -189,7 +189,7 @@ class ReferenceLineDao(
     }
 
     override fun fetchVersions(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         includeDeleted: Boolean,
     ): List<RowVersion<ReferenceLine>> {
         val sql = """
@@ -213,7 +213,7 @@ class ReferenceLineDao(
 
     // TODO: No IT test runs this
     fun fetchVersionsNear(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         bbox: BoundingBox,
     ): List<RowVersion<ReferenceLine>> {
         val sql = """
@@ -248,7 +248,7 @@ class ReferenceLineDao(
         }
     }
 
-    fun fetchVersionsNonLinked(publicationState: PublishType): List<RowVersion<ReferenceLine>> {
+    fun fetchVersionsNonLinked(publicationState: PublicationState): List<RowVersion<ReferenceLine>> {
         val sql = """
             select
               rl.row_id,

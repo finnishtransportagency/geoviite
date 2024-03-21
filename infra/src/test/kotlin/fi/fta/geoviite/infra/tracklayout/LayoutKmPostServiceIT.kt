@@ -3,8 +3,8 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import org.junit.jupiter.api.Test
@@ -34,6 +34,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
                     trackNumberId = trackNumberId,
                     km = KmNumber(1),
                     location = Point(1.0, 1.0),
+                    draft = false,
                 )
             ).rowVersion
         )
@@ -43,6 +44,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
                     trackNumberId = trackNumberId,
                     km = KmNumber(2),
                     location = Point(2.0, 1.0),
+                    draft = false,
                 )
             ).rowVersion
         )
@@ -52,6 +54,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
                     trackNumberId = trackNumberId,
                     km = KmNumber(3),
                     location = null,
+                    draft = false,
                 )
             ).rowVersion
         )
@@ -61,6 +64,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
                 trackNumberId = insertOfficialTrackNumber(),
                 km = KmNumber(4),
                 location = null,
+                draft = false,
             )
         )
 
@@ -80,6 +84,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
                     trackNumberId = trackNumberId,
                     km = KmNumber(1),
                     location = Point(1.0, 1.0),
+                    draft = false,
                 )
             ).rowVersion
         )
@@ -97,6 +102,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
                 trackNumberId = trackNumberId,
                 km = KmNumber(1),
                 location = Point(1.0, 1.0),
+                draft = false,
             )
         )
 
@@ -113,6 +119,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
                     trackNumberId = trackNumber1Id,
                     km = KmNumber(1),
                     location = Point(1.0, 1.0),
+                    draft = false,
                 )
             ).rowVersion
         )
@@ -158,20 +165,20 @@ class LayoutKmPostServiceIT @Autowired constructor(
     fun kmPostLengthMatchesTrackNumberService() {
         val trackNumberId = insertDraftTrackNumber()
         referenceLineService.saveDraft(
-            referenceLine(trackNumberId), alignment(
+            referenceLine(trackNumberId, draft = true), alignment(
                 segment(
                     Point(0.0, 0.0), Point(0.0, 5.0), Point(1.0, 10.0), Point(3.0, 15.0), Point(4.0, 20.0)
                 )
             )
         )
         val kmPosts = listOf(
-            kmPost(trackNumberId, KmNumber(1), Point(0.0, 3.0)),
-            kmPost(trackNumberId, KmNumber(2), Point(0.0, 5.0)),
-            kmPost(trackNumberId, KmNumber(3), null),
-            kmPost(trackNumberId, KmNumber(4), Point(0.0, 6.0), state = LayoutState.NOT_IN_USE),
-            kmPost(trackNumberId, KmNumber(5), Point(0.0, 10.0), state = LayoutState.PLANNED),
-            kmPost(trackNumberId, KmNumber(6, "A"), Point(3.0, 14.0)),
-            kmPost(trackNumberId, KmNumber(6, "AA"), Point(6.0, 18.0)),
+            kmPost(trackNumberId, KmNumber(1), Point(0.0, 3.0), draft = true),
+            kmPost(trackNumberId, KmNumber(2), Point(0.0, 5.0), draft = true),
+            kmPost(trackNumberId, KmNumber(3), null, draft = true),
+            kmPost(trackNumberId, KmNumber(4), Point(0.0, 6.0), state = LayoutState.NOT_IN_USE, draft = true),
+            kmPost(trackNumberId, KmNumber(5), Point(0.0, 10.0), state = LayoutState.PLANNED, draft = true),
+            kmPost(trackNumberId, KmNumber(6, "A"), Point(3.0, 14.0), draft = true),
+            kmPost(trackNumberId, KmNumber(6, "AA"), Point(6.0, 18.0), draft = true),
         ).map(kmPostService::saveDraft).map(DaoResponse<TrackLayoutKmPost>::id)
         // drop(1) because the track number km lengths include the section before the first km post
         val expected = trackNumberService.getKmLengths(DRAFT, trackNumberId)!!.drop(1)

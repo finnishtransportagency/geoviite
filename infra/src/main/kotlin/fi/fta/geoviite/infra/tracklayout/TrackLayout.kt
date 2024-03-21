@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.geography.crs
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
-import fi.fta.geoviite.infra.linking.FittedSwitch
 import fi.fta.geoviite.infra.linking.SuggestedSwitch
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -147,7 +146,6 @@ data class LocationTrackInfoboxExtras(
     val switchAtStart: LayoutSwitchIdAndName?,
     val switchAtEnd: LayoutSwitchIdAndName?,
     val partOfUnfinishedSplit: Boolean?,
-    val linkedSwitchesCount: Int,
 )
 
 data class SwitchValidationWithSuggestedSwitch(
@@ -358,7 +356,7 @@ data class TrackLayoutSwitchJointConnection(
     }
 }
 
-data class DraftableChangeInfo(
+data class LayoutAssetChangeInfo(
     val created: Instant,
     val changed: Instant?,
 )

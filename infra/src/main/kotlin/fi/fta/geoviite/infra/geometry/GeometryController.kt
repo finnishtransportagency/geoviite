@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra.geometry
 import fi.fta.geoviite.infra.authorization.*
 import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.ID
@@ -271,7 +271,7 @@ class GeometryController @Autowired constructor(
     @PreAuthorize(AUTH_VIEW_GEOMETRY_FILE)
     @GetMapping("/layout/{publicationType}/location-tracks/{id}/vertical-geometry")
     fun getTrackVerticalGeometryListing(
-        @PathVariable("publicationType") publicationType: PublishType,
+        @PathVariable("publicationType") publicationType: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
         @RequestParam("startAddress") startAddress: TrackMeter? = null,
         @RequestParam("endAddress") endAddress: TrackMeter? = null,
@@ -345,20 +345,20 @@ class GeometryController @Autowired constructor(
             ?: emptyList()
     }
 
-    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
-    @GetMapping("{$PUBLISH_TYPE}/layout/location-tracks/{id}/linking-summary")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("{$PUBLICATION_STATE}/layout/location-tracks/{id}/linking-summary")
     fun getLocationTrackLinkingSummary(
-        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
+        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): List<PlanLinkingSummaryItem>? {
-        logger.apiCall("getLocationTrackLinkingSummary", "$PUBLISH_TYPE" to publishType, "id" to id)
-        return geometryService.getLocationTrackGeometryLinkingSummary(id, publishType)
+        logger.apiCall("getLocationTrackLinkingSummary", "$PUBLICATION_STATE" to publicationState, "id" to id)
+        return geometryService.getLocationTrackGeometryLinkingSummary(id, publicationState)
     }
 
-    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLISH_TYPE)
-    @GetMapping("/{$PUBLISH_TYPE}/layout/location-tracks/{id}/alignment-heights")
+    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
+    @GetMapping("/{$PUBLICATION_STATE}/layout/location-tracks/{id}/alignment-heights")
     fun getLayoutAlignmentHeights(
-        @PathVariable("$PUBLISH_TYPE") publishType: PublishType,
+        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
         @RequestParam("startDistance") startDistance: Double,
         @RequestParam("endDistance") endDistance: Double,
@@ -366,12 +366,12 @@ class GeometryController @Autowired constructor(
     ): List<KmHeights>? {
         logger.apiCall(
             "getLayoutAlignmentHeights",
-            "$PUBLISH_TYPE" to publishType,
+            "$PUBLICATION_STATE" to publicationState,
             "id" to id,
             "startDistance" to startDistance,
             "endDistance" to endDistance,
             "tickLength" to tickLength
         )
-        return geometryService.getLocationTrackHeights(id, publishType, startDistance, endDistance, tickLength)
+        return geometryService.getLocationTrackHeights(id, publicationState, startDistance, endDistance, tickLength)
     }
 }
