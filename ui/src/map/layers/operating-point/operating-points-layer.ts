@@ -10,6 +10,7 @@ import { OperatingPoint } from 'track-layout/track-layout-model';
 import Style from 'ol/style/Style';
 import { Circle, Fill, Stroke, Text } from 'ol/style';
 import OlView from 'ol/View';
+import { ChangeTimes } from 'common/common-slice';
 
 const layerName: MapLayerName = 'operating-points-layer';
 
@@ -19,12 +20,17 @@ export function createOperatingPointLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     olView: OlView,
+    changeTimes: ChangeTimes,
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
     const resolution = olView.getResolution() || 0;
 
     const getOperatingPointsFromApi = async () => {
-        return (await Promise.all(mapTiles.map((tile) => getOperatingPoints(tile)))).flat();
+        return (
+            await Promise.all(
+                mapTiles.map((tile) => getOperatingPoints(tile, changeTimes.operatingPoints)),
+            )
+        ).flat();
     };
     const onLoadingChange = () => {};
     const createFeatures = (points: OperatingPoint[]) =>
@@ -50,7 +56,8 @@ function renderPoint(point: OperatingPoint): Feature<OlPoint> {
         text: new Text({
             text: point.name,
             fill: new Fill({ color: 'black' }),
-            offsetX: 30,
+            offsetX: 10,
+            textAlign: 'left',
             backgroundFill: new Fill({ color: 'rgba(255, 255, 255, 0.85)' }),
         }),
     });

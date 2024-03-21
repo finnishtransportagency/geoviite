@@ -392,10 +392,10 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
                     "secondarySortOrder" to "ASC"
                 )
             ))
-            pagePoints = ((ratkoJsonMapper.readValue(body, RatkoOperatingPointAssetsResponse::class.java)?.assets)
+            pagePoints = (ratkoJsonMapper.readValue(body, RatkoOperatingPointAssetsResponse::class.java)?.assets
                 ?: listOf()).mapNotNull(::parseAsset)
             allPoints.addAll(pagePoints)
-        } while (pagePoints.isNotEmpty())
+        } while (pagePoints.size == 100)
         return allPoints
     }
 

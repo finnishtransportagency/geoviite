@@ -18,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 import withUser
 import java.time.Duration
 import java.time.Instant
@@ -69,20 +68,16 @@ class RatkoService @Autowired constructor(
 
     @Scheduled(cron = "0 30 3 * * *")
     fun scheduledRatkoOperatingPointsFetch() {
-        withUser(ratkoSchedulerUserName, ::fetchOperatingPointsFromRatko)
+        withUser(ratkoSchedulerUserName, ::updateOperatingPointsFromRatko)
     }
 
-    fun fetchOperatingPointsFromRatko() {
+    fun updateOperatingPointsFromRatko() {
         lockDao.runWithLock(
             DatabaseLock.RATKO_OPERATING_POINTS_FETCH, databaseLockDuration
         ) {
             val points = ratkoClient.fetchOperatingPoints()
             ratkoOperatingPointDao.writeOperatingPoints(points)
         }
-    }
-
-    fun getOperatingPoints(bbox: BoundingBox): List<RatkoOperatingPoint> {
-        return ratkoOperatingPointDao.getOperatingPoints(bbox)
     }
 
     fun pushChangesToRatko(retryFailed: Boolean = true) {

@@ -946,7 +946,7 @@ class RatkoServiceIT @Autowired constructor(
                 kannustamoOperatingPoint
             )
         )
-        ratkoService.fetchOperatingPointsFromRatko()
+        ratkoService.updateOperatingPointsFromRatko()
         val pointsFromDatabase = ratkoService.getOperatingPoints(boundingBoxAroundPoint(Point(95.0, 95.0), 10.0))
         assertEquals(1, pointsFromDatabase.size)
         val point = pointsFromDatabase[0]

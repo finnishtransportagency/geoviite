@@ -578,6 +578,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
                             olView,
+                            changeTimes,
                         );
                     case 'debug-1m-points-layer':
                         return createDebug1mPointsLayer(
