@@ -56,7 +56,8 @@ function renderPoint(point: OperatingPoint): Feature<OlPoint> {
         text: new Text({
             text: point.name,
             fill: new Fill({ color: 'black' }),
-            offsetX: 30,
+            offsetX: 10,
+            textAlign: 'left',
             backgroundFill: new Fill({ color: 'rgba(255, 255, 255, 0.85)' }),
         }),
     });
