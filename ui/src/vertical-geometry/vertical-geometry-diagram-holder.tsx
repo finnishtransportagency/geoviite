@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { VerticalGeometryDiagram } from 'vertical-geometry/vertical-geometry-diagram';
-import { useAlignmentHeights } from 'vertical-geometry/km-heights-fetch';
+import { useAlignmentHeights } from 'vertical-geometry/km-heights-api';
 import { ChangeTimes } from 'common/common-slice';
 import { VerticalGeometryDiagramDisplayItem, VerticalGeometryItem } from 'geometry/geometry-model';
 import {

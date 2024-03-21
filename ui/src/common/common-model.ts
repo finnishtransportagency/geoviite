@@ -23,23 +23,33 @@ export type LayoutContext = {
     designId: LayoutDesignId | undefined;
 };
 
-export const officialLayoutContext = (layoutContext: LayoutContext): LayoutContext => ({
+export const officialLayoutContext = (layoutContext: LayoutContext): LayoutContext =>
+    layoutContext.publicationState === 'OFFICIAL'
+        ? layoutContext
+        : {
+              publicationState: 'OFFICIAL',
+              designId: layoutContext.designId,
+          };
+
+export const draftLayoutContext = (layoutContext: LayoutContext): LayoutContext =>
+    layoutContext.publicationState === 'DRAFT'
+        ? layoutContext
+        : {
+              publicationState: 'DRAFT',
+              designId: layoutContext.designId,
+          };
+
+const officialMainContext: LayoutContext = Object.freeze({
     publicationState: 'OFFICIAL',
-    designId: layoutContext.designId,
+    designId: undefined,
 });
-export const draftLayoutContext = (layoutContext: LayoutContext): LayoutContext => ({
+const draftMainContext: LayoutContext = Object.freeze({
     publicationState: 'DRAFT',
-    designId: layoutContext.designId,
+    designId: undefined,
 });
 
-export const officialMainLayoutContext = (): LayoutContext => ({
-    publicationState: 'OFFICIAL',
-    designId: undefined,
-});
-export const draftMainLayoutContext = (): LayoutContext => ({
-    publicationState: 'DRAFT',
-    designId: undefined,
-});
+export const officialMainLayoutContext = (): LayoutContext => officialMainContext;
+export const draftMainLayoutContext = (): LayoutContext => draftMainContext;
 
 export type LayoutMode = 'DEFAULT' | 'PREVIEW';
 

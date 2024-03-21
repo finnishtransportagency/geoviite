@@ -11,7 +11,7 @@ import {
     numericHeading,
     withClassName,
 } from 'data-products/data-products-utils';
-import { LayoutContext, officialLayoutContext } from 'common/common-model';
+import { LayoutContext } from 'common/common-model';
 
 type ElementTableProps = {
     layoutContext: LayoutContext;
@@ -27,7 +27,7 @@ const ElementTable = ({
     isLoading,
 }: ElementTableProps) => {
     const { t } = useTranslation();
-    const trackNumbers = useTrackNumbers(officialLayoutContext(layoutContext));
+    const trackNumbers = useTrackNumbers(layoutContext);
     const amount = elements.length;
     const commonTableHeadings: ElementHeadingWithClassName[] = [
         withClassName(
