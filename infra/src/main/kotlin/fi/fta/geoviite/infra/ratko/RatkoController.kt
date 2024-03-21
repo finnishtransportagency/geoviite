@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/ratko")
 class RatkoController(
     private val ratkoServiceParam: RatkoService?,
-    private val ratkoStatusService: RatkoStatusService,
+    private val ratkoLocalService: RatkoLocalService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -55,29 +55,29 @@ class RatkoController(
         @PathVariable("publicationId") publicationId: IntId<Publication>,
     ): ResponseEntity<RatkoPushErrorWithAsset> {
         logger.apiCall("getRatkoPushErrors", "publicationId" to publicationId)
-        return toResponse(ratkoStatusService.getRatkoPushError(publicationId))
+        return toResponse(ratkoLocalService.getRatkoPushError(publicationId))
     }
 
     @PreAuthorize(AUTH_BASIC)
     @GetMapping("/is-online")
     fun getRatkoOnlineStatus(): RatkoClient.RatkoStatus {
         logger.apiCall("ratkoIsOnline")
-        return ratkoStatusService.getRatkoOnlineStatus()
+        return ratkoLocalService.getRatkoOnlineStatus()
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PostMapping("/fetch-operating-points-from-ratko")
-    fun fetchOperatingPointsFromRatko(): HttpStatus {
-        logger.apiCall("fetchOperatingPointsFromRatko")
-        ratkoService.fetchOperatingPointsFromRatko()
+    @PostMapping("/update-operating-points-from-ratko")
+    fun updateOperatingPointsFromRatko(): HttpStatus {
+        logger.apiCall("updateOperatingPointsFromRatko")
+        ratkoService.updateOperatingPointsFromRatko()
 
         return HttpStatus.NO_CONTENT
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)
     @GetMapping("/operating-points")
-    fun getOperatingPoints(bbox: BoundingBox): List<RatkoOperatingPoint> {
-        return ratkoService.getOperatingPoints(bbox);
+    fun getOperatingPoints(@RequestParam bbox: BoundingBox): List<RatkoOperatingPoint> {
+        return ratkoLocalService.getOperatingPoints(bbox)
     }
 
 }

@@ -6,8 +6,10 @@ import fi.fta.geoviite.infra.configuration.CACHE_RATKO_HEALTH_STATUS
 import fi.fta.geoviite.infra.integration.RatkoAssetType.*
 import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset
 import fi.fta.geoviite.infra.logging.serviceCall
+import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.ratko.RatkoClient.RatkoStatus
+import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.logger
 import org.springframework.beans.factory.annotation.Autowired
@@ -15,9 +17,10 @@ import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
 
 @Service
-class RatkoStatusService @Autowired constructor(
+class RatkoLocalService @Autowired constructor(
     private val ratkoClient: RatkoClient?,
     private val ratkoPushDao: RatkoPushDao,
+    private val ratkoOperatingPointDao: RatkoOperatingPointDao,
     private val trackNumberService: LayoutTrackNumberService,
     private val locationTrackService: LocationTrackService,
     private val switchService: LayoutSwitchService,
@@ -47,5 +50,9 @@ class RatkoStatusService @Autowired constructor(
                 asset
             )
         }
+    }
+
+    fun getOperatingPoints(bbox: BoundingBox): List<RatkoOperatingPoint> {
+        return ratkoOperatingPointDao.getOperatingPoints(bbox)
     }
 }
