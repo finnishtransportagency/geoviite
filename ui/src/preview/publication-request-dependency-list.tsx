@@ -210,7 +210,7 @@ export const PublicationRequestDependencyList: React.FC<PublicationRequestDepend
                 <ul>
                     {dependencies.trackNumbers.map((tn) => (
                         <TrackNumberItem
-                            layoutContext={draftLayoutContext(layoutContext)}
+                            layoutContext={layoutContext}
                             trackNumberId={tn}
                             changeTime={changeTimes.layoutTrackNumber}
                             key={tn}
@@ -219,7 +219,7 @@ export const PublicationRequestDependencyList: React.FC<PublicationRequestDepend
 
                     {dependencies.referenceLines.map((rl) => (
                         <ReferenceLineItem
-                            layoutContext={draftLayoutContext(layoutContext)}
+                            layoutContext={layoutContext}
                             referenceLineId={rl}
                             changeTimes={changeTimes}
                             key={rl}
@@ -227,25 +227,17 @@ export const PublicationRequestDependencyList: React.FC<PublicationRequestDepend
                     ))}
                     {dependencies.locationTracks.map((lt) => (
                         <LocationTrackItem
-                            layoutContext={draftLayoutContext(layoutContext)}
+                            layoutContext={layoutContext}
                             locationTrackId={lt}
                             changeTime={changeTimes.layoutLocationTrack}
                             key={lt}
                         />
                     ))}
                     {dependencies.switches.map((sw) => (
-                        <SwitchItem
-                            layoutContext={draftLayoutContext(layoutContext)}
-                            switchId={sw}
-                            key={sw}
-                        />
+                        <SwitchItem layoutContext={layoutContext} switchId={sw} key={sw} />
                     ))}
                     {dependencies.kmPosts.map((kmPost) => (
-                        <KmPostItem
-                            layoutContext={draftLayoutContext(layoutContext)}
-                            kmPostId={kmPost}
-                            key={kmPost}
-                        />
+                        <KmPostItem layoutContext={layoutContext} kmPostId={kmPost} key={kmPost} />
                     ))}
                 </ul>
             </>
