@@ -2,11 +2,21 @@ import * as React from 'react';
 import { Dialog } from 'geoviite-design-lib/dialog/dialog';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Menu, MenuSelectOption, menuSelectOption } from 'vayla-design-lib/menu/menu';
+import {
+    Menu,
+    MenuDividerOption,
+    menuDividerOption,
+    MenuSelectOption,
+    menuSelectOption,
+} from 'vayla-design-lib/menu/menu';
 import styles from 'app-bar/app-bar.scss';
 import { useTranslation } from 'react-i18next';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useNavigate } from 'react-router';
+import { useCommonDataAppSelector } from 'store/hooks';
+import { postDesiredRole } from 'user/user-api';
+import { purgePersistentState } from 'index';
+import { Role } from 'user/user-model';
 
 const AppBarMoreMenu: React.FC = () => {
     const { t } = useTranslation();
@@ -15,7 +25,34 @@ const AppBarMoreMenu: React.FC = () => {
     const menuRef = React.useRef(null);
     const navigate = useNavigate();
 
-    const moreActions: MenuSelectOption[] = [
+    const availableRoles = useCommonDataAppSelector((state) => state.availableRoles);
+
+    const createRoleSelectionOption = (role: Role): MenuSelectOption => {
+        return menuSelectOption(
+            () => {
+                setShowMenu(false);
+                postDesiredRole(role.code).then((_roleCode) => {
+                    purgePersistentState();
+                    navigate('/');
+                    location.reload();
+                });
+            },
+            t(`user-roles.${role.code}`),
+            `select-role-${role.code}`,
+        );
+    };
+
+    const createRoleSelectionOptions = (): (MenuSelectOption | MenuDividerOption)[] => {
+        return availableRoles.length > 1
+            ? [
+                  menuDividerOption(),
+                  ...availableRoles.map(createRoleSelectionOption),
+                  menuDividerOption(),
+              ]
+            : [];
+    };
+
+    const moreActions: (MenuSelectOption | MenuDividerOption)[] = [
         menuSelectOption(
             () => {
                 setShowMenu(false);
@@ -24,6 +61,7 @@ const AppBarMoreMenu: React.FC = () => {
             t('app-bar.licenses'),
             'licenses',
         ),
+        ...createRoleSelectionOptions(),
         menuSelectOption(
             () => {
                 setShowMenu(false);

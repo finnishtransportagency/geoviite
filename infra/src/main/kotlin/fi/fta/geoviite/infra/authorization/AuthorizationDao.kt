@@ -13,28 +13,32 @@ import org.springframework.transaction.annotation.Transactional
 @Component
 class AuthorizationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
-    fun getRole(roleCode: Code): Role =
-        getRoleInternal(roleCode = roleCode, userGroup = null)
-            ?: throw IllegalStateException("No such role: roleCode=$roleCode")
+    fun getRoles(roleCodes: List<Code>): List<Role> {
+        return checkNotNull(getRolesInternal(roleCodes = roleCodes, userGroups = null)) {
+            "No roles found: roleCodes=$roleCodes"
+        }
+    }
 
     @Cacheable(CACHE_ROLES, sync = true)
-    fun getRoleByUserGroup(ldapGroup: Code): Role? =
-        getRoleInternal(roleCode = null, userGroup = ldapGroup)
+    fun getRolesByUserGroups(ldapGroups: List<Code>): List<Role>? {
+        return getRolesInternal(roleCodes = null, userGroups = ldapGroups)
+    }
 
-    private fun getRoleInternal(roleCode: Code? = null, userGroup: Code? = null): Role? {
-        if (roleCode == null && userGroup == null) throw IllegalStateException("Can't fetch role without name/group")
+    private fun getRolesInternal(roleCodes: List<Code>? = null, userGroups: List<Code>? = null): List<Role>? {
+        if (roleCodes == null && userGroups == null) throw IllegalStateException("Can't fetch roles without names/groups")
 
         //language=SQL
         val sql = """
             select code, name from common.role 
-            where (:role_code::varchar is null or code = :role_code) 
-              and (:user_group::varchar is null or user_group = :user_group)
+              where (:role_codes = '' or code = any(string_to_array(:role_codes, ',')::varchar[]))
+              and (:user_groups = '' or user_group = any(string_to_array(:user_groups, ',')::varchar[]))
         """.trimIndent()
+
         val params = mapOf(
-            "role_code" to roleCode,
-            "user_group" to userGroup,
+            "role_codes" to (roleCodes?.joinToString(",") ?: ""),
+            "user_groups" to (userGroups?.joinToString(",") ?: ""),
         )
-        val role = jdbcTemplate.queryOptional(sql, params) { rs, _ ->
+        val roles = jdbcTemplate.query(sql, params) { rs, _ ->
             val code: Code = rs.getCode("code")
             Role(
                 code = code,
@@ -42,8 +46,13 @@ class AuthorizationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase
                 privileges = getRolePrivileges(code),
             )
         }
-        logger.daoAccess(FETCH, Role::class, listOfNotNull(roleCode, userGroup))
-        return role
+        logger.daoAccess(FETCH, Role::class, listOfNotNull(roleCodes, userGroups))
+
+        return if (roles.isEmpty()) {
+            null
+        } else {
+            roles
+        }
     }
 
     private fun getRolePrivileges(code: Code): List<Privilege> {

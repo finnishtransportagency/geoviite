@@ -52,12 +52,15 @@ const val TOKEN =
 @SpringBootTest(properties = ["geoviite.jwt.validation.enabled=false", "geoviite.skip-auth=false"])
 @AutoConfigureMockMvc
 class AuthorizationIT @Autowired constructor(
-    val authorizationDao: AuthorizationDao,
+    authorizationDao: AuthorizationDao,
+    authorizationService: AuthorizationService,
     mapper: ObjectMapper,
     mockMvc: MockMvc,
 ) : DBTestBase() {
 
     val testApi = TestApi(mapper, mockMvc)
+
+    val availableRoles = authorizationDao.getRoles(listOf(Code("browser")))
     val user by lazy {
         User(
             details = UserDetails(
@@ -66,7 +69,8 @@ class AuthorizationIT @Autowired constructor(
                 lastName = AuthName("Doe"),
                 organization = AuthName("Test Oy"),
             ),
-            role = authorizationDao.getRole(Code("browser")),
+            role = authorizationService.getDefaultRole(availableRoles),
+            availableRoles = availableRoles,
         )
     }
 
