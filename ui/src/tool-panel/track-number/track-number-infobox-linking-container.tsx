@@ -29,7 +29,7 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
 
     const referenceLine = useTrackNumberReferenceLine(
         trackNumber.id,
-        trackLayoutState.publishType,
+        trackLayoutState.layoutContext,
         changeTimes.layoutReferenceLine,
     );
 
@@ -47,7 +47,7 @@ const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingCont
                 delegates.stopLinking();
             }}
             showArea={delegates.showArea}
-            publishType={trackLayoutState.publishType}
+            layoutContext={trackLayoutState.layoutContext}
             viewport={trackLayoutState.map.viewport}
             changeTimes={changeTimes}
             onSelect={delegates.onSelect}

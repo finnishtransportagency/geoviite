@@ -14,6 +14,7 @@ import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { getSwitches } from 'track-layout/layout-switch-api';
 import { CalculatedChanges } from 'publication/publication-model';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
 
 const calculatedChangesIsEmpty = (calculatedChanges: GroupedCalculatedChanges) => {
     return calculatedChanges.switches.length == 0 && calculatedChanges.locationTracks.length == 0;
@@ -21,6 +22,7 @@ const calculatedChangesIsEmpty = (calculatedChanges: GroupedCalculatedChanges) =
 
 type CalculatedChangesProps = {
     calculatedChanges: CalculatedChanges;
+    layoutContext: LayoutContext;
 };
 
 type GroupedCalculatedChanges = {
@@ -31,6 +33,7 @@ type GroupedCalculatedChanges = {
 
 export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
     calculatedChanges,
+    layoutContext,
 }: CalculatedChangesProps) => {
     const { t } = useTranslation();
     const [isFetching, setIsFetching] = React.useState(true);
@@ -51,19 +54,20 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
 
     React.useEffect(() => {
         setIsFetching(true);
+        const layoutContextDraft = draftLayoutContext(layoutContext);
 
         const trackNumberChanges = calculatedChanges.indirectChanges.trackNumberChanges;
         const locationTrackChanges = calculatedChanges.indirectChanges.locationTrackChanges;
         const switchChanges = calculatedChanges.indirectChanges.switchChanges;
 
-        const trackNumbersPromise = getTrackNumbers('DRAFT');
+        const trackNumbersPromise = getTrackNumbers(layoutContextDraft);
         const locationTracksPromise = getLocationTracks(
             locationTrackChanges.map((lt) => lt.locationTrackId),
-            'DRAFT',
+            layoutContextDraft,
         );
         const switchesPromise = getSwitches(
             switchChanges.map((s) => s.switchId),
-            'DRAFT',
+            layoutContextDraft,
         );
 
         Promise.all([trackNumbersPromise, locationTracksPromise, switchesPromise]).then(

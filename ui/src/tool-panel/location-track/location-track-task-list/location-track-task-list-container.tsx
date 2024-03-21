@@ -26,8 +26,10 @@ import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { useTranslation } from 'react-i18next';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
 
 type SwitchRelinkingValidationTaskListProps = {
+    layoutContext: LayoutContext;
     locationTrackId: LocationTrackId;
     onShowSwitch: (layoutSwitch: LayoutSwitch, point?: Point) => void;
     onClose: () => void;
@@ -37,6 +39,7 @@ type SwitchRelinkingValidationTaskListProps = {
 export const LocationTrackTaskListContainer: React.FC = () => {
     const delegates = createDelegates(TrackLayoutActions);
     const locationTrackList = useTrackLayoutAppSelector((state) => state.locationTrackTaskList);
+    const layoutContext = useTrackLayoutAppSelector((state) => state.layoutContext);
     const selectedSwitches = useTrackLayoutAppSelector(
         (state) => state.selection.selectedItems.switches,
     );
@@ -56,6 +59,7 @@ export const LocationTrackTaskListContainer: React.FC = () => {
     return createPortal(
         locationTrackList?.type == LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION ? (
             <SwitchRelinkingValidationTaskList
+                layoutContext={layoutContext}
                 locationTrackId={locationTrackList.locationTrackId}
                 onClose={onClose}
                 onShowSwitch={onShowSwitch}
@@ -69,6 +73,7 @@ export const LocationTrackTaskListContainer: React.FC = () => {
 };
 
 const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskListProps> = ({
+    layoutContext,
     locationTrackId,
     onShowSwitch,
     onClose,
@@ -79,7 +84,7 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
     const switchStructures = useLoader(() => getSwitchStructures(), []);
 
     const [locationTrack, locationTrackLoadingStatus] = useLoaderWithStatus(
-        () => getLocationTrack(locationTrackId, 'DRAFT'),
+        () => getLocationTrack(locationTrackId, draftLayoutContext(layoutContext)),
         [locationTrackId, getChangeTimes().layoutLocationTrack],
     );
 
@@ -88,7 +93,7 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
             .filter((r) => r.validationErrors.length > 0 || r.successfulSuggestion == null)
             .map((s) => s.id);
 
-        return await getSwitches(switchIds, 'DRAFT');
+        return await getSwitches(switchIds, draftLayoutContext(layoutContext));
     }, [changeTimes.layoutSwitch, locationTrackId, changeTimes.layoutLocationTrack]);
 
     const onClick = (layoutSwitch: LayoutSwitch) => {

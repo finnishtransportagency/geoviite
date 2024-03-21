@@ -6,7 +6,6 @@ import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
 import { getKmPostsByTile } from 'track-layout/layout-km-post-api';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
-import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import {
     createKmPostFeatures,
@@ -17,6 +16,7 @@ import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { filterUniqueById } from 'utils/array-utils';
+import { LayoutContext } from 'common/common-model';
 
 let shownKmPostsCompare: string;
 
@@ -26,7 +26,7 @@ export function createKmPostLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<OlPoint | Rectangle>> | undefined,
     selection: Selection,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     olView: OlView,
     onViewContentChanged: (items: OptionalShownItems) => void,
@@ -41,7 +41,7 @@ export function createKmPostLayer(
             ? Promise.resolve([])
             : Promise.all(
                   mapTiles.map(({ area }) =>
-                      getKmPostsByTile(publishType, changeTimes.layoutKmPost, area, step),
+                      getKmPostsByTile(layoutContext, changeTimes.layoutKmPost, area, step),
                   ),
               ).then((kmPostGroups) =>
                   kmPostGroups.flat().filter(filterUniqueById((kmPost) => kmPost.id)),

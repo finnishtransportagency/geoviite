@@ -8,6 +8,7 @@ import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { useCommonDataAppSelector } from 'store/hooks';
 import { userHasPrivilege, VIEW_LAYOUT_DRAFT } from 'user/user-model';
+import { draftMainLayoutContext, officialMainLayoutContext } from 'common/common-model';
 
 export type InfraModelListViewProps = Pick<
     InfraModelListState,
@@ -26,7 +27,9 @@ export const InfraModelListView: React.FC<InfraModelListViewProps> = (
 ) => {
     const privileges = useCommonDataAppSelector((state) => state.userPrivileges).map((p) => p.code);
     const trackNumbers = useTrackNumbers(
-        userHasPrivilege(privileges, VIEW_LAYOUT_DRAFT) ? 'DRAFT' : 'OFFICIAL',
+        userHasPrivilege(privileges, VIEW_LAYOUT_DRAFT)
+            ? draftMainLayoutContext()
+            : officialMainLayoutContext(),
     );
     React.useEffect(() => {
         props.clearInfraModelState();

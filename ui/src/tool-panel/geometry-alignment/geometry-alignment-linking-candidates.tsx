@@ -31,7 +31,7 @@ import {
     getLocationTracksNear,
     getNonLinkedLocationTracks,
 } from 'track-layout/layout-location-track-api';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { LayoutContext, TimeStamp } from 'common/common-model';
 import {
     LinkingGeometryWithAlignment,
     LinkingGeometryWithEmptyAlignment,
@@ -46,7 +46,7 @@ import { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 
 type GeometryAlignmentLinkingReferenceLineCandidatesProps = {
     geometryAlignment: AlignmentHeader;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     trackNumberChangeTime: TimeStamp;
     selectedLayoutReferenceLine?: LayoutReferenceLine;
     linkingState?:
@@ -60,7 +60,7 @@ type GeometryAlignmentLinkingReferenceLineCandidatesProps = {
 
 type GeometryAlignmentLinkingLocationTrackCandidatesProps = {
     geometryAlignment: AlignmentHeader;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     locationTrackChangeTime: TimeStamp;
     selectedLayoutLocationTrack?: LayoutLocationTrack;
     linkingState?:
@@ -113,7 +113,7 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
     GeometryAlignmentLinkingReferenceLineCandidatesProps
 > = ({
     geometryAlignment,
-    publishType,
+    layoutContext,
     trackNumberChangeTime,
     selectedLayoutReferenceLine,
     linkingState,
@@ -122,7 +122,7 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
     disableAddButton,
 }) => {
     const { t } = useTranslation();
-    const trackNumbers = useTrackNumbers(publishType, trackNumberChangeTime);
+    const trackNumbers = useTrackNumbers(layoutContext, trackNumberChangeTime);
     const [referenceLineRefs, setReferenceLineRefs] = React.useState<AlignmentRef[]>([]);
     const [referenceLines, setReferenceLines] = React.useState<LayoutReferenceLineSearchResult[]>(
         [],
@@ -138,11 +138,11 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
 
             Promise.all([
                 getReferenceLinesNear(
-                    publishType,
+                    layoutContext,
                     expandBoundingBox(geometryAlignment.boundingBox, NEAR_TRACK_SEARCH_BUFFER),
                 ).then(toBoundingBoxSearchResults),
 
-                getNonLinkedReferenceLines().then((lines) =>
+                getNonLinkedReferenceLines(layoutContext).then((lines) =>
                     lines.sort(negComparator(fieldComparator((line) => line.id))),
                 ),
             ])
@@ -275,7 +275,7 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
     GeometryAlignmentLinkingLocationTrackCandidatesProps
 > = ({
     geometryAlignment,
-    publishType,
+    layoutContext,
     locationTrackChangeTime,
     selectedLayoutLocationTrack,
     linkingState,
@@ -299,10 +299,10 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
 
             Promise.all([
                 getLocationTracksNear(
-                    publishType,
+                    layoutContext,
                     expandBoundingBox(geometryAlignment.boundingBox, NEAR_TRACK_SEARCH_BUFFER),
                 ),
-                getNonLinkedLocationTracks().then((tracks) =>
+                getNonLinkedLocationTracks(layoutContext).then((tracks) =>
                     tracks.sort(negComparator(fieldComparator((a) => a.id))),
                 ),
             ])

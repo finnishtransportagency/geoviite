@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { useLoader } from 'utils/react-utils';
 import { getPlanLinkStatus, linkKmPost } from 'linking/linking-api';
 import { GeometryKmPostId, GeometryPlanId } from 'geometry/geometry-model';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { draftLayoutContext, LayoutContext, TimeStamp } from 'common/common-model';
 import { LinkingStatusLabel } from 'geoviite-design-lib/linking-status/linking-status-label';
 import { LinkingKmPost } from 'linking/linking-model';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
@@ -36,7 +36,7 @@ type GeometryKmPostLinkingInfoboxProps = {
     stopLinking: () => void;
     onSelect: OnSelectFunction;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
 };
@@ -51,7 +51,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
     stopLinking,
     onSelect,
     onUnselect,
-    publishType,
+    layoutContext,
     contentVisible,
     onContentVisibilityChange,
 }: GeometryKmPostLinkingInfoboxProps) => {
@@ -60,8 +60,8 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
     const [showAddDialog, setShowAddDialog] = React.useState(false);
 
     const planStatus = useLoader(
-        () => (planId ? getPlanLinkStatus(planId, publishType) : undefined),
-        [planId, kmPostChangeTime, publishType],
+        () => (planId ? getPlanLinkStatus(planId, layoutContext) : undefined),
+        [planId, kmPostChangeTime, layoutContext],
     );
 
     const linkedLayoutKmPosts = useLoader(() => {
@@ -69,23 +69,28 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
         const kmPostIds = planStatus.kmPosts
             .filter((linkStatus) => linkStatus.id == geometryKmPost.sourceId)
             .flatMap((linkStatus) => linkStatus.linkedKmPosts);
-        return getKmPosts(kmPostIds, publishType).then((posts) => posts.filter(filterNotEmpty));
+        return getKmPosts(kmPostIds, layoutContext).then((posts) => posts.filter(filterNotEmpty));
     }, [planStatus, geometryKmPost.sourceId]);
 
     const kmPosts =
         useLoader(async () => {
             return geometryKmPost.location
                 ? await getKmPostForLinking(
-                      publishType,
+                      layoutContext,
                       geometryKmPost.trackNumberId,
                       geometryKmPost.location,
                       0,
                       40,
                   )
                 : [];
-        }, [publishType, geometryKmPost.trackNumberId, geometryKmPost.location, layoutKmPost]) ||
-        [];
-    const trackNumbers = useTrackNumbers(publishType);
+        }, [
+            layoutContext.publicationState,
+            layoutContext.designId,
+            geometryKmPost.trackNumberId,
+            geometryKmPost.location,
+            layoutKmPost,
+        ]) || [];
+    const trackNumbers = useTrackNumbers(layoutContext);
 
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
     const canLink = !linkingCallInProgress && linkingState && geometryKmPost && layoutKmPost;
@@ -113,7 +118,11 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
         }
     }
 
-    const handleKmPostSave = refereshKmPostSelection('DRAFT', onSelect, onUnselect);
+    const handleKmPostSave = refereshKmPostSelection(
+        draftLayoutContext(layoutContext),
+        onSelect,
+        onUnselect,
+    );
 
     return (
         <React.Fragment>

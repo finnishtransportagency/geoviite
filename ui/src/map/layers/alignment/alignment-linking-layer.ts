@@ -45,6 +45,7 @@ import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { expectCoordinate } from 'utils/type-utils';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
 
 const linkPointRadius = 4;
 const linkPointSelectedRadius = 6;
@@ -718,15 +719,16 @@ async function getLinkPointsWithAddresses<
     T extends LinkPointContainer,
     TPropertyName extends keyof T,
 >(
+    layoutContext: LayoutContext,
     layoutAlignmentType: MapAlignmentType,
     layoutAlignmentId: LocationTrackId | ReferenceLineId,
     points: T,
 ): Promise<T> {
     const trackNumberId = await (layoutAlignmentType == 'LOCATION_TRACK'
-        ? getLocationTrack(layoutAlignmentId, 'DRAFT').then(
+        ? getLocationTrack(layoutAlignmentId, draftLayoutContext(layoutContext)).then(
               (locationTrack) => locationTrack?.trackNumberId,
           )
-        : getReferenceLine(layoutAlignmentId, 'DRAFT').then(
+        : getReferenceLine(layoutAlignmentId, draftLayoutContext(layoutContext)).then(
               (referenceLine) => referenceLine?.trackNumberId,
           ));
 
@@ -809,6 +811,7 @@ type LinkingData =
 
 async function getLinkingData(
     mapTiles: MapTile[],
+    layoutContext: LayoutContext,
     selection: Selection,
     state: LinkingState | undefined,
     changeTimes: ChangeTimes,
@@ -825,15 +828,21 @@ async function getLinkingData(
         const [points, pointAddresses] = await Promise.all([
             getLinkPointsByTiles(
                 changeTime,
+                layoutContext,
                 mapTiles,
                 state.layoutAlignmentId,
                 state.layoutAlignmentType,
             ),
-            getLinkPointsWithAddresses(state.layoutAlignmentType, state.layoutAlignmentId, {
-                layoutStart: state.layoutAlignmentInterval.start,
-                layoutEnd: state.layoutAlignmentInterval.end,
-                layoutHighlight: first(highlightedItems.layoutLinkPoints),
-            }),
+            getLinkPointsWithAddresses(
+                layoutContext,
+                state.layoutAlignmentType,
+                state.layoutAlignmentId,
+                {
+                    layoutStart: state.layoutAlignmentInterval.start,
+                    layoutEnd: state.layoutAlignmentInterval.end,
+                    layoutHighlight: first(highlightedItems.layoutLinkPoints),
+                },
+            ),
         ]);
         return { type: LinkingType.LinkingAlignment, state, points, pointAddresses };
     } else if (state.type === LinkingType.LinkingGeometryWithEmptyAlignment) {
@@ -846,11 +855,16 @@ async function getLinkingData(
                     filterNotEmpty,
                 ),
             ),
-            getLinkPointsWithAddresses(state.layoutAlignmentType, state.layoutAlignmentId, {
-                geometryStart: state.geometryAlignmentInterval.start,
-                geometryEnd: state.geometryAlignmentInterval.end,
-                geometryHighlight: first(highlightedItems.geometryLinkPoints),
-            }),
+            getLinkPointsWithAddresses(
+                layoutContext,
+                state.layoutAlignmentType,
+                state.layoutAlignmentId,
+                {
+                    geometryStart: state.geometryAlignmentInterval.start,
+                    geometryEnd: state.geometryAlignmentInterval.end,
+                    geometryHighlight: first(highlightedItems.geometryLinkPoints),
+                },
+            ),
         ]);
         return {
             type: LinkingType.LinkingGeometryWithEmptyAlignment,
@@ -873,18 +887,24 @@ async function getLinkingData(
             ),
             getLinkPointsByTiles(
                 changeTime,
+                layoutContext,
                 mapTiles,
                 state.layoutAlignmentId,
                 state.layoutAlignmentType,
             ),
-            getLinkPointsWithAddresses(state.layoutAlignmentType, state.layoutAlignmentId, {
-                layoutStart: state.layoutAlignmentInterval.start,
-                layoutEnd: state.layoutAlignmentInterval.end,
-                layoutHighlight: first(highlightedItems.layoutLinkPoints),
-                geometryStart: state.geometryAlignmentInterval.start,
-                geometryEnd: state.geometryAlignmentInterval.end,
-                geometryHighlight: first(highlightedItems.geometryLinkPoints),
-            }),
+            getLinkPointsWithAddresses(
+                layoutContext,
+                state.layoutAlignmentType,
+                state.layoutAlignmentId,
+                {
+                    layoutStart: state.layoutAlignmentInterval.start,
+                    layoutEnd: state.layoutAlignmentInterval.end,
+                    layoutHighlight: first(highlightedItems.layoutLinkPoints),
+                    geometryStart: state.geometryAlignmentInterval.start,
+                    geometryEnd: state.geometryAlignmentInterval.end,
+                    geometryHighlight: first(highlightedItems.geometryLinkPoints),
+                },
+            ),
         ]);
         return {
             type: LinkingType.LinkingGeometryWithAlignment,
@@ -1023,6 +1043,7 @@ const layerName: MapLayerName = 'alignment-linking-layer';
 export function createAlignmentLinkingLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<OlPoint | LineString>> | undefined,
+    layoutContext: LayoutContext,
     selection: Selection,
     linkingState: LinkingState | undefined,
     changeTimes: ChangeTimes,
@@ -1033,7 +1054,13 @@ export function createAlignmentLinkingLayer(
 
     const drawLinkingDots = resolution <= LINKING_DOTS;
 
-    const dataPromise = getLinkingData(mapTiles, selection, linkingState, changeTimes);
+    const dataPromise = getLinkingData(
+        mapTiles,
+        layoutContext,
+        selection,
+        linkingState,
+        changeTimes,
+    );
 
     loadLayerData(source, isLatest, onLoadingData, dataPromise, (data) =>
         createFeatures(data, selection, drawLinkingDots),

@@ -5,7 +5,7 @@ import {
     getReferenceLineMapAlignmentsByTiles,
 } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import { PublishType } from 'common/common-model';
+import { LayoutContext } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { createAlignmentBackgroundFeatures } from 'map/layers/utils/background-layer-utils';
 import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
@@ -22,7 +22,7 @@ export function createReferenceLineBackgroundLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
     isSplitting: boolean,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {
@@ -35,7 +35,7 @@ export function createReferenceLineBackgroundLayer(
     const dataPromise: Promise<AlignmentDataHolder[]> = getReferenceLineMapAlignmentsByTiles(
         changeTimes,
         mapTiles,
-        publishType,
+        layoutContext,
     );
 
     const createFeatures = (referenceLines: AlignmentDataHolder[]) =>

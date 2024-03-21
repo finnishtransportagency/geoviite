@@ -7,12 +7,12 @@ import {
 } from 'track-layout/layout-map-api';
 import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { redHighlightStyle } from 'map/layers/utils/highlight-layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import { LayoutContext } from 'common/common-model';
 
 function createHighlightFeatures(locationTracks: AlignmentDataHolder[]): Feature<LineString>[] {
     return locationTracks
@@ -31,7 +31,7 @@ const layerName: MapLayerName = 'duplicate-tracks-highlight-layer';
 export function createDuplicateTracksHighlightLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,
     onLoadingData: (loading: boolean) => void,
@@ -40,7 +40,7 @@ export function createDuplicateTracksHighlightLayer(
 
     const dataPromise: Promise<AlignmentDataHolder[]> =
         resolution <= HIGHLIGHTS_SHOW
-            ? getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
+            ? getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext)
             : Promise.resolve([]);
 
     const createFeatures = (locationTracks: AlignmentDataHolder[]) =>

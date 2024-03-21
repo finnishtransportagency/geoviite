@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@jest/globals';
-import { getMissingCoveringRange, weaveKms } from '../../src/vertical-geometry/km-heights-fetch';
+import { getMissingCoveringRange, weaveKms } from '../../src/vertical-geometry/km-heights-api';
 
 describe('weave', () =>
     test('combines sequences of closed ranges', () => {

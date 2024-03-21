@@ -7,12 +7,12 @@ import {
 } from 'track-layout/track-layout-model';
 import { LocationTrackLink } from 'tool-panel/location-track/location-track-link';
 import styles from './location-track-infobox.scss';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { LayoutContext, TimeStamp } from 'common/common-model';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 
 export type LocationTrackInfoboxDuplicateOfProps = {
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     changeTime: TimeStamp;
     existingDuplicate: LocationTrackDuplicate | undefined;
     duplicatesOfLocationTrack: LocationTrackDuplicate[] | undefined;
@@ -47,9 +47,9 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
     existingDuplicate,
     duplicatesOfLocationTrack,
     currentTrackNumberId,
-    publishType,
+    layoutContext,
 }: LocationTrackInfoboxDuplicateOfProps) => {
-    const trackNumbers = useTrackNumbers(publishType);
+    const trackNumbers = useTrackNumbers(layoutContext);
     return existingDuplicate ? (
         <React.Fragment>
             <LocationTrackLink

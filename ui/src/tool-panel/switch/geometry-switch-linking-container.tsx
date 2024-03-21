@@ -53,7 +53,7 @@ const GeometrySwitchLinkingContainer: React.FC<GeometrySwitchLinkingContainerPro
             switchChangeTime={switchChangeTime}
             locationTrackChangeTime={locationTrackChangeTime}
             layoutSwitch={layoutSwitch}
-            publishType={store.publishType}
+            layoutContext={store.layoutContext}
             resolution={store.map.viewport.resolution}
             onStopLinking={() => {
                 delegates.hideLayers(['switch-linking-layer']);

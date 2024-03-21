@@ -2,7 +2,6 @@ import { Point as OlPoint } from 'ol/geom';
 import { MapLayerName, MapTile } from 'map/map-model';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
-import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import {
     AlignmentBadgeColor,
@@ -21,6 +20,7 @@ import { SplittingState } from 'tool-panel/location-track/split-store';
 import { AlignmentStartAndEnd } from 'track-layout/track-layout-model';
 import { getLocationTrackStartAndEnd } from 'track-layout/layout-location-track-api';
 import { first } from 'utils/array-utils';
+import { LayoutContext } from 'common/common-model';
 
 type SplitBoundsAndName = {
     start: number;
@@ -70,7 +70,7 @@ type LocationTrackSplitBadgeData = {
 };
 
 async function getLocationTrackSplitBadgeData(
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     splittingState: SplittingState | undefined,
     changeTimes: ChangeTimes,
     resolution: number,
@@ -81,12 +81,12 @@ async function getLocationTrackSplitBadgeData(
             getSelectedLocationTrackMapAlignmentByTiles(
                 changeTimes,
                 mapTiles,
-                publishType,
+                layoutContext,
                 splittingState.originLocationTrack.id,
             ),
             getLocationTrackStartAndEnd(
                 splittingState.originLocationTrack.id,
-                publishType,
+                layoutContext,
                 changeTimes.layoutLocationTrack,
             ),
         ]);
@@ -101,7 +101,7 @@ const layerName: MapLayerName = 'location-track-split-badge-layer';
 export function createLocationTrackSplitBadgeLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     splittingState: SplittingState | undefined,
     changeTimes: ChangeTimes,
     resolution: number,
@@ -110,7 +110,7 @@ export function createLocationTrackSplitBadgeLayer(
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
     const dataPromise = getLocationTrackSplitBadgeData(
-        publishType,
+        layoutContext,
         splittingState,
         changeTimes,
         resolution,

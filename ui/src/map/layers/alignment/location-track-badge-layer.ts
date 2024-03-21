@@ -4,7 +4,6 @@ import { Selection } from 'selection/selection-model';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { LinkingState } from 'linking/linking-model';
-import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import {
     createAlignmentBadgeFeatures,
@@ -17,6 +16,7 @@ import {
     AlignmentDataHolder,
     getLocationTrackMapAlignmentsByTiles,
 } from 'track-layout/layout-map-api';
+import { LayoutContext } from 'common/common-model';
 
 const layerName: MapLayerName = 'location-track-badge-layer';
 
@@ -24,7 +24,7 @@ export function createLocationTrackBadgeLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     selection: Selection,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     linkingState: LinkingState | undefined,
     changeTimes: ChangeTimes,
     resolution: number,
@@ -34,7 +34,7 @@ export function createLocationTrackBadgeLayer(
 
     const dataPromise: Promise<AlignmentDataHolder[]> =
         resolution <= Limits.SHOW_LOCATION_TRACK_BADGES
-            ? getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
+            ? getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext)
             : Promise.resolve([]);
 
     const createFeatures = (locationTracks: AlignmentDataHolder[]) => {

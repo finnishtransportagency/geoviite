@@ -37,12 +37,12 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
     const locationTrack = useLocationTrack(
         selectedLocationTrackId,
-        trackLayoutState.publishType,
+        trackLayoutState.layoutContext,
         changeTimes.layoutLocationTrack,
     );
     const referenceLine = useTrackNumberReferenceLine(
         selectedTrackNumberId,
-        trackLayoutState.publishType,
+        trackLayoutState.layoutContext,
         changeTimes.layoutTrackNumber,
     );
 
@@ -66,7 +66,7 @@ const GeometryAlignmentLinkingContainer: React.FC<GeometryAlignmentLinkingContai
                 delegates.stopLinking();
             }}
             resolution={trackLayoutState.map.viewport.resolution}
-            publishType={trackLayoutState.publishType}
+            layoutContext={trackLayoutState.layoutContext}
             showArea={delegates.showArea}
             visibilities={visibilities}
             onVisibilityChange={onVisibilityChange}

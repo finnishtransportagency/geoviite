@@ -1,17 +1,17 @@
 import React from 'react';
-import { PublishType } from 'common/common-model';
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
+import { PublicationState } from 'common/common-model';
 
-export type PublishTypeHandlingDialogProps = {
-    onPublishTypeChange: (publishType: PublishType) => void;
+export type PublicationStateHandlingDialogProps = {
+    onPublicationStateChange: (state: PublicationState) => void;
     onClose: () => void;
 };
 
-export const PublishTypeHandlingDialog: React.FC<PublishTypeHandlingDialogProps> = ({
-    onPublishTypeChange,
+export const PublicationStateHandlingDialog: React.FC<PublicationStateHandlingDialogProps> = ({
+    onPublicationStateChange,
     onClose,
 }) => {
     const { t } = useTranslation();
@@ -26,7 +26,7 @@ export const PublishTypeHandlingDialog: React.FC<PublishTypeHandlingDialogProps>
                     <Button onClick={onClose} variant={ButtonVariant.SECONDARY}>
                         {t('publish-type-dialog-button-cancel')}
                     </Button>
-                    <Button onClick={() => onPublishTypeChange('DRAFT')}>
+                    <Button onClick={() => onPublicationStateChange('DRAFT')}>
                         {t('publish-type-dialog-button-continue')}
                     </Button>
                 </div>

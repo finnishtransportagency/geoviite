@@ -18,7 +18,6 @@ import {
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { getLinkedAlignmentIdsInPlan } from 'linking/linking-api';
-import { PublishType } from 'common/common-model';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import { AlignmentHeader, toMapAlignmentResolution } from 'track-layout/layout-map-api';
 import { ChangeTimes } from 'common/common-slice';
@@ -33,6 +32,7 @@ import VectorSource from 'ol/source/Vector';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { cache } from 'cache/cache';
 import { MapLayerName, MapTile } from 'map/map-model';
+import { LayoutContext } from 'common/common-model';
 
 const alignmentFeatureCache = cache<string, Feature<LineString>>(500);
 
@@ -151,7 +151,7 @@ export function createGeometryAlignmentLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
     selection: Selection,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,
     manuallySetPlan: GeometryPlanLayout | undefined,
@@ -173,7 +173,7 @@ export function createGeometryAlignmentLayer(
                 const linksPromise: Promise<GeometryAlignmentId[]> =
                     plan.planDataType == 'TEMP'
                         ? Promise.resolve([])
-                        : getLinkedAlignmentIdsInPlan(plan.id, publishType);
+                        : getLinkedAlignmentIdsInPlan(plan.id, layoutContext);
                 return linksPromise.then((links) => ({
                     planId: plan.id,
                     alignments: getAlignmentsWithLinking(

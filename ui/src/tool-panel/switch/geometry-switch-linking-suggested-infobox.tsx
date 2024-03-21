@@ -8,9 +8,10 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { SwitchSuggestionCreatorDialog } from 'linking/switch/switch-suggestion-creator-dialog';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
-import { SwitchStructure } from 'common/common-model';
+import { draftLayoutContext, LayoutContext, SwitchStructure } from 'common/common-model';
 
 type GeometrySwitchLinkingSuggestedInfoboxProps = {
+    layoutContext: LayoutContext;
     suggestedSwitch: SuggestedSwitch;
     suggestedSwitchStructure: SwitchStructure;
     alignmentEndPoint: LocationTrackEndpoint;
@@ -22,6 +23,7 @@ type GeometrySwitchLinkingSuggestedInfoboxProps = {
 export const GeometrySwitchLinkingSuggestedInfobox: React.FC<
     GeometrySwitchLinkingSuggestedInfoboxProps
 > = ({
+    layoutContext,
     suggestedSwitch,
     suggestedSwitchStructure,
     alignmentEndPoint,
@@ -34,9 +36,11 @@ export const GeometrySwitchLinkingSuggestedInfobox: React.FC<
     const [showEditDialog, setShowEditDialog] = React.useState(false);
 
     React.useEffect(() => {
-        getLocationTrack(alignmentEndPoint.locationTrackId, 'DRAFT').then((a) => {
-            if (a) setLocation(a.name);
-        });
+        getLocationTrack(alignmentEndPoint.locationTrackId, draftLayoutContext(layoutContext)).then(
+            (a) => {
+                if (a) setLocation(a.name);
+            },
+        );
     }, [alignmentEndPoint]);
 
     function onSelectSuggestedSwitch(suggestedSwitch: SuggestedSwitch) {
@@ -72,7 +76,7 @@ export const GeometrySwitchLinkingSuggestedInfobox: React.FC<
 
             {showEditDialog && (
                 <SwitchSuggestionCreatorDialog
-                    publishType="DRAFT"
+                    layoutContext={draftLayoutContext(layoutContext)}
                     locationTrackEndpoint={alignmentEndPoint}
                     suggestedSwitch={suggestedSwitch}
                     onSuggestedSwitchCreated={onSelectSuggestedSwitch}

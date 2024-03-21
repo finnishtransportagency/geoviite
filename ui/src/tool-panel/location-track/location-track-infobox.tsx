@@ -8,7 +8,6 @@ import {
 import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
 import { BoundingBox } from 'model/geometry';
 import 'i18n/config';
-import { PublishType } from 'common/common-model';
 import LocationTrackDeleteConfirmationDialog from 'tool-panel/location-track/location-track-delete-confirmation-dialog';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { LocationTrackRatkoPushDialog } from 'tool-panel/location-track/dialog/location-track-ratko-push-dialog';
@@ -29,6 +28,7 @@ import { LocationTrackChangeInfoInfobox } from 'tool-panel/location-track/locati
 import { LocationTrackRatkoSyncInfobox } from 'tool-panel/location-track/location-track-ratko-sync-infobox';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { VIEW_GEOMETRY } from 'user/user-model';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
 
 type LocationTrackInfoboxProps = {
     locationTrack: LayoutLocationTrack;
@@ -36,7 +36,7 @@ type LocationTrackInfoboxProps = {
     splittingState?: SplittingState;
     showArea: (area: BoundingBox) => void;
     onDataChange: () => void;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     changeTimes: ChangeTimes;
     onSelect: OnSelectFunction;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
@@ -53,7 +53,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     linkingState,
     splittingState,
     onDataChange,
-    publishType,
+    layoutContext,
     changeTimes,
     onSelect,
     onUnselect,
@@ -64,14 +64,15 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
     onVerticalGeometryDiagramVisibilityChange,
     onHighlightItem,
 }: LocationTrackInfoboxProps) => {
-    const trackNumber = useTrackNumber(publishType, locationTrack.trackNumberId);
+    const trackNumber = useTrackNumber(locationTrack.trackNumberId, layoutContext);
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState<boolean>();
     const [showRatkoPushDialog, setShowRatkoPushDialog] = React.useState<boolean>(false);
     const [confirmingSwitchRelinking, setConfirmingSwitchRelinking] = React.useState(false);
 
-    const editingDisabled = publishType === 'OFFICIAL' || !!linkingState || !!splittingState;
+    const editingDisabled =
+        layoutContext.publicationState === 'OFFICIAL' || !!linkingState || !!splittingState;
 
     function openEditLocationTrackDialog() {
         setShowEditDialog(true);
@@ -82,7 +83,11 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         onDataChange();
     }
 
-    const handleLocationTrackSave = refreshLocationTrackSelection('DRAFT', onSelect, onUnselect);
+    const handleLocationTrackSave = refreshLocationTrackSelection(
+        draftLayoutContext(layoutContext),
+        onSelect,
+        onUnselect,
+    );
 
     const visibilityChange = (key: keyof LocationTrackInfoboxVisibilities) => {
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
@@ -92,7 +97,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
         <React.Fragment>
             <LocationTrackBasicInfoInfoboxContainer
                 locationTrack={locationTrack}
-                publishType={publishType}
+                layoutContext={layoutContext}
                 trackNumber={trackNumber}
                 editingDisabled={editingDisabled}
                 visibilities={visibilities}
@@ -104,6 +109,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     <LocationTrackSplittingInfoboxContainer
                         visibilities={visibilities}
                         visibilityChange={visibilityChange}
+                        layoutContext={layoutContext}
                     />
                 </EnvRestricted>
             )}
@@ -114,13 +120,13 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 visibilityChange={visibilityChange}
                 linkingState={linkingState}
                 splittingState={splittingState}
-                publishType={publishType}
+                layoutContext={layoutContext}
             />
             <PrivilegeRequired privilege={VIEW_GEOMETRY}>
                 <LocationTrackGeometryInfobox
                     contentVisible={visibilities.geometry}
                     onContentVisibilityChange={() => visibilityChange('geometry')}
-                    publishType={publishType}
+                    layoutContext={layoutContext}
                     locationTrackId={locationTrack.id}
                     viewport={viewport}
                     onHighlightItem={onHighlightItem}
@@ -138,18 +144,19 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 contentVisible={visibilities.validation}
                 onContentVisibilityChange={() => visibilityChange('validation')}
                 id={locationTrack.id}
-                publishType={publishType}
+                layoutContext={layoutContext}
                 showLinkedSwitchesRelinkingDialog={() => setConfirmingSwitchRelinking(true)}
                 editingDisabled={editingDisabled}
             />
             <LocationTrackChangeInfoInfobox
                 locationTrackId={locationTrack.id}
-                publishType={publishType}
+                layoutContext={layoutContext}
                 visibilities={visibilities}
                 visibilityChange={visibilityChange}
                 setConfirmingDraftDelete={setConfirmingDraftDelete}
             />
             <LocationTrackRatkoSyncInfobox
+                layoutContext={layoutContext}
                 locationTrackId={locationTrack.id}
                 visibilities={visibilities}
                 visibilityChange={visibilityChange}
@@ -158,6 +165,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
 
             {showRatkoPushDialog && (
                 <LocationTrackRatkoPushDialog
+                    layoutContext={layoutContext}
                     locationTrackId={locationTrack.id}
                     onClose={() => setShowRatkoPushDialog(false)}
                     changeTimes={changeTimes}
@@ -166,6 +174,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
 
             {confirmingDraftDelete && (
                 <LocationTrackDeleteConfirmationDialog
+                    layoutContext={layoutContext}
                     id={locationTrack.id}
                     onSave={handleLocationTrackSave}
                     onClose={() => setConfirmingDraftDelete(false)}
@@ -183,7 +192,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
             {confirmingSwitchRelinking && (
                 <LocationTrackSwitchRelinkingDialogContainer
                     locationTrackId={locationTrack.id}
-                    publishType={publishType}
+                    layoutContext={layoutContext}
                     name={locationTrack.name}
                     closeDialog={() => setConfirmingSwitchRelinking(false)}
                 />

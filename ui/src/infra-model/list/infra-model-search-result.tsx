@@ -30,6 +30,7 @@ import {
     VIEW_LAYOUT_DRAFT,
 } from 'user/user-model';
 import { useCommonDataAppSelector } from 'store/hooks';
+import { draftMainLayoutContext, officialMainLayoutContext } from 'common/common-model';
 
 export type InfraModelSearchResultProps = Pick<
     InfraModelListState,
@@ -71,7 +72,9 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
 ) => {
     const privileges = useCommonDataAppSelector((state) => state.userPrivileges).map((p) => p.code);
     const trackNumbers = useTrackNumbers(
-        userHasPrivilege(privileges, VIEW_LAYOUT_DRAFT) ? 'DRAFT' : 'OFFICIAL',
+        userHasPrivilege(privileges, VIEW_LAYOUT_DRAFT)
+            ? draftMainLayoutContext()
+            : officialMainLayoutContext(),
     );
 
     const [linkingSummaries, setLinkingSummaries] = useState<

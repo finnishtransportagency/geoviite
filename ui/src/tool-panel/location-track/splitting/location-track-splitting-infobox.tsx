@@ -60,15 +60,15 @@ import {
     ValidatedSplit,
     validateSplit,
 } from 'tool-panel/location-track/splitting/split-utils';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
 
 type LocationTrackSplittingInfoboxContainerProps = {
+    layoutContext: LayoutContext;
     visibilities: LocationTrackInfoboxVisibilities;
     visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
 };
 
 type LocationTrackSplittingInfoboxProps = {
-    visibilities: LocationTrackInfoboxVisibilities;
-    visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
     changeTimes: ChangeTimes;
     splittingState: SplittingState;
     removeSplit: (switchId: LayoutSwitchId) => void;
@@ -80,11 +80,11 @@ type LocationTrackSplittingInfoboxProps = {
     startPostingSplit: () => void;
     markSplitOld: (switchId: LayoutSwitchId | undefined) => void;
     onShowTaskList: (locationTrackId: LocationTrackId) => void;
-};
+} & LocationTrackSplittingInfoboxContainerProps;
 
 export const LocationTrackSplittingInfoboxContainer: React.FC<
     LocationTrackSplittingInfoboxContainerProps
-> = ({ visibilities, visibilityChange }) => {
+> = ({ visibilities, visibilityChange, layoutContext }) => {
     const trackLayoutState = useTrackLayoutAppSelector((state) => state);
     const delegates = createDelegates(TrackLayoutActions);
     const splittingState = trackLayoutState.splittingState;
@@ -92,12 +92,12 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
 
     const locationTrack = useLocationTrack(
         splittingState?.originLocationTrack.id,
-        'DRAFT',
+        draftLayoutContext(layoutContext),
         changeTimes.layoutLocationTrack,
     );
     const [startAndEnd, _] = useLocationTrackStartAndEnd(
         splittingState?.originLocationTrack.id,
-        'DRAFT',
+        draftLayoutContext(layoutContext),
         changeTimes,
     );
 
@@ -125,6 +125,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
             <LocationTrackSplittingInfobox
                 visibilities={visibilities}
                 visibilityChange={visibilityChange}
+                layoutContext={layoutContext}
                 changeTimes={changeTimes}
                 splittingState={splittingState}
                 removeSplit={delegates.removeSplit}
@@ -197,6 +198,7 @@ const createSplitComponent = (
 };
 
 export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfoboxProps> = ({
+    layoutContext,
     visibilities,
     visibilityChange,
     changeTimes,
@@ -219,21 +221,25 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         () => splittingState.allowedSwitches.map((sw) => sw.switchId),
         [splittingState.allowedSwitches],
     );
-    const switches = useSwitches(allowedSwitchIds, 'DRAFT', changeTimes.layoutSwitch);
+    const switches = useSwitches(
+        allowedSwitchIds,
+        draftLayoutContext(layoutContext),
+        changeTimes.layoutSwitch,
+    );
     const conflictingLocationTracks = useConflictingTracks(
         splittingState.originLocationTrack.trackNumberId,
         allSplits.map((s) => s.name),
         allSplits.map((s) => s.duplicateOf).filter(filterNotEmpty),
-        'DRAFT',
+        draftLayoutContext(layoutContext),
     )?.map((t) => t.name);
     const duplicateTracksInCurrentSplits = useLocationTracks(
         allSplits.map((s) => s.duplicateOf).filter(filterNotEmpty),
-        'DRAFT',
+        draftLayoutContext(layoutContext),
         getChangeTimes().layoutLocationTrack,
     );
     const [locationTrackInfoboxExtras, _] = useLocationTrackInfoboxExtras(
         splittingState.originLocationTrack.id,
-        'DRAFT',
+        draftLayoutContext(layoutContext),
         getChangeTimes(),
     );
 

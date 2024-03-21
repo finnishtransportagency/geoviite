@@ -8,7 +8,6 @@ import {
     getVisiblePlansWithStatus,
     loadLayerData,
 } from 'map/layers/utils/layer-utils';
-import { PublishType } from 'common/common-model';
 import {
     createKmPostFeatures,
     findMatchingKmPosts,
@@ -20,6 +19,7 @@ import VectorSource from 'ol/source/Vector';
 import { filterNotEmpty } from 'utils/array-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayerName, MapTile } from 'map/map-model';
+import { LayoutContext } from 'common/common-model';
 
 const layerName: MapLayerName = 'geometry-km-post-layer';
 
@@ -28,7 +28,7 @@ export function createGeometryKmPostLayer(
     resolution: number,
     existingOlLayer: VectorLayer<VectorSource<OlPoint | Rectangle>> | undefined,
     selection: Selection,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     manuallySetPlan: GeometryPlanLayout | undefined,
     onLoadingData: (loading: boolean) => void,
@@ -39,8 +39,13 @@ export function createGeometryKmPostLayer(
 
     const dataPromise = step
         ? manuallySetPlan
-            ? getManualPlanWithStatus(manuallySetPlan, publishType)
-            : getVisiblePlansWithStatus(selection.visiblePlans, mapTiles, publishType, changeTimes)
+            ? getManualPlanWithStatus(manuallySetPlan, layoutContext)
+            : getVisiblePlansWithStatus(
+                  selection.visiblePlans,
+                  mapTiles,
+                  layoutContext,
+                  changeTimes,
+              )
         : Promise.resolve([]);
 
     const createFeatures = (planStatuses: PlanAndStatus[]) => {

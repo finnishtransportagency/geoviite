@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useLoaderWithStatus } from 'utils/react-utils';
 import { AssetValidationInfobox } from 'tool-panel/asset-validation-infobox';
-import { AssetId, PublishType, TimeStamp } from 'common/common-model';
+import { AssetId, LayoutContext, TimeStamp } from 'common/common-model';
 import { getKmPostValidation } from 'track-layout/layout-km-post-api';
 import { getSwitchValidation } from 'track-layout/layout-switch-api';
 import { getTrackNumberValidation } from 'track-layout/layout-track-number-api';
@@ -12,7 +12,7 @@ type AssetType = 'TRACK_NUMBER' | 'SWITCH' | 'KM_POST';
 type AssetValidationInfoboxProps = {
     id: AssetId;
     type: AssetType;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     changeTime: TimeStamp;
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
@@ -21,7 +21,7 @@ type AssetValidationInfoboxProps = {
 export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxProps> = ({
     id,
     type,
-    publishType,
+    layoutContext,
     changeTime,
     contentVisible,
     onContentVisibilityChange,
@@ -29,15 +29,15 @@ export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxPro
     const [validation, validationLoaderStatus] = useLoaderWithStatus(() => {
         switch (type) {
             case 'TRACK_NUMBER':
-                return getTrackNumberValidation(publishType, id);
+                return getTrackNumberValidation(layoutContext, id);
             case 'KM_POST':
-                return getKmPostValidation(publishType, id);
+                return getKmPostValidation(layoutContext, id);
             case 'SWITCH':
-                return getSwitchValidation(publishType, id);
+                return getSwitchValidation(layoutContext, id);
             default:
                 return exhaustiveMatchingGuard(type);
         }
-    }, [id, type, publishType, changeTime]);
+    }, [id, type, layoutContext.publicationState, layoutContext.designId, changeTime]);
     const errors = validation?.errors.filter((err) => err.type === 'ERROR') || [];
     const warnings = validation?.errors.filter((err) => err.type === 'WARNING') || [];
 

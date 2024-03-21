@@ -20,6 +20,8 @@ import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
 import { TrackLayoutSwitchSaveRequest } from 'linking/linking-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import {
+    draftLayoutContext,
+    LayoutContext,
     SwitchOwner,
     SwitchOwnerId,
     SwitchStructure,
@@ -41,6 +43,7 @@ import { Link } from 'vayla-design-lib/link/link';
 import { getSaveDisabledReasons } from 'track-layout/track-layout-react-utils';
 import SwitchDeleteConfirmationDialog from './switch-delete-confirmation-dialog';
 import { first } from 'utils/array-utils';
+import { useTrackLayoutAppSelector } from 'store/hooks';
 
 const SWITCH_NAME_REGEX = /^[A-ZÄÖÅa-zäöå0-9 \-_/]+$/g;
 
@@ -58,8 +61,10 @@ export const SwitchEditDialogContainer = ({
     onSave,
 }: SwitchDialogContainerProps) => {
     const [editSwitchId, setEditSwitchId] = React.useState<LayoutSwitchId | undefined>(switchId);
+    const layoutContext = useTrackLayoutAppSelector((state) => state.layoutContext);
     return (
         <SwitchEditDialog
+            layoutContext={layoutContext}
             switchId={editSwitchId}
             prefilledSwitchStructureId={
                 switchId === editSwitchId ? prefilledSwitchStructureId : undefined
@@ -72,6 +77,7 @@ export const SwitchEditDialogContainer = ({
 };
 
 type SwitchDialogProps = {
+    layoutContext: LayoutContext;
     switchId?: LayoutSwitchId;
     prefilledSwitchStructureId?: SwitchStructureId;
     onClose: () => void;
@@ -80,6 +86,7 @@ type SwitchDialogProps = {
 };
 
 export const SwitchEditDialog = ({
+    layoutContext,
     switchId,
     prefilledSwitchStructureId,
     onClose,
@@ -116,7 +123,7 @@ export const SwitchEditDialog = ({
 
     const conflictingSwitch = useLoader(async () => {
         if (validateSwitchName(switchName).length == 0) {
-            const switches = await getSwitchesByName('DRAFT', switchName);
+            const switches = await getSwitchesByName(draftLayoutContext(layoutContext), switchName);
             return switches.find((s) => s.id != existingSwitch?.id);
         } else {
             return undefined;
@@ -125,7 +132,7 @@ export const SwitchEditDialog = ({
 
     React.useEffect(() => {
         if (isExistingSwitch) {
-            getSwitch(switchId, 'DRAFT').then((s) => {
+            getSwitch(switchId, draftLayoutContext(layoutContext)).then((s) => {
                 if (s) {
                     setExistingSwitch(s);
                     setSwitchStateCategory(s.stateCategory);
@@ -222,7 +229,7 @@ export const SwitchEditDialog = ({
                 trapPoint: trapPointToBoolean(trapPoint),
             };
 
-            insertSwitch(newSwitch)
+            insertSwitch(newSwitch, layoutContext)
                 .then((result) => {
                     result
                         .map((switchId) => {
@@ -254,7 +261,7 @@ export const SwitchEditDialog = ({
                 ownerId: switchOwnerId,
                 trapPoint: trapPointToBoolean(trapPoint),
             };
-            updateSwitch(existingSwitch.id, updatedSwitch)
+            updateSwitch(existingSwitch.id, updatedSwitch, layoutContext)
                 .then((result) => {
                     result
                         .map(() => {
@@ -518,6 +525,7 @@ export const SwitchEditDialog = ({
             )}
             {showDeleteDraftConfirmDialog && switchId && (
                 <SwitchDeleteConfirmationDialog
+                    layoutContext={layoutContext}
                     switchId={switchId}
                     onSave={() => {
                         handleOnDelete();

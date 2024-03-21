@@ -4,7 +4,7 @@ import {
     SuggestedSwitchJoint,
     TopologicalJointConnection,
 } from 'linking/linking-model';
-import { JointNumber, PublishType } from 'common/common-model';
+import { JointNumber, LayoutContext } from 'common/common-model';
 import {
     LayoutLocationTrack,
     LayoutSwitchJointConnection,
@@ -81,7 +81,7 @@ export function getMatchingLocationTrackIdsForJointNumbers(
 }
 
 export function getLocationTracksForJointConnections(
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     joints: LayoutSwitchJointConnection[],
 ): Promise<LayoutLocationTrack[]> {
     const locationTrackIds = joints
@@ -89,7 +89,7 @@ export function getLocationTracksForJointConnections(
         .filter(filterUnique);
 
     // This currently flickers when using mass fetch. This can be moved to mass fetch after GVT-1428 is done
-    return getLocationTracks(locationTrackIds, publishType).then((tracks) =>
+    return getLocationTracks(locationTrackIds, layoutContext).then((tracks) =>
         tracks.filter(filterNotEmpty),
     );
 }

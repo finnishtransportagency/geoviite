@@ -30,7 +30,7 @@ import {
 } from 'track-layout/track-layout-slice';
 import { SplitStart, SplittingState } from 'tool-panel/location-track/split-store';
 import { ChangeTimes } from 'common/common-slice';
-import { PublishType } from 'common/common-model';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { useCommonDataAppSelector } from 'store/hooks';
 import { getSplittingInitializationParameters } from 'track-layout/layout-location-track-api';
 import { filterNotEmpty } from 'utils/array-utils';
@@ -53,7 +53,7 @@ type LocationTrackLocationInfoboxContainerProps = {
     visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
     linkingState: LinkingState | undefined;
     splittingState: SplittingState | undefined;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
 };
 
 export const LocationTrackLocationInfoboxContainer: React.FC<
@@ -98,7 +98,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     linkingState,
     splittingState,
     changeTimes,
-    publishType,
+    layoutContext,
     onStartSplitting,
     showLayers,
 }: LocationTrackLocationInfoboxProps) => {
@@ -109,17 +109,17 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
 
     const [startAndEndPoints, startAndEndPointFetchStatus] = useLocationTrackStartAndEnd(
         locationTrack?.id,
-        publishType,
+        layoutContext,
         changeTimes,
     );
     const coordinateSystem = useCoordinateSystem(LAYOUT_SRID);
     const [extraInfo, _] = useLocationTrackInfoboxExtras(
         locationTrack?.id,
-        publishType,
+        layoutContext,
         changeTimes,
     );
 
-    const publishTypeIsDraft = publishType === 'DRAFT';
+    const publishTypeIsDraft = layoutContext.publicationState === 'DRAFT';
     const locationTrackIsDraft = locationTrack.editState !== 'UNEDITED';
     const duplicatesOnOtherTracks = extraInfo?.duplicates?.some(
         (dupe) => dupe.trackNumberId !== trackNumber?.id,
@@ -168,32 +168,33 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     }, [linkingState]);
 
     const startSplitting = () => {
-        getSplittingInitializationParameters('DRAFT', locationTrack.id).then(
-            (splitInitializationParameters) => {
-                if (startAndEndPoints?.start && startAndEndPoints?.end && trackNumber) {
-                    onStartSplitting({
-                        locationTrack: locationTrack,
-                        allowedSwitches:
-                            splitInitializationParameters?.switches.filter(
-                                (sw) => !isStartOrEndSwitch(sw.switchId),
-                            ) || [],
-                        startAndEndSwitches: [
-                            extraInfo?.switchAtStart?.id,
-                            extraInfo?.switchAtEnd?.id,
-                        ].filter(filterNotEmpty),
-                        duplicateTracks: splitInitializationParameters?.duplicates || [],
-                        startLocation: startAndEndPoints.start.point,
-                        endLocation: startAndEndPoints.end.point,
+        getSplittingInitializationParameters(
+            draftLayoutContext(layoutContext),
+            locationTrack.id,
+        ).then((splitInitializationParameters) => {
+            if (startAndEndPoints?.start && startAndEndPoints?.end && trackNumber) {
+                onStartSplitting({
+                    locationTrack: locationTrack,
+                    allowedSwitches:
+                        splitInitializationParameters?.switches.filter(
+                            (sw) => !isStartOrEndSwitch(sw.switchId),
+                        ) || [],
+                    startAndEndSwitches: [
+                        extraInfo?.switchAtStart?.id,
+                        extraInfo?.switchAtEnd?.id,
+                    ].filter(filterNotEmpty),
+                    duplicateTracks: splitInitializationParameters?.duplicates || [],
+                    startLocation: startAndEndPoints.start.point,
+                    endLocation: startAndEndPoints.end.point,
                         trackNumber: trackNumber.number,
                         nearestOperatingPointToStart:
                             splitInitializationParameters.nearestOperatingPointToStart,
                         nearestOperatingPointToEnd:
                             splitInitializationParameters.nearestOperatingPointToEnd,
-                    });
-                    showLayers(['location-track-split-location-layer']);
-                }
-            },
-        );
+                });
+                showLayers(['location-track-split-location-layer']);
+            }
+        });
     };
 
     const updateAlignment = (state: LinkingAlignment) => {
@@ -270,7 +271,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                             qa-id="modify-start-or-end"
                                             title={getModifyStartOrEndDisabledReasonTranslated()}
                                             disabled={
-                                                publishType !== 'DRAFT' ||
+                                                layoutContext.publicationState !== 'DRAFT' ||
                                                 !!splittingState ||
                                                 extraInfo?.partOfUnfinishedSplit ||
                                                 !startAndEndPoints.start?.point ||
@@ -279,7 +280,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                             onClick={() => {
                                                 getEndLinkPoints(
                                                     locationTrack.id,
-                                                    publishType,
+                                                    layoutContext,
                                                     'LOCATION_TRACK',
                                                     changeTimes.layoutLocationTrack,
                                                 ).then(onStartLocationTrackGeometryChange);

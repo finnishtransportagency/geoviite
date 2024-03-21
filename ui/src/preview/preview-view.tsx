@@ -14,7 +14,6 @@ import {
 import { PreviewFooter } from 'preview/preview-footer';
 import { PreviewToolBar } from 'preview/preview-tool-bar';
 import { OnSelectFunction } from 'selection/selection-model';
-import { PublishType } from 'common/common-model';
 import { CalculatedChangesView } from './calculated-changes-view';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import {
@@ -60,8 +59,10 @@ import {
     PreviewCandidates,
     PublicationAssetChangeAmounts,
 } from 'preview/preview-view-data';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
 
 export type PreviewProps = {
+    layoutContext: LayoutContext;
     changeTimes: ChangeTimes;
     selectedPublishCandidateIds: PublishRequestIds;
     showOnlyOwnUnstagedChanges: boolean;
@@ -183,7 +184,9 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         () => getCalculatedChangesDebounced(props.selectedPublishCandidateIds),
         [props.selectedPublishCandidateIds],
     );
-    const [mapMode, setMapMode] = React.useState<PublishType>('DRAFT');
+    const [layoutContext, setLayoutContext] = React.useState<LayoutContext>(
+        draftLayoutContext(props.layoutContext),
+    );
     const [changesBeingReverted, setChangesBeingReverted] = React.useState<ChangesBeingReverted>();
 
     const publicationAssetChangeAmounts: PublicationAssetChangeAmounts = {
@@ -378,6 +381,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     </Checkbox>
                                 </div>
                                 <PreviewTable
+                                    layoutContext={layoutContext}
                                     changesBeingReverted={changesBeingReverted}
                                     previewChanges={unstagedPreviewChanges}
                                     staged={false}
@@ -397,6 +401,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     </h3>
                                 </div>
                                 <PreviewTable
+                                    layoutContext={layoutContext}
                                     changesBeingReverted={changesBeingReverted}
                                     previewChanges={stagedPreviewChanges}
                                     staged={true}
@@ -409,7 +414,10 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
                             <div className={styles['preview-section']}>
                                 {calculatedChanges && (
-                                    <CalculatedChangesView calculatedChanges={calculatedChanges} />
+                                    <CalculatedChangesView
+                                        layoutContext={props.layoutContext}
+                                        calculatedChanges={calculatedChanges}
+                                    />
                                 )}
                                 {!calculatedChanges && <Spinner />}
                             </div>
@@ -421,7 +429,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     )}
                 </div>
                 <MapContext.Provider value="track-layout">
-                    <MapViewContainer publishType={mapMode} />
+                    <MapViewContainer layoutContext={layoutContext} />
                 </MapContext.Provider>
 
                 <PreviewFooter
@@ -432,13 +440,14 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                             : emptyChanges
                     }
                     onPublish={props.onPublish}
-                    mapMode={mapMode}
-                    onChangeMapMode={setMapMode}
+                    layoutContext={layoutContext}
+                    onChangeLayoutContext={setLayoutContext}
                     previewChanges={stagedPreviewChanges ? stagedPreviewChanges : emptyChanges}
                 />
             </div>
             {changesBeingReverted !== undefined && (
                 <PreviewConfirmRevertChangesDialog
+                    layoutContext={layoutContext}
                     changesBeingReverted={changesBeingReverted}
                     cancelRevertChanges={() => {
                         setChangesBeingReverted(undefined);

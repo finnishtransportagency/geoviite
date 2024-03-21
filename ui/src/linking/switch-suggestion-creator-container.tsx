@@ -4,7 +4,7 @@ import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { LocationTrackEndpoint, SuggestedSwitch } from 'linking/linking-model';
-import { PublishTypeHandlingDialog } from 'linking/publish-type-handling-dialog';
+import { PublicationStateHandlingDialog } from 'linking/publication-state-handling-dialog';
 import { first } from 'utils/array-utils';
 
 type SuggestionCreatorData = {
@@ -12,7 +12,7 @@ type SuggestionCreatorData = {
 };
 
 export const SwitchSuggestionCreatorContainer: React.FC = () => {
-    const { onSelect, onPublishTypeChange, startSwitchLinking } = React.useMemo(
+    const { onSelect, onPublicationStateChange, startSwitchLinking } = React.useMemo(
         () => createDelegates(trackLayoutActionCreators),
         [],
     );
@@ -20,7 +20,7 @@ export const SwitchSuggestionCreatorContainer: React.FC = () => {
         (state) => state.changeTimes.layoutLocationTrack,
     );
     const state = useTrackLayoutAppSelector((state) => ({
-        publishType: state.publishType,
+        layoutContext: state.layoutContext,
         locationTrackEndPoint: first(state.selection.selectedItems.locationTrackEndPoints),
         locationTrack: first(state.selection.selectedItems.locationTracks),
         locationTrackChangeTime: locationTrackChangeTime,
@@ -51,19 +51,19 @@ export const SwitchSuggestionCreatorContainer: React.FC = () => {
 
     return (
         <React.Fragment>
-            {suggestionCreatorData && state.publishType != 'DRAFT' && (
-                <PublishTypeHandlingDialog
-                    onPublishTypeChange={onPublishTypeChange}
+            {suggestionCreatorData && state.layoutContext.publicationState !== 'DRAFT' && (
+                <PublicationStateHandlingDialog
+                    onPublicationStateChange={onPublicationStateChange}
                     onClose={closeSuggestionCreatorDialog}
                 />
             )}
 
-            {suggestionCreatorData && state.publishType == 'DRAFT' && (
+            {suggestionCreatorData && state.layoutContext.publicationState === 'DRAFT' && (
                 <SwitchSuggestionCreatorDialog
                     locationTrackEndpoint={suggestionCreatorData.locationTrackEndPoint}
                     onSuggestedSwitchCreated={onSuggestedSwitchCreated}
                     onClose={closeSuggestionCreatorDialog}
-                    publishType={state.publishType}
+                    layoutContext={state.layoutContext}
                 />
             )}
         </React.Fragment>

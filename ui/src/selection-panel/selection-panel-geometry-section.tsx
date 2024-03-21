@@ -35,12 +35,12 @@ import {
     OptionalItemCollections,
     VisiblePlanLayout,
 } from 'selection/selection-model';
-import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
+import { LayoutContext } from 'common/common-model';
 
 type GeometryPlansPanelProps = {
     changeTimes: ChangeTimes;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     selectedItems: OptionalItemCollections;
     viewport: MapViewport;
     selectedTrackNumbers: LayoutTrackNumberId[];
@@ -66,7 +66,7 @@ type FetchedGeometryPlan = {
 
 const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     changeTimes,
-    publishType,
+    layoutContext,
     selectedItems,
     viewport,
     selectedTrackNumbers,
@@ -124,7 +124,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     React.useEffect(
         () => [...fetchedPlans.keys()].forEach(fetchPlanLayout),
         [
-            publishType,
+            layoutContext,
             changeTimes.geometryPlan,
             changeTimes.layoutReferenceLine,
             changeTimes.layoutLocationTrack,
@@ -137,7 +137,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
         startFetchingPlan(id);
         const rv = Promise.all([
             getTrackLayoutPlan(id, changeTimes.geometryPlan, false),
-            getPlanLinkStatus(id, publishType),
+            getPlanLinkStatus(id, layoutContext),
         ]).then(([planLayout, linkStatus]) => {
             if (planLayout) {
                 setSingleFetchedPlan(id, { planLayout, linkStatus });
@@ -164,7 +164,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                 .then((plans) =>
                     getPlanLinkStatuses(
                         plans.map((p) => p.id),
-                        publishType,
+                        layoutContext,
                     ).then((statuses) => ({ plans: plans, statuses: statuses })),
                 )
                 .then(({ plans, statuses }) => {
@@ -218,7 +218,6 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                         isToggle: true,
                                     })
                                 }
-                                publishType={publishType}
                                 changeTimes={changeTimes}
                                 onTogglePlanVisibility={onTogglePlanVisibility}
                                 onToggleAlignmentVisibility={onToggleAlignmentVisibility}

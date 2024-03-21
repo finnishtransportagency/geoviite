@@ -40,7 +40,9 @@ import { getChangeTimes } from 'common/change-time-api';
 import {
     ElevationMeasurementMethod,
     KmNumber,
-    PublishType,
+    LayoutDesignId,
+    LayoutContext,
+    PublicationState,
     TimeStamp,
     VerticalCoordinateSystem,
 } from 'common/common-model';
@@ -63,7 +65,7 @@ const planVerticalGeometryCache = asyncCache<
     PlanVerticalGeometryKey,
     VerticalGeometryItem[] | undefined
 >;
-type LocationTrackVerticalGeometryKey = `${LocationTrackId}_${PublishType}`;
+type LocationTrackVerticalGeometryKey = `${LocationTrackId}_${PublicationState}_${LayoutDesignId}`;
 const locationTrackVerticalGeometryCache = asyncCache<
     LocationTrackVerticalGeometryKey,
     VerticalGeometryItem[] | undefined
@@ -167,7 +169,7 @@ export async function getLocationTrackElements(
 
 export async function getLocationTrackVerticalGeometry(
     changeTime: TimeStamp | undefined,
-    publicationType: PublishType,
+    layoutContext: LayoutContext,
     id: LocationTrackId,
     startAddress: string | undefined,
     endAddress: string | undefined,
@@ -178,11 +180,15 @@ export async function getLocationTrackVerticalGeometry(
     });
     const fetch: () => Promise<VerticalGeometryItem[] | undefined> = () =>
         getNonNull(
-            `${GEOMETRY_URI}/layout/${publicationType}/location-tracks/${id}/vertical-geometry${params}`,
+            `${GEOMETRY_URI}/layout/${layoutContext.publicationState}/location-tracks/${id}/vertical-geometry${params}`,
         );
     return changeTime === undefined
         ? fetch()
-        : locationTrackVerticalGeometryCache.get(changeTime, `${id}_${publicationType}`, fetch);
+        : locationTrackVerticalGeometryCache.get(
+              changeTime,
+              `${id}_${layoutContext.publicationState}_${layoutContext.designId}`,
+              fetch,
+          );
 }
 
 export async function getGeometryPlanVerticalGeometry(
@@ -399,33 +405,33 @@ export async function getPlanAlignmentStartAndEnd(
 
 export async function getLocationTrackHeights(
     locationTrackId: LocationTrackId,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     startDistance: number,
     endDistance: number,
     tickLength: number,
 ): Promise<TrackKmHeights[]> {
     return getNonNull(
-        `${GEOMETRY_URI}/${publishType}/layout/location-tracks/${locationTrackId}/alignment-heights` +
+        `${GEOMETRY_URI}/${layoutContext.publicationState}/layout/location-tracks/${locationTrackId}/alignment-heights` +
             queryParams({ startDistance, endDistance, tickLength }),
     ).catch(() => []) as Promise<TrackKmHeights[]>;
 }
 
 const locationTrackLinkingSummaryCache = asyncCache<
-    `${LocationTrackId}_${PublishType}`,
+    `${LocationTrackId}_${PublicationState}_${LayoutDesignId}`,
     PlanLinkingSummaryItem[]
 >();
 
 export async function getLocationTrackLinkingSummary(
     changeTime: TimeStamp,
     locationTrackId: LocationTrackId,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
 ): Promise<PlanLinkingSummaryItem[]> {
     return locationTrackLinkingSummaryCache.get(
         changeTime,
-        `${locationTrackId}_${publishType}`,
+        `${locationTrackId}_${layoutContext.publicationState}_${layoutContext.designId}`,
         () =>
             getNonNull(
-                `${GEOMETRY_URI}/${publishType}/layout/location-tracks/${locationTrackId}/linking-summary`,
+                `${GEOMETRY_URI}/${layoutContext.publicationState}/layout/location-tracks/${locationTrackId}/linking-summary`,
             ),
     );
 }

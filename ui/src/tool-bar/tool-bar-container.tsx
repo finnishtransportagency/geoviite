@@ -10,11 +10,11 @@ export const ToolBarContainer: React.FC = () => {
 
     return (
         <ToolBar
-            publishType={trackLayoutState.publishType}
+            layoutContext={trackLayoutState.layoutContext}
             showArea={delegates.showArea}
             onSelect={delegates.onSelect}
             onUnselect={delegates.onUnselect}
-            onPublishTypeChange={delegates.onPublishTypeChange}
+            onPublicationStateChange={delegates.onPublicationStateChange}
             onOpenPreview={() => delegates.onLayoutModeChange('PREVIEW')}
             onStopLinking={delegates.stopLinking}
             linkingState={trackLayoutState.linkingState}

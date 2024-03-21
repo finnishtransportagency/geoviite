@@ -45,7 +45,7 @@ function heightCacheKey(
     tickLength: number,
 ): HeightCacheKey {
     return 'locationTrackId' in alignmentId
-        ? `${alignmentId.locationTrackId}_${alignmentId.publishType}_${tickLength}`
+        ? `${alignmentId.locationTrackId}_${alignmentId.layoutContext.publicationState}_${alignmentId.layoutContext.designId}_${tickLength}`
         : `${alignmentId.planId}_${alignmentId.alignmentId}_${tickLength}`;
 }
 
@@ -126,7 +126,7 @@ async function loadAlignmentHeights(
               )
             : getLocationTrackHeights(
                   alignmentId.locationTrackId,
-                  alignmentId.publishType,
+                  alignmentId.layoutContext,
                   startM,
                   endM,
                   tickLength,

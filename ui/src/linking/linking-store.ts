@@ -25,13 +25,14 @@ import {
 import { GeometryKmPostId } from 'geometry/geometry-model';
 import { angleDiffRads, directionBetweenPoints, interpolateXY } from 'utils/math-utils';
 import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
+import { draftLayoutContext } from 'common/common-model';
 
 export const linkingReducers = {
     startAlignmentLinking: (
         state: TrackLayoutState,
         { payload }: PayloadAction<GeometryPreliminaryLinkingParameters>,
     ): void => {
-        state.publishType = 'DRAFT';
+        state.layoutContext = draftLayoutContext(state.layoutContext);
         state.selection.selectedItems.clusterPoints = [];
         state.linkingState = {
             type: LinkingType.UnknownAlignment,
@@ -176,7 +177,7 @@ export const linkingReducers = {
         const alignmentType = interval.start?.alignmentType || interval.end?.alignmentType;
 
         if (alignmentId && alignmentType) {
-            state.publishType = 'DRAFT';
+            state.layoutContext = draftLayoutContext(state.layoutContext);
             state.linkingState = validateLinkingState({
                 layoutAlignmentId: alignmentId,
                 layoutAlignmentType: alignmentType,
@@ -203,7 +204,7 @@ export const linkingReducers = {
         state: TrackLayoutState,
         { payload }: PayloadAction<SuggestedSwitch>,
     ): void => {
-        state.publishType = 'DRAFT';
+        state.layoutContext = draftLayoutContext(state.layoutContext);
         state.linkingState = {
             type: LinkingType.LinkingSwitch,
             suggestedSwitch: payload,
@@ -230,7 +231,7 @@ export const linkingReducers = {
         state: TrackLayoutState,
         { payload: geometryKmPostId }: PayloadAction<GeometryKmPostId>,
     ) => {
-        state.publishType = 'DRAFT';
+        state.layoutContext = draftLayoutContext(state.layoutContext);
         state.linkingState = {
             type: LinkingType.LinkingKmPost,
             geometryKmPostId: geometryKmPostId,
