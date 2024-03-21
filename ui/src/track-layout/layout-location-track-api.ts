@@ -7,6 +7,7 @@ import {
     LocationTrackDescription,
     LocationTrackId,
     LocationTrackInfoboxExtras,
+    OperatingPoint,
 } from 'track-layout/track-layout-model';
 import {
     DraftableChangeInfo,
@@ -74,6 +75,8 @@ export type SplitInitializationParameters = {
     id: LocationTrackId;
     switches: SwitchOnLocationTrack[];
     duplicates: SplitDuplicate[];
+    nearestOperatingPointToEnd: OperatingPoint | undefined;
+    nearestOperatingPointToStart: OperatingPoint | undefined;
 };
 
 const cacheKey = (id: LocationTrackId, layoutContext: LayoutContext) =>

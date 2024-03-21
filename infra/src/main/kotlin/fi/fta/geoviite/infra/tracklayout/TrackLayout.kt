@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.linking.SuggestedSwitch
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.ValidatedAsset
+import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.FreeText
@@ -160,6 +161,7 @@ data class SwitchOnLocationTrack(
     val address: TrackMeter?,
     val location: Point?,
     val distance: Double?,
+    val nearestOperatingPoint: RatkoOperatingPoint?,
 )
 
 data class SplitDuplicateTrack(
@@ -173,6 +175,8 @@ data class SplittingInitializationParameters(
     val id: IntId<LocationTrack>,
     val switches: List<SwitchOnLocationTrack>,
     val duplicates: List<SplitDuplicateTrack>,
+    val nearestOperatingPointToStart: RatkoOperatingPoint?,
+    val nearestOperatingPointToEnd: RatkoOperatingPoint?,
 )
 
 data class LocationTrack(

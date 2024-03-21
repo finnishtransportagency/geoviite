@@ -78,6 +78,7 @@ import { createDuplicateTrackEndpointAddressLayer } from 'map/layers/alignment/l
 import { createLocationTrackSelectedAlignmentLayer } from 'map/layers/alignment/location-track-selected-alignment-layer';
 import { createLocationTrackSplitBadgeLayer } from 'map/layers/alignment/location-track-split-badge-layer';
 import { createSelectedReferenceLineAlignmentLayer } from './layers/alignment/reference-line-selected-alignment-layer';
+import { createOperatingPointLayer } from 'map/layers/operating-point/operating-points-layer';
 
 declare global {
     interface Window {
@@ -573,6 +574,13 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<Polygon>>,
                             changeTimes,
                             (loading) => onLayerLoading(layerName, loading),
+                        );
+                    case 'operating-points-layer':
+                        return createOperatingPointLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<OlPoint>>,
+                            olView,
+                            changeTimes,
                         );
                     case 'debug-1m-points-layer':
                         return createDebug1mPointsLayer(

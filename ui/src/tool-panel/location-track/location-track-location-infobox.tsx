@@ -172,7 +172,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             draftLayoutContext(layoutContext),
             locationTrack.id,
         ).then((splitInitializationParameters) => {
-            if (startAndEndPoints?.start && startAndEndPoints?.end) {
+            if (startAndEndPoints?.start && startAndEndPoints?.end && trackNumber) {
                 onStartSplitting({
                     locationTrack: locationTrack,
                     allowedSwitches:
@@ -186,6 +186,11 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                     duplicateTracks: splitInitializationParameters?.duplicates || [],
                     startLocation: startAndEndPoints.start.point,
                     endLocation: startAndEndPoints.end.point,
+                        trackNumber: trackNumber.number,
+                        nearestOperatingPointToStart:
+                            splitInitializationParameters.nearestOperatingPointToStart,
+                        nearestOperatingPointToEnd:
+                            splitInitializationParameters.nearestOperatingPointToEnd,
                 });
                 showLayers(['location-track-split-location-layer']);
             }

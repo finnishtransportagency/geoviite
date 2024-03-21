@@ -17,6 +17,7 @@ export type ChangeTimes = {
     ratkoPush: TimeStamp;
     pvDocument: TimeStamp;
     split: TimeStamp;
+    operatingPoints: TimeStamp;
 };
 
 export const initialChangeTime: TimeStamp = '1970-01-01T00:00:00.000Z';
@@ -33,6 +34,7 @@ export const initialChangeTimes: ChangeTimes = {
     ratkoPush: initialChangeTime,
     pvDocument: initialChangeTime,
     split: initialChangeTime,
+    operatingPoints: initialChangeTime,
 };
 
 export type CommonState = {

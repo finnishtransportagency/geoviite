@@ -34,6 +34,7 @@ const mapLayerOrder: MapLayerName[] = [
     'location-track-duplicate-endpoint-address-layer',
     'location-track-split-location-layer',
     'plan-area-layer',
+    'operating-points-layer',
     'debug-1m-points-layer',
     'debug-layer',
 ];

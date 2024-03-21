@@ -20,7 +20,6 @@ import {
 } from 'track-layout/track-layout-model';
 import {
     FirstSplitTargetCandidate,
-    sortSplitsByDistance,
     SplitTargetCandidate,
     SplittingState,
 } from 'tool-panel/location-track/split-store';
@@ -216,7 +215,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
 }) => {
     const { t } = useTranslation();
     const [confirmExit, setConfirmExit] = React.useState(false);
-    const allSplits = [splittingState.firstSplit, ...sortSplitsByDistance(splittingState.splits)];
+    const allSplits = [splittingState.firstSplit, ...splittingState.splits];
 
     const allowedSwitchIds = React.useMemo(
         () => splittingState.allowedSwitches.map((sw) => sw.switchId),
@@ -271,7 +270,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             splitRequest(
                 splittingState.originLocationTrack.id,
                 splittingState.firstSplit,
-                sortSplitsByDistance(splittingState.splits),
+                splittingState.splits,
                 duplicateTracksInCurrentSplits,
             ),
         )

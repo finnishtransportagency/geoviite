@@ -16,7 +16,7 @@ import {
     AlignmentDataHolder,
     getSelectedLocationTrackMapAlignmentByTiles,
 } from 'track-layout/layout-map-api';
-import { sortSplitsByDistance, SplittingState } from 'tool-panel/location-track/split-store';
+import { SplittingState } from 'tool-panel/location-track/split-store';
 import { AlignmentStartAndEnd } from 'track-layout/track-layout-model';
 import { getLocationTrackStartAndEnd } from 'track-layout/layout-location-track-api';
 import { first } from 'utils/array-utils';
@@ -46,7 +46,7 @@ const calculateSplitBounds = (
     splittingState: SplittingState,
     originalStartAndEnd: AlignmentStartAndEnd,
 ): SplitBoundsAndName[] => {
-    const splitsSorted = sortSplitsByDistance(splittingState.splits);
+    const splitsSorted = splittingState.splits;
     return [
         {
             start: originalStartAndEnd.start?.point.m || 0,
