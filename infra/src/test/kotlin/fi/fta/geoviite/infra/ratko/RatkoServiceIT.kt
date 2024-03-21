@@ -38,6 +38,7 @@ class RatkoServiceIT @Autowired constructor(
     val referenceLineDao: ReferenceLineDao,
     val alignmentDao: LayoutAlignmentDao,
     val ratkoService: RatkoService,
+    val ratkoLocalService: RatkoLocalService,
     val layoutTrackNumberDao: LayoutTrackNumberDao,
     val publicationService: PublicationService,
     val switchService: LayoutSwitchService,
@@ -947,7 +948,7 @@ class RatkoServiceIT @Autowired constructor(
             )
         )
         ratkoService.updateOperatingPointsFromRatko()
-        val pointsFromDatabase = ratkoService.getOperatingPoints(boundingBoxAroundPoint(Point(95.0, 95.0), 10.0))
+        val pointsFromDatabase = ratkoLocalService.getOperatingPoints(boundingBoxAroundPoint(Point(95.0, 95.0), 10.0))
         assertEquals(1, pointsFromDatabase.size)
         val point = pointsFromDatabase[0]
         assertEquals("1.2.3.4.5", point.externalId.toString())
