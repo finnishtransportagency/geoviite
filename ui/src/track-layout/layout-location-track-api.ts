@@ -108,10 +108,10 @@ export async function getLocationTrackInfoboxExtras(
 
 export async function getRelinkableSwitchesCount(
     id: LocationTrackId,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
 ): Promise<number | undefined> {
     return getNullable<number>(
-        `${layoutUri('location-tracks', publishType, id)}/relinkable-switches-count`,
+        `${layoutUri('location-tracks', layoutContext, id)}/relinkable-switches-count`,
     );
 }
 
