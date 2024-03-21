@@ -44,6 +44,7 @@ class RatkoClientConfiguration @Autowired constructor(
             .filter(logRequest())
             .filter(logResponse())
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .codecs { it.defaultCodecs().maxInMemorySize(10 * 1024 * 1024) }
 
         if (basicAuthUsername.isNotBlank() && basicAuthPassword.isNotBlank()) {
             webClientBuilder.defaultHeaders { header -> header.setBasicAuth(basicAuthUsername, basicAuthPassword) }

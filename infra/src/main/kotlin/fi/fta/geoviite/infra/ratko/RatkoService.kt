@@ -5,9 +5,11 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.logging.serviceCall
+import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.*
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
+import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
@@ -16,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import withUser
 import java.time.Duration
 import java.time.Instant
@@ -49,6 +52,7 @@ class RatkoService @Autowired constructor(
     private val locationTrackService: LocationTrackService,
     private val switchService: LayoutSwitchService,
     private val lockDao: LockDao,
+    private val ratkoOperatingPointDao: RatkoOperatingPointDao,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val ratkoSchedulerUserName = UserName("RATKO_SCHEDULER")
@@ -61,6 +65,24 @@ class RatkoService @Autowired constructor(
             // Don't retry failed on auto-push
             pushChangesToRatko(retryFailed = false)
         }
+    }
+
+    @Scheduled(cron = "0 30 3 * * *")
+    fun scheduledRatkoOperatingPointsFetch() {
+        withUser(ratkoSchedulerUserName, ::fetchOperatingPointsFromRatko)
+    }
+
+    fun fetchOperatingPointsFromRatko() {
+        lockDao.runWithLock(
+            DatabaseLock.RATKO_OPERATING_POINTS_FETCH, databaseLockDuration
+        ) {
+            val points = ratkoClient.fetchOperatingPoints()
+            ratkoOperatingPointDao.writeOperatingPoints(points)
+        }
+    }
+
+    fun getOperatingPoints(bbox: BoundingBox): List<RatkoOperatingPoint> {
+        return ratkoOperatingPointDao.getOperatingPoints(bbox)
     }
 
     fun pushChangesToRatko(retryFailed: Boolean = true) {

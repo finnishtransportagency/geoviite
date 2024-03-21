@@ -1077,6 +1077,7 @@
         "geometry-switch": "Suunnitelman vaihteet",
         "plan-area": "Suunnitelman alueet",
         "geometry-km-post": "Suunnitelman tasakilometripisteet",
+        "operating-points": "Liikennepaikat",
         "debug-1m": "Tasametripisteet",
         "debug": "Debug"
     },

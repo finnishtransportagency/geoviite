@@ -9,6 +9,7 @@ import com.fasterxml.jackson.module.kotlin.jsonMapper
 import com.fasterxml.jackson.module.kotlin.kotlinModule
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.integration.RatkoAssetType
 import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.logging.integrationCall
@@ -373,6 +374,29 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
         logger.integrationCall("updateRouteNumber", "routeNumber" to routeNumber)
 
         putWithoutResponseBody(ROUTE_NUMBER_PATH, routeNumber)
+    }
+
+    fun fetchOperatingPoints(): List<RatkoOperatingPointParse> {
+        logger.integrationCall("fetchOperatingPoints")
+        val allPoints = mutableListOf<RatkoOperatingPointParse>()
+        var pagePoints: List<RatkoOperatingPointParse>
+        var pageNumber = 0
+        do {
+            logger.info("fetching operating points for page $pageNumber")
+            val body = (postWithResponseBody<String>(
+                "$ASSET_PATH/search?fields=summary", mapOf(
+                    "assetType" to "railway_traffic_operating_point",
+                    "pageNumber" to pageNumber++,
+                    "size" to 100,
+                    "sortOrder" to "ASC",
+                    "secondarySortOrder" to "ASC"
+                )
+            ))
+            pagePoints = ((ratkoJsonMapper.readValue(body, RatkoOperatingPointAssetsResponse::class.java)?.assets)
+                ?: listOf()).mapNotNull(::parseAsset)
+            allPoints.addAll(pagePoints)
+        } while (pagePoints.isNotEmpty())
+        return allPoints
     }
 
     private fun replaceKmM(nodeCollection: JsonNode?) {
