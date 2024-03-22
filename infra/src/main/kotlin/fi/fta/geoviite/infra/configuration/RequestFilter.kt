@@ -42,6 +42,7 @@ import java.security.KeyFactory
 import java.security.interfaces.ECPublicKey
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.X509EncodedKeySpec
+import java.time.Duration
 import java.time.Instant
 import java.util.*
 
@@ -52,6 +53,8 @@ const val HTTP_HEADER_JWT_ACCESS = "x-iam-accesstoken"
 
 const val ALGORITHM_RS256 = "RS256"
 const val ALGORITHM_ES256 = "ES256"
+
+val slowRequestThreshold: Duration = Duration.ofSeconds(5)
 
 @ConditionalOnWebApplication
 @Component
@@ -127,7 +130,7 @@ class RequestFilter @Autowired constructor(
             response.writer.write(objectMapper.writeValueAsString(errorResponse.body))
             response.writer.flush()
         } finally {
-            log.apiResponse(request, response, requestIP, startTime)
+            log.apiResponse(request, response, requestIP, startTime, slowRequestThreshold)
             currentUserRole.clear()
             currentUser.clear()
             correlationId.clear()
