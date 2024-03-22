@@ -13,9 +13,9 @@ import { VIEW_PV_DOCUMENTS, userHasPrivilege } from 'user/user-model';
 
 export const InfraModelLink: React.FC = () => {
     const { t } = useTranslation();
-    const userPrivileges = useCommonDataAppSelector((state) => state.userPrivileges).map(
-        (p) => p.code,
-    );
+    const userPrivileges = useCommonDataAppSelector(
+        (state) => state.user?.role.privileges ?? [],
+    ).map((p) => p.code);
 
     const changeTimes = getChangeTimes();
     const pvDocumentCounts = useLoader(() => getPVDocumentCount(), [changeTimes.pvDocument]);

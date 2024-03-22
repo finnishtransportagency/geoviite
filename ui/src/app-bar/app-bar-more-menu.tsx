@@ -25,9 +25,17 @@ const AppBarMoreMenu: React.FC = () => {
     const menuRef = React.useRef(null);
     const navigate = useNavigate();
 
-    const availableRoles = useCommonDataAppSelector((state) => state.availableRoles);
+    const user = useCommonDataAppSelector((state) => state.user);
+    const availableRoles = user?.availableRoles ?? [];
 
     const createRoleSelectionOption = (role: Role): MenuSelectOption => {
+        const roleSelectionDisabled = role.code === user?.role.code;
+
+        const roleOptionTranslation = t(`user-roles.${role.code}`);
+        const roleOptionName = roleSelectionDisabled
+            ? `${roleOptionTranslation}`
+            : t(`user-roles.${role.code}`);
+
         return menuSelectOption(
             () => {
                 setShowMenu(false);
@@ -37,8 +45,9 @@ const AppBarMoreMenu: React.FC = () => {
                     location.reload();
                 });
             },
-            t(`user-roles.${role.code}`),
+            roleOptionName,
             `select-role-${role.code}`,
+            roleSelectionDisabled,
         );
     };
 

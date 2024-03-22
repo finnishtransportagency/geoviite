@@ -11,6 +11,8 @@ export const PrivilegeRequired: React.FC<PrivilegeRequiredProps> = ({
     privilege,
     children,
 }: PrivilegeRequiredProps) => {
-    const privileges = useCommonDataAppSelector((state) => state.userPrivileges).map((p) => p.code);
+    const privileges = useCommonDataAppSelector((state) => state.user?.role.privileges ?? []).map(
+        (p) => p.code,
+    );
     return <React.Fragment>{userHasPrivilege(privileges, privilege) && children}</React.Fragment>;
 };

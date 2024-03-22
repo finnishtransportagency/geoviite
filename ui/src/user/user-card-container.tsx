@@ -1,10 +1,9 @@
 import * as React from 'react';
 import { UserCard } from 'user/user-card';
-import { useLoader } from 'utils/react-utils';
-import { getOwnUser } from 'user/user-api';
+import { useCommonDataAppSelector } from 'store/hooks';
 
 export const UserCardContainer: React.FC = () => {
-    const user = useLoader(getOwnUser, []);
+    const user = useCommonDataAppSelector((state) => state.user);
 
     return <React.Fragment>{user && <UserCard user={user}></UserCard>}</React.Fragment>;
 };
