@@ -16,28 +16,28 @@ type HighlightedItemBase = {
     endM: number;
 };
 
-type HighlightedLocationTrack = {
+export type HighlightedLocationTrack = {
     type: 'LOCATION_TRACK';
     id: LocationTrackId;
 } & HighlightedItemBase;
 
-type HighlightedReferenceLine = {
+export type HighlightedReferenceLine = {
     type: 'REFERENCE_LINE';
     id: LayoutTrackNumberId;
 } & HighlightedItemBase;
 
 export type HighlightedAlignment = HighlightedLocationTrack | HighlightedReferenceLine;
 
+export type OnHighlightSection = (section: undefined | { startM: number; endM: number }) => void;
+
 type AlignmentPlanSectionInfoboxContentProps = {
     sections: AlignmentPlanSection[];
-    onHighlightItem: (item: HighlightedAlignment | undefined) => void;
-    id: LocationTrackId | LayoutTrackNumberId;
-    type: 'LOCATION_TRACK' | 'REFERENCE_LINE';
+    onHighlightSection: OnHighlightSection;
 };
 
 export const AlignmentPlanSectionInfoboxContent: React.FC<
     AlignmentPlanSectionInfoboxContentProps
-> = ({ sections, type, id, onHighlightItem }) => {
+> = ({ sections, onHighlightSection }) => {
     const { t } = useTranslation();
 
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
@@ -77,15 +77,13 @@ export const AlignmentPlanSectionInfoboxContent: React.FC<
                         onMouseOver={() => {
                             section.start &&
                                 section.end &&
-                                onHighlightItem({
-                                    id,
-                                    type,
-                                    startM: section.start?.m,
-                                    endM: section.end?.m,
+                                onHighlightSection({
+                                    startM: section.start.m,
+                                    endM: section.end.m,
                                 });
                         }}
                         onMouseOut={() => {
-                            onHighlightItem(undefined);
+                            onHighlightSection(undefined);
                         }}>
                         {section.planName && !section.isLinked && (
                             <div className="infobox__list-cell">{errorFragment()}</div>

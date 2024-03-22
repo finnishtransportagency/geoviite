@@ -18,12 +18,13 @@ import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import {
-    AlignmentDataHolder,
     getLocationTrackMapAlignmentsByTiles,
+    LocationTrackAlignmentDataHolder,
 } from 'track-layout/layout-map-api';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
 import { LayoutContext } from 'common/common-model';
+import { brand } from 'common/brand';
 
 let shownLocationTracksCompare = '';
 
@@ -78,7 +79,7 @@ export function createLocationTrackAlignmentLayer(
             ? getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext)
             : Promise.resolve([]);
 
-    const createFeatures = (locationTracks: AlignmentDataHolder[]) => {
+    const createFeatures = (locationTracks: LocationTrackAlignmentDataHolder[]) => {
         const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
 
         return createAlignmentFeatures(
@@ -92,7 +93,7 @@ export function createLocationTrackAlignmentLayer(
 
     const onLoadingChange = (
         loading: boolean,
-        locationTracks: AlignmentDataHolder[] | undefined,
+        locationTracks: LocationTrackAlignmentDataHolder[] | undefined,
     ) => {
         if (!loading) {
             updateShownLocationTracks(locationTracks?.map(({ header }) => header.id) ?? []);
@@ -106,8 +107,8 @@ export function createLocationTrackAlignmentLayer(
         name: layerName,
         layer: layer,
         searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => ({
-            locationTracks: findMatchingAlignments(hitArea, source, options).map(
-                ({ header }) => header.id,
+            locationTracks: findMatchingAlignments(hitArea, source, options).map(({ header }) =>
+                brand(header.id),
             ),
         }),
         onRemove: () => updateShownLocationTracks([]),

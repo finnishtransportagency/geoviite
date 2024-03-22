@@ -7,14 +7,14 @@ import {
 } from 'track-layout/track-layout-slice';
 import { useTrackNumberReferenceLine } from 'track-layout/track-layout-react-utils';
 import TrackNumberInfobox from 'tool-panel/track-number/track-number-infobox';
-import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
+import { HighlightedReferenceLine } from 'tool-panel/alignment-plan-section-infobox-content';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 
 type TrackNumberInfoboxLinkingContainerProps = {
     trackNumber: LayoutTrackNumber;
     visibilities: TrackNumberInfoboxVisibilities;
     onVisibilityChange: (visibilities: TrackNumberInfoboxVisibilities) => void;
-    setHoveredOverItem: (item: HighlightedAlignment | undefined) => void;
+    setHoveredOverItem: (item: HighlightedReferenceLine | undefined) => void;
 };
 
 const TrackNumberInfoboxLinkingContainer: React.FC<TrackNumberInfoboxLinkingContainerProps> = ({

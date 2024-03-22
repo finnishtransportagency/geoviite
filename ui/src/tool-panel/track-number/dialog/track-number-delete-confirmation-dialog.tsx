@@ -10,6 +10,7 @@ import { revertCandidates } from 'publication/publication-api';
 import { getChangeTimes } from 'common/change-time-api';
 import { ChangesBeingReverted } from 'preview/preview-view';
 import { LayoutContext } from 'common/common-model';
+import { brand } from 'common/brand';
 
 type TrackNumberDeleteConfirmationDialogProps = {
     layoutContext: LayoutContext;
@@ -31,7 +32,7 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
             result
                 .map(() => {
                     Snackbar.success('tool-panel.track-number.delete-dialog.delete-succeeded');
-                    onSave && onSave(changesBeingReverted.requestedRevertChange.source.id);
+                    onSave && onSave(brand(changesBeingReverted.requestedRevertChange.source.id));
                     onClose();
                 })
                 .mapErr(() => {

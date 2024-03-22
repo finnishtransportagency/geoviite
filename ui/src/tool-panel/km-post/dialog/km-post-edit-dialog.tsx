@@ -25,8 +25,7 @@ import {
     updateKmPost,
 } from 'track-layout/layout-km-post-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
-import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
-import { GeometryTrackNumberId } from 'geometry/geometry-model';
+import { LayoutKmPost, LayoutKmPostId, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { useDebouncedState } from 'utils/react-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
@@ -43,7 +42,7 @@ type KmPostEditDialogContainerProps = {
     kmPostId?: LayoutKmPostId;
     onClose: () => void;
     onSave?: (kmPostId: LayoutKmPostId) => void;
-    prefilledTrackNumberId?: GeometryTrackNumberId;
+    prefilledTrackNumberId?: LayoutTrackNumberId;
 };
 
 type KmPostEditDialogProps = {
@@ -51,7 +50,7 @@ type KmPostEditDialogProps = {
     kmPostId?: LayoutKmPostId;
     onClose: () => void;
     onSave?: (kmPostId: LayoutKmPostId) => void;
-    prefilledTrackNumberId?: GeometryTrackNumberId;
+    prefilledTrackNumberId?: LayoutTrackNumberId;
     onEditKmPost: (id?: LayoutKmPostId) => void;
 };
 

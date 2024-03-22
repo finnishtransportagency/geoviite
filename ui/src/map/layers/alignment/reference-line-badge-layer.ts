@@ -2,8 +2,8 @@ import { Point as OlPoint } from 'ol/geom';
 import { MapLayerName, MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import {
-    AlignmentDataHolder,
     getReferenceLineMapAlignmentsByTiles,
+    ReferenceLineAlignmentDataHolder,
 } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { LinkingState } from 'linking/linking-model';
@@ -31,13 +31,10 @@ export function createReferenceLineBadgeLayer(
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const dataPromise: Promise<AlignmentDataHolder[]> = getReferenceLineMapAlignmentsByTiles(
-        changeTimes,
-        mapTiles,
-        layoutContext,
-    );
+    const dataPromise: Promise<ReferenceLineAlignmentDataHolder[]> =
+        getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext);
 
-    const createFeatures = (referenceLines: AlignmentDataHolder[]) => {
+    const createFeatures = (referenceLines: ReferenceLineAlignmentDataHolder[]) => {
         const badgeDrawDistance = getBadgeDrawDistance(resolution) || 0;
         return createAlignmentBadgeFeatures(
             referenceLines,

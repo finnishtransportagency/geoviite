@@ -19,20 +19,21 @@ import {
     menuSelectOption,
     MenuSelectOption,
 } from 'vayla-design-lib/menu/menu';
-import { PreviewSelectType, PreviewTableEntry, PublicationId } from 'preview/preview-table';
+import { PreviewSelectType, PreviewTableEntry, PublishableObjectId } from 'preview/preview-table';
 import { BoundingBox } from 'model/geometry';
 import { RevertRequestSource } from 'preview/preview-view-revert-request';
 import { PublicationAssetChangeAmounts } from 'preview/preview-view-data';
+import { brand } from 'common/brand';
 
 const createPublishRequestIdsFromTableEntry = (
-    id: PublicationId,
+    id: PublishableObjectId,
     type: PreviewSelectType,
 ): PublishRequestIds => ({
-    trackNumbers: type === PreviewSelectType.trackNumber ? [id] : [],
-    referenceLines: type === PreviewSelectType.referenceLine ? [id] : [],
-    locationTracks: type === PreviewSelectType.locationTrack ? [id] : [],
-    switches: type === PreviewSelectType.switch ? [id] : [],
-    kmPosts: type === PreviewSelectType.kmPost ? [id] : [],
+    trackNumbers: type === PreviewSelectType.trackNumber ? [brand(id)] : [],
+    referenceLines: type === PreviewSelectType.referenceLine ? [brand(id)] : [],
+    locationTracks: type === PreviewSelectType.locationTrack ? [brand(id)] : [],
+    switches: type === PreviewSelectType.switch ? [brand(id)] : [],
+    kmPosts: type === PreviewSelectType.kmPost ? [brand(id)] : [],
 });
 
 const conditionalMenuOption = (

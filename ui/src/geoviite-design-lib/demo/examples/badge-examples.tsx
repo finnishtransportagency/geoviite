@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {
     LayoutAssetFields,
+    LayoutKmPost,
     LayoutLocationTrack,
     LayoutState,
     LayoutSwitch,
@@ -11,6 +12,7 @@ import {
     LocationTrackBadge,
     LocationTrackBadgeStatus,
 } from 'geoviite-design-lib/alignment/location-track-badge';
+import { brand } from 'common/brand';
 
 const layoutAssetFields: LayoutAssetFields = {
     version: 'version',
@@ -20,14 +22,14 @@ const layoutAssetFields: LayoutAssetFields = {
 
 const layoutLocationTrack: LayoutLocationTrack = {
     ...layoutAssetFields,
-    id: '',
+    id: brand(''),
     name: 'name',
     descriptionBase: 'description',
     state: 'IN_USE' as LayoutState,
     length: 123,
     segmentCount: 0,
     boundingBox: { x: { min: 0, max: 0 }, y: { min: 0, max: 0 } },
-    trackNumberId: '',
+    trackNumberId: brand(''),
     sourceId: '',
     type: undefined,
     externalId: undefined,
@@ -37,17 +39,17 @@ const layoutLocationTrack: LayoutLocationTrack = {
     topologyEndSwitch: undefined,
     ownerId: '',
 };
-const kmPost = {
+const kmPost: LayoutKmPost = {
     ...layoutAssetFields,
-    id: '',
+    id: brand(''),
     kmNumber: '123',
     location: { x: 0, y: 0 },
     state: 'IN_USE' as LayoutState,
-    trackNumberId: '',
+    trackNumberId: brand(''),
 };
 const layoutSwitch: LayoutSwitch = {
     ...layoutAssetFields,
-    id: '',
+    id: brand(''),
     name: 'V1234',
     switchStructureId: '',
     stateCategory: 'EXISTING',

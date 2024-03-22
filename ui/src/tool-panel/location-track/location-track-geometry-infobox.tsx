@@ -9,7 +9,8 @@ import { getLocationTrackSectionsByPlan } from 'track-layout/layout-location-tra
 import { MapViewport } from 'map/map-model';
 import {
     AlignmentPlanSectionInfoboxContent,
-    HighlightedAlignment,
+    HighlightedLocationTrack,
+    OnHighlightSection,
 } from 'tool-panel/alignment-plan-section-infobox-content';
 import { useTranslation } from 'react-i18next';
 import {
@@ -24,7 +25,7 @@ type LocationTrackGeometryInfoboxProps = {
     viewport: MapViewport;
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
-    onHighlightItem: (item: HighlightedAlignment | undefined) => void;
+    onHighlightItem: (item: HighlightedLocationTrack | undefined) => void;
 };
 
 export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfoboxProps> = ({
@@ -48,6 +49,16 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
         1000,
         [locationTrackId, layoutContext.publicationState, layoutContext.designId, viewportDep],
     );
+    const onHighlightSection: OnHighlightSection = (section) =>
+        onHighlightItem(
+            section === undefined
+                ? undefined
+                : {
+                      ...section,
+                      id: locationTrackId,
+                      type: 'LOCATION_TRACK',
+                  },
+        );
 
     return (
         <Infobox
@@ -76,10 +87,8 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
                         </p>
                     ) : (
                         <AlignmentPlanSectionInfoboxContent
-                            id={locationTrackId}
+                            onHighlightSection={onHighlightSection}
                             sections={sections || []}
-                            onHighlightItem={onHighlightItem}
-                            type={'LOCATION_TRACK'}
                         />
                     )}
                 </ProgressIndicatorWrapper>

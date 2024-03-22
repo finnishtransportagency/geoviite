@@ -26,7 +26,7 @@ import { BoundingBox, Point } from 'model/geometry';
 import { bboxString, pointString } from 'common/common-api';
 import { KmPostSaveError, KmPostSaveRequest } from 'linking/linking-model';
 import { Result } from 'neverthrow';
-import { ValidatedAsset } from 'publication/publication-model';
+import { ValidatedKmPost } from 'publication/publication-model';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 
 const kmPostListCache = asyncCache<string, LayoutKmPost[]>();
@@ -173,8 +173,8 @@ export const deleteDraftKmPost = async (
 export async function getKmPostValidation(
     layoutContext: LayoutContext,
     id: LayoutKmPostId,
-): Promise<ValidatedAsset | undefined> {
-    return getNullable<ValidatedAsset>(`${layoutUri('km-posts', layoutContext, id)}/validation`);
+): Promise<ValidatedKmPost | undefined> {
+    return getNullable<ValidatedKmPost>(`${layoutUri('km-posts', layoutContext, id)}/validation`);
 }
 
 export async function getKmPostsOnTrackNumber(

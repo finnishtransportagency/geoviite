@@ -8,7 +8,7 @@ import { AlignmentPoint } from 'track-layout/track-layout-model';
 import { findOrInterpolateXY } from 'utils/math-utils';
 import { pointToCoords } from 'map/layers/utils/layer-utils';
 import { filterNotEmpty, last } from 'utils/array-utils';
-import { AlignmentDataHolder } from 'track-layout/layout-map-api';
+import { LayoutAlignmentDataHolder } from 'track-layout/layout-map-api';
 import { Selection } from 'selection/selection-model';
 import { LinkingState } from 'linking/linking-model';
 import { getAlignmentHeaderStates } from 'map/layers/utils/alignment-layer-utils';
@@ -196,7 +196,7 @@ export function getBadgeDrawDistance(resolution: number): number | undefined {
 }
 
 export function createAlignmentBadgeFeatures(
-    alignments: AlignmentDataHolder[],
+    alignments: LayoutAlignmentDataHolder[],
     selection: Selection,
     linkingState: LinkingState | undefined,
     badgeDrawDistance: number,

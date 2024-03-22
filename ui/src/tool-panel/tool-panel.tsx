@@ -429,7 +429,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             lockToAsset = tabs.find(
                 (t) =>
                     t.asset.type === 'LOCATION_TRACK' &&
-                    t.asset.id === linkingState.layoutAlignmentId,
+                    t.asset.id === linkingState.layoutAlignment.id,
             )?.asset;
         } else if (
             linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment ||

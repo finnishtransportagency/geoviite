@@ -17,10 +17,10 @@ import Feature from 'ol/Feature';
 import { blueHighlightStyle } from 'map/layers/utils/highlight-layer-utils';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { getPartialPolyLine } from 'utils/math-utils';
-import { ReferenceLineId } from 'track-layout/track-layout-model';
+import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
 
-const isReferenceLine = (header: AlignmentHeader, referenceLineId: ReferenceLineId) =>
-    header.trackNumberId === referenceLineId && header.alignmentType === 'REFERENCE_LINE';
+const isReferenceLine = (header: AlignmentHeader, trackNumberId: LayoutTrackNumberId) =>
+    header.trackNumberId === trackNumberId && header.alignmentType === 'REFERENCE_LINE';
 
 function createFeatures(
     alignments: AlignmentDataHolder[],

@@ -118,9 +118,14 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
     }, [linkingState]);
 
     const updateAlignment = (state: LinkingAlignment) => {
-        if (canUpdate && state.layoutAlignmentInterval.start && state.layoutAlignmentInterval.end) {
+        if (
+            canUpdate &&
+            state.layoutAlignmentInterval.start &&
+            state.layoutAlignmentInterval.end &&
+            state.layoutAlignment.type === 'REFERENCE_LINE'
+        ) {
             setUpdatingLength(true);
-            updateReferenceLineGeometry(state.layoutAlignmentId, {
+            updateReferenceLineGeometry(state.layoutAlignment.id, {
                 min: state.layoutAlignmentInterval.start.m,
                 max: state.layoutAlignmentInterval.end.m,
             })
@@ -326,8 +331,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
             <AssetValidationInfoboxContainer
                 contentVisible={visibilities.validation}
                 onContentVisibilityChange={() => visibilityChange('validation')}
-                id={trackNumber.id}
-                type={'TRACK_NUMBER'}
+                idAndType={{ id: trackNumber.id, type: 'TRACK_NUMBER' }}
                 layoutContext={layoutContext}
                 changeTime={trackNumberChangeTime}
             />

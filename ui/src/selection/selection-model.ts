@@ -49,7 +49,7 @@ export type UnselectableItemCollections = {
     kmPosts: LayoutKmPostId[];
     geometryKmPosts: LayoutKmPostId[];
     switches: LayoutSwitchId[];
-    geometrySwitches: LayoutSwitchId[];
+    geometrySwitches: GeometrySwitchId[];
     trackNumbers: LayoutTrackNumberId[];
     geometryAlignments: LocationTrackId[];
     geometrySegments: LayoutSegmentId[];

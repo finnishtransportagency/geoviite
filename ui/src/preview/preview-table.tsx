@@ -36,7 +36,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { PreviewCandidates, PublicationAssetChangeAmounts } from 'preview/preview-view-data';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 
-export type PublicationId =
+export type PublishableObjectId =
     | LayoutTrackNumberId
     | ReferenceLineId
     | LocationTrackId

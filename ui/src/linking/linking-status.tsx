@@ -4,13 +4,12 @@ import styles from 'tool-panel/switch/switch-infobox.scss';
 import { useTranslation } from 'react-i18next';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { getPlanLinkStatus } from 'linking/linking-api';
-import { GeometryPlanId } from 'geometry/geometry-model';
+import { GeometryPlanId, GeometrySwitchId } from 'geometry/geometry-model';
 import { LayoutContext, TimeStamp } from 'common/common-model';
-import { LayoutSwitchId } from 'track-layout/track-layout-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 type LinkingStatusProps = {
-    switchId: LayoutSwitchId;
+    switchId: GeometrySwitchId;
     planId: GeometryPlanId;
     layoutContext: LayoutContext;
     switchChangeTime: TimeStamp;

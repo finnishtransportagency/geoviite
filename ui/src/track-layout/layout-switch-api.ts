@@ -26,13 +26,13 @@ import { MapTile } from 'map/map-model';
 import { Result } from 'neverthrow';
 import { TrackLayoutSaveError, TrackLayoutSwitchSaveRequest } from 'linking/linking-model';
 import { filterNotEmpty, first, indexIntoMap } from 'utils/array-utils';
-import { ValidatedAsset } from 'publication/publication-model';
+import { ValidatedSwitch } from 'publication/publication-model';
 import { getMaxTimestamp } from 'utils/date-utils';
 
 const switchCache = asyncCache<string, LayoutSwitch | undefined>();
 const switchGroupsCache = asyncCache<string, LayoutSwitch[]>();
-const switchValidationCache = asyncCache<string, ValidatedAsset>();
-const tiledSwitchValidationCache = asyncCache<string, ValidatedAsset[]>();
+const switchValidationCache = asyncCache<string, ValidatedSwitch>();
+const tiledSwitchValidationCache = asyncCache<string, ValidatedSwitch[]>();
 
 const cacheKey = (id: LayoutSwitchId, layoutContext: LayoutContext) =>
     `${id}_${layoutContext.publicationState}_${layoutContext.designId}`;
@@ -160,7 +160,7 @@ export async function deleteDraftSwitch(
 export const getSwitchValidation = async (
     layoutContext: LayoutContext,
     id: LayoutSwitchId,
-): Promise<ValidatedAsset | undefined> =>
+): Promise<ValidatedSwitch | undefined> =>
     getSwitchesValidation(layoutContext, [id]).then((switches) => first(switches));
 
 export const getSwitchesValidation = async (
@@ -170,11 +170,11 @@ export const getSwitchesValidation = async (
     const changeTimes = getChangeTimes();
     const maxTime = getMaxTimestamp(changeTimes.layoutLocationTrack, changeTimes.layoutSwitch);
     const fetchOperation = (fetchIds: LayoutSwitchId[]) =>
-        getNonNull<ValidatedAsset[]>(
+        getNonNull<ValidatedSwitch[]>(
             `${layoutUri('switches', layoutContext)}/validation?ids=${fetchIds}`,
         ).then((switches) => {
-            const switchValidationMap = indexIntoMap<LayoutSwitchId, ValidatedAsset>(switches);
-            return (id: LayoutSwitchId) => switchValidationMap.get(id) as ValidatedAsset;
+            const switchValidationMap = indexIntoMap<LayoutSwitchId, ValidatedSwitch>(switches);
+            return (id: LayoutSwitchId) => switchValidationMap.get(id) as ValidatedSwitch;
         });
     return switchValidationCache
         .getMany(maxTime, ids, (id) => id, fetchOperation)
@@ -185,10 +185,10 @@ export const getSwitchesValidationByTile = async (
     changeTime: TimeStamp,
     mapTile: MapTile,
     layoutContext: LayoutContext,
-): Promise<ValidatedAsset[]> => {
+): Promise<ValidatedSwitch[]> => {
     const tileKey = `${mapTile.id}_${layoutContext.publicationState}`;
     return tiledSwitchValidationCache.get(changeTime, tileKey, () =>
-        getNonNull<ValidatedAsset[]>(
+        getNonNull<ValidatedSwitch[]>(
             `${layoutUri('switches', layoutContext)}/validation${queryParams({
                 bbox: bboxString(mapTile.area),
             })}`,

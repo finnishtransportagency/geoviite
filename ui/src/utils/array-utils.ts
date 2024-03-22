@@ -277,3 +277,8 @@ export function insertAtIndex<T>(things: readonly T[], thing: T, index: number):
 
 export const findById = <T extends { id: string }>(objs: T[], id: string): T | undefined =>
     objs.find((obj) => obj.id == id);
+
+export const objectEntries = <T extends object>(obj: T) =>
+    Object.entries(obj) as {
+        [K in keyof T]-?: [K, T[K]];
+    }[keyof T][];
