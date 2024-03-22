@@ -17,11 +17,39 @@ fun Logger.apiRequest(req: HttpServletRequest, requestIp: String) {
     if (isDebugEnabled) debug("Request: {}:{} ip={}", req.method, req.requestURL, requestIp)
 }
 
-fun Logger.apiResponse(req: HttpServletRequest, res: HttpServletResponse, requestIp: String, startTime: Instant) {
+fun Logger.apiResponse(
+    req: HttpServletRequest,
+    res: HttpServletResponse,
+    requestIp: String,
+    startTime: Instant,
+    slowRequestThreshold: Duration,
+) {
     val timeMs = Duration.between(startTime, Instant.now()).toMillis()
     val timingMap = resetCollected()
+    if (timeMs > slowRequestThreshold.toMillis()) {
+        warn("Slow response: ${responseParams(req, res, requestIp, startTime, timingMap)}")
+    } else if (isInfoEnabled) {
+        info("Response: ${responseParams(req, res, requestIp, startTime, timingMap)}")
+    }
+}
+
+private fun responseParams(
+    req: HttpServletRequest,
+    res: HttpServletResponse,
+    requestIp: String,
+    startTime: Instant,
+    timingMap: Map<String, Duration>,
+): String {
+    val timeMs = Duration.between(startTime, Instant.now()).toMillis()
     val timingString = if (timingMap.isEmpty()) " [no timings]" else " [$timingMap]"
-    if (isInfoEnabled) info("Response: status=${res.status} time=${timeMs}ms${timingString} contentType=${res.contentType} ip=$requestIp request=${req.method}:${req.requestURL}")
+    return paramsToLog(
+        "status" to res.status,
+        "time" to "$timeMs ms",
+        "contentType" to res.contentType,
+        "ip" to requestIp,
+        "request" to "${req.method}:${req.requestURL}",
+        "timings" to timingString
+    ).joinToString(" ")
 }
 
 enum class AccessType { VERSION_FETCH, FETCH, INSERT, UPDATE, UPSERT, DELETE }
@@ -47,24 +75,29 @@ fun Logger.daoAccess(accessType: AccessType, objectType: String, ids: List<Any>)
 }
 
 fun Logger.apiCall(method: String, vararg params: Pair<String, *>) {
-    if (isInfoEnabled) info("method=$method params=${paramsToLog(params)}")
+    if (isInfoEnabled) info("method=$method params=${paramsToLog(*params)}")
 }
 
 fun Logger.serviceCall(method: String, vararg params: Pair<String, *>) {
-    if (isDebugEnabled) debug("method={} params={}", method, paramsToLog(params))
+    if (isDebugEnabled) debug("method={} params={}", method, paramsToLog(*params))
 }
 
-fun paramsToLog(params: Array<out Pair<String, *>>): List<String> =
-    params.map { p -> "${p.first}=${p.second?.let { obj ->
-        formatForLog(formatForLog(if (obj is Loggable) obj.toLog() else obj.toString(), 1000))
-    }}" }
+fun paramsToLog(vararg params: Pair<String, *>): List<String> =
+    params.map { p ->
+        "${p.first}=${p.second?.let { obj ->
+            formatForLog(formatForLog(if (obj is Loggable) obj.toLog() else obj.toString(), 1000))
+        }}"
+    }
 
 fun Logger.integrationCall(method: String, vararg params: Pair<String, *>) {
-    info("method=$method params=${paramsToLog(params)}")
+    info("method=$method params=${paramsToLog(*params)}")
 }
 
 fun Logger.integrationCall(request: ClientRequest) {
-    info("Sending API request to external service: ${request.logPrefix()} method=${request.method()} url=${request.url()}")
+    info(
+        "Sending API request to external service: " +
+            "${request.logPrefix()} method=${request.method()} url=${request.url()}"
+    )
 }
 
 fun Logger.integrationCall(response: ClientResponse) {

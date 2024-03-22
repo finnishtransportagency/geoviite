@@ -10,7 +10,12 @@ import correlationId
 import currentUser
 import currentUserRole
 import fi.fta.geoviite.infra.SpringContextUtility
-import fi.fta.geoviite.infra.authorization.*
+import fi.fta.geoviite.infra.authorization.AuthName
+import fi.fta.geoviite.infra.authorization.AuthorizationService
+import fi.fta.geoviite.infra.authorization.Role
+import fi.fta.geoviite.infra.authorization.User
+import fi.fta.geoviite.infra.authorization.UserDetails
+import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.error.ApiUnauthorizedException
 import fi.fta.geoviite.infra.error.createErrorResponse
 import fi.fta.geoviite.infra.logging.apiRequest
@@ -37,9 +42,9 @@ import java.security.KeyFactory
 import java.security.interfaces.ECPublicKey
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.X509EncodedKeySpec
+import java.time.Duration
 import java.time.Instant
 import java.util.*
-
 
 const val HTTP_HEADER_REMOTE_IP = "X-FORWARDED-FOR"
 const val HTTP_HEADER_CORRELATION_ID = "X-Amzn-Trace-Id"
@@ -48,6 +53,8 @@ const val HTTP_HEADER_JWT_ACCESS = "x-iam-accesstoken"
 
 const val ALGORITHM_RS256 = "RS256"
 const val ALGORITHM_ES256 = "ES256"
+
+val slowRequestThreshold: Duration = Duration.ofSeconds(5)
 
 @ConditionalOnWebApplication
 @Component
@@ -91,8 +98,10 @@ class RequestFilter @Autowired constructor(
     }
 
     init {
-        log.info("Initializing request filter: " +
-                "skipAuth=$skipAuth validationEnabled=$validationEnabled jwksUrl=$jwksUrl elbJwtUrl=$elbJwtUrl")
+        log.info(
+            "Initializing request filter: " +
+                "skipAuth=$skipAuth validationEnabled=$validationEnabled jwksUrl=$jwksUrl elbJwtUrl=$elbJwtUrl"
+        )
     }
 
     override fun doFilterInternal(
@@ -103,6 +112,7 @@ class RequestFilter @Autowired constructor(
         val startTime = Instant.now()
         val requestIP = extractRequestIP(request)
 
+        @Suppress("TooGenericExceptionCaught")
         try {
             correlationId.set(extractRequestCorrelationId(request))
             val user = getUser(request)
@@ -120,7 +130,7 @@ class RequestFilter @Autowired constructor(
             response.writer.write(objectMapper.writeValueAsString(errorResponse.body))
             response.writer.flush()
         } finally {
-            log.apiResponse(request, response, requestIP, startTime)
+            log.apiResponse(request, response, requestIP, startTime, slowRequestThreshold)
             currentUserRole.clear()
             currentUser.clear()
             correlationId.clear()
@@ -135,8 +145,10 @@ class RequestFilter @Autowired constructor(
             healthCheckUser
         } else {
             val content = getJwtData(request)
-            log.info("JWT authorization headers processed: " +
-                    "validated=$validationEnabled user=${content.userDetails.userName} groups=${content.groupNames}")
+            log.info(
+                "JWT authorization headers processed: " +
+                    "validated=$validationEnabled user=${content.userDetails.userName} groups=${content.groupNames}"
+            )
             val role = authorizationService.getRoleByUserGroups(content.groupNames) ?: throw ApiUnauthorizedException(
                 "User doesn't have a valid role: userId=${content.userDetails.userName} groups=${content.groupNames}"
             )
@@ -154,6 +166,7 @@ class RequestFilter @Autowired constructor(
     }
 
     private fun validateAccessToken(jwt: DecodedJWT) {
+        @Suppress("TooGenericExceptionCaught")
         try {
             val algorithm = when (jwt.algorithm) {
                 ALGORITHM_RS256 -> getCognitoValidationAlgorithm(jwt.keyId)
@@ -164,7 +177,8 @@ class RequestFilter @Autowired constructor(
         } catch (ex: TokenExpiredException) {
             throw ApiUnauthorizedException(
                 message = "JWT access token expired.",
-                localizedMessageKey="error.unauthorized.token-expired",
+                localizedMessageKey = "error.unauthorized.token-expired",
+                cause = ex,
             )
         } catch (ex: Exception) {
             throw ApiUnauthorizedException("JWT access token validation failed.", ex)
@@ -172,6 +186,7 @@ class RequestFilter @Autowired constructor(
     }
 
     private fun validateDataToken(jwt: DecodedJWT) {
+        @Suppress("TooGenericExceptionCaught")
         try {
             val algorithm = when (jwt.algorithm) {
                 ALGORITHM_ES256 -> getElbValidationAlgorithm(jwt.keyId)
@@ -183,6 +198,7 @@ class RequestFilter @Autowired constructor(
             throw ApiUnauthorizedException(
                 message = "JWT access token expired.",
                 localizedMessageKey = "error.unauthorized.token-expired",
+                cause = ex,
             )
         } catch (ex: Exception) {
             throw ApiUnauthorizedException("JWT data token validation failed.", ex)
@@ -248,6 +264,7 @@ private fun extractJwtToken(request: HttpServletRequest, header: String): Decode
 }
 
 private fun decodeJwt(token: String): DecodedJWT {
+    @Suppress("TooGenericExceptionCaught")
     try {
         return JWT.decode(token)
     } catch (ex: Exception) {
@@ -257,6 +274,7 @@ private fun decodeJwt(token: String): DecodedJWT {
 
 data class JwtContent(val userDetails: UserDetails, val groupNames: List<Code>)
 
+@Suppress("unused")
 enum class JwtClaim(val header: String) {
     ROLES("custom:rooli"),
     FIRST_NAME("custom:etunimi"),

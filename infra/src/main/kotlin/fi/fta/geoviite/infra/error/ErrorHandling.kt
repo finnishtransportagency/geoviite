@@ -1,6 +1,10 @@
 package fi.fta.geoviite.infra.error
 
-import com.auth0.jwt.exceptions.*
+import com.auth0.jwt.exceptions.AlgorithmMismatchException
+import com.auth0.jwt.exceptions.InvalidClaimException
+import com.auth0.jwt.exceptions.JWTDecodeException
+import com.auth0.jwt.exceptions.SignatureVerificationException
+import com.auth0.jwt.exceptions.TokenExpiredException
 import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.databind.exc.MismatchedInputException
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException
@@ -15,12 +19,21 @@ import org.springframework.boot.context.properties.bind.BindException
 import org.springframework.core.convert.ConversionFailedException
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
-import org.springframework.http.HttpStatus.*
+import org.springframework.http.HttpStatus.BAD_REQUEST
+import org.springframework.http.HttpStatus.FORBIDDEN
+import org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR
+import org.springframework.http.HttpStatus.METHOD_NOT_ALLOWED
+import org.springframework.http.HttpStatus.NOT_ACCEPTABLE
+import org.springframework.http.HttpStatus.NOT_FOUND
+import org.springframework.http.HttpStatus.REQUEST_TIMEOUT
+import org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE
+import org.springframework.http.HttpStatus.UNSUPPORTED_MEDIA_TYPE
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.http.converter.HttpMessageNotWritableException
 import org.springframework.security.access.AccessDeniedException
+import org.springframework.transaction.TransactionTimedOutException
 import org.springframework.web.HttpMediaTypeNotAcceptableException
 import org.springframework.web.HttpMediaTypeNotSupportedException
 import org.springframework.web.HttpRequestMethodNotSupportedException
@@ -35,7 +48,7 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 import org.springframework.web.servlet.NoHandlerFoundException
 
 fun createResponse(exception: Exception, correlationId: String): ResponseEntity<ApiErrorResponse>? {
-    val causeChain = getCauseChain(exception)
+    val causeChain = getCauseChain(exception).also { println(it) }
     val status = getStatusCode(causeChain)
     return status?.let { s ->
         if (s.is5xxServerError) {
@@ -117,6 +130,7 @@ fun getStatusCode(exception: Exception): HttpStatus? = when (exception) {
     is NoHandlerFoundException -> NOT_FOUND
     is AsyncRequestTimeoutException -> SERVICE_UNAVAILABLE
     is MaxUploadSizeExceededException -> BAD_REQUEST
+    is TransactionTimedOutException -> REQUEST_TIMEOUT
     // We don't know -> return nothing to continue resolving through the cause chain
     else -> null
 }
@@ -186,7 +200,8 @@ fun describe(ex: Exception): ErrorDescription? {
         )
 
         is ConversionFailedException -> ErrorDescription(
-            message = "Conversion failed for value \"${ex.value}\": [${ex.sourceType?.type?.simpleName}] -> [${ex.targetType.type.simpleName}]",
+            message = "Conversion failed for value \"${ex.value}\": " +
+                "[${ex.sourceType?.type?.simpleName}] -> [${ex.targetType.type.simpleName}]",
             key = "error.bad-request.conversion-failed",
             params = localizationParams("target" to ex.targetType.type.simpleName),
             priority = ErrorPriority.LOW,
@@ -256,12 +271,18 @@ fun describe(ex: Exception): ErrorDescription? {
             key = "error.file-size-limit-exceeded",
         )
 
+        is TransactionTimedOutException -> ErrorDescription(
+            message = "Request timed out",
+            key = "error.request-timed-out",
+        )
+
         // Switch to this if you want to see what types end up in the chain:
 //        else -> ErrorDescription(
 //            message = message,
 //            key = "error.exception",
 //            params = localizationParams("type" to ex::class.simpleName),
 //        )
+
         else -> null
     }
 }
