@@ -109,9 +109,15 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const { t } = useTranslation();
     const user = useLoader(getOwnUser, []);
 
+    const [showPreview, setShowPreview] = React.useState<boolean>(true);
+
+    const [showValidationStatusSpinner, setShowValidationStatusSpinner] =
+        React.useState<boolean>(true);
+
     const [publicationCandidates, setPublicationCandidates] = React.useState<
         PublicationCandidate[]
     >([]);
+
     useLoader(
         () =>
             getPublicationCandidates().then((candidates) => {
@@ -130,12 +136,11 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
                 setPublicationCandidates(candidatesWithUpdatedStage);
                 props.setStagedPublicationCandidateReferences(candidatesWithUpdatedStage);
+
+                setShowPreview(true);
             }),
         [props.changeTimes],
     );
-
-    const [showValidationStatusSpinner, setShowValidationStatusSpinner] =
-        React.useState<boolean>(true);
 
     const validatedPublicationCandidates =
         useLoader(() => {
@@ -333,7 +338,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             <div className={styles['preview-view']} qa-id="preview-content">
                 <PreviewToolBar onClosePreview={props.onClosePreview} />
                 <div className={styles['preview-view__changes']}>
-                    {(displayedUnstagedPublicationCandidates && (
+                    {(showPreview && (
                         <>
                             <section
                                 qa-id={'unstaged-changes'}
