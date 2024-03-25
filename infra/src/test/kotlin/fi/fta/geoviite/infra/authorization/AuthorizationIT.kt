@@ -60,7 +60,7 @@ class AuthorizationIT @Autowired constructor(
 
     val testApi = TestApi(mapper, mockMvc)
 
-    val availableRoles = authorizationDao.getRoles(listOf(Code("browser")))
+    val availableRoles = authorizationDao.getRolesByRoleCodes(listOf(Code("browser")))
     val user by lazy {
         User(
             details = UserDetails(

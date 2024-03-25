@@ -10,7 +10,7 @@ const val LDAP_GROUP_GEOVIITE_PREFIX = "geoviite_"
 @Service
 class AuthorizationService @Autowired constructor(private val authorizationDao: AuthorizationDao) {
 
-    private val defaultRoleCodeOrder by lazy {
+    val defaultRoleCodeOrder by lazy {
         listOf(
             Code("operator"),
             Code("team"),
@@ -21,11 +21,11 @@ class AuthorizationService @Autowired constructor(private val authorizationDao: 
     }
 
     fun getRoles(roleCodes: List<Code>): List<Role> {
-        return authorizationDao.getRoles(roleCodes)
+        return authorizationDao.getRolesByRoleCodes(roleCodes)
     }
 
     @Transactional(readOnly = true)
-    fun getRolesByUserGroups(ldapGroupNames: List<Code>): List<Role>? {
+    fun getRolesByUserGroups(ldapGroupNames: List<Code>): List<Role> {
         return ldapGroupNames
             .filter { groupName -> groupName.startsWith(LDAP_GROUP_GEOVIITE_PREFIX) }
             .let { geoviiteUserGroups ->

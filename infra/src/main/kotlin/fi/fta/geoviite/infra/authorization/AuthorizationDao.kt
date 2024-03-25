@@ -1,61 +1,104 @@
 package fi.fta.geoviite.infra.authorization
 
-import fi.fta.geoviite.infra.configuration.CACHE_ROLES
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
+import fi.fta.geoviite.infra.configuration.staticDataCacheDuration
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
-import org.springframework.cache.annotation.Cacheable
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.util.*
+
+const val AUTHORIZATION_ROLE_CACHE_SIZE = 100L
 
 @Transactional(readOnly = true)
 @Component
-class AuthorizationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+class AuthorizationDao(
+    jdbcTemplateParam: NamedParameterJdbcTemplate?,
+    @Value("\${geoviite.cache.enabled}") val cacheEnabled: Boolean,
+) : DaoBase(jdbcTemplateParam) {
 
-    fun getRoles(roleCodes: List<Code>): List<Role> {
-        return checkNotNull(getRolesInternal(roleCodes = roleCodes, userGroups = null)) {
-            "No roles found: roleCodes=$roleCodes"
+    // Caffeine cache does not store null values, but they should also not be re-fetched
+    // => Codes are stored as optionals.
+    private val roleCodeCache: Cache<Code, Optional<Role>> =
+        Caffeine.newBuilder()
+            .maximumSize(AUTHORIZATION_ROLE_CACHE_SIZE)
+            .expireAfterAccess(staticDataCacheDuration)
+            .build()
+
+    private val userGroupCache: Cache<Code, Optional<Role>> =
+        Caffeine.newBuilder()
+            .maximumSize(AUTHORIZATION_ROLE_CACHE_SIZE)
+            .expireAfterAccess(staticDataCacheDuration)
+            .build()
+
+    fun getRolesByRoleCodes(roleCodes: List<Code>): List<Role> {
+        return roleCodes.mapNotNull { roleCode ->
+            getRoleByRoleCode(roleCode = roleCode)
         }
     }
 
-    @Cacheable(CACHE_ROLES, sync = true)
-    fun getRolesByUserGroups(ldapGroups: List<Code>): List<Role>? {
-        return getRolesInternal(roleCodes = null, userGroups = ldapGroups)
+    fun getRolesByUserGroups(ldapGroups: List<Code>): List<Role> {
+        return ldapGroups.mapNotNull { userGroup ->
+            getRoleByUserGroup(userGroup = userGroup)
+        }
     }
 
-    private fun getRolesInternal(roleCodes: List<Code>? = null, userGroups: List<Code>? = null): List<Role>? {
-        if (roleCodes == null && userGroups == null) throw IllegalStateException("Can't fetch roles without names/groups")
+    fun getRoleByRoleCode(roleCode: Code): Role? {
+        val role = if (cacheEnabled) {
+            roleCodeCache.get(roleCode) { code ->
+                fetchRoleInternal(roleCode = code)
+            }
+        } else {
+            fetchRoleInternal(roleCode = roleCode)
+        }
+
+        return role.orElse(null)
+    }
+
+    fun getRoleByUserGroup(userGroup: Code): Role? {
+        val role = if (cacheEnabled) {
+            userGroupCache.get(userGroup) { group ->
+                fetchRoleInternal(userGroup = group)
+            }
+        } else {
+            fetchRoleInternal(userGroup = userGroup)
+        }
+
+        return role.orElse(null)
+    }
+
+    private fun fetchRoleInternal(roleCode: Code? = null, userGroup: Code? = null): Optional<Role> {
+        check(roleCode != null || userGroup != null) {
+            "Can't fetch role without name/group"
+        }
 
         //language=SQL
         val sql = """
             select code, name from common.role 
-              where (:role_codes = '' or code = any(string_to_array(:role_codes, ',')::varchar[]))
-              and (:user_groups = '' or user_group = any(string_to_array(:user_groups, ',')::varchar[]))
+            where (:role_code::varchar is null or code = :role_code) 
+              and (:user_group::varchar is null or user_group = :user_group)
         """.trimIndent()
-
         val params = mapOf(
-            "role_codes" to (roleCodes?.joinToString(",") ?: ""),
-            "user_groups" to (userGroups?.joinToString(",") ?: ""),
+            "role_code" to roleCode,
+            "user_group" to userGroup,
         )
-        val roles = jdbcTemplate.query(sql, params) { rs, _ ->
+        val role = jdbcTemplate.queryOptional(sql, params) { rs, _ ->
             val code: Code = rs.getCode("code")
             Role(
                 code = code,
                 name = AuthName(rs.getString("name")),
-                privileges = getRolePrivileges(code),
+                privileges = fetchRolePrivilegesInternal(code),
             )
         }
-        logger.daoAccess(FETCH, Role::class, listOfNotNull(roleCodes, userGroups))
-
-        return if (roles.isEmpty()) {
-            null
-        } else {
-            roles
-        }
+        logger.daoAccess(FETCH, Role::class, listOfNotNull(roleCode, userGroup))
+        return Optional.ofNullable(role)
     }
 
-    private fun getRolePrivileges(code: Code): List<Privilege> {
+    private fun fetchRolePrivilegesInternal(code: Code): List<Privilege> {
         val sql = """
             select privilege.code, privilege.name, privilege.description
             from common.role_privilege rp

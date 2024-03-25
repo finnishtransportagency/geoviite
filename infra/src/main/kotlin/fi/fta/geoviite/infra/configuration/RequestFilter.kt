@@ -79,13 +79,7 @@ class RequestFilter @Autowired constructor(
 
     private val localUser by lazy {
         val availableRolesForLocalUser = authorizationService.getRoles(
-            listOf(
-                Code("operator"),
-                Code("team"),
-                Code("authority"),
-                Code("consultant"),
-                Code("browser"),
-            ),
+            authorizationService.defaultRoleCodeOrder,
         )
 
         User(
@@ -172,9 +166,12 @@ class RequestFilter @Autowired constructor(
                     "validated=$validationEnabled user=${content.userDetails.userName} groups=${content.groupNames}"
             )
 
-            val availableRoles = authorizationService.getRolesByUserGroups(content.groupNames) ?: throw ApiUnauthorizedException(
-                "User doesn't have a valid role: userId=${content.userDetails.userName} groups=${content.groupNames}"
-            )
+            val availableRoles = authorizationService.getRolesByUserGroups(content.groupNames)
+            if (availableRoles.isEmpty()) {
+                throw ApiUnauthorizedException(
+                    "User doesn't have a valid role: userId=${content.userDetails.userName} groups=${content.groupNames}"
+                )
+            }
 
             User(
                 details = content.userDetails,
@@ -187,15 +184,14 @@ class RequestFilter @Autowired constructor(
     private fun getActiveUserRole(request: HttpServletRequest, user: User): Role {
         return request.cookies?.firstOrNull { cookie ->
             cookie?.name == DESIRED_ROLE_COOKIE_NAME
-        }
-        ?.let { desiredRoleCookie ->
+        }?.let { desiredRoleCookie ->
             val desiredRoleCode = Code(desiredRoleCookie.value)
 
             user.availableRoles.find { availableRole ->
                 availableRole.code == desiredRoleCode
             }
-        }
-        ?: authorizationService.getDefaultRole(user.availableRoles)
+
+        } ?: authorizationService.getDefaultRole(user.availableRoles)
     }
 
     private fun getJwtData(request: HttpServletRequest): JwtContent {
