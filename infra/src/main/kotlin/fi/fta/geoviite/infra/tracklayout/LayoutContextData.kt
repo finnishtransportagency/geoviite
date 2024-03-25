@@ -200,8 +200,7 @@ data class DesignDraftContextData<T>(
     }
 }
 
-@Suppress("UNCHECKED_CAST")
-fun <T : LayoutAsset<T>> asMainDraft(item: LayoutAsset<T>): T = item.contextData.let { ctx ->
+fun <T : LayoutAsset<T>> asMainDraft(item: T): T = item.contextData.let { ctx ->
     when (ctx) {
         is MainDraftContextData -> item
         is MainOfficialContextData -> item.withContext(ctx.asMainDraft())
@@ -210,10 +209,9 @@ fun <T : LayoutAsset<T>> asMainDraft(item: LayoutAsset<T>): T = item.contextData
             "Creating main branch draft from a design-draft is not supported (publish design first): item=$item"
         }
     }
-} as T
+}
 
-@Suppress("UNCHECKED_CAST")
-fun <T : LayoutAsset<T>> asMainOfficial(item: LayoutAsset<T>): T =
+fun <T : LayoutAsset<T>> asMainOfficial(item: T): T =
     item.contextData.let { ctx ->
         when (ctx) {
             is MainOfficialContextData -> item
@@ -222,4 +220,4 @@ fun <T : LayoutAsset<T>> asMainOfficial(item: LayoutAsset<T>): T =
                 "Creating main branch official from a design is not supported (create main draft first): item=$item"
             }
         }
-    } as T
+    }
