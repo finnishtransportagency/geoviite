@@ -10,7 +10,6 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
-
 class LocationTrackEndpointTest {
     private val bbox = BoundingBox(-10.0..10.0, -10.0..10.0)
     private val pointInsideBbox = Point.zero()
@@ -37,7 +36,8 @@ class LocationTrackEndpointTest {
                 locationTrackId = trackWithStartPointInsideBbox.first.id as IntId<LocationTrack>,
                 location = pointInsideBbox,
                 updateType = LocationTrackPointUpdateType.START_POINT
-            ), endpoints.first()
+            ),
+            endpoints.first(),
         )
     }
 
@@ -59,7 +59,8 @@ class LocationTrackEndpointTest {
                 locationTrackId = trackWithEndPointInsideBbox.first.id as IntId<LocationTrack>,
                 location = otherPointInsideBbox,
                 updateType = LocationTrackPointUpdateType.END_POINT
-            ), endpoints.first()
+            ),
+            endpoints.first(),
         )
     }
 
