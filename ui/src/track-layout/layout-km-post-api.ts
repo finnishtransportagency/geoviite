@@ -6,7 +6,7 @@ import {
     LayoutTrackNumberId,
 } from 'track-layout/track-layout-model';
 import {
-    DraftableChangeInfo,
+    LayoutAssetChangeInfo,
     draftLayoutContext,
     KmNumber,
     LayoutContext,
@@ -217,7 +217,7 @@ export const getKmLengthsAsCsv = (
 };
 
 export const getKmPostChangeTimes = (id: LayoutKmPostId, layoutContext: LayoutContext) =>
-    getNullable<DraftableChangeInfo>(changeTimeUri('km-posts', id, layoutContext));
+    getNullable<LayoutAssetChangeInfo>(changeTimeUri('km-posts', id, layoutContext));
 
 export const getEntireRailNetworkKmLengthsCsvUrl = () =>
     `${TRACK_LAYOUT_URI}/track-numbers/rail-network/km-lengths/file`;

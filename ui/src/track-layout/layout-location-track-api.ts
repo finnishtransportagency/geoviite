@@ -10,7 +10,7 @@ import {
     OperatingPoint,
 } from 'track-layout/track-layout-model';
 import {
-    DraftableChangeInfo,
+    LayoutAssetChangeInfo,
     draftLayoutContext,
     LayoutContext,
     TimeStamp,
@@ -294,8 +294,8 @@ export async function getNonLinkedLocationTracks(
 export const getLocationTrackChangeTimes = (
     id: LocationTrackId,
     layoutContext: LayoutContext,
-): Promise<DraftableChangeInfo | undefined> => {
-    return getNullable<DraftableChangeInfo>(changeTimeUri('location-tracks', id, layoutContext));
+): Promise<LayoutAssetChangeInfo | undefined> => {
+    return getNullable<LayoutAssetChangeInfo>(changeTimeUri('location-tracks', id, layoutContext));
 };
 
 export const getLocationTrackSectionsByPlan = async (
