@@ -1,40 +1,42 @@
 import {
     PublicationGroup,
     PublicationStage,
-    PublishCandidate,
-    PublishCandidateReference,
+    PublicationCandidate,
+    PublicationCandidateReference,
 } from 'publication/publication-model';
 import { User } from 'user/user-model';
 
 export const candidateIdAndTypeMatches = (
-    candidate: PublishCandidateReference,
-    otherCandidate: PublishCandidateReference,
+    candidate: PublicationCandidateReference,
+    otherCandidate: PublicationCandidateReference,
 ) => {
     return candidate.type === otherCandidate.type && candidate.id === otherCandidate.id;
 };
 export const filterByPublicationGroup = (
-    publishCandidates: PublishCandidate[],
+    publicationCandidates: PublicationCandidate[],
     publicationGroup: PublicationGroup,
-): PublishCandidate[] => {
-    return publishCandidates.filter(
+): PublicationCandidate[] => {
+    return publicationCandidates.filter(
         (candidate) => candidate.publicationGroup?.id == publicationGroup.id,
     );
 };
 
 export const filterByUser = (
-    publishCandidates: PublishCandidate[],
+    publicationCandidates: PublicationCandidate[],
     user: User,
-): PublishCandidate[] => {
-    return publishCandidates.filter((candidate) => candidate.userName === user.details.userName);
+): PublicationCandidate[] => {
+    return publicationCandidates.filter(
+        (candidate) => candidate.userName === user.details.userName,
+    );
 };
 
 export const filterByPublicationStage = (
-    publishCandidates: PublishCandidate[],
+    publicationCandidates: PublicationCandidate[],
     publicationStage: PublicationStage,
-): PublishCandidate[] => {
-    return publishCandidates.filter((candidate) => candidate.stage === publicationStage);
+): PublicationCandidate[] => {
+    return publicationCandidates.filter((candidate) => candidate.stage === publicationStage);
 };
 
-export const pendingValidations = (publishCandidates: PublishCandidate[]) => {
-    return publishCandidates.some((candidate) => candidate.pendingValidation);
+export const pendingValidations = (publicationCandidates: PublicationCandidate[]) => {
+    return publicationCandidates.some((candidate) => candidate.pendingValidation);
 };

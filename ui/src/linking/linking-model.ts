@@ -33,7 +33,7 @@ import {
     SwitchStructureId,
     TrackMeter,
 } from 'common/common-model';
-import { PublishValidationError } from 'publication/publication-model';
+import { PublicationValidationError } from 'publication/publication-model';
 
 export type LocationTrackSaveRequest = {
     name: string;
@@ -348,7 +348,7 @@ export type SuggestedSwitchCreateParams = {
 export type SwitchRelinkingValidationResult = {
     id: LayoutSwitchId;
     successfulSuggestion: SwitchRelinkingSuggestion;
-    validationErrors: PublishValidationError[];
+    validationErrors: PublicationValidationError[];
 };
 
 export type SwitchRelinkingSuggestion = {

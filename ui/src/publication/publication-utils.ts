@@ -3,11 +3,15 @@ import {
     PublicationGroupId,
     PublicationSearch,
     PublicationStage,
-    PublishCandidate,
-    PublishCandidateReference,
+    PublicationCandidate,
+    PublicationCandidateReference,
+    DraftChangeType,
+    PublicationCandidateId,
 } from 'publication/publication-model';
 import { currentDay } from 'utils/date-utils';
 import { candidateIdAndTypeMatches } from 'preview/preview-view-filters';
+import { brand } from 'common/brand';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export const defaultPublicationSearch: PublicationSearch = {
     startDate: subMonths(currentDay, 1).toISOString(),
@@ -15,11 +19,11 @@ export const defaultPublicationSearch: PublicationSearch = {
 };
 
 export const conditionallyUpdateCandidates = (
-    publishCandidates: PublishCandidate[],
-    condition: (candidate: PublishCandidate) => boolean,
-    transform: (candidate: PublishCandidate) => PublishCandidate,
-): PublishCandidate[] => {
-    return publishCandidates.map((candidate): PublishCandidate => {
+    publicationCandidates: PublicationCandidate[],
+    condition: (candidate: PublicationCandidate) => boolean,
+    transform: (candidate: PublicationCandidate) => PublicationCandidate,
+): PublicationCandidate[] => {
+    return publicationCandidates.map((candidate): PublicationCandidate => {
         if (condition(candidate)) {
             return transform(candidate);
         }
@@ -30,7 +34,7 @@ export const conditionallyUpdateCandidates = (
 
 export const stageTransform = (
     newStage: PublicationStage,
-): ((candidate: PublishCandidate) => PublishCandidate) => {
+): ((candidate: PublicationCandidate) => PublicationCandidate) => {
     return (candidate) => ({
         ...candidate,
         stage: newStage,
@@ -47,9 +51,9 @@ export type PublicationAssetChangeAmounts = {
 };
 
 export const countPublicationGroupAmounts = (
-    publishCandidates: PublishCandidate[],
+    publicationCandidates: PublicationCandidate[],
 ): Record<PublicationGroupId, number> => {
-    return publishCandidates.reduce((groupSizes, candidate) => {
+    return publicationCandidates.reduce((groupSizes, candidate) => {
         const publicationGroupId = candidate.publicationGroup?.id;
 
         if (publicationGroupId) {
@@ -62,20 +66,44 @@ export const countPublicationGroupAmounts = (
     }, {} as Record<PublicationGroupId, number>);
 };
 
-export const asPublishCandidateReferences = (
-    publishCandidates: PublishCandidate[],
-): PublishCandidateReference[] => {
-    return publishCandidates.map((candidate) => ({
-        id: candidate.id,
-        type: candidate.type,
-    }));
+export const createPublicationCandidateReference = (
+    id: PublicationCandidateId,
+    type: DraftChangeType,
+): PublicationCandidateReference => {
+    switch (type) {
+        case DraftChangeType.TRACK_NUMBER:
+            return { id: brand(id), type };
+
+        case DraftChangeType.LOCATION_TRACK:
+            return { id: brand(id), type };
+
+        case DraftChangeType.REFERENCE_LINE:
+            return { id: brand(id), type };
+
+        case DraftChangeType.SWITCH:
+            return { id: brand(id), type };
+
+        case DraftChangeType.KM_POST:
+            return { id: brand(id), type };
+
+        default:
+            return exhaustiveMatchingGuard(type);
+    }
+};
+
+export const asPublicationCandidateReferences = (
+    publicationCandidates: PublicationCandidate[],
+): PublicationCandidateReference[] => {
+    return publicationCandidates.map((candidate): PublicationCandidateReference => {
+        return createPublicationCandidateReference(candidate.id, candidate.type);
+    });
 };
 
 export const addValidationState = (
-    publishCandidates: PublishCandidate[],
-    validationGroup: PublishCandidate[],
-): PublishCandidate[] => {
-    return publishCandidates.map((candidate) => {
+    publicationCandidates: PublicationCandidate[],
+    validationGroup: PublicationCandidate[],
+): PublicationCandidate[] => {
+    return publicationCandidates.map((candidate) => {
         const validatedCandidate = validationGroup.find((validatedCandidate) =>
             candidateIdAndTypeMatches(validatedCandidate, candidate),
         );

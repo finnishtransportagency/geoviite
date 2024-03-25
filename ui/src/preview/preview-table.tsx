@@ -27,8 +27,8 @@ import {
 } from 'preview/change-table-entry-mapping';
 import {
     DraftChangeType,
-    PublishCandidate,
-    PublishValidationError,
+    PublicationCandidate,
+    PublicationValidationError,
 } from 'publication/publication-model';
 import { ChangesBeingReverted, PreviewOperations } from 'preview/preview-view';
 import { BoundingBox } from 'model/geometry';
@@ -51,16 +51,16 @@ export type PublishableObjectId =
     | LayoutKmPostId;
 
 export type PreviewTableEntry = {
-    publishCandidate: PublishCandidate;
+    publishCandidate: PublicationCandidate;
     type: DraftChangeType;
-    errors: PublishValidationError[];
+    errors: PublicationValidationError[];
     pendingValidation: boolean;
     boundingBox?: BoundingBox;
 } & ChangeTableEntry;
 
 type PreviewTableProps = {
     layoutContext: LayoutContext;
-    publishCandidates: PublishCandidate[];
+    publicationCandidates: PublicationCandidate[];
     staged: boolean;
     changesBeingReverted?: ChangesBeingReverted;
     onShowOnMap: (bbox: BoundingBox) => void;
@@ -72,7 +72,7 @@ type PreviewTableProps = {
 
 const PreviewTable: React.FC<PreviewTableProps> = ({
     layoutContext,
-    publishCandidates,
+    publicationCandidates,
     staged,
     changesBeingReverted,
     changeTimes,
@@ -95,7 +95,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
 
     const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);
 
-    const getTableEntryByType = (candidate: PublishCandidate): ChangeTableEntry => {
+    const getTableEntryByType = (candidate: PublicationCandidate): ChangeTableEntry => {
         switch (candidate.type) {
             case DraftChangeType.TRACK_NUMBER:
                 return trackNumberToChangeTableEntry(candidate);
@@ -113,7 +113,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
         }
     };
 
-    const getBoundingBox = (candidate: PublishCandidate): BoundingBox | undefined => {
+    const getBoundingBox = (candidate: PublicationCandidate): BoundingBox | undefined => {
         const candidateType = candidate.type;
         switch (candidateType) {
             case DraftChangeType.TRACK_NUMBER:
@@ -132,7 +132,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
         }
     };
 
-    const publicationTableEntries: PreviewTableEntry[] = publishCandidates.map((candidate) => {
+    const publicationTableEntries: PreviewTableEntry[] = publicationCandidates.map((candidate) => {
         const tableEntry = getTableEntryByType(candidate);
         const boundingBox = getBoundingBox(candidate);
 

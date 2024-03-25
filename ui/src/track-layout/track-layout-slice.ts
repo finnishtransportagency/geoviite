@@ -28,9 +28,9 @@ import { GeometryPlanLayout, LocationTrackId } from 'track-layout/track-layout-m
 import { Point } from 'model/geometry';
 import { first } from 'utils/array-utils';
 import {
-    PublishCandidate,
+    PublicationCandidate,
     PublicationStage,
-    PublishCandidateReference,
+    PublicationCandidateReference,
 } from 'publication/publication-model';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 import { exhaustiveMatchingGuard, ifDefined } from 'utils/type-utils';
@@ -38,7 +38,7 @@ import { splitReducers, SplittingState } from 'tool-panel/location-track/split-s
 import { PURGE } from 'redux-persist';
 import { previewReducers, PreviewState } from 'preview/preview-store';
 import { filterByPublicationStage } from 'preview/preview-view-filters';
-import { asPublishCandidateReferences } from 'publication/publication-utils';
+import { asPublicationCandidateReferences } from 'publication/publication-utils';
 
 export type InfoboxVisibilities = {
     trackNumber: TrackNumberInfoboxVisibilities;
@@ -186,7 +186,7 @@ export type TrackLayoutState = {
     layoutMode: LayoutMode;
     map: Map;
     selection: Selection;
-    stagedPublicationCandidateReferences: PublishCandidateReference[];
+    stagedPublicationCandidateReferences: PublicationCandidateReference[];
     linkingState?: LinkingState;
     splittingState?: SplittingState;
     linkingIssuesSelectedBeforeLinking: boolean;
@@ -362,7 +362,7 @@ const trackLayoutSlice = createSlice({
 
         setStagedPublicationCandidateReferences: function (
             state: TrackLayoutState,
-            action: PayloadAction<PublishCandidate[]>,
+            action: PayloadAction<PublicationCandidate[]>,
         ): void {
             const stagedCandidates = filterByPublicationStage(
                 action.payload,
@@ -370,7 +370,7 @@ const trackLayoutSlice = createSlice({
             );
 
             state.stagedPublicationCandidateReferences =
-                asPublishCandidateReferences(stagedCandidates);
+                asPublicationCandidateReferences(stagedCandidates);
         },
 
         onHighlightItems: function (

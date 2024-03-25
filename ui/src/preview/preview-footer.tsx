@@ -5,7 +5,7 @@ import { Switch } from 'vayla-design-lib/switch/switch';
 import { useTranslation } from 'react-i18next';
 import styles from './preview-view.scss';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import { publishCandidates } from 'publication/publication-api';
+import { publishPublicationCandidates } from 'publication/publication-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import {
     updateKmPostChangeTime,
@@ -16,9 +16,9 @@ import {
 } from 'common/change-time-api';
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import {
-    PublishCandidate,
-    PublishResult,
-    PublishValidationError,
+    PublicationCandidate,
+    PublicationResult,
+    PublicationValidationError,
 } from 'publication/publication-model';
 import { OnSelectFunction } from 'selection/selection-model';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
@@ -31,10 +31,10 @@ type PreviewFooterProps = {
     onPublish: () => void;
     layoutContext: LayoutContext;
     onChangeLayoutContext: (context: LayoutContext) => void;
-    stagedPublishCandidates: PublishCandidate[];
+    stagedPublicationCandidates: PublicationCandidate[];
 };
 
-function previewChangesCanBePublished(publishCandidates: PublishCandidate[]) {
+function previewChangesCanBePublished(publishCandidates: PublicationCandidate[]) {
     return publishCandidates.length !== 0;
 }
 
@@ -42,15 +42,15 @@ function describe(name: string, value: number | undefined): string | undefined {
     return value !== undefined && value > 0 ? `${name}: ${value}` : undefined;
 }
 
-function publishErrors(publishCandidates: PublishCandidate[]): PublishValidationError[] {
+function publishErrors(publishCandidates: PublicationCandidate[]): PublicationValidationError[] {
     return publishCandidates.flatMap((candidate) => candidate.errors);
 }
 
 export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooterProps) => {
-    const allPublishErrors = publishErrors(props.stagedPublishCandidates).filter(
+    const allPublishErrors = publishErrors(props.stagedPublicationCandidates).filter(
         (error) => error.type == 'ERROR',
     );
-    const describeResult = (result: PublishResult | undefined): string => {
+    const describeResult = (result: PublicationResult | undefined): string => {
         return [
             describe(t('publish.track-numbers'), result?.trackNumbers),
             describe(t('publish.km-posts'), result?.kmPosts),
@@ -62,9 +62,9 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
             .join('\n');
     };
 
-    const publishPreviewChanges = previewChangesCanBePublished(props.stagedPublishCandidates);
+    const publishPreviewChanges = previewChangesCanBePublished(props.stagedPublicationCandidates);
 
-    const updateChangeTimes = (result: PublishResult | undefined) => {
+    const updateChangeTimes = (result: PublicationResult | undefined) => {
         if (result?.trackNumbers || 0 > 0) updateTrackNumberChangeTime();
         if (result?.kmPosts || 0 > 0) updateKmPostChangeTime();
         if (result?.referenceLines || 0 > 0) updateReferenceLineChangeTime();
@@ -80,7 +80,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
 
     const publish = () => {
         setPublishing(true);
-        publishCandidates(props.stagedPublishCandidates, message)
+        publishPublicationCandidates(props.stagedPublicationCandidates, message)
             .then((r) => {
                 Snackbar.success('publish.publish-success', describeResult(r));
                 updateChangeTimes(r);
@@ -92,7 +92,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
             });
     };
 
-    const candidateCount = props.stagedPublishCandidates.length;
+    const candidateCount = props.stagedPublicationCandidates.length;
 
     return (
         <footer className={styles['preview-footer']}>
@@ -103,7 +103,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                     disabled={
                         candidateCount === 0 ||
                         publishConfirmVisible ||
-                        pendingValidations(props.stagedPublishCandidates) ||
+                        pendingValidations(props.stagedPublicationCandidates) ||
                         (allPublishErrors && allPublishErrors?.length > 0) ||
                         !publishPreviewChanges
                     }>

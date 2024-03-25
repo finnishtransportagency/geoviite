@@ -1,8 +1,4 @@
-import {
-    DraftChangeType,
-    PublishCandidateReference,
-    PublishRequestIds,
-} from 'publication/publication-model';
+import { DraftChangeType, PublicationCandidateReference } from 'publication/publication-model';
 import * as React from 'react';
 import {
     LayoutKmPostId,
@@ -24,13 +20,6 @@ import { ChangeTimes } from 'common/common-slice';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { RevertRequestType } from 'preview/preview-view-revert-request';
 import { ChangesBeingReverted } from 'preview/preview-view';
-
-const publicationRequestSize = (req: PublishRequestIds): number =>
-    req.switches.length +
-    req.trackNumbers.length +
-    req.locationTracks.length +
-    req.referenceLines.length +
-    req.kmPosts.length;
 
 const TrackNumberItem: React.FC<{
     layoutContext: LayoutContext;
@@ -150,7 +139,7 @@ export const publicationRequestTypeTranslationKey = (type: DraftChangeType) => {
 
 export const onlyDependencies = (
     changesBeingReverted: ChangesBeingReverted,
-): PublishCandidateReference[] => {
+): PublicationCandidateReference[] => {
     const allChanges = changesBeingReverted.changeIncludingDependencies;
     const reqType = changesBeingReverted.requestedRevertChange.source.type;
     const reqId = changesBeingReverted.requestedRevertChange.source.id;
@@ -160,7 +149,7 @@ export const onlyDependencies = (
 
 const filterDisplayedDependencies = (
     changesBeingReverted: ChangesBeingReverted,
-): PublishCandidateReference[] => {
+): PublicationCandidateReference[] => {
     const revertRequestType = changesBeingReverted.requestedRevertChange.type;
 
     switch (revertRequestType) {
@@ -178,7 +167,7 @@ const filterDisplayedDependencies = (
 
 const getPublicationCandidateComponent = (
     layoutContext: LayoutContext,
-    candidate: PublishCandidateReference,
+    candidate: PublicationCandidateReference,
     changeTimes: ChangeTimes,
 ): JSX.Element => {
     const candidateType = candidate.type;
@@ -239,8 +228,8 @@ const getPublicationCandidateComponent = (
 };
 
 const sortCandidatesByDisplayPriority = (
-    candidates: PublishCandidateReference[],
-): PublishCandidateReference[] => {
+    candidates: PublicationCandidateReference[],
+): PublicationCandidateReference[] => {
     const candidateDisplayOrder = {
         [DraftChangeType.TRACK_NUMBER]: 1,
         [DraftChangeType.REFERENCE_LINE]: 2,
