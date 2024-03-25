@@ -1,9 +1,13 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DataType.STORED
 import fi.fta.geoviite.infra.common.DataType.TEMP
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.logging.Loggable
 
 enum class EditState { UNEDITED, EDITED, CREATED }
@@ -29,6 +33,8 @@ sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) 
 
     @get:JsonIgnore
     abstract val contextData: LayoutContextData<T>
+
+    abstract fun withContext(contextData: LayoutContextData<T>): T
 }
 
 sealed class LayoutContextData<T> : LayoutContextAware<T> {
@@ -195,40 +201,25 @@ data class DesignDraftContextData<T>(
 }
 
 @Suppress("UNCHECKED_CAST")
-fun <T : LayoutAsset<T>> asMainDraft(item: LayoutAsset<T>): T = when (item) {
-    is LocationTrack -> asMainDraft(item) { contextData -> item.copy(contextData = contextData) }
-    is TrackLayoutSwitch -> asMainDraft(item) { contextData -> item.copy(contextData = contextData) }
-    is TrackLayoutKmPost -> asMainDraft(item) { contextData -> item.copy(contextData = contextData) }
-    is TrackLayoutTrackNumber -> asMainDraft(item) { contextData -> item.copy(contextData = contextData) }
-    is ReferenceLine -> asMainDraft(item) { contextData -> item.copy(contextData = contextData) }
+fun <T : LayoutAsset<T>> asMainDraft(item: LayoutAsset<T>): T = item.contextData.let { ctx ->
+    when (ctx) {
+        is MainDraftContextData -> item
+        is MainOfficialContextData -> item.withContext(ctx.asMainDraft())
+        is DesignOfficialContextData -> item.withContext(ctx.asMainDraft())
+        is DesignDraftContextData -> error {
+            "Creating main branch draft from a design-draft is not supported (publish design first): item=$item"
+        }
+    }
 } as T
 
 @Suppress("UNCHECKED_CAST")
-fun <T : LayoutAsset<T>> asMainOfficial(item: LayoutAsset<T>): T = when (item) {
-    is LocationTrack -> asMainOfficial(item) { contextData -> item.copy(contextData = contextData) }
-    is TrackLayoutSwitch -> asMainOfficial(item) { contextData -> item.copy(contextData = contextData) }
-    is TrackLayoutKmPost -> asMainOfficial(item) { contextData -> item.copy(contextData = contextData) }
-    is TrackLayoutTrackNumber -> asMainOfficial(item) { contextData -> item.copy(contextData = contextData) }
-    is ReferenceLine -> asMainOfficial(item) { contextData -> item.copy(contextData = contextData) }
-} as T
-
-private fun <T : LayoutAsset<T>> asMainDraft(item: T, withContext: (LayoutContextData<T>) -> T): T =
+fun <T : LayoutAsset<T>> asMainOfficial(item: LayoutAsset<T>): T =
     item.contextData.let { ctx ->
         when (ctx) {
-            is MainDraftContextData -> item
-            is MainOfficialContextData -> withContext(ctx.asMainDraft())
-            is DesignOfficialContextData -> withContext(ctx.asMainDraft())
-            is DesignDraftContextData -> error {
-                "Creating main branch draft from a design-draft is not supported (publish design first): id=${item.id}"
+            is MainOfficialContextData -> item
+            is MainDraftContextData -> item.withContext(ctx.asMainOfficial())
+            else -> error {
+                "Creating main branch official from a design is not supported (create main draft first): item=$item"
             }
         }
-    }
-
-private fun <T : LayoutAsset<T>> asMainOfficial(item: T, withContext: (LayoutContextData<T>) -> T): T =
-    item.contextData.let { ctx ->
-        if (ctx is MainDraftContextData) {
-            withContext(ctx.asMainOfficial())
-        } else error {
-            "${item::class.simpleName} is not a main context draft and can't be published: id=${item.id} dataType=${item.dataType}"
-        }
-    }
+    } as T

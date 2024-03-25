@@ -1,7 +1,19 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geography.crs
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
@@ -89,6 +101,9 @@ data class TrackLayoutTrackNumber(
         "context" to contextData::class.simpleName,
         "number" to number,
     )
+
+    override fun withContext(contextData: LayoutContextData<TrackLayoutTrackNumber>): TrackLayoutTrackNumber =
+        copy(contextData = contextData)
 }
 
 enum class LocationTrackType {
@@ -126,6 +141,9 @@ data class ReferenceLine(
         "trackNumber" to trackNumberId,
         "alignment" to alignmentVersion,
     )
+
+    override fun withContext(contextData: LayoutContextData<ReferenceLine>): ReferenceLine =
+        copy(contextData = contextData)
 }
 
 data class TopologyLocationTrackSwitch(
@@ -241,6 +259,9 @@ data class LocationTrack(
         "trackNumber" to trackNumberId,
         "alignment" to alignmentVersion,
     )
+
+    override fun withContext(contextData: LayoutContextData<LocationTrack>): LocationTrack =
+        copy(contextData = contextData)
 }
 
 data class TrackLayoutSwitch(
@@ -280,6 +301,9 @@ data class TrackLayoutSwitch(
         "name" to name,
         "joints" to joints.map { j -> j.number.intValue },
     )
+
+    override fun withContext(contextData: LayoutContextData<TrackLayoutSwitch>): TrackLayoutSwitch =
+        copy(contextData = contextData)
 }
 
 data class TrackLayoutSwitchJoint(val number: JointNumber, val location: Point, val locationAccuracy: LocationAccuracy?)
@@ -307,6 +331,9 @@ data class TrackLayoutKmPost(
         "kmNumber" to kmNumber,
         "trackNumber" to trackNumberId,
     )
+
+    override fun withContext(contextData: LayoutContextData<TrackLayoutKmPost>): TrackLayoutKmPost =
+        copy(contextData = contextData)
 }
 
 data class IntegralTrackLayoutKmPost(
