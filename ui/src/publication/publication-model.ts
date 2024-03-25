@@ -139,6 +139,11 @@ export type ValidatedPublishCandidates = {
     allChangesValidated: PublishCandidate[];
 };
 
+export const emptyValidatedPublishCandidates = (): ValidatedPublishCandidates => ({
+    validatedAsPublicationUnit: [],
+    allChangesValidated: [],
+});
+
 export type BulkTransferState = 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'FAILED' | 'TEMPORARY_FAILURE';
 
 export type SplitHeader = {

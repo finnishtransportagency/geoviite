@@ -27,12 +27,18 @@ import {
 import { GeometryPlanLayout, LocationTrackId } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { first } from 'utils/array-utils';
-import { CalculatedChanges, PublishCandidate } from 'publication/publication-model';
+import {
+    PublishCandidate,
+    PublicationStage,
+    PublishCandidateReference,
+} from 'publication/publication-model';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 import { exhaustiveMatchingGuard, ifDefined } from 'utils/type-utils';
 import { splitReducers, SplittingState } from 'tool-panel/location-track/split-store';
 import { PURGE } from 'redux-persist';
 import { previewReducers, PreviewState } from 'preview/preview-store';
+import { filterByPublicationStage } from 'preview/preview-view-filters';
+import { asPublishCandidateReferences } from 'publication/publication-utils';
 
 export type InfoboxVisibilities = {
     trackNumber: TrackNumberInfoboxVisibilities;
@@ -180,8 +186,7 @@ export type TrackLayoutState = {
     layoutMode: LayoutMode;
     map: Map;
     selection: Selection;
-    publishCandidates: PublishCandidate[];
-    calculatedChanges?: CalculatedChanges;
+    stagedPublicationCandidateReferences: PublishCandidateReference[];
     linkingState?: LinkingState;
     splittingState?: SplittingState;
     linkingIssuesSelectedBeforeLinking: boolean;
@@ -197,8 +202,7 @@ export const initialTrackLayoutState: TrackLayoutState = {
     layoutMode: 'DEFAULT',
     map: initialMapState,
     selection: initialSelectionState,
-    publishCandidates: [],
-    calculatedChanges: undefined,
+    stagedPublicationCandidateReferences: [],
     linkingIssuesSelectedBeforeLinking: false,
     switchLinkingSelectedBeforeLinking: false,
     selectedToolPanelTab: undefined,
@@ -356,18 +360,17 @@ const trackLayoutSlice = createSlice({
             }
         },
 
-        setPublishCandidates: function (
+        setStagedPublicationCandidateReferences: function (
             state: TrackLayoutState,
             action: PayloadAction<PublishCandidate[]>,
         ): void {
-            state.publishCandidates = action.payload;
-        },
+            const stagedCandidates = filterByPublicationStage(
+                action.payload,
+                PublicationStage.STAGED,
+            );
 
-        setCalculatedChanges: function (
-            state: TrackLayoutState,
-            action: PayloadAction<CalculatedChanges | undefined>,
-        ): void {
-            state.calculatedChanges = action.payload;
+            state.stagedPublicationCandidateReferences =
+                asPublishCandidateReferences(stagedCandidates);
         },
 
         onHighlightItems: function (

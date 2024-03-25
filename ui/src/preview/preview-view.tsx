@@ -4,20 +4,22 @@ import styles from './preview-view.scss';
 import { useTranslation } from 'react-i18next';
 import { useLoader } from 'utils/react-utils';
 import {
+    getCalculatedChanges,
     getPublishCandidates,
     getRevertRequestDependencies,
     revertCandidates,
+    validatePublishCandidates,
 } from 'publication/publication-api';
 import { PreviewToolBar } from 'preview/preview-tool-bar';
 import { OnSelectFunction } from 'selection/selection-model';
 import { CalculatedChangesView } from './calculated-changes-view';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import {
-    CalculatedChanges,
     PublicationGroup,
     PublicationStage,
     PublishCandidate,
     PublishCandidateReference,
+    emptyValidatedPublishCandidates,
 } from 'publication/publication-model';
 import PreviewTable from 'preview/preview-table';
 import { PreviewConfirmRevertChangesDialog } from 'preview/preview-confirm-revert-changes-dialog';
@@ -28,6 +30,7 @@ import { BoundingBox } from 'model/geometry';
 import { MapContext } from 'map/map-store';
 import { MapViewContainer } from 'map/map-view-container';
 import {
+    addValidationState,
     conditionallyUpdateCandidates,
     countPublicationGroupAmounts,
     PublicationAssetChangeAmounts,
@@ -45,16 +48,15 @@ import {
     filterByPublicationGroup,
     filterByPublicationStage,
     filterByUser,
-    pendingValidations,
 } from 'preview/preview-view-filters';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { debounceAsync } from 'utils/async-utils';
 
 export type PreviewProps = {
     layoutContext: LayoutContext;
     changeTimes: ChangeTimes;
-    storedPublishCandidates: PublishCandidate[];
-    calculatedChanges: CalculatedChanges | undefined;
-    setPublishCandidates: (publishCandidates: PublishCandidate[]) => void;
+    stagedPublishCandidateReferences: PublishCandidateReference[];
+    setStagedPublicationCandidateReferences: (publicationCandidate: PublishCandidate[]) => void;
     showOnlyOwnUnstagedChanges: boolean;
     setShowOnlyOwnUnstagedChanges: (checked: boolean) => void;
     onSelect: OnSelectFunction;
@@ -94,46 +96,71 @@ export type ChangesBeingReverted = {
     changeIncludingDependencies: PublishCandidateReference[];
 };
 
+const validateDebounced = debounceAsync(
+    (candidates: PublishCandidateReference[]) => validatePublishCandidates(candidates),
+    1000,
+);
+const getCalculatedChangesDebounced = debounceAsync(
+    (candidates: PublishCandidateReference[]) => getCalculatedChanges(candidates),
+    1000,
+);
+
 export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const { t } = useTranslation();
-
     const user = useLoader(getOwnUser, []);
 
+    const [publishCandidates, setPublishCandidates] = React.useState<PublishCandidate[]>([]);
     useLoader(
         () =>
-            getPublishCandidates().then((publishCandidatesFromApi) => {
-                const updatedPublishCandidates = publishCandidatesFromApi.map((candidate) => {
-                    const storedCandidate = props.storedPublishCandidates.find((storedCandidate) =>
-                        candidateIdAndTypeMatches(storedCandidate, candidate),
+            getPublishCandidates().then((candidates) => {
+                const candidatesWithUpdatedStage = candidates.map((candidate) => {
+                    const candidateIsStaged = props.stagedPublishCandidateReferences.some(
+                        (stagedCandidate) => candidateIdAndTypeMatches(stagedCandidate, candidate),
                     );
 
-                    if (storedCandidate) {
-                        return {
-                            ...candidate,
-                            stage: storedCandidate.stage,
-                        };
-                    }
-
-                    return candidate;
+                    return candidateIsStaged
+                        ? {
+                              ...candidate,
+                              stage: PublicationStage.STAGED,
+                          }
+                        : candidate;
                 });
 
-                return props.setPublishCandidates(updatedPublishCandidates);
+                setPublishCandidates(candidatesWithUpdatedStage);
+                props.setStagedPublicationCandidateReferences(candidatesWithUpdatedStage);
             }),
         [props.changeTimes],
     );
 
-    const unstagedPublishCandidates = filterByPublicationStage(
-        props.storedPublishCandidates,
-        PublicationStage.UNSTAGED,
+    const [showValidationStatusSpinner, setShowValidationStatusSpinner] =
+        React.useState<boolean>(true);
+
+    const validatedCandidates =
+        useLoader(() => {
+            setShowValidationStatusSpinner(true);
+
+            return validateDebounced(props.stagedPublishCandidateReferences).finally(() =>
+                setShowValidationStatusSpinner(false),
+            );
+        }, [props.stagedPublishCandidateReferences]) ?? emptyValidatedPublishCandidates();
+
+    const calculatedChanges = useLoader(
+        () => getCalculatedChangesDebounced(props.stagedPublishCandidateReferences),
+        [props.stagedPublishCandidateReferences],
     );
 
     const [layoutContext, setLayoutContext] = React.useState<LayoutContext>(
         draftLayoutContext(props.layoutContext),
     );
 
-    const stagedPublishCandidates = filterByPublicationStage(
-        props.storedPublishCandidates,
-        PublicationStage.STAGED,
+    const unstagedPublishCandidates = addValidationState(
+        filterByPublicationStage(publishCandidates, PublicationStage.UNSTAGED),
+        validatedCandidates.allChangesValidated,
+    );
+
+    const stagedPublishCandidates = addValidationState(
+        filterByPublicationStage(publishCandidates, PublicationStage.STAGED),
+        validatedCandidates.validatedAsPublicationUnit,
     );
 
     const displayedUnstagedPublishCandidates =
@@ -141,14 +168,13 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             ? filterByUser(unstagedPublishCandidates, user)
             : unstagedPublishCandidates;
 
-    const showValidationStatusSpinner = pendingValidations(props.storedPublishCandidates);
     const [changesBeingReverted, setChangesBeingReverted] = React.useState<ChangesBeingReverted>();
 
     const publicationAssetChangeAmounts: PublicationAssetChangeAmounts = {
-        total: props.storedPublishCandidates.length ?? 0,
+        total: props.stagedPublishCandidateReferences.length ?? 0,
         staged: stagedPublishCandidates.length,
         unstaged: unstagedPublishCandidates.length,
-        groupAmounts: countPublicationGroupAmounts(props.storedPublishCandidates ?? []),
+        groupAmounts: countPublicationGroupAmounts(publishCandidates ?? []),
         ownUnstaged: user ? filterByUser(unstagedPublishCandidates, user).length : 0,
     };
 
@@ -160,7 +186,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         revertCandidates(changesBeingReverted.changeIncludingDependencies)
             .then((r) => {
                 if (r.isOk()) {
-                    const updatedCandidates = props.storedPublishCandidates.filter(
+                    const updatedCandidates = publishCandidates.filter(
                         (candidate) =>
                             !changesBeingReverted.changeIncludingDependencies.some(
                                 (revertedCandidate) =>
@@ -168,7 +194,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                             ),
                     );
 
-                    props.setPublishCandidates(updatedCandidates);
+                    setPublishCandidates(updatedCandidates);
+                    props.setStagedPublicationCandidateReferences(updatedCandidates);
                     Snackbar.success('publish.revert-success');
                 }
             })
@@ -177,12 +204,13 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                 void updateAllChangeTimes();
             });
     };
+
     const setStageForSpecificChanges = (
         publishCandidatesToBeUpdated: PublishCandidate[],
         newStage: PublicationStage,
     ) => {
         const updatedCandidates = conditionallyUpdateCandidates(
-            props.storedPublishCandidates,
+            publishCandidates,
             (candidate) =>
                 publishCandidatesToBeUpdated.some((candidateToBeUpdated) =>
                     candidateIdAndTypeMatches(candidateToBeUpdated, candidate),
@@ -190,7 +218,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             stageTransform(newStage),
         );
 
-        return props.setPublishCandidates(updatedCandidates);
+        setPublishCandidates(updatedCandidates);
+        props.setStagedPublicationCandidateReferences(updatedCandidates);
     };
 
     const setPublicationGroupStage = (
@@ -198,12 +227,13 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         newStage: PublicationStage,
     ) => {
         const updatedCandidates = conditionallyUpdateCandidates(
-            props.storedPublishCandidates,
+            publishCandidates,
             (candidate) => candidate.publicationGroup?.id === publicationGroup.id,
             stageTransform(newStage),
         );
 
-        return props.setPublishCandidates(updatedCandidates);
+        setPublishCandidates(updatedCandidates);
+        props.setStagedPublicationCandidateReferences(updatedCandidates);
     };
 
     const setNewStageForStageChanges = (
@@ -211,12 +241,13 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         newStage: PublicationStage,
     ) => {
         const updatedCandidates = conditionallyUpdateCandidates(
-            props.storedPublishCandidates,
+            publishCandidates,
             (candidate) => candidate.stage === currentStage,
             stageTransform(newStage),
         );
 
-        return props.setPublishCandidates(updatedCandidates);
+        setPublishCandidates(updatedCandidates);
+        props.setStagedPublicationCandidateReferences(updatedCandidates);
     };
 
     const revertChangesWithDependencies = (
@@ -264,17 +295,19 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                 publicationGroup: publicationGroup,
             },
             changeIncludingDependencies: filterByPublicationGroup(
-                props.storedPublishCandidates,
+                publishCandidates,
                 publicationGroup,
             ),
         });
     };
 
     const clearStagedCandidates = () => {
-        const updatedCandidates = props.storedPublishCandidates.filter(
+        const updatedCandidates = publishCandidates.filter(
             (candidate) => candidate.stage === PublicationStage.UNSTAGED,
         );
-        props.setPublishCandidates(updatedCandidates);
+
+        setPublishCandidates(updatedCandidates);
+        props.setStagedPublicationCandidateReferences(updatedCandidates);
     };
 
     const previewOperations: PreviewOperations = {
@@ -352,13 +385,13 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                             </section>
 
                             <div className={styles['preview-section']}>
-                                {props.calculatedChanges && (
+                                {calculatedChanges && (
                                     <CalculatedChangesView
                                         layoutContext={props.layoutContext}
-                                        calculatedChanges={props.calculatedChanges}
+                                        calculatedChanges={calculatedChanges}
                                     />
                                 )}
-                                {!props.calculatedChanges && <Spinner />}
+                                {!calculatedChanges && <Spinner />}
                             </div>
                         </>
                     )) || (

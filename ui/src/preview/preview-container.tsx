@@ -12,9 +12,8 @@ export const PreviewContainer: React.FC = () => {
     const props: PreviewProps = {
         layoutContext: trackLayoutState.layoutContext,
         changeTimes: changeTimes,
-        storedPublishCandidates: trackLayoutState.publishCandidates,
-        calculatedChanges: trackLayoutState.calculatedChanges,
-        setPublishCandidates: delegates.setPublishCandidates,
+        stagedPublishCandidateReferences: trackLayoutState.stagedPublicationCandidateReferences,
+        setStagedPublicationCandidateReferences: delegates.setStagedPublicationCandidateReferences,
         showOnlyOwnUnstagedChanges: trackLayoutState.previewState.showOnlyOwnUnstagedChanges,
         setShowOnlyOwnUnstagedChanges: delegates.setShowOnlyOwnUnstagedChanges,
         onSelect: delegates.onSelect,

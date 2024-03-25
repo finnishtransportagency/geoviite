@@ -4,8 +4,10 @@ import {
     PublicationSearch,
     PublicationStage,
     PublishCandidate,
+    PublishCandidateReference,
 } from 'publication/publication-model';
 import { currentDay } from 'utils/date-utils';
+import { candidateIdAndTypeMatches } from 'preview/preview-view-filters';
 
 export const defaultPublicationSearch: PublicationSearch = {
     startDate: subMonths(currentDay, 1).toISOString(),
@@ -58,4 +60,32 @@ export const countPublicationGroupAmounts = (
 
         return groupSizes;
     }, {} as Record<PublicationGroupId, number>);
+};
+
+export const asPublishCandidateReferences = (
+    publishCandidates: PublishCandidate[],
+): PublishCandidateReference[] => {
+    return publishCandidates.map((candidate) => ({
+        id: candidate.id,
+        type: candidate.type,
+    }));
+};
+
+export const addValidationState = (
+    publishCandidates: PublishCandidate[],
+    validationGroup: PublishCandidate[],
+): PublishCandidate[] => {
+    return publishCandidates.map((candidate) => {
+        const validatedCandidate = validationGroup.find((validatedCandidate) =>
+            candidateIdAndTypeMatches(validatedCandidate, candidate),
+        );
+
+        return validatedCandidate
+            ? {
+                  ...candidate,
+                  errors: validatedCandidate.errors,
+                  pendingValidation: false,
+              }
+            : candidate;
+    });
 };
