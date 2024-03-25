@@ -187,7 +187,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     };
 
     // Draft-only entities should be hidden when viewing in official mode. Show everything in draft mode
-    const visibleByTypeAndPublishType = ({ editState }: { editState: EditState }) =>
+    const visibleByContextAndState = ({ editState }: { editState: EditState }) =>
         layoutContext.publicationState === 'DRAFT' || editState !== 'CREATED';
 
     React.useEffect(() => {
@@ -214,7 +214,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         const trackNumberTabs = trackNumberIds
             .map((tnId) => trackNumbers?.find((tn) => tn.id === tnId))
             .filter(filterNotEmpty)
-            .filter(visibleByTypeAndPublishType)
+            .filter(visibleByContextAndState)
             .map((t) => {
                 return {
                     asset: { type: 'TRACK_NUMBER', id: t.id },
@@ -232,7 +232,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 } as ToolPanelTab;
             });
 
-        const layoutKmPostTabs = kmPosts.filter(visibleByTypeAndPublishType).map((k) => {
+        const layoutKmPostTabs = kmPosts.filter(visibleByContextAndState).map((k) => {
             return {
                 asset: { type: 'KM_POST', id: k.id },
                 title: k.kmNumber,
@@ -271,7 +271,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             },
         );
 
-        const switchTabs = switches.filter(visibleByTypeAndPublishType).map((s) => {
+        const switchTabs = switches.filter(visibleByContextAndState).map((s) => {
             return {
                 asset: { type: 'SWITCH', id: s.id },
                 title: s.name,
@@ -327,25 +327,23 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 };
             });
 
-        const locationTrackTabs = locationTracks
-            .filter(visibleByTypeAndPublishType)
-            .map((track) => {
-                return {
-                    asset: { type: 'LOCATION_TRACK', id: track.id },
-                    title: track.name,
-                    element: (
-                        <LocationTrackInfoboxLinkingContainer
-                            visibilities={infoboxVisibilities.locationTrack}
-                            onVisibilityChange={(visibilities) =>
-                                infoboxVisibilityChange('locationTrack', visibilities)
-                            }
-                            locationTrackId={track.id}
-                            onDataChange={onDataChange}
-                            onHoverOverPlanSection={onHoverOverPlanSection}
-                        />
-                    ),
-                } as ToolPanelTab;
-            });
+        const locationTrackTabs = locationTracks.filter(visibleByContextAndState).map((track) => {
+            return {
+                asset: { type: 'LOCATION_TRACK', id: track.id },
+                title: track.name,
+                element: (
+                    <LocationTrackInfoboxLinkingContainer
+                        visibilities={infoboxVisibilities.locationTrack}
+                        onVisibilityChange={(visibilities) =>
+                            infoboxVisibilityChange('locationTrack', visibilities)
+                        }
+                        locationTrackId={track.id}
+                        onDataChange={onDataChange}
+                        onHoverOverPlanSection={onHoverOverPlanSection}
+                    />
+                ),
+            } as ToolPanelTab;
+        });
 
         const geometryAlignmentTabs = geometryAlignmentIds.map((aId) => {
             const header = getPlan(aId.planId)?.alignments?.find(

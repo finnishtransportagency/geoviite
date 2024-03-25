@@ -90,7 +90,6 @@ export async function getKmPostsByTile(
     const params = queryParams({
         bbox: bboxString(bbox),
         step: Math.ceil(step),
-        publishType: layoutContext.publicationState,
     });
     return kmPostListCache.get(
         changeTime,
