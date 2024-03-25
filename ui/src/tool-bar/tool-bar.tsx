@@ -261,7 +261,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         setShowNewAssetMenu(false);
     }
 
-    function moveToOfficialPublishType() {
+    function switchToOfficialContext() {
         onPublicationStateChange('OFFICIAL');
         setShowNewAssetMenu(false);
     }
@@ -354,7 +354,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                             }
                             variant={ButtonVariant.SECONDARY}
                             title={modeNavigationButtonsDisabledReason()}
-                            onClick={() => moveToOfficialPublishType()}>
+                            onClick={() => switchToOfficialContext()}>
                             {t('tool-bar.draft-mode.disable')}
                         </Button>
                         <Button

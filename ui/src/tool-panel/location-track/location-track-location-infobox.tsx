@@ -119,7 +119,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         changeTimes,
     );
 
-    const publishTypeIsDraft = layoutContext.publicationState === 'DRAFT';
+    const isDraft = layoutContext.publicationState === 'DRAFT';
     const locationTrackIsDraft = locationTrack.editState !== 'UNEDITED';
     const duplicatesOnOtherTracks = extraInfo?.duplicates?.some(
         (dupe) => dupe.trackNumberId !== trackNumber?.id,
@@ -128,7 +128,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     const getSplittingDisabledReasonsTranslated = () => {
         const reasons: string[] = [];
 
-        if (!publishTypeIsDraft) {
+        if (!isDraft) {
             return t('tool-panel.disabled.activity-disabled-in-official-mode');
         }
 
@@ -149,7 +149,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     };
 
     const getModifyStartOrEndDisabledReasonTranslated = () => {
-        if (!publishTypeIsDraft) {
+        if (!isDraft) {
             return t('tool-panel.disabled.activity-disabled-in-official-mode');
         } else if (splittingState || extraInfo?.partOfUnfinishedSplit) {
             return t('tool-panel.location-track.splitting-blocks-geometry-changes');
@@ -186,11 +186,11 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                     duplicateTracks: splitInitializationParameters?.duplicates || [],
                     startLocation: startAndEndPoints.start.point,
                     endLocation: startAndEndPoints.end.point,
-                        trackNumber: trackNumber.number,
-                        nearestOperatingPointToStart:
-                            splitInitializationParameters.nearestOperatingPointToStart,
-                        nearestOperatingPointToEnd:
-                            splitInitializationParameters.nearestOperatingPointToEnd,
+                    trackNumber: trackNumber.number,
+                    nearestOperatingPointToStart:
+                        splitInitializationParameters.nearestOperatingPointToStart,
+                    nearestOperatingPointToEnd:
+                        splitInitializationParameters.nearestOperatingPointToEnd,
                 });
                 showLayers(['location-track-split-location-layer']);
             }
@@ -252,7 +252,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
 
                             {linkingState === undefined && (
                                 <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                                    {publishTypeIsDraft && extraInfo?.partOfUnfinishedSplit && (
+                                    {isDraft && extraInfo?.partOfUnfinishedSplit && (
                                         <InfoboxContentSpread>
                                             <MessageBox>
                                                 {t(
@@ -321,7 +321,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             )}
                             <EnvRestricted restrictTo="test">
                                 <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                                    {publishTypeIsDraft &&
+                                    {isDraft &&
                                         locationTrackIsDraft &&
                                         !extraInfo?.partOfUnfinishedSplit && (
                                             <InfoboxContentSpread>
@@ -332,7 +332,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 </MessageBox>
                                             </InfoboxContentSpread>
                                         )}
-                                    {publishTypeIsDraft &&
+                                    {isDraft &&
                                         duplicatesOnOtherTracks &&
                                         !extraInfo?.partOfUnfinishedSplit && (
                                             <InfoboxContentSpread>
@@ -349,7 +349,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 variant={ButtonVariant.SECONDARY}
                                                 size={ButtonSize.SMALL}
                                                 disabled={
-                                                    !publishTypeIsDraft ||
+                                                    !isDraft ||
                                                     locationTrackIsDraft ||
                                                     duplicatesOnOtherTracks ||
                                                     extraInfo?.partOfUnfinishedSplit
