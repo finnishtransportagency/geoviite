@@ -137,8 +137,8 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
         const boundingBox = getBoundingBox(candidate);
 
         return {
-            publishCandidate: candidate,
             ...tableEntry,
+            publishCandidate: candidate,
             boundingBox,
             errors: candidate.errors,
             type: candidate.type,

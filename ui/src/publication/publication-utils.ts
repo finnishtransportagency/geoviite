@@ -24,11 +24,7 @@ export const conditionallyUpdateCandidates = (
     transform: (candidate: PublicationCandidate) => PublicationCandidate,
 ): PublicationCandidate[] => {
     return publicationCandidates.map((candidate): PublicationCandidate => {
-        if (condition(candidate)) {
-            return transform(candidate);
-        }
-
-        return candidate;
+        return condition(candidate) ? transform(candidate) : candidate;
     });
 };
 

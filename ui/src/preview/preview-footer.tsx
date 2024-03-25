@@ -48,7 +48,7 @@ function publishErrors(publishCandidates: PublicationCandidate[]): PublicationVa
 
 export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooterProps) => {
     const allPublishErrors = publishErrors(props.stagedPublicationCandidates).filter(
-        (error) => error.type == 'ERROR',
+        (error) => error.type === 'ERROR',
     );
     const describeResult = (result: PublicationResult | undefined): string => {
         return [

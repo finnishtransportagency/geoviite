@@ -227,7 +227,7 @@ const getPublicationCandidateComponent = (
     }
 };
 
-const sortCandidatesByDisplayPriority = (
+const sortCandidatesByAssetType = (
     candidates: PublicationCandidateReference[],
 ): PublicationCandidateReference[] => {
     const candidateDisplayOrder = {
@@ -239,11 +239,7 @@ const sortCandidatesByDisplayPriority = (
     };
 
     return [...candidates].sort((a, b) => {
-        if (candidateDisplayOrder[a.type] !== candidateDisplayOrder[b.type]) {
-            return candidateDisplayOrder[a.type] - candidateDisplayOrder[b.type];
-        }
-
-        return 0;
+        return candidateDisplayOrder[a.type] - candidateDisplayOrder[b.type];
     });
 };
 
@@ -261,7 +257,7 @@ export const PublicationRequestDependencyList: React.FC<PublicationRequestDepend
     const { t } = useTranslation();
 
     const dependencies = filterDisplayedDependencies(changesBeingReverted);
-    const sortedDependencies = sortCandidatesByDisplayPriority(dependencies);
+    const sortedDependencies = sortCandidatesByAssetType(dependencies);
 
     const displayExtraDependencyInformation =
         changesBeingReverted.requestedRevertChange.type ===
