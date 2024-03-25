@@ -129,7 +129,7 @@ export type ElementLocation = {
     cant?: number;
 };
 
-export type DraftableChangeInfo = {
+export type LayoutAssetChangeInfo = {
     created: TimeStamp;
     changed: TimeStamp | undefined;
 };

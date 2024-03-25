@@ -5,7 +5,7 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import {
-    DraftableChangeInfo,
+    LayoutAssetChangeInfo,
     draftLayoutContext,
     LayoutContext,
     TimeStamp,
@@ -98,6 +98,6 @@ export async function getNonLinkedReferenceLines(
 export const getReferenceLineChangeTimes = (
     id: ReferenceLineId,
     layoutContext: LayoutContext,
-): Promise<DraftableChangeInfo | undefined> => {
-    return getNullable<DraftableChangeInfo>(changeTimeUri('reference-lines', id, layoutContext));
+): Promise<LayoutAssetChangeInfo | undefined> => {
+    return getNullable<LayoutAssetChangeInfo>(changeTimeUri('reference-lines', id, layoutContext));
 };

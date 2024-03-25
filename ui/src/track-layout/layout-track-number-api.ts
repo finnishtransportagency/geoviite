@@ -5,7 +5,7 @@ import {
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import {
-    DraftableChangeInfo,
+    LayoutAssetChangeInfo,
     draftLayoutContext,
     LayoutContext,
     TimeStamp,
@@ -117,6 +117,6 @@ export const getTrackNumberReferenceLineSectionsByPlan = async (
 export const getTrackNumberChangeTimes = (
     id: LayoutTrackNumberId,
     layoutContext: LayoutContext,
-): Promise<DraftableChangeInfo | undefined> => {
-    return getNullable<DraftableChangeInfo>(changeTimeUri('track-numbers', id, layoutContext));
+): Promise<LayoutAssetChangeInfo | undefined> => {
+    return getNullable<LayoutAssetChangeInfo>(changeTimeUri('track-numbers', id, layoutContext));
 };

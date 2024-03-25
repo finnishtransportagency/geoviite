@@ -15,7 +15,7 @@ import {
 import { LoaderStatus, useLoader, useLoaderWithStatus, useOptionalLoader } from 'utils/react-utils';
 import {
     CoordinateSystem,
-    DraftableChangeInfo,
+    LayoutAssetChangeInfo,
     LayoutContext,
     Srid,
     SwitchStructure,
@@ -283,7 +283,7 @@ export function usePlanHeader(id: GeometryPlanId | undefined): GeometryPlanHeade
 export function useTrackNumberChangeTimes(
     id: LayoutTrackNumberId | undefined,
     layoutContext: LayoutContext,
-): DraftableChangeInfo | undefined {
+): LayoutAssetChangeInfo | undefined {
     return useOptionalLoader(
         () => (id ? getTrackNumberChangeTimes(id, layoutContext) : undefined),
         [id, layoutContext.designId, layoutContext.publicationState],
@@ -293,7 +293,7 @@ export function useTrackNumberChangeTimes(
 export function useReferenceLineChangeTimes(
     id: ReferenceLineId | undefined,
     layoutContext: LayoutContext,
-): DraftableChangeInfo | undefined {
+): LayoutAssetChangeInfo | undefined {
     return useOptionalLoader(
         () => (id ? getReferenceLineChangeTimes(id, layoutContext) : undefined),
         [id, layoutContext.designId, layoutContext.publicationState],
@@ -303,7 +303,7 @@ export function useReferenceLineChangeTimes(
 export function useLocationTrackChangeTimes(
     id: LocationTrackId | undefined,
     layoutContext: LayoutContext,
-): DraftableChangeInfo | undefined {
+): LayoutAssetChangeInfo | undefined {
     return useOptionalLoader(
         () => (id ? getLocationTrackChangeTimes(id, layoutContext) : undefined),
         [id, layoutContext.designId, layoutContext.publicationState],
@@ -313,7 +313,7 @@ export function useLocationTrackChangeTimes(
 export function useSwitchChangeTimes(
     id: LayoutSwitchId | undefined,
     layoutContext: LayoutContext,
-): DraftableChangeInfo | undefined {
+): LayoutAssetChangeInfo | undefined {
     return useOptionalLoader(
         () => (id ? getSwitchChangeTimes(id, layoutContext) : undefined),
         [id, layoutContext.designId, layoutContext.publicationState],
@@ -323,7 +323,7 @@ export function useSwitchChangeTimes(
 export function useKmPostChangeTimes(
     id: LayoutKmPostId | undefined,
     layoutContext: LayoutContext,
-): DraftableChangeInfo | undefined {
+): LayoutAssetChangeInfo | undefined {
     return useOptionalLoader(
         () => (id ? getKmPostChangeTimes(id, layoutContext) : undefined),
         [id, layoutContext.designId, layoutContext.publicationState],

@@ -1,6 +1,6 @@
 import { BoundingBox, Point } from 'model/geometry';
 import {
-    DraftableChangeInfo,
+    LayoutAssetChangeInfo,
     draftLayoutContext,
     LayoutContext,
     TimeStamp,
@@ -199,6 +199,6 @@ export const getSwitchesValidationByTile = async (
 export const getSwitchChangeTimes = (
     id: LayoutSwitchId,
     layoutContext: LayoutContext,
-): Promise<DraftableChangeInfo | undefined> => {
-    return getNonNull<DraftableChangeInfo>(changeTimeUri('switches', id, layoutContext));
+): Promise<LayoutAssetChangeInfo | undefined> => {
+    return getNonNull<LayoutAssetChangeInfo>(changeTimeUri('switches', id, layoutContext));
 };
