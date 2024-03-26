@@ -101,6 +101,9 @@ data class TrackLayoutTrackNumber(
         "context" to contextData::class.simpleName,
         "number" to number,
     )
+
+    override fun withContext(contextData: LayoutContextData<TrackLayoutTrackNumber>): TrackLayoutTrackNumber =
+        copy(contextData = contextData)
 }
 
 enum class LocationTrackType {
@@ -138,6 +141,9 @@ data class ReferenceLine(
         "trackNumber" to trackNumberId,
         "alignment" to alignmentVersion,
     )
+
+    override fun withContext(contextData: LayoutContextData<ReferenceLine>): ReferenceLine =
+        copy(contextData = contextData)
 }
 
 data class TopologyLocationTrackSwitch(
@@ -253,6 +259,9 @@ data class LocationTrack(
         "trackNumber" to trackNumberId,
         "alignment" to alignmentVersion,
     )
+
+    override fun withContext(contextData: LayoutContextData<LocationTrack>): LocationTrack =
+        copy(contextData = contextData)
 }
 
 data class TrackLayoutSwitch(
@@ -298,6 +307,9 @@ data class TrackLayoutSwitch(
         "name" to name,
         "joints" to joints.map { j -> j.number.intValue },
     )
+
+    override fun withContext(contextData: LayoutContextData<TrackLayoutSwitch>): TrackLayoutSwitch =
+        copy(contextData = contextData)
 }
 
 data class TrackLayoutSwitchJoint(val number: JointNumber, val location: Point, val locationAccuracy: LocationAccuracy?)
@@ -325,6 +337,9 @@ data class TrackLayoutKmPost(
         "kmNumber" to kmNumber,
         "trackNumber" to trackNumberId,
     )
+
+    override fun withContext(contextData: LayoutContextData<TrackLayoutKmPost>): TrackLayoutKmPost =
+        copy(contextData = contextData)
 }
 
 data class IntegralTrackLayoutKmPost(
