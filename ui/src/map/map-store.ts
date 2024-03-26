@@ -83,6 +83,7 @@ export const layersToHideByProxy: LayerCollection = {
 
 const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'map': ['background-map-layer'],
+    'orthographic-background-map': ['orthographic-background-map-layer'],
     'location-track': ['location-track-alignment-layer', 'location-track-badge-layer'],
     'reference-line': ['reference-line-alignment-layer', 'reference-line-badge-layer'],
     'missing-vertical-geometry': ['missing-profile-highlight-layer'],
@@ -120,7 +121,18 @@ export const initialMapState: Map = {
     ],
     layerMenu: {
         layout: [
-            { name: 'map', visible: true, qaId: 'background-nap-layer' },
+            {
+                name: 'map',
+                visible: true,
+                qaId: 'background-map-layer',
+                subMenu: [
+                    {
+                        name: 'orthographic-background-map',
+                        visible: false,
+                        qaId: 'orthographic-background-map-layer',
+                    },
+                ],
+            },
             { name: 'reference-line', visible: true, qaId: 'reference-line-layer' },
             {
                 name: 'location-track',

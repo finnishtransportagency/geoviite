@@ -7,38 +7,53 @@ import TileSource from 'ol/source/Tile';
 
 const parser = new WMTSCapabilities();
 
-const MMLTileSourcePromise = fetch(
+const MMTLCapabilitiesPromise = fetch(
     '/location-map/wmts/maasto?service=WMTS&request=GetCapabilities&version=1.0.0',
 ).then(async (response) => {
     const body = await response.text();
     const parse = parser.read(body);
-    const options =
-        parse['Contents'] !== undefined &&
-        optionsFromCapabilities(parse, {
-            layer: 'taustakartta',
-            matrixSet: 'ETRS-TM35FIN',
-            projection: LAYOUT_SRID,
-            requestEncoding: 'REST',
-        });
-
-    if (options) {
-        options.urls = [
-            '/location-map/wmts/maasto/1.0.0/taustakartta/default/ETRS-TM35FIN/{TileMatrix}/{TileRow}/{TileCol}.png',
-        ];
-        return new WMTS(options);
-    }
+    return (
+        (parse['Contents'] !== undefined &&
+            optionsFromCapabilities(parse, {
+                layer: 'taustakartta',
+                matrixSet: 'ETRS-TM35FIN',
+                projection: LAYOUT_SRID,
+                requestEncoding: 'REST',
+            })) ||
+        undefined
+    );
 });
 
-function createLayer() {
+const makeMMLTileSourcePromise = (sourceType: BackgroundMapLayerSourceType) =>
+    MMTLCapabilitiesPromise.then((options) => {
+        if (options) {
+            options.urls = [
+                `/location-map/wmts/maasto/1.0.0/${sourceType}/default/ETRS-TM35FIN/{TileMatrix}/{TileRow}/{TileCol}.png`,
+            ];
+            return new WMTS(options);
+        }
+    });
+
+export type BackgroundMapLayerSourceType = 'taustakartta' | 'ortokuva';
+
+function createLayer(sourceType: BackgroundMapLayerSourceType) {
     const layer = new Tile({ opacity: 0.5 });
-    MMLTileSourcePromise.then((source) => source && layer.setSource(source));
+    makeMMLTileSourcePromise(sourceType).then((source) => source && layer.setSource(source));
     return layer;
 }
 
 export function createBackgroundMapLayer(existingOlLayer: Tile<TileSource>): MapLayer {
-    const layer = existingOlLayer || createLayer();
+    const layer = existingOlLayer || createLayer('taustakartta');
     return {
         name: 'background-map-layer',
+        layer: layer,
+    };
+}
+
+export function createOrthographicMapLayer(existingOlLayer: Tile<TileSource>): MapLayer {
+    const layer = existingOlLayer || createLayer('ortokuva');
+    return {
+        name: 'orthographic-background-map-layer',
         layer: layer,
     };
 }

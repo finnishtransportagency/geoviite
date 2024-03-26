@@ -1065,6 +1065,7 @@
         "geometry-title": "Geometriat",
         "debug-title": "Debug-työkalut",
         "map": "Taustakartta",
+        "orthographic-background-map": "Ilmakuva",
         "location-track": "Sijaintiraiteet",
         "reference-line": "Pituusmittauslinjat",
         "track-number-diagram": "Pituusmittausraidekaavio",

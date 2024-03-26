@@ -50,7 +50,10 @@ import { createPlanAreaLayer } from 'map/layers/geometry/plan-area-layer';
 import { pointToCoords } from 'map/layers/utils/layer-utils';
 import { createGeometrySwitchLayer } from 'map/layers/geometry/geometry-switch-layer';
 import { createSwitchLayer } from 'map/layers/switch/switch-layer';
-import { createBackgroundMapLayer } from 'map/layers/background-map-layer';
+import {
+    createBackgroundMapLayer,
+    createOrthographicMapLayer,
+} from 'map/layers/background-map-layer';
 import TileSource from 'ol/source/Tile';
 import TileLayer from 'ol/layer/Tile';
 import { MapLayer } from 'map/layers/utils/layer-model';
@@ -313,6 +316,8 @@ const MapView: React.FC<MapViewProps> = ({
                 switch (layerName) {
                     case 'background-map-layer':
                         return createBackgroundMapLayer(existingOlLayer as TileLayer<TileSource>);
+                    case 'orthographic-background-map-layer':
+                        return createOrthographicMapLayer(existingOlLayer as TileLayer<TileSource>);
                     case 'track-number-diagram-layer':
                         return createTrackNumberDiagramLayer(
                             mapTiles,

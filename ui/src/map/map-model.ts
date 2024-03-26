@@ -16,6 +16,7 @@ import {
 
 export type MapLayerName =
     | 'background-map-layer'
+    | 'orthographic-background-map-layer'
     | 'location-track-background-layer'
     | 'reference-line-background-layer'
     | 'track-number-diagram-layer'
@@ -91,6 +92,7 @@ export type MapLayerMenuItem = {
 
 export type MapLayerMenuItemName =
     | 'map'
+    | 'orthographic-background-map'
     | 'location-track'
     | 'reference-line'
     | 'missing-vertical-geometry'
