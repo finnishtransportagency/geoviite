@@ -29,7 +29,7 @@ export function createBadgeFeatures(
     name: string,
     points: MapAlignmentBadgePoint[],
     color: AlignmentBadgeColor,
-    contrast: boolean,
+    contrast: BadgeContrast,
 ): Feature<OlPoint>[] {
     const badgeStyle = getBadgeStyle(color, contrast);
 
@@ -116,13 +116,19 @@ export function createBadgeFeatures(
     });
 }
 
-function getBadgeStyle(badgeColor: AlignmentBadgeColor, contrast: boolean) {
+type BadgeContrast = 'NONE' | 'SELECTED' | 'HIGHLIGHTED';
+
+function getBadgeStyle(badgeColor: AlignmentBadgeColor, contrast: BadgeContrast) {
     let color = mapStyles['alignmentBadgeWhiteTextColor'];
     let background = mapStyles['alignmentBadge'];
     let backgroundBorder: string | undefined;
 
-    if (contrast) {
+    if (contrast === 'SELECTED') {
         background = mapStyles['alignmentBadgeBlue'];
+    } else if (contrast === 'HIGHLIGHTED' && badgeColor === AlignmentBadgeColor.LIGHT) {
+        background = mapStyles['alignmentBadgeBlueLight'];
+    } else if (contrast === 'HIGHLIGHTED' && badgeColor === AlignmentBadgeColor.DARK) {
+        background = mapStyles['alignmentBadgeBlueDark'];
     } else if (badgeColor === AlignmentBadgeColor.LIGHT) {
         color = mapStyles['alignmentBadgeTextColor'];
         background = mapStyles['alignmentBadgeWhite'];
@@ -211,13 +217,23 @@ export function createAlignmentBadgeFeatures(
         const isReferenceLine = alignment.header.alignmentType === 'REFERENCE_LINE';
         const badgePoints = getBadgePoints(alignment.points, badgeDrawDistance);
 
+        const contrast = () => {
+            if (selected || isLinking) {
+                return 'SELECTED';
+            } else if (highlighted) {
+                return 'HIGHLIGHTED';
+            } else {
+                return 'NONE';
+            }
+        };
+
         return createBadgeFeatures(
             isReferenceLine && alignment.trackNumber
                 ? alignment.trackNumber.number
                 : alignment.header.name,
             badgePoints,
             isReferenceLine ? AlignmentBadgeColor.DARK : AlignmentBadgeColor.LIGHT,
-            selected || isLinking || highlighted,
+            contrast(),
         );
     });
 }

@@ -23,7 +23,8 @@ import {
 } from 'track-layout/layout-map-api';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
-import { LayoutContext } from 'common/common-model';
+import { compareNamed, LayoutContext } from 'common/common-model';
+import { first } from 'utils/array-utils';
 
 let shownLocationTracksCompare = '';
 
@@ -105,11 +106,20 @@ export function createLocationTrackAlignmentLayer(
     return {
         name: layerName,
         layer: layer,
-        searchItems: (hitArea: Rectangle, options: SearchItemsOptions): LayerItemSearchResult => ({
-            locationTracks: findMatchingAlignments(hitArea, source, options).map(
-                ({ header }) => header.id,
-            ),
-        }),
+        searchItems: (hitArea: Rectangle, _options: SearchItemsOptions): LayerItemSearchResult => {
+            const alignments = findMatchingAlignments(hitArea, source, {});
+            const sortedByName = [...alignments].sort((a, b) => compareNamed(a.header, b.header));
+            const selected = first(selection.selectedItems.locationTracks);
+            const selectedIndex = selected
+                ? sortedByName.findIndex((a) => a.header.id === selected)
+                : -1;
+            const next =
+                selectedIndex < sortedByName.length - 1
+                    ? sortedByName[selectedIndex + 1]
+                    : first(sortedByName);
+
+            return { locationTracks: next ? [next.header.id] : [] };
+        },
         onRemove: () => updateShownLocationTracks([]),
     };
 }

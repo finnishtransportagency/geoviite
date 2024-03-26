@@ -1,4 +1,5 @@
 import React from 'react';
+import { Coordinate } from 'ol/coordinate';
 import OlMap from 'ol/Map';
 import {
     OnClickLocationFunction,
@@ -23,7 +24,7 @@ import { selectTool } from './tools/select-tool';
 import { MapToolActivateOptions } from './tools/tool-model';
 import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
-import { highlightTool } from 'map/tools/highlight-tool';
+import { doForcedHighlight, highlightTool } from 'map/tools/highlight-tool';
 import { LineString, Point as OlPoint, Polygon } from 'ol/geom';
 import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
@@ -176,6 +177,7 @@ const MapView: React.FC<MapViewProps> = ({
     const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
     const [measurementToolActive, setMeasurementToolActive] = React.useState(false);
     const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
+    const [hoveredCoordinate, setHoveredCoordinate] = React.useState<Coordinate>();
 
     const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
 
@@ -249,6 +251,10 @@ const MapView: React.FC<MapViewProps> = ({
             });
 
             setOlMap(window.map);
+
+            window.map.on('pointermove', ({ coordinate }) => {
+                setHoveredCoordinate(coordinate);
+            });
         }
     }, []);
 
@@ -664,6 +670,12 @@ const MapView: React.FC<MapViewProps> = ({
             return measurementTool.activate(olMap);
         }
     }, [olMap, measurementToolActive]);
+
+    React.useEffect(() => {
+        if (!measurementToolActive && hoveredCoordinate && olMap) {
+            doForcedHighlight(hoveredCoordinate, olMap, visibleLayers, onHighlightItems);
+        }
+    }, [olMap, measurementToolActive, selection.selectedItems, hoveredCoordinate]);
 
     return (
         <div className={styles.map}>

@@ -39,7 +39,7 @@ const createSplitBadgeFeatures = (
             badgeDrawDistance,
         );
 
-        return createBadgeFeatures(split.name, badgePoints, AlignmentBadgeColor.LIGHT, true);
+        return createBadgeFeatures(split.name, badgePoints, AlignmentBadgeColor.LIGHT, 'SELECTED');
     });
 
 const calculateSplitBounds = (
