@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.queryOne
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -55,6 +56,8 @@ class RatkoServiceIT @Autowired constructor(
             truncate publication.publication cascade;
             truncate integrations.lock cascade;
             truncate layout.track_number cascade;
+            truncate layout.operating_point cascade;
+            truncate layout.operating_point_version cascade;
         """.trimIndent()
         jdbc.execute(sql) { it.execute() }
     }
@@ -915,6 +918,13 @@ class RatkoServiceIT @Autowired constructor(
         assertEquals("0000+0005", pushedNodes[1].point.kmM.toString())
     }
 
+    private fun operatingPoint(
+        oid: String,
+        name: String,
+        trackNumberOid: Oid<RatkoRouteNumber>,
+        location: Point = Point(10.0, 10.0),
+    ) = RatkoOperatingPointParse(Oid(oid), name, name, name, OperationalPointType.LP, location, trackNumberOid)
+
     @Test
     fun fetchAndFindOperatingPoints() {
         val trackNumberId = trackNumberService.saveDraft(
@@ -935,16 +945,12 @@ class RatkoServiceIT @Autowired constructor(
         )
         fakeRatko.hasOperatingPoints(
             listOf(
-                RatkoOperatingPointParse(
-                    Oid("1.2.3.4.6"),
+                operatingPoint(
+                    "1.2.3.4.6",
                     "Turpeela",
-                    "TRP",
-                    "ABC-123",
-                    OperationalPointType.LP,
-                    Point(10.0, 10.0),
                     Oid("5.5.5.5.5"),
-                ),
-                kannustamoOperatingPoint
+                    location = Point(10.0, 10.0),
+                ), kannustamoOperatingPoint
             )
         )
         ratkoService.updateOperatingPointsFromRatko()
@@ -958,6 +964,41 @@ class RatkoServiceIT @Autowired constructor(
         assertEquals(OperationalPointType.LPO, point.type)
         assertEquals(Point(100.0, 100.0), point.location)
         assertEquals(trackNumberId, point.trackNumberId)
+    }
+
+    @Test
+    fun updateOperatingPointsVersioning() {
+        trackNumberService.saveDraft(
+            trackNumber(
+                getUnusedTrackNumber(),
+                externalId = Oid("5.5.5.5.5"),
+                draft = true
+            )
+        ).id
+        val turpeela = operatingPoint("1.2.3.4.6", "Turpeela", Oid("5.5.5.5.5"))
+        val kannustamo = operatingPoint("1.2.3.4.5", "Kannustamo", Oid("5.5.5.5.5"))
+        val liukuainen = operatingPoint("1.2.3.4.7", "Liukuainen", Oid("5.5.5.5.5"))
+
+        fakeRatko.hasOperatingPoints(
+            listOf(
+                turpeela, kannustamo, liukuainen
+            )
+        )
+        ratkoService.updateOperatingPointsFromRatko()
+        fakeRatko.hasOperatingPoints(
+            listOf(
+                turpeela.copy(name = "Turpasauna"), liukuainen
+            )
+        )
+        ratkoService.updateOperatingPointsFromRatko()
+        assertTrue(jdbc.queryOne("""select deleted from layout.operating_point_version where name = 'Kannustamo' and version = 2""") { rs, _ ->
+            rs.getBoolean("deleted")
+        })
+        val pointsFromDatabase = ratkoLocalService.getOperatingPoints(boundingBoxAroundPoint(Point(10.0, 10.0), 10.0))
+        assertEquals(2, pointsFromDatabase.size)
+        assertEquals(listOf("Liukuainen", "Turpasauna"), pointsFromDatabase.map { it.name }.sorted())
+        assertEquals(5,
+            jdbc.queryOne("""select count(*) as c from layout.operating_point_version""") { rs, _ -> rs.getInt("c") })
     }
 
     private fun insertSomeOfficialReferenceLineFor(trackNumberId: IntId<TrackLayoutTrackNumber>): DaoResponse<ReferenceLine> {
