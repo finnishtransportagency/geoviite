@@ -71,6 +71,7 @@ data class LocationTrackDuplicate(
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val name: AlignmentName,
     val externalId: Oid<LocationTrack>?,
+    val duplicateStatus: DuplicateStatus,
 )
 
 data class LocationTrackDescription(
@@ -182,11 +183,21 @@ data class SwitchOnLocationTrack(
     val nearestOperatingPoint: RatkoOperatingPoint?,
 )
 
+enum class SplitDuplicateMatch { FULL, PARTIAL, NONE }
+data class DuplicateStatus(
+    val match: SplitDuplicateMatch,
+    val duplicateOf: IntId<LocationTrack>?,
+    val startSwitch: IntId<TrackLayoutSwitch>?,
+    val endSwitch: IntId<TrackLayoutSwitch>?,
+)
+
 data class SplitDuplicateTrack(
     val id: IntId<LocationTrack>,
     val name: AlignmentName,
     val start: AddressPoint,
     val end: AddressPoint,
+
+    val status: DuplicateStatus, // TODO: GVT-2525 add to front-end object as well
 )
 
 data class SplittingInitializationParameters(
