@@ -349,7 +349,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         )
         .map((tn) => {
             const note = tn.state === 'DELETED' ? ` (${t('enum.layout-state.DELETED')})` : '';
-            return { name: tn.number + note, value: tn.id };
+            return { name: tn.number + note, value: tn.id, qaId: `track-number-${tn.id}` };
         });
 
     const moveToEditLinkText = (track: LayoutLocationTrack) => {
@@ -614,6 +614,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                         options={locationTrackOwners.map((owner) => ({
                                             name: owner.name,
                                             value: owner.id,
+                                            qaId: `owner-${owner.id}`,
                                         }))}
                                         onChange={(value) => value && updateProp('ownerId', value)}
                                         onBlur={() => stateActions.onCommitField('ownerId')}
@@ -766,6 +767,7 @@ function createDuplicateTrackOptions(
                     type: 'locationTrackSearchItem',
                     locationTrack: lt,
                 },
+                qaId: `location-track-${lt.id}`,
             };
         });
 }

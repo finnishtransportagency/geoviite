@@ -20,6 +20,7 @@ import { Operation } from 'publication/publication-model';
 export interface LocalizedEnum<T> {
     value: T;
     get name(): string;
+    qaId: string;
 }
 
 function values<T>(keyBase: string, enumValues: T[]): LocalizedEnum<T>[] {
@@ -28,6 +29,7 @@ function values<T>(keyBase: string, enumValues: T[]): LocalizedEnum<T>[] {
         get name() {
             return i18n.t(`enum.${keyBase}.${v}`);
         },
+        qaId: `${keyBase}-${v}`,
     }));
 }
 
@@ -110,10 +112,14 @@ export const elevationMeasurementMethods: LocalizedEnum<ElevationMeasurementMeth
     ['TOP_OF_SLEEPER', 'TOP_OF_RAIL'],
 );
 
-export const verticalCoordinateSystems: { value: VerticalCoordinateSystem; name: string }[] = [
-    { value: 'N43', name: 'N43' },
-    { value: 'N60', name: 'N60' },
-    { value: 'N2000', name: 'N2000' },
+export const verticalCoordinateSystems: {
+    value: VerticalCoordinateSystem;
+    name: string;
+    qaId: string;
+}[] = [
+    { value: 'N43', name: 'N43', qaId: 'N43' },
+    { value: 'N60', name: 'N60', qaId: 'N60' },
+    { value: 'N2000', name: 'N2000', qaId: 'N2000' },
 ];
 
 export const switchTrapPoints: LocalizedEnum<TrapPoint>[] = [
@@ -122,18 +128,21 @@ export const switchTrapPoints: LocalizedEnum<TrapPoint>[] = [
         get name() {
             return i18n.t('enum.trap-point.Yes');
         },
+        qaId: `trap-point-yes`,
     },
     {
         value: TrapPoint.No,
         get name() {
             return i18n.t('enum.trap-point.No');
         },
+        qaId: `trap-point-no`,
     },
     {
         value: TrapPoint.Unknown,
         get name() {
             return i18n.t('enum.trap-point.Unknown');
         },
+        qaId: `trap-point-unknown`,
     },
 ];
 

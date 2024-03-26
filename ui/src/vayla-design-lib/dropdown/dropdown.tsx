@@ -18,7 +18,7 @@ export type Item<TItemValue> = {
     name: string;
     value: TItemValue;
     disabled?: boolean;
-    qaId?: string;
+    qaId: string;
 };
 
 export type DropdownOptions<TItemValue> =

@@ -143,8 +143,16 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const authors = useLoader(() => fetchAuthors(), [changeTimes.author]) || [];
 
     const planSourceOptions = [
-        menuValueOption('GEOMETRIAPALVELU' as PlanSource, t('enum.plan-source.GEOMETRIAPALVELU')),
-        menuValueOption('PAIKANNUSPALVELU' as PlanSource, t('enum.plan-source.PAIKANNUSPALVELU')),
+        menuValueOption(
+            'GEOMETRIAPALVELU' as PlanSource,
+            t('enum.plan-source.GEOMETRIAPALVELU'),
+            'GEOMETRIAPALVELU',
+        ),
+        menuValueOption(
+            'PAIKANNUSPALVELU' as PlanSource,
+            t('enum.plan-source.PAIKANNUSPALVELU'),
+            'PAIKANNUSPALVELU',
+        ),
     ];
 
     function changeInExtraParametersField<
@@ -374,7 +382,11 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                         wide
                                         value={geometryPlan.author?.id}
                                         options={authorsIncludingFromPlan().map((author) =>
-                                            menuValueOption(author.id, author.companyName),
+                                            menuValueOption(
+                                                author.id,
+                                                author.companyName,
+                                                `author-${author.id}`,
+                                            ),
                                         )}
                                         onChange={(authorId) => {
                                             authorId &&
@@ -423,6 +435,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                                               menuValueOption(
                                                                   tn.id,
                                                                   `${tn.number}`,
+                                                                  `track-number-${tn.id}`,
                                                               ),
                                                           )
                                                           .sort(compareNamed)
@@ -471,6 +484,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                                           menuValueOption(
                                                               srid.srid,
                                                               `${srid.name} ${srid.srid}`,
+                                                              srid.srid,
                                                           ),
                                                       )
                                                       .sort(compareNamed)
