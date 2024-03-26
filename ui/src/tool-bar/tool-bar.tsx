@@ -76,8 +76,9 @@ function createTrackNumberItem(layoutTrackNumber: LayoutTrackNumber): Item<Track
         {
             type: 'trackNumberSearchItem',
             trackNumber: layoutTrackNumber,
-        },
+        } as const,
         layoutTrackNumber.number,
+        `track-number-${layoutTrackNumber.id}`,
     );
 }
 
@@ -104,13 +105,14 @@ async function getOptions(
                 {
                     type: 'locationTrackSearchItem',
                     locationTrack: locationTrack,
-                },
+                } as const,
                 `${locationTrack.name}, ${
                     (locationTrackDescriptions &&
                         locationTrackDescriptions.find((d) => d.id == locationTrack.id)
                             ?.description) ??
                     ''
                 }`,
+                `location-track-${locationTrack.id}`,
             ),
     );
 
@@ -119,8 +121,9 @@ async function getOptions(
             {
                 type: 'switchSearchItem',
                 layoutSwitch: layoutSwitch,
-            },
-            `${layoutSwitch.name}`,
+            } as const,
+            layoutSwitch.name,
+            `switch-${layoutSwitch.id}`,
         ),
     );
 

@@ -36,6 +36,7 @@ export const ProjectDropdown: React.FC<ProjectDropdownProps> = ({
                                   .map((project) => ({
                                       name: project.name,
                                       value: project.id,
+                                      qaId: `project-${project.id}`,
                                   }))
                                   .sort(compareNamed)
                             : []

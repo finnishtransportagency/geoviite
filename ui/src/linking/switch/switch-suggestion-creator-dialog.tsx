@@ -209,6 +209,7 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
                         options={switchStructures?.map((switchStructure) => ({
                             name: switchStructure.type,
                             value: switchStructure.id,
+                            qaId: `switch-structure-${switchStructure.id}`,
                         }))}
                         onChange={setSwitchStructureId}
                         searchable
@@ -250,6 +251,7 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
                                             options={nearbyLocationTracks?.map((track) => ({
                                                 name: track.name,
                                                 value: track.id,
+                                                qaId: `track-${track.id}`,
                                             }))}
                                             onChange={(trackId) =>
                                                 selectLocationTrack(

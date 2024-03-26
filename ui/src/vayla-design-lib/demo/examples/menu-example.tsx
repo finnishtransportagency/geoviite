@@ -4,9 +4,9 @@ import { Button } from 'vayla-design-lib/button/button';
 
 export const MenuExample: React.FC = () => {
     const items = [
-        menuValueOption('MENU1', 'Menu option 1'),
-        menuValueOption('MENU2', 'Menu option 2'),
-        menuValueOption('MENU3', 'Menu option 3'),
+        menuValueOption('MENU1', 'Menu option 1', 'MENU1'),
+        menuValueOption('MENU2', 'Menu option 2', 'MENU2'),
+        menuValueOption('MENU3', 'Menu option 3', 'MENU3'),
     ];
 
     const [chosenItem, setChosenItem] = React.useState<string>('');

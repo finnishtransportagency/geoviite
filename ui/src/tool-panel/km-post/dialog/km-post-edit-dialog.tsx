@@ -194,7 +194,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
         .filter((tn) => tn.id === state.existingKmPost?.trackNumberId || tn.state !== 'DELETED')
         .map((tn) => {
             const note = tn.state === 'DELETED' ? ` (${t('enum.layout-state.DELETED')})` : '';
-            return { name: tn.number + note, value: tn.id };
+            return { name: tn.number + note, value: tn.id, qaId: `track-number-${tn.id}` };
         });
 
     const moveToEditLinkText = (kmp: LayoutKmPost) => {

@@ -38,6 +38,7 @@ const InfraModelFormChosenDateDropDowns: React.FC<InfraModelFormChosenDateDropDo
                 options={monthsData.map((month) => ({
                     name: month.name,
                     value: month.value,
+                    qaId: `month-${month.value}`,
                 }))}
                 onChange={(month: number) => handleMonthChange(month)}
                 canUnselect={false}
@@ -52,6 +53,7 @@ const InfraModelFormChosenDateDropDowns: React.FC<InfraModelFormChosenDateDropDo
                     (year) => ({
                         name: year.toString(),
                         value: year,
+                        qaId: `year-${year}`,
                     }),
                 )}
                 onChange={(year: number) => handleYearChange(year)}

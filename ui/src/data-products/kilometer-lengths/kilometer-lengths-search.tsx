@@ -40,6 +40,7 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
         useTrackNumbers(officialMainLayoutContext())?.map((tn) => ({
             name: tn.number,
             value: tn,
+            qaId: `track-number-${tn.number}`,
         })) || [];
 
     const kmPosts =
@@ -51,6 +52,7 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
         )?.map((km) => ({
             name: km.kmNumber,
             value: km.kmNumber,
+            qaId: `km-${km.kmNumber}`,
         })) || [];
 
     function updateProp<TKey extends keyof KmLengthsSearchState>(
