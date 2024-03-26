@@ -7,8 +7,8 @@ import { MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { deduplicate, filterNotEmpty } from 'utils/array-utils';
 import {
-    AlignmentDataHolder,
     getReferenceLineMapAlignmentsByTiles,
+    ReferenceLineAlignmentDataHolder,
 } from 'track-layout/layout-map-api';
 import {
     createAlignmentFeatures,
@@ -68,13 +68,10 @@ export function createReferenceLineAlignmentLayer(
         }
     }
 
-    const dataPromise: Promise<AlignmentDataHolder[]> = getReferenceLineMapAlignmentsByTiles(
-        changeTimes,
-        mapTiles,
-        layoutContext,
-    );
+    const dataPromise: Promise<ReferenceLineAlignmentDataHolder[]> =
+        getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext);
 
-    const createFeatures = (referenceLines: AlignmentDataHolder[]) =>
+    const createFeatures = (referenceLines: ReferenceLineAlignmentDataHolder[]) =>
         createAlignmentFeatures(
             referenceLines,
             selection,
@@ -85,7 +82,7 @@ export function createReferenceLineAlignmentLayer(
 
     const onLoadingChange = (
         loading: boolean,
-        referenceLines: AlignmentDataHolder[] | undefined,
+        referenceLines: ReferenceLineAlignmentDataHolder[] | undefined,
     ) => {
         if (!loading) {
             updateShownReferenceLines(referenceLines?.map(({ header }) => header.id) ?? []);

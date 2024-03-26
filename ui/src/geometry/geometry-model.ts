@@ -21,7 +21,6 @@ import { PVDocumentId } from 'infra-model/projektivelho/pv-model';
 
 export type GeometryPlanLayoutId = string;
 export type GeometryPlanId = string;
-export type GeometryTrackNumberId = string;
 export type GeometryAlignmentId = string;
 export type GeometryElementId = string;
 export type GeometrySwitchId = string;

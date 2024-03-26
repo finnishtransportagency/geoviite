@@ -72,8 +72,8 @@ export type WithLocation = {
     location?: Point;
 };
 
-export type WithId = {
-    id: PublishCandidateId;
+export type WithId<Id extends PublishCandidateId> = {
+    id: Id;
 };
 
 export type TrackNumberPublishCandidate = PublishCandidate &
@@ -237,10 +237,15 @@ export type PublicationChange = {
     enumKey?: string;
 };
 
-export type ValidatedAsset = {
-    id: AssetId;
+export type ValidatedAsset<Id extends AssetId> = {
+    id: Id;
     errors: PublishValidationError[];
 };
+export type ValidatedTrackNumber = ValidatedAsset<LayoutTrackNumberId>;
+export type ValidatedLocationTrack = ValidatedAsset<LocationTrackId>;
+export type ValidatedReferenceLine = ValidatedAsset<ReferenceLineId>;
+export type ValidatedSwitch = ValidatedAsset<LayoutSwitchId>;
+export type ValidatedKmPost = ValidatedAsset<LayoutKmPostId>;
 
 export type PublishRequest = {
     content: PublishRequestIds;

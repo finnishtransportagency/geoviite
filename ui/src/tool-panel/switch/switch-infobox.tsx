@@ -373,8 +373,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                 <AssetValidationInfoboxContainer
                     contentVisible={visibilities.validation}
                     onContentVisibilityChange={() => visibilityChange('validation')}
-                    id={layoutSwitch.id}
-                    type={'SWITCH'}
+                    idAndType={{ id: layoutSwitch.id, type: 'SWITCH' }}
                     layoutContext={layoutContext}
                     changeTime={changeTimes.layoutSwitch}
                 />

@@ -36,7 +36,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { PreviewCandidates, PublicationAssetChangeAmounts } from 'preview/preview-view-data';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 
-export type PublicationId =
+export type PublishableObjectId =
     | LayoutTrackNumberId
     | ReferenceLineId
     | LocationTrackId
@@ -93,55 +93,49 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
 
     const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);
 
-    const changesToPublicationEntries = (previewChanges: PreviewCandidates): PreviewTableEntry[] =>
-        previewChanges.trackNumbers
-            .map((trackNumberCandidate) => ({
-                ...trackNumberToChangeTableEntry(trackNumberCandidate),
-                errors: trackNumberCandidate.errors,
-                type: PreviewSelectType.trackNumber,
-                pendingValidation: trackNumberCandidate.pendingValidation,
-                boundingBox: trackNumberCandidate.boundingBox,
-            }))
-            .concat(
-                previewChanges.referenceLines.map((referenceLineCandidate) => ({
-                    ...referenceLineToChangeTableEntry(referenceLineCandidate, trackNumbers),
-                    errors: referenceLineCandidate.errors,
-                    type: PreviewSelectType.referenceLine,
-                    pendingValidation: referenceLineCandidate.pendingValidation,
-                    boundingBox: referenceLineCandidate.boundingBox,
-                })),
-            )
-            .concat(
-                previewChanges.locationTracks.map((locationTrackCandidate) => ({
-                    ...locationTrackToChangeTableEntry(locationTrackCandidate, trackNumbers),
-                    errors: locationTrackCandidate.errors,
-                    type: PreviewSelectType.locationTrack,
-                    pendingValidation: locationTrackCandidate.pendingValidation,
-                    boundingBox: locationTrackCandidate.boundingBox,
-                })),
-            )
-            .concat(
-                previewChanges.switches.map((switchCandidate) => ({
-                    ...switchToChangeTableEntry(switchCandidate, trackNumbers),
-                    errors: switchCandidate.errors,
-                    type: PreviewSelectType.switch,
-                    pendingValidation: switchCandidate.pendingValidation,
-                    boundingBox: switchCandidate.location
-                        ? calculateBoundingBoxToShowAroundLocation(switchCandidate.location)
-                        : undefined,
-                })),
-            )
-            .concat(
-                previewChanges.kmPosts.map((kmPostCandidate) => ({
-                    ...kmPostChangeTableEntry(kmPostCandidate, trackNumbers),
-                    errors: kmPostCandidate.errors,
-                    type: PreviewSelectType.kmPost,
-                    pendingValidation: kmPostCandidate.pendingValidation,
-                    boundingBox: kmPostCandidate.location
-                        ? calculateBoundingBoxToShowAroundLocation(kmPostCandidate.location)
-                        : undefined,
-                })),
-            );
+    const changesToPublicationEntries = (
+        previewChanges: PreviewCandidates,
+    ): PreviewTableEntry[] => [
+        ...previewChanges.trackNumbers.map((trackNumberCandidate) => ({
+            ...trackNumberToChangeTableEntry(trackNumberCandidate),
+            errors: trackNumberCandidate.errors,
+            type: PreviewSelectType.trackNumber,
+            pendingValidation: trackNumberCandidate.pendingValidation,
+            boundingBox: trackNumberCandidate.boundingBox,
+        })),
+        ...previewChanges.referenceLines.map((referenceLineCandidate) => ({
+            ...referenceLineToChangeTableEntry(referenceLineCandidate, trackNumbers),
+            errors: referenceLineCandidate.errors,
+            type: PreviewSelectType.referenceLine,
+            pendingValidation: referenceLineCandidate.pendingValidation,
+            boundingBox: referenceLineCandidate.boundingBox,
+        })),
+        ...previewChanges.locationTracks.map((locationTrackCandidate) => ({
+            ...locationTrackToChangeTableEntry(locationTrackCandidate, trackNumbers),
+            errors: locationTrackCandidate.errors,
+            type: PreviewSelectType.locationTrack,
+            pendingValidation: locationTrackCandidate.pendingValidation,
+            boundingBox: locationTrackCandidate.boundingBox,
+        })),
+        ...previewChanges.switches.map((switchCandidate) => ({
+            ...switchToChangeTableEntry(switchCandidate, trackNumbers),
+            errors: switchCandidate.errors,
+            type: PreviewSelectType.switch,
+            pendingValidation: switchCandidate.pendingValidation,
+            boundingBox: switchCandidate.location
+                ? calculateBoundingBoxToShowAroundLocation(switchCandidate.location)
+                : undefined,
+        })),
+        ...previewChanges.kmPosts.map((kmPostCandidate) => ({
+            ...kmPostChangeTableEntry(kmPostCandidate, trackNumbers),
+            errors: kmPostCandidate.errors,
+            type: PreviewSelectType.kmPost,
+            pendingValidation: kmPostCandidate.pendingValidation,
+            boundingBox: kmPostCandidate.location
+                ? calculateBoundingBoxToShowAroundLocation(kmPostCandidate.location)
+                : undefined,
+        })),
+    ];
 
     const publicationEntries: PreviewTableEntry[] = changesToPublicationEntries(previewChanges);
 

@@ -32,6 +32,7 @@ import {
 } from 'track-layout/layout-location-track-api';
 import { Point } from 'model/geometry';
 import { expectCoordinate } from 'utils/type-utils';
+import { brand } from 'common/brand';
 
 type EndpointType = 'START' | 'END';
 const BLACK = '#000000';
@@ -161,7 +162,7 @@ function createFeatures(
     return alignments
         .filter(
             (alignment) =>
-                duplicates.map((d) => d.id).includes(alignment.header.id) &&
+                duplicates.map((d) => d.id).includes(brand(alignment.header.id)) &&
                 alignment.points.length >= 2,
         )
         .flatMap(({ points, header }) => {

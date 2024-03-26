@@ -12,7 +12,7 @@ import {
     ValidationError,
     ValidationErrorType,
 } from 'utils/validation-utils';
-import { TrackNumber, ZERO_TRACK_METER } from 'common/common-model';
+import { ZERO_TRACK_METER } from 'common/common-model';
 import { formatTrackMeter } from 'utils/geography-utils';
 
 const TRACK_NUMBER_REGEX = /^[äÄöÖåÅA-Za-z0-9 ]{2,20}$/g;
@@ -29,7 +29,7 @@ const REGEX_VALIDATIONS: RegexValidation[] = [
 ];
 
 export type TrackNumberSaveRequest = {
-    number: TrackNumber;
+    number: string;
     description: string;
     state: LayoutState;
     startAddress: string;

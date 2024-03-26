@@ -28,7 +28,7 @@ import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-util
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import VectorSource from 'ol/source/Vector';
 import { Rectangle } from 'model/geometry';
-import { ValidatedAsset } from 'publication/publication-model';
+import { ValidatedSwitch } from 'publication/publication-model';
 import { Selection } from 'selection/selection-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { expectCoordinate, expectDefined } from 'utils/type-utils';
@@ -320,7 +320,7 @@ export const createLayoutSwitchFeatures = (
     selection: Selection,
     switches: LayoutSwitch[],
     switchStructures: SwitchStructure[],
-    validationResult: ValidatedAsset[],
+    validationResult: ValidatedSwitch[],
 ) => {
     const largeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
     const showLabels = resolution <= Limits.SWITCH_LABELS;
@@ -354,7 +354,7 @@ function createSwitchFeatures(
     showLabels: boolean,
     planId?: GeometryPlanId,
     switchStructures?: SwitchStructure[],
-    validationResult?: ValidatedAsset[],
+    validationResult?: ValidatedSwitch[],
 ): Feature<OlPoint>[] {
     return layoutSwitches
         .filter((s) => s.joints.length > 0)
@@ -390,7 +390,7 @@ function createSwitchFeature(
     showLabel: boolean,
     planId?: GeometryPlanId,
     presentationJointNumber?: string | undefined,
-    validationResult?: ValidatedAsset | undefined,
+    validationResult?: ValidatedSwitch | undefined,
 ): Feature<OlPoint>[] {
     const firstJoint = expectDefined(first(layoutSwitch.joints));
 

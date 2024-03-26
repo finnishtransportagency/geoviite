@@ -1,6 +1,7 @@
 import {
     PublicationGroup,
     PublishCandidate,
+    PublishCandidateId,
     PublishCandidates,
     PublishRequestIds,
     WithId,
@@ -154,13 +155,13 @@ export const previewCandidatesByUser = (
     kmPosts: filterPreviewCandidateArrayByUser(user, previewCandidates.kmPosts),
 });
 
-export const filterByPublicationGroup = (
-    candidates: (PublishCandidate & WithId)[],
+export const filterByPublicationGroup = <Id extends PublishCandidateId>(
+    candidates: (PublishCandidate & WithId<Id>)[],
     publicationGroup: PublicationGroup,
 ) => candidates.filter((candidate) => candidate.publicationGroup?.id === publicationGroup.id);
 
-export const assetIdsByPublicationGroup = (
-    candidates: (PublishCandidate & WithId)[],
+export const assetIdsByPublicationGroup = <Id extends PublishCandidateId>(
+    candidates: (PublishCandidate & WithId<Id>)[],
     publicationGroup: PublicationGroup,
 ) => {
     return filterByPublicationGroup(candidates, publicationGroup).map((candidate) => candidate.id);

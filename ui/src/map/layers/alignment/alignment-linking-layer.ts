@@ -19,6 +19,7 @@ import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/
 import { LINKING_DOTS } from 'map/layers/utils/layer-visibility-limits';
 import {
     ClusterPoint,
+    LayoutAlignmentTypeAndId,
     LinkingAlignment,
     LinkingGeometryWithAlignment,
     LinkingGeometryWithEmptyAlignment,
@@ -33,11 +34,6 @@ import { getMaxTimestamp } from 'utils/date-utils';
 import { getGeometryLinkPointsByTiles, getLinkPointsByTiles } from 'track-layout/layout-map-api';
 import { ChangeTimes } from 'common/common-slice';
 import { getTickStyle } from '../utils/alignment-layer-utils';
-import {
-    LocationTrackId,
-    MapAlignmentType,
-    ReferenceLineId,
-} from 'track-layout/track-layout-model';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
 import { getReferenceLine } from 'track-layout/layout-reference-line-api';
 import { formatTrackMeter } from 'utils/geography-utils';
@@ -718,17 +714,12 @@ type LinkPointContainer = { [k: string]: LinkPoint | undefined };
 async function getLinkPointsWithAddresses<
     T extends LinkPointContainer,
     TPropertyName extends keyof T,
->(
-    layoutContext: LayoutContext,
-    layoutAlignmentType: MapAlignmentType,
-    layoutAlignmentId: LocationTrackId | ReferenceLineId,
-    points: T,
-): Promise<T> {
-    const trackNumberId = await (layoutAlignmentType == 'LOCATION_TRACK'
-        ? getLocationTrack(layoutAlignmentId, draftLayoutContext(layoutContext)).then(
+>(layoutContext: LayoutContext, layoutAlignment: LayoutAlignmentTypeAndId, points: T): Promise<T> {
+    const trackNumberId = await (layoutAlignment.type == 'LOCATION_TRACK'
+        ? getLocationTrack(layoutAlignment.id, draftLayoutContext(layoutContext)).then(
               (locationTrack) => locationTrack?.trackNumberId,
           )
-        : getReferenceLine(layoutAlignmentId, draftLayoutContext(layoutContext)).then(
+        : getReferenceLine(layoutAlignment.id, draftLayoutContext(layoutContext)).then(
               (referenceLine) => referenceLine?.trackNumberId,
           ));
 
@@ -826,23 +817,12 @@ async function getLinkingData(
         return { type: 'empty' };
     } else if (state.type === LinkingType.LinkingAlignment) {
         const [points, pointAddresses] = await Promise.all([
-            getLinkPointsByTiles(
-                changeTime,
-                layoutContext,
-                mapTiles,
-                state.layoutAlignmentId,
-                state.layoutAlignmentType,
-            ),
-            getLinkPointsWithAddresses(
-                layoutContext,
-                state.layoutAlignmentType,
-                state.layoutAlignmentId,
-                {
-                    layoutStart: state.layoutAlignmentInterval.start,
-                    layoutEnd: state.layoutAlignmentInterval.end,
-                    layoutHighlight: first(highlightedItems.layoutLinkPoints),
-                },
-            ),
+            getLinkPointsByTiles(changeTime, layoutContext, mapTiles, state.layoutAlignment),
+            getLinkPointsWithAddresses(layoutContext, state.layoutAlignment, {
+                layoutStart: state.layoutAlignmentInterval.start,
+                layoutEnd: state.layoutAlignmentInterval.end,
+                layoutHighlight: first(highlightedItems.layoutLinkPoints),
+            }),
         ]);
         return { type: LinkingType.LinkingAlignment, state, points, pointAddresses };
     } else if (state.type === LinkingType.LinkingGeometryWithEmptyAlignment) {
@@ -855,16 +835,11 @@ async function getLinkingData(
                     filterNotEmpty,
                 ),
             ),
-            getLinkPointsWithAddresses(
-                layoutContext,
-                state.layoutAlignmentType,
-                state.layoutAlignmentId,
-                {
-                    geometryStart: state.geometryAlignmentInterval.start,
-                    geometryEnd: state.geometryAlignmentInterval.end,
-                    geometryHighlight: first(highlightedItems.geometryLinkPoints),
-                },
-            ),
+            getLinkPointsWithAddresses(layoutContext, state.layoutAlignment, {
+                geometryStart: state.geometryAlignmentInterval.start,
+                geometryEnd: state.geometryAlignmentInterval.end,
+                geometryHighlight: first(highlightedItems.geometryLinkPoints),
+            }),
         ]);
         return {
             type: LinkingType.LinkingGeometryWithEmptyAlignment,
@@ -885,26 +860,15 @@ async function getLinkingData(
                     state.layoutAlignmentInterval.end,
                 ].filter(filterNotEmpty),
             ),
-            getLinkPointsByTiles(
-                changeTime,
-                layoutContext,
-                mapTiles,
-                state.layoutAlignmentId,
-                state.layoutAlignmentType,
-            ),
-            getLinkPointsWithAddresses(
-                layoutContext,
-                state.layoutAlignmentType,
-                state.layoutAlignmentId,
-                {
-                    layoutStart: state.layoutAlignmentInterval.start,
-                    layoutEnd: state.layoutAlignmentInterval.end,
-                    layoutHighlight: first(highlightedItems.layoutLinkPoints),
-                    geometryStart: state.geometryAlignmentInterval.start,
-                    geometryEnd: state.geometryAlignmentInterval.end,
-                    geometryHighlight: first(highlightedItems.geometryLinkPoints),
-                },
-            ),
+            getLinkPointsByTiles(changeTime, layoutContext, mapTiles, state.layoutAlignment),
+            getLinkPointsWithAddresses(layoutContext, state.layoutAlignment, {
+                layoutStart: state.layoutAlignmentInterval.start,
+                layoutEnd: state.layoutAlignmentInterval.end,
+                layoutHighlight: first(highlightedItems.layoutLinkPoints),
+                geometryStart: state.geometryAlignmentInterval.start,
+                geometryEnd: state.geometryAlignmentInterval.end,
+                geometryHighlight: first(highlightedItems.geometryLinkPoints),
+            }),
         ]);
         return {
             type: LinkingType.LinkingGeometryWithAlignment,

@@ -9,6 +9,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { compare } from 'utils/array-utils';
 import i18next from 'i18next';
+import { Brand } from 'common/brand';
 
 export type RotationDirection = 'CW' | 'CCW';
 export type LinearUnit = 'MILLIMETER' | 'CENTIMETER' | 'METER' | 'KILOMETER';
@@ -69,7 +70,7 @@ export type MeasurementMethod =
 
 export type ElevationMeasurementMethod = 'TOP_OF_SLEEPER' | 'TOP_OF_RAIL';
 
-export type TrackNumber = string;
+export type TrackNumber = Brand<string, 'TrackNumber'>;
 
 export type KmNumber = string;
 export const ZERO_TRACK_METER: TrackMeter = {

@@ -9,7 +9,8 @@ import { LayoutContext, TimeStamp } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
 import {
     AlignmentPlanSectionInfoboxContent,
-    HighlightedAlignment,
+    HighlightedReferenceLine,
+    OnHighlightSection,
 } from 'tool-panel/alignment-plan-section-infobox-content';
 import { useTranslation } from 'react-i18next';
 import {
@@ -24,7 +25,7 @@ type TrackNumberGeometryInfoboxProps = {
     viewport: MapViewport;
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
-    onHighlightItem: (item: HighlightedAlignment | undefined) => void;
+    onHighlightItem: (item: HighlightedReferenceLine | undefined) => void;
     changeTime: TimeStamp;
 };
 
@@ -56,7 +57,16 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
             changeTime,
         ],
     );
-
+    const onHighlightSection: OnHighlightSection = (section) =>
+        onHighlightItem(
+            section === undefined
+                ? undefined
+                : {
+                      ...section,
+                      id: trackNumberId,
+                      type: 'REFERENCE_LINE',
+                  },
+        );
     return (
         <Infobox
             title={t('tool-panel.alignment-plan-sections.reference-line-geometries')}
@@ -84,10 +94,8 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
                         </p>
                     ) : (
                         <AlignmentPlanSectionInfoboxContent
-                            id={trackNumberId}
+                            onHighlightSection={onHighlightSection}
                             sections={sections || []}
-                            onHighlightItem={onHighlightItem}
-                            type={'REFERENCE_LINE'}
                         />
                     )}
                 </ProgressIndicatorWrapper>

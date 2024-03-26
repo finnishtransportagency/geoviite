@@ -1,4 +1,4 @@
-import { filterNotEmpty, filterUnique, first, last } from 'utils/array-utils';
+import { filterNotEmpty, filterUnique, first, last, objectEntries } from 'utils/array-utils';
 import {
     SuggestedSwitch,
     SuggestedSwitchJoint,
@@ -124,7 +124,7 @@ export function asTrackLayoutSwitchJointConnection({
 export function suggestedSwitchJointsAsLayoutSwitchJointConnections(
     ss: SuggestedSwitch,
 ): LayoutSwitchJointConnection[] {
-    const tracks = Object.entries(ss.trackLinks).flatMap(([locationTrackId, links]) =>
+    const tracks = objectEntries(ss.trackLinks).flatMap(([locationTrackId, links]) =>
         links.segmentJoints.map((sj) => ({
             number: sj.number,
             locationTrackId,
@@ -146,9 +146,9 @@ export function suggestedSwitchJointsAsLayoutSwitchJointConnections(
 export function suggestedSwitchTopoLinksAsTopologicalJointConnections(
     ss: SuggestedSwitch,
 ): TopologicalJointConnection[] {
-    return Object.entries(
-        Object.entries(ss.trackLinks)
-            .map(([id, link]) => link.topologyJoint && [link.topologyJoint.number, id])
+    return objectEntries(
+        objectEntries(ss.trackLinks)
+            .map(([id, link]) => link.topologyJoint && ([link.topologyJoint.number, id] as const))
             .filter(filterNotEmpty)
             .reduce<{ [key in JointNumber]: LocationTrackId[] }>((acc, [jointNumber, id]) => {
                 acc[jointNumber] ||= [];

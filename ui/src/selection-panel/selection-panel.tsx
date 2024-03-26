@@ -47,6 +47,7 @@ import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-se
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { VIEW_GEOMETRY } from 'user/user-model';
+import { objectEntries } from 'utils/array-utils';
 
 type SelectionPanelProps = {
     changeTimes: ChangeTimes;
@@ -109,7 +110,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     const diagramLayerSettings = mapLayerSettings['track-number-diagram-layer'];
     const diagramLayerMenuItem = mapLayoutMenu.find((i) => i.name === 'track-number-diagram');
 
-    const selectedTrackNumberIds: LayoutTrackNumberId[] = Object.entries(diagramLayerSettings)
+    const selectedTrackNumberIds: LayoutTrackNumberId[] = objectEntries(diagramLayerSettings)
         .filter(([_, setting]) => setting.selected)
         .map(([id]) => id);
 

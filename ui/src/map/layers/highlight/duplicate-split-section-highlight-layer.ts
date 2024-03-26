@@ -2,7 +2,10 @@ import { MapLayerName, MapTile } from 'map/map-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
-import { AlignmentDataHolder, getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
+import {
+    getLocationTrackMapAlignmentsByTiles,
+    LocationTrackAlignmentDataHolder,
+} from 'track-layout/layout-map-api';
 import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -19,7 +22,7 @@ import { filterNotEmpty } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
 
 function createFeatures(
-    alignments: AlignmentDataHolder[],
+    alignments: LocationTrackAlignmentDataHolder[],
     duplicateIds: LocationTrackId[],
     linkedDuplicates: LocationTrackId[],
 ): Feature<LineString>[] {
@@ -43,7 +46,7 @@ function createFeatures(
 type DuplicateSplitSectionData = {
     linkedDuplicates: LocationTrackId[];
     duplicates: LocationTrackId[];
-    alignments: AlignmentDataHolder[];
+    alignments: LocationTrackAlignmentDataHolder[];
 };
 
 async function getDuplicateSplitSectionData(
@@ -60,7 +63,7 @@ async function getDuplicateSplitSectionData(
             .filter(filterNotEmpty);
 
         const [alignments, extras] = await Promise.all([
-            getMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext),
+            getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext),
             getLocationTrackInfoboxExtras(
                 splittingState.originLocationTrack.id,
                 layoutContext,

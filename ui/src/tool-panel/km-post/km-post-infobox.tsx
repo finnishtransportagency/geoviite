@@ -174,8 +174,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
             <AssetValidationInfoboxContainer
                 contentVisible={visibilities.validation}
                 onContentVisibilityChange={() => visibilityChange('validation')}
-                id={kmPost.id}
-                type={'KM_POST'}
+                idAndType={{ id: kmPost.id, type: 'KM_POST' }}
                 layoutContext={layoutContext}
                 changeTime={kmPostChangeTime}
             />

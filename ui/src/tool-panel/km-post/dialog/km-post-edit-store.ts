@@ -1,7 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { KmPostSaveRequest } from 'linking/linking-model';
-import { LayoutKmPost } from 'track-layout/track-layout-model';
-import { GeometryTrackNumberId } from 'geometry/geometry-model';
+import { LayoutKmPost, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import {
     isPropEditFieldCommitted,
     PropEdit,
@@ -34,7 +33,7 @@ export const initialKmPostEditState: KmPostEditState = {
     allFieldsCommitted: false,
 };
 
-function newLinkingKmPost(trackNumberId: GeometryTrackNumberId | undefined): KmPostSaveRequest {
+function newLinkingKmPost(trackNumberId: LayoutTrackNumberId | undefined): KmPostSaveRequest {
     return {
         kmNumber: '',
         state: undefined,
@@ -99,7 +98,7 @@ const kmPostEditSlice = createSlice({
         init: (): KmPostEditState => initialKmPostEditState,
         initWithNewKmPost: (
             state: KmPostEditState,
-            { payload: trackNumberId }: PayloadAction<GeometryTrackNumberId | undefined>,
+            { payload: trackNumberId }: PayloadAction<LayoutTrackNumberId | undefined>,
         ): void => {
             state.isNewKmPost = true;
             state.kmPost = newLinkingKmPost(trackNumberId);

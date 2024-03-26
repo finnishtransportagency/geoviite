@@ -7,7 +7,6 @@ import InfoboxContent, { InfoboxContentSpread } from 'tool-panel/infobox/infobox
 import {
     LayoutLocationTrack,
     LayoutReferenceLine,
-    LocationTrackId,
     MapAlignmentType,
 } from 'track-layout/track-layout-model';
 import {
@@ -18,7 +17,7 @@ import {
     linkGeometryWithLocationTrack,
     linkGeometryWithReferenceLine,
 } from 'linking/linking-api';
-import { GeometryPlanId } from 'geometry/geometry-model';
+import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
@@ -90,10 +89,10 @@ function createLinkingGeometryWithEmptyAlignmentParameters(
     const geometryStart = linking.geometryAlignmentInterval.start;
     const geometryEnd = linking.geometryAlignmentInterval.end;
 
-    if (linking.layoutAlignmentId && geometryStart && geometryEnd) {
+    if (linking.layoutAlignment.id && geometryStart && geometryEnd) {
         return {
             geometryPlanId: linking.geometryPlanId,
-            layoutAlignmentId: linking.layoutAlignmentId,
+            layoutAlignmentId: linking.layoutAlignment.id,
             geometryInterval: toIntervalRequest(
                 geometryStart.alignmentId,
                 geometryStart.m,
@@ -146,7 +145,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     onContentVisibilityChange,
 }) => {
     const { t } = useTranslation();
-    const [linkedAlignmentIds, setLinkedAlignmentIds] = React.useState<LocationTrackId[]>([]);
+    const [linkedAlignmentIds, setLinkedAlignmentIds] = React.useState<GeometryAlignmentId[]>([]);
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddTrackNumberDialog, setShowAddTrackNumberDialog] = React.useState(false);
     const [linkingAlignmentType, setLinkingAlignmentType] =
@@ -226,20 +225,23 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
         onUnselect,
     );
 
+    function linkingTypeBySegmentCount(
+        alignment: LayoutLocationTrack | LayoutReferenceLine,
+    ): number {
+        return alignment.segmentCount > 0
+            ? LinkingType.LinkingGeometryWithAlignment
+            : LinkingType.LinkingGeometryWithEmptyAlignment;
+    }
     function lockAlignment() {
-        const selectedAlignment =
-            linkingAlignmentType === 'LOCATION_TRACK'
-                ? selectedLayoutLocationTrack
-                : selectedLayoutReferenceLine;
-
-        if (selectedAlignment) {
+        if (linkingAlignmentType === 'LOCATION_TRACK' && selectedLayoutLocationTrack) {
             onLockAlignment({
-                alignmentId: selectedAlignment.id,
-                alignmentType: linkingAlignmentType,
-                type:
-                    selectedAlignment.segmentCount > 0
-                        ? LinkingType.LinkingGeometryWithAlignment
-                        : LinkingType.LinkingGeometryWithEmptyAlignment,
+                alignment: { id: selectedLayoutLocationTrack.id, type: 'LOCATION_TRACK' },
+                type: linkingTypeBySegmentCount(selectedLayoutLocationTrack),
+            });
+        } else if (linkingAlignmentType === 'REFERENCE_LINE' && selectedLayoutReferenceLine) {
+            onLockAlignment({
+                alignment: { id: selectedLayoutReferenceLine.id, type: 'REFERENCE_LINE' },
+                type: linkingTypeBySegmentCount(selectedLayoutReferenceLine),
             });
         }
     }
@@ -262,7 +264,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                 const linkingParameters =
                     createLinkingGeometryWithAlignmentParameters(linkingState);
 
-                await (linkingState.layoutAlignmentType == 'LOCATION_TRACK'
+                await (linkingState.layoutAlignment.type == 'LOCATION_TRACK'
                     ? linkGeometryWithLocationTrack(linkingParameters)
                     : linkGeometryWithReferenceLine(linkingParameters));
 
@@ -274,7 +276,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
             } else if (linkingState?.type == LinkingType.LinkingGeometryWithEmptyAlignment) {
                 const linkingParameters =
                     createLinkingGeometryWithEmptyAlignmentParameters(linkingState);
-                await (linkingState.layoutAlignmentType == 'LOCATION_TRACK'
+                await (linkingState.layoutAlignment.type == 'LOCATION_TRACK'
                     ? linkGeometryWithEmptyLocationTrack(linkingParameters)
                     : linkGeometryWithEmptyReferenceLine(linkingParameters));
 

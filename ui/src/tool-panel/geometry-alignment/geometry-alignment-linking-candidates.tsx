@@ -222,7 +222,7 @@ export const GeometryAlignmentLinkingReferenceLineCandidates: React.FC<
                             : ReferenceLineBadgeStatus.DEFAULT
                     }
                 />
-                {linkingInProgress && linkingState.layoutAlignmentId === line.id && (
+                {linkingInProgress && linkingState.layoutAlignment.id === line.id && (
                     <Icons.Lock size={IconSize.SMALL} color={IconColor.INHERIT} />
                 )}
             </li>
@@ -376,7 +376,7 @@ export const GeometryAlignmentLinkingLocationTrackCandidates: React.FC<
                             : LocationTrackBadgeStatus.DEFAULT
                     }
                 />
-                {linkingInProgress && linkingState.layoutAlignmentId === track.id && (
+                {linkingInProgress && linkingState.layoutAlignment.id === track.id && (
                     <Icons.Lock size={IconSize.SMALL} color={IconColor.INHERIT} />
                 )}
                 <span>
