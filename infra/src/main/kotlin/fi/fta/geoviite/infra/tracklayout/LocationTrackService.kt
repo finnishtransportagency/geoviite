@@ -1,9 +1,16 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType.STORED
 import fi.fta.geoviite.infra.common.DataType.TEMP
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
@@ -12,7 +19,11 @@ import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.START_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.TopologyLinkFindingSwitch
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.math.*
+import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
+import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.ratko.RatkoOperatingPointDao
 import fi.fta.geoviite.infra.ratko.model.OperationalPointType
@@ -412,7 +423,7 @@ class LocationTrackService(
         val locationTrackAndAlignment = getWithAlignment(publicationState, id)
         return locationTrackAndAlignment?.let { (locationTrack, alignment) ->
             val duplicateOf = getDuplicateOf(locationTrack, publicationState)
-            val sortedDuplicates = getLocationTrackDuplicates(id, publicationState)
+            val sortedDuplicates = getLocationTrackDuplicates(locationTrack, alignment, publicationState)
             val startSwitch = (alignment.segments.firstOrNull()?.switchId as IntId?
                 ?: locationTrack.topologyStartSwitch?.switchId)?.let { id -> fetchSwitchAtEndById(id, publicationState) }
             val endSwitch = (alignment.segments.lastOrNull()?.switchId as IntId?
@@ -448,34 +459,121 @@ class LocationTrackService(
         ) + switchDao.findSwitchesNearAlignment(alignmentVersion)).distinct().size
 
     private fun getLocationTrackDuplicates(
-        id: IntId<LocationTrack>,
+        track: LocationTrack,
+        alignment: LayoutAlignment,
         publicationState: PublicationState,
     ): List<LocationTrackDuplicate> {
-        val originalAndAlignment = getWithAlignmentOrThrow(publicationState, id)
-        val duplicates = dao.fetchDuplicateVersions(id, publicationState).map(dao::fetch)
+        val switchJoints = collectSwitchJoints(track, alignment)
 
-        val duplicateMValues = duplicates.map { duplicate ->
-            duplicate.alignmentVersion?.let { alignmentVersion ->
-                alignmentDao.fetch(alignmentVersion).firstSegmentStart?.let(
-                    originalAndAlignment.second::getClosestPointM
-                )?.first
+        val markedDuplicateVersions = dao.fetchDuplicateVersions(track.id as IntId, publicationState)
+        val tracksLinkedThroughSwitch = switchDao.findLocationTracksLinkedToSwitches(publicationState, track.switchIds)
+            .map(LayoutSwitchDao.LocationTrackIdentifiers::rowVersion)
+
+        // TODO: GVT-2525 refactor for simplicity + combine return types?
+        return (markedDuplicateVersions + tracksLinkedThroughSwitch)
+            .asSequence()
+            .distinct()
+            .map(::getWithAlignmentInternal)
+            .filter { (duplicateTrack, _) -> duplicateTrack.id != track.id }
+            .flatMap { (duplicateTrack, duplicateAlignment) ->
+                val duplicateJoints = collectSwitchJoints(duplicateTrack, duplicateAlignment)
+                logger.warn("Seeking duplicates: main=${track.name} duplicate=${duplicateTrack.name}")
+                val statuses = getDuplicateMatches(switchJoints, duplicateJoints, track.id, duplicateTrack.duplicateOf)
+                statuses.map { (jointIndex, status) ->
+                    jointIndex to LocationTrackDuplicate(
+                        duplicateTrack.id as IntId,
+                        duplicateTrack.trackNumberId,
+                        duplicateTrack.name,
+                        duplicateTrack.externalId,
+                        status,
+                    )
+                }
+            }
+            .sortedWith(compareBy({ it.first }, { it.second.name }))
+            .map { (_, duplicate) -> duplicate }
+            .toList()
+    }
+
+    private fun getDuplicateMatches(
+        mainTrackJoints: List<Pair<IntId<TrackLayoutSwitch>, JointNumber>>,
+        duplicateTrackJoints: List<Pair<IntId<TrackLayoutSwitch>, JointNumber>>,
+        mainTrackId: DomainId<LocationTrack>,
+        duplicateOf: IntId<LocationTrack>?,
+    ): List<Pair<Int, DuplicateStatus>> {
+        var duplicateIndexStart = 0
+        val matchIndices = if (duplicateTrackJoints.isNotEmpty()) {
+            mainTrackJoints.mapNotNull { idAndJoint ->
+                val found = duplicateTrackJoints
+                    .subList(duplicateIndexStart, duplicateTrackJoints.size)
+                    .indexOf(idAndJoint)
+                if (found >= 0) (found + duplicateIndexStart).also { duplicateIndexStart = it } else null
+            }
+        } else {
+            emptyList()
+        }
+
+        val matchRanges = buildList<IntRange> {
+            matchIndices.forEach { index ->
+                val latest = lastOrNull()
+                if (latest?.endInclusive == index -1) set(lastIndex, latest.first..index)
+                else add(index..index)
+            }
+        }.filter { r -> r.first != r.last }
+        logger.warn("Seeking matches: indices=$matchIndices ranges=$matchRanges mainTrackJoints=$mainTrackJoints duplicateTrackJoints=$duplicateTrackJoints")
+
+        return if (matchRanges.isEmpty() && duplicateOf != mainTrackId) {
+            emptyList()
+        } else if (matchRanges.isEmpty() && duplicateOf == mainTrackId) {
+            listOf(-1 to DuplicateStatus(SplitDuplicateMatch.NONE, duplicateOf, null, null))
+        } else {
+            matchRanges.map { range ->
+                val match =
+                    if (range == 0..duplicateTrackJoints.lastIndex) SplitDuplicateMatch.FULL
+                    else SplitDuplicateMatch.PARTIAL
+                range.first to DuplicateStatus(
+                    match = match,
+                    duplicateOf = duplicateOf,
+                    startSwitch = duplicateTrackJoints[range.first].first,
+                    endSwitch = duplicateTrackJoints[range.last].first,
+                )
             }
         }
-        return duplicates
-            .mapIndexed { index, d -> index to d }
-            .sortedWith { a, b -> compareValues(duplicateMValues[a.first], duplicateMValues[b.first]) }
-            .map { (_, track) ->
-                LocationTrackDuplicate(track.id as IntId, track.trackNumberId, track.name, track.externalId)
-            }
     }
+
+    private fun collectSwitchJoints(
+        track: LocationTrack,
+        alignment: LayoutAlignment,
+    ): List<Pair<IntId<TrackLayoutSwitch>, JointNumber>> {
+        val allJoints = listOf(
+            listOfNotNull(track.topologyStartSwitch?.let { s -> s.switchId to s.jointNumber }),
+            alignment.segments.flatMap(::getSwitchJoints),
+            listOfNotNull(track.topologyEndSwitch?.let { s -> s.switchId to s.jointNumber }),
+        ).flatten().distinct()
+        // Skip all but first/last joint of each switch
+        return allJoints.filterIndexed { index, (id, _) ->
+            allJoints.getOrNull(index - 1)?.first != id || allJoints.getOrNull(index + 1)?.first != id
+        }
+    }
+
+    private fun getSwitchJoints(segment: LayoutSegment) =
+        segment.switchId
+            ?.let { id -> listOfNotNull(segment.startJointNumber, segment.endJointNumber).map { id as IntId to it } }
+            ?: emptyList()
 
     private fun getDuplicateOf(
         locationTrack: LocationTrack,
         publicationState: PublicationState,
     ) = locationTrack.duplicateOf?.let { duplicateId ->
-        get(publicationState, duplicateId)?.let { dup ->
+        getWithAlignment(publicationState, duplicateId)?.let { (dup, dupAlignment) ->
+            val ownAlignment = alignmentDao.fetch(locationTrack.getAlignmentVersionOrThrow())
+            val match = getDuplicateMatches(
+                collectSwitchJoints(locationTrack, ownAlignment),
+                collectSwitchJoints(dup, dupAlignment),
+                dup.id,
+                locationTrack.duplicateOf,
+            ).first().second
             LocationTrackDuplicate(
-                duplicateId, dup.trackNumberId, dup.name, dup.externalId
+                duplicateId, dup.trackNumberId, dup.name, dup.externalId, match,
             )
         }
     }
@@ -570,17 +668,18 @@ class LocationTrackService(
                     )
                 }
 
-            val duplicateTracks = getLocationTrackDuplicates(trackId, publicationState).mapNotNull { duplicate ->
-                getWithAlignmentOrThrow(publicationState, duplicate.id).let { (dupe, alignment) ->
-                    geocodingService.getLocationTrackStartAndEnd(publicationState, dupe, alignment)
-                }?.let { (start, end) ->
-                    if (start != null && end != null) {
-                        SplitDuplicateTrack(duplicate.id, duplicate.name, start, end)
-                    } else {
-                        null
+            val duplicateTracks = getLocationTrackDuplicates(locationTrack, alignment, publicationState)
+                .mapNotNull { duplicate ->
+                    getWithAlignmentOrThrow(publicationState, duplicate.id).let { (dupe, alignment) ->
+                        geocodingService.getLocationTrackStartAndEnd(publicationState, dupe, alignment)
+                    }?.let { (start, end) ->
+                        if (start != null && end != null) {
+                            SplitDuplicateTrack(duplicate.id, duplicate.name, start, end, duplicate.duplicateStatus)
+                        } else {
+                            null
+                        }
                     }
                 }
-            }
 
             SplittingInitializationParameters(
                 trackId, switches, duplicateTracks,
