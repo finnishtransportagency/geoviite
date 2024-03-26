@@ -14,5 +14,5 @@ export function brand<B>(thing: string | undefined): Brand<string, B> | undefine
 export function brand<T, B>(thing: T): Brand<T, B>;
 
 export function brand<T, B>(thing: T): Brand<T, B> {
-    return thing as unknown as Brand<T, B>;
+    return thing as Brand<T, B>;
 }
