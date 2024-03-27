@@ -169,7 +169,7 @@ export function getSwitchRenderer(
                     const textY = y + pixelRatio;
                     const paddingHor = 2;
                     const paddingVer = 1;
-                    const contentWidth = textWidth + (valid ? 0 : 15);
+                    const contentWidth = textWidth + (valid ? 0 : 1);
                     const backgroundX = textX - paddingHor * pixelRatio - pixelRatio;
                     const backgroundY =
                         textY - (fontSize * pixelRatio) / 2 - paddingVer * pixelRatio;
