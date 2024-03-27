@@ -24,3 +24,15 @@ fun rangesOfConsecutiveIndicesOf(
         .chunked(2)
         .map { c -> c[0]..c[1] + offsetRangeEndsBy }
         .toList()
+
+fun buildIntRanges(values: List<Int>): List<IntRange> =
+    buildList {
+        values.forEach { index ->
+            val latest = lastOrNull()
+            if (latest?.endInclusive == index - 1) {
+                set(lastIndex, latest.first..index)
+            } else {
+                add(index..index)
+            }
+        }
+    }
