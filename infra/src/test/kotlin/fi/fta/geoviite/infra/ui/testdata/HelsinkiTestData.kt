@@ -25,7 +25,7 @@ class HelsinkiTestData private constructor() {
 
         val HKI_BASE_POINT = Point(HKI_BASE_POINT_X, HKI_BASE_POINT_Y)
 
-        fun geometryPlan(trackLayoutTrackNumberId: IntId<TrackLayoutTrackNumber>): GeometryPlan {
+        fun geometryPlan(trackNumber: TrackNumber): GeometryPlan {
             return GeometryPlan(
                 source = PlanSource.GEOMETRIAPALVELU,
                 project = createProject(GEOMETRY_PLAN_NAME),
@@ -33,7 +33,7 @@ class HelsinkiTestData private constructor() {
                 author = null,
                 planTime = null,
                 units = tmi35GeometryUnit(),
-                trackNumberId = trackLayoutTrackNumberId,
+                trackNumber = trackNumber,
                 trackNumberDescription = PlanElementName(""),
                 alignments = listOf(westGeometryAlignment()),
                 switches = listOf(),

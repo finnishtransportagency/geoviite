@@ -200,14 +200,16 @@ fun validate(
     plan: GeometryPlan,
     featureTypes: List<FeatureType>,
     switchStructures: Map<IntId<SwitchStructure>, SwitchStructure>,
+    officialTrackNumbers: List<TrackNumber>,
 ): List<ValidationError> {
-    return validateMetadata(plan) +
+    return validateMetadata(plan, officialTrackNumbers) +
             validateAlignments(plan.alignments, featureTypes) +
             validateSwitches(plan.switches, plan.alignments, switchStructures) +
             validateKmPosts(plan.kmPosts)
 }
 
-fun validateMetadata(plan: GeometryPlan): List<ValidationError> = listOfNotNull<ValidationError>(
+fun validateMetadata(plan: GeometryPlan, officialTrackNumbers: List<TrackNumber>): List<ValidationError> =
+    listOfNotNull<ValidationError>(
     validate(plan.units.coordinateSystemSrid != null) {
         val key =
             if (plan.units.coordinateSystemName == null) "coordinate-system-missing"
@@ -217,8 +219,11 @@ fun validateMetadata(plan: GeometryPlan): List<ValidationError> = listOfNotNull<
     validate(plan.units.verticalCoordinateSystem != null || plan.alignments.all { a -> a.profile == null }) {
         MetadataError("vertical-coordinate-system-missing", VALIDATION_ERROR)
     },
-    validate(plan.trackNumberId != null) {
+    validate(plan.trackNumber != null) {
         MetadataError("track-number-missing", OBSERVATION_MAJOR)
+    },
+    validate(plan.trackNumber == null || officialTrackNumbers.contains(plan.trackNumber)) {
+        MetadataError("track-number-not-found", OBSERVATION_MAJOR)
     },
     validate(plan.planTime != null) {
         MetadataError("plan-time-missing", OBSERVATION_MINOR)

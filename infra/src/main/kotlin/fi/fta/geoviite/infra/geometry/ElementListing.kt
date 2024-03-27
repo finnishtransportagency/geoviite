@@ -30,7 +30,7 @@ data class ElementListing(
     val coordinateSystemSrid: Srid?,
     val coordinateSystemName: CoordinateSystemName?,
 
-    val trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    val trackNumber: TrackNumber?,
     val trackNumberDescription: PlanElementName?,
 
     val alignmentId: DomainId<GeometryAlignment>?,
@@ -79,6 +79,7 @@ fun toElementListing(
     getTransformation: (srid: Srid) -> Transformation,
     track: LocationTrack,
     layoutAlignment: LayoutAlignment,
+    trackNumber: TrackNumber?,
     elementTypes: List<TrackGeometryElementType>,
     startAddress: TrackMeter?,
     endAddress: TrackMeter?,
@@ -96,7 +97,7 @@ fun toElementListing(
         if (elementId == null) {
             if (elementTypes.contains(MISSING_SECTION)) toMissingElementListing(
                 context,
-                track.trackNumberId,
+                trackNumber,
                 segment,
                 track,
                 getSwitchName
@@ -148,7 +149,7 @@ fun toElementListing(
 
 private fun toMissingElementListing(
     context: GeocodingContext?,
-    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumber: TrackNumber?,
     segment: LayoutSegment,
     locationTrack: LocationTrack,
     getSwitchName: (IntId<TrackLayoutSwitch>) -> SwitchName,
@@ -159,7 +160,7 @@ private fun toMissingElementListing(
     fileName = null,
     coordinateSystemSrid = LAYOUT_SRID,
     coordinateSystemName = null,
-    trackNumberId = trackNumberId,
+    trackNumber = trackNumber,
     trackNumberDescription = null,
     alignmentId = null,
     alignmentName = null,
@@ -189,7 +190,7 @@ private fun toElementListing(
     planSource = planHeader.source,
     fileName = planHeader.fileName,
     units = planHeader.units,
-    trackNumberId = locationTrack.trackNumberId,
+    trackNumber = context?.trackNumber,
     trackNumberDescription = null,
     alignment = alignment,
     element = element,
@@ -212,7 +213,7 @@ private fun toElementListing(
     planSource = plan.source,
     fileName = plan.fileName,
     units = plan.units,
-    trackNumberId = plan.trackNumberId,
+    trackNumber = plan.trackNumber,
     trackNumberDescription = plan.trackNumberDescription,
     alignment = alignment,
     element = element,
@@ -222,20 +223,16 @@ private fun toElementListing(
 )
 
 fun planElementListingToCsv(
-    trackNumbers: List<TrackLayoutTrackNumber>,
     elementListing: List<ElementListing>,
-) = printCsv(planCsvEntries(trackNumbers), elementListing)
+) = printCsv(planCsvEntries(), elementListing)
 
 fun locationTrackElementListingToCsv(
-    trackNumbers: List<TrackLayoutTrackNumber>,
     elementListing: List<ElementListing>,
-) = printCsv(locationTrackCsvEntries(trackNumbers), elementListing)
+) = printCsv(locationTrackCsvEntries(), elementListing)
 
-private fun trackNumberCsvEntry(trackNumbers: List<TrackLayoutTrackNumber>) =
+private fun trackNumberCsvEntry() =
     CsvEntry<ElementListing>(translateElementListingHeader(ElementListingHeader.TRACK_NUMBER)) {
-        it.trackNumberId.let { locationTrackTrackNumber ->
-            trackNumbers.find { tn -> tn.id == locationTrackTrackNumber }?.number
-        }
+        it.trackNumber
     }
 
 private val commonElementListingCsvEntries = arrayOf(
@@ -280,14 +277,14 @@ private val commonElementListingCsvEntries = arrayOf(
     CsvEntry(translateElementListingHeader(ElementListingHeader.REMARKS)) { remarks(it) }
 )
 
-fun locationTrackCsvEntries(trackNumbers: List<TrackLayoutTrackNumber>) = listOf(
-    trackNumberCsvEntry(trackNumbers),
+fun locationTrackCsvEntries() = listOf(
+    trackNumberCsvEntry(),
     CsvEntry(translateElementListingHeader(ElementListingHeader.LOCATION_TRACK)) { it.locationTrackName },
     *commonElementListingCsvEntries
 )
 
-fun planCsvEntries(trackNumbers: List<TrackLayoutTrackNumber>) = listOf(
-    trackNumberCsvEntry(trackNumbers),
+fun planCsvEntries() = listOf(
+    trackNumberCsvEntry(),
     *commonElementListingCsvEntries
 )
 
@@ -304,7 +301,7 @@ private fun elementListing(
     planSource: PlanSource?,
     fileName: FileName,
     units: GeometryUnits,
-    trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    trackNumber: TrackNumber?,
     trackNumberDescription: PlanElementName?,
     alignment: GeometryAlignment,
     locationTrack: LocationTrack?,
@@ -321,7 +318,7 @@ private fun elementListing(
         fileName = fileName,
         coordinateSystemSrid = units.coordinateSystemSrid,
         coordinateSystemName = units.coordinateSystemName,
-        trackNumberId = trackNumberId,
+        trackNumber = trackNumber,
         trackNumberDescription = trackNumberDescription,
         alignmentId = alignment.id,
         alignmentName = alignment.name,

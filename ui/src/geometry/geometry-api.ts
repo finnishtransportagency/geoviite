@@ -21,7 +21,6 @@ import {
     AlignmentStartAndEnd,
     GeometryPlanLayout,
     LayoutSwitch,
-    LayoutTrackNumberId,
     LocationTrackId,
     PlanArea,
 } from 'track-layout/track-layout-model';
@@ -40,10 +39,11 @@ import { getChangeTimes } from 'common/change-time-api';
 import {
     ElevationMeasurementMethod,
     KmNumber,
-    LayoutDesignId,
     LayoutContext,
+    LayoutDesignId,
     PublicationState,
     TimeStamp,
+    TrackNumber,
     VerticalCoordinateSystem,
 } from 'common/common-model';
 import { bboxString } from 'common/common-api';
@@ -97,7 +97,7 @@ export async function getGeometryPlanHeadersBySearchTerms(
     offset?: number,
     bbox?: BoundingBox,
     sources?: PlanSource[],
-    trackNumberIds?: LayoutTrackNumberId[],
+    trackNumbers?: TrackNumber[],
     freeText?: string,
     sortField?: GeometrySortBy,
     sortOrder?: GeometrySortOrder,
@@ -108,7 +108,7 @@ export async function getGeometryPlanHeadersBySearchTerms(
         offset: offset || 0,
         limit: limit,
         freeText: freeText,
-        trackNumberIds: trackNumberIds,
+        trackNumbers,
         sortField:
             sortField === undefined || sortField === GeometrySortBy.NO_SORTING
                 ? undefined

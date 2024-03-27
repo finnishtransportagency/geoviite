@@ -72,7 +72,7 @@ val addressPoints = listOf(
     GeocodingReferencePoint(KmNumber(5, "A"), BigDecimal.ZERO, 3 * alignment.length / 5, 0.0, WITHIN),
     GeocodingReferencePoint(KmNumber(5, "B"), BigDecimal.ZERO, 4 * alignment.length / 5, 0.0, WITHIN),
 )
-val trackNumber: TrackLayoutTrackNumber = trackNumber(TrackNumber("T001"), draft = false)
+val trackNumber: TrackNumber = TrackNumber("T001")
 val kmPostLocations = (0..5).map { i ->
     val alignmentPoint = alignment.getPointAtM(i * alignment.length / 5)
     checkNotNull(alignmentPoint?.toPoint())
@@ -253,7 +253,7 @@ class GeocodingTest {
         )
         val startAddress = TrackMeter(KmNumber(2), 100)
         val ctx = GeocodingContext.create(
-            trackNumber = trackNumber(TrackNumber("T001"), draft = false),
+            trackNumber = TrackNumber("T001"),
             startAddress = startAddress,
             referenceLineGeometry = alignment(startSegment, connectSegment, endSegment),
             kmPosts = listOf(),
@@ -584,7 +584,7 @@ class GeocodingTest {
 
         assertThrows<IllegalArgumentException>("Geocoding context was created with empty reference line") {
             GeocodingContext(
-                trackNumber = trackNumber(TrackNumber("T001"), draft = false),
+                trackNumber = TrackNumber("T001"),
                 startAddress = TrackMeter(KmNumber(10), 100),
                 referenceLineGeometry = startAlignment,
                 referencePoints = emptyList(),
@@ -600,7 +600,7 @@ class GeocodingTest {
 
         assertThrows<IllegalArgumentException>("Geocoding context was created without reference points") {
             GeocodingContext(
-                trackNumber = trackNumber(TrackNumber("T001"), draft = false),
+                trackNumber = TrackNumber("T001"),
                 startAddress = TrackMeter(KmNumber(10), 100),
                 referenceLineGeometry = startAlignment,
                 referencePoints = emptyList(),
@@ -610,7 +610,7 @@ class GeocodingTest {
 
     @Test
     fun `should reject km posts without location`() {
-        val trackNumber = trackNumber(TrackNumber("T001"), draft = false)
+        val trackNumber = TrackNumber("T001")
         val startAlignment = LayoutAlignment(
             segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         )
@@ -637,7 +637,7 @@ class GeocodingTest {
 
     @Test
     fun `should reject km posts that are before start address`() {
-        val trackNumber = trackNumber(TrackNumber("T001"), draft = false)
+        val trackNumber = TrackNumber("T001")
         val startAlignment = LayoutAlignment(
             segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         )
@@ -660,7 +660,7 @@ class GeocodingTest {
 
     @Test
     fun `should reject km posts that intersects before reference line`() {
-        val trackNumber = trackNumber(TrackNumber("T001"), draft = false)
+        val trackNumber = TrackNumber("T001")
         val startAlignment = LayoutAlignment(
             segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         )
@@ -683,7 +683,7 @@ class GeocodingTest {
 
     @Test
     fun `should reject km posts that intersects after reference line`() {
-        val trackNumber = trackNumber(TrackNumber("T001"), draft = false)
+        val trackNumber = TrackNumber("T001")
         val startAlignment = LayoutAlignment(
             segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         )
@@ -706,7 +706,7 @@ class GeocodingTest {
 
     @Test
     fun `should reject km posts that are too far apart`() {
-        val trackNumber = trackNumber(TrackNumber("T001"), draft = false)
+        val trackNumber = TrackNumber("T001")
         val startAlignment = LayoutAlignment(
             segments = listOf(segment(Point(0.0, 0.0), Point(40000.0, 0.0)))
         )
@@ -729,7 +729,7 @@ class GeocodingTest {
 
     @Test
     fun `should require start km to have sane length`() {
-        val trackNumber = trackNumber(TrackNumber("T001"), draft = false)
+        val trackNumber = TrackNumber("T001")
         val startAlignment = LayoutAlignment(
             segments = listOf(segment(Point(0.0, 0.0), Point(100.0, 0.0)))
         )

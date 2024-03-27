@@ -16,21 +16,13 @@ import { IconComponent, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Table, Th } from 'vayla-design-lib/table/table';
 import DecisionPhase from 'geoviite-design-lib/geometry-plan/plan-decision-phase';
 import PlanPhase from 'geoviite-design-lib/geometry-plan/plan-phase';
-import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { inframodelDownloadUri } from 'infra-model/infra-model-api';
 import { GeometryPlanLinkingSummary, getGeometryPlanLinkingSummaries } from 'geometry/geometry-api';
 import { ConfirmHideInfraModel } from './confirm-hide-infra-model-dialog';
 import { ConfirmDownloadUnreliableInfraModelDialog } from './confirm-download-unreliable-infra-model-dialog';
 import { PrivilegeRequired } from 'user/privilege-required';
-import {
-    DOWNLOAD_GEOMETRY,
-    EDIT_GEOMETRY_FILE,
-    userHasPrivilege,
-    VIEW_LAYOUT_DRAFT,
-} from 'user/user-model';
-import { useCommonDataAppSelector } from 'store/hooks';
-import { draftMainLayoutContext, officialMainLayoutContext } from 'common/common-model';
+import { DOWNLOAD_GEOMETRY, EDIT_GEOMETRY_FILE } from 'user/user-model';
 
 export type InfraModelSearchResultProps = Pick<
     InfraModelListState,
@@ -52,8 +44,8 @@ function toggleSortOrder(
             sortOrder === undefined
                 ? GeometrySortOrder.ASCENDING
                 : sortOrder === GeometrySortOrder.ASCENDING
-                ? GeometrySortOrder.DESCENDING
-                : undefined;
+                  ? GeometrySortOrder.DESCENDING
+                  : undefined;
 
         return {
             sortBy: o ? sortBy : GeometrySortBy.NO_SORTING,
@@ -70,15 +62,6 @@ function toggleSortOrder(
 export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
     props: InfraModelSearchResultProps,
 ) => {
-    const privileges = useCommonDataAppSelector((state) => state.user?.role.privileges ?? []).map(
-        (p) => p.code,
-    );
-    const trackNumbers = useTrackNumbers(
-        userHasPrivilege(privileges, VIEW_LAYOUT_DRAFT)
-            ? draftMainLayoutContext()
-            : officialMainLayoutContext(),
-    );
-
     const [linkingSummaries, setLinkingSummaries] = useState<
         Map<GeometryPlanId, GeometryPlanLinkingSummary | undefined>
     >(() => new Map());
@@ -305,83 +288,73 @@ export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
                         </tr>
                     </thead>
                     <tbody id="infra-model-list-search-result__table-body">
-                        {trackNumbers &&
-                            props.plans.map((plan) => {
-                                return (
-                                    <tr
-                                        key={plan.id}
-                                        className="infra-model-list-search-result__plan"
-                                        onClick={() => props.onSelectPlan(plan.id)}>
-                                        <td>
-                                            {plan.project.name}
-                                            {plan.source == 'PAIKANNUSPALVELU' && (
-                                                <div className="infra-model-list-search-result__plan-paikannuspalvelu">
-                                                    {t('enum.plan-source.PAIKANNUSPALVELU')}
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td>{plan.fileName}</td>
-                                        <td>
-                                            {
-                                                trackNumbers.find(
-                                                    (trackNumber) =>
-                                                        trackNumber.id == plan.trackNumberId,
-                                                )?.number
-                                            }
-                                        </td>
-                                        <td>{plan.kmNumberRange?.min?.padStart(3, '0') || ''}</td>
-                                        <td>{plan.kmNumberRange?.max?.padStart(3, '0') || ''}</td>
-                                        <td>
-                                            <PlanPhase phase={plan.planPhase} />
-                                        </td>
-                                        <td>
-                                            <DecisionPhase decision={plan.decisionPhase} />
-                                        </td>
-                                        <td>{plan.planTime && formatDateShort(plan.planTime)}</td>
-                                        <td>
-                                            {plan.uploadTime && formatDateFull(plan.uploadTime)}
-                                        </td>
-                                        <td>{linkingSummaryDate(plan.id)}</td>
-                                        <td>{linkingSummaryUsers(plan.id)}</td>
-                                        <td onClick={(e) => e.stopPropagation()}>
-                                            <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
-                                                <Button
-                                                    title={t('im-form.download-file')}
-                                                    onClick={() => downloadPlan(plan)}
-                                                    variant={ButtonVariant.GHOST}
-                                                    size={ButtonSize.SMALL}
-                                                    icon={Icons.Download}
-                                                />
-                                            </PrivilegeRequired>
-                                        </td>
-                                        <td onClick={(e) => e.stopPropagation()}>
-                                            <PrivilegeRequired privilege={EDIT_GEOMETRY_FILE}>
-                                                <Button
-                                                    title={
-                                                        isCurrentlyLinked(plan.id)
-                                                            ? t('im-form.cannot-hide-file')
-                                                            : t('im-form.hide-file')
-                                                    }
-                                                    onClick={() => setConfirmHidePlan(plan)}
-                                                    disabled={isCurrentlyLinked(plan.id) ?? true}
-                                                    variant={ButtonVariant.GHOST}
-                                                    size={ButtonSize.SMALL}
-                                                    icon={Icons.Delete}
-                                                />
-                                            </PrivilegeRequired>
-                                        </td>
-                                        <td>
-                                            {plan.message ? (
-                                                <span title={plan.message}>
-                                                    <Icons.Info size={IconSize.SMALL} />
-                                                </span>
-                                            ) : (
-                                                <React.Fragment />
-                                            )}
-                                        </td>
-                                    </tr>
-                                );
-                            })}
+                        {props.plans.map((plan) => {
+                            return (
+                                <tr
+                                    key={plan.id}
+                                    className="infra-model-list-search-result__plan"
+                                    onClick={() => props.onSelectPlan(plan.id)}>
+                                    <td>
+                                        {plan.project.name}
+                                        {plan.source == 'PAIKANNUSPALVELU' && (
+                                            <div className="infra-model-list-search-result__plan-paikannuspalvelu">
+                                                {t('enum.plan-source.PAIKANNUSPALVELU')}
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td>{plan.fileName}</td>
+                                    <td>{plan.trackNumber}</td>
+                                    <td>{plan.kmNumberRange?.min?.padStart(3, '0') || ''}</td>
+                                    <td>{plan.kmNumberRange?.max?.padStart(3, '0') || ''}</td>
+                                    <td>
+                                        <PlanPhase phase={plan.planPhase} />
+                                    </td>
+                                    <td>
+                                        <DecisionPhase decision={plan.decisionPhase} />
+                                    </td>
+                                    <td>{plan.planTime && formatDateShort(plan.planTime)}</td>
+                                    <td>{plan.uploadTime && formatDateFull(plan.uploadTime)}</td>
+                                    <td>{linkingSummaryDate(plan.id)}</td>
+                                    <td>{linkingSummaryUsers(plan.id)}</td>
+                                    <td onClick={(e) => e.stopPropagation()}>
+                                        <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
+                                            <Button
+                                                title={t('im-form.download-file')}
+                                                onClick={() => downloadPlan(plan)}
+                                                variant={ButtonVariant.GHOST}
+                                                size={ButtonSize.SMALL}
+                                                icon={Icons.Download}
+                                            />
+                                        </PrivilegeRequired>
+                                    </td>
+                                    <td onClick={(e) => e.stopPropagation()}>
+                                        <PrivilegeRequired privilege={EDIT_GEOMETRY_FILE}>
+                                            <Button
+                                                title={
+                                                    isCurrentlyLinked(plan.id)
+                                                        ? t('im-form.cannot-hide-file')
+                                                        : t('im-form.hide-file')
+                                                }
+                                                onClick={() => setConfirmHidePlan(plan)}
+                                                disabled={isCurrentlyLinked(plan.id) ?? true}
+                                                variant={ButtonVariant.GHOST}
+                                                size={ButtonSize.SMALL}
+                                                icon={Icons.Delete}
+                                            />
+                                        </PrivilegeRequired>
+                                    </td>
+                                    <td>
+                                        {plan.message ? (
+                                            <span title={plan.message}>
+                                                <Icons.Info size={IconSize.SMALL} />
+                                            </span>
+                                        ) : (
+                                            <React.Fragment />
+                                        )}
+                                    </td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </Table>
             </div>

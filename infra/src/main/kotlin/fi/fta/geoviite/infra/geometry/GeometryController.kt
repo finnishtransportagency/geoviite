@@ -1,10 +1,7 @@
 package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.authorization.*
-import fi.fta.geoviite.infra.common.IndexedId
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublicationState
-import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.ID
 import fi.fta.geoviite.infra.logging.apiCall
@@ -38,7 +35,7 @@ class GeometryController @Autowired constructor(
         @RequestParam("bbox") bbox: BoundingBox?,
         @RequestParam("sources") sources: List<PlanSource>,
         @RequestParam("freeText") freeText: FreeText?,
-        @RequestParam("trackNumberIds") trackNumberIds: List<IntId<TrackLayoutTrackNumber>>?,
+        @RequestParam("trackNumbers") trackNumbers: List<TrackNumber>?,
         @RequestParam("limit") limit: Int?,
         @RequestParam("offset") offset: Int?,
         @RequestParam("sortField") sortField: GeometryPlanSortField?,
@@ -46,7 +43,7 @@ class GeometryController @Autowired constructor(
         @RequestParam("lang") lang: String,
     ): GeometryPlanHeadersSearchResult {
         log.apiCall("getPlanHeaders", "sources" to sources)
-        val filter = geometryService.getFilter(freeText, trackNumberIds ?: listOf())
+        val filter = geometryService.getFilter(freeText, trackNumbers ?: listOf())
         val headers = geometryService.getPlanHeaders(sources, bbox, filter)
         val comparator = geometryService.getComparator(sortField ?: ID, sortOrder ?: ASCENDING, lang)
         val results = pageAndRest(items = headers, offset = offset ?: 0, limit = limit ?: 50, comparator = comparator)

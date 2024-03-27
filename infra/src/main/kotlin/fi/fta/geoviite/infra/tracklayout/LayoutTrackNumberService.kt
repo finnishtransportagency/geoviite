@@ -214,7 +214,7 @@ private fun extractTrackKmLengths(
     //First km post is usually on another reference line, and therefore it has to be generated here
     return listOf(
         TrackLayoutKmLengthDetails(
-            trackNumber = trackNumber.number,
+            trackNumber = trackNumber,
             kmNumber = startPoint.address.kmNumber,
             startM = roundTo3Decimals(context.startAddress.meters.negate()),
             endM = roundTo3Decimals(distances.firstOrNull()?.second ?: referenceLineLength),
@@ -225,7 +225,7 @@ private fun extractTrackKmLengths(
         val endM = distances.getOrNull(index + 1)?.second ?: referenceLineLength
 
         TrackLayoutKmLengthDetails(
-            trackNumber = trackNumber.number,
+            trackNumber = trackNumber,
             kmNumber = kmPost.kmNumber,
             startM = roundTo3Decimals(startM),
             endM = roundTo3Decimals(endM),

@@ -33,7 +33,8 @@ class VerticalGeometryDiagramTestUI @Autowired constructor(
 
     @Test
     fun `Vertical geometry diagram for location track loads`() {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumber = getUnusedTrackNumber()
+        val trackNumberId = insertOfficialTrackNumber(trackNumber)
         referenceLineService.saveDraft(
             referenceLine(trackNumberId, draft = true),
             alignment(segment(DEFAULT_BASE_POINT + Point(0.0, 0.0), DEFAULT_BASE_POINT + Point(1000.0, 0.0)))
@@ -48,7 +49,7 @@ class VerticalGeometryDiagramTestUI @Autowired constructor(
         val plan = geometryDao.fetchPlan(
             geometryDao.insertPlan(
                 plan(
-                    trackNumberId, units = GeometryUnits(
+                    trackNumber, units = GeometryUnits(
                         coordinateSystemSrid = LAYOUT_SRID,
                         coordinateSystemName = null,
                         verticalCoordinateSystem = VerticalCoordinateSystem.N2000,

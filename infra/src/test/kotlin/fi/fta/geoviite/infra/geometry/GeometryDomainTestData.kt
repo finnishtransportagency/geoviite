@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.geometry.CantTransitionType.LINEAR
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.*
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
@@ -365,13 +364,13 @@ fun infraModelFile(name: String = "test_file.xml") = InfraModelFile(
 )
 
 fun plan(
-    trackNumberId: IntId<TrackLayoutTrackNumber> = IntId(1),
+    trackNumber: TrackNumber = TrackNumber("001"),
     srid: Srid = Srid(3879),
     vararg alignments: GeometryAlignment = arrayOf(geometryAlignment()),
-): GeometryPlan = plan(trackNumberId, srid, alignments.toList())
+): GeometryPlan = plan(trackNumber, srid, alignments.toList())
 
 fun plan(
-    trackNumberId: IntId<TrackLayoutTrackNumber> = IntId(1),
+    trackNumber: TrackNumber = TrackNumber("001"),
     srid: Srid = Srid(3879),
     alignments: List<GeometryAlignment> = listOf(geometryAlignment()),
     switches: List<GeometrySwitch> = listOf(),
@@ -394,7 +393,7 @@ fun plan(
         author = author("TEST Company"),
         planTime = planTime,
         units = units,
-        trackNumberId = trackNumberId,
+        trackNumber = trackNumber,
         trackNumberDescription = trackNumberDesc,
         alignments = alignments,
         switches = switches,
@@ -417,7 +416,7 @@ fun planHeader(
     elevationMeasurementMethod: ElevationMeasurementMethod? = ElevationMeasurementMethod.TOP_OF_SLEEPER,
     srid: Srid = Srid(3879),
     coordinateSystemName: CoordinateSystemName? = null,
-    trackNumberId: IntId<TrackLayoutTrackNumber> = IntId(1),
+    trackNumber: TrackNumber = TrackNumber("001"),
     verticalCoordinateSystem: VerticalCoordinateSystem? = null,
     source: PlanSource = PlanSource.GEOMETRIAPALVELU,
 ) = GeometryPlanHeader(
@@ -432,7 +431,7 @@ fun planHeader(
     elevationMeasurementMethod = elevationMeasurementMethod,
     kmNumberRange = null,
     planTime = Instant.EPOCH,
-    trackNumberId = trackNumberId,
+    trackNumber = trackNumber,
     linkedAsPlanId = null,
     message = FreeTextWithNewLines("test text \n description"),
     uploadTime = Instant.now(),
@@ -476,7 +475,7 @@ fun minimalPlan(
     pvDocumentId = null,
     measurementMethod = null,
     elevationMeasurementMethod = null,
-    trackNumberId = null,
+    trackNumber = null,
     uploadTime = null,
 )
 

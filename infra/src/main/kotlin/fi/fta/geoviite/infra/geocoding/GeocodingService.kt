@@ -162,9 +162,9 @@ class GeocodingService(
         geocodingCacheService.getGeocodingContextAtMoment(trackNumberId, moment)
 
     fun getGeocodingContext(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumber: TrackNumber,
         plan: RowVersion<GeometryPlan>,
-    ): GeocodingContext? = geocodingCacheService.getGeocodingContext(trackNumberId, plan)
+    ): GeocodingContext? = geocodingCacheService.getGeocodingContext(trackNumber, plan)
 
     fun getGeocodingContextCacheKey(
         trackNumberId: IntId<TrackLayoutTrackNumber>,

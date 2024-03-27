@@ -14,6 +14,7 @@ import {
     SwitchStructureId,
     TimeStamp,
     TrackMeter,
+    TrackNumber,
     VerticalCoordinateSystem,
 } from 'common/common-model';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
@@ -73,7 +74,7 @@ export type GeometryPlanHeader = {
     project: Project;
     fileName: string;
     source: PlanSource;
-    trackNumberId?: LayoutTrackNumberId;
+    trackNumber?: TrackNumber;
     kmNumberRange?: KmNumberRange;
     measurementMethod: MeasurementMethod;
     elevationMeasurementMethod?: ElevationMeasurementMethod;
@@ -100,7 +101,7 @@ export type GeometryPlan = {
     fileName: string;
     units: GeometryUnits;
     source: PlanSource;
-    trackNumberId?: LayoutTrackNumberId;
+    trackNumber?: TrackNumber;
     trackNumberDescription: string;
     alignments: GeometryAlignment[];
     switches: GeometrySwitch[];
@@ -137,7 +138,7 @@ export enum GeometrySortOrder {
 
 export type GeometryPlanSearchParams = {
     freeText: string;
-    trackNumberIds: LayoutTrackNumberId[];
+    trackNumbers: TrackNumber[];
     sources: PlanSource[];
     sortBy: GeometrySortBy;
     sortOrder: GeometrySortOrder | undefined;

@@ -1,9 +1,6 @@
 package fi.fta.geoviite.infra.geometry
 
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.JointNumber
-import fi.fta.geoviite.infra.common.StringId
-import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.boundingPolygonPointsByConvexHull
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.rotateAroundOrigin
@@ -11,7 +8,6 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_CRS
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.ui.testdata.createGeometryAlignment
 import fi.fta.geoviite.infra.ui.testdata.createGeometryKmPost
 import fi.fta.geoviite.infra.ui.testdata.tmi35GeometryUnit
@@ -31,7 +27,7 @@ class TestGeometryPlanService @Autowired constructor(
         val switchData: MutableList<SwitchData> = mutableListOf()
     }
 
-    inner class BuildGeometryPlan(val trackNumberId: IntId<TrackLayoutTrackNumber>) {
+    inner class BuildGeometryPlan(val trackNumber: TrackNumber) {
         val alignments: MutableList<BuildGeometryAlignment> = mutableListOf()
         val kmPosts: MutableList<GeometryKmPost> = mutableListOf()
         val switches: MutableList<GeometrySwitch> = mutableListOf()
@@ -88,7 +84,7 @@ class TestGeometryPlanService @Autowired constructor(
                 )
             }
             return saveAndRefetchGeometryPlan(plan(
-                trackNumberId,
+                trackNumber,
                 alignments = builtAlignments,
                 kmPosts = kmPosts,
                 switches = switches,
@@ -103,7 +99,7 @@ class TestGeometryPlanService @Autowired constructor(
         }
     }
 
-    fun buildPlan(trackNumberId: IntId<TrackLayoutTrackNumber>) = BuildGeometryPlan(trackNumberId)
+    fun buildPlan(trackNumber: TrackNumber) = BuildGeometryPlan(trackNumber)
 
 
     fun saveAndRefetchGeometryPlan(plan: GeometryPlan, boundingBox: List<Point>): GeometryPlan {

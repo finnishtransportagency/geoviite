@@ -21,6 +21,7 @@ import {
     CoordinateSystem as CoordinateSystemModel,
     draftMainLayoutContext,
     officialMainLayoutContext,
+    TrackNumber,
 } from 'common/common-model';
 import { getCoordinateSystem, getSridList } from 'common/common-api';
 import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
@@ -34,20 +35,13 @@ import { InfraModelElevationMeasurementMethodField } from 'infra-model/view/form
 import NewAuthorDialog from 'infra-model/view/dialogs/new-author-dialog';
 import NewProjectDialog from 'infra-model/view/dialogs/new-project-dialog';
 import { InfraModelVerticalCoordinateInfoboxField } from 'infra-model/view/form/fields/infra-model-vertical-coordinate-infobox-field';
-import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import InfraModelFormChosenDateDropDowns from 'infra-model/view/form/fields/infra-model-form-chosen-date-dropdowns';
 import FormgroupField from 'infra-model/view/formgroup/formgroup-field';
 import { formatDateShort } from 'utils/date-utils';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import { filterNotEmpty, first, last } from 'utils/array-utils';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
-import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
-import {
-    updateProjectChangeTime,
-    updateReferenceLineChangeTime,
-    updateTrackNumberChangeTime,
-} from 'common/change-time-api';
-import { OnSelectFunction } from 'selection/selection-model';
+import { updateProjectChangeTime } from 'common/change-time-api';
 import { ProjectDropdown } from 'infra-model/view/form/fields/infra-model-project-field';
 import { ChangeTimes } from 'common/common-slice';
 import { usePvDocumentHeader } from 'track-layout/track-layout-react-utils';
@@ -58,13 +52,9 @@ import { useLoader } from 'utils/react-utils';
 import i18next from 'i18next';
 import { menuValueOption } from 'vayla-design-lib/menu/menu';
 import { PrivilegeRequired } from 'user/privilege-required';
-import {
-    EDIT_GEOMETRY_FILE,
-    EDIT_LAYOUT,
-    userHasPrivilege,
-    VIEW_LAYOUT_DRAFT,
-} from 'user/user-model';
+import { EDIT_GEOMETRY_FILE, userHasPrivilege, VIEW_LAYOUT_DRAFT } from 'user/user-model';
 import { useCommonDataAppSelector } from 'store/hooks';
+import { ManualTrackNumberDialog } from 'infra-model/view/dialogs/manual-track-number-dialog';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -80,7 +70,6 @@ type InframodelViewFormContainerProps = {
     overrideInfraModelParameters: OverrideInfraModelParameters;
     extraInframodelParameters: ExtraInfraModelParameters;
     committedFields: InfraModelParametersProp[];
-    onSelect: OnSelectFunction;
 };
 
 export type EditablePlanField =
@@ -123,7 +112,6 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     overrideInfraModelParameters,
     extraInframodelParameters,
     committedFields,
-    onSelect,
 }: InframodelViewFormContainerProps) => {
     const { t } = useTranslation();
     const privileges = useCommonDataAppSelector((state) => state.user?.role.privileges ?? []).map(
@@ -139,7 +127,8 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const [showNewAuthorDialog, setShowNewAuthorDialog] = React.useState<boolean>();
     const [showNewProjectDialog, setShowNewProjectDialog] = React.useState<boolean>();
     const [showNewTrackNumberDialog, setShowNewTrackNumberDialog] = React.useState(false);
-    const [trackNumberList, setTrackNumberList] = React.useState<LayoutTrackNumber[]>();
+    const [trackNumberList, setTrackNumberList] = React.useState<TrackNumber[]>();
+    const [customTrackNumber, setCustomTrackNumber] = React.useState<TrackNumber>();
     const [project, setProject] = React.useState<Project>();
     const pvDocument = usePvDocumentHeader(geometryPlan.pvDocumentId);
     const authors = useLoader(() => fetchAuthors(), [changeTimes.author]) || [];
@@ -177,24 +166,21 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
         });
     }
 
-    function openAddTrackNumberDialog() {
-        setShowNewTrackNumberDialog(true);
-    }
-
-    const newTrackNumberOptionFn = userHasPrivilege(privileges, EDIT_LAYOUT)
-        ? openAddTrackNumberDialog
-        : undefined;
-
-    function closeAddTrackNumberDialog() {
-        setShowNewTrackNumberDialog(false);
-    }
-
     function updateTrackNumbers() {
         getTrackNumbers(
             userHasPrivilege(privileges, VIEW_LAYOUT_DRAFT)
                 ? draftMainLayoutContext()
                 : officialMainLayoutContext(),
-        ).then((trackNumbers) => setTrackNumberList(trackNumbers));
+        ).then((trackNumbers) => {
+            const numbers = trackNumbers.map((tn) => tn.number);
+            setTrackNumberList([
+                ...numbers,
+                ...(geometryPlan.trackNumber && !numbers.includes(geometryPlan.trackNumber)
+                    ? [geometryPlan.trackNumber]
+                    : []),
+                ...(customTrackNumber ? [customTrackNumber] : []),
+            ]);
+        });
     }
 
     function handleDayChange(chosenDate: Date) {
@@ -202,11 +188,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     }
 
     function getTrackNumberName() {
-        const trackId = overrideInfraModelParameters.trackNumberId
-            ? overrideInfraModelParameters.trackNumberId
-            : geometryPlan.trackNumberId;
-
-        return trackNumberList?.find((t) => t.id == trackId)?.number;
+        return overrideInfraModelParameters.trackNumber ?? geometryPlan.trackNumber;
     }
 
     const authorsIncludingFromPlan = () => {
@@ -262,15 +244,10 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
             : [];
     }
 
-    function onSelectTrackNumber(id: LayoutTrackNumberId) {
-        onSelect({ trackNumbers: [id] });
-    }
-
-    function handleTrackNumberSave(id: LayoutTrackNumberId) {
-        changeInOverrideParametersField(id, 'trackNumberId');
-        updateReferenceLineChangeTime().then(() =>
-            updateTrackNumberChangeTime().then(() => onSelectTrackNumber(id)),
-        );
+    function selectCustomTrackNumber(tn: TrackNumber) {
+        setCustomTrackNumber(tn);
+        setShowNewTrackNumberDialog(false);
+        changeInOverrideParametersField(tn, 'trackNumber');
     }
 
     return (
@@ -426,18 +403,17 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                         <Dropdown
                                             placeholder={t('im-form.coordinate-system-dropdown')}
                                             value={
-                                                overrideInfraModelParameters.trackNumberId
-                                                    ? overrideInfraModelParameters.trackNumberId
-                                                    : geometryPlan.trackNumberId
+                                                overrideInfraModelParameters.trackNumber ??
+                                                geometryPlan.trackNumber
                                             }
                                             options={
                                                 trackNumberList
                                                     ? trackNumberList
                                                           .map((tn) =>
                                                               menuValueOption(
-                                                                  tn.id,
-                                                                  `${tn.number}`,
-                                                                  `track-number-${tn.id}`,
+                                                                  tn,
+                                                                  tn,
+                                                                  `track-number-${tn}`,
                                                               ),
                                                           )
                                                           .sort(compareNamed)
@@ -445,9 +421,10 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                             }
                                             canUnselect
                                             onChange={(tn) =>
-                                                changeInOverrideParametersField(tn, 'trackNumberId')
+                                                changeInOverrideParametersField(tn, 'trackNumber')
                                             }
-                                            onAddClick={newTrackNumberOptionFn}
+                                            onAddClick={() => setShowNewTrackNumberDialog(true)}
+                                            onAddClickTitle={t('im-form.set-manual-track-number')}
                                         />
                                     }
                                 />
@@ -628,10 +605,11 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                         updateProjectChangeTime();
                     }}></NewProjectDialog>
             )}
-            {showNewTrackNumberDialog && trackNumberList && (
-                <TrackNumberEditDialogContainer
-                    onClose={closeAddTrackNumberDialog}
-                    onSave={handleTrackNumberSave}
+
+            {showNewTrackNumberDialog && (
+                <ManualTrackNumberDialog
+                    onSave={selectCustomTrackNumber}
+                    onClose={() => setShowNewTrackNumberDialog(false)}
                 />
             )}
         </React.Fragment>

@@ -6,6 +6,7 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
 import { useImmediateLoader } from 'utils/react-utils';
 import { first } from 'utils/array-utils';
+import { useTranslation } from 'react-i18next';
 
 export enum DropdownSize {
     SMALL = 'dropdown--small',
@@ -43,6 +44,7 @@ export type DropdownProps<TItemValue> = {
     onFocus?: () => void;
     hasError?: boolean;
     onAddClick?: () => void;
+    onAddClickTitle?: string;
     wideList?: boolean;
     qaId?: string;
 } & Pick<React.HTMLProps<HTMLInputElement>, 'disabled' | 'title'>;
@@ -63,6 +65,7 @@ export const Dropdown = function <TItemValue>({
     searchable = true,
     ...props
 }: DropdownProps<TItemValue>): JSX.Element {
+    const { t } = useTranslation();
     const menuRef = React.useRef<HTMLDivElement>(null);
     const inputRef = React.useRef<HTMLInputElement>(null);
     const listRef = React.useRef<HTMLUListElement>(null);
@@ -417,7 +420,7 @@ export const Dropdown = function <TItemValue>({
                                 icon={Icons.Append}
                                 wide
                                 onClick={props.onAddClick}>
-                                Lisää uusi
+                                {props.onAddClickTitle ?? t('dropdown.add-new')}
                             </Button>
                         </div>
                     )}

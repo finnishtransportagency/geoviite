@@ -9,7 +9,6 @@ import { useTranslation } from 'react-i18next';
 import { formatDateShort, toDateOrUndefined } from 'utils/date-utils';
 import PlanPhase from 'geoviite-design-lib/geometry-plan/plan-phase';
 import PlanDecisionPhase from 'geoviite-design-lib/geometry-plan/plan-decision-phase';
-import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import { differenceInYears } from 'date-fns';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -115,11 +114,7 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                 <InfoboxField
                     qaId="geometry-plan-track-number"
                     label={t('tool-panel.geometry-plan.track-number')}
-                    value={
-                        planHeader.trackNumberId && (
-                            <TrackNumberLinkContainer trackNumberId={planHeader.trackNumberId} />
-                        )
-                    }
+                    value={planHeader.trackNumber}
                 />
                 <InfoboxField
                     qaId="geometry-plan-start-km"

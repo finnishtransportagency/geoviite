@@ -623,7 +623,7 @@ fun validateGeocodingContext(
         }.let { invalidPoints ->
             validateWithParams(invalidPoints.isEmpty()) {
                 "$VALIDATION_GEOCODING.km-posts-invalid" to localizationParams(
-                    "trackNumber" to context.trackNumber.number,
+                    "trackNumber" to context.trackNumber,
                     "kmNumbers" to invalidPoints.joinToString(", ") { point -> point.kmNumber.toString() },
                 )
             }
@@ -635,7 +635,7 @@ fun validateGeocodingContext(
         .let { farAwayPoints ->
             validateWithParams(farAwayPoints.isEmpty(), WARNING) {
                 "$VALIDATION_GEOCODING.km-posts-far-from-line" to localizationParams(
-                    "trackNumber" to context.trackNumber.number,
+                    "trackNumber" to context.trackNumber,
                     "kmNumbers" to farAwayPoints.joinToString(",") { point -> point.kmNumber.toString() },
                 )
             }
