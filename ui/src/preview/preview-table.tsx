@@ -40,7 +40,7 @@ import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { PublicationAssetChangeAmounts } from 'publication/publication-utils';
 import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
-import styles from '*.scss';
+import styles from './preview-view.scss';
 import { PreviewTableItem } from 'preview/preview-table-item';
 
 export type PublishableObjectId =

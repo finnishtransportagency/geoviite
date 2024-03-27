@@ -12,7 +12,6 @@ import {
     KmPostPublicationCandidate,
     LocationTrackPublicationCandidate,
     PublicationCandidate,
-    PublicationCandidateId,
     PublicationCandidateReference,
     PublicationDetails,
     PublicationId,
@@ -31,7 +30,6 @@ import i18next from 'i18next';
 import { PublicationDetailsTableSortField } from 'publication/table/publication-table-utils';
 import { SortDirection } from 'utils/table-utils';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { brand } from 'common/brand';
 import { createPublicationCandidateReference } from 'publication/publication-utils';
 
 const PUBLICATION_URL = `${API_URI}/publications`;
@@ -130,7 +128,7 @@ const toPublicationRequestIds = (
             case DraftChangeType.REFERENCE_LINE:
                 publicationRequestIds.referenceLines.push(candidate.id);
                 break;
-                
+
             case DraftChangeType.SWITCH:
                 publicationRequestIds.switches.push(candidate.id);
                 break;
