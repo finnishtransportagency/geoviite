@@ -5,11 +5,9 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.*
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
-import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
@@ -76,7 +74,7 @@ class RatkoService @Autowired constructor(
             DatabaseLock.RATKO_OPERATING_POINTS_FETCH, databaseLockDuration
         ) {
             val points = ratkoClient.fetchOperatingPoints()
-            ratkoOperatingPointDao.writeOperatingPoints(points)
+            ratkoOperatingPointDao.updateOperatingPoints(points)
         }
     }
 
