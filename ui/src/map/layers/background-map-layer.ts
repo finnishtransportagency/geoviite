@@ -37,7 +37,7 @@ const makeMMLTileSourcePromise = (sourceType: BackgroundMapLayerSourceType) =>
 export type BackgroundMapLayerSourceType = 'taustakartta' | 'ortokuva';
 
 function createLayer(sourceType: BackgroundMapLayerSourceType) {
-    const layer = new Tile({ opacity: 0.5 });
+    const layer = new Tile({ opacity: sourceType === 'taustakartta' ? 0.5 : 1.0 });
     makeMMLTileSourcePromise(sourceType).then((source) => source && layer.setSource(source));
     return layer;
 }
