@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 const val LDAP_GROUP_GEOVIITE_PREFIX = "geoviite_"
+const val DESIRED_ROLE_COOKIE_NAME = "desiredRole"
 
 @Service
 class AuthorizationService @Autowired constructor(private val authorizationDao: AuthorizationDao) {

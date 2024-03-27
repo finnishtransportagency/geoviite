@@ -10,12 +10,7 @@ import correlationId
 import currentUser
 import currentUserRole
 import fi.fta.geoviite.infra.SpringContextUtility
-import fi.fta.geoviite.infra.authorization.AuthName
-import fi.fta.geoviite.infra.authorization.AuthorizationService
-import fi.fta.geoviite.infra.authorization.Role
-import fi.fta.geoviite.infra.authorization.User
-import fi.fta.geoviite.infra.authorization.UserDetails
-import fi.fta.geoviite.infra.authorization.UserName
+import fi.fta.geoviite.infra.authorization.*
 import fi.fta.geoviite.infra.error.ApiUnauthorizedException
 import fi.fta.geoviite.infra.error.createErrorResponse
 import fi.fta.geoviite.infra.logging.apiRequest
@@ -55,7 +50,6 @@ const val ALGORITHM_RS256 = "RS256"
 const val ALGORITHM_ES256 = "ES256"
 
 val slowRequestThreshold: Duration = Duration.ofSeconds(5)
-const val DESIRED_ROLE_COOKIE_NAME = "desiredRole"
 
 @ConditionalOnWebApplication
 @Component
