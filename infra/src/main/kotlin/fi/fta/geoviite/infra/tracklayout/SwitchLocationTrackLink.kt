@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
-import fi.fta.geoviite.infra.util.buildIntRanges
 
 fun getLocationTrackDuplicatesByJoint(
     mainTrackId: DomainId<LocationTrack>,
@@ -31,7 +30,7 @@ fun getDuplicateMatches(
     duplicateOf: IntId<LocationTrack>?,
 ): List<Pair<Int, DuplicateStatus>> {
     val matchIndices = findMatchingIndices(mainTrackJoints, duplicateTrackJoints)
-    val matchRanges = buildIntRanges(matchIndices).filter { r -> r.first != r.last }
+    val matchRanges = buildDuplicateIndexRanges(matchIndices)
 
     return if (matchRanges.isEmpty() && duplicateOf != mainTrackId) {
         // No matches, but also not marked as duplicate
@@ -57,16 +56,36 @@ fun getDuplicateMatches(
 fun findMatchingIndices(
     mainTrackJoints: List<Pair<IntId<TrackLayoutSwitch>, JointNumber>>,
     duplicateTrackJoints: List<Pair<IntId<TrackLayoutSwitch>, JointNumber>>,
-): List<Int> {
-    return if (duplicateTrackJoints.isNotEmpty()) {
-        var duplicateIndexStart = 0
-        mainTrackJoints.mapNotNull { idAndJoint ->
-            val found = duplicateTrackJoints.subList(duplicateIndexStart, duplicateTrackJoints.size).indexOf(idAndJoint)
-            if (found >= 0) (found + duplicateIndexStart).also { duplicateIndexStart = it } else null
+): List<Pair<Int, Int>> {
+    var duplicateIndexStart = 0
+    return mainTrackJoints.mapIndexedNotNull { mainIndex, idAndJoint ->
+        val found = duplicateTrackJoints.subList(duplicateIndexStart, duplicateTrackJoints.size).indexOf(idAndJoint)
+        found.takeIf { it >= 0 }?.let { foundIndex ->
+            mainIndex to (duplicateIndexStart + foundIndex).also { duplicateIndexStart = it }
         }
-    } else {
-        emptyList()
     }
+}
+
+fun buildDuplicateIndexRanges(matches: List<Pair<Int, Int>>): List<IntRange> {
+    val found = mutableListOf<IntRange>()
+    matches.forEachIndexed { index, (mainIndex, duplicateIndex) ->
+        val range = found.lastOrNull()
+
+        val indicesSkip = matches
+            .getOrNull(index - 1)
+            ?.let { (prevMain, prevDup) -> prevMain != mainIndex - 1 || prevDup != duplicateIndex - 1 }
+            ?: false
+
+        if (range == null || indicesSkip) {
+            // If there's no previous or it isn't compatible, start a new range
+            found.add(duplicateIndex..duplicateIndex)
+        } else {
+            // Otherwise extend the last one
+            found[found.lastIndex] = range.first..duplicateIndex
+        }
+    }
+    // Single-joint range isn't a range
+    return found.filter { r -> r.first != r.last }
 }
 
 fun collectSwitchJoints(
