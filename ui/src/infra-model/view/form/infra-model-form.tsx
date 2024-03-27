@@ -126,7 +126,9 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     onSelect,
 }: InframodelViewFormContainerProps) => {
     const { t } = useTranslation();
-    const privileges = useCommonDataAppSelector((state) => state.userPrivileges).map((p) => p.code);
+    const privileges = useCommonDataAppSelector((state) => state.user?.role.privileges ?? []).map(
+        (p) => p.code,
+    );
 
     const [coordinateSystem, setCoordinateSystem] = React.useState<
         CoordinateSystemModel | undefined

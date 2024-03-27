@@ -54,6 +54,7 @@ $appbar-height: 48px;
         color: vayla-design.$color-white-default;
         text-decoration: none;
 
+        &--disabled,
         &:hover:not(.menu__item:disabled) {
             background: vayla-design.$color-blue-dark;
             text-decoration: underline vayla-design.$color-blue-dark;

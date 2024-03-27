@@ -9,7 +9,7 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.assertSanitized
 import org.springframework.security.core.GrantedAuthority
 
-data class User(val details: UserDetails, val role: Role)
+data class User(val details: UserDetails, val role: Role, val availableRoles: List<Role>)
 
 data class UserDetails(
     val userName: UserName,

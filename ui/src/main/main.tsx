@@ -109,7 +109,7 @@ export const MainContainer: React.FC = () => {
 
     React.useEffect(() => {
         getOwnUser().then((user) => {
-            delegates.setUserPrivileges(user.role.privileges);
+            delegates.setUser(user);
 
             if (!user.role.privileges.map((priv) => priv.code).includes(VIEW_GEOMETRY)) {
                 mapDelegates.showLayers(['virtual-hide-geometry-layer']);

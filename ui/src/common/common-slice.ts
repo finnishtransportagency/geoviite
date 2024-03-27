@@ -1,7 +1,7 @@
 import { ActionReducerMapBuilder, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { TimeStamp } from 'common/common-model';
 import { toDate } from 'utils/date-utils';
-import { Privilege } from 'user/user-model';
+import { User } from 'user/user-model';
 import { PURGE } from 'redux-persist';
 
 export type ChangeTimes = {
@@ -40,13 +40,13 @@ export const initialChangeTimes: ChangeTimes = {
 export type CommonState = {
     version: string | undefined;
     changeTimes: ChangeTimes;
-    userPrivileges: Privilege[];
+    user: User | undefined;
 };
 
 export const initialCommonState = {
     version: undefined,
     changeTimes: initialChangeTimes,
-    userPrivileges: [],
+    user: undefined,
 };
 
 const updateChangeTime = (changeTimes: ChangeTimes, key: keyof ChangeTimes, time: TimeStamp) => {
@@ -136,11 +136,8 @@ const commonSlice = createSlice({
         setSplitChangeTime: function ({ changeTimes }, { payload }) {
             updateChangeTime(changeTimes, 'split', payload);
         },
-        setUserPrivileges: (
-            state: CommonState,
-            { payload: privileges }: PayloadAction<Privilege[]>,
-        ): void => {
-            state.userPrivileges = privileges;
+        setUser: (state: CommonState, { payload: user }: PayloadAction<User>): void => {
+            state.user = user;
         },
     },
 });

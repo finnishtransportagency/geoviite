@@ -9,8 +9,8 @@ type PrivilegedLinkProps = {
 } & React.HTMLProps<HTMLAnchorElement>;
 
 export const PrivilegedLink: React.FC<PrivilegedLinkProps> = (props: PrivilegedLinkProps) => {
-    const userHasPrivilege = useCommonDataAppSelector((state) =>
-        state.userPrivileges.some((p) => p.code === props.privilege),
+    const userHasPrivilege = useCommonDataAppSelector(
+        (state) => state.user?.role.privileges.some((p) => p.code === props.privilege) ?? false,
     );
 
     if (userHasPrivilege) {

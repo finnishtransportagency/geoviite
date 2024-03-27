@@ -10,12 +10,7 @@ import correlationId
 import currentUser
 import currentUserRole
 import fi.fta.geoviite.infra.SpringContextUtility
-import fi.fta.geoviite.infra.authorization.AuthName
-import fi.fta.geoviite.infra.authorization.AuthorizationService
-import fi.fta.geoviite.infra.authorization.Role
-import fi.fta.geoviite.infra.authorization.User
-import fi.fta.geoviite.infra.authorization.UserDetails
-import fi.fta.geoviite.infra.authorization.UserName
+import fi.fta.geoviite.infra.authorization.*
 import fi.fta.geoviite.infra.error.ApiUnauthorizedException
 import fi.fta.geoviite.infra.error.createErrorResponse
 import fi.fta.geoviite.infra.logging.apiRequest
@@ -75,7 +70,12 @@ class RequestFilter @Autowired constructor(
         check(jwksUrl.isNotBlank()) { "Invalid configuration: set property geoviite.jwt.validation.url" }
         UrlJwkProvider(URL("$jwksUrl/.well-known/jwks.json"))
     }
+
     private val localUser by lazy {
+        val availableRolesForLocalUser = authorizationService.getRoles(
+            authorizationService.defaultRoleCodeOrder,
+        )
+
         User(
             details = UserDetails(
                 userName = UserName("LOCAL_USER"),
@@ -83,7 +83,8 @@ class RequestFilter @Autowired constructor(
                 lastName = AuthName("User"),
                 organization = AuthName("Geoviite"),
             ),
-            role = authorizationService.getRole(Code("operator")),
+            role = authorizationService.getDefaultRole(availableRolesForLocalUser),
+            availableRoles = availableRolesForLocalUser,
         )
     }
     private val healthCheckUser by lazy {
@@ -94,6 +95,7 @@ class RequestFilter @Autowired constructor(
                 name = AuthName("Service Health Check"),
                 privileges = listOf(),
             ),
+            availableRoles = listOf()
         )
     }
 
@@ -116,11 +118,16 @@ class RequestFilter @Autowired constructor(
         try {
             correlationId.set(extractRequestCorrelationId(request))
             val user = getUser(request)
+
             currentUser.set(user.details.userName)
             currentUserRole.set(user.role.code)
 
             log.apiRequest(request, requestIP)
-            val auth = UsernamePasswordAuthenticationToken(user, "", user.role.privileges)
+            val auth = UsernamePasswordAuthenticationToken(
+                user,
+                "",
+                user.role.privileges
+            )
             SecurityContextHolder.getContext().authentication = auth
             chain.doFilter(request, response)
         } catch (ex: Exception) {
@@ -139,21 +146,45 @@ class RequestFilter @Autowired constructor(
 
     private fun getUser(request: HttpServletRequest): User {
         val headers = request.headerNames.toList()
+
         return if (skipAuth) {
             localUser
         } else if (request.requestURI == "/actuator/health" && headers.none { h -> h.startsWith("x-iam") }) {
             healthCheckUser
         } else {
             val content = getJwtData(request)
+
             log.info(
                 "JWT authorization headers processed: " +
                     "validated=$validationEnabled user=${content.userDetails.userName} groups=${content.groupNames}"
             )
-            val role = authorizationService.getRoleByUserGroups(content.groupNames) ?: throw ApiUnauthorizedException(
-                "User doesn't have a valid role: userId=${content.userDetails.userName} groups=${content.groupNames}"
+
+            val availableRoles = authorizationService.getRolesByUserGroups(content.groupNames)
+            if (availableRoles.isEmpty()) {
+                throw ApiUnauthorizedException(
+                    "User doesn't have a valid role: userId=${content.userDetails.userName} groups=${content.groupNames}"
+                )
+            }
+
+            User(
+                details = content.userDetails,
+                role = getActiveUserRole(request, availableRoles),
+                availableRoles = availableRoles,
             )
-            User(content.userDetails, role)
         }
+    }
+
+    private fun getActiveUserRole(request: HttpServletRequest, availableRoles: List<Role>): Role {
+        return request.cookies?.firstOrNull { cookie ->
+            cookie?.name == DESIRED_ROLE_COOKIE_NAME
+        }?.let { desiredRoleCookie ->
+            val desiredRoleCode = Code(desiredRoleCookie.value)
+
+            availableRoles.find { availableRole ->
+                availableRole.code == desiredRoleCode
+            }
+
+        } ?: authorizationService.getDefaultRole(availableRoles)
     }
 
     private fun getJwtData(request: HttpServletRequest): JwtContent {

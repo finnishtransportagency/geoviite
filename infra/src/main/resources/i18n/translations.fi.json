@@ -1506,7 +1506,15 @@
     "user-card": {
         "my-details": "Omat tiedot",
         "role": "Rooli",
-        "permissions": "Oikeudet"
+        "permissions": "Oikeudet",
+        "selected-role": "Valittu"
+    },
+    "user-roles": {
+        "operator": "Operaattori",
+        "browser": "Selaaja",
+        "consultant": "Konsultti",
+        "authority": "Virastokäyttäjä",
+        "team": "Kehitystiimi"
     },
     "vertical-geometry-diagram": {
         "no-geometry": "Valitun raiteen pystygeometriaa ei voida esittää.",

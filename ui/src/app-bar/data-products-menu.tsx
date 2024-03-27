@@ -14,9 +14,9 @@ const DataProductsMenu: React.FC = () => {
     const [showMenu, setShowMenu] = React.useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const navigate = useNavigate();
-    const currentPrivileges = useCommonDataAppSelector((state) => state.userPrivileges).map(
-        (p) => p.code,
-    );
+    const currentPrivileges = useCommonDataAppSelector(
+        (state) => state.user?.role.privileges ?? [],
+    ).map((p) => p.code);
 
     const dataProducts = [
         userHasPrivilege(currentPrivileges, VIEW_GEOMETRY_FILE)

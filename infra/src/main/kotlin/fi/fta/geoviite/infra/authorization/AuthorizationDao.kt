@@ -1,28 +1,80 @@
 package fi.fta.geoviite.infra.authorization
 
-import fi.fta.geoviite.infra.configuration.CACHE_ROLES
+import com.github.benmanes.caffeine.cache.Cache
+import com.github.benmanes.caffeine.cache.Caffeine
+import fi.fta.geoviite.infra.configuration.staticDataCacheDuration
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
-import org.springframework.cache.annotation.Cacheable
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.util.*
+
+const val AUTHORIZATION_ROLE_CACHE_SIZE = 100L
 
 @Transactional(readOnly = true)
 @Component
-class AuthorizationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+class AuthorizationDao(
+    jdbcTemplateParam: NamedParameterJdbcTemplate?,
+    @Value("\${geoviite.cache.enabled}") val cacheEnabled: Boolean,
+) : DaoBase(jdbcTemplateParam) {
 
-    fun getRole(roleCode: Code): Role =
-        getRoleInternal(roleCode = roleCode, userGroup = null)
-            ?: throw IllegalStateException("No such role: roleCode=$roleCode")
+    // Caffeine cache does not store null values, but they should also not be re-fetched
+    // => Codes are stored as optionals.
+    private val roleCodeCache: Cache<Code, Optional<Role>> =
+        Caffeine.newBuilder()
+            .maximumSize(AUTHORIZATION_ROLE_CACHE_SIZE)
+            .expireAfterAccess(staticDataCacheDuration)
+            .build()
 
-    @Cacheable(CACHE_ROLES, sync = true)
-    fun getRoleByUserGroup(ldapGroup: Code): Role? =
-        getRoleInternal(roleCode = null, userGroup = ldapGroup)
+    private val userGroupCache: Cache<Code, Optional<Role>> =
+        Caffeine.newBuilder()
+            .maximumSize(AUTHORIZATION_ROLE_CACHE_SIZE)
+            .expireAfterAccess(staticDataCacheDuration)
+            .build()
 
-    private fun getRoleInternal(roleCode: Code? = null, userGroup: Code? = null): Role? {
-        if (roleCode == null && userGroup == null) throw IllegalStateException("Can't fetch role without name/group")
+    fun getRolesByRoleCodes(roleCodes: List<Code>): List<Role> {
+        return roleCodes.mapNotNull { roleCode ->
+            getRoleByRoleCode(roleCode = roleCode)
+        }
+    }
+
+    fun getRolesByUserGroups(ldapGroups: List<Code>): List<Role> {
+        return ldapGroups.mapNotNull { userGroup ->
+            getRoleByUserGroup(userGroup = userGroup)
+        }
+    }
+
+    fun getRoleByRoleCode(roleCode: Code): Role? {
+        val role = if (cacheEnabled) {
+            roleCodeCache.get(roleCode) { code ->
+                fetchRoleInternal(roleCode = code)
+            }
+        } else {
+            fetchRoleInternal(roleCode = roleCode)
+        }
+
+        return role.orElse(null)
+    }
+
+    fun getRoleByUserGroup(userGroup: Code): Role? {
+        val role = if (cacheEnabled) {
+            userGroupCache.get(userGroup) { group ->
+                fetchRoleInternal(userGroup = group)
+            }
+        } else {
+            fetchRoleInternal(userGroup = userGroup)
+        }
+
+        return role.orElse(null)
+    }
+
+    private fun fetchRoleInternal(roleCode: Code? = null, userGroup: Code? = null): Optional<Role> {
+        check(roleCode != null || userGroup != null) {
+            "Can't fetch role without name/group"
+        }
 
         //language=SQL
         val sql = """
@@ -39,14 +91,14 @@ class AuthorizationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase
             Role(
                 code = code,
                 name = AuthName(rs.getString("name")),
-                privileges = getRolePrivileges(code),
+                privileges = fetchRolePrivilegesInternal(code),
             )
         }
         logger.daoAccess(FETCH, Role::class, listOfNotNull(roleCode, userGroup))
-        return role
+        return Optional.ofNullable(role)
     }
 
-    private fun getRolePrivileges(code: Code): List<Privilege> {
+    private fun fetchRolePrivilegesInternal(code: Code): List<Privilege> {
         val sql = """
             select privilege.code, privilege.name, privilege.description
             from common.role_privilege rp

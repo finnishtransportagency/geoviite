@@ -1,5 +1,5 @@
 export type UserId = string;
-export type RoleCode = 'operator' | 'browser';
+export type RoleCode = 'operator' | 'browser' | 'consultant' | 'authority' | 'team';
 
 export const VIEW_BASIC = 'view-basic';
 export const VIEW_PV_DOCUMENTS = 'view-pv-documents';
@@ -29,6 +29,7 @@ export type PrivilegeCode =
 export type User = {
     details: UserDetails;
     role: Role;
+    availableRoles: Role[];
 };
 
 export type UserDetails = {
