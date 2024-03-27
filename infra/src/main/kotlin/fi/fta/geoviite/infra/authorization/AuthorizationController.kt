@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.authorization
 
 import fi.fta.geoviite.infra.cloudfront.CloudFrontCookies
 import fi.fta.geoviite.infra.cloudfront.CookieSigner
-import fi.fta.geoviite.infra.configuration.DESIRED_ROLE_COOKIE_NAME
 import fi.fta.geoviite.infra.error.ApiUnauthorizedException
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.util.Code

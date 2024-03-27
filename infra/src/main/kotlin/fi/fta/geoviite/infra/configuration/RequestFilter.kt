@@ -118,16 +118,15 @@ class RequestFilter @Autowired constructor(
         try {
             correlationId.set(extractRequestCorrelationId(request))
             val user = getUser(request)
-            val activeUserRole = getActiveUserRole(request, user)
 
             currentUser.set(user.details.userName)
-            currentUserRole.set(activeUserRole.code)
+            currentUserRole.set(user.role.code)
 
             log.apiRequest(request, requestIP)
             val auth = UsernamePasswordAuthenticationToken(
-                user.copy(role = activeUserRole),
+                user,
                 "",
-                activeUserRole.privileges
+                user.role.privileges
             )
             SecurityContextHolder.getContext().authentication = auth
             chain.doFilter(request, response)
@@ -169,23 +168,23 @@ class RequestFilter @Autowired constructor(
 
             User(
                 details = content.userDetails,
-                role = authorizationService.getDefaultRole(availableRoles),
-                availableRoles = availableRoles
+                role = getActiveUserRole(request, availableRoles),
+                availableRoles = availableRoles,
             )
         }
     }
 
-    private fun getActiveUserRole(request: HttpServletRequest, user: User): Role {
+    private fun getActiveUserRole(request: HttpServletRequest, availableRoles: List<Role>): Role {
         return request.cookies?.firstOrNull { cookie ->
             cookie?.name == DESIRED_ROLE_COOKIE_NAME
         }?.let { desiredRoleCookie ->
             val desiredRoleCode = Code(desiredRoleCookie.value)
 
-            user.availableRoles.find { availableRole ->
+            availableRoles.find { availableRole ->
                 availableRole.code == desiredRoleCode
             }
 
-        } ?: authorizationService.getDefaultRole(user.availableRoles)
+        } ?: authorizationService.getDefaultRole(availableRoles)
     }
 
     private fun getJwtData(request: HttpServletRequest): JwtContent {
