@@ -26,7 +26,7 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
     private fun deleteRemovedPoints(newPoints: List<RatkoOperatingPointParse>) {
         val oldPointsIds = jdbcTemplate.query("""select external_id from layout.operating_point""") { rs, _ ->
             rs.getOid<RatkoOperatingPoint>("external_id")
-        }.toSet()
+        }
         val newPointsIds = newPoints.map { point -> point.externalId }.toSet()
         jdbcTemplate.batchUpdate("""delete from layout.operating_point where external_id = :id""",
             oldPointsIds.filter { id -> !newPointsIds.contains(id) }.map { id -> mapOf("id" to id.toString()) }.toTypedArray())
