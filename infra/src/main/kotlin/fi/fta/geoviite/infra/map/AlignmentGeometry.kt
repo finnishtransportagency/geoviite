@@ -36,6 +36,23 @@ data class AlignmentHeader<T>(
     val segmentCount: Int,
 )
 
+data class LocationTrackAlignmentHeader(
+    val id: DomainId<LocationTrack>,
+    val version: RowVersion<LocationTrack>?,
+    val trackNumberId: DomainId<TrackLayoutTrackNumber>?,
+    val duplicateOf: IntId<LocationTrack>?,
+
+    val name: AlignmentName,
+    val state: LocationTrackLayoutState,
+    val alignmentSource: MapAlignmentSource,
+    val alignmentType: MapAlignmentType,
+    val trackType: LocationTrackType?,
+
+    val length: Double,
+    val boundingBox: BoundingBox?,
+    val segmentCount: Int,
+)
+
 data class AlignmentPolyLine<T>(
     val id: DomainId<T>,
     val alignmentType: MapAlignmentType,
@@ -66,7 +83,7 @@ fun toAlignmentHeader(
 fun toAlignmentHeader(
     locationTrack: LocationTrack,
     alignment: LayoutAlignment?,
-) = AlignmentHeader(
+) = LocationTrackAlignmentHeader(
     id = locationTrack.id,
     version = locationTrack.version,
     trackNumberId = locationTrack.trackNumberId,

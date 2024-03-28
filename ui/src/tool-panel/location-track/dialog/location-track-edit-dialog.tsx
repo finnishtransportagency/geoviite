@@ -29,7 +29,7 @@ import {
 import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { Dropdown, Item } from 'vayla-design-lib/dropdown/dropdown';
 import {
-    layoutStates,
+    locationTrackLayoutStates,
     locationTrackTypes,
     topologicalConnectivityTypes,
 } from 'utils/enum-localization-utils';
@@ -139,7 +139,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         props.changeTimes,
     );
 
-    const stateOptions = layoutStates
+    const stateOptions = locationTrackLayoutStates
         .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
         .map((ls) => ({ ...ls, disabled: ls.value == 'PLANNED', qaId: ls.value }));
 

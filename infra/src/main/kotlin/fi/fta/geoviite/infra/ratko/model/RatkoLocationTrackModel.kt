@@ -26,6 +26,7 @@ enum class RatkoLocationTrackType(@get:JsonValue val value: String) {
 }
 
 enum class RatkoLocationTrackState(@get:JsonValue val value: String) {
+    BUILT("BUILT"),
     DELETED("DELETED"),
     NOT_IN_USE("NOT IN USE"),
     PLANNED("PLANNED"),
