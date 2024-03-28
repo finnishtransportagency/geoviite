@@ -48,7 +48,7 @@ export const layoutStates: LocalizedEnum<LayoutState>[] = values('layout-state',
 
 export const locationTrackLayoutStates: LocalizedEnum<LocationTrackLayoutState>[] = values(
     'layout-state',
-    ['BUILT', 'PLANNED', 'IN_USE', 'NOT_IN_USE', 'DELETED'],
+    ['PLANNED', 'BUILT', 'IN_USE', 'NOT_IN_USE', 'DELETED'],
 );
 
 export const layoutStateCategories: LocalizedEnum<LayoutStateCategory>[] = values(
