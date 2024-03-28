@@ -13,6 +13,7 @@
             "location-track-deleted": "Linkitystä ei voida tehdä, koska sijaintiraide on Poistettu-tilassa"
         },
         "split": {
+            "source-track-state-not-in-use": "Jakamista ei voitu suorittaa, koska jaettava raide ei ole \"Käytössä\"-tilassa",
             "segment-allocation-failed": "Jakamista ei voitu suorittaa, koska katkaisukohtien määritys epäonnistui",
             "switch-linking-failed": "Jakamista ei voitu suorittaa, koska vaihteiden uudelleenlinkitys epäonnistui",
             "no-switch-suggestion": "Jakamista ei voitu suorittaa, koska uudelleenlinkityksen vaihde-ehdotusten muodostus epäonnistui",
@@ -684,7 +685,8 @@
                     "close-task-list": "Sulje tehtävälista"
                 }
             },
-            "splitting-blocks-geometry-changes": "Raiteen geometriaa ei voi muokata koska sen jakaminen on kesken"
+            "splitting-blocks-geometry-changes": "Raiteen geometriaa ei voi muokata koska sen jakaminen on kesken",
+            "unsupported-state-for-splitting": "Vain \"Käytössä\"-tilaisen raiteen voi jakaa"
         },
         "disabled": {
             "activity-disabled-in-official-mode": "Toiminto on aktiivinen vain luonnostilassa."

@@ -281,7 +281,6 @@ class SplitService(
 
     @Transactional
     fun split(request: SplitRequest): IntId<Split> {
-
         // Original duplicate ids to be stored in split data before updating the location track
         // references which they referenced before the split (request source track).
         // If the references are not updated, the duplicate-of reference will be removed entirely when the
@@ -291,6 +290,11 @@ class SplitService(
             .map { duplicateTrack -> duplicateTrack.id as IntId }
 
         val sourceTrack = locationTrackDao.getOrThrow(DRAFT, request.sourceTrackId)
+        if (sourceTrack.state != LayoutState.IN_USE) throw SplitFailureException(
+            message = "Source track state is not IN_USE: id=${sourceTrack.id}",
+            localizedMessageKey = "source-track-state-not-in-use",
+        )
+
         val suggestions = verifySwitchSuggestions(switchLinkingService.getTrackSwitchSuggestions(DRAFT, sourceTrack))
         val relinkedSwitches = switchLinkingService.relinkTrack(request.sourceTrackId).map { it.id }
 
