@@ -1,7 +1,7 @@
 import * as React from 'react';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import Infobox from 'tool-panel/infobox/infobox';
-import { PublishValidationError } from 'publication/publication-model';
+import { PublicationValidationError } from 'publication/publication-model';
 import { LoaderStatus } from 'utils/react-utils';
 import { useTranslation } from 'react-i18next';
 import styles from './asset-validation-infobox.scss';
@@ -17,8 +17,8 @@ type AssetType = 'TRACK_NUMBER' | 'REFERENCE_LINE' | 'LOCATION_TRACK' | 'SWITCH'
 
 type AssetValidationInfoboxProps = {
     type: AssetType;
-    errors: PublishValidationError[];
-    warnings: PublishValidationError[];
+    errors: PublicationValidationError[];
+    warnings: PublicationValidationError[];
     validationLoaderStatus: LoaderStatus;
     contentVisible: boolean;
     onContentVisibilityChange: () => void;

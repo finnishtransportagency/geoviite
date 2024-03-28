@@ -1,4 +1,4 @@
-import { Table, Th } from 'vayla-design-lib/table/table';
+import { Table, Th, ThContentAlignment } from 'vayla-design-lib/table/table';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -9,7 +9,7 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
-import styles from './preview-view.scss';
+
 import { negComparator } from 'utils/array-utils';
 import {
     getSortInfoForProp,
@@ -25,16 +25,23 @@ import {
     switchToChangeTableEntry,
     trackNumberToChangeTableEntry,
 } from 'preview/change-table-entry-mapping';
-import { PreviewTableItem } from 'preview/preview-table-item';
-import { PublishValidationError } from 'publication/publication-model';
+import {
+    DraftChangeType,
+    PublicationCandidate,
+    PublicationValidationError,
+} from 'publication/publication-model';
 import { ChangesBeingReverted, PreviewOperations } from 'preview/preview-view';
 import { BoundingBox } from 'model/geometry';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
 import { useLoader } from 'utils/react-utils';
 import { ChangeTimes } from 'common/common-slice';
-import { PreviewCandidates, PublicationAssetChangeAmounts } from 'preview/preview-view-data';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { PublicationAssetChangeAmounts } from 'publication/publication-utils';
+import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
+import styles from './preview-view.scss';
+import { PreviewTableItem } from 'preview/preview-table-item';
 
 export type PublishableObjectId =
     | LayoutTrackNumberId
@@ -44,40 +51,35 @@ export type PublishableObjectId =
     | LayoutKmPostId;
 
 export type PreviewTableEntry = {
-    type: PreviewSelectType;
-    errors: PublishValidationError[];
+    publishCandidate: PublicationCandidate;
+    type: DraftChangeType;
+    errors: PublicationValidationError[];
     pendingValidation: boolean;
     boundingBox?: BoundingBox;
 } & ChangeTableEntry;
 
-export enum PreviewSelectType {
-    trackNumber = 'trackNumber',
-    referenceLine = 'referenceLine',
-    locationTrack = 'locationTrack',
-    switch = 'switch',
-    kmPost = 'kmPost',
-}
-
 type PreviewTableProps = {
     layoutContext: LayoutContext;
-    previewChanges: PreviewCandidates;
+    publicationCandidates: PublicationCandidate[];
     staged: boolean;
     changesBeingReverted?: ChangesBeingReverted;
     onShowOnMap: (bbox: BoundingBox) => void;
     changeTimes: ChangeTimes;
     publicationAssetChangeAmounts: PublicationAssetChangeAmounts;
     previewOperations: PreviewOperations;
+    showStatusSpinner: boolean;
 };
 
 const PreviewTable: React.FC<PreviewTableProps> = ({
     layoutContext,
-    previewChanges,
+    publicationCandidates,
     staged,
     changesBeingReverted,
     changeTimes,
     publicationAssetChangeAmounts,
     previewOperations,
     onShowOnMap,
+    showStatusSpinner,
 }) => {
     const { t } = useTranslation();
     const trackNumbers =
@@ -93,74 +95,83 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
 
     const [sortInfo, setSortInfo] = React.useState<SortInformation>(InitiallyUnsorted);
 
-    const changesToPublicationEntries = (
-        previewChanges: PreviewCandidates,
-    ): PreviewTableEntry[] => [
-        ...previewChanges.trackNumbers.map((trackNumberCandidate) => ({
-            ...trackNumberToChangeTableEntry(trackNumberCandidate),
-            errors: trackNumberCandidate.errors,
-            type: PreviewSelectType.trackNumber,
-            pendingValidation: trackNumberCandidate.pendingValidation,
-            boundingBox: trackNumberCandidate.boundingBox,
-        })),
-        ...previewChanges.referenceLines.map((referenceLineCandidate) => ({
-            ...referenceLineToChangeTableEntry(referenceLineCandidate, trackNumbers),
-            errors: referenceLineCandidate.errors,
-            type: PreviewSelectType.referenceLine,
-            pendingValidation: referenceLineCandidate.pendingValidation,
-            boundingBox: referenceLineCandidate.boundingBox,
-        })),
-        ...previewChanges.locationTracks.map((locationTrackCandidate) => ({
-            ...locationTrackToChangeTableEntry(locationTrackCandidate, trackNumbers),
-            errors: locationTrackCandidate.errors,
-            type: PreviewSelectType.locationTrack,
-            pendingValidation: locationTrackCandidate.pendingValidation,
-            boundingBox: locationTrackCandidate.boundingBox,
-        })),
-        ...previewChanges.switches.map((switchCandidate) => ({
-            ...switchToChangeTableEntry(switchCandidate, trackNumbers),
-            errors: switchCandidate.errors,
-            type: PreviewSelectType.switch,
-            pendingValidation: switchCandidate.pendingValidation,
-            boundingBox: switchCandidate.location
-                ? calculateBoundingBoxToShowAroundLocation(switchCandidate.location)
-                : undefined,
-        })),
-        ...previewChanges.kmPosts.map((kmPostCandidate) => ({
-            ...kmPostChangeTableEntry(kmPostCandidate, trackNumbers),
-            errors: kmPostCandidate.errors,
-            type: PreviewSelectType.kmPost,
-            pendingValidation: kmPostCandidate.pendingValidation,
-            boundingBox: kmPostCandidate.location
-                ? calculateBoundingBoxToShowAroundLocation(kmPostCandidate.location)
-                : undefined,
-        })),
-    ];
+    const getTableEntryByType = (candidate: PublicationCandidate): ChangeTableEntry => {
+        switch (candidate.type) {
+            case DraftChangeType.TRACK_NUMBER:
+                return trackNumberToChangeTableEntry(candidate);
+            case DraftChangeType.LOCATION_TRACK:
+                return locationTrackToChangeTableEntry(candidate, trackNumbers);
+            case DraftChangeType.REFERENCE_LINE:
+                return referenceLineToChangeTableEntry(candidate, trackNumbers);
+            case DraftChangeType.SWITCH:
+                return switchToChangeTableEntry(candidate, trackNumbers);
+            case DraftChangeType.KM_POST:
+                return kmPostChangeTableEntry(candidate, trackNumbers);
 
-    const publicationEntries: PreviewTableEntry[] = changesToPublicationEntries(previewChanges);
+            default:
+                return exhaustiveMatchingGuard(candidate);
+        }
+    };
+
+    const getBoundingBox = (candidate: PublicationCandidate): BoundingBox | undefined => {
+        const candidateType = candidate.type;
+        switch (candidateType) {
+            case DraftChangeType.TRACK_NUMBER:
+            case DraftChangeType.LOCATION_TRACK:
+            case DraftChangeType.REFERENCE_LINE:
+                return candidate.boundingBox;
+
+            case DraftChangeType.SWITCH:
+            case DraftChangeType.KM_POST:
+                return candidate.location
+                    ? calculateBoundingBoxToShowAroundLocation(candidate.location)
+                    : undefined;
+
+            default:
+                return exhaustiveMatchingGuard(candidateType);
+        }
+    };
+
+    const publicationTableEntries: PreviewTableEntry[] = publicationCandidates.map((candidate) => {
+        const tableEntry = getTableEntryByType(candidate);
+        const boundingBox = getBoundingBox(candidate);
+
+        return {
+            ...tableEntry,
+            publishCandidate: candidate,
+            boundingBox,
+            errors: candidate.errors,
+            type: candidate.type,
+            pendingValidation: candidate.pendingValidation,
+        };
+    });
 
     const sortedPublicationEntries =
         sortInfo && sortInfo.direction !== SortDirection.UNSORTED
-            ? [...publicationEntries].sort(
+            ? [...publicationTableEntries].sort(
                   sortInfo.direction == SortDirection.ASCENDING
                       ? sortInfo.function
                       : negComparator(sortInfo.function),
               )
-            : [...publicationEntries];
+            : [...publicationTableEntries];
 
     const sortByProp = (propName: SortProps) => {
         const newSortInfo = getSortInfoForProp(sortInfo.direction, sortInfo.propName, propName);
         setSortInfo(newSortInfo);
     };
 
-    const sortableTableHeader = (prop: SortProps, translationKey: string) => (
+    const sortableTableHeader = (
+        prop: SortProps,
+        translationKey: string,
+        showSpinner: boolean = false,
+    ) => (
         <Th
             onClick={() => sortByProp(prop)}
             qa-id={translationKey}
-            icon={
-                sortInfo.propName === prop ? getSortDirectionIcon(sortInfo.direction) : undefined
-            }>
+            icon={sortInfo.propName === prop ? getSortDirectionIcon(sortInfo.direction) : undefined}
+            contentAlignment={showSpinner ? ThContentAlignment.VERTICALLY_ALIGNED : undefined}>
             {t(translationKey)}
+            {showSpinner && <Spinner inline={true} size={SpinnerSize.SMALL} tableHeader={true} />}
         </Th>
     );
 
@@ -180,7 +191,11 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                             'preview-table.modified-moment',
                         )}
                         {sortableTableHeader(SortProps.USER_NAME, 'preview-table.user')}
-                        {sortableTableHeader(SortProps.ERRORS, 'preview-table.status')}
+                        {sortableTableHeader(
+                            SortProps.ERRORS,
+                            'preview-table.status',
+                            showStatusSpinner,
+                        )}
                         <Th>{t('preview-table.actions')}</Th>
                     </tr>
                 </thead>

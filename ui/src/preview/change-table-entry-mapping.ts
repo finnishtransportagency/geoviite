@@ -1,11 +1,11 @@
 import {
-    KmPostPublishCandidate,
-    LocationTrackPublishCandidate,
+    KmPostPublicationCandidate,
+    LocationTrackPublicationCandidate,
     Operation,
     PublicationGroup,
-    ReferenceLinePublishCandidate,
-    SwitchPublishCandidate,
-    TrackNumberPublishCandidate,
+    ReferenceLinePublicationCandidate,
+    SwitchPublicationCandidate,
+    TrackNumberPublicationCandidate,
 } from 'publication/publication-model';
 import {
     LayoutKmPostId,
@@ -38,11 +38,11 @@ export type ChangeTableEntry = {
 
 const changeTableEntryCommonFields = (
     candidate:
-        | LocationTrackPublishCandidate
-        | TrackNumberPublishCandidate
-        | ReferenceLinePublishCandidate
-        | SwitchPublishCandidate
-        | KmPostPublishCandidate,
+        | LocationTrackPublicationCandidate
+        | TrackNumberPublicationCandidate
+        | ReferenceLinePublicationCandidate
+        | SwitchPublicationCandidate
+        | KmPostPublicationCandidate,
 ) => ({
     id: candidate.id,
     userName: candidate.userName,
@@ -71,7 +71,7 @@ export function getKmPostUiName(kmNumber: KmNumber) {
     return `${i18n.t('publication-table.km-post')} ${kmNumber}`;
 }
 
-export const trackNumberToChangeTableEntry = (trackNumber: TrackNumberPublishCandidate) => ({
+export const trackNumberToChangeTableEntry = (trackNumber: TrackNumberPublicationCandidate) => ({
     ...changeTableEntryCommonFields(trackNumber),
     uiName: getTrackNumberUiName(trackNumber.number),
     name: trackNumber.number,
@@ -79,7 +79,7 @@ export const trackNumberToChangeTableEntry = (trackNumber: TrackNumberPublishCan
 });
 
 export const referenceLineToChangeTableEntry = (
-    referenceLine: ReferenceLinePublishCandidate,
+    referenceLine: ReferenceLinePublicationCandidate,
     trackNumbers: LayoutTrackNumber[],
 ) => {
     const trackNumber = trackNumbers.find((tn) => tn.id === referenceLine.trackNumberId);
@@ -92,7 +92,7 @@ export const referenceLineToChangeTableEntry = (
 };
 
 export const locationTrackToChangeTableEntry = (
-    locationTrack: LocationTrackPublishCandidate,
+    locationTrack: LocationTrackPublicationCandidate,
     trackNumbers: LayoutTrackNumber[],
 ) => {
     const trackNumber = trackNumbers.find((tn) => tn.id === locationTrack.trackNumberId);
@@ -105,7 +105,7 @@ export const locationTrackToChangeTableEntry = (
 };
 
 export const switchToChangeTableEntry = (
-    layoutSwitch: SwitchPublishCandidate,
+    layoutSwitch: SwitchPublicationCandidate,
     trackNumbers: LayoutTrackNumber[],
 ) => {
     const trackNumber = trackNumbers
@@ -122,7 +122,7 @@ export const switchToChangeTableEntry = (
 };
 
 export const kmPostChangeTableEntry = (
-    kmPost: KmPostPublishCandidate,
+    kmPost: KmPostPublicationCandidate,
     trackNumbers: LayoutTrackNumber[],
 ) => {
     const trackNumber = trackNumbers.find((tn) => tn.id === kmPost.trackNumberId);

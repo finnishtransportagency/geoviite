@@ -1,4 +1,4 @@
-import { Operation, PublishValidationError } from 'publication/publication-model';
+import { Operation, PublicationValidationError } from 'publication/publication-model';
 import { fieldComparator } from 'utils/array-utils';
 import { nextSortDirection, SortDirection } from 'utils/table-utils';
 
@@ -17,11 +17,11 @@ export type SortInformation = {
     function: (v1: unknown, v2: unknown) => number;
 };
 
-const includesErrors = (errors: PublishValidationError[]) =>
+const includesErrors = (errors: PublicationValidationError[]) =>
     errors.some((err) => err.type == 'ERROR');
-const includesWarnings = (errors: PublishValidationError[]) =>
+const includesWarnings = (errors: PublicationValidationError[]) =>
     errors.some((err) => err.type == 'WARNING');
-const errorSeverityPriority = (errors: PublishValidationError[]) => {
+const errorSeverityPriority = (errors: PublicationValidationError[]) => {
     let priority = 0;
     if (includesErrors(errors)) priority += 2;
     if (includesWarnings(errors)) priority += 1;
@@ -33,8 +33,8 @@ const trackNumberCompare = fieldComparator((entry: { trackNumber: string }) => e
 const userNameCompare = fieldComparator((entry: { userName: string }) => entry.userName);
 const changeTimeCompare = fieldComparator((entry: { changeTime: string }) => entry.changeTime);
 const errorListCompare = (
-    a: { errors: PublishValidationError[] },
-    b: { errors: PublishValidationError[] },
+    a: { errors: PublicationValidationError[] },
+    b: { errors: PublicationValidationError[] },
 ) => {
     const priorityBySeverity = errorSeverityPriority(b.errors) - errorSeverityPriority(a.errors);
     return priorityBySeverity !== 0 ? priorityBySeverity : b.errors.length - a.errors.length;
