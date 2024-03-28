@@ -95,7 +95,6 @@ enum class RatkoAssetState(@get:JsonValue val value: String, val category: Layou
     @Suppress("unused")
     SUGGESTED("SUGGESTED", LayoutStateCategory.FUTURE_EXISTING),
 
-    @Suppress("unused")
     BUILT("BUILT", LayoutStateCategory.EXISTING), // rakennettu
 
     @Suppress("unused")

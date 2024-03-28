@@ -211,6 +211,7 @@
             "UNKNOWN": "Ei asetettu"
         },
         "layout-state": {
+            "BUILT": "Rakennettu",
             "IN_USE": "Käytössä",
             "NOT_IN_USE": "Käytöstä poistettu",
             "PLANNED": "Suunniteltu",

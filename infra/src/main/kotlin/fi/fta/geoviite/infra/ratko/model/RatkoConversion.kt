@@ -12,11 +12,12 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.*
 import java.time.ZoneId
 
-fun mapToRatkoLocationTrackState(layoutState: LayoutState) = when (layoutState) {
-    LayoutState.DELETED -> RatkoLocationTrackState.DELETED
-    LayoutState.NOT_IN_USE -> RatkoLocationTrackState.NOT_IN_USE
-    LayoutState.PLANNED -> RatkoLocationTrackState.PLANNED
-    LayoutState.IN_USE -> RatkoLocationTrackState.IN_USE
+fun mapToRatkoLocationTrackState(layoutState: LocationTrackLayoutState) = when (layoutState) {
+    LocationTrackLayoutState.BUILT -> RatkoLocationTrackState.BUILT
+    LocationTrackLayoutState.DELETED -> RatkoLocationTrackState.DELETED
+    LocationTrackLayoutState.NOT_IN_USE -> RatkoLocationTrackState.NOT_IN_USE
+    LocationTrackLayoutState.PLANNED -> RatkoLocationTrackState.PLANNED
+    LocationTrackLayoutState.IN_USE -> RatkoLocationTrackState.IN_USE
 }
 
 fun mapToRatkoRouteNumberState(layoutState: LayoutState) = when (layoutState) {

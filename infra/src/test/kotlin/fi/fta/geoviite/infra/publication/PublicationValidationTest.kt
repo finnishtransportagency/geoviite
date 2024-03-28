@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
 import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.tracklayout.LayoutState.*
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.*
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.junit.jupiter.api.Test
@@ -23,12 +22,12 @@ class PublicationValidationTest {
     fun trackNumberFieldValidationCatchesCatchesPublishingPlanned() {
         assertFieldError(
             true,
-            trackNumber(state = PLANNED, draft = true),
+            trackNumber(state = LayoutState.PLANNED, draft = true),
             "$VALIDATION_TRACK_NUMBER.state.PLANNED",
         )
         assertFieldError(
             false,
-            trackNumber(state = IN_USE, draft = true),
+            trackNumber(state = LayoutState.IN_USE, draft = true),
             "$VALIDATION_TRACK_NUMBER.state.PLANNED",
         )
     }
@@ -40,23 +39,23 @@ class PublicationValidationTest {
         val alignment = locationTrack(trackNumberId = IntId(1), draft = true)
         assertTrackNumberReferenceError(
             true,
-            trackNumber.copy(state = DELETED),
+            trackNumber.copy(state = LayoutState.DELETED),
             referenceLine,
-            locationTrack(IntId(0), draft = true).copy(state = IN_USE),
+            locationTrack(IntId(0), draft = true).copy(state = LocationTrackLayoutState.IN_USE),
             "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted",
         )
         assertTrackNumberReferenceError(
             false,
-            trackNumber.copy(state = DELETED),
+            trackNumber.copy(state = LayoutState.DELETED),
             referenceLine,
-            alignment.copy(state = DELETED),
+            alignment.copy(state = LocationTrackLayoutState.DELETED),
             "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted",
         )
         assertTrackNumberReferenceError(
             false,
-            trackNumber.copy(state = IN_USE),
+            trackNumber.copy(state = LayoutState.IN_USE),
             referenceLine,
-            alignment.copy(state = IN_USE),
+            alignment.copy(state = LocationTrackLayoutState.IN_USE),
             "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted",
         )
     }
@@ -64,8 +63,8 @@ class PublicationValidationTest {
     @Test
     fun kmPostFieldValidationCatchesCatchesPublishingPlanned() {
         val someKmPost = kmPost(IntId(1), KmNumber(1), draft = true)
-        assertFieldError(true, someKmPost.copy(state = PLANNED), "$VALIDATION_KM_POST.state.PLANNED")
-        assertFieldError(false, someKmPost.copy(state = IN_USE), "$VALIDATION_KM_POST.state.PLANNED")
+        assertFieldError(true, someKmPost.copy(state = LayoutState.PLANNED), "$VALIDATION_KM_POST.state.PLANNED")
+        assertFieldError(false, someKmPost.copy(state = LayoutState.IN_USE), "$VALIDATION_KM_POST.state.PLANNED")
     }
 
     @Test
@@ -219,12 +218,12 @@ class PublicationValidationTest {
     fun alignmentFieldValidationCatchesPublishingPlanned() {
         assertFieldError(
             true,
-            locationTrack(IntId(0), draft = true).copy(state = PLANNED),
+            locationTrack(IntId(0), draft = true).copy(state = LocationTrackLayoutState.PLANNED),
             "$VALIDATION_LOCATION_TRACK.state.PLANNED",
         )
         assertFieldError(
             false,
-            locationTrack(IntId(0), draft = true).copy(state = IN_USE),
+            locationTrack(IntId(0), draft = true).copy(state = LocationTrackLayoutState.IN_USE),
             "$VALIDATION_LOCATION_TRACK.state.PLANNED",
         )
     }

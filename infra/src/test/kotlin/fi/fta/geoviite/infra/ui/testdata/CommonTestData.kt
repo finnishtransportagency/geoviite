@@ -91,7 +91,7 @@ fun locationTrack(
         name = "lt-$name",
         description = description,
         type = layoutAlignmentType,
-        state = LayoutState.IN_USE,
+        state = LocationTrackLayoutState.IN_USE,
         draft = draft,
     )
     return track to alignment

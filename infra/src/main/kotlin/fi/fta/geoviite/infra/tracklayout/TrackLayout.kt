@@ -33,6 +33,18 @@ import java.time.Instant
 val LAYOUT_SRID = Srid(3067)
 val LAYOUT_CRS = crs(LAYOUT_SRID)
 
+enum class LocationTrackLayoutState(val category: LayoutStateCategory) {
+    BUILT(LayoutStateCategory.EXISTING),
+    IN_USE(LayoutStateCategory.EXISTING),
+    NOT_IN_USE(LayoutStateCategory.EXISTING),
+    PLANNED(LayoutStateCategory.FUTURE_EXISTING),
+    DELETED(LayoutStateCategory.NOT_EXISTING);
+
+    fun isPublishable() = this != PLANNED
+    fun isLinkable() = this == IN_USE || this == BUILT || this == NOT_IN_USE
+    fun isRemoved() = this == DELETED
+}
+
 enum class LayoutState(val category: LayoutStateCategory) {
     IN_USE(LayoutStateCategory.EXISTING),
     NOT_IN_USE(LayoutStateCategory.EXISTING),
@@ -202,7 +214,7 @@ data class LocationTrack(
     val descriptionBase: FreeText,
     val descriptionSuffix: DescriptionSuffixType,
     val type: LocationTrackType,
-    val state: LayoutState,
+    val state: LocationTrackLayoutState,
     val externalId: Oid<LocationTrack>?,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val sourceId: IntId<GeometryAlignment>?,

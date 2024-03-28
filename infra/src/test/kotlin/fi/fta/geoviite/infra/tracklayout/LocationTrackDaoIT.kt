@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.LayoutState.*
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType.MAIN
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType.SIDE
 import fi.fta.geoviite.infra.util.FreeText
@@ -39,7 +38,7 @@ class LocationTrackDaoIT @Autowired constructor(
             name = AlignmentName("ORIG"),
             descriptionBase = FreeText("Oridinal location track"),
             type = MAIN,
-            state = IN_USE,
+            state = LocationTrackLayoutState.IN_USE,
             alignmentVersion = alignmentVersion,
         )
 
@@ -54,7 +53,7 @@ class LocationTrackDaoIT @Autowired constructor(
             name = AlignmentName("UPD"),
             descriptionBase = FreeText("Updated location track"),
             type = SIDE,
-            state = NOT_IN_USE,
+            state = LocationTrackLayoutState.NOT_IN_USE,
             topologicalConnectivity = TopologicalConnectivityType.END
         )
         val (updatedId, updatedVersion) = locationTrackDao.update(updatedTrack)
@@ -146,7 +145,7 @@ class LocationTrackDaoIT @Autowired constructor(
         val tnId = insertOfficialTrackNumber()
         val officialVersion = insertOfficialLocationTrack(tnId).rowVersion
         val undeletedDraftVersion = insertDraftLocationTrack(tnId).rowVersion
-        val deleteStateDraftVersion = insertDraftLocationTrack(tnId, DELETED).rowVersion
+        val deleteStateDraftVersion = insertDraftLocationTrack(tnId, LocationTrackLayoutState.DELETED).rowVersion
         val (deletedDraftId, deletedDraftVersion) = insertDraftLocationTrack(tnId)
         locationTrackDao.deleteDraft(deletedDraftId)
 
@@ -207,7 +206,7 @@ class LocationTrackDaoIT @Autowired constructor(
         val tnId = insertOfficialTrackNumber()
         val tnId2 = insertOfficialTrackNumber()
         val undeletedDraftVersion = insertDraftLocationTrack(tnId).rowVersion
-        val deleteStateDraftVersion = insertDraftLocationTrack(tnId, DELETED).rowVersion
+        val deleteStateDraftVersion = insertDraftLocationTrack(tnId, LocationTrackLayoutState.DELETED).rowVersion
         val changeTrackNumberOriginal = insertOfficialLocationTrack(tnId).rowVersion
         val changeTrackNumberChanged = createDraftWithNewTrackNumber(changeTrackNumberOriginal, tnId2).rowVersion
         val deletedDraftId = insertDraftLocationTrack(tnId).id
@@ -292,7 +291,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     private fun insertDraftLocationTrack(
         tnId: IntId<TrackLayoutTrackNumber>,
-        state: LayoutState = IN_USE,
+        state: LocationTrackLayoutState = LocationTrackLayoutState.IN_USE,
     ): DaoResponse<LocationTrack> {
         val (track, alignment) = locationTrackAndAlignment(
             trackNumberId = tnId,
