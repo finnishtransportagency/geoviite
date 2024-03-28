@@ -122,7 +122,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
 
     private val allPublicationVersionsSql = """
         select
-          coalesce(${table.draftLink}, id) as official_id,
+          coalesce(official_row_id, id) as official_id,
           id as row_id,
           version as row_version
         from ${table.fullName}
@@ -131,11 +131,11 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
 
     private val publicationVersionsSql = """
         select
-          coalesce(${table.draftLink}, id) as official_id,
+          coalesce(official_row_id, id) as official_id,
           id as row_id,
           version as row_version
         from ${table.fullName}
-        where coalesce(${table.draftLink}, id) in (:ids)
+        where coalesce(official_row_id, id) in (:ids)
           and draft = true
     """.trimIndent()
 
@@ -178,7 +178,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
           case when deleted then null else change_time end as change_time,
           deleted
         from ${table.versionTable} 
-        where id = :id or ${table.draftLink} = :id and draft = true 
+        where id = :id or official_row_id = :id and draft = true 
         order by change_time desc limit 1
       ),
       newest_official as (
@@ -223,19 +223,19 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
 
     private val versionPairSql = """
         with direct as (
-          select version, draft, ${table.draftLink} from ${table.fullName} where id = :id
+          select version, draft, official_row_id from ${table.fullName} where id = :id
         )
         select :id as id, version, draft
           from direct
         union
         select draft.id, draft.version, true
           from ${table.fullName} draft
-          where draft.draft and draft.${table.draftLink} = :id
+          where draft.draft and draft.official_row_id = :id
         union
         select official.id, official.version, false
           from direct
             join ${table.fullName} official
-                 on not official.draft and direct.${table.draftLink} = official.id;
+                 on not official.draft and direct.official_row_id = official.id;
     """.trimIndent()
 
     override fun fetchVersionPair(id: IntId<T>): VersionPair<T> {
@@ -345,9 +345,9 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         val sql = """
             delete from ${table.fullName}
             where draft = true 
-              and (:id::int is null or :id = id or :id = ${table.draftLink})
+              and (:id::int is null or :id = id or :id = official_row_id)
             returning 
-              coalesce(${table.draftLink}, id) as official_id,
+              coalesce(official_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -360,16 +360,16 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
 
 private fun officialFetchSql(table: DbTable, fetchType: FetchType) = """
     select o.id, o.version
-    from ${table.fullName} o left join ${table.fullName} d on d.${table.draftLink} = o.id
+    from ${table.fullName} o left join ${table.fullName} d on d.official_row_id = o.id
     where (o.id ${idOrIdsEqualSqlFragment(fetchType)} or d.id ${idOrIdsEqualSqlFragment(fetchType)}) and o.draft = false
 """
 
 private fun draftFetchSql(table: DbTable, fetchType: FetchType) = """
     select o.id, o.version 
     from ${table.fullName} o
-    where o.${table.draftLink} ${idOrIdsEqualSqlFragment(fetchType)} 
+    where o.official_row_id ${idOrIdsEqualSqlFragment(fetchType)} 
        or (o.id ${idOrIdsEqualSqlFragment(fetchType)} 
-          and not exists(select 1 from ${table.fullName} d where d.${table.draftLink} = o.id))
+          and not exists(select 1 from ${table.fullName} d where d.official_row_id = o.id))
 """
 
 fun <T : LayoutAsset<T>> verifyObjectIsExisting(item: T) = verifyObjectIsExisting(item.contextData)
