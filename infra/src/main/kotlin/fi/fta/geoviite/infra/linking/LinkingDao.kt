@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geometry.*
@@ -42,24 +42,25 @@ data class MissingLayoutSwitchLinkingRowData(
 @Component
 class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
-    fun fetchPlanLinkStatus(planId: IntId<GeometryPlan>, publishType: PublishType): GeometryPlanLinkStatus {
+    fun fetchPlanLinkStatus(planId: IntId<GeometryPlan>, publicationState: PublicationState): GeometryPlanLinkStatus {
         logger.daoAccess(
-            AccessType.FETCH, GeometryPlanLinkStatus::class,
+            AccessType.FETCH,
+            GeometryPlanLinkStatus::class,
             "planId" to planId,
-            "publishType" to publishType
+            "publicationState" to publicationState,
         )
 
         return GeometryPlanLinkStatus(
             planId,
-            fetchAlignmentLinkStatus(planId = planId, publishType = publishType),
-            fetchSwitchLinkStatus(planId = planId, publishType = publishType),
-            fetchKmPostLinkStatus(planId = planId, publishType = publishType),
+            fetchAlignmentLinkStatus(planId = planId, publicationState = publicationState),
+            fetchSwitchLinkStatus(planId = planId, publicationState = publicationState),
+            fetchKmPostLinkStatus(planId = planId, publicationState = publicationState),
         )
     }
 
     private fun fetchAlignmentLinkStatus(
         planId: IntId<GeometryPlan>,
-        publishType: PublishType
+        publicationState: PublicationState
     ): List<GeometryAlignmentLinkStatus> {
         val sql = """
           select
@@ -95,7 +96,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         """.trimIndent()
         val params = mapOf(
             "plan_id" to planId.intValue,
-            "publication_state" to publishType.name,
+            "publication_state" to publicationState.name,
         )
 
         val elements = jdbcTemplate.query(sql, params) { rs, _ ->
@@ -115,7 +116,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
 
     private fun fetchKmPostLinkStatus(
         planId: IntId<GeometryPlan>,
-        publishType: PublishType
+        publicationState: PublicationState
     ): List<GeometryKmPostLinkStatus> {
         val sql = """
            select
@@ -130,7 +131,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         """.trimIndent()
         val params = mapOf(
             "plan_id" to planId.intValue,
-            "publication_state" to publishType.name,
+            "publication_state" to publicationState.name,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -143,7 +144,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
 
     private fun fetchSwitchLinkStatus(
         planId: IntId<GeometryPlan>,
-        publishType: PublishType
+        publicationState: PublicationState
     ): List<GeometrySwitchLinkStatus> {
         val sql = """
         select
@@ -175,7 +176,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         """.trimIndent()
         val params = mapOf(
             "plan_id" to planId.intValue,
-            "publication_state" to publishType.name,
+            "publication_state" to publicationState.name,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -275,7 +276,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
     }
 
     fun getSwitchBoundsFromTracks(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         switchId: IntId<TrackLayoutSwitch>,
     ): BoundingBox? {
         val sql = """ 

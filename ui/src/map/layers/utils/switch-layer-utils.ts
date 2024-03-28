@@ -15,8 +15,12 @@ import Style, { RenderFunction } from 'ol/style/Style';
 import SwitchIcon from 'vayla-design-lib/icon/glyphs/misc/switch.svg';
 import SwitchErrorIcon from 'vayla-design-lib/icon/glyphs/misc/switch-error.svg';
 import { switchJointNumberToString } from 'utils/enum-localization-utils';
-import { GeometryPlanLinkStatus, SuggestedSwitchJoint } from 'linking/linking-model';
-import { SwitchStructure } from 'common/common-model';
+import {
+    GeometryPlanLinkStatus,
+    SuggestedSwitch,
+    TrackLayoutSwitchJoint,
+} from 'linking/linking-model';
+import { JointNumber, SwitchStructure } from 'common/common-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import Feature from 'ol/Feature';
 import { Point as OlPoint } from 'ol/geom';
@@ -24,7 +28,7 @@ import { findMatchingEntities, pointToCoords } from 'map/layers/utils/layer-util
 import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import VectorSource from 'ol/source/Vector';
 import { Rectangle } from 'model/geometry';
-import { ValidatedAsset } from 'publication/publication-model';
+import { ValidatedSwitch } from 'publication/publication-model';
 import { Selection } from 'selection/selection-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { expectCoordinate, expectDefined } from 'utils/type-utils';
@@ -165,7 +169,7 @@ export function getSwitchRenderer(
                     const textY = y + pixelRatio;
                     const paddingHor = 2;
                     const paddingVer = 1;
-                    const contentWidth = textWidth + (valid ? 0 : 15);
+                    const contentWidth = textWidth + (valid ? 0 : 1);
                     const backgroundX = textX - paddingHor * pixelRatio - pixelRatio;
                     const backgroundY =
                         textY - (fontSize * pixelRatio) / 2 - paddingVer * pixelRatio;
@@ -224,13 +228,24 @@ export function getJointRenderer(
     );
 }
 
+export function suggestedSwitchHasMatchOnJoint(
+    suggestedSwitch: SuggestedSwitch,
+    joint: JointNumber,
+) {
+    return Object.values(suggestedSwitch.trackLinks).some(
+        (link) =>
+            link.segmentJoints.some((sj) => sj.number == joint) ||
+            link.topologyJoint?.number == joint,
+    );
+}
+
 export function getLinkingJointRenderer(
-    joint: SuggestedSwitchJoint,
+    joint: TrackLayoutSwitchJoint,
+    hasMatch: boolean,
     linked = false,
 ): RenderFunction {
     const fontSize = TEXT_FONT_SMALL;
     const circleRadius = CIRCLE_RADIUS_LARGE;
-    const hasMatch = joint.matches.length > 0;
 
     return getCanvasRenderer(
         joint,
@@ -305,7 +320,7 @@ export const createLayoutSwitchFeatures = (
     selection: Selection,
     switches: LayoutSwitch[],
     switchStructures: SwitchStructure[],
-    validationResult: ValidatedAsset[],
+    validationResult: ValidatedSwitch[],
 ) => {
     const largeSymbols = resolution <= Limits.SWITCH_LARGE_SYMBOLS;
     const showLabels = resolution <= Limits.SWITCH_LABELS;
@@ -339,7 +354,7 @@ function createSwitchFeatures(
     showLabels: boolean,
     planId?: GeometryPlanId,
     switchStructures?: SwitchStructure[],
-    validationResult?: ValidatedAsset[],
+    validationResult?: ValidatedSwitch[],
 ): Feature<OlPoint>[] {
     return layoutSwitches
         .filter((s) => s.joints.length > 0)
@@ -375,7 +390,7 @@ function createSwitchFeature(
     showLabel: boolean,
     planId?: GeometryPlanId,
     presentationJointNumber?: string | undefined,
-    validationResult?: ValidatedAsset | undefined,
+    validationResult?: ValidatedSwitch | undefined,
 ): Feature<OlPoint>[] {
     const firstJoint = expectDefined(first(layoutSwitch.joints));
 

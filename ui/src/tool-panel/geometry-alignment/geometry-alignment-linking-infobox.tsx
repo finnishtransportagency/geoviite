@@ -7,7 +7,6 @@ import InfoboxContent, { InfoboxContentSpread } from 'tool-panel/infobox/infobox
 import {
     LayoutLocationTrack,
     LayoutReferenceLine,
-    LocationTrackId,
     MapAlignmentType,
 } from 'track-layout/track-layout-model';
 import {
@@ -18,8 +17,8 @@ import {
     linkGeometryWithLocationTrack,
     linkGeometryWithReferenceLine,
 } from 'linking/linking-api';
-import { GeometryPlanId } from 'geometry/geometry-model';
-import { PublishType } from 'common/common-model';
+import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
@@ -50,7 +49,6 @@ import {
     GeometryAlignmentLinkingLocationTrackCandidates,
     GeometryAlignmentLinkingReferenceLineCandidates,
 } from 'tool-panel/geometry-alignment/geometry-alignment-linking-candidates';
-import { WriteAccessRequired } from 'user/write-access-required';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
 import {
     refreshLocationTrackSelection,
@@ -59,6 +57,8 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { Radio } from 'vayla-design-lib/radio/radio';
 import { ChangeTimes } from 'common/common-slice';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { EDIT_LAYOUT } from 'user/user-model';
 
 function createLinkingGeometryWithAlignmentParameters(
     alignmentLinking: LinkingGeometryWithAlignment,
@@ -89,10 +89,10 @@ function createLinkingGeometryWithEmptyAlignmentParameters(
     const geometryStart = linking.geometryAlignmentInterval.start;
     const geometryEnd = linking.geometryAlignmentInterval.end;
 
-    if (linking.layoutAlignmentId && geometryStart && geometryEnd) {
+    if (linking.layoutAlignment.id && geometryStart && geometryEnd) {
         return {
             geometryPlanId: linking.geometryPlanId,
-            layoutAlignmentId: linking.layoutAlignmentId,
+            layoutAlignmentId: linking.layoutAlignment.id,
             geometryInterval: toIntervalRequest(
                 geometryStart.alignmentId,
                 geometryStart.m,
@@ -120,7 +120,7 @@ type GeometryAlignmentLinkingInfoboxProps = {
     onLinkingStart: (startParams: GeometryPreliminaryLinkingParameters) => void;
     onStopLinking: () => void;
     resolution: number;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
 };
@@ -140,12 +140,12 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     onLockAlignment,
     onStopLinking,
     resolution,
-    publishType,
+    layoutContext,
     contentVisible,
     onContentVisibilityChange,
 }) => {
     const { t } = useTranslation();
-    const [linkedAlignmentIds, setLinkedAlignmentIds] = React.useState<LocationTrackId[]>([]);
+    const [linkedAlignmentIds, setLinkedAlignmentIds] = React.useState<GeometryAlignmentId[]>([]);
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddTrackNumberDialog, setShowAddTrackNumberDialog] = React.useState(false);
     const [linkingAlignmentType, setLinkingAlignmentType] =
@@ -156,8 +156,14 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
     const [linkingCallInProgress, setLinkingCallInProgress] = React.useState(false);
 
     const planStatus = useLoader(
-        () => (planId ? getPlanLinkStatus(planId, publishType) : undefined),
-        [planId, changeTimes.layoutLocationTrack, changeTimes.layoutReferenceLine, publishType],
+        () => (planId ? getPlanLinkStatus(planId, layoutContext) : undefined),
+        [
+            planId,
+            changeTimes.layoutLocationTrack,
+            changeTimes.layoutReferenceLine,
+            layoutContext.publicationState,
+            layoutContext.designId,
+        ],
     );
 
     const linkedReferenceLines = useLoader(() => {
@@ -166,7 +172,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
             .filter((linkStatus) => linkStatus.id === geometryAlignment.id)
             .flatMap((linkStatus) => linkStatus.linkedReferenceLineIds);
         const referenceLinePromises = referenceLineIds.map((referenceLineId) =>
-            getReferenceLine(referenceLineId, publishType),
+            getReferenceLine(referenceLineId, layoutContext),
         );
         return Promise.all(referenceLinePromises).then((lines) => lines.filter(filterNotEmpty));
     }, [planStatus, geometryAlignment]);
@@ -176,12 +182,12 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
         const locationTrackIds = planStatus.alignments
             .filter((linkStatus) => linkStatus.id === geometryAlignment.id)
             .flatMap((linkStatus) => linkStatus.linkedLocationTrackIds);
-        return getLocationTracks(locationTrackIds, publishType);
+        return getLocationTracks(locationTrackIds, layoutContext);
     }, [planStatus, geometryAlignment]);
 
     const [selectedLocationTrackInfoboxExtras, _] = useLocationTrackInfoboxExtras(
         selectedLayoutLocationTrack?.id,
-        publishType,
+        layoutContext,
         changeTimes,
     );
 
@@ -197,28 +203,45 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
             !selectedLocationTrackInfoboxExtras?.partOfUnfinishedSplit);
 
     React.useEffect(() => {
-        getLinkedAlignmentIdsInPlan(planId, publishType).then((linkedIds) => {
+        getLinkedAlignmentIdsInPlan(planId, layoutContext).then((linkedIds) => {
             setLinkedAlignmentIds(linkedIds);
         });
-    }, [planId, publishType, changeTimes.layoutLocationTrack, changeTimes.layoutReferenceLine]);
+    }, [
+        planId,
+        layoutContext.publicationState,
+        layoutContext.designId,
+        changeTimes.layoutLocationTrack,
+        changeTimes.layoutReferenceLine,
+    ]);
 
-    const handleTrackNumberSave = refreshTrackNumberSelection('DRAFT', onSelect, onUnselect);
-    const handleLocationTrackSave = refreshLocationTrackSelection('DRAFT', onSelect, onUnselect);
+    const handleTrackNumberSave = refreshTrackNumberSelection(
+        draftLayoutContext(layoutContext),
+        onSelect,
+        onUnselect,
+    );
+    const handleLocationTrackSave = refreshLocationTrackSelection(
+        draftLayoutContext(layoutContext),
+        onSelect,
+        onUnselect,
+    );
 
+    function linkingTypeBySegmentCount(
+        alignment: LayoutLocationTrack | LayoutReferenceLine,
+    ): number {
+        return alignment.segmentCount > 0
+            ? LinkingType.LinkingGeometryWithAlignment
+            : LinkingType.LinkingGeometryWithEmptyAlignment;
+    }
     function lockAlignment() {
-        const selectedAlignment =
-            linkingAlignmentType === 'LOCATION_TRACK'
-                ? selectedLayoutLocationTrack
-                : selectedLayoutReferenceLine;
-
-        if (selectedAlignment) {
+        if (linkingAlignmentType === 'LOCATION_TRACK' && selectedLayoutLocationTrack) {
             onLockAlignment({
-                alignmentId: selectedAlignment.id,
-                alignmentType: linkingAlignmentType,
-                type:
-                    selectedAlignment.segmentCount > 0
-                        ? LinkingType.LinkingGeometryWithAlignment
-                        : LinkingType.LinkingGeometryWithEmptyAlignment,
+                alignment: { id: selectedLayoutLocationTrack.id, type: 'LOCATION_TRACK' },
+                type: linkingTypeBySegmentCount(selectedLayoutLocationTrack),
+            });
+        } else if (linkingAlignmentType === 'REFERENCE_LINE' && selectedLayoutReferenceLine) {
+            onLockAlignment({
+                alignment: { id: selectedLayoutReferenceLine.id, type: 'REFERENCE_LINE' },
+                type: linkingTypeBySegmentCount(selectedLayoutReferenceLine),
             });
         }
     }
@@ -241,7 +264,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                 const linkingParameters =
                     createLinkingGeometryWithAlignmentParameters(linkingState);
 
-                await (linkingState.layoutAlignmentType == 'LOCATION_TRACK'
+                await (linkingState.layoutAlignment.type == 'LOCATION_TRACK'
                     ? linkGeometryWithLocationTrack(linkingParameters)
                     : linkGeometryWithReferenceLine(linkingParameters));
 
@@ -253,7 +276,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
             } else if (linkingState?.type == LinkingType.LinkingGeometryWithEmptyAlignment) {
                 const linkingParameters =
                     createLinkingGeometryWithEmptyAlignmentParameters(linkingState);
-                await (linkingState.layoutAlignmentType == 'LOCATION_TRACK'
+                await (linkingState.layoutAlignment.type == 'LOCATION_TRACK'
                     ? linkGeometryWithEmptyLocationTrack(linkingParameters)
                     : linkGeometryWithEmptyReferenceLine(linkingParameters));
 
@@ -299,7 +322,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     {linkedReferenceLines && linkedReferenceLines.length > 0 && (
                         <ReferenceLineNames
                             linkedReferenceLines={linkedReferenceLines}
-                            publishType={publishType}
+                            layoutContext={layoutContext}
                             changeTimes={changeTimes}
                         />
                     )}
@@ -328,7 +351,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                             {linkingAlignmentType === 'REFERENCE_LINE' ? (
                                 <GeometryAlignmentLinkingReferenceLineCandidates
                                     geometryAlignment={geometryAlignment}
-                                    publishType={publishType}
+                                    layoutContext={layoutContext}
                                     trackNumberChangeTime={changeTimes.layoutTrackNumber}
                                     onSelect={onSelect}
                                     selectedLayoutReferenceLine={selectedLayoutReferenceLine}
@@ -342,7 +365,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                             ) : (
                                 <GeometryAlignmentLinkingLocationTrackCandidates
                                     geometryAlignment={geometryAlignment}
-                                    publishType={publishType}
+                                    layoutContext={layoutContext}
                                     locationTrackChangeTime={changeTimes.layoutLocationTrack}
                                     onSelect={onSelect}
                                     selectedLayoutLocationTrack={selectedLayoutLocationTrack}
@@ -382,7 +405,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                     )}
 
                     {linkingState === undefined && (
-                        <WriteAccessRequired>
+                        <PrivilegeRequired privilege={EDIT_LAYOUT}>
                             <InfoboxButtons>
                                 <Button
                                     size={ButtonSize.SMALL}
@@ -395,7 +418,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                     )}
                                 </Button>
                             </InfoboxButtons>
-                        </WriteAccessRequired>
+                        </PrivilegeRequired>
                     )}
                     {linkingState?.state === 'preliminary' && (
                         <InfoboxButtons>

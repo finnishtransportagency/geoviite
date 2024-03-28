@@ -16,7 +16,7 @@ import { LoaderStatus, useLoader, useLoaderWithStatus, useOptionalLoader } from 
 import {
     CoordinateSystem,
     DraftableChangeInfo,
-    PublishType,
+    LayoutContext,
     Srid,
     SwitchStructure,
     SwitchStructureId,
@@ -63,86 +63,101 @@ import { ChangeTimes } from 'common/common-slice';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime?: TimeStamp,
 ): LayoutReferenceLine | undefined {
     return useOptionalLoader(
         () =>
             trackNumberId
-                ? getTrackNumberReferenceLine(trackNumberId, publishType, changeTime)
+                ? getTrackNumberReferenceLine(trackNumberId, layoutContext, changeTime)
                 : undefined,
-        [trackNumberId, publishType, changeTime],
+        [trackNumberId, layoutContext.designId, layoutContext.publicationState, changeTime],
     );
 }
 
 export function useReferenceLine(
     id: ReferenceLineId | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime?: TimeStamp,
 ): LayoutReferenceLine | undefined {
     return useOptionalLoader(
-        () => (id ? getReferenceLine(id, publishType, changeTime) : undefined),
-        [id, publishType, changeTime],
+        () => (id ? getReferenceLine(id, layoutContext) : undefined),
+        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
     );
 }
 
 export function useReferenceLines(
     ids: ReferenceLineId[],
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime?: TimeStamp,
 ): LayoutReferenceLine[] {
     return (
         useLoader(
-            () => (ids ? getReferenceLines(ids, publishType, changeTime) : undefined),
-            [JSON.stringify(ids), publishType, changeTime],
+            () => (ids ? getReferenceLines(ids, layoutContext) : undefined),
+            [
+                JSON.stringify(ids),
+                layoutContext.publicationState,
+                layoutContext.designId,
+                changeTime,
+            ],
         ) || []
     );
 }
 
 export function useLocationTrack(
     id: LocationTrackId | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime?: TimeStamp,
 ): LayoutLocationTrack | undefined {
     return useOptionalLoader(
-        () => (id ? getLocationTrack(id, publishType, changeTime) : undefined),
-        [id, publishType, changeTime],
+        () => (id ? getLocationTrack(id, layoutContext) : undefined),
+        [id, layoutContext.publicationState, layoutContext.designId, changeTime],
     );
 }
 
 export function useLocationTracks(
     ids: LocationTrackId[],
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime?: TimeStamp,
 ): LayoutLocationTrack[] {
     return (
         useLoader(
-            () => (ids ? getLocationTracks(ids, publishType, changeTime) : undefined),
-            [JSON.stringify(ids), publishType, changeTime],
+            () => (ids ? getLocationTracks(ids, layoutContext) : undefined),
+            [
+                JSON.stringify(ids),
+                layoutContext.designId,
+                layoutContext.publicationState,
+                changeTime,
+            ],
         ) || []
     );
 }
 
 export function useSwitch(
     id: LayoutSwitchId | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime?: TimeStamp,
 ): LayoutSwitch | undefined {
     return useOptionalLoader(
-        () => (id ? getSwitch(id, publishType, changeTime) : undefined),
-        [id, publishType, changeTime],
+        () => (id ? getSwitch(id, layoutContext) : undefined),
+        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
     );
 }
 
 export function useSwitches(
     ids: LayoutSwitchId[] | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime?: TimeStamp,
 ): LayoutSwitch[] {
     return (
         useLoader(
-            () => (ids ? getSwitches(ids, publishType, changeTime) : undefined),
-            [JSON.stringify(ids), publishType, changeTime],
+            () => (ids ? getSwitches(ids, layoutContext) : undefined),
+            [
+                JSON.stringify(ids),
+                layoutContext.designId,
+                layoutContext.publicationState,
+                changeTime,
+            ],
         ) || []
     );
 }
@@ -152,57 +167,61 @@ export function useSwitchStructure(id: SwitchStructureId | undefined): SwitchStr
 }
 
 export function useTrackNumber(
-    publishType: PublishType,
     id: LayoutTrackNumberId | undefined,
+    layoutContext: LayoutContext,
+    changeTime?: TimeStamp,
 ): LayoutTrackNumber | undefined {
     return useLoader(
-        () => (id ? getTrackNumberById(id, publishType) : undefined),
-        [id, publishType],
+        () => (id ? getTrackNumberById(id, layoutContext, changeTime) : undefined),
+        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
     );
 }
 
 export function useTrackNumberWithStatus(
-    publishType: PublishType,
     id: LayoutTrackNumberId | undefined,
+    layoutContext: LayoutContext,
     changeTime: TimeStamp,
 ): [LayoutTrackNumber | undefined, LoaderStatus] {
     return useLoaderWithStatus(
-        () => (id ? getTrackNumberById(id, publishType, changeTime) : undefined),
-        [id, publishType, changeTime],
+        () => (id ? getTrackNumberById(id, layoutContext, changeTime) : undefined),
+        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
     );
 }
 
 export function useTrackNumbers(
-    publishType: PublishType,
-    changeTime?: TimeStamp,
-): LayoutTrackNumber[] | undefined {
-    return useLoader(() => getTrackNumbers(publishType, changeTime), [publishType, changeTime]);
-}
-
-export function useTrackNumbersIncludingDeleted(
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime?: TimeStamp,
 ): LayoutTrackNumber[] | undefined {
     return useLoader(
-        () => getTrackNumbers(publishType, changeTime, true),
-        [publishType, changeTime],
+        () => getTrackNumbers(layoutContext, changeTime),
+        [layoutContext.designId, layoutContext.publicationState, changeTime],
+    );
+}
+
+export function useTrackNumbersIncludingDeleted(
+    layoutContext: LayoutContext,
+    changeTime?: TimeStamp,
+): LayoutTrackNumber[] | undefined {
+    return useLoader(
+        () => getTrackNumbers(layoutContext, changeTime, true),
+        [layoutContext.designId, layoutContext.publicationState, changeTime],
     );
 }
 
 export function useReferenceLineStartAndEnd(
     id: ReferenceLineId | undefined,
-    publishType: PublishType | undefined,
+    layoutContext: LayoutContext,
     changeTime: TimeStamp | undefined = undefined,
 ): AlignmentStartAndEnd | undefined {
     return useLoader(
-        () => (id && publishType ? getReferenceLineStartAndEnd(id, publishType) : undefined),
-        [id, publishType, changeTime],
+        () => (id ? getReferenceLineStartAndEnd(id, layoutContext) : undefined),
+        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
     );
 }
 
 export function useLocationTrackStartAndEnd(
     id: LocationTrackId | undefined,
-    publishType: PublishType | undefined,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
 ): [AlignmentStartAndEnd | undefined, LoaderStatus] {
     const changeTime = getMaxTimestamp(
@@ -211,47 +230,49 @@ export function useLocationTrackStartAndEnd(
         changeTimes.layoutReferenceLine,
     );
     return useLoaderWithStatus(
-        () =>
-            id && publishType
-                ? getLocationTrackStartAndEnd(id, publishType, changeTime)
-                : undefined,
-        [id, publishType, changeTime],
+        () => (id ? getLocationTrackStartAndEnd(id, layoutContext, changeTime) : undefined),
+        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
     );
 }
 
 export function useLocationTrackInfoboxExtras(
     id: LocationTrackId | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
 ): [LocationTrackInfoboxExtras | undefined, LoaderStatus] {
     return useLoaderWithStatus(
         () =>
             id === undefined
                 ? undefined
-                : getLocationTrackInfoboxExtras(id, publishType, changeTimes),
-        [id, publishType, changeTimes],
+                : getLocationTrackInfoboxExtras(id, layoutContext, changeTimes),
+        [id, layoutContext.designId, layoutContext.publicationState, changeTimes],
     );
 }
 export function useConflictingTracks(
     trackNumberId: LayoutTrackNumberId | undefined,
     trackNames: string[],
     trackIds: LocationTrackId[],
-    publishType: PublishType,
+    layoutContext: LayoutContext,
 ): LayoutLocationTrack[] | undefined {
     const properAlignmentNames = trackNames.filter(
         (name) => validateLocationTrackName(name).length === 0,
     );
-    // Stringify to make sure React doesn't go nuts with deps changing every time
     const namesString = JSON.stringify(properAlignmentNames);
     const trackIdsString = JSON.stringify(trackIds);
     return useLoader(
         () =>
             trackNumberId === undefined || properAlignmentNames.length === 0
                 ? undefined
-                : getLocationTracksByName(trackNumberId, properAlignmentNames, publishType).then(
+                : getLocationTracksByName(trackNumberId, properAlignmentNames, layoutContext).then(
                       (tracks) => tracks.filter((t) => !trackIds.includes(t.id)),
                   ),
-        [trackNumberId, namesString, trackIdsString, publishType],
+        [
+            trackNumberId,
+            namesString,
+            trackIdsString,
+            layoutContext.designId,
+            layoutContext.publicationState,
+        ],
     );
 }
 
@@ -261,51 +282,51 @@ export function usePlanHeader(id: GeometryPlanId | undefined): GeometryPlanHeade
 
 export function useTrackNumberChangeTimes(
     id: LayoutTrackNumberId | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
 ): DraftableChangeInfo | undefined {
     return useOptionalLoader(
-        () => (id ? getTrackNumberChangeTimes(id, publishType) : undefined),
-        [id],
+        () => (id ? getTrackNumberChangeTimes(id, layoutContext) : undefined),
+        [id, layoutContext.designId, layoutContext.publicationState],
     );
 }
 
 export function useReferenceLineChangeTimes(
     id: ReferenceLineId | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
 ): DraftableChangeInfo | undefined {
     return useOptionalLoader(
-        () => (id ? getReferenceLineChangeTimes(id, publishType) : undefined),
-        [id, publishType],
+        () => (id ? getReferenceLineChangeTimes(id, layoutContext) : undefined),
+        [id, layoutContext.designId, layoutContext.publicationState],
     );
 }
 
 export function useLocationTrackChangeTimes(
     id: LocationTrackId | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
 ): DraftableChangeInfo | undefined {
     return useOptionalLoader(
-        () => (id ? getLocationTrackChangeTimes(id, publishType) : undefined),
-        [id, publishType],
+        () => (id ? getLocationTrackChangeTimes(id, layoutContext) : undefined),
+        [id, layoutContext.designId, layoutContext.publicationState],
     );
 }
 
 export function useSwitchChangeTimes(
     id: LayoutSwitchId | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
 ): DraftableChangeInfo | undefined {
     return useOptionalLoader(
-        () => (id ? getSwitchChangeTimes(id, publishType) : undefined),
-        [id, publishType],
+        () => (id ? getSwitchChangeTimes(id, layoutContext) : undefined),
+        [id, layoutContext.designId, layoutContext.publicationState],
     );
 }
 
 export function useKmPostChangeTimes(
     id: LayoutKmPostId | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
 ): DraftableChangeInfo | undefined {
     return useOptionalLoader(
-        () => (id ? getKmPostChangeTimes(id, publishType) : undefined),
-        [id, publishType],
+        () => (id ? getKmPostChangeTimes(id, layoutContext) : undefined),
+        [id, layoutContext.designId, layoutContext.publicationState],
     );
 }
 
@@ -315,24 +336,29 @@ export function useCoordinateSystem(srid: Srid): CoordinateSystem | undefined {
 
 export function useKmPost(
     id: LayoutKmPostId | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime?: TimeStamp,
 ): LayoutKmPost | undefined {
     return useOptionalLoader(
-        () => (id ? getKmPost(id, publishType, changeTime) : undefined),
-        [id, publishType, changeTime],
+        () => (id ? getKmPost(id, layoutContext, changeTime) : undefined),
+        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
     );
 }
 
 export function useKmPosts(
     ids: LayoutKmPostId[] | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime?: TimeStamp,
 ): LayoutKmPost[] {
     return (
         useLoader(
-            () => (ids ? getKmPosts(ids, publishType, changeTime) : undefined),
-            [JSON.stringify(ids), publishType, changeTime],
+            () => (ids ? getKmPosts(ids, layoutContext, changeTime) : undefined),
+            [
+                JSON.stringify(ids),
+                layoutContext.designId,
+                layoutContext.publicationState,
+                changeTime,
+            ],
         ) || []
     );
 }
@@ -348,13 +374,13 @@ export function usePvDocumentHeader(
 }
 
 export function refreshTrackNumberSelection(
-    publicationState: PublishType,
+    layoutContext: LayoutContext,
     onSelect: OnSelectFunction,
     onUnselect: (items: OptionalUnselectableItemCollections) => void,
 ): (id: LayoutTrackNumberId) => void {
     return (id) => {
         Promise.all([updateAllChangeTimes()]).then(([changeTimes]) => {
-            getTrackNumberById(id, publicationState, changeTimes.layoutTrackNumber).then((tn) => {
+            getTrackNumberById(id, layoutContext, changeTimes.layoutTrackNumber).then((tn) => {
                 if (tn) onSelect({ trackNumbers: [id] });
                 else onUnselect({ trackNumbers: [id] });
             });
@@ -363,13 +389,13 @@ export function refreshTrackNumberSelection(
 }
 
 export function refreshLocationTrackSelection(
-    publicationState: PublishType,
+    layoutContext: LayoutContext,
     onSelect: OnSelectFunction,
     onUnselect: (items: OptionalUnselectableItemCollections) => void,
 ): (id: LocationTrackId) => void {
     return (id) => {
         updateLocationTrackChangeTime().then((ts) => {
-            getLocationTrack(id, publicationState, ts).then((lt) => {
+            getLocationTrack(id, layoutContext, ts).then((lt) => {
                 if (lt) onSelect({ locationTracks: [id] });
                 else onUnselect({ locationTracks: [id] });
             });
@@ -378,13 +404,13 @@ export function refreshLocationTrackSelection(
 }
 
 export function refreshSwitchSelection(
-    publicationState: PublishType,
+    layoutContext: LayoutContext,
     onSelect: OnSelectFunction,
     onUnselect: (items: OptionalUnselectableItemCollections) => void,
 ): (id: LayoutSwitchId) => void {
     return (id) => {
         updateSwitchChangeTime().then((ts) => {
-            getSwitch(id, publicationState, ts).then((s) => {
+            getSwitch(id, layoutContext, ts).then((s) => {
                 if (s) onSelect({ switches: [id] });
                 else onUnselect({ switches: [id] });
             });
@@ -393,13 +419,13 @@ export function refreshSwitchSelection(
 }
 
 export function refereshKmPostSelection(
-    publicationState: PublishType,
+    layoutContext: LayoutContext,
     onSelect: OnSelectFunction,
     onUnselect: (items: OptionalUnselectableItemCollections) => void,
 ): (id: LayoutKmPostId) => void {
     return (id) => {
         updateKmPostChangeTime().then((ts) => {
-            getKmPost(id, publicationState, ts).then((kmp) => {
+            getKmPost(id, layoutContext, ts).then((kmp) => {
                 if (kmp) onSelect({ kmPosts: [id] });
                 else onUnselect({ kmPosts: [id] });
             });

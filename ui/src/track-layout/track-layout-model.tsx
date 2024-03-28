@@ -4,7 +4,6 @@ import {
     GeometryPlanId,
     GeometryPlanLayoutId,
     GeometrySwitchId,
-    GeometryTrackNumberId,
 } from 'geometry/geometry-model';
 import { BoundingBox, Point } from 'model/geometry';
 import {
@@ -25,6 +24,7 @@ import { deduplicateById } from 'utils/array-utils';
 import { AlignmentHeader, AlignmentPolyLine } from './layout-map-api';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { Brand } from 'common/brand';
 
 export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'PLANNED' | 'DELETED';
 export type LayoutStateCategory = 'EXISTING' | 'NOT_EXISTING' | 'FUTURE_EXISTING';
@@ -55,8 +55,8 @@ export function filterAlignmentPoints(
     });
 }
 
-export type ReferenceLineId = string;
-export type LocationTrackId = string;
+export type ReferenceLineId = Brand<string, 'ReferenceLineId'>;
+export type LocationTrackId = Brand<string, 'LocationTrackId'>;
 export type LocationTrackType = 'MAIN' | 'SIDE' | 'TRAP' | 'CHORD';
 export type MapAlignmentSource = 'LAYOUT' | 'GEOMETRY';
 export type MapAlignmentType = 'LOCATION_TRACK' | 'REFERENCE_LINE';
@@ -135,7 +135,6 @@ export type LocationTrackInfoboxExtras = {
     switchAtStart?: LayoutSwitchIdAndName;
     switchAtEnd?: LayoutSwitchIdAndName;
     partOfUnfinishedSplit?: boolean;
-    linkedSwitchesCount: number;
 };
 
 export type AlignmentId = LocationTrackId | ReferenceLineId | GeometryAlignmentId;
@@ -172,7 +171,7 @@ export function trapPointToBoolean(trapPoint: TrapPoint): boolean | undefined {
     }
 }
 
-export type LayoutSwitchId = string;
+export type LayoutSwitchId = Brand<string, 'LayoutSwitchId'>;
 
 export type LayoutSwitch = {
     id: LayoutSwitchId;
@@ -192,7 +191,7 @@ export type LayoutSwitchJoint = {
     locationAccuracy: LocationAccuracy;
 };
 
-export type LayoutKmPostId = string;
+export type LayoutKmPostId = Brand<string, 'LayoutKmPostId'>;
 
 export type LayoutKmPost = {
     id: LayoutKmPostId;
@@ -241,7 +240,7 @@ export type PlanLayoutAlignment = {
     segmentMValues: number[];
 };
 
-export type LayoutTrackNumberId = string;
+export type LayoutTrackNumberId = Brand<string, 'LayoutTrackNumberId'>;
 
 export type LayoutTrackNumber = {
     id: LayoutTrackNumberId;
@@ -249,7 +248,7 @@ export type LayoutTrackNumber = {
     description: string;
     number: TrackNumber;
     state: LayoutState;
-    sourceId?: GeometryTrackNumberId;
+    sourceId?: LayoutTrackNumberId;
 } & LayoutAssetFields;
 
 export type AddressPoint = {
@@ -286,6 +285,12 @@ export type SwitchJointTrackMeter = {
     locationTrackId: LocationTrackId;
     locationTrackName: string;
     trackMeter: TrackMeter | undefined;
+    location: Point;
+};
+
+export type OperatingPoint = {
+    name: string;
+    abbreviation: string;
     location: Point;
 };
 

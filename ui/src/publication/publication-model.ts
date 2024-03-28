@@ -21,7 +21,7 @@ import { RatkoPushStatus } from 'ratko/ratko-model';
 import { BoundingBox, Point } from 'model/geometry';
 import { LocalizationParams } from 'i18n/config';
 
-export type PublishValidationError = {
+export type PublicationValidationError = {
     type: 'ERROR' | 'WARNING';
     localizationKey: string;
     params: LocalizationParams;
@@ -49,20 +49,53 @@ export enum PublicationStage {
 
 export type PublicationId = string;
 
-export type PublishCandidateId =
+export type PublicationCandidateId =
     | LayoutTrackNumberId
     | ReferenceLineId
     | LocationTrackId
     | LayoutSwitchId
     | LayoutKmPostId;
 
-export type PublishCandidate = {
+export type BasePublicationCandidate = {
+    // id: PublicationCandidateId;
+    // type: DraftChangeType;
     draftChangeTime: TimeStamp;
     userName: string;
     operation: Operation;
     publicationGroup?: PublicationGroup;
-    errors: PublishValidationError[];
+    errors: PublicationValidationError[];
+    validated: boolean;
+    pendingValidation: boolean;
+    stage: PublicationStage;
 };
+
+export type PublicationCandidate =
+    | TrackNumberPublicationCandidate
+    | LocationTrackPublicationCandidate
+    | ReferenceLinePublicationCandidate
+    | SwitchPublicationCandidate
+    | KmPostPublicationCandidate;
+
+// export type PublicationCandidateReference = { type: DraftChangeType } & (
+//     | { id: LayoutTrackNumberId }
+//     | { id: ReferenceLineId }
+//     | { id: LocationTrackId }
+//     | { id: LayoutSwitchId }
+//     | { id: LayoutKmPostId }
+// );
+
+// export type PublicationCandidateReference = Pick<PublicationCandidate, 'id' | 'type'>;
+export type PublicationCandidateReference =
+    | { id: LayoutTrackNumberId; type: DraftChangeType.TRACK_NUMBER }
+    | { id: ReferenceLineId; type: DraftChangeType.REFERENCE_LINE }
+    | { id: LocationTrackId; type: DraftChangeType.LOCATION_TRACK }
+    | { id: LayoutSwitchId; type: DraftChangeType.SWITCH }
+    | { id: LayoutKmPostId; type: DraftChangeType.KM_POST };
+// | { type: DraftChangeType.TRACK_NUMBER }
+// | { type: DraftChangeType.REFERENCE_LINE }
+// | { type: DraftChangeType.LOCATION_TRACK }
+// | { type: DraftChangeType.SWITCH }
+// | { type: DraftChangeType.KM_POST }
 
 export type WithBoundingBox = {
     boundingBox?: BoundingBox;
@@ -72,65 +105,58 @@ export type WithLocation = {
     location?: Point;
 };
 
-export type WithId = {
-    id: PublishCandidateId;
-};
-
-export type TrackNumberPublishCandidate = PublishCandidate &
+export type TrackNumberPublicationCandidate = BasePublicationCandidate &
     WithBoundingBox & {
+        id: LayoutTrackNumberId;
         type: DraftChangeType.TRACK_NUMBER;
         number: TrackNumber;
-        id: LayoutTrackNumberId;
     };
 
-export type LocationTrackPublishCandidate = PublishCandidate &
+export type LocationTrackPublicationCandidate = BasePublicationCandidate &
     WithBoundingBox & {
-        type: DraftChangeType.LOCATION_TRACK;
         id: LocationTrackId;
+        type: DraftChangeType.LOCATION_TRACK;
         trackNumberId: LayoutTrackNumberId;
         name: string;
         duplicateOf: LocationTrackId;
     };
 
-export type ReferenceLinePublishCandidate = PublishCandidate &
+export type ReferenceLinePublicationCandidate = BasePublicationCandidate &
     WithBoundingBox & {
-        type: DraftChangeType.REFERENCE_LINE;
         id: ReferenceLineId;
+        type: DraftChangeType.REFERENCE_LINE;
         trackNumberId: LayoutTrackNumberId;
         name: TrackNumber;
         operation?: Operation;
         boundingBox?: BoundingBox;
     };
 
-export type SwitchPublishCandidate = PublishCandidate &
+export type SwitchPublicationCandidate = BasePublicationCandidate &
     WithLocation & {
-        type: DraftChangeType.SWITCH;
         id: LayoutSwitchId;
+        type: DraftChangeType.SWITCH;
         name: string;
         trackNumberIds: LayoutTrackNumberId[];
     };
 
-export type KmPostPublishCandidate = PublishCandidate &
+export type KmPostPublicationCandidate = BasePublicationCandidate &
     WithLocation & {
-        type: DraftChangeType.KM_POST;
         id: LayoutKmPostId;
+        type: DraftChangeType.KM_POST;
         trackNumberId: LayoutTrackNumberId;
         kmNumber: KmNumber;
         location?: Point;
     };
 
-export type PublishCandidates = {
-    trackNumbers: TrackNumberPublishCandidate[];
-    locationTracks: LocationTrackPublishCandidate[];
-    referenceLines: ReferenceLinePublishCandidate[];
-    switches: SwitchPublishCandidate[];
-    kmPosts: KmPostPublishCandidate[];
+export type ValidatedPublicationCandidates = {
+    validatedAsPublicationUnit: PublicationCandidate[];
+    allChangesValidated: PublicationCandidate[];
 };
 
-export type ValidatedPublishCandidates = {
-    validatedAsPublicationUnit: PublishCandidates;
-    allChangesValidated: PublishCandidates;
-};
+export const emptyValidatedPublicationCandidates = (): ValidatedPublicationCandidates => ({
+    validatedAsPublicationUnit: [],
+    allChangesValidated: [],
+});
 
 export type BulkTransferState = 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'FAILED' | 'TEMPORARY_FAILURE';
 
@@ -203,20 +229,12 @@ export type PublishedKmPost = {
     operation: Operation;
 };
 
-export type PublishRequestIds = {
+export type PublicationRequestIds = {
     trackNumbers: LayoutTrackNumberId[];
     referenceLines: ReferenceLineId[];
     locationTracks: LocationTrackId[];
     switches: LayoutSwitchId[];
     kmPosts: LayoutKmPostId[];
-};
-
-export const publishNothing: PublishRequestIds = {
-    trackNumbers: [],
-    referenceLines: [],
-    locationTracks: [],
-    switches: [],
-    kmPosts: [],
 };
 
 export type PropKey = {
@@ -237,17 +255,23 @@ export type PublicationChange = {
     enumKey?: string;
 };
 
-export type ValidatedAsset = {
-    id: AssetId;
-    errors: PublishValidationError[];
+export type ValidatedAsset<Id extends AssetId> = {
+    id: Id;
+    errors: PublicationValidationError[];
 };
 
-export type PublishRequest = {
-    content: PublishRequestIds;
+export type ValidatedTrackNumber = ValidatedAsset<LayoutTrackNumberId>;
+export type ValidatedLocationTrack = ValidatedAsset<LocationTrackId>;
+export type ValidatedReferenceLine = ValidatedAsset<ReferenceLineId>;
+export type ValidatedSwitch = ValidatedAsset<LayoutSwitchId>;
+export type ValidatedKmPost = ValidatedAsset<LayoutKmPostId>;
+
+export type PublicationRequest = {
+    content: PublicationRequestIds;
     message: string;
 };
 
-export interface PublishResult {
+export interface PublicationResult {
     trackNumbers: number;
     locationTracks: number;
     referenceLines: number;

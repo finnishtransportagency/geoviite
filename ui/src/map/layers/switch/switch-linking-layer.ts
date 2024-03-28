@@ -12,7 +12,10 @@ import {
     pointToCoords,
 } from 'map/layers/utils/layer-utils';
 import { Selection } from 'selection/selection-model';
-import { getLinkingJointRenderer } from 'map/layers/utils/switch-layer-utils';
+import {
+    getLinkingJointRenderer,
+    suggestedSwitchHasMatchOnJoint,
+} from 'map/layers/utils/switch-layer-utils';
 import { SUGGESTED_SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { filterNotEmpty, first } from 'utils/array-utils';
 import { Rectangle } from 'model/geometry';
@@ -33,7 +36,10 @@ function createSwitchFeatures(
 
             f.setStyle(
                 new Style({
-                    renderer: getLinkingJointRenderer(joint),
+                    renderer: getLinkingJointRenderer(
+                        joint,
+                        suggestedSwitchHasMatchOnJoint(suggestedSwitch, joint.number),
+                    ),
                 }),
             );
 

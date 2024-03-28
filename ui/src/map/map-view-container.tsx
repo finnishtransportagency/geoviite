@@ -9,9 +9,9 @@ import { MapContext } from './map-store';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { infraModelActionCreators } from 'infra-model/infra-model-slice';
-import { PublishType } from 'common/common-model';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { GeometryPlanLayout } from 'track-layout/track-layout-model';
+import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 
 const emptyFn = () => void 0;
 
@@ -36,7 +36,7 @@ const getTrackLayoutProps = (): MapViewProps => {
         onSetLayoutPoint: delegates.setLayoutLinkPoint,
         onShownLayerItemsChange: delegates.onShownItemsChange,
         onViewportUpdate: delegates.onViewportChange,
-        publishType: store.publishType,
+        layoutContext: store.layoutContext,
         selection: store.selection,
     };
 };
@@ -62,18 +62,18 @@ const getInfraModelProps = (): MapViewProps => {
         onSetLayoutPoint: emptyFn,
         onShownLayerItemsChange: emptyFn,
         onViewportUpdate: delegates.onViewportChange,
-        publishType: 'OFFICIAL',
+        layoutContext: officialMainLayoutContext(),
         selection: store.selection,
     };
 };
 
 type MapViewContainerProps = {
-    publishType?: PublishType;
+    layoutContext?: LayoutContext;
     hoveredOverPlanSection?: HighlightedAlignment;
     manuallySetPlan?: GeometryPlanLayout;
 };
 export const MapViewContainer: React.FC<MapViewContainerProps> = ({
-    publishType,
+    layoutContext,
     hoveredOverPlanSection,
     manuallySetPlan,
 }) => {
@@ -81,7 +81,7 @@ export const MapViewContainer: React.FC<MapViewContainerProps> = ({
 
     const mapProps = mapContext === 'track-layout' ? getTrackLayoutProps() : getInfraModelProps();
 
-    mapProps.publishType = publishType ? publishType : mapProps.publishType;
+    mapProps.layoutContext = layoutContext ? layoutContext : mapProps.layoutContext;
     mapProps.hoveredOverPlanSection = hoveredOverPlanSection;
     mapProps.manuallySetPlan = manuallySetPlan;
 

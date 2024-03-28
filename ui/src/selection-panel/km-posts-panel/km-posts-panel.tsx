@@ -4,11 +4,11 @@ import { KmPostBadge, KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-p
 import styles from './km-posts-panel.scss';
 import { useTranslation } from 'react-i18next';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
-import { PublishType } from 'common/common-model';
+import { LayoutContext } from 'common/common-model';
 
 type KmPostsPanelProps = {
     kmPosts: LayoutKmPost[];
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     onToggleKmPostSelection: (kmPost: LayoutKmPost) => void;
     selectedKmPosts?: LayoutKmPostId[];
     max?: number;
@@ -17,14 +17,14 @@ type KmPostsPanelProps = {
 
 export const KmPostsPanel: React.FC<KmPostsPanelProps> = ({
     kmPosts,
-    publishType,
+    layoutContext,
     onToggleKmPostSelection,
     selectedKmPosts,
     max = 16,
     disabled,
 }: KmPostsPanelProps) => {
     const { t } = useTranslation();
-    const trackNumbers = useTrackNumbers(publishType);
+    const trackNumbers = useTrackNumbers(layoutContext);
 
     const [kmPostsCount, setKmPostsCount] = React.useState(0);
     const [visibleKmPosts, setVisibleKmPosts] = React.useState([] as LayoutKmPost[]);

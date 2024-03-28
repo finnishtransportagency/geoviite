@@ -263,5 +263,26 @@ export function findLastIndex<T, B>(objs: readonly T[], predicate: (obj: T) => B
     return reverseIndex >= 0 ? objs.length - 1 - reverseIndex : -1;
 }
 
+export function findInsertionIndex<T>(
+    things: readonly T[],
+    isInsertBefore: (v: T) => boolean,
+): number {
+    const i = things.findIndex(isInsertBefore);
+    return i == -1 ? things.length : i;
+}
+
+export function insertAtIndex<T>(things: readonly T[], thing: T, index: number): T[] {
+    return [...things.slice(0, index), thing, ...things.slice(index)];
+}
+
 export const findById = <T extends { id: string }>(objs: T[], id: string): T | undefined =>
     objs.find((obj) => obj.id == id);
+
+/**
+ * Like Object.entries, but with the assumption that the argument doesn't contain any fields not mentioned in its
+ * type (they are still output, but the output type doesn't know about them).
+ */
+export const objectEntries = <T extends object>(obj: T) =>
+    Object.entries(obj) as {
+        [K in keyof T]-?: [K, T[K]];
+    }[keyof T][];

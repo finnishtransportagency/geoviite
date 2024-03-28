@@ -17,14 +17,12 @@ import {
     expandBoundingBox,
 } from 'model/geometry';
 import { useTranslation } from 'react-i18next';
-import { PublishType } from 'common/common-model';
 import styles from './tool-bar.scss';
 import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dialog/location-track-edit-dialog';
 import { SwitchEditDialogContainer } from 'tool-panel/switch/dialog/switch-edit-dialog';
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { Menu, MenuOption, menuValueOption } from 'vayla-design-lib/menu/menu';
-import { WriteAccessRequired } from 'user/write-access-required';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import { MapLayerMenuChange, MapLayerMenuGroups, MapLayerName } from 'map/map-model';
@@ -39,14 +37,17 @@ import {
 import { getBySearchTerm } from 'track-layout/track-layout-search-api';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { EDIT_LAYOUT } from 'user/user-model';
+import { draftLayoutContext, LayoutContext, PublicationState } from 'common/common-model';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
-    onPublishTypeChange: (publishType: PublishType) => void;
+    onPublicationStateChange: (publicationState: PublicationState) => void;
     onOpenPreview: () => void;
     showArea: (area: BoundingBox) => void;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     onStopLinking: () => void;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
     mapLayerMenuGroups: MapLayerMenuGroups;
@@ -75,26 +76,27 @@ function createTrackNumberItem(layoutTrackNumber: LayoutTrackNumber): Item<Track
         {
             type: 'trackNumberSearchItem',
             trackNumber: layoutTrackNumber,
-        },
+        } as const,
         layoutTrackNumber.number,
+        `track-number-${layoutTrackNumber.id}`,
     );
 }
 
 type SearchItemValue = LocationTrackItemValue | SwitchItemValue | TrackNumberItemValue;
 
 async function getOptions(
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     searchTerm: string,
 ): Promise<Item<SearchItemValue>[]> {
     if (isNilOrBlank(searchTerm)) {
         return Promise.resolve([]);
     }
 
-    const searchResult = await getBySearchTerm(searchTerm, publishType);
+    const searchResult = await getBySearchTerm(searchTerm, layoutContext);
 
     const locationTrackDescriptions = await getLocationTrackDescriptions(
         searchResult.locationTracks.map((lt) => lt.id),
-        publishType,
+        layoutContext,
     );
 
     const locationTracks: Item<LocationTrackItemValue>[] = searchResult.locationTracks.map(
@@ -103,13 +105,14 @@ async function getOptions(
                 {
                     type: 'locationTrackSearchItem',
                     locationTrack: locationTrack,
-                },
+                } as const,
                 `${locationTrack.name}, ${
                     (locationTrackDescriptions &&
                         locationTrackDescriptions.find((d) => d.id == locationTrack.id)
                             ?.description) ??
                     ''
                 }`,
+                `location-track-${locationTrack.id}`,
             ),
     );
 
@@ -118,8 +121,9 @@ async function getOptions(
             {
                 type: 'switchSearchItem',
                 layoutSwitch: layoutSwitch,
-            },
-            `${layoutSwitch.name}`,
+            } as const,
+            layoutSwitch.name,
+            `switch-${layoutSwitch.id}`,
         ),
     );
 
@@ -134,10 +138,10 @@ async function getOptions(
 export const ToolBar: React.FC<ToolbarParams> = ({
     onSelect,
     onUnselect,
-    onPublishTypeChange,
+    onPublicationStateChange,
     onOpenPreview,
     showArea,
-    publishType,
+    layoutContext,
     onStopLinking,
     onMapLayerChange,
     mapLayerMenuGroups,
@@ -189,8 +193,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const debouncedGetOptions = debounceAsync(getOptions, 250);
     // Use memoized function to make debouncing functionality to work when re-rendering
     const memoizedDebouncedGetOptions = React.useCallback(
-        (searchTerm: string) => debouncedGetOptions(publishType, searchTerm),
-        [publishType],
+        (searchTerm: string) => debouncedGetOptions(layoutContext, searchTerm),
+        [layoutContext],
     );
 
     function onItemSelected(item: SearchItemValue | undefined) {
@@ -220,7 +224,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 });
 
             case 'trackNumberSearchItem':
-                getTrackNumberReferenceLine(item.trackNumber.id, publishType).then(
+                getTrackNumberReferenceLine(item.trackNumber.id, layoutContext).then(
                     (referenceLine) => {
                         if (referenceLine?.boundingBox) {
                             showArea(referenceLine.boundingBox);
@@ -261,7 +265,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     }
 
     function moveToOfficialPublishType() {
-        onPublishTypeChange('OFFICIAL');
+        onPublicationStateChange('OFFICIAL');
         setShowNewAssetMenu(false);
     }
 
@@ -270,10 +274,19 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         onStopLinking();
     }
 
-    const handleTrackNumberSave = refreshTrackNumberSelection('DRAFT', onSelect, onUnselect);
-    const handleLocationTrackSave = refreshLocationTrackSelection('DRAFT', onSelect, onUnselect);
-    const handleSwitchSave = refreshSwitchSelection('DRAFT', onSelect, onUnselect);
-    const handleKmPostSave = refereshKmPostSelection('DRAFT', onSelect, onUnselect);
+    const layoutContextDraft = draftLayoutContext(layoutContext);
+    const handleTrackNumberSave = refreshTrackNumberSelection(
+        layoutContextDraft,
+        onSelect,
+        onUnselect,
+    );
+    const handleLocationTrackSave = refreshLocationTrackSelection(
+        layoutContextDraft,
+        onSelect,
+        onUnselect,
+    );
+    const handleSwitchSave = refreshSwitchSelection(layoutContextDraft, onSelect, onUnselect);
+    const handleKmPostSave = refereshKmPostSelection(layoutContextDraft, onSelect, onUnselect);
 
     const modeNavigationButtonsDisabledReason = () => {
         if (splittingState) {
@@ -286,7 +299,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     };
 
     return (
-        <div className={`tool-bar tool-bar--${publishType.toLowerCase()}`}>
+        <div className={`tool-bar tool-bar--${layoutContext.publicationState.toLowerCase()}`}>
             <div className={styles['tool-bar__left-section']}>
                 <Dropdown
                     placeholder={t('tool-bar.search')}
@@ -304,35 +317,37 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     visibleLayers={visibleLayers}
                 />
                 <div className={styles['tool-bar__new-menu-button']} qa-id={'tool-bar.new'}>
-                    <WriteAccessRequired>
+                    <PrivilegeRequired privilege={EDIT_LAYOUT}>
                         <Button
                             ref={menuRef}
                             title={t('tool-bar.new')}
                             variant={ButtonVariant.SECONDARY}
                             icon={Icons.Append}
-                            disabled={publishType !== 'DRAFT' || disableNewAssetMenu}
+                            disabled={
+                                layoutContext.publicationState !== 'DRAFT' || disableNewAssetMenu
+                            }
                             onClick={() => setShowNewAssetMenu(!showNewAssetMenu)}
                         />
-                    </WriteAccessRequired>
+                    </PrivilegeRequired>
                 </div>
             </div>
 
             <div className={styles['tool-bar__middle-section']}>
-                {publishType === 'DRAFT' && t('tool-bar.draft-mode.title')}
+                {layoutContext.publicationState === 'DRAFT' && t('tool-bar.draft-mode.title')}
             </div>
 
             <div className={styles['tool-bar__right-section']}>
-                {publishType === 'OFFICIAL' && (
-                    <WriteAccessRequired>
+                {layoutContext.publicationState === 'OFFICIAL' && (
+                    <PrivilegeRequired privilege={EDIT_LAYOUT}>
                         <Button
                             variant={ButtonVariant.PRIMARY}
                             qa-id="switch-to-draft-mode"
-                            onClick={() => onPublishTypeChange('DRAFT')}>
+                            onClick={() => onPublicationStateChange('DRAFT')}>
                             {t('tool-bar.draft-mode.enable')}
                         </Button>
-                    </WriteAccessRequired>
+                    </PrivilegeRequired>
                 )}
-                {publishType === 'DRAFT' && (
+                {layoutContext.publicationState === 'DRAFT' && (
                     <React.Fragment>
                         <Button
                             disabled={

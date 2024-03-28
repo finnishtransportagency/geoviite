@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { WriteAccessRequired } from 'user/write-access-required';
 import Infobox from 'tool-panel/infobox/infobox';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
@@ -9,8 +8,12 @@ import { useLocationTrack } from 'track-layout/track-layout-react-utils';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { useCommonDataAppSelector } from 'store/hooks';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { EDIT_LAYOUT } from 'user/user-model';
+import { LayoutContext, officialLayoutContext } from 'common/common-model';
 
 type LocationTrackRatkoSyncInfoboxProps = {
+    layoutContext: LayoutContext;
     locationTrackId: LocationTrackId;
     visibilities: LocationTrackInfoboxVisibilities;
     visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
@@ -18,6 +21,7 @@ type LocationTrackRatkoSyncInfoboxProps = {
 };
 
 export const LocationTrackRatkoSyncInfobox: React.FC<LocationTrackRatkoSyncInfoboxProps> = ({
+    layoutContext,
     locationTrackId,
     visibilities,
     visibilityChange,
@@ -28,11 +32,11 @@ export const LocationTrackRatkoSyncInfobox: React.FC<LocationTrackRatkoSyncInfob
 
     const officialLocationTrack = useLocationTrack(
         locationTrackId,
-        'OFFICIAL',
+        officialLayoutContext(layoutContext),
         changeTimes.layoutLocationTrack,
     );
     return officialLocationTrack ? (
-        <WriteAccessRequired>
+        <PrivilegeRequired privilege={EDIT_LAYOUT}>
             <Infobox
                 contentVisible={visibilities.ratkoPush}
                 onContentVisibilityChange={() => visibilityChange('ratkoPush')}
@@ -49,7 +53,7 @@ export const LocationTrackRatkoSyncInfobox: React.FC<LocationTrackRatkoSyncInfob
                     </InfoboxButtons>
                 </InfoboxContent>
             </Infobox>
-        </WriteAccessRequired>
+        </PrivilegeRequired>
     ) : (
         <React.Fragment />
     );

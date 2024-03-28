@@ -9,6 +9,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { compare } from 'utils/array-utils';
 import i18next from 'i18next';
+import { Brand } from 'common/brand';
 
 export type RotationDirection = 'CW' | 'CCW';
 export type LinearUnit = 'MILLIMETER' | 'CENTIMETER' | 'METER' | 'KILOMETER';
@@ -16,7 +17,41 @@ export type AngularUnit = 'RADIANS' | 'GRADS';
 
 export type DataType = 'STORED' | 'TEMP';
 
-export type PublishType = 'OFFICIAL' | 'DRAFT';
+export type LayoutDesignId = string;
+export type PublicationState = 'OFFICIAL' | 'DRAFT';
+export type LayoutContext = {
+    publicationState: PublicationState;
+    designId: LayoutDesignId | undefined;
+};
+
+export const officialLayoutContext = (layoutContext: LayoutContext): LayoutContext =>
+    layoutContext.publicationState === 'OFFICIAL'
+        ? layoutContext
+        : {
+              publicationState: 'OFFICIAL',
+              designId: layoutContext.designId,
+          };
+
+export const draftLayoutContext = (layoutContext: LayoutContext): LayoutContext =>
+    layoutContext.publicationState === 'DRAFT'
+        ? layoutContext
+        : {
+              publicationState: 'DRAFT',
+              designId: layoutContext.designId,
+          };
+
+const officialMainContext: LayoutContext = Object.freeze({
+    publicationState: 'OFFICIAL',
+    designId: undefined,
+});
+const draftMainContext: LayoutContext = Object.freeze({
+    publicationState: 'DRAFT',
+    designId: undefined,
+});
+
+export const officialMainLayoutContext = (): LayoutContext => officialMainContext;
+export const draftMainLayoutContext = (): LayoutContext => draftMainContext;
+
 export type LayoutMode = 'DEFAULT' | 'PREVIEW';
 
 export type LocationAccuracy =
@@ -35,7 +70,7 @@ export type MeasurementMethod =
 
 export type ElevationMeasurementMethod = 'TOP_OF_SLEEPER' | 'TOP_OF_RAIL';
 
-export type TrackNumber = string;
+export type TrackNumber = Brand<string, 'TrackNumber'>;
 
 export type KmNumber = string;
 export const ZERO_TRACK_METER: TrackMeter = {

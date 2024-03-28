@@ -23,7 +23,13 @@ import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { SwitchEditDialogContainer } from './dialog/switch-edit-dialog';
 import SwitchJointInfobox from 'tool-panel/switch/switch-joint-infobox';
-import { JointNumber, PublishType, SwitchOwnerId, TrackMeter } from 'common/common-model';
+import {
+    draftLayoutContext,
+    JointNumber,
+    LayoutContext,
+    SwitchOwnerId,
+    TrackMeter,
+} from 'common/common-model';
 import LayoutStateCategoryLabel from 'geoviite-design-lib/layout-state-category/layout-state-category-label';
 import { BoundingBox, Point } from 'model/geometry';
 import { PlacingSwitch } from 'linking/linking-model';
@@ -38,7 +44,6 @@ import { getSwitch, getSwitchJointConnections } from 'track-layout/layout-switch
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
 import { ChangeTimes } from 'common/common-slice';
 import { SwitchInfoboxVisibilities } from 'track-layout/track-layout-slice';
-import { WriteAccessRequired } from 'user/write-access-required';
 import { formatDateShort } from 'utils/date-utils';
 import {
     refreshSwitchSelection,
@@ -47,13 +52,15 @@ import {
 import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import SwitchDeleteConfirmationDialog from './dialog/switch-delete-confirmation-dialog';
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { EDIT_LAYOUT } from 'user/user-model';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
     showArea: (boundingBox: BoundingBox) => void;
     onDataChange: () => void;
     changeTimes: ChangeTimes;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     onSelect: (options: OnSelectOptions) => void;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
     placingSwitchLinkingState?: PlacingSwitch;
@@ -83,12 +90,12 @@ const getTrackMeterForPoint = async (
     jointNumber: JointNumber,
     locationTrackId: LocationTrackId,
     location: Point,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
 ) => {
     const locationTrack = await getLocationTrack(
         locationTrackId,
-        publishType,
+        layoutContext,
         changeTimes.layoutLocationTrack,
     );
 
@@ -96,7 +103,7 @@ const getTrackMeterForPoint = async (
 
     const trackMeter = await getTrackMeter(
         locationTrack.trackNumberId,
-        publishType,
+        layoutContext,
         changeTimes.layoutTrackNumber,
         location,
     );
@@ -106,7 +113,7 @@ const getTrackMeterForPoint = async (
 
 export const getSwitchJointTrackMeters = async (
     switchJointConnections: LayoutSwitchJointConnection[],
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
 ): Promise<SwitchJointTrackMeter[]> => {
     const jointTrackMeters = await Promise.all(
@@ -116,7 +123,7 @@ export const getSwitchJointTrackMeters = async (
                     connection.number,
                     locationTrackId,
                     location,
-                    publishType,
+                    layoutContext,
                     changeTimes,
                 ),
             );
@@ -131,7 +138,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     showArea,
     onDataChange,
     changeTimes,
-    publishType,
+    layoutContext,
     onSelect,
     onUnselect,
     placingSwitchLinkingState,
@@ -145,23 +152,33 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     const switchOwners = useLoader(() => getSwitchOwners(), []);
     const switchStructures = useLoader(() => getSwitchStructures(), []);
     const layoutSwitch = useLoader(
-        () => getSwitch(switchId, publishType),
-        [switchId, changeTimes.layoutSwitch, publishType],
+        () => getSwitch(switchId, layoutContext),
+        [
+            switchId,
+            changeTimes.layoutSwitch,
+            layoutContext.designId,
+            layoutContext.publicationState,
+        ],
     );
     const structure = switchStructures?.find(
         (structure) => structure.id === layoutSwitch?.switchStructureId,
     );
     const switchJointConnections = useLoader(
-        () => getSwitchJointConnections(publishType, switchId),
-        [publishType, layoutSwitch],
+        () => getSwitchJointConnections(layoutContext, switchId),
+        [layoutContext.designId, layoutContext.publicationState, layoutSwitch],
     );
-    const switchChangeTimes = useSwitchChangeTimes(layoutSwitch?.id, publishType);
+    const switchChangeTimes = useSwitchChangeTimes(layoutSwitch?.id, layoutContext);
 
     const switchJointTrackMeters = useLoader(() => {
         return switchJointConnections
-            ? getSwitchJointTrackMeters(switchJointConnections, publishType, changeTimes)
+            ? getSwitchJointTrackMeters(switchJointConnections, layoutContext, changeTimes)
             : undefined;
-    }, [switchJointConnections, publishType, changeTimes]);
+    }, [
+        switchJointConnections,
+        layoutContext.designId,
+        layoutContext.publicationState,
+        changeTimes,
+    ]);
 
     const SwitchImage = structure && makeSwitchImage(structure.baseType, structure.hand);
     const switchLocation =
@@ -174,7 +191,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     const canStartPlacing = placingSwitchLinkingState == undefined && layoutSwitch != undefined;
 
     function isOfficial(): boolean {
-        return publishType === 'OFFICIAL';
+        return layoutContext.publicationState === 'OFFICIAL';
     }
 
     function openEditSwitchDialog() {
@@ -196,7 +213,11 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     const visibilityChange = (key: keyof SwitchInfoboxVisibilities) => {
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
-    const handleSwitchSave = refreshSwitchSelection('DRAFT', onSelect, onUnselect);
+    const handleSwitchSave = refreshSwitchSelection(
+        draftLayoutContext(layoutContext),
+        onSelect,
+        onUnselect,
+    );
 
     return (
         <React.Fragment>
@@ -302,11 +323,11 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                         <SwitchJointInfobox
                             switchAlignments={structure.alignments}
                             jointConnections={switchJointConnections}
-                            publishType={publishType}
+                            layoutContext={layoutContext}
                             onSelectLocationTrackBadge={onSelectLocationTrackBadge}
                         />
                     )}
-                    <WriteAccessRequired>
+                    <PrivilegeRequired privilege={EDIT_LAYOUT}>
                         <InfoboxButtons>
                             {!canStartPlacing && (
                                 <Button
@@ -325,7 +346,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                                 {t('tool-panel.switch.layout.start-switch-placing')}
                             </Button>
                         </InfoboxButtons>
-                    </WriteAccessRequired>
+                    </PrivilegeRequired>
                     {placingSwitchLinkingState && (
                         <InfoboxContentSpread>
                             <MessageBox>
@@ -348,19 +369,15 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
                     />
                 </InfoboxContent>
             </Infobox>
-            {
-                // TODO: GVT-2522
-                layoutSwitch && layoutSwitch.editState !== 'CREATED' && (
-                    <AssetValidationInfoboxContainer
-                        contentVisible={visibilities.validation}
-                        onContentVisibilityChange={() => visibilityChange('validation')}
-                        id={layoutSwitch.id}
-                        type={'SWITCH'}
-                        publishType={publishType}
-                        changeTime={changeTimes.layoutSwitch}
-                    />
-                )
-            }
+            {layoutSwitch && (
+                <AssetValidationInfoboxContainer
+                    contentVisible={visibilities.validation}
+                    onContentVisibilityChange={() => visibilityChange('validation')}
+                    idAndType={{ id: layoutSwitch.id, type: 'SWITCH' }}
+                    layoutContext={layoutContext}
+                    changeTime={changeTimes.layoutSwitch}
+                />
+            )}
             <Infobox
                 contentVisible={visibilities.log}
                 onContentVisibilityChange={() => visibilityChange('log')}
@@ -397,6 +414,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
             </Infobox>
             {showDeleteDialog && (
                 <SwitchDeleteConfirmationDialog
+                    layoutContext={layoutContext}
                     switchId={switchId}
                     onClose={() => setShowDeleteDialog(false)}
                     onSave={handleSwitchSave}

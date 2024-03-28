@@ -4,7 +4,12 @@ import {
     LayoutTrackNumberId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import { DraftableChangeInfo, PublishType, TimeStamp } from 'common/common-model';
+import {
+    DraftableChangeInfo,
+    draftLayoutContext,
+    LayoutContext,
+    TimeStamp,
+} from 'common/common-model';
 import { getNonNull, getNullable, queryParams } from 'api/api-fetch';
 import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
 import { BoundingBox } from 'model/geometry';
@@ -15,32 +20,33 @@ import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 
 const referenceLineCache = asyncCache<string, LayoutReferenceLine | undefined>();
 
-export function cacheKey(id: ReferenceLineId, publishType: PublishType) {
-    return `${id}_${publishType}`;
+export function cacheKey(id: ReferenceLineId, layoutContext: LayoutContext) {
+    return `${id}_${layoutContext.publicationState}_${layoutContext.designId}`;
 }
+
 export async function getReferenceLine(
     id: ReferenceLineId,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime: TimeStamp = getChangeTimes().layoutReferenceLine,
 ): Promise<LayoutReferenceLine | undefined> {
-    return referenceLineCache.get(changeTime, cacheKey(id, publishType), () =>
-        getNullable<LayoutReferenceLine>(layoutUri('reference-lines', publishType, id)),
+    return referenceLineCache.get(changeTime, cacheKey(id, layoutContext), () =>
+        getNullable<LayoutReferenceLine>(layoutUri('reference-lines', layoutContext, id)),
     );
 }
 
 export async function getReferenceLines(
     ids: ReferenceLineId[],
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime: TimeStamp = getChangeTimes().layoutReferenceLine,
 ): Promise<LayoutReferenceLine[]> {
     return referenceLineCache
         .getMany(
             changeTime,
             ids,
-            (id) => cacheKey(id, publishType),
+            (id) => cacheKey(id, layoutContext),
             (fetchIds) =>
                 getNonNull<LayoutReferenceLine[]>(
-                    `${layoutUri('reference-lines', publishType)}?ids=${fetchIds}`,
+                    `${layoutUri('reference-lines', layoutContext)}?ids=${fetchIds}`,
                 ).then((tracks) => {
                     const trackMap = indexIntoMap(tracks);
                     return (id) => trackMap.get(id);
@@ -51,43 +57,47 @@ export async function getReferenceLines(
 
 export async function getTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime: TimeStamp = getChangeTimes().layoutReferenceLine,
 ): Promise<LayoutReferenceLine | undefined> {
-    const cacheKey = `TN_${trackNumberId}_${publishType}`;
+    const cacheKey = `TN_${trackNumberId}_${layoutContext.publicationState}_${layoutContext.designId}`;
     return referenceLineCache.get(changeTime, cacheKey, () =>
         getNullable<LayoutReferenceLine>(
-            `${layoutUri('reference-lines', publishType)}/by-track-number/${trackNumberId}`,
+            `${layoutUri('reference-lines', layoutContext)}/by-track-number/${trackNumberId}`,
         ),
     );
 }
 
 export async function getReferenceLineStartAndEnd(
     referenceLineId: ReferenceLineId,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
 ): Promise<AlignmentStartAndEnd | undefined> {
     return getNullable<AlignmentStartAndEnd>(
-        `${layoutUri('reference-lines', publishType, referenceLineId)}/start-and-end`,
+        `${layoutUri('reference-lines', layoutContext, referenceLineId)}/start-and-end`,
     );
 }
 
 export async function getReferenceLinesNear(
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     bbox: BoundingBox,
 ): Promise<LayoutReferenceLine[]> {
     const params = queryParams({ bbox: bboxString(bbox) });
     return getNonNull<LayoutReferenceLine[]>(
-        `${layoutUri('reference-lines', publishType)}${params}`,
+        `${layoutUri('reference-lines', layoutContext)}${params}`,
     );
 }
 
-export async function getNonLinkedReferenceLines(): Promise<LayoutReferenceLine[]> {
-    return getNonNull<LayoutReferenceLine[]>(`${layoutUri('reference-lines', 'DRAFT')}/non-linked`);
+export async function getNonLinkedReferenceLines(
+    layoutContext: LayoutContext,
+): Promise<LayoutReferenceLine[]> {
+    return getNonNull<LayoutReferenceLine[]>(
+        `${layoutUri('reference-lines', draftLayoutContext(layoutContext))}/non-linked`,
+    );
 }
 
 export const getReferenceLineChangeTimes = (
     id: ReferenceLineId,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
 ): Promise<DraftableChangeInfo | undefined> => {
-    return getNullable<DraftableChangeInfo>(changeTimeUri('reference-lines', id, publishType));
+    return getNullable<DraftableChangeInfo>(changeTimeUri('reference-lines', id, layoutContext));
 };

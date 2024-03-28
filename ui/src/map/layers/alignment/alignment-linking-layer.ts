@@ -19,6 +19,7 @@ import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/
 import { LINKING_DOTS } from 'map/layers/utils/layer-visibility-limits';
 import {
     ClusterPoint,
+    LayoutAlignmentTypeAndId,
     LinkingAlignment,
     LinkingGeometryWithAlignment,
     LinkingGeometryWithEmptyAlignment,
@@ -33,11 +34,6 @@ import { getMaxTimestamp } from 'utils/date-utils';
 import { getGeometryLinkPointsByTiles, getLinkPointsByTiles } from 'track-layout/layout-map-api';
 import { ChangeTimes } from 'common/common-slice';
 import { getTickStyle } from '../utils/alignment-layer-utils';
-import {
-    LocationTrackId,
-    MapAlignmentType,
-    ReferenceLineId,
-} from 'track-layout/track-layout-model';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
 import { getReferenceLine } from 'track-layout/layout-reference-line-api';
 import { formatTrackMeter } from 'utils/geography-utils';
@@ -45,6 +41,7 @@ import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { expectCoordinate } from 'utils/type-utils';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
 
 const linkPointRadius = 4;
 const linkPointSelectedRadius = 6;
@@ -717,16 +714,12 @@ type LinkPointContainer = { [k: string]: LinkPoint | undefined };
 async function getLinkPointsWithAddresses<
     T extends LinkPointContainer,
     TPropertyName extends keyof T,
->(
-    layoutAlignmentType: MapAlignmentType,
-    layoutAlignmentId: LocationTrackId | ReferenceLineId,
-    points: T,
-): Promise<T> {
-    const trackNumberId = await (layoutAlignmentType == 'LOCATION_TRACK'
-        ? getLocationTrack(layoutAlignmentId, 'DRAFT').then(
+>(layoutContext: LayoutContext, layoutAlignment: LayoutAlignmentTypeAndId, points: T): Promise<T> {
+    const trackNumberId = await (layoutAlignment.type == 'LOCATION_TRACK'
+        ? getLocationTrack(layoutAlignment.id, draftLayoutContext(layoutContext)).then(
               (locationTrack) => locationTrack?.trackNumberId,
           )
-        : getReferenceLine(layoutAlignmentId, 'DRAFT').then(
+        : getReferenceLine(layoutAlignment.id, draftLayoutContext(layoutContext)).then(
               (referenceLine) => referenceLine?.trackNumberId,
           ));
 
@@ -809,6 +802,7 @@ type LinkingData =
 
 async function getLinkingData(
     mapTiles: MapTile[],
+    layoutContext: LayoutContext,
     selection: Selection,
     state: LinkingState | undefined,
     changeTimes: ChangeTimes,
@@ -823,13 +817,8 @@ async function getLinkingData(
         return { type: 'empty' };
     } else if (state.type === LinkingType.LinkingAlignment) {
         const [points, pointAddresses] = await Promise.all([
-            getLinkPointsByTiles(
-                changeTime,
-                mapTiles,
-                state.layoutAlignmentId,
-                state.layoutAlignmentType,
-            ),
-            getLinkPointsWithAddresses(state.layoutAlignmentType, state.layoutAlignmentId, {
+            getLinkPointsByTiles(changeTime, layoutContext, mapTiles, state.layoutAlignment),
+            getLinkPointsWithAddresses(layoutContext, state.layoutAlignment, {
                 layoutStart: state.layoutAlignmentInterval.start,
                 layoutEnd: state.layoutAlignmentInterval.end,
                 layoutHighlight: first(highlightedItems.layoutLinkPoints),
@@ -846,7 +835,7 @@ async function getLinkingData(
                     filterNotEmpty,
                 ),
             ),
-            getLinkPointsWithAddresses(state.layoutAlignmentType, state.layoutAlignmentId, {
+            getLinkPointsWithAddresses(layoutContext, state.layoutAlignment, {
                 geometryStart: state.geometryAlignmentInterval.start,
                 geometryEnd: state.geometryAlignmentInterval.end,
                 geometryHighlight: first(highlightedItems.geometryLinkPoints),
@@ -871,13 +860,8 @@ async function getLinkingData(
                     state.layoutAlignmentInterval.end,
                 ].filter(filterNotEmpty),
             ),
-            getLinkPointsByTiles(
-                changeTime,
-                mapTiles,
-                state.layoutAlignmentId,
-                state.layoutAlignmentType,
-            ),
-            getLinkPointsWithAddresses(state.layoutAlignmentType, state.layoutAlignmentId, {
+            getLinkPointsByTiles(changeTime, layoutContext, mapTiles, state.layoutAlignment),
+            getLinkPointsWithAddresses(layoutContext, state.layoutAlignment, {
                 layoutStart: state.layoutAlignmentInterval.start,
                 layoutEnd: state.layoutAlignmentInterval.end,
                 layoutHighlight: first(highlightedItems.layoutLinkPoints),
@@ -1023,6 +1007,7 @@ const layerName: MapLayerName = 'alignment-linking-layer';
 export function createAlignmentLinkingLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<OlPoint | LineString>> | undefined,
+    layoutContext: LayoutContext,
     selection: Selection,
     linkingState: LinkingState | undefined,
     changeTimes: ChangeTimes,
@@ -1033,7 +1018,13 @@ export function createAlignmentLinkingLayer(
 
     const drawLinkingDots = resolution <= LINKING_DOTS;
 
-    const dataPromise = getLinkingData(mapTiles, selection, linkingState, changeTimes);
+    const dataPromise = getLinkingData(
+        mapTiles,
+        layoutContext,
+        selection,
+        linkingState,
+        changeTimes,
+    );
 
     loadLayerData(source, isLatest, onLoadingData, dataPromise, (data) =>
         createFeatures(data, selection, drawLinkingDots),

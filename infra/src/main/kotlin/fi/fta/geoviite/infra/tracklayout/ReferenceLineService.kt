@@ -3,8 +3,8 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.DataType.STORED
 import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -127,32 +127,32 @@ class ReferenceLineService(
         return if (referenceLine.isDraft) deleteDraft(referenceLine.id as IntId) else null
     }
 
-    fun getByTrackNumber(publishType: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? {
+    fun getByTrackNumber(publicationState: PublicationState, trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? {
         logger.serviceCall("getByTrackNumber",
-            "publishType" to publishType, "trackNumberId" to trackNumberId)
-        return dao.getByTrackNumber(publishType, trackNumberId)
+            "publicationState" to publicationState, "trackNumberId" to trackNumberId)
+        return dao.getByTrackNumber(publicationState, trackNumberId)
     }
 
     @Transactional(readOnly = true)
     fun getByTrackNumberWithAlignment(
-        publishType: PublishType,
+        publicationState: PublicationState,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): Pair<ReferenceLine,LayoutAlignment>? {
         logger.serviceCall("getByTrackNumberWithAlignment",
-            "publishType" to publishType, "trackNumberId" to trackNumberId)
-        return dao.fetchVersionByTrackNumberId(publishType, trackNumberId)?.let(::getWithAlignmentInternal)
+            "publicationState" to publicationState, "trackNumberId" to trackNumberId)
+        return dao.fetchVersionByTrackNumberId(publicationState, trackNumberId)?.let(::getWithAlignmentInternal)
     }
 
     @Transactional(readOnly = true)
-    fun getWithAlignmentOrThrow(publishType: PublishType, id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
-        logger.serviceCall("getWithAlignment", "publishType" to publishType, "id" to id)
-        return getWithAlignmentInternalOrThrow(publishType, id)
+    fun getWithAlignmentOrThrow(publicationState: PublicationState, id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
+        logger.serviceCall("getWithAlignment", "publicationState" to publicationState, "id" to id)
+        return getWithAlignmentInternalOrThrow(publicationState, id)
     }
 
     @Transactional(readOnly = true)
-    fun getWithAlignment(publishType: PublishType, id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment>? {
-        logger.serviceCall("getWithAlignment", "publishType" to publishType, "id" to id)
-        return getWithAlignmentInternal(publishType, id)
+    fun getWithAlignment(publicationState: PublicationState, id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment>? {
+        logger.serviceCall("getWithAlignment", "publicationState" to publicationState, "id" to id)
+        return getWithAlignmentInternal(publicationState, id)
     }
 
     @Transactional(readOnly = true)
@@ -163,31 +163,35 @@ class ReferenceLineService(
 
     @Transactional(readOnly = true)
     fun getManyWithAlignments(
-        publishType: PublishType,
+        publicationState: PublicationState,
         ids: List<IntId<ReferenceLine>>,
     ): List<Pair<ReferenceLine, LayoutAlignment>> {
-        logger.serviceCall("getManyWithAlignments", "publishType" to publishType, "ids" to ids)
-        return dao.getMany(publishType, ids).let(::associateWithAlignments)
+        logger.serviceCall("getManyWithAlignments", "publicationState" to publicationState, "ids" to ids)
+        return dao.getMany(publicationState, ids).let(::associateWithAlignments)
     }
 
     @Transactional(readOnly = true)
     fun listWithAlignments(
-        publishType: PublishType,
+        publicationState: PublicationState,
         includeDeleted: Boolean = false,
         boundingBox: BoundingBox? = null,
     ): List<Pair<ReferenceLine, LayoutAlignment>> {
-        logger.serviceCall("listWithAlignments", "publishType" to publishType, "includeDeleted" to includeDeleted)
+        logger.serviceCall(
+            "listWithAlignments",
+            "publicationState" to publicationState,
+            "includeDeleted" to includeDeleted,
+        )
         return dao
-            .list(publishType, includeDeleted)
+            .list(publicationState, includeDeleted)
             .let { list -> filterByBoundingBox(list, boundingBox) }
             .let(::associateWithAlignments)
     }
 
-    private fun getWithAlignmentInternalOrThrow(publishType: PublishType, id: IntId<ReferenceLine>) =
-        getWithAlignmentInternal(dao.fetchVersionOrThrow(id, publishType))
+    private fun getWithAlignmentInternalOrThrow(publicationState: PublicationState, id: IntId<ReferenceLine>) =
+        getWithAlignmentInternal(dao.fetchVersionOrThrow(id, publicationState))
 
-    private fun getWithAlignmentInternal(publishType: PublishType, id: IntId<ReferenceLine>) =
-        dao.fetchVersion(id, publishType)?.let { v -> getWithAlignmentInternal(v) }
+    private fun getWithAlignmentInternal(publicationState: PublicationState, id: IntId<ReferenceLine>) =
+        dao.fetchVersion(id, publicationState)?.let { v -> getWithAlignmentInternal(v) }
 
     private fun getWithAlignmentInternal(version: RowVersion<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> =
         referenceLineWithAlignment(dao, alignmentDao, version)
@@ -203,9 +207,9 @@ class ReferenceLineService(
         return dao.fetchVersionsNonLinked(DRAFT).map(dao::fetch)
     }
 
-    fun listNear(publishType: PublishType, bbox: BoundingBox): List<ReferenceLine> {
-        logger.serviceCall("listNear", "publishType" to publishType, "bbox" to bbox)
-        return dao.fetchVersionsNear(publishType, bbox).map(dao::fetch)
+    fun listNear(publicationState: PublicationState, bbox: BoundingBox): List<ReferenceLine> {
+        logger.serviceCall("listNear", "publicationState" to publicationState, "bbox" to bbox)
+        return dao.fetchVersionsNear(publicationState, bbox).map(dao::fetch)
     }
 }
 

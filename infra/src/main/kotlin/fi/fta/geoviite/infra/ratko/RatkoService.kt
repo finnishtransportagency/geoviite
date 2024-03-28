@@ -49,6 +49,7 @@ class RatkoService @Autowired constructor(
     private val locationTrackService: LocationTrackService,
     private val switchService: LayoutSwitchService,
     private val lockDao: LockDao,
+    private val ratkoOperatingPointDao: RatkoOperatingPointDao,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val ratkoSchedulerUserName = UserName("RATKO_SCHEDULER")
@@ -60,6 +61,20 @@ class RatkoService @Autowired constructor(
             logger.serviceCall("scheduledRatkoPush")
             // Don't retry failed on auto-push
             pushChangesToRatko(retryFailed = false)
+        }
+    }
+
+    @Scheduled(cron = "0 30 3 * * *")
+    fun scheduledRatkoOperatingPointsFetch() {
+        withUser(ratkoSchedulerUserName, ::updateOperatingPointsFromRatko)
+    }
+
+    fun updateOperatingPointsFromRatko() {
+        lockDao.runWithLock(
+            DatabaseLock.RATKO_OPERATING_POINTS_FETCH, databaseLockDuration
+        ) {
+            val points = ratkoClient.fetchOperatingPoints()
+            ratkoOperatingPointDao.updateOperatingPoints(points)
         }
     }
 

@@ -4,7 +4,6 @@ import { Selection } from 'selection/selection-model';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { LinkingState } from 'linking/linking-model';
-import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import {
     createAlignmentBadgeFeatures,
@@ -14,9 +13,10 @@ import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 import {
-    AlignmentDataHolder,
     getLocationTrackMapAlignmentsByTiles,
+    LocationTrackAlignmentDataHolder,
 } from 'track-layout/layout-map-api';
+import { LayoutContext } from 'common/common-model';
 
 const layerName: MapLayerName = 'location-track-badge-layer';
 
@@ -24,7 +24,7 @@ export function createLocationTrackBadgeLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     selection: Selection,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     linkingState: LinkingState | undefined,
     changeTimes: ChangeTimes,
     resolution: number,
@@ -32,12 +32,12 @@ export function createLocationTrackBadgeLayer(
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const dataPromise: Promise<AlignmentDataHolder[]> =
+    const dataPromise: Promise<LocationTrackAlignmentDataHolder[]> =
         resolution <= Limits.SHOW_LOCATION_TRACK_BADGES
-            ? getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
+            ? getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext)
             : Promise.resolve([]);
 
-    const createFeatures = (locationTracks: AlignmentDataHolder[]) => {
+    const createFeatures = (locationTracks: LocationTrackAlignmentDataHolder[]) => {
         const badgeDrawDistance = getBadgeDrawDistance(resolution) || 0;
         return createAlignmentBadgeFeatures(
             locationTracks,

@@ -73,10 +73,23 @@ export const layersToHideByProxy: LayerCollection = {
         'plan-area-layer',
         'track-number-diagram-layer',
     ],
+    'virtual-hide-geometry-layer': [
+        'geometry-alignment-layer',
+        'geometry-switch-layer',
+        'geometry-km-post-layer',
+        'plan-area-layer',
+    ],
+};
+
+// like hiding by proxy, except with no effect on the displayed layer list, only covering the given layers right at
+// the end
+export const layersCoveringLayers: LayerCollection = {
+    'orthographic-background-map-layer': ['background-map-layer'],
 };
 
 const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'map': ['background-map-layer'],
+    'orthographic-background-map': ['orthographic-background-map-layer'],
     'location-track': ['location-track-alignment-layer', 'location-track-badge-layer'],
     'reference-line': ['reference-line-alignment-layer', 'reference-line-badge-layer'],
     'missing-vertical-geometry': ['missing-profile-highlight-layer'],
@@ -89,6 +102,7 @@ const layerMenuItemMapLayers: Record<MapLayerMenuItemName, MapLayerName[]> = {
     'geometry-switch': ['geometry-switch-layer'],
     'plan-area': ['plan-area-layer'],
     'geometry-km-post': ['geometry-km-post-layer'],
+    'operating-points': ['operating-points-layer'],
     'debug-1m': ['debug-1m-points-layer'],
     'debug': ['debug-layer'],
 };
@@ -113,7 +127,18 @@ export const initialMapState: Map = {
     ],
     layerMenu: {
         layout: [
-            { name: 'map', visible: true, qaId: 'background-nap-layer' },
+            {
+                name: 'map',
+                visible: true,
+                qaId: 'background-map-layer',
+                subMenu: [
+                    {
+                        name: 'orthographic-background-map',
+                        visible: false,
+                        qaId: 'orthographic-background-map-layer',
+                    },
+                ],
+            },
             { name: 'reference-line', visible: true, qaId: 'reference-line-layer' },
             {
                 name: 'location-track',
@@ -132,6 +157,7 @@ export const initialMapState: Map = {
             { name: 'switch', visible: true, qaId: 'switch-layer' },
             { name: 'km-post', visible: true, qaId: 'km-post-layer' },
             { name: 'track-number-diagram', visible: false, qaId: 'track-number-diagram-layer' },
+            { name: 'operating-points', visible: false, qaId: 'operating-points-layer' },
         ],
         geometry: [
             { name: 'geometry-alignment', visible: true, qaId: 'geometry-alignment-layer' },

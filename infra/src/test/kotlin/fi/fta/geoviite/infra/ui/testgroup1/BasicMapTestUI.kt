@@ -20,14 +20,12 @@ import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westMainLoca
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenceLine
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westTrackLayoutKmPosts
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westTrackLayoutSwitch
-import fi.fta.geoviite.infra.ui.testdata.createTrackLayoutTrackNumber
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -50,8 +48,8 @@ class BasicMapTestUI @Autowired constructor(
         clearAllTestData()
 
         // TODO: GVT-1945  Don't use shared test data - init the data in the test as is needed, so it's clear what is expected
-        TRACK_NUMBER_WEST = createTrackLayoutTrackNumber(HKI_TRACK_NUMBER_1)
-        val trackNumberEast = createTrackLayoutTrackNumber(HKI_TRACK_NUMBER_2)
+        TRACK_NUMBER_WEST = trackNumber(HKI_TRACK_NUMBER_1, draft = false)
+        val trackNumberEast = trackNumber(HKI_TRACK_NUMBER_2, draft = false)
         val trackNumberWestId = trackNumberDao.insert(TRACK_NUMBER_WEST)
         val trackNumberEastId = trackNumberDao.insert(trackNumberEast)
 
@@ -60,7 +58,6 @@ class BasicMapTestUI @Autowired constructor(
         WEST_REFERENCE_LINE = westReferenceLine(trackNumberWestId.id)
         val eastReferenceLine = eastReferenceLine(trackNumberEastId.id)
         val eastLocationTrack = eastLocationTrack(trackNumberEastId.id)
-
 
         insertLocationTrack(WEST_LT)
         insertLocationTrack(eastLocationTrack)
@@ -83,7 +80,7 @@ class BasicMapTestUI @Autowired constructor(
 
     @Test
     fun `Edit and discard location track changes`() {
-        val locationTrackToBeEdited = EAST_LT_NAME
+        val locationTrackToBeEdited = EAST_LT_NAME.toString()
         val trackLayoutPage = goToMap().switchToDraftMode()
         val selectionPanel = trackLayoutPage.selectionPanel
         val toolPanel = trackLayoutPage.toolPanel
@@ -136,7 +133,7 @@ class BasicMapTestUI @Autowired constructor(
 
     @Test
     fun `Edit and save location track changes`() {
-        val locationTrackToBeEdited = WEST_LT_NAME
+        val locationTrackToBeEdited = WEST_LT_NAME.toString()
         val trackLayoutPage = goToMap().switchToDraftMode()
         val selectionPanel = trackLayoutPage.selectionPanel
         val toolPanel = trackLayoutPage.toolPanel

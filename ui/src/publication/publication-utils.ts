@@ -1,57 +1,115 @@
 import { subMonths } from 'date-fns';
 import {
+    PublicationGroupId,
     PublicationSearch,
-    PublishCandidates,
-    PublishRequestIds,
+    PublicationStage,
+    PublicationCandidate,
+    PublicationCandidateReference,
+    DraftChangeType,
+    PublicationCandidateId,
 } from 'publication/publication-model';
-import { filterByIdNotIn, filterIn, filterNotIn } from 'utils/array-utils';
 import { currentDay } from 'utils/date-utils';
-
-export const addPublishRequestIds = (
-    a: PublishRequestIds,
-    b: PublishRequestIds,
-): PublishRequestIds => ({
-    trackNumbers: [...new Set([...a.trackNumbers, ...b.trackNumbers])],
-    locationTracks: [...new Set([...a.locationTracks, ...b.locationTracks])],
-    referenceLines: [...new Set([...a.referenceLines, ...b.referenceLines])],
-    switches: [...new Set([...a.switches, ...b.switches])],
-    kmPosts: [...new Set([...a.kmPosts, ...b.kmPosts])],
-});
-
-export const subtractPublishRequestIds = (a: PublishRequestIds, b: PublishRequestIds) => ({
-    trackNumbers: a.trackNumbers.filter(filterNotIn(b.trackNumbers)),
-    locationTracks: a.locationTracks.filter(filterNotIn(b.locationTracks)),
-    referenceLines: a.referenceLines.filter(filterNotIn(b.referenceLines)),
-    switches: a.switches.filter(filterNotIn(b.switches)),
-    kmPosts: a.kmPosts.filter(filterNotIn(b.kmPosts)),
-});
-
-export const intersectPublishRequestIds = (a: PublishRequestIds, b: PublishRequestIds) => ({
-    trackNumbers: a.trackNumbers.filter(filterIn(b.trackNumbers)),
-    locationTracks: a.locationTracks.filter(filterIn(b.locationTracks)),
-    referenceLines: a.referenceLines.filter(filterIn(b.referenceLines)),
-    switches: a.switches.filter(filterIn(b.switches)),
-    kmPosts: a.kmPosts.filter(filterIn(b.kmPosts)),
-});
-
-export const dropIdsFromPublishCandidates = (
-    publishCandidates: PublishCandidates,
-    ids: PublishRequestIds,
-): PublishCandidates => ({
-    trackNumbers: publishCandidates.trackNumbers.filter(
-        filterByIdNotIn(ids.trackNumbers, ({ id }) => id),
-    ),
-    referenceLines: publishCandidates.referenceLines.filter(
-        filterByIdNotIn(ids.referenceLines, ({ id }) => id),
-    ),
-    switches: publishCandidates.switches.filter(filterByIdNotIn(ids.switches, ({ id }) => id)),
-    locationTracks: publishCandidates.locationTracks.filter(
-        filterByIdNotIn(ids.locationTracks, ({ id }) => id),
-    ),
-    kmPosts: publishCandidates.kmPosts.filter(filterByIdNotIn(ids.kmPosts, ({ id }) => id)),
-});
+import { candidateIdAndTypeMatches } from 'preview/preview-view-filters';
+import { brand } from 'common/brand';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export const defaultPublicationSearch: PublicationSearch = {
     startDate: subMonths(currentDay, 1).toISOString(),
     endDate: currentDay.toISOString(),
+};
+
+export const conditionallyUpdateCandidates = (
+    publicationCandidates: PublicationCandidate[],
+    condition: (candidate: PublicationCandidate) => boolean,
+    transform: (candidate: PublicationCandidate) => PublicationCandidate,
+): PublicationCandidate[] => {
+    return publicationCandidates.map((candidate): PublicationCandidate => {
+        return condition(candidate) ? transform(candidate) : candidate;
+    });
+};
+
+export const stageTransform = (
+    newStage: PublicationStage,
+): ((candidate: PublicationCandidate) => PublicationCandidate) => {
+    return (candidate) => ({
+        ...candidate,
+        stage: newStage,
+        pendingValidation: true,
+    });
+};
+
+export type PublicationAssetChangeAmounts = {
+    total: number;
+    staged: number;
+    unstaged: number;
+    groupAmounts: Record<PublicationGroupId, number>;
+    ownUnstaged: number;
+};
+
+export const countPublicationGroupAmounts = (
+    publicationCandidates: PublicationCandidate[],
+): Record<PublicationGroupId, number> => {
+    return publicationCandidates.reduce((groupSizes, candidate) => {
+        const publicationGroupId = candidate.publicationGroup?.id;
+
+        if (publicationGroupId) {
+            publicationGroupId in groupSizes
+                ? (groupSizes[publicationGroupId] += 1)
+                : (groupSizes[publicationGroupId] = 1);
+        }
+
+        return groupSizes;
+    }, {} as Record<PublicationGroupId, number>);
+};
+
+export const createPublicationCandidateReference = (
+    id: PublicationCandidateId,
+    type: DraftChangeType,
+): PublicationCandidateReference => {
+    switch (type) {
+        case DraftChangeType.TRACK_NUMBER:
+            return { id: brand(id), type };
+
+        case DraftChangeType.LOCATION_TRACK:
+            return { id: brand(id), type };
+
+        case DraftChangeType.REFERENCE_LINE:
+            return { id: brand(id), type };
+
+        case DraftChangeType.SWITCH:
+            return { id: brand(id), type };
+
+        case DraftChangeType.KM_POST:
+            return { id: brand(id), type };
+
+        default:
+            return exhaustiveMatchingGuard(type);
+    }
+};
+
+export const asPublicationCandidateReferences = (
+    publicationCandidates: PublicationCandidate[],
+): PublicationCandidateReference[] => {
+    return publicationCandidates.map((candidate): PublicationCandidateReference => {
+        return createPublicationCandidateReference(candidate.id, candidate.type);
+    });
+};
+
+export const addValidationState = (
+    publicationCandidates: PublicationCandidate[],
+    validationGroup: PublicationCandidate[],
+): PublicationCandidate[] => {
+    return publicationCandidates.map((candidate) => {
+        const validatedCandidate = validationGroup.find((validatedCandidate) =>
+            candidateIdAndTypeMatches(validatedCandidate, candidate),
+        );
+
+        return validatedCandidate
+            ? {
+                  ...candidate,
+                  errors: validatedCandidate.errors,
+                  pendingValidation: false,
+              }
+            : candidate;
+    });
 };

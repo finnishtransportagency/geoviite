@@ -38,9 +38,10 @@ import { Icons } from 'vayla-design-lib/icon/Icon';
 import TrackNumberDeleteConfirmationDialog from 'tool-panel/track-number/dialog/track-number-delete-confirmation-dialog';
 import { Link } from 'vayla-design-lib/link/link';
 import { onRequestDeleteTrackNumber } from 'tool-panel/track-number/track-number-deletion';
-import { getChangeTimes } from 'common/change-time-api';
 import { ChangesBeingReverted } from 'preview/preview-view';
 import { isEqualIgnoreCase } from 'utils/string-utils';
+import { useTrackLayoutAppSelector } from 'store/hooks';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
 
 type TrackNumberEditDialogContainerProps = {
     editTrackNumberId?: LayoutTrackNumberId;
@@ -49,6 +50,7 @@ type TrackNumberEditDialogContainerProps = {
 };
 
 type TrackNumberEditDialogProps = {
+    layoutContext: LayoutContext;
     inEditTrackNumber?: LayoutTrackNumber;
     inEditReferenceLine?: LayoutReferenceLine;
     isNewDraft: boolean;
@@ -63,16 +65,20 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
     onClose,
     onSave,
 }: TrackNumberEditDialogContainerProps) => {
-    const trackNumbers = useTrackNumbersIncludingDeleted('DRAFT');
+    const layoutContext = draftLayoutContext(
+        useTrackLayoutAppSelector((state) => state.layoutContext),
+    );
+    const trackNumbers = useTrackNumbersIncludingDeleted(layoutContext);
     const [trackNumberId, setTrackNumberId] = React.useState<LayoutTrackNumberId | undefined>(
         editTrackNumberId,
     );
-    const editReferenceLine = useTrackNumberReferenceLine(trackNumberId, 'DRAFT');
+    const editReferenceLine = useTrackNumberReferenceLine(trackNumberId, layoutContext);
     const isDeletable = editReferenceLine?.editState === 'CREATED';
 
     if (trackNumbers !== undefined && trackNumberId == editReferenceLine?.trackNumberId) {
         return (
             <TrackNumberEditDialog
+                layoutContext={layoutContext}
                 inEditTrackNumber={trackNumbers.find((tn) => tn.id == trackNumberId)}
                 inEditReferenceLine={editReferenceLine}
                 trackNumbers={trackNumbers}
@@ -90,6 +96,7 @@ export const TrackNumberEditDialogContainer: React.FC<TrackNumberEditDialogConta
 const mapError = (errorReason: string) => `track-number-edit.error.${errorReason}`;
 
 export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
+    layoutContext,
     inEditTrackNumber,
     inEditReferenceLine,
     trackNumbers,
@@ -106,7 +113,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     );
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
     const startAndEndPoints = inEditReferenceLine
-        ? useReferenceLineStartAndEnd(inEditReferenceLine.id, 'DRAFT')
+        ? useReferenceLineStartAndEnd(inEditReferenceLine.id, draftLayoutContext(layoutContext))
         : undefined;
 
     const [saveInProgress, setSaveInProgress] = React.useState<boolean>(false);
@@ -136,8 +143,8 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     const saveTrackNumber = () => {
         setSaveInProgress(true);
         const operation = inEditTrackNumber
-            ? updateTrackNumber(inEditTrackNumber.id, state.request)
-            : createTrackNumber(state.request);
+            ? updateTrackNumber(layoutContext, inEditTrackNumber.id, state.request)
+            : createTrackNumber(layoutContext, state.request);
         operation
             .then((tn) => {
                 if (tn) {
@@ -385,8 +392,8 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
             )}
             {inEditTrackNumber && deletingDraft && (
                 <TrackNumberDeleteConfirmationDialog
+                    layoutContext={layoutContext}
                     changesBeingReverted={deletingDraft}
-                    changeTimes={getChangeTimes()}
                     onClose={() => setDeletingDraft(undefined)}
                     onSave={() => {
                         inEditTrackNumber && onSave && onSave(inEditTrackNumber.id);

@@ -6,6 +6,9 @@ import { GeometryPlanId, GeometryPlanSearchParams } from 'geometry/geometry-mode
 import { InfraModelListState } from 'infra-model/list/infra-model-list-store';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { ChangeTimes } from 'common/common-slice';
+import { useCommonDataAppSelector } from 'store/hooks';
+import { userHasPrivilege, VIEW_LAYOUT_DRAFT } from 'user/user-model';
+import { draftMainLayoutContext, officialMainLayoutContext } from 'common/common-model';
 
 export type InfraModelListViewProps = Pick<
     InfraModelListState,
@@ -22,7 +25,14 @@ export type InfraModelListViewProps = Pick<
 export const InfraModelListView: React.FC<InfraModelListViewProps> = (
     props: InfraModelListViewProps,
 ) => {
-    const trackNumbers = useTrackNumbers('DRAFT');
+    const privileges = useCommonDataAppSelector((state) => state.user?.role.privileges ?? []).map(
+        (p) => p.code,
+    );
+    const trackNumbers = useTrackNumbers(
+        userHasPrivilege(privileges, VIEW_LAYOUT_DRAFT)
+            ? draftMainLayoutContext()
+            : officialMainLayoutContext(),
+    );
     React.useEffect(() => {
         props.clearInfraModelState();
     }, []);

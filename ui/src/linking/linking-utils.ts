@@ -1,6 +1,10 @@
-import { filterNotEmpty, filterUnique, first, last } from 'utils/array-utils';
-import { SuggestedSwitch, SuggestedSwitchJoint } from 'linking/linking-model';
-import { JointNumber, PublishType } from 'common/common-model';
+import { filterNotEmpty, filterUnique, first, last, objectEntries } from 'utils/array-utils';
+import {
+    SuggestedSwitch,
+    SuggestedSwitchJoint,
+    TopologicalJointConnection,
+} from 'linking/linking-model';
+import { JointNumber, LayoutContext } from 'common/common-model';
 import {
     LayoutLocationTrack,
     LayoutSwitchJointConnection,
@@ -77,7 +81,7 @@ export function getMatchingLocationTrackIdsForJointNumbers(
 }
 
 export function getLocationTracksForJointConnections(
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     joints: LayoutSwitchJointConnection[],
 ): Promise<LayoutLocationTrack[]> {
     const locationTrackIds = joints
@@ -85,15 +89,19 @@ export function getLocationTracksForJointConnections(
         .filter(filterUnique);
 
     // This currently flickers when using mass fetch. This can be moved to mass fetch after GVT-1428 is done
-    return getLocationTracks(locationTrackIds, publishType).then((tracks) =>
+    return getLocationTracks(locationTrackIds, layoutContext).then((tracks) =>
         tracks.filter(filterNotEmpty),
     );
 }
 
 export function getSuggestedSwitchId(suggestedSwitch: SuggestedSwitch): string {
-    return `${suggestedSwitch.geometrySwitchId}_${suggestedSwitch.alignmentEndPoint
-        ?.locationTrackId}_${suggestedSwitch.joints.map(
-        (j) => j.number + j.matches.map((m) => m.locationTrackId + m.segmentIndex + m.m),
+    return `${suggestedSwitch.geometrySwitchId}_${
+        suggestedSwitch.alignmentEndPoint?.locationTrackId
+    }_${Object.entries(suggestedSwitch.trackLinks).map(
+        ([t, js]) =>
+            t +
+            js.segmentJoints.map((j) => j.number + j.segmentIndex + j.m) +
+            (js.topologyJoint ? js.topologyJoint.number + js.topologyJoint.trackEnd : ''),
     )}`;
 }
 
@@ -111,6 +119,43 @@ export function asTrackLayoutSwitchJointConnection({
         number: number,
         locationAccuracy: locationAccuracy,
     };
+}
+
+export function suggestedSwitchJointsAsLayoutSwitchJointConnections(
+    ss: SuggestedSwitch,
+): LayoutSwitchJointConnection[] {
+    const tracks = objectEntries(ss.trackLinks).flatMap(([locationTrackId, links]) =>
+        links.segmentJoints.map((sj) => ({
+            number: sj.number,
+            locationTrackId,
+            location: sj.location,
+        })),
+    );
+    return ss.joints.map((joint) => ({
+        number: joint.number,
+        locationAccuracy: joint.locationAccuracy,
+        accurateMatches: tracks
+            .filter(({ number }) => number === joint.number)
+            .map(({ locationTrackId, location }) => ({
+                locationTrackId,
+                location,
+            })),
+    }));
+}
+
+export function suggestedSwitchTopoLinksAsTopologicalJointConnections(
+    ss: SuggestedSwitch,
+): TopologicalJointConnection[] {
+    return objectEntries(
+        objectEntries(ss.trackLinks)
+            .map(([id, link]) => link.topologyJoint && ([link.topologyJoint.number, id] as const))
+            .filter(filterNotEmpty)
+            .reduce<{ [key in JointNumber]: LocationTrackId[] }>((acc, [jointNumber, id]) => {
+                acc[jointNumber] ||= [];
+                acc[jointNumber].push(id);
+                return acc;
+            }, {}),
+    ).map(([jointNumber, locationTrackIds]) => ({ jointNumber, locationTrackIds }));
 }
 
 export function combineLocationTrackIds(

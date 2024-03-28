@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.logging.AccessType
@@ -28,14 +28,14 @@ class LayoutTrackNumberDao(
     TRACK_NUMBER_CACHE_SIZE,
 ) {
 
-    override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
+    override fun fetchVersions(publicationState: PublicationState, includeDeleted: Boolean) =
         fetchVersions(publicationState, includeDeleted, null)
 
-    fun list(trackNumber: TrackNumber, publishType: PublishType): List<TrackLayoutTrackNumber> =
-        fetchVersions(publishType, false, trackNumber).map(::fetch)
+    fun list(trackNumber: TrackNumber, publicationState: PublicationState): List<TrackLayoutTrackNumber> =
+        fetchVersions(publicationState, false, trackNumber).map(::fetch)
 
     fun fetchVersions(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         includeDeleted: Boolean,
         number: TrackNumber?,
     ): List<RowVersion<TrackLayoutTrackNumber>> {

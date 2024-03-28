@@ -1,9 +1,11 @@
 import { MapLayerName, MapTile } from 'map/map-model';
-import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
-import { AlignmentDataHolder, getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
+import {
+    getLocationTrackMapAlignmentsByTiles,
+    LocationTrackAlignmentDataHolder,
+} from 'track-layout/layout-map-api';
 import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -17,9 +19,10 @@ import { LocationTrackId } from 'track-layout/track-layout-model';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { getLocationTrackInfoboxExtras } from 'track-layout/layout-location-track-api';
 import { filterNotEmpty } from 'utils/array-utils';
+import { LayoutContext } from 'common/common-model';
 
 function createFeatures(
-    alignments: AlignmentDataHolder[],
+    alignments: LocationTrackAlignmentDataHolder[],
     duplicateIds: LocationTrackId[],
     linkedDuplicates: LocationTrackId[],
 ): Feature<LineString>[] {
@@ -43,12 +46,12 @@ function createFeatures(
 type DuplicateSplitSectionData = {
     linkedDuplicates: LocationTrackId[];
     duplicates: LocationTrackId[];
-    alignments: AlignmentDataHolder[];
+    alignments: LocationTrackAlignmentDataHolder[];
 };
 
 async function getDuplicateSplitSectionData(
     splittingState: SplittingState | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     mapTiles: MapTile[],
     resolution: number,
@@ -60,8 +63,12 @@ async function getDuplicateSplitSectionData(
             .filter(filterNotEmpty);
 
         const [alignments, extras] = await Promise.all([
-            getMapAlignmentsByTiles(changeTimes, mapTiles, publishType),
-            getLocationTrackInfoboxExtras(splittingState.originLocationTrack.id, publishType, changeTimes),
+            getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext),
+            getLocationTrackInfoboxExtras(
+                splittingState.originLocationTrack.id,
+                layoutContext,
+                changeTimes,
+            ),
         ]);
         const duplicates = extras?.duplicates?.map((dupe) => dupe.id) || [];
 
@@ -76,7 +83,7 @@ const layerName: MapLayerName = 'duplicate-split-section-highlight-layer';
 export function createDuplicateSplitSectionHighlightLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,
     splittingState: SplittingState | undefined,
@@ -86,7 +93,7 @@ export function createDuplicateSplitSectionHighlightLayer(
 
     const dataPromise: Promise<DuplicateSplitSectionData> = getDuplicateSplitSectionData(
         splittingState,
-        publishType,
+        layoutContext,
         changeTimes,
         mapTiles,
         resolution,

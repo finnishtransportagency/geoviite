@@ -6,7 +6,7 @@ import {
     getTrackMeter,
 } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import { PublishType, TimeStamp, TrackMeter } from 'common/common-model';
+import { LayoutContext, TimeStamp, TrackMeter } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import Feature from 'ol/Feature';
@@ -158,7 +158,7 @@ export function createTrackNumberEndPointAddressesLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     changeTimes: ChangeTimes,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     resolution: number,
     layerSettings: TrackNumberDiagramLayerSetting,
     onLoadingData: (loading: boolean) => void,
@@ -167,7 +167,7 @@ export function createTrackNumberEndPointAddressesLayer(
 
     const dataPromise: Promise<AlignmentDataHolderWithAddresses[]> =
         resolution <= Limits.ALL_ALIGNMENTS
-            ? getTrackNumberEndPointData(mapTiles, changeTimes, publishType, layerSettings)
+            ? getTrackNumberEndPointData(mapTiles, changeTimes, layoutContext, layerSettings)
             : Promise.resolve([]);
 
     const createFeatures = (referenceLines: AlignmentDataHolderWithAddresses[]) =>
@@ -181,13 +181,13 @@ export function createTrackNumberEndPointAddressesLayer(
 async function getTrackNumberEndPointData(
     mapTiles: MapTile[],
     changeTimes: ChangeTimes,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     layerSettings: TrackNumberDiagramLayerSetting,
 ): Promise<AlignmentDataHolderWithAddresses[]> {
     const referenceLines = await getReferenceLineMapAlignmentsByTiles(
         changeTimes,
         mapTiles,
-        publishType,
+        layoutContext,
     );
 
     const showAll = Object.values(layerSettings).every((s) => !s.selected);
@@ -205,12 +205,16 @@ async function getTrackNumberEndPointData(
             : false;
     });
 
-    return getEndPointAddresses(filteredReferenceLines, publishType, changeTimes.layoutTrackNumber);
+    return getEndPointAddresses(
+        filteredReferenceLines,
+        layoutContext,
+        changeTimes.layoutTrackNumber,
+    );
 }
 
 const getEndPointAddresses = (
     referenceLines: AlignmentDataHolder[],
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTime: TimeStamp,
 ): Promise<AlignmentDataHolderWithAddresses[]> => {
     return Promise.all(
@@ -224,10 +228,10 @@ const getEndPointAddresses = (
 
                 return Promise.all([
                     firstPoint?.m === 0
-                        ? getTrackMeter(trackNumberId, publishType, changeTime, firstPoint)
+                        ? getTrackMeter(trackNumberId, layoutContext, changeTime, firstPoint)
                         : undefined,
                     lastPoint?.m === referenceLine.header.length
-                        ? getTrackMeter(trackNumberId, publishType, changeTime, lastPoint)
+                        ? getTrackMeter(trackNumberId, layoutContext, changeTime, lastPoint)
                         : undefined,
                 ]).then(([startTrackMeter, endTrackMeter]) => {
                     return {

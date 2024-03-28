@@ -138,7 +138,7 @@ export const ButtonExamples: React.FC = () => {
                     value={person}
                     onChange={(person) => setPerson(person)}
                     options={examplePersonsData.map((person) =>
-                        menuValueOption(person, person.name),
+                        menuValueOption(person, person.name, person.name),
                     )}
                     attachRight
                 />

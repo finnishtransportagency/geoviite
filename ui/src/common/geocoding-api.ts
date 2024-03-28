@@ -4,7 +4,7 @@ import {
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
-import { PublishType, TrackMeter } from 'common/common-model';
+import { LayoutContext, TrackMeter } from 'common/common-model';
 import { API_URI, getNullable, queryParams } from 'api/api-fetch';
 import { pointString } from 'common/common-api';
 
@@ -26,28 +26,28 @@ export type AlignmentAddresses = {
     midPoints: AddressPoint[];
 };
 
-function geocodingUri(publishType: PublishType) {
-    return `${GEOCODING_URI}/${publishType.toLowerCase()}`;
+function geocodingUri(layoutContext: LayoutContext) {
+    return `${GEOCODING_URI}/${layoutContext.publicationState.toLowerCase()}`;
 }
 
 export async function getAddress(
     trackNumberId: LayoutTrackNumberId,
     coordinate: Point,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
 ): Promise<TrackMeter | undefined> {
     const params = queryParams({
         coordinate: pointString(coordinate),
     });
     return getNullable<TrackMeter>(
-        `${geocodingUri(publishType)}/address/${trackNumberId}${params}`,
+        `${geocodingUri(layoutContext)}/address/${trackNumberId}${params}`,
     );
 }
 
 export async function getAddressPoints(
     locationTrackId: LocationTrackId,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
 ): Promise<AlignmentAddresses | undefined> {
-    return getNullable(`${geocodingUri(publishType)}/address-pointlist/${locationTrackId}`).then(
+    return getNullable(`${geocodingUri(layoutContext)}/address-pointlist/${locationTrackId}`).then(
         (data: AlignmentAddresses | undefined) => data,
     );
 }

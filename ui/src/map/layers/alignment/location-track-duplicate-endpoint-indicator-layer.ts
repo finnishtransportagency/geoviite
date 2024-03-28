@@ -1,5 +1,5 @@
 import { MapLayerName, MapTile } from 'map/map-model';
-import { PublishType, TrackMeter } from 'common/common-model';
+import { LayoutContext, TrackMeter } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
@@ -32,6 +32,7 @@ import {
 } from 'track-layout/layout-location-track-api';
 import { Point } from 'model/geometry';
 import { expectCoordinate } from 'utils/type-utils';
+import { brand } from 'common/brand';
 
 type EndpointType = 'START' | 'END';
 const BLACK = '#000000';
@@ -161,7 +162,7 @@ function createFeatures(
     return alignments
         .filter(
             (alignment) =>
-                duplicates.map((d) => d.id).includes(alignment.header.id) &&
+                duplicates.map((d) => d.id).includes(brand(alignment.header.id)) &&
                 alignment.points.length >= 2,
         )
         .flatMap(({ points, header }) => {
@@ -222,20 +223,24 @@ type DuplicateTrackEndpointAddressData = {
 
 async function getData(
     mapTiles: MapTile[],
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,
     splittingState: SplittingState | undefined,
 ): Promise<DuplicateTrackEndpointAddressData> {
     if (resolution <= HIGHLIGHTS_SHOW && splittingState) {
         const [alignments, extras] = await Promise.all([
-            getMapAlignmentsByTiles(changeTimes, mapTiles, publishType),
-            getLocationTrackInfoboxExtras(splittingState.originLocationTrack.id, publishType, changeTimes),
+            getMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext),
+            getLocationTrackInfoboxExtras(
+                splittingState.originLocationTrack.id,
+                layoutContext,
+                changeTimes,
+            ),
         ]);
         const duplicates = extras?.duplicates || [];
         const startsAndEnds = await getManyStartsAndEnds(
             duplicates.map((duplicate) => duplicate.id),
-            publishType,
+            layoutContext,
             changeTimes.layoutLocationTrack,
         );
         return { duplicates, startsAndEnds, alignments };
@@ -249,7 +254,7 @@ const layerName: MapLayerName = 'location-track-duplicate-endpoint-address-layer
 export function createDuplicateTrackEndpointAddressLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,
     splittingState: SplittingState | undefined,
@@ -257,7 +262,7 @@ export function createDuplicateTrackEndpointAddressLayer(
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const dataPromise = getData(mapTiles, publishType, changeTimes, resolution, splittingState);
+    const dataPromise = getData(mapTiles, layoutContext, changeTimes, resolution, splittingState);
 
     const createOlFeatures = (data: DuplicateTrackEndpointAddressData) =>
         createFeatures(data.alignments, data.duplicates, data.startsAndEnds);

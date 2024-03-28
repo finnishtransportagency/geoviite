@@ -32,7 +32,7 @@ class CachePreloader(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
-    fun scheduleDraftableReload() {
+    fun scheduleLayoutAssetReload() {
         if (cacheEnabled && cachePreloadEnabled) {
             switchStructureDao.fetchSwitchStructures()
             listOf(

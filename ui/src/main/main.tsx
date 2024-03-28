@@ -32,6 +32,8 @@ import Licenses from 'licenses/licenses';
 import PublicationLog from 'publication/log/publication-log';
 import { PublicationDetailsContainer } from 'publication/publication-details-container';
 import { purgePersistentState } from 'index';
+import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
+import { VIEW_GEOMETRY } from 'user/user-model';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -95,6 +97,7 @@ const Main: React.FC<MainProps> = (props: MainProps) => {
 
 export const MainContainer: React.FC = () => {
     const { t } = useTranslation();
+    const mapDelegates = createDelegates(trackLayoutActionCreators);
 
     const layoutMode = useTrackLayoutAppSelector((state) => state.layoutMode);
     const versionInStore = useCommonDataAppSelector((state) => state.version);
@@ -106,7 +109,11 @@ export const MainContainer: React.FC = () => {
 
     React.useEffect(() => {
         getOwnUser().then((user) => {
-            delegates.setUserPrivileges(user.role.privileges);
+            delegates.setUser(user);
+
+            if (!user.role.privileges.map((priv) => priv.code).includes(VIEW_GEOMETRY)) {
+                mapDelegates.showLayers(['virtual-hide-geometry-layer']);
+            }
         });
     }, []);
 

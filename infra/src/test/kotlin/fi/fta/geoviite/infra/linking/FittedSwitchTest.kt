@@ -3,6 +3,8 @@ package fi.fta.geoviite.infra.linking
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.linking.switches.fitSwitch
+import fi.fta.geoviite.infra.linking.switches.inferSwitchTransformation
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
 import fi.fta.geoviite.infra.tracklayout.*
@@ -11,11 +13,11 @@ import kotlin.math.absoluteValue
 import kotlin.test.assertEquals
 import kotlin.test.fail
 
-class SuggestedSwitchTest {
+class FittedSwitchTest {
     private val switchStructure = switchStructureYV60_300_1_9()
     private val switchAlignment_1_5_2 = switchStructure.alignments.find { alignment ->
         alignment.jointNumbers.contains(JointNumber(5))
-    } ?: throw IllegalStateException("Invalid switch structure")
+    } ?: error { "Invalid switch structure" }
 
     private fun transformPoint(
         point: IPoint,
@@ -41,25 +43,24 @@ class SuggestedSwitchTest {
             segments = (0 until transformedPoints.lastIndex).map { index ->
                 segment(
                     transformedPoints[index],
-                    transformedPoints[index + 1]
+                    transformedPoints[index + 1],
                 )
-            }
+            },
         )
     }
 
     @Test
     fun shouldInferSwitchTransformation() {
-        val rotation = degreesToRads(45.0);
+        val rotation = degreesToRads(45.0)
         val translation = Point(2000.0, 3000.0)
 
         val alignmentContainingSwitchSegments = createAlignmentBySwitchAlignment(
             switchAlignment_1_5_2,
             translation = translation,
-            rotation = rotation
+            rotation = rotation,
         )
 
-        val presentationJointLocation =
-            alignmentContainingSwitchSegments.segments[1].alignmentPoints.first()
+        val presentationJointLocation = alignmentContainingSwitchSegments.segments[1].alignmentPoints.first()
         val switchTransformation = inferSwitchTransformation(
             presentationJointLocation,
             switchStructure,
@@ -79,19 +80,18 @@ class SuggestedSwitchTest {
 
     @Test
     fun shouldInferSwitchTransformationFromReversedAlignment() {
-        val rotation = degreesToRads(45.0);
+        val rotation = degreesToRads(45.0)
         val translation = Point(2000.0, 3000.0)
 
         val reversedAlignmentContainingSwitchSegments = reverseAlignment(
             createAlignmentBySwitchAlignment(
                 switchAlignment_1_5_2,
                 translation = translation,
-                rotation = rotation
+                rotation = rotation,
             )
         )
 
-        val presentationJointLocation =
-            reversedAlignmentContainingSwitchSegments.segments[2].alignmentPoints.last()
+        val presentationJointLocation = reversedAlignmentContainingSwitchSegments.segments[2].alignmentPoints.last()
         val switchTransformation = inferSwitchTransformation(
             presentationJointLocation,
             switchStructure,
@@ -129,17 +129,16 @@ class SuggestedSwitchTest {
     private enum class SegmentEndPoint { START, END }
 
     private fun assertSuggestedSwitchContainsMatch(
-        suggestedSwitch: SuggestedSwitch,
+        switchSuggestion: FittedSwitch,
         jointNumber: JointNumber,
         alignmentId: IntId<LocationTrack>,
         m: Double,
         endPoint: SegmentEndPoint,
     ) {
-        val joint = suggestedSwitch.joints.find { joint -> joint.number == jointNumber }
+        val joint = switchSuggestion.joints.find { joint -> joint.number == jointNumber }
             ?: throw Exception("Switch structure does not contain joint ${jointNumber.intValue}")
         if (!joint.matches.any { match ->
-                match.locationTrackId == alignmentId &&
-                        (m - match.m).absoluteValue < 0.01
+                match.locationTrackId == alignmentId && (m - match.m).absoluteValue < 0.01
             }) {
             fail("Didn't found a match from joint ${jointNumber.intValue}: alignmentId $alignmentId, m $m, $endPoint")
         }
@@ -147,25 +146,25 @@ class SuggestedSwitchTest {
 
     @Test
     fun shouldCreateSuggestedSwitch() {
-        val rotation = degreesToRads(45.0);
+        val rotation = degreesToRads(45.0)
         val translation = Point(2000.0, 3000.0)
 
         val trackId: IntId<LocationTrack> = IntId(1)
         val alignmentContainingSwitchSegments = createAlignmentBySwitchAlignment(
             switchAlignment_1_5_2,
             translation = translation,
-            rotation = rotation
+            rotation = rotation,
         )
-        val locationTrack = locationTrack(IntId(0), alignmentContainingSwitchSegments, trackId)
+        val locationTrack = locationTrack(IntId(0), alignmentContainingSwitchSegments, trackId, draft = false)
         val presentationJointLocation = alignmentContainingSwitchSegments.segments[1].alignmentPoints.first()
 
         val missingLocationTrackEndpoint = LocationTrackEndpoint(
             trackId,
             Point(presentationJointLocation),
-            LocationTrackPointUpdateType.START_POINT
+            LocationTrackPointUpdateType.START_POINT,
         )
 
-        val suggestedSwitch = createSuggestedSwitch(
+        val suggestedSwitch = fitSwitch(
             locationTrackEndpoint = missingLocationTrackEndpoint,
             switchStructure,
             alignmentMappings = listOf(
@@ -185,7 +184,7 @@ class SuggestedSwitchTest {
                 JointNumber(1),
                 alignmentId = IntId(1),
                 m = 300.0,
-                SegmentEndPoint.START
+                SegmentEndPoint.START,
             )
 
             assertSuggestedSwitchContainsMatch(
@@ -193,7 +192,7 @@ class SuggestedSwitchTest {
                 JointNumber(5),
                 alignmentId = IntId(1),
                 m = 316.615,
-                SegmentEndPoint.END
+                SegmentEndPoint.END,
             )
 
             assertSuggestedSwitchContainsMatch(
@@ -201,7 +200,7 @@ class SuggestedSwitchTest {
                 JointNumber(2),
                 alignmentId = IntId(1),
                 m = 334.43,
-                SegmentEndPoint.END
+                SegmentEndPoint.END,
             )
         } else {
             fail("Should be able to create suggested switch")

@@ -2,8 +2,8 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
@@ -90,13 +90,13 @@ class LayoutSwitchService @Autowired constructor(
     }
 
     fun getSegmentSwitchJointConnections(
-        publishType: PublishType,
+        publicationState: PublicationState,
         switchId: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
         logger.serviceCall(
-            "getSegmentSwitchJointConnections", "publishType" to publishType, "switchId" to switchId
+            "getSegmentSwitchJointConnections", "publicationState" to publicationState, "switchId" to switchId
         )
-        return dao.fetchSegmentSwitchJointConnections(publishType, switchId)
+        return dao.fetchSegmentSwitchJointConnections(publicationState, switchId)
     }
 
     fun getPresentationJoint(switch: TrackLayoutSwitch): TrackLayoutSwitchJoint? {
@@ -111,11 +111,11 @@ class LayoutSwitchService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun listWithStructure(
-        publishType: PublishType,
+        publicationState: PublicationState,
         includeDeleted: Boolean = false,
     ): List<Pair<TrackLayoutSwitch, SwitchStructure>> {
-        logger.serviceCall("list", "publishType" to publishType)
-        return dao.list(publishType, includeDeleted).map(::withStructure)
+        logger.serviceCall("list", "publicationState" to publicationState)
+        return dao.list(publicationState, includeDeleted).map(::withStructure)
     }
 
     override fun sortSearchResult(list: List<TrackLayoutSwitch>) = list.sortedBy(TrackLayoutSwitch::name)
@@ -141,21 +141,21 @@ class LayoutSwitchService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getSwitchJointConnections(
-        publishType: PublishType,
+        publicationState: PublicationState,
         switchId: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
         logger.serviceCall(
-            "getSwitchJointConnections", "publishType" to publishType, "switchId" to switchId
+            "getSwitchJointConnections", "publicationState" to publicationState, "switchId" to switchId
         )
-        val segment = getSegmentSwitchJointConnections(publishType, switchId)
-        val topological = getTopologySwitchJointConnections(publishType, switchId)
+        val segment = getSegmentSwitchJointConnections(publicationState, switchId)
+        val topological = getTopologySwitchJointConnections(publicationState, switchId)
         return (segment + topological).groupBy { joint -> joint.number }.values.map { jointConnections ->
             jointConnections.reduceRight(TrackLayoutSwitchJointConnection::merge)
         }
     }
 
     private fun getTopologySwitchJointConnections(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         layoutSwitchId: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
         val layoutSwitch = get(publicationState, layoutSwitchId) ?: return listOf()
@@ -174,7 +174,7 @@ class LayoutSwitchService @Autowired constructor(
     }
 
     private fun getLocationTracksLinkedToSwitch(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         layoutSwitchId: IntId<TrackLayoutSwitch>,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
         return dao

@@ -2,7 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.CACHE_COMMON_LOCATION_TRACK_OWNER
 import fi.fta.geoviite.infra.geometry.MetaDataName
@@ -30,7 +30,7 @@ class LocationTrackDao(
 
     fun fetchDuplicateVersions(
         id: IntId<LocationTrack>,
-        publicationState: PublishType,
+        publicationState: PublicationState,
         includeDeleted: Boolean = false,
     ): List<RowVersion<LocationTrack>> {
         val sql = """
@@ -338,18 +338,18 @@ class LocationTrackDao(
         return response
     }
 
-    override fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean) =
+    override fun fetchVersions(publicationState: PublicationState, includeDeleted: Boolean) =
         fetchVersions(publicationState, includeDeleted, null)
 
     fun list(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         names: List<AlignmentName> = emptyList(),
     ): List<LocationTrack> = fetchVersions(publicationState, includeDeleted, trackNumberId, names).map(::fetch)
 
     fun fetchVersions(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         names: List<AlignmentName> = emptyList(),
@@ -374,10 +374,10 @@ class LocationTrackDao(
         }
     }
 
-    fun listNear(publicationState: PublishType, bbox: BoundingBox): List<LocationTrack> =
+    fun listNear(publicationState: PublicationState, bbox: BoundingBox): List<LocationTrack> =
         fetchVersionsNear(publicationState, bbox).map(::fetch)
 
-    fun fetchVersionsNear(publicationState: PublishType, bbox: BoundingBox): List<RowVersion<LocationTrack>> {
+    fun fetchVersionsNear(publicationState: PublicationState, bbox: BoundingBox): List<RowVersion<LocationTrack>> {
         val sql = """
             select
               distinct lt.row_id, lt.row_version

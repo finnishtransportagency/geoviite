@@ -5,7 +5,7 @@ import { createClassName } from 'vayla-design-lib/utils';
 
 export type MenuOption<TValue> = MenuValueOption<TValue> | MenuSelectOption | MenuDividerOption;
 
-type MenuOptionBase = { disabled: boolean; qaId?: string };
+type MenuOptionBase = { disabled: boolean; qaId: string };
 
 export type MenuValueOption<TValue> = {
     type: 'VALUE';
@@ -26,7 +26,7 @@ export type MenuDividerOption = {
 export const menuValueOption = <TValue,>(
     value: TValue,
     name: string,
-    qaId?: string,
+    qaId: string,
     disabled: boolean = false,
 ): MenuValueOption<TValue> => ({
     type: 'VALUE',

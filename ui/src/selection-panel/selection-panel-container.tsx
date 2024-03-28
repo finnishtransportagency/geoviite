@@ -21,22 +21,22 @@ export const SelectionPanelContainer: React.FC = () => {
 
     const locationTracks = useLocationTracks(
         state.map.shownItems.locationTracks,
-        state.publishType,
+        state.layoutContext,
         changeTimes.layoutLocationTrack,
     );
     const referenceLines = useReferenceLines(
         state.map.shownItems.referenceLines,
-        state.publishType,
+        state.layoutContext,
         changeTimes.layoutReferenceLine,
     );
     const switches = useSwitches(
         state.map.shownItems.switches,
-        state.publishType,
+        state.layoutContext,
         changeTimes.layoutSwitch,
     );
     const kmPosts = useKmPosts(
         state.map.shownItems.kmPosts,
-        state.publishType,
+        state.layoutContext,
         changeTimes.layoutKmPost,
     );
     return (
@@ -47,7 +47,7 @@ export const SelectionPanelContainer: React.FC = () => {
             onToggleSwitchVisibility={delegates.toggleSwitchVisibility}
             onToggleKmPostVisibility={delegates.toggleKmPostsVisibility}
             changeTimes={changeTimes}
-            publishType={state.publishType}
+            layoutContext={state.layoutContext}
             selectedItems={state.selection.selectedItems}
             visiblePlans={state.selection.visiblePlans}
             kmPosts={kmPosts}

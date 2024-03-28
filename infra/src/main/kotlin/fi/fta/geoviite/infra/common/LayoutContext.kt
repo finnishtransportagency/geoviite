@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.util.formatForException
 import java.util.concurrent.ConcurrentHashMap
 
 enum class PublicationState { OFFICIAL, DRAFT }
+
 enum class LayoutBranchType { MAIN, DESIGN }
 
 sealed class LayoutBranch {

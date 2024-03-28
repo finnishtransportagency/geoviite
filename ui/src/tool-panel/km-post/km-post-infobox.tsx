@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { formatToTM35FINString } from 'utils/geography-utils';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { draftLayoutContext, LayoutContext, TimeStamp } from 'common/common-model';
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
 import { Icons } from 'vayla-design-lib/icon/Icon';
@@ -28,7 +28,7 @@ import { roundToPrecision } from 'utils/rounding';
 import { ChangeTimes } from 'common/common-slice';
 
 type KmPostInfoboxProps = {
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     kmPostChangeTime: TimeStamp;
     kmPost: LayoutKmPost;
     onShowOnMap: () => void;
@@ -41,7 +41,7 @@ type KmPostInfoboxProps = {
 };
 
 const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
-    publishType,
+    layoutContext,
     kmPostChangeTime,
     kmPost,
     onShowOnMap,
@@ -53,21 +53,22 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     changeTimes,
 }: KmPostInfoboxProps) => {
     const { t } = useTranslation();
-    const kmPostCreatedAndChangedTime = useKmPostChangeTimes(kmPost.id, publishType);
+    const kmPostCreatedAndChangedTime = useKmPostChangeTimes(kmPost.id, layoutContext);
 
     const [showEditDialog, setShowEditDialog] = React.useState(false);
     const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState(false);
     const updatedKmPost = useLoader(
-        () => getKmPost(kmPost.id, publishType),
-        [kmPost.id, kmPostChangeTime, publishType],
+        () => getKmPost(kmPost.id, layoutContext),
+        [kmPost.id, kmPostChangeTime, layoutContext.publicationState, layoutContext.designId],
     );
 
     const [kmPostLength, kmPostLengthLoading] = useLoaderWithStatus(
-        async () => getSingleKmPostKmLength(publishType, kmPost.id),
+        async () => getSingleKmPostKmLength(layoutContext, kmPost.id),
         [
             kmPost.id,
             kmPost.state,
-            publishType,
+            layoutContext.designId,
+            layoutContext.publicationState,
             changeTimes.layoutKmPost,
             changeTimes.layoutReferenceLine,
         ],
@@ -87,7 +88,11 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
         onVisibilityChange({ ...visibilities, [key]: !visibilities[key] });
     };
 
-    const handleKmPostSave = refereshKmPostSelection('DRAFT', onSelect, onUnselect);
+    const handleKmPostSave = refereshKmPostSelection(
+        draftLayoutContext(layoutContext),
+        onSelect,
+        onUnselect,
+    );
 
     const kmPostLengthText =
         kmPostLength == undefined
@@ -109,7 +114,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                         label={t('tool-panel.km-post.layout.km-post')}
                         value={updatedKmPost?.kmNumber}
                         onEdit={openEditDialog}
-                        iconDisabled={publishType === 'OFFICIAL'}
+                        iconDisabled={layoutContext.publicationState === 'OFFICIAL'}
                     />
                     <InfoboxField
                         label={t('tool-panel.km-post.layout.track-number')}
@@ -166,19 +171,13 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     />
                 </InfoboxContent>
             </Infobox>
-            {
-                // TODO: GVT-2522
-                kmPost.editState !== 'CREATED' && (
-                    <AssetValidationInfoboxContainer
-                        contentVisible={visibilities.validation}
-                        onContentVisibilityChange={() => visibilityChange('validation')}
-                        id={kmPost.id}
-                        type={'KM_POST'}
-                        publishType={publishType}
-                        changeTime={kmPostChangeTime}
-                    />
-                )
-            }
+            <AssetValidationInfoboxContainer
+                contentVisible={visibilities.validation}
+                onContentVisibilityChange={() => visibilityChange('validation')}
+                idAndType={{ id: kmPost.id, type: 'KM_POST' }}
+                layoutContext={layoutContext}
+                changeTime={kmPostChangeTime}
+            />
             <Infobox
                 title={t('tool-panel.km-post.layout.change-info-heading')}
                 contentVisible={visibilities.log}
@@ -214,6 +213,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
             </Infobox>
             {confirmingDraftDelete && (
                 <KmPostDeleteConfirmationDialog
+                    layoutContext={layoutContext}
                     id={kmPost.id}
                     onSave={() => handleKmPostSave(kmPost.id)}
                     onClose={() => setConfirmingDraftDelete(false)}

@@ -12,6 +12,7 @@ import { getSwitches } from 'track-layout/layout-switch-api';
 import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { MapLayerName } from 'map/map-model';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
 
 const splitPointStyle = new Style({
     image: new Circle({
@@ -38,6 +39,7 @@ const layerName: MapLayerName = 'location-track-split-location-layer';
 
 export const createLocationTrackSplitLocationLayer = (
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
+    layoutContext: LayoutContext,
     splittingState: SplittingState | undefined,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer => {
@@ -46,7 +48,7 @@ export const createLocationTrackSplitLocationLayer = (
     const dataPromise: Promise<LayoutSwitch[]> = splittingState
         ? getSwitches(
               splittingState.splits.map((sw) => sw.switchId),
-              'DRAFT',
+              draftLayoutContext(layoutContext),
           )
         : Promise.resolve([]);
 

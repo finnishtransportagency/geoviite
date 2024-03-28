@@ -2,8 +2,8 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
@@ -86,7 +86,9 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
 
     @Test
     fun `should return correct lengths for km posts`() {
-        val trackNumber = trackNumberDao.fetch(trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).rowVersion)
+        val trackNumber = trackNumberDao.fetch(
+            trackNumberDao.insert(trackNumber(getUnusedTrackNumber(), draft = false)).rowVersion
+        )
         referenceLineAndAlignment(
             trackNumberId = trackNumber.id as IntId, segments = listOf(
                 segment(
@@ -96,7 +98,9 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                     Point(3.0, 0.0),
                     Point(4.0, 0.0),
                 )
-            ), startAddress = TrackMeter(KmNumber(1), BigDecimal(0.5))
+            ),
+            startAddress = TrackMeter(KmNumber(1), BigDecimal(0.5)),
+            draft = false,
         ).let { (referenceLine, alignment) ->
             val referenceLineVersion =
                 referenceLineDao.insert(referenceLine.copy(alignmentVersion = alignmentDao.insert(alignment)))
@@ -104,8 +108,18 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
         }
 
         listOf(
-            kmPost(trackNumberId = trackNumber.id as IntId, km = KmNumber(2), location = Point(1.0, 0.0)),
-            kmPost(trackNumberId = trackNumber.id as IntId, km = KmNumber(3), location = Point(3.0, 0.0))
+            kmPost(
+                trackNumberId = trackNumber.id as IntId,
+                km = KmNumber(2),
+                location = Point(1.0, 0.0),
+                draft = false,
+            ),
+            kmPost(
+                trackNumberId = trackNumber.id as IntId,
+                km = KmNumber(3),
+                location = Point(3.0, 0.0),
+                draft = false,
+            ),
         ).map(kmPostDao::insert)
 
         val kmLengths = trackNumberService.getKmLengths(OFFICIAL, trackNumber.id as IntId)
@@ -148,7 +162,9 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
 
     @Test
     fun `should ignore km posts without location when calculating lengths lengths between km posts`() {
-        val trackNumber = trackNumberDao.fetch(trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).rowVersion)
+        val trackNumber = trackNumberDao.fetch(
+            trackNumberDao.insert(trackNumber(getUnusedTrackNumber(), draft = false)).rowVersion
+        )
 
         referenceLineAndAlignment(
             trackNumberId = trackNumber.id as IntId,
@@ -161,7 +177,8 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                     Point(4.0, 0.0),
                 )
             ),
-            startAddress = TrackMeter(KmNumber(1), BigDecimal(0.5))
+            startAddress = TrackMeter(KmNumber(1), BigDecimal(0.5)),
+            draft = false,
         ).let { (referenceLine, alignment) ->
             val referenceLineVersion = referenceLineDao
                 .insert(referenceLine.copy(alignmentVersion = alignmentDao.insert(alignment)))
@@ -173,13 +190,15 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
             kmPost(
                 trackNumberId = trackNumber.id as IntId,
                 km = KmNumber(2),
-                location = Point(1.0, 0.0)
+                location = Point(1.0, 0.0),
+                draft = false,
             ),
             kmPost(
                 trackNumberId = trackNumber.id as IntId,
                 km = KmNumber(3),
-                location = null
-            )
+                location = null,
+                draft = false,
+            ),
         ).map(kmPostDao::insert)
 
         val kmLengths = trackNumberService.getKmLengths(OFFICIAL, trackNumber.id as IntId)
@@ -195,7 +214,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 locationSource = GeometrySource.GENERATED,
                 location = Point(0.0, 0.0)
             ),
-            kmLengths.first()
+            kmLengths.first(),
         )
 
         assertEquals(
@@ -206,7 +225,8 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 endM = BigDecimal(4).setScale(3),
                 locationSource = GeometrySource.IMPORTED,
                 location = Point(1.0, 0.0)
-            ), kmLengths.last()
+            ),
+            kmLengths.last(),
         )
     }
 

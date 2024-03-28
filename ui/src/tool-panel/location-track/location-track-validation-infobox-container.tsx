@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useLoaderWithStatus } from 'utils/react-utils';
 import { AssetValidationInfobox } from 'tool-panel/asset-validation-infobox';
 import { getLocationTrackValidation } from 'track-layout/layout-location-track-api';
-import { PublishType } from 'common/common-model';
+import { LayoutContext } from 'common/common-model';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
@@ -10,7 +10,7 @@ import { useCommonDataAppSelector } from 'store/hooks';
 
 type LocationTrackValidationInfoboxProps = {
     id: LocationTrackId;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
     showLinkedSwitchesRelinkingDialog: () => void;
@@ -21,7 +21,7 @@ export const LocationTrackValidationInfoboxContainer: React.FC<
     LocationTrackValidationInfoboxProps
 > = ({
     id,
-    publishType,
+    layoutContext,
     contentVisible,
     onContentVisibilityChange,
     showLinkedSwitchesRelinkingDialog,
@@ -31,8 +31,13 @@ export const LocationTrackValidationInfoboxContainer: React.FC<
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
     const [validation, validationLoaderStatus] = useLoaderWithStatus(
-        () => getLocationTrackValidation(publishType, id),
-        [id, publishType, changeTimes.layoutLocationTrack],
+        () => getLocationTrackValidation(layoutContext, id),
+        [
+            id,
+            layoutContext.publicationState,
+            layoutContext.designId,
+            changeTimes.layoutLocationTrack,
+        ],
     );
 
     const errors = validation?.errors.filter((err) => err.type === 'ERROR') || [];
@@ -46,7 +51,7 @@ export const LocationTrackValidationInfoboxContainer: React.FC<
             errors={errors}
             warnings={warnings}
             validationLoaderStatus={validationLoaderStatus}>
-            {publishType === 'OFFICIAL' || (
+            {layoutContext.publicationState === 'OFFICIAL' || (
                 <div>
                     <Button
                         size={ButtonSize.SMALL}

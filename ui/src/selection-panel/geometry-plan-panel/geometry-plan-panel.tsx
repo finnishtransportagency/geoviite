@@ -31,14 +31,12 @@ import { GeometryPlanLinkStatus } from 'linking/linking-model';
 import { useTranslation } from 'react-i18next';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
 import { KmPostBadge, KmPostBadgeStatus } from 'geoviite-design-lib/km-post/km-post-badge';
-import { PublishType } from 'common/common-model';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
 import { ChangeTimes } from 'common/common-slice';
 
 type GeometryPlanProps = {
     planHeader: GeometryPlanHeader;
     onPlanHeaderSelection: (planHeader: GeometryPlanHeader) => void;
-    publishType: PublishType;
     changeTimes: ChangeTimes;
     onTogglePlanVisibility: (payload: VisiblePlanLayout) => void;
     onToggleAlignmentVisibility: (payload: ToggleAlignmentPayload) => void;

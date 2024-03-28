@@ -1,14 +1,17 @@
 package fi.fta.geoviite.infra.ratko
 
-import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
-import fi.fta.geoviite.infra.authorization.AUTH_ALL_WRITE
+import fi.fta.geoviite.infra.authorization.AUTH_BASIC
+import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.error.Integration
 import fi.fta.geoviite.infra.error.IntegrationNotConfiguredException
 import fi.fta.geoviite.infra.integration.LocationTrackChange
 import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset
 import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -21,7 +24,7 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/ratko")
 class RatkoController(
     private val ratkoServiceParam: RatkoService?,
-    private val ratkoStatusService: RatkoStatusService,
+    private val ratkoLocalService: RatkoLocalService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -29,7 +32,7 @@ class RatkoController(
         ratkoServiceParam ?: throw IntegrationNotConfiguredException(Integration.RATKO)
     }
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/push")
     fun pushChangesToRatko(): HttpStatus {
         logger.apiCall("pushChangesToRatko")
@@ -38,7 +41,7 @@ class RatkoController(
         return HttpStatus.NO_CONTENT
     }
 
-    @PreAuthorize(AUTH_ALL_WRITE)
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
     @PostMapping("/push-location-tracks")
     fun pushLocationTracksToRatko(@RequestBody changes: List<LocationTrackChange>): ResponseEntity<String> {
         logger.apiCall("pushLocationTracksToRatko", "changes" to changes)
@@ -46,19 +49,35 @@ class RatkoController(
         return ResponseEntity(HttpStatus.OK)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
-    @GetMapping("/errors/{publishId}")
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
+    @GetMapping("/errors/{publicationId}")
     fun getRatkoPushErrors(
-        @PathVariable("publishId") publishId: IntId<Publication>,
+        @PathVariable("publicationId") publicationId: IntId<Publication>,
     ): ResponseEntity<RatkoPushErrorWithAsset> {
-        logger.apiCall("getRatkoPushErrors", "publishId" to publishId)
-        return toResponse(ratkoStatusService.getRatkoPushError(publishId))
+        logger.apiCall("getRatkoPushErrors", "publicationId" to publicationId)
+        return toResponse(ratkoLocalService.getRatkoPushError(publicationId))
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/is-online")
     fun getRatkoOnlineStatus(): RatkoClient.RatkoStatus {
         logger.apiCall("ratkoIsOnline")
-        return ratkoStatusService.getRatkoOnlineStatus()
+        return ratkoLocalService.getRatkoOnlineStatus()
     }
+
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
+    @PostMapping("/update-operating-points-from-ratko")
+    fun updateOperatingPointsFromRatko(): HttpStatus {
+        logger.apiCall("updateOperatingPointsFromRatko")
+        ratkoService.updateOperatingPointsFromRatko()
+
+        return HttpStatus.NO_CONTENT
+    }
+
+    @PreAuthorize(AUTH_VIEW_LAYOUT)
+    @GetMapping("/operating-points")
+    fun getOperatingPoints(@RequestParam bbox: BoundingBox): List<RatkoOperatingPoint> {
+        return ratkoLocalService.getOperatingPoints(bbox)
+    }
+
 }

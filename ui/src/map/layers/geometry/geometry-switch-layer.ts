@@ -9,7 +9,7 @@ import {
 } from 'map/layers/utils/layer-utils';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
-import { PublishType, SwitchStructure } from 'common/common-model';
+import { LayoutContext, SwitchStructure } from 'common/common-model';
 import { getSwitchStructures } from 'common/common-api';
 import {
     createGeometrySwitchFeatures,
@@ -28,7 +28,7 @@ export function createGeometrySwitchLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     selection: Selection,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,
     manuallySetPlan: GeometryPlanLayout | undefined,
@@ -63,8 +63,8 @@ export function createGeometrySwitchLayer(
     };
 
     const plansPromise: Promise<PlanAndStatus[]> = manuallySetPlan
-        ? getManualPlanWithStatus(manuallySetPlan, publishType)
-        : getVisiblePlansWithStatus(selection.visiblePlans, mapTiles, publishType, changeTimes);
+        ? getManualPlanWithStatus(manuallySetPlan, layoutContext)
+        : getVisiblePlansWithStatus(selection.visiblePlans, mapTiles, layoutContext, changeTimes);
     const dataPromise = Promise.all([getSwitchStructures(), plansPromise]);
 
     const createFeatures = ([switchStructures, planStatuses]: [

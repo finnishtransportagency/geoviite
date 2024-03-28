@@ -8,6 +8,7 @@ import {
     LinkingAlignment,
     LinkingGeometryWithAlignment,
     LinkingGeometryWithEmptyAlignment,
+    LayoutAlignmentTypeAndId,
     LinkingState,
     LinkingSwitch,
     LinkingType,
@@ -20,18 +21,22 @@ import {
     AlignmentPoint,
     LayoutSwitch,
     LayoutSwitchId,
+    LocationTrackId,
     MapAlignmentType,
+    ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { GeometryKmPostId } from 'geometry/geometry-model';
 import { angleDiffRads, directionBetweenPoints, interpolateXY } from 'utils/math-utils';
 import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
+import { draftLayoutContext } from 'common/common-model';
+import { brand } from 'common/brand';
 
 export const linkingReducers = {
     startAlignmentLinking: (
         state: TrackLayoutState,
         { payload }: PayloadAction<GeometryPreliminaryLinkingParameters>,
     ): void => {
-        state.publishType = 'DRAFT';
+        state.layoutContext = draftLayoutContext(state.layoutContext);
         state.selection.selectedItems.clusterPoints = [];
         state.linkingState = {
             type: LinkingType.UnknownAlignment,
@@ -53,8 +58,7 @@ export const linkingReducers = {
             state.linkingState = {
                 ...state.linkingState,
                 state: 'setup',
-                layoutAlignmentType: payload.alignmentType,
-                layoutAlignmentId: payload.alignmentId,
+                layoutAlignment: payload.alignment,
                 type: payload.type,
                 errors: [],
             };
@@ -176,10 +180,12 @@ export const linkingReducers = {
         const alignmentType = interval.start?.alignmentType || interval.end?.alignmentType;
 
         if (alignmentId && alignmentType) {
-            state.publishType = 'DRAFT';
+            state.layoutContext = draftLayoutContext(state.layoutContext);
             state.linkingState = validateLinkingState({
-                layoutAlignmentId: alignmentId,
-                layoutAlignmentType: alignmentType,
+                layoutAlignment: {
+                    id: brand<LocationTrackId & ReferenceLineId>(alignmentId),
+                    type: alignmentType,
+                },
                 layoutAlignmentInterval: interval,
                 type: LinkingType.LinkingAlignment,
                 state: 'setup',
@@ -203,7 +209,7 @@ export const linkingReducers = {
         state: TrackLayoutState,
         { payload }: PayloadAction<SuggestedSwitch>,
     ): void => {
-        state.publishType = 'DRAFT';
+        state.layoutContext = draftLayoutContext(state.layoutContext);
         state.linkingState = {
             type: LinkingType.LinkingSwitch,
             suggestedSwitch: payload,
@@ -230,7 +236,7 @@ export const linkingReducers = {
         state: TrackLayoutState,
         { payload: geometryKmPostId }: PayloadAction<GeometryKmPostId>,
     ) => {
-        state.publishType = 'DRAFT';
+        state.layoutContext = draftLayoutContext(state.layoutContext);
         state.linkingState = {
             type: LinkingType.LinkingKmPost,
             geometryKmPostId: geometryKmPostId,
@@ -317,7 +323,7 @@ function validateLinkingGeometryWithAlignment(
 
     const allSelected =
         state.geometryAlignmentId &&
-        state.layoutAlignmentId &&
+        state.layoutAlignment.id &&
         layoutStart &&
         layoutEnd &&
         geomStart &&
@@ -405,7 +411,7 @@ function validateLinkingGeometryWithEmptyAlignment(
 ): LinkingGeometryWithEmptyAlignment {
     const canLink =
         state.geometryAlignmentId &&
-        state.layoutAlignmentId &&
+        state.layoutAlignment.id &&
         state.geometryAlignmentInterval.start &&
         state.geometryAlignmentInterval.end &&
         intervalHasLength(state.geometryAlignmentInterval);
@@ -417,7 +423,7 @@ function validateLinkingGeometryWithEmptyAlignment(
 
 function validateLinkingAlignment(state: LinkingAlignment): LinkingAlignment {
     const canLink =
-        state.layoutAlignmentId &&
+        state.layoutAlignment.id &&
         state.layoutAlignmentInterval.start &&
         state.layoutAlignmentInterval.end &&
         intervalHasLength(state.layoutAlignmentInterval);
@@ -436,12 +442,13 @@ function validateLinkingSwitch(state: LinkingSwitch): LinkingSwitch {
 }
 
 export function createLinkPoints(
-    type: MapAlignmentType,
-    id: AlignmentId,
+    alignment: LayoutAlignmentTypeAndId,
     alignmentLength: number,
     segmentEndMs: number[],
     points: AlignmentPoint[],
 ): LinkPoint[] {
+    const type = alignment.type;
+    const id = alignment.id;
     return points.flatMap((point, pIdx) => {
         const linkPoints: LinkPoint[] = [];
 

@@ -6,8 +6,10 @@ import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { deleteLocationTrack } from 'track-layout/layout-location-track-api';
+import { LayoutContext } from 'common/common-model';
 
 type LocationTrackDeleteConfirmationDialogProps = {
+    layoutContext: LayoutContext;
     id: LocationTrackId;
     onSave?: (id: LocationTrackId) => void;
     onClose: () => void;
@@ -15,11 +17,11 @@ type LocationTrackDeleteConfirmationDialogProps = {
 
 const LocationTrackDeleteConfirmationDialog: React.FC<
     LocationTrackDeleteConfirmationDialogProps
-> = ({ id, onSave, onClose }: LocationTrackDeleteConfirmationDialogProps) => {
+> = ({ layoutContext, id, onSave, onClose }: LocationTrackDeleteConfirmationDialogProps) => {
     const { t } = useTranslation();
 
     const deleteDraftLocationTrack = (id: LocationTrackId) => {
-        deleteLocationTrack(id).then((result) => {
+        deleteLocationTrack(layoutContext, id).then((result) => {
             result
                 .map((locationTrackId) => {
                     Snackbar.success('tool-panel.location-track.delete-dialog.delete-succeeded');

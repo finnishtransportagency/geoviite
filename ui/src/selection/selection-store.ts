@@ -86,8 +86,8 @@ function filterIdCollection<T extends string>(
     if (unselectItemIds === undefined) {
         return ids;
     }
-
-    return ids.filter((i) => !unselectItemIds.includes(i));
+    const unselect: string[] = unselectItemIds;
+    return ids.filter((i) => !unselect.includes(i));
 }
 
 function filterItemCollection<T extends { id: unknown }>(

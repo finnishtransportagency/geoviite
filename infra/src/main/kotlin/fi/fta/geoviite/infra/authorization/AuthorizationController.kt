@@ -4,6 +4,9 @@ import fi.fta.geoviite.infra.cloudfront.CloudFrontCookies
 import fi.fta.geoviite.infra.cloudfront.CookieSigner
 import fi.fta.geoviite.infra.error.ApiUnauthorizedException
 import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.util.Code
+import jakarta.servlet.http.HttpServletResponse
+import jakarta.servlet.http.Cookie
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -20,14 +23,32 @@ class AuthorizationController @Autowired constructor(private val signer: CookieS
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/own-details")
     fun getOwnDetails(): User {
         logger.apiCall("getOwnDetails")
         return SecurityContextHolder.getContext().authentication.principal as User
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
+    @PostMapping("/desired-role")
+    fun setDesiredRole(
+        @RequestParam("code") code: Code,
+        response: HttpServletResponse,
+    ): Code {
+        logger.apiCall("setDesiredRole", "code" to code)
+
+        val roleCookie = Cookie(DESIRED_ROLE_COOKIE_NAME, code.toString()).apply {
+            path = "/"
+            isHttpOnly = true
+            secure = true
+        }
+
+        response.addCookie(roleCookie)
+        return code
+    }
+
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/cf-cookies")
     fun getCloudFrontCookies(@RequestParam("redirect") redirectPath: String?): ResponseEntity<CloudFrontCookies> {
         val cloudFrontCookies = signer.createSignedCustomCookies()
@@ -44,19 +65,19 @@ class AuthorizationController @Autowired constructor(private val signer: CookieS
             .body(cloudFrontCookies)
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @PutMapping("/not-allowed")
     fun csrfPutForbidden(): Nothing = throw ApiUnauthorizedException("not allowed")
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @PostMapping("/not-allowed")
     fun csrfPostForbidden(): Nothing = throw ApiUnauthorizedException("not allowed")
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @DeleteMapping("/not-allowed")
     fun csrfDeleteForbidden(): Nothing = throw ApiUnauthorizedException("not allowed")
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @PatchMapping("/not-allowed")
     fun csrfPatchForbidden(): Nothing = throw ApiUnauthorizedException("not allowed")
 }

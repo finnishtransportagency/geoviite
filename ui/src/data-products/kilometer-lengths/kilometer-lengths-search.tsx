@@ -17,6 +17,8 @@ import {
 import { getVisibleErrorsByProp } from 'data-products/data-products-utils';
 import { KmLengthsSearchState } from 'data-products/data-products-slice';
 import { PrivilegeRequired } from 'user/privilege-required';
+import { DOWNLOAD_GEOMETRY } from 'user/user-model';
+import { officialMainLayoutContext } from 'common/common-model';
 
 type KilometerLengthsSearchProps = {
     state: KmLengthsSearchState;
@@ -35,15 +37,22 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
 }) => {
     const { t } = useTranslation();
     const trackNumbers =
-        useTrackNumbers('OFFICIAL')?.map((tn) => ({ name: tn.number, value: tn })) || [];
+        useTrackNumbers(officialMainLayoutContext())?.map((tn) => ({
+            name: tn.number,
+            value: tn,
+            qaId: `track-number-${tn.number}`,
+        })) || [];
 
     const kmPosts =
         useLoader(
-            () => state.trackNumber && getKmPostsOnTrackNumber('OFFICIAL', state.trackNumber.id),
+            () =>
+                state.trackNumber &&
+                getKmPostsOnTrackNumber(officialMainLayoutContext(), state.trackNumber.id),
             [state.trackNumber],
         )?.map((km) => ({
             name: km.kmNumber,
             value: km.kmNumber,
+            qaId: `km-${km.kmNumber}`,
         })) || [];
 
     function updateProp<TKey extends keyof KmLengthsSearchState>(
@@ -60,7 +69,7 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
     const [kmLengths, fetchStatus] = useLoaderWithStatus(
         () =>
             state.trackNumber
-                ? getKmLengths('OFFICIAL', state.trackNumber.id)
+                ? getKmLengths(officialMainLayoutContext(), state.trackNumber.id)
                 : Promise.resolve([]),
         [state.trackNumber],
     );
@@ -129,12 +138,12 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                         'endKm',
                     ).map((error) => t(`data-products.search.${error}`))}
                 />
-                <PrivilegeRequired privilege="dataproduct-download">
+                <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
                     <a
                         qa-id="km-lengths-csv-download"
                         {...(state.trackNumber && {
                             href: getKmLengthsAsCsv(
-                                'OFFICIAL',
+                                officialMainLayoutContext(),
                                 state.trackNumber?.id,
                                 state.startKm,
                                 state.endKm,

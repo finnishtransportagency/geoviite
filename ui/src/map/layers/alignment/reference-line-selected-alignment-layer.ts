@@ -3,7 +3,6 @@ import { MapLayerName, MapTile } from 'map/map-model';
 import { Selection } from 'selection/selection-model';
 import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import { PublishType } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
@@ -15,6 +14,7 @@ import { createAlignmentFeature } from '../utils/alignment-layer-utils';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
 import { first } from 'utils/array-utils';
+import { LayoutContext } from 'common/common-model';
 
 const selectedReferenceLineStyle = new Style({
     stroke: new Stroke({
@@ -30,7 +30,7 @@ export function createSelectedReferenceLineAlignmentLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
     selection: Selection,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {
@@ -41,7 +41,7 @@ export function createSelectedReferenceLineAlignmentLayer(
         ? getSelectedReferenceLineMapAlignmentByTiles(
               changeTimes,
               mapTiles,
-              publishType,
+              layoutContext,
               selectedTrackNumber,
           )
         : Promise.resolve([]);

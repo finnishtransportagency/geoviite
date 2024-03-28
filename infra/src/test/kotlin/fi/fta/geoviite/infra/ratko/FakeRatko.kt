@@ -191,6 +191,12 @@ class FakeRatko(port: Int) {
             request().withPath("/api/assets/v1.2/${oid}/geoms").withMethod("PUT")
         ).map { request -> jsonMapper.readValue(request.bodyAsString) }
 
+    fun hasOperatingPoints(points: List<RatkoOperatingPointParse>) = post(
+        "/api/assets/v1.2/search",
+        mapOf("assetType" to "railway_traffic_operating_point"),
+        times = Times.once(),
+    ).respond(okJson(RatkoOperatingPointAssetsResponse(points.map(::marshallOperatingPoint))))
+
     private fun getPointUpdates(oid: String, urlInfix: String, method: String): List<List<RatkoPoint>> =
         mockServer.retrieveRecordedRequests(
             request("/api/$urlInfix/$oid").withMethod(method)
@@ -257,3 +263,32 @@ class FakeRatko(port: Int) {
             .withStatusCode(200)
             .withContentType(MediaType.APPLICATION_JSON)
 }
+
+private fun marshallOperatingPoint(point: RatkoOperatingPointParse): RatkoOperatingPointAsset = RatkoOperatingPointAsset(
+    id = point.externalId.toString(),
+    properties = listOf(
+        RatkoAssetProperty("operational_point_type", enumValue = point.type.name),
+        RatkoAssetProperty("name", stringValue = point.name),
+        RatkoAssetProperty("operational_point_abbreviation", stringValue = point.abbreviation),
+        RatkoAssetProperty("operational_point_code", stringValue = point.uicCode),
+    ),
+    locations = listOf(
+        IncomingRatkoAssetLocation(
+            nodecollection = IncomingRatkoNodes(
+                nodes = listOf(
+                    IncomingRatkoNode(
+                        nodeType = RatkoNodeType.MIDDLE_POINT,
+                        point = IncomingRatkoPoint(
+                            geometry = IncomingRatkoGeometry(
+                                RatkoGeometryType.POINT,
+                                point.location.let { listOf(it.x, it.y) },
+                                RatkoCrs()
+                            ),
+                            routenumber = RatkoOid(point.trackNumberExternalId),
+                        )
+                    )
+                )
+            )
+        )
+    ),
+)

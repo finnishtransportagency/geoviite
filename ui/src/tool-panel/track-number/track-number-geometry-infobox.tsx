@@ -5,11 +5,12 @@ import { LoaderStatus, useRateLimitedLoaderWithStatus } from 'utils/react-utils'
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
-import { PublishType, TimeStamp } from 'common/common-model';
+import { LayoutContext, TimeStamp } from 'common/common-model';
 import { MapViewport } from 'map/map-model';
 import {
     AlignmentPlanSectionInfoboxContent,
-    HighlightedAlignment,
+    HighlightedReferenceLine,
+    OnHighlightSection,
 } from 'tool-panel/alignment-plan-section-infobox-content';
 import { useTranslation } from 'react-i18next';
 import {
@@ -19,17 +20,17 @@ import {
 import { getTrackNumberReferenceLineSectionsByPlan } from 'track-layout/layout-track-number-api';
 
 type TrackNumberGeometryInfoboxProps = {
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     trackNumberId: LayoutTrackNumberId;
     viewport: MapViewport;
     contentVisible: boolean;
     onContentVisibilityChange: () => void;
-    onHighlightItem: (item: HighlightedAlignment | undefined) => void;
+    onHighlightItem: (item: HighlightedReferenceLine | undefined) => void;
     changeTime: TimeStamp;
 };
 
 export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProps> = ({
-    publishType,
+    layoutContext,
     trackNumberId,
     viewport,
     contentVisible,
@@ -43,14 +44,29 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
     const [sections, elementFetchStatus] = useRateLimitedLoaderWithStatus(
         () =>
             getTrackNumberReferenceLineSectionsByPlan(
-                publishType,
+                layoutContext,
                 trackNumberId,
                 useBoundingBox ? viewport.area : undefined,
             ),
         1000,
-        [trackNumberId, publishType, viewportDep, changeTime],
+        [
+            trackNumberId,
+            layoutContext.publicationState,
+            layoutContext.designId,
+            viewportDep,
+            changeTime,
+        ],
     );
-
+    const onHighlightSection: OnHighlightSection = (section) =>
+        onHighlightItem(
+            section === undefined
+                ? undefined
+                : {
+                      ...section,
+                      id: trackNumberId,
+                      type: 'REFERENCE_LINE',
+                  },
+        );
     return (
         <Infobox
             title={t('tool-panel.alignment-plan-sections.reference-line-geometries')}
@@ -78,10 +94,8 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
                         </p>
                     ) : (
                         <AlignmentPlanSectionInfoboxContent
-                            id={trackNumberId}
+                            onHighlightSection={onHighlightSection}
                             sections={sections || []}
-                            onHighlightItem={onHighlightItem}
-                            type={'REFERENCE_LINE'}
                         />
                     )}
                 </ProgressIndicatorWrapper>

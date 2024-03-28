@@ -25,8 +25,7 @@ import {
     updateKmPost,
 } from 'track-layout/layout-km-post-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
-import { LayoutKmPost, LayoutKmPostId } from 'track-layout/track-layout-model';
-import { GeometryTrackNumberId } from 'geometry/geometry-model';
+import { LayoutKmPost, LayoutKmPostId, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { useDebouncedState } from 'utils/react-utils';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
@@ -36,19 +35,22 @@ import {
     getSaveDisabledReasons,
     useTrackNumbersIncludingDeleted,
 } from 'track-layout/track-layout-react-utils';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { useTrackLayoutAppSelector } from 'store/hooks';
 
 type KmPostEditDialogContainerProps = {
     kmPostId?: LayoutKmPostId;
     onClose: () => void;
     onSave?: (kmPostId: LayoutKmPostId) => void;
-    prefilledTrackNumberId?: GeometryTrackNumberId;
+    prefilledTrackNumberId?: LayoutTrackNumberId;
 };
 
 type KmPostEditDialogProps = {
+    layoutContext: LayoutContext;
     kmPostId?: LayoutKmPostId;
     onClose: () => void;
     onSave?: (kmPostId: LayoutKmPostId) => void;
-    prefilledTrackNumberId?: GeometryTrackNumberId;
+    prefilledTrackNumberId?: LayoutTrackNumberId;
     onEditKmPost: (id?: LayoutKmPostId) => void;
 };
 
@@ -58,8 +60,10 @@ export const KmPostEditDialogContainer: React.FC<KmPostEditDialogContainerProps>
     const [editKmPostId, setEditKmPostId] = React.useState<LayoutKmPostId | undefined>(
         props.kmPostId,
     );
+    const layoutContext = useTrackLayoutAppSelector((state) => state.layoutContext);
     return (
         <KmPostEditDialog
+            layoutContext={layoutContext}
             kmPostId={editKmPostId}
             onClose={props.onClose}
             onSave={props.onSave}
@@ -83,13 +87,16 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
         React.useState<boolean>(state.kmPost?.state == 'DELETED');
     const [draftDeleteConfirmationVisible, setDraftDeleteConfirmationVisible] =
         React.useState<boolean>();
-    const trackNumbers = useTrackNumbersIncludingDeleted('DRAFT', undefined);
+    const trackNumbers = useTrackNumbersIncludingDeleted(
+        draftLayoutContext(props.layoutContext),
+        undefined,
+    );
 
     // Load an existing kmPost or create a new KmPost
     React.useEffect(() => {
         if (props.kmPostId) {
             stateActions.init();
-            getKmPost(props.kmPostId, 'DRAFT')
+            getKmPost(props.kmPostId, draftLayoutContext(props.layoutContext))
                 .then((kmPost) => {
                     if (kmPost) {
                         stateActions.onKmPostLoaded(kmPost);
@@ -107,7 +114,9 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
     }, [props.kmPostId]);
 
     React.useEffect(() => {
-        findTrackNumberKmPost(state).then((found) => stateActions.onTrackNumberKmPostFound(found));
+        findTrackNumberKmPost(draftLayoutContext(props.layoutContext), state).then((found) =>
+            stateActions.onTrackNumberKmPostFound(found),
+        );
     }, [state.kmPost?.trackNumberId, debouncedKmNumber, state.kmPost?.state, state.existingKmPost]);
 
     const close = () => {
@@ -125,12 +134,19 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
 
     async function saveState(state: KmPostEditState): Promise<LayoutKmPostId | undefined> {
         if (state.isNewKmPost) {
-            const result = await insertKmPost(state.kmPost);
+            const result = await insertKmPost(
+                draftLayoutContext(props.layoutContext),
+                state.kmPost,
+            );
             if (result.isOk()) Snackbar.success('km-post-dialog.insert-succeeded');
             else Snackbar.error('km-post-dialog.insert-failed');
             return result.unwrapOr(undefined);
         } else if (state.existingKmPost) {
-            const result = await updateKmPost(state.existingKmPost.id, state.kmPost);
+            const result = await updateKmPost(
+                draftLayoutContext(props.layoutContext),
+                state.existingKmPost.id,
+                state.kmPost,
+            );
             if (result.isOk()) Snackbar.success('km-post-dialog.modify-succeeded');
             else Snackbar.error('km-post-dialog.modify-failed');
             return result.unwrapOr(undefined);
@@ -178,7 +194,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
         .filter((tn) => tn.id === state.existingKmPost?.trackNumberId || tn.state !== 'DELETED')
         .map((tn) => {
             const note = tn.state === 'DELETED' ? ` (${t('enum.layout-state.DELETED')})` : '';
-            return { name: tn.number + note, value: tn.id };
+            return { name: tn.number + note, value: tn.id, qaId: `track-number-${tn.id}` };
         });
 
     const moveToEditLinkText = (kmp: LayoutKmPost) => {
@@ -352,6 +368,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
             )}
             {props.kmPostId && draftDeleteConfirmationVisible && (
                 <KmPostDeleteConfirmationDialog
+                    layoutContext={draftLayoutContext(props.layoutContext)}
                     id={props.kmPostId}
                     onClose={() => setDraftDeleteConfirmationVisible(false)}
                     onSave={() => {
@@ -364,9 +381,17 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
     );
 };
 
-function findTrackNumberKmPost(state: KmPostEditState): Promise<LayoutKmPost | undefined> {
+function findTrackNumberKmPost(
+    layoutContext: LayoutContext,
+    state: KmPostEditState,
+): Promise<LayoutKmPost | undefined> {
     if (state.kmPost?.trackNumberId !== undefined && isValidKmNumber(state.kmPost.kmNumber)) {
-        return getKmPostByNumber('DRAFT', state.kmPost.trackNumberId, state.kmPost.kmNumber, true);
+        return getKmPostByNumber(
+            draftLayoutContext(layoutContext),
+            state.kmPost.trackNumberId,
+            state.kmPost.kmNumber,
+            true,
+        );
     } else {
         return Promise.resolve(undefined);
     }

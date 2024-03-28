@@ -12,13 +12,13 @@ import {
     useLocationTrackChangeTimes,
 } from 'track-layout/track-layout-react-utils';
 import { LocationTrackId } from 'track-layout/track-layout-model';
-import { PublishType } from 'common/common-model';
+import { LayoutContext, officialLayoutContext } from 'common/common-model';
 import { LocationTrackInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { useCommonDataAppSelector } from 'store/hooks';
 
 type LocationTrackChangeInfoInfoboxProps = {
     locationTrackId: LocationTrackId;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     visibilities: LocationTrackInfoboxVisibilities;
     visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
     setConfirmingDraftDelete: (value: boolean) => void;
@@ -26,7 +26,7 @@ type LocationTrackChangeInfoInfoboxProps = {
 
 export const LocationTrackChangeInfoInfobox: React.FC<LocationTrackChangeInfoInfoboxProps> = ({
     locationTrackId,
-    publishType,
+    layoutContext,
     visibilities,
     visibilityChange,
     setConfirmingDraftDelete,
@@ -34,10 +34,10 @@ export const LocationTrackChangeInfoInfobox: React.FC<LocationTrackChangeInfoInf
     const { t } = useTranslation();
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
-    const locationTrackChangeInfo = useLocationTrackChangeTimes(locationTrackId, publishType);
+    const locationTrackChangeInfo = useLocationTrackChangeTimes(locationTrackId, layoutContext);
     const officialLocationTrack = useLocationTrack(
         locationTrackId,
-        'OFFICIAL',
+        officialLayoutContext(layoutContext),
         changeTimes.layoutLocationTrack,
     );
 

@@ -10,6 +10,8 @@ import { useDataProductsAppSelector } from 'store/hooks';
 import { dataProductsActions, SelectedGeometrySearch } from 'data-products/data-products-slice';
 import { EntireRailNetworkElementListing } from 'data-products/element-list/entire-rail-network-element-listing';
 import { PrivilegeRequired } from 'user/privilege-required';
+import { DOWNLOAD_GEOMETRY } from 'user/user-model';
+import { officialMainLayoutContext } from 'common/common-model';
 
 const ElementListView = () => {
     const { t } = useTranslation();
@@ -39,7 +41,7 @@ const ElementListView = () => {
                             checked={state.selectedSearch === 'PLAN'}>
                             {t('data-products.element-list.plan-geometry')}
                         </Radio>
-                        <PrivilegeRequired privilege="dataproduct-download">
+                        <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
                             <Radio
                                 qaId={'select-entire-rail-network'}
                                 onChange={() => handleRadioClick('ENTIRE_RAIL_NETWORK')}
@@ -72,6 +74,7 @@ const ElementListView = () => {
             </div>
             {state.selectedSearch !== 'ENTIRE_RAIL_NETWORK' && (
                 <ElementTable
+                    layoutContext={officialMainLayoutContext()}
                     elements={
                         state.selectedSearch === 'LOCATION_TRACK'
                             ? state.locationTrackSearch.elements

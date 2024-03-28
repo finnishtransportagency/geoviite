@@ -2,7 +2,7 @@ import Feature from 'ol/Feature';
 import { Point as OlPoint } from 'ol/geom';
 import { Selection } from 'selection/selection-model';
 import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
-import { AddressPoint, PublishType } from 'common/common-model';
+import { AddressPoint, LayoutContext } from 'common/common-model';
 import { AlignmentAddresses, getAddressPoints } from 'common/geocoding-api';
 import { DEBUG_1M_POINTS } from '../utils/layer-visibility-limits';
 import { MapLayer } from 'map/layers/utils/layer-model';
@@ -81,7 +81,7 @@ const layerName: MapLayerName = 'debug-1m-points-layer';
 export function createDebug1mPointsLayer(
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     selection: Selection,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     resolution: number,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {
@@ -91,7 +91,7 @@ export function createDebug1mPointsLayer(
 
     const dataPromise: Promise<AlignmentAddresses | undefined> =
         selected && resolution <= DEBUG_1M_POINTS
-            ? getAddressPoints(selected, publishType)
+            ? getAddressPoints(selected, layoutContext)
             : Promise.resolve(undefined);
     const createFeatures = (addresses: AlignmentAddresses | undefined) =>
         addresses ? createAddressPointFeatures(addresses) : [];

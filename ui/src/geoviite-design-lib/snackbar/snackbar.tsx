@@ -175,9 +175,10 @@ function showSuccessToast(toastContent: React.ReactNode, opts: SnackbarToastOpti
     if (!blockToasts) {
         const exists = toast.isActive(toastId);
 
-        const toastOptions = {
+        const toastOptions: ToastOptions = {
             toastId: toastId,
             icon: <Icons.Selected />,
+            closeOnClick: true,
             ...options,
         };
 

@@ -6,9 +6,9 @@ import {
     getReferenceLineMapAlignmentsByTiles,
 } from 'track-layout/layout-map-api';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import { PublishType } from 'common/common-model';
+import { LayoutContext } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
-import { groupBy } from 'utils/array-utils';
+import { groupBy, objectEntries } from 'utils/array-utils';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import Feature from 'ol/Feature';
 import { Stroke, Style } from 'ol/style';
@@ -40,7 +40,10 @@ function createDiagramFeatures(
         (a) => a.header.trackNumberId || a.trackNumber?.id || '',
     );
 
-    return Object.entries(perTrackNumber).flatMap(([trackNumberId, alignments]) => {
+    return objectEntries(perTrackNumber).flatMap(([trackNumberId, alignments]) => {
+        if (trackNumberId === '') {
+            return [];
+        }
         const style = new Style({
             stroke: new Stroke({
                 color: getColorForTrackNumber(trackNumberId, layerSettings),
@@ -67,7 +70,7 @@ export function createTrackNumberDiagramLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
     changeTimes: ChangeTimes,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     resolution: number,
     layerSettings: TrackNumberDiagramLayerSetting,
     onLoadingData: (loading: boolean) => void,
@@ -76,8 +79,8 @@ export function createTrackNumberDiagramLayer(
 
     const alignmentPromise: Promise<AlignmentDataHolder[]> =
         resolution > Limits.ALL_ALIGNMENTS
-            ? getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, publishType)
-            : getMapAlignmentsByTiles(changeTimes, mapTiles, publishType);
+            ? getReferenceLineMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext)
+            : getMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext);
 
     const createFeatures = (alignments: AlignmentDataHolder[]) => {
         const showAll = Object.values(layerSettings).every((s) => !s.selected);

@@ -2,7 +2,7 @@ package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
@@ -340,7 +340,7 @@ class GeometryService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getVerticalGeometryListing(
-        publicationType: PublishType,
+        publicationType: PublicationState,
         locationTrackId: IntId<LocationTrack>,
         startAddress: TrackMeter? = null,
         endAddress: TrackMeter? = null,
@@ -428,7 +428,7 @@ class GeometryService @Autowired constructor(
         else getComparator(sortField, lang).reversed()
 
     private fun getComparator(sortField: GeometryPlanSortField, lang: String): Comparator<GeometryPlanHeader> {
-        val trackNumbers by lazy { trackNumberService.mapById(PublishType.DRAFT) }
+        val trackNumbers by lazy { trackNumberService.mapById(PublicationState.DRAFT) }
         val linkingSummaries by lazy { geometryDao.getLinkingSummaries() }
         val translation = localizationService.getLocalization(lang)
         return when (sortField) {
@@ -502,9 +502,9 @@ class GeometryService @Autowired constructor(
     @Transactional(readOnly = true)
     fun getLocationTrackGeometryLinkingSummary(
         locationTrackId: IntId<LocationTrack>,
-        publishType: PublishType,
+        publicationState: PublicationState,
     ): List<PlanLinkingSummaryItem>? {
-        val locationTrack = locationTrackService.get(publishType, locationTrackId) ?: return null
+        val locationTrack = locationTrackService.get(publicationState, locationTrackId) ?: return null
         val alignment = layoutAlignmentDao.fetch(locationTrack.alignmentVersion ?: return null)
         val segmentSources = collectSegmentSources(alignment)
         val planLinkEndSegmentIndices = segmentSources.zipWithNext { a, b -> a.plan == b.plan }
@@ -526,16 +526,16 @@ class GeometryService @Autowired constructor(
     @Transactional(readOnly = true)
     fun getLocationTrackHeights(
         locationTrackId: IntId<LocationTrack>,
-        publishType: PublishType,
+        publicationState: PublicationState,
         startDistance: Double,
         endDistance: Double,
         tickLength: Int,
     ): List<KmHeights>? {
-        val locationTrack = locationTrackService.get(publishType, locationTrackId) ?: return null
+        val locationTrack = locationTrackService.get(publicationState, locationTrackId) ?: return null
         val alignment = layoutAlignmentDao.fetch(locationTrack.alignmentVersion ?: return null)
         val boundingBox = alignment.boundingBox ?: return null
         val geocodingContext =
-            geocodingService.getGeocodingContext(publishType, locationTrack.trackNumberId) ?: return null
+            geocodingService.getGeocodingContext(publicationState, locationTrack.trackNumberId) ?: return null
 
         val segmentSources = collectSegmentSources(alignment)
         val alignmentLinkEndSegmentIndices = segmentSources.zipWithNext { a, b -> a.alignment == b.alignment }

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { JointNumber, PublishType, SwitchAlignment } from 'common/common-model';
+import { JointNumber, LayoutContext, SwitchAlignment } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
 import { LayoutSwitchJointConnection, LocationTrackId } from 'track-layout/track-layout-model';
 import {
@@ -20,7 +20,7 @@ type SwitchJointInfobox = {
     switchAlignments: SwitchAlignment[];
     jointConnections: LayoutSwitchJointConnection[];
     topologicalJointConnections?: TopologicalJointConnection[];
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     onSelectLocationTrackBadge?: (locationTrackId: LocationTrackId) => void;
 };
 
@@ -28,7 +28,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
     switchAlignments,
     jointConnections,
     topologicalJointConnections,
-    publishType,
+    layoutContext,
     onSelectLocationTrackBadge,
 }) => {
     const { t } = useTranslation();
@@ -43,8 +43,13 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
 
     const locationTracks = [
         useLoader(
-            () => getLocationTracksForJointConnections(publishType, jointConnections),
-            [switchAlignments, jointConnections, publishType],
+            () => getLocationTracksForJointConnections(layoutContext, jointConnections),
+            [
+                switchAlignments,
+                jointConnections,
+                layoutContext.designId,
+                layoutContext.publicationState,
+            ],
         ),
         useLoader(
             () =>
@@ -52,7 +57,7 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
                     (topologicalJointConnections ?? []).flatMap(
                         (jointConnection) => jointConnection.locationTrackIds,
                     ),
-                    publishType,
+                    layoutContext,
                 ),
             [],
         ),

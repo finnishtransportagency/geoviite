@@ -12,14 +12,17 @@ import {
 import { getChangeTimes } from 'common/change-time-api';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { RevertRequestType } from 'preview/preview-view-revert-request';
+import { LayoutContext } from 'common/common-model';
 
 export interface PreviewRejectConfirmDialogProps {
+    layoutContext: LayoutContext;
     changesBeingReverted: ChangesBeingReverted;
     confirmRevertChanges: () => void;
     cancelRevertChanges: () => void;
 }
 
 export const PreviewConfirmRevertChangesDialog: React.FC<PreviewRejectConfirmDialogProps> = ({
+    layoutContext,
     changesBeingReverted,
     cancelRevertChanges,
     confirmRevertChanges,
@@ -109,6 +112,7 @@ export const PreviewConfirmRevertChangesDialog: React.FC<PreviewRejectConfirmDia
             }>
             <div>{dialogQuestion()}</div>
             <PublicationRequestDependencyList
+                layoutContext={layoutContext}
                 changeTimes={getChangeTimes()}
                 changesBeingReverted={changesBeingReverted}
             />

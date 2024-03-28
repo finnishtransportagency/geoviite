@@ -16,6 +16,7 @@ import {
 
 export type MapLayerName =
     | 'background-map-layer'
+    | 'orthographic-background-map-layer'
     | 'location-track-background-layer'
     | 'reference-line-background-layer'
     | 'track-number-diagram-layer'
@@ -39,12 +40,14 @@ export type MapLayerName =
     | 'geometry-switch-layer'
     | 'alignment-linking-layer'
     | 'switch-linking-layer'
-    | 'virtual-km-post-linking-layer'
     | 'location-track-duplicate-endpoint-address-layer'
     | 'location-track-split-location-layer'
     | 'plan-area-layer'
+    | 'operating-points-layer'
     | 'debug-1m-points-layer'
-    | 'debug-layer';
+    | 'debug-layer'
+    | 'virtual-km-post-linking-layer'
+    | 'virtual-hide-geometry-layer';
 
 export type MapViewportSource = 'Map';
 
@@ -89,6 +92,7 @@ export type MapLayerMenuItem = {
 
 export type MapLayerMenuItemName =
     | 'map'
+    | 'orthographic-background-map'
     | 'location-track'
     | 'reference-line'
     | 'missing-vertical-geometry'
@@ -101,6 +105,7 @@ export type MapLayerMenuItemName =
     | 'geometry-switch'
     | 'plan-area'
     | 'geometry-km-post'
+    | 'operating-points'
     | 'debug-1m'
     | 'debug';
 

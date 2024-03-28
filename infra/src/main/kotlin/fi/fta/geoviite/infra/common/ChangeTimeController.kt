@@ -1,10 +1,11 @@
 package fi.fta.geoviite.infra.common
 
-import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
+import fi.fta.geoviite.infra.authorization.*
 import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.projektivelho.PVDocumentService
 import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.ratko.RatkoOperatingPointDao
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.*
@@ -30,6 +31,7 @@ data class CollectedChangeTimes(
     val ratkoPush: Instant,
     val pvDocument: Instant,
     val split: Instant,
+    val operatingPoints: Instant,
 )
 
 @RestController
@@ -45,11 +47,12 @@ class ChangeTimeController(
     private val ratkoPushDao: RatkoPushDao,
     private val pvDocumentService: PVDocumentService,
     private val splitService: SplitService,
+    private val ratkoOperatingPointDao: RatkoOperatingPointDao,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/collected")
     @Transactional(readOnly = true)
     fun getCollectedChangeTimes(): CollectedChangeTimes {
@@ -67,80 +70,81 @@ class ChangeTimeController(
             ratkoPush = ratkoPushDao.getRatkoPushChangeTime(),
             pvDocument = pvDocumentService.getDocumentChangeTime(),
             split = splitService.getChangeTime(),
+            operatingPoints = ratkoOperatingPointDao.getChangeTime(),
         )
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/track-numbers")
     fun getTrackLayoutTrackNumberChangeTime(): Instant {
         logger.apiCall("getTrackLayoutTrackNumberChangeTime")
         return trackNumberService.getChangeTime()
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/location-tracks")
     fun getTrackLayoutLocationTrackChangeTime(): Instant {
         logger.apiCall("getTrackLayoutLocationTrackChangeTime")
         return locationTrackService.getChangeTime()
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/reference-lines")
     fun getTrackLayoutReferenceLineChangeTime(): Instant {
         logger.apiCall("getTrackLayoutReferenceLineChangeTime")
         return referenceLineService.getChangeTime()
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/switches")
     fun getTrackLayoutSwitchChangeTime(): Instant {
         logger.apiCall("getTrackLayoutSwitchChangeTime")
         return switchService.getChangeTime()
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/km-posts")
     fun getTrackLayoutKmPostChangeTime(): Instant {
         logger.apiCall("getTrackLayoutSwitchChangeTime")
         return kmPostService.getChangeTime()
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/plans")
     fun getGeometryPlanChangeTime(): Instant {
         logger.apiCall("getGeometryPlanChangeTime")
         return geometryService.getGeometryPlanChangeTime()
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/projects")
     fun getProjectChangeTime(): Instant {
         logger.apiCall("getProjectChangeTime")
         return geometryService.getProjectChangeTime()
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/authors")
     fun getAuthorChangeTime(): Instant {
         logger.apiCall("getAuthorChangeTime")
         return geometryService.getAuthorChangeTime()
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/publications")
     fun getPublicationChangeTime(): Instant {
         logger.apiCall("getPublicationChangeTime")
         return publicationService.getChangeTime()
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/projektivelho-documents")
     fun getPVDocumentChangeTime(): Instant {
         logger.apiCall("getPVDocumentChangeTime")
         return pvDocumentService.getDocumentChangeTime()
     }
 
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     @GetMapping("/splits")
     fun getSplitChangeTime(): Instant {
         logger.apiCall("getSplitChangeTime")

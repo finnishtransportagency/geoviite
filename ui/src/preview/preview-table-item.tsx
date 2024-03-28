@@ -3,11 +3,7 @@ import styles from './preview-view.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
-import {
-    PublicationStage,
-    PublishRequestIds,
-    PublishValidationError,
-} from 'publication/publication-model';
+import { PublicationStage, PublicationValidationError } from 'publication/publication-model';
 import { createClassName } from 'vayla-design-lib/utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -19,21 +15,10 @@ import {
     menuSelectOption,
     MenuSelectOption,
 } from 'vayla-design-lib/menu/menu';
-import { PreviewSelectType, PreviewTableEntry, PublicationId } from 'preview/preview-table';
+import { PreviewTableEntry } from 'preview/preview-table';
 import { BoundingBox } from 'model/geometry';
 import { RevertRequestSource } from 'preview/preview-view-revert-request';
-import { PublicationAssetChangeAmounts } from 'preview/preview-view-data';
-
-const createPublishRequestIdsFromTableEntry = (
-    id: PublicationId,
-    type: PreviewSelectType,
-): PublishRequestIds => ({
-    trackNumbers: type === PreviewSelectType.trackNumber ? [id] : [],
-    referenceLines: type === PreviewSelectType.referenceLine ? [id] : [],
-    locationTracks: type === PreviewSelectType.locationTrack ? [id] : [],
-    switches: type === PreviewSelectType.switch ? [id] : [],
-    kmPosts: type === PreviewSelectType.kmPost ? [id] : [],
-});
+import { PublicationAssetChangeAmounts } from 'publication/publication-utils';
 
 const conditionalMenuOption = (
     condition: unknown | undefined,
@@ -61,7 +46,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
     const [actionMenuVisible, setActionMenuVisible] = React.useState(false);
 
-    const errorsToStrings = (list: PublishValidationError[], type: 'ERROR' | 'WARNING') => {
+    const errorsToStrings = (list: PublicationValidationError[], type: 'ERROR' | 'WARNING') => {
         const filtered = list.filter((e) => e.type === type);
         return filtered.map((error) => t(error.localizationKey, error.params));
     };
@@ -87,11 +72,6 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     const stagePublicationAssetAmount = publish
         ? publicationAssetChangeAmounts.staged
         : publicationAssetChangeAmounts.unstaged;
-
-    const tableEntryAsPublishRequestIds = createPublishRequestIdsFromTableEntry(
-        tableEntry.id,
-        tableEntry.type,
-    );
 
     const tableEntryAsRevertRequestSource: RevertRequestSource = {
         id: tableEntry.id,
@@ -135,7 +115,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     const menuOptionRevertSingleChange: MenuSelectOption = menuSelectOption(
         menuAction(() =>
             previewOperations.revert.changesWithDependencies(
-                tableEntryAsPublishRequestIds,
+                [tableEntry.publishCandidate],
                 tableEntryAsRevertRequestSource,
             ),
         ),
@@ -238,7 +218,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                         variant={ButtonVariant.GHOST}
                         onClick={() =>
                             previewOperations.setPublicationStage.forSpecificChanges(
-                                tableEntryAsPublishRequestIds,
+                                [tableEntry.publishCandidate],
                                 moveTargetStage,
                             )
                         }

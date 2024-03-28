@@ -8,36 +8,179 @@ import {
 } from 'api/api-fetch';
 import {
     CalculatedChanges,
+    DraftChangeType,
+    KmPostPublicationCandidate,
+    LocationTrackPublicationCandidate,
+    PublicationCandidate,
+    PublicationCandidateReference,
     PublicationDetails,
     PublicationId,
+    PublicationRequest,
+    PublicationRequestIds,
+    PublicationResult,
+    PublicationStage,
     PublicationTableItem,
-    PublishCandidates,
-    PublishRequest,
-    PublishRequestIds,
-    PublishResult,
+    ReferenceLinePublicationCandidate,
     SplitInPublication,
-    ValidatedPublishCandidates,
+    SwitchPublicationCandidate,
+    TrackNumberPublicationCandidate,
+    ValidatedPublicationCandidates,
 } from 'publication/publication-model';
 import i18next from 'i18next';
 import { PublicationDetailsTableSortField } from 'publication/table/publication-table-utils';
 import { SortDirection } from 'utils/table-utils';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { createPublicationCandidateReference } from 'publication/publication-utils';
 
 const PUBLICATION_URL = `${API_URI}/publications`;
 
-export const getPublishCandidates = () =>
-    getNonNull<PublishCandidates>(`${PUBLICATION_URL}/candidates`);
+export type PublicationCandidatesResponse = {
+    trackNumbers: TrackNumberPublicationCandidate[];
+    locationTracks: LocationTrackPublicationCandidate[];
+    referenceLines: ReferenceLinePublicationCandidate[];
+    switches: SwitchPublicationCandidate[];
+    kmPosts: KmPostPublicationCandidate[];
+};
 
-export const validatePublishCandidates = (request: PublishRequestIds) =>
-    postNonNull<PublishRequestIds, ValidatedPublishCandidates>(
-        `${PUBLICATION_URL}/validate`,
-        request,
+export type ValidatedPublicationCandidatesResponse = {
+    validatedAsPublicationUnit: PublicationCandidatesResponse;
+    allChangesValidated: PublicationCandidatesResponse;
+};
+
+export const emptyPublicationRequestIds = (): PublicationRequestIds => ({
+    trackNumbers: [],
+    locationTracks: [],
+    referenceLines: [],
+    switches: [],
+    kmPosts: [],
+});
+
+const addCandidateTypeAndState = (
+    unknownCandidate: PublicationCandidate,
+    type: DraftChangeType,
+): PublicationCandidate => {
+    return {
+        ...unknownCandidate,
+        type,
+        validated: false,
+        pendingValidation: true,
+        stage: PublicationStage.UNSTAGED,
+    } as PublicationCandidate;
+};
+
+const toPublicationCandidates = (
+    publicationCandidatesResponse: PublicationCandidatesResponse,
+): PublicationCandidate[] => {
+    return [
+        publicationCandidatesResponse.trackNumbers.map((candidate) =>
+            addCandidateTypeAndState(candidate, DraftChangeType.TRACK_NUMBER),
+        ),
+        publicationCandidatesResponse.locationTracks.map((candidate) =>
+            addCandidateTypeAndState(candidate, DraftChangeType.LOCATION_TRACK),
+        ),
+        publicationCandidatesResponse.referenceLines.map((candidate) =>
+            addCandidateTypeAndState(candidate, DraftChangeType.REFERENCE_LINE),
+        ),
+        publicationCandidatesResponse.switches.map((candidate) =>
+            addCandidateTypeAndState(candidate, DraftChangeType.SWITCH),
+        ),
+        publicationCandidatesResponse.kmPosts.map((candidate) =>
+            addCandidateTypeAndState(candidate, DraftChangeType.KM_POST),
+        ),
+    ].flat();
+};
+
+const toPublicationCandidateReferences = (
+    publicationRequestIds: PublicationRequestIds,
+): PublicationCandidateReference[] => {
+    return [
+        publicationRequestIds.trackNumbers.map((candidateId) =>
+            createPublicationCandidateReference(candidateId, DraftChangeType.TRACK_NUMBER),
+        ),
+        publicationRequestIds.locationTracks.map((candidateId) =>
+            createPublicationCandidateReference(candidateId, DraftChangeType.LOCATION_TRACK),
+        ),
+        publicationRequestIds.referenceLines.map((candidateId) =>
+            createPublicationCandidateReference(candidateId, DraftChangeType.REFERENCE_LINE),
+        ),
+        publicationRequestIds.switches.map((candidateId) =>
+            createPublicationCandidateReference(candidateId, DraftChangeType.SWITCH),
+        ),
+        publicationRequestIds.kmPosts.map((candidateId) =>
+            createPublicationCandidateReference(candidateId, DraftChangeType.KM_POST),
+        ),
+    ].flat();
+};
+
+const toPublicationRequestIds = (
+    publicationCandidates: (PublicationCandidate | PublicationCandidateReference)[],
+): PublicationRequestIds => {
+    return publicationCandidates.reduce((publicationRequestIds, candidate) => {
+        switch (candidate.type) {
+            case DraftChangeType.TRACK_NUMBER:
+                publicationRequestIds.trackNumbers.push(candidate.id);
+                break;
+
+            case DraftChangeType.LOCATION_TRACK:
+                publicationRequestIds.locationTracks.push(candidate.id);
+                break;
+
+            case DraftChangeType.REFERENCE_LINE:
+                publicationRequestIds.referenceLines.push(candidate.id);
+                break;
+
+            case DraftChangeType.SWITCH:
+                publicationRequestIds.switches.push(candidate.id);
+                break;
+
+            case DraftChangeType.KM_POST:
+                publicationRequestIds.kmPosts.push(candidate.id);
+                break;
+
+            default:
+                exhaustiveMatchingGuard(candidate);
+        }
+
+        return publicationRequestIds;
+    }, emptyPublicationRequestIds());
+};
+
+const toValidatedPublicationCandidates = (
+    response: ValidatedPublicationCandidatesResponse,
+): ValidatedPublicationCandidates => {
+    return {
+        validatedAsPublicationUnit: toPublicationCandidates(response.validatedAsPublicationUnit),
+        allChangesValidated: toPublicationCandidates(response.allChangesValidated),
+    };
+};
+
+export const getPublicationCandidates = (): Promise<PublicationCandidate[]> =>
+    getNonNull<PublicationCandidatesResponse>(`${PUBLICATION_URL}/candidates`).then(
+        toPublicationCandidates,
     );
 
-export const revertCandidates = (request: PublishRequestIds) =>
-    deleteNonNullAdt<PublishRequestIds, PublishResult>(`${PUBLICATION_URL}/candidates`, request);
+export const validatePublicationCandidates = (candidates: PublicationCandidateReference[]) =>
+    postNonNull<PublicationRequestIds, ValidatedPublicationCandidatesResponse>(
+        `${PUBLICATION_URL}/validate`,
+        toPublicationRequestIds(candidates),
+    ).then(toValidatedPublicationCandidates);
 
-export const publishCandidates = (request: PublishRequest) => {
-    return postNonNull<PublishRequest, PublishResult>(`${PUBLICATION_URL}`, request);
+export const revertPublicationCandidates = (candidates: PublicationCandidateReference[]) =>
+    deleteNonNullAdt<PublicationRequestIds, PublicationResult>(
+        `${PUBLICATION_URL}/candidates`,
+        toPublicationRequestIds(candidates),
+    );
+
+export const publishPublicationCandidates = (
+    candidates: PublicationCandidateReference[],
+    message: string,
+) => {
+    const request: PublicationRequest = {
+        content: toPublicationRequestIds(candidates),
+        message,
+    };
+
+    return postNonNull<PublicationRequest, PublicationResult>(`${PUBLICATION_URL}`, request);
 };
 
 export const getLatestPublications = (count: number) => {
@@ -97,17 +240,17 @@ export const getPublicationsCsvUri = (
     return `${PUBLICATION_URL}/csv${params}`;
 };
 
-export const getCalculatedChanges = (request: PublishRequestIds) =>
-    postNonNull<PublishRequestIds, CalculatedChanges>(
+export const getCalculatedChanges = (candidates: PublicationCandidateReference[]) =>
+    postNonNull<PublicationRequestIds, CalculatedChanges>(
         `${PUBLICATION_URL}/calculated-changes`,
-        request,
+        toPublicationRequestIds(candidates),
     );
 
-export const getRevertRequestDependencies = (request: PublishRequestIds) =>
-    postNonNull<PublishRequestIds, PublishRequestIds>(
+export const getRevertRequestDependencies = (candidates: PublicationCandidateReference[]) =>
+    postNonNull<PublicationRequestIds, PublicationRequestIds>(
         `${PUBLICATION_URL}/candidates/revert-request-dependencies`,
-        request,
-    );
+        toPublicationRequestIds(candidates),
+    ).then(toPublicationCandidateReferences);
 
 export const getSplitDetails = (id: string) =>
     getNonNull<SplitInPublication>(`${PUBLICATION_URL}/${id}/split-details`);

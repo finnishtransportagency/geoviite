@@ -1,9 +1,13 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DataType.STORED
 import fi.fta.geoviite.infra.common.DataType.TEMP
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.logging.Loggable
 
 enum class EditState { UNEDITED, EDITED, CREATED }
@@ -13,22 +17,39 @@ interface LayoutContextAware<T> {
     val dataType: DataType
     val editState: EditState
 
-    @get:JsonIgnore val isDraft: Boolean get() = false
-    @get:JsonIgnore val isOfficial: Boolean get() = false
-    @get:JsonIgnore val isDesign: Boolean get() = false
+    @get:JsonIgnore
+    val isDraft: Boolean get() = false
+
+    @get:JsonIgnore
+    val isOfficial: Boolean get() = false
+
+    @get:JsonIgnore
+    val isDesign: Boolean get() = false
 }
 
 sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) :
     LayoutContextAware<T> by contextData, Loggable {
     abstract val version: RowVersion<T>?
-    @get:JsonIgnore abstract val contextData: LayoutContextData<T>
+
+    @get:JsonIgnore
+    abstract val contextData: LayoutContextData<T>
+
+    abstract fun withContext(contextData: LayoutContextData<T>): T
 }
 
 sealed class LayoutContextData<T> : LayoutContextAware<T> {
 
     @get:JsonIgnore abstract val rowId: DomainId<T>
-    @get:JsonIgnore open val officialRowId: DomainId<T>? get() = null
-    @get:JsonIgnore open val designRowId: DomainId<T>? get() = null
+
+    @get:JsonIgnore
+    open val officialRowId: DomainId<T>? get() = null
+
+    @get:JsonIgnore
+    open val designRowId: DomainId<T>? get() = null
+
+    protected fun requireStored() = require(dataType == STORED) {
+        "Only $STORED rows can transition to a different context: context=${this::class.simpleName} dataType=$dataType"
+    }
 
     companion object {
         fun <T> newDraft(id: DomainId<T> = StringId()): MainDraftContextData<T> =
@@ -53,26 +74,26 @@ data class MainOfficialContextData<T>(
     override val editState: EditState get() = EditState.UNEDITED
     override val isOfficial: Boolean get() = true
 
-    fun asMainDraft(): MainDraftContextData<T> = MainDraftContextData(
-        // TODO: GVT-2426 This is the old way of things, but do we actually need to support switching context in temp objects?
-        // If datatype is TEMP, the official row doesn't actually exist in DB -> alter the context to desired form
-        // Otherwise, we're creating the draft by copying the row -> new ID in a new TEMP object
-        rowId = if (dataType == TEMP) rowId else StringId(),
-        officialRowId = if (dataType == TEMP) null else rowId,
-        designRowId = null,
-        dataType = TEMP,
-    )
+    fun asMainDraft(): MainDraftContextData<T> {
+        requireStored()
+        return MainDraftContextData(
+            rowId = StringId(),
+            officialRowId = rowId,
+            designRowId = null,
+            dataType = TEMP,
+        )
+    }
 
-    fun asDesignDraft(designId: IntId<LayoutDesign>): DesignDraftContextData<T> = DesignDraftContextData(
-        // TODO: GVT-2426 This is the old way of things, but do we actually need to support switching context in temp objects?
-        // If datatype is TEMP, the official row doesn't actually exist in DB -> alter the context to desired form
-        // Otherwise, we're creating the draft by copying the row -> new ID in a new TEMP object
-        rowId = if (dataType == TEMP) rowId else StringId(),
-        officialRowId = if (dataType == TEMP) null else rowId,
-        designRowId = null,
-        designId = designId,
-        dataType = TEMP,
-    )
+    fun asDesignDraft(designId: IntId<LayoutDesign>): DesignDraftContextData<T> {
+        requireStored()
+        return DesignDraftContextData(
+            rowId = StringId(),
+            officialRowId = rowId,
+            designRowId = null,
+            designId = designId,
+            dataType = TEMP,
+        )
+    }
 }
 
 data class MainDraftContextData<T>(
@@ -98,7 +119,7 @@ data class MainDraftContextData<T>(
     }
 
     fun asMainOfficial(): MainOfficialContextData<T> {
-        require(dataType == STORED) { "The draft is not stored in DB and can't be published: contextData=$this" }
+        requireStored()
         return MainOfficialContextData(
             rowId = id, // The official ID points to the row that needs to be written over
             dataType = STORED, // There will always be an existing row to update: the draft-row or the original official
@@ -122,26 +143,26 @@ data class DesignOfficialContextData<T>(
         }
     }
 
-    fun asMainDraft(): MainDraftContextData<T> = MainDraftContextData(
-        // TODO: GVT-2426 This is the old way of things, but do we actually need to support switching context in temp objects?
-        // If datatype is TEMP, the official design doesn't actually exist in DB -> alter the context to desired form
-        // Otherwise, we're creating the draft by copying the row -> new ID in a new TEMP object
-        rowId = if (dataType == TEMP) rowId else StringId(),
-        officialRowId = officialRowId,
-        designRowId = if (dataType == TEMP) null else rowId,
-        dataType = TEMP,
-    )
+    fun asMainDraft(): MainDraftContextData<T> {
+        requireStored()
+        return MainDraftContextData(
+            rowId = StringId(),
+            officialRowId = officialRowId,
+            designRowId = rowId,
+            dataType = TEMP,
+        )
+    }
 
-    fun asDesignDraft(): DesignDraftContextData<T> = DesignDraftContextData(
-        // TODO: GVT-2426 This is the old way of things, but do we actually need to support switching context in temp objects?
-        // If datatype is TEMP, the official design doesn't actually exist in DB -> alter the context to desired form
-        // Otherwise, we're creating the draft-design by copying the row -> new ID in a new TEMP object
-        rowId = if (dataType == TEMP) rowId else StringId(),
-        officialRowId = officialRowId,
-        designRowId = if (dataType == TEMP) null else rowId,
-        designId = designId,
-        dataType = TEMP,
-    )
+    fun asDesignDraft(): DesignDraftContextData<T> {
+        requireStored()
+        return DesignDraftContextData(
+            rowId = StringId(),
+            officialRowId = officialRowId,
+            designRowId = rowId,
+            designId = designId,
+            dataType = TEMP,
+        )
+    }
 }
 
 data class DesignDraftContextData<T>(
@@ -169,7 +190,7 @@ data class DesignDraftContextData<T>(
     }
 
     fun asDesignOfficial(): DesignOfficialContextData<T> {
-        require(dataType == STORED) { "The design draft is not stored in DB and can't be published: context=$this" }
+        requireStored()
         return DesignOfficialContextData(
             rowId = designRowId ?: rowId, // The publishing should update either the official or the draft row
             officialRowId = officialRowId,
@@ -179,41 +200,24 @@ data class DesignDraftContextData<T>(
     }
 }
 
-@Suppress("UNCHECKED_CAST")
-fun <T : LayoutAsset<T>> asMainDraft(item: LayoutAsset<T>): T = when (item) {
-    is LocationTrack -> asMainDraft(item) { contextData -> item.copy(contextData = contextData) }
-    is TrackLayoutSwitch -> asMainDraft(item) { contextData -> item.copy(contextData = contextData) }
-    is TrackLayoutKmPost -> asMainDraft(item) { contextData -> item.copy(contextData = contextData) }
-    is TrackLayoutTrackNumber -> asMainDraft(item) { contextData -> item.copy(contextData = contextData) }
-    is ReferenceLine -> asMainDraft(item) { contextData -> item.copy(contextData = contextData) }
-} as T
-
-@Suppress("UNCHECKED_CAST")
-fun <T : LayoutAsset<T>> asMainOfficial(item: LayoutAsset<T>): T = when (item) {
-    is LocationTrack -> asMainOfficial(item) { contextData -> item.copy(contextData = contextData) }
-    is TrackLayoutSwitch -> asMainOfficial(item) { contextData -> item.copy(contextData = contextData) }
-    is TrackLayoutKmPost -> asMainOfficial(item) { contextData -> item.copy(contextData = contextData) }
-    is TrackLayoutTrackNumber -> asMainOfficial(item) { contextData -> item.copy(contextData = contextData) }
-    is ReferenceLine -> asMainOfficial(item) { contextData -> item.copy(contextData = contextData) }
-} as T
-
-private fun <T : LayoutAsset<T>> asMainDraft(item: T, withContext: (LayoutContextData<T>) -> T): T =
-    item.contextData.let { ctx ->
-        when (ctx) {
-            is MainDraftContextData -> item
-            is MainOfficialContextData -> withContext(ctx.asMainDraft())
-            is DesignOfficialContextData -> withContext(ctx.asMainDraft())
-            is DesignDraftContextData -> error {
-                "Creating main branch draft from a design-draft is not supported (publish design first): id=${item.id}"
-            }
+fun <T : LayoutAsset<T>> asMainDraft(item: T): T = item.contextData.let { ctx ->
+    when (ctx) {
+        is MainDraftContextData -> item
+        is MainOfficialContextData -> item.withContext(ctx.asMainDraft())
+        is DesignOfficialContextData -> item.withContext(ctx.asMainDraft())
+        is DesignDraftContextData -> error {
+            "Creating main branch draft from a design-draft is not supported (publish design first): item=$item"
         }
     }
+}
 
-private fun <T : LayoutAsset<T>> asMainOfficial(item: T, withContext: (LayoutContextData<T>) -> T): T =
+fun <T : LayoutAsset<T>> asMainOfficial(item: T): T =
     item.contextData.let { ctx ->
-        if (ctx is MainDraftContextData) {
-            withContext(ctx.asMainOfficial())
-        } else error {
-            "${item::class.simpleName} is not a main context draft and can't be published: id=${item.id} dataType=${item.dataType}"
+        when (ctx) {
+            is MainOfficialContextData -> item
+            is MainDraftContextData -> item.withContext(ctx.asMainOfficial())
+            else -> error {
+                "Creating main branch official from a design is not supported (create main draft first): item=$item"
+            }
         }
     }

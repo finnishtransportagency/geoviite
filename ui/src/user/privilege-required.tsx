@@ -1,6 +1,6 @@
 import * as React from 'react';
+import { PrivilegeCode, userHasPrivilege } from './user-model';
 import { useCommonDataAppSelector } from 'store/hooks';
-import { PrivilegeCode } from './user-model';
 
 type PrivilegeRequiredProps = {
     privilege: PrivilegeCode;
@@ -11,9 +11,8 @@ export const PrivilegeRequired: React.FC<PrivilegeRequiredProps> = ({
     privilege,
     children,
 }: PrivilegeRequiredProps) => {
-    const userHasPrivilege = useCommonDataAppSelector((state) =>
-        state.userPrivileges.some((p) => p.code === privilege),
+    const privileges = useCommonDataAppSelector((state) => state.user?.role.privileges ?? []).map(
+        (p) => p.code,
     );
-
-    return <React.Fragment>{userHasPrivilege && children}</React.Fragment>;
+    return <React.Fragment>{userHasPrivilege(privileges, privilege) && children}</React.Fragment>;
 };

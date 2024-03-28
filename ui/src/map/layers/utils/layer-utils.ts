@@ -11,13 +11,13 @@ import VectorSource from 'ol/source/Vector';
 import { avg, filterNotEmpty, filterUnique } from 'utils/array-utils';
 import { distToSegmentSquared } from 'utils/math-utils';
 import { getPlanLinkStatus, getPlanLinkStatuses } from 'linking/linking-api';
-import { PublishType } from 'common/common-model';
 import { getPlanAreasByTile, getTrackLayoutPlans } from 'geometry/geometry-api';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayerName, MapTile } from 'map/map-model';
 import VectorLayer from 'ol/layer/Vector';
 import BaseLayer from 'ol/layer/Base';
 import { expectCoordinate, tuple } from 'utils/type-utils';
+import { LayoutContext } from 'common/common-model';
 
 proj4.defs(LAYOUT_SRID, '+proj=utm +zone=35 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs');
 register(proj4);
@@ -258,9 +258,9 @@ export function pointToCoords(point: Point): Coordinate {
 
 export async function getManualPlanWithStatus(
     plan: GeometryPlanLayout,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
 ): Promise<PlanAndStatus[]> {
-    return getPlanAndStatus(plan, publishType).then((status) => (status ? [status] : []));
+    return getPlanAndStatus(plan, layoutContext).then((status) => (status ? [status] : []));
 }
 
 async function getTilesPlanIds(
@@ -283,7 +283,7 @@ async function getTilesPlanIds(
 export async function getVisiblePlansWithStatus(
     visiblePlans: VisiblePlanLayout[],
     mapTiles: MapTile[],
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
 ): Promise<PlanAndStatus[]> {
     const planIds = await getTilesPlanIds(visiblePlans, mapTiles, changeTimes);
@@ -291,7 +291,7 @@ export async function getVisiblePlansWithStatus(
         (plans) =>
             getPlanLinkStatuses(
                 plans.filter((p) => !p.planHidden).map((p) => p.id),
-                publishType,
+                layoutContext,
             ).then((statuses) =>
                 plans.map((plan) => ({
                     plan,
@@ -315,9 +315,9 @@ export async function getVisiblePlans(
 
 export async function getPlanAndStatus(
     plan: GeometryPlanLayout | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
 ): Promise<PlanAndStatus | undefined> {
     if (!plan) return undefined;
     else if (plan.planDataType == 'TEMP') return { plan, status: undefined };
-    else return getPlanLinkStatus(plan.id, publishType).then((status) => ({ plan, status }));
+    else return getPlanLinkStatus(plan.id, layoutContext).then((status) => ({ plan, status }));
 }

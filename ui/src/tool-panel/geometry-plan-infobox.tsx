@@ -25,6 +25,7 @@ import { GeometryPlanInfoboxVisibilities } from 'track-layout/track-layout-slice
 import { ConfirmDownloadUnreliableInfraModelDialog } from 'infra-model/list/confirm-download-unreliable-infra-model-dialog';
 import ElevationMeasurementMethod from 'geoviite-design-lib/elevation-measurement-method/elevation-measurement-method';
 import { PrivilegeRequired } from 'user/privilege-required';
+import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 
 type GeometryPlanInfoboxProps = {
     planHeader: GeometryPlanHeader;
@@ -201,7 +202,7 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                             onClick={() => navigate('inframodel-edit', planHeader.id)}>
                             {t('tool-panel.geometry-plan.open-inframodel')}
                         </Button>
-                        <PrivilegeRequired privilege="inframodel-download">
+                        <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
                             <Button
                                 size={ButtonSize.SMALL}
                                 variant={ButtonVariant.SECONDARY}

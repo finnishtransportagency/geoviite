@@ -18,7 +18,7 @@ import {
     LayoutTrackNumber,
 } from 'track-layout/track-layout-model';
 import { ChangeTimes } from 'common/common-slice';
-import { LocationTrackOwnerId, PublishType } from 'common/common-model';
+import { LayoutContext, LocationTrackOwnerId } from 'common/common-model';
 import {
     LocationTrackInfoboxVisibilities,
     trackLayoutActionCreators as TrackLayoutActions,
@@ -36,7 +36,7 @@ import { first } from 'utils/array-utils';
 type LocationTrackBasicInfoInfoboxContainerProps = {
     locationTrack: LayoutLocationTrack;
     trackNumber?: LayoutTrackNumber;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     visibilities: LocationTrackInfoboxVisibilities;
     visibilityChange: (key: keyof LocationTrackInfoboxVisibilities) => void;
     openEditLocationTrackDialog: () => void;
@@ -68,7 +68,7 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
     locationTrack,
     trackNumber,
     changeTimes,
-    publishType,
+    layoutContext,
     visibilities,
     visibilityChange,
     openEditLocationTrackDialog,
@@ -104,14 +104,19 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
 
     const description = useLoader(
         () =>
-            getLocationTrackDescriptions([locationTrack.id], publishType).then(
+            getLocationTrackDescriptions([locationTrack.id], layoutContext).then(
                 (value) => (value && first(value)?.description) ?? undefined,
             ),
-        [locationTrack?.id, publishType, changeTimes.layoutLocationTrack],
+        [
+            locationTrack?.id,
+            layoutContext.designId,
+            layoutContext.publicationState,
+            changeTimes.layoutLocationTrack,
+        ],
     );
     const [extraInfo, extraInfoLoadingStatus] = useLocationTrackInfoboxExtras(
         locationTrack?.id,
-        publishType,
+        layoutContext,
         changeTimes,
     );
 
@@ -175,7 +180,7 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
                         <LocationTrackInfoboxDuplicateOf
                             existingDuplicate={extraInfo?.duplicateOf}
                             duplicatesOfLocationTrack={extraInfo?.duplicates ?? []}
-                            publishType={publishType}
+                            layoutContext={layoutContext}
                             changeTime={changeTimes.layoutLocationTrack}
                             currentTrackNumberId={trackNumber?.id}
                         />

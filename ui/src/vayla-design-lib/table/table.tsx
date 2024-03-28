@@ -61,8 +61,13 @@ export enum ThVariant {
     MULTILINE_BOTTOM,
 }
 
+export enum ThContentAlignment {
+    VERTICALLY_ALIGNED,
+}
+
 export type ThProps = {
     variant?: ThVariant;
+    contentAlignment?: ThContentAlignment;
     narrow?: boolean;
     icon?: IconComponent;
     transparent?: boolean;
@@ -72,6 +77,7 @@ export const Th: React.FC<ThProps> = ({
     narrow,
     icon,
     variant = ThVariant.SINGLE_LINE,
+    contentAlignment = undefined,
     transparent = false,
     ...props
 }: ThProps) => {
@@ -87,10 +93,17 @@ export const Th: React.FC<ThProps> = ({
         variant === ThVariant.MULTILINE_BOTTOM && styles['table__th--multiline-bottom'],
         variant === ThVariant.MULTILINE_TOP && styles['table__th--multiline-top'],
     );
+
+    const childrenClassName = createClassName(
+        styles['table__th-children'],
+        contentAlignment === ThContentAlignment.VERTICALLY_ALIGNED &&
+            styles['table__th-children--vertically-aligned'],
+    );
+
     return (
         <th {...props} className={className}>
             <span className={styles['table__th-content']}>
-                <span className={styles['table__th-children']}>{props.children}</span>
+                <span className={childrenClassName}>{props.children}</span>
                 {Icon && (
                     <span className="table__th-icons">
                         <Icon size={IconSize.SMALL} />

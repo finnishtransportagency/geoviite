@@ -2,8 +2,8 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -44,7 +44,7 @@ class LayoutKmPostService(
     }
 
     fun list(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         filter: ((kmPost: TrackLayoutKmPost) -> Boolean)?,
     ): List<TrackLayoutKmPost> {
         logger.serviceCall("list", "publicationState" to publicationState, "filter" to (filter != null))
@@ -52,14 +52,14 @@ class LayoutKmPostService(
         return filter?.let(all::filter) ?: all
     }
 
-    fun list(publicationState: PublishType, trackNumberId: IntId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> {
+    fun list(publicationState: PublicationState, trackNumberId: IntId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> {
         logger.serviceCall(
             "list", "publicationState" to publicationState, "trackNumberId" to trackNumberId
         )
         return dao.list(publicationState, false, trackNumberId)
     }
 
-    fun list(publicationState: PublishType, boundingBox: BoundingBox, step: Int): List<TrackLayoutKmPost> {
+    fun list(publicationState: PublicationState, boundingBox: BoundingBox, step: Int): List<TrackLayoutKmPost> {
         logger.serviceCall(
             "getKmPosts", "publicationState" to publicationState, "boundingBox" to boundingBox, "step" to step
         )
@@ -69,7 +69,7 @@ class LayoutKmPostService(
     }
 
     fun getByKmNumber(
-        publishType: PublishType,
+        publicationState: PublicationState,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         kmNumber: KmNumber,
         includeDeleted: Boolean,
@@ -80,11 +80,11 @@ class LayoutKmPostService(
             "kmNumber" to kmNumber,
             "includeDeleted" to includeDeleted
         )
-        return dao.fetchVersion(publishType, trackNumberId, kmNumber, includeDeleted)?.let(dao::fetch)
+        return dao.fetchVersion(publicationState, trackNumberId, kmNumber, includeDeleted)?.let(dao::fetch)
     }
 
     fun listNearbyOnTrackPaged(
-        publicationState: PublishType,
+        publicationState: PublicationState,
         location: Point,
         trackNumberId: IntId<TrackLayoutTrackNumber>?,
         offset: Int,
@@ -105,26 +105,26 @@ class LayoutKmPostService(
 
     @Transactional(readOnly = true)
     fun getSingleKmPostLength(
-        publishType: PublishType,
+        publicationState: PublicationState,
         id: IntId<TrackLayoutKmPost>,
-    ): Double? = dao.get(publishType, id)?.getAsIntegral()?.let { kmPost ->
+    ): Double? = dao.get(publicationState, id)?.getAsIntegral()?.let { kmPost ->
         referenceLineService
-            .getByTrackNumberWithAlignment(publishType, kmPost.trackNumberId)
+            .getByTrackNumberWithAlignment(publicationState, kmPost.trackNumberId)
             ?.let { (_, referenceLineAlignment) ->
                 val kmPostM = referenceLineAlignment.getClosestPointM(kmPost.location)?.first
-                val kmEndM = getKmEndM(publishType, kmPost.trackNumberId, kmPost.kmNumber, referenceLineAlignment)
+                val kmEndM = getKmEndM(publicationState, kmPost.trackNumberId, kmPost.kmNumber, referenceLineAlignment)
                 if (kmPostM == null || kmEndM == null) null else kmEndM - kmPostM
             }
     }
 
     private fun getKmEndM(
-        publishType: PublishType,
+        publicationState: PublicationState,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         kmNumber: KmNumber,
         referenceLineAlignment: LayoutAlignment,
     ): Double? {
         val nextKmPost = dao
-            .fetchNextWithLocationAfter(trackNumberId, kmNumber, publishType, LayoutState.IN_USE)
+            .fetchNextWithLocationAfter(trackNumberId, kmNumber, publicationState, LayoutState.IN_USE)
             ?.let(dao::fetch)
             ?.getAsIntegral()
         return if (nextKmPost == null) referenceLineAlignment.length

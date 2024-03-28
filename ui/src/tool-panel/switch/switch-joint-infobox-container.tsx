@@ -1,29 +1,34 @@
 import * as React from 'react';
 import SwitchJointInfobox from 'tool-panel/switch/switch-joint-infobox';
-import { asTrackLayoutSwitchJointConnection } from 'linking/linking-utils';
+import {
+    suggestedSwitchJointsAsLayoutSwitchJointConnections,
+    suggestedSwitchTopoLinksAsTopologicalJointConnections,
+} from 'linking/linking-utils';
 import { SuggestedSwitch } from 'linking/linking-model';
-import { PublishType } from 'common/common-model';
+import { LayoutContext, SwitchStructure } from 'common/common-model';
 
 type SwitchJointInfoboxContainerProps = {
     suggestedSwitch: SuggestedSwitch;
-    publishType: PublishType;
+    suggestedSwitchStructure: SwitchStructure;
+    layoutContext: LayoutContext;
 };
 
 export const SwitchJointInfoboxContainer: React.FC<SwitchJointInfoboxContainerProps> = ({
     suggestedSwitch,
-    publishType,
+    suggestedSwitchStructure,
+    layoutContext,
 }) => {
-    const jointConnections = suggestedSwitch
-        ? suggestedSwitch.joints.map((joint) => asTrackLayoutSwitchJointConnection(joint))
-        : undefined;
-    const switchAlignments = suggestedSwitch.switchStructure.alignments;
+    const jointConnections = suggestedSwitchJointsAsLayoutSwitchJointConnections(suggestedSwitch);
+    const switchAlignments = suggestedSwitchStructure.alignments;
+    const topologicalJointConnections =
+        suggestedSwitchTopoLinksAsTopologicalJointConnections(suggestedSwitch);
 
     return jointConnections ? (
         <SwitchJointInfobox
             switchAlignments={switchAlignments}
             jointConnections={jointConnections}
-            topologicalJointConnections={suggestedSwitch?.topologicalJointConnections}
-            publishType={publishType}
+            topologicalJointConnections={topologicalJointConnections}
+            layoutContext={layoutContext}
         />
     ) : (
         <React.Fragment />

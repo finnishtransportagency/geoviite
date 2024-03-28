@@ -1,8 +1,8 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.calculateDistance
@@ -110,13 +110,16 @@ class LinkingService @Autowired constructor(
     ): LocationTrack {
         val startChanged = startChanged(oldAlignment, newAlignment)
         val endChanged = endChanged(oldAlignment, newAlignment)
-        return if (startChanged || endChanged) locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
-            track = track,
-            alignment = newAlignment,
-            startChanged = startChanged,
-            endChanged = endChanged,
-        )
-        else track
+        return if (startChanged || endChanged) {
+            locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
+                track = track,
+                alignment = newAlignment,
+                startChanged = startChanged,
+                endChanged = endChanged,
+            )
+        } else {
+            track
+        }
     }
 
     private fun startChanged(oldAlignment: LayoutAlignment, newAlignment: LayoutAlignment) =
@@ -214,21 +217,26 @@ class LinkingService @Autowired constructor(
         return locationTrackService.saveDraft(updatedLocationTrack, updatedAlignment).id
     }
 
-    fun getGeometryPlanLinkStatus(planId: IntId<GeometryPlan>, publishType: PublishType): GeometryPlanLinkStatus {
+    fun getGeometryPlanLinkStatus(
+        planId: IntId<GeometryPlan>,
+        publicationState: PublicationState,
+    ): GeometryPlanLinkStatus {
         logger.serviceCall(
-            "getGeometryPlanLinkStatus", "planId" to planId, "publishType" to publishType
+            "getGeometryPlanLinkStatus", "planId" to planId, "publicationState" to publicationState
         )
-        return linkingDao.fetchPlanLinkStatus(planId = planId, publishType = publishType)
+        return linkingDao.fetchPlanLinkStatus(planId = planId, publicationState = publicationState)
     }
 
     fun getGeometryPlanLinkStatuses(
         planIds: List<IntId<GeometryPlan>>,
-        publishType: PublishType,
+        publicationState: PublicationState,
     ): List<GeometryPlanLinkStatus> {
         logger.serviceCall(
-            "getGeometryPlanLinkStatuses", "planIds" to planIds, "publishType" to publishType
+            "getGeometryPlanLinkStatuses", "planIds" to planIds, "publicationState" to publicationState
         )
-        return planIds.map { planId -> linkingDao.fetchPlanLinkStatus(planId = planId, publishType = publishType) }
+        return planIds.map { planId ->
+            linkingDao.fetchPlanLinkStatus(planId = planId, publicationState = publicationState)
+        }
     }
 
     @Transactional
@@ -258,14 +266,20 @@ class LinkingService @Autowired constructor(
     }
 
     fun verifyAllSplitsDone(id: IntId<LocationTrack>) {
-        if (splitService.findUnfinishedSplitsForLocationTracks(listOf(id)).isNotEmpty()) throw LinkingFailureException(
-            message = "Cannot link a location track that has unfinished splits", localizedMessageKey = "unfinished-splits"
-        )
+        if (splitService.findUnfinishedSplitsForLocationTracks(listOf(id)).isNotEmpty()) {
+            throw LinkingFailureException(
+                message = "Cannot link a location track that has unfinished splits",
+                localizedMessageKey = "unfinished-splits",
+            )
+        }
     }
 
     fun verifyLocationTrackNotDeleted(locationTrack: LocationTrack) {
-        if (!locationTrack.exists) throw LinkingFailureException(
-            message = "Cannot link a location track that is deleted", localizedMessageKey = "location-track-deleted"
-        )
+        if (!locationTrack.exists) {
+            throw LinkingFailureException(
+                message = "Cannot link a location track that is deleted",
+                localizedMessageKey = "location-track-deleted",
+            )
+        }
     }
 }

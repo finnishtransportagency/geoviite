@@ -2,8 +2,8 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.math.Point
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -32,46 +32,6 @@ class LayoutContextDataIT @Autowired constructor(
     @BeforeEach
     fun cleanup() {
         deleteFromTables("layout", "switch")
-    }
-
-    @Test
-    fun tempReferenceLineDraftDoesntChangeId() {
-        val (track, _) = createReferenceLineAndAlignment(draft = false)
-        val draft = asMainDraft(track)
-        assertEquals(track.id, draft.id)
-        assertFalse(track.isDraft)
-        assertTrue(draft.isDraft)
-        assertEquals(draft.id, draft.contextData.rowId)
-    }
-
-    @Test
-    fun tempLocationTrackDraftDoesntChangeId() {
-        val (track, _) = createLocationTrackAndAlignment(draft = false)
-        val draft = asMainDraft(track)
-        assertEquals(track.id, draft.id)
-        assertFalse(track.isDraft)
-        assertTrue(draft.isDraft)
-        assertEquals(draft.id, draft.contextData.rowId)
-    }
-
-    @Test
-    fun tempSwitchDraftDoesntChangeId() {
-        val switch = switch(987, draft = false)
-        val draft = asMainDraft(switch)
-        assertEquals(switch.id, draft.id)
-        assertFalse(switch.isDraft)
-        assertTrue(draft.isDraft)
-        assertEquals(draft.id, draft.contextData.rowId)
-    }
-
-    @Test
-    fun tempKmPostDraftDoesntChangeId() {
-        val kmPost = kmPost(null, someKmNumber(), draft = false)
-        val draft = asMainDraft(kmPost)
-        assertEquals(kmPost.id, draft.id)
-        assertFalse(kmPost.isDraft)
-        assertTrue(draft.isDraft)
-        assertEquals(kmPost.id, draft.contextData.rowId)
     }
 
     @Test
@@ -124,7 +84,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun draftAndOfficialSwitchesAreFoundWithEachOthersIds() {
-        val dbSwitch = insertAndVerify(switch(123))
+        val dbSwitch = insertAndVerify(switch(123, draft = false))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbSwitch)))
         assertNotEquals(dbSwitch, dbDraft)
 
@@ -137,7 +97,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun draftAndOfficialKmPostsAreFoundWithEachOthersIds() {
-        val dbKmPost = insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber()))
+        val dbKmPost = insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber(), draft = false))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbKmPost)))
         assertNotEquals(dbKmPost, dbDraft)
 
@@ -174,7 +134,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun draftAndOfficialSwitchesHaveSameOfficialId() {
-        val dbSwitch = insertAndVerify(switch(123))
+        val dbSwitch = insertAndVerify(switch(123, draft = false))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbSwitch)))
 
         assertNotEquals(dbSwitch, dbDraft)
@@ -186,7 +146,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun draftAndOfficialKmPostsHaveSameOfficialId() {
-        val dbKmPost = insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber()))
+        val dbKmPost = insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber(), draft = false))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbKmPost)))
 
         assertNotEquals(dbKmPost, dbDraft)
@@ -228,7 +188,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun draftSwitchesAreIncludedInDraftListingsOnly() {
-        val dbSwitch = insertAndVerify(switch(456))
+        val dbSwitch = insertAndVerify(switch(456, draft = false))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbSwitch)))
 
         val officials = switchService.list(OFFICIAL)
@@ -243,7 +203,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun draftKmPostsAreIncludedInDraftListingsOnly() {
-        val dbKmPost = insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber()))
+        val dbKmPost = insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber(), draft = false))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbKmPost)))
 
         val officials = kmPostService.list(OFFICIAL)
@@ -280,7 +240,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun switchCanOnlyHaveOneDraft() {
-        val switch = insertAndVerify(switch(9))
+        val switch = insertAndVerify(switch(9, draft = false))
 
         val draft1 = asMainDraft(switch)
         val draft2 = asMainDraft(switch)
@@ -291,7 +251,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun kmPostCanOnlyHaveOneDraft() {
-        val kmPost = insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber()))
+        val kmPost = insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber(), draft = false))
 
         val draft1 = asMainDraft(kmPost)
         val draft2 = asMainDraft(kmPost)
@@ -302,7 +262,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun trackNumberCanOnlyHaveOneDraft() {
-        val trackNumber = insertAndVerify(trackNumber(getUnusedTrackNumber()))
+        val trackNumber = insertAndVerify(trackNumber(getUnusedTrackNumber(), draft = false))
 
         val draft1 = asMainDraft(trackNumber)
         val draft2 = asMainDraft(trackNumber)
@@ -313,7 +273,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun editStateOfNewDraftIsReturnedCorrectly() {
-        val draft = asMainDraft(kmPost(null, someKmNumber()))
+        val draft = kmPost(null, someKmNumber(), draft = true)
         assertEquals(draft.editState, EditState.CREATED)
         assertFalse(draft.isOfficial)
         assertTrue(draft.isDraft)
@@ -321,7 +281,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun editStateOfOfficialIsReturnedCorrectly() {
-        val official = insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber()))
+        val official = insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber(), draft = false))
         assertEquals(official.editState, EditState.UNEDITED)
         assertTrue(official.isOfficial)
         assertFalse(official.isDraft)
@@ -329,7 +289,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun editStateOfChangedDraftIsReturnedCorrectly() {
-        val edited = asMainDraft(insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber())))
+        val edited = asMainDraft(insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber(), draft = false)))
         assertEquals(edited.editState, EditState.EDITED)
         assertFalse(edited.isOfficial)
         assertTrue(edited.isDraft)

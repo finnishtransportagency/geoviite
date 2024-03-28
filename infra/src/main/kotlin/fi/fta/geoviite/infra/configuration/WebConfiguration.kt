@@ -95,7 +95,7 @@ class WebConfig : WebMvcConfigurer {
         registry.addStringConstructorConverter(::TrackMeter)
 
         logger.info("Registering case-insensitive path variable enum converters")
-        registry.addStringConstructorConverter { enumCaseInsensitive<PublishType>(it) }
+        registry.addStringConstructorConverter { enumCaseInsensitive<PublicationState>(it) }
 
         logger.info("Registering ProjektiVelho sanitized string converters")
         registry.addStringConstructorConverter(::PVId)

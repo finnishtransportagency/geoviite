@@ -1,5 +1,5 @@
 import { MapLayerName, MapTile } from 'map/map-model';
-import { PublishType } from 'common/common-model';
+import { LayoutContext } from 'common/common-model';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
@@ -17,10 +17,10 @@ import Feature from 'ol/Feature';
 import { blueHighlightStyle } from 'map/layers/utils/highlight-layer-utils';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { getPartialPolyLine } from 'utils/math-utils';
-import { ReferenceLineId } from 'track-layout/track-layout-model';
+import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
 
-const isReferenceLine = (header: AlignmentHeader, referenceLineId: ReferenceLineId) =>
-    header.trackNumberId === referenceLineId && header.alignmentType === 'REFERENCE_LINE';
+const isReferenceLine = (header: AlignmentHeader, trackNumberId: LayoutTrackNumberId) =>
+    header.trackNumberId === trackNumberId && header.alignmentType === 'REFERENCE_LINE';
 
 function createFeatures(
     alignments: AlignmentDataHolder[],
@@ -54,7 +54,7 @@ const layerName: MapLayerName = 'plan-section-highlight-layer';
 
 function getAlignments(
     mapTiles: MapTile[],
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,
     hoveredOverItem: HighlightedAlignment | undefined,
@@ -65,14 +65,14 @@ function getAlignments(
         return getSelectedReferenceLineMapAlignmentByTiles(
             changeTimes,
             mapTiles,
-            publishType,
+            layoutContext,
             hoveredOverItem.id,
         );
     } else {
         return getSelectedLocationTrackMapAlignmentByTiles(
             changeTimes,
             mapTiles,
-            publishType,
+            layoutContext,
             hoveredOverItem.id,
         );
     }
@@ -81,7 +81,7 @@ function getAlignments(
 export function createPlanSectionHighlightLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
-    publishType: PublishType,
+    layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,
     hoveredOverItem: HighlightedAlignment | undefined,
@@ -91,7 +91,7 @@ export function createPlanSectionHighlightLayer(
 
     const dataPromise: Promise<AlignmentDataHolder[]> = getAlignments(
         mapTiles,
-        publishType,
+        layoutContext,
         changeTimes,
         resolution,
         hoveredOverItem,

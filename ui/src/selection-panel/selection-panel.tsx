@@ -36,7 +36,7 @@ import {
     TogglePlanWithSubItemsOpenPayload,
     ToggleSwitchPayload,
 } from 'selection/selection-store';
-import { PublishType } from 'common/common-model';
+import { LayoutContext } from 'common/common-model';
 import { useTranslation } from 'react-i18next';
 import { LocationTracksPanel } from 'selection-panel/location-track-panel/location-tracks-panel';
 import ReferenceLinesPanel from 'selection-panel/reference-line-panel/reference-lines-panel';
@@ -45,10 +45,13 @@ import { ChangeTimes } from 'common/common-slice';
 import { Eye } from 'geoviite-design-lib/eye/eye';
 import { TrackNumberColorKey } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { VIEW_GEOMETRY } from 'user/user-model';
+import { objectEntries } from 'utils/array-utils';
 
 type SelectionPanelProps = {
     changeTimes: ChangeTimes;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     selectedItems: OptionalItemCollections;
     openPlans: OpenPlanLayout[];
     visiblePlans: VisiblePlanLayout[];
@@ -75,7 +78,7 @@ type SelectionPanelProps = {
 };
 
 const SelectionPanel: React.FC<SelectionPanelProps> = ({
-    publishType,
+    layoutContext,
     changeTimes,
     selectedItems,
     openPlans,
@@ -107,7 +110,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     const diagramLayerSettings = mapLayerSettings['track-number-diagram-layer'];
     const diagramLayerMenuItem = mapLayoutMenu.find((i) => i.name === 'track-number-diagram');
 
-    const selectedTrackNumberIds: LayoutTrackNumberId[] = Object.entries(diagramLayerSettings)
+    const selectedTrackNumberIds: LayoutTrackNumberId[] = objectEntries(diagramLayerSettings)
         .filter(([_, setting]) => setting.selected)
         .map(([id]) => id);
 
@@ -175,7 +178,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
     ].sort();
 
     React.useEffect(() => {
-        getTrackNumbers(publishType, changeTimes.layoutTrackNumber)
+        getTrackNumbers(layoutContext, changeTimes.layoutTrackNumber)
             .then((tns) =>
                 tns.filter((tn) => {
                     return (
@@ -230,25 +233,27 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                     />
                 </div>
             </section>
-            <SelectionPanelGeometrySection
-                publishType={publishType}
-                changeTimes={changeTimes}
-                selectedItems={selectedItems}
-                visiblePlans={visiblePlans}
-                viewport={viewport}
-                onToggleAlignmentVisibility={onToggleAlignmentVisibility}
-                onToggleKmPostVisibility={onToggleKmPostVisibility}
-                onTogglePlanVisibility={onTogglePlanVisibility}
-                onToggleSwitchVisibility={onToggleSwitchVisibility}
-                openPlans={openPlans}
-                togglePlanKmPostsOpen={togglePlanKmPostsOpen}
-                togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
-                togglePlanSwitchesOpen={togglePlanSwitchesOpen}
-                selectedTrackNumbers={selectedTrackNumberIds}
-                togglePlanOpen={togglePlanOpen}
-                onSelect={onSelect}
-                disabled={!!splittingState}
-            />
+            <PrivilegeRequired privilege={VIEW_GEOMETRY}>
+                <SelectionPanelGeometrySection
+                    layoutContext={layoutContext}
+                    changeTimes={changeTimes}
+                    selectedItems={selectedItems}
+                    visiblePlans={visiblePlans}
+                    viewport={viewport}
+                    onToggleAlignmentVisibility={onToggleAlignmentVisibility}
+                    onToggleKmPostVisibility={onToggleKmPostVisibility}
+                    onTogglePlanVisibility={onTogglePlanVisibility}
+                    onToggleSwitchVisibility={onToggleSwitchVisibility}
+                    openPlans={openPlans}
+                    togglePlanKmPostsOpen={togglePlanKmPostsOpen}
+                    togglePlanAlignmentsOpen={togglePlanAlignmentsOpen}
+                    togglePlanSwitchesOpen={togglePlanSwitchesOpen}
+                    selectedTrackNumbers={selectedTrackNumberIds}
+                    togglePlanOpen={togglePlanOpen}
+                    onSelect={onSelect}
+                    disabled={!!splittingState}
+                />
+            </PrivilegeRequired>
             <section>
                 <h3 className={styles['selection-panel__title']}>
                     {t('selection-panel.km-posts-title')} ({filteredKmPosts.length}/{kmPosts.length}
@@ -257,7 +262,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 <div className={styles['selection-panel__content']}>
                     <KmPostsPanel
                         kmPosts={filteredKmPosts}
-                        publishType={publishType}
+                        layoutContext={layoutContext}
                         selectedKmPosts={selectedItems.kmPosts}
                         onToggleKmPostSelection={(kmPost) =>
                             onSelect({
@@ -277,7 +282,7 @@ const SelectionPanel: React.FC<SelectionPanelProps> = ({
                 </h3>
                 <div className={styles['selection-panel__content']}>
                     <ReferenceLinesPanel
-                        publishType={publishType}
+                        layoutContext={layoutContext}
                         referenceLines={filteredReferenceLines}
                         trackNumberChangeTime={changeTimes.layoutTrackNumber}
                         selectedTrackNumbers={selectedItems.trackNumbers}

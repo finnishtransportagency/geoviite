@@ -1,6 +1,6 @@
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { AlignmentId, LocationTrackId } from 'track-layout/track-layout-model';
-import { PublishType } from 'common/common-model';
+import { LayoutContext } from 'common/common-model';
 
 export type PlanAlignmentKey = `${GeometryPlanId}_${GeometryAlignmentId}`;
 
@@ -26,4 +26,4 @@ export const initialVerticalGeometryDiagramState: VerticalGeometryDiagramState =
 
 export type VerticalGeometryDiagramAlignmentId =
     | { planId: GeometryPlanId; alignmentId: GeometryAlignmentId }
-    | { locationTrackId: LocationTrackId; publishType: PublishType };
+    | { locationTrackId: LocationTrackId; layoutContext: LayoutContext };

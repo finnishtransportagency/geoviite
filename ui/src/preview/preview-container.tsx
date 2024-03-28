@@ -10,15 +10,15 @@ export const PreviewContainer: React.FC = () => {
     const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
 
     const props: PreviewProps = {
+        layoutContext: trackLayoutState.layoutContext,
         changeTimes: changeTimes,
-        selectedPublishCandidateIds: trackLayoutState.stagedPublicationRequestIds,
+        stagedPublicationCandidateReferences: trackLayoutState.stagedPublicationCandidateReferences,
+        setStagedPublicationCandidateReferences: delegates.setStagedPublicationCandidateReferences,
         showOnlyOwnUnstagedChanges: trackLayoutState.previewState.showOnlyOwnUnstagedChanges,
         setShowOnlyOwnUnstagedChanges: delegates.setShowOnlyOwnUnstagedChanges,
         onSelect: delegates.onSelect,
         onClosePreview: () => delegates.onLayoutModeChange('DEFAULT'),
         onPublish: delegates.onPublish,
-        onPublishPreviewSelect: delegates.onPublishPreviewSelect,
-        onPublishPreviewRemove: delegates.onPublishPreviewRemove,
         onShowOnMap: delegates.showArea,
     };
 

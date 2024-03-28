@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.localization
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import fi.fta.geoviite.infra.authorization.AUTH_UI_READ
+import fi.fta.geoviite.infra.authorization.AUTH_BASIC
 import fi.fta.geoviite.infra.logging.apiCall
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -21,7 +21,7 @@ class LocalizationController @Autowired constructor(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @GetMapping("/{language}.json")
-    @PreAuthorize(AUTH_UI_READ)
+    @PreAuthorize(AUTH_BASIC)
     fun getLocalization(@PathVariable("language") language: String): Any {
         logger.apiCall("getLocalization", "language" to language)
         return localizationService.getLocalization(language).let { translation ->

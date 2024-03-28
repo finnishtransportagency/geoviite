@@ -26,6 +26,8 @@ import {
 } from 'data-products/data-products-slice';
 import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
 import { PrivilegeRequired } from 'user/privilege-required';
+import { DOWNLOAD_GEOMETRY } from 'user/user-model';
+import { officialMainLayoutContext } from 'common/common-model';
 
 type LocationTrackElementListingSearchProps = {
     state: ElementListContinuousGeometrySearchState;
@@ -51,17 +53,18 @@ const LocationTrackElementListingSearch = ({
     // Use memoized function to make debouncing functionality work when re-rendering
     const getLocationTracks = React.useCallback(
         (searchTerm: string) =>
-            debouncedSearchTracks(searchTerm, 'OFFICIAL', 10).then((locationTracks) =>
-                getLocationTrackDescriptions(
-                    locationTracks.map((lt) => lt.id),
-                    'OFFICIAL',
-                ).then((descriptions) =>
-                    getLocationTrackOptions(
-                        locationTracks,
-                        descriptions ?? [],
-                        state.searchParameters.locationTrack,
+            debouncedSearchTracks(searchTerm, officialMainLayoutContext(), 10).then(
+                (locationTracks) =>
+                    getLocationTrackDescriptions(
+                        locationTracks.map((lt) => lt.id),
+                        officialMainLayoutContext(),
+                    ).then((descriptions) =>
+                        getLocationTrackOptions(
+                            locationTracks,
+                            descriptions ?? [],
+                            state.searchParameters.locationTrack,
+                        ),
                     ),
-                ),
             ),
         [state.searchParameters.locationTrack],
     );
@@ -222,7 +225,7 @@ const LocationTrackElementListingSearch = ({
                         ).map((error) => t(`data-products.search.${error}`))}
                     />
                 </div>
-                <PrivilegeRequired privilege="dataproduct-download">
+                <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
                     <a
                         qa-id={'location-track-element-list-csv-download'}
                         {...(state.searchParameters.locationTrack && {

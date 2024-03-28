@@ -3,8 +3,8 @@ package fi.fta.geoviite.infra.tracklayout
 import daoResponseToValidationVersion
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.ValidationVersion
@@ -31,18 +31,21 @@ class LayoutKmPostDaoIT @Autowired constructor(
             km = KmNumber(123),
             location = Point(123.4, 234.5),
             state = IN_USE,
+            draft = false,
         )
         val post2 = kmPost(
             trackNumberId = trackNumberId,
             km = KmNumber(125),
             location = Point(125.6, 236.7),
             state = NOT_IN_USE,
+            draft = false,
         )
         val post3 = kmPost(
             trackNumberId = trackNumberId,
             km = KmNumber(124),
             location = Point(124.5, 235.6),
             state = PLANNED,
+            draft = false,
         )
         insertAndVerify(post1)
         insertAndVerify(post2)
@@ -68,7 +71,7 @@ class LayoutKmPostDaoIT @Autowired constructor(
     @Test
     fun kmPostVersioningWorks() {
         val trackNumberId = insertOfficialTrackNumber()
-        val tempPost = kmPost(trackNumberId, KmNumber(1), Point(1.0, 1.0))
+        val tempPost = kmPost(trackNumberId, KmNumber(1), Point(1.0, 1.0), draft = false)
         val insertVersion = kmPostDao.insert(tempPost).rowVersion
         val inserted = kmPostDao.fetch(insertVersion)
         assertMatches(tempPost, inserted, contextMatch = false)
@@ -98,12 +101,12 @@ class LayoutKmPostDaoIT @Autowired constructor(
     @Test
     fun fetchVersionsForPublicationReturnsDraftsOnlyForPublishableSet() {
         val trackNumberId = insertOfficialTrackNumber()
-        val postOneOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(1)))
+        val postOneOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(1), draft = false))
         val postOneDraft = kmPostDao.insert(asMainDraft(kmPostDao.fetch(postOneOfficial.rowVersion)))
-        val postTwoOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(2)))
+        val postTwoOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(2), draft = false))
         kmPostDao.insert(asMainDraft(kmPostDao.fetch(postTwoOfficial.rowVersion)))
-        val postThreeOnlyDraft = kmPostDao.insert(asMainDraft(kmPost(trackNumberId, KmNumber(3))))
-        val postFourOnlyOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(4)))
+        val postThreeOnlyDraft = kmPostDao.insert(kmPost(trackNumberId, KmNumber(3), draft = true))
+        val postFourOnlyOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(4), draft = false))
 
         val versionsEmpty = kmPostDao.fetchVersionsForPublication(listOf(trackNumberId), listOf())[trackNumberId]!!
         val versionsOnlyOne = kmPostDao.fetchVersionsForPublication(listOf(trackNumberId), listOf(postOneOfficial.id))[trackNumberId]!!
@@ -219,8 +222,7 @@ class LayoutKmPostDaoIT @Autowired constructor(
         kmNumber: Int,
         state: LayoutState = IN_USE,
     ): DaoResponse<TrackLayoutKmPost> {
-        val post = kmPost(tnId, KmNumber(kmNumber))
-        return kmPostDao.insert(asMainDraft(post).copy(state = state))
+        return kmPostDao.insert(kmPost(tnId, KmNumber(kmNumber), state = state, draft = true))
     }
 
     private fun createDraftWithNewTrackNumber(
@@ -247,9 +249,9 @@ class LayoutKmPostDaoIT @Autowired constructor(
     }
 
     private fun fetchTrackNumberKmPosts(
-        publishType: PublishType,
+        publicationState: PublicationState,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmPost> {
-        return kmPostDao.fetchVersions(publishType, false, trackNumberId, null).map(kmPostDao::fetch)
+        return kmPostDao.fetchVersions(publicationState, false, trackNumberId, null).map(kmPostDao::fetch)
     }
 }

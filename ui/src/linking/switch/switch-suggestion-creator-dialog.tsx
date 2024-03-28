@@ -13,7 +13,7 @@ import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils'
 import { getSwitchStructures } from 'common/common-api';
 import {
     JointNumber,
-    PublishType,
+    LayoutContext,
     SwitchAlignmentId,
     SwitchStructureId,
 } from 'common/common-model';
@@ -23,7 +23,7 @@ import { boundingBoxAroundPoints, expandBoundingBox } from 'model/geometry';
 import { createSuggestedSwitch } from 'linking/linking-api';
 import { filterNotEmpty, first } from 'utils/array-utils';
 import {
-    asTrackLayoutSwitchJointConnection,
+    suggestedSwitchJointsAsLayoutSwitchJointConnections,
     getMatchingLocationTrackIdsForJointNumbers,
 } from 'linking/linking-utils';
 import { getLocationTracksNear } from 'track-layout/layout-location-track-api';
@@ -35,7 +35,7 @@ export type SwitchSuggestionCreatorProps = {
     locationTrackEndpoint: LocationTrackEndpoint;
     onSuggestedSwitchCreated: (suggestedSwitch: SuggestedSwitch) => void;
     onClose: () => void;
-    publishType: PublishType;
+    layoutContext: LayoutContext;
     suggestedSwitch?: SuggestedSwitch;
     prefilledSwitchStructureId?: SwitchStructureId;
 };
@@ -58,13 +58,13 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
     locationTrackEndpoint,
     onSuggestedSwitchCreated,
     onClose,
-    publishType,
+    layoutContext,
     suggestedSwitch,
     prefilledSwitchStructureId,
 }) => {
     const { t } = useTranslation();
     const [switchStructureId, setSwitchStructureId] = React.useState<SwitchStructureId | undefined>(
-        prefilledSwitchStructureId || suggestedSwitch?.switchStructure.id,
+        prefilledSwitchStructureId || suggestedSwitch?.switchStructureId,
     );
     const switchStructures = useLoader(() => getSwitchStructures(), []);
     const nearbyLocationTracks = useLoader(() => {
@@ -72,14 +72,14 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
             boundingBoxAroundPoints([locationTrackEndpoint.location]),
             100,
         );
-        return getLocationTracksNear(publishType, bbox);
+        return getLocationTracksNear(layoutContext, bbox);
     }, []);
     const [switchAlignmentConfigs, setSwitchAlignmentConfigs] = React.useState<
         SwitchAlignmentConfig[]
     >([]);
-    const jointConnections = suggestedSwitch?.joints.map((j) =>
-        asTrackLayoutSwitchJointConnection(j),
-    );
+    const jointConnections = suggestedSwitch
+        ? suggestedSwitchJointsAsLayoutSwitchJointConnections(suggestedSwitch)
+        : [];
 
     // When switch structure changes, re-create switch alignment configs
     React.useEffect(() => {
@@ -94,13 +94,13 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
                 const locationTrackId = alignmentConfig
                     ? alignmentConfig.locationTrackId
                     : jointConnections
-                    ? first(
-                          getMatchingLocationTrackIdsForJointNumbers(
-                              switchAlignment.jointNumbers,
-                              jointConnections,
-                          ),
-                      )
-                    : undefined;
+                      ? first(
+                            getMatchingLocationTrackIdsForJointNumbers(
+                                switchAlignment.jointNumbers,
+                                jointConnections,
+                            ),
+                        )
+                      : undefined;
 
                 const jointPlainNumbers =
                     switchAlignment.jointNumbers.map(switchJointNumberToString);
@@ -209,6 +209,7 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
                         options={switchStructures?.map((switchStructure) => ({
                             name: switchStructure.type,
                             value: switchStructure.id,
+                            qaId: `switch-structure-${switchStructure.id}`,
                         }))}
                         onChange={setSwitchStructureId}
                         searchable
@@ -250,6 +251,7 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
                                             options={nearbyLocationTracks?.map((track) => ({
                                                 name: track.name,
                                                 value: track.id,
+                                                qaId: `track-${track.id}`,
                                             }))}
                                             onChange={(trackId) =>
                                                 selectLocationTrack(

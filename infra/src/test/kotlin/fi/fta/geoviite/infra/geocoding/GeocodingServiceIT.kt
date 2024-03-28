@@ -10,8 +10,6 @@ import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.math.AngularUnit
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
-import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.testdata.createGeometryKmPost
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -25,13 +23,12 @@ import java.math.BigDecimal
 @SpringBootTest
 class GeocodingServiceIT @Autowired constructor(
     private val geocodingService: GeocodingService,
-    private val trackNumberDao: LayoutTrackNumberDao,
     private val geometryDao: GeometryDao,
 ) : DBTestBase() {
 
     @Test
     fun `geocoding context can be generated from geometry plan`() {
-        val trackNumberId = trackNumberDao.insert(trackNumber(getUnusedTrackNumber())).id
+        val trackNumberId = insertOfficialTrackNumber()
         val plan = minimalPlan().copy(
             units = GeometryUnits(
                 coordinateSystemSrid = LAYOUT_SRID,

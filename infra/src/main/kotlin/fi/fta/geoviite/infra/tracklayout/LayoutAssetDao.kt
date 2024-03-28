@@ -4,9 +4,9 @@ import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublishType
-import fi.fta.geoviite.infra.common.PublishType.DRAFT
-import fi.fta.geoviite.infra.common.PublishType.OFFICIAL
+import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.error.DeletingFailureException
@@ -44,10 +44,10 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
     fun fetch(version: RowVersion<T>): T
 
     fun fetchChangeTime(): Instant
-    fun fetchDraftableChangeInfo(id: IntId<T>, publishType: PublishType): DraftableChangeInfo?
+    fun fetchLayoutAssetChangeInfo(id: IntId<T>, publicationState: PublicationState): LayoutAssetChangeInfo?
 
     fun fetchAllVersions(): List<RowVersion<T>>
-    fun fetchVersions(publicationState: PublishType, includeDeleted: Boolean): List<RowVersion<T>>
+    fun fetchVersions(publicationState: PublicationState, includeDeleted: Boolean): List<RowVersion<T>>
 
     fun fetchPublicationVersions(): List<ValidationVersion<T>>
     fun fetchPublicationVersions(ids: List<IntId<T>>): List<ValidationVersion<T>>
@@ -62,7 +62,7 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
     fun fetchOfficialVersion(id: IntId<T>): RowVersion<T>?
     fun fetchOfficialVersionOrThrow(id: IntId<T>): RowVersion<T>
     fun fetchOfficialVersions(ids: List<IntId<T>>): List<RowVersion<T>>
-    fun fetchVersion(id: IntId<T>, publishType: PublishType): RowVersion<T>? = when (publishType) {
+    fun fetchVersion(id: IntId<T>, publicationState: PublicationState): RowVersion<T>? = when (publicationState) {
         OFFICIAL -> fetchOfficialVersion(id)
         DRAFT -> fetchDraftVersion(id)
     }
@@ -70,30 +70,30 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
     fun fetchOfficialVersionAtMomentOrThrow(id: IntId<T>, moment: Instant): RowVersion<T>
     fun fetchOfficialVersionAtMoment(id: IntId<T>, moment: Instant): RowVersion<T>?
 
-    fun fetchVersionOrThrow(id: IntId<T>, publishType: PublishType): RowVersion<T> = when (publishType) {
+    fun fetchVersionOrThrow(id: IntId<T>, publicationState: PublicationState): RowVersion<T> = when (publicationState) {
         OFFICIAL -> fetchOfficialVersionOrThrow(id)
         DRAFT -> fetchDraftVersionOrThrow(id)
     }
 
-    fun get(publishType: PublishType, id: IntId<T>): T? = when (publishType) {
+    fun get(publicationState: PublicationState, id: IntId<T>): T? = when (publicationState) {
         DRAFT -> fetchDraftVersion(id)?.let(::fetch)
         OFFICIAL -> fetchOfficialVersion(id)?.let(::fetch)
     }
 
-    fun getOrThrow(publishType: PublishType, id: IntId<T>): T = when (publishType) {
+    fun getOrThrow(publicationState: PublicationState, id: IntId<T>): T = when (publicationState) {
         DRAFT -> fetch(fetchDraftVersionOrThrow(id))
         OFFICIAL -> fetch(fetchOfficialVersionOrThrow(id))
     }
 
     fun getOfficialAtMoment(id: IntId<T>, moment: Instant): T? = fetchOfficialVersionAtMoment(id, moment)?.let(::fetch)
 
-    fun getMany(publishType: PublishType, ids: List<IntId<T>>): List<T> = when (publishType) {
+    fun getMany(publicationState: PublicationState, ids: List<IntId<T>>): List<T> = when (publicationState) {
         DRAFT -> fetchDraftVersions(ids)
         OFFICIAL -> fetchOfficialVersions(ids)
     }.map(::fetch)
 
-    fun list(publishType: PublishType, includeDeleted: Boolean): List<T> =
-        fetchVersions(publishType, includeDeleted).map(::fetch)
+    fun list(publicationState: PublicationState, includeDeleted: Boolean): List<T> =
+        fetchVersions(publicationState, includeDeleted).map(::fetch)
 }
 
 interface ILayoutAssetDao<T : LayoutAsset<T>> : LayoutAssetReader<T>, LayoutAssetWriter<T>
@@ -172,7 +172,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
 
     override fun fetchChangeTime(): Instant = fetchLatestChangeTime(table)
 
-    private val draftableChangeInfoSql = """
+    private val layoutAssetChangeInfoSql = """
       with newest_draft as (
         select 
           case when deleted then null else change_time end as change_time,
@@ -199,16 +199,16 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
       where id = :id and version = 1 limit 1
     """.trimIndent()
 
-    override fun fetchDraftableChangeInfo(id: IntId<T>, publishType: PublishType): DraftableChangeInfo? {
-        return jdbcTemplate.query(draftableChangeInfoSql, mapOf("id" to id.intValue)) { rs, _ ->
+    override fun fetchLayoutAssetChangeInfo(id: IntId<T>, publicationState: PublicationState): LayoutAssetChangeInfo? {
+        return jdbcTemplate.query(layoutAssetChangeInfoSql, mapOf("id" to id.intValue)) { rs, _ ->
             val draftDeleted = rs.getBoolean("draft_deleted")
-            if (publishType == OFFICIAL) {
-                DraftableChangeInfo(
+            if (publicationState == OFFICIAL) {
+                LayoutAssetChangeInfo(
                     created = rs.getInstant("creation_time"),
                     changed = rs.getInstantOrNull("official_change_time"),
                 )
             } else {
-                DraftableChangeInfo(
+                LayoutAssetChangeInfo(
                     created = rs.getInstant("creation_time"),
                     changed = if (draftDeleted) rs.getInstantOrNull("official_change_time") else rs.getInstantOrNull("draft_change_time"),
                 )
