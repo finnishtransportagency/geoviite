@@ -136,6 +136,10 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             return t('tool-panel.location-track.splitting-blocks-geometry-changes');
         }
 
+        if (locationTrack.state !== 'IN_USE') {
+            return t('tool-panel.location-track.unsupported-state-for-splitting');
+        }
+
         if (locationTrackIsDraft)
             reasons.push(t('tool-panel.location-track.splitting.validation.track-draft-exists'));
         if (duplicatesOnOtherTracks)
@@ -354,6 +358,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 variant={ButtonVariant.SECONDARY}
                                                 size={ButtonSize.SMALL}
                                                 disabled={
+                                                    locationTrack.state !== 'IN_USE' ||
                                                     !publishTypeIsDraft ||
                                                     locationTrackIsDraft ||
                                                     duplicatesOnOtherTracks ||
