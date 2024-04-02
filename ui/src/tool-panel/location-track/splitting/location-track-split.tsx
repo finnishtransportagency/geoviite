@@ -204,9 +204,10 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             label={''}>
                             {!nameErrorsVisible && duplicateOf && (
                                 <InfoboxText
-                                    value={t(
-                                        'tool-panel.location-track.splitting.replaces-duplicate',
-                                    )}
+                                    value={
+                                        // TODO: GVT-2525 partial duplicate
+                                        t('tool-panel.location-track.splitting.replaces-duplicate')
+                                    }
                                 />
                             )}
                             {nameErrorsVisible &&

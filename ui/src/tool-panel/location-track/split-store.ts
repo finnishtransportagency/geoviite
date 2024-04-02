@@ -20,6 +20,7 @@ type SplitTargetCandidateBase = {
     name: string;
     descriptionBase: string;
     suffixMode: LocationTrackDescriptionSuffixMode;
+    // GVT-2525 Shouldn't this be duplicateTrackId?
     duplicateOf?: LocationTrackId;
     location: Point;
     new: boolean;
@@ -99,6 +100,7 @@ const findClosestDuplicate = (duplicates: SplitDuplicate[], otherPoint: Point) =
 
 export const splitReducers = {
     onStartSplitting: (state: TrackLayoutState, { payload }: PayloadAction<SplitStart>): void => {
+        // TODO: GVT-2525 should use start switch id of the duplicate match vs main track start switch, instead of track start
         const duplicateTrackClosestToStart = findClosestDuplicate(
             payload.duplicateTracks,
             payload.startLocation,
@@ -107,6 +109,7 @@ export const splitReducers = {
             type: 'FIRST_SPLIT',
             name:
                 duplicateTrackClosestToStart &&
+                // TODO: GVT-2525 this distance-check could be a part of the find-func?
                 duplicateTrackClosestToStart.distance <= DUPLICATE_MAX_DISTANCE
                     ? duplicateTrackClosestToStart.duplicate.name
                     : '',

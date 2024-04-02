@@ -79,7 +79,8 @@ export const SplitDetailsDialog: React.FC<SplitDetailsViewProps> = ({ publicatio
                                             <td>
                                                 {target.newlyCreated
                                                     ? t('split-details-dialog.newly-created')
-                                                    : t('split-details-dialog.replaces-duplicate')}
+                                                    : // TODO: GVT-2525 partial duplicate
+                                                      t('split-details-dialog.replaces-duplicate')}
                                             </td>
                                             <td>
                                                 {target.startAddress

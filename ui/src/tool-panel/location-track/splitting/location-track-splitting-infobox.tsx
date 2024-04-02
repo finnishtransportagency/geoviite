@@ -316,6 +316,9 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         ),
     );
 
+    // TODO: GVT-2525 don't allow rewrite for calculated partial duplicates
+    // TODO: GVT-2525 show warnings when duplicateOf doesn't match the main track
+    // TODO: GVT-2525 show warnings when overriding a non-partial track (geometry replace)
     return (
         <React.Fragment>
             <Infobox
