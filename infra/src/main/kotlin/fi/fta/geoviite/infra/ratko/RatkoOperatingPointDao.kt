@@ -79,11 +79,7 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
     }
 
     fun getChangeTime(): Instant {
-        val sql = """
-            select coalesce(max(change_time), now()) as change_time from layout.operating_point
-        """.trimIndent()
-
-        return jdbcTemplate.queryOne(sql) { rs, _ -> rs.getInstant("change_time") }
+        return fetchLatestChangeTime(DbTable.OPERATING_POINT)
     }
 
     @Transactional(readOnly=true)
