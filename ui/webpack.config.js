@@ -47,7 +47,8 @@ module.exports = (env) => {
             modules: [path.resolve('./node_modules'), path.resolve(__dirname + '/src')],
         },
         devServer: {
-            port: 9000,
+            host: '127.0.0.1',
+            port: 9001,
             compress: false,
             proxy: [
                 {

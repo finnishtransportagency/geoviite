@@ -1,6 +1,6 @@
 geoviite:
   e2e:
-    url: "${FRONT_END_URL:http://127.0.0.1:9000}"
+    url: "${FRONT_END_URL:http://127.0.0.1:9001}"
     username: foobar
     password: s3cret
   projektivelho:
