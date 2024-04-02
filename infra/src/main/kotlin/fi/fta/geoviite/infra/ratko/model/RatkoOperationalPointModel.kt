@@ -5,9 +5,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 
-
-enum class OperationalPointType {
-    LP, LPO, OLP, SEIS, LVH;
+enum class OperationalPointType { LP, LPO, OLP, SEIS, LVH;
 }
 
 abstract class AbstractRatkoOperatingPoint(
@@ -41,11 +39,11 @@ data class RatkoOperatingPoint(
 fun parseAsset(asset: RatkoOperatingPointAsset): RatkoOperatingPointParse? {
     val externalId = Oid<RatkoOperatingPoint>(asset.id)
     val type = asset.getEnumProperty<OperationalPointType>("operational_point_type")
-    val middlePoint = asset.locations[0].nodecollection.nodes.find { node ->
-        node.nodeType == RatkoNodeType.MIDDLE_POINT
+    val soloPoint = asset.locations[0].nodecollection.nodes.find { node ->
+        node.nodeType == RatkoNodeType.SOLO_POINT
     }?.point
-    val location = middlePoint?.geometry?.coordinates?.let { cs -> Point(cs[0], cs[1])}
-    val trackNumberExternalId: Oid<RatkoRouteNumber>? = middlePoint?.routenumber?.toString()?.let(::Oid)
+    val location = soloPoint?.geometry?.coordinates?.let { cs -> Point(cs[0], cs[1]) }
+    val trackNumberExternalId: Oid<RatkoRouteNumber>? = soloPoint?.routenumber?.toString()?.let(::Oid)
     return if (type == null || location == null || trackNumberExternalId == null) null else RatkoOperatingPointParse(
         externalId = externalId,
         name = asset.getStringProperty("name") ?: "",
