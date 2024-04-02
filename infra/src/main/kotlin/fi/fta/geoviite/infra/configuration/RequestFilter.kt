@@ -71,22 +71,19 @@ class RequestFilter @Autowired constructor(
         UrlJwkProvider(URL("$jwksUrl/.well-known/jwks.json"))
     }
 
-    private val localUser by lazy {
-        val availableRolesForLocalUser = authorizationService.getRoles(
-            authorizationService.defaultRoleCodeOrder,
-        )
-
-        User(
+    private fun localUser(activeRole: Role, availableRoles: List<Role>): User {
+        return User(
             details = UserDetails(
                 userName = UserName("LOCAL_USER"),
                 firstName = AuthName("Local"),
                 lastName = AuthName("User"),
                 organization = AuthName("Geoviite"),
             ),
-            role = authorizationService.getDefaultRole(availableRolesForLocalUser),
-            availableRoles = availableRolesForLocalUser,
+            role = activeRole,
+            availableRoles = availableRoles,
         )
     }
+
     private val healthCheckUser by lazy {
         User(
             details = UserDetails(UserName("HEALTH_CHECK"), null, null, null),
@@ -148,7 +145,14 @@ class RequestFilter @Autowired constructor(
         val headers = request.headerNames.toList()
 
         return if (skipAuth) {
-            localUser
+            val availableRolesForLocalUser = authorizationService.getRoles(
+                authorizationService.defaultRoleCodeOrder,
+            )
+
+            localUser(
+                activeRole = getActiveUserRole(request, availableRolesForLocalUser),
+                availableRoles = availableRolesForLocalUser,
+            )
         } else if (request.requestURI == "/actuator/health" && headers.none { h -> h.startsWith("x-iam") }) {
             healthCheckUser
         } else {
