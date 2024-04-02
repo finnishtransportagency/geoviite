@@ -198,7 +198,7 @@ data class SplitDuplicateTrack(
     val start: AddressPoint,
     val end: AddressPoint,
 
-    val status: DuplicateStatus, // TODO: GVT-2525 add to front-end object as well
+    val status: DuplicateStatus,
 )
 
 data class SplittingInitializationParameters(

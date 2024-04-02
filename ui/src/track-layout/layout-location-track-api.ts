@@ -69,9 +69,9 @@ export type SplitDuplicateMatch = 'FULL' | 'PARTIAL' | 'NONE';
 
 export type SplitDuplicateStatus = {
     match: SplitDuplicateMatch;
-    duplicateOf: LocationTrackId | undefined;
-    startSwitch: LayoutSwitchId | undefined;
-    endSwitch: LayoutSwitchId | undefined;
+    duplicateOfId: LocationTrackId | undefined;
+    startSwitchId: LayoutSwitchId | undefined;
+    endSwitchId: LayoutSwitchId | undefined;
 };
 
 export type SplitDuplicate = {
