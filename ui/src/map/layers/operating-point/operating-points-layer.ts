@@ -26,15 +26,15 @@ enum OperatingPointStyle {
 const operatingPointStyleResolutions = [
     {
         style: OperatingPointStyle.Large,
-        resolution: Limits.OPERATING_POINTS_LARGE,
+        resolutionUpperLimit: Limits.OPERATING_POINTS_LARGE,
     },
     {
         style: OperatingPointStyle.Medium,
-        resolution: Limits.OPERATING_POINTS_MEDIUM,
+        resolutionUpperLimit: Limits.OPERATING_POINTS_MEDIUM,
     },
     {
         style: OperatingPointStyle.Small,
-        resolution: Limits.OPERATING_POINTS_SMALL,
+        resolutionUpperLimit: Limits.OPERATING_POINTS_SMALL,
     },
 ];
 
@@ -133,13 +133,13 @@ function getOperatingPointStyle(style: OperatingPointStyle, operatingPointName: 
 }
 
 const operatingPointStyleResolutionsSmallestFirst = operatingPointStyleResolutions.sort(
-    fieldComparator((a) => a.resolution),
+    fieldComparator((a) => a.resolutionUpperLimit),
 );
 
 function getOperatingPointStyleForFeature(_feature: Feature, resolution: number) {
     const point = _feature.get('operatingPoint') as OperatingPoint;
     const smallestResolutionConf = operatingPointStyleResolutionsSmallestFirst.find(
-        (styleResolution) => resolution <= styleResolution.resolution,
+        (styleResolution) => resolution <= styleResolution.resolutionUpperLimit,
     );
     const selectedStyle =
         smallestResolutionConf !== undefined
