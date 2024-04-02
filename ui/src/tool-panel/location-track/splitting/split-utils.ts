@@ -41,7 +41,7 @@ export const splitRequest = (
 ): SplitRequest => ({
     sourceTrackId,
     targetTracks: [firstSplit, ...splits].map((s) => {
-        const dupe = s.duplicateOf ? findById(allDuplicates, s.duplicateOf) : undefined;
+        const dupe = s.duplicateTrackId ? findById(allDuplicates, s.duplicateTrackId) : undefined;
         return splitToRequestTarget(s, dupe);
     }),
 });
@@ -53,7 +53,7 @@ const splitToRequestTarget = (
     name: duplicate ? duplicate.name : split.name,
     descriptionBase: (duplicate ? duplicate.descriptionBase : split.descriptionBase) ?? '',
     descriptionSuffix: (duplicate ? duplicate.descriptionSuffix : split.suffixMode) ?? 'NONE',
-    duplicateTrackId: split.duplicateOf,
+    duplicateTrackId: split.duplicateTrackId,
     startAtSwitchId: split.type === 'SPLIT' ? split?.switchId : undefined,
 });
 
@@ -65,7 +65,7 @@ export const validateSplit = (
 ) => ({
     split: split,
     nameErrors: validateSplitName(split.name, allSplitNames, conflictingTrackNames),
-    descriptionErrors: validateSplitDescription(split.descriptionBase, split.duplicateOf),
+    descriptionErrors: validateSplitDescription(split.descriptionBase, split.duplicateTrackId),
     switchErrors: split.type === 'SPLIT' ? validateSplitSwitch(split, switches) : [],
 });
 

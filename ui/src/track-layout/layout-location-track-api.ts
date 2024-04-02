@@ -3,6 +3,7 @@ import {
     AlignmentPoint,
     AlignmentStartAndEnd,
     LayoutLocationTrack,
+    LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackDescription,
     LocationTrackId,
@@ -64,11 +65,21 @@ export type AlignmentPlanSection = {
     id: string;
 };
 
+export type SplitDuplicateMatch = 'FULL' | 'PARTIAL' | 'NONE';
+
+export type SplitDuplicateStatus = {
+    match: SplitDuplicateMatch;
+    duplicateOf: LocationTrackId | undefined;
+    startSwitch: LayoutSwitchId | undefined;
+    endSwitch: LayoutSwitchId | undefined;
+};
+
 export type SplitDuplicate = {
     id: LocationTrackId;
     name: string;
     start: AddressPoint;
     end: AddressPoint;
+    status: SplitDuplicateStatus;
 };
 
 export type SplitInitializationParameters = {

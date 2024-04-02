@@ -58,8 +58,8 @@ async function getDuplicateSplitSectionData(
 ): Promise<DuplicateSplitSectionData> {
     if (resolution <= HIGHLIGHTS_SHOW && splittingState) {
         const linkedDuplicates = splittingState.splits
-            .map((split) => split.duplicateOf)
-            .concat(splittingState.firstSplit.duplicateOf)
+            .map((split) => split.duplicateTrackId)
+            .concat(splittingState.firstSplit.duplicateTrackId)
             .filter(filterNotEmpty);
 
         const [alignments, extras] = await Promise.all([

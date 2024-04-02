@@ -174,7 +174,7 @@ const createSplitComponent = (
                 )}
                 onRemove={split.type === 'SPLIT' ? removeSplit : undefined}
                 updateSplit={updateSplit}
-                duplicateOf={split.duplicateOf}
+                duplicateOf={split.duplicateTrackId}
                 nameErrors={nameErrors}
                 descriptionErrors={descriptionErrors}
                 switchErrors={switchErrors}
@@ -184,8 +184,8 @@ const createSplitComponent = (
                 descriptionBaseRef={descriptionBaseRef}
                 allDuplicateLocationTracks={locationTrackInfoboxExtras?.duplicates ?? []}
                 duplicateLocationTrack={
-                    split.duplicateOf
-                        ? findById(duplicateTracksInCurrentSplits, split.duplicateOf)
+                    split.duplicateTrackId
+                        ? findById(duplicateTracksInCurrentSplits, split.duplicateTrackId)
                         : undefined
                 }
                 underlyingAssetExists={switchExists}
@@ -229,11 +229,11 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     const conflictingLocationTracks = useConflictingTracks(
         splittingState.originLocationTrack.trackNumberId,
         allSplits.map((s) => s.name),
-        allSplits.map((s) => s.duplicateOf).filter(filterNotEmpty),
+        allSplits.map((s) => s.duplicateTrackId).filter(filterNotEmpty),
         draftLayoutContext(layoutContext),
     )?.map((t) => t.name);
     const duplicateTracksInCurrentSplits = useLocationTracks(
-        allSplits.map((s) => s.duplicateOf).filter(filterNotEmpty),
+        allSplits.map((s) => s.duplicateTrackId).filter(filterNotEmpty),
         draftLayoutContext(layoutContext),
         getChangeTimes().layoutLocationTrack,
     );
