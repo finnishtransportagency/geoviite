@@ -184,11 +184,12 @@ data class SwitchOnLocationTrack(
 )
 
 enum class SplitDuplicateMatch { FULL, PARTIAL, NONE }
+
 data class DuplicateStatus(
     val match: SplitDuplicateMatch,
-    val duplicateOf: IntId<LocationTrack>?,
-    val startSwitch: IntId<TrackLayoutSwitch>?,
-    val endSwitch: IntId<TrackLayoutSwitch>?,
+    val duplicateOfId: IntId<LocationTrack>?,
+    val startSwitchId: IntId<TrackLayoutSwitch>?,
+    val endSwitchId: IntId<TrackLayoutSwitch>?,
 )
 
 data class SplitDuplicateTrack(

@@ -45,9 +45,9 @@ fun getDuplicateMatches(
                 else SplitDuplicateMatch.PARTIAL
             range.first to DuplicateStatus(
                 match = match,
-                duplicateOf = duplicateOf,
-                startSwitch = duplicateTrackJoints[range.first].first,
-                endSwitch = duplicateTrackJoints[range.last].first,
+                duplicateOfId = duplicateOf,
+                startSwitchId = duplicateTrackJoints[range.first].first,
+                endSwitchId = duplicateTrackJoints[range.last].first,
             )
         }
     }
