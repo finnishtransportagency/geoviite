@@ -543,7 +543,7 @@ private fun mergeSwitchChanges(
     .flatMap { it }
     .groupBy { it.switchId }
     .map { (switchId, changes) ->
-        val mergedJoints = changes.flatMap { it.changedJoints }.distinct()
+        val mergedJoints = changes.flatMap { it.changedJoints }.distinctBy { joint -> joint.number to joint.locationTrackId }
         SwitchChange(switchId = switchId, changedJoints = mergedJoints)
     }
 
