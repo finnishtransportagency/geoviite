@@ -32,7 +32,7 @@ export const getGeometryPlanOptions = (
 ) =>
     headers
         .filter((plan) => !selectedHeader || plan.id !== selectedHeader.id)
-        .map((plan) => ({ name: plan.fileName, value: plan }));
+        .map((plan) => ({ name: plan.fileName, value: plan, qaId: `plan-${plan.fileName}` }));
 
 export const debouncedGetGeometryPlanHeaders = debounceAsync(searchGeometryPlanHeaders, 250);
 
@@ -50,6 +50,7 @@ export const getLocationTrackOptions = (
                 descriptions.find((desc) => desc.id == lt.id)?.description ?? '-'
             }`,
             value: lt,
+            qaId: `location-track-${lt.id}`,
         }));
 
 export function getVisibleErrorsByProp<T>(

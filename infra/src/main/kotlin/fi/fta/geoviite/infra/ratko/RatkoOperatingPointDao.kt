@@ -15,27 +15,55 @@ import java.time.Instant
 @Component
 class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
     @Transactional
-    fun writeOperatingPoints(points: List<RatkoOperatingPointParse>) {
-        logger.info("Writing ${points.size} operating points")
-        jdbcTemplate.execute("delete from layout.operating_point") { it.execute() }
-        val sql = """
-            insert into layout.operating_point
-              (external_id, name, abbreviation, uic_code, type, location, track_number_id)
-              (select
-              :externalId,
-                 :name,
-                 :abbreviation,
-                 :uicCode,
-                 :type::layout.operating_point_type,
-                 postgis.st_setsrid(postgis.st_point(:x, :y), :srid),
-                 tn.id
-                 from layout.track_number tn
-                 where tn.external_id = :trackNumberExternalId
-              )
-              on conflict(external_id) do nothing
-            """.trimIndent()
+    fun updateOperatingPoints(newPoints: List<RatkoOperatingPointParse>) {
+        logger.info("Writing ${newPoints.size} operating points")
+        jdbcTemplate.setUser()
 
-        val updateCounts = jdbcTemplate.batchUpdate(sql, points.map { point ->
+        deleteRemovedPoints(newPoints)
+        upsertPoints(newPoints)
+    }
+
+    private fun deleteRemovedPoints(newPoints: List<RatkoOperatingPointParse>) {
+        val oldPointsIds = jdbcTemplate.query("""select external_id from layout.operating_point""") { rs, _ ->
+            rs.getOid<RatkoOperatingPoint>("external_id")
+        }
+        val newPointsIds = newPoints.map { point -> point.externalId }.toSet()
+        jdbcTemplate.batchUpdate("""delete from layout.operating_point where external_id = :id""",
+            oldPointsIds.filter { id -> !newPointsIds.contains(id) }.map { id -> mapOf("id" to id.toString()) }.toTypedArray())
+    }
+
+    private fun upsertPoints(newPoints: List<RatkoOperatingPointParse>) {
+        val sql = """
+                insert into layout.operating_point
+                  (external_id, name, abbreviation, uic_code, type, location, track_number_id)
+                  (select
+                  :externalId,
+                     :name,
+                     :abbreviation,
+                     :uicCode,
+                     :type::layout.operating_point_type,
+                     postgis.st_setsrid(postgis.st_point(:x, :y), :srid),
+                     tn.id
+                     from layout.track_number tn
+                     where tn.external_id = :trackNumberExternalId
+                  )
+                  on conflict(external_id) do update set
+                   external_id = excluded.external_id,
+                   name = excluded.name,
+                   abbreviation = excluded.abbreviation,
+                   uic_code = excluded.uic_code,
+                   type = excluded.type,
+                   location = excluded.location,
+                   track_number_id = excluded.track_number_id
+                  where operating_point.name != excluded.name
+                    or operating_point.abbreviation != excluded.abbreviation
+                    or operating_point.uic_code != excluded.uic_code
+                    or operating_point.type != excluded.type
+                    or not postgis.st_equals(operating_point.location, excluded.location)
+                    or operating_point.track_number_id != excluded.track_number_id
+                """.trimIndent()
+
+        jdbcTemplate.batchUpdate(sql, newPoints.map { point ->
             mapOf(
                 "externalId" to point.externalId.toString(),
                 "name" to point.name,
@@ -48,20 +76,10 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
                 "trackNumberExternalId" to point.trackNumberExternalId.toString(),
             )
         }.toTypedArray())
-        updateCounts.forEachIndexed { index, numUpdates ->
-            val point = points[index]
-            if (numUpdates == 0) {
-                logger.info("unable to save operating point with id ${point.externalId}: Maybe track number ${point.trackNumberExternalId} was not found, or OID conflicted?")
-            }
-        }
     }
 
     fun getChangeTime(): Instant {
-        val sql = """
-            select coalesce(max(update_time), now()) as update_time from layout.operating_point
-        """.trimIndent()
-
-        return jdbcTemplate.queryOne(sql) { rs, _ -> rs.getInstant("update_time") }
+        return fetchLatestChangeTime(DbTable.OPERATING_POINT)
     }
 
     @Transactional(readOnly=true)

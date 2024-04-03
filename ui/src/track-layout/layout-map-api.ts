@@ -1,15 +1,13 @@
 import { asyncCache } from 'cache/cache';
 import { AlignmentHighlight, MapTile } from 'map/map-model';
 import {
-    AlignmentId,
-    combineAlignmentPoints,
     AlignmentPoint,
+    combineAlignmentPoints,
     LayoutState,
     LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackId,
     LocationTrackType,
-    MapAlignmentSource,
     MapAlignmentType,
     ReferenceLineId,
 } from './track-layout-model';
@@ -24,12 +22,17 @@ import {
     TimeStamp,
     TrackMeter,
 } from 'common/common-model';
-import { LinkInterval, LinkPoint, MapAlignmentEndPoints } from 'linking/linking-model';
+import {
+    LayoutAlignmentTypeAndId,
+    LinkInterval,
+    LinkPoint,
+    MapAlignmentEndPoints,
+} from 'linking/linking-model';
 import { bboxString, pointString } from 'common/common-api';
 import { getTrackLayoutPlan } from 'geometry/geometry-api';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
-import { createLinkPoints, alignmentPointToLinkPoint } from 'linking/linking-store';
+import { alignmentPointToLinkPoint, createLinkPoints } from 'linking/linking-store';
 import {
     deduplicate,
     filterNotEmpty,
@@ -43,6 +46,14 @@ import { getTrackNumbers } from './layout-track-number-api';
 import { directionBetweenPoints } from 'utils/math-utils';
 import { ChangeTimes } from 'common/common-slice';
 
+export type LocationTrackAlignmentDataHolder = AlignmentDataHolder & {
+    header: LocationTrackAlignmentHeader;
+};
+export type ReferenceLineAlignmentDataHolder = AlignmentDataHolder & {
+    header: ReferenceLineAlignmentHeader;
+};
+
+export type LayoutAlignmentDataHolder = AlignmentDataHolder & { header: LayoutAlignmentHeader };
 export type AlignmentDataHolder = {
     trackNumber?: LayoutTrackNumber;
     header: AlignmentHeader;
@@ -50,21 +61,41 @@ export type AlignmentDataHolder = {
     planId?: GeometryPlanId;
 };
 
+export type LocationTrackAlignmentHeader = LayoutAlignmentHeader & { id: LocationTrackId };
+export type ReferenceLineAlignmentHeader = LayoutAlignmentHeader & { id: ReferenceLineId };
+
+type AlignmentHeaderIdAndType =
+    | {
+          id: LocationTrackId;
+          alignmentSource: 'LAYOUT';
+          alignmentType: 'LOCATION_TRACK';
+      }
+    | {
+          id: ReferenceLineId;
+          alignmentSource: 'LAYOUT';
+          alignmentType: 'REFERENCE_LINE';
+      }
+    | {
+          id: GeometryAlignmentId;
+          alignmentSource: 'GEOMETRY';
+          alignmentType: MapAlignmentType;
+      };
+
+export type LayoutAlignmentHeader = AlignmentHeader & {
+    alignmentSource: 'LAYOUT';
+};
 export type AlignmentHeader = {
-    id: LocationTrackId | ReferenceLineId | GeometryAlignmentId;
     version?: RowVersion;
     trackNumberId?: LayoutTrackNumberId;
     duplicateOf?: LocationTrackId;
 
     name: string;
     state: LayoutState;
-    alignmentSource: MapAlignmentSource;
-    alignmentType: MapAlignmentType;
     trackType?: LocationTrackType;
 
     length: number;
     boundingBox?: BoundingBox;
-};
+} & AlignmentHeaderIdAndType;
 
 export type AlignmentPolyLine = {
     id: LocationTrackId | ReferenceLineId;
@@ -84,7 +115,7 @@ const locationTrackEndsCache = asyncCache<string, MapAlignmentEndPoints>();
 const referenceLineEndsCache = asyncCache<string, MapAlignmentEndPoints>();
 const sectionsWithoutProfileCache = asyncCache<string, AlignmentHighlight[]>();
 const sectionsWithoutLinkingCache = asyncCache<string, AlignmentHighlight[]>();
-const trackNumberTrackMeterCache = asyncCache<LayoutTrackNumberId, TrackMeter | undefined>();
+const trackNumberTrackMeterCache = asyncCache<string, TrackMeter | undefined>();
 
 export const GEOCODING_URI = `${API_URI}/geocoding`;
 
@@ -166,7 +197,7 @@ export async function getReferenceLineMapAlignmentsByTiles(
     changeTimes: ChangeTimes,
     mapTiles: MapTile[],
     layoutContext: LayoutContext,
-): Promise<AlignmentDataHolder[]> {
+): Promise<ReferenceLineAlignmentDataHolder[]> {
     const changeTime = getMaxTimestamp(
         changeTimes.layoutReferenceLine,
         changeTimes.layoutTrackNumber,
@@ -202,7 +233,7 @@ export async function getLocationTrackMapAlignmentsByTiles(
     changeTimes: ChangeTimes,
     mapTiles: MapTile[],
     layoutContext: LayoutContext,
-): Promise<AlignmentDataHolder[]> {
+): Promise<LocationTrackAlignmentDataHolder[]> {
     const polyLines = await Promise.all(
         mapTiles.map((tile) =>
             getPolyLines(tile, changeTimes.layoutLocationTrack, layoutContext, 'LOCATION_TRACKS'),
@@ -212,12 +243,18 @@ export async function getLocationTrackMapAlignmentsByTiles(
     return getAlignmentDataHolder('LOCATION_TRACK', polyLines, layoutContext, changeTimes);
 }
 
-async function getAlignmentDataHolder(
-    type: MapAlignmentType,
+type MapLayoutAlignmentDataHolder<M extends MapAlignmentType> = M extends 'LOCATION_TRACK'
+    ? LocationTrackAlignmentDataHolder
+    : M extends 'REFERENCE_LINE'
+      ? ReferenceLineAlignmentDataHolder
+      : never;
+
+async function getAlignmentDataHolder<M extends MapAlignmentType>(
+    type: M,
     polyLines: AlignmentPolyLine[],
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
-): Promise<AlignmentDataHolder[]> {
+): Promise<MapLayoutAlignmentDataHolder<M>[]> {
     const ids = deduplicate(polyLines.map((pl) => pl.id));
     const headerChangeTime =
         type === 'LOCATION_TRACK'
@@ -227,7 +264,7 @@ async function getAlignmentDataHolder(
     const headers = await getAlignmentHeaders(layoutContext, ids, type, headerChangeTime);
     const trackNumbers = await getTrackNumbers(layoutContext, changeTimes.layoutTrackNumber);
 
-    return combine(headers, polyLines, trackNumbers);
+    return combine(headers, polyLines, trackNumbers) as MapLayoutAlignmentDataHolder<M>[];
 }
 
 function combine(
@@ -328,7 +365,7 @@ async function getAlignmentHeaders(
 
 export async function getSegmentEnds(
     layoutContext: LayoutContext,
-    id: ReferenceLineId,
+    id: LocationTrackId | ReferenceLineId,
     type: MapAlignmentType,
     changeTime: TimeStamp,
 ): Promise<number[]> {
@@ -340,7 +377,7 @@ export async function getSegmentEnds(
 }
 
 export async function getEndLinkPoints(
-    id: ReferenceLineId,
+    id: LocationTrackId | ReferenceLineId,
     layoutContext: LayoutContext,
     type: MapAlignmentType,
     changeTime: TimeStamp,
@@ -368,13 +405,12 @@ export async function getLinkPointsByTiles(
     changeTime: TimeStamp,
     layoutContext: LayoutContext,
     mapTiles: MapTile[],
-    alignmentId: AlignmentId,
-    alignmentType: MapAlignmentType,
+    alignment: LayoutAlignmentTypeAndId,
 ): Promise<LinkPoint[]> {
     const segmentEndMs = await getSegmentEnds(
         draftLayoutContext(layoutContext),
-        alignmentId,
-        alignmentType,
+        alignment.id,
+        alignment.type,
         changeTime,
     );
     const tiledAlignments = await Promise.all(
@@ -384,11 +420,11 @@ export async function getLinkPointsByTiles(
     );
     const allPieces = tiledAlignments
         .flat()
-        .filter((a) => a.alignmentType === alignmentType && a.id === alignmentId);
+        .filter((a) => a.alignmentType === alignment.type && a.id === alignment.id);
     const allPoints = combineAlignmentPoints(allPieces.map((a) => a.points));
     const lastSegmentEndM = last(segmentEndMs);
     return lastSegmentEndM
-        ? createLinkPoints(alignmentType, alignmentId, lastSegmentEndM, segmentEndMs, allPoints)
+        ? createLinkPoints(alignment, lastSegmentEndM, segmentEndMs, allPoints)
         : [];
 }
 
@@ -419,8 +455,10 @@ export async function getGeometryLinkPointsByTiles(
                     alwaysIncludePoints.some((alwaysIncludePoint) => alwaysIncludePoint.m == p.m)),
         );
         return createLinkPoints(
-            header.alignmentType,
-            header.id,
+            {
+                type: header.alignmentType,
+                id: header.id,
+            } as LayoutAlignmentTypeAndId,
             header.length,
             segmentMValues,
             points,

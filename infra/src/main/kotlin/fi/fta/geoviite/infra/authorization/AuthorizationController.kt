@@ -4,6 +4,9 @@ import fi.fta.geoviite.infra.cloudfront.CloudFrontCookies
 import fi.fta.geoviite.infra.cloudfront.CookieSigner
 import fi.fta.geoviite.infra.error.ApiUnauthorizedException
 import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.util.Code
+import jakarta.servlet.http.HttpServletResponse
+import jakarta.servlet.http.Cookie
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -25,6 +28,24 @@ class AuthorizationController @Autowired constructor(private val signer: CookieS
     fun getOwnDetails(): User {
         logger.apiCall("getOwnDetails")
         return SecurityContextHolder.getContext().authentication.principal as User
+    }
+
+    @PreAuthorize(AUTH_BASIC)
+    @PostMapping("/desired-role")
+    fun setDesiredRole(
+        @RequestParam("code") code: Code,
+        response: HttpServletResponse,
+    ): Code {
+        logger.apiCall("setDesiredRole", "code" to code)
+
+        val roleCookie = Cookie(DESIRED_ROLE_COOKIE_NAME, code.toString()).apply {
+            path = "/"
+            isHttpOnly = true
+            secure = true
+        }
+
+        response.addCookie(roleCookie)
+        return code
     }
 
     @PreAuthorize(AUTH_BASIC)

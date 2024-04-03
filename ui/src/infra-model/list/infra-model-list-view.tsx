@@ -25,7 +25,9 @@ export type InfraModelListViewProps = Pick<
 export const InfraModelListView: React.FC<InfraModelListViewProps> = (
     props: InfraModelListViewProps,
 ) => {
-    const privileges = useCommonDataAppSelector((state) => state.userPrivileges).map((p) => p.code);
+    const privileges = useCommonDataAppSelector((state) => state.user?.role.privileges ?? []).map(
+        (p) => p.code,
+    );
     const trackNumbers = useTrackNumbers(
         userHasPrivilege(privileges, VIEW_LAYOUT_DRAFT)
             ? draftMainLayoutContext()

@@ -1057,6 +1057,30 @@ class CalculatedChangesServiceIT @Autowired constructor(
         assertEquals(0, changes.indirectChanges.switchChanges.size)
     }
 
+    @Test
+    fun `switch change with joint linked to segment gap should still be reported as only one change`() {
+        val trackNumberId = insertDraftTrackNumber()
+        val referenceLineId = referenceLineService.saveDraft(
+            referenceLine(trackNumberId, draft = true), alignment(segment(Point(0.0, 0.0), Point(0.0, 20.0)))
+        ).id
+        val switch = switchService.saveDraft(switch(123, draft = true)).id
+        val wibblyTrack = locationTrackService.saveDraft(
+            locationTrack(trackNumberId, draft = true), alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 10.0)).copy(switchId = switch, endJointNumber = JointNumber(5)),
+                segment(Point(0.0, 10.00001), Point(0.0, 20.0)).copy(switchId = switch, startJointNumber = JointNumber(5))
+            )
+        )
+        val changes = getCalculatedChanges(
+            locationTrackIds = listOf(wibblyTrack.id),
+            switchIds = listOf(switch),
+            trackNumberIds = listOf(trackNumberId),
+            referenceLineIds = listOf(referenceLineId)
+        )
+        assertEquals(1, changes.directChanges.switchChanges.size)
+        assertEquals(1, changes.directChanges.switchChanges.find { it.switchId == switch }?.changedJoints?.size)
+    }
+
+
     data class TestData(
         val trackNumber: TrackLayoutTrackNumber,
         val locationTracksAndAlignments: List<Pair<LocationTrack, LayoutAlignment>>,

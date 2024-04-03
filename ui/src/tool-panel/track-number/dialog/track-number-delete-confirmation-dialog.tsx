@@ -6,10 +6,11 @@ import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { PublicationRequestDependencyList } from 'preview/publication-request-dependency-list';
-import { revertCandidates } from 'publication/publication-api';
+import { revertPublicationCandidates } from 'publication/publication-api';
 import { getChangeTimes } from 'common/change-time-api';
 import { ChangesBeingReverted } from 'preview/preview-view';
 import { LayoutContext } from 'common/common-model';
+import { brand } from 'common/brand';
 
 type TrackNumberDeleteConfirmationDialogProps = {
     layoutContext: LayoutContext;
@@ -27,17 +28,20 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
     const { t } = useTranslation();
 
     const deleteDraftLocationTrack = () => {
-        revertCandidates(changesBeingReverted.changeIncludingDependencies).then((result) => {
-            result
-                .map(() => {
-                    Snackbar.success('tool-panel.track-number.delete-dialog.delete-succeeded');
-                    onSave && onSave(changesBeingReverted.requestedRevertChange.source.id);
-                    onClose();
-                })
-                .mapErr(() => {
-                    Snackbar.error('tool-panel.track-number.delete-dialog.delete-failed');
-                });
-        });
+        revertPublicationCandidates(changesBeingReverted.changeIncludingDependencies).then(
+            (result) => {
+                result
+                    .map(() => {
+                        Snackbar.success('tool-panel.track-number.delete-dialog.delete-succeeded');
+                        onSave &&
+                            onSave(brand(changesBeingReverted.requestedRevertChange.source.id));
+                        onClose();
+                    })
+                    .mapErr(() => {
+                        Snackbar.error('tool-panel.track-number.delete-dialog.delete-failed');
+                    });
+            },
+        );
     };
 
     return (

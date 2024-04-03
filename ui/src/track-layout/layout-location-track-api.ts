@@ -1,8 +1,8 @@
 import {
     AddressPoint,
+    AlignmentPoint,
     AlignmentStartAndEnd,
     LayoutLocationTrack,
-    AlignmentPoint,
     LayoutTrackNumberId,
     LocationTrackDescription,
     LocationTrackId,
@@ -33,7 +33,7 @@ import { Result } from 'neverthrow';
 import { getChangeTimes, updateLocationTrackChangeTime } from 'common/change-time-api';
 import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
-import { ValidatedAsset } from 'publication/publication-model';
+import { ValidatedLocationTrack } from 'publication/publication-model';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import i18next from 'i18next';
 import { getMaxTimestamp } from 'utils/date-utils';
@@ -321,8 +321,8 @@ export const getSplittingInitializationParameters = async (
 export async function getLocationTrackValidation(
     layoutContext: LayoutContext,
     id: LocationTrackId,
-): Promise<ValidatedAsset | undefined> {
-    return getNullable<ValidatedAsset>(
+): Promise<ValidatedLocationTrack | undefined> {
+    return getNullable<ValidatedLocationTrack>(
         `${layoutUri('location-tracks', layoutContext, id)}/validation`,
     );
 }

@@ -13,6 +13,7 @@
             "location-track-deleted": "Linkitystä ei voida tehdä, koska sijaintiraide on Poistettu-tilassa"
         },
         "split": {
+            "source-track-state-not-in-use": "Jakamista ei voitu suorittaa, koska jaettava raide ei ole \"Käytössä\"-tilassa",
             "segment-allocation-failed": "Jakamista ei voitu suorittaa, koska katkaisukohtien määritys epäonnistui",
             "switch-linking-failed": "Jakamista ei voitu suorittaa, koska vaihteiden uudelleenlinkitys epäonnistui",
             "no-switch-suggestion": "Jakamista ei voitu suorittaa, koska uudelleenlinkityksen vaihde-ehdotusten muodostus epäonnistui",
@@ -112,7 +113,8 @@
         "coordinate-transformation-failed": "Koordinaattimuunnos epäonnistui",
         "copy-details-to-clipboard": "Kopioi tiedot leikepöydälle",
         "expected-non-null": "Pyyntö palautti null-arvon",
-        "file-size-limit-exceeded": "Tiedosto ylittää suurimman sallitun koon"
+        "file-size-limit-exceeded": "Tiedosto ylittää suurimman sallitun koon",
+        "request-timed-out": "Pyyntö katkaistiin, koska se kesti liian kauan"
     },
     "unauthorized-request": {
         "title": "Istunto on vanhentunut.",
@@ -683,7 +685,8 @@
                     "close-task-list": "Sulje tehtävälista"
                 }
             },
-            "splitting-blocks-geometry-changes": "Raiteen geometriaa ei voi muokata koska sen jakaminen on kesken"
+            "splitting-blocks-geometry-changes": "Raiteen geometriaa ei voi muokata koska sen jakaminen on kesken",
+            "unsupported-state-for-splitting": "Vain \"Käytössä\"-tilaisen raiteen voi jakaa"
         },
         "disabled": {
             "activity-disabled-in-official-mode": "Toiminto on aktiivinen vain luonnostilassa."
@@ -1064,6 +1067,7 @@
         "geometry-title": "Geometriat",
         "debug-title": "Debug-työkalut",
         "map": "Taustakartta",
+        "orthographic-background-map": "Ilmakuva",
         "location-track": "Sijaintiraiteet",
         "reference-line": "Pituusmittauslinjat",
         "track-number-diagram": "Pituusmittausraidekaavio",
@@ -1505,7 +1509,15 @@
     "user-card": {
         "my-details": "Omat tiedot",
         "role": "Rooli",
-        "permissions": "Oikeudet"
+        "permissions": "Oikeudet",
+        "selected-role": "Valittu"
+    },
+    "user-roles": {
+        "operator": "Operaattori",
+        "browser": "Selaaja",
+        "consultant": "Konsultti",
+        "authority": "Virastokäyttäjä",
+        "team": "Kehitystiimi"
     },
     "vertical-geometry-diagram": {
         "no-geometry": "Valitun raiteen pystygeometriaa ei voida esittää.",

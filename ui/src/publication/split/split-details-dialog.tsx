@@ -6,7 +6,7 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Table, Th } from 'vayla-design-lib/table/table';
 import { getSplitDetails, splitDetailsCsvUri } from 'publication/publication-api';
 import { formatTrackMeter } from 'utils/geography-utils';
-import { PublicationId } from 'preview/preview-table';
+import { PublicationId } from 'publication/publication-model';
 import {
     ProgressIndicatorType,
     ProgressIndicatorWrapper,

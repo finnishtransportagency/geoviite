@@ -33,6 +33,8 @@ enum class DbTable(schema: String, table: String, sortColumns: List<String> = li
     LAYOUT_KM_POST("layout", "km_post", listOf("track_number_id", "km_number")),
     LAYOUT_TRACK_NUMBER("layout", "track_number"),
 
+    OPERATING_POINT("layout", "operating_point"),
+
     GEOMETRY_PLAN("geometry", "plan"),
     GEOMETRY_PLAN_PROJECT("geometry", "plan_project"),
     GEOMETRY_PLAN_AUTHOR("geometry", "plan_author"),
@@ -47,7 +49,6 @@ enum class DbTable(schema: String, table: String, sortColumns: List<String> = li
 
     val fullName: String = "$schema.$table"
     val versionTable = "$schema.${table}_version"
-    val draftLink: String = "official_row_id"
     val orderBy: String = sortColumns.joinToString(",")
 
     //language=SQL

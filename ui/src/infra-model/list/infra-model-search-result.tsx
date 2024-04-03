@@ -52,8 +52,8 @@ function toggleSortOrder(
             sortOrder === undefined
                 ? GeometrySortOrder.ASCENDING
                 : sortOrder === GeometrySortOrder.ASCENDING
-                  ? GeometrySortOrder.DESCENDING
-                  : undefined;
+                ? GeometrySortOrder.DESCENDING
+                : undefined;
 
         return {
             sortBy: o ? sortBy : GeometrySortBy.NO_SORTING,
@@ -70,7 +70,9 @@ function toggleSortOrder(
 export const InfraModelSearchResult: React.FC<InfraModelSearchResultProps> = (
     props: InfraModelSearchResultProps,
 ) => {
-    const privileges = useCommonDataAppSelector((state) => state.userPrivileges).map((p) => p.code);
+    const privileges = useCommonDataAppSelector((state) => state.user?.role.privileges ?? []).map(
+        (p) => p.code,
+    );
     const trackNumbers = useTrackNumbers(
         userHasPrivilege(privileges, VIEW_LAYOUT_DRAFT)
             ? draftMainLayoutContext()

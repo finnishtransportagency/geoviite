@@ -49,7 +49,13 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     const isNewPlan = geometryPlan?.dataType !== 'STORED';
 
     const fileMenuItems: Item<FileMenuOption>[] = isNewPlan
-        ? [{ value: 'fix-encoding', name: t('im-form.file-handling-failed.change-encoding') }]
+        ? [
+              {
+                  value: 'fix-encoding',
+                  name: t('im-form.file-handling-failed.change-encoding'),
+                  qaId: `fix-encoding`,
+              },
+          ]
         : [];
     const handleFileMenuItemChange = (item: string) => {
         if (item == 'fix-encoding') setShowChangeCharsetDialog(true);

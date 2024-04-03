@@ -193,20 +193,9 @@ class FakeRatko(port: Int) {
 
     fun hasOperatingPoints(points: List<RatkoOperatingPointParse>) = post(
         "/api/assets/v1.2/search",
-        mapOf("assetType" to "railway_traffic_operating_point")
-    ).respond { req ->
-        val body = jsonMapper.readTree(req.bodyAsString)
-        val size = body.get("size").intValue()
-        val pageNumber = body.get("pageNumber").intValue()
-        okJson(
-            RatkoOperatingPointAssetsResponse(
-                points.subList(
-                    (size * pageNumber).coerceAtMost(points.size),
-                    (size * (pageNumber + 1)).coerceAtMost(points.size),
-                ).map(::marshallOperatingPoint)
-            )
-        )
-    }
+        mapOf("assetType" to "railway_traffic_operating_point"),
+        times = Times.once(),
+    ).respond(okJson(RatkoOperatingPointAssetsResponse(points.map(::marshallOperatingPoint))))
 
     private fun getPointUpdates(oid: String, urlInfix: String, method: String): List<List<RatkoPoint>> =
         mockServer.retrieveRecordedRequests(

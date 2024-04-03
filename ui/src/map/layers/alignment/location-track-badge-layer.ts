@@ -13,8 +13,8 @@ import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 import {
-    AlignmentDataHolder,
     getLocationTrackMapAlignmentsByTiles,
+    LocationTrackAlignmentDataHolder,
 } from 'track-layout/layout-map-api';
 import { LayoutContext } from 'common/common-model';
 
@@ -32,12 +32,12 @@ export function createLocationTrackBadgeLayer(
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const dataPromise: Promise<AlignmentDataHolder[]> =
+    const dataPromise: Promise<LocationTrackAlignmentDataHolder[]> =
         resolution <= Limits.SHOW_LOCATION_TRACK_BADGES
             ? getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext)
             : Promise.resolve([]);
 
-    const createFeatures = (locationTracks: AlignmentDataHolder[]) => {
+    const createFeatures = (locationTracks: LocationTrackAlignmentDataHolder[]) => {
         const badgeDrawDistance = getBadgeDrawDistance(resolution) || 0;
         return createAlignmentBadgeFeatures(
             locationTracks,

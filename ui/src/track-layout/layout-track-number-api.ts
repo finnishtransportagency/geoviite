@@ -1,9 +1,5 @@
 import { asyncCache } from 'cache/cache';
-import {
-    LayoutTrackNumber,
-    LayoutTrackNumberId,
-    LocationTrackId,
-} from 'track-layout/track-layout-model';
+import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import {
     DraftableChangeInfo,
     draftLayoutContext,
@@ -27,7 +23,7 @@ import {
 } from 'common/change-time-api';
 import { LocationTrackSaveError } from 'linking/linking-model';
 import { Result } from 'neverthrow';
-import { ValidatedAsset } from 'publication/publication-model';
+import { ValidatedTrackNumber } from 'publication/publication-model';
 import { AlignmentPlanSection } from 'track-layout/layout-location-track-api';
 import { bboxString } from 'common/common-api';
 import { BoundingBox } from 'model/geometry';
@@ -81,7 +77,7 @@ export async function createTrackNumber(
 export async function deleteTrackNumber(
     layoutContext: LayoutContext,
     trackNumberId: LayoutTrackNumberId,
-): Promise<Result<LocationTrackId, LocationTrackSaveError>> {
+): Promise<Result<LayoutTrackNumberId, LocationTrackSaveError>> {
     const path = layoutUri('track-numbers', draftLayoutContext(layoutContext), trackNumberId);
     const apiResult = await deleteNonNullAdt<undefined, LayoutTrackNumberId>(path, undefined);
 
@@ -97,8 +93,8 @@ export async function deleteTrackNumber(
 export async function getTrackNumberValidation(
     layoutContext: LayoutContext,
     id: LayoutTrackNumberId,
-): Promise<ValidatedAsset | undefined> {
-    return getNullable<ValidatedAsset>(
+): Promise<ValidatedTrackNumber | undefined> {
+    return getNullable<ValidatedTrackNumber>(
         `${layoutUri('track-numbers', layoutContext, id)}/validation`,
     );
 }

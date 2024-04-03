@@ -13,7 +13,7 @@ class LocalHostWebClient(
 class LocalWebClientConfiguration {
     @Bean
     fun localHostWebClient(): LocalHostWebClient {
-        val webClientBuilder = WebClient.builder().baseUrl("http://localhost:9000")
+        val webClientBuilder = WebClient.builder().baseUrl("http://localhost:9001")
         return LocalHostWebClient(webClientBuilder.build())
     }
 }

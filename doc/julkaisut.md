@@ -8,12 +8,11 @@ paikannuspohjan yhdestä eheästä tilasta toiseen eheään tilaan, mikä varmis
 muutokset menevät välittömästi Geoviitteen viralliseen paikannuspohjaan. Tämän jälkeen ne viedään Ratkoon asynkronisella
 tausta-ajolla, jonka tilaa tarkastellaan käyttölittymässä julkaisutasolla.
 
-## Julkaisun ja Ratkoviennin tietomalli
+## Julkaisun tietomalli
 
-Tämä on yksinkertaistettu malli julkaisun ja Ratkoviennin käsitteistöstä. Todellisuudessa mukana on vielä kohtuullinen
+Tämä on yksinkertaistettu malli julkaisun käsitteistöstä. Todellisuudessa mukana on vielä kohtuullinen
 määrä valmiiksi laskettua dataa julkaisuhistorian esittämistä varten. Käsitteellisesti mallin voi kuitenkin mieltää
-koostuvan julkaisusta johon sisältyy tarkat versiokiinnitykset sen muuttamille käsitteille sekä Ratkoviennistä, joka
-seuraa tietyn datajoukon viennin tilaa. Varsinainen datasisältö, joka julkaisussa muuttui, voidaan hakea paikannuspohjan
+koostuvan julkaisusta johon sisältyy tarkat versiokiinnitykset sen muuttamille käsitteille. Varsinainen datasisältö, joka julkaisussa muuttui, voidaan hakea paikannuspohjan
 versiotauluista kiinnitetyillä versioilla tai julkaisun aikaleimalla.
 
 ```mermaid
@@ -41,15 +40,6 @@ classDiagram
         id: Int
         version: Int
     }
-    class RatkoPush {
-        startTime: Instant
-        endTime: Instant
-        status: IN_PROGRESS/SUCCESSFUL/FAILED/CONNECTION_ISSUE
-    }
-    class RatkoPushContent
-
-    RatkoPush <-- RatkoPushContent
-    RatkoPushContent <-- Publication
     Publication <-- LocationTrack
     Publication <-- Switch
     Publication <-- TrackNumber
@@ -83,17 +73,3 @@ Tässä keskeisiä kohtia varmistaa on mm:
     - Kaikille raiteille on mahdollista laskea osoitteet koko matkalta
     - Osoitteet ovat jatkuvia, kaikki raiteen metrit voidaan laskea ja metrit eivät ole liian pitkiä/lyhyitä
     - Tuotetut osoitteet ovat valideja (eli ylipitkiä kilometreja)
-
-## Ratkovienti ja julkaisuiden koostaminen
-
-Julkaisun Ratkovienti tapahtuu erillisellä asynkronisella prosessilla. Ylätasolla se tapahtuu seuraavasti:
-
-- Haetaan kaikki julkaisut joita ei vielä ole viety Ratkoon
-- Yhdistetään julkaisujen muutokset, jotta saadaan erotus Ratkon ja geoviitteen nykytilan välillä
-- Viedään tähän liittyvät käsitteet käsite kerrallaan Ratkoon (ratanumerot, raiteet, vaihteet)
-
-Julkaisujen yhdistäminen tehdään, jotta virhetilanteissa on mahdollista korjata tilannetta toisella julkaisulla.
-Yhteysvirheiden tapauksessa julkaisua yritetään automaattisesti uudelleen seuraavalla ajolla, mutta muissa virheissä ei
-ole syytä olettaa että tilanne korjaantuisi automaattisesti. Tällöin virhe voidaan korjata joko Ratkon puolella tai
-muuttamalla vietävää datajoukkoa uudella julkaisulla, jolloin datan koostamisen ansiosta virheellistä välitilaa ei
-tarvitse saada menemään läpi.

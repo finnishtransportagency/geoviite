@@ -1,5 +1,9 @@
 import { RegularShape, Style } from 'ol/style';
-import { AlignmentDataHolder, AlignmentHeader } from 'track-layout/layout-map-api';
+import {
+    AlignmentDataHolder,
+    LayoutAlignmentDataHolder,
+    LayoutAlignmentHeader,
+} from 'track-layout/layout-map-api';
 import { ItemCollections, Selection } from 'selection/selection-model';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import Feature from 'ol/Feature';
@@ -120,7 +124,7 @@ export function createAlignmentFeature(
 }
 
 export function createAlignmentFeatures(
-    alignments: AlignmentDataHolder[],
+    alignments: LayoutAlignmentDataHolder[],
     selection: Selection,
     showEndTicks: boolean,
     style: Style,
@@ -135,8 +139,9 @@ export function createAlignmentFeatures(
     );
 }
 
-function includes(selection: ItemCollections, alignment: AlignmentHeader): boolean {
-    switch (alignment.alignmentType) {
+function includes(selection: ItemCollections, alignment: LayoutAlignmentHeader): boolean {
+    const type = alignment.alignmentType;
+    switch (type) {
         case 'REFERENCE_LINE': {
             const tnId = alignment.trackNumberId;
             return tnId != undefined && selection.trackNumbers.includes(tnId);
@@ -145,15 +150,15 @@ function includes(selection: ItemCollections, alignment: AlignmentHeader): boole
             return selection.locationTracks.includes(alignment.id);
         }
         default:
-            return exhaustiveMatchingGuard(alignment.alignmentType);
+            return exhaustiveMatchingGuard(type);
     }
 }
 
-export const isHighlighted = (selection: Selection, header: AlignmentHeader) =>
+export const isHighlighted = (selection: Selection, header: LayoutAlignmentHeader) =>
     includes(selection.highlightedItems, header);
 
 export function getAlignmentHeaderStates(
-    { header }: AlignmentDataHolder,
+    { header }: LayoutAlignmentDataHolder,
     selection: Selection,
     linkingState: LinkingState | undefined,
 ) {
@@ -162,7 +167,7 @@ export function getAlignmentHeaderStates(
     const isLinking = linkingState
         ? (linkingState.type == LinkingType.LinkingGeometryWithAlignment ||
               linkingState.type == LinkingType.LinkingAlignment) &&
-          linkingState.layoutAlignmentType == header.alignmentType &&
+          linkingState.layoutAlignment.type == header.alignmentType &&
           linkingState.layoutAlignmentInterval.start?.alignmentId === header.id
         : false;
 

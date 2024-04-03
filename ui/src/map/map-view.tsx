@@ -50,11 +50,14 @@ import { createPlanAreaLayer } from 'map/layers/geometry/plan-area-layer';
 import { pointToCoords } from 'map/layers/utils/layer-utils';
 import { createGeometrySwitchLayer } from 'map/layers/geometry/geometry-switch-layer';
 import { createSwitchLayer } from 'map/layers/switch/switch-layer';
-import { createBackgroundMapLayer } from 'map/layers/background-map-layer';
+import {
+    createBackgroundMapLayer,
+    createOrthographicMapLayer,
+} from 'map/layers/background-map-layer';
 import TileSource from 'ol/source/Tile';
 import TileLayer from 'ol/layer/Tile';
 import { MapLayer } from 'map/layers/utils/layer-model';
-import { filterNotEmpty, first } from 'utils/array-utils';
+import { filterNotEmpty, first, objectEntries } from 'utils/array-utils';
 import { mapLayerZIndexes } from 'map/layers/utils/layer-visibility-limits';
 import { createLocationTrackAlignmentLayer } from 'map/layers/alignment/location-track-alignment-layer';
 import { createReferenceLineAlignmentLayer } from 'map/layers/alignment/reference-line-alignment-layer';
@@ -79,6 +82,7 @@ import { createLocationTrackSelectedAlignmentLayer } from 'map/layers/alignment/
 import { createLocationTrackSplitBadgeLayer } from 'map/layers/alignment/location-track-split-badge-layer';
 import { createSelectedReferenceLineAlignmentLayer } from './layers/alignment/reference-line-selected-alignment-layer';
 import { createOperatingPointLayer } from 'map/layers/operating-point/operating-points-layer';
+import { layersCoveringLayers } from 'map/map-store';
 
 declare global {
     interface Window {
@@ -300,8 +304,15 @@ const MapView: React.FC<MapViewProps> = ({
         const olView = olMap.getView();
         const resolution = olView.getResolution() || 0;
 
+        const layerIsCovered = (layer: MapLayerName) =>
+            objectEntries(layersCoveringLayers).some(
+                ([coveringLayer, covers]) =>
+                    map.visibleLayers.includes(coveringLayer) && covers?.includes(layer),
+            );
+
         // Create OpenLayers objects by domain layers
         const updatedLayers = map.visibleLayers
+            .filter((layer) => !layerIsCovered(layer))
             .map((layerName) => {
                 const mapTiles = calculateMapTiles(olView, undefined);
 
@@ -313,6 +324,8 @@ const MapView: React.FC<MapViewProps> = ({
                 switch (layerName) {
                     case 'background-map-layer':
                         return createBackgroundMapLayer(existingOlLayer as TileLayer<TileSource>);
+                    case 'orthographic-background-map-layer':
+                        return createOrthographicMapLayer(existingOlLayer as TileLayer<TileSource>);
                     case 'track-number-diagram-layer':
                         return createTrackNumberDiagramLayer(
                             mapTiles,

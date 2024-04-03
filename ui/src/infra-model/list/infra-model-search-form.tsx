@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { GeometryPlanSearchParams, PlanSource } from 'geometry/geometry-model';
-import { LayoutTrackNumber } from 'track-layout/track-layout-model';
+import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import { deduplicate, filterNotEmpty } from 'utils/array-utils';
 import { InfraModelLoadButtonContainer } from 'infra-model/list/infra-model-load-button-container';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
@@ -15,7 +15,7 @@ export type InframodelSearchFormProps = {
 };
 
 type TrackNumberOption = {
-    id?: string;
+    id?: LayoutTrackNumberId;
     typeLabel: string;
     label: string;
     number: string;

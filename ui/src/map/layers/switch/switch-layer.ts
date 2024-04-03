@@ -26,7 +26,7 @@ import VectorSource from 'ol/source/Vector';
 import { fromExtent } from 'ol/geom/Polygon';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { getMaxTimestamp } from 'utils/date-utils';
-import { ValidatedAsset } from 'publication/publication-model';
+import { ValidatedSwitch } from 'publication/publication-model';
 
 let shownSwitchesCompare: string;
 
@@ -42,7 +42,7 @@ const getTiledSwitchValidation = (
 type SwitchLayerData = {
     switches: LayoutSwitch[];
     structures: SwitchStructure[];
-    validationResult: ValidatedAsset[];
+    validationResult: ValidatedSwitch[];
 };
 
 const layerName: MapLayerName = 'switch-layer';

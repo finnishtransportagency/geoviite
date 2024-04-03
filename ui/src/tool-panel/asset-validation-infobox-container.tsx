@@ -4,14 +4,25 @@ import { AssetValidationInfobox } from 'tool-panel/asset-validation-infobox';
 import { AssetId, LayoutContext, TimeStamp } from 'common/common-model';
 import { getKmPostValidation } from 'track-layout/layout-km-post-api';
 import { getSwitchValidation } from 'track-layout/layout-switch-api';
-import { getTrackNumberValidation } from 'track-layout/layout-track-number-api';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { ValidatedAsset } from 'publication/publication-model';
+import {
+    LayoutKmPostId,
+    LayoutSwitchId,
+    LayoutTrackNumberId,
+} from 'track-layout/track-layout-model';
+import { getTrackNumberValidation } from 'track-layout/layout-track-number-api';
 
-type AssetType = 'TRACK_NUMBER' | 'SWITCH' | 'KM_POST';
+export type AssetIdAndType =
+    | {
+          type: 'TRACK_NUMBER';
+          id: LayoutTrackNumberId;
+      }
+    | { type: 'SWITCH'; id: LayoutSwitchId }
+    | { type: 'KM_POST'; id: LayoutKmPostId };
 
 type AssetValidationInfoboxProps = {
-    id: AssetId;
-    type: AssetType;
+    idAndType: AssetIdAndType;
     layoutContext: LayoutContext;
     changeTime: TimeStamp;
     contentVisible: boolean;
@@ -19,25 +30,33 @@ type AssetValidationInfoboxProps = {
 };
 
 export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxProps> = ({
-    id,
-    type,
+    idAndType,
     layoutContext,
     changeTime,
     contentVisible,
     onContentVisibilityChange,
 }) => {
-    const [validation, validationLoaderStatus] = useLoaderWithStatus(() => {
+    const [validation, validationLoaderStatus] = useLoaderWithStatus<
+        ValidatedAsset<AssetId> | undefined
+    >(() => {
+        const type = idAndType.type;
         switch (type) {
             case 'TRACK_NUMBER':
-                return getTrackNumberValidation(layoutContext, id);
+                return getTrackNumberValidation(layoutContext, idAndType.id);
             case 'KM_POST':
-                return getKmPostValidation(layoutContext, id);
+                return getKmPostValidation(layoutContext, idAndType.id);
             case 'SWITCH':
-                return getSwitchValidation(layoutContext, id);
+                return getSwitchValidation(layoutContext, idAndType.id);
             default:
                 return exhaustiveMatchingGuard(type);
         }
-    }, [id, type, layoutContext.publicationState, layoutContext.designId, changeTime]);
+    }, [
+        idAndType.id,
+        idAndType.type,
+        layoutContext.publicationState,
+        layoutContext.designId,
+        changeTime,
+    ]);
     const errors = validation?.errors.filter((err) => err.type === 'ERROR') || [];
     const warnings = validation?.errors.filter((err) => err.type === 'WARNING') || [];
 
@@ -45,7 +64,7 @@ export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxPro
         <AssetValidationInfobox
             contentVisible={contentVisible}
             onContentVisibilityChange={onContentVisibilityChange}
-            type={type}
+            type={idAndType.type}
             errors={errors}
             warnings={warnings}
             validationLoaderStatus={validationLoaderStatus}

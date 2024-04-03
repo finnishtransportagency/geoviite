@@ -33,7 +33,7 @@ import {
     SwitchStructureId,
     TrackMeter,
 } from 'common/common-model';
-import { PublishValidationError } from 'publication/publication-model';
+import { PublicationValidationError } from 'publication/publication-model';
 
 export type LocationTrackSaveRequest = {
     name: string;
@@ -117,34 +117,34 @@ export type GeometryPreliminaryLinkingParameters = {
 };
 
 export type GeometryLinkingAlignmentLockParameters = {
-    alignmentId: LocationTrackId | ReferenceLineId;
-    alignmentType: MapAlignmentType;
+    alignment: LayoutAlignmentTypeAndId;
     type: LinkingType.LinkingGeometryWithAlignment | LinkingType.LinkingGeometryWithEmptyAlignment;
 };
 
+export type LayoutAlignmentTypeAndId =
+    | { type: 'LOCATION_TRACK'; id: LocationTrackId }
+    | { type: 'REFERENCE_LINE'; id: ReferenceLineId };
+
 export type LinkingGeometryWithAlignment = LinkingBaseType & {
     type: LinkingType.LinkingGeometryWithAlignment;
-    layoutAlignmentType: MapAlignmentType;
     geometryPlanId: GeometryPlanId;
+    layoutAlignment: LayoutAlignmentTypeAndId;
     geometryAlignmentId: GeometryAlignmentId;
-    layoutAlignmentId: LocationTrackId | ReferenceLineId;
     geometryAlignmentInterval: LinkInterval;
     layoutAlignmentInterval: LinkInterval;
 };
 
 export type LinkingAlignment = LinkingBaseType & {
     type: LinkingType.LinkingAlignment;
-    layoutAlignmentType: MapAlignmentType;
-    layoutAlignmentId: LocationTrackId | ReferenceLineId;
+    layoutAlignment: LayoutAlignmentTypeAndId;
     layoutAlignmentInterval: LinkInterval;
 };
 
 export type LinkingGeometryWithEmptyAlignment = LinkingBaseType & {
     type: LinkingType.LinkingGeometryWithEmptyAlignment;
-    layoutAlignmentType: MapAlignmentType;
     geometryPlanId: GeometryPlanId;
     geometryAlignmentId: GeometryAlignmentId;
-    layoutAlignmentId: LocationTrackId | ReferenceLineId;
+    layoutAlignment: LayoutAlignmentTypeAndId;
     geometryAlignmentInterval: LinkInterval;
 };
 
@@ -300,7 +300,7 @@ export type SuggestedSwitch = {
     id: SuggestedSwitchId;
     switchStructureId: SwitchStructureId;
     joints: TrackLayoutSwitchJoint[];
-    trackLinks: { [k: LocationTrackId]: SwitchLinkingTrackLinks };
+    trackLinks: Record<LocationTrackId, SwitchLinkingTrackLinks>;
     geometryPlanId?: GeometryPlanId;
     geometrySwitchId?: GeometrySwitchId;
     alignmentEndPoint?: LocationTrackEndpoint;
@@ -348,7 +348,7 @@ export type SuggestedSwitchCreateParams = {
 export type SwitchRelinkingValidationResult = {
     id: LayoutSwitchId;
     successfulSuggestion: SwitchRelinkingSuggestion;
-    validationErrors: PublishValidationError[];
+    validationErrors: PublicationValidationError[];
 };
 
 export type SwitchRelinkingSuggestion = {

@@ -13,6 +13,21 @@ export const UserCard: React.FC<UserCardProps> = ({ user }: UserCardProps) => {
     const { t } = useTranslation();
     const [showMoreDetails, setShowMoreDetails] = React.useState(false);
 
+    const multipleRoleString = (): string => {
+        return user.availableRoles
+            .map((role) => {
+                const roleTranslation = t(`user-roles.${role.code}`);
+
+                return role.code === user.role.code
+                    ? `${roleTranslation} (${t('user-card.selected-role')})`
+                    : roleTranslation;
+            })
+            .join(', ');
+    };
+
+    const displayedRoleString =
+        user.availableRoles.length > 1 ? multipleRoleString() : t(`user-roles.${user.role.code}`);
+
     return (
         <Card
             className={styles['user-card']}
@@ -36,7 +51,7 @@ export const UserCard: React.FC<UserCardProps> = ({ user }: UserCardProps) => {
                                 <h3 className={styles['user-card__role-title']}>
                                     {t('user-card.role')}
                                 </h3>
-                                <span>{user.role.name}</span>
+                                <span>{displayedRoleString}</span>
                             </section>
                             <section>
                                 <h3 className={styles['user-card__permissions-title']}>

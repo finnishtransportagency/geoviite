@@ -31,6 +31,7 @@ function getKmOptions(startAndEnd: AlignmentStartAndEnd): Item<string>[] {
         return getKmsInRange(start, end).map((km) => ({
             name: km,
             value: km,
+            qaId: km,
         }));
     }
 

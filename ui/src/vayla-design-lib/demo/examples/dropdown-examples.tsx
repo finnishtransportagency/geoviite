@@ -50,6 +50,7 @@ export const DropdownExamples: React.FC = () => {
                     name: person.name,
                     value: person,
                     disabled: person.salary > 6000,
+                    qaId: person.name,
                 }))}
                 onChange={(person) => handleOnChange(person)}
                 canUnselect={true}
@@ -63,6 +64,7 @@ export const DropdownExamples: React.FC = () => {
                 options={examplePersons.map((person) => ({
                     name: person.name,
                     value: person,
+                    qaId: person.name,
                 }))}
                 onChange={(person) => handleOnChange(person)}
                 canUnselect={true}
@@ -77,6 +79,7 @@ export const DropdownExamples: React.FC = () => {
                 options={examplePersons.slice(0, 3).map((person) => ({
                     name: person.name,
                     value: person,
+                    qaId: person.name,
                 }))}
                 onChange={(person) => handleOnChange(person)}
             />
@@ -89,6 +92,7 @@ export const DropdownExamples: React.FC = () => {
                 options={examplePersons.slice(0, 3).map((person) => ({
                     name: person.name.repeat(3),
                     value: person,
+                    qaId: person.name,
                 }))}
                 onChange={(person) => handleOnChange(person)}
             />
@@ -101,6 +105,7 @@ export const DropdownExamples: React.FC = () => {
                 options={examplePersons.slice(0, 3).map((person) => ({
                     name: person.name,
                     value: person,
+                    qaId: person.name,
                 }))}
                 onChange={(person) => handleOnChange(person)}
             />
@@ -113,6 +118,7 @@ export const DropdownExamples: React.FC = () => {
                 options={examplePersons.slice(0, 3).map((person) => ({
                     name: person.name,
                     value: person,
+                    qaId: person.name,
                 }))}
                 onChange={(person) => handleOnChange(person)}
             />
@@ -125,6 +131,7 @@ export const DropdownExamples: React.FC = () => {
                 options={examplePersons.map((person) => ({
                     name: person.name,
                     value: person,
+                    qaId: person.name,
                 }))}
                 onChange={(person) => handleOnChange(person)}
                 onAddClick={() => alert('Add new clicked!')}
@@ -145,6 +152,7 @@ export const DropdownExamples: React.FC = () => {
                                           .map((person) => ({
                                               name: person.name,
                                               value: person,
+                                              qaId: person.name,
                                           }))
                                     : [],
                             );
@@ -165,6 +173,7 @@ export const DropdownExamples: React.FC = () => {
                 options={examplePersons.slice(0, 3).map((person) => ({
                     name: person.name,
                     value: person,
+                    qaId: person.name,
                 }))}
                 searchable
                 onChange={(person) => handleOnChange(person)}

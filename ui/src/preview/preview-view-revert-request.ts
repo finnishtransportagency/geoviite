@@ -1,5 +1,5 @@
-import { PublicationGroup, PublicationId, PublicationStage } from 'publication/publication-model';
-import { PreviewSelectType } from 'preview/preview-table';
+import { PublishableObjectId } from 'preview/preview-table';
+import { DraftChangeType, PublicationGroup, PublicationStage } from 'publication/publication-model';
 
 export enum RevertRequestType {
     STAGE_CHANGES,
@@ -13,8 +13,8 @@ export type RevertRequest =
     | RevertPublicationGroup;
 
 export type RevertRequestSource = {
-    id: PublicationId;
-    type: PreviewSelectType;
+    id: PublishableObjectId;
+    type: DraftChangeType;
     name: string;
 };
 

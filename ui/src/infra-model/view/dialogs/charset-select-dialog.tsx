@@ -9,10 +9,10 @@ import { Dropdown, Item } from 'vayla-design-lib/dropdown/dropdown';
 import { menuValueOption } from 'vayla-design-lib/menu/menu';
 
 const xmlEncodingOptions: Item<XmlCharset>[] = [
-    menuValueOption('ISO_8859_1', 'ISO-8859-1'),
-    menuValueOption('UTF_8', 'UTF-8'),
-    menuValueOption('UTF_16', 'UTF-16'),
-    menuValueOption('US_ASCII', 'US ASCII'),
+    menuValueOption('ISO_8859_1' as const, 'ISO-8859-1', 'ISO-8859-1'),
+    menuValueOption('UTF_8' as const, 'UTF-8', 'UTF-8'),
+    menuValueOption('UTF_16' as const, 'UTF-16', 'UTF-16'),
+    menuValueOption('US_ASCII' as const, 'US ASCII', 'US ASCII'),
 ];
 
 export type CharsetSelectDialogProps = {

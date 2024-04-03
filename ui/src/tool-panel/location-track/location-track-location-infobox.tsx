@@ -136,6 +136,10 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             return t('tool-panel.location-track.splitting-blocks-geometry-changes');
         }
 
+        if (locationTrack.state !== 'IN_USE') {
+            return t('tool-panel.location-track.unsupported-state-for-splitting');
+        }
+
         if (locationTrackIsDraft)
             reasons.push(t('tool-panel.location-track.splitting.validation.track-draft-exists'));
         if (duplicatesOnOtherTracks)
@@ -186,11 +190,11 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                     duplicateTracks: splitInitializationParameters?.duplicates || [],
                     startLocation: startAndEndPoints.start.point,
                     endLocation: startAndEndPoints.end.point,
-                        trackNumber: trackNumber.number,
-                        nearestOperatingPointToStart:
-                            splitInitializationParameters.nearestOperatingPointToStart,
-                        nearestOperatingPointToEnd:
-                            splitInitializationParameters.nearestOperatingPointToEnd,
+                    trackNumber: trackNumber.number,
+                    nearestOperatingPointToStart:
+                        splitInitializationParameters.nearestOperatingPointToStart,
+                    nearestOperatingPointToEnd:
+                        splitInitializationParameters.nearestOperatingPointToEnd,
                 });
                 showLayers(['location-track-split-location-layer']);
             }
@@ -198,9 +202,14 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     };
 
     const updateAlignment = (state: LinkingAlignment) => {
-        if (canUpdate && state.layoutAlignmentInterval.start && state.layoutAlignmentInterval.end) {
+        if (
+            canUpdate &&
+            state.layoutAlignmentInterval.start &&
+            state.layoutAlignmentInterval.end &&
+            state.layoutAlignment.type === 'LOCATION_TRACK'
+        ) {
             setUpdatingLength(true);
-            updateLocationTrackGeometry(state.layoutAlignmentId, {
+            updateLocationTrackGeometry(state.layoutAlignment.id, {
                 min: state.layoutAlignmentInterval.start.m,
                 max: state.layoutAlignmentInterval.end.m,
             })
@@ -349,6 +358,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 variant={ButtonVariant.SECONDARY}
                                                 size={ButtonSize.SMALL}
                                                 disabled={
+                                                    locationTrack.state !== 'IN_USE' ||
                                                     !publishTypeIsDraft ||
                                                     locationTrackIsDraft ||
                                                     duplicatesOnOtherTracks ||

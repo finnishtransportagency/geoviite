@@ -410,6 +410,7 @@ export const SwitchEditDialog = ({
                                     options={switchStructures.map((type) => ({
                                         name: type.type,
                                         value: type.id,
+                                        qaId: `type-${type.id}`,
                                     }))}
                                     onChange={(value) => value && updateStructureId(value)}
                                     onBlur={() => visitField('switchStructureId')}
@@ -446,6 +447,7 @@ export const SwitchEditDialog = ({
                                     options={switchOwners.map((o) => ({
                                         name: o.name,
                                         value: o.id,
+                                        qaId: `owner-${o.id}`,
                                     }))}
                                     onChange={(value) => value && updateOwner(value)}
                                     onBlur={() => visitField('ownerId')}
