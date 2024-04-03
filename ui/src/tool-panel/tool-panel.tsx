@@ -205,6 +205,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         onVisibilityChange={(visibilities) =>
                             infoboxVisibilityChange('geometryPlan', visibilities)
                         }
+                        changeTimes={changeTimes}
                     />
                 ),
             } as ToolPanelTab;

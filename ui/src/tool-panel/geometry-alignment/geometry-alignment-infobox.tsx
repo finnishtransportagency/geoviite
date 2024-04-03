@@ -139,6 +139,7 @@ const GeometryAlignmentInfobox: React.FC<GeometryAlignmentInfoboxProps> = ({
                     onVisibilityChange={(v) => {
                         onVisibilityChange({ ...visibilities, ...v });
                     }}
+                    changeTimes={changeTimes}
                 />
             )}
             <GeometryAlignmentVerticalGeometryInfobox
