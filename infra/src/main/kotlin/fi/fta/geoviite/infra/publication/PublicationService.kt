@@ -664,7 +664,11 @@ class PublicationService @Autowired constructor(
                         val switchTracks = validationContext.getSwitchTracksWithAlignments(switch.id as IntId)
                         validateSwitchTopologicalConnectivity(switch, structure, switchTracks, track)
                     }
-                val switchConnectivityErrors = validateLocationTrackSwitchConnectivity(track, alignment)
+                val switchConnectivityErrors =
+                    if (track.state != LayoutState.DELETED) validateLocationTrackSwitchConnectivity(
+                        track,
+                        alignment
+                    ) else emptyList()
 
                 val duplicatesAfterPublication = validationContext.getDuplicateTracks(id)
                 val duplicateOf = track.duplicateOf?.let(validationContext::getLocationTrack)
