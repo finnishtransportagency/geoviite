@@ -664,8 +664,7 @@ class PublicationService @Autowired constructor(
                         val switchTracks = validationContext.getSwitchTracksWithAlignments(switch.id as IntId)
                         validateSwitchTopologicalConnectivity(switch, structure, switchTracks, track)
                     }
-                val switchConnectivityErrors =
-                    if (track.state != LayoutState.DELETED) validateLocationTrackSwitchConnectivity(
+                val switchConnectivityErrors = if (track.exists) validateLocationTrackSwitchConnectivity(
                         track,
                         alignment
                     ) else emptyList()
