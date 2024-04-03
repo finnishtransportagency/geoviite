@@ -61,6 +61,7 @@ const splitToRequestTarget = (
 
 export const validateSplit = (
     split: FirstSplitTargetCandidate | SplitTargetCandidate,
+    nextSwitchId: LayoutSwitchId | undefined,
     allSplitNames: string[],
     conflictingTrackNames: string[],
     switches: LayoutSwitch[],
@@ -68,7 +69,7 @@ export const validateSplit = (
     split: split,
     nameErrors: validateSplitName(split.name, allSplitNames, conflictingTrackNames),
     descriptionErrors: validateSplitDescription(split.descriptionBase, split.duplicateTrackId),
-    switchErrors: split.type === 'SPLIT' ? validateSplitSwitch(split, switches) : [],
+    switchErrors: validateSplitSwitch(split, nextSwitchId, switches),
 });
 
 const validateSplitName = (
@@ -109,10 +110,17 @@ const validateSplitDescription = (
     return errors;
 };
 
-const validateSplitSwitch = (split: SplitTargetCandidate, switches: LayoutSwitch[]) => {
+const validateSplitSwitch = (
+    split: SplitTargetCandidate | FirstSplitTargetCandidate,
+    nextSwitchId: LayoutSwitchId | undefined,
+    switches: LayoutSwitch[],
+) => {
     const errors: ValidationError<SplitTargetCandidate>[] = [];
     const switchAtSplit = switches.find((s) => s.id === split.switchId);
-    if (!switchAtSplit || switchAtSplit.stateCategory === 'NOT_EXISTING') {
+    if (
+        split.switchId !== undefined &&
+        (!switchAtSplit || switchAtSplit.stateCategory === 'NOT_EXISTING')
+    ) {
         errors.push({
             field: 'switchId',
             reason: 'switch-not-found',
@@ -122,12 +130,20 @@ const validateSplitSwitch = (split: SplitTargetCandidate, switches: LayoutSwitch
     const switchAtStart = split.duplicateStatus?.startSwitchId;
     if (switchAtStart && split.switchId !== switchAtStart) {
         const type =
-            split.duplicateStatus?.match === 'PARTIAL'
-                ? ValidationErrorType.ERROR
-                : ValidationErrorType.WARNING;
+            split.operation == 'TRANSFER' ? ValidationErrorType.ERROR : ValidationErrorType.WARNING;
         errors.push({
             field: 'switchId',
             reason: 'switch-not-matching-start-switch',
+            type: type,
+        });
+    }
+    const switchAtEnd = split.duplicateStatus?.endSwitchId;
+    if (switchAtEnd && nextSwitchId !== switchAtStart) {
+        const type =
+            split.operation == 'TRANSFER' ? ValidationErrorType.ERROR : ValidationErrorType.WARNING;
+        errors.push({
+            field: 'switchId',
+            reason: 'switch-not-matching-end-switch',
             type: type,
         });
     }
