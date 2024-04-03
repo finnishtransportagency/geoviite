@@ -10,13 +10,14 @@ import DataProductsMenu from 'app-bar/data-products-menu';
 import AppBarMoreMenu from 'app-bar/app-bar-more-menu';
 import { FrontpageLink } from 'app-bar/links/frontpage-link';
 import { AppBarLink } from 'app-bar/links/app-bar-link';
-import { PrivilegeRequired } from 'user/privilege-required';
-import { VIEW_GEOMETRY } from 'user/user-model';
+import { PrivilegeCode, userHasPrivilege, VIEW_GEOMETRY } from 'user/user-model';
+import { useCommonDataAppSelector } from 'store/hooks';
 
 type Link = {
     link: string;
     name: string;
     type: Environment;
+    privilege?: PrivilegeCode;
     qaId?: string;
 };
 
@@ -29,7 +30,13 @@ const links: Link[] = [
         qaId: 'track-layout-link',
     },
     { link: '/registry', name: 'app-bar.register', type: 'test' },
-    { link: '/infra-model', name: 'app-bar.infra-model', type: 'prod', qaId: 'infra-model-link' },
+    {
+        link: '/infra-model',
+        name: 'app-bar.infra-model',
+        type: 'prod',
+        qaId: 'infra-model-link',
+        privilege: VIEW_GEOMETRY,
+    },
     { link: '/design-lib-demo', name: 'app-bar.components', type: 'dev' },
     { link: '/localization-demo', name: 'app-bar.localization', type: 'dev' },
 ];
@@ -37,22 +44,26 @@ const links: Link[] = [
 export const AppBar: React.FC = () => {
     const { t } = useTranslation();
 
+    const privileges = useCommonDataAppSelector((state) => state.user?.role.privileges ?? []).map(
+        (p) => p.code,
+    );
+
     function getNavLink(link: Link) {
         switch (link.link) {
             case '/':
                 return <FrontpageLink />;
 
             case '/infra-model':
-                return (
-                    <PrivilegeRequired privilege={VIEW_GEOMETRY}>
-                        <InfraModelLink />
-                    </PrivilegeRequired>
-                );
+                return <InfraModelLink />;
 
             default:
                 return <AppBarLink linkAddress={link.link} linkName={t(link.name)} />;
         }
     }
+
+    const linksWithUserPrivileges = links.filter((link) =>
+        link.privilege ? userHasPrivilege(privileges, link.privilege) : true,
+    );
 
     return (
         <nav className={styles['app-bar']}>
@@ -61,7 +72,7 @@ export const AppBar: React.FC = () => {
                 <div>Geoviite</div>
             </div>
             <ul className={styles['app-bar__links']}>
-                {links.map((link) => {
+                {linksWithUserPrivileges.map((link) => {
                     return (
                         <EnvRestricted restrictTo={link.type} key={link.name}>
                             <li qa-id={link.qaId}>{getNavLink(link)}</li>
