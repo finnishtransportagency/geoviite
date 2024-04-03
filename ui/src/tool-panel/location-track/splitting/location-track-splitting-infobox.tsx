@@ -165,6 +165,7 @@ const createSplitComponent = (
     return {
         component: (
             <LocationTrackSplit
+                locationTrackId={splittingState.originLocationTrack.id}
                 key={`${split.location.x}_${split.location.y}`}
                 split={split}
                 addressPoint={getSplitAddressPoint(
@@ -174,7 +175,7 @@ const createSplitComponent = (
                 )}
                 onRemove={split.type === 'SPLIT' ? removeSplit : undefined}
                 updateSplit={updateSplit}
-                duplicateOf={split.duplicateTrackId}
+                duplicateTrackId={split.duplicateTrackId}
                 nameErrors={nameErrors}
                 descriptionErrors={descriptionErrors}
                 switchErrors={switchErrors}

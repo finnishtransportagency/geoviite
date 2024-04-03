@@ -2,6 +2,7 @@ import {
     AddressPoint,
     LayoutLocationTrack,
     LayoutSwitch,
+    LayoutSwitchId,
     LocationTrackId,
 } from 'track-layout/track-layout-model';
 import {
@@ -18,6 +19,7 @@ import {
     validateLocationTrackName,
 } from 'tool-panel/location-track/dialog/location-track-validation';
 import { isEqualIgnoreCase } from 'utils/string-utils';
+import { SplitDuplicateStatus } from 'track-layout/layout-location-track-api';
 
 export type ValidatedSplit = {
     split: SplitTargetCandidate | FirstSplitTargetCandidate;
@@ -117,6 +119,18 @@ const validateSplitSwitch = (split: SplitTargetCandidate, switches: LayoutSwitch
             type: ValidationErrorType.ERROR,
         });
     }
+    const switchAtStart = split.duplicateStatus?.startSwitchId;
+    if (switchAtStart && split.switchId !== switchAtStart) {
+        const type =
+            split.duplicateStatus?.match === 'PARTIAL'
+                ? ValidationErrorType.ERROR
+                : ValidationErrorType.WARNING;
+        errors.push({
+            field: 'switchId',
+            reason: 'switch-not-matching-start-switch',
+            type: type,
+        });
+    }
     return errors;
 };
 
@@ -173,5 +187,24 @@ export const getSplitAddressPoint = (
             point: originLocationTrackStart.point,
             address: originLocationTrackStart.address,
         };
+    }
+};
+
+export type SplitTargetOperation = 'NEW' | 'OVERWRITE' | 'TRANSFER';
+
+export const getOperation = (
+    trackId: LocationTrackId,
+    switchId: LayoutSwitchId | undefined,
+    duplicateStatus: SplitDuplicateStatus | undefined,
+): SplitTargetOperation => {
+    switch (duplicateStatus?.match) {
+        case 'FULL':
+            return 'OVERWRITE';
+        case 'PARTIAL':
+            return switchId !== undefined && duplicateStatus?.startSwitchId === switchId
+                ? 'TRANSFER'
+                : 'OVERWRITE';
+        default:
+            return duplicateStatus?.duplicateOfId === trackId ? 'OVERWRITE' : 'NEW';
     }
 };

@@ -472,5 +472,6 @@ data class SplitTargetInPublication(
     val oid: Oid<LocationTrack>?,
     val startAddress: TrackMeter?,
     val endAddress: TrackMeter?,
+    // TODO: GVT-2525 3-way enum: created, duplicate reused, target-transfer
     val newlyCreated: Boolean,
 )

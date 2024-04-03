@@ -67,6 +67,7 @@ export type AlignmentPlanSection = {
 
 export type SplitDuplicateMatch = 'FULL' | 'PARTIAL' | 'NONE';
 
+// TODO: GVT-2525 combine into SplitDuplicate
 export type SplitDuplicateStatus = {
     match: SplitDuplicateMatch;
     duplicateOfId: LocationTrackId | undefined;

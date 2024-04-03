@@ -365,5 +365,6 @@ export type SplitTargetInPublication = {
     oid: Oid;
     startAddress: TrackMeter;
     endAddress: TrackMeter;
+    // TODO: GVT-2525 3-way enum: created, duplicate reused, target-transfer
     newlyCreated: boolean;
 };

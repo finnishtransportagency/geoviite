@@ -33,9 +33,8 @@ fun getDuplicateMatches(
     duplicateTrackJoints: List<Pair<IntId<TrackLayoutSwitch>, JointNumber>>,
     mainTrackId: DomainId<LocationTrack>,
     duplicateOf: IntId<LocationTrack>?,
-): List<Pair<Int, DuplicateStatus>> {
-    val matchIndices =
-        findOrderedMatches(mainTrackJoints, duplicateTrackJoints)
+): List<Pair<Int, SplitDuplicateStatus>> {
+    val matchIndices = findOrderedMatches(mainTrackJoints, duplicateTrackJoints)
     val matchRanges = buildDuplicateIndexRanges(matchIndices)
 
     return if (matchRanges.isEmpty() && duplicateOf != mainTrackId) {
@@ -43,13 +42,13 @@ fun getDuplicateMatches(
         emptyList()
     } else if (matchRanges.isEmpty() && duplicateOf == mainTrackId) {
         // Marked as duplicate, but no matches -> something is likely wrong
-        listOf(-1 to DuplicateStatus(SplitDuplicateMatch.NONE, duplicateOf, null, null))
+        listOf(-1 to SplitDuplicateStatus(SplitDuplicateMatch.NONE, duplicateOf, null, null))
     } else {
         matchRanges.map { range ->
             val match =
                 if (range == 0..duplicateTrackJoints.lastIndex) SplitDuplicateMatch.FULL
                 else SplitDuplicateMatch.PARTIAL
-            range.first to DuplicateStatus(
+            range.first to SplitDuplicateStatus(
                 match = match,
                 duplicateOfId = duplicateOf,
                 startSwitchId = duplicateTrackJoints[range.first].first,

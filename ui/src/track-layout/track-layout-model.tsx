@@ -25,6 +25,7 @@ import { AlignmentHeader, AlignmentPolyLine } from './layout-map-api';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { Brand } from 'common/brand';
+import { SplitDuplicateStatus } from './layout-location-track-api';
 
 export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'PLANNED' | 'DELETED';
 export type LayoutStateCategory = 'EXISTING' | 'NOT_EXISTING' | 'FUTURE_EXISTING';
@@ -126,6 +127,7 @@ export type LocationTrackDuplicate = {
     trackNumberId: LayoutTrackNumberId;
     name: string;
     externalId: Oid;
+    duplicateStatus: SplitDuplicateStatus;
 };
 export type LayoutSwitchIdAndName = { id: LayoutSwitchId; name: string };
 

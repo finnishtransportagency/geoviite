@@ -58,7 +58,10 @@ private val splitCsvColumns = listOf(
     ) { (_, split) -> split.oid },
     CsvEntry(
         translateSplitTargetListingHeader(SplitTargetListingHeader.OPERATION),
-    ) { (_, split) -> if (split.newlyCreated) "Uusi kohde" else "Duplikaatti korvattu" },
+    ) { (_, split) ->
+        // TODO: GVT-2525 "kohteet siirretty"
+        if (split.newlyCreated) "Uusi kohde" else "Duplikaatti korvattu"
+    },
     CsvEntry(
         translateSplitTargetListingHeader(SplitTargetListingHeader.START_ADDRESS),
     ) { (_, split) -> split.startAddress },
