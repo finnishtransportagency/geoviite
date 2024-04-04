@@ -5,7 +5,12 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationValidationError
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FreeText
 
 enum class BulkTransferState {
@@ -63,13 +68,21 @@ data class SplitPublicationValidationErrors(
     val switches: Map<IntId<TrackLayoutSwitch>, List<PublicationValidationError>>,
 )
 
+enum class SplitTargetOperation { OVERWRITE, TRANSFER }
+
+data class SplitRequestTargetDuplicate(
+    val id: IntId<LocationTrack>,
+    val operation: SplitTargetOperation,
+)
+
 data class SplitRequestTarget(
-    val duplicateTrackId: IntId<LocationTrack>?,
+    val duplicateTrack: SplitRequestTargetDuplicate?,
     val startAtSwitchId: IntId<TrackLayoutSwitch>?,
     val name: AlignmentName,
     val descriptionBase: FreeText,
     val descriptionSuffix: DescriptionSuffixType,
 )
+
 data class SplitRequest(
     val sourceTrackId: IntId<LocationTrack>,
     val targetTracks: List<SplitRequestTarget>,

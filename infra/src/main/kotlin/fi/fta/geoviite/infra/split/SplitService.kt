@@ -14,10 +14,23 @@ import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationValidationError
-import fi.fta.geoviite.infra.publication.PublicationValidationErrorType
+import fi.fta.geoviite.infra.publication.PublicationValidationErrorType.ERROR
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutContextData
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -37,28 +50,6 @@ class SplitService(
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-
-    fun saveSplit(
-        locationTrackId: IntId<LocationTrack>,
-        splitTargets: Collection<SplitTarget>,
-        relinkedSwitches: Collection<IntId<TrackLayoutSwitch>>,
-        updatedDuplicates: Collection<IntId<LocationTrack>>,
-    ): IntId<Split> {
-        logger.serviceCall(
-            "saveSplit",
-            "locationTrackId" to locationTrackId,
-            "splitTargets" to splitTargets,
-            "relinkedSwitches" to relinkedSwitches,
-            "updatedDuplicates" to updatedDuplicates,
-        )
-
-        return splitDao.saveSplit(
-            locationTrackId,
-            splitTargets,
-            relinkedSwitches,
-            updatedDuplicates
-        )
-    }
 
     fun getChangeTime(): Instant {
         logger.serviceCall("getChangeTime")
@@ -125,7 +116,12 @@ class SplitService(
         }.let(::findUnpublishedSplitsForSwitches)
 
         val splits = (splitsByLocationTracks + splitsBySwitches).distinctBy { it.id }
-        val splitErrors = validateSplitContent(candidates.locationTracks, candidates.switches, splits, allowMultipleSplits)
+        val splitErrors = validateSplitContent(
+            trackVersions = candidates.locationTracks,
+            switchVersions = candidates.switches,
+            splits = splits,
+            allowMultipleSplits = allowMultipleSplits,
+        )
 
         val tnSplitErrors = candidates.trackNumbers.associate { (id, _) ->
             id to listOfNotNull(validateSplitReferencesByTrackNumber(id))
@@ -215,12 +211,7 @@ class SplitService(
 
         val statusError = splits
             .firstOrNull { !it.isPending }
-            ?.let {
-                PublicationValidationError(
-                    PublicationValidationErrorType.ERROR,
-                    "$VALIDATION_SPLIT.split-in-progress",
-                )
-            }
+            ?.let { PublicationValidationError(ERROR, "$VALIDATION_SPLIT.split-in-progress") }
 
         return listOf(
             listOfNotNull(
@@ -263,12 +254,11 @@ class SplitService(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): PublicationValidationError? {
         val splitIds = splitDao.fetchUnfinishedSplitIdsByTrackNumber(trackNumberId)
-        return if (splitIds.isNotEmpty())
-            PublicationValidationError(
-                PublicationValidationErrorType.ERROR,
-                "$VALIDATION_SPLIT.split-in-progress",
-            )
-        else null
+        return if (splitIds.isNotEmpty()) {
+            PublicationValidationError(ERROR, "$VALIDATION_SPLIT.split-in-progress")
+        } else {
+            null
+        }
     }
 
     fun updateSplitState(splitId: IntId<Split>, state: BulkTransferState): IntId<Split> {
@@ -290,10 +280,12 @@ class SplitService(
             .map { duplicateTrack -> duplicateTrack.id as IntId }
 
         val sourceTrack = locationTrackDao.getOrThrow(DRAFT, request.sourceTrackId)
-        if (sourceTrack.state != LayoutState.IN_USE) throw SplitFailureException(
-            message = "Source track state is not IN_USE: id=${sourceTrack.id}",
-            localizedMessageKey = "source-track-state-not-in-use",
-        )
+        if (sourceTrack.state != LayoutState.IN_USE) {
+            throw SplitFailureException(
+                message = "Source track state is not IN_USE: id=${sourceTrack.id}",
+                localizedMessageKey = "source-track-state-not-in-use",
+            )
+        }
 
         val suggestions = verifySwitchSuggestions(switchLinkingService.getTrackSwitchSuggestions(DRAFT, sourceTrack))
         val relinkedSwitches = switchLinkingService.relinkTrack(request.sourceTrackId).map { it.id }
@@ -343,9 +335,9 @@ class SplitService(
         splitTargetLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     ) {
         val unusedDuplicates = locationTrackService.fetchDuplicates(DRAFT, splitRequest.sourceTrackId)
-            .filter { locationTrackDuplicate  ->
+            .filter { locationTrackDuplicate ->
                 !splitRequest.targetTracks.any { targetTrack ->
-                    targetTrack.duplicateTrackId == locationTrackDuplicate.id
+                    targetTrack.duplicateTrack?.id == locationTrackDuplicate.id
                 }
             }
             .let { unusedDuplicateTracks ->
@@ -379,16 +371,19 @@ class SplitService(
         return targets.map { target ->
             val startSwitch = target.startAtSwitchId?.let { switchId ->
                 val jointNumber = suggestions
-                    .find { (id, _) -> id == switchId }?.let { (_, suggestion) ->
+                    .find { (id, _) -> id == switchId }
+                    ?.let { (_, suggestion) ->
                         switchLibraryService.getSwitchStructure(suggestion.switchStructureId).presentationJointNumber
-                    } ?: throw SplitFailureException(
-                        message = "No re-linked switch for switch: id=${switchId}",
+                    }
+                    ?: throw SplitFailureException(
+                        message = "No re-linked switch for switch: id=$switchId",
                         localizedMessageKey = "no-switch-suggestion",
                     )
                 switchId to jointNumber
             }
-            val duplicate = target.duplicateTrackId?.let { id ->
-                locationTrackService.getWithAlignmentOrThrow(DRAFT, id)
+            val duplicate = target.duplicateTrack?.let { d ->
+                val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, d.id)
+                SplitTargetDuplicate(d.operation, track, alignment)
             }
             SplitTargetParams(target, startSwitch, duplicate)
         }
@@ -398,7 +393,13 @@ class SplitService(
 data class SplitTargetParams(
     val request: SplitRequestTarget,
     val startSwitch: Pair<IntId<TrackLayoutSwitch>, JointNumber>?,
-    val duplicate: Pair<LocationTrack, LayoutAlignment>?,
+    val duplicate: SplitTargetDuplicate?,
+)
+
+data class SplitTargetDuplicate(
+    val operation: SplitTargetOperation,
+    val track: LocationTrack,
+    val alignment: LayoutAlignment,
 )
 
 data class SplitTargetResult(
@@ -417,18 +418,32 @@ fun splitLocationTrack(
         val segmentIndices = findSplitIndices(alignment, target.startSwitch, nextSwitch)
         val segments = cutSegments(alignment, segmentIndices)
         val connectivityType = calculateTopologicalConnectivity(track, alignment.segments.size, segmentIndices)
-        val (newTrack, newAlignment) = target.duplicate?.let { (track, alignment) ->
-            updateDuplicateToSplitTarget(track, track, alignment, target.request, segments, connectivityType)
+        val (newTrack, newAlignment) = target.duplicate?.let { d ->
+            when (d.operation) {
+                SplitTargetOperation.TRANSFER -> {
+                    TODO("GVT-2525 handle transfer operation")
+                }
+                SplitTargetOperation.OVERWRITE -> updateDuplicateToSplitTarget(
+                    sourceTrack = track,
+                    duplicateTrack = d.track,
+                    duplicateAlignment = d.alignment,
+                    request = target.request,
+                    segments = segments,
+                    topologicalConnectivityType = connectivityType,
+                )
+            }
         } ?: createSplitTarget(track, target.request, segments, connectivityType)
         SplitTargetResult(newTrack, newAlignment, segmentIndices)
     }.also { result -> validateSplitResult(result, alignment) }
 }
 
 fun validateSplitResult(result: List<SplitTargetResult>, alignment: LayoutAlignment) {
-    if (result.sumOf { r -> r.alignment.segments.size } != alignment.segments.size) throw SplitFailureException(
-        message = "Not all segments were allocated in the split",
-        localizedMessageKey = "segment-allocation-failed",
-    )
+    if (result.sumOf { r -> r.alignment.segments.size } != alignment.segments.size) {
+        throw SplitFailureException(
+            message = "Not all segments were allocated in the split",
+            localizedMessageKey = "segment-allocation-failed",
+        )
+    }
 }
 
 private fun updateDuplicateToSplitTarget(
@@ -569,7 +584,6 @@ private fun findNewLocationTracksForUnusedDuplicates(
     unusedDuplicates: List<Pair<LocationTrack, LayoutAlignment>>,
     splitTargetLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
 ): List<LocationTrack> {
-
     val geocodedUnusedDuplicates = unusedDuplicates
         .mapNotNull { (unusedDuplicate, alignment) ->
             getAlignmentStartAndEndM(geocodingContext, alignment)?.let { startAndEnd ->
@@ -598,7 +612,6 @@ private fun findNewLocationTracksForUnusedDuplicates(
                     }
                     ?: currentHighestOverlap
             }
-
         }.let { bestNewLocationTrackReference ->
             bestNewLocationTrackReference.locationTrack?.id as IntId?
         }?.let { newReferenceTrackId ->
@@ -606,7 +619,7 @@ private fun findNewLocationTracksForUnusedDuplicates(
         } ?: throw SplitFailureException(
             message = "Could not find a new reference for duplicate location track: duplicateId=${duplicate.id}",
             localizedMessageKey = "new-duplicate-reference-assignment-failed",
-            localizationParams = localizationParams("duplicate" to duplicate.name)
+            localizationParams = localizationParams("duplicate" to duplicate.name),
         )
     }
 }

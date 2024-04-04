@@ -9,7 +9,9 @@ import {
     FirstSplitTargetCandidate,
     SplitRequest,
     SplitRequestTarget,
+    SplitRequestTargetDuplicate,
     SplitTargetCandidate,
+    SplitTargetOperation,
     SwitchOnLocationTrack,
 } from 'tool-panel/location-track/split-store';
 import { findById } from 'utils/array-utils';
@@ -51,13 +53,22 @@ export const splitRequest = (
 const splitToRequestTarget = (
     split: SplitTargetCandidate | FirstSplitTargetCandidate,
     duplicate: LayoutLocationTrack | undefined,
-): SplitRequestTarget => ({
-    name: duplicate ? duplicate.name : split.name,
-    descriptionBase: (duplicate ? duplicate.descriptionBase : split.descriptionBase) ?? '',
-    descriptionSuffix: (duplicate ? duplicate.descriptionSuffix : split.suffixMode) ?? 'NONE',
-    duplicateTrackId: split.duplicateTrackId,
-    startAtSwitchId: split.type === 'SPLIT' ? split?.switchId : undefined,
-});
+): SplitRequestTarget => {
+    const duplicateTrack: SplitRequestTargetDuplicate | undefined =
+        split.duplicateTrackId && split.operation
+            ? {
+                  id: split.duplicateTrackId,
+                  operation: split.operation,
+              }
+            : undefined;
+    return {
+        name: duplicate ? duplicate.name : split.name,
+        descriptionBase: (duplicate ? duplicate.descriptionBase : split.descriptionBase) ?? '',
+        descriptionSuffix: (duplicate ? duplicate.descriptionSuffix : split.suffixMode) ?? 'NONE',
+        duplicateTrack: duplicateTrack,
+        startAtSwitchId: split.type === 'SPLIT' ? split?.switchId : undefined,
+    };
+};
 
 export const validateSplit = (
     split: FirstSplitTargetCandidate | SplitTargetCandidate,
@@ -210,13 +221,11 @@ export const getSplitAddressPoint = (
     }
 };
 
-export type SplitTargetOperation = 'NEW' | 'OVERWRITE' | 'TRANSFER';
-
 export const getOperation = (
     trackId: LocationTrackId,
     switchId: LayoutSwitchId | undefined,
     duplicateStatus: SplitDuplicateStatus | undefined,
-): SplitTargetOperation => {
+): SplitTargetOperation | undefined => {
     switch (duplicateStatus?.match) {
         case 'FULL':
             return 'OVERWRITE';
@@ -225,6 +234,6 @@ export const getOperation = (
                 ? 'TRANSFER'
                 : 'OVERWRITE';
         default:
-            return duplicateStatus?.duplicateOfId === trackId ? 'OVERWRITE' : 'NEW';
+            return duplicateStatus?.duplicateOfId === trackId ? 'OVERWRITE' : undefined;
     }
 };
