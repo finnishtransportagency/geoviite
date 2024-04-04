@@ -116,6 +116,7 @@ fun toElementListing(
                     track,
                     planHeader,
                     alignment,
+                    trackNumber,
                     element,
                     segment,
                     getSwitchName
@@ -180,6 +181,7 @@ private fun toElementListing(
     locationTrack: LocationTrack,
     planHeader: GeometryPlanHeader,
     alignment: GeometryAlignment,
+    trackNumber: TrackNumber?,
     element: GeometryElement,
     segment: LayoutSegment,
     getSwitchName: (IntId<TrackLayoutSwitch>) -> SwitchName
@@ -190,7 +192,7 @@ private fun toElementListing(
     planSource = planHeader.source,
     fileName = planHeader.fileName,
     units = planHeader.units,
-    trackNumber = context?.trackNumber,
+    trackNumber = trackNumber,
     trackNumberDescription = null,
     alignment = alignment,
     element = element,

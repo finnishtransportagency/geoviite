@@ -39,7 +39,7 @@ import InfraModelFormChosenDateDropDowns from 'infra-model/view/form/fields/infr
 import FormgroupField from 'infra-model/view/formgroup/formgroup-field';
 import { formatDateShort } from 'utils/date-utils';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
-import { filterNotEmpty, first, last } from 'utils/array-utils';
+import { filterNotEmpty, filterUnique, first, last } from 'utils/array-utils';
 import { getTrackNumbers } from 'track-layout/layout-track-number-api';
 import { updateProjectChangeTime } from 'common/change-time-api';
 import { ProjectDropdown } from 'infra-model/view/form/fields/infra-model-project-field';
@@ -127,7 +127,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const [showNewAuthorDialog, setShowNewAuthorDialog] = React.useState<boolean>();
     const [showNewProjectDialog, setShowNewProjectDialog] = React.useState<boolean>();
     const [showNewTrackNumberDialog, setShowNewTrackNumberDialog] = React.useState(false);
-    const [trackNumberList, setTrackNumberList] = React.useState<TrackNumber[]>();
+    const [layoutTrackNumberList, setLayoutTrackNumberList] = React.useState<TrackNumber[]>();
     const [customTrackNumber, setCustomTrackNumber] = React.useState<TrackNumber>();
     const [project, setProject] = React.useState<Project>();
     const pvDocument = usePvDocumentHeader(geometryPlan.pvDocumentId);
@@ -166,29 +166,31 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
         });
     }
 
-    function updateTrackNumbers() {
+    function updateLayoutTrackNumbers() {
         getTrackNumbers(
             userHasPrivilege(privileges, VIEW_LAYOUT_DRAFT)
                 ? draftMainLayoutContext()
                 : officialMainLayoutContext(),
-        ).then((trackNumbers) => {
-            const numbers = trackNumbers.map((tn) => tn.number);
-            setTrackNumberList([
-                ...numbers,
-                ...(geometryPlan.trackNumber && !numbers.includes(geometryPlan.trackNumber)
-                    ? [geometryPlan.trackNumber]
-                    : []),
-                ...(customTrackNumber ? [customTrackNumber] : []),
-            ]);
-        });
+        ).then((trackNumbers) => setLayoutTrackNumberList(trackNumbers.map((ltn) => ltn.number)));
     }
+
+    const trackNumberList = (() => {
+        const tns = layoutTrackNumberList ?? [];
+        return [
+            ...tns,
+            ...(geometryPlan.trackNumber ? [geometryPlan.trackNumber] : []),
+            ...(customTrackNumber ? [customTrackNumber] : []),
+        ].filter(filterUnique);
+    })();
 
     function handleDayChange(chosenDate: Date) {
         changeInOverrideParametersField(chosenDate, 'createdDate');
     }
 
     function getTrackNumberName() {
-        return overrideInfraModelParameters.trackNumber ?? geometryPlan.trackNumber;
+        return 'trackNumber' in overrideInfraModelParameters
+            ? overrideInfraModelParameters.trackNumber
+            : geometryPlan.trackNumber;
     }
 
     const authorsIncludingFromPlan = () => {
@@ -201,11 +203,11 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
     React.useEffect(() => {
         getSridList().then((list) => setSridList(list));
-        updateTrackNumbers();
+        updateLayoutTrackNumbers();
     }, []);
 
     React.useEffect(() => {
-        updateTrackNumbers();
+        updateLayoutTrackNumbers();
     }, [changeTimes]);
 
     React.useEffect(() => {
@@ -402,10 +404,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                     value={
                                         <Dropdown
                                             placeholder={t('im-form.coordinate-system-dropdown')}
-                                            value={
-                                                overrideInfraModelParameters.trackNumber ??
-                                                geometryPlan.trackNumber
-                                            }
+                                            value={getTrackNumberName()}
                                             options={
                                                 trackNumberList
                                                     ? trackNumberList

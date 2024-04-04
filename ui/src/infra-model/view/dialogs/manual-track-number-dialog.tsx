@@ -10,6 +10,7 @@ import { FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { brand } from 'common/brand';
+import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 
 type ManualTrackNumberDialogProps = {
     onSave: (trackNumber: TrackNumber) => void;
@@ -24,7 +25,10 @@ export const ManualTrackNumberDialog: React.FC<ManualTrackNumberDialogProps> = (
     const [trackNumber, setTrackNumber] = useState('');
 
     const saveEnabled = trackNumber.length > 1;
-    const onClickSave = () => onSave(brand(trackNumber));
+    const onClickSave = () => {
+        Snackbar.success('im-form.track-number-manually-set');
+        onSave(brand(trackNumber));
+    };
 
     return (
         <Dialog

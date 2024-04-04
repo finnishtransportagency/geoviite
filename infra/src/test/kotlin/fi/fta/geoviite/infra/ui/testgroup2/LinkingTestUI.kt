@@ -294,6 +294,7 @@ class LinkingTestUI @Autowired constructor(
     @Test
     fun `Link geometry KM-post to new KM-post`() {
         val trackNumber = getUnusedTrackNumber()
+        insertOfficialTrackNumber(trackNumber)
         val lastKmPostLocation = Point(34.0, 30.0)
 
         testGeometryPlanService
@@ -338,7 +339,7 @@ class LinkingTestUI @Autowired constructor(
     @Test
     fun `Link geometry switch to new location tracks and layout switch`() {
         val trackNumber = TrackNumber("foo tracknumber")
-        val trackNumberId = insertOfficialTrackNumber(trackNumber)
+        insertOfficialTrackNumber(trackNumber)
         val plan = testGeometryPlanService
             .buildPlan(trackNumber)
             .switch("switch to link", "YV54-200N-1:9-O", Point(5.0, 5.0))

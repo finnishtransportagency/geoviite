@@ -56,6 +56,7 @@ class RatkoServiceIT @Autowired constructor(
             truncate publication.publication cascade;
             truncate integrations.lock cascade;
             truncate layout.track_number cascade;
+            truncate layout.switch cascade;
             truncate layout.operating_point cascade;
             truncate layout.operating_point_version cascade;
         """.trimIndent()
