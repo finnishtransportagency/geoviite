@@ -1,9 +1,16 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType.STORED
 import fi.fta.geoviite.infra.common.DataType.TEMP
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
@@ -12,7 +19,11 @@ import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.START_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.TopologyLinkFindingSwitch
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.math.*
+import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
+import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.ratko.RatkoOperatingPointDao
 import fi.fta.geoviite.infra.ratko.model.OperationalPointType
@@ -412,7 +423,7 @@ class LocationTrackService(
         val locationTrackAndAlignment = getWithAlignment(publicationState, id)
         return locationTrackAndAlignment?.let { (locationTrack, alignment) ->
             val duplicateOf = getDuplicateOf(locationTrack, publicationState)
-            val sortedDuplicates = getLocationTrackDuplicates(id, publicationState)
+            val sortedDuplicates = getLocationTrackDuplicates(locationTrack, alignment, publicationState)
             val startSwitch = (alignment.segments.firstOrNull()?.switchId as IntId?
                 ?: locationTrack.topologyStartSwitch?.switchId)?.let { id -> fetchSwitchAtEndById(id, publicationState) }
             val endSwitch = (alignment.segments.lastOrNull()?.switchId as IntId?
@@ -448,41 +459,48 @@ class LocationTrackService(
         ) + switchDao.findSwitchesNearAlignment(alignmentVersion)).distinct().size
 
     private fun getLocationTrackDuplicates(
-        id: IntId<LocationTrack>,
+        track: LocationTrack,
+        alignment: LayoutAlignment,
         publicationState: PublicationState,
     ): List<LocationTrackDuplicate> {
-        val originalAndAlignment = getWithAlignmentOrThrow(publicationState, id)
-        val duplicates = dao.fetchDuplicateVersions(id, publicationState).map(dao::fetch)
+        val switchJoints = collectSwitchJoints(track, alignment)
 
-        val duplicateMValues = duplicates.map { duplicate ->
-            duplicate.alignmentVersion?.let { alignmentVersion ->
-                alignmentDao.fetch(alignmentVersion).firstSegmentStart?.let(
-                    originalAndAlignment.second::getClosestPointM
-                )?.first
+        val markedDuplicateVersions = dao.fetchDuplicateVersions(track.id as IntId, publicationState)
+        val tracksLinkedThroughSwitch = switchDao.findLocationTracksLinkedToSwitches(publicationState, track.switchIds)
+            .map(LayoutSwitchDao.LocationTrackIdentifiers::rowVersion)
+
+        return (markedDuplicateVersions + tracksLinkedThroughSwitch)
+            .asSequence()
+            .distinct()
+            .map(::getWithAlignmentInternal)
+            .filter { (duplicateTrack, _) -> duplicateTrack.id != track.id }
+            .flatMap { (duplicateTrack, duplicateAlignment) ->
+                getLocationTrackDuplicatesByJoint(track.id, switchJoints, duplicateTrack, duplicateAlignment)
             }
-        }
-        return duplicates
-            .mapIndexed { index, d -> index to d }
-            .sortedWith { a, b -> compareValues(duplicateMValues[a.first], duplicateMValues[b.first]) }
-            .map { (_, track) ->
-                LocationTrackDuplicate(track.id as IntId, track.trackNumberId, track.name, track.externalId)
-            }
+            .sortedWith(compareBy({ it.first }, { it.second.name }))
+            .map { (_, duplicate) -> duplicate }
+            .toList()
     }
 
     private fun getDuplicateOf(
         locationTrack: LocationTrack,
         publicationState: PublicationState,
-    ) = locationTrack.duplicateOf?.let { duplicateId ->
-        get(publicationState, duplicateId)?.let { dup ->
-            LocationTrackDuplicate(
-                duplicateId, dup.trackNumberId, dup.name, dup.externalId
-            )
+    ): LocationTrackDuplicate? = locationTrack.duplicateOf?.let { duplicateOfId ->
+        getWithAlignment(publicationState, duplicateOfId)?.let { (duplicateOfTrack, duplicateOfAlignment) ->
+            val alignment = alignmentDao.fetch(locationTrack.getAlignmentVersionOrThrow())
+            // Note arguments: here the input "locationTrack" is the duplicate of the other ("main") one
+            getLocationTrackDuplicatesByJoint(
+                mainTrackId = duplicateOfId,
+                mainTrackJoints = collectSwitchJoints(duplicateOfTrack, duplicateOfAlignment),
+                duplicateTrack = locationTrack,
+                duplicateAlignment = alignment,
+            ).first().second // There has to at least one found, since we know the duplicateOf is set
         }
     }
 
-    private fun fetchSwitchAtEndById(id: IntId<TrackLayoutSwitch>, publicationState: PublicationState) = switchDao.fetchVersion(
-        id, publicationState
-    )?.let(switchDao::fetch)?.let { switch -> LayoutSwitchIdAndName(id, switch.name) }
+    private fun fetchSwitchAtEndById(id: IntId<TrackLayoutSwitch>, publicationState: PublicationState) =
+        switchDao.fetchVersion(id, publicationState)
+            ?.let(switchDao::fetch)?.let { switch -> LayoutSwitchIdAndName(id, switch.name) }
 
     fun fetchNearbyLocationTracksWithAlignments(
         targetPoint: LayoutPoint,
@@ -502,15 +520,15 @@ class LocationTrackService(
         startChanged: Boolean = false,
         endChanged: Boolean = false,
     ): LocationTrack {
-        val nearbyTracksAroundStart =
-            (alignment.start?.let(::fetchNearbyLocationTracksWithAlignments)?.filter { (nearbyLocationTrack, _) ->
-                nearbyLocationTrack.id != track.id
-            } ?: listOf())
+        val nearbyTracksAroundStart = alignment.start
+            ?.let(::fetchNearbyLocationTracksWithAlignments)
+            ?.filter { (nearbyLocationTrack, _) -> nearbyLocationTrack.id != track.id }
+            ?: listOf()
 
-        val nearbyTracksAroundEnd =
-            (alignment.end?.let(::fetchNearbyLocationTracksWithAlignments)?.filter { (nearbyLocationTrack, _) ->
-                nearbyLocationTrack.id != track.id
-            } ?: listOf())
+        val nearbyTracksAroundEnd = alignment.end
+            ?.let(::fetchNearbyLocationTracksWithAlignments)
+            ?.filter { (nearbyLocationTrack, _) -> nearbyLocationTrack.id != track.id }
+            ?: listOf()
 
         return calculateLocationTrackTopology(
             track, alignment, startChanged, endChanged, NearbyTracks(
@@ -570,17 +588,18 @@ class LocationTrackService(
                     )
                 }
 
-            val duplicateTracks = getLocationTrackDuplicates(trackId, publicationState).mapNotNull { duplicate ->
-                getWithAlignmentOrThrow(publicationState, duplicate.id).let { (dupe, alignment) ->
-                    geocodingService.getLocationTrackStartAndEnd(publicationState, dupe, alignment)
-                }?.let { (start, end) ->
-                    if (start != null && end != null) {
-                        SplitDuplicateTrack(duplicate.id, duplicate.name, start, end)
-                    } else {
-                        null
+            val duplicateTracks = getLocationTrackDuplicates(locationTrack, alignment, publicationState)
+                .mapNotNull { duplicate ->
+                    getWithAlignmentOrThrow(publicationState, duplicate.id).let { (dupe, alignment) ->
+                        geocodingService.getLocationTrackStartAndEnd(publicationState, dupe, alignment)
+                    }?.let { (start, end) ->
+                        if (start != null && end != null) {
+                            SplitDuplicateTrack(duplicate.id, duplicate.name, start, end, duplicate.duplicateStatus)
+                        } else {
+                            null
+                        }
                     }
                 }
-            }
 
             SplittingInitializationParameters(
                 trackId, switches, duplicateTracks,
@@ -705,11 +724,11 @@ private fun findBestTopologySwitchFromSegments(
         } else {
             listOfNotNull(
                 segment.startJointNumber?.let { number ->
-                    pickIfClose(
-                        segment.switchId, number, target, segment.segmentStart
-                    )
+                    pickIfClose(segment.switchId, number, target, segment.segmentStart)
                 },
-                segment.endJointNumber?.let { number -> pickIfClose(segment.switchId, number, target, segment.segmentEnd) },
+                segment.endJointNumber?.let { number ->
+                    pickIfClose(segment.switchId, number, target, segment.segmentEnd)
+                },
             )
         }
     } + (newSwitch?.joints?.mapNotNull { sj ->
@@ -769,15 +788,6 @@ fun locationTrackWithAlignment(
     rowVersion: RowVersion<LocationTrack>,
 ) = locationTrackDao.fetch(rowVersion).let { track ->
     track to alignmentDao.fetch(track.getAlignmentVersionOrThrow())
-}
-
-fun getConnectedSwitchIds(locationTrack: LocationTrack, alignment: LayoutAlignment): Set<IntId<TrackLayoutSwitch>> {
-    val segmentLinks = alignment.segments.mapNotNull { segment -> segment.switchId as IntId? }
-    val topologyLinks = listOfNotNull(
-        locationTrack.topologyStartSwitch?.switchId,
-        locationTrack.topologyEndSwitch?.switchId,
-    )
-    return (segmentLinks + topologyLinks).toHashSet()
 }
 
 fun filterByBoundingBox(list: List<LocationTrack>, boundingBox: BoundingBox?): List<LocationTrack> =

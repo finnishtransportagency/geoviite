@@ -14,7 +14,12 @@ import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.util.FreeText
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -574,6 +579,7 @@ class LocationTrackServiceIT @Autowired constructor(
         locationTrack.trackNumberId,
         locationTrack.name,
         locationTrack.externalId,
+        DuplicateStatus(SplitDuplicateMatch.FULL, locationTrack.duplicateOf, null, null),
     )
 
     private fun insertAndFetchDraft(switch: TrackLayoutSwitch): TrackLayoutSwitch =
