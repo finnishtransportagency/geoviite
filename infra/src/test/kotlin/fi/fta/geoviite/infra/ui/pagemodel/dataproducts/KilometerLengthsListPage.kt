@@ -2,19 +2,20 @@ package fi.fta.geoviite.infra.ui.pagemodel.dataproducts
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.*
 import fi.fta.geoviite.infra.ui.util.byQaId
+import getElementIfExists
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
-
+import getElements
 
 abstract class KilometerLengthsListPage : E2EViewFragment(By.className("data-product-view")) {
-    fun locationTrackPage(): LocationTrackKilometerLengthsListPage {
+    fun openLocationTrackTab(): LocationTrackKilometerLengthsListPage {
         logger.info("Open per location track tab")
 
         clickChild(byQaId("select-location-track-km-lengths"))
         return LocationTrackKilometerLengthsListPage()
     }
 
-    fun entireNetworkPage(): EntireNetworkKilometerLengthsListPage {
+    fun openEntireNetworkTab(): EntireNetworkKilometerLengthsListPage {
         logger.info("Open entire network tab")
 
         clickChild(byQaId("select-entire-rail-network"))
@@ -38,6 +39,8 @@ class LocationTrackKilometerLengthsListPage : KilometerLengthsListPage() {
     }
 
     val downloadUrl: String get() = childElement(byQaId("km-lengths-csv-download")).getAttribute("href")
+
+    val entireRailNetworkKmLengthsRadioButton = getElementIfExists(byQaId("select-entire-rail-network"))
 }
 
 class LocationTrackKilometerLengthsList: E2ETable<LocationTrackKilometerLengthsListItem>(
@@ -54,8 +57,6 @@ class LocationTrackKilometerLengthsListItem(val stationStart: String) {
     )
 }
 
-
 class EntireNetworkKilometerLengthsListPage : KilometerLengthsListPage() {
     val downloadUrl: String get() = childElement(byQaId("km-lengths-csv-download")).getAttribute("href")
-
 }

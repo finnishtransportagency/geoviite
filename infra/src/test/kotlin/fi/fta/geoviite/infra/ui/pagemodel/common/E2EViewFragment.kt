@@ -1,15 +1,20 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import browser
 import clickWhenClickable
 import defaultWait
 import exists
+import fi.fta.geoviite.infra.authorization.DESIRED_ROLE_COOKIE_NAME
+import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementWhenExists
 import getElementWhenVisible
 import getElementsWhenExists
 import getElementsWhenVisible
 import org.openqa.selenium.By
+import org.openqa.selenium.WebDriver
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.support.pagefactory.ByChained
+import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import waitUntilExists

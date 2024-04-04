@@ -87,7 +87,8 @@ const AppBarMoreMenu: React.FC = () => {
                 ref={menuRef}
                 title={t('app-bar.more')}
                 className={styles['app-bar__link']}
-                onClick={() => setShowMenu(!showMenu)}>
+                onClick={() => setShowMenu(!showMenu)}
+                qa-id={'show-app-bar-more-menu'}>
                 <Icons.Menu color={IconColor.INHERIT} size={IconSize.MEDIUM_SMALL} />
             </div>
 
@@ -98,6 +99,7 @@ const AppBarMoreMenu: React.FC = () => {
                     className={styles['app-bar__more-menu']}
                     onClickOutside={() => setShowMenu(false)}
                     opensTowards={'LEFT'}
+                    qa-id={'app-bar-more-menu'}
                 />
             )}
 

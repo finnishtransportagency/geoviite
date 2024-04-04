@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.ui.pagemodel.dataproducts
 
 import fi.fta.geoviite.infra.ui.pagemodel.common.*
 import fi.fta.geoviite.infra.ui.util.byQaId
+import getElementIfExists
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import java.net.URLDecoder
@@ -74,6 +75,13 @@ class E2EDataProductLayoutElementListPage : E2EElementListPage() {
     val downloadUrl: String
         get() = childElement(byQaId("location-track-element-list-csv-download")).getAttribute("href")
 
+    val locationTrackLayoutGeometryRadioButton by lazy { getElementIfExists(byQaId("select-layout-geometry")) }
+    val layoutPlanGeometryRadioButton by lazy { getElementIfExists(byQaId("select-plan-geometry")) }
+    val entireRailNetworkGeometryRadioButton by lazy {
+        getElementIfExists(byQaId("select-entire-rail-network"))
+    }
+
+    val entireRailNetworkDownloadCsvButton = getElementIfExists(byQaId("element-list-csv-download"))
 
     fun selectLocationTrack(searchString: String) = apply {
         logger.info("Select location track $searchString")

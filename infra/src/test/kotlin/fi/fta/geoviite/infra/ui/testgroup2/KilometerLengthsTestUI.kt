@@ -67,7 +67,7 @@ class KilometerLengthsTestUI @Autowired constructor(
     @Test
     fun `Download all kilometer lengths`() {
         startGeoviite()
-        val kmLengthsPage = navigationBar.goToKilometerLengthsPage().entireNetworkPage()
+        val kmLengthsPage = navigationBar.goToKilometerLengthsPage().openEntireNetworkTab()
         val downloadUrl = kmLengthsPage.downloadUrl
         val csv = webClient.get().uri(downloadUrl).retrieve().bodyToMono(String::class.java).block()
 

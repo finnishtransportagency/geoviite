@@ -182,7 +182,9 @@ const PublicationCard: React.FC<PublishListProps> = ({
                         </div>
                         <br />
                         <div>
-                            <Link onClick={() => navigateToPublicationLog()}>
+                            <Link
+                                onClick={() => navigateToPublicationLog()}
+                                qa-id={'open-publication-log'}>
                                 {t('publication-card.log-link')}
                             </Link>
                         </div>

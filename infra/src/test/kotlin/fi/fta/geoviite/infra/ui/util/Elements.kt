@@ -139,3 +139,7 @@ fun <T> tryWait(
     logger.warn("${lazyErrorMessage()} cause=${e.message}")
     throw e
 }
+
+fun getElementIfExists(by: By): WebElement? {
+    return getElements(by).firstOrNull()
+}

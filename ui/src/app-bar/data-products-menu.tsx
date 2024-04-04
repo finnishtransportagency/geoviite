@@ -73,6 +73,7 @@ const DataProductsMenu: React.FC = () => {
                     items={dataProducts}
                     className={styles['app-bar__data-products-menu']}
                     onClickOutside={() => setShowMenu(false)}
+                    qa-id={'data-products-menu'}
                 />
             )}
         </div>

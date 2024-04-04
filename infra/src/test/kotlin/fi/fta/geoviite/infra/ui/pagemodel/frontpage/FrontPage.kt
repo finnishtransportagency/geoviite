@@ -34,6 +34,13 @@ class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
         clickChild(byQaId("publish-to-ratko"))
         E2EDialog().clickPrimaryButton()
     }
+
+    fun openPublicationLog(): E2EPublicationLog {
+        logger.info("Open publication log")
+
+        clickChild(byQaId("open-publication-log"))
+        return E2EPublicationLog()
+    }
 }
 
 class E2EPublicationDetailsPage(pageBy: By = By.className("publication-details")) : E2EViewFragment(pageBy) {
@@ -41,6 +48,26 @@ class E2EPublicationDetailsPage(pageBy: By = By.className("publication-details")
         logger.info("Go to front page")
 
         clickChild(ByChained(By.className("publication-details__title"), By.tagName("a")))
+        waitUntilExists(By.className("frontpage"))
+
+        return E2EFrontPage()
+    }
+
+    val rows: List<E2EPublicationDetailRow>
+        get() {
+            val headers = childElements(By.tagName("th"))
+
+            return childElements(By.className("publication-table__row")).map { e ->
+                E2EPublicationDetailRow(e.findElements(By.tagName("td")), headers)
+            }
+        }
+}
+
+class E2EPublicationLog(pageBy: By = By.className("publication-log")) : E2EViewFragment(pageBy) {
+    fun returnToFrontPage(): E2EFrontPage {
+        logger.info("Go to front page")
+
+        clickChild(ByChained(By.className("publication-log__title"), By.tagName("a")))
         waitUntilExists(By.className("frontpage"))
 
         return E2EFrontPage()
