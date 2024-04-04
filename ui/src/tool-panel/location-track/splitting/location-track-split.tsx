@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ValidationError } from 'utils/validation-utils';
+import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
 import styles from 'tool-panel/location-track/location-track-infobox.scss';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
@@ -141,24 +141,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                         mapNavigationBboxOffset={MAP_POINT_NEAR_BBOX_OFFSET}
                                     />
                                 </div>
-                                {switchErrors.some((err) => err.reason === 'switch-not-found') && (
-                                    <InfoboxText
-                                        className={styles['location-track-infobox__split-error']}
-                                        value={t(
-                                            'tool-panel.location-track.splitting.validation.missing-switch',
-                                        )}
-                                    />
-                                )}
-                                {switchErrors.some(
-                                    (err) => err.reason === 'switch-not-matching-start-switch',
-                                ) && (
-                                    <InfoboxText
-                                        className={styles['location-track-infobox__split-error']}
-                                        value={t(
-                                            'tool-panel.location-track.splitting.validation.switch-not-at-track-start',
-                                        )}
-                                    />
-                                )}
+                                {switchErrors.map((err) => errorMessage(t, err))}
                             </div>
                         </InfoboxField>
                         {onRemove && (
@@ -306,3 +289,26 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
         </div>
     );
 };
+
+function errorMessage(t: (key: string) => string, error: ValidationError<SplitTargetCandidate>) {
+    const style =
+        error.type === ValidationErrorType.ERROR
+            ? 'location-track-infobox__split-error'
+            : 'location-track-infobox__split-warning';
+    return (
+        <InfoboxText className={styles[style]} value={t(getErrorLocalizationKey(error.reason))} />
+    );
+}
+
+function getErrorLocalizationKey(reason: string): string {
+    switch (reason) {
+        case 'switch-not-found':
+            return 'tool-panel.location-track.splitting.validation.missing-switch';
+        case 'switch-not-matching-start-switch':
+            return 'tool-panel.location-track.splitting.validation.switch-not-at-track-start';
+        case 'switch-not-matching-end-switch':
+            return 'tool-panel.location-track.splitting.validation.switch-not-at-track-end';
+        default:
+            return reason;
+    }
+}

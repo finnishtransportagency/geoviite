@@ -247,7 +247,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     const splitsValidated = allSplits.map((s, index) =>
         validateSplit(
             s,
-            allSplits[index + 1]?.switchId,
+            allSplits[index - 1]?.duplicateStatus?.endSwitchId,
             allSplits.map((s) => s.name),
             conflictingLocationTracks || [],
             switches,
