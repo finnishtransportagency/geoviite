@@ -20,6 +20,7 @@ import java.time.Instant
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Level
+import kotlin.test.assertEquals
 
 private fun createChromeDriver(headless: Boolean): WebDriver {
     val options = ChromeOptions()
@@ -72,7 +73,7 @@ private fun setBrowser(createWebDriver: () -> WebDriver?) {
     }
 }
 
-const val DEV_DEBUG = false
+const val DEV_DEBUG = true
 fun openBrowser() {
     val headless = !DEV_DEBUG
     logger.info("Initializing webdriver")
@@ -149,6 +150,21 @@ fun printNetworkLogsResponses() = try {
     printLogEntries(LogSource.NETWORK_RESPONSES, filtered)
 } catch (e: Exception) {
     logger.error("Failed to print network responses ${e.message}")
+}
+
+fun expectZeroSevereBrowserErrors() {
+    // Browser console errors do not seem to be immediately available.
+    // Unfortunately solved by waiting a moment :(.
+    Thread.sleep(10)
+
+    val logEntries: LogEntries = browser().manage().logs().get(LogType.BROWSER)
+    val severeErrors = logEntries.all.filter { it.level == Level.SEVERE }
+    severeErrors.forEach { error ->
+        println("Severe browser console error: ${error.message}")
+        logger.error("Severe browser console error: ${error.message}") // TODO
+    }
+
+    assertEquals(0, severeErrors.size, "Expected zero severe errors, but found ${severeErrors.size}")
 }
 
 private fun printLogEntries(source: LogSource, logEntries: LogEntries) {

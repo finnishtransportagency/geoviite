@@ -99,7 +99,7 @@ export const PlanVerticalGeometrySearch: React.FC<PlanVerticalGeometrySearchProp
                         label={t(`data-products.search.plan`)}
                         value={
                             <Dropdown
-                                qaId="data-products-search-plan"
+                                qa-id="data-products-search-plan"
                                 value={state.plan}
                                 getName={(item: GeometryPlanHeader) => item.fileName}
                                 placeholder={t('data-products.search.search')}

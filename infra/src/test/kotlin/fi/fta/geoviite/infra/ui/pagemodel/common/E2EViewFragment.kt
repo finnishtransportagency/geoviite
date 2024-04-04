@@ -1,15 +1,20 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
+import browser
 import clickWhenClickable
 import defaultWait
 import exists
+import fi.fta.geoviite.infra.authorization.DESIRED_ROLE_COOKIE_NAME
+import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementWhenExists
 import getElementWhenVisible
 import getElementsWhenExists
 import getElementsWhenVisible
 import org.openqa.selenium.By
+import org.openqa.selenium.WebDriver
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.support.pagefactory.ByChained
+import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import waitUntilExists
@@ -72,6 +77,27 @@ abstract class E2EViewFragment(protected val viewBy: By) {
         waitUntilExists(childBy(by), timeout)
 
     protected fun childExists(by: By) = exists(childBy(by))
+
+    protected fun getElementIfExists(by: By, timeout: Duration = defaultWait): WebElement? =
+        if (childExists(by)) {
+            childElement(by)
+        } else {
+            null
+        }
+
+    protected fun waitForCookie(cookieName: String, desiredValue: String? = null, timeout: Duration = defaultWait) {
+        WebDriverWait(browser(), timeout).until { driver ->
+            println(driver.manage().cookies)
+
+            driver.manage().cookies.any { cookie ->
+                if (desiredValue == null) {
+                    cookie.name == cookieName
+                } else {
+                    cookie.name == cookieName && cookie.value == desiredValue
+                }
+            }
+        }
+    }
 
     fun waitUntilInvisible() = waitUntilInvisible(viewBy)
 }

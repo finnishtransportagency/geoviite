@@ -74,6 +74,11 @@ class E2EDataProductLayoutElementListPage : E2EElementListPage() {
     val downloadUrl: String
         get() = childElement(byQaId("location-track-element-list-csv-download")).getAttribute("href")
 
+    val locationTrackLayoutGeometryRadioButton = getElementIfExists(byQaId("select-layout-geometry"))
+    val layoutPlanGeometryRadioButton = getElementIfExists(byQaId("select-plan-geometry"))
+    val entireRailNetworkGeometryRadioButton = getElementIfExists(byQaId("select-entire-rail-network"))
+
+    val entireRailNetworkDownloadCsvButton = getElementIfExists(byQaId("element-list-csv-download"))
 
     fun selectLocationTrack(searchString: String) = apply {
         logger.info("Select location track $searchString")

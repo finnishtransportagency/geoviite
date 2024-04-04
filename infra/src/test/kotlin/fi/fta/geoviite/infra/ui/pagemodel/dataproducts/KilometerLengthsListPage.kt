@@ -38,6 +38,9 @@ class LocationTrackKilometerLengthsListPage : KilometerLengthsListPage() {
     }
 
     val downloadUrl: String get() = childElement(byQaId("km-lengths-csv-download")).getAttribute("href")
+
+    val locationTrackKmLengthsRadioButton = getElementIfExists(byQaId("select-location-track-km-lengths"))
+    val entireRailNetworkKmLengthsRadioButton = getElementIfExists(byQaId("select-entire-rail-network"))
 }
 
 class LocationTrackKilometerLengthsList: E2ETable<LocationTrackKilometerLengthsListItem>(
@@ -56,6 +59,9 @@ class LocationTrackKilometerLengthsListItem(val stationStart: String) {
 
 
 class EntireNetworkKilometerLengthsListPage : KilometerLengthsListPage() {
-    val downloadUrl: String get() = childElement(byQaId("km-lengths-csv-download")).getAttribute("href")
+    enum class Link(val qaId: String) {
+        DOWNLOAD_CSV("km-lengths-csv-download"),
+    }
 
+    val downloadUrl: String get() = childElement(byQaId("km-lengths-csv-download")).getAttribute("href")
 }
