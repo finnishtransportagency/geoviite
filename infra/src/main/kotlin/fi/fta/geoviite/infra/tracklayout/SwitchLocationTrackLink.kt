@@ -23,13 +23,19 @@ fun getLocationTrackDuplicatesByJoint(
     }
 }
 
+/**
+ * This function finds duplicate-track segments, comparing the potential duplicate to the main track.
+ *
+ * @return a pair of match start-index (for sorting matches between duplicates) and the duplicate status
+ */
 fun getDuplicateMatches(
     mainTrackJoints: List<Pair<IntId<TrackLayoutSwitch>, JointNumber>>,
     duplicateTrackJoints: List<Pair<IntId<TrackLayoutSwitch>, JointNumber>>,
     mainTrackId: DomainId<LocationTrack>,
     duplicateOf: IntId<LocationTrack>?,
 ): List<Pair<Int, DuplicateStatus>> {
-    val matchIndices = findMatchingIndices(mainTrackJoints, duplicateTrackJoints)
+    val matchIndices =
+        findOrderedMatches(mainTrackJoints, duplicateTrackJoints)
     val matchRanges = buildDuplicateIndexRanges(matchIndices)
 
     return if (matchRanges.isEmpty() && duplicateOf != mainTrackId) {
@@ -53,16 +59,22 @@ fun getDuplicateMatches(
     }
 }
 
-fun findMatchingIndices(
-    mainTrackJoints: List<Pair<IntId<TrackLayoutSwitch>, JointNumber>>,
-    duplicateTrackJoints: List<Pair<IntId<TrackLayoutSwitch>, JointNumber>>,
-): List<Pair<Int, Int>> {
+/**
+ * Finds matching items between two lists, continuing the search from the previous match to never seek backwards.
+ * This ordering ensures that the result indices are monotonically increasing for both lists.
+ *
+ * @return list of pairs where each pair represents a matching item with the index from each list
+ */
+private fun <T> findOrderedMatches(list1: List<T>, list2: List<T>): List<Pair<Int, Int>> {
     var duplicateIndexStart = 0
-    return mainTrackJoints.mapIndexedNotNull { mainIndex, idAndJoint ->
-        val found = duplicateTrackJoints.subList(duplicateIndexStart, duplicateTrackJoints.size).indexOf(idAndJoint)
-        found.takeIf { it >= 0 }?.let { foundIndex ->
-            mainIndex to (duplicateIndexStart + foundIndex).also { duplicateIndexStart = it }
-        }
+    return list1.mapIndexedNotNull { mainIndex, item ->
+        list2
+            // Search starting from previous match (sublist is a view -> doesn't copy the list)
+            .subList(duplicateIndexStart, list2.size)
+            .indexOf(item)
+            .takeIf { it >= 0 } // indexOf returns -1 if not found
+            ?.let { foundIndex -> mainIndex to (duplicateIndexStart + foundIndex) }
+            ?.also { (_, duplicateIndex) -> duplicateIndexStart = duplicateIndex }
     }
 }
 
