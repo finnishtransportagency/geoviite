@@ -174,14 +174,11 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
         ).then((trackNumbers) => setLayoutTrackNumberList(trackNumbers.map((ltn) => ltn.number)));
     }
 
-    const trackNumberList = (() => {
-        const tns = layoutTrackNumberList ?? [];
-        return [
-            ...tns,
-            ...(geometryPlan.trackNumber ? [geometryPlan.trackNumber] : []),
-            ...(customTrackNumber ? [customTrackNumber] : []),
-        ].filter(filterUnique);
-    })();
+    const trackNumberList = [
+        ...(layoutTrackNumberList ?? []),
+        ...(geometryPlan.trackNumber ? [geometryPlan.trackNumber] : []),
+        ...(customTrackNumber ? [customTrackNumber] : []),
+    ].filter(filterUnique);
 
     function handleDayChange(chosenDate: Date) {
         changeInOverrideParametersField(chosenDate, 'createdDate');
