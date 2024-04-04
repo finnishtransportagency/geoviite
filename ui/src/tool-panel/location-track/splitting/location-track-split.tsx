@@ -141,7 +141,9 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                         mapNavigationBboxOffset={MAP_POINT_NEAR_BBOX_OFFSET}
                                     />
                                 </div>
-                                {switchErrors.map((err) => errorMessage(t, err))}
+                                {switchErrors.map((err, i) => (
+                                    <SplitErrorMessage key={i.toString()} error={err} />
+                                ))}
                             </div>
                         </InfoboxField>
                         {onRemove && (
@@ -204,24 +206,16 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             )}
                             hasErrors={nameErrorsVisible}
                             label={''}>
-                            {
-                                // TODO: GVT-2525 cleanup this with functions/variables
-                                !nameErrorsVisible && (
-                                    <InfoboxText
-                                        value={t(
-                                            `tool-panel.location-track.splitting.${split.operation}`,
-                                        )}
-                                    />
-                                )
-                            }
+                            {!nameErrorsVisible && (
+                                <InfoboxText
+                                    value={t(
+                                        `tool-panel.location-track.splitting.${split.operation}`,
+                                    )}
+                                />
+                            )}
                             {nameErrorsVisible &&
-                                nameErrors.map((error, index) => (
-                                    <InfoboxText
-                                        value={t(
-                                            `tool-panel.location-track.splitting.validation.${error.reason}`,
-                                        )}
-                                        key={index.toString()}
-                                    />
+                                nameErrors.map((error, i) => (
+                                    <SplitErrorMessage key={i.toString()} error={error} />
                                 ))}
                         </InfoboxField>
                     }
@@ -290,25 +284,22 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     );
 };
 
-function errorMessage(t: (key: string) => string, error: ValidationError<SplitTargetCandidate>) {
+type SplitErrorMessageProps = {
+    error: ValidationError<SplitTargetCandidate>;
+};
+const SplitErrorMessage: React.FC<SplitErrorMessageProps> = ({ error }) => {
+    const { t } = useTranslation();
     const style =
         error.type === ValidationErrorType.ERROR
             ? 'location-track-infobox__split-error'
             : 'location-track-infobox__split-warning';
     return (
-        <InfoboxText className={styles[style]} value={t(getErrorLocalizationKey(error.reason))} />
+        <InfoboxText
+            className={styles[style]}
+            value={t(
+                `tool-panel.location-track.splitting.validation.${error.reason}`,
+                error.params,
+            )}
+        />
     );
-}
-
-function getErrorLocalizationKey(reason: string): string {
-    switch (reason) {
-        case 'switch-not-found':
-            return 'tool-panel.location-track.splitting.validation.missing-switch';
-        case 'switch-not-matching-start-switch':
-            return 'tool-panel.location-track.splitting.validation.switch-not-at-track-start';
-        case 'switch-not-matching-end-switch':
-            return 'tool-panel.location-track.splitting.validation.switch-not-at-track-end';
-        default:
-            return reason;
-    }
-}
+};

@@ -61,15 +61,15 @@ const splitToRequestTarget = (
 
 export const validateSplit = (
     split: FirstSplitTargetCandidate | SplitTargetCandidate,
-    previousEndSwitchId: LayoutSwitchId | undefined,
+    previousSplit: FirstSplitTargetCandidate | SplitTargetCandidate | undefined,
     allSplitNames: string[],
     conflictingTrackNames: string[],
     switches: LayoutSwitch[],
-) => ({
+): ValidatedSplit => ({
     split: split,
     nameErrors: validateSplitName(split.name, allSplitNames, conflictingTrackNames),
     descriptionErrors: validateSplitDescription(split.descriptionBase, split.duplicateTrackId),
-    switchErrors: validateSplitSwitch(split, previousEndSwitchId, switches),
+    switchErrors: validateSplitSwitch(split, previousSplit, switches),
 });
 
 const validateSplitName = (
@@ -112,9 +112,9 @@ const validateSplitDescription = (
 
 const validateSplitSwitch = (
     split: SplitTargetCandidate | FirstSplitTargetCandidate,
-    previousEndSwitchId: LayoutSwitchId | undefined,
+    previousSplit: SplitTargetCandidate | FirstSplitTargetCandidate | undefined,
     switches: LayoutSwitch[],
-) => {
+): ValidationError<SplitTargetCandidate>[] => {
     const errors: ValidationError<SplitTargetCandidate>[] = [];
     const switchAtSplit = switches.find((s) => s.id === split.switchId);
     if (
@@ -135,15 +135,20 @@ const validateSplitSwitch = (
             field: 'switchId',
             reason: 'switch-not-matching-start-switch',
             type: type,
+            params: { trackName: split.name },
         });
     }
+    const previousEndSwitchId = previousSplit?.duplicateStatus?.endSwitchId;
     if (previousEndSwitchId && split.switchId !== previousEndSwitchId) {
         const type =
-            split.operation == 'TRANSFER' ? ValidationErrorType.ERROR : ValidationErrorType.WARNING;
+            previousSplit.operation == 'TRANSFER'
+                ? ValidationErrorType.ERROR
+                : ValidationErrorType.WARNING;
         errors.push({
             field: 'switchId',
             reason: 'switch-not-matching-end-switch',
             type: type,
+            params: { trackName: previousSplit.name },
         });
     }
     return errors;

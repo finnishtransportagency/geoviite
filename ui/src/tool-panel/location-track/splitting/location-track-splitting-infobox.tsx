@@ -247,7 +247,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     const splitsValidated = allSplits.map((s, index) =>
         validateSplit(
             s,
-            allSplits[index - 1]?.duplicateStatus?.endSwitchId,
+            allSplits[index - 1],
             allSplits.map((s) => s.name),
             conflictingLocationTracks || [],
             switches,
@@ -318,9 +318,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         ),
     );
 
-    // TODO: GVT-2525 don't allow rewrite for calculated partial duplicates
     // TODO: GVT-2525 show warnings when duplicateOf doesn't match the main track
-    // TODO: GVT-2525 show warnings when overriding a non-partial track (geometry replace)
     return (
         <React.Fragment>
             <Infobox
