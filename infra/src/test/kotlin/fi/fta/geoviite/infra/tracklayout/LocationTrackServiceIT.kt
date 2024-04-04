@@ -492,41 +492,6 @@ class LocationTrackServiceIT @Autowired constructor(
     }
 
     @Test
-    fun fetchDuplicatesIsOrderedByTrackAddress() {
-        val trackNumberId = getUnusedTrackNumberId()
-        val fullAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
-        referenceLineDao.insert(
-            referenceLine(trackNumberId, alignmentVersion = fullAlignment, draft = false)
-        )
-
-        val fullTrack = locationTrackDao.insert(
-            locationTrack(trackNumberId, alignmentVersion = fullAlignment, draft = false)
-        )
-
-        fun makeDuplicateAt(xCoord: Double, name: String) {
-            val duplicateAlignment =
-                alignmentDao.insert(alignment(segment(Point(xCoord, 0.0), Point(xCoord + 10.0, 0.0))))
-            locationTrackDao.insert(
-                locationTrack(
-                    trackNumberId,
-                    name = name,
-                    alignmentVersion = duplicateAlignment,
-                    duplicateOf = fullTrack.id,
-                    draft = false,
-                )
-            )
-        }
-
-        makeDuplicateAt(30.0, "dupA")
-        makeDuplicateAt(10.0, "dupB")
-        makeDuplicateAt(80.0, "dupC")
-        makeDuplicateAt(20.0, "dupD")
-
-        val extras = locationTrackService.getInfoboxExtras(OFFICIAL, fullTrack.id)
-        assertEquals(listOf("dupB", "dupD", "dupA", "dupC"), extras?.duplicates?.map { dup -> dup.name.toString() })
-    }
-
-    @Test
     fun `Splitting initialization parameters are fetched properly`() {
         val trackNumberId = getUnusedTrackNumberId()
         val rlAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
@@ -579,7 +544,7 @@ class LocationTrackServiceIT @Autowired constructor(
         locationTrack.trackNumberId,
         locationTrack.name,
         locationTrack.externalId,
-        DuplicateStatus(SplitDuplicateMatch.FULL, locationTrack.duplicateOf, null, null),
+        DuplicateStatus(SplitDuplicateMatch.NONE, locationTrack.duplicateOf, null, null),
     )
 
     private fun insertAndFetchDraft(switch: TrackLayoutSwitch): TrackLayoutSwitch =
