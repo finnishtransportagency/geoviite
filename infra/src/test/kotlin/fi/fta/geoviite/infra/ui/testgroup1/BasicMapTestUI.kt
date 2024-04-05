@@ -112,6 +112,8 @@ class BasicMapTestUI @Autowired constructor(
         assertEquals(E2ELocationTrackEditDialog.State.NOT_IN_USE.name, locationTrackInfobox.state)
 
         val previewChangesPage = trackLayoutPage.goToPreview()
+        previewChangesPage.waitForAllTableValidationsToComplete()
+
         val changePreviewTable = previewChangesPage.changesTable
 
         assertTrue(changePreviewTable.rows.isNotEmpty())
