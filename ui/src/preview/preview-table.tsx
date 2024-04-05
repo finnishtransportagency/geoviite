@@ -171,7 +171,14 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             icon={sortInfo.propName === prop ? getSortDirectionIcon(sortInfo.direction) : undefined}
             contentAlignment={showSpinner ? ThContentAlignment.VERTICALLY_ALIGNED : undefined}>
             {t(translationKey)}
-            {showSpinner && <Spinner inline={true} size={SpinnerSize.SMALL} tableHeader={true} />}
+            {showSpinner && (
+                <Spinner
+                    inline={true}
+                    size={SpinnerSize.SMALL}
+                    tableHeader={true}
+                    qaId={'table-validation-in-progress'}
+                />
+            )}
         </Th>
     );
 
