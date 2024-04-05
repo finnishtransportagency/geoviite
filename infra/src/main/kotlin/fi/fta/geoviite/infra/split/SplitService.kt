@@ -290,7 +290,7 @@ class SplitService(
             .map { duplicateTrack -> duplicateTrack.id as IntId }
 
         val sourceTrack = locationTrackDao.getOrThrow(DRAFT, request.sourceTrackId)
-        if (sourceTrack.state != LayoutState.IN_USE) throw SplitFailureException(
+        if (sourceTrack.state != LocationTrackLayoutState.IN_USE) throw SplitFailureException(
             message = "Source track state is not IN_USE: id=${sourceTrack.id}",
             localizedMessageKey = "source-track-state-not-in-use",
         )
