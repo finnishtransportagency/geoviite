@@ -456,6 +456,12 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                     t.asset.id === linkingState.geometryKmPostId
                 );
             })?.asset;
+        } else if (splittingState) {
+            lockToAsset = tabs.find(
+                (t) =>
+                    t.asset.type === 'LOCATION_TRACK' &&
+                    t.asset.id === splittingState.originLocationTrack.id,
+            )?.asset;
         }
 
         setSelectedAsset(lockToAsset ? lockToAsset : tab);
