@@ -19,31 +19,14 @@ enum class MapAlignmentType {
     REFERENCE_LINE,
 }
 
-data class AlignmentHeader<T>(
+data class AlignmentHeader<T, U>(
     val id: DomainId<T>,
     val version: RowVersion<T>?,
     val trackNumberId: DomainId<TrackLayoutTrackNumber>?,
     val duplicateOf: IntId<LocationTrack>?,
 
     val name: AlignmentName,
-    val state: LayoutState,
-    val alignmentSource: MapAlignmentSource,
-    val alignmentType: MapAlignmentType,
-    val trackType: LocationTrackType?,
-
-    val length: Double,
-    val boundingBox: BoundingBox?,
-    val segmentCount: Int,
-)
-
-data class LocationTrackAlignmentHeader(
-    val id: DomainId<LocationTrack>,
-    val version: RowVersion<LocationTrack>?,
-    val trackNumberId: DomainId<TrackLayoutTrackNumber>?,
-    val duplicateOf: IntId<LocationTrack>?,
-
-    val name: AlignmentName,
-    val state: LocationTrackLayoutState,
+    val state: U,
     val alignmentSource: MapAlignmentSource,
     val alignmentType: MapAlignmentType,
     val trackType: LocationTrackType?,
@@ -83,7 +66,7 @@ fun toAlignmentHeader(
 fun toAlignmentHeader(
     locationTrack: LocationTrack,
     alignment: LayoutAlignment?,
-) = LocationTrackAlignmentHeader(
+) = AlignmentHeader(
     id = locationTrack.id,
     version = locationTrack.version,
     trackNumberId = locationTrack.trackNumberId,

@@ -119,7 +119,7 @@ class MapAlignmentService(
     fun getReferenceLineHeaders(
         publicationState: PublicationState,
         referenceLineIds: List<IntId<ReferenceLine>>,
-    ): List<AlignmentHeader<ReferenceLine>> {
+    ): List<AlignmentHeader<ReferenceLine, LayoutState>> {
         val referenceLines = referenceLineService.getManyWithAlignments(publicationState, referenceLineIds)
         val trackNumbers = trackNumberService
             .getMany(publicationState, referenceLines.map { (rl, _) -> rl.trackNumberId })
@@ -135,7 +135,7 @@ class MapAlignmentService(
     fun getLocationTrackHeaders(
         publicationState: PublicationState,
         locationTrackIds: List<IntId<LocationTrack>>,
-    ): List<LocationTrackAlignmentHeader> {
+    ): List<AlignmentHeader<LocationTrack, LocationTrackLayoutState>> {
         return locationTrackService
             .getManyWithAlignments(publicationState, locationTrackIds)
             .map { (track, alignment) -> toAlignmentHeader(track, alignment) }

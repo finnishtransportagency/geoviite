@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.map.AlignmentHeader
 import fi.fta.geoviite.infra.map.AlignmentPolyLine
-import fi.fta.geoviite.infra.map.LocationTrackAlignmentHeader
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.AlignmentFetchType.ALL
 import org.slf4j.Logger
@@ -62,7 +61,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
     fun getLocationTrackHeaders(
         @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
         @RequestParam("ids") ids: List<IntId<LocationTrack>>,
-    ): List<LocationTrackAlignmentHeader> {
+    ): List<AlignmentHeader<LocationTrack, LocationTrackLayoutState>> {
         logger.apiCall("getReferenceLineHeaders", "$PUBLICATION_STATE" to publicationState, "ids" to ids)
         return mapAlignmentService.getLocationTrackHeaders(publicationState, ids)
     }
@@ -72,7 +71,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
     fun getReferenceLineHeaders(
         @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
         @RequestParam("ids") ids: List<IntId<ReferenceLine>>,
-    ): List<AlignmentHeader<ReferenceLine>> {
+    ): List<AlignmentHeader<ReferenceLine, LayoutState>> {
         logger.apiCall("getReferenceLineHeaders", "$PUBLICATION_STATE" to publicationState, "ids" to ids)
         return mapAlignmentService.getReferenceLineHeaders(publicationState, ids)
     }
