@@ -39,7 +39,7 @@ data class RatkoOperatingPoint(
 fun parseAsset(asset: RatkoOperatingPointAsset): RatkoOperatingPointParse? {
     val externalId = Oid<RatkoOperatingPoint>(asset.id)
     val type = asset.getEnumProperty<OperationalPointType>("operational_point_type")
-    val soloPoint = asset.locations[0].nodecollection.nodes.find { node ->
+    val soloPoint = asset.locations?.get(0)?.nodecollection?.nodes?.find { node ->
         node.nodeType == RatkoNodeType.SOLO_POINT
     }?.point
     val location = soloPoint?.geometry?.coordinates?.let { cs -> Point(cs[0], cs[1]) }
