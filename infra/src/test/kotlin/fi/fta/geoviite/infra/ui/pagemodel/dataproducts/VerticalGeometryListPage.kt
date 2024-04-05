@@ -32,6 +32,12 @@ abstract class E2EDataProductVerticalGeometryListPage : E2EViewFragment(By.class
         clickChild(byQaId("select-entire-rail-network"))
         return E2EDataProductEntireNetworkVerticalGeometryListPage()
     }
+
+    val locationTrackVerticalGeometryRadioButton by lazy { getElementIfExists(byQaId("select-layout-geometry")) }
+    val layoutPlanVerticalGeometryRadioButton by lazy { getElementIfExists(byQaId("select-plan-geometry")) }
+    val entireRailNetworkVerticalGeometryRadioButton by lazy {
+        getElementIfExists(byQaId("select-entire-rail-network"))
+    }
 }
 
 class E2EDataProductPlanVerticalGeometryListPage : E2EDataProductVerticalGeometryListPage() {

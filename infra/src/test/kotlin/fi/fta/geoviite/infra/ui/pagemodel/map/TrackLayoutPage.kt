@@ -55,6 +55,7 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     private val resolution: Double
         get() = childElement(By.className("map__ol-map")).getAttribute("qa-resolution").toDouble()
 
+    val switchToDraftModeButton by lazy { getElementIfExists(byQaId("open-preview-view")) }
 
     val mapScale: MapScale
         get() = tryWait({
@@ -107,6 +108,11 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     fun switchToDraftMode(): E2ETrackLayoutPage = apply {
         logger.info("Switch to draft")
         toolBar.switchToDraft()
+    }
+
+    fun switchToOfficialMode(): E2ETrackLayoutPage = apply {
+        logger.info("Switch to official")
+        toolBar.switchToOfficial()
     }
 
     fun goToPreview() = toolBar.goToPreview()

@@ -50,4 +50,7 @@ class E2EInfraModelPage : E2EViewFragment(By.className("infra-model-main")) {
         return E2EInfraModelForm()
     }
 
+    val infraModelNavTabPlan = getElementIfExists(byQaId("infra-model-nav-tab-plan"))
+    val infraModelNavTabWaiting = getElementIfExists(byQaId("infra-model-nav-tab-waiting"))
+    val infraModelNavTabRejected = getElementIfExists(byQaId("infra-model-nav-tab-rejected"))
 }

@@ -102,10 +102,7 @@ class E2EAppBar : E2EViewFragment(By.className("app-bar")) {
     }
 
     fun selectRole(roleCode: String) {
-        if (!childExists(byQaId("app-bar-more-menu"))) {
-            logger.info("Open app bar more menu")
-            clickChild(byQaId("show-app-bar-more-menu"))
-        }
+        openAppBarMoreMenu()
 
         getElement(byQaId("select-role-$roleCode")).let { roleSelectionElement ->
             if (!roleSelectionElement.getAttribute("class").contains("disabled")) {
@@ -124,5 +121,17 @@ class E2EAppBar : E2EViewFragment(By.className("app-bar")) {
 
     fun dataProductNavLinkExists(dataProductNavLink: DataProductNavLink): Boolean {
         return exists(byQaId(dataProductNavLink.qaId))
+    }
+
+    fun openAppBarMoreMenu() {
+        if (!childExists(byQaId("app-bar-more-menu"))) {
+            logger.info("Open app bar more menu")
+            clickChild(byQaId("show-app-bar-more-menu"))
+        }
+    }
+
+    fun goToLicensePage() {
+        openAppBarMoreMenu()
+        clickWhenClickable(byQaId("licenses"))
     }
 }

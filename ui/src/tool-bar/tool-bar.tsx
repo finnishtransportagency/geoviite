@@ -357,6 +357,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                             }
                             variant={ButtonVariant.SECONDARY}
                             title={modeNavigationButtonsDisabledReason()}
+                            qa-id="exit-draft-mode"
                             onClick={() => moveToOfficialPublishType()}>
                             {t('tool-bar.draft-mode.disable')}
                         </Button>
