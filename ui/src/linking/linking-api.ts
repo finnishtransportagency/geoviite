@@ -244,6 +244,7 @@ export async function getSuggestedSwitchByPoint(
     const params = queryParams({
         location: pointString(point),
         switchId,
+        numBestSwitchesToReturn: 20,
     });
     const uri = linkingUri('switches', 'suggested');
     return getNullable<SuggestedSwitch[]>(`${uri}${params}`).then((suggestedSwitches) => {

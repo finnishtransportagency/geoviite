@@ -73,17 +73,12 @@ class SwitchFittingService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getFitAtPoint(point: IPoint, switchStructureId: IntId<SwitchStructure>): FittedSwitch? {
-        return getFitsAtPoints(listOf(point to switchStructureId))[0]
-    }
-
-    @Transactional(readOnly = true)
-    fun getFitsAtPoints(points: List<Pair<IPoint, IntId<SwitchStructure>>>): List<FittedSwitch?> {
+    fun getFitsAtPoints(points: List<Pair<IPoint, IntId<SwitchStructure>>>, numBestSwitchesToReturn: Int): List<List<FittedSwitch>> {
         val nearbyLocationTracks =
             points.map { (location) -> locationTrackService.getLocationTracksNear(location, PublicationState.DRAFT) }
         val switchStructures = points.map { (_, id) -> switchLibraryService.getSwitchStructure(id) }
         return points.mapIndexed { index, point -> index to point }.parallelStream().map { (index, point) ->
-            createSuggestedSwitchByPoint(point.first, switchStructures[index], nearbyLocationTracks[index])
+            createSuggestedSwitchByPoint(point.first, switchStructures[index], nearbyLocationTracks[index], numBestSwitchesToReturn)
         }.collect(Collectors.toList())
     }
 
@@ -517,6 +512,7 @@ private fun findClosestIntersections(
 
     val lines1 = lines(alignment1)
     val lines2 = lines(alignment2)
+
     val intersections = lines1.flatMap { line1 ->
         lines2.mapNotNull { line2 ->
             val intersection = lineIntersection(line1.start, line1.end, line2.start, line2.end)
@@ -732,14 +728,20 @@ fun getSuggestedSwitchScore(
     }
 }
 
-fun selectBestSuggestedSwitch(
+fun roughLocation(fit: FittedSwitch) =
+    fit.joints.associate { joint ->
+        joint.number to joint.location.round(0)
+    }
+
+fun bestSuggestedSwitches(
     switchSuggestions: List<FittedSwitch>,
     switchStructure: SwitchStructure,
     farthestJoint: SwitchJoint,
     desiredLocation: IPoint,
-): FittedSwitch? {
+    numBestSwitchesToReturn: Int,
+): List<FittedSwitch> {
     if (switchSuggestions.isEmpty()) {
-        return null
+        return listOf()
     }
 
     val maxFarthestJointDistance = switchSuggestions.maxOf { suggestedSwitch ->
@@ -750,18 +752,19 @@ fun selectBestSuggestedSwitch(
         }
     }
 
-    return switchSuggestions.maxBy { suggestedSwitch ->
-        getSuggestedSwitchScore(
+    return switchSuggestions.asSequence().sortedBy { suggestedSwitch ->
+        -getSuggestedSwitchScore(
             suggestedSwitch, switchStructure, farthestJoint, maxFarthestJointDistance, desiredLocation
         )
-    }
+    }.map { it to roughLocation(it) }.distinctBy { it.second }.map { it.first }.take(numBestSwitchesToReturn).toList()
 }
 
 fun createSuggestedSwitchByPoint(
     point: IPoint,
     switchStructure: SwitchStructure,
     nearbyLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
-): FittedSwitch? {
+    numBestSwitchesToReturn: Int,
+): List<FittedSwitch> {
     val bboxSize = max(switchStructure.bbox.width, switchStructure.bbox.height) * 2.25
     val bbox = BoundingBox(0.0..bboxSize, 0.0..bboxSize).centerAt(point)
     val croppedTracks = nearbyLocationTracks.map { (_, alignment) -> cropPoints(alignment, bbox) }
@@ -786,7 +789,7 @@ fun createSuggestedSwitchByPoint(
     }
 
     val farthestJoint = findFarthestJoint(switchStructure, sharedSwitchJoint, switchAlignmentsContainingSharedJoint[0])
-    return selectBestSuggestedSwitch(suggestedSwitches, switchStructure, farthestJoint, point)
+    return bestSuggestedSwitches(suggestedSwitches, switchStructure, farthestJoint, point, numBestSwitchesToReturn)
 }
 
 private data class TrackIntersection(

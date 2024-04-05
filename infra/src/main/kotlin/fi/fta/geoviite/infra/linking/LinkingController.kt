@@ -144,9 +144,10 @@ class LinkingController @Autowired constructor(
     fun getSuggestedSwitches(
         @RequestParam("location") location: Point,
         @RequestParam("switchId") switchId: IntId<TrackLayoutSwitch>,
+        @RequestParam("numBestSwitchesToReturn") numBestSwitchesToReturn: Int,
     ): List<SuggestedSwitch> {
         logger.apiCall("getSuggestedSwitches", "location" to location, "switchId" to switchId)
-        return listOfNotNull(switchLinkingService.getSuggestedSwitch(location, switchId))
+        return switchLinkingService.getSuggestedSwitch(location, switchId, numBestSwitchesToReturn)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
