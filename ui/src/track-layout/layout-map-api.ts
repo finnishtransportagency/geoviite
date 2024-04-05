@@ -7,6 +7,7 @@ import {
     LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackId,
+    LocationTrackLayoutState,
     LocationTrackType,
     MapAlignmentType,
     ReferenceLineId,
@@ -61,8 +62,14 @@ export type AlignmentDataHolder = {
     planId?: GeometryPlanId;
 };
 
-export type LocationTrackAlignmentHeader = LayoutAlignmentHeader & { id: LocationTrackId };
-export type ReferenceLineAlignmentHeader = LayoutAlignmentHeader & { id: ReferenceLineId };
+export type LocationTrackAlignmentHeader = LayoutAlignmentHeader & {
+    id: LocationTrackId;
+    state: LocationTrackLayoutState;
+};
+export type ReferenceLineAlignmentHeader = LayoutAlignmentHeader & {
+    id: ReferenceLineId;
+    state: LayoutState;
+};
 
 type AlignmentHeaderIdAndType =
     | {
@@ -90,7 +97,6 @@ export type AlignmentHeader = {
     duplicateOf?: LocationTrackId;
 
     name: string;
-    state: LayoutState;
     trackType?: LocationTrackType;
 
     length: number;

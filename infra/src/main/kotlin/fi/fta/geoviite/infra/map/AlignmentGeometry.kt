@@ -19,14 +19,14 @@ enum class MapAlignmentType {
     REFERENCE_LINE,
 }
 
-data class AlignmentHeader<T>(
+data class AlignmentHeader<T, U>(
     val id: DomainId<T>,
     val version: RowVersion<T>?,
     val trackNumberId: DomainId<TrackLayoutTrackNumber>?,
     val duplicateOf: IntId<LocationTrack>?,
 
     val name: AlignmentName,
-    val state: LayoutState,
+    val state: U,
     val alignmentSource: MapAlignmentSource,
     val alignmentType: MapAlignmentType,
     val trackType: LocationTrackType?,
