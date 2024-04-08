@@ -122,11 +122,21 @@ export type LayoutLocationTrack = {
     ownerId: LocationTrackOwnerId;
 } & LayoutAssetFields;
 
+export type DuplicateMatch = 'FULL' | 'PARTIAL' | 'NONE';
+
+export type DuplicateStatus = {
+    match: DuplicateMatch;
+    duplicateOfId?: LocationTrackId;
+    startSwitchId?: LayoutSwitchId;
+    endSwitchId?: LayoutSwitchId;
+};
+
 export type LocationTrackDuplicate = {
     id: LocationTrackId;
     trackNumberId: LayoutTrackNumberId;
     name: string;
     externalId: Oid;
+    duplicateStatus: DuplicateStatus;
 };
 export type LayoutSwitchIdAndName = { id: LayoutSwitchId; name: string };
 

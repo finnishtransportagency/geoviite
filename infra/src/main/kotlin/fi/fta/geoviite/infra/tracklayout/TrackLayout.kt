@@ -195,10 +195,10 @@ data class SwitchOnLocationTrack(
     val nearestOperatingPoint: RatkoOperatingPoint?,
 )
 
-enum class SplitDuplicateMatch { FULL, PARTIAL, NONE }
+enum class DuplicateMatch { FULL, PARTIAL, NONE }
 
 data class DuplicateStatus(
-    val match: SplitDuplicateMatch,
+    val match: DuplicateMatch,
     val duplicateOfId: IntId<LocationTrack>?,
     val startSwitchId: IntId<TrackLayoutSwitch>?,
     val endSwitchId: IntId<TrackLayoutSwitch>?,

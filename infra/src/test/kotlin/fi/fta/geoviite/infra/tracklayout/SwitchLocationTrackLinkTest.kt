@@ -189,10 +189,10 @@ class SwitchLocationTrackLinkTest {
 }
 
 fun partialMatch(startSwitch: Int, endSwitch: Int, from: Int = 0) =
-    from to DuplicateStatus(SplitDuplicateMatch.PARTIAL, null, IntId(startSwitch), IntId(endSwitch))
+    from to DuplicateStatus(DuplicateMatch.PARTIAL, null, IntId(startSwitch), IntId(endSwitch))
 
 fun fullMatch(startSwitch: Int, endSwitch: Int, from: Int = 0) =
-    from to DuplicateStatus(SplitDuplicateMatch.FULL, null, IntId(startSwitch), IntId(endSwitch))
+    from to DuplicateStatus(DuplicateMatch.FULL, null, IntId(startSwitch), IntId(endSwitch))
 
 fun matchRange(vararg switchToJoint: Pair<Int, Int>): List<Pair<IntId<TrackLayoutSwitch>, JointNumber>> =
     switchToJoint.map { (id, joint) -> IntId<TrackLayoutSwitch>(id) to JointNumber(joint) }

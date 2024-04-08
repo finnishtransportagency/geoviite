@@ -357,6 +357,14 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             ? t('location-track-dialog.move-to-edit-deleted')
             : t('location-track-dialog.move-to-edit', { name: track.name });
     };
+
+    const manuallySetDuplicates =
+        extraInfo?.duplicates?.filter(
+            (d) =>
+                state.existingLocationTrack?.id &&
+                d.duplicateStatus.duplicateOfId === state.existingLocationTrack?.id,
+        ) || [];
+
     return (
         <React.Fragment>
             <Dialog
@@ -549,9 +557,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             label={`${t('location-track-dialog.duplicate-of')}`}
                             value={
                                 <Dropdown
-                                    disabled={!!extraInfo?.duplicates?.length}
+                                    disabled={manuallySetDuplicates.length > 0}
                                     title={
-                                        extraInfo?.duplicates?.length
+                                        manuallySetDuplicates.length > 0
                                             ? t(
                                                   'location-track-dialog.track-already-has-duplicates',
                                               )
