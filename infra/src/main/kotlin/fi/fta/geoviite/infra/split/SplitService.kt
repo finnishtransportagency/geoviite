@@ -406,6 +406,7 @@ data class SplitTargetResult(
     val locationTrack: LocationTrack,
     val alignment: LayoutAlignment,
     val indices: IntRange,
+//    val operation: SplitTargetOperation,
 )
 
 fun splitLocationTrack(
