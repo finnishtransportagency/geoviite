@@ -21,7 +21,6 @@ import Infobox from 'tool-panel/infobox/infobox';
 import {
     LAYOUT_SRID,
     LayoutLocationTrack,
-    LayoutSwitchId,
     LayoutTrackNumber,
 } from 'track-layout/track-layout-model';
 import {
@@ -103,10 +102,6 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     showLayers,
 }: LocationTrackLocationInfoboxProps) => {
     const { t } = useTranslation();
-
-    const isStartOrEndSwitch = (switchId: LayoutSwitchId) =>
-        switchId === extraInfo?.switchAtStart?.id || switchId === extraInfo?.switchAtEnd?.id;
-
     const [startAndEndPoints, startAndEndPointFetchStatus] = useLocationTrackStartAndEnd(
         locationTrack?.id,
         layoutContext,
@@ -179,10 +174,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             if (startAndEndPoints?.start && startAndEndPoints?.end && trackNumber) {
                 onStartSplitting({
                     locationTrack: locationTrack,
-                    allowedSwitches:
-                        splitInitializationParameters?.switches.filter(
-                            (sw) => !isStartOrEndSwitch(sw.switchId),
-                        ) || [],
+                    trackSwitches: splitInitializationParameters?.switches || [],
                     startAndEndSwitches: [
                         extraInfo?.switchAtStart?.id,
                         extraInfo?.switchAtEnd?.id,
@@ -191,10 +183,6 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                     startLocation: startAndEndPoints.start.point,
                     endLocation: startAndEndPoints.end.point,
                     trackNumber: trackNumber.number,
-                    nearestOperatingPointToStart:
-                        splitInitializationParameters.nearestOperatingPointToStart,
-                    nearestOperatingPointToEnd:
-                        splitInitializationParameters.nearestOperatingPointToEnd,
                 });
                 showLayers(['location-track-split-location-layer']);
             }

@@ -47,7 +47,7 @@ export const createLocationTrackSplitLocationLayer = (
 
     const dataPromise: Promise<LayoutSwitch[]> = splittingState
         ? getSwitches(
-              splittingState.splits.map((sw) => sw.switchId),
+              splittingState.splits.map((sw) => sw.switch.switchId),
               draftLayoutContext(layoutContext),
           )
         : Promise.resolve([]);
@@ -60,7 +60,7 @@ export const createLocationTrackSplitLocationLayer = (
             ];
             const splits: SwitchIdAndLocation[] = splittingState.splits.map((split) => ({
                 location: split.location,
-                switchId: split.switchId,
+                switchId: split.switch.switchId,
             }));
             const switchesAndLocations = firstAndLast.concat(splits);
 
