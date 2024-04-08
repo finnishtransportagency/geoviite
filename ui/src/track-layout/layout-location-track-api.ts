@@ -2,8 +2,8 @@ import {
     AddressPoint,
     AlignmentPoint,
     AlignmentStartAndEnd,
+    DuplicateStatus,
     LayoutLocationTrack,
-    LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackDescription,
     LocationTrackId,
@@ -65,22 +65,12 @@ export type AlignmentPlanSection = {
     id: string;
 };
 
-export type SplitDuplicateMatch = 'FULL' | 'PARTIAL' | 'NONE';
-
-// TODO: GVT-2525 combine into SplitDuplicate
-export type SplitDuplicateStatus = {
-    match: SplitDuplicateMatch;
-    duplicateOfId: LocationTrackId | undefined;
-    startSwitchId: LayoutSwitchId | undefined;
-    endSwitchId: LayoutSwitchId | undefined;
-};
-
 export type SplitDuplicate = {
     id: LocationTrackId;
     name: string;
     start: AddressPoint;
     end: AddressPoint;
-    status: SplitDuplicateStatus;
+    status: DuplicateStatus;
 };
 
 export type SplitInitializationParameters = {

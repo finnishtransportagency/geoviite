@@ -25,6 +25,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackLayoutState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
@@ -280,12 +281,10 @@ class SplitService(
             .map { duplicateTrack -> duplicateTrack.id as IntId }
 
         val sourceTrack = locationTrackDao.getOrThrow(DRAFT, request.sourceTrackId)
-        if (sourceTrack.state != LayoutState.IN_USE) {
-            throw SplitFailureException(
-                message = "Source track state is not IN_USE: id=${sourceTrack.id}",
-                localizedMessageKey = "source-track-state-not-in-use",
-            )
-        }
+        if (sourceTrack.state != LocationTrackLayoutState.IN_USE) throw SplitFailureException(
+            message = "Source track state is not IN_USE: id=${sourceTrack.id}",
+            localizedMessageKey = "source-track-state-not-in-use",
+        )
 
         val suggestions = verifySwitchSuggestions(switchLinkingService.getTrackSwitchSuggestions(DRAFT, sourceTrack))
         val relinkedSwitches = switchLinkingService.relinkTrack(request.sourceTrackId).map { it.id }
@@ -320,7 +319,7 @@ class SplitService(
             localizationParams = localizationParams("trackName" to sourceTrack.name)
         )
 
-        locationTrackService.updateState(request.sourceTrackId, LayoutState.DELETED)
+        locationTrackService.updateState(request.sourceTrackId, LocationTrackLayoutState.DELETED)
 
         return savedSplitTargetLocationTracks.map { splitTargetResult ->
             SplitTarget(splitTargetResult.locationTrack.id as IntId, splitTargetResult.indices)

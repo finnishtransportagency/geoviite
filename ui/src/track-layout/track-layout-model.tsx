@@ -25,9 +25,10 @@ import { AlignmentHeader, AlignmentPolyLine } from './layout-map-api';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { Brand } from 'common/brand';
-import { SplitDuplicateStatus } from './layout-location-track-api';
+import { DuplicateStatus } from './layout-location-track-api';
 
 export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'PLANNED' | 'DELETED';
+export type LocationTrackLayoutState = 'BUILT' | LayoutState;
 export type LayoutStateCategory = 'EXISTING' | 'NOT_EXISTING' | 'FUTURE_EXISTING';
 
 export const LAYOUT_SRID: Srid = 'EPSG:3067';
@@ -107,7 +108,7 @@ export type LayoutLocationTrack = {
     descriptionBase?: string;
     descriptionSuffix?: LocationTrackDescriptionSuffixMode;
     type?: LocationTrackType;
-    state: LayoutState;
+    state: LocationTrackLayoutState;
     externalId?: Oid;
     trackNumberId: LayoutTrackNumberId;
     sourceId?: GeometryAlignmentId;
@@ -122,12 +123,21 @@ export type LayoutLocationTrack = {
     ownerId: LocationTrackOwnerId;
 } & LayoutAssetFields;
 
+export type DuplicateMatch = 'FULL' | 'PARTIAL' | 'NONE';
+
+export type DuplicateStatus = {
+    match: DuplicateMatch;
+    duplicateOfId?: LocationTrackId;
+    startSwitchId?: LayoutSwitchId;
+    endSwitchId?: LayoutSwitchId;
+};
+
 export type LocationTrackDuplicate = {
     id: LocationTrackId;
     trackNumberId: LayoutTrackNumberId;
     name: string;
     externalId: Oid;
-    duplicateStatus: SplitDuplicateStatus;
+    duplicateStatus: DuplicateStatus;
 };
 export type LayoutSwitchIdAndName = { id: LayoutSwitchId; name: string };
 

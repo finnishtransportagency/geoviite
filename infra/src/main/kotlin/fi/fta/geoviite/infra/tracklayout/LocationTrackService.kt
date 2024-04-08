@@ -95,7 +95,7 @@ class LocationTrackService(
             ownerId = request.ownerId,
         )
 
-        return if (locationTrack.state != LayoutState.DELETED) {
+        return if (locationTrack.state != LocationTrackLayoutState.DELETED) {
             saveDraft(fetchNearbyTracksAndCalculateLocationTrackTopology(locationTrack, originalAlignment))
         } else {
             clearDuplicateReferences(id)
@@ -106,12 +106,12 @@ class LocationTrackService(
     }
 
     @Transactional
-    fun updateState(id: IntId<LocationTrack>, state: LayoutState): DaoResponse<LocationTrack> {
+    fun updateState(id: IntId<LocationTrack>, state: LocationTrackLayoutState): DaoResponse<LocationTrack> {
         logger.serviceCall("update", "id" to id, "state" to state)
         val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(DRAFT, id)
         val locationTrack = originalTrack.copy(state = state)
 
-        return if (locationTrack.state != LayoutState.DELETED) {
+        return if (locationTrack.state != LocationTrackLayoutState.DELETED) {
             saveDraft(locationTrack)
         } else {
             clearDuplicateReferences(id)
@@ -463,23 +463,15 @@ class LocationTrackService(
         alignment: LayoutAlignment,
         publicationState: PublicationState,
     ): List<LocationTrackDuplicate> {
-        val switchJoints = collectSwitchJoints(track, alignment)
-
         val markedDuplicateVersions = dao.fetchDuplicateVersions(track.id as IntId, publicationState)
-        val tracksLinkedThroughSwitch = switchDao.findLocationTracksLinkedToSwitches(publicationState, track.switchIds)
+        val tracksLinkedThroughSwitch = switchDao
+            .findLocationTracksLinkedToSwitches(publicationState, track.switchIds)
             .map(LayoutSwitchDao.LocationTrackIdentifiers::rowVersion)
-
-        return (markedDuplicateVersions + tracksLinkedThroughSwitch)
-            .asSequence()
+        val duplicateTracksAndAlignments = (markedDuplicateVersions + tracksLinkedThroughSwitch)
             .distinct()
             .map(::getWithAlignmentInternal)
-            .filter { (duplicateTrack, _) -> duplicateTrack.id != track.id }
-            .flatMap { (duplicateTrack, duplicateAlignment) ->
-                getLocationTrackDuplicatesByJoint(track.id, switchJoints, duplicateTrack, duplicateAlignment)
-            }
-            .sortedWith(compareBy({ it.first }, { it.second.name }))
-            .map { (_, duplicate) -> duplicate }
-            .toList()
+            .filter { (duplicateTrack, _) -> duplicateTrack.id != track.id && duplicateTrack.id != track.duplicateOf }
+        return getLocationTrackDuplicatesByJoint(track, alignment, duplicateTracksAndAlignments)
     }
 
     private fun getDuplicateOf(
@@ -488,13 +480,7 @@ class LocationTrackService(
     ): LocationTrackDuplicate? = locationTrack.duplicateOf?.let { duplicateOfId ->
         getWithAlignment(publicationState, duplicateOfId)?.let { (duplicateOfTrack, duplicateOfAlignment) ->
             val alignment = alignmentDao.fetch(locationTrack.getAlignmentVersionOrThrow())
-            // Note arguments: here the input "locationTrack" is the duplicate of the other ("main") one
-            getLocationTrackDuplicatesByJoint(
-                mainTrackId = duplicateOfId,
-                mainTrackJoints = collectSwitchJoints(duplicateOfTrack, duplicateOfAlignment),
-                duplicateTrack = locationTrack,
-                duplicateAlignment = alignment,
-            ).first().second // There has to at least one found, since we know the duplicateOf is set
+            getLocationTrackDuplicateOfStatus(locationTrack, alignment, duplicateOfTrack, duplicateOfAlignment)
         }
     }
 

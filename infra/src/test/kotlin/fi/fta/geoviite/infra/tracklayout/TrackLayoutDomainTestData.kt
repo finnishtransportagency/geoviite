@@ -285,7 +285,7 @@ fun locationTrackAndAlignment(
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     duplicateOf: IntId<LocationTrack>? = null,
-    state: LayoutState = LayoutState.IN_USE,
+    state: LocationTrackLayoutState = LocationTrackLayoutState.IN_USE,
     id: IntId<LocationTrack>? = null,
     draft: Boolean,
 ): Pair<LocationTrack, LayoutAlignment> = locationTrackAndAlignment(
@@ -307,7 +307,7 @@ fun locationTrackAndAlignment(
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     duplicateOf: IntId<LocationTrack>? = null,
-    state: LayoutState = LayoutState.IN_USE,
+    state: LocationTrackLayoutState = LocationTrackLayoutState.IN_USE,
 ): Pair<LocationTrack, LayoutAlignment> {
     val alignment = alignment(segments)
     val locationTrack = locationTrack(
@@ -331,7 +331,7 @@ fun locationTrack(
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     type: LocationTrackType = LocationTrackType.SIDE,
-    state: LayoutState = LayoutState.IN_USE,
+    state: LocationTrackLayoutState = LocationTrackLayoutState.IN_USE,
     externalId: Oid<LocationTrack>? = someOid(),
     alignmentVersion: RowVersion<LayoutAlignment>? = null,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
@@ -363,7 +363,7 @@ fun locationTrack(
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     type: LocationTrackType = LocationTrackType.SIDE,
-    state: LayoutState = LayoutState.IN_USE,
+    state: LocationTrackLayoutState = LocationTrackLayoutState.IN_USE,
     externalId: Oid<LocationTrack>? = someOid(),
     alignmentVersion: RowVersion<LayoutAlignment>? = null,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,

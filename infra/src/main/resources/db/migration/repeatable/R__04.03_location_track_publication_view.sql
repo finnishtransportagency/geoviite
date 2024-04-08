@@ -1,3 +1,5 @@
+-- increment to force a rerun: 1
+
 drop view if exists layout.location_track_publication_view;
 create view layout.location_track_publication_view as
 (

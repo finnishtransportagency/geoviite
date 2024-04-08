@@ -121,8 +121,8 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
 
     const publishTypeIsDraft = layoutContext.publicationState === 'DRAFT';
     const locationTrackIsDraft = locationTrack.editState !== 'UNEDITED';
-    const duplicatesOnOtherTracks = extraInfo?.duplicates?.some(
-        (dupe) => dupe.trackNumberId !== trackNumber?.id,
+    const duplicatesOnOtherTrackNumbers = extraInfo?.duplicates?.some(
+        (duplicate) => duplicate.trackNumberId !== trackNumber?.id,
     );
 
     const getSplittingDisabledReasonsTranslated = () => {
@@ -142,7 +142,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
 
         if (locationTrackIsDraft)
             reasons.push(t('tool-panel.location-track.splitting.validation.track-draft-exists'));
-        if (duplicatesOnOtherTracks)
+        if (duplicatesOnOtherTrackNumbers)
             reasons.push(
                 t(
                     'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
@@ -343,7 +343,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                             </InfoboxContentSpread>
                                         )}
                                     {publishTypeIsDraft &&
-                                        duplicatesOnOtherTracks &&
+                                        duplicatesOnOtherTrackNumbers &&
                                         !extraInfo?.partOfUnfinishedSplit && (
                                             <InfoboxContentSpread>
                                                 <MessageBox>
@@ -362,7 +362,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                     locationTrack.state !== 'IN_USE' ||
                                                     !publishTypeIsDraft ||
                                                     locationTrackIsDraft ||
-                                                    duplicatesOnOtherTracks ||
+                                                    duplicatesOnOtherTrackNumbers ||
                                                     extraInfo?.partOfUnfinishedSplit
                                                 }
                                                 title={getSplittingDisabledReasonsTranslated()}

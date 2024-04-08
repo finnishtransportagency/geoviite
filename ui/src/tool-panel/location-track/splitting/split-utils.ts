@@ -21,7 +21,7 @@ import {
     validateLocationTrackName,
 } from 'tool-panel/location-track/dialog/location-track-validation';
 import { isEqualIgnoreCase } from 'utils/string-utils';
-import { SplitDuplicateStatus } from 'track-layout/layout-location-track-api';
+import { DuplicateStatus } from 'track-layout/layout-location-track-api';
 
 export type ValidatedSplit = {
     split: SplitTargetCandidate | FirstSplitTargetCandidate;
@@ -224,7 +224,7 @@ export const getSplitAddressPoint = (
 export const getOperation = (
     trackId: LocationTrackId,
     switchId: LayoutSwitchId | undefined,
-    duplicateStatus: SplitDuplicateStatus | undefined,
+    duplicateStatus: DuplicateStatus | undefined,
 ): SplitTargetOperation | undefined => {
     switch (duplicateStatus?.match) {
         case 'FULL':

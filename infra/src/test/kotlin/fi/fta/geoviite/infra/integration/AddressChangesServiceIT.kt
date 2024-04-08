@@ -92,7 +92,7 @@ class AddressChangesServiceIT @Autowired constructor(
         val setupData = createAndInsertTrackNumberAndLocationTrack()
         val contextKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
         val changes = addressChangesService.getAddressChanges(
-            beforeTrack = setupData.locationTrack.copy(state = LayoutState.DELETED),
+            beforeTrack = setupData.locationTrack.copy(state = LocationTrackLayoutState.DELETED),
             afterTrack = setupData.locationTrack,
             beforeContextKey = contextKey,
             afterContextKey = contextKey,

@@ -33,6 +33,18 @@ import java.time.Instant
 val LAYOUT_SRID = Srid(3067)
 val LAYOUT_CRS = crs(LAYOUT_SRID)
 
+enum class LocationTrackLayoutState(val category: LayoutStateCategory) {
+    BUILT(LayoutStateCategory.EXISTING),
+    IN_USE(LayoutStateCategory.EXISTING),
+    NOT_IN_USE(LayoutStateCategory.EXISTING),
+    PLANNED(LayoutStateCategory.FUTURE_EXISTING),
+    DELETED(LayoutStateCategory.NOT_EXISTING);
+
+    fun isPublishable() = this != PLANNED
+    fun isLinkable() = this == IN_USE || this == BUILT || this == NOT_IN_USE
+    fun isRemoved() = this == DELETED
+}
+
 enum class LayoutState(val category: LayoutStateCategory) {
     IN_USE(LayoutStateCategory.EXISTING),
     NOT_IN_USE(LayoutStateCategory.EXISTING),
@@ -71,7 +83,7 @@ data class LocationTrackDuplicate(
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val name: AlignmentName,
     val externalId: Oid<LocationTrack>?,
-    val duplicateStatus: SplitDuplicateStatus,
+    val duplicateStatus: DuplicateStatus,
 )
 
 data class LocationTrackDescription(
@@ -183,10 +195,10 @@ data class SwitchOnLocationTrack(
     val nearestOperatingPoint: RatkoOperatingPoint?,
 )
 
-enum class SplitDuplicateMatch { FULL, PARTIAL, NONE }
+enum class DuplicateMatch { FULL, PARTIAL, NONE }
 
-data class SplitDuplicateStatus(
-    val match: SplitDuplicateMatch,
+data class DuplicateStatus(
+    val match: DuplicateMatch,
     val duplicateOfId: IntId<LocationTrack>?,
     val startSwitchId: IntId<TrackLayoutSwitch>?,
     val endSwitchId: IntId<TrackLayoutSwitch>?,
@@ -198,7 +210,7 @@ data class SplitDuplicateTrack(
     val start: AddressPoint,
     val end: AddressPoint,
 
-    val status: SplitDuplicateStatus,
+    val status: DuplicateStatus,
 )
 
 data class SplittingInitializationParameters(
@@ -214,7 +226,7 @@ data class LocationTrack(
     val descriptionBase: FreeText,
     val descriptionSuffix: DescriptionSuffixType,
     val type: LocationTrackType,
-    val state: LayoutState,
+    val state: LocationTrackLayoutState,
     val externalId: Oid<LocationTrack>?,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val sourceId: IntId<GeometryAlignment>?,
