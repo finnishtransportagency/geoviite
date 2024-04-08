@@ -55,9 +55,12 @@ data class Split(
     fun containsSwitch(switchId: IntId<TrackLayoutSwitch>): Boolean = relinkedSwitches.contains(switchId)
 }
 
+enum class SplitTargetOperation { CREATE, OVERWRITE, TRANSFER }
+
 data class SplitTarget(
     val locationTrackId: IntId<LocationTrack>,
     val segmentIndices: IntRange,
+    val operation: SplitTargetOperation,
 )
 
 data class SplitPublicationValidationErrors(
@@ -68,11 +71,9 @@ data class SplitPublicationValidationErrors(
     val switches: Map<IntId<TrackLayoutSwitch>, List<PublicationValidationError>>,
 )
 
-enum class SplitTargetOperation { OVERWRITE, TRANSFER }
-
 data class SplitRequestTargetDuplicate(
     val id: IntId<LocationTrack>,
-    val operation: SplitTargetOperation,
+    val operation: SplitTargetDuplicateOperation,
 )
 
 data class SplitRequestTarget(

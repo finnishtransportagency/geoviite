@@ -1,9 +1,17 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
 import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
@@ -11,13 +19,68 @@ import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.LocationTrackChange
 import fi.fta.geoviite.infra.integration.TrackNumberChange
-import fi.fta.geoviite.infra.linking.*
+import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
+import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
+import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
+import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
+import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.split.*
+import fi.fta.geoviite.infra.split.BulkTransferState
+import fi.fta.geoviite.infra.split.Split
+import fi.fta.geoviite.infra.split.SplitDao
+import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.split.SplitTarget
+import fi.fta.geoviite.infra.split.SplitTargetOperation
+import fi.fta.geoviite.infra.split.validateSplitContent
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
+import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
+import fi.fta.geoviite.infra.tracklayout.LayoutAssetService
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
+import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackLayoutState
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
+import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
+import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.VersionPair
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import fi.fta.geoviite.infra.tracklayout.assertMatches
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.someSegment
+import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.switchJoint
+import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.SortOrder
@@ -32,7 +95,13 @@ import publicationRequest
 import publish
 import java.math.BigDecimal
 import kotlin.math.absoluteValue
-import kotlin.test.*
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -2870,7 +2939,7 @@ class PublicationServiceIT @Autowired constructor(
     ): IntId<Split> {
         return splitDao.saveSplit(
             sourceTrackId,
-            targetTrackIds.map { id -> SplitTarget(id, 0..0) },
+            targetTrackIds.map { id -> SplitTarget(id, 0..0, SplitTargetOperation.CREATE) },
             listOf(),
             updatedDuplicates = emptyList(),
         )
@@ -2883,7 +2952,7 @@ class PublicationServiceIT @Autowired constructor(
     ): IntId<Split> {
         return splitDao.saveSplit(
             sourceTrackId,
-            targetTrackIds.map { id -> SplitTarget(id, 0..0) },
+            targetTrackIds.map { id -> SplitTarget(id, 0..0, SplitTargetOperation.CREATE) },
             switches,
             updatedDuplicates = emptyList(),
         )
@@ -3324,8 +3393,8 @@ class PublicationServiceIT @Autowired constructor(
         splitDao.saveSplit(
             sourceTrack.id,
             listOf(
-                SplitTarget(middleTrack.id, 0..0),
-                SplitTarget(endTrack.id, 0..0),
+                SplitTarget(middleTrack.id, 0..0, SplitTargetOperation.CREATE),
+                SplitTarget(endTrack.id, 0..0, SplitTargetOperation.CREATE),
             ),
             relinkedSwitches = someSwitches,
             updatedDuplicates = someDuplicates,

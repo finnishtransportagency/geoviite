@@ -1,6 +1,7 @@
 import { PayloadAction } from '@reduxjs/toolkit';
 import {
     AlignmentPoint,
+    DuplicateStatus,
     LayoutLocationTrack,
     LayoutSwitchId,
     LocationTrackDescriptionSuffixMode,
@@ -10,7 +11,7 @@ import {
 import { TrackLayoutState } from 'track-layout/track-layout-slice';
 import { draftLayoutContext, TrackMeter, TrackNumber } from 'common/common-model';
 import { Point } from 'model/geometry';
-import { SplitDuplicate, DuplicateStatus } from 'track-layout/layout-location-track-api';
+import { SplitDuplicate } from 'track-layout/layout-location-track-api';
 import { getOperation } from './splitting/split-utils';
 
 export type SplitTargetOperation = 'OVERWRITE' | 'TRANSFER';

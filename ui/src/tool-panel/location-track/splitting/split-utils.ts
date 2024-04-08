@@ -1,5 +1,6 @@
 import {
     AddressPoint,
+    DuplicateStatus,
     LayoutLocationTrack,
     LayoutSwitch,
     LayoutSwitchId,
@@ -21,7 +22,6 @@ import {
     validateLocationTrackName,
 } from 'tool-panel/location-track/dialog/location-track-validation';
 import { isEqualIgnoreCase } from 'utils/string-utils';
-import { DuplicateStatus } from 'track-layout/layout-location-track-api';
 
 export type ValidatedSplit = {
     split: SplitTargetCandidate | FirstSplitTargetCandidate;

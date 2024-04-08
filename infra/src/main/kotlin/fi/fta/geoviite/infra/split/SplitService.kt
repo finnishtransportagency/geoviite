@@ -22,7 +22,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
-import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackLayoutState
@@ -291,17 +290,20 @@ class SplitService(
 
         // Fetch post-re-linking track & alignment
         val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, request.sourceTrackId)
-        val targetTracks = splitLocationTrack(
+        val targetResults = splitLocationTrack(
             track = track,
             alignment = alignment,
             targets = collectSplitTargetParams(request.targetTracks, suggestions),
         )
 
-        val savedSplitTargetLocationTracks = targetTracks
-            .map { targetTrack -> targetTrack to saveTargetTrack(targetTrack) }
-            .map { (targetTrack, response) ->
-                targetTrack.copy(locationTrack = locationTrackDao.fetch(response.rowVersion))
+        val savedSplitTargetLocationTracks = targetResults.map { result ->
+            if (result.operation == SplitTargetOperation.TRANSFER) {
+                result // Only transfer assets: no need to save unchanged track
+            } else {
+                val response = saveTargetTrack(result)
+                result.copy(locationTrack = locationTrackDao.fetch(response.rowVersion))
             }
+        }
 
         geocodingService.getGeocodingContext(DRAFT, sourceTrack.trackNumberId)?.let { geocodingContext ->
             val splitTargetTracksWithAlignments = savedSplitTargetLocationTracks.map { splitTargetResult ->
@@ -322,7 +324,7 @@ class SplitService(
         locationTrackService.updateState(request.sourceTrackId, LocationTrackLayoutState.DELETED)
 
         return savedSplitTargetLocationTracks.map { splitTargetResult ->
-            SplitTarget(splitTargetResult.locationTrack.id as IntId, splitTargetResult.indices)
+            SplitTarget(splitTargetResult.locationTrack.id as IntId, splitTargetResult.indices, splitTargetResult.operation)
         }.let { splitTargets ->
             splitDao.saveSplit(request.sourceTrackId, splitTargets, relinkedSwitches, sourceTrackDuplicateIds)
         }
@@ -393,10 +395,22 @@ data class SplitTargetParams(
     val request: SplitRequestTarget,
     val startSwitch: Pair<IntId<TrackLayoutSwitch>, JointNumber>?,
     val duplicate: SplitTargetDuplicate?,
-)
+) {
+    fun getOperation(): SplitTargetOperation =
+        duplicate?.operation?.toSplitTargetOperation() ?: SplitTargetOperation.CREATE
+}
+
+enum class SplitTargetDuplicateOperation {
+    TRANSFER,
+    OVERWRITE;
+    fun toSplitTargetOperation(): SplitTargetOperation = when (this) {
+        TRANSFER -> SplitTargetOperation.TRANSFER
+        OVERWRITE -> SplitTargetOperation.OVERWRITE
+    }
+}
 
 data class SplitTargetDuplicate(
-    val operation: SplitTargetOperation,
+    val operation: SplitTargetDuplicateOperation,
     val track: LocationTrack,
     val alignment: LayoutAlignment,
 )
@@ -405,7 +419,7 @@ data class SplitTargetResult(
     val locationTrack: LocationTrack,
     val alignment: LayoutAlignment,
     val indices: IntRange,
-//    val operation: SplitTargetOperation,
+    val operation: SplitTargetOperation,
 )
 
 fun splitLocationTrack(
@@ -420,10 +434,11 @@ fun splitLocationTrack(
         val connectivityType = calculateTopologicalConnectivity(track, alignment.segments.size, segmentIndices)
         val (newTrack, newAlignment) = target.duplicate?.let { d ->
             when (d.operation) {
-                SplitTargetOperation.TRANSFER -> {
-                    TODO("GVT-2525 handle transfer operation")
+                SplitTargetDuplicateOperation.TRANSFER -> {
+                    // Only transfer assets: the track is unchanged
+                    d.track to d.alignment
                 }
-                SplitTargetOperation.OVERWRITE -> updateDuplicateToSplitTarget(
+                SplitTargetDuplicateOperation.OVERWRITE -> updateDuplicateToSplitTarget(
                     sourceTrack = track,
                     duplicateTrack = d.track,
                     duplicateAlignment = d.alignment,
@@ -433,14 +448,35 @@ fun splitLocationTrack(
                 )
             }
         } ?: createSplitTarget(track, target.request, segments, connectivityType)
-        SplitTargetResult(newTrack, newAlignment, segmentIndices)
+        SplitTargetResult(
+            locationTrack = newTrack,
+            alignment = newAlignment,
+            indices = segmentIndices,
+            operation = target.getOperation(),
+        )
     }.also { result -> validateSplitResult(result, alignment) }
 }
 
-fun validateSplitResult(result: List<SplitTargetResult>, alignment: LayoutAlignment) {
-    if (result.sumOf { r -> r.alignment.segments.size } != alignment.segments.size) {
+fun validateSplitResult(results: List<SplitTargetResult>, alignment: LayoutAlignment) {
+    results.forEachIndexed { index, result ->
+        val previousIndices = results.getOrNull(index - 1)?.indices
+        val previousEndIndex = previousIndices?.last ?: -1
+        if (previousEndIndex + 1 != result.indices.first) {
+            throw SplitFailureException(
+                message = "Not all segments were allocated in the split: last=${previousIndices?.last} first=${result.indices.first}",
+                localizedMessageKey = "segment-allocation-failed",
+            )
+        }
+        if (result.operation != SplitTargetOperation.TRANSFER && result.alignment.segments.size != result.indices.count()) {
+            throw SplitFailureException(
+                message = "Split target segments don't match calculated indices: segments=${result.alignment.segments.size} indices=${result.indices.count()}",
+                localizedMessageKey = "segment-allocation-failed",
+            )
+        }
+    }
+    if (results.last().indices.last != alignment.segments.lastIndex) {
         throw SplitFailureException(
-            message = "Not all segments were allocated in the split",
+            message = "Not all segments were allocated in the split: lastIndex=${results.last().indices.last} lastAlignmentIndex=${alignment.segments.lastIndex}",
             localizedMessageKey = "segment-allocation-failed",
         )
     }

@@ -7,7 +7,15 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.util.DaoBase
+import fi.fta.geoviite.infra.util.DbTable
+import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getIntIdArray
+import fi.fta.geoviite.infra.util.getIntIdOrNull
+import fi.fta.geoviite.infra.util.queryOne
+import fi.fta.geoviite.infra.util.queryOptional
+import fi.fta.geoviite.infra.util.setUser
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -106,13 +114,15 @@ class SplitDao(
                 split_id,
                 location_track_id,
                 source_start_segment_index,
-                source_end_segment_index            
+                source_end_segment_index,
+                operation
             )
             values (
                 :splitId,
                 :trackId,
                 :segmentStart,
-                :segmentEnd
+                :segmentEnd,
+                :operation::publication.split_target_operaton
             )
         """.trimIndent()
 
@@ -121,7 +131,8 @@ class SplitDao(
                 "splitId" to splitId.intValue,
                 "trackId" to st.locationTrackId.intValue,
                 "segmentStart" to st.segmentIndices.first,
-                "segmentEnd" to st.segmentIndices.last
+                "segmentEnd" to st.segmentIndices.last,
+                "operation" to st.operation.name,
             )
         }
 
@@ -215,7 +226,8 @@ class SplitDao(
           select
               location_track_id,
               source_start_segment_index,
-              source_end_segment_index
+              source_end_segment_index,
+              operation
           from publication.split_target_location_track
           where split_id = :id
         """.trimIndent()
@@ -223,7 +235,8 @@ class SplitDao(
         return jdbcTemplate.query(sql, mapOf("id" to splitId.intValue)) { rs, _ ->
             SplitTarget(
                 locationTrackId = rs.getIntId("location_track_id"),
-                segmentIndices = rs.getInt("source_start_segment_index")..rs.getInt("source_end_segment_index")
+                segmentIndices = rs.getInt("source_start_segment_index")..rs.getInt("source_end_segment_index"),
+                operation = rs.getEnum("operation"),
             )
         }
     }

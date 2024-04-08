@@ -25,7 +25,6 @@ import { AlignmentHeader, AlignmentPolyLine } from './layout-map-api';
 import { GeometryPlanLinkStatus } from 'linking/linking-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { Brand } from 'common/brand';
-import { DuplicateStatus } from './layout-location-track-api';
 
 export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'PLANNED' | 'DELETED';
 export type LocationTrackLayoutState = 'BUILT' | LayoutState;
