@@ -131,7 +131,7 @@ class PublicationDao(
               draft_location_track.change_time,
               draft_location_track.duplicate_of_location_track_id,
               draft_location_track.change_user,
-              layout.infer_operation_from_state_transition(
+              layout.infer_operation_from_location_track_state_transition(
                 official_location_track.state,
                 draft_location_track.state
               ) as operation,
@@ -710,7 +710,7 @@ class PublicationDao(
                 },
                 endPoint = rs.getChangePoint("end_x", "end_y"),
                 startPoint = rs.getChangePoint("start_x", "start_y"),
-                state = rs.getChange("state", { rs.getEnumOrNull<LayoutState>(it) }),
+                state = rs.getChange("state", { rs.getEnumOrNull<LocationTrackLayoutState>(it) }),
                 duplicateOf = rs.getChange("duplicate_of_location_track_id", rs::getIntIdOrNull),
                 type = rs.getChange("type", { rs.getEnumOrNull<LocationTrackType>(it) }),
                 length = rs.getChange("length", rs::getDoubleOrNull),
@@ -1362,7 +1362,7 @@ class PublicationDao(
               location_track_version as version,
               name,
               track_number_id,
-              layout.infer_operation_from_state_transition(lt.old_state, lt.state) as operation,
+              layout.infer_operation_from_location_track_state_transition(lt.old_state, lt.state) as operation,
               direct_change,
               array_remove(array_agg(pltk.km_number), null) as changed_km
             from publication.location_track plt

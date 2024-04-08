@@ -95,7 +95,7 @@ class LocationTrackService(
             ownerId = request.ownerId,
         )
 
-        return if (locationTrack.state != LayoutState.DELETED) {
+        return if (locationTrack.state != LocationTrackLayoutState.DELETED) {
             saveDraft(fetchNearbyTracksAndCalculateLocationTrackTopology(locationTrack, originalAlignment))
         } else {
             clearDuplicateReferences(id)
@@ -106,12 +106,12 @@ class LocationTrackService(
     }
 
     @Transactional
-    fun updateState(id: IntId<LocationTrack>, state: LayoutState): DaoResponse<LocationTrack> {
+    fun updateState(id: IntId<LocationTrack>, state: LocationTrackLayoutState): DaoResponse<LocationTrack> {
         logger.serviceCall("update", "id" to id, "state" to state)
         val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(DRAFT, id)
         val locationTrack = originalTrack.copy(state = state)
 
-        return if (locationTrack.state != LayoutState.DELETED) {
+        return if (locationTrack.state != LocationTrackLayoutState.DELETED) {
             saveDraft(locationTrack)
         } else {
             clearDuplicateReferences(id)

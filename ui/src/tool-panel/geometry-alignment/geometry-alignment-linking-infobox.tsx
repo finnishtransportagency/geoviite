@@ -383,7 +383,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                             )}
                         </React.Fragment>
                     )}
-                    {linkingInProgress && canLink && (
+                    {linkingInProgress && (
                         <React.Fragment>
                             <div
                                 className={styles['geometry-alignment-infobox__connection-points']}>

@@ -8,7 +8,7 @@ export type CheckboxProps = {
     qaId?: string;
 } & React.InputHTMLAttributes<HTMLInputElement>;
 
-export const Checkbox: React.FC<CheckboxProps> = ({ children, ...props }: CheckboxProps) => {
+export const Checkbox: React.FC<CheckboxProps> = ({ children, qaId, ...props }: CheckboxProps) => {
     const [touched, setTouched] = React.useState(false);
 
     const className = createClassName(styles.checkbox, touched && styles['checkbox--touched']);
@@ -18,7 +18,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({ children, ...props }: Checkb
             onClick={() => {
                 setTouched(true);
             }}
-            {...(props.qaId && { 'qa-id': props.qaId })}>
+            {...(qaId && { 'qa-id': qaId })}>
             <input {...props} type="checkbox" className={styles.checkbox__input} />
             <span className={styles.checkbox__visualization}>
                 <span className={styles['checkbox__checked-icon']}>

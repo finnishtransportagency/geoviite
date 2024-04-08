@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.ratko.model.mapToRatkoLocationTrackState
 import fi.fta.geoviite.infra.ratko.model.mapToRatkoLocationTrackType
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LocationTrackLayoutState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -35,9 +36,11 @@ class RatkoConversionTest {
 
     @Test
     fun shouldMapToRatkoStateType() {
-        val convertedLayoutNotInUse = mapToRatkoLocationTrackState(LayoutState.NOT_IN_USE)
-        val convertedLayoutInUse = mapToRatkoLocationTrackState(LayoutState.IN_USE)
+        val convertedLayoutBuilt = mapToRatkoLocationTrackState(LocationTrackLayoutState.BUILT)
+        val convertedLayoutNotInUse = mapToRatkoLocationTrackState(LocationTrackLayoutState.NOT_IN_USE)
+        val convertedLayoutInUse = mapToRatkoLocationTrackState(LocationTrackLayoutState.IN_USE)
 
+        assertEquals("BUILT", convertedLayoutBuilt.value)
         assertEquals("NOT IN USE", convertedLayoutNotInUse.value)
         assertEquals("IN USE", convertedLayoutInUse.value)
     }

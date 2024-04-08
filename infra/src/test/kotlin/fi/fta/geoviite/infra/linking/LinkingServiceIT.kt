@@ -171,7 +171,7 @@ class LinkingServiceIT @Autowired constructor(
 
         val (locationTrack, alignment) = locationTrackAndAlignment(
             trackNumberId = insertOfficialTrackNumber(),
-            state = LayoutState.DELETED,
+            state = LocationTrackLayoutState.DELETED,
             draft = true,
         )
         val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(locationTrack, alignment)

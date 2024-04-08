@@ -28,6 +28,7 @@ import { Brand } from 'common/brand';
 import { SplitDuplicateStatus } from './layout-location-track-api';
 
 export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'PLANNED' | 'DELETED';
+export type LocationTrackLayoutState = 'BUILT' | LayoutState;
 export type LayoutStateCategory = 'EXISTING' | 'NOT_EXISTING' | 'FUTURE_EXISTING';
 
 export const LAYOUT_SRID: Srid = 'EPSG:3067';
@@ -107,7 +108,7 @@ export type LayoutLocationTrack = {
     descriptionBase?: string;
     descriptionSuffix?: LocationTrackDescriptionSuffixMode;
     type?: LocationTrackType;
-    state: LayoutState;
+    state: LocationTrackLayoutState;
     externalId?: Oid;
     trackNumberId: LayoutTrackNumberId;
     sourceId?: GeometryAlignmentId;
