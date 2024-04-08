@@ -127,36 +127,36 @@ const validateSplitSwitch = (
     switches: LayoutSwitch[],
 ): ValidationError<SplitTargetCandidate>[] => {
     const errors: ValidationError<SplitTargetCandidate>[] = [];
-    const switchAtSplit = switches.find((s) => s.id === split.switchId);
+    const switchAtSplit = switches.find((s) => s.id === split.switch.switchId);
     if (
         split.type === 'SPLIT' &&
         (!switchAtSplit || switchAtSplit.stateCategory === 'NOT_EXISTING')
     ) {
         errors.push({
-            field: 'switchId',
+            field: 'switch',
             reason: 'switch-not-found',
             type: ValidationErrorType.ERROR,
         });
     }
     const switchAtStart = split.duplicateStatus?.startSwitchId;
-    if (switchAtStart && split.switchId !== switchAtStart) {
+    if (switchAtStart && split.switch.switchId !== switchAtStart) {
         const type =
             split.operation == 'TRANSFER' ? ValidationErrorType.ERROR : ValidationErrorType.WARNING;
         errors.push({
-            field: 'switchId',
+            field: 'switch',
             reason: 'switch-not-matching-start-switch',
             type: type,
             params: { trackName: split.name },
         });
     }
     const previousEndSwitchId = previousSplit?.duplicateStatus?.endSwitchId;
-    if (previousEndSwitchId && split.switchId !== previousEndSwitchId) {
+    if (previousEndSwitchId && split.switch.switchId !== previousEndSwitchId) {
         const type =
             previousSplit.operation == 'TRANSFER'
                 ? ValidationErrorType.ERROR
                 : ValidationErrorType.WARNING;
         errors.push({
-            field: 'switchId',
+            field: 'switch',
             reason: 'switch-not-matching-end-switch',
             type: type,
             params: { trackName: previousSplit.name },
@@ -203,7 +203,7 @@ export const getSplitAddressPoint = (
     split: SplitTargetCandidate | FirstSplitTargetCandidate,
 ): AddressPoint | undefined => {
     if (split.type === 'SPLIT') {
-        const switchAtSplit = allowedSwitches.find((s) => s.switchId === split.switchId);
+        const switchAtSplit = allowedSwitches.find((s) => s.switchId === split.switch.switchId);
 
         if (!switchAtSplit?.location || !switchAtSplit?.address) {
             return undefined;

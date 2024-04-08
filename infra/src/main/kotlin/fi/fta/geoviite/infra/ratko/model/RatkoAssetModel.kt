@@ -1,8 +1,6 @@
 package fi.fta.geoviite.infra.ratko.model
 
-import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 
@@ -139,7 +137,7 @@ data class RatkoOperatingPointAssetsResponse(val assets: List<RatkoOperatingPoin
 data class RatkoOperatingPointAsset(
     val id: String,
     val properties: Collection<RatkoAssetProperty>,
-    val locations: List<IncomingRatkoAssetLocation>,
+    val locations: List<IncomingRatkoAssetLocation>?,
 ) {
     fun getIntProperty(name: String): Int? = properties.find { it.name == name }?.integerValue
     fun getStringProperty(name: String): String? = properties.find { it.name == name }?.stringValue

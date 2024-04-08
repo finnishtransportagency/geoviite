@@ -20,6 +20,7 @@ import {
 } from 'track-layout/track-layout-model';
 import {
     FirstSplitTargetCandidate,
+    getAllowedSwitchesFromState,
     SplitTargetCandidate,
     SplittingState,
 } from 'tool-panel/location-track/split-store';
@@ -46,9 +47,9 @@ import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks
 import { ChangeTimes } from 'common/common-slice';
 import {
     LocationTrackSplittingDraftExistsErrorNotice,
+    LocationTrackSplittingDuplicateTrackNotPublishedErrorNotice,
     LocationTrackSplittingGuideNotice,
     NoticeWithNavigationLink,
-    LocationTrackSplittingDuplicateTrackNotPublishedErrorNotice,
 } from 'tool-panel/location-track/splitting/location-track-split-notices';
 import { LocationTrackSplitRelinkingNotice } from 'tool-panel/location-track/splitting/location-track-split-relinking-notice';
 import {
@@ -155,10 +156,13 @@ const createSplitComponent = (
 ) => {
     const nameRef = React.createRef<HTMLInputElement>();
     const descriptionBaseRef = React.createRef<HTMLInputElement>();
+    const allowedSwitches = splittingState ? getAllowedSwitchesFromState(splittingState) : [];
 
     const switchExists =
         switches.find(
-            (s) => validatedSplit.split.type === 'SPLIT' && s.id === validatedSplit.split.switchId,
+            (s) =>
+                validatedSplit.split.type === 'SPLIT' &&
+                s.id === validatedSplit.split.switch.switchId,
         )?.stateCategory !== 'NOT_EXISTING';
 
     const { split, nameErrors, descriptionErrors, switchErrors } = validatedSplit;
@@ -169,7 +173,7 @@ const createSplitComponent = (
                 key={`${split.location.x}_${split.location.y}`}
                 split={split}
                 addressPoint={getSplitAddressPoint(
-                    splittingState.allowedSwitches,
+                    allowedSwitches,
                     originLocationTrackStart,
                     split,
                 )}
@@ -218,9 +222,10 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     const [confirmExit, setConfirmExit] = React.useState(false);
     const allSplits = [splittingState.firstSplit, ...splittingState.splits];
 
+    const allowedSwitches = splittingState ? getAllowedSwitchesFromState(splittingState) : [];
     const allowedSwitchIds = React.useMemo(
-        () => splittingState.allowedSwitches.map((sw) => sw.switchId),
-        [splittingState.allowedSwitches],
+        () => allowedSwitches.map((sw) => sw.switchId),
+        [allowedSwitches],
     );
     const switches = useSwitches(
         allowedSwitchIds,
@@ -298,7 +303,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             newSplitComponent.nameRef.current?.focus();
             markSplitOld(
                 newSplitComponent.splitAndValidation.split.type === 'SPLIT'
-                    ? newSplitComponent.splitAndValidation.split.switchId
+                    ? newSplitComponent.splitAndValidation.split.switch.switchId
                     : undefined,
             );
         }

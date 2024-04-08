@@ -89,7 +89,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     underlyingAssetExists,
 }) => {
     const { t } = useTranslation();
-    const switchId = split.type === 'SPLIT' ? split.switchId : undefined;
+    const switchId = split.type === 'SPLIT' ? split.switch.switchId : undefined;
     const [nameCommitted, setNameCommitted] = React.useState(split.name !== '');
     const [descriptionCommitted, setDescriptionCommitted] = React.useState(
         split.descriptionBase !== '',
