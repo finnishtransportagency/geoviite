@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.localization.localizationParams
+import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.PublicationValidationError
 import fi.fta.geoviite.infra.publication.PublicationValidationErrorType.ERROR
 import fi.fta.geoviite.infra.publication.VALIDATION
@@ -76,28 +77,34 @@ internal fun validateSplitContent(
     return listOf(multipleSplitsStagedErrors, contentErrors).flatten()
 }
 
+const val MAX_SPLIT_POINT_OFFSET = 1.0
+
 internal fun validateTargetGeometry(
+    operation: SplitTargetOperation,
     targetAddresses: AlignmentAddresses?,
     sourceAddresses: AlignmentAddresses?,
 ): PublicationValidationError? {
     return if (targetAddresses == null || sourceAddresses == null) {
         PublicationValidationError(ERROR, "$VALIDATION_SPLIT.no-geometry")
     } else {
-        val targetPoints = targetAddresses.allPoints.filter { addressPoint -> addressPoint.address.hasZeroMillimeters }
-        val sourcePoints = sourceAddresses.allPoints.filter { addressPoint -> addressPoint.address.hasZeroMillimeters }
-        val startIndex = max(0, sourcePoints.indexOfFirst { it.isSame(targetPoints.first()) })
+        // Geocoding mid-points are the even meter-points, but assert just in case
+        val targetPoints = targetAddresses.midPoints.also { points -> require(points.all { p -> p.address.hasEvenMeters }) }
+        val sourcePoints = sourceAddresses.midPoints.also { points -> require(points.all { p -> p.address.hasEvenMeters }) }
+        val startIndex = max(0, sourcePoints.indexOfFirst { s -> s.address == targetPoints.first().address })
 
         targetPoints
             .withIndex()
-            .firstOrNull { (targetIndex, targetPoint) ->
-                val idx = min(sourcePoints.lastIndex, startIndex + targetIndex)
-                !targetPoint.isSame(sourcePoints[idx])
-            }?.let { (_, point) ->
-                PublicationValidationError(
-                    ERROR,
-                    "$VALIDATION_SPLIT.geometry-changed",
-                    mapOf("point" to point),
-                )
+            .firstNotNullOfOrNull { (targetIndex, targetPoint) ->
+                val sourcePoint = sourcePoints.getOrNull(startIndex + targetIndex)
+                if (sourcePoint?.address != targetPoint.address) {
+                    PublicationValidationError(ERROR, "$VALIDATION_SPLIT.trackmeters-changed")
+                } else if (operation != SplitTargetOperation.TRANSFER && !targetPoint.point.isSame(sourcePoint.point)) {
+                    PublicationValidationError(ERROR, "$VALIDATION_SPLIT.geometry-changed")
+                } else if (operation == SplitTargetOperation.TRANSFER && lineLength(targetPoint.point, sourcePoint.point) > MAX_SPLIT_POINT_OFFSET) {
+                    PublicationValidationError(ERROR, "$VALIDATION_SPLIT.transfer-geometry-changed")
+                } else {
+                    null
+                }
             }
     }
 }
@@ -105,15 +112,16 @@ internal fun validateTargetGeometry(
 internal fun validateTargetTrackNumber(
     sourceLocationTrack: LocationTrack,
     targetLocationTrack: LocationTrack,
-) = if (sourceLocationTrack.trackNumberId != targetLocationTrack.trackNumberId) {
-    PublicationValidationError(
-        ERROR,
-        LocalizationKey("$VALIDATION_SPLIT.source-and-target-track-numbers-are-different"),
-        localizationParams("trackName" to targetLocationTrack.name),
-    )
-} else {
-    null
-}
+): PublicationValidationError? =
+    if (sourceLocationTrack.trackNumberId != targetLocationTrack.trackNumberId) {
+        PublicationValidationError(
+            ERROR,
+            LocalizationKey("$VALIDATION_SPLIT.source-and-target-track-numbers-are-different"),
+            localizationParams("trackName" to targetLocationTrack.name),
+        )
+    } else {
+        null
+    }
 
 internal fun validateSplitSourceLocationTrack(
     locationTrack: LocationTrack,

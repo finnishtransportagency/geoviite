@@ -1340,6 +1340,8 @@
                 "split-missing-switches": "Kaikki jakoon liittyvät vaihteet eivät ole mukana julkaisussa",
                 "multiple-splits-not-allowed": "Julkaisussa on mukana useampi jaettu raide",
                 "geometry-changed": "Jaettavan raiteen geometria on muuttunut",
+                "transfer-geometry-changed": "Säilytettävän osittaisen duplikaatin osoitteisto eroaa yli metrin jaettavasta raiteesta",
+                "trackmeters-changed": "Jaetun raiteen geometria ei sisällä samoja tasametripisteitä",
                 "no-geometry": "Raiteella ei ole geometriaa"
             }
         }

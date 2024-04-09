@@ -223,17 +223,19 @@ class SplitService(
         ).flatten()
     }
 
-    fun validateSplitGeometries(
+    private fun validateSplitGeometries(
         trackId: IntId<LocationTrack>,
         pendingSplits: Collection<Split>,
     ): List<PublicationValidationError> {
         val targetGeometryError = pendingSplits
-            .firstOrNull { it.targetLocationTracks.any { tlt -> tlt.locationTrackId == trackId } }
-            ?.let { split ->
-                val targetAddresses = geocodingService.getAddressPoints(trackId, DRAFT)
+            .firstNotNullOfOrNull { split ->
+                val target = split.targetLocationTracks.find { tlt -> tlt.locationTrackId == trackId }
+                target?.let { t -> split to target }
+            }
+            ?.let { (split, target) ->
+                val targetAddresses = geocodingService.getAddressPoints(target.locationTrackId, DRAFT)
                 val sourceAddresses = geocodingService.getAddressPoints(split.locationTrackId, OFFICIAL)
-
-                validateTargetGeometry(targetAddresses, sourceAddresses)
+                validateTargetGeometry(target.operation, targetAddresses, sourceAddresses)
             }
 
         val sourceGeometryErrors = pendingSplits
@@ -250,7 +252,7 @@ class SplitService(
         )
     }
 
-    fun validateSplitReferencesByTrackNumber(
+    private fun validateSplitReferencesByTrackNumber(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): PublicationValidationError? {
         val splitIds = splitDao.fetchUnfinishedSplitIdsByTrackNumber(trackNumberId)
@@ -297,12 +299,9 @@ class SplitService(
         )
 
         val savedSplitTargetLocationTracks = targetResults.map { result ->
-            if (result.operation == SplitTargetOperation.TRANSFER) {
-                result // Only transfer assets: no need to save unchanged track
-            } else {
-                val response = saveTargetTrack(result)
-                result.copy(locationTrack = locationTrackDao.fetch(response.rowVersion))
-            }
+            val response = saveTargetTrack(result)
+            val (locationTrack, alignment) = locationTrackService.getWithAlignment(response.rowVersion)
+            result.copy(locationTrack = locationTrack, alignment = alignment)
         }
 
         geocodingService.getGeocodingContext(DRAFT, sourceTrack.trackNumberId)?.let { geocodingContext ->
@@ -324,7 +323,11 @@ class SplitService(
         locationTrackService.updateState(request.sourceTrackId, LocationTrackLayoutState.DELETED)
 
         return savedSplitTargetLocationTracks.map { splitTargetResult ->
-            SplitTarget(splitTargetResult.locationTrack.id as IntId, splitTargetResult.indices, splitTargetResult.operation)
+            SplitTarget(
+                locationTrackId = splitTargetResult.locationTrack.id as IntId,
+                segmentIndices = splitTargetResult.indices,
+                operation = splitTargetResult.operation,
+            )
         }.let { splitTargets ->
             splitDao.saveSplit(request.sourceTrackId, splitTargets, relinkedSwitches, sourceTrackDuplicateIds)
         }
@@ -434,10 +437,10 @@ fun splitLocationTrack(
         val connectivityType = calculateTopologicalConnectivity(track, alignment.segments.size, segmentIndices)
         val (newTrack, newAlignment) = target.duplicate?.let { d ->
             when (d.operation) {
-                SplitTargetDuplicateOperation.TRANSFER -> {
-                    // Only transfer assets: the track is unchanged
-                    d.track to d.alignment
-                }
+                SplitTargetDuplicateOperation.TRANSFER -> updateTransferAssetsSplitTarget(
+                    duplicateTrack = d.track,
+                    topologicalConnectivityType = connectivityType,
+                ) to d.alignment
                 SplitTargetDuplicateOperation.OVERWRITE -> updateDuplicateToSplitTarget(
                     sourceTrack = track,
                     duplicateTrack = d.track,
@@ -480,6 +483,20 @@ fun validateSplitResult(results: List<SplitTargetResult>, alignment: LayoutAlign
             localizedMessageKey = "segment-allocation-failed",
         )
     }
+}
+
+private fun updateTransferAssetsSplitTarget(
+    duplicateTrack: LocationTrack,
+    topologicalConnectivityType: TopologicalConnectivityType,
+): LocationTrack {
+    return duplicateTrack.copy(
+        // After split, the track is no longer duplicate
+        duplicateOf = null,
+        // Topology is re-resolved after tracks and switches are updated
+        topologyStartSwitch = null,
+        topologyEndSwitch = null,
+        topologicalConnectivity = topologicalConnectivityType,
+    )
 }
 
 private fun updateDuplicateToSplitTarget(
