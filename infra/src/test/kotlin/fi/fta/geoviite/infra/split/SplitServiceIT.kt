@@ -3,9 +3,11 @@ package fi.fta.geoviite.infra.split
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
@@ -19,11 +21,14 @@ import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.segmentsFromSwitchStructure
 import fi.fta.geoviite.infra.tracklayout.switchFromDbStructure
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import splitRequest
 import targetRequest
 import kotlin.test.assertEquals
 
@@ -79,69 +84,159 @@ class SplitServiceIT @Autowired constructor(
     }
 
     @Test
-    fun `location track split should work based on request`() {
-        val switchStart = Point(0.0, 0.0)
-        val structure = getYvStructure()
-        val switchId = insertSwitch(
-            switchFromDbStructure(getUnusedSwitchName().toString(), switchStart, structure, draft = false)
-        ).id
+    fun `location track split should create new tracks based on request`() {
+        val preSwitchSegments = createSegments(Point(0.0, 0.0), 3)
 
-        // Some segments in the beginning
-        val preSwitchSegments = listOf(
-            segment(switchStart + Point(-20.0, 0.0), switchStart + Point(-10.0, 0.0)),
-            segment(switchStart + Point(-10.0, 0.0), switchStart + Point(0.0, 0.0)),
-        )
-        // Create segments & branching track that match the switch structure for re-linking to work
-        val switchSegments = segmentsFromSwitchStructure(switchStart, switchId, structure, listOf(1, 5, 2))
-        insertBranchingSwitchAlignment(switchStart, switchId, structure, listOf(1, 3))
+        // Segments that are a part of the first switch + the branching track for switch re-linking to work
+        val (switch1, switchSegments1, turningSegments1) = createSwitchAndGeometry(lastPoint(preSwitchSegments))
+        insertAsTrack(turningSegments1)
 
-        val switchEnd = switchSegments.last().segmentPoints.last()
-        // Some segments in the end
-        val postSwitchSegments = listOf(
-            segment(switchEnd + Point(0.0, 0.0), switchEnd + Point(10.0, 0.0)),
-            segment(switchEnd + Point(10.0, 0.0), switchEnd + Point(20.0, 0.0)),
+        val betweenSwitchSegments = createSegments(lastPoint(switchSegments1), 2)
+
+        // Segments that are a part of the second switch + the branching track for switch re-linking to work
+        val (switch2, switchSegments2, turningSegments2) = createSwitchAndGeometry(lastPoint(betweenSwitchSegments))
+        insertAsTrack(turningSegments2)
+
+        val postSwitchSegments = createSegments(lastPoint(switchSegments2), 4)
+
+        val track = createAsMainTrack(
+            preSwitchSegments + switchSegments1 + betweenSwitchSegments + switchSegments2 + postSwitchSegments
         )
 
-        val alignment = alignment(preSwitchSegments + switchSegments + postSwitchSegments)
+        val request = splitRequest(
+            track.id,
+            targetRequest(null, "part1"),
+            targetRequest(switch1.id, "part2"),
+            targetRequest(switch2.id, "part3"),
+        )
+        val result = splitDao.getOrThrow(splitService.split(request))
+
+        assertSplitMatchesRequest(request, result)
+
+        request.targetTracks.forEachIndexed { index, targetRequest ->
+            assertTargetTrack(track, targetRequest, result.targetLocationTracks[index])
+        }
+
+        assertEquals(LocationTrackLayoutState.DELETED, locationTrackService.get(DRAFT, track.id)?.state)
+    }
+
+    @Test
+    fun `location track split should reuse duplicates based on request`() {
+        val preSwitchSegments = createSegments(Point(0.0, 0.0), 3)
+
+        // Segments that are a part of the first switch + the branching track for switch re-linking to work
+        val (switch1, switchSegments1, turningSegments1) = createSwitchAndGeometry(lastPoint(preSwitchSegments))
+        insertAsTrack(turningSegments1)
+
+        val betweenSwitchSegments = createSegments(lastPoint(switchSegments1), 2)
+
+        // Segments that are a part of the second switch + the branching track for switch re-linking to work
+        val (switch2, switchSegments2, turningSegments2) = createSwitchAndGeometry(lastPoint(betweenSwitchSegments))
+        insertAsTrack(turningSegments2)
+
+        val postSwitchSegments = createSegments(lastPoint(switchSegments2), 4)
+
+        val track = createAsMainTrack(
+            preSwitchSegments + switchSegments1 + betweenSwitchSegments + switchSegments2 + postSwitchSegments
+        )
+
+        // Create duplicates as completely separate of the original, as they're overwritten anyhow
+        val duplicate1 = insertAsTrack(createSegments(Point(5.0, 5.0), 2), duplicateOf = track.id)
+        val duplicate2 = insertAsTrack(createSegments(Point(15.0, 15.0), 5), duplicateOf = track.id)
+
+        val request = splitRequest(
+            track.id,
+            targetRequest(null, "part1", duplicateTrackId = duplicate1),
+            targetRequest(switch1.id, "part2", duplicateTrackId = duplicate2),
+            targetRequest(switch2.id, "part3"),
+        )
+        val result = splitDao.getOrThrow(splitService.split(request))
+
+        assertSplitMatchesRequest(request, result)
+
+        request.targetTracks.forEachIndexed { index, targetRequest ->
+            assertTargetTrack(track, targetRequest, result.targetLocationTracks[index])
+        }
+
+        assertEquals(LocationTrackLayoutState.DELETED, locationTrackService.get(DRAFT, track.id)?.state)
+    }
+
+    private fun createSegments(startPoint: IPoint, count: Int = 3, pointOffset: Double = 10.0): List<LayoutSegment> {
+        return (0..< count).map { idx ->
+            val start = startPoint + Point(idx * pointOffset, 0.0)
+            val end = start + Point(pointOffset, 0.0)
+            segment(start, end)
+        }
+    }
+
+    private fun lastPoint(segments: List<LayoutSegment>): IPoint = segments.last().segmentPoints.last()
+
+    private fun assertSplitMatchesRequest(request: SplitRequest, split: Split) {
+        assertEquals(request.sourceTrackId, split.locationTrackId)
+        request.targetTracks.forEach { targetRequest ->
+            if (targetRequest.startAtSwitchId != null) {
+                assertTrue(split.relinkedSwitches.contains(targetRequest.startAtSwitchId))
+            }
+        }
+        assertEquals(request.targetTracks.size, split.targetLocationTracks.size)
+        request.targetTracks.forEachIndexed { index, targetRequest ->
+            val targetResult = split.targetLocationTracks[index]
+            assertEquals(targetRequest.getOperation(), targetResult.operation)
+            targetRequest.duplicateTrack?.let { d ->
+                assertEquals(d.id, targetResult.locationTrackId)
+            }
+        }
+    }
+
+    private fun createAsMainTrack(segments: List<LayoutSegment>): DaoResponse<LocationTrack> {
+        val alignment = alignment(segments)
 
         val trackNumberId = insertOfficialTrackNumber()
         insertReferenceLine(referenceLine(trackNumberId, draft = false), alignment)
 
-        val trackId = insertLocationTrack(locationTrack(trackNumberId, draft = false), alignment).id
+        return insertLocationTrack(locationTrack(trackNumberId, draft = false), alignment).also { r ->
+            val (dbTrack, dbAlignment) = locationTrackService.getWithAlignment(r.rowVersion)
+            assertEquals(trackNumberId, dbTrack.trackNumberId)
+            assertEquals(segments.size, dbAlignment.segments.size)
+            assertEquals(segments.sumOf { s -> s.length }, dbAlignment.length, 0.001)
+        }
+    }
 
-        val request = SplitRequest(
-            trackId,
-            listOf(targetRequest(null, "part1"), targetRequest(switchId, "part2")),
+    private data class SwitchAndSegments(
+        val switch: DaoResponse<TrackLayoutSwitch>,
+        val straightSwitchSegments: List<LayoutSegment>,
+        val turningSwitchSegments: List<LayoutSegment>,
+    )
+
+    private fun createSwitchAndGeometry(
+        startPoint: IPoint,
+        structure: SwitchStructure = getYvStructure(),
+    ): SwitchAndSegments {
+        val switchInsertResponse = insertSwitch(
+            switchFromDbStructure(getUnusedSwitchName().toString(), startPoint, structure, draft = false)
         )
-        val result = splitDao.getOrThrow(splitService.split(request))
-
-        // Verify split result data
-        assertEquals(trackId, result.locationTrackId)
-        assertEquals(listOf(switchId), result.relinkedSwitches)
-        assertEquals(2, result.targetLocationTracks.size)
-        assertEquals(0..1, result.targetLocationTracks[0].segmentIndices)
-        assertEquals(2..5, result.targetLocationTracks[1].segmentIndices)
-
-        // Verify created new tracks
-        assertTargetTrack(alignment, request.targetTracks[0], result.targetLocationTracks[0])
-        assertTargetTrack(alignment, request.targetTracks[1], result.targetLocationTracks[1])
-
-        // Verify that the old track got deleted
-        assertEquals(LocationTrackLayoutState.DELETED, locationTrackService.get(DRAFT, trackId)?.state)
+        return SwitchAndSegments(
+            switchInsertResponse,
+            segmentsFromSwitchStructure(startPoint, switchInsertResponse.id, structure, listOf(1, 5, 2)),
+            segmentsFromSwitchStructure(startPoint, switchInsertResponse.id, structure, listOf(1, 3)),
+        )
     }
 
     private fun assertTargetTrack(
-        source: LayoutAlignment,
+        sourceResponse: DaoResponse<LocationTrack>,
         request: SplitRequestTarget,
-        target: SplitTarget,
+        response: SplitTarget,
     ) {
-        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, target.locationTrackId)
+        val (_, source) = locationTrackService.getWithAlignment(sourceResponse.rowVersion)
+        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, response.locationTrackId)
 
         assertEquals(request.name, track.name)
         assertEquals(request.descriptionBase, track.descriptionBase)
         assertEquals(request.descriptionSuffix, track.descriptionSuffix)
+        assertNull(track.duplicateOf)
+        request.startAtSwitchId?.let { startSwitchId -> assertEquals(startSwitchId, track.switchIds.first()) }
 
-        val sourceSegments = source.segments.subList(target.segmentIndices.first, target.segmentIndices.last + 1)
+        val sourceSegments = source.segments.subList(response.segmentIndices.first, response.segmentIndices.last + 1)
         assertEquals(sourceSegments.size, alignment.segments.size)
         assertEquals(sourceSegments.sumOf { s -> s.length }, alignment.length, 0.001)
     }
@@ -302,16 +397,24 @@ class SplitServiceIT @Autowired constructor(
         )
     }
 
-    private fun insertBranchingSwitchAlignment(
-        start: Point,
-        switchId: IntId<TrackLayoutSwitch>,
-        structure: SwitchStructure,
-        line: List<Int>,
+    private fun insertAsTrack(
+        segments: List<LayoutSegment>,
+        duplicateOf: IntId<LocationTrack>? = null,
     ): IntId<LocationTrack> {
-        val alignment = alignment(segmentsFromSwitchStructure(start, switchId, structure, line))
+        val alignment = alignment(segments)
         val trackNumberId = insertOfficialTrackNumber()
-        return insertLocationTrack(locationTrack(trackNumberId, draft = false), alignment).id
+        return insertLocationTrack(locationTrack(trackNumberId, draft = false, duplicateOf = duplicateOf), alignment).id
     }
+//    private fun insertBranchingSwitchAlignment(
+//        start: Point,
+//        switchId: IntId<TrackLayoutSwitch>,
+//        structure: SwitchStructure,
+//        line: List<Int>,
+//    ): IntId<LocationTrack> {
+//        val alignment = alignment(segmentsFromSwitchStructure(start, switchId, structure, line))
+//        val trackNumberId = insertOfficialTrackNumber()
+//        return insertLocationTrack(locationTrack(trackNumberId, draft = false), alignment).id
+//    }
 
     private fun getYvStructure(): SwitchStructure =
         requireNotNull(switchStructureDao.fetchSwitchStructures().find { s -> s.type.typeName == "YV60-300-1:9-O" })
@@ -373,14 +476,9 @@ class SplitServiceIT @Autowired constructor(
         return startPoints.zip(
             startPoints.drop(1) + null
         ).fold(initialSwitchesAndSegments) { switchesAndSegments, (startPoint, nextStartPoint) ->
-            val switchId = insertSwitch(
-                switchFromDbStructure(getUnusedSwitchName().toString(), startPoint, structure, draft = false)
-            ).id
-
-            val switchSegments = segmentsFromSwitchStructure(startPoint, switchId, structure, listOf(1, 5, 2))
-
+            val (switch, switchSegments, turningSegments) = createSwitchAndGeometry(startPoint, structure)
             // For the switch relinking to have another track to find near the start of every switch.
-            insertBranchingSwitchAlignment(startPoint, switchId, structure, listOf(1, 3))
+            insertAsTrack(turningSegments)
 
             val switchEnd = switchSegments.last().segmentPoints.last()
             val pointAfterSwitch = switchEnd + Point(10.0, startPoint.y)
@@ -397,7 +495,7 @@ class SplitServiceIT @Autowired constructor(
             )
 
             SwitchesAndSegments(
-                switchIds = switchesAndSegments.switchIds + switchId,
+                switchIds = switchesAndSegments.switchIds + switch.id,
                 switchStartPoints = switchesAndSegments.switchStartPoints + startPoint,
                 segments = switchesAndSegments.segments + switchSegments + postSwitchSegments
             )

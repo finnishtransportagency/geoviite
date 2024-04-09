@@ -82,7 +82,10 @@ data class SplitRequestTarget(
     val name: AlignmentName,
     val descriptionBase: FreeText,
     val descriptionSuffix: DescriptionSuffixType,
-)
+) {
+    fun getOperation(): SplitTargetOperation =
+        duplicateTrack?.operation?.toSplitTargetOperation() ?: SplitTargetOperation.CREATE
+}
 
 data class SplitRequest(
     val sourceTrackId: IntId<LocationTrack>,

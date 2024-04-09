@@ -1,6 +1,7 @@
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.split.SplitRequest
 import fi.fta.geoviite.infra.split.SplitRequestTarget
 import fi.fta.geoviite.infra.split.SplitRequestTargetDuplicate
 import fi.fta.geoviite.infra.split.SplitTargetDuplicate
@@ -11,6 +12,11 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.FreeText
+
+fun splitRequest(
+    trackId: IntId<LocationTrack>,
+    vararg targets: SplitRequestTarget,
+): SplitRequest = SplitRequest(trackId, targets.toList())
 
 fun targetRequest(
     startAtSwitchId: IntId<TrackLayoutSwitch>?,
