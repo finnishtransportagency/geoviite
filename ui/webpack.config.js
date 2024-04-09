@@ -7,6 +7,7 @@ const ESLintWebpackPlugin = require('eslint-webpack-plugin');
 const LicensePlugin = require('webpack-license-plugin');
 const CspHtmlWebpackPlugin = require('csp-html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 
 dotenv.config();
 
@@ -200,6 +201,14 @@ module.exports = (env) => {
                 unacceptableLicenseTest: (licenseIdentifier) => {
                     return !acceptedLicenses.includes(licenseIdentifier);
                 },
+            }),
+            new CopyPlugin({
+                patterns: [
+                    {
+                        from: path.resolve(__dirname, '../LICENSE.txt'),
+                        to: path.resolve(__dirname, 'dist/LICENSE.txt'),
+                    },
+                ],
             }),
         ],
     };
