@@ -46,9 +46,9 @@ import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks
 import { ChangeTimes } from 'common/common-slice';
 import {
     LocationTrackSplittingDraftExistsErrorNotice,
+    LocationTrackSplittingDuplicateTrackNotPublishedErrorNotice,
     LocationTrackSplittingGuideNotice,
     NoticeWithNavigationLink,
-    LocationTrackSplittingDuplicateTrackNotPublishedErrorNotice,
 } from 'tool-panel/location-track/splitting/location-track-split-notices';
 import { LocationTrackSplitRelinkingNotice } from 'tool-panel/location-track/splitting/location-track-split-relinking-notice';
 import {
@@ -318,7 +318,6 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         ),
     );
 
-    // TODO: GVT-2525 show warnings when duplicateOf doesn't match the main track
     return (
         <React.Fragment>
             <Infobox

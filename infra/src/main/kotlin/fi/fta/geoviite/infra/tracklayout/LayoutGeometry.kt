@@ -1,13 +1,41 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.logging.Loggable
-import fi.fta.geoviite.infra.math.*
-import fi.fta.geoviite.infra.math.IntersectType.*
+import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.IPoint3DM
+import fi.fta.geoviite.infra.math.IntersectType
+import fi.fta.geoviite.infra.math.IntersectType.AFTER
+import fi.fta.geoviite.infra.math.IntersectType.BEFORE
+import fi.fta.geoviite.infra.math.IntersectType.WITHIN
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.math.angleAvgRads
+import fi.fta.geoviite.infra.math.angleDiffRads
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
+import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
+import fi.fta.geoviite.infra.math.boundingBoxCombining
+import fi.fta.geoviite.infra.math.closestPointProportionOnLine
+import fi.fta.geoviite.infra.math.directionBetweenPoints
+import fi.fta.geoviite.infra.math.interpolate
+import fi.fta.geoviite.infra.math.isSame
+import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.math.pointDistanceToLine
+import fi.fta.geoviite.infra.math.pointInDirection
+import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.util.FileName
 import java.time.Instant
@@ -121,6 +149,10 @@ interface IAlignment : Loggable {
             }
 
     fun getSegmentAtM(m: Double) = segments.getOrNull(getSegmentIndexAtM(m))
+
+    fun getSegmentStartM(segmentIndex: Int) = segments.getOrNull(segmentIndex)?.startM
+
+    fun getSegmentEndM(segmentIndex: Int) = segments.getOrNull(segmentIndex)?.endM
 
     fun findClosestSegmentIndex(target: IPoint): Int? {
         return approximateClosestSegmentIndex(target)?.let { approximation ->

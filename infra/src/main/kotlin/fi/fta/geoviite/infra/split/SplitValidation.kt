@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.split
 
+import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.lineLength
@@ -81,15 +82,13 @@ const val MAX_SPLIT_POINT_OFFSET = 1.0
 
 internal fun validateTargetGeometry(
     operation: SplitTargetOperation,
-    targetAddresses: AlignmentAddresses?,
-    sourceAddresses: AlignmentAddresses?,
+    targetPoints: List<AddressPoint>?,
+    sourcePoints: List<AddressPoint>?,
 ): PublicationValidationError? {
-    return if (targetAddresses == null || sourceAddresses == null) {
+    return if (targetPoints == null || sourcePoints == null) {
         PublicationValidationError(ERROR, "$VALIDATION_SPLIT.no-geometry")
     } else {
         // Geocoding mid-points are the even meter-points, but assert just in case
-        val targetPoints = targetAddresses.midPoints.also { points -> require(points.all { p -> p.address.hasEvenMeters }) }
-        val sourcePoints = sourceAddresses.midPoints.also { points -> require(points.all { p -> p.address.hasEvenMeters }) }
         val startIndex = max(0, sourcePoints.indexOfFirst { s -> s.address == targetPoints.first().address })
 
         targetPoints

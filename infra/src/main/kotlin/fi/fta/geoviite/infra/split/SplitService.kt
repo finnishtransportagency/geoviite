@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.error.SplitFailureException
+import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.SuggestedSwitch
@@ -233,8 +234,7 @@ class SplitService(
                 target?.let { t -> split to target }
             }
             ?.let { (split, target) ->
-                val targetAddresses = geocodingService.getAddressPoints(target.locationTrackId, DRAFT)
-                val sourceAddresses = geocodingService.getAddressPoints(split.locationTrackId, OFFICIAL)
+                val (sourceAddresses, targetAddresses) = getTargetValidationAddressPoints(split.locationTrackId, target)
                 validateTargetGeometry(target.operation, targetAddresses, sourceAddresses)
             }
 
@@ -250,6 +250,47 @@ class SplitService(
             targetGeometryError,
             sourceGeometryErrors,
         )
+    }
+
+    private fun getTargetValidationAddressPoints(
+        sourceId: IntId<LocationTrack>,
+        target: SplitTarget,
+    ): Pair<List<AddressPoint>?, List<AddressPoint>?> {
+        val sourceMRange = getSourceMRange(sourceId, target.segmentIndices)
+        val sourceAddresses = if (sourceMRange != null) {
+            geocodingService.getAddressPoints(sourceId, OFFICIAL)
+                ?.midPoints
+                ?.filter { p -> p.point.m in sourceMRange }
+        } else {
+            null
+        }
+
+        val targetAddressStart = sourceAddresses?.firstOrNull()?.address
+        val targetAddressEnd = sourceAddresses?.lastOrNull()?.address
+        val targetAddresses = if (targetAddressStart != null && targetAddressEnd != null) {
+            geocodingService.getAddressPoints(target.locationTrackId, DRAFT)
+                ?.midPoints
+                ?.filter { p -> p.address in targetAddressStart..targetAddressEnd }
+        } else {
+            null
+        }
+
+        return sourceAddresses to targetAddresses
+    }
+
+    private fun getSourceMRange(
+        trackId: IntId<LocationTrack>,
+        segmentIndices: IntRange,
+    ): ClosedFloatingPointRange<Double>? {
+        // This is fetched from draft, as segment indices are not valid for official due to switch relinking
+        val (_, sourceAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, trackId)
+        val sourceStartM = sourceAlignment.getSegmentStartM(segmentIndices.first)
+        val sourceEndM = sourceAlignment.getSegmentEndM(segmentIndices.last)
+        return if(sourceStartM != null && sourceEndM != null) {
+            sourceStartM..sourceEndM
+        } else {
+            null
+        }
     }
 
     private fun validateSplitReferencesByTrackNumber(

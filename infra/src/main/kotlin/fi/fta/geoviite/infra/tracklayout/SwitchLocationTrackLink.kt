@@ -3,6 +3,8 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Point
 
 fun getLocationTrackDuplicateOfStatus(
     mainTrack: LocationTrack,
@@ -155,7 +157,40 @@ fun collectSwitchJoints(
     }
 }
 
-fun getSwitchJoints(segment: LayoutSegment) =
+fun getSwitchJoints(segment: LayoutSegment): List<Pair<IntId<TrackLayoutSwitch>, JointNumber>> =
     segment.switchId
         ?.let { id -> listOfNotNull(segment.startJointNumber, segment.endJointNumber).map { id as IntId to it } }
         ?: emptyList()
+
+data class SwitchJointLocation(
+    val switchId: IntId<TrackLayoutSwitch>,
+    val jointNumber: JointNumber,
+    val location: Point,
+)
+
+fun collectSwitchJointLocations(track: LocationTrack, alignment: LayoutAlignment): List<SwitchJointLocation> {
+    val allJoints = listOf(
+        listOfNotNull(getSwitchJointLocation(track.topologyStartSwitch, alignment.start)),
+        alignment.segments.flatMap(::getSwitchJointLocations),
+        listOfNotNull(getSwitchJointLocation(track.topologyEndSwitch, alignment.end)),
+    ).flatten().distinctBy { sjl -> sjl.switchId to sjl.jointNumber }
+    // Skip all but first/last joint of each switch
+    return allJoints.filterIndexed { index, (id, _) ->
+        allJoints.getOrNull(index - 1)?.switchId != id || allJoints.getOrNull(index + 1)?.switchId != id
+    }
+}
+
+private fun getSwitchJointLocation(
+    topologySwitch: TopologyLocationTrackSwitch?,
+    location: IPoint?,
+): SwitchJointLocation? =
+    topologySwitch?.let { s -> location?.let { l -> SwitchJointLocation(s.switchId, s.jointNumber, l.toPoint()) } }
+
+fun getSwitchJointLocations(segment: LayoutSegment): List<SwitchJointLocation> =
+    segment.switchId
+        ?.let { id ->
+            listOfNotNull(
+                segment.startJointNumber?.let { j -> segment.segmentStart to j },
+                segment.endJointNumber?.let { j -> segment.segmentEnd to j },
+            ).map { (point, joint) -> SwitchJointLocation(id as IntId, joint, point.toPoint()) }
+        } ?: emptyList()

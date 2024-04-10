@@ -196,7 +196,6 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                     nearestOperatingPointToEnd:
                         splitInitializationParameters.nearestOperatingPointToEnd,
                 });
-                // TODO: GVT-2525 couldn't this be calculated state instead of setter?
                 showLayers(['location-track-split-location-layer']);
             }
         });

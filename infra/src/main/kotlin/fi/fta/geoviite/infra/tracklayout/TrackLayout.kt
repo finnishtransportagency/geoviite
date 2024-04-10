@@ -249,7 +249,8 @@ data class LocationTrack(
 
     @get:JsonIgnore
     val switchIds: List<IntId<TrackLayoutSwitch>> by lazy {
-        (segmentSwitchIds + listOfNotNull(topologyStartSwitch?.switchId, topologyEndSwitch?.switchId)).distinct()
+        (listOfNotNull(topologyStartSwitch?.switchId) + segmentSwitchIds + listOfNotNull(topologyEndSwitch?.switchId))
+            .distinct()
     }
 
     init {

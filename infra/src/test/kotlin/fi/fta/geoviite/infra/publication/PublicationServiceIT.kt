@@ -3164,9 +3164,9 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals(sourceTrack.id, splitInPublication.locationTrack.id)
         assertEquals(2, splitInPublication.targetLocationTracks.size)
         assertEquals(startTargetTrack.id, splitInPublication.targetLocationTracks[0].id)
-        assertEquals(true, splitInPublication.targetLocationTracks[0].newlyCreated)
+        assertEquals(SplitTargetOperation.CREATE, splitInPublication.targetLocationTracks[0].operation)
         assertEquals(endTargetTrack.id, splitInPublication.targetLocationTracks[1].id)
-        assertEquals(true, splitInPublication.targetLocationTracks[1].newlyCreated)
+        assertEquals(SplitTargetOperation.CREATE, splitInPublication.targetLocationTracks[1].operation)
     }
 
     @Test
