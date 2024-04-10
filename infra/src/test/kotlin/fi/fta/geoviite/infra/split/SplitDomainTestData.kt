@@ -24,10 +24,9 @@ fun targetRequest(
     descriptionBase: String = "Split desc $name",
     descriptionSuffix: DescriptionSuffixType = DescriptionSuffixType.SWITCH_TO_SWITCH,
     duplicateTrackId: IntId<LocationTrack>? = null,
+    operation: SplitTargetDuplicateOperation = SplitTargetDuplicateOperation.OVERWRITE,
 ): SplitRequestTarget = SplitRequestTarget(
-    duplicateTrack = duplicateTrackId?.let { id ->
-        SplitRequestTargetDuplicate(id, SplitTargetDuplicateOperation.OVERWRITE)
-    },
+    duplicateTrack = duplicateTrackId?.let { id -> SplitRequestTargetDuplicate(id, operation) },
     startAtSwitchId = startAtSwitchId,
     name = AlignmentName(name),
     descriptionBase = FreeText(descriptionBase),
