@@ -177,13 +177,13 @@ export type KmPostSaveError = {
 };
 
 export enum LinkingType {
-    LinkingGeometryWithAlignment,
-    LinkingAlignment,
-    LinkingGeometryWithEmptyAlignment,
-    LinkingSwitch,
-    PlacingSwitch,
-    LinkingKmPost,
-    UnknownAlignment,
+    LinkingGeometryWithAlignment = 'LinkingGeometryWithAlignment',
+    LinkingAlignment = 'LinkingAlignment',
+    LinkingGeometryWithEmptyAlignment = 'LinkingGeometryWithEmptyAlignment',
+    LinkingSwitch = 'LinkingSwitch',
+    PlacingSwitch = 'PlacingSwitch',
+    LinkingKmPost = 'LinkingKmPost',
+    UnknownAlignment = 'UnknownAlignment',
 }
 
 export type IntervalRequest = {
@@ -361,4 +361,15 @@ export type TrackSwitchRelinkingResultType = 'RELINKED' | 'NOT_AUTOMATICALLY_LIN
 export type TrackSwitchRelinkingResult = {
     id: LayoutSwitchId;
     outcome: TrackSwitchRelinkingResultType;
+};
+
+export type SwitchLinkingSamplingGrid = {
+    center: Point;
+    xSteps: number[];
+    ySteps: number[];
+};
+
+export type SuggestedSwitchAtGridPoints = {
+    suggestedSwitch: SuggestedSwitch;
+    gridPoints: Point[];
 };

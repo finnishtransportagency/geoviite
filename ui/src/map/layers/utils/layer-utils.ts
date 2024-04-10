@@ -61,6 +61,10 @@ export function getPlanarDistanceUnwrapped(x1: number, y1: number, x2: number, y
     return Math.hypot(x1 - x2, y1 - y2);
 }
 
+export function getPlanarDistance(a: Point, b: Point): number {
+    return getPlanarDistanceUnwrapped(a.x, a.y, b.x, b.y);
+}
+
 /**
  * Return the shortest distance between the point and the line in meters
  *

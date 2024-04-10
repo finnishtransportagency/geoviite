@@ -3,6 +3,7 @@ import OlMap from 'ol/Map';
 import {
     OnClickLocationFunction,
     OnHighlightItemsFunction,
+    OnHoverLocationFunction,
     OnSelectFunction,
     Selection,
 } from 'selection/selection-model';
@@ -25,7 +26,13 @@ import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
 import { highlightTool } from 'map/tools/highlight-tool';
 import { LineString, Point as OlPoint, Polygon } from 'ol/geom';
-import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
+import {
+    LinkingState,
+    LinkingSwitch,
+    LinkingType,
+    LinkPoint,
+    SuggestedSwitch,
+} from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
 import { GeometryPlanLayout, LAYOUT_SRID } from 'track-layout/track-layout-model';
@@ -83,6 +90,9 @@ import { createLocationTrackSplitBadgeLayer } from 'map/layers/alignment/locatio
 import { createSelectedReferenceLineAlignmentLayer } from './layers/alignment/reference-line-selected-alignment-layer';
 import { createOperatingPointLayer } from 'map/layers/operating-point/operating-points-layer';
 import { layersCoveringLayers } from 'map/map-store';
+import { useRateLimitedLoaderWithStatus } from 'utils/react-utils';
+import { getSuggestedSwitchesInGrid } from 'linking/linking-api';
+import { brand, Brand } from 'common/brand';
 
 declare global {
     interface Window {
@@ -100,6 +110,7 @@ export type MapViewProps = {
     changeTimes: ChangeTimes;
     onHighlightItems: OnHighlightItemsFunction;
     onClickLocation: OnClickLocationFunction;
+    onHoverLocation: OnHoverLocationFunction;
     onViewportUpdate: (viewport: MapViewport) => void;
     onShownLayerItemsChange: (items: OptionalShownItems) => void;
     onSetLayoutPoint: (linkPoint: LinkPoint) => void;
@@ -153,6 +164,17 @@ function getDomainViewportByOlView(map: OlMap): MapViewport {
     };
 }
 
+export type ScreenPoint = Brand<Point, 'ScreenPoint'>;
+type PointString = Brand<string, 'PointString'>;
+const pointString = (point: Point): PointString => brand(`${point.x}_${point.y}`);
+
+function makeSteps(resolution: number, halfStepCount: number) {
+    return [...Array(halfStepCount * 2 + 1)].map((v, i) => (i - halfStepCount) * resolution);
+}
+
+const suggestedSwitchGridHalfSize = 2;
+const suggestedSwitchGridSize = suggestedSwitchGridHalfSize * 2 + 1;
+
 const MapView: React.FC<MapViewProps> = ({
     map,
     selection,
@@ -171,6 +193,7 @@ const MapView: React.FC<MapViewProps> = ({
     onShownLayerItemsChange,
     onHighlightItems,
     onClickLocation,
+    onHoverLocation,
 }: MapViewProps) => {
     const { t } = useTranslation();
 
@@ -179,9 +202,76 @@ const MapView: React.FC<MapViewProps> = ({
     const olMapContainer = React.useRef<HTMLDivElement>(null);
     const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
     const [measurementToolActive, setMeasurementToolActive] = React.useState(false);
-    const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
+    const [hoveredLocation, _setHoveredLocation] = React.useState<Point>();
+    const [hoveredPixelLocation, setHoveredPixelLocation] = React.useState<ScreenPoint>();
 
     const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
+
+    const [suggestedSwitchesGrid, setSuggestedSwitchesGrid] = React.useState<
+        Record<PointString, SuggestedSwitch>
+    >({});
+
+    const [suggestedSwitches] = useRateLimitedLoaderWithStatus(
+        () => {
+            const resolution = olMap?.getView()?.getResolution();
+            if (
+                linkingState?.type == LinkingType.PlacingSwitch &&
+                hoveredLocation &&
+                hoveredPixelLocation &&
+                resolution
+            ) {
+                const gridX = hoveredPixelLocation.x;
+                const xQuotient = Math.trunc(gridX / suggestedSwitchGridSize);
+                const gridY = hoveredPixelLocation.y;
+                const yQuotient = Math.trunc(gridY / suggestedSwitchGridSize);
+                const gridCell = pointString({ x: xQuotient, y: yQuotient });
+
+                console.log({
+                    hoveredLocation,
+                    hoveredPixelLocation,
+                    steps: makeSteps(resolution, suggestedSwitchGridHalfSize),
+                    switchId: linkingState.layoutSwitch.id,
+                    gridCell,
+                });
+
+                if (suggestedSwitchesGrid[gridCell] === undefined) {
+                    getSuggestedSwitchesInGrid(
+                        hoveredLocation,
+                        makeSteps(resolution, suggestedSwitchGridHalfSize),
+                        makeSteps(resolution, suggestedSwitchGridHalfSize),
+                        linkingState.layoutSwitch.id,
+                    ).then((ss) => {
+                        suggestedSwitchesGrid[gridCell];
+                        return ss;
+                    });
+                }
+
+                return getSuggestedSwitchesInGrid(
+                    hoveredLocation,
+                    makeSteps(resolution, suggestedSwitchGridHalfSize),
+                    makeSteps(resolution, suggestedSwitchGridHalfSize),
+                    linkingState.layoutSwitch.id,
+                ).then((ss) => {
+                    console.log({ ss });
+                    return ss;
+                });
+            } else {
+                return undefined;
+            }
+        },
+        1000,
+        [linkingState],
+    );
+
+    const setHoveredLocation = (newHoveredLocation: Point, pixelPosition: ScreenPoint) => {
+        _setHoveredLocation(newHoveredLocation);
+        setHoveredPixelLocation(pixelPosition);
+        if (linkingState?.type == LinkingType.PlacingSwitch) {
+            const olView = olMap?.getView();
+            const resolution = olView?.getResolution() || 0;
+            console.log({ newHoveredLocation, resolution, pixelPosition });
+        }
+    };
 
     const onLayerLoading = (name: MapLayerName, isLoading: boolean) => {
         setLayersLoadingData((prevLoadingLayers) => {
@@ -648,7 +738,10 @@ const MapView: React.FC<MapViewProps> = ({
         const toolActivateOptions: MapToolActivateOptions = {
             onSelect: onSelect,
             onHighlightItems: onHighlightItems,
-            onHoverLocation: (p) => setHoveredLocation(p),
+            onHoverLocation: (p, px) => {
+                setHoveredLocation(p, px);
+                onHoverLocation(p, px);
+            },
             onClickLocation: onClickLocation,
         };
 

@@ -8,6 +8,8 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
+import fi.fta.geoviite.infra.linking.switches.SuggestedSwitchAtGridPoints
+import fi.fta.geoviite.infra.linking.switches.SwitchLinkingSamplingGrid
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -140,14 +142,17 @@ class LinkingController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
-    @GetMapping("/switches/suggested", params = ["location", "switchId"])
-    fun getSuggestedSwitches(
-        @RequestParam("location") location: Point,
+    @GetMapping("/switches/suggested", params = ["point", "xSteps", "ySteps", "switchId"])
+    fun getSuggestedSwitchesInGrid(
+        @RequestParam("point") point: Point,
+        @RequestParam("xSteps") xSteps: List<Double>,
+        @RequestParam("ySteps") ySteps: List<Double>,
         @RequestParam("switchId") switchId: IntId<TrackLayoutSwitch>,
-        @RequestParam("numBestSwitchesToReturn") numBestSwitchesToReturn: Int,
-    ): List<SuggestedSwitch> {
-        logger.apiCall("getSuggestedSwitches", "location" to location, "switchId" to switchId)
-        return switchLinkingService.getSuggestedSwitch(location, switchId, numBestSwitchesToReturn)
+    ): List<SuggestedSwitchAtGridPoints> {
+        logger.apiCall("getSuggestedSwitches", "point" to point, "switchId" to switchId, "xSteps" to xSteps, "ySteps" to ySteps)
+        return switchLinkingService
+            .getSuggestedSwitchWithGridPoints(SwitchLinkingSamplingGrid(point, xSteps, ySteps), switchId)
+            .map { SuggestedSwitchAtGridPoints(it.first, it.second) }
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)

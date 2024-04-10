@@ -3,21 +3,27 @@ import { MapTool, MapToolActivateOptions } from './tool-model';
 import { debounce } from 'ts-debounce';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { expectCoordinate } from 'utils/type-utils';
+import { MapBrowserEvent } from 'ol';
+import { brand } from 'common/brand';
 
 export const pointLocationTool: MapTool = {
     activate: (map: OlMap, _: MapLayer[], options: MapToolActivateOptions) => {
-        const debouncedMoveHandlerPointLocation = debounce(
-            ({ coordinate }) => {
-                options.onHoverLocation({
-                    x: coordinate[0],
-                    y: coordinate[1],
-                });
-            },
-            10,
-            {
-                maxWait: 50,
-            },
-        );
+        const debouncedMoveHandlerPointLocation: (event: MapBrowserEvent<PointerEvent>) => void =
+            debounce(
+                ({ coordinate, originalEvent }) => {
+                    options.onHoverLocation(
+                        {
+                            x: coordinate[0],
+                            y: coordinate[1],
+                        },
+                        brand({ x: originalEvent.x, y: originalEvent.y }),
+                    );
+                },
+                10,
+                {
+                    maxWait: 50,
+                },
+            );
         const clickEvent = map.on('click', ({ coordinate }) => {
             const [x, y] = expectCoordinate(coordinate);
             options.onClickLocation({

@@ -23,6 +23,7 @@ import {
     SuggestedSwitch,
     SwitchRelinkingValidationResult,
     TrackSwitchRelinkingResult,
+    SuggestedSwitchAtGridPoints,
 } from 'linking/linking-model';
 import {
     getChangeTimes,
@@ -237,24 +238,20 @@ export async function getSuggestedSwitchesByTile(mapTile: MapTile): Promise<Sugg
     );
 }
 
-export async function getSuggestedSwitchByPoint(
+export async function getSuggestedSwitchesInGrid(
     point: Point,
+    xSteps: number[],
+    ySteps: number[],
     switchId: LayoutSwitchId,
-): Promise<SuggestedSwitch[]> {
+): Promise<SuggestedSwitchAtGridPoints[] | undefined> {
     const params = queryParams({
-        location: pointString(point),
+        point: pointString(point),
+        xSteps,
+        ySteps,
         switchId,
-        numBestSwitchesToReturn: 20,
     });
     const uri = linkingUri('switches', 'suggested');
-    return getNullable<SuggestedSwitch[]>(`${uri}${params}`).then((suggestedSwitches) => {
-        return (suggestedSwitches || []).map((suggestedSwitch) => {
-            return {
-                ...suggestedSwitch,
-                id: getSuggestedSwitchId(suggestedSwitch),
-            };
-        });
-    });
+    return getNullable<SuggestedSwitchAtGridPoints[]>(`${uri}${params}`);
 }
 
 export async function linkSwitch(

@@ -12,6 +12,12 @@ fun lineLength(p1: IPoint, p2: IPoint): Double {
     return hypot(p1.x - p2.x, p1.y - p2.y)
 }
 
+fun lineLengthSq(p1: IPoint, p2: IPoint): Double {
+    val x = p1.x - p2.x
+    val y = p1.y - p2.y
+    return x * x + y * y
+}
+
 fun pointDistanceToLine(start: IPoint, end: IPoint, target: IPoint): Double {
     return lineLength(closestPointOnLine(start, end, target), target)
 }

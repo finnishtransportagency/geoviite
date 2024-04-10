@@ -296,6 +296,12 @@ const trackLayoutSlice = createSlice({
             }
         },
 
+        onHoverLocation: (state: TrackLayoutState, action: PayloadAction<Point>): void => {
+            if (state.linkingState?.type == LinkingType.PlacingSwitch) {
+                state.linkingState.location = action.payload;
+            }
+        },
+
         // Intercept select/highlight reducers to modify options
         onSelect: function (state: TrackLayoutState, action: PayloadAction<OnSelectOptions>): void {
             const firstSwitchId = ifDefined(action.payload.switches, first);

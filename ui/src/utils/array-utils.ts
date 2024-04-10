@@ -154,15 +154,33 @@ export function compare<T>(f1: T, f2: T): number {
 }
 
 export function groupBy<T, K extends string | number>(
-    array: T[],
+    array: readonly T[],
     getKey: (item: T) => K,
 ): Record<K, T[]> {
+    return groupByTransforming(array, getKey, (x) => x);
+}
+
+export function groupByTransforming<T, V, K extends string | number>(
+    array: readonly T[],
+    getKey: (item: T) => K,
+    getValue: (item: T) => V,
+): Record<K, V[]> {
     return array.reduce(
         (acc, item) => {
-            (acc[getKey(item)] ||= []).push(item);
+            (acc[getKey(item)] ||= []).push(getValue(item));
             return acc;
         },
-        {} as Record<K, T[]>,
+        {} as Record<K, V[]>,
+    );
+}
+
+export function groupByAssociated<K extends string | number, V>(
+    array: readonly (readonly [K, V])[],
+): Record<K, V[]> {
+    return groupByTransforming(
+        array,
+        ([key]) => key,
+        ([_, value]) => value,
     );
 }
 

@@ -3,11 +3,9 @@ import ToolPanel from 'tool-panel/tool-panel';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createDelegates } from 'store/store-utils';
-import { LinkingType, SuggestedSwitch } from 'linking/linking-model';
+import { SuggestedSwitch } from 'linking/linking-model';
 import { LayoutSwitch } from 'track-layout/track-layout-model';
-import { getSuggestedSwitchByPoint } from 'linking/linking-api';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
-import { first } from 'utils/array-utils';
 
 type ToolPanelContainerProps = {
     setHoveredOverItem: (item: HighlightedAlignment | undefined) => void;
@@ -40,12 +38,13 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
     }, []);
 
     const infoboxVisibilities = useTrackLayoutAppSelector((state) => state.infoboxVisibilities);
-
+    /*
     React.useEffect(() => {
         const linkingState = store.linkingState;
         if (linkingState?.type == LinkingType.PlacingSwitch && linkingState.location) {
-            getSuggestedSwitchByPoint(linkingState.location, linkingState.layoutSwitch.id).then(
+            getSuggestedSwitchesByPoint(linkingState.location, linkingState.layoutSwitch.id).then(
                 (suggestedSwitches) => {
+                    console.log(suggestedSwitches);
                     delegates.stopLinking();
 
                     const suggestedSwitch = first(suggestedSwitches);
@@ -58,7 +57,7 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
             );
         }
     }, [store.linkingState]);
-
+*/
     return (
         <ToolPanel
             infoboxVisibilities={infoboxVisibilities}

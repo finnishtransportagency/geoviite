@@ -73,12 +73,16 @@ class SwitchFittingService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getFitsAtPoints(points: List<Pair<IPoint, IntId<SwitchStructure>>>, numBestSwitchesToReturn: Int): List<List<FittedSwitch>> {
-        val nearbyLocationTracks =
-            points.map { (location) -> locationTrackService.getLocationTracksNear(location, PublicationState.DRAFT) }
-        val switchStructures = points.map { (_, id) -> switchLibraryService.getSwitchStructure(id) }
-        return points.mapIndexed { index, point -> index to point }.parallelStream().map { (index, point) ->
-            createSuggestedSwitchByPoint(point.first, switchStructures[index], nearbyLocationTracks[index], numBestSwitchesToReturn)
+    fun getFitsOnGrids(grids: List<Pair<SwitchLinkingSamplingGrid, IntId<SwitchStructure>>>): List<Map<FittedSwitch, List<Point>>> {
+        val nearbyLocationTracks = grids.map { (grid) ->
+            locationTrackService.listNearWithAlignments(
+                PublicationState.DRAFT,
+                grid.bounds() + TRACK_SEARCH_AREA_SIZE
+            )
+        }
+        val switchStructures = grids.map { (_, id) -> switchLibraryService.getSwitchStructure(id) }
+        return grids.mapIndexed { index, point -> index to point }.parallelStream().map { (index, grid) ->
+            findBestSwitchFitForAllPointsInSamplingGrid(grid.first, switchStructures[index], nearbyLocationTracks[index])
         }.collect(Collectors.toList())
     }
 
@@ -498,11 +502,9 @@ private fun lines(alignment: IAlignment): List<Line> {
 const val MAX_LINE_INTERSECTION_DISTANCE = 0.5
 const val MAX_PARALLEL_LINE_ANGLE_DIFF_IN_DEGREES = 1
 
-private fun findClosestIntersections(
+private fun findIntersections(
     alignment1: IAlignment,
     alignment2: IAlignment,
-    desiredLocation: IPoint,
-    count: Int,
 ): List<TrackIntersection> {
     // Ignore parallel alignments. Points of alignments are filtered so
     // that alignments are about 0 - 200 meters long, and therefore we can compare
@@ -513,7 +515,7 @@ private fun findClosestIntersections(
     val lines1 = lines(alignment1)
     val lines2 = lines(alignment2)
 
-    val intersections = lines1.flatMap { line1 ->
+    return lines1.flatMap { line1 ->
         lines2.mapNotNull { line2 ->
             val intersection = lineIntersection(line1.start, line1.end, line2.start, line2.end)
             if (intersection != null && intersection.linesIntersect()) {
@@ -522,7 +524,6 @@ private fun findClosestIntersections(
                     distance = 0.0,
                     alignment1 = alignment1,
                     alignment2 = alignment2,
-                    desiredLocation = desiredLocation
                 )
             } else {
                 val linePointDistanceCheckPairs = listOf(
@@ -537,14 +538,13 @@ private fun findClosestIntersections(
                         distance = minDistanceAndPoint.first,
                         alignment1 = alignment1,
                         alignment2 = alignment2,
-                        desiredLocation = desiredLocation
                     )
                 } else null
             }
         }
     }
-    return intersections.sorted().take(count)
 }
+
 
 private fun alignmentStartEndDirectionDiff(alignment1: IAlignment, alignment2: IAlignment): Double? {
     val track1Direction = alignmentStartEndDirection(alignment1)
@@ -562,35 +562,73 @@ private fun alignmentStartEndDirection(alignment: IAlignment): Double? {
 
 private fun getClosestPointAsIntersection(track1: IAlignment, track2: IAlignment, desiredLocation: IPoint): TrackIntersection? {
     return listOf(track1, track2)
-        .mapNotNull { track -> track.getClosestPoint(desiredLocation) }
-        .minByOrNull { (point, _) -> lineLength(point,desiredLocation) }
+        .mapNotNull { track -> track.getClosestPoint(desiredLocation, 0.1) }
+        .minByOrNull { (point, _) -> lineLength(point, desiredLocation) }
         ?.let { (closestPoint,_) ->
             TrackIntersection(
                 alignment1 = track1,
                 alignment2 = track2,
                 point = closestPoint,
                 distance = 0.0,
-                desiredLocation = desiredLocation
             )
         }
 }
 
-private fun findTrackIntersections(
-    trackAlignments: List<IAlignment>,
-    desiredLocation: IPoint,
-): List<TrackIntersection> {
-    val trackPairs = trackAlignments.flatMapIndexed { index, track1 ->
-        trackAlignments.drop(index + 1).map { track2 -> track1 to track2 }
-    }
-    return trackPairs.flatMap { (track1, track2) ->
-        val closestPointAsIntersection = getClosestPointAsIntersection(track1, track2, desiredLocation)
+private fun <T> pairsOf(things: List<T>) =
+    things.flatMapIndexed { index, thing1 -> things.drop(index + 1).map { thing2 -> thing1 to thing2 } }
 
-        // Take two closest intersections instead of one because there might
-        // be two points very close to each other and it is cheap to
-        // calculate additional suggested switch and then select the best one.
-        val actualIntersections = findClosestIntersections(track1, track2, desiredLocation, 2)
-        val allIntersections = actualIntersections + listOfNotNull(closestPointAsIntersection)
-        allIntersections
+private fun <T> sampleAtPointsAndGetDistinctValues(
+    grid: SwitchLinkingSamplingGrid,
+    function: (point: Point) -> T,
+): Map<T, List<Point>> = distinctPoints(
+    grid
+        .allPoints()
+        .parallelStream()
+        .map { point -> function(point) to point }
+        .collect(Collectors.toList())
+)
+
+private fun <T> distinctPointsWithPointList(pairs: List<Pair<T, List<Point>>>): Map<T, List<Point>> =
+    distinctPoints(pairs.flatMap { (thing, points) -> points.map { point -> thing to point } })
+
+private fun <T> distinctPoints(pairs: List<Pair<T, Point>>): Map<T, List<Point>> =
+    pairs.groupBy({ it.first }, { it.second }).entries
+        .flatMap { (thing, points) -> points.map { point -> thing to point } }
+        .groupBy({ it.first }, { it.second })
+
+private fun findTrackIntersectionsForGridPoints(
+    trackAlignments: List<IAlignment>,
+    grid: SwitchLinkingSamplingGrid,
+): Map<TrackIntersection, List<Point>> {
+    val trackPairs = pairsOf(trackAlignments)
+    val allActualIntersections = trackPairs.flatMap { (track1, track2) ->
+        findIntersections(track1, track2)
+    }
+
+    val closestActualIntersections = sampleAtPointsAndGetDistinctValues(grid) { gridPoint ->
+        allActualIntersections.sortedWith(orderIntersectionsWithDesiredPoint(gridPoint)).take(2)
+    }.entries
+        .flatMap { (intersections, points) -> intersections.map { intersection -> intersection to points } }
+        .associate { it }
+
+    val closestPointsAsIntersections = distinctPoints(trackPairs.flatMap { (track1, track2) ->
+        grid.allPoints().mapNotNull { gridPoint ->
+            getClosestPointAsIntersection(
+                track1, track2, gridPoint
+            )?.let { closestIntersection -> closestIntersection to gridPoint }
+        }
+    })
+
+    return closestPointsAsIntersections + closestActualIntersections
+}
+
+private fun orderIntersectionsWithDesiredPoint(desiredPoint: Point): (a: TrackIntersection, b: TrackIntersection) -> Int {
+    return { a, b ->
+        if (a.distance < b.distance) -1 else if (a.distance > b.distance) 1 else {
+            val aDesiredDistance = lineLengthSq(a.point, desiredPoint)
+            val bDesiredDistance = lineLengthSq(b.point, desiredPoint)
+            if (aDesiredDistance < bDesiredDistance) -1 else if (aDesiredDistance > bDesiredDistance) 1 else 0
+        }
     }
 }
 
@@ -728,20 +766,14 @@ fun getSuggestedSwitchScore(
     }
 }
 
-fun roughLocation(fit: FittedSwitch) =
-    fit.joints.associate { joint ->
-        joint.number to joint.location.round(0)
-    }
-
-fun bestSuggestedSwitches(
+fun selectBestSuggestedSwitch(
     switchSuggestions: List<FittedSwitch>,
     switchStructure: SwitchStructure,
     farthestJoint: SwitchJoint,
     desiredLocation: IPoint,
-    numBestSwitchesToReturn: Int,
-): List<FittedSwitch> {
+): FittedSwitch? {
     if (switchSuggestions.isEmpty()) {
-        return listOf()
+        return null
     }
 
     val maxFarthestJointDistance = switchSuggestions.maxOf { suggestedSwitch ->
@@ -752,44 +784,69 @@ fun bestSuggestedSwitches(
         }
     }
 
-    return switchSuggestions.asSequence().sortedBy { suggestedSwitch ->
-        -getSuggestedSwitchScore(
+    return switchSuggestions.maxBy { suggestedSwitch ->
+        getSuggestedSwitchScore(
             suggestedSwitch, switchStructure, farthestJoint, maxFarthestJointDistance, desiredLocation
         )
-    }.map { it to roughLocation(it) }.distinctBy { it.second }.map { it.first }.take(numBestSwitchesToReturn).toList()
+    }
 }
 
 fun createSuggestedSwitchByPoint(
-    point: IPoint,
+    location: IPoint,
     switchStructure: SwitchStructure,
     nearbyLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
-    numBestSwitchesToReturn: Int,
-): List<FittedSwitch> {
-    val bboxSize = max(switchStructure.bbox.width, switchStructure.bbox.height) * 2.25
-    val bbox = BoundingBox(0.0..bboxSize, 0.0..bboxSize).centerAt(point)
+): FittedSwitch? = findBestSwitchFitForAllPointsInSamplingGrid(
+    SwitchLinkingSamplingGrid(location.toPoint()),
+    switchStructure,
+    nearbyLocationTracks
+).keys.firstOrNull()
+
+fun findBestSwitchFitForAllPointsInSamplingGrid(
+    grid: SwitchLinkingSamplingGrid,
+    switchStructure: SwitchStructure,
+    nearbyLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+): Map<FittedSwitch, List<Point>> {
+    val bboxExpansion = max(switchStructure.bbox.width, switchStructure.bbox.height) * 1.125
+    val bbox = grid.bounds() + bboxExpansion
     val croppedTracks = nearbyLocationTracks.map { (_, alignment) -> cropPoints(alignment, bbox) }
 
-    val intersections = findTrackIntersections(croppedTracks, point)
+    val intersections = findTrackIntersectionsForGridPoints(croppedTracks, grid)
     val (sharedSwitchJoint, switchAlignmentsContainingSharedJoint) = getSharedSwitchJoint(switchStructure)
-
-    val suggestedSwitches = intersections.flatMap { intersection ->
-        val transformations = findTransformations(
-            intersection.point,
-            intersection.alignment1,
-            intersection.alignment2,
-            switchAlignmentsContainingSharedJoint[0],
-            switchAlignmentsContainingSharedJoint[1],
-            sharedSwitchJoint,
-            switchStructure
-        )
-        val suggestedSwitches = transformations.parallelStream().map { transformation ->
-            fitSwitch(transformation, nearbyLocationTracks, switchStructure)
-        }.collect(Collectors.toList())
-        suggestedSwitches
-    }
-
     val farthestJoint = findFarthestJoint(switchStructure, sharedSwitchJoint, switchAlignmentsContainingSharedJoint[0])
-    return bestSuggestedSwitches(suggestedSwitches, switchStructure, farthestJoint, point, numBestSwitchesToReturn)
+
+    val transformations: Map<SwitchPositionTransformation, Set<Point>> =
+        intersections.entries.toList().parallelStream().flatMap { (intersection, gridPoints) ->
+                val pointSet = gridPoints.toSet()
+                val transformations = findTransformations(
+                    intersection.point,
+                    intersection.alignment1,
+                    intersection.alignment2,
+                    switchAlignmentsContainingSharedJoint[0],
+                    switchAlignmentsContainingSharedJoint[1],
+                    sharedSwitchJoint,
+                    switchStructure
+                )
+                transformations.map { tf -> tf to pointSet }.stream()
+            }.collect(
+                Collectors.groupingBy(
+                    { it.first },
+                    Collectors.mapping({ it.second.toSet() }, Collectors.reducing(setOf(), Set<Point>::plus))
+                )
+            )
+
+    return transformations.entries.parallelStream().flatMap { (transformation, gridPoints) ->
+        val suggestedSwitch = fitSwitch(transformation, nearbyLocationTracks, switchStructure)
+        gridPoints.map { gridPoint -> gridPoint to suggestedSwitch}.stream()
+    }.collect(Collectors.toList())
+        .groupBy({ it.first }, { it.second })
+        .mapValues { (point, switches) ->
+            selectBestSuggestedSwitch(
+                switches,
+                switchStructure,
+                farthestJoint,
+                point
+            )
+        }.entries.mapNotNull { (point, fit) -> fit?.let { fit to point } }.groupBy({ it.first }, { it.second })
 }
 
 private data class TrackIntersection(
@@ -797,23 +854,7 @@ private data class TrackIntersection(
     val distance: Double,
     val alignment1: IAlignment,
     val alignment2: IAlignment,
-    val desiredLocation: IPoint,
-) : Comparable<TrackIntersection> {
-    private val distanceToDesiredLocation by lazy { lineLength(point, desiredLocation) }
-
-    override fun compareTo(other: TrackIntersection): Int {
-        return when {
-            distance < other.distance -> -1
-            distance > other.distance -> 1
-            else -> when {
-                distanceToDesiredLocation < other.distanceToDesiredLocation -> -1
-                distanceToDesiredLocation > other.distanceToDesiredLocation -> 1
-                else -> 0
-            }
-        }
-    }
-}
-
+)
 
 /**
  * Returns a copy of the alignment filtering out points that do not locate
