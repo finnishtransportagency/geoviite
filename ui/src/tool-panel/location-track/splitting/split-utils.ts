@@ -55,7 +55,7 @@ const splitToRequestTarget = (
     duplicate: LayoutLocationTrack | undefined,
 ): SplitRequestTarget => {
     const duplicateTrack: SplitRequestTargetDuplicate | undefined =
-        split.duplicateTrackId && split.operation
+        split.duplicateTrackId && split.operation !== 'CREATE'
             ? {
                   id: split.duplicateTrackId,
                   operation: split.operation,
@@ -225,7 +225,7 @@ export const getOperation = (
     trackId: LocationTrackId,
     switchId: LayoutSwitchId | undefined,
     duplicateStatus: DuplicateStatus | undefined,
-): SplitTargetOperation | undefined => {
+): SplitTargetOperation => {
     switch (duplicateStatus?.match) {
         case 'FULL':
             return 'OVERWRITE';
@@ -234,6 +234,6 @@ export const getOperation = (
                 ? 'TRANSFER'
                 : 'OVERWRITE';
         default:
-            return duplicateStatus?.duplicateOfId === trackId ? 'OVERWRITE' : undefined;
+            return duplicateStatus?.duplicateOfId === trackId ? 'OVERWRITE' : 'CREATE';
     }
 };

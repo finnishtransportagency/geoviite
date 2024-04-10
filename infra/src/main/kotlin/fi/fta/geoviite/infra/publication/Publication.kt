@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
+import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
@@ -472,6 +473,5 @@ data class SplitTargetInPublication(
     val oid: Oid<LocationTrack>?,
     val startAddress: TrackMeter?,
     val endAddress: TrackMeter?,
-    // TODO: GVT-2525 3-way enum: created, duplicate reused, target-transfer
-    val newlyCreated: Boolean,
+    val operation: SplitTargetOperation,
 )

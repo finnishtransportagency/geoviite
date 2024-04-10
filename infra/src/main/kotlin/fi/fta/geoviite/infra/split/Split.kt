@@ -51,6 +51,8 @@ data class Split(
     val isPending: Boolean = bulkTransferState == BulkTransferState.PENDING && publicationId == null
 
     fun containsLocationTrack(trackId: IntId<LocationTrack>): Boolean = locationTracks.contains(trackId)
+    fun getTargetLocationTrack(trackId: IntId<LocationTrack>): SplitTarget? =
+        targetLocationTracks.find { track -> track.locationTrackId == trackId }
 
     fun containsSwitch(switchId: IntId<TrackLayoutSwitch>): Boolean = relinkedSwitches.contains(switchId)
 }
