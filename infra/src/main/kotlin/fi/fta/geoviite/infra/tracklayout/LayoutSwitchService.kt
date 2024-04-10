@@ -99,9 +99,6 @@ class LayoutSwitchService @Autowired constructor(
         return dao.fetchSegmentSwitchJointConnections(publicationState, switchId)
     }
 
-    fun getPresentationJoint(publicationState: PublicationState, switchId: IntId<TrackLayoutSwitch>) =
-        get(publicationState, switchId)?.let { s -> getPresentationJoint(s) }
-
     fun getPresentationJoint(switch: TrackLayoutSwitch): TrackLayoutSwitchJoint? {
         val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
         return switch.getJoint(structure.presentationJointNumber)

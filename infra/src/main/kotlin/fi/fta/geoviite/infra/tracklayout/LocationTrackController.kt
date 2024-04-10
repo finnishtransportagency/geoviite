@@ -1,6 +1,10 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.*
+import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT_DRAFT
+import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublicationState
@@ -19,7 +23,15 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/track-layout")
@@ -27,7 +39,6 @@ class LocationTrackController(
     private val locationTrackService: LocationTrackService,
     private val geocodingService: GeocodingService,
     private val publicationService: PublicationService,
-    private val switchService: LayoutSwitchService,
     private val switchLinkingService: SwitchLinkingService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
