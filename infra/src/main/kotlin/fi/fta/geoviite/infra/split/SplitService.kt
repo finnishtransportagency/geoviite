@@ -444,15 +444,6 @@ data class SplitTargetParams(
         duplicate?.operation?.toSplitTargetOperation() ?: SplitTargetOperation.CREATE
 }
 
-enum class SplitTargetDuplicateOperation {
-    TRANSFER,
-    OVERWRITE;
-    fun toSplitTargetOperation(): SplitTargetOperation = when (this) {
-        TRANSFER -> SplitTargetOperation.TRANSFER
-        OVERWRITE -> SplitTargetOperation.OVERWRITE
-    }
-}
-
 data class SplitTargetDuplicate(
     val operation: SplitTargetDuplicateOperation,
     val track: LocationTrack,

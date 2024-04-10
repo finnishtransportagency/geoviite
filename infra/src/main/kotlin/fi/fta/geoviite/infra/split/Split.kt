@@ -59,6 +59,15 @@ data class Split(
 
 enum class SplitTargetOperation { CREATE, OVERWRITE, TRANSFER }
 
+enum class SplitTargetDuplicateOperation {
+    TRANSFER,
+    OVERWRITE;
+    fun toSplitTargetOperation(): SplitTargetOperation = when (this) {
+        TRANSFER -> SplitTargetOperation.TRANSFER
+        OVERWRITE -> SplitTargetOperation.OVERWRITE
+    }
+}
+
 data class SplitTarget(
     val locationTrackId: IntId<LocationTrack>,
     val segmentIndices: IntRange,
