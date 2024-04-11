@@ -1,10 +1,7 @@
 package fi.fta.geoviite.infra.geocoding
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import fi.fta.geoviite.infra.common.DEFAULT_TRACK_METER_DECIMALS
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.error.GeocodingFailureException
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.math.IntersectType.*
@@ -98,7 +95,7 @@ enum class KmPostRejectedReason {
 }
 
 data class GeocodingContext(
-    val trackNumber: TrackLayoutTrackNumber,
+    val trackNumber: TrackNumber,
     val startAddress: TrackMeter,
     val referenceLineGeometry: IAlignment,
     val referencePoints: List<GeocodingReferencePoint>,
@@ -108,11 +105,11 @@ data class GeocodingContext(
 
     init {
         require(referenceLineGeometry.segments.isNotEmpty()) {
-            "Cannot geocode with empty reference line geometry, trackNumber=${trackNumber.number}"
+            "Cannot geocode with empty reference line geometry, trackNumber=${trackNumber}"
         }
 
         require(referencePoints.isNotEmpty()) {
-            "Cannot geocode without reference points, trackNumber=${trackNumber.number}"
+            "Cannot geocode without reference points, trackNumber=${trackNumber}"
         }
 
         require(
@@ -120,7 +117,7 @@ data class GeocodingContext(
                 .zipWithNext { a, b -> abs(b.distance - a.distance) }
                 .all { TrackMeter.isMetersValid(it) }
         ) {
-            "Reference points are too far apart from each other, trackNumber=${trackNumber.number}"
+            "Reference points are too far apart from each other, trackNumber=${trackNumber}"
         }
     }
 
@@ -128,7 +125,7 @@ data class GeocodingContext(
     val projectionLines: List<ProjectionLine> by lazy {
         require(isSame(polyLineEdges.last().endM, referenceLineGeometry.length, LAYOUT_M_DELTA)) {
             "Polyline edges should cover the whole reference line geometry: " +
-                    "trackNumber=${trackNumber.number} " +
+                    "trackNumber=${trackNumber} " +
                     "alignment=${referenceLineGeometry.id} " +
                     "edgeMValues=${polyLineEdges.map { e -> e.startM..e.endM }}"
         }
@@ -172,7 +169,7 @@ data class GeocodingContext(
 
     companion object {
         fun create(
-            trackNumber: TrackLayoutTrackNumber,
+            trackNumber: TrackNumber,
             startAddress: TrackMeter,
             referenceLineGeometry: IAlignment,
             kmPosts: List<TrackLayoutKmPost>,

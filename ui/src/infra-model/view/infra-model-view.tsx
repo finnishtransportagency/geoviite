@@ -115,7 +115,6 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                             overrideInfraModelParameters={props.overrideInfraModelParameters}
                             extraInframodelParameters={props.extraInfraModelParameters}
                             committedFields={props.committedFields}
-                            onSelect={props.onSelect}
                         />
                     )}
                 </div>

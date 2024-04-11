@@ -19,6 +19,7 @@ const val MIN_POINT_DISTANCE = 0.01
 
 fun toTrackLayout(
     geometryPlan: GeometryPlan,
+    trackNumberId: IntId<TrackLayoutTrackNumber>?,
     heightTriangles: List<HeightTriangle>,
     planToLayout: Transformation,
     pointListStepLength: Int,
@@ -27,7 +28,7 @@ fun toTrackLayout(
     val switches = toTrackLayoutSwitches(geometryPlan.switches, planToLayout)
 
     val alignments: List<PlanLayoutAlignment> = toMapAlignments(
-        geometryPlan.trackNumberId,
+        trackNumberId,
         geometryPlan.alignments,
         planToLayout,
         pointListStepLength,
@@ -36,7 +37,7 @@ fun toTrackLayout(
         includeGeometryData
     )
 
-    val kmPosts = toTrackLayoutKmPosts(geometryPlan.trackNumberId, geometryPlan.kmPosts, planToLayout)
+    val kmPosts = toTrackLayoutKmPosts(trackNumberId, geometryPlan.kmPosts, planToLayout)
     val startAddress = getPlanStartAddress(geometryPlan.kmPosts)
 
     return GeometryPlanLayout(

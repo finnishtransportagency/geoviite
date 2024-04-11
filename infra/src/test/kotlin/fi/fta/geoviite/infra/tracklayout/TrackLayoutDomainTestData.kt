@@ -602,13 +602,13 @@ fun attachSwitchToIndex(
 
 fun geocodingContext(
     referenceLinePoints: List<Point>,
-    trackNumberId: IntId<TrackLayoutTrackNumber> = IntId(1),
+    trackNumber: TrackNumber = TrackNumber("001"),
     startAddress: TrackMeter = TrackMeter.ZERO,
     kmPosts: List<TrackLayoutKmPost> = listOf(),
     draft: Boolean,
 ) = alignment(segment(*referenceLinePoints.toTypedArray())).let { alignment ->
     GeocodingContext.create(
-        trackNumber = trackNumber(id = trackNumberId, draft = draft),
+        trackNumber = trackNumber,
         startAddress = startAddress,
         referenceLineGeometry = alignment,
         kmPosts = kmPosts,

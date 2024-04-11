@@ -9,7 +9,6 @@ import { useTranslation } from 'react-i18next';
 import { formatDateShort, toDateOrUndefined } from 'utils/date-utils';
 import PlanPhase from 'geoviite-design-lib/geometry-plan/plan-phase';
 import PlanDecisionPhase from 'geoviite-design-lib/geometry-plan/plan-decision-phase';
-import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import { differenceInYears } from 'date-fns';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -20,17 +19,22 @@ import { getCoordinateSystem } from 'common/common-api';
 import { useLoader } from 'utils/react-utils';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import MeasurementMethod from 'geoviite-design-lib/measurement-method/measurement-method';
-import { TimeStamp } from 'common/common-model';
+import { officialMainLayoutContext, TimeStamp, TrackNumber } from 'common/common-model';
 import { GeometryPlanInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { ConfirmDownloadUnreliableInfraModelDialog } from 'infra-model/list/confirm-download-unreliable-infra-model-dialog';
 import ElevationMeasurementMethod from 'geoviite-design-lib/elevation-measurement-method/elevation-measurement-method';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { DOWNLOAD_GEOMETRY } from 'user/user-model';
+import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
+import { ChangeTimes } from 'common/common-slice';
+import { LayoutTrackNumberId } from 'track-layout/track-layout-model';
+import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 
 type GeometryPlanInfoboxProps = {
     planHeader: GeometryPlanHeader;
     visibilities: GeometryPlanInfoboxVisibilities;
     onVisibilityChange: (visibilities: GeometryPlanInfoboxVisibilities) => void;
+    changeTimes: ChangeTimes;
 };
 
 interface AgeProps {
@@ -54,13 +58,30 @@ const Age: React.FC<AgeProps> = ({ timeStamp }) => {
     }
 };
 
+function usePlanTrackNumberId(
+    changeTimes: ChangeTimes,
+    number: TrackNumber | undefined,
+): LayoutTrackNumberId | undefined {
+    const trackNumbers = useTrackNumbers(
+        officialMainLayoutContext(),
+        changeTimes.layoutTrackNumber,
+    );
+    if (trackNumbers === undefined || number === undefined) {
+        return undefined;
+    } else {
+        return trackNumbers.find((tn) => tn.number === number)?.id;
+    }
+}
+
 const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
     planHeader,
     visibilities,
     onVisibilityChange,
+    changeTimes,
 }: GeometryPlanInfoboxProps) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
+    const trackNumberId = usePlanTrackNumberId(changeTimes, planHeader.trackNumber);
     const coordinateSystemModel = useLoader(
         () =>
             (planHeader.units.coordinateSystemSrid &&
@@ -116,8 +137,10 @@ const GeometryPlanInfobox: React.FC<GeometryPlanInfoboxProps> = ({
                     qaId="geometry-plan-track-number"
                     label={t('tool-panel.geometry-plan.track-number')}
                     value={
-                        planHeader.trackNumberId && (
-                            <TrackNumberLinkContainer trackNumberId={planHeader.trackNumberId} />
+                        trackNumberId ? (
+                            <TrackNumberLinkContainer trackNumberId={trackNumberId} />
+                        ) : (
+                            planHeader.trackNumber
                         )
                     }
                 />

@@ -1,8 +1,6 @@
 package fi.fta.geoviite.infra.inframodel
 
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geometry.ErrorType
@@ -11,7 +9,6 @@ import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.geometry.ValidationError
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.xmlBytesToString
@@ -114,7 +111,6 @@ fun parseInfraModelFile(
     coordinateSystems: Map<CoordinateSystemName, Srid> = mapOf(),
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
     switchTypeNameAliases: Map<String, String>,
-    trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): GeometryPlan {
     return toGvtPlan(
         source,
@@ -123,7 +119,6 @@ fun parseInfraModelFile(
         coordinateSystems,
         switchStructuresByType,
         switchTypeNameAliases,
-        trackNumberIdsByNumber,
     )
 }
 

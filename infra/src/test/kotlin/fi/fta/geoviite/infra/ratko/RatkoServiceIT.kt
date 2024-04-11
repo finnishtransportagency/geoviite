@@ -56,6 +56,7 @@ class RatkoServiceIT @Autowired constructor(
             truncate publication.publication cascade;
             truncate integrations.lock cascade;
             truncate layout.track_number cascade;
+            truncate layout.switch cascade;
             truncate layout.operating_point cascade;
             truncate layout.operating_point_version cascade;
         """.trimIndent()
@@ -391,7 +392,7 @@ class RatkoServiceIT @Autowired constructor(
 
         val planVersion = geometryDao.insertPlan(
             plan(
-                trackNumberId,
+                trackNumber,
                 srid = Srid(4009),
                 measurementMethod = MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY,
                 planTime = Instant.parse("2018-11-30T18:35:24.00Z"),
@@ -893,7 +894,7 @@ class RatkoServiceIT @Autowired constructor(
     fun avoidPushingShortMetadata() {
         val trackNumber = establishedTrackNumber()
         val plan = plan(
-            trackNumber.id,
+            trackNumber.number,
             LAYOUT_SRID,
             // elements don't matter, only the names being different matters since that makes the metadatas distinct
             geometryAlignment(elements = listOf(lineFromOrigin(1.0)), name = "foo"),
@@ -1055,7 +1056,9 @@ class RatkoServiceIT @Autowired constructor(
         val externalId: Oid<TrackLayoutTrackNumber>,
         val version: RowVersion<TrackLayoutTrackNumber>,
         val trackNumberObject: TrackLayoutTrackNumber,
-    )
+    ) {
+        val number = trackNumberObject.number
+    }
 
     private fun establishedTrackNumber(oidString: String = "1.1.1.1.1"): EstablishedTrackNumber {
         val oid = Oid<TrackLayoutTrackNumber>(oidString)

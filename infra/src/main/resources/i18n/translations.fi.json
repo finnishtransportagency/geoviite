@@ -902,9 +902,14 @@
         "new-author-created": "Uusi suunnitteluyritys luotu onnistuneesti",
         "dialog-create-button": "Luo",
         "dialog-cancel-button": "Peruuta",
+        "dialog-set-manually-button": "Aseta",
         "duplicate-project-name": "Samanniminen projekti on jo olemassa",
         "new-project-dialog-title": "Uusi projekti",
         "new-project-created": "Uusi projekti luotu onnistuneesti",
+        "manual-track-number-dialog-title": "Suunnitelman ratanumero",
+        "manual-track-number-dialog-field-title": "Ratanumero",
+        "track-number-manually-set": "Ratanumero asetettu",
+        "set-manual-track-number": "Aseta käsin",
         "not-enough-values": "Tunnuksen pitää olla vähintään 5 merkkiä pitkä",
         "too-many-values": "Tunnus voi olla korkeintaan 50 merkkiä pitkä",
         "invalid-oid": "Virheellinen tunnus",
@@ -969,6 +974,7 @@
                 "coordinate-system-unsupported": "Koordinaattijärjestelmä \"{{value}}\" ei ole tuettu",
                 "vertical-coordinate-system-missing": "Korkeusjärjestelmä puuttuu",
                 "track-number-missing": "Hallinnollinen ratanumero puuttuu",
+                "track-number-not-found": "Hallinnollista ratanumeroa \"{{value}}\" ei ole olemassa julkaistussa paikannuspohjassa",
                 "plan-time-missing": "Suunnitelman luontiaika puuttuu",
                 "author-missing": "Suunnitelman luojan tiedot puuttuu",
                 "reference-line-missing": "Pituusmittauslinja puuttuu",
@@ -1664,5 +1670,8 @@
         "author": "Kehittäjä",
         "repository": "Lähdekoodi",
         "license": "Lisenssi"
+    },
+    "dropdown": {
+        "add-new": "Lisää uusi"
     }
 }

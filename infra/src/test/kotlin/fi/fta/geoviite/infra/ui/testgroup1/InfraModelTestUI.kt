@@ -71,7 +71,7 @@ class InfraModelTestUI @Autowired constructor(
         assertEquals("Geoviite", projektinTiedot.author)
 
         val sijaintitiedot = uploadForm.locationFormGroup
-        assertEquals("", sijaintitiedot.trackNumber)
+        assertEquals("001", sijaintitiedot.trackNumber)
         assertEquals("", sijaintitiedot.kmNumberRange)
         assertEquals("KKJ2 EPSG:2392", sijaintitiedot.coordinateSystem)
         assertEquals("Ei tiedossa", sijaintitiedot.verticalCoordinateSystem)
@@ -121,7 +121,7 @@ class InfraModelTestUI @Autowired constructor(
         //Sijaintitiedot
         val sijaintitiedot = uploadForm.locationFormGroup
         val ratanumero = "123E2E"
-        sijaintitiedot.createAndSelectNewTrackNumber(ratanumero, "kaunis kuvaus")
+        sijaintitiedot.selectManualTrackNumber(ratanumero)
         assertEquals(ratanumero, sijaintitiedot.trackNumber)
 
         //Tilanne ja laatutiedot

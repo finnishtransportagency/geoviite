@@ -8,6 +8,7 @@ import GeometryKmPostInfobox from 'tool-panel/km-post/geometry-km-post-infobox';
 import { LayoutKmPost } from 'track-layout/track-layout-model';
 import { GeometryPlanId } from 'geometry/geometry-model';
 import { createDelegates } from 'store/store-utils';
+import { useCommonDataAppSelector } from 'store/hooks';
 
 type GeometryKmPostInfoboxContainerProps = {
     kmPost: LayoutKmPost;
@@ -23,6 +24,7 @@ export const GeometryKmPostInfoboxContainer: React.FC<GeometryKmPostInfoboxConta
     onVisiblityChange,
 }) => {
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
+    const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
     return (
         <GeometryKmPostInfobox
@@ -34,6 +36,7 @@ export const GeometryKmPostInfoboxContainer: React.FC<GeometryKmPostInfoboxConta
             }
             visibilities={visibility}
             onVisibilityChange={onVisiblityChange}
+            changeTimes={changeTimes}
         />
     );
 };

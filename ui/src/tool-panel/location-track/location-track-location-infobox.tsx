@@ -119,7 +119,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         changeTimes,
     );
 
-    const publishTypeIsDraft = layoutContext.publicationState === 'DRAFT';
+    const isDraft = layoutContext.publicationState === 'DRAFT';
     const locationTrackIsDraft = locationTrack.editState !== 'UNEDITED';
     const duplicatesOnOtherTrackNumbers = extraInfo?.duplicates?.some(
         (duplicate) => duplicate.trackNumberId !== trackNumber?.id,
@@ -128,7 +128,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     const getSplittingDisabledReasonsTranslated = () => {
         const reasons: string[] = [];
 
-        if (!publishTypeIsDraft) {
+        if (!isDraft) {
             return t('tool-panel.disabled.activity-disabled-in-official-mode');
         }
 
@@ -153,7 +153,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     };
 
     const getModifyStartOrEndDisabledReasonTranslated = () => {
-        if (!publishTypeIsDraft) {
+        if (!isDraft) {
             return t('tool-panel.disabled.activity-disabled-in-official-mode');
         } else if (splittingState || extraInfo?.partOfUnfinishedSplit) {
             return t('tool-panel.location-track.splitting-blocks-geometry-changes');
@@ -261,7 +261,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
 
                             {linkingState === undefined && (
                                 <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                                    {publishTypeIsDraft && extraInfo?.partOfUnfinishedSplit && (
+                                    {isDraft && extraInfo?.partOfUnfinishedSplit && (
                                         <InfoboxContentSpread>
                                             <MessageBox>
                                                 {t(
@@ -330,7 +330,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             )}
                             <EnvRestricted restrictTo="test">
                                 <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                                    {publishTypeIsDraft &&
+                                    {isDraft &&
                                         locationTrackIsDraft &&
                                         !extraInfo?.partOfUnfinishedSplit && (
                                             <InfoboxContentSpread>
@@ -341,7 +341,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 </MessageBox>
                                             </InfoboxContentSpread>
                                         )}
-                                    {publishTypeIsDraft &&
+                                    {isDraft &&
                                         duplicatesOnOtherTrackNumbers &&
                                         !extraInfo?.partOfUnfinishedSplit && (
                                             <InfoboxContentSpread>
@@ -359,7 +359,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 size={ButtonSize.SMALL}
                                                 disabled={
                                                     locationTrack.state !== 'IN_USE' ||
-                                                    !publishTypeIsDraft ||
+                                                    !isDraft ||
                                                     locationTrackIsDraft ||
                                                     duplicatesOnOtherTrackNumbers ||
                                                     extraInfo?.partOfUnfinishedSplit

@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryService
@@ -62,14 +61,14 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun alignmentGeometryLinkingWorks() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumber = getUnusedTrackNumber()
 
         val geometryStart = Point(377680.0, 6676160.0)
         // 6m of geometry to replace
         val geometrySegmentChange = geometryStart + Point(3.0, 3.5)
         val geometryEnd = geometrySegmentChange + Point(3.0, 2.5)
         val plan = plan(
-            trackNumberId, Srid(3067), geometryAlignment(
+            trackNumber, Srid(3067), geometryAlignment(
                 line(geometryStart, geometrySegmentChange),
                 line(geometrySegmentChange, geometryEnd),
             )
@@ -162,10 +161,10 @@ class LinkingServiceIT @Autowired constructor(
 
         assertMatches(officialKmPost!!, kmPostService.getOrThrow(DRAFT, kmPostId), contextMatch = false)
 
-        val trackNumberId = trackNumberDao.insert(
-            trackNumber(TrackNumber(System.currentTimeMillis().toString()), draft = false)
-        )
-        val plan = plan(trackNumberId.id)
+        val trackNumber = getUnusedTrackNumber()
+
+        trackNumberDao.insert(trackNumber(trackNumber, draft = false))
+        val plan = plan(trackNumber)
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null).id
 
         val fetchedPlan = geometryService.getGeometryPlan(geometryPlanId)
@@ -187,8 +186,7 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun `Linking alignments throws if alignment is deleted`() {
-        val trackNumberId = getUnusedTrackNumberId()
-        val plan = plan(trackNumberId, LAYOUT_SRID)
+        val plan = plan(getUnusedTrackNumber(), LAYOUT_SRID)
 
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
@@ -224,8 +222,8 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun `Linking alignments throws if alignment has splits`() {
-        val trackNumberId = getUnusedTrackNumberId()
-        val plan = plan(trackNumberId, LAYOUT_SRID)
+        val trackNumber = getUnusedTrackNumber()
+        val plan = plan(trackNumber, LAYOUT_SRID)
 
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
@@ -260,14 +258,14 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun `Linking alignments works if all alignment splits are finished`() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumber = getUnusedTrackNumber()
 
         val geometryStart = Point(377680.0, 6676160.0)
         // 6m of geometry to replace
         val geometrySegmentChange = geometryStart + Point(3.0, 3.5)
         val geometryEnd = geometrySegmentChange + Point(3.0, 2.5)
         val plan = plan(
-            trackNumberId, LAYOUT_SRID, geometryAlignment(
+            trackNumber, LAYOUT_SRID, geometryAlignment(
                 line(geometryStart, geometrySegmentChange),
                 line(geometrySegmentChange, geometryEnd),
             )

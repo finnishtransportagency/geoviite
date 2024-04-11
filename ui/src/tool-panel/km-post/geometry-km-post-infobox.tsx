@@ -11,6 +11,7 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { GeometryKmPostInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import GeometryKmPostLinkingContainer from 'tool-panel/km-post/geometry-km-post-infobox-linking-container';
+import { ChangeTimes } from 'common/common-slice';
 
 type GeometryKmPostInfoboxProps = {
     geometryKmPost: LayoutKmPost;
@@ -18,6 +19,7 @@ type GeometryKmPostInfoboxProps = {
     onShowOnMap: () => void;
     visibilities: GeometryKmPostInfoboxVisibilities;
     onVisibilityChange: (visibilities: GeometryKmPostInfoboxVisibilities) => void;
+    changeTimes: ChangeTimes;
 };
 
 const GeometryKmPostInfobox: React.FC<GeometryKmPostInfoboxProps> = ({
@@ -26,6 +28,7 @@ const GeometryKmPostInfobox: React.FC<GeometryKmPostInfoboxProps> = ({
     onShowOnMap,
     visibilities,
     onVisibilityChange,
+    changeTimes,
 }: GeometryKmPostInfoboxProps) => {
     const { t } = useTranslation();
     const plan = usePlanHeader(planId);
@@ -73,6 +76,7 @@ const GeometryKmPostInfobox: React.FC<GeometryKmPostInfoboxProps> = ({
                     onVisibilityChange={(v) => {
                         onVisibilityChange({ ...visibilities, ...v });
                     }}
+                    changeTimes={changeTimes}
                 />
             )}
         </React.Fragment>

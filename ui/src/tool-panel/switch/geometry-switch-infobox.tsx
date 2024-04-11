@@ -21,13 +21,14 @@ import { Point } from 'model/geometry';
 import { getSwitchStructure } from 'common/common-api';
 import { GeometrySwitchInfoboxVisibilities } from 'track-layout/track-layout-slice';
 import { first } from 'utils/array-utils';
+import { ChangeTimes } from 'common/common-slice';
 
 type GeometrySwitchInfoboxProps = {
     switchId?: GeometrySwitchId;
     planId?: GeometryPlanId;
     linkingState?: LinkingState;
     suggestedSwitch?: SuggestedSwitch;
-    switchChangeTime: TimeStamp;
+    changeTimes: ChangeTimes;
     locationTrackChangeTime: TimeStamp;
     layoutSwitch?: LayoutSwitch;
     onShowOnMap: (location: Point) => void;
@@ -40,7 +41,7 @@ const GeometrySwitchInfobox: React.FC<GeometrySwitchInfoboxProps> = ({
     planId,
     linkingState,
     suggestedSwitch,
-    switchChangeTime,
+    changeTimes,
     locationTrackChangeTime,
     layoutSwitch,
     onShowOnMap,
@@ -122,7 +123,7 @@ const GeometrySwitchInfobox: React.FC<GeometrySwitchInfoboxProps> = ({
                     linkingState={linkingState}
                     switchId={switchId ?? undefined}
                     suggestedSwitch={suggestedSwitch}
-                    switchChangeTime={switchChangeTime}
+                    switchChangeTime={changeTimes.layoutSwitch}
                     locationTrackChangeTime={locationTrackChangeTime}
                     layoutSwitch={layoutSwitch}
                     planId={planId ?? undefined}
@@ -136,6 +137,7 @@ const GeometrySwitchInfobox: React.FC<GeometrySwitchInfoboxProps> = ({
                         planQuality: visibilities.planQuality,
                     }}
                     onVisibilityChange={(v) => onVisibilityChange({ ...visibilities, ...v })}
+                    changeTimes={changeTimes}
                 />
             )}
         </React.Fragment>

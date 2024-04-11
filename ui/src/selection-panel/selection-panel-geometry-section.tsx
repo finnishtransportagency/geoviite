@@ -36,14 +36,16 @@ import {
     VisiblePlanLayout,
 } from 'selection/selection-model';
 import { ChangeTimes } from 'common/common-slice';
-import { LayoutContext } from 'common/common-model';
+import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
+import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
+import { useMemo } from 'react';
 
 type GeometryPlansPanelProps = {
     changeTimes: ChangeTimes;
     layoutContext: LayoutContext;
     selectedItems: OptionalItemCollections;
     viewport: MapViewport;
-    selectedTrackNumbers: LayoutTrackNumberId[];
+    selectedTrackNumberIds: LayoutTrackNumberId[];
     openPlans: OpenPlanLayout[];
     visiblePlans: VisiblePlanLayout[];
     onTogglePlanVisibility: (payload: VisiblePlanLayout) => void;
@@ -69,7 +71,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     layoutContext,
     selectedItems,
     viewport,
-    selectedTrackNumbers,
+    selectedTrackNumberIds,
     openPlans,
     visiblePlans,
     onTogglePlanVisibility,
@@ -95,6 +97,19 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
     >();
     const [plansBeingFetched, startFetchingPlan, finishFetchingPlan] =
         useSetState<GeometryPlanId>();
+    const trackNumbers = useTrackNumbers(
+        officialMainLayoutContext(),
+        changeTimes.layoutTrackNumber,
+    );
+    const selectedTrackNumbers = useMemo(
+        () =>
+            trackNumbers &&
+            trackNumbers
+                .filter((tn) => selectedTrackNumberIds.includes(tn.id))
+                .map((tn) => tn.number)
+                .sort(),
+        [trackNumbers, selectedTrackNumberIds],
+    );
 
     useRateLimitedEffect(
         () => {
@@ -118,7 +133,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
             }
         },
         1000,
-        [viewport.area, changeTimes.geometryPlan, selectedTrackNumbers.sort().join('')],
+        [viewport.area, changeTimes.geometryPlan, selectedTrackNumbers],
     );
 
     React.useEffect(

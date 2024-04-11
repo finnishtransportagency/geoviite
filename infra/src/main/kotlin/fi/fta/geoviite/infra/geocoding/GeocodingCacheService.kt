@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.geocoding
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.configuration.CACHE_GEOCODING_CONTEXTS
 import fi.fta.geoviite.infra.configuration.CACHE_PLAN_GEOCODING_CONTEXTS
 import fi.fta.geoviite.infra.geometry.GeometryPlan
@@ -43,7 +44,7 @@ data class LayoutGeocodingContextCacheKey(
 }
 
 data class GeometryGeocodingContextCacheKey(
-    val trackNumberVersion: RowVersion<TrackLayoutTrackNumber>,
+    val trackNumber: TrackNumber,
     val planVersion: RowVersion<GeometryPlan>,
 ) : GeocodingContextCacheKey
 
@@ -84,20 +85,19 @@ class GeocodingCacheService(
         // If the track number is deleted or reference line has no geometry, we cannot geocode.
         if (!trackNumber.exists || alignment.segments.isEmpty()) return null
         val kmPosts = key.kmPostVersions.map(kmPostDao::fetch).sortedBy { post -> post.kmNumber }
-        return GeocodingContext.create(trackNumber, referenceLine.startAddress, alignment, kmPosts)
+        return GeocodingContext.create(trackNumber.number, referenceLine.startAddress, alignment, kmPosts)
     }
 
     @Transactional(readOnly = true)
     @Cacheable(CACHE_PLAN_GEOCODING_CONTEXTS, sync = true)
     fun getGeometryGeocodingContext(key: GeometryGeocodingContextCacheKey): GeocodingContextCreateResult? {
         logger.daoAccess(AccessType.FETCH, GeocodingContext::class, "cacheKey" to key)
-        val trackNumber = trackNumberDao.fetch(key.trackNumberVersion)
         val plan = planLayoutService.getLayoutPlan(key.planVersion).first
         val startAddress = plan?.startAddress
         val referenceLine = plan?.let(::getGeometryGeocodingContextReferenceLine)
 
         return if (startAddress == null || referenceLine == null) null
-        else GeocodingContext.create(trackNumber, startAddress, referenceLine, plan.kmPosts)
+        else GeocodingContext.create(key.trackNumber, startAddress, referenceLine, plan.kmPosts)
     }
 
     private fun getGeometryGeocodingContextReferenceLine(plan: GeometryPlanLayout): PlanLayoutAlignment? {
@@ -125,9 +125,7 @@ class GeocodingCacheService(
 
     @Transactional(readOnly = true)
     fun getGeocodingContext(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumber: TrackNumber,
         plan: RowVersion<GeometryPlan>,
-    ): GeocodingContext? = trackNumberDao
-        .fetchVersion(trackNumberId, PublicationState.OFFICIAL)
-        ?.let { trackNumberVersion -> getGeocodingContext(GeometryGeocodingContextCacheKey(trackNumberVersion, plan)) }
+    ): GeocodingContext? = getGeocodingContext(GeometryGeocodingContextCacheKey(trackNumber, plan))
 }
