@@ -10,7 +10,6 @@ import fi.fta.geoviite.infra.geometry.CantTransitionType.LINEAR
 import fi.fta.geoviite.infra.geometry.PlanState.*
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.switchLibrary.*
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.formatForException
@@ -45,7 +44,6 @@ fun toGvtPlan(
     coordinateSystemNameToSrid: Map<CoordinateSystemName, Srid>,
     switchStructuresByType: Map<SwitchType, SwitchStructure>,
     switchTypeNameAliases: Map<String, String>,
-    trackNumberIdsByNumber: Map<TrackNumber, IntId<TrackLayoutTrackNumber>>,
 ): GeometryPlan {
 
     // Collect & verify expected mandatory sections
@@ -71,7 +69,7 @@ fun toGvtPlan(
     val units = parseUnits(coordinateSystem, metricUnits, coordinateSystemNameToSrid)
     val gvtSwitches = collectGeometrySwitches(switchStructuresByType, switchTypeNameAliases, infraModel.alignmentGroups)
     val trackNumberDescription = infraModel.alignmentGroups.first().name
-    val layoutTrackNumberId = tryParseTrackNumber(trackNumberDescription)?.let(trackNumberIdsByNumber::get)
+    val trackNumber = tryParseTrackNumber(trackNumberDescription)
     val alignments = mutableListOf<GeometryAlignment>()
     val kmPosts = mutableListOf<GeometryKmPost>()
 
@@ -107,7 +105,7 @@ fun toGvtPlan(
         author = author.company?.let(::tryParseCompanyName)?.let(::Author),
         planTime = author.timeStamp?.let(::parseTime),
         units = units,
-        trackNumberId = layoutTrackNumberId,
+        trackNumber = trackNumber,
         trackNumberDescription = tryParsePlanElementName(trackNumberDescription) ?: emptyName(),
         alignments = alignments,
         switches = gvtSwitches.values.toList(),

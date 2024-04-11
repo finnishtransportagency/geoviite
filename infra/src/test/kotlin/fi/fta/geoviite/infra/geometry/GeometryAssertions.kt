@@ -10,7 +10,7 @@ fun assertPlansMatch(original: GeometryPlan, planFromDb: GeometryPlan) {
     assertEquals(original.units, planFromDb.units)
     assertEquals(original.fileName, planFromDb.fileName)
 
-    assertEquals(original.trackNumberId, planFromDb.trackNumberId)
+    assertEquals(original.trackNumber, planFromDb.trackNumber)
     assertEquals(original.trackNumberDescription, planFromDb.trackNumberDescription)
 
     assertEquals(original.alignments.size, planFromDb.alignments.size)

@@ -80,17 +80,17 @@ class E2ELocationFormGroup(formBy: By) : E2EFormGroup(formBy) {
     val coordinateSystem: String get() = coordinateSystemField.value
     val verticalCoordinateSystem: String get() = verticalCoordinateSystemField.value
 
-    fun selectTrackNumber(trackNumber: String): E2ELocationFormGroup = apply {
+    fun selectExistingTrackNumber(trackNumber: String): E2ELocationFormGroup = apply {
         logger.info("Select track number $trackNumber")
 
         trackNumberField.selectValue(trackNumber)
     }
 
-    fun createAndSelectNewTrackNumber(trackNumber: String, description: String): E2ELocationFormGroup = apply {
-        logger.info("Select new track number $trackNumber with description $description")
+    fun selectManualTrackNumber(trackNumber: String): E2ELocationFormGroup = apply {
+        logger.info("Selecting manual track number $trackNumber")
 
         trackNumberField
-            .createAndSelectNewValue(listOf(trackNumber, description), "track-number-edit.result.succeeded")
+            .createAndSelectNewValue(listOf(trackNumber), "im-form.track-number-manually-set")
             .waitUntilFieldIs(trackNumber)
     }
 

@@ -32,7 +32,6 @@ import kotlin.test.assertTrue
 class SwitchLinkingServiceIT @Autowired constructor(
     private val switchLinkingService: SwitchLinkingService,
     private val switchDao: LayoutSwitchDao,
-    private val trackNumberDao: LayoutTrackNumberDao,
     private val locationTrackService: LocationTrackService,
     private val geometryDao: GeometryDao,
     private val switchStructureDao: SwitchStructureDao,
@@ -1506,7 +1505,8 @@ class SwitchLinkingServiceIT @Autowired constructor(
     }
 
     private fun setupJointLocationAccuracyTest(): SuggestedSwitchCreateParams {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumber = getUnusedTrackNumber()
+        val trackNumberId = insertOfficialTrackNumber(trackNumber)
         val (switch, switchAlignments) = createSwitchAndAlignments(
             "fooSwitch",
             switchStructure,
@@ -1515,14 +1515,14 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         val plan1 = makeAndSavePlan(
-            trackNumberId,
+            trackNumber,
             MeasurementMethod.DIGITIZED_AERIAL_IMAGE,
             switches = listOf(switch),
             alignments = listOf(switchAlignments[0]),
         )
 
         val plan2 = makeAndSavePlan(
-            trackNumberId,
+            trackNumber,
             measurementMethod = null,
             alignments = listOf(switchAlignments[1]),
         )
@@ -1557,14 +1557,14 @@ class SwitchLinkingServiceIT @Autowired constructor(
     }
 
     private fun makeAndSavePlan(
-        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        trackNumber: TrackNumber,
         measurementMethod: MeasurementMethod?,
         alignments: List<GeometryAlignment> = listOf(),
         switches: List<GeometrySwitch> = listOf(),
     ): GeometryPlan = geometryDao.fetchPlan(
         geometryDao.insertPlan(
             plan(
-                trackNumberId = trackNumberId,
+                trackNumber = trackNumber,
                 alignments = alignments,
                 switches = switches,
                 measurementMethod = measurementMethod,

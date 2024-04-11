@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.ui.testgroup2
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geometry.*
@@ -39,9 +40,9 @@ class VerticalGeometryElementListTestUI
 
     @Test
     fun `List plan vertical geometry`() {
-        val trackNumberId = insertOfficialTrackNumber()
-        insertGoodPlan(trackNumberId)
-        insertMinimalPlan(trackNumberId)
+        val trackNumber = getUnusedTrackNumber()
+        insertGoodPlan(trackNumber)
+        insertMinimalPlan(trackNumber)
         startGeoviite()
         val page = navigationBar.goToVerticalGeometryListPage().planListPage()
         page.selectPlan("goodplan")
@@ -59,9 +60,10 @@ class VerticalGeometryElementListTestUI
 
     @Test
     fun `List layout vertical geometry`() {
-        val trackNumberId = insertOfficialTrackNumber()
-        val goodPlan = insertGoodPlan(trackNumberId)
-        insertMinimalPlan(trackNumberId)
+        val trackNumber = getUnusedTrackNumber()
+        val trackNumberId = insertOfficialTrackNumber(trackNumber)
+        val goodPlan = insertGoodPlan(trackNumber)
+        insertMinimalPlan(trackNumber)
 
         linkPlanToSomeLocationTrack(goodPlan, trackNumberId)
         startGeoviite()
@@ -81,9 +83,10 @@ class VerticalGeometryElementListTestUI
 
     @Test
     fun `List entire track vertical geometry`() {
-        val trackNumberId = insertOfficialTrackNumber()
-        val goodPlan = insertGoodPlan(trackNumberId)
-        insertMinimalPlan(trackNumberId)
+        val trackNumber = getUnusedTrackNumber()
+        val trackNumberId = insertOfficialTrackNumber(trackNumber)
+        val goodPlan = insertGoodPlan(trackNumber)
+        insertMinimalPlan(trackNumber)
 
         linkPlanToSomeLocationTrack(goodPlan, trackNumberId)
         geometryService.makeEntireVerticalGeometryListingCsv()
@@ -114,10 +117,10 @@ class VerticalGeometryElementListTestUI
     )
 
     // no km posts, no elements, profile only, final destination
-    private fun insertMinimalPlan(trackNumberId: IntId<TrackLayoutTrackNumber>): RowVersion<GeometryPlan> =
+    private fun insertMinimalPlan(trackNumber: TrackNumber): RowVersion<GeometryPlan> =
         geometryDao.insertPlan(
             plan = plan(
-                trackNumberId = trackNumberId,
+                trackNumber = trackNumber,
                 srid = LAYOUT_SRID,
                 alignments = listOf(
                     geometryAlignment(
@@ -132,10 +135,10 @@ class VerticalGeometryElementListTestUI
             boundingBoxInLayoutCoordinates = null,
         )
 
-    private fun insertGoodPlan(trackNumberId: IntId<TrackLayoutTrackNumber>): RowVersion<GeometryPlan> =
+    private fun insertGoodPlan(trackNumber: TrackNumber): RowVersion<GeometryPlan> =
         geometryDao.insertPlan(
             plan = plan(
-                trackNumberId = trackNumberId,
+                trackNumber = trackNumber,
                 srid = LAYOUT_SRID,
                 kmPosts = listOf(
                     createGeometryKmPost(

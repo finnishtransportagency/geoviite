@@ -1,10 +1,7 @@
 package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.FeatureTypeCode
-import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.LinearUnit
-import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.math.AngularUnit
@@ -28,7 +25,6 @@ class GeocodingServiceIT @Autowired constructor(
 
     @Test
     fun `geocoding context can be generated from geometry plan`() {
-        val trackNumberId = insertOfficialTrackNumber()
         val plan = minimalPlan().copy(
             units = GeometryUnits(
                 coordinateSystemSrid = LAYOUT_SRID,
@@ -68,7 +64,7 @@ class GeocodingServiceIT @Autowired constructor(
                 Point(450000.0, 7000000.0),
             ),
         )
-        val context = geocodingService.getGeocodingContext(trackNumberId, planVersion)
+        val context = geocodingService.getGeocodingContext(TrackNumber("foo"), planVersion)
         assertNotNull(context)
         context!!
         assertEquals(

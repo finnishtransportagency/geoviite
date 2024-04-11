@@ -33,7 +33,7 @@ class GeometryServiceIT @Autowired constructor(
         deletePlans()
 
         val file = testFile()
-        val plan = plan(getUnusedTrackNumberId(), fileName = file.name)
+        val plan = plan(getUnusedTrackNumber(), fileName = file.name)
         val polygon = someBoundingPolygon()
         val planId = geometryDao.insertPlan(plan, file, polygon).id
         val searchBbox = boundingBoxAroundPoints(polygon)
@@ -123,9 +123,9 @@ class GeometryServiceIT @Autowired constructor(
             referenceLine(trackNumberId, draft = true),
             alignment(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
         )
-        val p1 = insertPlanWithGeometry("plan1.xml", trackNumberId)
-        val p2 = insertPlanWithGeometry("plan2.xml", trackNumberId)
-        val p3 = insertPlanWithGeometry("plan3.xml", trackNumberId)
+        val p1 = insertPlanWithGeometry("plan1.xml", trackNumber.number)
+        val p2 = insertPlanWithGeometry("plan2.xml", trackNumber.number)
+        val p3 = insertPlanWithGeometry("plan3.xml", trackNumber.number)
         val locationTrackId = locationTrackService.saveDraft(
             locationTrack(trackNumberId, draft = true),
             alignment(
@@ -178,7 +178,7 @@ class GeometryServiceIT @Autowired constructor(
             referenceLine(trackNumberId, startAddress = TrackMeter("0154", 400), draft = true),
             alignment(segment(Point(0.0, 0.0), Point(0.0, 100.0)))
         )
-        val sourceId = insertPlanWithGeometry("plan1.xml", trackNumberId).alignments[0].elements[0].id
+        val sourceId = insertPlanWithGeometry("plan1.xml", trackNumber.number).alignments[0].elements[0].id
         val locationTrackId = locationTrackService.saveDraft(
             locationTrack(trackNumberId, draft = true),
             alignment(
@@ -248,15 +248,15 @@ class GeometryServiceIT @Autowired constructor(
     fun yRangeToSegmentPoints(range: IntRange) =
         toSegmentPoints(to3DMPoints(range.map { i -> Point(0.0, i.toDouble()) }))
 
-    fun insertPlanWithGeometry(filename: String, trackNumberId: IntId<TrackLayoutTrackNumber>): GeometryPlan {
+    fun insertPlanWithGeometry(filename: String, trackNumber: TrackNumber): GeometryPlan {
         val version = geometryDao.insertPlan(
-            planWithGeometryAndHeights(trackNumberId), InfraModelFile(FileName(filename), "<a></a>"), null
+            planWithGeometryAndHeights(trackNumber), InfraModelFile(FileName(filename), "<a></a>"), null
         )
         return geometryDao.fetchPlan(version)
     }
 
-    fun planWithGeometryAndHeights(trackNumberId: IntId<TrackLayoutTrackNumber>): GeometryPlan = plan(
-        trackNumberId,
+    fun planWithGeometryAndHeights(trackNumber: TrackNumber): GeometryPlan = plan(
+        trackNumber,
         srid = LAYOUT_SRID,
         verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
         alignments = listOf(

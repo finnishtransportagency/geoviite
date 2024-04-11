@@ -36,8 +36,9 @@ class GeometryElementListTestUI @Autowired constructor(
 
     @Test
     fun `List layout geometry`() {
-        val trackNumberId = insertOfficialTrackNumber(TrackNumber("foo"))
-        val planVersion = insertSomePlan(trackNumberId)
+        val trackNumber = TrackNumber("foo")
+        val trackNumberId = insertOfficialTrackNumber(trackNumber)
+        val planVersion = insertSomePlan(trackNumber)
         linkPlanToSomeLocationTrack(planVersion, trackNumberId)
 
         startGeoviite()
@@ -63,7 +64,7 @@ class GeometryElementListTestUI @Autowired constructor(
 
     @Test
     fun `List plan geometry`() {
-        insertSomePlan(insertOfficialTrackNumber())
+        insertSomePlan(getUnusedTrackNumber())
         startGeoviite()
         val planListPage = navigationBar.goToElementListPage().planListPage()
         planListPage.selectPlan("testfile")
@@ -88,8 +89,9 @@ class GeometryElementListTestUI @Autowired constructor(
 
     @Test
     fun `List whole network geometry`() {
-        val trackNumberId = insertOfficialTrackNumber()
-        val planVersion = insertSomePlan(trackNumberId)
+        val trackNumber = getUnusedTrackNumber()
+        val trackNumberId = insertOfficialTrackNumber(trackNumber)
+        val planVersion = insertSomePlan(trackNumber)
         linkPlanToSomeLocationTrack(planVersion, trackNumberId)
         geometryService.makeElementListingCsv()
 
@@ -102,10 +104,10 @@ class GeometryElementListTestUI @Autowired constructor(
         assertTrue(csv.isNotEmpty())
     }
 
-    private fun insertSomePlan(trackNumberId: IntId<TrackLayoutTrackNumber>): RowVersion<GeometryPlan> =
+    private fun insertSomePlan(trackNumber: TrackNumber): RowVersion<GeometryPlan> =
         geometryDao.insertPlan(
             plan = plan(
-                trackNumberId = trackNumberId,
+                trackNumber = trackNumber,
                 alignments = listOf(
                     geometryAlignment(
                         name = "test-alignment-name",

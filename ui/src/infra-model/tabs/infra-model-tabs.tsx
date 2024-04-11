@@ -41,7 +41,7 @@ const InfraModelTabs: React.FC<TabsProps> = ({ activeTab }) => {
                 state.page * state.pageSize,
                 undefined,
                 state.searchParams.sources,
-                state.searchParams.trackNumberIds,
+                state.searchParams.trackNumbers,
                 state.searchParams.freeText,
                 state.searchParams.sortBy,
                 state.searchParams.sortOrder,

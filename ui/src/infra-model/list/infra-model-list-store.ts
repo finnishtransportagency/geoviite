@@ -36,7 +36,7 @@ export const initialInfraModelListState: InfraModelListState = {
     searchState: 'start',
     searchParams: {
         freeText: '',
-        trackNumberIds: [],
+        trackNumbers: [],
         sources: ['GEOMETRIAPALVELU'],
         sortBy: GeometrySortBy.NO_SORTING,
         sortOrder: undefined,
