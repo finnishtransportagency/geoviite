@@ -370,6 +370,6 @@ export type SwitchLinkingSamplingGrid = {
 };
 
 export type SuggestedSwitchAtGridPoints = {
-    suggestedSwitch: SuggestedSwitch;
-    gridPoints: Point[];
+    suggestedSwitches: SuggestedSwitch[];
+    gridSwitchIndices: (number | undefined)[];
 };

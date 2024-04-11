@@ -8,9 +8,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
-import fi.fta.geoviite.infra.linking.switches.SuggestedSwitchAtGridPoints
-import fi.fta.geoviite.infra.linking.switches.SwitchLinkingSamplingGrid
-import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
+import fi.fta.geoviite.infra.linking.switches.*
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -148,11 +146,11 @@ class LinkingController @Autowired constructor(
         @RequestParam("xSteps") xSteps: List<Double>,
         @RequestParam("ySteps") ySteps: List<Double>,
         @RequestParam("switchId") switchId: IntId<TrackLayoutSwitch>,
-    ): List<SuggestedSwitchAtGridPoints> {
+    ): SuggestedSwitchesAtGridPoints {
         logger.apiCall("getSuggestedSwitches", "point" to point, "switchId" to switchId, "xSteps" to xSteps, "ySteps" to ySteps)
         return switchLinkingService
-            .getSuggestedSwitchWithGridPoints(SwitchLinkingSamplingGrid(point, xSteps, ySteps), switchId)
-            .map { SuggestedSwitchAtGridPoints(it.first, it.second) }
+            .getSuggestedSwitchWithGridPoints(SamplingGridPoints(point, xSteps, ySteps), switchId)
+            .let(::compressSamplingGrid)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)

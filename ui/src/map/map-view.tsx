@@ -93,6 +93,7 @@ import { layersCoveringLayers } from 'map/map-store';
 import { useRateLimitedLoaderWithStatus } from 'utils/react-utils';
 import { getSuggestedSwitchesInGrid } from 'linking/linking-api';
 import { brand, Brand } from 'common/brand';
+import { AsyncCache } from 'cache/cache';
 
 declare global {
     interface Window {
@@ -207,9 +208,8 @@ const MapView: React.FC<MapViewProps> = ({
 
     const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
 
-    const [suggestedSwitchesGrid, setSuggestedSwitchesGrid] = React.useState<
-        Record<PointString, SuggestedSwitch>
-    >({});
+    const [suggestedSwitchesGridCache, setSuggestedSwitchesGridCache] =
+        React.useState<AsyncCache<PointString, SuggestedSwitch>>();
 
     const [suggestedSwitches] = useRateLimitedLoaderWithStatus(
         () => {
@@ -233,18 +233,6 @@ const MapView: React.FC<MapViewProps> = ({
                     switchId: linkingState.layoutSwitch.id,
                     gridCell,
                 });
-
-                if (suggestedSwitchesGrid[gridCell] === undefined) {
-                    getSuggestedSwitchesInGrid(
-                        hoveredLocation,
-                        makeSteps(resolution, suggestedSwitchGridHalfSize),
-                        makeSteps(resolution, suggestedSwitchGridHalfSize),
-                        linkingState.layoutSwitch.id,
-                    ).then((ss) => {
-                        suggestedSwitchesGrid[gridCell];
-                        return ss;
-                    });
-                }
 
                 return getSuggestedSwitchesInGrid(
                     hoveredLocation,
