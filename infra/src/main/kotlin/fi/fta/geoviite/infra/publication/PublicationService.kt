@@ -542,6 +542,7 @@ class PublicationService @Autowired constructor(
         publicationDao.insertCalculatedChanges(publicationId, calculatedChanges)
         publicationGeometryChangeRemarksUpdateService.processPublication(publicationId)
 
+        // TODO: GVT-2564 update split to match new source location track version, or the publication will fail
         splitService.publishSplit(versions.locationTracks.map { it.officialId }, publicationId)
 
         return PublicationResult(
@@ -670,10 +671,11 @@ class PublicationService @Autowired constructor(
                         val switchTracks = validationContext.getSwitchTracksWithAlignments(switch.id as IntId)
                         validateSwitchTopologicalConnectivity(switch, structure, switchTracks, track)
                     }
-                val switchConnectivityErrors = if (track.exists) validateLocationTrackSwitchConnectivity(
-                        track,
-                        alignment
-                    ) else emptyList()
+                val switchConnectivityErrors = if (track.exists) {
+                    validateLocationTrackSwitchConnectivity(track, alignment)
+                } else {
+                    emptyList()
+                }
 
                 val duplicatesAfterPublication = validationContext.getDuplicateTracks(id)
                 val duplicateOf = track.duplicateOf?.let(validationContext::getLocationTrack)
