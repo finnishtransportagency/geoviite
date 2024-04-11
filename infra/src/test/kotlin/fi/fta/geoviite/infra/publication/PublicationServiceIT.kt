@@ -679,13 +679,13 @@ class PublicationServiceIT @Autowired constructor(
         saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
 
         assertTrue {
-            splitDao.fetchUnfinishedSplits().any { split -> split.locationTrackId == sourceTrack.id }
+            splitDao.fetchUnfinishedSplits().any { split -> split.sourceLocationTrackId == sourceTrack.id }
         }
 
         publicationService.revertPublicationCandidates(publicationRequest(locationTracks = listOf(sourceTrack.id)))
 
         assertTrue {
-            splitDao.fetchUnfinishedSplits().none { split -> split.locationTrackId == sourceTrack.id }
+            splitDao.fetchUnfinishedSplits().none { split -> split.sourceLocationTrackId == sourceTrack.id }
         }
     }
 
@@ -711,7 +711,7 @@ class PublicationServiceIT @Autowired constructor(
         saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
 
         val splitBeforePublish = splitDao.fetchUnfinishedSplits().first { split ->
-            split.locationTrackId == sourceTrack.id
+            split.sourceLocationTrackId == sourceTrack.id
         }
 
         assertNull(splitBeforePublish.publicationId)

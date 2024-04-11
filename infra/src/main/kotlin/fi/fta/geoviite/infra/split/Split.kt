@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.split
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationValidationError
 import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType
@@ -29,7 +30,7 @@ data class SplitHeader(
 ) {
     constructor(split: Split) : this(
         id = split.id,
-        locationTrackId = split.locationTrackId,
+        locationTrackId = split.sourceLocationTrackId,
         bulkTransferState = split.bulkTransferState,
         publicationId = split.publicationId,
     )
@@ -37,7 +38,8 @@ data class SplitHeader(
 
 data class Split(
     val id: IntId<Split>,
-    val locationTrackId: IntId<LocationTrack>,
+    val sourceLocationTrackId: IntId<LocationTrack>,
+    val sourceLocationTrackVersion: RowVersion<LocationTrack>,
     val bulkTransferState: BulkTransferState,
     val publicationId: IntId<Publication>?,
     val targetLocationTracks: List<SplitTarget>,
@@ -45,7 +47,7 @@ data class Split(
     val updatedDuplicates: List<IntId<LocationTrack>>,
 ) {
     @get:JsonIgnore
-    val locationTracks by lazy { targetLocationTracks.map { it.locationTrackId } + locationTrackId }
+    val locationTracks by lazy { targetLocationTracks.map { it.locationTrackId } + sourceLocationTrackId }
 
     @JsonIgnore
     val isPending: Boolean = bulkTransferState == BulkTransferState.PENDING && publicationId == null

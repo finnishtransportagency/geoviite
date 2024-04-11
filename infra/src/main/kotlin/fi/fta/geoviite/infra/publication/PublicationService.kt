@@ -841,11 +841,7 @@ class PublicationService @Autowired constructor(
         return publicationDao.getPublication(id).let { publication ->
             splitService.getSplitIdByPublicationId(id)?.let { splitId ->
                 val split = splitService.getOrThrow(splitId)
-                val sourceLocationTrack = locationTrackService.getOfficialAtMoment(
-                    split.locationTrackId,
-                    publication.publicationTime,
-                )
-                requireNotNull(sourceLocationTrack) { "Source location track not found" }
+                val sourceLocationTrack = locationTrackDao.fetch(split.sourceLocationTrackVersion)
                 val targetLocationTracks = publicationDao
                     .fetchPublishedLocationTracks(id)
                     .let { changes -> (changes.indirectChanges + changes.directChanges).map { c -> c.version } }

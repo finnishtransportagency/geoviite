@@ -24,6 +24,9 @@ class SplitDaoIT @Autowired constructor(
     val splitDao: SplitDao,
     val publicationDao: PublicationDao,
 ) : DBTestBase() {
+    j
+    // TODO: GVT-2564 fix...
+
     @Test
     fun `should save split in pending state`() {
         val trackNumberId = insertOfficialTrackNumber()
@@ -39,7 +42,7 @@ class SplitDaoIT @Autowired constructor(
         val relinkedSwitchId = insertUniqueSwitch().id
 
         val split = splitDao.saveSplit(
-            sourceTrack.id,
+            sourceTrack.rowVersion,
             listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE)),
             listOf(relinkedSwitchId),
             updatedDuplicates = emptyList(),
@@ -47,7 +50,8 @@ class SplitDaoIT @Autowired constructor(
 
         assertTrue { split.bulkTransferState == BulkTransferState.PENDING }
         assertNull(split.publicationId)
-        assertEquals(sourceTrack.id, split.locationTrackId)
+        assertEquals(sourceTrack.id, split.sourceLocationTrackId)
+        assertEquals(sourceTrack.rowVersion, split.sourceLocationTrackVersion)
         assertContains(
             split.targetLocationTracks,
             SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE),

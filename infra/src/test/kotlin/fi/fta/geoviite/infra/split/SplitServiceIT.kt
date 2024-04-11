@@ -46,6 +46,7 @@ class SplitServiceIT @Autowired constructor(
     val switchStructureDao: SwitchStructureDao,
     val locationTrackService: LocationTrackService,
 ) : DBTestBase() {
+    // TODO: GVT-2564 fix...
 
     // The run order of the tests in this test suite matters if the database is not cleaned before each test.
     // This gave false positive results for tests.
@@ -247,7 +248,7 @@ class SplitServiceIT @Autowired constructor(
     private fun lastPoint(segments: List<LayoutSegment>): IPoint = segments.last().segmentPoints.last()
 
     private fun assertSplitMatchesRequest(request: SplitRequest, split: Split) {
-        assertEquals(request.sourceTrackId, split.locationTrackId)
+        assertEquals(request.sourceTrackId, split.sourceLocationTrackId)
         request.targetTracks.forEach { targetRequest ->
             if (targetRequest.startAtSwitchId != null) {
                 assertTrue(split.relinkedSwitches.contains(targetRequest.startAtSwitchId))
@@ -345,7 +346,7 @@ class SplitServiceIT @Autowired constructor(
         val splitId = insertSplitWithTwoTracks()
         val split = splitDao.getOrThrow(splitId)
 
-        val foundSplits = splitService.findUnfinishedSplitsForLocationTracks(listOf(split.locationTrackId))
+        val foundSplits = splitService.findUnfinishedSplitsForLocationTracks(listOf(split.sourceLocationTrackVersion))
 
         assertEquals(splitId, foundSplits.first().id)
     }

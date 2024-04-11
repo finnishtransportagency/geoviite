@@ -60,7 +60,7 @@ internal fun validateSplitContent(
     val contentErrors = splits
         .filter { it.isPending }
         .flatMap { split ->
-            val containsSource = trackVersions.any { it.officialId == split.locationTrackId }
+            val containsSource = trackVersions.any { it.officialId == split.sourceLocationTrackId }
             val containsTargets = split.targetLocationTracks.all { tlt ->
                 trackVersions.any { it.officialId == tlt.locationTrackId }
             }

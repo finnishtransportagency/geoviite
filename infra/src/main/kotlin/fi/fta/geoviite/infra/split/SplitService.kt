@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.SplitFailureException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
@@ -188,7 +189,7 @@ class SplitService(
         val trackNumberMismatchErrors = splits
             .firstOrNull { it.targetLocationTracks.any { tlt -> tlt.locationTrackId == trackId } }
             ?.let { split ->
-                val sourceLocationTrack = locationTrackDao.getOrThrow(OFFICIAL, split.locationTrackId)
+                val sourceLocationTrack = locationTrackDao.fetch(split.sourceLocationTrackVersion)
                 split.targetLocationTracks.mapNotNull { targetLt ->
                     val targetLocationTrack = locationTrackService.getOrThrow(DRAFT, targetLt.locationTrackId)
                     validateTargetTrackNumber(sourceLocationTrack, targetLocationTrack)
@@ -205,7 +206,7 @@ class SplitService(
         }
 
         val splitSourceLocationTrackError = splits
-            .firstOrNull { it.locationTrackId == trackId }
+            .firstOrNull { split -> split.sourceLocationTrackId == trackId }
             ?.let {
                 validateSplitSourceLocationTrack(locationTrackService.getOrThrow(DRAFT, trackId))
             }
@@ -234,13 +235,17 @@ class SplitService(
                 target?.let { t -> split to target }
             }
             ?.let { (split, target) ->
-                val (sourceAddresses, targetAddresses) = getTargetValidationAddressPoints(split.locationTrackId, target)
+                val (sourceAddresses, targetAddresses) = getTargetValidationAddressPoints(
+                    split.sourceLocationTrackVersion,
+                    target,
+                )
                 validateTargetGeometry(target.operation, targetAddresses, sourceAddresses)
             }
 
         val sourceGeometryErrors = pendingSplits
-            .firstOrNull { it.locationTrackId == trackId }
+            .firstOrNull { it.sourceLocationTrackId == trackId }
             ?.let {
+                // TODO: GVT-2564 what's the correct way? this should relate to validation context? source track should be tied by version in draftadrresses?
                 val draftAddresses = geocodingService.getAddressPoints(trackId, DRAFT)
                 val officialAddresses = geocodingService.getAddressPoints(trackId, OFFICIAL)
                 validateSourceGeometry(draftAddresses, officialAddresses)
@@ -253,12 +258,16 @@ class SplitService(
     }
 
     private fun getTargetValidationAddressPoints(
-        sourceId: IntId<LocationTrack>,
+        sourceTrackVersion: RowVersion<LocationTrack>,
         target: SplitTarget,
     ): Pair<List<AddressPoint>?, List<AddressPoint>?> {
-        val sourceMRange = getSourceMRange(sourceId, target.segmentIndices)
+        val sourceMRange = getSourceMRange(sourceTrackVersion, target.segmentIndices)
         val sourceAddresses = if (sourceMRange != null) {
-            geocodingService.getAddressPoints(sourceId, OFFICIAL)
+            val locationTrack = locationTrackDao.fetch(sourceTrackVersion)
+            // TODO: GVT-2564 what's the correct way? the cache key should be gotten from validation context?
+            // TODO: Perhaps we should here compare in-context sources to in-context targets. In source-validation we compare in-context sources to official sources
+            geocodingService.getGeocodingContextCacheKey(locationTrack.trackNumberId, OFFICIAL)
+                ?.let { key -> geocodingService.getAddressPoints(key, locationTrack.getAlignmentVersionOrThrow()) }
                 ?.midPoints
                 ?.filter { p -> p.point.m in sourceMRange }
         } else {
@@ -279,11 +288,10 @@ class SplitService(
     }
 
     private fun getSourceMRange(
-        trackId: IntId<LocationTrack>,
+        trackVersion: RowVersion<LocationTrack>,
         segmentIndices: IntRange,
     ): ClosedFloatingPointRange<Double>? {
-        // This is fetched from draft, as segment indices are not valid for official due to switch relinking
-        val (_, sourceAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, trackId)
+        val (_, sourceAlignment) = locationTrackService.getWithAlignment(trackVersion)
         val sourceStartM = sourceAlignment.getSegmentStartM(segmentIndices.first)
         val sourceEndM = sourceAlignment.getSegmentEndM(segmentIndices.last)
         return if(sourceStartM != null && sourceEndM != null) {
@@ -361,7 +369,7 @@ class SplitService(
             localizationParams = localizationParams("trackName" to sourceTrack.name)
         )
 
-        locationTrackService.updateState(request.sourceTrackId, LocationTrackLayoutState.DELETED)
+        val savedSource = locationTrackService.updateState(request.sourceTrackId, LocationTrackLayoutState.DELETED)
 
         return savedSplitTargetLocationTracks.map { splitTargetResult ->
             SplitTarget(
@@ -370,7 +378,7 @@ class SplitService(
                 operation = splitTargetResult.operation,
             )
         }.let { splitTargets ->
-            splitDao.saveSplit(request.sourceTrackId, splitTargets, relinkedSwitches, sourceTrackDuplicateIds)
+            splitDao.saveSplit(savedSource.rowVersion, splitTargets, relinkedSwitches, sourceTrackDuplicateIds)
         }
     }
 
