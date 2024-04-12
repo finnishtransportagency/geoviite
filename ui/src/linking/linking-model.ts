@@ -58,6 +58,7 @@ export type LinkingState =
     | LinkingGeometryWithEmptyAlignment
     | LinkingAlignment
     | PlacingSwitch
+    | SuggestingSwitchPlace
     | LinkingSwitch
     | LinkingKmPost;
 
@@ -161,6 +162,12 @@ export type PlacingSwitch = LinkingBaseType & {
     location?: Point;
 };
 
+export type SuggestingSwitchPlace = LinkingBaseType & {
+    type: LinkingType.SuggestingSwitchPlace;
+    layoutSwitch: LayoutSwitch;
+    suggestedSwitch: SuggestedSwitch;
+};
+
 export type LinkingKmPost = LinkingBaseType & {
     type: LinkingType.LinkingKmPost;
     geometryKmPostId: GeometryKmPostId;
@@ -181,6 +188,7 @@ export enum LinkingType {
     LinkingAlignment = 'LinkingAlignment',
     LinkingGeometryWithEmptyAlignment = 'LinkingGeometryWithEmptyAlignment',
     LinkingSwitch = 'LinkingSwitch',
+    SuggestingSwitchPlace = 'SuggestingSwitchPlace',
     PlacingSwitch = 'PlacingSwitch',
     LinkingKmPost = 'LinkingKmPost',
     UnknownAlignment = 'UnknownAlignment',
@@ -369,7 +377,7 @@ export type SwitchLinkingSamplingGrid = {
     ySteps: number[];
 };
 
-export type SuggestedSwitchAtGridPoints = {
+export type SuggestedSwitchesAtGridPoints = {
     suggestedSwitches: SuggestedSwitch[];
-    gridSwitchIndices: (number | undefined)[];
+    gridSwitchIndices: (number | null)[];
 };

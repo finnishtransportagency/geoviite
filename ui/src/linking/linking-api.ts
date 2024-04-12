@@ -5,25 +5,18 @@ import {
     LocationTrackId,
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
-import {
-    API_URI,
-    getNonNull,
-    getNullable,
-    postNonNull,
-    putNonNull,
-    queryParams,
-} from 'api/api-fetch';
+import { API_URI, getNonNull, postNonNull, putNonNull, queryParams } from 'api/api-fetch';
 import {
     GeometryPlanLinkStatus,
     KmPostLinkingParameters,
     LinkingGeometryWithAlignmentParameters,
     LinkingGeometryWithEmptyAlignmentParameters,
     LocationTrackEndpoint,
-    SuggestedSwitchCreateParams,
     SuggestedSwitch,
+    SuggestedSwitchCreateParams,
+    SuggestedSwitchesAtGridPoints,
     SwitchRelinkingValidationResult,
     TrackSwitchRelinkingResult,
-    SuggestedSwitchAtGridPoints,
 } from 'linking/linking-model';
 import {
     getChangeTimes,
@@ -238,20 +231,25 @@ export async function getSuggestedSwitchesByTile(mapTile: MapTile): Promise<Sugg
     );
 }
 
-export async function getSuggestedSwitchesInGrid(
-    point: Point,
-    xSteps: number[],
-    ySteps: number[],
+function uncompressSuggestedSwitchesAtGridPoints(
+    switches: SuggestedSwitchesAtGridPoints,
+): (SuggestedSwitch | undefined)[] {
+    return switches.gridSwitchIndices.map((i) =>
+        i == null ? undefined : switches.suggestedSwitches[i],
+    );
+}
+
+export async function getSuggestedSwitches(
+    points: Point[],
     switchId: LayoutSwitchId,
-): Promise<SuggestedSwitchAtGridPoints[] | undefined> {
+): Promise<(SuggestedSwitch | undefined)[]> {
     const params = queryParams({
-        point: pointString(point),
-        xSteps,
-        ySteps,
+        points: points.map((p) => pointString(p)),
         switchId,
     });
-    const uri = linkingUri('switches', 'suggested');
-    return getNullable<SuggestedSwitchAtGridPoints[]>(`${uri}${params}`);
+    return getNonNull<SuggestedSwitchesAtGridPoints>(
+        `${linkingUri('switches', 'suggested')}${params}`,
+    ).then((switches) => uncompressSuggestedSwitchesAtGridPoints(switches));
 }
 
 export async function linkSwitch(

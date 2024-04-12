@@ -230,6 +230,8 @@ export function getSelectableItemTypes(
             return ['layoutLinkPoints', 'clusterPoints'];
         case LinkingType.PlacingSwitch:
             return [];
+        case LinkingType.SuggestingSwitchPlace:
+            return ['suggestedSwitches'];
         case LinkingType.LinkingSwitch:
             return ['switches', 'suggestedSwitches'];
         case LinkingType.LinkingKmPost:

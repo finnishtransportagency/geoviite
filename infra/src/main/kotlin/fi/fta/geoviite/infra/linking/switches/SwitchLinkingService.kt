@@ -891,25 +891,14 @@ private fun combineAdjacentSegmentJointNumbers(
 typealias TracksByTrackId = Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>
 
 data class SamplingGridPoints(
-    val center: Point,
-    val xSteps: List<Double> = listOf(0.0),
-    val ySteps: List<Double> = listOf(0.0),
+    val points: List<Point>
 ) {
-    init {
-        assert(xSteps.size % 2 == 1) { "xSteps should have odd size, but has ${xSteps.size} elems" }
-        assert(ySteps.size % 2 == 1) { "ySteps should have odd size, but has ${ySteps.size} elems" }
-    }
+    constructor(point: Point) : this(listOf(point))
+    fun bounds(): BoundingBox = boundingBoxAroundPoints(points)
 
-    fun allPoints(): List<Point> = ySteps.flatMap { yStep -> xSteps.map { xStep -> center + Point(xStep, yStep) } }
+    fun <R> map(f: (point: Point) -> R) = SamplingGridValues(points.map(f))
 
-    fun bounds(): BoundingBox = boundingBoxAroundPoints(
-        center + Point(xSteps.first(), ySteps.first()),
-        center + Point(xSteps.last(), ySteps.last())
-    )
-
-    fun <R> map(f: (point: Point) -> R) = SamplingGridValues(allPoints().map(f))
-
-    fun get(index: Int) = Point(xSteps[index % xSteps.size], ySteps[index / xSteps.size])
+    fun get(index: Int) = points[index]
 }
 
 

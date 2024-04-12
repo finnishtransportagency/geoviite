@@ -140,16 +140,14 @@ class LinkingController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
-    @GetMapping("/switches/suggested", params = ["point", "xSteps", "ySteps", "switchId"])
+    @GetMapping("/switches/suggested", params = ["points", "switchId"])
     fun getSuggestedSwitchesInGrid(
-        @RequestParam("point") point: Point,
-        @RequestParam("xSteps") xSteps: List<Double>,
-        @RequestParam("ySteps") ySteps: List<Double>,
+        @RequestParam("points") points: List<Point>,
         @RequestParam("switchId") switchId: IntId<TrackLayoutSwitch>,
     ): SuggestedSwitchesAtGridPoints {
-        logger.apiCall("getSuggestedSwitches", "point" to point, "switchId" to switchId, "xSteps" to xSteps, "ySteps" to ySteps)
+        logger.apiCall("getSuggestedSwitches", "points" to points, "switchId" to switchId)
         return switchLinkingService
-            .getSuggestedSwitchWithGridPoints(SamplingGridPoints(point, xSteps, ySteps), switchId)
+            .getSuggestedSwitchWithGridPoints(SamplingGridPoints(points), switchId)
             .let(::compressSamplingGrid)
     }
 

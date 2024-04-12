@@ -32,7 +32,7 @@ import {
 } from 'common/common-model';
 import LayoutStateCategoryLabel from 'geoviite-design-lib/layout-state-category/layout-state-category-label';
 import { BoundingBox, Point } from 'model/geometry';
-import { PlacingSwitch } from 'linking/linking-model';
+import { PlacingSwitch, SuggestingSwitchPlace } from 'linking/linking-model';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import { translateSwitchTrapPoint } from 'utils/enum-localization-utils';
 import { filterNotEmpty } from 'utils/array-utils';
@@ -63,7 +63,7 @@ type SwitchInfoboxProps = {
     layoutContext: LayoutContext;
     onSelect: (options: OnSelectOptions) => void;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
-    placingSwitchLinkingState?: PlacingSwitch;
+    placingSwitchLinkingState?: PlacingSwitch | SuggestingSwitchPlace;
     startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void;
     stopLinking: () => void;
     visibilities: SwitchInfoboxVisibilities;

@@ -3,7 +3,12 @@ import { Style } from 'ol/style';
 import { Point as OlPoint } from 'ol/geom';
 import { MapLayerName, MapTile } from 'map/map-model';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
-import { LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
+import {
+    LinkingSwitch,
+    LinkingType,
+    SuggestedSwitch,
+    SuggestingSwitchPlace,
+} from 'linking/linking-model';
 import { getSuggestedSwitchesByTile } from 'linking/linking-api';
 import {
     createLayer,
@@ -24,11 +29,10 @@ import VectorSource from 'ol/source/Vector';
 
 function createSwitchFeatures(
     suggestedSwitch: SuggestedSwitch,
-    isSelected: boolean,
+    doDisplay: boolean,
 ): Feature<OlPoint>[] {
     const features: Feature<OlPoint>[] = [];
-
-    if (isSelected) {
+    if (doDisplay) {
         suggestedSwitch.joints.forEach((joint) => {
             const f = new Feature({
                 geometry: new OlPoint(pointToCoords(joint.location)),
@@ -58,7 +62,7 @@ export function createSwitchLinkingLayer(
     resolution: number,
     existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
     selection: Selection,
-    linkingState: LinkingSwitch | undefined,
+    linkingState: LinkingSwitch | SuggestingSwitchPlace | undefined,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
@@ -74,6 +78,9 @@ export function createSwitchLinkingLayer(
         (suggestedSwitches) =>
             [
                 ...suggestedSwitches.flat(),
+                ...(linkingState?.type === LinkingType.SuggestingSwitchPlace
+                    ? [linkingState.suggestedSwitch]
+                    : []),
                 first(selectedSwitches), // add selected suggested switch into collection
             ].filter(filterNotEmpty),
     );
@@ -82,7 +89,11 @@ export function createSwitchLinkingLayer(
         suggestedSwitches.flatMap((suggestedSwitch) =>
             createSwitchFeatures(
                 suggestedSwitch,
-                selectedSwitches.some((switchToCheck) => switchToCheck.id == suggestedSwitch.id),
+                (linkingState?.type === LinkingType.SuggestingSwitchPlace &&
+                    linkingState?.suggestedSwitch === suggestedSwitch) ||
+                    selectedSwitches.some(
+                        (switchToCheck) => switchToCheck.id == suggestedSwitch.id,
+                    ),
             ),
         );
 

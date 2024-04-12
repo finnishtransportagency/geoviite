@@ -16,6 +16,7 @@ export const pointLocationTool: MapTool = {
                             x: coordinate[0],
                             y: coordinate[1],
                         },
+                        /* MouseEvent x and y are really clientX/clientY, aka in viewport/client coordinates */
                         brand({ x: originalEvent.x, y: originalEvent.y }),
                     );
                 },
