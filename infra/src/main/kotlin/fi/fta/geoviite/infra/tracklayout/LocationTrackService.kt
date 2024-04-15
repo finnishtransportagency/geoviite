@@ -422,7 +422,7 @@ class LocationTrackService(
     fun getInfoboxExtras(publicationState: PublicationState, id: IntId<LocationTrack>): LocationTrackInfoboxExtras? {
         val locationTrackAndAlignment = getWithAlignment(publicationState, id)
         return locationTrackAndAlignment?.let { (locationTrack, alignment) ->
-            val duplicateOf = getDuplicateOf(locationTrack, publicationState)
+            val duplicateOf = getDuplicateTrackParent(locationTrack, publicationState)
             val sortedDuplicates = getLocationTrackDuplicates(locationTrack, alignment, publicationState)
             val startSwitch = (alignment.segments.firstOrNull()?.switchId as IntId?
                 ?: locationTrack.topologyStartSwitch?.switchId)?.let { id -> fetchSwitchAtEndById(id, publicationState) }
@@ -474,13 +474,13 @@ class LocationTrackService(
         return getLocationTrackDuplicatesByJoint(track, alignment, duplicateTracksAndAlignments)
     }
 
-    private fun getDuplicateOf(
-        locationTrack: LocationTrack,
+    private fun getDuplicateTrackParent(
+        childTrack: LocationTrack,
         publicationState: PublicationState,
-    ): LocationTrackDuplicate? = locationTrack.duplicateOf?.let { duplicateOfId ->
-        getWithAlignment(publicationState, duplicateOfId)?.let { (duplicateOfTrack, duplicateOfAlignment) ->
-            val alignment = alignmentDao.fetch(locationTrack.getAlignmentVersionOrThrow())
-            getLocationTrackDuplicateOfStatus(locationTrack, alignment, duplicateOfTrack, duplicateOfAlignment)
+    ): LocationTrackDuplicate? = childTrack.duplicateOf?.let { parentId ->
+        getWithAlignment(publicationState, parentId)?.let { (parentTrack, parentTrackAlignment) ->
+            val childAlignment = alignmentDao.fetch(childTrack.getAlignmentVersionOrThrow())
+            getDuplicateTrackParentStatus(parentTrack, parentTrackAlignment, childTrack, childAlignment)
         }
     }
 

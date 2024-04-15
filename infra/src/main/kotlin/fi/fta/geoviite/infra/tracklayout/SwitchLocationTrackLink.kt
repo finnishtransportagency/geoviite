@@ -4,26 +4,26 @@ import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 
-fun getLocationTrackDuplicateOfStatus(
-    mainTrack: LocationTrack,
-    mainAlignment: LayoutAlignment,
-    duplicatedTrack: LocationTrack,
-    duplicatedAlignment: LayoutAlignment,
+fun getDuplicateTrackParentStatus(
+    parentTrack: LocationTrack,
+    parentAlignment: LayoutAlignment,
+    childTrack: LocationTrack,
+    childAlignment: LayoutAlignment,
 ): LocationTrackDuplicate {
-    val mainTrackJoints = collectSwitchJoints(mainTrack, mainAlignment)
-    val duplicatedTrackJoints = collectSwitchJoints(duplicatedTrack, duplicatedAlignment)
+    val parentTrackJoints = collectSwitchJoints(parentTrack, parentAlignment)
+    val childTrackJoints = collectSwitchJoints(childTrack, childAlignment)
     val statuses = getDuplicateMatches(
-        duplicatedTrackJoints,
-        mainTrackJoints,
-        duplicatedTrack.id,
-        duplicatedTrack.duplicateOf,
+        parentTrackJoints,
+        childTrackJoints,
+        parentTrack.id,
+        childTrack.duplicateOf,
     )
     return statuses.map { (jointIndex, status) ->
         jointIndex to LocationTrackDuplicate(
-            duplicatedTrack.id as IntId,
-            duplicatedTrack.trackNumberId,
-            duplicatedTrack.name,
-            duplicatedTrack.externalId,
+            parentTrack.id as IntId,
+            parentTrack.trackNumberId,
+            parentTrack.name,
+            parentTrack.externalId,
             status,
         )
     }.first().second // There has to at least one found, since we know the duplicateOf is set
