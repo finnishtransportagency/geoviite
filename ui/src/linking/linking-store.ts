@@ -207,7 +207,10 @@ export const linkingReducers = {
     },
     suggestSwitch: (state: TrackLayoutState, { payload }: PayloadAction<SuggestedSwitch>): void => {
         state.layoutContext = draftLayoutContext(state.layoutContext);
-        if (state.linkingState?.type == LinkingType.PlacingSwitch)
+        if (
+            state.linkingState?.type == LinkingType.PlacingSwitch ||
+            state.linkingState?.type == LinkingType.SuggestingSwitchPlace
+        )
             state.linkingState = {
                 type: LinkingType.SuggestingSwitchPlace,
                 suggestedSwitch: payload,
