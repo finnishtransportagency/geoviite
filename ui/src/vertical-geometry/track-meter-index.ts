@@ -19,7 +19,7 @@ export function findTrackMeterIndexContainingM(
     kmHeights: TrackKmHeights[],
 ): TrackMeterIndex | undefined {
     const nextKmIndex = kmHeights.findIndex(
-        ({ trackMeterHeights }) => trackMeterHeights[0]?.m ?? -1 > m,
+        ({ trackMeterHeights }) => (trackMeterHeights[0]?.m ?? -1) > m,
     );
     if (nextKmIndex === 0 || kmHeights.length === 0) {
         return undefined;
