@@ -159,7 +159,10 @@ function showInfoToast(toastContent: React.ReactNode, opts: SnackbarToastOptions
 }
 
 export function success(header: string, body?: string, opts?: SnackbarOptions): Id | undefined {
-    const toastOptions = { ...opts, id: opts?.id ?? getToastId(header, body) };
+    const toastOptions: SnackbarToastOptions = {
+        ...opts,
+        id: opts?.id ?? getToastId(header, body),
+    };
 
     return showSuccessToast(
         <ToastContent>

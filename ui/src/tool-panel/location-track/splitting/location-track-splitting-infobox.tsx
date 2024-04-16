@@ -365,6 +365,10 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         locationTrackName: locationTrack.name,
                         count: splitsValidated.length,
                     }),
+                    undefined,
+                    {
+                        id: 'toast-splitting-success',
+                    },
                 );
             })
             .catch(() => returnToSplitting());
@@ -449,7 +453,8 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             <Infobox
                 contentVisible={visibilities.splitting}
                 onContentVisibilityChange={() => visibilityChange('splitting')}
-                title={t('tool-panel.location-track.splitting.title')}>
+                title={t('tool-panel.location-track.splitting.title')}
+                qa-id={'location-track-splitting-infobox'}>
                 <InfoboxContent className={styles['location-track-infobox__split']}>
                     {splitComponents.map((split) => split.component)}
                     <LocationTrackSplittingEndpoint
@@ -501,7 +506,8 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                             variant={ButtonVariant.SECONDARY}
                             size={ButtonSize.SMALL}
                             disabled={isPostingSplit}
-                            onClick={() => setConfirmExit(true)}>
+                            onClick={() => setConfirmExit(true)}
+                            qa-id={'cancel-split'}>
                             {t('button.cancel')}
                         </Button>
                         <Button
@@ -515,7 +521,8 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                 !!firstChangedDuplicateInSplits ||
                                 splittingState.splits.length < 1 ||
                                 isPostingSplit
-                            }>
+                            }
+                            qa-id={'confirm-split'}>
                             {t('tool-panel.location-track.splitting.confirm-split')}
                         </Button>
                     </InfoboxButtons>

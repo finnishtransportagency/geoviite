@@ -1,11 +1,14 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
+import clickWhenClickable
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EInfoBox
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ERadio
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
 import org.openqa.selenium.support.pagefactory.ByChained
+import waitUntilExists
 
 class E2EGeometryPlanGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     val remarks: String get() = getValueForField("geometry-plan-remarks")
@@ -67,11 +70,56 @@ class E2ELocationTrackLocationInfobox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
         childButton(byQaId("modify-start-or-end")).clickAndWaitToDisappear()
     }
 
+    fun startSplitting(): E2ELocationTrackSplittingInfobox { 
+        logger.info("Start splitting")
+        childButton(byQaId("start-splitting")).clickAndWaitToDisappear()
+        
+        return E2ELocationTrackSplittingInfobox()
+    }
+
     fun save(): E2ELocationTrackLocationInfobox = apply {
         logger.info("Save start/end points")
 
         clickButton(byQaId("save-start-and-end-changes"))
         waitAndClearToast("location-track-endpoints-updated")
+    }
+}
+
+class E2ELocationTrackSplittingInfobox(infoboxBy: By = byQaId("location-track-splitting-infobox")) : E2EInfoBox(infoboxBy) {
+    fun setTargetTrackName(index: Int, trackName: String) = apply {
+        val targetTrackNameInput = childTextInput(
+            By.xpath("(//*[@qa-id='split-target-track-name'])[${index + 1}]")
+        )
+
+        targetTrackNameInput.replaceValue(trackName)
+    }
+
+    fun setTargetTrackDescription(index: Int, description: String) = apply {
+        val targetTrackNameInput = childTextInput(
+            By.xpath("(//*[@qa-id='split-target-track-description'])[${index + 1}]")
+        )
+
+        targetTrackNameInput.replaceValue(description)
+    }
+
+    fun cancelSplitting() {
+        clickWhenClickable(byQaId("cancel-split"))
+
+        val cancelDialog = E2EDialog()
+
+        cancelDialog.clickWarningButton()
+        cancelDialog.waitUntilInvisible()
+    }
+
+    fun confirmSplit() {
+        clickWhenClickable(byQaId("confirm-split"))
+        waitAndClearToast("splitting-success")
+    }
+
+    fun waitUntilTargetTrackInputExists(index: Int) {
+        waitUntilExists(
+            By.xpath("(//*[@qa-id='split-target-track-name'])[${index + 1}]")
+        )
     }
 }
 

@@ -352,7 +352,9 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 }
                                                 isProcessing={startingSplitting}
                                                 title={getSplittingDisabledReasonsTranslated()}
-                                                onClick={startSplitting}>
+                                                onClick={startSplitting}
+                                                qa-id="start-splitting"
+                                                >
                                                 {t('tool-panel.location-track.start-splitting')}
                                             </Button>
                                         )}

@@ -3,7 +3,9 @@ package fi.fta.geoviite.infra.ui.pagemodel.frontpage
 import exists
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
+import getElementWhenExists
 import org.openqa.selenium.By
 import org.openqa.selenium.support.pagefactory.ByChained
 import waitUntilExists
@@ -25,6 +27,32 @@ class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
         )
 
         return E2EPublicationDetailsPage()
+    }
+
+    fun openNthSplitPublicationDetails(nth: Int): SplitDetailsDialog {
+        logger.info("Open split publication nth=$nth")
+
+        openNthSplitActionsMenu(nth)
+        getElementWhenExists(byQaId("show-split-info-link")).click()
+
+        return SplitDetailsDialog()
+    }
+
+    fun setNthSplitBulkTransferCompleted(nth: Int) = apply {
+        logger.info("Set split publication bulk transfer completed nth=$nth")
+
+        openNthSplitActionsMenu(nth)
+        getElementWhenExists(byQaId("mark-bulk-transfer-as-finished-link")).click()
+        waitAndClearToast("toast-bulk-transfer-marked-as-successful")
+    }
+
+    fun openNthSplitActionsMenu(nth: Int): E2EFrontPage = apply {
+        clickChild(
+            ByChained(
+                By.xpath("(//div[@class='publication-list-item__split'])[$nth]"),
+                byQaId("publication-actions-menu-toggle")
+            )
+        )
     }
 
     fun openLatestPublication(): E2EPublicationDetailsPage {

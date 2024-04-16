@@ -63,6 +63,14 @@ open class SeleniumTest : DBTestBase(UI_TEST_USER) {
                 "track_number",
                 "track_number_km",
                 "publication",
+                "split",
+                "split_version",
+                "split_relinked_switch",
+                "split_relinked_switch_version",
+                "split_target_location_track",
+                "split_target_location_track_version",
+                "split_updated_duplicate",
+                "split_updated_duplicate_version",
             )
         )
 

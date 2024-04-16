@@ -96,7 +96,13 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
                 if (publication.split)
                     putBulkTransferState(publication.split.id, 'DONE')
                         .then(() => {
-                            success(t('publication-card.bulk-transfer-marked-as-successful'));
+                            success(
+                                t('publication-card.bulk-transfer-marked-as-successful'),
+                                undefined,
+                                {
+                                    id: 'toast-bulk-transfer-marked-as-successful',
+                                },
+                            );
                         })
                         .then(() => updateSplitChangeTime());
                 setMenuOpen(false);
@@ -151,7 +157,8 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
                             size={ButtonSize.SMALL}
                             variant={ButtonVariant.SECONDARY}
                             onClick={() => setMenuOpen(!menuOpen)}
-                            icon={Icons.Down}>
+                            icon={Icons.Down}
+                            qa-id={'publication-actions-menu-toggle'}>
                             {t('publication-card.actions')}
                         </Button>
                         {menuOpen && (
@@ -160,6 +167,7 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
                                     positionRef={menuRef}
                                     onClickOutside={() => setMenuOpen(true)}
                                     items={actions}
+                                    qa-id={'publication-actions-menu'}
                                 />
                             </div>
                         )}

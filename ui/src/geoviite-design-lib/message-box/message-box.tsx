@@ -9,6 +9,7 @@ type MessageBoxProps = {
     children?: React.ReactNode;
     pop?: boolean;
     type?: MessageBoxType;
+    qaId?: string;
 };
 
 export const MessageBox: React.FC<MessageBoxProps> = ({
