@@ -170,7 +170,7 @@ function getDomainViewportByOlView(map: OlMap): MapViewport {
 
 export type ScreenPoint = Brand<Point, 'ScreenPoint'>;
 
-export const SUGGESTED_SWITCHES_GRID_SIZE = 6;
+export const SUGGESTED_SWITCHES_GRID_SIZE = 5;
 
 type ScreenGrid = {
     cellIndex: Point;
@@ -249,13 +249,16 @@ const MapView: React.FC<MapViewProps> = ({
             const view = olMap?.getView();
             const centerCoords = view?.getCenter();
             const resolution = view?.getResolution();
+            const cache = suggestedSwitchCache.current;
             if (
                 centerCoords !== undefined &&
                 resolution !== undefined &&
                 screenGrid !== undefined &&
                 olMap !== undefined &&
                 (linkingState?.type === LinkingType.PlacingSwitch ||
-                    linkingState?.type === LinkingType.SuggestingSwitchPlace)
+                    linkingState?.type === LinkingType.SuggestingSwitchPlace) &&
+                cache !== undefined &&
+                cache.cache[pointString(screenGrid.cellIndex)] === undefined
             ) {
                 const points = [...Array(SUGGESTED_SWITCHES_GRID_SIZE)].flatMap((_, yIndex) =>
                     [...Array(SUGGESTED_SWITCHES_GRID_SIZE)].map((_, xIndex) =>
@@ -267,15 +270,23 @@ const MapView: React.FC<MapViewProps> = ({
                         ),
                     ),
                 );
+                //console.log('fetching suggestedSwitches for', pointString(screenGrid.cellIndex));
                 getSuggestedSwitches(points, linkingState.layoutSwitch.id).then(
                     (suggestedSwitches) => {
                         const center = coordsToPoint(centerCoords);
                         const current = suggestedSwitchCache.current;
-                        if (
+                        const willSave =
                             current !== undefined &&
                             resolution === current.resolution &&
-                            center.x == current.center.x
-                        ) {
+                            center.x == current.center.x;
+                        /*
+                        console.log(
+                            'finished fetching',
+                            pointString(screenGrid.cellIndex),
+                            willSave,
+                        );
+                        */
+                        if (willSave) {
                             current.cache[pointString(screenGrid.cellIndex)] = suggestedSwitches;
                         }
                     },
@@ -294,7 +305,6 @@ const MapView: React.FC<MapViewProps> = ({
     React.useEffect(() => {
         const cache = suggestedSwitchCache.current;
         const grid = positionInSuggestedSwitchGrid.current;
-        console.log({ cache, grid, t: linkingState?.type });
         if (
             (linkingState?.type === LinkingType.SuggestingSwitchPlace ||
                 linkingState?.type === LinkingType.PlacingSwitch) &&
