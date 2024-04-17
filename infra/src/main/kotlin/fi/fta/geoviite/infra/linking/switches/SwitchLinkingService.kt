@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.util.stream.Collectors
 
 private val temporarySwitchId: IntId<TrackLayoutSwitch> = IntId(-1)
 
@@ -47,11 +48,11 @@ class SwitchLinkingService @Autowired constructor(
     @Transactional(readOnly = true)
     fun getSuggestedSwitches(grids: List<Pair<SamplingGridPoints, IntId<TrackLayoutSwitch>>>): List<SuggestedSwitch?> {
         logger.serviceCall("getSuggestedSwitches", "points" to grids)
-        return getSuggestedSwitchesAtGridsWithRelevantTracks(grids).map { it.content?.get(0)?.suggestedSwitch }
+        return getSuggestedSwitchesAtGridsWithRelevantTracks(grids).map { it.keys().firstOrNull()?.suggestedSwitch }
     }
 
     @Transactional(readOnly = true)
-    fun getSuggestedSwitchWithGridPoints(grid: SamplingGridPoints, switchId: IntId<TrackLayoutSwitch>): SamplingGridValues<SuggestedSwitch?> {
+    fun getSuggestedSwitchWithGridPoints(grid: SamplingGridPoints, switchId: IntId<TrackLayoutSwitch>): PointAssociation<SuggestedSwitch?> {
         logger.serviceCall("getSuggestedSwitchWithGridPoints",  "grid" to grid, "switchId" to switchId)
         return getSuggestedSwitchesAtGridsWithRelevantTracks(listOf(grid to switchId))[0].map { switchOnGrid ->
             switchOnGrid?.suggestedSwitch
@@ -64,7 +65,7 @@ class SwitchLinkingService @Autowired constructor(
     // linked to
     private fun getSuggestedSwitchesAtGridsWithRelevantTracks(
         grids: List<Pair<SamplingGridPoints, IntId<TrackLayoutSwitch>>>
-    ): List<SamplingGridValues<SuggestedSwitchWithRelevantTracks?>> {
+    ): List<PointAssociation<SuggestedSwitchWithRelevantTracks?>> {
         val originallyLinkedBySwitchId = collectOriginallyLinkedLocationTracksBySwitch(grids.map { (_, switchId) -> switchId })
         return grids.map { (grid, switchId) ->
             getSuggestedSwitchAtGridPointsWithRelevantTracks(
@@ -83,7 +84,7 @@ class SwitchLinkingService @Autowired constructor(
         grid: SamplingGridPoints,
         switchId: IntId<TrackLayoutSwitch>,
         originallyLinkedLocationTracks: TracksByTrackId,
-    ): SamplingGridValues<SuggestedSwitchWithRelevantTracks?> {
+    ): PointAssociation<SuggestedSwitchWithRelevantTracks?> {
         val originalSwitch = switchService.getOrThrow(DRAFT, switchId)
         val switchStructure = switchLibraryService.getSwitchStructure(originalSwitch.switchStructureId)
         val gridFits = findBestSwitchFitForAllPointsInSamplingGrid(
@@ -91,7 +92,7 @@ class SwitchLinkingService @Autowired constructor(
                 DRAFT, grid.bounds() + TRACK_SEARCH_AREA_SIZE
             )
         )
-        return gridFits.mapCompressed { fit ->
+        return gridFits.map { fit ->
             fit?.let {
                 // TODO optimize
                 val tracksAroundFit = findLocationTracksForMatchingSwitchToTracks(fit)
@@ -266,7 +267,7 @@ class SwitchLinkingService @Autowired constructor(
             "Could not get geocoding context: trackNumber=${track.trackNumberId} track=$track"
         }
         return switchIds.mapIndexed { index, switchId ->
-            val suggestionWithTracks = switchSuggestions[index].content.firstOrNull()
+            val suggestionWithTracks = switchSuggestions[index].keys().firstOrNull()
             if (suggestionWithTracks == null) SwitchRelinkingValidationResult(switchId, null, listOf())
             else {
                 val (validationResults, presentationJointLocation) = validateForSplit(
@@ -896,52 +897,66 @@ data class SamplingGridPoints(
     constructor(point: Point) : this(listOf(point))
     fun bounds(): BoundingBox = boundingBoxAroundPoints(points)
 
-    fun <R> map(f: (point: Point) -> R) = SamplingGridValues(points.map(f))
+    fun <R> map(f: (point: Point) -> R) = PointAssociation(points.map { point -> f(point) to point} )
+
+    fun <R> mapMulti(f: (point: Point) -> Set<R>) = PointAssociation(invertMapOfSets(points.associateWith(f)))
 
     fun get(index: Int) = points[index]
 }
 
-
-data class SamplingGridValues<T>(
-    val content: List<T>,
+data class PointAssociation<T>(
+    val items: Map<T, Set<Point>>
 ) {
-    fun <R> map(parallel: Boolean = false, f: (value: T) -> R) =
-        SamplingGridValues(if (parallel) content.parallelStream().map(f).toList() else content.map(f))
+    constructor(pairs: List<Pair<T, Point>>) : this(pairs.associate { (i, ps) -> i to setOf(ps) })
 
-    fun <R> mapIndexed(parallel: Boolean = false, f: (index: Int, value: T) -> R) = SamplingGridValues(if (parallel) {
-        content.mapIndexed { i, e -> i to e }.parallelStream().map { (i, e) -> f(i, e) }.toList()
-    } else {
-        content.mapIndexed(f)
-    })
+    fun keys(): Set<T> = items.keys
 
-    /**
-     * Like map, but only evaluates the mapping function for unique values. Worthwhile if the mapping function is
-     * expensive and there are few distinct values in the grid.
-     */
-    fun <R> mapCompressed(parallel: Boolean = false, f: (value: T) -> R): SamplingGridValues<R> {
-        val unique = content.mapIndexed { i, e -> e to i }.groupBy({ it.first }, { it.second })
-        val newContentObjects = if (parallel) {
-            unique.keys.parallelStream().map { e -> f(e) to unique.getValue(e) }.toList()
-        } else {
-            unique.keys.map { e -> f(e) to unique.getValue(e) }
-        }
-        return SamplingGridValues(newContentObjects
-            .flatMap { (r, indices) -> indices.map { index -> index to r } }
-            .sortedBy { (index) -> index }
-            .map { it.second })
+    fun <R> map(parallel: Boolean = false, f: (item: T) -> R): PointAssociation<R> =
+        PointAssociation(itemStream(parallel).flatMap { (i, ps) ->
+            f(i).let { result -> ps.stream().map { point -> result to point } }
+        }.collect(Collectors.groupingBy({ it.first }, Collectors.mapping({ it.second }, Collectors.toSet()))))
+
+    fun <R> mapMulti(parallel: Boolean = false, f: (item: T) -> Set<R>): PointAssociation<R> =
+        PointAssociation(itemStream(parallel).flatMap { (i, ps) ->
+            f(i).stream().flatMap { result -> ps.stream().map { point -> result to point } }
+        }.collect(Collectors.groupingBy({ it.first }, Collectors.mapping({ it.second }, Collectors.toSet()))))
+
+    fun <R> mapByPoint(parallel: Boolean = false, f: (point: Point, item: Set<T>) -> R): PointAssociation<R> {
+        val byPoint = invertItems().entries
+        val stream = if (parallel) byPoint.parallelStream() else byPoint.stream()
+        return PointAssociation(stream.map { (point, es) ->
+            f(point, es) to point
+        }.collect(Collectors.groupingBy({ it.first }, Collectors.mapping({ it.second }, Collectors.toSet()))))
     }
 
-    fun <O, R> zipWith(other: SamplingGridValues<O>, f: (my: T, theirs: O) -> R): SamplingGridValues<R> =
-        SamplingGridValues(content.zip(other.content, f))
+    fun zipWith(other: PointAssociation<T>, combine: (my: Set<T>, theirs: Set<T>) -> Set<T>): PointAssociation<T> {
+        val meByPoint = invertItems()
+        val themByPoint = other.invertItems()
+
+        return PointAssociation(invertMapOfSets((meByPoint.keys + themByPoint.keys).associateWith { point ->
+            val myItems = meByPoint.getOrDefault(point, setOf())
+            val theirItems = themByPoint.getOrDefault(point, setOf())
+            combine(myItems, theirItems)
+        }))
+    }
+
+    private fun itemStream(parallel: Boolean) = if (parallel) items.entries.parallelStream() else items.entries.stream()
+
+    private fun invertItems(): Map<Point, Set<T>> = invertMapOfSets(items)
 }
+
+fun <K, V> invertMapOfSets(map: Map<K, Set<V>>): Map<V, Set<K>> = map.entries
+    .stream()
+    .flatMap { (i, ps) -> ps.stream().map { point -> point to i } }
+    .collect(Collectors.groupingBy({ it.first }, Collectors.mapping({ it.second }, Collectors.toSet())))
 
 data class SuggestedSwitchesAtGridPoints(
     val suggestedSwitches: List<SuggestedSwitch>,
     val gridSwitchIndices: List<Int?>,
 )
 
-fun compressSamplingGrid(grid: SamplingGridValues<SuggestedSwitch?>): SuggestedSwitchesAtGridPoints {
-    val unique = grid.content.filterNotNull().distinct()
+fun compressSamplingGrid(grid: PointAssociation<SuggestedSwitch?>): SuggestedSwitchesAtGridPoints {
+    val unique = grid.keys().filterNotNull().distinct()
     val indexLookup = unique.mapIndexed { i, e -> e to i }.associate { it }
-    return SuggestedSwitchesAtGridPoints(unique, grid.content.map { s -> s?.let { indexLookup[s] }})
+    return SuggestedSwitchesAtGridPoints(unique, grid.keys().map { s -> s?.let { indexLookup[s] }})
 }

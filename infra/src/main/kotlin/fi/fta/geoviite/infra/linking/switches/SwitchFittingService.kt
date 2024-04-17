@@ -73,7 +73,7 @@ class SwitchFittingService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getFitsOnGrids(grids: List<Pair<SamplingGridPoints, IntId<SwitchStructure>>>): List<SamplingGridValues<FittedSwitch?>> {
+    fun getFitsOnGrids(grids: List<Pair<SamplingGridPoints, IntId<SwitchStructure>>>): List<PointAssociation<FittedSwitch?>> {
         val nearbyLocationTracks = grids.map { (grid) ->
             locationTrackService.listNearWithAlignments(
                 PublicationState.DRAFT,
@@ -585,25 +585,25 @@ private fun <T> distinctPoints(pairs: List<Pair<T, Point>>): Map<T, List<Point>>
 private fun findTrackIntersectionsForGridPoints(
     trackAlignments: List<IAlignment>,
     grid: SamplingGridPoints,
-): SamplingGridValues<List<TrackIntersection>> {
+): PointAssociation<TrackIntersection> {
     val trackPairs = pairsOf(trackAlignments)
     val allActualIntersections = trackPairs.flatMap { (track1, track2) ->
         findIntersections(track1, track2)
     }
 
-    val closestActualIntersections = grid.map { gridPoint ->
-        allActualIntersections.sortedWith(orderIntersectionsWithDesiredPoint(gridPoint)).take(2)
+    val closestActualIntersections = grid.mapMulti { gridPoint ->
+        allActualIntersections.sortedWith(orderIntersectionsWithDesiredPoint(gridPoint)).take(2).toSet()
     }
 
-    val closestPointsAsIntersections = grid.map { gridPoint ->
+    val closestPointsAsIntersections = grid.mapMulti { gridPoint ->
         trackPairs.mapNotNull { (track1, track2) ->
             getClosestPointAsIntersection(
                 track1, track2, gridPoint
             )
-        }
+        }.toSet()
     }
 
-    return closestPointsAsIntersections.zipWith(closestActualIntersections) { a, b -> a + b }
+    return closestPointsAsIntersections.zipWith(closestActualIntersections, Set<TrackIntersection>::plus)
 }
 
 private fun orderIntersectionsWithDesiredPoint(desiredPoint: Point): (a: TrackIntersection, b: TrackIntersection) -> Int {
@@ -783,13 +783,13 @@ fun createSuggestedSwitchByPoint(
     SamplingGridPoints(location.toPoint()),
     switchStructure,
     nearbyLocationTracks
-).content.firstOrNull()
+).keys().firstOrNull()
 
 fun findBestSwitchFitForAllPointsInSamplingGrid(
     grid: SamplingGridPoints,
     switchStructure: SwitchStructure,
     nearbyLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
-): SamplingGridValues<FittedSwitch?> {
+): PointAssociation<FittedSwitch?> {
     val bboxExpansion = max(switchStructure.bbox.width, switchStructure.bbox.height) * 1.125
     val bbox = grid.bounds() + bboxExpansion
     val croppedTracks = nearbyLocationTracks.map { (_, alignment) -> cropPoints(alignment, bbox) }
@@ -798,21 +798,20 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
     val (sharedSwitchJoint, switchAlignmentsContainingSharedJoint) = getSharedSwitchJoint(switchStructure)
     val farthestJoint = findFarthestJoint(switchStructure, sharedSwitchJoint, switchAlignmentsContainingSharedJoint[0])
 
-    return intersections.mapIndexed(parallel = true) { pointIndex, pointIntersections ->
-        val transformations = pointIntersections.flatMap { intersection ->
-            findTransformations(
-                intersection.point,
-                intersection.alignment1,
-                intersection.alignment2,
-                switchAlignmentsContainingSharedJoint[0],
-                switchAlignmentsContainingSharedJoint[1],
-                sharedSwitchJoint,
-                switchStructure
-            )
-        }
-        selectBestSuggestedSwitch(transformations.parallelStream().map { transformation ->
+    return intersections.mapMulti(parallel = true) { intersection ->
+        findTransformations(
+            intersection.point,
+            intersection.alignment1,
+            intersection.alignment2,
+            switchAlignmentsContainingSharedJoint[0],
+            switchAlignmentsContainingSharedJoint[1],
+            sharedSwitchJoint,
+            switchStructure
+        ).toSet()
+    }.mapByPoint(parallel = true) { point, transformations ->
+        selectBestSuggestedSwitch(transformations.map { transformation ->
             fitSwitch(transformation, nearbyLocationTracks, switchStructure)
-        }.toList(), switchStructure, farthestJoint, grid.get(pointIndex))
+        }.toList(), switchStructure, farthestJoint, point)
     }
 }
 
