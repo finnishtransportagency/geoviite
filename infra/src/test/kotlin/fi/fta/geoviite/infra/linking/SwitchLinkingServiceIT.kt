@@ -1111,7 +1111,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             locationTrack(trackNumberId, name = "new branching track", draft = true),
             alignment(shiftTrack(branchingTrackSegments, switch.id, Point(134.321, 0.0)))
         )
-        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(Point(134.321, 0.0), switch.id)[0]
+        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(Point(134.321, 0.0), switch.id)!!
         switchLinkingService.saveSwitchLinking(suggestedSwitch, switch.id)
         assertTrackDraftVersionSwitchLinks(originallyLinkedBranchingTrack.id, null, null, listOf(0.0..34.3 to null))
         assertTrackDraftVersionSwitchLinks(
@@ -1131,7 +1131,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
     @Test
     fun `no switches are suggested when no switch is applicable`() {
         assertEquals(
-            listOf(), switchLinkingService.getSuggestedSwitch(
+            null, switchLinkingService.getSuggestedSwitch(
                 Point(123.0, 456.0), switchDao.insert(switch(draft = false)).id
             )
         )
@@ -1183,7 +1183,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             alignment(setSwitchId(templateFourThreeTrackSegments, switch.id))
         )
 
-        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(Point(0.0, 0.0), switch.id)[0]
+        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(Point(0.0, 0.0), switch.id)!!
         switchLinkingService.saveSwitchLinking(suggestedSwitch, switch.id)
 
         assertTrackDraftVersionSwitchLinks(oneFiveTrack.id, null, null, listOf(0.0..5.2 to switch.id))
@@ -1233,7 +1233,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             alignment(shiftTrack(templateBranchingTrackSegments, switch.id, fullShift))
         )
 
-        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(fullShift, switch.id)[0]
+        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(fullShift, switch.id)!!
         switchLinkingService.saveSwitchLinking(suggestedSwitch, switch.id)
 
         assertTrackDraftVersionSwitchLinks(
@@ -1302,7 +1302,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             locationTrack(trackNumberId, name = "uninvolved track", draft = true),
             alignment(shiftTrack(templateThroughTrackSegments, null, fullShift - Point(1.0, 1.0))),
         )
-        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(fullShift, switch.id)[0]
+        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(fullShift, switch.id)!!
         switchLinkingService.saveSwitchLinking(suggestedSwitch, switch.id)
 
         assertTrackDraftVersionSwitchLinks(
@@ -1349,7 +1349,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             ),
             alignment(segment(Point(456.7, 345.5), Point(457.8, 346.9))),
         )
-        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(Point(0.0, 0.0), switch.id)[0]
+        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(Point(0.0, 0.0), switch.id)!!
         switchLinkingService.saveSwitchLinking(suggestedSwitch, switch.id)
         assertTrackDraftVersionSwitchLinks(
             otherLocationTrackWithTopoSwitchLink.id, null, null, listOf(0.0..1.7 to null)
@@ -1360,7 +1360,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
     fun `nearby track end not within bounding box of switch joints still gets topologically connected when linking single switch`() {
         val (_, branchingTrackContinuation, switchId) = setupForLinkingTopoLinkToTrackOutsideSwitchJointBoundingBox()
         switchLinkingService.saveSwitchLinking(
-            switchLinkingService.getSuggestedSwitch(Point(0.0, 0.0), switchId)[0], switchId
+            switchLinkingService.getSuggestedSwitch(Point(0.0, 0.0), switchId)!!, switchId
         )
         val expected = TopologyLocationTrackSwitch(switchId, JointNumber(3))
         val actual = locationTrackDao.fetch(

@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.inframodel.angleBetween
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.util.formatForException
+import java.math.RoundingMode
 import kotlin.math.abs
 
 class InvalidJointsException(

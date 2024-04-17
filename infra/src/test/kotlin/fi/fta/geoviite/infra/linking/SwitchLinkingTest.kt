@@ -1040,7 +1040,6 @@ class SwitchLinkingTest {
             nearbyPoint,
             switchStructure,
             listOf(locationTrack152, locationTrack13),
-            1,
         )
 
         assertNotNull(suggestedSwitch)

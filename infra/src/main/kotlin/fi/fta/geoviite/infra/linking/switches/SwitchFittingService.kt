@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.stream.Collectors
 import kotlin.math.max
+import kotlin.math.sqrt
 
 private const val TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT = 0.5
 const val TOLERANCE_JOINT_LOCATION_NEW_POINT = 0.01
@@ -153,7 +154,7 @@ fun findSuggestedSwitchJointMatches(
         (closestSegmentIndex - 1).coerceAtLeast(0), (closestSegmentIndex + 1).coerceAtMost(alignment.segments.lastIndex)
     )
 
-    val possibleSegments = alignment.segments.slice(possibleSegmentIndices)
+    val possibleSegments = alignment.segments.subList(possibleSegmentIndices.first, possibleSegmentIndices.last + 1)
 
     val jointDistanceToAlignment = possibleSegments.flatMap { segment ->
         segment.segmentPoints.mapIndexedNotNull { pIdx, point ->
@@ -609,8 +610,8 @@ private fun findTrackIntersectionsForGridPoints(
 private fun orderIntersectionsWithDesiredPoint(desiredPoint: Point): (a: TrackIntersection, b: TrackIntersection) -> Int {
     return { a, b ->
         if (a.distance < b.distance) -1 else if (a.distance > b.distance) 1 else {
-            val aDesiredDistance = lineLengthSq(a.point, desiredPoint)
-            val bDesiredDistance = lineLengthSq(b.point, desiredPoint)
+            val aDesiredDistance = lineLength(a.point, desiredPoint)
+            val bDesiredDistance = lineLength(b.point, desiredPoint)
             if (aDesiredDistance < bDesiredDistance) -1 else if (aDesiredDistance > bDesiredDistance) 1 else 0
         }
     }
@@ -798,7 +799,7 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
     val (sharedSwitchJoint, switchAlignmentsContainingSharedJoint) = getSharedSwitchJoint(switchStructure)
     val farthestJoint = findFarthestJoint(switchStructure, sharedSwitchJoint, switchAlignmentsContainingSharedJoint[0])
 
-    return intersections.mapMulti(parallel = true) { intersection ->
+    val transformations = intersections.mapMulti(parallel = true) { intersection ->
         findTransformations(
             intersection.point,
             intersection.alignment1,
@@ -808,7 +809,15 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
             sharedSwitchJoint,
             switchStructure
         ).toSet()
-    }.mapByPoint(parallel = true) { point, transformations ->
+    }
+
+    return transformations.mapByPoint(parallel = true) { point, transformations ->
+        // issue: There's multiple transformations, but how many different points are there actually? Specifically:
+        // - rounding: doesn't help that much in itself, it turns out: We need to round very aggressively, as in
+        // rounding positions up to decimeters and angles to deci-grads, to get them to collapse together even 10-to-1,
+        // and actually even that didn't speed things up much and I'm not really sure why
+        //
+        // - merging joint points?
         selectBestSuggestedSwitch(transformations.map { transformation ->
             fitSwitch(transformation, nearbyLocationTracks, switchStructure)
         }.toList(), switchStructure, farthestJoint, point)
