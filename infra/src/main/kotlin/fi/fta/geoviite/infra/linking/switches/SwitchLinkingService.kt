@@ -94,7 +94,6 @@ class SwitchLinkingService @Autowired constructor(
         )
         return gridFits.map { fit ->
             fit?.let {
-                // TODO optimize
                 val tracksAroundFit = findLocationTracksForMatchingSwitchToTracks(fit)
                 val relevantTracks = tracksAroundFit + originallyLinkedLocationTracks
                 val match = matchFittedSwitchToTracks(
@@ -904,6 +903,9 @@ data class SamplingGridPoints(
     fun get(index: Int) = points[index]
 }
 
+/**
+ * Associate a set of items with a set of points for each item.
+ */
 data class PointAssociation<T>(
     val items: Map<T, Set<Point>>
 ) {
@@ -911,25 +913,25 @@ data class PointAssociation<T>(
 
     fun keys(): Set<T> = items.keys
 
-    fun <R> map(parallel: Boolean = false, f: (item: T) -> R): PointAssociation<R> =
+    fun <R> map(parallel: Boolean = false, transform: (item: T) -> R): PointAssociation<R> =
         PointAssociation(itemStream(parallel).flatMap { (i, ps) ->
-            f(i).let { result -> ps.stream().map { point -> result to point } }
+            transform(i).let { result -> ps.stream().map { point -> result to point } }
         }.collect(Collectors.groupingBy({ it.first }, Collectors.mapping({ it.second }, Collectors.toSet()))))
 
-    fun <R> mapMulti(parallel: Boolean = false, f: (item: T) -> Set<R>): PointAssociation<R> =
+    fun <R> mapMulti(parallel: Boolean = false, transform: (item: T) -> Set<R>): PointAssociation<R> =
         PointAssociation(itemStream(parallel).flatMap { (i, ps) ->
-            f(i).stream().flatMap { result -> ps.stream().map { point -> result to point } }
+            transform(i).stream().flatMap { result -> ps.stream().map { point -> result to point } }
         }.collect(Collectors.groupingBy({ it.first }, Collectors.mapping({ it.second }, Collectors.toSet()))))
 
-    fun <R> mapByPoint(parallel: Boolean = false, f: (point: Point, item: Set<T>) -> R): PointAssociation<R> {
+    fun <R> aggregateByPoint(parallel: Boolean = false, aggregate: (point: Point, item: Set<T>) -> R): PointAssociation<R> {
         val byPoint = invertItems().entries
         val stream = if (parallel) byPoint.parallelStream() else byPoint.stream()
         return PointAssociation(stream.map { (point, es) ->
-            f(point, es) to point
+            aggregate(point, es) to point
         }.collect(Collectors.groupingBy({ it.first }, Collectors.mapping({ it.second }, Collectors.toSet()))))
     }
 
-    fun zipWith(other: PointAssociation<T>, combine: (my: Set<T>, theirs: Set<T>) -> Set<T>): PointAssociation<T> {
+    fun zipWithByPoint(other: PointAssociation<T>, combine: (my: Set<T>, theirs: Set<T>) -> Set<T>): PointAssociation<T> {
         val meByPoint = invertItems()
         val themByPoint = other.invertItems()
 

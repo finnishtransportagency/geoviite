@@ -73,20 +73,6 @@ class SwitchFittingService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getFitsOnGrids(grids: List<Pair<SamplingGridPoints, IntId<SwitchStructure>>>): List<PointAssociation<FittedSwitch?>> {
-        val nearbyLocationTracks = grids.map { (grid) ->
-            locationTrackService.listNearWithAlignments(
-                PublicationState.DRAFT,
-                grid.bounds() + TRACK_SEARCH_AREA_SIZE
-            )
-        }
-        val switchStructures = grids.map { (_, id) -> switchLibraryService.getSwitchStructure(id) }
-        return grids.mapIndexed { index, point -> index to point }.parallelStream().map { (index, grid) ->
-            findBestSwitchFitForAllPointsInSamplingGrid(grid.first, switchStructures[index], nearbyLocationTracks[index])
-        }.collect(Collectors.toList())
-    }
-
-    @Transactional(readOnly = true)
     fun getFitAtEndpoint(createParams: SuggestedSwitchCreateParams): FittedSwitch? {
         logger.serviceCall("getFitAtEndpoint", "createParams" to createParams)
 
@@ -140,7 +126,6 @@ fun calculateLayoutSwitchJoints(
     }
 }
 
-// hwaaat if? We pass in a joint location
 fun findSuggestedSwitchJointMatches(
     joint: SwitchJoint,
     locationTrack: LocationTrack,
@@ -578,11 +563,6 @@ private fun getClosestPointAsIntersection(track1: IAlignment, track2: IAlignment
 private fun <T> pairsOf(things: List<T>) =
     things.flatMapIndexed { index, thing1 -> things.drop(index + 1).map { thing2 -> thing1 to thing2 } }
 
-private fun <T> distinctPoints(pairs: List<Pair<T, Point>>): Map<T, List<Point>> =
-    pairs.groupBy({ it.first }, { it.second }).entries
-        .flatMap { (thing, points) -> points.map { point -> thing to point } }
-        .groupBy({ it.first }, { it.second })
-
 private fun findTrackIntersectionsForGridPoints(
     trackAlignments: List<IAlignment>,
     grid: SamplingGridPoints,
@@ -604,7 +584,7 @@ private fun findTrackIntersectionsForGridPoints(
         }.toSet()
     }
 
-    return closestPointsAsIntersections.zipWith(closestActualIntersections, Set<TrackIntersection>::plus)
+    return closestPointsAsIntersections.zipWithByPoint(closestActualIntersections, Set<TrackIntersection>::plus)
 }
 
 private fun orderIntersectionsWithDesiredPoint(desiredPoint: Point): (a: TrackIntersection, b: TrackIntersection) -> Int {
@@ -810,12 +790,10 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
             switchStructure
         ).toSet()
     }
-
-    return transformations.mapByPoint(parallel = true) { point, transformations ->
-        // maybe suckssesss? But basic issue: Downstack, we
+    return transformations.aggregateByPoint(parallel = true) { point, transformations ->
         selectBestSuggestedSwitch(transformations.map { transformation ->
             fitSwitch(transformation, croppedTracks, switchStructure)
-        }.toList(), switchStructure, farthestJoint, point)
+        }, switchStructure, farthestJoint, point)
     }
 }
 
