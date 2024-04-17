@@ -3,12 +3,16 @@ package fi.fta.geoviite.infra.linking
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.linking.switches.*
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.math.interpolate
 import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_10_V
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_9_O
 import fi.fta.geoviite.infra.tracklayout.*
@@ -349,7 +353,7 @@ class SwitchLinkingTest {
             ),
         )
 
-        val suggestedSwitch = fitSwitch(
+        val suggestedSwitch = fitSwitchWithTriviallyCroppedAlignments(
             joints,
             switch,
             listOf(locationTrack1 to alignment1, locationTrack2 to alignment2),
@@ -424,7 +428,7 @@ class SwitchLinkingTest {
 
         val tracks = listOf(locationTrack to alignment)
 
-        val suggestedSwitch = fitSwitch(
+        val suggestedSwitch = fitSwitchWithTriviallyCroppedAlignments(
             joints,
             switch,
             listOf(locationTrack to alignment),
@@ -484,7 +488,7 @@ class SwitchLinkingTest {
 
         val tracks = listOf(locationTrack to alignment)
 
-        val suggestedSwitch = fitSwitch(
+        val suggestedSwitch = fitSwitchWithTriviallyCroppedAlignments(
             joints,
             switch,
             tracks,
@@ -543,7 +547,7 @@ class SwitchLinkingTest {
 
         val tracks = listOf(locationTrack to alignment)
 
-        val suggestedSwitch = fitSwitch(
+        val suggestedSwitch = fitSwitchWithTriviallyCroppedAlignments(
             joints,
             switch,
             tracks,
@@ -591,7 +595,7 @@ class SwitchLinkingTest {
 
         val tracks = listOf(locationTrack to alignment)
 
-        val suggestedSwitch = fitSwitch(
+        val suggestedSwitch = fitSwitchWithTriviallyCroppedAlignments(
             joints,
             switch,
             tracks,
@@ -636,7 +640,7 @@ class SwitchLinkingTest {
             ),
         )
 
-        val suggestedSwitch = fitSwitch(
+        val suggestedSwitch = fitSwitchWithTriviallyCroppedAlignments(
             joints,
             switch,
             listOf(locationTrack to alignment),
@@ -687,7 +691,7 @@ class SwitchLinkingTest {
             ),
         )
 
-        val suggestedSwitch = fitSwitch(
+        val suggestedSwitch = fitSwitchWithTriviallyCroppedAlignments(
             joints,
             switch,
             listOf(locationTrack to alignment),
@@ -803,7 +807,7 @@ class SwitchLinkingTest {
 
         val tracks = listOf(locationTrack1 to alignment1, locationTrack2 to alignment2)
 
-        val suggestedSwitch = fitSwitch(
+        val suggestedSwitch = fitSwitchWithTriviallyCroppedAlignments(
             joints,
             switch,
             tracks,
@@ -864,7 +868,7 @@ class SwitchLinkingTest {
 
         val tracks = listOf(locationTrack to alignment)
 
-        val suggestedSwitch = fitSwitch(
+        val suggestedSwitch = fitSwitchWithTriviallyCroppedAlignments(
             joints,
             switch,
             tracks,
@@ -915,7 +919,7 @@ class SwitchLinkingTest {
 
         val tracks = listOf(locationTrack to alignment)
 
-        val suggestedSwitch = fitSwitch(
+        val suggestedSwitch = fitSwitchWithTriviallyCroppedAlignments(
             joints,
             switch,
             tracks,
@@ -1130,3 +1134,20 @@ private fun assertJointMatchExists(
     )
     assertEquals(segmentIndex, match.segmentIndex, "segment index for joint $jointNumber on track $locationTrackId")
 }
+
+private fun fitSwitchWithTriviallyCroppedAlignments(
+    jointsInLayoutSpace: List<SwitchJoint>,
+    switchStructure: SwitchStructure,
+    alignments: List<Pair<LocationTrack, IAlignment>>,
+    alignmentEndPoint: LocationTrackEndpoint?,
+    geometrySwitch: GeometrySwitch? = null,
+    geometryPlanId: IntId<GeometryPlan>? = null,
+    getMeasurementMethod: (switchId: IntId<GeometrySwitch>) -> MeasurementMethod?,
+): FittedSwitch = fitSwitch(jointsInLayoutSpace,
+    switchStructure,
+    alignments.map { (lt, al) -> lt to trivialCroppedAlignment(al) },
+    alignmentEndPoint,
+    geometrySwitch,
+    geometryPlanId,
+    getMeasurementMethod
+)
