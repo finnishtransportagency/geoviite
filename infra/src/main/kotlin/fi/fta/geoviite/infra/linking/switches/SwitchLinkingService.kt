@@ -957,8 +957,17 @@ data class SuggestedSwitchesAtGridPoints(
     val gridSwitchIndices: List<Int?>,
 )
 
-fun compressSamplingGrid(grid: PointAssociation<SuggestedSwitch?>): SuggestedSwitchesAtGridPoints {
-    val unique = grid.keys().filterNotNull().distinct()
-    val indexLookup = unique.mapIndexed { i, e -> e to i }.associate { it }
-    return SuggestedSwitchesAtGridPoints(unique, grid.keys().map { s -> s?.let { indexLookup[s] }})
+fun matchSamplingGridToQueryPoints(grid: PointAssociation<SuggestedSwitch?>, queryPoints: List<Point>): SuggestedSwitchesAtGridPoints {
+    val switchesByPoint = invertMapOfSets(grid.items).mapValues { (_, v) -> v.filterNotNull() }
+    assert(switchesByPoint.values.all { it.size <= 1 }) { "suggested switches grid assigns unique suggestion per point" }
+    val switchByPoint = switchesByPoint.mapValues { (_, v) -> v.firstOrNull() }
+    val switches = grid.keys().filterNotNull()
+    return SuggestedSwitchesAtGridPoints(switches,
+        queryPoints.map { point ->
+            switchByPoint[point]?.let { switch ->
+                switches
+                    .indexOf(switch)
+                    .let { index -> if (index == -1) null else index }
+            }
+        })
 }

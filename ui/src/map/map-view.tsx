@@ -279,13 +279,7 @@ const MapView: React.FC<MapViewProps> = ({
                             current !== undefined &&
                             resolution === current.resolution &&
                             center.x == current.center.x;
-                        /*
-                        console.log(
-                            'finished fetching',
-                            pointString(screenGrid.cellIndex),
-                            willSave,
-                        );
-                        */
+
                         if (willSave) {
                             current.cache[pointString(screenGrid.cellIndex)] = suggestedSwitches;
                         }
@@ -293,7 +287,7 @@ const MapView: React.FC<MapViewProps> = ({
                 );
             }
         },
-        1000,
+        100,
         [
             positionInSuggestedSwitchGrid.current?.cellIndex?.x,
             positionInSuggestedSwitchGrid.current?.cellIndex?.y,

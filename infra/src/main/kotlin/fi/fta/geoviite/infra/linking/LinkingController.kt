@@ -148,7 +148,7 @@ class LinkingController @Autowired constructor(
         logger.apiCall("getSuggestedSwitches", "points" to points, "switchId" to switchId)
         return switchLinkingService
             .getSuggestedSwitchWithGridPoints(SamplingGridPoints(points), switchId)
-            .let(::compressSamplingGrid)
+            .let { suggestedSwitches -> matchSamplingGridToQueryPoints(suggestedSwitches, points) }
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
