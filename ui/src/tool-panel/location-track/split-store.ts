@@ -246,9 +246,9 @@ export const splitReducers = {
     ): void => {
         if (state.splittingState) {
             if (payload.type === 'SPLIT') {
-                state.splittingState.splits = state.splittingState.splits
-                    .filter((split) => split.switchId !== payload.switchId)
-                    .concat([payload]);
+                state.splittingState.splits = state.splittingState.splits.map((split) =>
+                    split.switchId === payload.switchId ? payload : split,
+                );
             } else {
                 state.splittingState.firstSplit = payload;
             }
