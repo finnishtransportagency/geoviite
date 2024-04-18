@@ -52,20 +52,19 @@ class SwitchLinkingService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getSuggestedSwitchWithGridPoints(grid: SamplingGridPoints, switchId: IntId<TrackLayoutSwitch>): PointAssociation<SuggestedSwitch?> {
+    fun getSuggestedSwitchWithGridPoints(grid: SamplingGridPoints, switchId: IntId<TrackLayoutSwitch>): PointAssociation<SuggestedSwitch> {
         logger.serviceCall("getSuggestedSwitchWithGridPoints",  "grid" to grid, "switchId" to switchId)
         return getSuggestedSwitchesAtGridsWithRelevantTracks(listOf(grid to switchId))[0].map { switchOnGrid ->
-            switchOnGrid?.suggestedSwitch
+            switchOnGrid.suggestedSwitch
         }
     }
-
 
     // "relevant" = definitely includes tracks that the switches are linked to after the suggestion, but also tracks
     // that are just within the expanded bounding box of the fitted switch joints, or that the switch was originally
     // linked to
     private fun getSuggestedSwitchesAtGridsWithRelevantTracks(
         grids: List<Pair<SamplingGridPoints, IntId<TrackLayoutSwitch>>>
-    ): List<PointAssociation<SuggestedSwitchWithRelevantTracks?>> {
+    ): List<PointAssociation<SuggestedSwitchWithRelevantTracks>> {
         val originallyLinkedBySwitchId = collectOriginallyLinkedLocationTracksBySwitch(grids.map { (_, switchId) -> switchId })
         return grids.map { (grid, switchId) ->
             getSuggestedSwitchAtGridPointsWithRelevantTracks(
@@ -84,7 +83,7 @@ class SwitchLinkingService @Autowired constructor(
         grid: SamplingGridPoints,
         switchId: IntId<TrackLayoutSwitch>,
         originallyLinkedLocationTracks: TracksByTrackId,
-    ): PointAssociation<SuggestedSwitchWithRelevantTracks?> {
+    ): PointAssociation<SuggestedSwitchWithRelevantTracks> {
         val originalSwitch = switchService.getOrThrow(DRAFT, switchId)
         val switchStructure = switchLibraryService.getSwitchStructure(originalSwitch.switchStructureId)
         val gridFits = findBestSwitchFitForAllPointsInSamplingGrid(
@@ -93,19 +92,18 @@ class SwitchLinkingService @Autowired constructor(
             )
         )
         return gridFits.map { fit ->
-            fit?.let {
-                val tracksAroundFit = findLocationTracksForMatchingSwitchToTracks(fit)
-                val relevantTracks = tracksAroundFit + originallyLinkedLocationTracks
-                val match = matchFittedSwitchToTracks(
-                    fit,
-                    switchLibraryService.getSwitchStructure(fit.switchStructureId),
-                    relevantTracks,
-                    switchId,
-                    fit.geometrySwitchId?.let { id -> geometryDao.getSwitch(id).name },
-                )
-                SuggestedSwitchWithRelevantTracks(match,
-                    relevantTracks.filterKeys { track -> match.trackLinks.containsKey(track) })
-            }
+            val tracksAroundFit = findLocationTracksForMatchingSwitchToTracks(fit)
+            val relevantTracks = tracksAroundFit + originallyLinkedLocationTracks
+            val match = matchFittedSwitchToTracks(
+                fit,
+                switchLibraryService.getSwitchStructure(fit.switchStructureId),
+                relevantTracks,
+                switchId,
+                fit.geometrySwitchId?.let { id -> geometryDao.getSwitch(id).name },
+            )
+            SuggestedSwitchWithRelevantTracks(
+                match,
+                relevantTracks.filterKeys { track -> match.trackLinks.containsKey(track) })
         }
     }
 
@@ -957,11 +955,11 @@ data class SuggestedSwitchesAtGridPoints(
     val gridSwitchIndices: List<Int?>,
 )
 
-fun matchSamplingGridToQueryPoints(grid: PointAssociation<SuggestedSwitch?>, queryPoints: List<Point>): SuggestedSwitchesAtGridPoints {
-    val switchesByPoint = invertMapOfSets(grid.items).mapValues { (_, v) -> v.filterNotNull() }
-    assert(switchesByPoint.values.all { it.size <= 1 }) { "suggested switches grid assigns unique suggestion per point" }
+fun matchSamplingGridToQueryPoints(grid: PointAssociation<SuggestedSwitch>, queryPoints: List<Point>): SuggestedSwitchesAtGridPoints {
+    val switchesByPoint = invertMapOfSets(grid.items)
+    assert(switchesByPoint.values.all { it.size == 1 }) { "suggested switches grid assigns unique suggestion per point" }
     val switchByPoint = switchesByPoint.mapValues { (_, v) -> v.firstOrNull() }
-    val switches = grid.keys().filterNotNull()
+    val switches = grid.keys().toList()
     return SuggestedSwitchesAtGridPoints(switches,
         queryPoints.map { point ->
             switchByPoint[point]?.let { switch ->

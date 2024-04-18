@@ -731,15 +731,13 @@ fun getSuggestedSwitchScore(
     }
 }
 
-fun selectBestSuggestedSwitch(
+private fun selectBestSuggestedSwitch(
     switchSuggestions: List<FittedSwitch>,
     switchStructure: SwitchStructure,
     farthestJoint: SwitchJoint,
     desiredLocation: IPoint,
-): FittedSwitch? {
-    if (switchSuggestions.isEmpty()) {
-        return null
-    }
+): FittedSwitch {
+    assert(switchSuggestions.isNotEmpty()) { "switchSuggestions.isNotEmpty()" }
 
     val maxFarthestJointDistance = switchSuggestions.maxOf { suggestedSwitch ->
         suggestedSwitch.joints.maxOf { joint ->
@@ -770,7 +768,7 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
     grid: SamplingGridPoints,
     switchStructure: SwitchStructure,
     nearbyLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
-): PointAssociation<FittedSwitch?> {
+): PointAssociation<FittedSwitch> {
     val bboxExpansion = max(switchStructure.bbox.width, switchStructure.bbox.height) * 1.125
     val bbox = grid.bounds() + bboxExpansion
     val croppedTracks = nearbyLocationTracks.map { (track, alignment) -> track to cropPoints(alignment, bbox) }
@@ -779,7 +777,7 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
     val (sharedSwitchJoint, switchAlignmentsContainingSharedJoint) = getSharedSwitchJoint(switchStructure)
     val farthestJoint = findFarthestJoint(switchStructure, sharedSwitchJoint, switchAlignmentsContainingSharedJoint[0])
 
-    val transformations = intersections.mapMulti(parallel = true) { intersection ->
+    return intersections.mapMulti(parallel = true) { intersection ->
         findTransformations(
             intersection.point,
             intersection.alignment1,
@@ -789,8 +787,7 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
             sharedSwitchJoint,
             switchStructure
         ).toSet()
-    }
-    return transformations.aggregateByPoint(parallel = true) { point, transformations ->
+    }.aggregateByPoint(parallel = true) { point, transformations ->
         selectBestSuggestedSwitch(transformations.map { transformation ->
             fitSwitch(transformation, croppedTracks, switchStructure)
         }, switchStructure, farthestJoint, point)
