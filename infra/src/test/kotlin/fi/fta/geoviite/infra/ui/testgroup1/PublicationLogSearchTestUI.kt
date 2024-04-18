@@ -142,7 +142,7 @@ class PublicationLogSearchTestUI @Autowired constructor(
 
 @Component
 class TestPublicationUpdaterDao(
-    val jdbcTemplateParam: NamedParameterJdbcTemplate,
+    jdbcTemplateParam: NamedParameterJdbcTemplate?,
 ) : DaoBase(jdbcTemplateParam) {
 
     @Transactional
@@ -165,6 +165,6 @@ class TestPublicationUpdaterDao(
             java.sql.Types.TIMESTAMP_WITH_TIMEZONE
         )
 
-        jdbcTemplateParam.update(sql, params)
+        jdbcTemplate.update(sql, params)
     }
 }

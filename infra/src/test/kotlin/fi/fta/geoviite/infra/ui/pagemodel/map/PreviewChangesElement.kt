@@ -40,7 +40,6 @@ class E2EChangePreviewTable(
         return E2EMenu()
     }
 
-
     override fun getRowContent(row: WebElement): E2EChangePreviewRow {
         return E2EChangePreviewRow(row, row.findElements(By.tagName("td")), headerElements)
     }
