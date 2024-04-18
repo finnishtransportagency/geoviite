@@ -488,10 +488,7 @@ class PublicationService @Autowired constructor(
     }
 
     private fun assertNoSplitErrors(errors: SplitPublicationValidationErrors) {
-        val splitErrors = (errors.kmPosts + errors.trackNumbers + errors.referenceLines + errors.kmPosts)
-            .values
-            .flatten()
-            .filter { error -> error.type == ERROR }
+        val splitErrors = errors.allErrors().filter { error -> error.type == ERROR }
 
         if (splitErrors.isNotEmpty()) {
             logger.warn("Validation errors in split: errors=$splitErrors")
