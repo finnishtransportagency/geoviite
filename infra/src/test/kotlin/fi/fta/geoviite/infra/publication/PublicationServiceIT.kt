@@ -676,7 +676,7 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `reverting split source track will remove the whole split`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+        saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id)
 
         assertTrue {
             splitDao.fetchUnfinishedSplits().any { split -> split.sourceLocationTrackId == sourceTrack.id }
@@ -692,7 +692,7 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `reverting one of the split target tracks will remove the whole split`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+        saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id)
 
         assertTrue {
             splitDao.fetchUnfinishedSplits().any { split -> split.containsLocationTrack(endTargetTrack.id) }
@@ -708,7 +708,7 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `publication id should be added to splits that have location tracks published`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+        saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id)
 
         val splitBeforePublish = splitDao.fetchUnfinishedSplits().first { split ->
             split.sourceLocationTrackId == sourceTrack.id
@@ -728,7 +728,7 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `split source and target location tracks depend on each other`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+        saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id)
 
         val sourceDependencies = publicationService.getRevertRequestDependencies(
             publicationRequest(locationTracks = listOf(sourceTrack.id))
@@ -2475,16 +2475,16 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `split target location track validation should not fail when the split is still pending`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+        saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id)
 
         val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
-        assertTrue { errors.isEmpty() }
+        assertTrue(errors.isEmpty(), "Expected no errors: actual=$errors")
     }
 
     @Test
     fun `split target location track validation should fail when the split is still in progress`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
+        saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
             splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.IN_PROGRESS)
         }
@@ -2497,7 +2497,7 @@ class PublicationServiceIT @Autowired constructor(
     fun `split target location track validation should fail on failed split`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
 
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
+        saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
             splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.FAILED)
         }
@@ -2510,7 +2510,7 @@ class PublicationServiceIT @Autowired constructor(
     fun `split target location track validation should not fail on finished split`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
 
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
+        saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
             splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.DONE)
         }
@@ -2522,17 +2522,17 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `split source location track validation should not fail when the split is still pending`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+        saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id)
 
         val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
-        assertTrue { errors.isEmpty() }
+        assertContains(errors, validationError("validation.layout.split.split-in-progress"))
     }
 
     @Test
     fun `split source location track validation should fail when the split is still in progress`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
 
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
+        saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
             splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.IN_PROGRESS)
         }
@@ -2545,7 +2545,7 @@ class PublicationServiceIT @Autowired constructor(
     fun `split source location track validation should fail on failed split`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
 
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
+        saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
             splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.FAILED)
         }
@@ -2558,7 +2558,7 @@ class PublicationServiceIT @Autowired constructor(
     fun `split source location track validation should not fail on finished split`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
 
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also { splitId ->
+        saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
             splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.DONE)
         }
@@ -2571,7 +2571,7 @@ class PublicationServiceIT @Autowired constructor(
     fun `split source location track validation should fail if source location track isn't deleted`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup(LocationTrackLayoutState.IN_USE)
 
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also(splitDao::get)
+        saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id).also(splitDao::get)
 
         val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
         assertContains(
@@ -2592,7 +2592,7 @@ class PublicationServiceIT @Autowired constructor(
             startTarget.copy(trackNumberId = getUnusedTrackNumberId())
         )
 
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also(splitDao::get)
+        saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id).also(splitDao::get)
 
         val errors = validateLocationTracks(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
         assertContains(
@@ -2609,12 +2609,12 @@ class PublicationServiceIT @Autowired constructor(
     fun `km post split validation should fail on unfinished split`() {
         val trackNumberId = insertOfficialTrackNumber()
         val kmPostId = kmPostDao.insert(kmPost(trackNumberId = trackNumberId, km = KmNumber.ZERO, draft = true)).id
-        val locationTrackId = insertLocationTrack(
+        val locationTrackResponse = insertLocationTrack(
             locationTrack(trackNumberId = trackNumberId, draft = false),
             alignment(),
-        ).id
+        )
 
-        saveSplit(locationTrackId)
+        saveSplit(locationTrackResponse.rowVersion)
 
         val validation = publicationService.validatePublicationCandidates(
             publicationService.collectPublicationCandidates(),
@@ -2637,12 +2637,12 @@ class PublicationServiceIT @Autowired constructor(
 
         referenceLineDao.fetch(referenceLineVersion).also(referenceLineService::saveDraft)
 
-        val locationTrackId = insertLocationTrack(
+        val locationTrackResponse = insertLocationTrack(
             locationTrack(trackNumberId = trackNumberId, draft = true),
             alignment,
-        ).id
+        )
 
-        saveSplit(locationTrackId)
+        saveSplit(locationTrackResponse.rowVersion)
 
         val validation = publicationService.validatePublicationCandidates(
             publicationService.collectPublicationCandidates(),
@@ -2663,14 +2663,14 @@ class PublicationServiceIT @Autowired constructor(
             referenceLine(trackNumberId = trackNumberId, draft = false),
             alignment,
         ).rowVersion
-        val locationTrackId = insertLocationTrack(
+        val locationTrackResponse = insertLocationTrack(
             locationTrack(trackNumberId = trackNumberId, draft = true),
             alignment,
-        ).id
+        )
 
         referenceLineDao.fetch(referenceLineVersion).also(referenceLineService::saveDraft)
 
-        saveSplit(locationTrackId).also { splitId ->
+        saveSplit(locationTrackResponse.rowVersion).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
             splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.FAILED)
         }
@@ -2694,14 +2694,14 @@ class PublicationServiceIT @Autowired constructor(
             referenceLine(trackNumberId = trackNumberId, draft = false),
             alignment,
         ).rowVersion
-        val locationTrackId = insertLocationTrack(
+        val locationTrackResponse = insertLocationTrack(
             locationTrack(trackNumberId = trackNumberId, draft = true),
             alignment,
-        ).id
+        )
 
         referenceLineDao.fetch(referenceLineVersion).also(referenceLineService::saveDraft)
 
-        saveSplit(locationTrackId).also { splitId ->
+        saveSplit(locationTrackResponse.rowVersion).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
             splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.DONE)
         }
@@ -2725,21 +2725,24 @@ class PublicationServiceIT @Autowired constructor(
             alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
         )
 
-        val sourceTrackVersion = insertLocationTrack(
+        val sourceTrackResponse = insertLocationTrack(
             locationTrack(trackNumberId = trackNumberId, draft = false),
             alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        ).rowVersion
+        )
 
-        alignmentDao
+        val updatedSourceTrackResponse = alignmentDao
             .insert(alignment(segment(Point(0.0, 0.0), Point(5.0, 5.0), Point(10.0, 0.0))))
-            .also { newAlignment ->
-                val lt = locationTrackDao.fetch(sourceTrackVersion).copy(
+            .let { newAlignment ->
+                val lt = locationTrackDao.fetch(sourceTrackResponse.rowVersion).copy(
                     state = LocationTrackLayoutState.DELETED,
                     alignmentVersion = newAlignment,
                 )
 
                 locationTrackService.saveDraft(lt)
             }
+
+        assertEquals(sourceTrackResponse.id, updatedSourceTrackResponse.id)
+        assertNotEquals(sourceTrackResponse.rowVersion, updatedSourceTrackResponse.rowVersion)
 
         val startTargetTrackId = insertLocationTrack(
             locationTrack(trackNumberId = trackNumberId, draft = true),
@@ -2751,9 +2754,9 @@ class PublicationServiceIT @Autowired constructor(
             alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
         ).id
 
-        saveSplit(sourceTrackVersion.id, startTargetTrackId, endTargetTrackId)
+        saveSplit(updatedSourceTrackResponse.rowVersion, startTargetTrackId, endTargetTrackId)
 
-        val errors = validateLocationTracks(sourceTrackVersion.id, startTargetTrackId, endTargetTrackId)
+        val errors = validateLocationTracks(sourceTrackResponse.id, startTargetTrackId, endTargetTrackId)
 
         assertTrue {
             errors.any {
@@ -2771,14 +2774,13 @@ class PublicationServiceIT @Autowired constructor(
             alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
         )
 
-        val sourceTrackVersion = insertLocationTrack(
+        val sourceTrackResponse = insertLocationTrack(
             locationTrack(trackNumberId = trackNumberId, draft = false),
             alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        ).rowVersion.also { version ->
-            val lt = locationTrackDao.fetch(version).copy(
+        ).let { response ->
+            val lt = locationTrackDao.fetch(response.rowVersion).copy(
                 state = LocationTrackLayoutState.DELETED
             )
-
             locationTrackService.saveDraft(lt)
         }
 
@@ -2792,9 +2794,9 @@ class PublicationServiceIT @Autowired constructor(
             alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
         ).id
 
-        saveSplit(sourceTrackVersion.id, startTargetTrackId, endTargetTrackId)
+        saveSplit(sourceTrackResponse.rowVersion, startTargetTrackId, endTargetTrackId)
 
-        val errors = validateLocationTracks(sourceTrackVersion.id, startTargetTrackId, endTargetTrackId)
+        val errors = validateLocationTracks(sourceTrackResponse.id, startTargetTrackId, endTargetTrackId)
         assertTrue {
             errors.any {
                 it.localizationKey == LocalizationKey("validation.layout.split.geometry-changed")
@@ -2805,7 +2807,7 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `split validation should fail if the publication unit does not contain source track`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+        saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id)
 
         val errors = validateLocationTracks(startTargetTrack.id, endTargetTrack.id)
         assertContains(errors, validationError("validation.layout.split.split-missing-location-tracks"))
@@ -2814,7 +2816,7 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `split validation should fail if the publication unit does not contain target track`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+        saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id)
 
         val errors = validateLocationTracks(startTargetTrack.id, endTargetTrack.id)
         assertContains(errors, validationError("validation.layout.split.split-missing-location-tracks"))
@@ -2823,10 +2825,10 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Split validation should respect allowMultipleSplits`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
-        val split = saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).let(splitDao::getOrThrow)
+        val split = saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id).let(splitDao::getOrThrow)
 
         val (sourceTrack2, startTargetTrack2, endTargetTrack2) = simpleSplitSetup()
-        val split2 = saveSplit(sourceTrack2.id, startTargetTrack2.id, endTargetTrack2.id).let(splitDao::getOrThrow)
+        val split2 = saveSplit(sourceTrack2.rowVersion, startTargetTrack2.id, endTargetTrack2.id).let(splitDao::getOrThrow)
 
         val trackValidationVersions = listOf(
             ValidationVersion(sourceTrack.id, sourceTrack.rowVersion),
@@ -2853,7 +2855,7 @@ class PublicationServiceIT @Autowired constructor(
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
         val switch = insertSwitch(switch(name = getUnusedSwitchName().toString(), draft = false))
         val split = saveSplit(
-            sourceTrackId = sourceTrack.id,
+            sourceTrackVersion = sourceTrack.rowVersion,
             targetTrackIds = listOf(startTargetTrack.id, endTargetTrack.id),
             switches = listOf(switch.id),
         ).let(splitDao::getOrThrow)
@@ -2880,7 +2882,7 @@ class PublicationServiceIT @Autowired constructor(
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
         val switch = insertSwitch(switch(name = getUnusedSwitchName().toString(), draft = false))
         val split = saveSplit(
-            sourceTrackId = sourceTrack.id,
+            sourceTrackVersion = sourceTrack.rowVersion,
             targetTrackIds = listOf(startTargetTrack.id, endTargetTrack.id),
             switches = listOf(switch.id),
         ).let(splitDao::getOrThrow)
@@ -2901,7 +2903,7 @@ class PublicationServiceIT @Autowired constructor(
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
         val switch = insertSwitch(switch(name = getUnusedSwitchName().toString(), draft = false))
         val split = saveSplit(
-            sourceTrackId = sourceTrack.id,
+            sourceTrackVersion = sourceTrack.rowVersion,
             targetTrackIds = listOf(startTargetTrack.id, endTargetTrack.id),
             switches = listOf(switch.id),
         ).let(splitDao::getOrThrow)
@@ -2934,11 +2936,11 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     private fun saveSplit(
-        sourceTrackId: IntId<LocationTrack>,
+        sourceTrackVersion: RowVersion<LocationTrack>,
         vararg targetTrackIds: IntId<LocationTrack>,
     ): IntId<Split> {
         return splitDao.saveSplit(
-            sourceTrackId,
+            sourceTrackVersion,
             targetTrackIds.map { id -> SplitTarget(id, 0..0, SplitTargetOperation.CREATE) },
             listOf(),
             updatedDuplicates = emptyList(),
@@ -2946,12 +2948,12 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     private fun saveSplit(
-        sourceTrackId: IntId<LocationTrack>,
+        sourceTrackVersion: RowVersion<LocationTrack>,
         targetTrackIds: List<IntId<LocationTrack>>,
         switches: List<IntId<TrackLayoutSwitch>>,
     ): IntId<Split> {
         return splitDao.saveSplit(
-            sourceTrackId,
+            sourceTrackVersion,
             targetTrackIds.map { id -> SplitTarget(id, 0..0, SplitTargetOperation.CREATE) },
             switches,
             updatedDuplicates = emptyList(),
@@ -2979,12 +2981,12 @@ class PublicationServiceIT @Autowired constructor(
 
         val startTrack = insertLocationTrack(
             locationTrack(trackNumberId = trackNumberId, draft = true),
-            alignment(segment(Point(0.0, 0.0), Point(5.0, 0.0)))
+            alignment(segment(Point(0.0, 0.0), Point(5.0, 0.0))),
         )
 
         val endTrack = insertLocationTrack(
             locationTrack(trackNumberId = trackNumberId, draft = true),
-            alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0)))
+            alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
         )
 
         return Triple(sourceTrack, startTrack, endTrack)
@@ -3151,7 +3153,7 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Should fetch split details correctly`() {
         val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
-        saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+        saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id)
 
         val publicationId = publicationService.getValidationVersions(
             publicationRequest(locationTracks = listOf(sourceTrack.id, startTargetTrack.id, endTargetTrack.id))
@@ -3260,13 +3262,9 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun `Published split should not be deleted when a target location track is later modified and reverted`() {
-        val (
-            sourceTrack,
-            startTargetTrack,
-            endTargetTrack
-        ) = simpleSplitSetup()
+        val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup()
 
-        val splitId = saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id)
+        val splitId = saveSplit(sourceTrack.rowVersion, startTargetTrack.id, endTargetTrack.id)
 
         splitDao.get(splitId).let { split ->
             assertNotNull(split)
@@ -3309,7 +3307,7 @@ class PublicationServiceIT @Autowired constructor(
         val someSwitch = insertUniqueDraftSwitch()
 
         val splitId = saveSplit(
-            sourceTrackId = sourceTrack.id,
+            sourceTrackVersion = sourceTrack.rowVersion,
             targetTrackIds = listOf(startTargetTrack.id, endTargetTrack.id),
             switches = listOf(someSwitch.id),
         )
@@ -3391,7 +3389,7 @@ class PublicationServiceIT @Autowired constructor(
         }
 
         splitDao.saveSplit(
-            sourceTrack.id,
+            sourceTrack.rowVersion,
             listOf(
                 SplitTarget(middleTrack.id, 0..0, SplitTargetOperation.CREATE),
                 SplitTarget(endTrack.id, 0..0, SplitTargetOperation.CREATE),

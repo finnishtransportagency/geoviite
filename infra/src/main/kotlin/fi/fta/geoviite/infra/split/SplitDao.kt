@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.publication.Publication
@@ -14,8 +15,9 @@ import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdArray
 import fi.fta.geoviite.infra.util.getIntIdOrNull
+import fi.fta.geoviite.infra.util.getOne
+import fi.fta.geoviite.infra.util.getOptional
 import fi.fta.geoviite.infra.util.getRowVersion
-import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -27,8 +29,8 @@ private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>) = Sp
     id = rs.getIntId("id"),
     sourceLocationTrackId = rs.getIntId("source_location_track_official_id"),
     sourceLocationTrackVersion = rs.getRowVersion(
-        "source_location_track_id",
-        "source_location_track_version",
+        "source_location_track_row_id",
+        "source_location_track_row_version",
     ),
     bulkTransferState = rs.getEnum("bulk_transfer_state"),
     publicationId = rs.getIntIdOrNull("publication_id"),
@@ -52,14 +54,14 @@ class SplitDao(
     ): IntId<Split> {
         val sql = """
             insert into publication.split(
-              source_location_track_id,
-              source_location_track_version,
+              source_location_track_row_id,
+              source_location_track_row_version,
               bulk_transfer_state,
               publication_id
             ) 
             values (
-              :source_location_track_id,
-              :source_location_track_version,
+              :source_location_track_row_id,
+              :source_location_track_row_version,
               'PENDING',
               null
             )
@@ -68,8 +70,8 @@ class SplitDao(
 
         jdbcTemplate.setUser()
         val params = mapOf(
-            "source_location_track_id" to sourceLocationTrackVersion.id,
-            "source_location_track_version" to sourceLocationTrackVersion.version,
+            "source_location_track_row_id" to sourceLocationTrackVersion.id.intValue,
+            "source_location_track_row_version" to sourceLocationTrackVersion.version,
         )
         val splitId = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getIntId<Split>("id")
@@ -159,40 +161,33 @@ class SplitDao(
         jdbcTemplate.batchUpdate(sql, params.toTypedArray())
     }
 
-    val splitFetchSql = """
+    fun getOrThrow(splitId: IntId<Split>): Split = get(splitId) ?: throw NoSuchEntityException(Split::class, splitId)
+
+    fun get(splitId: IntId<Split>): Split? {
+        val sql = """
           select
               split.id,
               split.bulk_transfer_state,
               split.publication_id,
-              coalesce(ltv.official_row_id, ltv.id) as source_location_track_official_id,
-              split.source_location_track_id,
-              split.source_location_track_version,
+              coalesce(source_track.official_row_id, source_track.id) as source_location_track_official_id,
+              split.source_location_track_row_id,
+              split.source_location_track_row_version,
               array_agg(split_relinked_switch.switch_id) as switch_ids,
               array_agg(split_updated_duplicate.duplicate_location_track_id) as updated_duplicate_ids
           from publication.split 
+              inner join layout.location_track_version source_track 
+                  on split.source_location_track_row_id = source_track.id
+                   and split.source_location_track_row_version = source_track.version
               left join publication.split_relinked_switch on split.id = split_relinked_switch.split_id
               left join publication.split_updated_duplicate on split.id = split_updated_duplicate.split_id
-              left join layout.location_track_version ltv 
-                  on split.source_location_track_id = ltv.id
-                   and split.source_location_track_version = ltv.version
-          where id = :id
-          group by split.id
+          where split.id = :id
+          group by split.id, source_track.official_row_id, source_track.id
         """.trimIndent()
 
-    fun get(splitId: IntId<Split>): Split? {
-        return jdbcTemplate.queryOptional(splitFetchSql, mapOf("id" to splitId.intValue)) { rs, _ ->
-            toSplit(rs, getSplitTargets(splitId))
-        }.also {
-            logger.daoAccess(AccessType.FETCH, Split::class, splitId)
-        }
-    }
-
-    fun getOrThrow(splitId: IntId<Split>): Split {
-        return jdbcTemplate.queryOne(splitFetchSql, mapOf("id" to splitId.intValue)) { rs, _ ->
-            toSplit(rs, getSplitTargets(splitId))
-        }.also {
-            logger.daoAccess(AccessType.FETCH, Split::class, splitId)
-        }
+        return getOptional(
+            splitId,
+            jdbcTemplate.query(sql, mapOf("id" to splitId.intValue)) { rs, _ -> toSplit(rs, getSplitTargets(splitId)) },
+        ).also { logger.daoAccess(AccessType.FETCH, Split::class, splitId) }
     }
 
     fun getSplitHeader(splitId: IntId<Split>): SplitHeader {
@@ -201,23 +196,22 @@ class SplitDao(
               split.id,
               split.bulk_transfer_state,
               split.publication_id,
-              coalesce(ltv.official_row_id, ltv.id) as source_location_track_id,
+              coalesce(ltv.official_row_id, ltv.id) as source_location_track_official_id
           from publication.split 
-              left join layout.location_track_version ltv 
-                  on split.source_location_track_id = ltv.id
-                   and split.source_location_track_version = ltv.version
-          where id = :id
-          group by split.id
+              inner join layout.location_track_version ltv 
+                  on split.source_location_track_row_id = ltv.id
+                   and split.source_location_track_row_version = ltv.version
+          where split.id = :id
         """.trimIndent()
 
-        return jdbcTemplate.queryOne(sql, mapOf("id" to splitId.intValue)) { rs, _ ->
+        return getOne(splitId, jdbcTemplate.query(sql, mapOf("id" to splitId.intValue)) { rs, _ ->
             SplitHeader(
                 id = splitId,
-                locationTrackId = rs.getIntId("source_location_track_id"),
+                locationTrackId = rs.getIntId("source_location_track_official_id"),
                 bulkTransferState = rs.getEnum("bulk_transfer_state"),
                 publicationId = rs.getIntIdOrNull("publication_id"),
             )
-        }.also {
+        }).also {
             logger.daoAccess(AccessType.FETCH, SplitHeader::class, splitId)
         }
     }
@@ -227,26 +221,31 @@ class SplitDao(
         splitId: IntId<Split>,
         bulkTransferState: BulkTransferState? = null,
         publicationId: IntId<Publication>? = null,
-    ): IntId<Split> {
+        sourceTrackVersion: RowVersion<LocationTrack>? = null,
+    ): RowVersion<Split> {
         val sql = """
             update publication.split
             set 
                 bulk_transfer_state = coalesce(:bulk_transfer_state::publication.bulk_transfer_state, bulk_transfer_state),
-                publication_id = coalesce(:publication_id, publication_id)
+                publication_id = coalesce(:publication_id, publication_id),
+                source_location_track_row_id = coalesce(:source_track_row_id, source_location_track_row_id),
+                source_location_track_row_version = coalesce(:source_track_row_version, source_location_track_row_version)
             where id = :split_id
+            returning id, version
         """.trimIndent()
 
         val params = mapOf(
             "bulk_transfer_state" to bulkTransferState?.name,
             "publication_id" to publicationId?.intValue,
-            "split_id" to splitId.intValue
+            "split_id" to splitId.intValue,
+            "source_track_row_id" to sourceTrackVersion?.id?.intValue,
+            "source_track_row_version" to sourceTrackVersion?.version,
         )
 
         jdbcTemplate.setUser()
-        return jdbcTemplate.update(sql, params).let {
-            logger.daoAccess(AccessType.UPDATE, Split::class, splitId)
-            splitId
-        }
+        return getOne(splitId, jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getRowVersion<Split>("id", "version")
+        }).also { logger.daoAccess(AccessType.UPDATE, Split::class, splitId) }
     }
 
     private fun getSplitTargets(splitId: IntId<Split>): List<SplitTarget> {
@@ -275,20 +274,19 @@ class SplitDao(
               split.id,
               split.bulk_transfer_state,
               split.publication_id,
-              split.source_location_track_id,
               array_agg(split_relinked_switch.switch_id) as switch_ids,
               array_agg(split_updated_duplicate.duplicate_location_track_id) as updated_duplicate_ids,
               coalesce(ltv.official_row_id, ltv.id) as source_location_track_official_id,
-              split.source_location_track_id,
-              split.source_location_track_version
+              split.source_location_track_row_id,
+              split.source_location_track_row_version
           from publication.split 
               left join publication.split_relinked_switch on split.id = split_relinked_switch.split_id
               left join publication.split_updated_duplicate on split.id = split_updated_duplicate.split_id
-              left join layout.location_track_version ltv 
-                  on split.source_location_track_id = ltv.id
-                   and split.source_location_track_version = ltv.version
+              inner join layout.location_track_version ltv 
+                  on split.source_location_track_row_id = ltv.id
+                   and split.source_location_track_row_version = ltv.version
           where split.bulk_transfer_state != 'DONE'
-          group by split.id
+          group by split.id, ltv.official_row_id, ltv.id
         """.trimIndent()
 
         return jdbcTemplate.query(sql) { rs, _ ->
@@ -301,12 +299,15 @@ class SplitDao(
 
     fun fetchUnfinishedSplitIdsByTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): List<IntId<Split>> {
         val sql = """
-            select slt.id
-            from publication.split slt
-                left join publication.split_target_location_track tlt on tlt.split_id = slt.id
-                inner join layout.location_track lt 
-                    on lt.id = slt.source_location_track_id or lt.id = tlt.location_track_id 
-            where slt.bulk_transfer_state != 'DONE' and lt.track_number_id = :trackNumberId 
+            select distinct split.id
+            from publication.split 
+                inner join layout.location_track_version source
+                    on source.id = split.source_location_track_row_id
+                      and source.version = split.source_location_track_row_version
+                left join publication.split_target_location_track tlt on tlt.split_id = split.id
+                left join layout.location_track target on target.id = tlt.location_track_id 
+            where split.bulk_transfer_state != 'DONE'
+              and (source.track_number_id = :trackNumberId or target.track_number_id = :trackNumberId)
         """.trimIndent()
 
         return jdbcTemplate.query(sql, mapOf("trackNumberId" to trackNumberId.intValue)) { rs, _ ->

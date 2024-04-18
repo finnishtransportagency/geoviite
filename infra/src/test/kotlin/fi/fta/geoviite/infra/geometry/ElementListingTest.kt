@@ -1,17 +1,33 @@
 package fi.fta.geoviite.infra.geometry
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.IndexedId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.RotationDirection.CW
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
-import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.*
+import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.CLOTHOID
+import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.CURVE
+import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.LINE
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.roundTo3Decimals
-import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.geocodingContext
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
+import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.util.FileName
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
@@ -265,7 +281,6 @@ class ElementListingTest {
         val context = geocodingContext(
             referenceLinePoints = listOf(Point(0.0, 0.0), Point(100.0, 0.0)),
             trackNumber = trackNumber,
-            draft = false,
         )
         val listing = toElementListing(
             context,
@@ -309,7 +324,6 @@ class ElementListingTest {
         val context = geocodingContext(
             referenceLinePoints = listOf(Point(0.0, 0.0), Point(100.0, 0.0)),
             trackNumber = trackNumber,
-            draft = false,
         )
         val listing = toElementListing(
             context,
@@ -355,7 +369,6 @@ class ElementListingTest {
         val context = geocodingContext(
             referenceLinePoints = listOf(Point(0.0, 0.0), Point(100.0, 0.0)),
             trackNumber = trackNumber,
-            draft = false,
         )
         val listing = toElementListing(
             context,

@@ -1,8 +1,15 @@
 package fi.fta.geoviite.infra.publication
 
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.*
-import org.junit.jupiter.api.Assertions.*
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.geocodingContext
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.singleSegmentWithInterpolatedPoints
+import fi.fta.geoviite.infra.tracklayout.to3DMPoints
+import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
 class PublicationUtilsTest {
@@ -127,6 +134,5 @@ class PublicationUtilsTest {
 
     private fun xAxisGeocodingContext() = geocodingContext(
         (0..60).map { x -> Point(x.toDouble(), 0.0)},
-        draft = false,
     )
 }

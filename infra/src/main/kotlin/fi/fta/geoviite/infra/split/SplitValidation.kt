@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.publication.validate
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.LocalizationKey
-import kotlin.math.max
 import kotlin.math.min
 
 const val VALIDATION_SPLIT = "$VALIDATION.split"
@@ -88,14 +87,12 @@ internal fun validateTargetGeometry(
     return if (targetPoints == null || sourcePoints == null) {
         PublicationValidationError(ERROR, "$VALIDATION_SPLIT.no-geometry")
     } else {
-        // Geocoding mid-points are the even meter-points, but assert just in case
-        val startIndex = max(0, sourcePoints.indexOfFirst { s -> s.address == targetPoints.first().address })
-
         targetPoints
             .withIndex()
             .firstNotNullOfOrNull { (targetIndex, targetPoint) ->
-                val sourcePoint = sourcePoints.getOrNull(startIndex + targetIndex)
+                val sourcePoint = sourcePoints.getOrNull(targetIndex)
                 if (sourcePoint?.address != targetPoint.address) {
+                    println("sourcePoint=$sourcePoint targetPoint=$targetPoint")
                     PublicationValidationError(ERROR, "$VALIDATION_SPLIT.trackmeters-changed")
                 } else if (operation != SplitTargetOperation.TRANSFER && !targetPoint.point.isSame(sourcePoint.point)) {
                     PublicationValidationError(ERROR, "$VALIDATION_SPLIT.geometry-changed")

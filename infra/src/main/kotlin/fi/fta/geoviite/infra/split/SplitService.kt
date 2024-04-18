@@ -71,10 +71,9 @@ class SplitService(
     fun findUnfinishedSplitsForLocationTracks(locationTracks: Collection<IntId<LocationTrack>>): List<Split> {
         logger.serviceCall("findUnfinishedSplitsForLocationTracks", "locationTracks" to locationTracks)
 
-        return splitDao.fetchUnfinishedSplits()
-            .filter { split ->
-                locationTracks.any { lt -> split.containsLocationTrack(lt) }
-            }
+        return splitDao
+            .fetchUnfinishedSplits()
+            .filter { split -> locationTracks.any { lt -> split.containsLocationTrack(lt) } }
     }
 
     fun findUnpublishedSplitsForSwitches(switches: Collection<IntId<TrackLayoutSwitch>>): List<Split> {
@@ -93,14 +92,19 @@ class SplitService(
     }
 
     fun publishSplit(
-        locationTracks: Collection<IntId<LocationTrack>>,
+        locationTracks: Collection<DaoResponse<LocationTrack>>,
         publicationId: IntId<Publication>,
-    ) {
+    ): List<RowVersion<Split>> {
         logger.serviceCall("publishSplit", "locationTracks" to locationTracks, "publicationId" to publicationId)
-
-        findPendingSplitsForLocationTracks(locationTracks)
-            .distinctBy { it.id }
-            .map { split -> splitDao.updateSplitState(split.id, publicationId = publicationId) }
+        return findPendingSplitsForLocationTracks(locationTracks.map { v -> v.id }.distinct())
+            .map { split ->
+                val track = locationTracks.find { t -> t.id == split.sourceLocationTrackId }
+                splitDao.updateSplitState(
+                    splitId = split.id,
+                    publicationId = publicationId,
+                    sourceTrackVersion = track?.rowVersion,
+                )
+            }
     }
 
     fun deleteSplit(splitId: IntId<Split>) {
@@ -231,8 +235,9 @@ class SplitService(
     ): List<PublicationValidationError> {
         val targetGeometryError = pendingSplits
             .firstNotNullOfOrNull { split ->
-                val target = split.targetLocationTracks.find { tlt -> tlt.locationTrackId == trackId }
-                target?.let { t -> split to target }
+                split.targetLocationTracks
+                    .find { tlt -> tlt.locationTrackId == trackId }
+                    ?.let { t -> split to t }
             }
             ?.let { (split, target) ->
                 val (sourceAddresses, targetAddresses) = getTargetValidationAddressPoints(
@@ -251,10 +256,7 @@ class SplitService(
                 validateSourceGeometry(draftAddresses, officialAddresses)
             }
 
-        return listOfNotNull(
-            targetGeometryError,
-            sourceGeometryErrors,
-        )
+        return listOfNotNull(targetGeometryError, sourceGeometryErrors)
     }
 
     private fun getTargetValidationAddressPoints(
@@ -279,10 +281,18 @@ class SplitService(
         val targetAddresses = if (targetAddressStart != null && targetAddressEnd != null) {
             geocodingService.getAddressPoints(target.locationTrackId, DRAFT)
                 ?.midPoints
-                ?.filter { p -> p.address in targetAddressStart..targetAddressEnd }
+                ?.let { points ->
+                    if (target.operation == SplitTargetOperation.TRANSFER) {
+                        points.filter { p -> p.address in targetAddressStart..targetAddressEnd }
+                    } else {
+                        points
+                    }
+                }
         } else {
             null
         }
+
+        println("mRange=$sourceMRange sourceAddresses=$sourceAddresses targetAddresses=$targetAddresses")
 
         return sourceAddresses to targetAddresses
     }
@@ -312,7 +322,7 @@ class SplitService(
         }
     }
 
-    fun updateSplitState(splitId: IntId<Split>, state: BulkTransferState): IntId<Split> {
+    fun updateSplitState(splitId: IntId<Split>, state: BulkTransferState): RowVersion<Split> {
         logger.serviceCall("updateSplitState", "splitId" to splitId)
 
         return splitDao.getOrThrow(splitId).let { split ->

@@ -578,21 +578,24 @@ fun attachSwitchToIndex(
     switch: TrackLayoutSwitch,
     segmentIndex: Int,
 ): LayoutAlignment {
-    if (alignment.segments.count() < segmentIndex + 3) throw IllegalArgumentException("Alignment must contain at least ${segmentIndex + 3} segments")
-
+    if (alignment.segments.count() < segmentIndex + 3) {
+        throw IllegalArgumentException("Alignment must contain at least ${segmentIndex + 3} segments")
+    }
 
     return alignment.copy(segments = alignment.segments.mapIndexed { index, segment ->
         when (index) {
             segmentIndex -> segment.copy(
-                switchId = switch.id, startJointNumber = JointNumber(1)
+                switchId = switch.id,
+                startJointNumber = JointNumber(1),
             )
 
             segmentIndex + 1 -> segment.copy(
-                switchId = switch.id
+                switchId = switch.id,
             )
 
             segmentIndex + 2 -> segment.copy(
-                switchId = switch.id, endJointNumber = JointNumber(2)
+                switchId = switch.id,
+                endJointNumber = JointNumber(2),
             )
 
             else -> segment
@@ -605,7 +608,6 @@ fun geocodingContext(
     trackNumber: TrackNumber = TrackNumber("001"),
     startAddress: TrackMeter = TrackMeter.ZERO,
     kmPosts: List<TrackLayoutKmPost> = listOf(),
-    draft: Boolean,
 ) = alignment(segment(*referenceLinePoints.toTypedArray())).let { alignment ->
     GeocodingContext.create(
         trackNumber = trackNumber,

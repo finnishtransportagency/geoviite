@@ -537,13 +537,12 @@ class PublicationService @Autowired constructor(
         val kmPosts = versions.kmPosts.map(kmPostService::publish).map { r -> r.rowVersion }
         val switches = versions.switches.map(switchService::publish).map { r -> r.rowVersion }
         val referenceLines = versions.referenceLines.map(referenceLineService::publish).map { r -> r.rowVersion }
-        val locationTracks = versions.locationTracks.map(locationTrackService::publish).map { r -> r.rowVersion }
+        val locationTracks = versions.locationTracks.map(locationTrackService::publish)
         val publicationId = publicationDao.createPublication(message)
         publicationDao.insertCalculatedChanges(publicationId, calculatedChanges)
         publicationGeometryChangeRemarksUpdateService.processPublication(publicationId)
 
-        // TODO: GVT-2564 update split to match new source location track version, or the publication will fail
-        splitService.publishSplit(versions.locationTracks.map { it.officialId }, publicationId)
+        splitService.publishSplit(locationTracks, publicationId)
 
         return PublicationResult(
             publicationId = publicationId,

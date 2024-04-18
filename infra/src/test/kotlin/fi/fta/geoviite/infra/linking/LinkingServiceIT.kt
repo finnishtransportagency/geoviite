@@ -228,8 +228,8 @@ class LinkingServiceIT @Autowired constructor(
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
         val (locationTrack, alignment) = locationTrackAndAlignment(insertOfficialTrackNumber(), draft = true)
-        val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(locationTrack, alignment)
-        locationTrackService.publish(ValidationVersion(locationTrackId, locationTrackVersion))
+        val locationTrackResponse = locationTrackService.saveDraft(locationTrack, alignment)
+            .let { (id, rowVersion) -> locationTrackService.publish(ValidationVersion(id, rowVersion)) }
 
         val geometryInterval = GeometryInterval(
             alignmentId = IntId(0),
@@ -237,13 +237,13 @@ class LinkingServiceIT @Autowired constructor(
         )
 
         val layoutInterval = LayoutInterval(
-            alignmentId = locationTrackId,
+            alignmentId = locationTrackResponse.id,
             mRange = Range(0.0, 0.0),
         )
 
         splitDao.saveSplit(
-            locationTrackId,
-            listOf(SplitTarget(locationTrackId, 0..1, SplitTargetOperation.CREATE)),
+            locationTrackResponse.rowVersion,
+            listOf(SplitTarget(locationTrackResponse.id, 0..1, SplitTargetOperation.CREATE)),
             relinkedSwitches = emptyList(),
             updatedDuplicates = emptyList(),
         )
@@ -287,10 +287,10 @@ class LinkingServiceIT @Autowired constructor(
         val (locationTrack, alignment) = locationTrackAndAlignment(
             insertOfficialTrackNumber(), segment1, draft = true,
         )
-        val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(locationTrack, alignment)
-        locationTrackService.publish(ValidationVersion(locationTrackId, locationTrackVersion))
+        val locationTrackResponse = locationTrackService.saveDraft(locationTrack, alignment)
+            .let { (id, rowVersion) -> locationTrackService.publish(ValidationVersion(id, rowVersion)) }
 
-        val (_, officialAlignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrackId)
+        val (_, officialAlignment) = locationTrackService.getWithAlignment(locationTrackResponse.rowVersion)
 
         val geometryInterval = GeometryInterval(
             alignmentId = geometryLayoutAlignment.id as IntId,
@@ -301,7 +301,7 @@ class LinkingServiceIT @Autowired constructor(
         )
 
         val layoutInterval = LayoutInterval(
-            alignmentId = locationTrackId,
+            alignmentId = locationTrackResponse.id,
             mRange = Range(
                 officialAlignment.segments[0].alignmentPoints.first().m,
                 officialAlignment.segments[0].alignmentPoints[4].m,
@@ -310,8 +310,8 @@ class LinkingServiceIT @Autowired constructor(
 
         val split = splitDao.getOrThrow(
             splitDao.saveSplit(
-                locationTrackId,
-                listOf(SplitTarget(locationTrackId, 0..1, SplitTargetOperation.CREATE)),
+                locationTrackResponse.rowVersion,
+                listOf(SplitTarget(locationTrackResponse.id, 0..1, SplitTargetOperation.CREATE)),
                 relinkedSwitches = emptyList(),
                 updatedDuplicates = emptyList(),
             )
