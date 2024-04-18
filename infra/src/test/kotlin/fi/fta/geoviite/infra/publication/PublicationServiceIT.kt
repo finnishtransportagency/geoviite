@@ -3411,7 +3411,7 @@ class PublicationServiceIT @Autowired constructor(
     }
 }
 
-private fun publicationRequestIds(
+fun publicationRequestIds(
     trackNumbers: List<IntId<TrackLayoutTrackNumber>> = listOf(),
     locationTracks: List<IntId<LocationTrack>> = listOf(),
     referenceLines: List<IntId<ReferenceLine>> = listOf(),
