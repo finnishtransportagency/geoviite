@@ -7,7 +7,6 @@ import java.math.BigDecimal
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
-
 class KmNumberTest {
 
     @Test
@@ -149,5 +148,19 @@ class KmNumberTest {
         assertNotEquals(TrackMeter(123, 321), TrackMeter(123, 321.000, 3))
         assertEquals(TrackMeter(123, 321), TrackMeter(123, 321.000, 3).stripTrailingZeroes())
         assertEquals(TrackMeter(123, 300), TrackMeter(123, 300.000, 3).stripTrailingZeroes())
+    }
+
+    @Test
+    fun `metersHaveIntegerPrecision works`() {
+        assertFalse(TrackMeter("1234+1234.1234").metersHaveIntegerPrecision())
+        assertFalse(TrackMeter("1234+1234.0000").metersHaveIntegerPrecision())
+        assertTrue(TrackMeter("1234+1234").metersHaveIntegerPrecision())
+    }
+
+    @Test
+    fun `metersMatchIntegerValue works`() {
+        assertFalse(TrackMeter("1234+1234.1234").metersMatchIntegerValue())
+        assertTrue(TrackMeter("1234+1234.0000").metersMatchIntegerValue())
+        assertTrue(TrackMeter("1234+1234").metersMatchIntegerValue())
     }
 }

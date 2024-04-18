@@ -90,6 +90,22 @@ data class TrackMeter @JsonCreator(mode = DISABLED) constructor(
     override val kmNumber: KmNumber,
     override val meters: BigDecimal,
 ) : ITrackMeter {
+    /**
+     * Returns true if the meters value has no decimals.
+     * TrackMeter("1234+1234.1234").metersHaveIntegerPrecision() == false
+     * TrackMeter("1234+1234.0000").metersHaveIntegerPrecision() == false
+     * TrackMeter("1234+1234").metersHaveIntegerPrecision() == true
+     */
+    fun metersHaveIntegerPrecision() = meters.scale() <= 0
+
+    /**
+     * Returns true if any decimals on the meters value are zeroes (or there are none)
+     * TrackMeter("1234+1234.1234").metersMatchIntegerValue() == false
+     * TrackMeter("1234+1234.0000").metersMatchIntegerValue() == true
+     * TrackMeter("1234+1234").metersMatchIntegerValue() == true
+     */
+    fun metersMatchIntegerValue() = meters.stripTrailingZeros().scale() <= 0
+
     private constructor(values: Pair<KmNumber, BigDecimal>) : this(values.first, values.second)
 
     @JsonCreator(mode = DELEGATING)

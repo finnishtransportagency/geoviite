@@ -270,7 +270,7 @@ class SplitService(
             // TODO: Perhaps we should here compare in-context sources to in-context targets. In source-validation we compare in-context sources to official sources
             geocodingService.getGeocodingContextCacheKey(locationTrack.trackNumberId, OFFICIAL)
                 ?.let { key -> geocodingService.getAddressPoints(key, locationTrack.getAlignmentVersionOrThrow()) }
-                ?.midPoints
+                ?.exactMeterPoints
                 ?.filter { p -> p.point.m in sourceMRange }
         } else {
             null
@@ -280,7 +280,7 @@ class SplitService(
         val targetAddressEnd = sourceAddresses?.lastOrNull()?.address
         val targetAddresses = if (targetAddressStart != null && targetAddressEnd != null) {
             geocodingService.getAddressPoints(target.locationTrackId, DRAFT)
-                ?.midPoints
+                ?.exactMeterPoints
                 ?.let { points ->
                     if (target.operation == SplitTargetOperation.TRANSFER) {
                         points.filter { p -> p.address in targetAddressStart..targetAddressEnd }
