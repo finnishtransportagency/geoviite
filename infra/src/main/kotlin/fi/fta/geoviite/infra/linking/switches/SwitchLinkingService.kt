@@ -921,6 +921,10 @@ data class PointAssociation<T>(
             transform(i).stream().flatMap { result -> ps.stream().map { point -> result to point } }
         }.collect(Collectors.groupingBy({ it.first }, Collectors.mapping({ it.second }, Collectors.toSet()))))
 
+    /**
+     * Collect items by point, and run the aggregation callback for each point's collection. The callback does not
+     * receive any calls with empty collections.
+     */
     fun <R> aggregateByPoint(parallel: Boolean = false, aggregate: (point: Point, item: Set<T>) -> R): PointAssociation<R> {
         val byPoint = invertItems().entries
         val stream = if (parallel) byPoint.parallelStream() else byPoint.stream()

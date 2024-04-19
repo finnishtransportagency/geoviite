@@ -90,7 +90,7 @@ import { createLocationTrackSplitBadgeLayer } from 'map/layers/alignment/locatio
 import { createSelectedReferenceLineAlignmentLayer } from './layers/alignment/reference-line-selected-alignment-layer';
 import { createOperatingPointLayer } from 'map/layers/operating-point/operating-points-layer';
 import { layersCoveringLayers } from 'map/map-store';
-import { useLoader, useRateLimitedEffect } from 'utils/react-utils';
+import { useImmediateLoader, useLoader, useRateLimitedEffect } from 'utils/react-utils';
 import { getSuggestedSwitches } from 'linking/linking-api';
 import { Brand } from 'common/brand';
 import { grid } from 'utils/math-utils';
@@ -123,7 +123,7 @@ export type MapViewProps = {
     onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
     hoveredOverPlanSection?: HighlightedAlignment | undefined;
     manuallySetPlan?: GeometryPlanLayout;
-    suggestSwitch: (suggestedSwitch: SuggestedSwitch) => void;
+    suggestSwitch: (suggestedSwitch: SuggestedSwitch | undefined) => void;
     showLayers: (layers: MapLayerName[]) => void;
 };
 
@@ -323,6 +323,14 @@ const MapView: React.FC<MapViewProps> = ({
             showLayers(['switch-linking-layer']);
         }
     }, [suggestedSwitch]);
+
+    const suggestSwitchAndDisplaySwitchLinkingLayer = (suggestedSwitch: SuggestedSwitch) => {
+        suggestSwitch(suggestedSwitch);
+        showLayers(['switch-linking-layer']);
+    };
+
+    const { isLoading: isLoadingSuggestedSwitches, load: loadSuggestedSwitches } =
+        useImmediateLoader(suggestSwitchAndDisplaySwitchLinkingLayer);
 
     const setHoveredLocation = (newHoveredLocation: Point, pixelPosition: ScreenPoint) => {
         _setHoveredLocation(newHoveredLocation);
