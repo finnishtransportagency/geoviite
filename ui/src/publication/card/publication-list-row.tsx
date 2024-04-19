@@ -103,6 +103,7 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
             },
             t('publication-card.mark-as-successful'),
             'mark-bulk-transfer-as-finished-link',
+            publication.split?.bulkTransferState === 'DONE',
         ),
     ];
 
