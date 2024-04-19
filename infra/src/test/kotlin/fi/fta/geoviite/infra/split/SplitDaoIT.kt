@@ -24,6 +24,7 @@ class SplitDaoIT @Autowired constructor(
     val splitDao: SplitDao,
     val publicationDao: PublicationDao,
 ) : DBTestBase() {
+
     @Test
     fun `should save split in pending state`() {
         val trackNumberId = insertOfficialTrackNumber()
@@ -39,16 +40,20 @@ class SplitDaoIT @Autowired constructor(
         val relinkedSwitchId = insertUniqueSwitch().id
 
         val split = splitDao.saveSplit(
-            sourceTrack.id,
-            listOf(SplitTarget(targetTrack.id, 0..0)),
+            sourceTrack.rowVersion,
+            listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE)),
             listOf(relinkedSwitchId),
             updatedDuplicates = emptyList(),
         ).let(splitDao::getOrThrow)
 
         assertTrue { split.bulkTransferState == BulkTransferState.PENDING }
         assertNull(split.publicationId)
-        assertEquals(sourceTrack.id, split.locationTrackId)
-        assertContains(split.targetLocationTracks, SplitTarget(targetTrack.id, 0..0))
+        assertEquals(sourceTrack.id, split.sourceLocationTrackId)
+        assertEquals(sourceTrack.rowVersion, split.sourceLocationTrackVersion)
+        assertContains(
+            split.targetLocationTracks,
+            SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE),
+        )
         assertContains(split.relinkedSwitches, relinkedSwitchId)
     }
 
@@ -67,18 +72,18 @@ class SplitDaoIT @Autowired constructor(
         val relinkedSwitchId = insertUniqueSwitch().id
 
         val split = splitDao.saveSplit(
-            sourceTrack.id,
-            listOf(SplitTarget(targetTrack.id, 0..0)),
+            sourceTrack.rowVersion,
+            listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE)),
             listOf(relinkedSwitchId),
             updatedDuplicates = emptyList(),
         ).let(splitDao::getOrThrow)
 
         val publicationId = publicationDao.createPublication("SPLIT PUBLICATION")
-        val updatedSplit = splitDao.updateSplitState(
+        val updatedSplit = splitDao.updateSplit(
             splitId = split.id,
             bulkTransferState = BulkTransferState.FAILED,
             publicationId = publicationId,
-        ).let(splitDao::getOrThrow)
+        ).id.let(splitDao::getOrThrow)
 
         assertEquals(BulkTransferState.FAILED, updatedSplit.bulkTransferState)
         assertEquals(publicationId, updatedSplit.publicationId)
@@ -105,18 +110,18 @@ class SplitDaoIT @Autowired constructor(
         val relinkedSwitchId2 = insertUniqueSwitch().id
 
         val doneSplit = splitDao.saveSplit(
-            sourceTrack.id,
-            listOf(SplitTarget(targetTrack1.id, 0..0)),
+            sourceTrack.rowVersion,
+            listOf(SplitTarget(targetTrack1.id, 0..0, SplitTargetOperation.CREATE)),
             listOf(relinkedSwitchId1),
             updatedDuplicates = emptyList(),
         ).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
-            splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.DONE)
+            splitDao.updateSplit(split.id, bulkTransferState = BulkTransferState.DONE)
         }
 
         val pendingSplitId = splitDao.saveSplit(
-            sourceTrack.id,
-            listOf(SplitTarget(targetTrack2.id, 0..0)),
+            sourceTrack.rowVersion,
+            listOf(SplitTarget(targetTrack2.id, 0..0, SplitTargetOperation.CREATE)),
             listOf(relinkedSwitchId2),
             updatedDuplicates = emptyList(),
         )
@@ -146,8 +151,8 @@ class SplitDaoIT @Autowired constructor(
         val relinkedSwitchId = insertUniqueSwitch().id
 
         val splitId = splitDao.saveSplit(
-            sourceTrack.id,
-            listOf(SplitTarget(targetTrack1.id, 0..0)),
+            sourceTrack.rowVersion,
+            listOf(SplitTarget(targetTrack1.id, 0..0, SplitTargetOperation.OVERWRITE)),
             listOf(relinkedSwitchId),
             updatedDuplicates = listOf(someDuplicateTrack.id)
         )
@@ -174,8 +179,8 @@ class SplitDaoIT @Autowired constructor(
         val relinkedSwitchId = insertUniqueSwitch().id
 
         val splitId = splitDao.saveSplit(
-            sourceTrack.id,
-            listOf(SplitTarget(targetTrack1.id, 0..0)),
+            sourceTrack.rowVersion,
+            listOf(SplitTarget(targetTrack1.id, 0..0, SplitTargetOperation.CREATE)),
             listOf(relinkedSwitchId),
             updatedDuplicates = emptyList(),
         )
@@ -216,8 +221,8 @@ class SplitDaoIT @Autowired constructor(
         val relinkedSwitchId = insertUniqueSwitch().id
 
         return splitDao.saveSplit(
-            sourceTrack.id,
-            listOf(SplitTarget(targetTrack.id, 0..0)),
+            sourceTrack.rowVersion,
+            listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.OVERWRITE)),
             listOf(relinkedSwitchId),
             updatedDuplicates = listOf(someDuplicateTrack.id),
         )

@@ -210,7 +210,7 @@ data class SplitDuplicateTrack(
     val start: AddressPoint,
     val end: AddressPoint,
 
-    val status: DuplicateStatus, // TODO: GVT-2525 add to front-end object as well
+    val status: DuplicateStatus,
 )
 
 data class SplittingInitializationParameters(
@@ -249,7 +249,8 @@ data class LocationTrack(
 
     @get:JsonIgnore
     val switchIds: List<IntId<TrackLayoutSwitch>> by lazy {
-        (segmentSwitchIds + listOfNotNull(topologyStartSwitch?.switchId, topologyEndSwitch?.switchId)).distinct()
+        (listOfNotNull(topologyStartSwitch?.switchId) + segmentSwitchIds + listOfNotNull(topologyEndSwitch?.switchId))
+            .distinct()
     }
 
     init {

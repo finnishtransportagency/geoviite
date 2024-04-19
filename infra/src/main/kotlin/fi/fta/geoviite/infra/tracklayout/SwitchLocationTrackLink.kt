@@ -3,6 +3,8 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Point
 
 fun getDuplicateTrackParentStatus(
     parentTrack: LocationTrack,
@@ -73,8 +75,7 @@ fun getDuplicateMatches(
     mainTrackId: DomainId<LocationTrack>,
     duplicateOf: IntId<LocationTrack>?,
 ): List<Pair<Int, DuplicateStatus>> {
-    val matchIndices =
-        findOrderedMatches(mainTrackJoints, duplicateTrackJoints)
+    val matchIndices = findOrderedMatches(mainTrackJoints, duplicateTrackJoints)
     val matchRanges = buildDuplicateIndexRanges(matchIndices)
 
     return if (matchRanges.isEmpty() && duplicateOf != mainTrackId) {
@@ -154,7 +155,7 @@ fun collectSwitchJoints(
     }
 }
 
-fun getSwitchJoints(segment: LayoutSegment) =
+fun getSwitchJoints(segment: LayoutSegment): List<Pair<IntId<TrackLayoutSwitch>, JointNumber>> =
     segment.switchId
         ?.let { id -> listOfNotNull(segment.startJointNumber, segment.endJointNumber).map { id as IntId to it } }
         ?: emptyList()

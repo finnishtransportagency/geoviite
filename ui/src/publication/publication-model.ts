@@ -20,6 +20,7 @@ import {
 import { RatkoPushStatus } from 'ratko/ratko-model';
 import { BoundingBox, Point } from 'model/geometry';
 import { LocalizationParams } from 'i18n/config';
+import { SplitTargetOperation } from 'tool-panel/location-track/split-store';
 
 export type PublicationValidationError = {
     type: 'ERROR' | 'WARNING';
@@ -365,5 +366,5 @@ export type SplitTargetInPublication = {
     oid: Oid;
     startAddress: TrackMeter;
     endAddress: TrackMeter;
-    newlyCreated: boolean;
+    operation: SplitTargetOperation;
 };

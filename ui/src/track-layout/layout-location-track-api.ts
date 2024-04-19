@@ -2,6 +2,7 @@ import {
     AddressPoint,
     AlignmentPoint,
     AlignmentStartAndEnd,
+    DuplicateStatus,
     LayoutLocationTrack,
     LayoutTrackNumberId,
     LocationTrackDescription,
@@ -69,6 +70,7 @@ export type SplitDuplicate = {
     name: string;
     start: AddressPoint;
     end: AddressPoint;
+    status: DuplicateStatus;
 };
 
 export type SplitInitializationParameters = {

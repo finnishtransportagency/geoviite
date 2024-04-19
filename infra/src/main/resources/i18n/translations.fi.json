@@ -658,7 +658,11 @@
                 "start-address": "Alkusijainti (km + m)",
                 "split-address": "Katkaisukohta (km + m)",
                 "end-address": "Loppusijainti (km + m)",
-                "replaces-duplicate": "Korvaa duplikaattiraiteen",
+                "operation": {
+                    "OVERWRITE": "Korvaa duplikaattiraiteen",
+                    "TRANSFER": "Siirretään vain ratakohteet",
+                    "CREATE": "Luodaan uusi raide"
+                },
                 "description-base": "Kuvauksen perusosa",
                 "description-suffix": "Kuvauksen lisäosa",
                 "exit-title": "Lopeta raiteen jakaminen",
@@ -674,7 +678,9 @@
                     "invalid-description": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
                     "invalid-name": "Virheellinen sijaintiraidetunnus",
                     "missing-fields": "Pakollisia tietoja puuttuu",
-                    "missing-switch": "Katkaisukohdan vaihde on poistettu. Poista katkaisukohta tai peruuta vaihteen poisto",
+                    "switch-not-found": "Katkaisukohdan vaihde on poistettu. Poista katkaisukohta tai peruuta vaihteen poisto",
+                    "switch-not-matching-start-switch": "Katkaisukohdan vaihde ei vastaa alkavan duplikaatin ({{trackName}}) geometriaa",
+                    "switch-not-matching-end-switch": "Katkaisukohdan vaihde ei vastaa päättyvän duplikaatin ({{trackName}}) geometriaa",
                     "duplicate-not-published": "Duplikaattiraiteen {{duplicateName}} muutoksia ei ole julkaistu Ratkoon. Poikkeavat tiedot Geoviitteen ja Ratkon välillä voivat aiheuttaa ongelmia kohteiden massasiirrossa Ratkossa.",
                     "publish-duplicate": "Julkaise tai hylkää duplikaattiraiteen muutokset ja yritä jakamista sitten uudestaan.",
                     "has-errors": "Tiedoissa on virheitä",
@@ -1348,6 +1354,8 @@
                 "split-missing-switches": "Kaikki jakoon liittyvät vaihteet eivät ole mukana julkaisussa",
                 "multiple-splits-not-allowed": "Julkaisussa on mukana useampi jaettu raide",
                 "geometry-changed": "Jaettavan raiteen geometria on muuttunut",
+                "transfer-geometry-changed": "Säilytettävän osittaisen duplikaatin osoitteisto eroaa yli metrin jaettavasta raiteesta",
+                "trackmeters-changed": "Jaetun raiteen geometria ei sisällä samoja tasametripisteitä",
                 "no-geometry": "Raiteella ei ole geometriaa"
             }
         }
@@ -1466,7 +1474,8 @@
         "start-address": "Rataosoite alku",
         "end-address": "Rataosoite loppu",
         "newly-created": "Uusi kohde",
-        "replaces-duplicate": "Duplikaatti korvattu"
+        "replaces-duplicate": "Duplikaatti korvattu",
+        "transfers-assets": "Kohteet siirretty"
     },
     "error-in-ratko-connection": {
         "connection-error-status-code": "Ratkoon ei saada yhteyttä. Virhe Ratko-yhteydessä ({{code}}). ",

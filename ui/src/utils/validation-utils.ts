@@ -1,3 +1,4 @@
+import { TOptions } from 'i18next';
 import { filterNotEmpty } from 'utils/array-utils';
 
 export enum ValidationErrorType {
@@ -9,6 +10,7 @@ export type ValidationError<TEntity> = {
     field: keyof TEntity;
     reason: string;
     type: ValidationErrorType;
+    params?: TOptions;
 };
 
 export type PropEdit<T, TKey extends keyof T> = {

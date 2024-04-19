@@ -8,7 +8,9 @@ import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.util.assertSanitized
 import fi.fta.geoviite.infra.util.formatForException
 import java.math.BigDecimal
-import java.math.RoundingMode.*
+import java.math.RoundingMode.DOWN
+import java.math.RoundingMode.HALF_UP
+import java.math.RoundingMode.UP
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import kotlin.math.pow
@@ -88,7 +90,21 @@ data class TrackMeter @JsonCreator(mode = DISABLED) constructor(
     override val kmNumber: KmNumber,
     override val meters: BigDecimal,
 ) : ITrackMeter {
-    val hasZeroMillimeters by lazy { meters == metersFloor() }
+    /**
+     * Returns true if the meters value has no decimals.
+     * TrackMeter("1234+1234.1234").hasIntegerPrecision() == false
+     * TrackMeter("1234+1234.0000").hasIntegerPrecision() == false
+     * TrackMeter("1234+1234").hasIntegerPrecision() == true
+     */
+    fun hasIntegerPrecision() = meters.scale() <= 0
+
+    /**
+     * Returns true if any decimals on the meters value are zeroes (or there are none)
+     * TrackMeter("1234+1234.1234").matchesIntegerValue() == false
+     * TrackMeter("1234+1234.0000").matchesIntegerValue() == true
+     * TrackMeter("1234+1234").matchesIntegerValue() == true
+     */
+    fun matchesIntegerValue() = meters.stripTrailingZeros().scale() <= 0
 
     private constructor(values: Pair<KmNumber, BigDecimal>) : this(values.first, values.second)
 

@@ -112,15 +112,18 @@ class PublicationDao(
             with splits as (
                 select
                     split.id as split_id,
-                    split.source_location_track_id as source_track_id,
+                    coalesce(source.official_row_id, source.id) as source_track_id,
                     array_agg(stlt.location_track_id) as target_track_ids,
                     array_agg(split_updated_duplicates.duplicate_location_track_id) as split_updated_duplicate_ids
                 from publication.split
+                    inner join layout.location_track_version source 
+                        on source.id = split.source_location_track_row_id
+                          and source.version = split.source_location_track_row_version
                     inner join publication.split_target_location_track stlt on stlt.split_id = split.id
                     left join publication.split_updated_duplicate split_updated_duplicates 
                         on split_updated_duplicates.split_id = split.id
                 where split.publication_id is null
-                group by split.id, split.source_location_track_id
+                group by split.id, source.official_row_id, source.id
             )
             select 
               draft_location_track.row_id,
@@ -161,7 +164,7 @@ class PublicationDao(
                 userName = UserName(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
                 boundingBox = rs.getBboxOrNull("bounding_box"),
-                publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup)
+                publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup),
             )
         }
         logger.daoAccess(FETCH, LocationTrackPublicationCandidate::class, candidates.map(LocationTrackPublicationCandidate::id))
