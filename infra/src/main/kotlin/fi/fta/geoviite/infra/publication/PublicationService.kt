@@ -1014,7 +1014,7 @@ class PublicationService @Autowired constructor(
                 { it },
                 PropKey("state"),
                 null,
-                "layout-state",
+                "location-track-state",
             ),
             compareChangeValues(
                 locationTrackChanges.type,

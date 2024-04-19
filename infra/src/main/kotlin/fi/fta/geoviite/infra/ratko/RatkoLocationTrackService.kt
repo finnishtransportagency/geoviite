@@ -44,7 +44,7 @@ class RatkoLocationTrackService @Autowired constructor(
                 requireNotNull(layoutLocationTrack.externalId) { "OID required for location track, lt=${layoutLocationTrack.id}" }
             try {
                 ratkoClient.getLocationTrack(RatkoOid(externalId))?.let { existingLocationTrack ->
-                    if (layoutLocationTrack.state == LocationTrackLayoutState.DELETED) {
+                    if (layoutLocationTrack.state == LocationTrackState.DELETED) {
                         deleteLocationTrack(
                             layoutLocationTrack = layoutLocationTrack,
                             existingRatkoLocationTrack = existingLocationTrack,

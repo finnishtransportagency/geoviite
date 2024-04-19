@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { LoaderStatus, useLoader } from 'utils/react-utils';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
-import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
 import LocationTrackTypeLabel from 'geoviite-design-lib/alignment/location-track-type-label';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
@@ -32,6 +31,7 @@ import { useCommonDataAppSelector } from 'store/hooks';
 import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
 import { useLocationTrackInfoboxExtras } from 'track-layout/track-layout-react-utils';
 import { first } from 'utils/array-utils';
+import { LocationTrackState } from 'geoviite-design-lib/location-track-state/location-track-state';
 
 type LocationTrackBasicInfoInfoboxContainerProps = {
     locationTrack: LayoutLocationTrack;
@@ -142,7 +142,7 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
                 <InfoboxField
                     qaId="location-track-state"
                     label={t('tool-panel.location-track.state')}
-                    value={<LayoutState state={locationTrack.state} />}
+                    value={<LocationTrackState state={locationTrack.state} />}
                     onEdit={openEditLocationTrackDialog}
                     iconDisabled={editingDisabled}
                 />

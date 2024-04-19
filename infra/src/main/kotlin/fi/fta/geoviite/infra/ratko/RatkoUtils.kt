@@ -9,7 +9,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.LocationTrackLayoutState
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 
 fun getEndPointNodeCollection(
     alignmentAddresses: AlignmentAddresses,
@@ -60,8 +60,8 @@ fun asSwitchTypeString(switchType: SwitchType): String {
 }
 
 fun sortByDeletedStateFirst(layoutState: LayoutState) = if (layoutState == LayoutState.DELETED) 0 else 1
-fun sortByDeletedStateFirst(locationTrackLayoutState: LocationTrackLayoutState) =
-    if (locationTrackLayoutState == LocationTrackLayoutState.DELETED) 0 else 1
+fun sortByDeletedStateFirst(locationTrackState: LocationTrackState) =
+    if (locationTrackState == LocationTrackState.DELETED) 0 else 1
 
 fun sortByNullDuplicateOfFirst(duplicateOf: IntId<LocationTrack>?) = if (duplicateOf == null) 0 else 1
 

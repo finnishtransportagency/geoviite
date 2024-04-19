@@ -1236,7 +1236,7 @@ class PublicationServiceIT @Autowired constructor(
                     FreeText("Test"),
                     DescriptionSuffixType.NONE,
                     LocationTrackType.MAIN,
-                    LocationTrackLayoutState.IN_USE,
+                    LocationTrackState.IN_USE,
                     getUnusedTrackNumberId(),
                     null,
                     TopologicalConnectivityType.NONE,
@@ -1252,7 +1252,7 @@ class PublicationServiceIT @Autowired constructor(
                     FreeText("Test"),
                     DescriptionSuffixType.NONE,
                     LocationTrackType.MAIN,
-                    LocationTrackLayoutState.IN_USE,
+                    LocationTrackState.IN_USE,
                     getUnusedTrackNumberId(),
                     null,
                     TopologicalConnectivityType.NONE,
@@ -1268,7 +1268,7 @@ class PublicationServiceIT @Autowired constructor(
                     FreeText("Test"),
                     DescriptionSuffixType.NONE,
                     LocationTrackType.MAIN,
-                    LocationTrackLayoutState.IN_USE,
+                    LocationTrackState.IN_USE,
                     getUnusedTrackNumberId(),
                     duplicate.id as IntId<LocationTrack>,
                     TopologicalConnectivityType.NONE,
@@ -1294,7 +1294,7 @@ class PublicationServiceIT @Autowired constructor(
                     descriptionBase = FreeText("Test2"),
                     descriptionSuffix = DescriptionSuffixType.SWITCH_TO_BUFFER,
                     type = LocationTrackType.SIDE,
-                    state = LocationTrackLayoutState.NOT_IN_USE,
+                    state = LocationTrackState.NOT_IN_USE,
                     trackNumberId = locationTrack.trackNumberId,
                     duplicate2.id as IntId<LocationTrack>,
                     topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
@@ -1391,7 +1391,7 @@ class PublicationServiceIT @Autowired constructor(
             FreeText("Test"),
             DescriptionSuffixType.NONE,
             LocationTrackType.MAIN,
-            LocationTrackLayoutState.IN_USE,
+            LocationTrackState.IN_USE,
             getUnusedTrackNumberId(),
             null,
             TopologicalConnectivityType.NONE,
@@ -2500,7 +2500,7 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun `split source location track validation should fail if source location track isn't deleted`() {
-        val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup(LocationTrackLayoutState.IN_USE)
+        val (sourceTrack, startTargetTrack, endTargetTrack) = simpleSplitSetup(LocationTrackState.IN_USE)
 
         saveSplit(sourceTrack.id, startTargetTrack.id, endTargetTrack.id).also(splitDao::get)
 
@@ -2665,7 +2665,7 @@ class PublicationServiceIT @Autowired constructor(
             .insert(alignment(segment(Point(0.0, 0.0), Point(5.0, 5.0), Point(10.0, 0.0))))
             .also { newAlignment ->
                 val lt = locationTrackDao.fetch(sourceTrackVersion).copy(
-                    state = LocationTrackLayoutState.DELETED,
+                    state = LocationTrackState.DELETED,
                     alignmentVersion = newAlignment,
                 )
 
@@ -2707,7 +2707,7 @@ class PublicationServiceIT @Autowired constructor(
             alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
         ).rowVersion.also { version ->
             val lt = locationTrackDao.fetch(version).copy(
-                state = LocationTrackLayoutState.DELETED
+                state = LocationTrackState.DELETED
             )
 
             locationTrackService.saveDraft(lt)
@@ -2890,7 +2890,7 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     private fun simpleSplitSetup(
-        sourceLocationTrackState: LocationTrackLayoutState = LocationTrackLayoutState.DELETED,
+        sourceLocationTrackState: LocationTrackState = LocationTrackState.DELETED,
     ): Triple<DaoResponse<LocationTrack>, DaoResponse<LocationTrack>, DaoResponse<LocationTrack>> {
         val trackNumberId = insertOfficialTrackNumber()
         insertReferenceLine(
@@ -2966,10 +2966,10 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
         locationTrackService.saveDraft(
-            locationTrackDao.fetch(officialTrackOn152.rowVersion).copy(state = LocationTrackLayoutState.DELETED)
+            locationTrackDao.fetch(officialTrackOn152.rowVersion).copy(state = LocationTrackState.DELETED)
         )
         locationTrackService.saveDraft(
-            locationTrackDao.fetch(officialTrackOn13.rowVersion).copy(state = LocationTrackLayoutState.DELETED)
+            locationTrackDao.fetch(officialTrackOn13.rowVersion).copy(state = LocationTrackState.DELETED)
         )
 
         val errorsWhenDeletingStraightTrack = getLocationTrackValidationResult(officialTrackOn152.id).errors
@@ -3027,7 +3027,7 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
         locationTrackService.saveDraft(
-            locationTrackDao.fetch(officialTrackOn152.rowVersion).copy(state = LocationTrackLayoutState.DELETED)
+            locationTrackDao.fetch(officialTrackOn152.rowVersion).copy(state = LocationTrackState.DELETED)
         )
         locationTrackDao.insert(
             locationTrack(

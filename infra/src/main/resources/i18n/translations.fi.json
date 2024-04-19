@@ -211,8 +211,14 @@
             "ENDPOINT": "Raide päättyy",
             "UNKNOWN": "Ei asetettu"
         },
-        "layout-state": {
+        "location-track-state": {
             "BUILT": "Rakennettu",
+            "IN_USE": "Käytössä",
+            "NOT_IN_USE": "Käytöstä poistettu",
+            "PLANNED": "Suunniteltu",
+            "DELETED": "Poistettu"
+        },
+        "layout-state": {
             "IN_USE": "Käytössä",
             "NOT_IN_USE": "Käytöstä poistettu",
             "PLANNED": "Suunniteltu",
