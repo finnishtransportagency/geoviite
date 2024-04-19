@@ -190,6 +190,8 @@ data class SplitDuplicateStatus(
     val duplicateOfId: IntId<LocationTrack>?,
     val startSwitchId: IntId<TrackLayoutSwitch>?,
     val endSwitchId: IntId<TrackLayoutSwitch>?,
+    val startPoint: LayoutPoint?,
+    val endPoint: LayoutPoint?,
 )
 
 data class SplitDuplicateTrack(

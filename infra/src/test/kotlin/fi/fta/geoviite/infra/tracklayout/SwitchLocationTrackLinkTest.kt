@@ -188,11 +188,30 @@ class SwitchLocationTrackLinkTest {
     }
 }
 
-fun partialMatch(startSwitch: Int, endSwitch: Int, from: Int = 0) =
-    from to SplitDuplicateStatus(SplitDuplicateMatch.PARTIAL, null, IntId(startSwitch), IntId(endSwitch))
+fun emptyPoint() = AlignmentPoint(0.0, 0.0, 0.0, 0.0, 0.0)
 
-fun fullMatch(startSwitch: Int, endSwitch: Int, from: Int = 0) =
-    from to SplitDuplicateStatus(SplitDuplicateMatch.FULL, null, IntId(startSwitch), IntId(endSwitch))
+fun partialMatch(
+    startSwitch: Int,
+    endSwitch: Int,
+    from: Int = 0,
+    startPoint: AlignmentPoint = emptyPoint(),
+    endPoint: AlignmentPoint = emptyPoint(),
+) = from to SplitDuplicateStatus(
+    SplitDuplicateMatch.PARTIAL, null, IntId(startSwitch), IntId(endSwitch), startPoint, endPoint
+)
 
-fun matchRange(vararg switchToJoint: Pair<Int, Int>): List<Pair<IntId<TrackLayoutSwitch>, JointNumber>> =
-    switchToJoint.map { (id, joint) -> IntId<TrackLayoutSwitch>(id) to JointNumber(joint) }
+fun fullMatch(
+    startSwitch: Int,
+    endSwitch: Int,
+    from: Int = 0,
+    startPoint: AlignmentPoint = emptyPoint(),
+    endPoint: AlignmentPoint = emptyPoint(),
+) = from to SplitDuplicateStatus(
+    SplitDuplicateMatch.FULL, null, IntId(startSwitch), IntId(endSwitch), startPoint, endPoint
+)
+
+fun matchRange(vararg switchToJoint: Pair<Int, Int>): List<SwitchJointOnTrack> = switchToJoint.map { (id, joint) ->
+    SwitchJointOnTrack(
+        IntId(id), JointNumber(joint), emptyPoint()
+    )
+}
