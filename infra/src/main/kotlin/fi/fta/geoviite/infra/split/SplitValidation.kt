@@ -92,7 +92,6 @@ internal fun validateTargetGeometry(
             .firstNotNullOfOrNull { (targetIndex, targetPoint) ->
                 val sourcePoint = sourcePoints.getOrNull(targetIndex)
                 if (sourcePoint?.address != targetPoint.address) {
-                    println("sourcePoint=$sourcePoint targetPoint=$targetPoint")
                     PublicationValidationError(ERROR, "$VALIDATION_SPLIT.trackmeters-changed")
                 } else if (operation != SplitTargetOperation.TRANSFER && !targetPoint.point.isSame(sourcePoint.point)) {
                     PublicationValidationError(ERROR, "$VALIDATION_SPLIT.geometry-changed")

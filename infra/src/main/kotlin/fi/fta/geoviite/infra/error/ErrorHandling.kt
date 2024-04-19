@@ -48,7 +48,7 @@ import org.springframework.web.multipart.support.MissingServletRequestPartExcept
 import org.springframework.web.servlet.NoHandlerFoundException
 
 fun createResponse(exception: Exception, correlationId: String): ResponseEntity<ApiErrorResponse>? {
-    val causeChain = getCauseChain(exception).also { println(it) }
+    val causeChain = getCauseChain(exception)
     val status = getStatusCode(causeChain)
     return status?.let { s ->
         if (s.is5xxServerError) {

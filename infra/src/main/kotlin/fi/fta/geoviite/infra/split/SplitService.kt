@@ -250,7 +250,7 @@ class SplitService(
         val sourceGeometryErrors = pendingSplits
             .firstOrNull { it.sourceLocationTrackId == trackId }
             ?.let {
-                // TODO: GVT-2564 what's the correct way? this should relate to validation context? source track should be tied by version in draftadrresses?
+                // TODO: GVT-2442 Source track should be with fixed version. Source geocoding context should be official versus in-validation-context
                 val draftAddresses = geocodingService.getAddressPoints(trackId, DRAFT)
                 val officialAddresses = geocodingService.getAddressPoints(trackId, OFFICIAL)
                 validateSourceGeometry(draftAddresses, officialAddresses)
@@ -266,8 +266,7 @@ class SplitService(
         val sourceMRange = getSourceMRange(sourceTrackVersion, target.segmentIndices)
         val sourceAddresses = if (sourceMRange != null) {
             val locationTrack = locationTrackDao.fetch(sourceTrackVersion)
-            // TODO: GVT-2564 what's the correct way? the cache key should be gotten from validation context?
-            // TODO: Perhaps we should here compare in-context sources to in-context targets. In source-validation we compare in-context sources to official sources
+            // TODO: GVT-2442 Source track should be with fixed version. Source geocoding context should be in-validation-context for comparing with in-validation-context target tracks
             geocodingService.getGeocodingContextCacheKey(locationTrack.trackNumberId, OFFICIAL)
                 ?.let { key -> geocodingService.getAddressPoints(key, locationTrack.getAlignmentVersionOrThrow()) }
                 ?.exactMeterPoints
@@ -291,8 +290,6 @@ class SplitService(
         } else {
             null
         }
-
-        println("mRange=$sourceMRange sourceAddresses=$sourceAddresses targetAddresses=$targetAddresses")
 
         return sourceAddresses to targetAddresses
     }
