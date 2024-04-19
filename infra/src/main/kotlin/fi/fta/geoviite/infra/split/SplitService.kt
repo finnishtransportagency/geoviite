@@ -99,7 +99,7 @@ class SplitService(
         return findPendingSplitsForLocationTracks(locationTracks.map { v -> v.id }.distinct())
             .map { split ->
                 val track = locationTracks.find { t -> t.id == split.sourceLocationTrackId }
-                splitDao.updateSplitState(
+                splitDao.updateSplit(
                     splitId = split.id,
                     publicationId = publicationId,
                     sourceTrackVersion = track?.rowVersion,
@@ -326,7 +326,7 @@ class SplitService(
         logger.serviceCall("updateSplitState", "splitId" to splitId)
 
         return splitDao.getOrThrow(splitId).let { split ->
-            splitDao.updateSplitState(split.id, bulkTransferState = state)
+            splitDao.updateSplit(split.id, bulkTransferState = state)
         }
     }
 

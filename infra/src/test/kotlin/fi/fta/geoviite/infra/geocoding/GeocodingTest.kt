@@ -1,11 +1,31 @@
 package fi.fta.geoviite.infra.geocoding
 
-import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.math.*
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.math.Line
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Point3DM
+import fi.fta.geoviite.infra.math.assertApproximatelyEquals
+import fi.fta.geoviite.infra.math.directionBetweenPoints
+import fi.fta.geoviite.infra.math.linePointAtDistance
+import fi.fta.geoviite.infra.math.pointInDirection
+import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.SegmentPoint
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.alignmentFromPoints
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.math.BigDecimal
@@ -743,6 +763,20 @@ class GeocodingTest {
 
         assertEquals(null, result.geocodingContext.getAddress(Point(14.0, 0.0)))
         assertEquals(StartPointRejectedReason.TOO_LONG, result.startPointRejectedReason)
+    }
+
+    @Test
+    fun `AddressPoint withIntegerPrecision works`() {
+        val point = AlignmentPoint(0.0, 0.0, 0.0, 0.0, null)
+        assertEquals(
+            AddressPoint(point, TrackMeter("1234+1234")),
+            AddressPoint(point, TrackMeter("1234+1234")).withIntegerPrecision(),
+        )
+        assertEquals(
+            AddressPoint(point, TrackMeter("1234+1234")),
+            AddressPoint(point, TrackMeter("1234+1234.000")).withIntegerPrecision(),
+        )
+        assertNull(AddressPoint(point, TrackMeter("1234+1234.123")).withIntegerPrecision())
     }
 
     private fun assertProjectionLinesMatch(result: List<ProjectionLine>, vararg expected: Pair<TrackMeter, Line>) {

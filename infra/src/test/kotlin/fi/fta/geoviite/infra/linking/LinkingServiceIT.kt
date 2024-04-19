@@ -316,7 +316,7 @@ class LinkingServiceIT @Autowired constructor(
                 updatedDuplicates = emptyList(),
             )
         )
-        splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.DONE)
+        splitDao.updateSplit(split.id, bulkTransferState = BulkTransferState.DONE)
 
         assertDoesNotThrow {
             linkingService.saveLocationTrackLinking(

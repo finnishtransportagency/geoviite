@@ -151,16 +151,16 @@ class KmNumberTest {
     }
 
     @Test
-    fun `metersHaveIntegerPrecision works`() {
-        assertFalse(TrackMeter("1234+1234.1234").metersHaveIntegerPrecision())
-        assertFalse(TrackMeter("1234+1234.0000").metersHaveIntegerPrecision())
-        assertTrue(TrackMeter("1234+1234").metersHaveIntegerPrecision())
+    fun `hasIntegerPrecision works`() {
+        assertFalse(TrackMeter("1234+1234.1234").hasIntegerPrecision())
+        assertFalse(TrackMeter("1234+1234.0000").hasIntegerPrecision())
+        assertTrue(TrackMeter("1234+1234").hasIntegerPrecision())
     }
 
     @Test
-    fun `metersMatchIntegerValue works`() {
-        assertFalse(TrackMeter("1234+1234.1234").metersMatchIntegerValue())
-        assertTrue(TrackMeter("1234+1234.0000").metersMatchIntegerValue())
-        assertTrue(TrackMeter("1234+1234").metersMatchIntegerValue())
+    fun `matchesIntegerValue works`() {
+        assertFalse(TrackMeter("1234+1234.1234").matchesIntegerValue())
+        assertTrue(TrackMeter("1234+1234.0000").matchesIntegerValue())
+        assertTrue(TrackMeter("1234+1234").matchesIntegerValue())
     }
 }

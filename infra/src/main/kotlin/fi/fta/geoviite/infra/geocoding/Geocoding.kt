@@ -41,10 +41,10 @@ import kotlin.math.abs
 
 data class AddressPoint(val point: AlignmentPoint, val address: TrackMeter) {
     fun isSame(other: AddressPoint) = address.isSame(other.address) && point.isSame(other.point)
-    fun asExactMeter(): AddressPoint? =
-        if (address.metersHaveIntegerPrecision()) {
+    fun withIntegerPrecision(): AddressPoint? =
+        if (address.hasIntegerPrecision()) {
             this
-        } else if (address.metersMatchIntegerValue()) {
+        } else if (address.matchesIntegerValue()) {
             AddressPoint(point = point, address = address.floor())
         } else {
             null
@@ -66,7 +66,7 @@ data class AlignmentAddresses(
     @get:JsonIgnore
     val exactMeterPoints: List<AddressPoint> by lazy {
         // midPoints are even anyhow, so just transform start/end
-        listOfNotNull(startPoint.asExactMeter()) + midPoints + listOfNotNull(endPoint.asExactMeter())
+        listOfNotNull(startPoint.withIntegerPrecision()) + midPoints + listOfNotNull(endPoint.withIntegerPrecision())
     }
 }
 

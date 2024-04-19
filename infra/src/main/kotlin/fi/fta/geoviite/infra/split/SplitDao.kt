@@ -217,7 +217,7 @@ class SplitDao(
     }
 
     @Transactional
-    fun updateSplitState(
+    fun updateSplit(
         splitId: IntId<Split>,
         bulkTransferState: BulkTransferState? = null,
         publicationId: IntId<Publication>? = null,

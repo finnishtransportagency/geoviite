@@ -2483,7 +2483,7 @@ class PublicationServiceIT @Autowired constructor(
         val splitSetup = simpleSplitSetup()
         saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
-            splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.IN_PROGRESS)
+            splitDao.updateSplit(split.id, bulkTransferState = BulkTransferState.IN_PROGRESS)
         }
 
         val errors = validateLocationTracks(splitSetup.trackIds)
@@ -2496,7 +2496,7 @@ class PublicationServiceIT @Autowired constructor(
 
         saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
-            splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.FAILED)
+            splitDao.updateSplit(split.id, bulkTransferState = BulkTransferState.FAILED)
         }
 
         val errors = validateLocationTracks(splitSetup.trackIds)
@@ -2509,7 +2509,7 @@ class PublicationServiceIT @Autowired constructor(
 
         saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
-            splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.DONE)
+            splitDao.updateSplit(split.id, bulkTransferState = BulkTransferState.DONE)
         }
 
         val errors = validateLocationTracks(splitSetup.trackIds)
@@ -2522,7 +2522,7 @@ class PublicationServiceIT @Autowired constructor(
 
         saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
-            splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.IN_PROGRESS)
+            splitDao.updateSplit(split.id, bulkTransferState = BulkTransferState.IN_PROGRESS)
         }
 
         val errors = validateLocationTracks(splitSetup.trackIds)
@@ -2535,7 +2535,7 @@ class PublicationServiceIT @Autowired constructor(
 
         saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
-            splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.FAILED)
+            splitDao.updateSplit(split.id, bulkTransferState = BulkTransferState.FAILED)
         }
 
         val errors = validateLocationTracks(splitSetup.trackIds)
@@ -2548,7 +2548,7 @@ class PublicationServiceIT @Autowired constructor(
 
         saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
-            splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.DONE)
+            splitDao.updateSplit(split.id, bulkTransferState = BulkTransferState.DONE)
         }
 
         val errors = validateLocationTracks(splitSetup.trackIds)
@@ -2660,7 +2660,7 @@ class PublicationServiceIT @Autowired constructor(
 
         saveSplit(locationTrackResponse.rowVersion).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
-            splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.FAILED)
+            splitDao.updateSplit(split.id, bulkTransferState = BulkTransferState.FAILED)
         }
 
         val validation = publicationService.validatePublicationCandidates(
@@ -2691,7 +2691,7 @@ class PublicationServiceIT @Autowired constructor(
 
         saveSplit(locationTrackResponse.rowVersion).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
-            splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.DONE)
+            splitDao.updateSplit(split.id, bulkTransferState = BulkTransferState.DONE)
         }
 
         val validation = publicationService.validatePublicationCandidates(

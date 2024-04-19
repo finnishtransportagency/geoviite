@@ -79,7 +79,7 @@ class SplitDaoIT @Autowired constructor(
         ).let(splitDao::getOrThrow)
 
         val publicationId = publicationDao.createPublication("SPLIT PUBLICATION")
-        val updatedSplit = splitDao.updateSplitState(
+        val updatedSplit = splitDao.updateSplit(
             splitId = split.id,
             bulkTransferState = BulkTransferState.FAILED,
             publicationId = publicationId,
@@ -116,7 +116,7 @@ class SplitDaoIT @Autowired constructor(
             updatedDuplicates = emptyList(),
         ).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
-            splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.DONE)
+            splitDao.updateSplit(split.id, bulkTransferState = BulkTransferState.DONE)
         }
 
         val pendingSplitId = splitDao.saveSplit(
