@@ -12,21 +12,19 @@ fun getDuplicateTrackParentStatus(
 ): LocationTrackDuplicate {
     val parentTrackJoints = collectSwitchJoints(parentTrack, parentAlignment)
     val childTrackJoints = collectSwitchJoints(childTrack, childAlignment)
-    val statuses = getDuplicateMatches(
+    val (_, status) = getDuplicateMatches(
         parentTrackJoints,
         childTrackJoints,
         parentTrack.id,
         childTrack.duplicateOf,
+    ).first() // There has to at least one found, since we know the duplicateOf is set
+    return LocationTrackDuplicate(
+        parentTrack.id as IntId,
+        parentTrack.trackNumberId,
+        parentTrack.name,
+        parentTrack.externalId,
+        status,
     )
-    return statuses.map { (jointIndex, status) ->
-        jointIndex to LocationTrackDuplicate(
-            parentTrack.id as IntId,
-            parentTrack.trackNumberId,
-            parentTrack.name,
-            parentTrack.externalId,
-            status,
-        )
-    }.first().second // There has to at least one found, since we know the duplicateOf is set
 }
 
 fun getLocationTrackDuplicatesByJoint(
