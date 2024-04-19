@@ -73,6 +73,8 @@ export type SplitDuplicateStatus = {
     duplicateOfId: LocationTrackId | undefined;
     startSwitchId: LayoutSwitchId | undefined;
     endSwitchId: LayoutSwitchId | undefined;
+    startPoint: AlignmentPoint | undefined;
+    endPoint: AlignmentPoint | undefined;
 };
 
 export type SplitDuplicate = {

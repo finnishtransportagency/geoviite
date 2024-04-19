@@ -66,7 +66,7 @@ const splitToRequestTarget = (
         descriptionBase: (duplicate ? duplicate.descriptionBase : split.descriptionBase) ?? '',
         descriptionSuffix: (duplicate ? duplicate.descriptionSuffix : split.suffixMode) ?? 'NONE',
         duplicateTrack: duplicateTrack,
-        startAtSwitchId: split.type === 'SPLIT' ? split?.switchId : undefined,
+        startAtSwitchId: split.type === 'SPLIT' ? split?.switch.switchId : undefined,
     };
 };
 
@@ -80,7 +80,13 @@ export const validateSplit = (
     split: split,
     nameErrors: validateSplitName(split.name, allSplitNames, conflictingTrackNames),
     descriptionErrors: validateSplitDescription(split.descriptionBase, split.duplicateTrackId),
-    switchErrors: validateSplitSwitch(split, previousSplit, switches),
+    switchErrors: validateSplitSwitch(
+        split,
+        previousSplit,
+        switches
+            .filter((layoutSwitch) => layoutSwitch.stateCategory !== 'NOT_EXISTING')
+            .map((layoutSwitch) => layoutSwitch.id),
+    ),
 });
 
 const validateSplitName = (
@@ -121,17 +127,14 @@ const validateSplitDescription = (
     return errors;
 };
 
-const validateSplitSwitch = (
+export const validateSplitSwitch = (
     split: SplitTargetCandidate | FirstSplitTargetCandidate,
     previousSplit: SplitTargetCandidate | FirstSplitTargetCandidate | undefined,
-    switches: LayoutSwitch[],
+    switchIds: LayoutSwitchId[],
 ): ValidationError<SplitTargetCandidate>[] => {
     const errors: ValidationError<SplitTargetCandidate>[] = [];
-    const switchAtSplit = switches.find((s) => s.id === split.switch.switchId);
-    if (
-        split.type === 'SPLIT' &&
-        (!switchAtSplit || switchAtSplit.stateCategory === 'NOT_EXISTING')
-    ) {
+    const switchExists = switchIds.includes(split.switch.switchId);
+    if (split.type === 'SPLIT' && !switchExists) {
         errors.push({
             field: 'switch',
             reason: 'switch-not-found',
