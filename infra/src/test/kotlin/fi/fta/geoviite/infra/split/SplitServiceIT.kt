@@ -506,16 +506,6 @@ class SplitServiceIT @Autowired constructor(
         val trackNumberId = insertOfficialTrackNumber()
         return insertLocationTrack(locationTrack(trackNumberId, draft = false, duplicateOf = duplicateOf), alignment).id
     }
-//    private fun insertBranchingSwitchAlignment(
-//        start: Point,
-//        switchId: IntId<TrackLayoutSwitch>,
-//        structure: SwitchStructure,
-//        line: List<Int>,
-//    ): IntId<LocationTrack> {
-//        val alignment = alignment(segmentsFromSwitchStructure(start, switchId, structure, line))
-//        val trackNumberId = insertOfficialTrackNumber()
-//        return insertLocationTrack(locationTrack(trackNumberId, draft = false), alignment).id
-//    }
 
     private fun getYvStructure(): SwitchStructure =
         requireNotNull(switchStructureDao.fetchSwitchStructures().find { s -> s.type.typeName == "YV60-300-1:9-O" })

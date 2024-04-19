@@ -652,9 +652,11 @@
                 "start-address": "Alkusijainti (km + m)",
                 "split-address": "Katkaisukohta (km + m)",
                 "end-address": "Loppusijainti (km + m)",
-                "OVERWRITE": "Korvaa duplikaattiraiteen",
-                "TRANSFER": "Siirretään vain ratakohteet",
-                "NEW": "Luodaan uusi raide",
+                "operation": {
+                    "OVERWRITE": "Korvaa duplikaattiraiteen",
+                    "TRANSFER": "Siirretään vain ratakohteet",
+                    "CREATE": "Luodaan uusi raide"
+                },
                 "description-base": "Kuvauksen perusosa",
                 "description-suffix": "Kuvauksen lisäosa",
                 "exit-title": "Lopeta raiteen jakaminen",

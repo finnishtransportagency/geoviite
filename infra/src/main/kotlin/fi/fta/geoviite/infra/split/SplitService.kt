@@ -487,11 +487,11 @@ fun splitLocationTrack(
         val connectivityType = calculateTopologicalConnectivity(track, alignment.segments.size, segmentIndices)
         val (newTrack, newAlignment) = target.duplicate?.let { d ->
             when (d.operation) {
-                SplitTargetDuplicateOperation.TRANSFER -> updateTransferAssetsSplitTarget(
+                SplitTargetDuplicateOperation.TRANSFER -> updateSplitTargetForTransferAssets(
                     duplicateTrack = d.track,
                     topologicalConnectivityType = connectivityType,
                 ) to d.alignment
-                SplitTargetDuplicateOperation.OVERWRITE -> updateDuplicateToSplitTarget(
+                SplitTargetDuplicateOperation.OVERWRITE -> updateSplitTargetForOverwriteDuplicate(
                     sourceTrack = track,
                     duplicateTrack = d.track,
                     duplicateAlignment = d.alignment,
@@ -535,7 +535,7 @@ fun validateSplitResult(results: List<SplitTargetResult>, alignment: LayoutAlign
     }
 }
 
-private fun updateTransferAssetsSplitTarget(
+private fun updateSplitTargetForTransferAssets(
     duplicateTrack: LocationTrack,
     topologicalConnectivityType: TopologicalConnectivityType,
 ): LocationTrack {
@@ -549,7 +549,7 @@ private fun updateTransferAssetsSplitTarget(
     )
 }
 
-private fun updateDuplicateToSplitTarget(
+private fun updateSplitTargetForOverwriteDuplicate(
     sourceTrack: LocationTrack,
     duplicateTrack: LocationTrack,
     duplicateAlignment: LayoutAlignment,
