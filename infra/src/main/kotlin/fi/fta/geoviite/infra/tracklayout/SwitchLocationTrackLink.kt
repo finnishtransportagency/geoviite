@@ -6,29 +6,27 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 
-fun getLocationTrackDuplicateOfStatus(
-    mainTrack: LocationTrack,
-    mainAlignment: LayoutAlignment,
-    duplicatedTrack: LocationTrack,
-    duplicatedAlignment: LayoutAlignment,
+fun getDuplicateTrackParentStatus(
+    parentTrack: LocationTrack,
+    parentAlignment: LayoutAlignment,
+    childTrack: LocationTrack,
+    childAlignment: LayoutAlignment,
 ): LocationTrackDuplicate {
-    val mainTrackJoints = collectSwitchJoints(mainTrack, mainAlignment)
-    val duplicatedTrackJoints = collectSwitchJoints(duplicatedTrack, duplicatedAlignment)
-    val statuses = getDuplicateMatches(
-        duplicatedTrackJoints,
-        mainTrackJoints,
-        duplicatedTrack.id,
-        duplicatedTrack.duplicateOf,
+    val parentTrackJoints = collectSwitchJoints(parentTrack, parentAlignment)
+    val childTrackJoints = collectSwitchJoints(childTrack, childAlignment)
+    val (_, status) = getDuplicateMatches(
+        parentTrackJoints,
+        childTrackJoints,
+        parentTrack.id,
+        childTrack.duplicateOf,
+    ).first() // There has to at least one found, since we know the duplicateOf is set
+    return LocationTrackDuplicate(
+        parentTrack.id as IntId,
+        parentTrack.trackNumberId,
+        parentTrack.name,
+        parentTrack.externalId,
+        status,
     )
-    return statuses.map { (jointIndex, status) ->
-        jointIndex to LocationTrackDuplicate(
-            duplicatedTrack.id as IntId,
-            duplicatedTrack.trackNumberId,
-            duplicatedTrack.name,
-            duplicatedTrack.externalId,
-            status,
-        )
-    }.first().second // There has to at least one found, since we know the duplicateOf is set
 }
 
 fun getLocationTrackDuplicatesByJoint(

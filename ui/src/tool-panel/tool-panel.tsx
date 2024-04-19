@@ -10,6 +10,7 @@ import {
 import {
     EditState,
     LayoutKmPostId,
+    LayoutLocationTrack,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
@@ -327,47 +328,51 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 };
             });
 
-        const locationTrackTabs = locationTracks.filter(visibleByContextAndState).map((track) => {
-            return {
-                asset: { type: 'LOCATION_TRACK', id: track.id },
-                title: track.name,
-                element: (
-                    <LocationTrackInfoboxLinkingContainer
-                        visibilities={infoboxVisibilities.locationTrack}
-                        onVisibilityChange={(visibilities) =>
-                            infoboxVisibilityChange('locationTrack', visibilities)
-                        }
-                        locationTrackId={track.id}
-                        onDataChange={onDataChange}
-                        onHoverOverPlanSection={onHoverOverPlanSection}
-                    />
-                ),
-            } as ToolPanelTab;
-        });
+        const locationTrackTabs = locationTracks
+            .filter(visibleByContextAndState)
+            .map((track: LayoutLocationTrack): ToolPanelTab => {
+                return {
+                    asset: { type: 'LOCATION_TRACK', id: track.id },
+                    title: track.name,
+                    element: (
+                        <LocationTrackInfoboxLinkingContainer
+                            visibilities={infoboxVisibilities.locationTrack}
+                            onVisibilityChange={(visibilities) =>
+                                infoboxVisibilityChange('locationTrack', visibilities)
+                            }
+                            locationTrackId={track.id}
+                            onDataChange={onDataChange}
+                            onHoverOverPlanSection={onHoverOverPlanSection}
+                        />
+                    ),
+                };
+            });
 
-        const geometryAlignmentTabs = geometryAlignmentIds.map((aId) => {
-            const header = getPlan(aId.planId)?.alignments?.find(
-                (a) => a.header.id === aId.geometryId,
-            )?.header;
-            return {
-                asset: { type: 'GEOMETRY_ALIGNMENT', id: aId.geometryId },
-                title: header?.name ?? '...',
-                element: header ? (
-                    <GeometryAlignmentLinkingContainer
-                        visibilities={infoboxVisibilities.geometryAlignment}
-                        onVisibilityChange={(visibilities) =>
-                            infoboxVisibilityChange('geometryAlignment', visibilities)
-                        }
-                        geometryAlignment={header}
-                        selectedLocationTrackId={first(locationTrackIds)}
-                        selectedTrackNumberId={first(trackNumberIds)}
-                        planId={aId.planId}
-                    />
-                ) : (
-                    <Spinner />
-                ),
-            } as ToolPanelTab;
-        });
+        const geometryAlignmentTabs = geometryAlignmentIds.map(
+            (item: SelectedGeometryItem<GeometryAlignmentId>): ToolPanelTab => {
+                const header = getPlan(item.planId)?.alignments?.find(
+                    (a) => a.header.id === item.geometryId,
+                )?.header;
+                return {
+                    asset: { type: 'GEOMETRY_ALIGNMENT', id: item.geometryId },
+                    title: header?.name ?? '...',
+                    element: header ? (
+                        <GeometryAlignmentLinkingContainer
+                            visibilities={infoboxVisibilities.geometryAlignment}
+                            onVisibilityChange={(visibilities) =>
+                                infoboxVisibilityChange('geometryAlignment', visibilities)
+                            }
+                            geometryAlignment={header}
+                            selectedLocationTrackId={first(locationTrackIds)}
+                            selectedTrackNumberId={first(trackNumberIds)}
+                            planId={item.planId}
+                        />
+                    ) : (
+                        <Spinner />
+                    ),
+                };
+            },
+        );
 
         const allTabs = [
             ...geometryKmPostTabs,
