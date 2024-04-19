@@ -8,7 +8,7 @@ import {
     LayoutTrackNumberId,
     LocationTrackDescriptionSuffixMode,
     LocationTrackId,
-    LocationTrackLayoutState,
+    LocationTrackState,
     LocationTrackType,
     MapAlignmentType,
     ReferenceLineId,
@@ -41,7 +41,7 @@ export type LocationTrackSaveRequest = {
     descriptionBase?: string;
     descriptionSuffix?: LocationTrackDescriptionSuffixMode;
     type?: LocationTrackType;
-    state?: LocationTrackLayoutState;
+    state?: LocationTrackState;
     trackNumberId?: LayoutTrackNumberId;
     duplicateOf?: string;
     topologicalConnectivity?: TopologicalConnectivityType;

@@ -115,7 +115,7 @@ class SplitServiceIT @Autowired constructor(
         assertTargetTrack(alignment, request.targetTracks[1], result.targetLocationTracks[1])
 
         // Verify that the old track got deleted
-        assertEquals(LocationTrackLayoutState.DELETED, locationTrackService.get(DRAFT, trackId)?.state)
+        assertEquals(LocationTrackState.DELETED, locationTrackService.get(DRAFT, trackId)?.state)
     }
 
     private fun assertTargetTrack(

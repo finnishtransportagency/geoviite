@@ -3,7 +3,7 @@ import {
     LayoutState,
     LayoutStateCategory,
     LocationTrackDescriptionSuffixMode,
-    LocationTrackLayoutState,
+    LocationTrackState,
     LocationTrackType,
     TopologicalConnectivityType,
     TrapPoint,
@@ -46,8 +46,8 @@ export const layoutStates: LocalizedEnum<LayoutState>[] = values('layout-state',
     'DELETED',
 ]);
 
-export const locationTrackLayoutStates: LocalizedEnum<LocationTrackLayoutState>[] = values(
-    'layout-state',
+export const locationTrackStates: LocalizedEnum<LocationTrackState>[] = values(
+    'location-track-state',
     ['PLANNED', 'BUILT', 'IN_USE', 'NOT_IN_USE', 'DELETED'],
 );
 

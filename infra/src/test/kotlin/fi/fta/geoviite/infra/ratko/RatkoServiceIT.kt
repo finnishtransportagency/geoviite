@@ -172,7 +172,7 @@ class RatkoServiceIT @Autowired constructor(
                 name = "abcde",
                 description = "cdefg",
                 type = LocationTrackType.CHORD,
-                state = LocationTrackLayoutState.BUILT,
+                state = LocationTrackState.BUILT,
                 externalId = null,
                 draft = true,
             ),
@@ -188,7 +188,7 @@ class RatkoServiceIT @Autowired constructor(
         assertEquals(RatkoAssetState.BUILT.name, createdPush.state.name)
         assertEquals(RatkoLocationTrackType.CHORD.name, createdPush.type.name)
 
-        locationTrackService.saveDraft(locationTrackDao.fetch(officialVersion).copy(state = LocationTrackLayoutState.DELETED))
+        locationTrackService.saveDraft(locationTrackDao.fetch(officialVersion).copy(state = LocationTrackState.DELETED))
         publishAndPush(locationTracks = listOf(officialVersion))
 
         assertEquals(listOf(""), fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6"))
@@ -644,7 +644,7 @@ class RatkoServiceIT @Autowired constructor(
         listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostPushedLocationTrack)
         val officialThroughTrackVersion = locationTrackDao.fetchVersion(throughTrack.id, PublicationState.OFFICIAL)!!
         locationTrackService.saveDraft(
-            locationTrackDao.fetch(officialThroughTrackVersion).copy(state = LocationTrackLayoutState.DELETED)
+            locationTrackDao.fetch(officialThroughTrackVersion).copy(state = LocationTrackState.DELETED)
         )
         publishAndPush(locationTracks = listOf(officialThroughTrackVersion))
         val pushedSwitchLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7")
@@ -879,7 +879,7 @@ class RatkoServiceIT @Autowired constructor(
             alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
         ).rowVersion
         val locationTrack = locationTrackDao.fetch(originalLocationTrackVersion)
-        locationTrackService.saveDraft(locationTrack.copy(state = LocationTrackLayoutState.DELETED))
+        locationTrackService.saveDraft(locationTrack.copy(state = LocationTrackState.DELETED))
 
         fakeRatko.hasLocationTrack(ratkoLocationTrack(id = locationTrack.externalId.toString()))
 

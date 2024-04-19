@@ -61,7 +61,7 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
     fun getLocationTrackHeaders(
         @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
         @RequestParam("ids") ids: List<IntId<LocationTrack>>,
-    ): List<AlignmentHeader<LocationTrack, LocationTrackLayoutState>> {
+    ): List<AlignmentHeader<LocationTrack, LocationTrackState>> {
         logger.apiCall("getReferenceLineHeaders", "$PUBLICATION_STATE" to publicationState, "ids" to ids)
         return mapAlignmentService.getLocationTrackHeaders(publicationState, ids)
     }

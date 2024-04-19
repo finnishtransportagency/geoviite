@@ -127,7 +127,7 @@ class PublicationDaoIT @Autowired constructor(
         val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
         publishAndCheck(version)
         locationTrackService.saveDraft(
-            locationTrackService.getOrThrow(OFFICIAL, draft.id as IntId).copy(state = LocationTrackLayoutState.DELETED)
+            locationTrackService.getOrThrow(OFFICIAL, draft.id as IntId).copy(state = LocationTrackState.DELETED)
         )
         val candidates = publicationDao.fetchLocationTrackPublicationCandidates()
         assertEquals(1, candidates.size)
@@ -141,12 +141,12 @@ class PublicationDaoIT @Autowired constructor(
         val (version, draft) = insertAndCheck(
             asMainDraft(track).copy(
                 name = AlignmentName("${track.name} DRAFT"),
-                state = LocationTrackLayoutState.DELETED,
+                state = LocationTrackState.DELETED,
             )
         )
         publishAndCheck(version)
         locationTrackService.saveDraft(
-            locationTrackService.getOrThrow(OFFICIAL, draft.id as IntId).copy(state = LocationTrackLayoutState.IN_USE)
+            locationTrackService.getOrThrow(OFFICIAL, draft.id as IntId).copy(state = LocationTrackState.IN_USE)
         )
         val candidates = publicationDao.fetchLocationTrackPublicationCandidates()
         assertEquals(1, candidates.size)

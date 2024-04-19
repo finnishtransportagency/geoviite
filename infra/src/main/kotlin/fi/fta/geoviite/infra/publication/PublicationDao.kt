@@ -710,7 +710,7 @@ class PublicationDao(
                 },
                 endPoint = rs.getChangePoint("end_x", "end_y"),
                 startPoint = rs.getChangePoint("start_x", "start_y"),
-                state = rs.getChange("state", { rs.getEnumOrNull<LocationTrackLayoutState>(it) }),
+                state = rs.getChange("state", { rs.getEnumOrNull<LocationTrackState>(it) }),
                 duplicateOf = rs.getChange("duplicate_of_location_track_id", rs::getIntIdOrNull),
                 type = rs.getChange("type", { rs.getEnumOrNull<LocationTrackType>(it) }),
                 length = rs.getChange("length", rs::getDoubleOrNull),

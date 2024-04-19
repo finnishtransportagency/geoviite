@@ -7,7 +7,7 @@ import {
     LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackId,
-    LocationTrackLayoutState,
+    LocationTrackState,
     LocationTrackType,
     MapAlignmentType,
     ReferenceLineId,
@@ -64,7 +64,7 @@ export type AlignmentDataHolder = {
 
 export type LocationTrackAlignmentHeader = LayoutAlignmentHeader & {
     id: LocationTrackId;
-    state: LocationTrackLayoutState;
+    state: LocationTrackState;
 };
 export type ReferenceLineAlignmentHeader = LayoutAlignmentHeader & {
     id: ReferenceLineId;

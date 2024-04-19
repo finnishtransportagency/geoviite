@@ -290,7 +290,7 @@ class SplitService(
             .map { duplicateTrack -> duplicateTrack.id as IntId }
 
         val sourceTrack = locationTrackDao.getOrThrow(DRAFT, request.sourceTrackId)
-        if (sourceTrack.state != LocationTrackLayoutState.IN_USE) throw SplitFailureException(
+        if (sourceTrack.state != LocationTrackState.IN_USE) throw SplitFailureException(
             message = "Source track state is not IN_USE: id=${sourceTrack.id}",
             localizedMessageKey = "source-track-state-not-in-use",
         )
@@ -328,7 +328,7 @@ class SplitService(
             localizationParams = localizationParams("trackName" to sourceTrack.name)
         )
 
-        locationTrackService.updateState(request.sourceTrackId, LocationTrackLayoutState.DELETED)
+        locationTrackService.updateState(request.sourceTrackId, LocationTrackState.DELETED)
 
         return savedSplitTargetLocationTracks.map { splitTargetResult ->
             SplitTarget(splitTargetResult.locationTrack.id as IntId, splitTargetResult.indices)
