@@ -52,7 +52,7 @@ class RatkoService @Autowired constructor(
     private val ratkoOperatingPointDao: RatkoOperatingPointDao,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-    private val ratkoSchedulerUserName = UserName("RATKO_SCHEDULER")
+    private val ratkoSchedulerUserName = UserName.of("RATKO_SCHEDULER")
     private val databaseLockDuration = Duration.ofMinutes(120)
 
     @Scheduled(cron = "0 * * * * *")

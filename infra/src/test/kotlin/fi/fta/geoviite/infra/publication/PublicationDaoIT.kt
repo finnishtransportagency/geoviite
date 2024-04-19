@@ -65,7 +65,7 @@ class PublicationDaoIT @Autowired constructor(
         assertEquals(1, candidates.size)
         assertEquals(line.id, candidates.first().id)
         assertEquals(draft.trackNumberId, candidates.first().trackNumberId)
-        assertEquals(UserName(TEST_USER), candidates.first().userName)
+        assertEquals(UserName.of(TEST_USER), candidates.first().userName)
         assertEquals(Operation.MODIFY, candidates.first().operation)
     }
 
@@ -80,7 +80,7 @@ class PublicationDaoIT @Autowired constructor(
         assertEquals(track.id, candidates.first().id)
         assertEquals(draft.name, candidates.first().name)
         assertEquals(draft.trackNumberId, candidates.first().trackNumberId)
-        assertEquals(UserName(TEST_USER), candidates.first().userName)
+        assertEquals(UserName.of(TEST_USER), candidates.first().userName)
         assertEquals(Operation.MODIFY, candidates.first().operation)
     }
 
@@ -92,7 +92,7 @@ class PublicationDaoIT @Autowired constructor(
         assertEquals(1, candidates.size)
         assertEquals(switch.id, candidates.first().id)
         assertEquals(draft.name, candidates.first().name)
-        assertEquals(UserName(TEST_USER), candidates.first().userName)
+        assertEquals(UserName.of(TEST_USER), candidates.first().userName)
         assertEquals(Operation.MODIFY, candidates.first().operation)
     }
 

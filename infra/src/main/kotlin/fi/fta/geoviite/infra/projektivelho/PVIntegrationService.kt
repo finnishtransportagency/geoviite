@@ -23,7 +23,7 @@ import withUser
 import java.time.Duration
 import java.time.Instant
 
-val PROJEKTIVELHO_INTEGRATION_USERNAME = UserName("PROJEKTIVELHO_IMPORT")
+val PROJEKTIVELHO_INTEGRATION_USERNAME = UserName.of("PROJEKTIVELHO_IMPORT")
 val PREFETCH_TIME_RANGE = Duration.ofDays(365)
 
 @Service

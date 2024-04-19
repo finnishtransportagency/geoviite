@@ -68,7 +68,7 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
 
     @BeforeEach
     fun initUser() {
-        currentUser.set(UserName(testUser))
+        currentUser.set(UserName.of(testUser))
     }
 
     fun <T> transactional(op: () -> T): T = transaction.execute {

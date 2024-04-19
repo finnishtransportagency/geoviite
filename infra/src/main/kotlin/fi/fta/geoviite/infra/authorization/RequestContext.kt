@@ -28,7 +28,7 @@ interface IRequestProperty<T> {
 }
 
 
-val currentUser: IRequestProperty<UserName> = RequestProperty(USER, ::UserName)
+val currentUser: IRequestProperty<UserName> = RequestProperty(USER, UserName::of)
 val currentUserRole: IRequestProperty<Code> = RequestProperty(ROLE, ::Code)
 val correlationId: IRequestProperty<String> = RequestProperty(CORRELATION_ID_HEADER) { it }
 
