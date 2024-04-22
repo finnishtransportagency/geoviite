@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.SplitFailureException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
@@ -24,6 +25,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
@@ -49,6 +51,7 @@ class SplitService(
     private val locationTrackService: LocationTrackService,
     private val switchLinkingService: SwitchLinkingService,
     private val switchLibraryService: SwitchLibraryService,
+    private val switchService: LayoutSwitchService,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -430,16 +433,18 @@ class SplitService(
     ): List<SplitTargetParams> {
         return targets.map { target ->
             val startSwitch = target.startAtSwitchId?.let { switchId ->
-                val jointNumber = suggestions
+                val (jointNumber, name) = suggestions
                     .find { (id, _) -> id == switchId }
                     ?.let { (_, suggestion) ->
-                        switchLibraryService.getSwitchStructure(suggestion.switchStructureId).presentationJointNumber
+                        val joint = switchLibraryService.getPresentationJointNumber(suggestion.switchStructureId)
+                        val name = switchService.getOrThrow(DRAFT, switchId).name
+                        joint to name
                     }
                     ?: throw SplitFailureException(
                         message = "No re-linked switch for switch: id=$switchId",
                         localizedMessageKey = "no-switch-suggestion",
                     )
-                switchId to jointNumber
+                SplitPointSwitch(switchId, jointNumber, name)
             }
             val duplicate = target.duplicateTrack?.let { d ->
                 val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, d.id)
@@ -450,9 +455,15 @@ class SplitService(
     }
 }
 
+data class SplitPointSwitch(
+    val id: IntId<TrackLayoutSwitch>,
+    val jointNumber: JointNumber,
+    val name: SwitchName,
+)
+
 data class SplitTargetParams(
     val request: SplitRequestTarget,
-    val startSwitch: Pair<IntId<TrackLayoutSwitch>, JointNumber>?,
+    val startSwitch: SplitPointSwitch?,
     val duplicate: SplitTargetDuplicate?,
 ) {
     fun getOperation(): SplitTargetOperation =
@@ -637,22 +648,28 @@ private fun calculateTopologicalConnectivity(
 
 private fun findSplitIndices(
     alignment: LayoutAlignment,
-    startSwitch: Pair<IntId<TrackLayoutSwitch>, JointNumber>?,
-    endSwitch: Pair<IntId<TrackLayoutSwitch>, JointNumber>?,
+    startSwitch: SplitPointSwitch?,
+    endSwitch: SplitPointSwitch?,
 ): IntRange {
     val startIndex = startSwitch?.let { (s, j) -> findIndex(alignment, s, j) } ?: 0
     val endIndex = endSwitch?.let { (s, j) -> findIndex(alignment, s, j) - 1 } ?: alignment.segments.lastIndex
 
-    return if (startIndex < 0 || endIndex > alignment.segments.lastIndex || endIndex < startIndex) {
-        val aligmentDesc = alignment.segments.map { s -> s.switchId to "${s.startJointNumber}..${s.endJointNumber}" }
-        val debug = "result=$startIndex..$endIndex start=$startSwitch end=$endSwitch alignment=$aligmentDesc"
-        throw SplitFailureException(
-            message = "Failed to map split switches to segment indices: $debug",
-            localizedMessageKey = "segment-allocation-failed",
-        )
+    return if (startIndex < 0) {
+        throwSwitchSegmentMappingFailure(alignment, startSwitch)
+    } else if (endIndex < startIndex || endIndex > alignment.segments.lastIndex) {
+        throwSwitchSegmentMappingFailure(alignment, endSwitch)
     } else {
         (startIndex..endIndex)
     }
+}
+
+private fun throwSwitchSegmentMappingFailure(alignment: LayoutAlignment, switch: SplitPointSwitch?): Nothing {
+    val aligmentDesc = alignment.segments.map { s -> s.switchId to "${s.startJointNumber}..${s.endJointNumber}" }
+    throw SplitFailureException(
+        message = "Failed to map split switches to segment indices: switch=$switch alignment=$aligmentDesc",
+        localizedMessageKey = "switch-segment-mapping-failed",
+        localizationParams = localizationParams("switchName" to switch?.name, "joint" to switch?.jointNumber),
+    )
 }
 
 private fun findIndex(alignment: LayoutAlignment, switchId: IntId<TrackLayoutSwitch>, joint: JointNumber): Int {
