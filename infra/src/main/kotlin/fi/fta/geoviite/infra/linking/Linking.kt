@@ -93,6 +93,7 @@ data class FittedSwitch(
 
 data class SuggestedSwitch(
     val switchStructureId: IntId<SwitchStructure>,
+    val presentationJointNumber: JointNumber,
     val joints: List<TrackLayoutSwitchJoint>,
     val trackLinks: Map<IntId<LocationTrack>, SwitchLinkingTrackLinks>,
     val geometrySwitchId: IntId<GeometrySwitch>? = null,

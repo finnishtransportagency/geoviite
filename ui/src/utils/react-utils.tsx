@@ -92,6 +92,38 @@ export function useRateLimitedLoaderWithStatus<TEntity>(
     return [entity, loaderStatus];
 }
 
+/**
+ * Like useImmediateLoader, but delays any calls to the loader promise callback until there is no call currently in
+ * flight.
+ */
+export function useThrottledLoader<TEntity>(setter: (result: TEntity) => void): {
+    isLoading: boolean;
+    load: (promise: () => Promise<TEntity>) => void;
+} {
+    const nextLoadCallback = useRef<() => Promise<TEntity>>();
+    const isLoading = useRef(false);
+    const load = (loader: () => Promise<TEntity>) => {
+        if (isLoading.current) {
+            nextLoadCallback.current = loader;
+        } else {
+            isLoading.current = true;
+            loader().then((result) => {
+                isLoading.current = false;
+                setter(result);
+                const next = nextLoadCallback.current;
+                nextLoadCallback.current = undefined;
+                if (next) {
+                    load(next);
+                }
+            });
+        }
+    };
+    return {
+        isLoading: isLoading.current,
+        load,
+    };
+}
+
 export function useImmediateLoader<TEntity>(setter: (result: TEntity) => void): {
     isLoading: boolean;
     load: (promise: Promise<TEntity>) => void;

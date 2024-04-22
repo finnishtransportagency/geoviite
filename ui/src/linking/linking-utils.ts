@@ -149,6 +149,7 @@ export function suggestedSwitchJointsAsLayoutSwitchJointConnections(
             .map(({ locationTrackId, location }) => ({
                 locationTrackId,
                 location,
+                matchDistance: getPlanarDistance(location, joint.location),
             })),
     }));
 }

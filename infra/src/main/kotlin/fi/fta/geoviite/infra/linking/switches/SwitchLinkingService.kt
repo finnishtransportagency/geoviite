@@ -393,6 +393,7 @@ fun matchFittedSwitchToTracks(
 
     return SuggestedSwitch(
         joints = fittedSwitch.joints.map(::suggestedSwitchJointToTrackLayoutSwitchJoint),
+        presentationJointNumber = switchStructure.presentationJointNumber,
         trackLinks = trackLinks,
         geometrySwitchId = fittedSwitch.geometrySwitchId,
         switchStructureId = fittedSwitch.switchStructureId,

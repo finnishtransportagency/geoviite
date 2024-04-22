@@ -308,6 +308,7 @@ export type SwitchLinkingTopologicalTrackLink = {
 export type SuggestedSwitch = {
     id: SuggestedSwitchId;
     switchStructureId: SwitchStructureId;
+    presentationJointNumber: JointNumber;
     joints: TrackLayoutSwitchJoint[];
     trackLinks: Record<LocationTrackId, SwitchLinkingTrackLinks>;
     geometryPlanId?: GeometryPlanId;

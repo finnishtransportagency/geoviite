@@ -35,8 +35,8 @@ import {
 } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
-import { GeometryPlanLayout, LAYOUT_SRID } from 'track-layout/track-layout-model';
-import { LayoutContext } from 'common/common-model';
+import { GeometryPlanLayout, LAYOUT_SRID, LocationTrackId } from 'track-layout/track-layout-model';
+import { JointNumber, LayoutContext } from 'common/common-model';
 import Overlay from 'ol/Overlay';
 import { useTranslation } from 'react-i18next';
 import { createDebugLayer } from 'map/layers/debug/debug-layer';
@@ -54,7 +54,7 @@ import { createGeometryKmPostLayer } from 'map/layers/geometry/geometry-km-post-
 import { createKmPostLayer } from 'map/layers/km-post/km-post-layer';
 import { createAlignmentLinkingLayer } from 'map/layers/alignment/alignment-linking-layer';
 import { createPlanAreaLayer } from 'map/layers/geometry/plan-area-layer';
-import { pointToCoords } from 'map/layers/utils/layer-utils';
+import { getPlanarDistance, pointToCoords } from 'map/layers/utils/layer-utils';
 import { createGeometrySwitchLayer } from 'map/layers/geometry/geometry-switch-layer';
 import { createSwitchLayer } from 'map/layers/switch/switch-layer';
 import {
@@ -90,11 +90,12 @@ import { createLocationTrackSplitBadgeLayer } from 'map/layers/alignment/locatio
 import { createSelectedReferenceLineAlignmentLayer } from './layers/alignment/reference-line-selected-alignment-layer';
 import { createOperatingPointLayer } from 'map/layers/operating-point/operating-points-layer';
 import { layersCoveringLayers } from 'map/map-store';
-import { useImmediateLoader, useLoader, useRateLimitedEffect } from 'utils/react-utils';
+import { useThrottledLoader } from 'utils/react-utils';
 import { getSuggestedSwitches } from 'linking/linking-api';
 import { Brand } from 'common/brand';
 import { grid } from 'utils/math-utils';
 import { pointString } from 'common/common-api';
+import { asyncCache, AsyncCache } from 'cache/cache';
 
 declare global {
     interface Window {
@@ -177,6 +178,28 @@ type ScreenGrid = {
     positionInCell: Point;
 };
 
+function getSuggestedSwitchJointDistances(
+    suggested: SuggestedSwitch,
+): { locationTrackId: LocationTrackId; jointNumber: JointNumber; distance: number }[] {
+    return suggested.joints.flatMap((joint) =>
+        objectEntries(suggested.trackLinks).flatMap(([locationTrackId, trackLinks]) =>
+            trackLinks.segmentJoints.flatMap((sj) => {
+                if (sj.number !== joint.number) {
+                    return [];
+                } else {
+                    return [
+                        {
+                            locationTrackId,
+                            jointNumber: joint.number,
+                            distance: getPlanarDistance(sj.location, joint.location),
+                        },
+                    ];
+                }
+            }),
+        ),
+    );
+}
+
 const MapView: React.FC<MapViewProps> = ({
     map,
     selection,
@@ -214,7 +237,7 @@ const MapView: React.FC<MapViewProps> = ({
     const positionInSuggestedSwitchGrid = React.useRef<ScreenGrid>();
 
     const suggestedSwitchCache = React.useRef<{
-        cache: Record<string, (undefined | SuggestedSwitch)[]>;
+        cache: AsyncCache<string, (undefined | SuggestedSwitch)[]>;
         resolution: number;
         center: Point;
     }>();
@@ -234,7 +257,7 @@ const MapView: React.FC<MapViewProps> = ({
                     center.y !== current.center.y
                 ) {
                     suggestedSwitchCache.current = {
-                        cache: {},
+                        cache: asyncCache(),
                         resolution,
                         center,
                     };
@@ -243,107 +266,79 @@ const MapView: React.FC<MapViewProps> = ({
         } /* no deps list: we're checking for the update deliberately on every render */,
     );
 
-    useRateLimitedEffect(
-        () => {
-            const screenGrid = positionInSuggestedSwitchGrid.current;
-            const view = olMap?.getView();
-            const centerCoords = view?.getCenter();
-            const resolution = view?.getResolution();
-            const cache = suggestedSwitchCache.current;
-            if (
-                centerCoords !== undefined &&
-                resolution !== undefined &&
-                screenGrid !== undefined &&
-                olMap !== undefined &&
-                (linkingState?.type === LinkingType.PlacingSwitch ||
-                    linkingState?.type === LinkingType.SuggestingSwitchPlace) &&
-                cache !== undefined &&
-                cache.cache[pointString(screenGrid.cellIndex)] === undefined
-            ) {
-                const points = [...Array(SUGGESTED_SWITCHES_GRID_SIZE)].flatMap((_, yIndex) =>
-                    [...Array(SUGGESTED_SWITCHES_GRID_SIZE)].map((_, xIndex) =>
-                        coordsToPoint(
-                            olMap.getCoordinateFromPixel([
-                                screenGrid.cellIndex.x * SUGGESTED_SWITCHES_GRID_SIZE + xIndex,
-                                screenGrid.cellIndex.y * SUGGESTED_SWITCHES_GRID_SIZE + yIndex,
-                            ]),
-                        ),
-                    ),
-                );
-                //console.log('fetching suggestedSwitches for', pointString(screenGrid.cellIndex));
-                getSuggestedSwitches(points, linkingState.layoutSwitch.id).then(
-                    (suggestedSwitches) => {
-                        const center = coordsToPoint(centerCoords);
-                        const current = suggestedSwitchCache.current;
-                        const willSave =
-                            current !== undefined &&
-                            resolution === current.resolution &&
-                            center.x == current.center.x;
-
-                        if (willSave) {
-                            current.cache[pointString(screenGrid.cellIndex)] = suggestedSwitches;
-                        }
-                    },
-                );
-            }
-        },
-        100,
-        [
-            positionInSuggestedSwitchGrid.current?.cellIndex?.x,
-            positionInSuggestedSwitchGrid.current?.cellIndex?.y,
-            olMap,
-        ],
-    );
-
-    const [suggestedSwitch, setSuggestedSwitch] = React.useState<SuggestedSwitch>();
-    React.useEffect(() => {
-        const cache = suggestedSwitchCache.current;
-        const grid = positionInSuggestedSwitchGrid.current;
-        if (
-            (linkingState?.type === LinkingType.SuggestingSwitchPlace ||
-                linkingState?.type === LinkingType.PlacingSwitch) &&
-            cache !== undefined &&
-            grid !== undefined
-        ) {
-            setSuggestedSwitch(
-                cache.cache[pointString(grid.cellIndex)]?.[
-                    grid.positionInCell.x + grid.positionInCell.y * SUGGESTED_SWITCHES_GRID_SIZE
-                ],
-            );
-        }
-    }, [
-        linkingState,
-        positionInSuggestedSwitchGrid.current?.positionInCell?.x,
-        positionInSuggestedSwitchGrid.current?.positionInCell?.y,
-    ]);
-
-    React.useEffect(() => {
-        if (suggestedSwitch !== undefined) {
-            suggestSwitch(suggestedSwitch);
-            showLayers(['switch-linking-layer']);
-        }
-    }, [suggestedSwitch]);
-
-    const suggestSwitchAndDisplaySwitchLinkingLayer = (suggestedSwitch: SuggestedSwitch) => {
+    const suggestSwitchAndDisplaySwitchLinkingLayer = (
+        suggestedSwitch: SuggestedSwitch | undefined,
+    ) => {
         suggestSwitch(suggestedSwitch);
         showLayers(['switch-linking-layer']);
     };
 
-    const { isLoading: isLoadingSuggestedSwitches, load: loadSuggestedSwitches } =
-        useImmediateLoader(suggestSwitchAndDisplaySwitchLinkingLayer);
+    const { load: loadSuggestedSwitch } = useThrottledLoader(
+        suggestSwitchAndDisplaySwitchLinkingLayer,
+    );
 
     const setHoveredLocation = (newHoveredLocation: Point, pixelPosition: ScreenPoint) => {
         _setHoveredLocation(newHoveredLocation);
         setHoveredPixelLocation(pixelPosition);
 
         const container = olMapContainer.current;
-        if (olMap !== undefined && hoveredPixelLocation !== undefined && container !== null) {
+        if (
+            olMap !== undefined &&
+            hoveredPixelLocation !== undefined &&
+            container !== null &&
+            (linkingState?.type === LinkingType.PlacingSwitch ||
+                linkingState?.type === LinkingType.SuggestingSwitchPlace)
+        ) {
             const rect = container.getBoundingClientRect();
             const pixel = {
                 x: hoveredPixelLocation.x - rect.x,
                 y: hoveredPixelLocation.y - rect.y,
             };
-            positionInSuggestedSwitchGrid.current = grid(SUGGESTED_SWITCHES_GRID_SIZE, pixel);
+            const suggestedSwitchesGrid = grid(SUGGESTED_SWITCHES_GRID_SIZE, pixel);
+            const points = [...Array(SUGGESTED_SWITCHES_GRID_SIZE)].flatMap((_, yIndex) =>
+                [...Array(SUGGESTED_SWITCHES_GRID_SIZE)].map((_, xIndex) =>
+                    coordsToPoint(
+                        olMap.getCoordinateFromPixel([
+                            suggestedSwitchesGrid.cellIndex.x * SUGGESTED_SWITCHES_GRID_SIZE +
+                                xIndex,
+                            suggestedSwitchesGrid.cellIndex.y * SUGGESTED_SWITCHES_GRID_SIZE +
+                                yIndex,
+                        ]),
+                    ),
+                ),
+            );
+            const switchIndexInCell =
+                suggestedSwitchesGrid.positionInCell.y * SUGGESTED_SWITCHES_GRID_SIZE +
+                suggestedSwitchesGrid.positionInCell.x;
+            const key = pointString(suggestedSwitchesGrid.cellIndex);
+            loadSuggestedSwitch(() =>
+                suggestedSwitchCache.current === undefined
+                    ? Promise.resolve(undefined)
+                    : suggestedSwitchCache.current.cache
+                          .getImmutable(key, () =>
+                              getSuggestedSwitches(points, linkingState.layoutSwitch.id),
+                          )
+                          .then((cellSwitches) => {
+                              const suggested = cellSwitches[switchIndexInCell];
+                              if (suggested !== undefined) {
+                                  const presentationJointLocation = suggested.joints.find(
+                                      (j) => j.number === suggested.presentationJointNumber,
+                                  )?.location;
+                                  const pointDistance =
+                                      presentationJointLocation === undefined
+                                          ? undefined
+                                          : getPlanarDistance(
+                                                presentationJointLocation,
+                                                newHoveredLocation,
+                                            );
+                                  return pointDistance !== undefined && pointDistance < 10.0
+                                      ? suggested
+                                      : undefined;
+                              } else {
+                                  return undefined;
+                              }
+                          }),
+            );
         } else {
             positionInSuggestedSwitchGrid.current = undefined;
         }
