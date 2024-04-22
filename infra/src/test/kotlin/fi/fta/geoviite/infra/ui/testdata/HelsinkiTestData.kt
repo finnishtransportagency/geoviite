@@ -78,17 +78,20 @@ class HelsinkiTestData private constructor() {
             )
         }
 
-        fun westMainLocationTrack(trackNumber: IntId<TrackLayoutTrackNumber>): Pair<LocationTrack, LayoutAlignment> {
+        fun westMainLocationTrack(
+            trackNumber: IntId<TrackLayoutTrackNumber>,
+            draft: Boolean = false,
+        ): Pair<LocationTrack, LayoutAlignment> {
             return locationTrack(
                 name = "west",
                 trackNumber = trackNumber,
                 basePoint = HKI_BASE_POINT + Point(x = 675.0, y = 410.0),
                 incrementPoints = listOf(Point(x = 15.0, y = 90.0), Point(x = 5.0, y = 60.0)),
-                draft = false,
+                draft = draft,
             )
         }
 
-        fun westReferenceLine(trackNumber: IntId<TrackLayoutTrackNumber>): Pair<ReferenceLine, LayoutAlignment> {
+        fun westReferenceLine(trackNumber: IntId<TrackLayoutTrackNumber>, draft: Boolean = false): Pair<ReferenceLine, LayoutAlignment> {
             val points = toSegmentPoints(
                 Point(x = HKI_BASE_POINT_X + 670.00, y = HKI_BASE_POINT_Y + 410.00), //etelä
                 Point(x = HKI_BASE_POINT_X + 685.00, y = HKI_BASE_POINT_Y + 500.00),
@@ -99,7 +102,7 @@ class HelsinkiTestData private constructor() {
                 alignment = alignment,
                 trackNumberId = trackNumber,
                 startAddress = TrackMeter(KmNumber(2), 150),
-                draft = false,
+                draft = draft,
             ) to alignment
         }
 

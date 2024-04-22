@@ -1,11 +1,16 @@
 package fi.fta.geoviite.infra.ui.pagemodel.frontpage
 
+import exists
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
 import org.openqa.selenium.support.pagefactory.ByChained
 import waitUntilExists
+import waitUntilNotExist
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
 
@@ -64,6 +69,14 @@ class E2EPublicationDetailsPage(pageBy: By = By.className("publication-details")
 }
 
 class E2EPublicationLog(pageBy: By = By.className("publication-log")) : E2EViewFragment(pageBy) {
+
+    private val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+
+    private fun formatInstant(instant: Instant): String {
+        val zonedDateTime = instant.atZone(ZoneId.of("UTC"))
+        return dateFormatter.format(zonedDateTime)
+    }
+
     fun returnToFrontPage(): E2EFrontPage {
         logger.info("Go to front page")
 
@@ -73,12 +86,28 @@ class E2EPublicationLog(pageBy: By = By.className("publication-log")) : E2EViewF
         return E2EFrontPage()
     }
 
+    fun setSearchStartDate(instant: Instant) = apply {
+        childTextInput(byQaId("publication-log-start-date-input")).replaceValue(formatInstant(instant))
+    }
+
+    fun setSearchEndDate(instant: Instant) = apply {
+        childTextInput(byQaId("publication-log-end-date-input")).replaceValue(formatInstant(instant))
+    }
+
+    fun waitUntilLoaded() = apply {
+        waitUntilNotExist(By.className("table__container--loading"))
+    }
+
     val rows: List<E2EPublicationDetailRow>
         get() {
             val headers = childElements(By.tagName("th"))
 
-            return childElements(By.className("publication-table__row")).map { e ->
-                E2EPublicationDetailRow(e.findElements(By.tagName("td")), headers)
+            return if (!exists(By.className("publication-table__row"))) {
+                emptyList()
+            } else {
+                childElements(By.className("publication-table__row")).map { e ->
+                    E2EPublicationDetailRow(e.findElements(By.tagName("td")), headers)
+                }
             }
         }
 }
