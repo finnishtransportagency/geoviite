@@ -23,6 +23,8 @@ Oleellisia huomioita:
 - Joskus samalla numerolla on useampi ratakilometri, jolloin sen numeroon lisätään kirjaimia (esim. 123A, 123B)
 - Ratametrit ovat metrin mittaisia pituusmittauslinjaa pitkin, mutta koska raiteet eivät kulje täysin samaa linjaa ja
   samaan suuntaan, raiteen metripisteet eivät ole aina metrin välein
+- Koska tasakilometripisteet ikäänkuin resetoivat osoitteiden laskennan, muutokset rataverkossa vaikuttavat osoitteisiin
+  ainoastaan kyseisellä kilometrilla
 
 ## Geokoodauskonteksti (GeocodingContext)
 
@@ -40,25 +42,25 @@ kohtisuoraan, käänteisen geokoodauksen ja geokoodauksen yhdistelmä ei aina tu
 
 Osoitteen koordinaatti haetaan seuraavasti:
 
-- Etsitään lähin tasakilometripiste (KmPost) osoitteen ratakilometristä ja muistetaan tuon kohdan m-arvo (pituus
-  pituusmittauslinjaa pitkin)
-- Lisätään m-arvoon osoitteen metrit jolloin saadaan kohde-kohdan m-arvo
+- Etsitään osoitteen kilometrilukua vastaava tasakilometripiste (KmPost) ja haetaan pituusmittauslinjan lähin kohta
+  tuolle pisteelle
+- Lisätään saadun pisteen m-arvoon (matka pituusmittauslinjaa pitkin) osoitteen metrit jolloin saadaan kohde-kohdan
+  m-arvo
 - Haetaan pituusmittauslinjan koordinaatit tuolle m-arvolle
 
 ### Geokoodaus raiteelle (osoitteesta raiteen koordinaateiksi)
 
 Geokoodaus voidaan tehdä myös niin että koordinaatti poimitaan tietyltä raiteelta, eikä pituusmittauslinjalta. Tämä
 tapahtuu muuten kuten tavallinen geokoodaus, mutta pituusmittauslinjan koordinaattia ei käytetä sellaisenaan, vaan
-tuosta kohdasta projisoidaan kohtisuora viiva raiteelle ja koordinaatti poimitaan tuon viivan ja raiteen
-törmäyspisteestä.
+tuosta kohdasta projisoidaan kohtisuora viiva raiteelle ja koordinaatti poimitaan projektioviivan ja raiteen
+kohtauspisteestä.
 
 ## Käänteinen geokoodaus (koordinaateista osoitteeksi)
 
 Mielivaltaiselle koordinaatille voidaan laskea osoite tietyssä geokoodauskontekstissa, eli tietylle ratanumerolle.
-Toimiakseen, tämä edellyttää että pituusmittauslinja jatkuu riittävän pitkälle. Poikkeamaa voi olla sivusuunnassa
-(kohtisuoraan raiteelta) mutta jos koitetaan tehdä käänteinen geokoodaus koordinaatille joka on ennen raiteen alkua tai
-sen lopun jälkeen, osoitetta ei voida laskea. Geoviitteen laskenta antaa tähän hiukan puskuria, jonka osalta osoitteeksi
-palautetaan ensimmäinen/viimeinen osoite.
+Toimiakseen, tämä edellyttää että pituusmittauslinja jatkuu kyseisen kohdan yli. Poikkeamaa voi olla sivusuunnassa
+(kohtisuoraan raiteelta), mutta jos koitetaan tehdä käänteinen geokoodaus koordinaatille, joka on ennen raiteen alkua
+tai sen lopun jälkeen, osoite ei ole määritelty.
 
 Koordinaatin osoite haetaan seuraavasti:
 
