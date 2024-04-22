@@ -74,10 +74,10 @@ class RequestFilter @Autowired constructor(
     private fun localUser(activeRole: Role, availableRoles: List<Role>): User {
         return User(
             details = UserDetails(
-                userName = UserName("LOCAL_USER"),
-                firstName = AuthName("Local"),
-                lastName = AuthName("User"),
-                organization = AuthName("Geoviite"),
+                userName = UserName.of("LOCAL_USER"),
+                firstName = AuthName.of("Local"),
+                lastName = AuthName.of("User"),
+                organization = AuthName.of("Geoviite"),
             ),
             role = activeRole,
             availableRoles = availableRoles,
@@ -86,10 +86,10 @@ class RequestFilter @Autowired constructor(
 
     private val healthCheckUser by lazy {
         User(
-            details = UserDetails(UserName("HEALTH_CHECK"), null, null, null),
+            details = UserDetails(UserName.of("HEALTH_CHECK"), null, null, null),
             role = Role(
                 code = Code("health-check"),
-                name = AuthName("Service Health Check"),
+                name = AuthName.of("Service Health Check"),
                 privileges = listOf(),
             ),
             availableRoles = listOf()
@@ -281,10 +281,10 @@ private fun randomCorrelationId(): String = "NCI-${UUID.randomUUID()}"
 
 private fun jwtDataContent(dataToken: DecodedJWT) = JwtContent(
     userDetails = UserDetails(
-        userName = UserName(dataToken.getMandatoryClaim(JwtClaim.USER_ID)),
-        firstName = dataToken.getOptionalClaim(JwtClaim.FIRST_NAME)?.let(::AuthName),
-        lastName = dataToken.getOptionalClaim(JwtClaim.LAST_NAME)?.let(::AuthName),
-        organization = dataToken.getOptionalClaim(JwtClaim.ORGANIZATION)?.let(::AuthName),
+        userName = UserName.of(dataToken.getMandatoryClaim(JwtClaim.USER_ID)),
+        firstName = dataToken.getOptionalClaim(JwtClaim.FIRST_NAME)?.let(AuthName::of),
+        lastName = dataToken.getOptionalClaim(JwtClaim.LAST_NAME)?.let(AuthName::of),
+        organization = dataToken.getOptionalClaim(JwtClaim.ORGANIZATION)?.let(AuthName::of),
     ),
     groupNames = dataToken
         .getMandatoryClaim(JwtClaim.ROLES)

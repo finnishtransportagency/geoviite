@@ -38,8 +38,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
 
-val elementListingGenerationUser = UserName("ELEMENT_LIST_GEN")
-val verticalGeometryListingGenerationUser = UserName("VERT_GEOM_LIST_GEN")
+val elementListingGenerationUser = UserName.of("ELEMENT_LIST_GEN")
+val verticalGeometryListingGenerationUser = UserName.of("VERT_GEOM_LIST_GEN")
 
 @Service
 class GeometryService @Autowired constructor(

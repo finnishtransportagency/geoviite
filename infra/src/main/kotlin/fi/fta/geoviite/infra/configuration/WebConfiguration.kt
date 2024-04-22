@@ -41,8 +41,8 @@ class WebConfig : WebMvcConfigurer {
         registry.addStringConstructorConverter(::FreeText)
         registry.addStringConstructorConverter(::LocalizationKey)
 
-        registry.addStringConstructorConverter(::UserName)
-        registry.addStringConstructorConverter(::AuthName)
+        registry.addStringConstructorConverter(UserName::of)
+        registry.addStringConstructorConverter(AuthName::of)
 
         registry.addStringConstructorConverter(::CoordinateSystemName)
         registry.addStringConstructorConverter(::FeatureTypeCode)

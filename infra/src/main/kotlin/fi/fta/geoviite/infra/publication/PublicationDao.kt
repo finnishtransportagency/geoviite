@@ -55,7 +55,7 @@ class PublicationDao(
                 number = rs.getTrackNumber("number"),
                 draftChangeTime = rs.getInstant("change_time"),
                 operation = rs.getEnum("operation"),
-                userName = UserName(rs.getString("change_user")),
+                userName = UserName.of(rs.getString("change_user")),
                 boundingBox = referenceLineDao.fetchVersionByTrackNumberId(PublicationState.DRAFT, id)
                     ?.let(referenceLineDao::fetch)?.boundingBox
             )
@@ -98,7 +98,7 @@ class PublicationDao(
                 name = rs.getTrackNumber("name"),
                 trackNumberId = rs.getIntId("track_number_id"),
                 draftChangeTime = rs.getInstant("change_time"),
-                userName = UserName(rs.getString("change_user")),
+                userName = UserName.of(rs.getString("change_user")),
                 operation = rs.getEnum<Operation>("operation"),
                 boundingBox = rs.getBboxOrNull("bounding_box"),
             )
@@ -161,7 +161,7 @@ class PublicationDao(
                 trackNumberId = rs.getIntId("track_number_id"),
                 draftChangeTime = rs.getInstant("change_time"),
                 duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
-                userName = UserName(rs.getString("change_user")),
+                userName = UserName.of(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
                 boundingBox = rs.getBboxOrNull("bounding_box"),
                 publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup),
@@ -225,7 +225,7 @@ class PublicationDao(
                 rowVersion = rs.getRowVersion("row_id", "row_version"),
                 name = SwitchName(rs.getString("name")),
                 draftChangeTime = rs.getInstant("change_time"),
-                userName = UserName(rs.getString("change_user")),
+                userName = UserName.of(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
                 trackNumberIds = rs.getIntIdArray("track_numbers"),
                 location = rs.getPointOrNull("point_x", "point_y"),
@@ -267,7 +267,7 @@ class PublicationDao(
                 trackNumberId = rs.getIntId("track_number_id"),
                 kmNumber = rs.getKmNumber("km_number"),
                 draftChangeTime = rs.getInstant("change_time"),
-                userName = UserName(rs.getString("change_user")),
+                userName = UserName.of(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
                 location = rs.getPointOrNull("point_x", "point_y"),
             )
@@ -387,7 +387,7 @@ class PublicationDao(
         return getOne(publicationId, jdbcTemplate.query(sql, mapOf("id" to publicationId.intValue)) { rs, _ ->
             Publication(
                 id = rs.getIntId("id"),
-                publicationUser = rs.getString("publication_user").let(::UserName),
+                publicationUser = rs.getString("publication_user").let(UserName::of),
                 publicationTime = rs.getInstant("publication_time"),
                 message = rs.getString("message")
             )
@@ -436,7 +436,7 @@ class PublicationDao(
         return jdbcTemplate.query(sql, params) { rs, _ ->
             Publication(
                 id = rs.getIntId("id"),
-                publicationUser = rs.getString("publication_user").let(::UserName),
+                publicationUser = rs.getString("publication_user").let(UserName::of),
                 publicationTime = rs.getInstant("publication_time"),
                 message = rs.getString("message")
             )
@@ -458,7 +458,7 @@ class PublicationDao(
         return jdbcTemplate.query(sql, params) { rs, _ ->
             Publication(
                 id = rs.getIntId("id"),
-                publicationUser = rs.getString("publication_user").let(::UserName),
+                publicationUser = rs.getString("publication_user").let(UserName::of),
                 publicationTime = rs.getInstant("publication_time"),
                 message = rs.getString("message")
             )

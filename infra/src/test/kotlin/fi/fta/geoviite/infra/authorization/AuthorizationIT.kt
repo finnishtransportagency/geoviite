@@ -64,10 +64,10 @@ class AuthorizationIT @Autowired constructor(
     val user by lazy {
         User(
             details = UserDetails(
-                userName = UserName("A123456"),
-                firstName = AuthName("John"),
-                lastName = AuthName("Doe"),
-                organization = AuthName("Test Oy"),
+                userName = UserName.of("A123456"),
+                firstName = AuthName.of("John"),
+                lastName = AuthName.of("Doe"),
+                organization = AuthName.of("Test Oy"),
             ),
             role = authorizationService.getDefaultRole(availableRoles),
             availableRoles = availableRoles,

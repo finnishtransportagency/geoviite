@@ -1742,7 +1742,7 @@ class GeometryDao @Autowired constructor(
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getIntId<GeometryPlan>("plan_id") to GeometryPlanLinkingSummary(
                 linkedAt = rs.getInstantOrNull("linked_at"),
-                linkedByUsers = rs.getStringArrayOrNull("linked_by_users")?.map(::UserName) ?: listOf(),
+                linkedByUsers = rs.getStringArrayOrNull("linked_by_users")?.map(UserName::of) ?: listOf(),
                 currentlyLinked = rs.getBoolean("is_currently_linked"),
             )
         }.associate { it }

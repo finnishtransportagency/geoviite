@@ -220,7 +220,7 @@ class GeometryDaoIT @Autowired constructor(
         val trackChangeTime =
             locationTrackService.getLayoutAssetChangeInfo(trackVersion.id, PublicationState.OFFICIAL)?.changed
 
-        val expectedSummary = GeometryPlanLinkingSummary(trackChangeTime, listOf(UserName("TEST_USER")), true)
+        val expectedSummary = GeometryPlanLinkingSummary(trackChangeTime, listOf(UserName.of("TEST_USER")), true)
         val summaries = geometryDao.getLinkingSummaries(listOf(planVersion.id))
         val allSummaries = geometryDao.getLinkingSummaries(null)
         assertEquals(mapOf(planVersion.id to expectedSummary), summaries)
