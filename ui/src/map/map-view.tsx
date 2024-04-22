@@ -253,6 +253,7 @@ const MapView: React.FC<MapViewProps> = ({
 
     const { load: loadSuggestedSwitch } = useThrottledLoader(
         suggestSwitchAndDisplaySwitchLinkingLayer,
+        2,
     );
 
     const setHoveredLocation = (newHoveredLocation: Point, pixelPosition: ScreenPoint) => {
