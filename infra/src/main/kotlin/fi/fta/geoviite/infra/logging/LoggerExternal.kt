@@ -41,14 +41,14 @@ private fun responseParams(
     timingMap: Map<String, Duration>,
 ): String {
     val timeMs = Duration.between(startTime, Instant.now()).toMillis()
-    val timingString = if (timingMap.isEmpty()) " [no timings]" else " [$timingMap]"
+    val timingString = if (timingMap.isEmpty()) "[no timings]" else "[$timingMap]"
     return paramsToLog(
         "status" to res.status,
         "time" to "$timeMs ms",
         "contentType" to res.contentType,
         "ip" to requestIp,
         "request" to "${req.method}:${req.requestURL}",
-        "timings" to timingString
+        "timings" to timingString,
     ).joinToString(" ")
 }
 
@@ -85,7 +85,7 @@ fun Logger.serviceCall(method: String, vararg params: Pair<String, *>) {
 fun paramsToLog(vararg params: Pair<String, *>): List<String> =
     params.map { p ->
         "${p.first}=${p.second?.let { obj ->
-            formatForLog(formatForLog(if (obj is Loggable) obj.toLog() else obj.toString(), 1000))
+            formatForLog(if (obj is Loggable) obj.toLog() else obj.toString(), 1000)
         }}"
     }
 
