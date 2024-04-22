@@ -1,13 +1,13 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
-import assertZeroBrowserConsoleErrors
 import exists
-import assertZeroErrorToasts
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EAppBar
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ERole
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EInfraModelPage
+import fi.fta.geoviite.infra.ui.util.assertZeroBrowserConsoleErrors
+import fi.fta.geoviite.infra.ui.util.assertZeroErrorToasts
 import fi.fta.geoviite.infra.ui.util.byQaId
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
@@ -45,7 +45,7 @@ class UserRoleTestUI : SeleniumTest() {
 
             assertZeroErrorToasts()
             assertZeroBrowserConsoleErrors()
-         }
+        }
     }
 }
 

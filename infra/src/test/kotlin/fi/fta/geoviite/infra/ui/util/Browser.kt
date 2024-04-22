@@ -157,30 +157,6 @@ fun printNetworkLogsResponses() = try {
     logger.error("Failed to print network responses ${e.message}")
 }
 
-fun assertZeroErrorToasts() {
-    val toasts = getElements(By.xpath("//div[starts-with(@id, 'toast')]"))
-        .map(::E2EToast)
-        .filter { toast ->
-            toast.type == ToastType.ERROR
-        }
-
-    assertEquals(0, toasts.size, "Expected zero error toasts, but found ${toasts.size}")
-}
-
-fun assertZeroBrowserConsoleErrors() {
-    val logEntries = synchronizeAndConsumeCurrentBrowserLog()
-
-    val severeLogEntries = logEntries
-        .filter { logEntry -> logEntry.level == Level.SEVERE }
-
-    severeLogEntries.forEach { logEntry ->
-        logger.error(logEntry.toString())
-    }
-
-    val severeLogEntryAmount = severeLogEntries.toList().size
-    assertEquals(0, severeLogEntryAmount, "Expected zero console errors, but found $severeLogEntryAmount")
-}
-
 fun synchronizeAndConsumeCurrentBrowserLog(timeoutInSeconds: Duration = defaultWait): List<LogEntry> {
     val timestamp = Instant.now().toEpochMilli()
     val syncMessage = "browser_log_sync_and_consume$timestamp"
