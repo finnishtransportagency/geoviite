@@ -33,6 +33,7 @@ import {
     useSwitches,
 } from 'track-layout/track-layout-react-utils';
 import {
+    getShowSwitchOnMapBoundingBox,
     LocationTrackSplit,
     LocationTrackSplittingEndpoint,
 } from 'tool-panel/location-track/splitting/location-track-split';
@@ -62,6 +63,7 @@ import {
     validateSplit,
 } from 'tool-panel/location-track/splitting/split-utils';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { BoundingBox, boundingBoxAroundPoints, multiplyBoundingBox, Point } from 'model/geometry';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     layoutContext: LayoutContext;
@@ -81,6 +83,7 @@ type LocationTrackSplittingInfoboxProps = {
     startPostingSplit: () => void;
     markSplitOld: (switchId: LayoutSwitchId | undefined) => void;
     onShowTaskList: (locationTrackId: LocationTrackId) => void;
+    showArea: (bbox: BoundingBox) => void;
 } & LocationTrackSplittingInfoboxContainerProps;
 
 export const LocationTrackSplittingInfoboxContainer: React.FC<
@@ -138,6 +141,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
                 startPostingSplit={delegates.startPostingSplit}
                 markSplitOld={delegates.markSplitOld}
                 onShowTaskList={onShowTaskList}
+                showArea={delegates.showArea}
             />
         )
     );
@@ -153,6 +157,9 @@ const createSplitComponent = (
     isPostingSplit: boolean,
     locationTrackInfoboxExtras: LocationTrackInfoboxExtras | undefined,
     duplicateTracksInCurrentSplits: LayoutLocationTrack[],
+    showArea: (bbox: BoundingBox) => void,
+    startPoint: Point,
+    endPoint: Point,
 ) => {
     const nameRef = React.createRef<HTMLInputElement>();
     const descriptionBaseRef = React.createRef<HTMLInputElement>();
@@ -166,6 +173,11 @@ const createSplitComponent = (
         )?.stateCategory !== 'NOT_EXISTING';
 
     const { split, nameErrors, descriptionErrors, switchErrors } = validatedSplit;
+
+    function showSplitTrackOnMap() {
+        showArea(multiplyBoundingBox(boundingBoxAroundPoints([startPoint, endPoint]), 1.15));
+    }
+
     return {
         component: (
             <LocationTrackSplit
@@ -194,6 +206,8 @@ const createSplitComponent = (
                         : undefined
                 }
                 underlyingAssetExists={switchExists}
+                showArea={showArea}
+                onSplitTrackClicked={showSplitTrackOnMap}
             />
         ),
         splitAndValidation: validatedSplit,
@@ -217,6 +231,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     startPostingSplit,
     markSplitOld,
     onShowTaskList,
+    showArea,
 }) => {
     const { t } = useTranslation();
     const [confirmExit, setConfirmExit] = React.useState(false);
@@ -226,6 +241,9 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     const allowedSwitchIds = React.useMemo(
         () => allowedSwitches.map((sw) => sw.switchId),
         [allowedSwitches],
+    );
+    const endSwitch = splittingState.trackSwitches.find(
+        (switchOnTrack) => switchOnTrack.switchId == splittingState.startAndEndSwitches[1],
     );
     const switches = useSwitches(
         allowedSwitchIds,
@@ -309,8 +327,12 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         }
     });
 
-    const splitComponents = splitsValidated.map((split) =>
-        createSplitComponent(
+    const splitComponents = splitsValidated.map((split, index, allSplits) => {
+        const endLocation =
+            index + 1 < allSplits.length
+                ? allSplits[index + 1].split.location
+                : splittingState.endLocation;
+        return createSplitComponent(
             split,
             switches,
             splittingState,
@@ -320,8 +342,11 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             isPostingSplit,
             locationTrackInfoboxExtras,
             duplicateTracksInCurrentSplits,
-        ),
-    );
+            showArea,
+            split.split.location,
+            endLocation,
+        );
+    });
 
     // TODO: GVT-2525 show warnings when duplicateOf doesn't match the main track
     return (
@@ -333,8 +358,13 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                 <InfoboxContent className={styles['location-track-infobox__split']}>
                     {splitComponents.map((split) => split.component)}
                     <LocationTrackSplittingEndpoint
+                        splitSwitch={endSwitch}
                         addressPoint={sourceEnd}
                         editingDisabled={splittingState.disabled}
+                        showArea={showArea}
+                        onSwitchClick={() =>
+                            endSwitch && showArea(getShowSwitchOnMapBoundingBox(sourceEnd.point))
+                        }
                     />
                     {splittingState.disabled && <LocationTrackSplittingDraftExistsErrorNotice />}
                     {!splittingState.disabled && (

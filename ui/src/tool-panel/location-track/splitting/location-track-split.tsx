@@ -7,7 +7,6 @@ import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { createClassName } from 'vayla-design-lib/utils';
 import InfoboxText from 'tool-panel/infobox/infobox-text';
 import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description-suffix-dropdown';
-import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import {
     AddressPoint,
     LayoutLocationTrack,
@@ -18,18 +17,30 @@ import {
 import {
     FirstSplitTargetCandidate,
     SplitTargetCandidate,
+    SwitchOnLocationTrack,
 } from 'tool-panel/location-track/split-store';
-import { MAP_POINT_NEAR_BBOX_OFFSET } from 'map/map-utils';
+import {
+    calculateBoundingBoxToShowAroundLocation,
+    MAP_POINT_NEAR_BBOX_OFFSET,
+} from 'map/map-utils';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 import { isEqualIgnoreCase } from 'utils/string-utils';
 import { getOperation } from './split-utils';
+import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { BoundingBox, Point } from 'model/geometry';
 
-type EndpointProps = {
+type CommonProps = {
     addressPoint: AddressPoint | undefined;
     editingDisabled: boolean;
+    showArea: (bbox: BoundingBox) => void;
 };
 
-type SplitProps = EndpointProps & {
+type EndpointProps = CommonProps & {
+    splitSwitch: SwitchOnLocationTrack | undefined;
+    onSwitchClick: () => void;
+};
+
+type SplitProps = CommonProps & {
     locationTrackId: LocationTrackId;
     split: SplitTargetCandidate | FirstSplitTargetCandidate;
     onRemove?: (switchId: LayoutSwitchId) => void;
@@ -44,28 +55,57 @@ type SplitProps = EndpointProps & {
     allDuplicateLocationTracks: LocationTrackDuplicate[];
     duplicateLocationTrack: LayoutLocationTrack | undefined;
     underlyingAssetExists: boolean;
+    showArea: (bbox: BoundingBox) => void;
+    onSplitTrackClicked: () => void;
 };
 
+export function getShowSwitchOnMapBoundingBox(location: Point): BoundingBox {
+    return calculateBoundingBoxToShowAroundLocation(location, 100);
+}
+
 export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({
+    splitSwitch,
     addressPoint,
     editingDisabled,
+    onSwitchClick,
 }) => {
-    const { t } = useTranslation();
+    // const { t } = useTranslation();
     return (
-        <div className={styles['location-track-infobox__split-container']}>
-            <div
-                className={createClassName(
-                    styles['location-track-infobox__split-item-ball'],
-                    editingDisabled && styles['location-track-infobox__split-item-ball--disabled'],
-                )}
-            />
-            <InfoboxField label={t('tool-panel.location-track.splitting.end-address')}>
-                <NavigableTrackMeter
-                    trackMeter={addressPoint?.address}
-                    location={addressPoint?.point}
-                    mapNavigationBboxOffset={MAP_POINT_NEAR_BBOX_OFFSET}
+        <div
+            className={createClassName(
+                styles['location-track-infobox__split-container'],
+                styles['location-track-infobox__split-container--endpoint'],
+            )}>
+            <div className="location-track-infobox__split-item-ball-container">
+                <div
+                    className={createClassName(
+                        styles['location-track-infobox__split-item-ball'],
+                        editingDisabled &&
+                            styles['location-track-infobox__split-item-ball--disabled'],
+                    )}
+                    onClick={onSwitchClick}
                 />
-            </InfoboxField>
+            </div>
+            <div className={styles['location-track-infobox__split-switch-row']}>
+                <span
+                    className={styles['location-track-infobox__split-switch-name']}
+                    onClick={onSwitchClick}>
+                    {splitSwitch?.name}
+                </span>
+                <span className={styles['location-track-infobox__split-switch-row-fill']}></span>
+                <span className={styles['location-track-infobox__split-track-address']}>
+                    <NavigableTrackMeter
+                        trackMeter={addressPoint?.address}
+                        location={addressPoint?.point}
+                        mapNavigationBboxOffset={MAP_POINT_NEAR_BBOX_OFFSET}
+                    />
+                </span>
+                <div
+                    className={createClassName(
+                        styles['location-track-infobox__split-close-button'],
+                        styles['location-track-infobox__split-close-button--disabled'],
+                    )}></div>
+            </div>
         </div>
     );
 };
@@ -87,6 +127,8 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     allDuplicateLocationTracks,
     duplicateLocationTrack,
     underlyingAssetExists,
+    showArea,
+    onSplitTrackClicked,
 }) => {
     const { t } = useTranslation();
     const switchId = split.type === 'SPLIT' ? split.switch.switchId : undefined;
@@ -108,60 +150,74 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     const nameErrorsVisible = nameCommitted && nameErrors.length > 0;
     const descriptionErrorsVisible = descriptionCommitted && descriptionErrors.length > 0;
 
+    function showSwitchOnMap(location: Point) {
+        showArea(getShowSwitchOnMapBoundingBox(location));
+    }
+
     return (
         <div className={styles['location-track-infobox__split-container']}>
             <div
                 className={createClassName(
-                    styles['location-track-infobox__split-item-line'],
-                    !underlyingAssetExists &&
-                        styles['location-track-infobox__split-item-line--disabled'],
+                    styles['location-track-infobox__split-item-line-container'],
                 )}
-            />
+                onClick={onSplitTrackClicked}>
+                <div
+                    className={createClassName(
+                        styles['location-track-infobox__split-item-line'],
+                        !underlyingAssetExists &&
+                            styles['location-track-infobox__split-item-line--disabled'],
+                    )}
+                />
+            </div>
             <div
-                className={createClassName(
-                    styles['location-track-infobox__split-item-ball'],
-                    !underlyingAssetExists &&
-                        styles['location-track-infobox__split-item-ball--disabled'],
-                )}
-            />
+                className={styles['location-track-infobox__split-item-ball-container']}
+                onClick={() => addressPoint && showSwitchOnMap(addressPoint.point)}>
+                <div
+                    className={createClassName(
+                        styles['location-track-infobox__split-item-ball'],
+                        !underlyingAssetExists &&
+                            styles['location-track-infobox__split-item-ball--disabled'],
+                    )}
+                />
+            </div>
             <div className={styles['location-track-infobox__split-fields-container']}>
                 <div>
-                    <div className={styles['location-track-infobox__split-row-with-close-button']}>
-                        <InfoboxField
-                            label={
-                                split.type === 'SPLIT'
-                                    ? t('tool-panel.location-track.splitting.split-address')
-                                    : t('tool-panel.location-track.splitting.start-address')
+                    <div className={styles['location-track-infobox__split-switch-row']}>
+                        <span
+                            className={styles['location-track-infobox__split-switch-name']}
+                            onClick={() => addressPoint && showSwitchOnMap(addressPoint.point)}>
+                            {split.switch.name}
+                        </span>
+                        <span
+                            className={
+                                styles['location-track-infobox__split-switch-row-fill']
+                            }></span>
+                        <span className={styles['location-track-infobox__split-track-address']}>
+                            <NavigableTrackMeter
+                                trackMeter={addressPoint?.address}
+                                location={addressPoint?.point}
+                                mapNavigationBboxOffset={MAP_POINT_NEAR_BBOX_OFFSET}
+                            />
+                        </span>
+                        <div
+                            className={createClassName(
+                                styles['location-track-infobox__split-close-button'],
+                                deletingDisabled
+                                    ? styles['location-track-infobox__split-close-button--disabled']
+                                    : styles['location-track-infobox__split-close-button--enabled'],
+                            )}
+                            onClick={() =>
+                                onRemove && !deletingDisabled && switchId && onRemove(switchId)
                             }>
-                            <div>
-                                <div>
-                                    <NavigableTrackMeter
-                                        trackMeter={addressPoint?.address}
-                                        location={addressPoint?.point}
-                                        mapNavigationBboxOffset={MAP_POINT_NEAR_BBOX_OFFSET}
-                                    />
-                                </div>
-                                {switchErrors.map((err, i) => (
-                                    <SplitErrorMessage key={i.toString()} error={err} />
-                                ))}
-                            </div>
-                        </InfoboxField>
-                        {onRemove && (
-                            <div
-                                className={createClassName(
-                                    styles['location-track-infobox__split-close-button'],
-                                    deletingDisabled
-                                        ? styles[
-                                              'location-track-infobox__split-close-button--disabled'
-                                          ]
-                                        : styles[
-                                              'location-track-infobox__split-close-button--enabled'
-                                          ],
-                                )}
-                                onClick={() => !deletingDisabled && switchId && onRemove(switchId)}>
-                                <Icons.Close size={IconSize.SMALL} color={IconColor.INHERIT} />
-                            </div>
-                        )}
+                            {onRemove && (
+                                <Icons.Clear size={IconSize.SMALL} color={IconColor.INHERIT} />
+                            )}
+                        </div>
+                        <div style={{ display: 'none' }}>
+                            {switchErrors.map((err, i) => (
+                                <SplitErrorMessage key={i.toString()} error={err} />
+                            ))}
+                        </div>
                     </div>
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
@@ -188,7 +244,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                     duplicateStatus: duplicate?.duplicateStatus,
                                     operation: getOperation(
                                         locationTrackId,
-                                        split.switchId,
+                                        split.switch.switchId,
                                         duplicate?.duplicateStatus,
                                     ),
                                     hasAutogeneratedName: false,

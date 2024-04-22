@@ -12,6 +12,7 @@ import setTimeSvg from './glyphs/action/set-time.svg';
 import ascending from './glyphs/action/ascending.svg';
 import descending from './glyphs/action/descending.svg';
 import targetSvg from './glyphs/action/target.svg';
+import clearSvg from './glyphs/action/clear.svg';
 import infoSvg from './glyphs/status/info.svg';
 import deniedSvg from './glyphs/status/denied.svg';
 import selectedSvg from './glyphs/status/selected.svg';
@@ -107,6 +108,7 @@ const iconNameToSvgMap = {
     Measure: measureSvg,
     Select: selectSvg,
     Target: targetSvg,
+    Clear: clearSvg,
 
     // Misc
     Layers: layersSvg,
