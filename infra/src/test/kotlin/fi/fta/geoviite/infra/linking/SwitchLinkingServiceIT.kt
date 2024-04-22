@@ -939,7 +939,13 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 SwitchRelinkingValidationResult(
                     id = unsaveableSwitch.id,
                     successfulSuggestion = null,
-                    validationErrors = listOf(),
+                    validationErrors = listOf(
+                        PublicationValidationError(
+                            type = PublicationValidationErrorType.ERROR,
+                            localizationKey = LocalizationKey("validation.layout.switch.track-linkage.relinking-failed"),
+                            params = LocalizationParams(mapOf("switch" to "unsaveable"))
+                        )
+                    ),
                 ),
             ), validationResult
         )

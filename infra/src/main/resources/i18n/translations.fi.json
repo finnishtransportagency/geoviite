@@ -687,6 +687,7 @@
                     "show": "näytä"
                 },
                 "validation-in-progress": "Raiteen vaihteita validoidaan...",
+                "relink-critical-errors": "Raiteen vaihteiden linkityksessä on kriittisiä ongelmia, jotka täytyy korjata ennen raiteen jakamista",
                 "relink-message": "Raiteen vaihteissa on ongelmia, jotka olisi hyödyllistä korjata ennen raiteen jakamista",
                 "cancel-and-relink": "Peruuta ja näytä ongelmalliset vaihteet ({{count}} kpl)"
             },
@@ -695,7 +696,8 @@
                     "title": "Tehtävälista",
                     "validation-errors-message": "Seuraavissa raiteen \"{{locationTrack}}\" vaihteissa on ongelmia",
                     "no-validation-errors-message": "Raiteen \"{{locationTrack}}\" vaihteet ovat kunnossa.",
-                    "close-task-list": "Sulje tehtävälista"
+                    "close-task-list": "Sulje tehtävälista",
+                    "relinking-failed": "Vaihteen automaattinen uudelleenlinkitys epäonnistui"
                 }
             },
             "splitting-blocks-geometry-changes": "Raiteen geometriaa ei voi muokata koska sen jakaminen on kesken",
@@ -1327,7 +1329,8 @@
                     "front-joint-only-duplicate-connected": "Vaihteen etujatkokselta jatkuu vain duplikaatiksi merkittyjä raiteita",
                     "switch-alignment-not-connected": "Joitakin vaihteen linjoja ei ole liitetty raiteelle: {{locationTracks}}",
                     "switch-alignment-only-connected-to-duplicate": "Joitakin vaihteen linjoja on liitetty ainoastaan duplikaatiksi merkityille raiteille: {{locationTracks}}",
-                    "multiple-tracks-through-joint": "Joistain vaihteen pisteistä menee läpi enemmän kuin yksi raide: {{locationTracks}}"
+                    "multiple-tracks-through-joint": "Joistain vaihteen pisteistä menee läpi enemmän kuin yksi raide: {{locationTracks}}",
+                    "relinking-failed": "Vaihteen {{switch}} uudelleenlinkitys epäonnistui"
                 }
             },
             "geocoding": {

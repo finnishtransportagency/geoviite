@@ -20,7 +20,7 @@ import { getSwitches } from 'track-layout/layout-switch-api';
 import { createPortal } from 'react-dom';
 import { Point } from 'model/geometry';
 import { getLocationTrack } from 'track-layout/layout-location-track-api';
-import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { SwitchBadge, SwitchBadgeStatus } from 'geoviite-design-lib/switch/switch-badge';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { useTrackLayoutAppSelector } from 'store/hooks';
@@ -88,13 +88,19 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
         [locationTrackId, getChangeTimes().layoutLocationTrack],
     );
 
-    const [switches, switchesLoadingStatus] = useLoaderWithStatus(async () => {
-        const switchIds = (await validateLocationTrackSwitchRelinking(locationTrackId))
+    const [switchesAndErrors, switchesLoadingStatus] = useLoaderWithStatus(async () => {
+        const errors = await validateLocationTrackSwitchRelinking(locationTrackId);
+        const switchIds = errors
             .filter((r) => r.validationErrors.length > 0 || r.successfulSuggestion == null)
             .map((s) => s.id);
 
-        return await getSwitches(switchIds, draftLayoutContext(layoutContext));
+        return {
+            errors,
+            switches: await getSwitches(switchIds, draftLayoutContext(layoutContext)),
+        };
     }, [changeTimes.layoutSwitch, locationTrackId, changeTimes.layoutLocationTrack]);
+    const switches = switchesAndErrors?.switches;
+    const errors = switchesAndErrors?.errors;
 
     const onClick = (layoutSwitch: LayoutSwitch) => {
         const presJointNumber = switchStructures?.find(
@@ -140,9 +146,18 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
                         <ul className={styles['switch-relinking-validation-task-list__switches']}>
                             {switches.map((lSwitch) => {
                                 const selected = selectedSwitches.some((sId) => sId == lSwitch.id);
+                                const relinkingFailed = !errors?.find((e) => e.id == lSwitch.id)
+                                    ?.successfulSuggestion;
 
                                 return (
                                     <li
+                                        title={
+                                            relinkingFailed
+                                                ? t(
+                                                      'tool-panel.location-track.task-list.switch-relinking.relinking-failed',
+                                                  )
+                                                : ''
+                                        }
                                         key={lSwitch.id}
                                         className={
                                             styles['switch-relinking-validation-task-list__switch']
@@ -156,6 +171,17 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
                                                     : SwitchBadgeStatus.DEFAULT
                                             }
                                         />
+                                        {relinkingFailed && (
+                                            <span
+                                                className={
+                                                    'switch-relinking-validation-task-list__critical-error'
+                                                }>
+                                                <Icons.StatusError
+                                                    size={IconSize.SMALL}
+                                                    color={IconColor.INHERIT}
+                                                />
+                                            </span>
+                                        )}
                                     </li>
                                 );
                             })}

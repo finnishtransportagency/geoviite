@@ -54,6 +54,7 @@ import { LocationTrackSplitRelinkingNotice } from 'tool-panel/location-track/spl
 import {
     findRefToFirstErroredField,
     getSplitAddressPoint,
+    hasUnrelinkableSwitches,
     mandatoryFieldMissing,
     otherError,
     splitRequest,
@@ -61,6 +62,9 @@ import {
     validateSplit,
 } from 'tool-panel/location-track/splitting/split-utils';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
+import { validateLocationTrackSwitchRelinking } from 'linking/linking-api';
+import { SwitchRelinkingValidationResult } from 'linking/linking-model';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     layoutContext: LayoutContext;
@@ -69,6 +73,7 @@ type LocationTrackSplittingInfoboxContainerProps = {
 };
 
 type LocationTrackSplittingInfoboxProps = {
+    locationTrack: LayoutLocationTrack;
     changeTimes: ChangeTimes;
     splittingState: SplittingState;
     removeSplit: (switchId: LayoutSwitchId) => void;
@@ -80,6 +85,8 @@ type LocationTrackSplittingInfoboxProps = {
     startPostingSplit: () => void;
     markSplitOld: (switchId: LayoutSwitchId | undefined) => void;
     onShowTaskList: (locationTrackId: LocationTrackId) => void;
+    switchRelinkingErrors: SwitchRelinkingValidationResult[];
+    switchRelinkingLoaderState: LoaderStatus;
 } & LocationTrackSplittingInfoboxContainerProps;
 
 export const LocationTrackSplittingInfoboxContainer: React.FC<
@@ -101,9 +108,28 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
         changeTimes,
     );
 
+    const [switchRelinkingErrors, switchRelinkingLoaderState] = useLoaderWithStatus(
+        () =>
+            splittingState
+                ? validateLocationTrackSwitchRelinking(splittingState.originLocationTrack.id).then(
+                      (t) => t.filter((t) => t.validationErrors.length > 0),
+                  )
+                : Promise.resolve([]),
+        [changeTimes.layoutLocationTrack, changeTimes.layoutSwitch],
+    );
+
     React.useEffect(() => {
-        locationTrack && delegates.setDisabled(locationTrack?.editState !== 'UNEDITED');
-    }, [locationTrack, changeTimes.layoutLocationTrack]);
+        locationTrack &&
+            delegates.setDisabled(
+                locationTrack?.editState !== 'UNEDITED' ||
+                    hasUnrelinkableSwitches(switchRelinkingErrors || []),
+            );
+    }, [
+        locationTrack,
+        switchRelinkingErrors,
+        changeTimes.layoutLocationTrack,
+        changeTimes.layoutSwitch,
+    ]);
 
     const onShowTaskList = (locationTrack: LocationTrackId) => {
         delegates.showLocationTrackTaskList({
@@ -123,6 +149,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
         startAndEnd?.start &&
         startAndEnd?.end && (
             <LocationTrackSplittingInfobox
+                locationTrack={locationTrack}
                 visibilities={visibilities}
                 visibilityChange={visibilityChange}
                 layoutContext={layoutContext}
@@ -137,6 +164,8 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
                 startPostingSplit={delegates.startPostingSplit}
                 markSplitOld={delegates.markSplitOld}
                 onShowTaskList={onShowTaskList}
+                switchRelinkingErrors={switchRelinkingErrors || []}
+                switchRelinkingLoaderState={switchRelinkingLoaderState}
             />
         )
     );
@@ -199,6 +228,7 @@ const createSplitComponent = (
 };
 
 export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfoboxProps> = ({
+    locationTrack,
     layoutContext,
     visibilities,
     visibilityChange,
@@ -213,6 +243,8 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     startPostingSplit,
     markSplitOld,
     onShowTaskList,
+    switchRelinkingErrors,
+    switchRelinkingLoaderState,
 }) => {
     const { t } = useTranslation();
     const [confirmExit, setConfirmExit] = React.useState(false);
@@ -228,7 +260,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         changeTimes.layoutSwitch,
     );
     const conflictingLocationTracks = useConflictingTracks(
-        splittingState.originLocationTrack.trackNumberId,
+        locationTrack.trackNumberId,
         allSplits.map((s) => s.name),
         allSplits.map((s) => s.duplicateTrackId).filter(filterNotEmpty),
         draftLayoutContext(layoutContext),
@@ -239,7 +271,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         getChangeTimes().layoutLocationTrack,
     );
     const [locationTrackInfoboxExtras, _] = useLocationTrackInfoboxExtras(
-        splittingState.originLocationTrack.id,
+        locationTrack.id,
         draftLayoutContext(layoutContext),
         getChangeTimes(),
     );
@@ -270,7 +302,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         startPostingSplit();
         postSplitLocationTrack(
             splitRequest(
-                splittingState.originLocationTrack.id,
+                locationTrack.id,
                 splittingState.firstSplit,
                 splittingState.splits,
                 duplicateTracksInCurrentSplits,
@@ -281,7 +313,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                 stopSplitting();
                 success(
                     t('tool-panel.location-track.splitting.splitting-success', {
-                        locationTrackName: splittingState.originLocationTrack.name,
+                        locationTrackName: locationTrack.name,
                         count: splitsValidated.length,
                     }),
                 );
@@ -330,14 +362,16 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         addressPoint={sourceEnd}
                         editingDisabled={splittingState.disabled}
                     />
-                    {splittingState.disabled && <LocationTrackSplittingDraftExistsErrorNotice />}
-                    {!splittingState.disabled && (
-                        <LocationTrackSplitRelinkingNotice
-                            splittingState={splittingState}
-                            onShowTaskList={onShowTaskList}
-                            stopSplitting={stopSplitting}
-                        />
+                    {splittingState.disabled && locationTrack.editState !== 'UNEDITED' && (
+                        <LocationTrackSplittingDraftExistsErrorNotice />
                     )}
+                    <LocationTrackSplitRelinkingNotice
+                        splittingState={splittingState}
+                        onShowTaskList={onShowTaskList}
+                        stopSplitting={stopSplitting}
+                        switchRelinkingErrors={switchRelinkingErrors}
+                        switchRelinkingLoadingState={switchRelinkingLoaderState}
+                    />
                     {!splittingState.disabled && splittingState.splits.length === 0 && (
                         <LocationTrackSplittingGuideNotice />
                     )}
