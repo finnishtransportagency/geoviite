@@ -69,4 +69,9 @@
         justify-content: center;
         align-items: center;
     }
+
+    &__critical-error {
+        margin-left: 4px;
+        fill: vayla-design.$color-red-dark;
+    }
 }

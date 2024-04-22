@@ -22,6 +22,7 @@ import {
     validateLocationTrackName,
 } from 'tool-panel/location-track/dialog/location-track-validation';
 import { isEqualIgnoreCase } from 'utils/string-utils';
+import { SwitchRelinkingValidationResult } from 'linking/linking-model';
 
 export type ValidatedSplit = {
     split: SplitTargetCandidate | FirstSplitTargetCandidate;
@@ -220,6 +221,9 @@ export const getSplitAddressPoint = (
         };
     }
 };
+
+export const hasUnrelinkableSwitches = (switchRelinkingErrors: SwitchRelinkingValidationResult[]) =>
+    switchRelinkingErrors?.some((err) => !err.successfulSuggestion) || false;
 
 export const getOperation = (
     trackId: LocationTrackId,
