@@ -1,18 +1,10 @@
-import {
-    filterNotEmpty,
-    filterUnique,
-    first,
-    groupByAssociated,
-    last,
-    objectEntries,
-} from 'utils/array-utils';
+import { filterNotEmpty, filterUnique, first, last, objectEntries } from 'utils/array-utils';
 import {
     SuggestedSwitch,
     SuggestedSwitchJoint,
     TopologicalJointConnection,
-    TrackLayoutSwitchJoint,
 } from 'linking/linking-model';
-import { JointNumber, LayoutContext, SwitchStructure, SwitchTypeJoint } from 'common/common-model';
+import { JointNumber, LayoutContext } from 'common/common-model';
 import {
     LayoutLocationTrack,
     LayoutSwitchJointConnection,
@@ -20,7 +12,6 @@ import {
 } from 'track-layout/track-layout-model';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { expectDefined } from 'utils/type-utils';
-import { Point } from 'model/geometry';
 import { getPlanarDistance } from 'map/layers/utils/layer-utils';
 
 export enum SwitchTypeMatch {

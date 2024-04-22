@@ -35,8 +35,8 @@ import {
 } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
-import { GeometryPlanLayout, LAYOUT_SRID, LocationTrackId } from 'track-layout/track-layout-model';
-import { JointNumber, LayoutContext } from 'common/common-model';
+import { GeometryPlanLayout, LAYOUT_SRID } from 'track-layout/track-layout-model';
+import { LayoutContext } from 'common/common-model';
 import Overlay from 'ol/Overlay';
 import { useTranslation } from 'react-i18next';
 import { createDebugLayer } from 'map/layers/debug/debug-layer';
@@ -177,28 +177,6 @@ type ScreenGrid = {
     cellIndex: Point;
     positionInCell: Point;
 };
-
-function getSuggestedSwitchJointDistances(
-    suggested: SuggestedSwitch,
-): { locationTrackId: LocationTrackId; jointNumber: JointNumber; distance: number }[] {
-    return suggested.joints.flatMap((joint) =>
-        objectEntries(suggested.trackLinks).flatMap(([locationTrackId, trackLinks]) =>
-            trackLinks.segmentJoints.flatMap((sj) => {
-                if (sj.number !== joint.number) {
-                    return [];
-                } else {
-                    return [
-                        {
-                            locationTrackId,
-                            jointNumber: joint.number,
-                            distance: getPlanarDistance(sj.location, joint.location),
-                        },
-                    ];
-                }
-            }),
-        ),
-    );
-}
 
 const MapView: React.FC<MapViewProps> = ({
     map,
