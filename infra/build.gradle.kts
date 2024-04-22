@@ -92,6 +92,7 @@ dependencies {
     //See: https://github.com/mock-server/mockserver/issues/1660
     testImplementation("org.mock-server:mockserver-netty-no-dependencies:5.14.0")
     testImplementation("org.apache.httpcomponents.client5:httpclient5:5.3.1")
+    testImplementation("org.apache.logging.log4j:log4j-slf4j-impl:2.23.1")
 }
 
 licenseReport {
