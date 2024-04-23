@@ -4,7 +4,6 @@ import { Table, Th } from 'vayla-design-lib/table/table';
 import { useTranslation } from 'react-i18next';
 import styles from '../data-product-table.scss';
 import { ElementItem } from 'geometry/geometry-model';
-import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import {
     ElementHeadingWithClassName,
     nonNumericHeading,
@@ -20,14 +19,8 @@ type ElementTableProps = {
     isLoading: boolean;
 };
 
-const ElementTable = ({
-    layoutContext,
-    elements,
-    showLocationTrackName,
-    isLoading,
-}: ElementTableProps) => {
+const ElementTable = ({ elements, showLocationTrackName, isLoading }: ElementTableProps) => {
     const { t } = useTranslation();
-    const trackNumbers = useTrackNumbers(layoutContext);
     const amount = elements.length;
     const commonTableHeadings: ElementHeadingWithClassName[] = [
         withClassName(
@@ -125,10 +118,7 @@ const ElementTable = ({
                         {elements.map((item) => (
                             <React.Fragment key={item.id}>
                                 <ElementTableItem
-                                    trackNumber={
-                                        trackNumbers?.find((tn) => tn.id === item.trackNumberId)
-                                            ?.number
-                                    }
+                                    trackNumber={item.trackNumber}
                                     geometryAlignmentName={item.alignmentName}
                                     locationTrackName={item.locationTrackName}
                                     type={t(
