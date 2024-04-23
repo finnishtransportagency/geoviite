@@ -13,6 +13,7 @@ import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { MapLayerName } from 'map/map-model';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { filterNotEmpty } from 'utils/array-utils';
 
 const splitPointStyle = new Style({
     image: new Circle({
@@ -20,6 +21,15 @@ const splitPointStyle = new Style({
         fill: new Fill({ color: mapStyles.splitPointCircleColor }),
         stroke: new Stroke({ color: mapStyles.alignmentBadgeWhite, width: 2 }),
     }),
+    zIndex: 2,
+});
+const splitPointFocusedStyle = new Style({
+    image: new Circle({
+        radius: 10,
+        fill: new Fill({ color: mapStyles.splitPointCircleColor }),
+        stroke: new Stroke({ color: mapStyles.alignmentBadgeWhite, width: 2 }),
+    }),
+    zIndex: 3,
 });
 
 const deletedSplitPointStyle = new Style({
@@ -45,6 +55,10 @@ export const createLocationTrackSplitLocationLayer = (
 ): MapLayer => {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
+    const focusedSplits = [splittingState?.focusedSplit, splittingState?.highlightedSplit].filter(
+        filterNotEmpty,
+    );
+
     const dataPromise: Promise<LayoutSwitch[]> = splittingState
         ? getSwitches(
               splittingState.splits.map((sw) => sw.switch.switchId),
@@ -54,6 +68,7 @@ export const createLocationTrackSplitLocationLayer = (
 
     const createFeatures = (switches: LayoutSwitch[]) => {
         if (splittingState) {
+            const allSplits = [splittingState.firstSplit, ...splittingState.splits];
             const firstAndLast: SwitchIdAndLocation[] = [
                 { location: splittingState.firstSplit.location, switchId: undefined },
                 { location: splittingState.endLocation, switchId: undefined },
@@ -70,7 +85,24 @@ export const createLocationTrackSplitLocationLayer = (
                 const feature = new Feature({
                     geometry: new OlPoint(pointToCoords(location)),
                 });
-                feature.setStyle(isDeleted ? deletedSplitPointStyle : splitPointStyle);
+
+                const switchIsFocused = focusedSplits.some((focusedSplitId) => {
+                    const splitIndex = allSplits.findIndex((split) => split.id == focusedSplitId);
+                    const focusedSplit = allSplits[splitIndex];
+                    const nextSwitchId =
+                        splitIndex + 1 < allSplits.length
+                            ? allSplits[splitIndex + 1].switch.switchId
+                            : splittingState.startAndEndSwitches[1];
+                    return focusedSplit?.switch.switchId == switchId || nextSwitchId == switchId;
+                });
+
+                feature.setStyle(
+                    isDeleted
+                        ? deletedSplitPointStyle
+                        : switchIsFocused
+                          ? splitPointFocusedStyle
+                          : splitPointStyle,
+                );
                 return feature;
             });
         } else {

@@ -22,6 +22,7 @@ import {
     FirstSplitTargetCandidate,
     getAllowedSwitchesFromState,
     SplitTargetCandidate,
+    SplitTargetId,
     SplittingState,
 } from 'tool-panel/location-track/split-store';
 import {
@@ -84,6 +85,9 @@ type LocationTrackSplittingInfoboxProps = {
     markSplitOld: (switchId: LayoutSwitchId | undefined) => void;
     onShowTaskList: (locationTrackId: LocationTrackId) => void;
     showArea: (bbox: BoundingBox) => void;
+    setFocusedSplit: (split: SplitTargetId | undefined) => void;
+    setHighlightedSplit: (split: SplitTargetId | undefined) => void;
+    setHighlightedSwitch: (switchId: LayoutSwitchId | undefined) => void;
 } & LocationTrackSplittingInfoboxContainerProps;
 
 export const LocationTrackSplittingInfoboxContainer: React.FC<
@@ -142,6 +146,9 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
                 markSplitOld={delegates.markSplitOld}
                 onShowTaskList={onShowTaskList}
                 showArea={delegates.showArea}
+                setFocusedSplit={delegates.setFocusedSplit}
+                setHighlightedSplit={delegates.setHighlightedSplit}
+                setHighlightedSwitch={delegates.setHighlightedSwitch}
             />
         )
     );
@@ -160,6 +167,12 @@ const createSplitComponent = (
     showArea: (bbox: BoundingBox) => void,
     startPoint: Point,
     endPoint: Point,
+    onFocus: () => void,
+    onBlur: () => void,
+    onHighlight: () => void,
+    onReleaseHighlight: () => void,
+    onHighlightSwitch: () => void,
+    onReleaseSwitchHighlight: () => void,
 ) => {
     const nameRef = React.createRef<HTMLInputElement>();
     const descriptionBaseRef = React.createRef<HTMLInputElement>();
@@ -208,6 +221,12 @@ const createSplitComponent = (
                 underlyingAssetExists={switchExists}
                 showArea={showArea}
                 onSplitTrackClicked={showSplitTrackOnMap}
+                onFocus={onFocus}
+                onBlur={onBlur}
+                onHighlight={onHighlight}
+                onReleaseHighlight={onReleaseHighlight}
+                onHighlightSwitch={onHighlightSwitch}
+                onReleaseSwitchHighlight={onReleaseSwitchHighlight}
             />
         ),
         splitAndValidation: validatedSplit,
@@ -232,6 +251,9 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     markSplitOld,
     onShowTaskList,
     showArea,
+    setFocusedSplit,
+    setHighlightedSplit,
+    setHighlightedSwitch,
 }) => {
     const { t } = useTranslation();
     const [confirmExit, setConfirmExit] = React.useState(false);
@@ -327,6 +349,24 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         }
     });
 
+    // function addFocusedSplit(split: SplitTarget) {
+    //     if (
+    //         !splittingState.splitsInFocus.some(
+    //             (splitToCheck) => splitToCheck.switch.switchId == split.switch.switchId,
+    //         )
+    //     ) {
+    //         updateSplitsInFocus([...splittingState.splitsInFocus, split]);
+    //     }
+    // }
+    //
+    // function removeFocusedSplit(split: SplitTarget) {
+    //     updateSplitsInFocus(
+    //         splittingState.splitsInFocus.filter(
+    //             (splitToCheck) => splitToCheck.switch.switchId != split.switch.switchId,
+    //         ),
+    //     );
+    // }
+
     const splitComponents = splitsValidated.map((split, index, allSplits) => {
         const endLocation =
             index + 1 < allSplits.length
@@ -345,6 +385,12 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             showArea,
             split.split.location,
             endLocation,
+            () => setFocusedSplit(split.split.id),
+            () => setFocusedSplit(undefined),
+            () => setHighlightedSplit(split.split.id),
+            () => setHighlightedSplit(undefined),
+            () => setHighlightedSwitch(split.split.switch.switchId),
+            () => setHighlightedSwitch(undefined),
         );
     });
 
