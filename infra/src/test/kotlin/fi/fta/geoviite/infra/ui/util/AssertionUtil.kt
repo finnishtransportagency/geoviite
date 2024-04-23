@@ -26,10 +26,25 @@ fun assertZeroErrorToasts() {
 }
 
 fun assertZeroBrowserConsoleErrors() {
+    val skippedSevereErrors = listOf(
+        // The map tiles are not configured to work in the AWS environment during E2E tests.
+        // Consider that to be non-severe error for now.
+        //
+        // Example match:
+        // [SEVERE] http://127.0.0.1:9001/location-map/wmts/maasto?service=WMTS&request=GetCapabilities&version=1.0.0
+        // - Failed to load resource: the server responded with a status of 404 (Not Found)
+        "wmts/maasto?service=WMTS&request=GetCapabilities&version=1.0.0",
+    )
+
     val logEntries = synchronizeAndConsumeCurrentBrowserLog()
 
     val severeLogEntries = logEntries
         .filter { logEntry -> logEntry.level == Level.SEVERE }
+        .filter { logEntry ->
+            !skippedSevereErrors.any { skippedError ->
+                skippedError in logEntry.toString()
+            }
+        }
 
     severeLogEntries.forEach { logEntry ->
         logger.error(logEntry.toString())
