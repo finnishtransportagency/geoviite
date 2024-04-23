@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.util.stream.Collectors
 import kotlin.math.max
 
 private const val TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT = 0.5
@@ -141,18 +140,29 @@ fun findSuggestedSwitchJointMatches(
 
     val possibleSegments = alignment.segments.subList(possibleSegmentIndices.first, possibleSegmentIndices.last + 1)
 
-    val jointDistanceToAlignment = possibleSegments.flatMap { segment ->
-        segment.segmentPoints.mapIndexedNotNull { pIdx, point ->
-            segment.segmentPoints.getOrNull(pIdx - 1)?.let { previousPoint ->
-                val closestSegmentPoint = closestPointOnLine(previousPoint, point, jointLocation)
-                val jointDistanceToSegment = lineLength(closestSegmentPoint, jointLocation)
-                jointDistanceToSegment
-            }
-        }
-    }.min()
+    val closestSegmentMsToJoint = possibleSegments.map { segment -> segment.getClosestPointM(jointLocation).first }
 
-    return possibleSegments.flatMapIndexed { index, segment ->
+    val jointDistanceToAlignment = possibleSegments.zip(closestSegmentMsToJoint) { segment, segmentM ->
+            lineLength(segment.seekPointAtM(segmentM).point, jointLocation)
+        }.min()
+
+    return possibleSegments.zip(closestSegmentMsToJoint).flatMapIndexed { index, (segment, closestSegmentM) ->
         val segmentIndex = possibleSegmentIndices.first + index + alignment.cropStartSegmentIndex
+        val closestSegmentPointIndex = segment.seekPointAtSegmentM(closestSegmentM).index
+
+        fun takeSegmentLineMatches(points: List<SegmentPoint>) = points
+            .asSequence()
+            .zipWithNext { previousPoint, point ->
+                val closestAlignmentPoint = closestPointOnLine(previousPoint, point, jointLocation)
+                val jointDistanceToSegment = lineLength(closestAlignmentPoint, jointLocation)
+                closestAlignmentPoint to jointDistanceToSegment
+            }
+            .takeWhile { (_, d) -> d < tolerance }
+
+        val segmentLinesWithinTolerance = sequenceOf(
+            takeSegmentLineMatches(segment.segmentPoints.subList(closestSegmentPointIndex, segment.segmentPoints.size)),
+            takeSegmentLineMatches(segment.segmentPoints.subList(0, closestSegmentPointIndex).asReversed()),
+        ).flatten().toList()
 
         val startMatches = segment.segmentStart.isSame(jointLocation, TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT)
         val endMatches = segment.segmentEnd.isSame(jointLocation, TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT)
@@ -181,24 +191,17 @@ fun findSuggestedSwitchJointMatches(
                 alignmentId = locationTrack.alignmentVersion?.id,
                 segmentIndex = segmentIndex,
             ) else null
-        ) + segment.segmentPoints.mapIndexedNotNull { pIdx, point ->
-            segment.segmentPoints.getOrNull(pIdx - 1)?.let { previousPoint ->
-                val closestAlignmentPoint = closestPointOnLine(previousPoint, point, jointLocation)
-                val jointDistanceToSegment = lineLength(closestAlignmentPoint, jointLocation)
-
-                if (jointDistanceToSegment < tolerance) {
-                    FittedSwitchJointMatch(
-                        locationTrackId = locationTrack.id as IntId,
-                        m = segment.getClosestPointM(closestAlignmentPoint).first,
-                        matchType = SuggestedSwitchJointMatchType.LINE,
-                        switchJoint = joint,
-                        distance = jointDistanceToSegment,
-                        distanceToAlignment = jointDistanceToAlignment,
-                        alignmentId = locationTrack.alignmentVersion?.id,
-                        segmentIndex = segmentIndex,
-                    )
-                } else null
-            }
+        ) + segmentLinesWithinTolerance.map { (closestAlignmentPoint, jointDistanceToSegment) ->
+            FittedSwitchJointMatch(
+                locationTrackId = locationTrack.id as IntId,
+                m = segment.getClosestPointM(closestAlignmentPoint).first,
+                matchType = SuggestedSwitchJointMatchType.LINE,
+                switchJoint = joint,
+                distance = jointDistanceToSegment,
+                distanceToAlignment = jointDistanceToAlignment,
+                alignmentId = locationTrack.alignmentVersion?.id,
+                segmentIndex = segmentIndex,
+            )
         }
     }
 }
