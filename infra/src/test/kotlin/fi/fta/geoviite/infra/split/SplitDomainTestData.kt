@@ -1,12 +1,9 @@
+package fi.fta.geoviite.infra.split
+
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
-import fi.fta.geoviite.infra.split.SplitRequest
-import fi.fta.geoviite.infra.split.SplitRequestTarget
-import fi.fta.geoviite.infra.split.SplitRequestTargetDuplicate
-import fi.fta.geoviite.infra.split.SplitTargetDuplicate
-import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation
-import fi.fta.geoviite.infra.split.SplitTargetParams
+import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -42,7 +39,11 @@ fun targetParams(
     duplicate: Pair<LocationTrack, LayoutAlignment>? = null,
 ): SplitTargetParams {
     return SplitTargetParams(
-        startSwitch = if (switchId != null && switchJoint != null) (switchId to switchJoint) else null,
+        startSwitch = if (switchId != null && switchJoint != null) {
+            SplitPointSwitch(switchId, switchJoint, SwitchName("S${switchId.intValue}"))
+        } else {
+            null
+        },
         request = SplitRequestTarget(
             duplicateTrack = (duplicate?.first?.id as? IntId)?.let { id ->
                 SplitRequestTargetDuplicate(id, SplitTargetDuplicateOperation.OVERWRITE)

@@ -46,71 +46,69 @@ class LocationTrackController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/location-tracks/{$PUBLICATION_STATE}", params = ["bbox"])
     fun getLocationTracksNear(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("bbox") bbox: BoundingBox,
     ): List<LocationTrack> {
-        logger.apiCall("getLocationTracksNear", "$PUBLICATION_STATE" to publicationState, "bbox" to bbox)
+        logger.apiCall("getLocationTracksNear", PUBLICATION_STATE to publicationState, "bbox" to bbox)
         return locationTrackService.listNear(publicationState, bbox)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/location-tracks/{$PUBLICATION_STATE}", params = ["searchTerm", "limit"])
     fun searchLocationTracks(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("searchTerm", required = true) searchTerm: FreeText,
         @RequestParam("limit", required = true) limit: Int,
     ): List<LocationTrack> {
-        logger.apiCall("searchLocationTracks", "$PUBLICATION_STATE" to publicationState, "searchTerm" to searchTerm, "limit" to limit)
+        logger.apiCall("searchLocationTracks", PUBLICATION_STATE to publicationState, "searchTerm" to searchTerm, "limit" to limit)
         return locationTrackService.list(publicationState, searchTerm, limit)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/location-tracks/{$PUBLICATION_STATE}/{id}")
     fun getLocationTrack(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<LocationTrack> {
-        logger.apiCall("getLocationTrack", "$PUBLICATION_STATE" to publicationState, "id" to id)
+        logger.apiCall("getLocationTrack", PUBLICATION_STATE to publicationState, "id" to id)
         return toResponse(locationTrackService.get(publicationState, id))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/location-tracks/{$PUBLICATION_STATE}", params = ["ids"])
     fun getLocationTracks(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids", required = true) ids: List<IntId<LocationTrack>>,
     ): List<LocationTrack> {
-        logger.apiCall("getLocationTracks", "$PUBLICATION_STATE" to publicationState, "ids" to ids)
+        logger.apiCall("getLocationTracks", PUBLICATION_STATE to publicationState, "ids" to ids)
         return locationTrackService.getMany(publicationState, ids)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/location-tracks/{$PUBLICATION_STATE}/{id}/start-and-end")
     fun getLocationTrackStartAndEnd(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<AlignmentStartAndEndWithId<*>> {
-        logger.apiCall("getLocationTrackStartAndEnd", "$PUBLICATION_STATE" to publicationState, "id" to id)
+        logger.apiCall("getLocationTrackStartAndEnd", PUBLICATION_STATE to publicationState, "id" to id)
         val locationTrackAndAlignment = locationTrackService.getWithAlignment(publicationState, id)
         return toResponse(locationTrackAndAlignment?.let { (locationTrack, alignment) ->
-            geocodingService.getLocationTrackStartAndEnd(
-                publicationState, locationTrack, alignment
-            )?.let { AlignmentStartAndEndWithId(locationTrack.id as IntId, it.start, it.end) }
+            geocodingService.getLocationTrackStartAndEnd(publicationState, locationTrack, alignment)
+                ?.let { AlignmentStartAndEndWithId(locationTrack.id as IntId, it.start, it.end) }
         })
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/location-tracks/{$PUBLICATION_STATE}/start-and-end")
     fun getManyLocationTracksStartsAndEnds(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids") ids: List<IntId<LocationTrack>>,
     ): List<AlignmentStartAndEndWithId<*>> {
-        logger.apiCall("getLocationTrackStartAndEnd", "$PUBLICATION_STATE" to publicationState, "ids" to ids)
+        logger.apiCall("getLocationTrackStartAndEnd", PUBLICATION_STATE to publicationState, "ids" to ids)
         return ids.mapNotNull { id ->
             locationTrackService.getWithAlignment(publicationState, id)?.let { (locationTrack, alignment) ->
-                geocodingService.getLocationTrackStartAndEnd(
-                    publicationState, locationTrack, alignment
-                )?.let { AlignmentStartAndEndWithId(locationTrack.id as IntId, it.start, it.end) }
+                geocodingService.getLocationTrackStartAndEnd(publicationState, locationTrack, alignment)
+                    ?.let { AlignmentStartAndEndWithId(locationTrack.id as IntId, it.start, it.end) }
             }
         }
     }
@@ -118,37 +116,33 @@ class LocationTrackController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/location-tracks/{$PUBLICATION_STATE}/{id}/infobox-extras")
     fun getLocationTrackInfoboxExtras(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<LocationTrackInfoboxExtras> {
-        logger.apiCall("getLocationTrackInfoboxExtras", "$PUBLICATION_STATE" to publicationState, "id" to id)
+        logger.apiCall("getLocationTrackInfoboxExtras", PUBLICATION_STATE to publicationState, "id" to id)
         return toResponse(locationTrackService.getInfoboxExtras(publicationState, id))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/location-tracks/{$PUBLICATION_STATE}/{id}/relinkable-switches-count")
     fun getRelinkableSwitchesCount(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<Int> {
-        logger.apiCall("getRelinkableSwitchesCount", "$PUBLICATION_STATE" to publicationState, "id" to id)
+        logger.apiCall("getRelinkableSwitchesCount", PUBLICATION_STATE to publicationState, "id" to id)
         return toResponse(locationTrackService.getRelinkableSwitchesCount(publicationState, id))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/location-tracks/{$PUBLICATION_STATE}/description")
     fun getDescription(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids") ids: List<IntId<LocationTrack>>,
     ): List<LocationTrackDescription> {
-        logger.apiCall("getDescription", "$PUBLICATION_STATE" to publicationState, "ids" to ids)
+        logger.apiCall("getDescription", PUBLICATION_STATE to publicationState, "ids" to ids)
         return ids.mapNotNull { id ->
             id.let { locationTrackService.get(publicationState, it) }?.let { lt ->
-                LocationTrackDescription(
-                    id, locationTrackService.getFullDescription(
-                        publicationState, lt
-                    )
-                )
+                LocationTrackDescription(id, locationTrackService.getFullDescription(publicationState, lt))
             }
         }
     }
@@ -156,30 +150,30 @@ class LocationTrackController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/location-tracks/{$PUBLICATION_STATE}/end-points")
     fun getLocationTrackAlignmentEndpoints(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("bbox") bbox: BoundingBox,
     ): List<LocationTrackEndpoint> {
-        logger.apiCall("getLocationTrackAlignmentEndpoints", "$PUBLICATION_STATE" to publicationState, "bbox" to bbox)
+        logger.apiCall("getLocationTrackAlignmentEndpoints", PUBLICATION_STATE to publicationState, "bbox" to bbox)
         return locationTrackService.getLocationTrackEndpoints(bbox, publicationState)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/location-tracks/{$PUBLICATION_STATE}/{id}/validation")
     fun validateLocationTrack(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<ValidatedAsset<LocationTrack>> {
-        logger.apiCall("validateLocationTrack", "$PUBLICATION_STATE" to publicationState, "id" to id)
+        logger.apiCall("validateLocationTrack", PUBLICATION_STATE to publicationState, "id" to id)
         return publicationService.validateLocationTracks(listOf(id), publicationState).firstOrNull().let(::toResponse)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/location-tracks/{$PUBLICATION_STATE}/{id}/validation/switches")
     fun validateLocationTrackSwitches(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): List<SwitchValidationWithSuggestedSwitch> {
-        logger.apiCall("validateLocationTrackSwitches", "$PUBLICATION_STATE" to publicationState, "id" to id)
+        logger.apiCall("validateLocationTrackSwitches", PUBLICATION_STATE to publicationState, "id" to id)
         val switchSuggestions = switchLinkingService.getTrackSwitchSuggestions(publicationState, id)
         val switchValidation = publicationService.validateSwitches(switchSuggestions.map { (id, _) -> id }, publicationState)
         return switchValidation.map { validatedAsset ->
@@ -224,21 +218,21 @@ class LocationTrackController(
     @GetMapping("/location-tracks/{$PUBLICATION_STATE}/{id}/change-times")
     fun getLocationTrackChangeInfo(
         @PathVariable("id") id: IntId<LocationTrack>,
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
     ): ResponseEntity<LayoutAssetChangeInfo> {
-        logger.apiCall("getLocationTrackChangeInfo", "id" to id, "$PUBLICATION_STATE" to publicationState)
+        logger.apiCall("getLocationTrackChangeInfo", "id" to id, PUBLICATION_STATE to publicationState)
         return toResponse(locationTrackService.getLayoutAssetChangeInfo(id, publicationState))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/location-tracks/{$PUBLICATION_STATE}/{id}/plan-geometry")
     fun getTrackSectionsByPlan(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
         @RequestParam("bbox") boundingBox: BoundingBox? = null,
     ): List<AlignmentPlanSection> {
         logger.apiCall(
-            "getTrackSectionsByPlan", "$PUBLICATION_STATE" to publicationState, "id" to id, "bbox" to boundingBox
+            "getTrackSectionsByPlan", PUBLICATION_STATE to publicationState, "id" to id, "bbox" to boundingBox
         )
         return locationTrackService.getMetadataSections(id, publicationState, boundingBox)
     }
@@ -246,13 +240,13 @@ class LocationTrackController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/track-numbers/{$PUBLICATION_STATE}/{trackNumberId}/location-tracks")
     fun getTrackNumberTracksByName(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
         @RequestParam("locationTrackNames") names: List<AlignmentName>,
     ): List<LocationTrack> {
         logger.apiCall(
             "getTrackNumberTracksByName",
-            "$PUBLICATION_STATE" to publicationState,
+            PUBLICATION_STATE to publicationState,
             "trackNumberId" to trackNumberId,
             "names" to names,
         )
@@ -269,12 +263,12 @@ class LocationTrackController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/location-tracks/{$PUBLICATION_STATE}/{id}/splitting-initialization-parameters")
     fun getSplittingInitializationParameters(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<SplittingInitializationParameters> {
         logger.apiCall(
             "getSplittingInitializationParameters",
-            "$PUBLICATION_STATE" to publicationState,
+            PUBLICATION_STATE to publicationState,
             "id" to id,
         )
         return toResponse(locationTrackService.getSplittingInitializationParameters(id, publicationState))

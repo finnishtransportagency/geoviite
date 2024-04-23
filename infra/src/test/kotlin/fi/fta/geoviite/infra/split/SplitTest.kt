@@ -4,11 +4,19 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxCombining
-import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType.*
+import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType.NONE
+import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType.SWITCH_TO_BUFFER
+import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType.SWITCH_TO_OWNERSHIP_BOUNDARY
+import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType.SWITCH_TO_SWITCH
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.segment
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import targetParams
 
 class SplitTest {
 
