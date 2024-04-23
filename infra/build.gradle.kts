@@ -3,18 +3,22 @@ import com.github.jk1.license.filter.LicenseBundleNormalizer
 import com.github.jk1.license.render.InventoryHtmlReportRenderer
 import com.github.jk1.license.render.ReportRenderer
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
-import org.gradle.api.tasks.testing.logging.TestLogEvent.*
+import org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED
+import org.gradle.api.tasks.testing.logging.TestLogEvent.PASSED
+import org.gradle.api.tasks.testing.logging.TestLogEvent.SKIPPED
+import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_ERROR
+import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_OUT
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val geotoolsVersion = "30.2"
 val kotlinVersion = "1.9.22"
 
 plugins {
-    id("org.springframework.boot") version "3.2.2"
+    id("org.springframework.boot") version "3.2.5"
     id("io.spring.dependency-management") version "1.1.4"
-    id("com.github.jk1.dependency-license-report") version "2.0"
-    kotlin("jvm") version "1.9.22"
-    kotlin("plugin.spring") version "1.9.22"
+    id("com.github.jk1.dependency-license-report") version "2.5"
+    kotlin("jvm") version "1.9.23"
+    kotlin("plugin.spring") version "1.9.23"
 }
 
 group = "fi.fta.geoviite"
@@ -32,15 +36,15 @@ configurations {
     }
 }
 
-ext["selenium.version"] = "4.18.0"
+ext["selenium.version"] = "4.19.1"
 dependencies {
     // Version overrides for transitive deps (due to known vulnerabilities)
 
     // Actual deps
-    implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.661") {
+    implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.705") {
         exclude("commons-logging", "commons-logging")
     }
-    implementation("org.bouncycastle:bcpkix-jdk18on:1.77")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.78.1")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -51,8 +55,8 @@ dependencies {
     runtimeOnly("org.springframework.boot:spring-boot-properties-migrator")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.16.1")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.16.1")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.0")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.17.0")
     implementation("com.zaxxer:HikariCP:5.1.0")
     implementation("org.flywaydb:flyway-core:9.22.3")
     // v enable once going to Flyway 10.0 (requires Spring Boot 2.7.18)
@@ -71,28 +75,28 @@ dependencies {
         exclude("it.geosolutions.jgridshift", "jgridshift-core")
     }
     implementation("org.apache.commons:commons-csv:1.10.0")
-    implementation("commons-io:commons-io:2.15.1")
+    implementation("commons-io:commons-io:2.16.1")
     implementation("com.auth0:jwks-rsa:0.22.1")
     implementation("com.auth0:java-jwt:4.4.0")
-    implementation("io.netty:netty-resolver-dns-native-macos:4.1.107.Final:osx-aarch_64")
-    implementation("org.postgresql:postgresql:42.7.1")
-    implementation("jakarta.activation:jakarta.activation-api:2.1.2")
-    implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.1")
+    implementation("io.netty:netty-resolver-dns-native-macos:4.1.109.Final:osx-aarch_64")
+    implementation("org.postgresql:postgresql:42.7.3")
+    implementation("jakarta.activation:jakarta.activation-api:2.1.3")
+    implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.2")
     implementation("com.github.davidmoten:rtree2:0.9.3")
     implementation("commons-validator:commons-validator:1.8.0") {
         exclude("commons-logging", "commons-logging")
+        exclude("commons-collections", "commons-collections")
     }
     compileOnly("org.springframework.boot:spring-boot-devtools")
-    runtimeOnly("org.glassfish.jaxb:jaxb-runtime:4.0.4")
+    runtimeOnly("org.glassfish.jaxb:jaxb-runtime:4.0.5")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
-    testImplementation("org.seleniumhq.selenium:selenium-java:4.18.0")
+    testImplementation("org.seleniumhq.selenium:selenium-java:4.19.1")
     //Do not update to version 5.15.0 as it causes StackOverflowError.
     //See: https://github.com/mock-server/mockserver/issues/1660
-    testImplementation("org.mock-server:mockserver-netty-no-dependencies:5.14.0")
+    testImplementation("org.mock-server:mockserver-netty:5.15.0")
     testImplementation("org.apache.httpcomponents.client5:httpclient5:5.3.1")
-    testImplementation("org.apache.logging.log4j:log4j-slf4j-impl:2.23.1")
 }
 
 licenseReport {
