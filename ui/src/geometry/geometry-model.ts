@@ -1,5 +1,5 @@
 import { Point } from 'model/geometry';
-import { LayoutTrackNumberId, LocationTrackId } from 'track-layout/track-layout-model';
+import { LocationTrackId } from 'track-layout/track-layout-model';
 import {
     AngularUnit,
     DataType,
@@ -274,7 +274,7 @@ export type ElementItem = {
     planSource: PlanSource;
     fileName: string;
     coordinateSystemSrid?: Srid;
-    trackNumberId: LayoutTrackNumberId;
+    trackNumber?: TrackNumber;
     trackNumberDescription: string;
     coordinateSystemName?: string;
     connectedSwitchName: string;
