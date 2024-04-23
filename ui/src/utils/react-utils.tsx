@@ -92,45 +92,55 @@ export function useRateLimitedLoaderWithStatus<TEntity>(
     return [entity, loaderStatus];
 }
 
-/**
- * Like useImmediateLoader, but delays any calls to the loader promise callback until there is no call currently in
- * flight.
- */
-export function useThrottledLoader<TEntity>(
-    setter: (result: TEntity) => void,
-    maxRequestsInFlight = 1,
-): {
-    isLoading: boolean;
-    load: (promise: () => Promise<TEntity>) => void;
-} {
-    const nextLoadCallback = useRef<() => Promise<TEntity>>();
-    const requestsInFlight = useRef(0);
-    const load = (loader: () => Promise<TEntity>) => {
-        if (requestsInFlight.current === maxRequestsInFlight) {
-            nextLoadCallback.current = loader;
+export function useRequestQueue<TEntity>(
+    policy: 'queue' | 'stack' = 'queue',
+    maxRequestsInFlight: number = 1,
+): { request: (loader: () => Promise<TEntity>) => Promise<TEntity> } {
+    const requestQueue = useRef<
+        {
+            loader: () => Promise<TEntity>;
+            resolve: (value: TEntity | PromiseLike<TEntity>) => void;
+            reject: (reason?: never) => void;
+        }[]
+    >([]);
+    const inFlight = useRef(0);
+    const drainQueue = () => {
+        const next = policy === 'queue' ? requestQueue.current.shift() : requestQueue.current.pop();
+        if (next) {
+            inFlight.current++;
+            next.loader()
+                .then(next.resolve, next.reject)
+                .finally(() => {
+                    inFlight.current--;
+                    drainQueue();
+                });
+        }
+    };
+    const request = (loader: () => Promise<TEntity>): Promise<TEntity> => {
+        if (inFlight.current === maxRequestsInFlight) {
+            return new Promise((resolve, reject) => {
+                requestQueue.current.push({
+                    loader,
+                    resolve,
+                    reject,
+                });
+            });
         } else {
-            requestsInFlight.current += 1;
-            loader().then(
+            inFlight.current++;
+            return loader().then(
                 (result) => {
-                    requestsInFlight.current--;
-                    setter(result);
-                    const next = nextLoadCallback.current;
-                    nextLoadCallback.current = undefined;
-                    if (next) {
-                        load(next);
-                    }
+                    inFlight.current--;
+                    drainQueue();
+                    return result;
                 },
                 (error) => {
-                    requestsInFlight.current--;
+                    inFlight.current--;
                     throw error;
                 },
             );
         }
     };
-    return {
-        isLoading: requestsInFlight.current > 0,
-        load,
-    };
+    return { request };
 }
 
 export function useImmediateLoader<TEntity>(setter: (result: TEntity) => void): {

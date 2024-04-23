@@ -90,10 +90,10 @@ import { createLocationTrackSplitBadgeLayer } from 'map/layers/alignment/locatio
 import { createSelectedReferenceLineAlignmentLayer } from './layers/alignment/reference-line-selected-alignment-layer';
 import { createOperatingPointLayer } from 'map/layers/operating-point/operating-points-layer';
 import { layersCoveringLayers } from 'map/map-store';
-import { useThrottledLoader } from 'utils/react-utils';
+import { useRequestQueue } from 'utils/react-utils';
 import { getSuggestedSwitches } from 'linking/linking-api';
 import { Brand } from 'common/brand';
-import { grid } from 'utils/math-utils';
+import { grid, gridPositionEquals } from 'utils/math-utils';
 import { pointString } from 'common/common-api';
 import { asyncCache, AsyncCache } from 'cache/cache';
 
@@ -251,10 +251,9 @@ const MapView: React.FC<MapViewProps> = ({
         showLayers(['switch-linking-layer']);
     };
 
-    const { load: loadSuggestedSwitch } = useThrottledLoader(
-        suggestSwitchAndDisplaySwitchLinkingLayer,
-        2,
-    );
+    const { request: requestLoadingSuggestedSwitch } = useRequestQueue<
+        (SuggestedSwitch | undefined)[]
+    >('stack', 5);
 
     const setHoveredLocation = (newHoveredLocation: Point, pixelPosition: ScreenPoint) => {
         _setHoveredLocation(newHoveredLocation);
@@ -274,6 +273,7 @@ const MapView: React.FC<MapViewProps> = ({
                 y: hoveredPixelLocation.y - rect.y,
             };
             const suggestedSwitchesGrid = grid(SUGGESTED_SWITCHES_GRID_SIZE, pixel);
+            positionInSuggestedSwitchGrid.current = suggestedSwitchesGrid;
             const points = [...Array(SUGGESTED_SWITCHES_GRID_SIZE)].flatMap((_, yIndex) =>
                 [...Array(SUGGESTED_SWITCHES_GRID_SIZE)].map((_, xIndex) =>
                     coordsToPoint(
@@ -286,38 +286,44 @@ const MapView: React.FC<MapViewProps> = ({
                     ),
                 ),
             );
-            const switchIndexInCell =
-                suggestedSwitchesGrid.positionInCell.y * SUGGESTED_SWITCHES_GRID_SIZE +
-                suggestedSwitchesGrid.positionInCell.x;
             const key = pointString(suggestedSwitchesGrid.cellIndex);
-            loadSuggestedSwitch(() =>
-                suggestedSwitchCache.current === undefined
-                    ? Promise.resolve(undefined)
-                    : suggestedSwitchCache.current.cache
-                          .getImmutable(key, () =>
-                              getSuggestedSwitches(points, linkingState.layoutSwitch.id),
-                          )
-                          .then((cellSwitches) => {
-                              const suggested = cellSwitches[switchIndexInCell];
-                              if (suggested !== undefined) {
-                                  const presentationJointLocation = suggested.joints.find(
-                                      (j) => j.number === suggested.presentationJointNumber,
-                                  )?.location;
-                                  const pointDistance =
-                                      presentationJointLocation === undefined
-                                          ? undefined
-                                          : getPlanarDistance(
-                                                presentationJointLocation,
-                                                newHoveredLocation,
-                                            );
-                                  return pointDistance !== undefined && pointDistance < 10.0
-                                      ? suggested
-                                      : undefined;
-                              } else {
-                                  return undefined;
-                              }
-                          }),
-            );
+            const cache = suggestedSwitchCache.current;
+            if (cache !== undefined) {
+                cache.cache
+                    .getImmutable(key, () =>
+                        requestLoadingSuggestedSwitch(() =>
+                            getSuggestedSwitches(points, linkingState.layoutSwitch.id),
+                        ),
+                    )
+                    .then((tileSwitches) => {
+                        // need to store full hovered pixel location as well as validity stuff in ref so that we can check
+                        // for all of it whether it's current here, but for now...
+                        if (
+                            cache === suggestedSwitchCache.current &&
+                            positionInSuggestedSwitchGrid.current &&
+                            gridPositionEquals(
+                                suggestedSwitchesGrid,
+                                positionInSuggestedSwitchGrid.current,
+                            )
+                        ) {
+                            const switchIndexInCell =
+                                suggestedSwitchesGrid.positionInCell.y *
+                                    SUGGESTED_SWITCHES_GRID_SIZE +
+                                suggestedSwitchesGrid.positionInCell.x;
+                            const suggested = tileSwitches[switchIndexInCell];
+                            if (
+                                suggested &&
+                                hoveredLocation &&
+                                getPlanarDistance(suggested.joints[0].location, hoveredLocation) <
+                                    10
+                            ) {
+                                suggestSwitchAndDisplaySwitchLinkingLayer(
+                                    tileSwitches[switchIndexInCell],
+                                );
+                            }
+                        }
+                    });
+            }
         } else {
             positionInSuggestedSwitchGrid.current = undefined;
         }

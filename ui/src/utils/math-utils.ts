@@ -144,3 +144,15 @@ export function grid(gridSize: number, point: Point): { cellIndex: Point; positi
     const yPos = point.y % gridSize;
     return { cellIndex: { x: xIndex, y: yIndex }, positionInCell: { x: xPos, y: yPos } };
 }
+
+export function gridPositionEquals(
+    a: { cellIndex: Point; positionInCell: Point },
+    b: { cellIndex: Point; positionInCell: Point },
+): boolean {
+    return (
+        a.cellIndex.x === b.cellIndex.x &&
+        a.cellIndex.y === b.cellIndex.y &&
+        a.positionInCell.x === b.positionInCell.x &&
+        a.positionInCell.y === b.positionInCell.y
+    );
+}
