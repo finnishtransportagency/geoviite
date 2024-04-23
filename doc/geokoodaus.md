@@ -55,6 +55,8 @@ tapahtuu muuten kuten tavallinen geokoodaus, mutta pituusmittauslinjan koordinaa
 tuosta kohdasta projisoidaan kohtisuora viiva raiteelle ja koordinaatti poimitaan projektioviivan ja raiteen
 kohtauspisteestä.
 
+![](images/osoitteen_koordinaatti.png)
+
 ## Käänteinen geokoodaus (koordinaateista osoitteeksi)
 
 Mielivaltaiselle koordinaatille voidaan laskea osoite tietyssä geokoodauskontekstissa, eli tietylle ratanumerolle.
@@ -62,11 +64,13 @@ Toimiakseen, tämä edellyttää että pituusmittauslinja jatkuu kyseisen kohdan
 (kohtisuoraan raiteelta), mutta jos koitetaan tehdä käänteinen geokoodaus koordinaatille, joka on ennen raiteen alkua
 tai sen lopun jälkeen, osoite ei ole määritelty.
 
-Koordinaatin osoite haetaan seuraavasti:
+Alla oleva kuva havainnollistaa koordinaatin osoitteen laskentaa. Algoritmi toimii ylätasolla seuraavasti:
 
 - Haetaan pituusmittauslinjalta kohdepistettä lähin kohta (= kohtisuora projektio)
 - Haetaan kyseisen kohdan m-arvolla lähin tasakilometripiste (KmPost)
 - Lisätään osoitteen m-arvoksi kohdepisteen m-arvon ja tasakilometripisteen m-arvon erotus
+
+![](images/koordinaatin_osoite.png)
 
 ## Raiteen osoitepisteiden tuottaminen (RATKOn malli)
 
@@ -76,12 +80,13 @@ Huomattavaa on, että RATKO haluaa nimenomaa tasametripisteet, eli pisteet joide
 metrin välein itse raiteelta. Pisteet tuotetaan projisoimalla ne pituusmittauslinjalta raidetta kohden, vastaavasti kuin
 yllä kohdassa Geokoodaus raiteelle.
 
-![](images/ratko_pisteet.png)
-
-Osoitepisteet tuotetaan seuraavasti:
+Allaoleva kuva esittää miten paikannuspohjan pisteviiva-muotoisesta raiteesta ja pituusmittauslinjasta muodostuu RATKOn
+tasametri-osoitteisto. Algoritmi toimii ylätasolla seuraavasti:
 
 - Haetaan raiteen alku- ja loppupisteille osoitteet käänteisellä geokoodauksella
 - Käydään läpi kaikki kontekstin ratakilometrit ja niiden metrit, siltä osin kun ne ovat alku- ja loppupisteen välillä
     - Metrit tuotetaan käymällä pituusmittauslinjaa 1m kerrallaan eteenpäin kunnes saavutetaan uusi tasakilometripiste
     - Projisoidaan kohtisuora viiva pituusmittauslinjalta kunkin metrin kohdalla
     - Osoitetta vastaava koordinaatti on projektioviivan ja raiteen törmäyspiste
+
+![](images/ratko_pisteet.png)
