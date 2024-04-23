@@ -233,7 +233,8 @@ data class GeocodingContext(
                     referenceLineGeometry = referenceLineGeometry,
                     referencePoints = validReferencePoints,
                     startAddress = startAddress
-                ), rejectedKmPosts = invalidKmPosts + kmPostsOutsideGeometry,
+                ),
+                rejectedKmPosts = invalidKmPosts + kmPostsOutsideGeometry,
                 validKmPosts = validKmPosts,
                 startPointRejectedReason = if (startKmIsTooLong) StartPointRejectedReason.TOO_LONG else null
             )
@@ -339,10 +340,8 @@ data class GeocodingContext(
     fun getM(coordinate: IPoint) = referenceLineGeometry.getClosestPointM(coordinate)
 
     fun getAddressAndM(coordinate: IPoint, addressDecimals: Int = DEFAULT_TRACK_METER_DECIMALS): AddressAndM? =
-        referenceLineGeometry.getClosestPointM(coordinate)?.let { (dist, type) ->
-            getAddress(dist, addressDecimals)?.let { address ->
-                AddressAndM(address, dist, type)
-            }
+        referenceLineGeometry.getClosestPointM(coordinate)?.let { (mValue, type) ->
+            getAddress(mValue, addressDecimals)?.let { address -> AddressAndM(address, mValue, type) }
         }
 
     fun getAddress(coordinate: IPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS): Pair<TrackMeter, IntersectType>? =
