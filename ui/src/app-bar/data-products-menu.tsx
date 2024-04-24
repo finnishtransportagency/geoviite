@@ -6,7 +6,7 @@ import styles from './app-bar.scss';
 import { Menu, menuSelectOption } from 'vayla-design-lib/menu/menu';
 import { createClassName } from 'vayla-design-lib/utils';
 import { filterNotEmpty } from 'utils/array-utils';
-import { VIEW_GEOMETRY_FILE, userHasPrivilege } from 'user/user-model';
+import { VIEW_GEOMETRY_FILE, userHasPrivilege, VIEW_GEOMETRY } from 'user/user-model';
 import { useCommonDataAppSelector } from 'store/hooks';
 
 const DataProductsMenu: React.FC = () => {
@@ -39,7 +39,7 @@ const DataProductsMenu: React.FC = () => {
                   'vertical-geometry-menu-link',
               )
             : undefined,
-        userHasPrivilege(currentPrivileges, VIEW_GEOMETRY_FILE)
+        userHasPrivilege(currentPrivileges, VIEW_GEOMETRY)
             ? menuSelectOption(
                   () => {
                       setShowMenu(false);
