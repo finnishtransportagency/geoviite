@@ -25,7 +25,11 @@ import {
 } from 'map/map-utils';
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 import { isEqualIgnoreCase } from 'utils/string-utils';
-import { getOperation } from './split-utils';
+import {
+    END_SWITCH_NOT_MATCHING_ERROR,
+    getOperation,
+    START_SWITCH_NOT_MATCHING_ERROR,
+} from './split-utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { BoundingBox, Point } from 'model/geometry';
 
@@ -148,6 +152,12 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     const [descriptionCommitted, setDescriptionCommitted] = React.useState(
         split.descriptionBase !== '',
     );
+    const startSwitchMatchingError = switchErrors.find(
+        (error) => error.reason == START_SWITCH_NOT_MATCHING_ERROR,
+    );
+    const endSwitchMatchingError = switchErrors.find(
+        (error) => error.reason == END_SWITCH_NOT_MATCHING_ERROR,
+    );
 
     // TODO: Adding any kind of dependency array causes infinite re-render loops, find out why
     React.useEffect(() => {
@@ -231,12 +241,19 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                 <Icons.Clear size={IconSize.SMALL} color={IconColor.INHERIT} />
                             )}
                         </div>
-                        <div style={{ display: 'none' }}>
-                            {switchErrors.map((err, i) => (
-                                <SplitErrorMessage key={i.toString()} error={err} />
-                            ))}
-                        </div>
                     </div>
+                    {startSwitchMatchingError && (
+                        <div
+                            className={createClassName(
+                                styles['location-track-infobox__split-switch-error-msg'],
+                                styles['location-track-infobox__split-switch-error-msg--start'],
+                            )}>
+                            {t(
+                                `tool-panel.location-track.splitting.validation.${startSwitchMatchingError.reason}`,
+                                startSwitchMatchingError.params,
+                            )}
+                        </div>
+                    )}
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
                         label={t('tool-panel.location-track.track-name')}
@@ -275,14 +292,14 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             }}
                         />
                     </InfoboxField>
-                    {
+                    {(nameErrorsVisible || split.operation) && (
                         <InfoboxField
                             className={createClassName(
                                 styles['location-track-infobox__split-remark'],
                             )}
                             hasErrors={nameErrorsVisible}
                             label={''}>
-                            {!nameErrorsVisible && (
+                            {!nameErrorsVisible && split.operation && (
                                 <InfoboxText
                                     value={t(
                                         `tool-panel.location-track.splitting.${split.operation}`,
@@ -294,7 +311,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                     <SplitErrorMessage key={i.toString()} error={error} />
                                 ))}
                         </InfoboxField>
-                    }
+                    )}
                     <InfoboxField
                         className={styles['location-track-infobox__split-item-field-label']}
                         hasErrors={descriptionErrorsVisible}
@@ -356,6 +373,21 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             disabled={editingDisabled || !!duplicateTrackId}
                         />
                     </InfoboxField>
+
+                    {endSwitchMatchingError && (
+                        <div
+                            className={createClassName(
+                                styles['location-track-infobox__split-switch-error-msg'],
+                                styles['location-track-infobox__split-switch-error-msg--end'],
+                                endSwitchMatchingError.type == ValidationErrorType.ERROR &&
+                                    styles['location-track-infobox__split-switch-error-msg--error'],
+                            )}>
+                            {t(
+                                `tool-panel.location-track.splitting.validation.${endSwitchMatchingError.reason}`,
+                                endSwitchMatchingError.params,
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

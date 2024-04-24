@@ -123,6 +123,7 @@ export const initialMapState: Map = {
         'geometry-switch-layer',
         'geometry-km-post-layer',
         'location-track-selected-alignment-layer',
+        'location-track-split-alignment-layer',
         'reference-line-selected-alignment-layer',
     ],
     layerMenu: {

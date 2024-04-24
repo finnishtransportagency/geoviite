@@ -29,6 +29,7 @@ export type MapLayerName =
     | 'duplicate-tracks-highlight-layer'
     | 'duplicate-split-section-highlight-layer'
     | 'location-track-selected-alignment-layer'
+    | 'location-track-split-alignment-layer'
     | 'reference-line-selected-alignment-layer'
     | 'location-track-badge-layer'
     | 'location-track-split-badge-layer'

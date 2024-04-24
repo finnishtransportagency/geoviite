@@ -69,7 +69,7 @@ export const redSplitSectionStyle = new Style({
 
 export const notOverlappingDuplicateSplitSectionStyle = new Style({
     stroke: new Stroke({
-        color: mapStyles.splitSectionNotOverlappingDuplicateHighlight,
+        color: mapStyles.splitSectionNotOverlappingDuplicate,
         width: 6,
     }),
 });

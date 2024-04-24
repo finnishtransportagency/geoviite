@@ -12,7 +12,6 @@ import {
     AlignmentDataHolder,
     getSelectedLocationTrackMapAlignmentByTiles,
 } from 'track-layout/layout-map-api';
-import { SplittingState } from 'tool-panel/location-track/split-store';
 import { createAlignmentFeature } from '../utils/alignment-layer-utils';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
@@ -27,14 +26,6 @@ const selectedLocationTrackStyle = new Style({
     zIndex: 2,
 });
 
-const splittingLocationTrackStyle = new Style({
-    stroke: new Stroke({
-        color: mapStyles.selectedAlignmentLine,
-        width: 4,
-    }),
-    zIndex: 2,
-});
-
 const layerName: MapLayerName = 'location-track-selected-alignment-layer';
 
 export function createLocationTrackSelectedAlignmentLayer(
@@ -42,7 +33,7 @@ export function createLocationTrackSelectedAlignmentLayer(
     existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
-    splittingState: SplittingState | undefined,
+    splittingIsActive: boolean, // TODO: This will be removed when layer visibility logic is revised
     changeTimes: ChangeTimes,
     olView: OlView,
     onLoadingData: (loading: boolean) => void,
@@ -52,14 +43,15 @@ export function createLocationTrackSelectedAlignmentLayer(
     const resolution = olView.getResolution() || 0;
 
     const selectedTrack = first(selection.selectedItems.locationTracks);
-    const alignmentPromise: Promise<AlignmentDataHolder[]> = selectedTrack
-        ? getSelectedLocationTrackMapAlignmentByTiles(
-              changeTimes,
-              mapTiles,
-              layoutContext,
-              selectedTrack,
-          )
-        : Promise.resolve([]);
+    const alignmentPromise: Promise<AlignmentDataHolder[]> =
+        selectedTrack && !splittingIsActive
+            ? getSelectedLocationTrackMapAlignmentByTiles(
+                  changeTimes,
+                  mapTiles,
+                  layoutContext,
+                  selectedTrack,
+              )
+            : Promise.resolve([]);
 
     const createFeatures = (locationTracks: AlignmentDataHolder[]) => {
         const selectedTrack = first(locationTracks);
@@ -68,12 +60,7 @@ export function createLocationTrackSelectedAlignmentLayer(
         }
 
         const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
-        const isSplitting = splittingState?.originLocationTrack.id === selectedTrack.header.id;
-        return createAlignmentFeature(
-            selectedTrack,
-            showEndPointTicks,
-            isSplitting ? splittingLocationTrackStyle : selectedLocationTrackStyle,
-        );
+        return createAlignmentFeature(selectedTrack, showEndPointTicks, selectedLocationTrackStyle);
     };
 
     loadLayerData(source, isLatest, onLoadingData, alignmentPromise, createFeatures);

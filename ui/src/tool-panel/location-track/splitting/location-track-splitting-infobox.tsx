@@ -268,7 +268,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         (switchOnTrack) => switchOnTrack.switchId == splittingState.startAndEndSwitches[1],
     );
     const switches = useSwitches(
-        allowedSwitchIds,
+        [...allowedSwitchIds, ...splittingState.startAndEndSwitches],
         draftLayoutContext(layoutContext),
         changeTimes.layoutSwitch,
     );
@@ -292,10 +292,11 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     const splitsValidated = allSplits.map((s, index) =>
         validateSplit(
             s,
-            allSplits[index - 1],
+            allSplits[index + 1],
             allSplits.map((s) => s.name),
             conflictingLocationTracks || [],
             switches,
+            switches.find((sw) => sw.id == splittingState.startAndEndSwitches[1]),
         ),
     );
     const allErrors = splitsValidated.flatMap((validated) => [
@@ -348,24 +349,6 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             );
         }
     });
-
-    // function addFocusedSplit(split: SplitTarget) {
-    //     if (
-    //         !splittingState.splitsInFocus.some(
-    //             (splitToCheck) => splitToCheck.switch.switchId == split.switch.switchId,
-    //         )
-    //     ) {
-    //         updateSplitsInFocus([...splittingState.splitsInFocus, split]);
-    //     }
-    // }
-    //
-    // function removeFocusedSplit(split: SplitTarget) {
-    //     updateSplitsInFocus(
-    //         splittingState.splitsInFocus.filter(
-    //             (splitToCheck) => splitToCheck.switch.switchId != split.switch.switchId,
-    //         ),
-    //     );
-    // }
 
     const splitComponents = splitsValidated.map((split, index, allSplits) => {
         const endLocation =

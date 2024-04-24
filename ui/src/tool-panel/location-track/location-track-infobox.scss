@@ -118,6 +118,31 @@ $-color-warning: vayla-design.$color-lemon-dark;
     }
 }
 
+.location-track-infobox__split-switch-error-msg {
+    padding: 4px;
+    padding-left: 12px;
+    margin-left: 12px;
+
+    @include vayla-design.typography-caption;
+    color: vayla-design.$color-black-default;
+    background-color: vayla-design.$color-lemon-light;
+}
+
+.location-track-infobox__split-switch-error-msg--start {
+    margin-bottom: 4px;
+    margin-top: -4px;
+}
+
+.location-track-infobox__split-switch-error-msg--end {
+    margin-bottom: -2px;
+    margin-top: 8px;
+}
+
+.location-track-infobox__split-switch-error-msg--error {
+    color: $-color-error;
+    background-color: vayla-design.$color-red-lighter;
+}
+
 .location-track-infobox__split-remark {
     padding-top: 0px;
 

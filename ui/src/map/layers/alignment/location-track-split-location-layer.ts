@@ -13,7 +13,6 @@ import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { MapLayerName } from 'map/map-model';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
-import { filterNotEmpty } from 'utils/array-utils';
 
 const splitPointStyle = new Style({
     image: new Circle({
@@ -55,10 +54,6 @@ export const createLocationTrackSplitLocationLayer = (
 ): MapLayer => {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const focusedSplits = [splittingState?.focusedSplit, splittingState?.highlightedSplit].filter(
-        filterNotEmpty,
-    );
-
     const dataPromise: Promise<LayoutSwitch[]> = splittingState
         ? getSwitches(
               splittingState.splits.map((sw) => sw.switch.switchId),
@@ -68,7 +63,6 @@ export const createLocationTrackSplitLocationLayer = (
 
     const createFeatures = (switches: LayoutSwitch[]) => {
         if (splittingState) {
-            const allSplits = [splittingState.firstSplit, ...splittingState.splits];
             const firstAndLast: SwitchIdAndLocation[] = [
                 { location: splittingState.firstSplit.location, switchId: undefined },
                 { location: splittingState.endLocation, switchId: undefined },
@@ -86,20 +80,14 @@ export const createLocationTrackSplitLocationLayer = (
                     geometry: new OlPoint(pointToCoords(location)),
                 });
 
-                const switchIsFocused = focusedSplits.some((focusedSplitId) => {
-                    const splitIndex = allSplits.findIndex((split) => split.id == focusedSplitId);
-                    const focusedSplit = allSplits[splitIndex];
-                    const nextSwitchId =
-                        splitIndex + 1 < allSplits.length
-                            ? allSplits[splitIndex + 1].switch.switchId
-                            : splittingState.startAndEndSwitches[1];
-                    return focusedSplit?.switch.switchId == switchId || nextSwitchId == switchId;
-                });
+                const isSwitchHighlighted =
+                    splittingState.highlightedSwitch != undefined &&
+                    splittingState.highlightedSwitch == switchId;
 
                 feature.setStyle(
                     isDeleted
                         ? deletedSplitPointStyle
-                        : switchIsFocused
+                        : isSwitchHighlighted
                           ? splitPointFocusedStyle
                           : splitPointStyle,
                 );
