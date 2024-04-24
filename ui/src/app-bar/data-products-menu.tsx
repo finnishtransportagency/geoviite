@@ -50,6 +50,7 @@ const DataProductsMenu: React.FC = () => {
               )
             : undefined,
     ].filter(filterNotEmpty);
+    const locationWithinDataProducts = useLocation().pathname.includes('data-products');
 
     return (
         <React.Fragment>
@@ -57,7 +58,7 @@ const DataProductsMenu: React.FC = () => {
                 <div
                     ref={menuRef}
                     className={
-                        useLocation().pathname.includes('data-products')
+                        locationWithinDataProducts
                             ? createClassName(
                                   styles['app-bar__link'],
                                   styles['app-bar__link--active'],
