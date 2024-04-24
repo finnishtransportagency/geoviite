@@ -9,6 +9,8 @@ import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-
 import { MapViewContainer } from 'map/map-view-container';
 import { VerticalGeometryDiagramContainer } from 'vertical-geometry/vertical-geometry-diagram-container';
 import { ToolBarContainer } from 'tool-bar/tool-bar-container';
+import { PrivilegeRequired } from 'user/privilege-required';
+import { VIEW_GEOMETRY } from 'user/user-model';
 
 export type TrackLayoutViewProps = {
     showVerticalGeometryDiagram: boolean;
@@ -35,9 +37,11 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                 </div>
 
                 {showVerticalGeometryDiagram && (
-                    <div className={styles['track-layout__diagram']}>
-                        <VerticalGeometryDiagramContainer />
-                    </div>
+                    <PrivilegeRequired privilege={VIEW_GEOMETRY}>
+                        <div className={styles['track-layout__diagram']}>
+                            <VerticalGeometryDiagramContainer />
+                        </div>
+                    </PrivilegeRequired>
                 )}
 
                 <div className={styles['track-layout__map']}>
