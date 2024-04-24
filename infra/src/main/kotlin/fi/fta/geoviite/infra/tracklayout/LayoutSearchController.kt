@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
 import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.util.FreeText
@@ -19,9 +20,7 @@ data class TrackLayoutSearchResult(
 @RestController
 @RequestMapping("/track-layout/search")
 class LayoutSearchController(
-    private val switchService: LayoutSwitchService,
-    private val locationTrackService: LocationTrackService,
-    private val trackNumberService: LayoutTrackNumberService,
+    private val searchService: LayoutSearchService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -31,18 +30,16 @@ class LayoutSearchController(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("searchTerm", required = true) searchTerm: FreeText,
         @RequestParam("limitPerResultType", required = true) limitPerResultType: Int,
+        @RequestParam("contextLocationTrackId", required = false) contextLocationTrackId: IntId<LocationTrack>?,
     ): TrackLayoutSearchResult {
         logger.apiCall(
             "searchAssets",
             PUBLICATION_STATE to publicationState,
             "searchTerm" to searchTerm,
             "limitPerResultType" to limitPerResultType,
+            "contextLocationTrackId" to contextLocationTrackId,
         )
 
-        return TrackLayoutSearchResult(
-            switches = switchService.list(publicationState, searchTerm, limitPerResultType),
-            locationTracks = locationTrackService.list(publicationState, searchTerm, limitPerResultType),
-            trackNumbers = trackNumberService.list(publicationState, searchTerm, limitPerResultType),
-        )
+        return searchService.searchAssets(publicationState, searchTerm, limitPerResultType, contextLocationTrackId)
     }
 }

@@ -1515,7 +1515,8 @@
         }
     },
     "tool-bar": {
-        "search": "Hae...",
+        "search-from-whole-network": "Hae koko rataverkolta...",
+        "search-from-track": "Hae raiteelta {{track}}...",
         "new": "Luo uusi",
         "draft-mode": {
             "title": "LUONNOSTILA",

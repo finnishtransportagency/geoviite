@@ -458,7 +458,7 @@ class LocationTrackService(
             locationTrack.topologyEndSwitch?.switchId,
         ) + switchDao.findSwitchesNearAlignment(alignmentVersion)).distinct().size
 
-    private fun getLocationTrackDuplicates(
+    fun getLocationTrackDuplicates(
         track: LocationTrack,
         alignment: LayoutAlignment,
         publicationState: PublicationState,

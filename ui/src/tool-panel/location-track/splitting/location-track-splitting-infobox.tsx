@@ -112,7 +112,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
         () =>
             splittingState
                 ? validateLocationTrackSwitchRelinking(splittingState.originLocationTrack.id).then(
-                      (t) => t.filter((t) => t.validationErrors.length > 0),
+                      (results) => results.filter((res) => res.validationErrors.length > 0),
                   )
                 : Promise.resolve([]),
         [changeTimes.layoutLocationTrack, changeTimes.layoutSwitch],
