@@ -35,12 +35,10 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
             "limit" to limit,
         )
 
-        return searchTerm.toString().trim().takeIf(String::isNotEmpty)?.let { term ->
-            dao.list(publicationState, true)
-                .filter { item -> idMatches(term, item) || contentMatches(term, item) }
-                .let { list -> sortSearchResult(list) }
-                .let { list -> if (limit != null) list.take(limit) else list }
-        } ?: listOf()
+        return dao.list(publicationState, true)
+            .let { list -> filterBySearchTerm(list, searchTerm) }
+            .let { list -> sortSearchResult(list) }
+            .let { list -> if (limit != null) list.take(limit) else list }
     }
 
     fun get(publicationState: PublicationState, id: IntId<ObjectType>): ObjectType? {
@@ -76,6 +74,11 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         )
         return dao.fetchLayoutAssetChangeInfo(id, publicationState)
     }
+
+    fun filterBySearchTerm(list: List<ObjectType>, searchTerm: FreeText): List<ObjectType> =
+        searchTerm.toString().trim().takeIf(String::isNotEmpty)?.let { term ->
+            list.filter { item -> idMatches(term, item) || contentMatches(term, item) }
+        } ?: listOf()
 
     protected open fun sortSearchResult(list: List<ObjectType>): List<ObjectType> = list
 

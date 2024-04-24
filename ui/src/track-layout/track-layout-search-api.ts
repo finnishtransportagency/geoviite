@@ -2,6 +2,7 @@ import {
     LayoutLocationTrack,
     LayoutSwitch,
     LayoutTrackNumber,
+    LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { getNonNull, queryParams } from 'api/api-fetch';
 import { TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
@@ -16,12 +17,14 @@ export interface LayoutSearchResult {
 export async function getBySearchTerm(
     searchTerm: string,
     layoutContext: LayoutContext,
+    contextLocationTrackId?: LocationTrackId,
     limitPerResultType: number = 10,
 ): Promise<LayoutSearchResult> {
     const uri = `${TRACK_LAYOUT_URI}/search/${layoutContext.publicationState.toLowerCase()}`;
 
     const params = queryParams({
         searchTerm: searchTerm,
+        contextLocationTrackId: contextLocationTrackId,
         limitPerResultType: limitPerResultType,
     });
 
