@@ -18,7 +18,7 @@ import {
 import { PreviewTableEntry } from 'preview/preview-table';
 import { BoundingBox } from 'model/geometry';
 import { RevertRequestSource } from 'preview/preview-view-revert-request';
-import { PublicationAssetChangeAmounts } from 'publication/publication-utils';
+import { PublicationGroupAmounts } from 'publication/publication-utils';
 
 const conditionalMenuOption = (
     condition: unknown | undefined,
@@ -30,7 +30,8 @@ export type PreviewTableItemProps = {
     publish?: boolean;
     changesBeingReverted: ChangesBeingReverted | undefined;
     previewOperations: PreviewOperations;
-    publicationAssetChangeAmounts: PublicationAssetChangeAmounts;
+    publicationGroupAmounts: PublicationGroupAmounts;
+    displayedTotalPublicationAssetAmount: number;
     onShowOnMap: (bbox: BoundingBox) => void;
 };
 
@@ -39,7 +40,8 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     publish = false,
     changesBeingReverted,
     previewOperations,
-    publicationAssetChangeAmounts,
+    publicationGroupAmounts,
+    displayedTotalPublicationAssetAmount,
     onShowOnMap,
 }) => {
     const { t } = useTranslation();
@@ -62,16 +64,12 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     const actionMenuRef = React.useRef(null);
 
     const publicationGroupAssetAmount = tableEntry.publicationGroup
-        ? publicationAssetChangeAmounts.groupAmounts[tableEntry.publicationGroup?.id]
+        ? publicationGroupAmounts[tableEntry.publicationGroup?.id]
         : undefined;
 
     const [displayedPublicationStage, moveTargetStage] = publish
         ? [PublicationStage.STAGED, PublicationStage.UNSTAGED]
         : [PublicationStage.UNSTAGED, PublicationStage.STAGED];
-
-    const stagePublicationAssetAmount = publish
-        ? publicationAssetChangeAmounts.staged
-        : publicationAssetChangeAmounts.unstaged;
 
     const tableEntryAsRevertRequestSource: RevertRequestSource = {
         id: tableEntry.id,
@@ -86,13 +84,13 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
 
     const menuOptionMoveStageChanges: MenuSelectOption = menuSelectOption(
         menuAction(() =>
-            previewOperations.setPublicationStage.forAllStageChanges(
+            previewOperations.setPublicationStage.forAllShownChanges(
                 displayedPublicationStage,
                 moveTargetStage,
             ),
         ),
         t('publish.move-stage-changes', {
-            amount: stagePublicationAssetAmount,
+            amount: displayedTotalPublicationAssetAmount,
         }),
         'preview-move-stage-changes',
     );
@@ -131,7 +129,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
             );
         }),
         t('publish.revert-stage-changes', {
-            amount: stagePublicationAssetAmount,
+            amount: displayedTotalPublicationAssetAmount,
         }),
         'preview-revert-stage-changes',
     );
