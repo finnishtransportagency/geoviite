@@ -52,7 +52,6 @@ class UserRoleTestUI : SeleniumTest() {
 fun assertNavigationBar(role: E2ERole) {
     waitUntilExists(byQaId(E2EAppBar.NavLink.FRONT_PAGE.qaId))
     waitUntilExists(byQaId(E2EAppBar.NavLink.MAP.qaId))
-    waitUntilExists(byQaId(E2EAppBar.NavLink.DATA_PRODUCT.qaId))
 
     assertInfraModelLink(role)
     assertDataProductNavigationLinks(role)
@@ -148,13 +147,26 @@ fun assertInfraModelLink(role: E2ERole) {
 fun assertDataProductNavigationLinks(role: E2ERole) {
     val navigationBar = E2EAppBar()
 
-    navigationBar.openDataProductsMenu()
+    when (role) {
+        E2ERole.Operator,
+        E2ERole.Team,
+        E2ERole.Authority,
+        E2ERole.Browser,
+        -> {
+            waitUntilExists(byQaId(E2EAppBar.NavLink.DATA_PRODUCT.qaId))
+            assertTrue(exists(byQaId(E2EAppBar.NavLink.DATA_PRODUCT.qaId)))
 
-    assertElementListLink(role, navigationBar)
-    assertVerticalGeometryListLink(role, navigationBar)
-    assertKmLengthsLink(navigationBar)
+            navigationBar.openDataProductsMenu()
 
-    navigationBar.closeDataProductsMenu()
+            assertElementListLink(role, navigationBar)
+            assertVerticalGeometryListLink(role, navigationBar)
+            assertKmLengthsLink(navigationBar)
+
+            navigationBar.closeDataProductsMenu()
+        }
+        E2ERole.Consultant ->
+            assertFalse(exists(byQaId(E2EAppBar.NavLink.DATA_PRODUCT.qaId)))
+    }
 }
 
 fun assertElementListLink(role: E2ERole, navigationBar: E2EAppBar) {
@@ -256,17 +268,26 @@ fun assertVerticalGeometryListPage(role: E2ERole) {
 }
 
 fun assertKmLengthsPage(role: E2ERole) {
-    val kmLengthsPage = E2EAppBar().goToKilometerLengthsPage()
-
     when (role) {
         E2ERole.Operator,
         E2ERole.Team,
-        -> assertNotNull(kmLengthsPage.openEntireNetworkTab().downloadUrl)
+        E2ERole.Authority,
+        E2ERole.Browser
+        -> {
+            val kmLengthsPage = E2EAppBar().goToKilometerLengthsPage()
 
-        else -> assertNull(kmLengthsPage.entireRailNetworkKmLengthsRadioButton)
+            when (role) {
+                E2ERole.Operator,
+                E2ERole.Team,
+                -> assertNotNull(kmLengthsPage.openEntireNetworkTab().downloadUrl)
+
+                else -> assertNull(kmLengthsPage.entireRailNetworkKmLengthsRadioButton)
+            }
+
+            kmLengthsPage.openLocationTrackTab()
+        }
+        E2ERole.Consultant -> {} // Consultant should not have access to this page.
     }
-
-    kmLengthsPage.openLocationTrackTab()
 }
 
 fun assertLicensePage() {
