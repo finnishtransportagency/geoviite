@@ -100,7 +100,6 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     changeTimes,
     layoutContext,
     onStartSplitting,
-    showLayers,
 }: LocationTrackLocationInfoboxProps) => {
     const { t } = useTranslation();
 
@@ -164,6 +163,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
 
     const [updatingLength, setUpdatingLength] = React.useState<boolean>(false);
     const [canUpdate, setCanUpdate] = React.useState<boolean>();
+    const [startingSplitting, setStartingSplitting] = React.useState<boolean>(false);
 
     React.useEffect(() => {
         setCanUpdate(
@@ -172,33 +172,32 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     }, [linkingState]);
 
     const startSplitting = () => {
-        getSplittingInitializationParameters(
-            draftLayoutContext(layoutContext),
-            locationTrack.id,
-        ).then((splitInitializationParameters) => {
-            if (startAndEndPoints?.start && startAndEndPoints?.end && trackNumber) {
-                onStartSplitting({
-                    locationTrack: locationTrack,
-                    allowedSwitches:
-                        splitInitializationParameters?.switches.filter(
-                            (sw) => !isStartOrEndSwitch(sw.switchId),
-                        ) || [],
-                    startAndEndSwitches: [
-                        extraInfo?.switchAtStart?.id,
-                        extraInfo?.switchAtEnd?.id,
-                    ].filter(filterNotEmpty),
-                    duplicateTracks: splitInitializationParameters?.duplicates || [],
-                    startLocation: startAndEndPoints.start.point,
-                    endLocation: startAndEndPoints.end.point,
-                    trackNumber: trackNumber.number,
-                    nearestOperatingPointToStart:
-                        splitInitializationParameters.nearestOperatingPointToStart,
-                    nearestOperatingPointToEnd:
-                        splitInitializationParameters.nearestOperatingPointToEnd,
-                });
-                showLayers(['location-track-split-location-layer']);
-            }
-        });
+        setStartingSplitting(true);
+        getSplittingInitializationParameters(draftLayoutContext(layoutContext), locationTrack.id)
+            .then((splitInitializationParameters) => {
+                if (startAndEndPoints?.start && startAndEndPoints?.end && trackNumber) {
+                    onStartSplitting({
+                        locationTrack: locationTrack,
+                        allowedSwitches:
+                            splitInitializationParameters?.switches.filter(
+                                (sw) => !isStartOrEndSwitch(sw.switchId),
+                            ) || [],
+                        startAndEndSwitches: [
+                            extraInfo?.switchAtStart?.id,
+                            extraInfo?.switchAtEnd?.id,
+                        ].filter(filterNotEmpty),
+                        duplicateTracks: splitInitializationParameters?.duplicates || [],
+                        startLocation: startAndEndPoints.start.point,
+                        endLocation: startAndEndPoints.end.point,
+                        trackNumber: trackNumber.number,
+                        nearestOperatingPointToStart:
+                            splitInitializationParameters.nearestOperatingPointToStart,
+                        nearestOperatingPointToEnd:
+                            splitInitializationParameters.nearestOperatingPointToEnd,
+                    });
+                }
+            })
+            .finally(() => setStartingSplitting(false));
     };
 
     const updateAlignment = (state: LinkingAlignment) => {
@@ -284,7 +283,8 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 !!splittingState ||
                                                 extraInfo?.partOfUnfinishedSplit ||
                                                 !startAndEndPoints.start?.point ||
-                                                !startAndEndPoints.end?.point
+                                                !startAndEndPoints.end?.point ||
+                                                startingSplitting
                                             }
                                             onClick={() => {
                                                 getEndLinkPoints(
@@ -362,8 +362,10 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                     !isDraft ||
                                                     locationTrackIsDraft ||
                                                     duplicatesOnOtherTrackNumbers ||
-                                                    extraInfo?.partOfUnfinishedSplit
+                                                    extraInfo?.partOfUnfinishedSplit ||
+                                                    startingSplitting
                                                 }
+                                                isProcessing={startingSplitting}
                                                 title={getSplittingDisabledReasonsTranslated()}
                                                 onClick={startSplitting}>
                                                 {t('tool-panel.location-track.start-splitting')}
