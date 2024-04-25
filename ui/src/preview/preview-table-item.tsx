@@ -82,17 +82,17 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         setActionMenuVisible(false);
     };
 
-    const menuOptionMoveStageChanges: MenuSelectOption = menuSelectOption(
+    const menuOptionMoveAllShownChanges: MenuSelectOption = menuSelectOption(
         menuAction(() =>
             previewOperations.setPublicationStage.forAllShownChanges(
                 displayedPublicationStage,
                 moveTargetStage,
             ),
         ),
-        t('publish.move-stage-changes', {
+        t('publish.move-all-shown-changes', {
             amount: displayedTotalPublicationAssetAmount,
         }),
-        'preview-move-stage-changes',
+        'preview-move-all-shown-changes',
     );
 
     const menuOptionMovePublicationGroupStage: MenuSelectOption = menuSelectOption(
@@ -121,17 +121,17 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         'preview-revert-change',
     );
 
-    const menuOptionRevertStageChanges: MenuSelectOption = menuSelectOption(
+    const menuOptionRevertAllShownChanges: MenuSelectOption = menuSelectOption(
         menuAction(() => {
             previewOperations.revert.stageChanges(
                 displayedPublicationStage,
                 tableEntryAsRevertRequestSource,
             );
         }),
-        t('publish.revert-stage-changes', {
+        t('publish.revert-all-shown-changes', {
             amount: displayedTotalPublicationAssetAmount,
         }),
-        'preview-revert-stage-changes',
+        'preview-revert-all-shown-changes',
     );
 
     const menuOptionPublicationGroupRevert: MenuSelectOption = menuSelectOption(
@@ -160,13 +160,13 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
 
     const menuOptions: MenuOption<never>[] = [
         ...conditionalMenuOption(tableEntry.publicationGroup, menuOptionMovePublicationGroupStage),
-        menuOptionMoveStageChanges,
+        menuOptionMoveAllShownChanges,
         menuDividerOption(),
         menuOptionShowOnMap,
         menuDividerOption(),
         ...conditionalMenuOption(!tableEntry.publicationGroup, menuOptionRevertSingleChange),
         ...conditionalMenuOption(tableEntry.publicationGroup, menuOptionPublicationGroupRevert),
-        menuOptionRevertStageChanges,
+        menuOptionRevertAllShownChanges,
     ];
 
     return (
