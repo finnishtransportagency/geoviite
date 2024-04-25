@@ -28,7 +28,9 @@ class ReferenceLineDao(
             select
               rlv.id as row_id,
               rlv.version as row_version,
-              rlv.official_row_id, 
+              rlv.official_row_id,
+              rlv.design_row_id,
+              rlv.design_id,
               rlv.draft,
               rlv.alignment_id,
               rlv.alignment_version,
@@ -57,7 +59,9 @@ class ReferenceLineDao(
             select
               rl.id as row_id,
               rl.version as row_version,
-              rl.official_row_id, 
+              rl.official_row_id,
+              rl.design_row_id,
+              rl.design_id,
               rl.draft,
               rl.alignment_id,
               rl.alignment_version,
@@ -86,7 +90,7 @@ class ReferenceLineDao(
         length = rs.getDouble("length"),
         segmentCount = rs.getInt("segment_count"),
         version = rs.getRowVersion("row_id", "row_version"),
-        contextData = rs.getLayoutContextData("official_row_id", "row_id", "draft"),
+        contextData = rs.getLayoutContextData("official_row_id", "design_row_id", "design_id", "row_id", "draft"),
     )
 
     @Transactional
@@ -98,7 +102,9 @@ class ReferenceLineDao(
               alignment_version,
               start_address,
               draft, 
-              official_row_id
+              official_row_id,
+              design_row_id,
+              design_id
             ) 
             values (
               :track_number_id,
@@ -106,7 +112,9 @@ class ReferenceLineDao(
               :alignment_version,
               :start_address, 
               :draft, 
-              :official_row_id
+              :official_row_id,
+              :design_row_id,
+              :design_id
             ) 
             returning 
               coalesce(official_row_id, id) as official_id,
@@ -121,6 +129,8 @@ class ReferenceLineDao(
             "start_address" to newItem.startAddress.toString(),
             "draft" to newItem.isDraft,
             "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
+            "design_row_id" to newItem.contextData.designRowId?.let(::toDbId)?.intValue,
+            "design_id" to newItem.contextData.designId?.let(::toDbId)?.intValue,
         )
 
         jdbcTemplate.setUser()
@@ -141,7 +151,9 @@ class ReferenceLineDao(
               alignment_version = :alignment_version,
               start_address = :start_address,
               draft = :draft,
-              official_row_id = :official_row_id
+              official_row_id = :official_row_id,
+              design_row_id = :design_row_id,
+              design_id = :design_id
             where id = :id
             returning 
               coalesce(official_row_id, id) as official_id,
@@ -156,6 +168,8 @@ class ReferenceLineDao(
             "start_address" to updatedItem.startAddress.toString(),
             "draft" to updatedItem.isDraft,
             "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
+            "design_row_id" to updatedItem.contextData.designRowId?.let(::toDbId)?.intValue,
+            "design_id" to updatedItem.contextData.designId?.let(::toDbId)?.intValue,
         )
         jdbcTemplate.setUser()
         val result: DaoResponse<ReferenceLine> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->

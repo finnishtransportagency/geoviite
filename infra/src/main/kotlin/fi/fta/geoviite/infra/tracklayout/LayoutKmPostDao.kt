@@ -132,7 +132,9 @@ class LayoutKmPostDao(
             select 
               id as row_id,
               version as row_version,
-              official_row_id, 
+              official_row_id,
+              design_row_id,
+              design_id,
               draft,
               track_number_id,
               geometry_km_post_id,
@@ -159,6 +161,8 @@ class LayoutKmPostDao(
               id as row_id,
               version as row_version,
               official_row_id, 
+              design_row_id,
+              design_id,
               draft,
               track_number_id,
               geometry_km_post_id,
@@ -182,7 +186,7 @@ class LayoutKmPostDao(
         state = rs.getEnum("state"),
         sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
         version = rs.getRowVersion("row_id", "row_version"),
-        contextData = rs.getLayoutContextData("official_row_id", "row_id", "draft"),
+        contextData = rs.getLayoutContextData("official_row_id", "design_row_id", "design_id", "row_id", "draft"),
     )
 
     @Transactional
@@ -198,7 +202,9 @@ class LayoutKmPostDao(
               location, 
               state,
               draft,
-              official_row_id
+              official_row_id,
+              design_row_id,
+              design_id
             )
             values (
               :track_number_id, 
@@ -207,7 +213,9 @@ class LayoutKmPostDao(
               postgis.st_setsrid(postgis.st_point(:point_x, :point_y), :srid), 
               :state::layout.state,
               :draft,
-              :official_row_id
+              :official_row_id,
+              :design_row_id,
+              :design_id
             )
             returning 
               coalesce(official_row_id, id) as official_id,
@@ -224,6 +232,8 @@ class LayoutKmPostDao(
             "state" to newItem.state.name,
             "draft" to newItem.contextData.isDraft,
             "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
+            "design_row_id" to newItem.contextData.designRowId?.let(::toDbId)?.intValue,
+            "design_id" to newItem.contextData.designId?.let(::toDbId)?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
@@ -249,7 +259,9 @@ class LayoutKmPostDao(
               end,
               state = :state::layout.state,
               draft = :draft,
-              official_row_id = :official_row_id
+              official_row_id = :official_row_id,
+              design_row_id = :design_row_id,
+              design_id = :design_id
             where id = :km_post_id
             returning 
               coalesce(official_row_id, id) as official_id,
@@ -268,6 +280,8 @@ class LayoutKmPostDao(
             "state" to updatedItem.state.name,
             "draft" to updatedItem.isDraft,
             "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
+            "design_row_id" to updatedItem.contextData.designRowId?.let(::toDbId)?.intValue,
+            "design_id" to updatedItem.contextData.designId?.let(::toDbId)?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->

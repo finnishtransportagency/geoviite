@@ -47,6 +47,9 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
     @get:JsonIgnore
     open val designRowId: DomainId<T>? get() = null
 
+    @get:JsonIgnore
+    open val designId: DomainId<LayoutDesign>? get() = null
+
     protected fun requireStored() = require(dataType == STORED) {
         "Only $STORED rows can transition to a different context: context=${this::class.simpleName} dataType=$dataType"
     }
@@ -63,7 +66,7 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
 sealed class MainContextData<T> : LayoutContextData<T>()
 
 sealed class DesignContextData<T> : LayoutContextData<T>() {
-    abstract val designId: IntId<LayoutDesign>
+    abstract override val designId: IntId<LayoutDesign>
 }
 
 data class MainOfficialContextData<T>(

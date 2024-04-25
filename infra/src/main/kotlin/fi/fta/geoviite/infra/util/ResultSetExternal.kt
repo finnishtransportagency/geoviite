@@ -13,7 +13,7 @@ import fi.fta.geoviite.infra.publication.Change
 import fi.fta.geoviite.infra.tracklayout.*
 import java.sql.ResultSet
 import java.time.Instant
-
+import java.time.LocalDate
 
 fun ResultSet.getIntOrNull(name: String): Int? = getInt(name).takeUnless { wasNull() }
 
@@ -28,6 +28,10 @@ fun ResultSet.getBooleanOrNull(name: String): Boolean? = getBoolean(name).takeUn
 fun ResultSet.getInstant(name: String): Instant = verifyNotNull(name, ::getInstantOrNull)
 
 fun ResultSet.getInstantOrNull(name: String): Instant? = getTimestamp(name)?.toInstant()
+
+fun ResultSet.getLocalDate(name: String): LocalDate = verifyNotNull(name, ::getLocalDateOrNull)
+
+fun ResultSet.getLocalDateOrNull(name: String): LocalDate? = getDate(name)?.toLocalDate()
 
 fun <T> ResultSet.getIndexedId(parent: String, index: String): IndexedId<T> =
     requireNotNull(getIndexedIdOrNull(parent, index)) {
@@ -267,14 +271,37 @@ inline fun <reified T> verifyType(value: Any?): T = value.let { v ->
 
 fun <T> ResultSet.getLayoutContextData(
     officialRowIdName: String,
+    designRowIdName: String,
+    designIdName: String,
     rowIdName: String,
     draftFlagName: String,
 ): LayoutContextData<T> {
-    // TODO: GVT-2395 Read design context data
+    val designId = getIntIdOrNull<LayoutDesign>(designIdName)
+    val designRowId = getIntIdOrNull<T>(designRowIdName)
     val officialRowId = getIntIdOrNull<T>(officialRowIdName)
     val rowId = getIntId<T>(rowIdName)
     val isDraft = getBoolean(draftFlagName)
-    return if (isDraft) {
+    return if (designId != null) {
+        if (isDraft) {
+            DesignDraftContextData(
+                officialRowId = officialRowId,
+                rowId = rowId,
+                designId = designId,
+                designRowId = designRowId,
+                dataType = DataType.STORED,
+            )
+        } else {
+            require(designRowId == null) {
+                "For official design rows, design row ref should be null: officialRow=$officialRowId rowId=$rowId designRowId=$designRowId"
+            }
+            DesignOfficialContextData(
+                officialRowId = officialRowId,
+                rowId = rowId,
+                designId = designId,
+                dataType = DataType.STORED,
+            )
+        }
+    } else if (isDraft) {
         MainDraftContextData(
             officialRowId = officialRowId,
             rowId = rowId,
