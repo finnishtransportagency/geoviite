@@ -4,6 +4,7 @@ import { InfraModelState } from 'infra-model/infra-model-slice';
 import { TrackLayoutState } from 'track-layout/track-layout-slice';
 import { DataProductsState } from 'data-products/data-products-slice';
 import { CommonState } from 'common/common-slice';
+import { PrivilegeCode, userHasPrivilege } from 'user/user-model';
 
 export const useAppDispatch = () => useDispatch<AppDispatch>();
 export const useAppSelector: TypedUseSelectorHook<AppState> = useSelector;
@@ -30,4 +31,11 @@ export function useDataProductsAppSelector<T>(fn: (state: DataProductsState) => 
 export function useCommonDataAppSelector<T>(fn: (state: CommonState) => T) {
     const commonState = useSelector((state: AppState) => state.common as CommonState);
     return fn(commonState);
+}
+
+export function useUserHasPrivilege(code: PrivilegeCode): boolean {
+    const privileges = useCommonDataAppSelector((state) => state.user?.role.privileges ?? []).map(
+        (p) => p.code,
+    );
+    return userHasPrivilege(privileges, code);
 }

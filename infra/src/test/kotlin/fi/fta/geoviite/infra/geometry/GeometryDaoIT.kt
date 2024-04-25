@@ -153,7 +153,9 @@ class GeometryDaoIT @Autowired constructor(
 
     @Test
     fun insertPlanWorks() {
-        val plan = plan(insertOfficialTrackNumber(), source = PlanSource.GEOMETRIAPALVELU)
+        val trackNumber = getUnusedTrackNumber()
+        insertOfficialTrackNumber(trackNumber)
+        val plan = plan(trackNumber, source = PlanSource.GEOMETRIAPALVELU)
         val fileContent = "<a></a>"
         val id = geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent), null)
         val fetchedPlan = geometryDao.fetchPlan(id)
@@ -175,8 +177,10 @@ class GeometryDaoIT @Autowired constructor(
     @Test
     fun minimalElementInsertsWork() {
         val file = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem.xml")
+        val trackNumber = getUnusedTrackNumber()
+        insertOfficialTrackNumber(trackNumber)
         val plan = plan(
-            trackNumberId = insertOfficialTrackNumber(),
+            trackNumber = trackNumber,
             fileName = file.name,
             alignments = listOf(
                 geometryAlignment(
@@ -191,9 +195,10 @@ class GeometryDaoIT @Autowired constructor(
     @Test
     fun getLinkingSummariesHappyCase() {
         val file = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem.xml")
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumber = getUnusedTrackNumber()
+        val trackNumberId = insertOfficialTrackNumber(trackNumber)
         val plan = plan(
-            trackNumberId = trackNumberId,
+            trackNumber = trackNumber,
             fileName = file.name,
             alignments = listOf(
                 geometryAlignment(
@@ -215,7 +220,7 @@ class GeometryDaoIT @Autowired constructor(
         val trackChangeTime =
             locationTrackService.getLayoutAssetChangeInfo(trackVersion.id, PublicationState.OFFICIAL)?.changed
 
-        val expectedSummary = GeometryPlanLinkingSummary(trackChangeTime, listOf(UserName("TEST_USER")), true)
+        val expectedSummary = GeometryPlanLinkingSummary(trackChangeTime, listOf(UserName.of("TEST_USER")), true)
         val summaries = geometryDao.getLinkingSummaries(listOf(planVersion.id))
         val allSummaries = geometryDao.getLinkingSummaries(null)
         assertEquals(mapOf(planVersion.id to expectedSummary), summaries)
@@ -226,9 +231,9 @@ class GeometryDaoIT @Autowired constructor(
     fun `Geometry plan header mass fetch works`() {
         val file1 = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem_1.xml")
         val file2 = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem_2.xml")
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumber = getUnusedTrackNumber()
         val plan1 = plan(
-            trackNumberId = trackNumberId,
+            trackNumber = trackNumber,
             fileName = file1.name,
             alignments = listOf(
                 geometryAlignment(
@@ -239,7 +244,7 @@ class GeometryDaoIT @Autowired constructor(
             ),
         )
         val plan2 = plan(
-            trackNumberId = trackNumberId,
+            trackNumber = trackNumber,
             fileName = file1.name,
             alignments = listOf(
                 geometryAlignment(

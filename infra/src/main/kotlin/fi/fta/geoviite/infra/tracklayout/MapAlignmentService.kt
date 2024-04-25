@@ -72,7 +72,7 @@ class MapAlignmentService(
     ): AlignmentPolyLine<LocationTrack>? {
         return locationTrackService
             .getWithAlignment(publicationState, id)
-            ?.takeIf { (t, _) -> t.state != LocationTrackLayoutState.DELETED }
+            ?.takeIf { (t, _) -> t.state != LocationTrackState.DELETED }
             ?.let { (track, alignment) -> toAlignmentPolyLine(track.id, LOCATION_TRACK, alignment, resolution, bbox) }
     }
 
@@ -135,7 +135,7 @@ class MapAlignmentService(
     fun getLocationTrackHeaders(
         publicationState: PublicationState,
         locationTrackIds: List<IntId<LocationTrack>>,
-    ): List<AlignmentHeader<LocationTrack, LocationTrackLayoutState>> {
+    ): List<AlignmentHeader<LocationTrack, LocationTrackState>> {
         return locationTrackService
             .getManyWithAlignments(publicationState, locationTrackIds)
             .map { (track, alignment) -> toAlignmentHeader(track, alignment) }

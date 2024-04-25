@@ -1,6 +1,19 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IndexedId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.MetaDataName
@@ -12,8 +25,22 @@ import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.map.AlignmentHeader
 import fi.fta.geoviite.infra.map.MapAlignmentSource
 import fi.fta.geoviite.infra.map.MapAlignmentType
-import fi.fta.geoviite.infra.math.*
-import fi.fta.geoviite.infra.switchLibrary.*
+import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.IPoint3DM
+import fi.fta.geoviite.infra.math.IPoint3DZ
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Point3DM
+import fi.fta.geoviite.infra.math.Point3DZ
+import fi.fta.geoviite.infra.math.Point4DZM
+import fi.fta.geoviite.infra.math.boundingBoxCombining
+import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchElementCurve
+import fi.fta.geoviite.infra.switchLibrary.SwitchElementLine
+import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.util.FreeText
@@ -96,7 +123,7 @@ fun switchAndMatchingAlignments(
 }
 
 fun segmentsFromSwitchStructure(
-    start: Point,
+    start: IPoint,
     switchId: IntId<TrackLayoutSwitch>,
     structure: SwitchStructure,
     line: List<Int>,
@@ -107,7 +134,7 @@ fun segmentsFromSwitchStructure(
 }
 
 fun segmentsFromSwitchAlignment(
-    start: Point,
+    start: IPoint,
     switchId: IntId<TrackLayoutSwitch>,
     alignment: SwitchAlignment,
 ): List<LayoutSegment> {
@@ -285,7 +312,7 @@ fun locationTrackAndAlignment(
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     duplicateOf: IntId<LocationTrack>? = null,
-    state: LocationTrackLayoutState = LocationTrackLayoutState.IN_USE,
+    state: LocationTrackState = LocationTrackState.IN_USE,
     id: IntId<LocationTrack>? = null,
     draft: Boolean,
 ): Pair<LocationTrack, LayoutAlignment> = locationTrackAndAlignment(
@@ -307,7 +334,7 @@ fun locationTrackAndAlignment(
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     duplicateOf: IntId<LocationTrack>? = null,
-    state: LocationTrackLayoutState = LocationTrackLayoutState.IN_USE,
+    state: LocationTrackState = LocationTrackState.IN_USE,
 ): Pair<LocationTrack, LayoutAlignment> {
     val alignment = alignment(segments)
     val locationTrack = locationTrack(
@@ -331,7 +358,7 @@ fun locationTrack(
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     type: LocationTrackType = LocationTrackType.SIDE,
-    state: LocationTrackLayoutState = LocationTrackLayoutState.IN_USE,
+    state: LocationTrackState = LocationTrackState.IN_USE,
     externalId: Oid<LocationTrack>? = someOid(),
     alignmentVersion: RowVersion<LayoutAlignment>? = null,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
@@ -363,7 +390,7 @@ fun locationTrack(
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     type: LocationTrackType = LocationTrackType.SIDE,
-    state: LocationTrackLayoutState = LocationTrackLayoutState.IN_USE,
+    state: LocationTrackState = LocationTrackState.IN_USE,
     externalId: Oid<LocationTrack>? = someOid(),
     alignmentVersion: RowVersion<LayoutAlignment>? = null,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
@@ -551,21 +578,24 @@ fun attachSwitchToIndex(
     switch: TrackLayoutSwitch,
     segmentIndex: Int,
 ): LayoutAlignment {
-    if (alignment.segments.count() < segmentIndex + 3) throw IllegalArgumentException("Alignment must contain at least ${segmentIndex + 3} segments")
-
+    if (alignment.segments.count() < segmentIndex + 3) {
+        throw IllegalArgumentException("Alignment must contain at least ${segmentIndex + 3} segments")
+    }
 
     return alignment.copy(segments = alignment.segments.mapIndexed { index, segment ->
         when (index) {
             segmentIndex -> segment.copy(
-                switchId = switch.id, startJointNumber = JointNumber(1)
+                switchId = switch.id,
+                startJointNumber = JointNumber(1),
             )
 
             segmentIndex + 1 -> segment.copy(
-                switchId = switch.id
+                switchId = switch.id,
             )
 
             segmentIndex + 2 -> segment.copy(
-                switchId = switch.id, endJointNumber = JointNumber(2)
+                switchId = switch.id,
+                endJointNumber = JointNumber(2),
             )
 
             else -> segment
@@ -575,13 +605,12 @@ fun attachSwitchToIndex(
 
 fun geocodingContext(
     referenceLinePoints: List<Point>,
-    trackNumberId: IntId<TrackLayoutTrackNumber> = IntId(1),
+    trackNumber: TrackNumber = TrackNumber("001"),
     startAddress: TrackMeter = TrackMeter.ZERO,
     kmPosts: List<TrackLayoutKmPost> = listOf(),
-    draft: Boolean,
 ) = alignment(segment(*referenceLinePoints.toTypedArray())).let { alignment ->
     GeocodingContext.create(
-        trackNumber = trackNumber(id = trackNumberId, draft = draft),
+        trackNumber = trackNumber,
         startAddress = startAddress,
         referenceLineGeometry = alignment,
         kmPosts = kmPosts,
@@ -818,7 +847,7 @@ fun segments(vararg endPoints: IPoint): List<LayoutSegment> {
 
 fun switchFromDbStructure(
     name: String,
-    switchStart: Point,
+    switchStart: IPoint,
     structure: SwitchStructure,
     draft: Boolean
 ): TrackLayoutSwitch = switch(

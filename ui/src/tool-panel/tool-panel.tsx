@@ -10,6 +10,7 @@ import {
 import {
     EditState,
     LayoutKmPostId,
+    LayoutLocationTrack,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
@@ -187,7 +188,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     };
 
     // Draft-only entities should be hidden when viewing in official mode. Show everything in draft mode
-    const visibleByTypeAndPublishType = ({ editState }: { editState: EditState }) =>
+    const visibleByContextAndState = ({ editState }: { editState: EditState }) =>
         layoutContext.publicationState === 'DRAFT' || editState !== 'CREATED';
 
     React.useEffect(() => {
@@ -205,6 +206,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                         onVisibilityChange={(visibilities) =>
                             infoboxVisibilityChange('geometryPlan', visibilities)
                         }
+                        changeTimes={changeTimes}
                     />
                 ),
             } as ToolPanelTab;
@@ -213,7 +215,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
         const trackNumberTabs = trackNumberIds
             .map((tnId) => trackNumbers?.find((tn) => tn.id === tnId))
             .filter(filterNotEmpty)
-            .filter(visibleByTypeAndPublishType)
+            .filter(visibleByContextAndState)
             .map((t) => {
                 return {
                     asset: { type: 'TRACK_NUMBER', id: t.id },
@@ -231,7 +233,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                 } as ToolPanelTab;
             });
 
-        const layoutKmPostTabs = kmPosts.filter(visibleByTypeAndPublishType).map((k) => {
+        const layoutKmPostTabs = kmPosts.filter(visibleByContextAndState).map((k) => {
             return {
                 asset: { type: 'KM_POST', id: k.id },
                 title: k.kmNumber,
@@ -270,7 +272,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             },
         );
 
-        const switchTabs = switches.filter(visibleByTypeAndPublishType).map((s) => {
+        const switchTabs = switches.filter(visibleByContextAndState).map((s) => {
             return {
                 asset: { type: 'SWITCH', id: s.id },
                 title: s.name,
@@ -327,8 +329,8 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             });
 
         const locationTrackTabs = locationTracks
-            .filter(visibleByTypeAndPublishType)
-            .map((track) => {
+            .filter(visibleByContextAndState)
+            .map((track: LayoutLocationTrack): ToolPanelTab => {
                 return {
                     asset: { type: 'LOCATION_TRACK', id: track.id },
                     title: track.name,
@@ -343,32 +345,34 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             onHoverOverPlanSection={onHoverOverPlanSection}
                         />
                     ),
-                } as ToolPanelTab;
+                };
             });
 
-        const geometryAlignmentTabs = geometryAlignmentIds.map((aId) => {
-            const header = getPlan(aId.planId)?.alignments?.find(
-                (a) => a.header.id === aId.geometryId,
-            )?.header;
-            return {
-                asset: { type: 'GEOMETRY_ALIGNMENT', id: aId.geometryId },
-                title: header?.name ?? '...',
-                element: header ? (
-                    <GeometryAlignmentLinkingContainer
-                        visibilities={infoboxVisibilities.geometryAlignment}
-                        onVisibilityChange={(visibilities) =>
-                            infoboxVisibilityChange('geometryAlignment', visibilities)
-                        }
-                        geometryAlignment={header}
-                        selectedLocationTrackId={first(locationTrackIds)}
-                        selectedTrackNumberId={first(trackNumberIds)}
-                        planId={aId.planId}
-                    />
-                ) : (
-                    <Spinner />
-                ),
-            } as ToolPanelTab;
-        });
+        const geometryAlignmentTabs = geometryAlignmentIds.map(
+            (item: SelectedGeometryItem<GeometryAlignmentId>): ToolPanelTab => {
+                const header = getPlan(item.planId)?.alignments?.find(
+                    (a) => a.header.id === item.geometryId,
+                )?.header;
+                return {
+                    asset: { type: 'GEOMETRY_ALIGNMENT', id: item.geometryId },
+                    title: header?.name ?? '...',
+                    element: header ? (
+                        <GeometryAlignmentLinkingContainer
+                            visibilities={infoboxVisibilities.geometryAlignment}
+                            onVisibilityChange={(visibilities) =>
+                                infoboxVisibilityChange('geometryAlignment', visibilities)
+                            }
+                            geometryAlignment={header}
+                            selectedLocationTrackId={first(locationTrackIds)}
+                            selectedTrackNumberId={first(trackNumberIds)}
+                            planId={item.planId}
+                        />
+                    ) : (
+                        <Spinner />
+                    ),
+                };
+            },
+        );
 
         const allTabs = [
             ...geometryKmPostTabs,

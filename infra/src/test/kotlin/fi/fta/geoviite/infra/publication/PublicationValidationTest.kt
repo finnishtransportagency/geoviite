@@ -41,21 +41,21 @@ class PublicationValidationTest {
             true,
             trackNumber.copy(state = LayoutState.DELETED),
             referenceLine,
-            locationTrack(IntId(0), draft = true).copy(state = LocationTrackLayoutState.IN_USE),
+            locationTrack(IntId(0), draft = true).copy(state = LocationTrackState.IN_USE),
             "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted",
         )
         assertTrackNumberReferenceError(
             false,
             trackNumber.copy(state = LayoutState.DELETED),
             referenceLine,
-            alignment.copy(state = LocationTrackLayoutState.DELETED),
+            alignment.copy(state = LocationTrackState.DELETED),
             "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted",
         )
         assertTrackNumberReferenceError(
             false,
             trackNumber.copy(state = LayoutState.IN_USE),
             referenceLine,
-            alignment.copy(state = LocationTrackLayoutState.IN_USE),
+            alignment.copy(state = LocationTrackState.IN_USE),
             "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted",
         )
     }
@@ -218,12 +218,12 @@ class PublicationValidationTest {
     fun alignmentFieldValidationCatchesPublishingPlanned() {
         assertFieldError(
             true,
-            locationTrack(IntId(0), draft = true).copy(state = LocationTrackLayoutState.PLANNED),
+            locationTrack(IntId(0), draft = true).copy(state = LocationTrackState.PLANNED),
             "$VALIDATION_LOCATION_TRACK.state.PLANNED",
         )
         assertFieldError(
             false,
-            locationTrack(IntId(0), draft = true).copy(state = LocationTrackLayoutState.IN_USE),
+            locationTrack(IntId(0), draft = true).copy(state = LocationTrackState.IN_USE),
             "$VALIDATION_LOCATION_TRACK.state.PLANNED",
         )
     }
@@ -1069,7 +1069,7 @@ class PublicationValidationTest {
         )
         return GeocodingContext.create(
             // Start the geocoding from 0+0m
-            trackNumber(TrackNumber("0000"), draft = true),
+            TrackNumber("0000"),
             referenceLine.startAddress,
             alignment,
             kmPosts,

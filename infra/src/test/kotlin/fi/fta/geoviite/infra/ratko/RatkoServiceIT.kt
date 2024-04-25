@@ -56,6 +56,7 @@ class RatkoServiceIT @Autowired constructor(
             truncate publication.publication cascade;
             truncate integrations.lock cascade;
             truncate layout.track_number cascade;
+            truncate layout.switch cascade;
             truncate layout.operating_point cascade;
             truncate layout.operating_point_version cascade;
         """.trimIndent()
@@ -171,7 +172,7 @@ class RatkoServiceIT @Autowired constructor(
                 name = "abcde",
                 description = "cdefg",
                 type = LocationTrackType.CHORD,
-                state = LocationTrackLayoutState.BUILT,
+                state = LocationTrackState.BUILT,
                 externalId = null,
                 draft = true,
             ),
@@ -187,7 +188,7 @@ class RatkoServiceIT @Autowired constructor(
         assertEquals(RatkoAssetState.BUILT.name, createdPush.state.name)
         assertEquals(RatkoLocationTrackType.CHORD.name, createdPush.type.name)
 
-        locationTrackService.saveDraft(locationTrackDao.fetch(officialVersion).copy(state = LocationTrackLayoutState.DELETED))
+        locationTrackService.saveDraft(locationTrackDao.fetch(officialVersion).copy(state = LocationTrackState.DELETED))
         publishAndPush(locationTracks = listOf(officialVersion))
 
         assertEquals(listOf(""), fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6"))
@@ -391,7 +392,7 @@ class RatkoServiceIT @Autowired constructor(
 
         val planVersion = geometryDao.insertPlan(
             plan(
-                trackNumberId,
+                trackNumber,
                 srid = Srid(4009),
                 measurementMethod = MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY,
                 planTime = Instant.parse("2018-11-30T18:35:24.00Z"),
@@ -643,7 +644,7 @@ class RatkoServiceIT @Autowired constructor(
         listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostPushedLocationTrack)
         val officialThroughTrackVersion = locationTrackDao.fetchVersion(throughTrack.id, PublicationState.OFFICIAL)!!
         locationTrackService.saveDraft(
-            locationTrackDao.fetch(officialThroughTrackVersion).copy(state = LocationTrackLayoutState.DELETED)
+            locationTrackDao.fetch(officialThroughTrackVersion).copy(state = LocationTrackState.DELETED)
         )
         publishAndPush(locationTracks = listOf(officialThroughTrackVersion))
         val pushedSwitchLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7")
@@ -878,7 +879,7 @@ class RatkoServiceIT @Autowired constructor(
             alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
         ).rowVersion
         val locationTrack = locationTrackDao.fetch(originalLocationTrackVersion)
-        locationTrackService.saveDraft(locationTrack.copy(state = LocationTrackLayoutState.DELETED))
+        locationTrackService.saveDraft(locationTrack.copy(state = LocationTrackState.DELETED))
 
         fakeRatko.hasLocationTrack(ratkoLocationTrack(id = locationTrack.externalId.toString()))
 
@@ -893,7 +894,7 @@ class RatkoServiceIT @Autowired constructor(
     fun avoidPushingShortMetadata() {
         val trackNumber = establishedTrackNumber()
         val plan = plan(
-            trackNumber.id,
+            trackNumber.number,
             LAYOUT_SRID,
             // elements don't matter, only the names being different matters since that makes the metadatas distinct
             geometryAlignment(elements = listOf(lineFromOrigin(1.0)), name = "foo"),
@@ -1055,7 +1056,9 @@ class RatkoServiceIT @Autowired constructor(
         val externalId: Oid<TrackLayoutTrackNumber>,
         val version: RowVersion<TrackLayoutTrackNumber>,
         val trackNumberObject: TrackLayoutTrackNumber,
-    )
+    ) {
+        val number = trackNumberObject.number
+    }
 
     private fun establishedTrackNumber(oidString: String = "1.1.1.1.1"): EstablishedTrackNumber {
         val oid = Oid<TrackLayoutTrackNumber>(oidString)

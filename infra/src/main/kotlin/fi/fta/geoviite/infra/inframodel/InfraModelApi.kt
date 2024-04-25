@@ -30,7 +30,7 @@ data class OverrideParameters(
     val verticalCoordinateSystem: VerticalCoordinateSystem?,
     val projectId: IntId<Project>?,
     val authorId: IntId<Author>?,
-    val trackNumberId: IntId<TrackLayoutTrackNumber>?,
+    val trackNumber: TrackNumber?,
     val createdDate: Instant?,
     val encoding: XmlCharset?,
     val source: PlanSource?,

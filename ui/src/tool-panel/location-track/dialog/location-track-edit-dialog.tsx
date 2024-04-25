@@ -29,7 +29,7 @@ import {
 import { createDelegatesWithDispatcher } from 'store/store-utils';
 import { Dropdown, Item } from 'vayla-design-lib/dropdown/dropdown';
 import {
-    locationTrackLayoutStates,
+    locationTrackStates,
     locationTrackTypes,
     topologicalConnectivityTypes,
 } from 'utils/enum-localization-utils';
@@ -139,7 +139,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         props.changeTimes,
     );
 
-    const stateOptions = locationTrackLayoutStates
+    const stateOptions = locationTrackStates
         .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
         .map((ls) => ({ ...ls, disabled: ls.value == 'PLANNED', qaId: ls.value }));
 
@@ -348,7 +348,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             (tn) => tn.id === state.existingLocationTrack?.trackNumberId || tn.state !== 'DELETED',
         )
         .map((tn) => {
-            const note = tn.state === 'DELETED' ? ` (${t('enum.layout-state.DELETED')})` : '';
+            const note =
+                tn.state === 'DELETED' ? ` (${t('enum.location-track-state.DELETED')})` : '';
             return { name: tn.number + note, value: tn.id, qaId: `track-number-${tn.id}` };
         });
 
@@ -357,6 +358,14 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             ? t('location-track-dialog.move-to-edit-deleted')
             : t('location-track-dialog.move-to-edit', { name: track.name });
     };
+
+    const manuallySetDuplicates =
+        extraInfo?.duplicates?.filter(
+            (d) =>
+                state.existingLocationTrack?.id &&
+                d.duplicateStatus.duplicateOfId === state.existingLocationTrack?.id,
+        ) || [];
+
     return (
         <React.Fragment>
             <Dialog
@@ -549,9 +558,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                             label={`${t('location-track-dialog.duplicate-of')}`}
                             value={
                                 <Dropdown
-                                    disabled={!!extraInfo?.duplicates?.length}
+                                    disabled={manuallySetDuplicates.length > 0}
                                     title={
-                                        extraInfo?.duplicates?.length
+                                        manuallySetDuplicates.length > 0
                                             ? t(
                                                   'location-track-dialog.track-already-has-duplicates',
                                               )

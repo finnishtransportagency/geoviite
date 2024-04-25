@@ -65,10 +65,12 @@ class E2EPreviewChangesPage : E2EViewFragment(byQaId("preview-content")) {
             .also { map -> map.scrollMap(-1, -1) }
     }
 
-    fun waitForAllTableValidationsToComplete() {
+    fun waitForAllTableValidationsToComplete(): E2EPreviewChangesPage {
         logger.info("Waiting for table validations to begin & complete")
         waitUntilChildVisible(byQaId("table-validation-in-progress"))
         waitUntilChildInvisible(byQaId("table-validation-in-progress"))
+
+        return E2EPreviewChangesPage()
     }
 }
 

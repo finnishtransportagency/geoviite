@@ -15,6 +15,7 @@
         "split": {
             "source-track-state-not-in-use": "Jakamista ei voitu suorittaa, koska jaettava raide ei ole \"Käytössä\"-tilassa",
             "segment-allocation-failed": "Jakamista ei voitu suorittaa, koska katkaisukohtien määritys epäonnistui",
+            "switch-segment-mapping-failed": "Raidetta ei voitu jakaa vaihteen {{switchName}} kohdalta, koska sen uudelleenlinkitys epäonnistui",
             "switch-linking-failed": "Jakamista ei voitu suorittaa, koska vaihteiden uudelleenlinkitys epäonnistui",
             "no-switch-suggestion": "Jakamista ei voitu suorittaa, koska uudelleenlinkityksen vaihde-ehdotusten muodostus epäonnistui",
             "geocoding-failed": "Jakamista ei voitu suorittaa, koska jaettavan raiteen {{trackName}} geokoodaus epäonnistui",
@@ -211,8 +212,14 @@
             "ENDPOINT": "Raide päättyy",
             "UNKNOWN": "Ei asetettu"
         },
-        "layout-state": {
+        "location-track-state": {
             "BUILT": "Rakennettu",
+            "IN_USE": "Käytössä",
+            "NOT_IN_USE": "Käytöstä poistettu",
+            "PLANNED": "Suunniteltu",
+            "DELETED": "Poistettu"
+        },
+        "layout-state": {
             "IN_USE": "Käytössä",
             "NOT_IN_USE": "Käytöstä poistettu",
             "PLANNED": "Suunniteltu",
@@ -652,9 +659,11 @@
                 "start-address": "Alkusijainti (km + m)",
                 "split-address": "Katkaisukohta (km + m)",
                 "end-address": "Loppusijainti (km + m)",
-                "OVERWRITE": "Korvaa duplikaattiraiteen",
-                "TRANSFER": "Siirretään vain ratakohteet",
-                "NEW": "Luodaan uusi raide",
+                "operation": {
+                    "OVERWRITE": "Korvaa duplikaattiraiteen",
+                    "TRANSFER": "Siirretään vain ratakohteet",
+                    "CREATE": "Luodaan uusi raide"
+                },
                 "description-base": "Kuvauksen perusosa",
                 "description-suffix": "Kuvauksen lisäosa",
                 "exit-title": "Lopeta raiteen jakaminen",
@@ -679,6 +688,7 @@
                     "show": "näytä"
                 },
                 "validation-in-progress": "Raiteen vaihteita validoidaan...",
+                "relink-critical-errors": "Raiteen vaihteiden linkityksessä on kriittisiä ongelmia, jotka täytyy korjata ennen raiteen jakamista",
                 "relink-message": "Raiteen vaihteissa on ongelmia, jotka olisi hyödyllistä korjata ennen raiteen jakamista",
                 "cancel-and-relink": "Peruuta ja näytä ongelmalliset vaihteet ({{count}} kpl)"
             },
@@ -687,7 +697,8 @@
                     "title": "Tehtävälista",
                     "validation-errors-message": "Seuraavissa raiteen \"{{locationTrack}}\" vaihteissa on ongelmia",
                     "no-validation-errors-message": "Raiteen \"{{locationTrack}}\" vaihteet ovat kunnossa.",
-                    "close-task-list": "Sulje tehtävälista"
+                    "close-task-list": "Sulje tehtävälista",
+                    "relinking-failed": "Vaihteen automaattinen uudelleenlinkitys epäonnistui"
                 }
             },
             "splitting-blocks-geometry-changes": "Raiteen geometriaa ei voi muokata koska sen jakaminen on kesken",
@@ -902,9 +913,14 @@
         "new-author-created": "Uusi suunnitteluyritys luotu onnistuneesti",
         "dialog-create-button": "Luo",
         "dialog-cancel-button": "Peruuta",
+        "dialog-set-manually-button": "Aseta",
         "duplicate-project-name": "Samanniminen projekti on jo olemassa",
         "new-project-dialog-title": "Uusi projekti",
         "new-project-created": "Uusi projekti luotu onnistuneesti",
+        "manual-track-number-dialog-title": "Suunnitelman ratanumero",
+        "manual-track-number-dialog-field-title": "Ratanumero",
+        "track-number-manually-set": "Ratanumero asetettu",
+        "set-manual-track-number": "Aseta käsin",
         "not-enough-values": "Tunnuksen pitää olla vähintään 5 merkkiä pitkä",
         "too-many-values": "Tunnus voi olla korkeintaan 50 merkkiä pitkä",
         "invalid-oid": "Virheellinen tunnus",
@@ -969,6 +985,7 @@
                 "coordinate-system-unsupported": "Koordinaattijärjestelmä \"{{value}}\" ei ole tuettu",
                 "vertical-coordinate-system-missing": "Korkeusjärjestelmä puuttuu",
                 "track-number-missing": "Hallinnollinen ratanumero puuttuu",
+                "track-number-not-found": "Hallinnollista ratanumeroa \"{{value}}\" ei ole olemassa julkaistussa paikannuspohjassa",
                 "plan-time-missing": "Suunnitelman luontiaika puuttuu",
                 "author-missing": "Suunnitelman luojan tiedot puuttuu",
                 "reference-line-missing": "Pituusmittauslinja puuttuu",
@@ -1313,7 +1330,8 @@
                     "front-joint-only-duplicate-connected": "Vaihteen etujatkokselta jatkuu vain duplikaatiksi merkittyjä raiteita",
                     "switch-alignment-not-connected": "Joitakin vaihteen linjoja ei ole liitetty raiteelle: {{locationTracks}}",
                     "switch-alignment-only-connected-to-duplicate": "Joitakin vaihteen linjoja on liitetty ainoastaan duplikaatiksi merkityille raiteille: {{locationTracks}}",
-                    "multiple-tracks-through-joint": "Joistain vaihteen pisteistä menee läpi enemmän kuin yksi raide: {{locationTracks}}"
+                    "multiple-tracks-through-joint": "Joistain vaihteen pisteistä menee läpi enemmän kuin yksi raide: {{locationTracks}}",
+                    "relinking-failed": "Vaihteen {{switch}} uudelleenlinkitys epäonnistui"
                 }
             },
             "geocoding": {
@@ -1340,6 +1358,8 @@
                 "split-missing-switches": "Kaikki jakoon liittyvät vaihteet eivät ole mukana julkaisussa",
                 "multiple-splits-not-allowed": "Julkaisussa on mukana useampi jaettu raide",
                 "geometry-changed": "Jaettavan raiteen geometria on muuttunut",
+                "transfer-geometry-changed": "Säilytettävän osittaisen duplikaatin osoitteisto eroaa yli metrin jaettavasta raiteesta",
+                "trackmeters-changed": "Jaetun raiteen geometria ei sisällä samoja tasametripisteitä",
                 "no-geometry": "Raiteella ei ole geometriaa"
             }
         }
@@ -1458,7 +1478,8 @@
         "start-address": "Rataosoite alku",
         "end-address": "Rataosoite loppu",
         "newly-created": "Uusi kohde",
-        "replaces-duplicate": "Duplikaatti korvattu"
+        "replaces-duplicate": "Duplikaatti korvattu",
+        "transfers-assets": "Kohteet siirretty"
     },
     "error-in-ratko-connection": {
         "connection-error-status-code": "Ratkoon ei saada yhteyttä. Virhe Ratko-yhteydessä ({{code}}). ",
@@ -1494,7 +1515,8 @@
         }
     },
     "tool-bar": {
-        "search": "Hae...",
+        "search-from-whole-network": "Hae koko rataverkolta...",
+        "search-from-track": "Hae raiteelta {{track}}...",
         "new": "Luo uusi",
         "draft-mode": {
             "title": "LUONNOSTILA",
@@ -1661,5 +1683,8 @@
         "author": "Kehittäjä",
         "repository": "Lähdekoodi",
         "license": "Lisenssi"
+    },
+    "dropdown": {
+        "add-new": "Lisää uusi"
     }
 }

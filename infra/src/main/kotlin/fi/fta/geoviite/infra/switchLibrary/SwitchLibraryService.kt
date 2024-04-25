@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.switchLibrary
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.logging.serviceCall
 import org.slf4j.Logger
@@ -33,20 +34,34 @@ class SwitchLibraryService(
 
     fun getSwitchStructure(id: IntId<SwitchStructure>): SwitchStructure {
         logger.serviceCall("getSwitchStructure", "id" to id)
-        return structuresById[id] ?: throw NoSuchEntityException(SwitchStructure::class, id)
+        return getOrThrow(id)
     }
 
-    fun getSwitchType(id: IntId<SwitchStructure>): SwitchType = getSwitchStructure(id).type
+    fun getPresentationJointNumber(id: IntId<SwitchStructure>): JointNumber {
+        logger.serviceCall("getPresentationJointNumber", "id" to id)
+        return getOrThrow(id).presentationJointNumber
+    }
+
+    fun getSwitchType(id: IntId<SwitchStructure>): SwitchType {
+        logger.serviceCall("getSwitchType", "id" to id)
+        return getOrThrow(id).type
+    }
 
     fun getSwitchOwners(): List<SwitchOwner> {
         logger.serviceCall("getSwitchOwners")
         return switchOwnerDao.fetchSwitchOwners()
     }
 
-    fun getSwitchOwner(ownerId: IntId<SwitchOwner>) = getSwitchOwners().find { it.id == ownerId }
+    fun getSwitchOwner(ownerId: IntId<SwitchOwner>): SwitchOwner? {
+        logger.serviceCall("getSwitchOwner", "ownerId" to ownerId)
+        return switchOwnerDao.fetchSwitchOwners().find { it.id == ownerId }
+    }
 
     fun getInframodelAliases(): Map<String, String> {
         logger.serviceCall("getInframodelAliases")
         return switchStructureDao.getInframodelAliases()
     }
+
+    private fun getOrThrow(id: IntId<SwitchStructure>) =
+        structuresById[id] ?: throw NoSuchEntityException(SwitchStructure::class, id)
 }

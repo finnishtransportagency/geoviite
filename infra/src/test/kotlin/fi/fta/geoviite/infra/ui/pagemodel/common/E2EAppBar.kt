@@ -1,6 +1,8 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
 import clickWhenClickable
+import exists
+import fi.fta.geoviite.infra.authorization.DESIRED_ROLE_COOKIE_NAME
 import fi.fta.geoviite.infra.ui.pagemodel.dataproducts.E2EDataProductLayoutElementListPage
 import fi.fta.geoviite.infra.ui.pagemodel.dataproducts.E2EDataProductLayoutVerticalGeometryListPage
 import fi.fta.geoviite.infra.ui.pagemodel.dataproducts.LocationTrackKilometerLengthsListPage
@@ -8,9 +10,15 @@ import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EInfraModelPage
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ETrackLayoutPage
 import fi.fta.geoviite.infra.ui.util.byQaId
+import getElement
 import org.openqa.selenium.By
+import waitForCookie
+import waitUntilExists
+import waitUntilNotExist
 
 class E2EAppBar : E2EViewFragment(By.className("app-bar")) {
+
+    private val dataProductsMenuQaId = "data-products-menu"
 
     enum class NavLink(val qaId: String) {
         FRONT_PAGE("frontpage-link"),
@@ -53,6 +61,24 @@ class E2EAppBar : E2EViewFragment(By.className("app-bar")) {
         clickWhenClickable(byQaId(link.qaId))
     }
 
+    fun openDataProductsMenu() {
+        if (!exists(byQaId(dataProductsMenuQaId))) {
+            logger.info("Open data products menu")
+            clickWhenClickable(byQaId(NavLink.DATA_PRODUCT.qaId))
+        }
+
+        waitUntilExists(byQaId(dataProductsMenuQaId))
+    }
+
+    fun closeDataProductsMenu() {
+        if (exists(byQaId(dataProductsMenuQaId))) {
+            logger.info("Close data products menu")
+            clickWhenClickable(byQaId(NavLink.DATA_PRODUCT.qaId))
+        }
+
+        waitUntilNotExist(byQaId(dataProductsMenuQaId))
+    }
+
     fun goToElementListPage(): E2EDataProductLayoutElementListPage {
         logger.info("Open geometry list view")
 
@@ -72,5 +98,39 @@ class E2EAppBar : E2EViewFragment(By.className("app-bar")) {
 
         goToDataProductPage(DataProductNavLink.KILOMETER_LENGTHS)
         return LocationTrackKilometerLengthsListPage()
+    }
+
+    fun selectRole(roleCode: String) {
+        openAppBarMoreMenu()
+
+        getElement(byQaId("select-role-$roleCode")).let { roleSelectionElement ->
+            if (!roleSelectionElement.getAttribute("class").contains("disabled")) {
+                logger.info("Select role with code=$roleCode")
+                roleSelectionElement.click()
+            } else {
+                clickChild(byQaId("show-app-bar-more-menu"))
+            }
+        }
+
+        waitUntilNotExist(byQaId("select-role-$roleCode"))
+        waitUntilNotExist(byQaId("app-bar-more-menu"))
+
+        waitForCookie(DESIRED_ROLE_COOKIE_NAME, roleCode)
+    }
+
+    fun dataProductNavLinkExists(dataProductNavLink: DataProductNavLink): Boolean {
+        return exists(byQaId(dataProductNavLink.qaId))
+    }
+
+    fun openAppBarMoreMenu() {
+        if (!childExists(byQaId("app-bar-more-menu"))) {
+            logger.info("Open app bar more menu")
+            clickChild(byQaId("show-app-bar-more-menu"))
+        }
+    }
+
+    fun goToLicensePage() {
+        openAppBarMoreMenu()
+        clickWhenClickable(byQaId("licenses"))
     }
 }

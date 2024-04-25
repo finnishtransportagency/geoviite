@@ -43,7 +43,7 @@ data class LocationTrackSaveRequest(
     val descriptionBase: FreeText,
     val descriptionSuffix: DescriptionSuffixType,
     val type: LocationTrackType,
-    val state: LocationTrackLayoutState,
+    val state: LocationTrackState,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val duplicateOf: IntId<LocationTrack>?,
     val topologicalConnectivity: TopologicalConnectivityType,

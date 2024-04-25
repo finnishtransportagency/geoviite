@@ -58,7 +58,6 @@ class InfraModelParsingIT @Autowired constructor(
             coordinateSystemNameToSrid,
             switchStructuresByType,
             switchTypeNameAliases,
-            trackNumberDao.getTrackNumberToIdMapping(),
         )
         val allAlignments = infraModel.alignmentGroups.flatMap { ag -> ag.alignments }
         assertTrackNumbersMatch(infraModel.alignmentGroups, trackNumber)
@@ -75,7 +74,6 @@ class InfraModelParsingIT @Autowired constructor(
             coordinateSystemNameToSrid,
             switchStructuresByType,
             switchTypeNameAliases,
-            trackNumberDao.getTrackNumberToIdMapping(),
         )
         val allElements = parsed.alignments.flatMap { a -> a.elements }
         assertEquals(29, allElements.filterIsInstance<GeometryClothoid>().size)
@@ -433,7 +431,6 @@ class InfraModelParsingIT @Autowired constructor(
             coordinateSystemNameToSrid,
             switchStructuresByType,
             switchTypeNameAliases,
-            trackNumberDao.getTrackNumberToIdMapping(),
         )
     }
 

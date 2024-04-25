@@ -55,7 +55,7 @@ class PublicationDao(
                 number = rs.getTrackNumber("number"),
                 draftChangeTime = rs.getInstant("change_time"),
                 operation = rs.getEnum("operation"),
-                userName = UserName(rs.getString("change_user")),
+                userName = UserName.of(rs.getString("change_user")),
                 boundingBox = referenceLineDao.fetchVersionByTrackNumberId(PublicationState.DRAFT, id)
                     ?.let(referenceLineDao::fetch)?.boundingBox
             )
@@ -98,7 +98,7 @@ class PublicationDao(
                 name = rs.getTrackNumber("name"),
                 trackNumberId = rs.getIntId("track_number_id"),
                 draftChangeTime = rs.getInstant("change_time"),
-                userName = UserName(rs.getString("change_user")),
+                userName = UserName.of(rs.getString("change_user")),
                 operation = rs.getEnum<Operation>("operation"),
                 boundingBox = rs.getBboxOrNull("bounding_box"),
             )
@@ -112,15 +112,18 @@ class PublicationDao(
             with splits as (
                 select
                     split.id as split_id,
-                    split.source_location_track_id as source_track_id,
+                    coalesce(source.official_row_id, source.id) as source_track_id,
                     array_agg(stlt.location_track_id) as target_track_ids,
                     array_agg(split_updated_duplicates.duplicate_location_track_id) as split_updated_duplicate_ids
                 from publication.split
+                    inner join layout.location_track_version source 
+                        on source.id = split.source_location_track_row_id
+                          and source.version = split.source_location_track_row_version
                     inner join publication.split_target_location_track stlt on stlt.split_id = split.id
                     left join publication.split_updated_duplicate split_updated_duplicates 
                         on split_updated_duplicates.split_id = split.id
                 where split.publication_id is null
-                group by split.id, split.source_location_track_id
+                group by split.id, source.official_row_id, source.id
             )
             select 
               draft_location_track.row_id,
@@ -158,10 +161,10 @@ class PublicationDao(
                 trackNumberId = rs.getIntId("track_number_id"),
                 draftChangeTime = rs.getInstant("change_time"),
                 duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
-                userName = UserName(rs.getString("change_user")),
+                userName = UserName.of(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
                 boundingBox = rs.getBboxOrNull("bounding_box"),
-                publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup)
+                publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup),
             )
         }
         logger.daoAccess(FETCH, LocationTrackPublicationCandidate::class, candidates.map(LocationTrackPublicationCandidate::id))
@@ -222,7 +225,7 @@ class PublicationDao(
                 rowVersion = rs.getRowVersion("row_id", "row_version"),
                 name = SwitchName(rs.getString("name")),
                 draftChangeTime = rs.getInstant("change_time"),
-                userName = UserName(rs.getString("change_user")),
+                userName = UserName.of(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
                 trackNumberIds = rs.getIntIdArray("track_numbers"),
                 location = rs.getPointOrNull("point_x", "point_y"),
@@ -264,7 +267,7 @@ class PublicationDao(
                 trackNumberId = rs.getIntId("track_number_id"),
                 kmNumber = rs.getKmNumber("km_number"),
                 draftChangeTime = rs.getInstant("change_time"),
-                userName = UserName(rs.getString("change_user")),
+                userName = UserName.of(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
                 location = rs.getPointOrNull("point_x", "point_y"),
             )
@@ -384,7 +387,7 @@ class PublicationDao(
         return getOne(publicationId, jdbcTemplate.query(sql, mapOf("id" to publicationId.intValue)) { rs, _ ->
             Publication(
                 id = rs.getIntId("id"),
-                publicationUser = rs.getString("publication_user").let(::UserName),
+                publicationUser = rs.getString("publication_user").let(UserName::of),
                 publicationTime = rs.getInstant("publication_time"),
                 message = rs.getString("message")
             )
@@ -433,7 +436,7 @@ class PublicationDao(
         return jdbcTemplate.query(sql, params) { rs, _ ->
             Publication(
                 id = rs.getIntId("id"),
-                publicationUser = rs.getString("publication_user").let(::UserName),
+                publicationUser = rs.getString("publication_user").let(UserName::of),
                 publicationTime = rs.getInstant("publication_time"),
                 message = rs.getString("message")
             )
@@ -455,7 +458,7 @@ class PublicationDao(
         return jdbcTemplate.query(sql, params) { rs, _ ->
             Publication(
                 id = rs.getIntId("id"),
-                publicationUser = rs.getString("publication_user").let(::UserName),
+                publicationUser = rs.getString("publication_user").let(UserName::of),
                 publicationTime = rs.getInstant("publication_time"),
                 message = rs.getString("message")
             )
@@ -710,7 +713,7 @@ class PublicationDao(
                 },
                 endPoint = rs.getChangePoint("end_x", "end_y"),
                 startPoint = rs.getChangePoint("start_x", "start_y"),
-                state = rs.getChange("state", { rs.getEnumOrNull<LocationTrackLayoutState>(it) }),
+                state = rs.getChange("state", { rs.getEnumOrNull<LocationTrackState>(it) }),
                 duplicateOf = rs.getChange("duplicate_of_location_track_id", rs::getIntIdOrNull),
                 type = rs.getChange("type", { rs.getEnumOrNull<LocationTrackType>(it) }),
                 length = rs.getChange("length", rs::getDoubleOrNull),

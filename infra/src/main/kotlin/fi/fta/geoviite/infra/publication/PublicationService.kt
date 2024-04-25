@@ -21,9 +21,11 @@ import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.publication.PublicationValidationErrorType.ERROR
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
+import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitPublicationValidationErrors
 import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.CsvEntry
@@ -58,10 +60,11 @@ private val splitCsvColumns = listOf(
     ) { (_, split) -> split.oid },
     CsvEntry(
         translateSplitTargetListingHeader(SplitTargetListingHeader.OPERATION),
-    ) { (_, split) ->
-        // TODO: GVT-2525 "kohteet siirretty"
-        if (split.newlyCreated) "Uusi kohde" else "Duplikaatti korvattu"
-    },
+    ) { (_, split) -> when (split.operation) {
+        SplitTargetOperation.CREATE -> "Uusi kohde"
+        SplitTargetOperation.OVERWRITE -> "Duplikaatti korvattu"
+        SplitTargetOperation.TRANSFER -> "Kohteet siirretty"
+    } },
     CsvEntry(
         translateSplitTargetListingHeader(SplitTargetListingHeader.START_ADDRESS),
     ) { (_, split) -> split.startAddress },
@@ -491,10 +494,7 @@ class PublicationService @Autowired constructor(
     }
 
     private fun assertNoSplitErrors(errors: SplitPublicationValidationErrors) {
-        val splitErrors = (errors.kmPosts + errors.trackNumbers + errors.referenceLines + errors.kmPosts)
-            .values
-            .flatten()
-            .filter { error -> error.type == ERROR }
+        val splitErrors = errors.allErrors().filter { error -> error.type == ERROR }
 
         if (splitErrors.isNotEmpty()) {
             logger.warn("Validation errors in split: errors=$splitErrors")
@@ -534,12 +534,12 @@ class PublicationService @Autowired constructor(
         val kmPosts = versions.kmPosts.map(kmPostService::publish).map { r -> r.rowVersion }
         val switches = versions.switches.map(switchService::publish).map { r -> r.rowVersion }
         val referenceLines = versions.referenceLines.map(referenceLineService::publish).map { r -> r.rowVersion }
-        val locationTracks = versions.locationTracks.map(locationTrackService::publish).map { r -> r.rowVersion }
+        val locationTracks = versions.locationTracks.map(locationTrackService::publish)
         val publicationId = publicationDao.createPublication(message)
         publicationDao.insertCalculatedChanges(publicationId, calculatedChanges)
         publicationGeometryChangeRemarksUpdateService.processPublication(publicationId)
 
-        splitService.publishSplit(versions.locationTracks.map { it.officialId }, publicationId)
+        splitService.publishSplit(locationTracks, publicationId)
 
         return PublicationResult(
             publicationId = publicationId,
@@ -667,10 +667,11 @@ class PublicationService @Autowired constructor(
                         val switchTracks = validationContext.getSwitchTracksWithAlignments(switch.id as IntId)
                         validateSwitchTopologicalConnectivity(switch, structure, switchTracks, track)
                     }
-                val switchConnectivityErrors = if (track.exists) validateLocationTrackSwitchConnectivity(
-                        track,
-                        alignment
-                    ) else emptyList()
+                val switchConnectivityErrors = if (track.exists) {
+                    validateLocationTrackSwitchConnectivity(track, alignment)
+                } else {
+                    emptyList()
+                }
 
                 val duplicatesAfterPublication = validationContext.getDuplicateTracks(id)
                 val duplicateOf = track.duplicateOf?.let(validationContext::getLocationTrack)
@@ -838,41 +839,12 @@ class PublicationService @Autowired constructor(
         return publicationDao.getPublication(id).let { publication ->
             splitService.getSplitIdByPublicationId(id)?.let { splitId ->
                 val split = splitService.getOrThrow(splitId)
-                val sourceLocationTrack = locationTrackService.getOfficialAtMoment(
-                    split.locationTrackId,
-                    publication.publicationTime,
-                )
-                requireNotNull(sourceLocationTrack) { "Source location track not found" }
+                val sourceLocationTrack = locationTrackDao.fetch(split.sourceLocationTrackVersion)
                 val targetLocationTracks = publicationDao
                     .fetchPublishedLocationTracks(id)
-                    .let { changes -> changes.indirectChanges + changes.directChanges }
-                    .distinctBy { it.version }
-                    .map { change ->
-                        locationTrackService
-                            .getWithAlignment(change.version)
-                            .let { (lt, alignment) -> Triple(lt, alignment, change) }
-                    }
-                    .filter { (lt, _, _) ->
-                        lt.id != split.locationTrackId && split.containsLocationTrack(lt.id as IntId)
-                    }
-                    .map { (lt, alignment, change) ->
-                        geocodingService
-                            .getGeocodingContextAtMoment(lt.trackNumberId, publication.publicationTime)
-                            .let { geocodingContext ->
-                                SplitTargetInPublication(
-                                    id = lt.id as IntId,
-                                    name = lt.name,
-                                    oid = lt.externalId,
-                                    startAddress = alignment.start?.let { start ->
-                                        geocodingContext?.getAddress(start)?.first
-                                    },
-                                    endAddress = alignment.end?.let { end ->
-                                        geocodingContext?.getAddress(end)?.first
-                                    },
-                                    newlyCreated = change.operation == Operation.CREATE,
-                                )
-                            }
-                    }
+                    .let { changes -> (changes.indirectChanges + changes.directChanges).map { c -> c.version } }
+                    .distinct()
+                    .mapNotNull { v -> createSplitTargetInPublication(v, publication.publicationTime, split) }
                     .sortedWith { a, b -> nullsFirstComparator(a.startAddress, b.startAddress) }
                 SplitInPublication(
                     id = publication.id,
@@ -881,6 +853,25 @@ class PublicationService @Autowired constructor(
                     targetLocationTracks = targetLocationTracks,
                 )
             }
+        }
+    }
+
+    private fun createSplitTargetInPublication(
+        rowVersion: RowVersion<LocationTrack>,
+        publicationTime: Instant,
+        split: Split,
+    ): SplitTargetInPublication? {
+        val (track, alignment) = locationTrackService.getWithAlignment(rowVersion)
+        return split.getTargetLocationTrack(track.id as IntId)?.let { target ->
+            val ctx = geocodingService.getGeocodingContextAtMoment(track.trackNumberId, publicationTime)
+            return SplitTargetInPublication(
+                id = track.id,
+                name = track.name,
+                oid = track.externalId,
+                startAddress = alignment.start?.let { start -> ctx?.getAddress(start)?.first },
+                endAddress = alignment.end?.let { end -> ctx?.getAddress(end)?.first },
+                operation = target.operation,
+            )
         }
     }
 
@@ -1020,7 +1011,7 @@ class PublicationService @Autowired constructor(
                 { it },
                 PropKey("state"),
                 null,
-                "layout-state",
+                "location-track-state",
             ),
             compareChangeValues(
                 locationTrackChanges.type,

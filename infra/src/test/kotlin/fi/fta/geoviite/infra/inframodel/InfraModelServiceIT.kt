@@ -85,7 +85,7 @@ class InfraModelServiceIT @Autowired constructor(
             verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
             projectId = geometryDao.insertProject(project(getUnusedProjectName().toString())).id,
             authorId = geometryDao.insertAuthor(author(getUnusedAuthorCompanyName().toString())).id,
-            trackNumberId = insertOfficialTrackNumber(),
+            trackNumber = getOrCreateTrackNumber(getUnusedTrackNumber()).number,
             createdDate = Instant.now().minusSeconds(Duration.ofDays(5L).toSeconds()),
             source = PlanSource.GEOMETRIAPALVELU,
         )
@@ -103,7 +103,7 @@ class InfraModelServiceIT @Autowired constructor(
             verticalCoordinateSystem = VerticalCoordinateSystem.N60,
             projectId = geometryDao.insertProject(project(getUnusedProjectName().toString())).id,
             authorId = geometryDao.insertAuthor(author(getUnusedAuthorCompanyName().toString())).id,
-            trackNumberId = insertOfficialTrackNumber(),
+            trackNumber = getOrCreateTrackNumber(getUnusedTrackNumber()).number,
             createdDate = Instant.now(),
             source = PlanSource.PAIKANNUSPALVELU,
         )
@@ -138,7 +138,7 @@ class InfraModelServiceIT @Autowired constructor(
         assertEquals(overrides.verticalCoordinateSystem, plan.units.verticalCoordinateSystem)
         assertEquals(overrides.projectId, plan.project.id as IntId)
         assertEquals(overrides.authorId, plan.author?.id as IntId)
-        assertEquals(overrides.trackNumberId, plan.trackNumberId)
+        assertEquals(overrides.trackNumber, plan.trackNumber)
         assertEquals(overrides.createdDate?.toEpochMilli(), plan.planTime?.toEpochMilli())
         assertEquals(overrides.source, plan.source)
 

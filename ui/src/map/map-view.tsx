@@ -590,6 +590,7 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
                             selection,
                             layoutContext,
+                            splittingState !== undefined,
                             changeTimes,
                             (loading) => onLayerLoading(layerName, loading),
                         );

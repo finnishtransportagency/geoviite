@@ -114,16 +114,16 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         changeTimes,
     );
 
-    const publishTypeIsDraft = layoutContext.publicationState === 'DRAFT';
+    const isDraft = layoutContext.publicationState === 'DRAFT';
     const locationTrackIsDraft = locationTrack.editState !== 'UNEDITED';
-    const duplicatesOnOtherTracks = extraInfo?.duplicates?.some(
-        (dupe) => dupe.trackNumberId !== trackNumber?.id,
+    const duplicatesOnOtherTrackNumbers = extraInfo?.duplicates?.some(
+        (duplicate) => duplicate.trackNumberId !== trackNumber?.id,
     );
 
     const getSplittingDisabledReasonsTranslated = () => {
         const reasons: string[] = [];
 
-        if (!publishTypeIsDraft) {
+        if (!isDraft) {
             return t('tool-panel.disabled.activity-disabled-in-official-mode');
         }
 
@@ -137,7 +137,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
 
         if (locationTrackIsDraft)
             reasons.push(t('tool-panel.location-track.splitting.validation.track-draft-exists'));
-        if (duplicatesOnOtherTracks)
+        if (duplicatesOnOtherTrackNumbers)
             reasons.push(
                 t(
                     'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
@@ -148,7 +148,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     };
 
     const getModifyStartOrEndDisabledReasonTranslated = () => {
-        if (!publishTypeIsDraft) {
+        if (!isDraft) {
             return t('tool-panel.disabled.activity-disabled-in-official-mode');
         } else if (splittingState || extraInfo?.partOfUnfinishedSplit) {
             return t('tool-panel.location-track.splitting-blocks-geometry-changes');
@@ -184,7 +184,6 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                     endLocation: startAndEndPoints.end.point,
                     trackNumber: trackNumber.number,
                 });
-                // TODO: GVT-2525 couldn't this be calculated state instead of setter?
                 showLayers(['location-track-split-location-layer']);
             }
         });
@@ -250,7 +249,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
 
                             {linkingState === undefined && (
                                 <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                                    {publishTypeIsDraft && extraInfo?.partOfUnfinishedSplit && (
+                                    {isDraft && extraInfo?.partOfUnfinishedSplit && (
                                         <InfoboxContentSpread>
                                             <MessageBox>
                                                 {t(
@@ -319,7 +318,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             )}
                             <EnvRestricted restrictTo="test">
                                 <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                                    {publishTypeIsDraft &&
+                                    {isDraft &&
                                         locationTrackIsDraft &&
                                         !extraInfo?.partOfUnfinishedSplit && (
                                             <InfoboxContentSpread>
@@ -330,8 +329,8 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 </MessageBox>
                                             </InfoboxContentSpread>
                                         )}
-                                    {publishTypeIsDraft &&
-                                        duplicatesOnOtherTracks &&
+                                    {isDraft &&
+                                        duplicatesOnOtherTrackNumbers &&
                                         !extraInfo?.partOfUnfinishedSplit && (
                                             <InfoboxContentSpread>
                                                 <MessageBox>
@@ -348,9 +347,9 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 size={ButtonSize.SMALL}
                                                 disabled={
                                                     locationTrack.state !== 'IN_USE' ||
-                                                    !publishTypeIsDraft ||
+                                                    !isDraft ||
                                                     locationTrackIsDraft ||
-                                                    duplicatesOnOtherTracks ||
+                                                    duplicatesOnOtherTrackNumbers ||
                                                     extraInfo?.partOfUnfinishedSplit
                                                 }
                                                 title={getSplittingDisabledReasonsTranslated()}

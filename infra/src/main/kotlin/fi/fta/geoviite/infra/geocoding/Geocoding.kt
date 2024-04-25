@@ -5,10 +5,33 @@ import fi.fta.geoviite.infra.common.DEFAULT_TRACK_METER_DECIMALS
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.GeocodingFailureException
-import fi.fta.geoviite.infra.math.*
-import fi.fta.geoviite.infra.math.IntersectType.*
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.IntersectType
+import fi.fta.geoviite.infra.math.IntersectType.AFTER
+import fi.fta.geoviite.infra.math.IntersectType.BEFORE
+import fi.fta.geoviite.infra.math.IntersectType.WITHIN
+import fi.fta.geoviite.infra.math.Intersection
+import fi.fta.geoviite.infra.math.Line
+import fi.fta.geoviite.infra.math.angleAvgRads
+import fi.fta.geoviite.infra.math.angleDiffRads
+import fi.fta.geoviite.infra.math.directionBetweenPoints
+import fi.fta.geoviite.infra.math.interpolate
+import fi.fta.geoviite.infra.math.isSame
+import fi.fta.geoviite.infra.math.lineIntersection
+import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.math.pointInDirection
+import fi.fta.geoviite.infra.math.round
+import fi.fta.geoviite.infra.math.roundTo3Decimals
+import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.GeometrySource
+import fi.fta.geoviite.infra.tracklayout.IAlignment
+import fi.fta.geoviite.infra.tracklayout.ISegment
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.SegmentPoint
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.math.BigDecimal
@@ -18,6 +41,14 @@ import kotlin.math.abs
 
 data class AddressPoint(val point: AlignmentPoint, val address: TrackMeter) {
     fun isSame(other: AddressPoint) = address.isSame(other.address) && point.isSame(other.point)
+    fun withIntegerPrecision(): AddressPoint? =
+        if (address.hasIntegerPrecision()) {
+            this
+        } else if (address.matchesIntegerValue()) {
+            AddressPoint(point = point, address = address.floor())
+        } else {
+            null
+        }
 }
 
 data class AlignmentAddresses(
@@ -30,6 +61,12 @@ data class AlignmentAddresses(
     @get:JsonIgnore
     val allPoints: List<AddressPoint> by lazy {
         emptyList<AddressPoint>() + startPoint + midPoints + endPoint
+    }
+
+    @get:JsonIgnore
+    val exactMeterPoints: List<AddressPoint> by lazy {
+        // midPoints are even anyhow, so just transform start/end
+        listOfNotNull(startPoint.withIntegerPrecision()) + midPoints + listOfNotNull(endPoint.withIntegerPrecision())
     }
 }
 
@@ -98,7 +135,7 @@ enum class KmPostRejectedReason {
 }
 
 data class GeocodingContext(
-    val trackNumber: TrackLayoutTrackNumber,
+    val trackNumber: TrackNumber,
     val startAddress: TrackMeter,
     val referenceLineGeometry: IAlignment,
     val referencePoints: List<GeocodingReferencePoint>,
@@ -108,11 +145,11 @@ data class GeocodingContext(
 
     init {
         require(referenceLineGeometry.segments.isNotEmpty()) {
-            "Cannot geocode with empty reference line geometry, trackNumber=${trackNumber.number}"
+            "Cannot geocode with empty reference line geometry, trackNumber=${trackNumber}"
         }
 
         require(referencePoints.isNotEmpty()) {
-            "Cannot geocode without reference points, trackNumber=${trackNumber.number}"
+            "Cannot geocode without reference points, trackNumber=${trackNumber}"
         }
 
         require(
@@ -120,7 +157,7 @@ data class GeocodingContext(
                 .zipWithNext { a, b -> abs(b.distance - a.distance) }
                 .all { TrackMeter.isMetersValid(it) }
         ) {
-            "Reference points are too far apart from each other, trackNumber=${trackNumber.number}"
+            "Reference points are too far apart from each other, trackNumber=${trackNumber}"
         }
     }
 
@@ -128,7 +165,7 @@ data class GeocodingContext(
     val projectionLines: List<ProjectionLine> by lazy {
         require(isSame(polyLineEdges.last().endM, referenceLineGeometry.length, LAYOUT_M_DELTA)) {
             "Polyline edges should cover the whole reference line geometry: " +
-                    "trackNumber=${trackNumber.number} " +
+                    "trackNumber=${trackNumber} " +
                     "alignment=${referenceLineGeometry.id} " +
                     "edgeMValues=${polyLineEdges.map { e -> e.startM..e.endM }}"
         }
@@ -172,7 +209,7 @@ data class GeocodingContext(
 
     companion object {
         fun create(
-            trackNumber: TrackLayoutTrackNumber,
+            trackNumber: TrackNumber,
             startAddress: TrackMeter,
             referenceLineGeometry: IAlignment,
             kmPosts: List<TrackLayoutKmPost>,
@@ -196,7 +233,8 @@ data class GeocodingContext(
                     referenceLineGeometry = referenceLineGeometry,
                     referencePoints = validReferencePoints,
                     startAddress = startAddress
-                ), rejectedKmPosts = invalidKmPosts + kmPostsOutsideGeometry,
+                ),
+                rejectedKmPosts = invalidKmPosts + kmPostsOutsideGeometry,
                 validKmPosts = validKmPosts,
                 startPointRejectedReason = if (startKmIsTooLong) StartPointRejectedReason.TOO_LONG else null
             )
@@ -302,10 +340,8 @@ data class GeocodingContext(
     fun getM(coordinate: IPoint) = referenceLineGeometry.getClosestPointM(coordinate)
 
     fun getAddressAndM(coordinate: IPoint, addressDecimals: Int = DEFAULT_TRACK_METER_DECIMALS): AddressAndM? =
-        referenceLineGeometry.getClosestPointM(coordinate)?.let { (dist, type) ->
-            getAddress(dist, addressDecimals)?.let { address ->
-                AddressAndM(address, dist, type)
-            }
+        referenceLineGeometry.getClosestPointM(coordinate)?.let { (mValue, type) ->
+            getAddress(mValue, addressDecimals)?.let { address -> AddressAndM(address, mValue, type) }
         }
 
     fun getAddress(coordinate: IPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS): Pair<TrackMeter, IntersectType>? =

@@ -1,5 +1,6 @@
 import {
     AddressPoint,
+    DuplicateStatus,
     LayoutLocationTrack,
     LayoutSwitch,
     LayoutSwitchId,
@@ -21,7 +22,7 @@ import {
     validateLocationTrackName,
 } from 'tool-panel/location-track/dialog/location-track-validation';
 import { isEqualIgnoreCase } from 'utils/string-utils';
-import { SplitDuplicateStatus } from 'track-layout/layout-location-track-api';
+import { SwitchRelinkingValidationResult } from 'linking/linking-model';
 
 export const START_SWITCH_NOT_MATCHING_ERROR = 'switch-not-matching-start-switch';
 export const END_SWITCH_NOT_MATCHING_ERROR = 'switch-not-matching-end-switch';
@@ -58,7 +59,7 @@ const splitToRequestTarget = (
     duplicate: LayoutLocationTrack | undefined,
 ): SplitRequestTarget => {
     const duplicateTrack: SplitRequestTargetDuplicate | undefined =
-        split.duplicateTrackId && split.operation
+        split.duplicateTrackId && split.operation !== 'CREATE'
             ? {
                   id: split.duplicateTrackId,
                   operation: split.operation,
@@ -229,11 +230,14 @@ export const getSplitAddressPoint = (
     }
 };
 
+export const hasUnrelinkableSwitches = (switchRelinkingErrors: SwitchRelinkingValidationResult[]) =>
+    switchRelinkingErrors?.some((err) => !err.successfulSuggestion) || false;
+
 export const getOperation = (
     trackId: LocationTrackId,
     switchId: LayoutSwitchId | undefined,
-    duplicateStatus: SplitDuplicateStatus | undefined,
-): SplitTargetOperation | undefined => {
+    duplicateStatus: DuplicateStatus | undefined,
+): SplitTargetOperation => {
     switch (duplicateStatus?.match) {
         case 'FULL':
             return 'OVERWRITE';
@@ -242,6 +246,6 @@ export const getOperation = (
                 ? 'TRANSFER'
                 : 'OVERWRITE';
         default:
-            return duplicateStatus?.duplicateOfId === trackId ? 'OVERWRITE' : undefined;
+            return duplicateStatus?.duplicateOfId === trackId ? 'OVERWRITE' : 'CREATE';
     }
 };

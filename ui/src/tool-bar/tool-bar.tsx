@@ -7,6 +7,7 @@ import {
     LayoutLocationTrack,
     LayoutSwitch,
     LayoutTrackNumber,
+    LocationTrackId,
 } from 'track-layout/track-layout-model';
 import { debounceAsync } from 'utils/async-utils';
 import { isNilOrBlank } from 'utils/string-utils';
@@ -87,12 +88,13 @@ type SearchItemValue = LocationTrackItemValue | SwitchItemValue | TrackNumberIte
 async function getOptions(
     layoutContext: LayoutContext,
     searchTerm: string,
+    contextLocationTrackId: LocationTrackId | undefined,
 ): Promise<Item<SearchItemValue>[]> {
     if (isNilOrBlank(searchTerm)) {
         return Promise.resolve([]);
     }
 
-    const searchResult = await getBySearchTerm(searchTerm, layoutContext);
+    const searchResult = await getBySearchTerm(searchTerm, layoutContext, contextLocationTrackId);
 
     const locationTrackDescriptions = await getLocationTrackDescriptions(
         searchResult.locationTracks.map((lt) => lt.id),
@@ -193,8 +195,9 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const debouncedGetOptions = debounceAsync(getOptions, 250);
     // Use memoized function to make debouncing functionality to work when re-rendering
     const memoizedDebouncedGetOptions = React.useCallback(
-        (searchTerm: string) => debouncedGetOptions(layoutContext, searchTerm),
-        [layoutContext],
+        (searchTerm: string) =>
+            debouncedGetOptions(layoutContext, searchTerm, splittingState?.originLocationTrack?.id),
+        [layoutContext, splittingState],
     );
 
     function onItemSelected(item: SearchItemValue | undefined) {
@@ -217,11 +220,13 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     const bbox = expandBoundingBox(boundingBoxAroundPoints([center]), 200);
                     showArea(bbox);
                 }
-                return onSelect({
-                    switches: [item.layoutSwitch.id],
-                    locationTracks: [],
-                    trackNumbers: [],
-                });
+                return !splittingState
+                    ? onSelect({
+                          switches: [item.layoutSwitch.id],
+                          locationTracks: [],
+                          trackNumbers: [],
+                      })
+                    : undefined;
 
             case 'trackNumberSearchItem':
                 getTrackNumberReferenceLine(item.trackNumber.id, layoutContext).then(
@@ -264,7 +269,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         setShowNewAssetMenu(false);
     }
 
-    function moveToOfficialPublishType() {
+    function switchToOfficialContext() {
         onPublicationStateChange('OFFICIAL');
         setShowNewAssetMenu(false);
     }
@@ -302,7 +307,13 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         <div className={`tool-bar tool-bar--${layoutContext.publicationState.toLowerCase()}`}>
             <div className={styles['tool-bar__left-section']}>
                 <Dropdown
-                    placeholder={t('tool-bar.search')}
+                    placeholder={
+                        splittingState
+                            ? t('tool-bar.search-from-track', {
+                                  track: splittingState.originLocationTrack.name,
+                              })
+                            : t('tool-bar.search-from-whole-network')
+                    }
                     options={memoizedDebouncedGetOptions}
                     searchable
                     onChange={onItemSelected}
@@ -357,7 +368,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                             }
                             variant={ButtonVariant.SECONDARY}
                             title={modeNavigationButtonsDisabledReason()}
-                            onClick={() => moveToOfficialPublishType()}>
+                            qa-id="exit-draft-mode"
+                            onClick={() => switchToOfficialContext()}>
                             {t('tool-bar.draft-mode.disable')}
                         </Button>
                         <Button

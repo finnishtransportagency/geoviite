@@ -1,5 +1,8 @@
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EToast
+import fi.fta.geoviite.infra.ui.pagemodel.common.ToastType
 import org.apache.commons.io.FileUtils
 import org.json.JSONObject
+import org.openqa.selenium.By
 import org.openqa.selenium.JavascriptExecutor
 import org.openqa.selenium.OutputType
 import org.openqa.selenium.TakesScreenshot
@@ -13,13 +16,16 @@ import org.openqa.selenium.logging.LogEntries
 import org.openqa.selenium.logging.LogEntry
 import org.openqa.selenium.logging.LogType
 import org.openqa.selenium.logging.LoggingPreferences
+import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.time.Duration
 import java.time.Instant
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Level
+import kotlin.test.assertEquals
 
 private fun createChromeDriver(headless: Boolean): WebDriver {
     val options = ChromeOptions()
@@ -149,6 +155,37 @@ fun printNetworkLogsResponses() = try {
     printLogEntries(LogSource.NETWORK_RESPONSES, filtered)
 } catch (e: Exception) {
     logger.error("Failed to print network responses ${e.message}")
+}
+
+fun synchronizeAndConsumeCurrentBrowserLog(timeoutInSeconds: Duration = defaultWait): List<LogEntry> {
+    val timestamp = Instant.now().toEpochMilli()
+    val syncMessage = "browser_log_sync_and_consume$timestamp"
+    val syncScript = "console.log('$syncMessage')"
+
+    javaScriptExecutor().executeScript(syncScript)
+
+    val consumedLogEntries: MutableList<LogEntry> = mutableListOf()
+
+    WebDriverWait(browser(), timeoutInSeconds).until { driver ->
+        val newLogEntries = driver.manage().logs().get(LogType.BROWSER)
+        consumedLogEntries.addAll(newLogEntries)
+
+        newLogEntries.any { log -> log.message.contains(syncMessage) }
+    }
+
+    return consumedLogEntries
+}
+
+fun waitForCookie(cookieName: String, desiredValue: String? = null, timeout: Duration = defaultWait) {
+    WebDriverWait(browser(), timeout).until { driver ->
+        driver.manage().cookies.any { cookie ->
+            if (desiredValue == null) {
+                cookie.name == cookieName
+            } else {
+                cookie.name == cookieName && cookie.value == desiredValue
+            }
+        }
+    }
 }
 
 private fun printLogEntries(source: LogSource, logEntries: LogEntries) {

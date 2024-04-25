@@ -544,7 +544,7 @@ class LocationTrackServiceIT @Autowired constructor(
         locationTrack.trackNumberId,
         locationTrack.name,
         locationTrack.externalId,
-        SplitDuplicateStatus(SplitDuplicateMatch.NONE, locationTrack.duplicateOf, null, null, null, null),
+        DuplicateStatus(DuplicateMatch.NONE, locationTrack.duplicateOf, null, null, null, null),
     )
 
     private fun insertAndFetchDraft(switch: TrackLayoutSwitch): TrackLayoutSwitch =

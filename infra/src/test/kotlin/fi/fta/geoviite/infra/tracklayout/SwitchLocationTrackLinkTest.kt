@@ -196,8 +196,8 @@ fun partialMatch(
     from: Int = 0,
     startPoint: AlignmentPoint = emptyPoint(),
     endPoint: AlignmentPoint = emptyPoint(),
-) = from to SplitDuplicateStatus(
-    SplitDuplicateMatch.PARTIAL, null, IntId(startSwitch), IntId(endSwitch), startPoint, endPoint
+) = from to DuplicateStatus(
+    DuplicateMatch.PARTIAL, null, IntId(startSwitch), IntId(endSwitch), startPoint, endPoint
 )
 
 fun fullMatch(
@@ -206,8 +206,8 @@ fun fullMatch(
     from: Int = 0,
     startPoint: AlignmentPoint = emptyPoint(),
     endPoint: AlignmentPoint = emptyPoint(),
-) = from to SplitDuplicateStatus(
-    SplitDuplicateMatch.FULL, null, IntId(startSwitch), IntId(endSwitch), startPoint, endPoint
+) = from to DuplicateStatus(
+    DuplicateMatch.FULL, null, IntId(startSwitch), IntId(endSwitch), startPoint, endPoint
 )
 
 fun matchRange(vararg switchToJoint: Pair<Int, Int>): List<SwitchJointOnTrack> = switchToJoint.map { (id, joint) ->

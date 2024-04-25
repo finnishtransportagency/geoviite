@@ -132,14 +132,16 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                     onHighlightItem={onHighlightItem}
                 />
             </PrivilegeRequired>
-            <LocationTrackVerticalGeometryInfobox
-                contentVisible={visibilities.verticalGeometry}
-                onContentVisibilityChange={() => visibilityChange('verticalGeometry')}
-                onVerticalGeometryDiagramVisibilityChange={
-                    onVerticalGeometryDiagramVisibilityChange
-                }
-                verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
-            />
+            <PrivilegeRequired privilege={VIEW_GEOMETRY}>
+                <LocationTrackVerticalGeometryInfobox
+                    contentVisible={visibilities.verticalGeometry}
+                    onContentVisibilityChange={() => visibilityChange('verticalGeometry')}
+                    onVerticalGeometryDiagramVisibilityChange={
+                        onVerticalGeometryDiagramVisibilityChange
+                    }
+                    verticalGeometryDiagramVisible={verticalGeometryDiagramVisible}
+                />
+            </PrivilegeRequired>
             <LocationTrackValidationInfoboxContainer
                 contentVisible={visibilities.validation}
                 onContentVisibilityChange={() => visibilityChange('validation')}

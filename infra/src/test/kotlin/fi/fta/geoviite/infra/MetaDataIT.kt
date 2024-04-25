@@ -37,13 +37,13 @@ class MetaDataIT: DBTestBase() {
         updateRole(TEST_ROLE_CODE, "IT_test_name_2")
         assertEquals("IT_test_name_2", getName(TEST_ROLE_CODE))
 
-        withUser(UserName("TST_USER_2")) { updateRole(TEST_ROLE_CODE, "IT_test_name_3") }
+        withUser(UserName.of("TST_USER_2")) { updateRole(TEST_ROLE_CODE, "IT_test_name_3") }
         assertEquals("IT_test_name_3", getName(TEST_ROLE_CODE))
 
-        withUser(UserName("TST_USER_3")) { deleteRole(TEST_ROLE_CODE) }
+        withUser(UserName.of("TST_USER_3")) { deleteRole(TEST_ROLE_CODE) }
         assertEquals(null, getName(TEST_ROLE_CODE))
 
-        withUser(UserName("TST_USER_4")) { insertRole(TEST_ROLE_CODE, "IT_test_restored") }
+        withUser(UserName.of("TST_USER_4")) { insertRole(TEST_ROLE_CODE, "IT_test_restored") }
         assertEquals("IT_test_restored", getName(TEST_ROLE_CODE))
 
         assertEquals(

@@ -1,40 +1,45 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
+import { LoaderStatus } from 'utils/react-utils';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import styles from 'tool-panel/location-track/location-track-infobox.scss';
 import { Link } from 'vayla-design-lib/link/link';
 import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
 import { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
-import { validateLocationTrackSwitchRelinking } from 'linking/linking-api';
-import { getChangeTimes } from 'common/change-time-api';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LocationTrackId } from 'track-layout/track-layout-model';
+import { SwitchRelinkingValidationResult } from 'linking/linking-model';
+import { hasUnrelinkableSwitches } from 'tool-panel/location-track/splitting/split-utils';
 
 type LocationTrackSplitRelinkingNoticeProps = {
     splittingState: SplittingState;
     stopSplitting: () => void;
     onShowTaskList: (id: LocationTrackId) => void;
+    switchRelinkingErrors: SwitchRelinkingValidationResult[] | undefined;
+    switchRelinkingLoadingState: LoaderStatus;
 };
 
 export const LocationTrackSplitRelinkingNotice: React.FC<
     LocationTrackSplitRelinkingNoticeProps
-> = ({ splittingState, stopSplitting, onShowTaskList }) => {
-    const [switchRelinkingErrors, switchRelinkingState] = useLoaderWithStatus(async () => {
-        const validations = await validateLocationTrackSwitchRelinking(
-            splittingState.originLocationTrack.id,
-        );
-        return validations.filter((v) => v.validationErrors.length > 0).map((r) => r.id);
-    }, [getChangeTimes().layoutLocationTrack, getChangeTimes().layoutSwitch]);
+> = ({
+    splittingState,
+    stopSplitting,
+    onShowTaskList,
+    switchRelinkingErrors,
+    switchRelinkingLoadingState,
+}) => {
+    const hasCriticalErrors = hasUnrelinkableSwitches(switchRelinkingErrors || []);
 
     const { t } = useTranslation();
     return (
         <InfoboxContentSpread>
-            {switchRelinkingState == LoaderStatus.Ready &&
+            {switchRelinkingLoadingState === LoaderStatus.Ready &&
                 switchRelinkingErrors &&
                 switchRelinkingErrors.length > 0 && (
-                    <MessageBox>
-                        {t('tool-panel.location-track.splitting.relink-message')}
+                    <MessageBox type={hasCriticalErrors ? 'ERROR' : 'INFO'}>
+                        {hasCriticalErrors
+                            ? t('tool-panel.location-track.splitting.relink-critical-errors')
+                            : t('tool-panel.location-track.splitting.relink-message')}
                         <div className={styles['location-track-infobox__relink-link']}>
                             <Link
                                 onClick={() => {
@@ -48,7 +53,7 @@ export const LocationTrackSplitRelinkingNotice: React.FC<
                         </div>
                     </MessageBox>
                 )}
-            {switchRelinkingState == LoaderStatus.Loading && (
+            {switchRelinkingLoadingState == LoaderStatus.Loading && (
                 <MessageBox>
                     <span className={styles['location-track-infobox__validate-switch-relinking']}>
                         {t('tool-panel.location-track.splitting.validation-in-progress')}

@@ -4,6 +4,29 @@ import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 
+fun getDuplicateTrackParentStatus(
+    parentTrack: LocationTrack,
+    parentAlignment: LayoutAlignment,
+    childTrack: LocationTrack,
+    childAlignment: LayoutAlignment,
+): LocationTrackDuplicate {
+    val parentTrackJoints = collectSwitchJoints(parentTrack, parentAlignment)
+    val childTrackJoints = collectSwitchJoints(childTrack, childAlignment)
+    val (_, status) = getDuplicateMatches(
+        parentTrackJoints,
+        childTrackJoints,
+        parentTrack.id,
+        childTrack.duplicateOf,
+    ).first() // There has to at least one found, since we know the duplicateOf is set
+    return LocationTrackDuplicate(
+        parentTrack.id as IntId,
+        parentTrack.trackNumberId,
+        parentTrack.name,
+        parentTrack.externalId,
+        status,
+    )
+}
+
 // TODO: Minne tämä kuuluisi?
 data class SwitchJointOnTrack(
     val switchId: IntId<TrackLayoutSwitch>,
@@ -12,6 +35,17 @@ data class SwitchJointOnTrack(
 )
 
 fun getLocationTrackDuplicatesByJoint(
+    mainTrack: LocationTrack,
+    mainAlignment: LayoutAlignment,
+    duplicateTracksAndAlignments: List<Pair<LocationTrack, LayoutAlignment>>,
+): List<LocationTrackDuplicate> {
+    val mainTrackJoints = collectSwitchJoints(mainTrack, mainAlignment)
+    return duplicateTracksAndAlignments.asSequence().flatMap { (duplicateTrack, duplicateAlignment) ->
+            getLocationTrackDuplicatesByJoint(mainTrack.id, mainTrackJoints, duplicateTrack, duplicateAlignment)
+        }.sortedWith(compareBy({ it.first }, { it.second.name })).map { (_, duplicate) -> duplicate }.toList()
+}
+
+private fun getLocationTrackDuplicatesByJoint(
     mainTrackId: DomainId<LocationTrack>,
     mainTrackJoints: List<SwitchJointOnTrack>,
     duplicateTrack: LocationTrack,
@@ -40,10 +74,8 @@ fun getDuplicateMatches(
     duplicateTrackJoints: List<SwitchJointOnTrack>,
     mainTrackId: DomainId<LocationTrack>,
     duplicateOf: IntId<LocationTrack>?,
-): List<Pair<Int, SplitDuplicateStatus>> {
-    val matchIndices = findOrderedMatches(mainTrackJoints, duplicateTrackJoints) { joint1, joint2 ->
-        joint1.switchId == joint2.switchId && joint1.jointNumber == joint2.jointNumber
-    }
+): List<Pair<Int, DuplicateStatus>> {
+    val matchIndices = findOrderedMatches(mainTrackJoints, duplicateTrackJoints)
     val matchRanges = buildDuplicateIndexRanges(matchIndices)
 
     return if (matchRanges.isEmpty() && duplicateOf != mainTrackId) {
@@ -51,12 +83,12 @@ fun getDuplicateMatches(
         emptyList()
     } else if (matchRanges.isEmpty() && duplicateOf == mainTrackId) {
         // Marked as duplicate, but no matches -> something is likely wrong
-        listOf(-1 to SplitDuplicateStatus(SplitDuplicateMatch.NONE, duplicateOf, null, null, null, null))
+        listOf(-1 to DuplicateStatus(DuplicateMatch.NONE, duplicateOf, null, null, null, null))
     } else {
         matchRanges.map { range ->
-            val match = if (range == 0..duplicateTrackJoints.lastIndex) SplitDuplicateMatch.FULL
-            else SplitDuplicateMatch.PARTIAL
-            range.first to SplitDuplicateStatus(
+            val match = if (range == 0..duplicateTrackJoints.lastIndex) DuplicateMatch.FULL
+            else DuplicateMatch.PARTIAL
+            range.first to DuplicateStatus(
                 match = match,
                 duplicateOfId = duplicateOf,
                 startSwitchId = duplicateTrackJoints[range.first].switchId,

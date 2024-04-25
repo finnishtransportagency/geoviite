@@ -38,8 +38,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
 
-val elementListingGenerationUser = UserName("ELEMENT_LIST_GEN")
-val verticalGeometryListingGenerationUser = UserName("VERT_GEOM_LIST_GEN")
+val elementListingGenerationUser = UserName.of("ELEMENT_LIST_GEN")
+val verticalGeometryListingGenerationUser = UserName.of("VERT_GEOM_LIST_GEN")
 
 @Service
 class GeometryService @Autowired constructor(
@@ -211,9 +211,8 @@ class GeometryService @Autowired constructor(
         logger.serviceCall("getElementListing", "planId" to planId, "elementTypes" to elementTypes)
         val planVersion = geometryDao.fetchPlanVersion(planId)
         val plan = geometryDao.fetchPlan(planVersion)
-        val context = plan.trackNumberId?.let { tnId ->
-            geocodingService.getGeocodingContext(tnId, planVersion)
-        }
+        val context = plan.trackNumber?.let { geocodingService.getGeocodingContext(plan.trackNumber, planVersion) }
+
         return toElementListing(
             context, coordinateTransformationService::getLayoutTransformation, plan, elementTypes
         ) { switchId -> switchService.getOrThrow(OFFICIAL, switchId).name }
@@ -225,7 +224,7 @@ class GeometryService @Autowired constructor(
         val plan = getPlanHeader(planId)
         val elementListing = getElementListing(planId, elementTypes)
 
-        val csvFileContent = planElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
+        val csvFileContent = planElementListingToCsv(elementListing)
         return ElementListingFile(FileName("$ELEMENT_LISTING ${plan.fileName}"), csvFileContent)
     }
 
@@ -233,6 +232,7 @@ class GeometryService @Autowired constructor(
     fun getElementListing(
         locationTrack: LocationTrack,
         alignment: LayoutAlignment,
+        trackNumber: TrackNumber?,
         geocodingContext: GeocodingContext?,
     ): List<ElementListing> {
         logger.serviceCall("getElementListing", "locationTrack" to locationTrack, "alignment" to alignment)
@@ -241,6 +241,7 @@ class GeometryService @Autowired constructor(
             coordinateTransformationService::getLayoutTransformation,
             locationTrack,
             alignment,
+            trackNumber,
             TrackGeometryElementType.values().toList(),
             null,
             null,
@@ -261,11 +262,13 @@ class GeometryService @Autowired constructor(
             "startAddress" to startAddress, "endAddress" to endAddress,
         )
         val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, trackId)
+        val trackNumber = trackNumberService.get(OFFICIAL, track.trackNumberId)?.number
         return toElementListing(
             geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId),
             coordinateTransformationService::getLayoutTransformation,
             track,
             alignment,
+            trackNumber,
             elementTypes,
             startAddress,
             endAddress,
@@ -287,7 +290,7 @@ class GeometryService @Autowired constructor(
         )
         val track = locationTrackService.getOrThrow(OFFICIAL, trackId)
         val elementListing = getElementListing(trackId, elementTypes, startAddress, endAddress)
-        val csvFileContent = locationTrackElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
+        val csvFileContent = locationTrackElementListingToCsv(elementListing)
         return ElementListingFile(FileName("$ELEMENT_LISTING ${track.name}"), csvFileContent)
     }
 
@@ -299,12 +302,13 @@ class GeometryService @Autowired constructor(
         val elementListing = locationTrackService
             .list(OFFICIAL, includeDeleted = false)
             .sortedBy { locationTrack -> locationTrack.name }
-            .sortedBy { locationTrack -> geocodingContexts[locationTrack.trackNumberId]?.trackNumber?.number }
-            .flatMap { locationTrack ->
+            .map { locationTrack -> locationTrack to geocodingContexts[locationTrack.trackNumberId]?.trackNumber }
+            .sortedBy { (_, trackNumber) -> trackNumber }
+            .flatMap { (locationTrack, trackNumber) ->
                 val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrack.id as IntId)
-                getElementListing(locationTrack, alignment, geocodingContexts[locationTrack.trackNumberId])
+                getElementListing(locationTrack, alignment, trackNumber, geocodingContexts[locationTrack.trackNumberId])
             }
-        val csvFileContent = locationTrackElementListingToCsv(trackNumberService.list(OFFICIAL), elementListing)
+        val csvFileContent = locationTrackElementListingToCsv( elementListing)
         val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
 
         elementListingFileDao.upsertElementListingFile(
@@ -322,7 +326,7 @@ class GeometryService @Autowired constructor(
         logger.serviceCall("getVerticalGeometryListing", "planId" to planId)
         val planHeader = getPlanHeader(planId)
         val alignments = geometryDao.fetchAlignments(planHeader.units, planId)
-        val geocodingContext = geocodingService.getGeocodingContext(OFFICIAL, planHeader.trackNumberId)
+        val geocodingContext = getLayoutGeocodingContextForPlanTrackNumber(planHeader.trackNumber)
 
         return toVerticalGeometryListing(
             alignments, coordinateTransformationService::getLayoutTransformation, planHeader, geocodingContext
@@ -390,7 +394,7 @@ class GeometryService @Autowired constructor(
         val verticalGeometryListingWithTrackNumbers =
             locationTrackService.list(OFFICIAL, includeDeleted = false).sortedWith(
                 compareBy(
-                    { locationTrack -> geocodingContexts[locationTrack.trackNumberId]?.trackNumber?.number },
+                    { locationTrack -> geocodingContexts[locationTrack.trackNumberId]?.trackNumber },
                     { locationTrack -> locationTrack.name },
                 )
             ).flatMap { locationTrack ->
@@ -399,7 +403,7 @@ class GeometryService @Autowired constructor(
 
                 verticalGeometryListingWithoutTrackNumbers.map { verticalGeometryListing ->
                     verticalGeometryListing.copy(
-                        trackNumber = geocodingContexts[locationTrack.trackNumberId]?.trackNumber?.number
+                        trackNumber = geocodingContexts[locationTrack.trackNumberId]?.trackNumber
                     )
                 }
             }
@@ -428,13 +432,12 @@ class GeometryService @Autowired constructor(
         else getComparator(sortField, lang).reversed()
 
     private fun getComparator(sortField: GeometryPlanSortField, lang: String): Comparator<GeometryPlanHeader> {
-        val trackNumbers by lazy { trackNumberService.mapById(PublicationState.DRAFT) }
         val linkingSummaries by lazy { geometryDao.getLinkingSummaries() }
         val translation = localizationService.getLocalization(lang)
         return when (sortField) {
             GeometryPlanSortField.ID -> Comparator.comparing { h -> h.id.intValue }
             GeometryPlanSortField.PROJECT_NAME -> stringComparator { h -> h.project.name }
-            GeometryPlanSortField.TRACK_NUMBER -> stringComparator { h -> trackNumbers[h.trackNumberId]?.number }
+            GeometryPlanSortField.TRACK_NUMBER -> stringComparator { h -> h.trackNumber }
             GeometryPlanSortField.KM_START -> Comparator { a, b ->
                 nullsLastComparator(
                     a.kmNumberRange?.min, b.kmNumberRange?.min
@@ -468,11 +471,11 @@ class GeometryService @Autowired constructor(
 
     fun getFilter(
         freeText: FreeText?,
-        trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
+        trackNumbers: List<TrackNumber>,
     ): (header: GeometryPlanHeader) -> Boolean {
         val searchTerms = splitSearchTerms(freeText)
         return { header: GeometryPlanHeader ->
-            trackNumbersMatch(header, trackNumberIds) && freeTextMatches(header, searchTerms)
+            trackNumbersMatch(header, trackNumbers) && freeTextMatches(header, searchTerms)
         }
     }
 
@@ -581,7 +584,7 @@ class GeometryService @Autowired constructor(
         val planVersion = geometryDao.fetchPlanVersion(planId)
         val plan = geometryDao.fetchPlan(planVersion)
         val geocodingContext =
-            geocodingService.getGeocodingContext(plan.trackNumberId ?: return null, planVersion) ?: return null
+            plan.trackNumber?.let { geocodingService.getGeocodingContext(plan.trackNumber, planVersion) } ?: return null
         val alignment =
             planLayoutCache.getPlanLayout(planVersion).first?.alignments?.find { alignment -> alignment.id == planAlignmentId }
                 ?: return null
@@ -599,7 +602,7 @@ class GeometryService @Autowired constructor(
         val planVersion = geometryDao.fetchPlanVersion(planId)
         val plan = geometryDao.fetchPlan(planVersion)
         val geocodingContext =
-            geocodingService.getGeocodingContext(plan.trackNumberId ?: return null, planVersion) ?: return null
+            plan.trackNumber?.let { geocodingService.getGeocodingContext(plan.trackNumber, planVersion) } ?: return null
         val geometryAlignment = plan.alignments.find { alignment -> alignment.id == planAlignmentId } ?: return null
         val profile = geometryAlignment.profile
         val alignment =
@@ -712,6 +715,11 @@ class GeometryService @Autowired constructor(
         logger.serviceCall("getPlanLinkedItems", "planId" to planId)
         return geometryDao.getPlanLinking(planId)
     }
+
+    private fun getLayoutGeocodingContextForPlanTrackNumber(trackNumber: TrackNumber?): GeocodingContext? = trackNumber
+        ?.let { number -> trackNumberService.find(number, OFFICIAL).firstOrNull()?.id }
+        ?.let { trackNumberId -> geocodingService.getGeocodingContext(OFFICIAL, trackNumberId) }
+
 }
 
 private fun getKmLengthAtReferencePointIndex(
@@ -721,11 +729,10 @@ private fun getKmLengthAtReferencePointIndex(
     if (referencePointIndex == geocodingContext.referencePoints.size - 1) geocodingContext.referenceLineGeometry.length - geocodingContext.referencePoints[referencePointIndex].distance
     else geocodingContext.referencePoints[referencePointIndex + 1].distance - geocodingContext.referencePoints[referencePointIndex].distance
 
-
 private fun trackNumbersMatch(
     header: GeometryPlanHeader,
-    trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
-) = (trackNumberIds.isEmpty() || (header.trackNumberId?.let(trackNumberIds::contains) ?: false))
+    trackNumbers: List<TrackNumber>,
+) = (trackNumbers.isEmpty() || (header.trackNumber?.let(trackNumbers::contains) ?: false))
 
 private fun freeTextMatches(
     header: GeometryPlanHeader,

@@ -1,7 +1,19 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geography.crs
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
@@ -21,8 +33,7 @@ import java.time.Instant
 val LAYOUT_SRID = Srid(3067)
 val LAYOUT_CRS = crs(LAYOUT_SRID)
 
-enum class LocationTrackLayoutState(val category: LayoutStateCategory) {
-    BUILT(LayoutStateCategory.EXISTING),
+enum class LocationTrackState(val category: LayoutStateCategory) { BUILT(LayoutStateCategory.EXISTING),
     IN_USE(LayoutStateCategory.EXISTING),
     NOT_IN_USE(LayoutStateCategory.EXISTING),
     PLANNED(LayoutStateCategory.FUTURE_EXISTING),
@@ -33,8 +44,7 @@ enum class LocationTrackLayoutState(val category: LayoutStateCategory) {
     fun isRemoved() = this == DELETED
 }
 
-enum class LayoutState(val category: LayoutStateCategory) {
-    IN_USE(LayoutStateCategory.EXISTING),
+enum class LayoutState(val category: LayoutStateCategory) { IN_USE(LayoutStateCategory.EXISTING),
     NOT_IN_USE(LayoutStateCategory.EXISTING),
     PLANNED(LayoutStateCategory.FUTURE_EXISTING),
     DELETED(LayoutStateCategory.NOT_EXISTING);
@@ -44,16 +54,14 @@ enum class LayoutState(val category: LayoutStateCategory) {
     fun isRemoved() = this == DELETED
 }
 
-enum class LayoutStateCategory {
-    FUTURE_EXISTING, EXISTING, NOT_EXISTING;
+enum class LayoutStateCategory { FUTURE_EXISTING, EXISTING, NOT_EXISTING;
 
     fun isPublishable() = this != FUTURE_EXISTING
     fun isLinkable() = this == EXISTING
     fun isRemoved() = this == NOT_EXISTING
 }
 
-enum class TopologicalConnectivityType {
-    NONE, START, END, START_AND_END;
+enum class TopologicalConnectivityType { NONE, START, END, START_AND_END;
 
     fun isStartConnected() = this == START || this == START_AND_END
 
@@ -71,7 +79,7 @@ data class LocationTrackDuplicate(
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val name: AlignmentName,
     val externalId: Oid<LocationTrack>?,
-    val duplicateStatus: SplitDuplicateStatus,
+    val duplicateStatus: DuplicateStatus,
 )
 
 data class LocationTrackDescription(
@@ -88,6 +96,7 @@ data class TrackLayoutTrackNumber(
     override val version: RowVersion<TrackLayoutTrackNumber>? = null,
     @JsonIgnore val referenceLineId: IntId<ReferenceLine>? = null,
 ) : LayoutAsset<TrackLayoutTrackNumber>(contextData) {
+
     @JsonIgnore
     val exists = !state.isRemoved()
 
@@ -107,8 +116,7 @@ data class TrackLayoutTrackNumber(
         copy(contextData = contextData)
 }
 
-enum class LocationTrackType {
-    MAIN, // Pääraide
+enum class LocationTrackType { MAIN, // Pääraide
     SIDE, // Sivuraide
     TRAP, // Turvaraide: Turvaraide on raide, jonka tarkoitus on ohjata liikkuva kalusto riittävän etäälle siitä raiteesta, jota turvaraide suojaa. https://fi.wikipedia.org/wiki/Turvavaihde
     CHORD, // Kujaraide: Kujaraide on raide, joka ei ole sivu-, eikä pääraide.
@@ -154,8 +162,7 @@ data class TopologyLocationTrackSwitch(
 
 val locationTrackDescriptionLength = 4..256
 
-enum class DescriptionSuffixType {
-    NONE, SWITCH_TO_SWITCH, SWITCH_TO_BUFFER, SWITCH_TO_OWNERSHIP_BOUNDARY
+enum class DescriptionSuffixType { NONE, SWITCH_TO_SWITCH, SWITCH_TO_BUFFER, SWITCH_TO_OWNERSHIP_BOUNDARY
 }
 
 data class LayoutSwitchIdAndName(val id: IntId<TrackLayoutSwitch>, val name: SwitchName)
@@ -183,10 +190,10 @@ data class SwitchOnLocationTrack(
     val nearestOperatingPoint: RatkoOperatingPoint?,
 )
 
-enum class SplitDuplicateMatch { FULL, PARTIAL, NONE }
+enum class DuplicateMatch { FULL, PARTIAL, NONE }
 
-data class SplitDuplicateStatus(
-    val match: SplitDuplicateMatch,
+data class DuplicateStatus(
+    val match: DuplicateMatch,
     val duplicateOfId: IntId<LocationTrack>?,
     val startSwitchId: IntId<TrackLayoutSwitch>?,
     val endSwitchId: IntId<TrackLayoutSwitch>?,
@@ -199,8 +206,7 @@ data class SplitDuplicateTrack(
     val name: AlignmentName,
     val start: AddressPoint,
     val end: AddressPoint,
-
-    val status: SplitDuplicateStatus,
+    val status: DuplicateStatus,
 )
 
 data class SplittingInitializationParameters(
@@ -214,7 +220,7 @@ data class LocationTrack(
     val descriptionBase: FreeText,
     val descriptionSuffix: DescriptionSuffixType,
     val type: LocationTrackType,
-    val state: LocationTrackLayoutState,
+    val state: LocationTrackState,
     val externalId: Oid<LocationTrack>?,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val sourceId: IntId<GeometryAlignment>?,
@@ -237,15 +243,12 @@ data class LocationTrack(
 
     @get:JsonIgnore
     val switchIds: List<IntId<TrackLayoutSwitch>> by lazy {
-        (segmentSwitchIds + listOfNotNull(topologyStartSwitch?.switchId, topologyEndSwitch?.switchId)).distinct()
+        (listOfNotNull(topologyStartSwitch?.switchId) + segmentSwitchIds + listOfNotNull(topologyEndSwitch?.switchId)).distinct()
     }
 
     init {
         require(descriptionBase.length in locationTrackDescriptionLength) {
-            "LocationTrack descriptionBase length invalid  not in range 4-256: " +
-                "id=$id " +
-                "length=${descriptionBase.length} " +
-                "allowed=$locationTrackDescriptionLength"
+            "LocationTrack descriptionBase length invalid  not in range 4-256: " + "id=$id " + "length=${descriptionBase.length} " + "allowed=$locationTrackDescriptionLength"
         }
         require(dataType == DataType.TEMP || alignmentVersion != null) {
             "LocationTrack in DB must have an alignment: id=$id"
@@ -253,10 +256,7 @@ data class LocationTrack(
         require(
             topologyStartSwitch?.switchId == null || topologyStartSwitch.switchId != topologyEndSwitch?.switchId
         ) {
-            "LocationTrack cannot topologically connect to the same switch at both ends: " +
-                "trackId=$id " + "switchId=${topologyStartSwitch?.switchId} " +
-                "startJoint=${topologyStartSwitch?.jointNumber} " +
-                "endJoint=${topologyEndSwitch?.jointNumber}"
+            "LocationTrack cannot topologically connect to the same switch at both ends: " + "trackId=$id " + "switchId=${topologyStartSwitch?.switchId} " + "startJoint=${topologyStartSwitch?.jointNumber} " + "endJoint=${topologyEndSwitch?.jointNumber}"
         }
     }
 
@@ -289,15 +289,12 @@ data class TrackLayoutSwitch(
     @JsonIgnore override val contextData: LayoutContextData<TrackLayoutSwitch>,
     override val version: RowVersion<TrackLayoutSwitch>? = null,
 ) : LayoutAsset<TrackLayoutSwitch>(contextData) {
+
     @JsonIgnore
     val exists = !stateCategory.isRemoved()
     val shortName = name.split(" ").lastOrNull()?.let { last ->
         if (last.startsWith("V")) {
-            last.substring(1)
-                .toIntOrNull(10)
-                ?.toString()
-                ?.padStart(3, '0')
-                ?.let { switchNumber -> "V$switchNumber" }
+            last.substring(1).toIntOrNull(10)?.toString()?.padStart(3, '0')?.let { switchNumber -> "V$switchNumber" }
         } else {
             null
         }
@@ -335,6 +332,7 @@ data class TrackLayoutKmPost(
     @JsonIgnore override val contextData: LayoutContextData<TrackLayoutKmPost>,
     override val version: RowVersion<TrackLayoutKmPost>? = null,
 ) : LayoutAsset<TrackLayoutKmPost>(contextData) {
+
     @JsonIgnore
     val exists = !state.isRemoved()
 
@@ -360,8 +358,14 @@ data class IntegralTrackLayoutKmPost(
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
 )
 
-enum class TrackLayoutKmPostTableColumn {
-    TRACK_NUMBER, KILOMETER, START_M, END_M, LENGTH, LOCATION_E, LOCATION_N, WARNING
+enum class TrackLayoutKmPostTableColumn { TRACK_NUMBER,
+    KILOMETER,
+    START_M,
+    END_M,
+    LENGTH,
+    LOCATION_E,
+    LOCATION_N,
+    WARNING
 }
 
 data class TrackLayoutKmLengthDetails(
@@ -372,6 +376,7 @@ data class TrackLayoutKmLengthDetails(
     val locationSource: GeometrySource,
     val location: Point?,
 ) {
+
     val length = endM - startM
 }
 
@@ -385,6 +390,7 @@ data class TrackLayoutSwitchJointConnection(
     val accurateMatches: List<TrackLayoutSwitchJointMatch>,
     val locationAccuracy: LocationAccuracy?,
 ) {
+
     val matches by lazy {
         accurateMatches.map { accurateMatch ->
             accurateMatch.locationTrackId

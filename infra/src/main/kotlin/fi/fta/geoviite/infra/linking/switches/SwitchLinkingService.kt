@@ -10,6 +10,8 @@ import fi.fta.geoviite.infra.linking.*
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.*
 import fi.fta.geoviite.infra.publication.PublicationValidationError
+import fi.fta.geoviite.infra.publication.PublicationValidationErrorType
+import fi.fta.geoviite.infra.publication.VALIDATION_SWITCH
 import fi.fta.geoviite.infra.publication.validateSwitchLocationTrackLinkStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -239,7 +241,18 @@ class SwitchLinkingService @Autowired constructor(
         }
         return switchIds.mapIndexed { index, switchId ->
             val suggestionWithTracks = switchSuggestions[index]
-            if (suggestionWithTracks == null) SwitchRelinkingValidationResult(switchId, null, listOf())
+            if (suggestionWithTracks == null)
+                SwitchRelinkingValidationResult(
+                    switchId,
+                    null,
+                    listOf(
+                        PublicationValidationError(
+                            PublicationValidationErrorType.ERROR,
+                            "$VALIDATION_SWITCH.track-linkage.relinking-failed",
+                            mapOf("switch" to switchService.getOrThrow(DRAFT, switchId).name)
+                        )
+                    )
+                )
             else {
                 val (suggestedSwitch, relevantTracks) = suggestionWithTracks
                 val (validationResults, presentationJointLocation) = validateForSplit(

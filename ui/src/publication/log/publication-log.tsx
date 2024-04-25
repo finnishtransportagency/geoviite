@@ -123,11 +123,23 @@ const PublicationLog: React.FC = () => {
                 <div className={styles['publication-log__actions']}>
                     <FieldLayout
                         label={t('publication-log.start-date')}
-                        value={<DatePicker value={storedStartDate} onChange={setStartDate} />}
+                        value={
+                            <DatePicker
+                                value={storedStartDate}
+                                onChange={setStartDate}
+                                qa-id={'publication-log-start-date-input'}
+                            />
+                        }
                     />
                     <FieldLayout
                         label={t('publication-log.end-date')}
-                        value={<DatePicker value={storedEndDate} onChange={setEndDate} />}
+                        value={
+                            <DatePicker
+                                value={storedEndDate}
+                                onChange={setEndDate}
+                                qa-id={'publication-log-end-date-input'}
+                            />
+                        }
                         errors={endDateErrors}
                     />
                     <PrivilegeRequired privilege={DOWNLOAD_PUBLICATION}>

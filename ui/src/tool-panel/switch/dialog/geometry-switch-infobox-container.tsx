@@ -42,7 +42,7 @@ export const GeometrySwitchInfoboxContainer: React.FC<GeometrySwitchInfoboxConta
             suggestedSwitch={undefined}
             linkingState={trackLayoutState.linkingState}
             planId={planId}
-            switchChangeTime={changeTimes.layoutSwitch}
+            changeTimes={changeTimes}
             locationTrackChangeTime={changeTimes.layoutLocationTrack}
             onShowOnMap={onShowMapLocation}
         />

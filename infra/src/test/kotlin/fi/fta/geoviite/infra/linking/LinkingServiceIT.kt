@@ -5,17 +5,39 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.LinkingFailureException
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryService
+import fi.fta.geoviite.infra.geometry.PlanLayoutService
+import fi.fta.geoviite.infra.geometry.geometryAlignment
+import fi.fta.geoviite.infra.geometry.line
+import fi.fta.geoviite.infra.geometry.plan
+import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitTarget
-import fi.fta.geoviite.infra.tracklayout.*
-import org.junit.jupiter.api.Assertions.*
+import fi.fta.geoviite.infra.split.SplitTargetOperation
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.assertMatches
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.someKmNumber
+import fi.fta.geoviite.infra.tracklayout.trackNumber
+import org.junit.jupiter.api.Assertions.assertDoesNotThrow
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -39,14 +61,14 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun alignmentGeometryLinkingWorks() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumber = getUnusedTrackNumber()
 
         val geometryStart = Point(377680.0, 6676160.0)
         // 6m of geometry to replace
         val geometrySegmentChange = geometryStart + Point(3.0, 3.5)
         val geometryEnd = geometrySegmentChange + Point(3.0, 2.5)
         val plan = plan(
-            trackNumberId, Srid(3067), geometryAlignment(
+            trackNumber, Srid(3067), geometryAlignment(
                 line(geometryStart, geometrySegmentChange),
                 line(geometrySegmentChange, geometryEnd),
             )
@@ -139,10 +161,10 @@ class LinkingServiceIT @Autowired constructor(
 
         assertMatches(officialKmPost!!, kmPostService.getOrThrow(DRAFT, kmPostId), contextMatch = false)
 
-        val trackNumberId = trackNumberDao.insert(
-            trackNumber(TrackNumber(System.currentTimeMillis().toString()), draft = false)
-        )
-        val plan = plan(trackNumberId.id)
+        val trackNumber = getUnusedTrackNumber()
+
+        trackNumberDao.insert(trackNumber(trackNumber, draft = false))
+        val plan = plan(trackNumber)
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null).id
 
         val fetchedPlan = geometryService.getGeometryPlan(geometryPlanId)
@@ -164,14 +186,13 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun `Linking alignments throws if alignment is deleted`() {
-        val trackNumberId = getUnusedTrackNumberId()
-        val plan = plan(trackNumberId, LAYOUT_SRID)
+        val plan = plan(getUnusedTrackNumber(), LAYOUT_SRID)
 
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
         val (locationTrack, alignment) = locationTrackAndAlignment(
             trackNumberId = insertOfficialTrackNumber(),
-            state = LocationTrackLayoutState.DELETED,
+            state = LocationTrackState.DELETED,
             draft = true,
         )
         val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(locationTrack, alignment)
@@ -201,14 +222,14 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun `Linking alignments throws if alignment has splits`() {
-        val trackNumberId = getUnusedTrackNumberId()
-        val plan = plan(trackNumberId, LAYOUT_SRID)
+        val trackNumber = getUnusedTrackNumber()
+        val plan = plan(trackNumber, LAYOUT_SRID)
 
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
         val (locationTrack, alignment) = locationTrackAndAlignment(insertOfficialTrackNumber(), draft = true)
-        val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(locationTrack, alignment)
-        locationTrackService.publish(ValidationVersion(locationTrackId, locationTrackVersion))
+        val locationTrackResponse = locationTrackService.saveDraft(locationTrack, alignment)
+            .let { (id, rowVersion) -> locationTrackService.publish(ValidationVersion(id, rowVersion)) }
 
         val geometryInterval = GeometryInterval(
             alignmentId = IntId(0),
@@ -216,13 +237,13 @@ class LinkingServiceIT @Autowired constructor(
         )
 
         val layoutInterval = LayoutInterval(
-            alignmentId = locationTrackId,
+            alignmentId = locationTrackResponse.id,
             mRange = Range(0.0, 0.0),
         )
 
         splitDao.saveSplit(
-            locationTrackId,
-            listOf(SplitTarget(locationTrackId, 0..1)),
+            locationTrackResponse.rowVersion,
+            listOf(SplitTarget(locationTrackResponse.id, 0..1, SplitTargetOperation.CREATE)),
             relinkedSwitches = emptyList(),
             updatedDuplicates = emptyList(),
         )
@@ -237,14 +258,14 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun `Linking alignments works if all alignment splits are finished`() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumber = getUnusedTrackNumber()
 
         val geometryStart = Point(377680.0, 6676160.0)
         // 6m of geometry to replace
         val geometrySegmentChange = geometryStart + Point(3.0, 3.5)
         val geometryEnd = geometrySegmentChange + Point(3.0, 2.5)
         val plan = plan(
-            trackNumberId, LAYOUT_SRID, geometryAlignment(
+            trackNumber, LAYOUT_SRID, geometryAlignment(
                 line(geometryStart, geometrySegmentChange),
                 line(geometrySegmentChange, geometryEnd),
             )
@@ -266,10 +287,10 @@ class LinkingServiceIT @Autowired constructor(
         val (locationTrack, alignment) = locationTrackAndAlignment(
             insertOfficialTrackNumber(), segment1, draft = true,
         )
-        val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(locationTrack, alignment)
-        locationTrackService.publish(ValidationVersion(locationTrackId, locationTrackVersion))
+        val locationTrackResponse = locationTrackService.saveDraft(locationTrack, alignment)
+            .let { (id, rowVersion) -> locationTrackService.publish(ValidationVersion(id, rowVersion)) }
 
-        val (_, officialAlignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrackId)
+        val (_, officialAlignment) = locationTrackService.getWithAlignment(locationTrackResponse.rowVersion)
 
         val geometryInterval = GeometryInterval(
             alignmentId = geometryLayoutAlignment.id as IntId,
@@ -280,7 +301,7 @@ class LinkingServiceIT @Autowired constructor(
         )
 
         val layoutInterval = LayoutInterval(
-            alignmentId = locationTrackId,
+            alignmentId = locationTrackResponse.id,
             mRange = Range(
                 officialAlignment.segments[0].alignmentPoints.first().m,
                 officialAlignment.segments[0].alignmentPoints[4].m,
@@ -289,13 +310,13 @@ class LinkingServiceIT @Autowired constructor(
 
         val split = splitDao.getOrThrow(
             splitDao.saveSplit(
-                locationTrackId,
-                listOf(SplitTarget(locationTrackId, 0..1)),
+                locationTrackResponse.rowVersion,
+                listOf(SplitTarget(locationTrackResponse.id, 0..1, SplitTargetOperation.CREATE)),
                 relinkedSwitches = emptyList(),
                 updatedDuplicates = emptyList(),
             )
         )
-        splitDao.updateSplitState(split.id, bulkTransferState = BulkTransferState.DONE)
+        splitDao.updateSplit(split.id, bulkTransferState = BulkTransferState.DONE)
 
         assertDoesNotThrow {
             linkingService.saveLocationTrackLinking(

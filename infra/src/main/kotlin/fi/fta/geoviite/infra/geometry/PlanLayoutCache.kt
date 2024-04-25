@@ -2,20 +2,17 @@ package fi.fta.geoviite.infra.geometry
 
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_PLAN_LAYOUT
 import fi.fta.geoviite.infra.configuration.planCacheDuration
 import fi.fta.geoviite.infra.geography.*
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.tracklayout.toTrackLayout
+import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.cache.annotation.Cacheable
 import org.springframework.stereotype.Service
-import java.awt.Point
 
 const val INFRAMODEL_TRANSFORMATION_KEY_PARENT = "error.infra-model.transformation"
 
@@ -36,6 +33,7 @@ class PlanLayoutCache(
     private val geometryDao: GeometryDao,
     private val heightTriangleDao: HeightTriangleDao,
     private val coordinateTransformationService: CoordinateTransformationService,
+    private val trackNumberDao: LayoutTrackNumberDao,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -100,8 +98,14 @@ class PlanLayoutCache(
             return { null to TransformationError("bounds-outside-finland", geometryPlan.units) }
         }
         val heightTriangles = heightTriangleDao.fetchTriangles(polygon)
+        val trackNumberId = geometryPlan.trackNumber
+            ?.let { trackNumberDao.list(geometryPlan.trackNumber, PublicationState.OFFICIAL) }
+            ?.firstOrNull()
+            ?.id as? IntId
+
         fun transform() = transformToLayoutPlan(
             geometryPlan,
+            trackNumberId,
             includeGeometryData,
             pointListStepLength,
             planToLayoutTransformation,
@@ -122,6 +126,7 @@ data class PlanLayoutCacheKey(
 
 private fun transformToLayoutPlan(
     geometryPlan: GeometryPlan,
+    trackNumberId: IntId<TrackLayoutTrackNumber>?,
     includeGeometryData: Boolean,
     pointListStepLength: Int,
     planToLayoutTransformation: Transformation,
@@ -131,6 +136,7 @@ private fun transformToLayoutPlan(
     try {
         toTrackLayout(
             geometryPlan = geometryPlan,
+            trackNumberId = trackNumberId,
             heightTriangles = heightTriangles,
             planToLayout = planToLayoutTransformation,
             includeGeometryData = includeGeometryData,

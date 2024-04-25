@@ -17,7 +17,7 @@ import {
     PlanSource,
     ProjectId,
 } from 'geometry/geometry-model';
-import { GeometryPlanLayout, LayoutTrackNumberId } from 'track-layout/track-layout-model';
+import { GeometryPlanLayout } from 'track-layout/track-layout-model';
 import { SerializableFile } from 'utils/file-utils';
 import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
 import {
@@ -25,6 +25,7 @@ import {
     MeasurementMethod,
     Message,
     Srid,
+    TrackNumber,
     VerticalCoordinateSystem,
 } from 'common/common-model';
 import { Prop } from 'utils/type-utils';
@@ -70,7 +71,7 @@ export type OverrideInfraModelParameters = {
     projectId?: ProjectId;
     authorId?: AuthorId;
     verticalCoordinateSystem?: VerticalCoordinateSystem;
-    trackNumberId?: LayoutTrackNumberId;
+    trackNumber?: TrackNumber;
     createdDate?: Date;
     encoding?: XmlCharset;
     source?: PlanSource;
@@ -295,9 +296,9 @@ function validateParams(
     overrideParams.createdDate === undefined &&
         plan?.planTime === undefined &&
         errors.push(createError('createdDate', 'critical', ValidationErrorType.WARNING));
-    overrideParams.trackNumberId === undefined &&
-        plan?.trackNumberId === undefined &&
-        errors.push(createError('trackNumberId', 'critical', ValidationErrorType.WARNING));
+    overrideParams.trackNumber === undefined &&
+        plan?.trackNumber === undefined &&
+        errors.push(createError('trackNumber', 'critical', ValidationErrorType.WARNING));
     overrideParams.verticalCoordinateSystem === undefined &&
         plan?.units.verticalCoordinateSystem === undefined &&
         errors.push(

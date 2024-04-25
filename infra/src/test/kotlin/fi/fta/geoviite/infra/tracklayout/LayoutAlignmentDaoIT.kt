@@ -191,10 +191,10 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         val points4 = arrayOf(Point(10.0, 13.0), Point(10.0, 14.0))
         val points5 = arrayOf(Point(10.0, 14.0), Point(10.0, 15.0))
 
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumber = getUnusedTrackNumber()
         val planVersion = geometryDao.insertPlan(
             plan = plan(
-                trackNumberId = trackNumberId, alignments = listOf(
+                trackNumber = trackNumber, alignments = listOf(
                     geometryAlignment(
                         name = "test-alignment-name",
                         elements = listOf(line(Point(1.0, 1.0), Point(3.0, 3.0))),
@@ -249,10 +249,11 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         val points4 = arrayOf(Point(10.0, 13.0), Point(10.0, 14.0))
         val points5 = arrayOf(Point(10.0, 14.0), Point(10.0, 15.0))
 
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumber = getUnusedTrackNumber()
+        val trackNumberId = insertOfficialTrackNumber(trackNumber)
         val planVersion = geometryDao.insertPlan(
             plan = plan(
-                trackNumberId = trackNumberId,
+                trackNumber = trackNumber,
                 alignments = listOf(
                     geometryAlignment(
                         name = "test-alignment-name",
@@ -271,7 +272,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
 
         val planVersionWithoutCrs = geometryDao.insertPlan(
             plan = plan(
-                trackNumberId = trackNumberId,
+                trackNumber = trackNumber,
                 alignments = listOf(
                     geometryAlignment(
                         name = "test-alignment-name-2",

@@ -276,7 +276,7 @@ classDiagram
         name: String
         description: String
         type: MAIN/SIDE/TRAP/CHORD
-        state: IN_USE/NOT_IN_USE/PLANNED/DELETED
+        state: IN_USE/NOT_IN_USE/PLANNED/DELETED/BUILT
     }
     class LayoutAlignment {
     }

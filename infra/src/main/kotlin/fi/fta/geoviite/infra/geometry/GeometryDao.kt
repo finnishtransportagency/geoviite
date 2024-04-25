@@ -70,7 +70,7 @@ class GeometryDao @Autowired constructor(
 
         val sql = """
             insert into geometry.plan(
-              track_number_id,
+              track_number,
               track_number_description,
               plan_project_id,
               plan_author_id,
@@ -93,7 +93,7 @@ class GeometryDao @Autowired constructor(
               hidden
             )
             values(
-              :track_number_id,
+              :track_number,
               :track_number_description,
               :plan_project_id,
               :plan_author_id,
@@ -119,7 +119,7 @@ class GeometryDao @Autowired constructor(
         """.trimIndent()
 
         val params = mapOf(
-            "track_number_id" to plan.trackNumberId?.intValue,
+            "track_number" to plan.trackNumber?.toString(),
             "track_number_description" to plan.trackNumberDescription,
             "plan_project_id" to projectId.intValue,
             "plan_author_id" to authorId?.intValue,
@@ -284,7 +284,7 @@ class GeometryDao @Autowired constructor(
         val sql = """
             update geometry.plan
             set
-              track_number_id = :track_number_id,
+              track_number = :track_number,
               track_number_description = :track_number_description,
               plan_project_id = :plan_project_id,
               plan_author_id = :plan_author_id,
@@ -306,7 +306,7 @@ class GeometryDao @Autowired constructor(
 
         val params = mapOf(
             "id" to planId.intValue,
-            "track_number_id" to geometryPlan.trackNumberId?.intValue,
+            "track_number" to geometryPlan.trackNumber?.toString(),
             "track_number_description" to geometryPlan.trackNumberDescription,
             "plan_project_id" to (geometryPlan.project.id as IntId).intValue,
             "plan_author_id" to (geometryPlan.author?.id as IntId?)?.intValue,
@@ -650,7 +650,7 @@ class GeometryDao @Autowired constructor(
             project.id as project_id, 
             project.name as project_name,
             project.description as project_description,
-            plan.track_number_id,
+            plan.track_number,
             (select min(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as min_km_number,
             (select max(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as max_km_number,
             author.company_name as author,
@@ -706,7 +706,7 @@ class GeometryDao @Autowired constructor(
             project.id as project_id, 
             project.name as project_name,
             project.description as project_description,
-            plan.track_number_id,
+            plan.track_number,
             (select min(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as min_km_number,
             (select max(km_post.km_number) from geometry.km_post where km_post.plan_id = plan.id) as max_km_number,
             author.company_name as author,
@@ -753,7 +753,7 @@ class GeometryDao @Autowired constructor(
             source = rs.getEnum("source"),
             kmNumberRange = range,
             planTime = rs.getInstantOrNull("plan_time"),
-            trackNumberId = rs.getIntIdOrNull("track_number_id"),
+            trackNumber = rs.getTrackNumberOrNull("track_number"),
             measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method"),
             elevationMeasurementMethod = rs.getEnumOrNull<ElevationMeasurementMethod>("elevation_measurement_method"),
             decisionPhase = rs.getEnumOrNull<PlanDecisionPhase>("plan_decision"),
@@ -864,7 +864,7 @@ class GeometryDao @Autowired constructor(
               plan.source,
               plan.linear_unit,
               plan.direction_unit,
-              plan.track_number_id,
+              plan.track_number,
               plan.track_number_description,
               plan.srid,
               plan.coordinate_system_name,
@@ -918,7 +918,7 @@ class GeometryDao @Autowired constructor(
                 ),
                 planTime = rs.getInstantOrNull("plan_time"),
                 units = units,
-                trackNumberId = rs.getIntIdOrNull("track_number_id"),
+                trackNumber = rs.getTrackNumberOrNull("track_number"),
                 trackNumberDescription = PlanElementName(rs.getString("track_number_description")),
                 alignments = fetchAlignments(units, planVersion.id),
                 switches = fetchSwitches(planId = planVersion.id, switchId = null),
@@ -1742,7 +1742,7 @@ class GeometryDao @Autowired constructor(
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getIntId<GeometryPlan>("plan_id") to GeometryPlanLinkingSummary(
                 linkedAt = rs.getInstantOrNull("linked_at"),
-                linkedByUsers = rs.getStringArrayOrNull("linked_by_users")?.map(::UserName) ?: listOf(),
+                linkedByUsers = rs.getStringArrayOrNull("linked_by_users")?.map(UserName::of) ?: listOf(),
                 currentlyLinked = rs.getBoolean("is_currently_linked"),
             )
         }.associate { it }

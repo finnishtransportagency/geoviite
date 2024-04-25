@@ -2,6 +2,7 @@ import {
     AddressPoint,
     AlignmentPoint,
     AlignmentStartAndEnd,
+    DuplicateStatus,
     LayoutLocationTrack,
     LayoutSwitchId,
     LayoutTrackNumberId,
@@ -11,8 +12,8 @@ import {
     OperatingPoint,
 } from 'track-layout/track-layout-model';
 import {
-    DraftableChangeInfo,
     draftLayoutContext,
+    LayoutAssetChangeInfo,
     LayoutContext,
     TimeStamp,
     TrackMeter,
@@ -82,7 +83,7 @@ export type SplitDuplicate = {
     name: string;
     start: AddressPoint;
     end: AddressPoint;
-    status: SplitDuplicateStatus;
+    status: DuplicateStatus;
 };
 
 export type SplitInitializationParameters = {
@@ -308,8 +309,8 @@ export async function getNonLinkedLocationTracks(
 export const getLocationTrackChangeTimes = (
     id: LocationTrackId,
     layoutContext: LayoutContext,
-): Promise<DraftableChangeInfo | undefined> => {
-    return getNullable<DraftableChangeInfo>(changeTimeUri('location-tracks', id, layoutContext));
+): Promise<LayoutAssetChangeInfo | undefined> => {
+    return getNullable<LayoutAssetChangeInfo>(changeTimeUri('location-tracks', id, layoutContext));
 };
 
 export const getLocationTrackSectionsByPlan = async (

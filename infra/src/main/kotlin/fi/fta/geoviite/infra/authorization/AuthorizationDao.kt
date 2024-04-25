@@ -90,7 +90,7 @@ class AuthorizationDao(
             val code: Code = rs.getCode("code")
             Role(
                 code = code,
-                name = AuthName(rs.getString("name")),
+                name = AuthName.of(rs.getString("name")),
                 privileges = fetchRolePrivilegesInternal(code),
             )
         }
@@ -109,7 +109,7 @@ class AuthorizationDao(
         val privileges = jdbcTemplate.query(sql, params) { rs, _ ->
             Privilege(
                 code = rs.getCode("code"),
-                name = AuthName(rs.getString("name")),
+                name = AuthName.of(rs.getString("name")),
                 description = rs.getFreeText("description"),
             )
         }

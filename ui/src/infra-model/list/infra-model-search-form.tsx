@@ -7,6 +7,7 @@ import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { planSources } from 'utils/enum-localization-utils';
 import Multiselect from 'react-widgets/cjs/Multiselect';
 import { useTranslation } from 'react-i18next';
+import { TrackNumber } from 'common/common-model';
 
 export type InframodelSearchFormProps = {
     trackNumbers: LayoutTrackNumber[];
@@ -18,7 +19,7 @@ type TrackNumberOption = {
     id?: LayoutTrackNumberId;
     typeLabel: string;
     label: string;
-    number: string;
+    number: TrackNumber;
     value: LayoutTrackNumber;
 };
 
@@ -40,7 +41,7 @@ export const InfraModelSearchForm: React.FC<InframodelSearchFormProps> = (
     }
     const trackNumberOptions = props.trackNumbers.map(getTrackNumberOption);
     const currentlySelectedTrackNumbers = trackNumberOptions.filter(
-        (tn) => tn.id && props.searchParams.trackNumberIds.includes(tn.id),
+        (tn) => tn.id && props.searchParams.trackNumbers.includes(tn.number),
     );
 
     const searchTerm = props.searchParams.freeText;
@@ -58,11 +59,11 @@ export const InfraModelSearchForm: React.FC<InframodelSearchFormProps> = (
         searchParams: GeometryPlanSearchParams,
         values: TrackNumberOption[],
     ): GeometryPlanSearchParams {
-        const trackNumberIds = values.map((v) => v.value.id).filter(filterNotEmpty);
+        const trackNumbers = values.map((v) => v.value.number).filter(filterNotEmpty);
         return {
             ...searchParams,
             freeText: '',
-            trackNumberIds: trackNumberIds,
+            trackNumbers,
         };
     }
 

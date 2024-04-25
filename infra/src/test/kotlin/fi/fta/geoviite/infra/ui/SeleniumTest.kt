@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.ui
 import browser
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EAppBar
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2ERole
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
 import openBrowser
 import org.junit.jupiter.api.TestInstance
@@ -47,6 +48,8 @@ open class SeleniumTest : DBTestBase(UI_TEST_USER) {
     fun goToFrontPage() = navigationBar.goToFrontPage()
 
     fun goToMap() = navigationBar.goToMap()
+
+    fun selectRole(roleCode: E2ERole) = navigationBar.selectRole(roleCode.toString())
 
     fun goToInfraModelPage() = navigationBar.goToInfraModel()
 

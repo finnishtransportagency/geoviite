@@ -302,7 +302,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             {!nameErrorsVisible && split.operation && (
                                 <InfoboxText
                                     value={t(
-                                        `tool-panel.location-track.splitting.${split.operation}`,
+                                        `tool-panel.location-track.splitting.operation.${split.operation}`,
                                     )}
                                 />
                             )}

@@ -87,7 +87,6 @@ class InfraModelService @Autowired constructor(
             "extraInfo" to extraInfo,
         )
         val switchStructuresByType = switchLibraryService.getSwitchStructures().associateBy { it.type }
-        val trackNumberIdsByNumber = trackNumberService.list(OFFICIAL).associate { tn -> tn.number to tn.id as IntId }
 
         val parsed = parseInfraModelFile(
             overrides?.source ?: PlanSource.GEOMETRIAPALVELU,
@@ -95,7 +94,6 @@ class InfraModelService @Autowired constructor(
             geographyService.getCoordinateSystemNameToSridMapping(),
             switchStructuresByType,
             switchLibraryService.getInframodelAliases(),
-            trackNumberIdsByNumber,
         )
         return overrideGeometryPlanWithParameters(parsed, overrides, extraInfo)
     }
@@ -220,7 +218,7 @@ class InfraModelService @Autowired constructor(
                 verticalCoordinateSystem = overrideParameters?.verticalCoordinateSystem
                     ?: plan.units.verticalCoordinateSystem,
             ),
-            trackNumberId = overrideParameters?.trackNumberId ?: plan.trackNumberId,
+            trackNumber = overrideParameters?.trackNumber ?: plan.trackNumber,
             project = planProject,
             author = planAuthor,
             application = application,
@@ -240,6 +238,7 @@ class InfraModelService @Autowired constructor(
             geometryPlan,
             codeDictionaryService.getFeatureTypes(),
             switchLibraryService.getSwitchStructuresById(),
+            trackNumberService.list(OFFICIAL).map { it.number },
         )
     }
 

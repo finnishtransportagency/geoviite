@@ -28,6 +28,8 @@ import {
     VisibleExtentLookup,
 } from 'vertical-geometry/store';
 import { getMaxTimestamp } from 'utils/date-utils';
+import { useUserHasPrivilege } from 'store/hooks';
+import { VIEW_GEOMETRY_FILE } from 'user/user-model';
 
 type VerticalGeometryDiagramHolderProps = {
     alignmentId: VerticalGeometryDiagramAlignmentId;
@@ -129,6 +131,8 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
         !!diagramWidth &&
         !!diagramHeight;
 
+    const canLoadGeometry = useUserHasPrivilege(VIEW_GEOMETRY_FILE);
+
     React.useEffect(() => {
         let shouldUpdate = true;
         if (!isLoadingGeometry) {
@@ -136,7 +140,7 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
         }
 
         const linkingSummaryPromise =
-            'planId' in alignmentId
+            'planId' in alignmentId || !canLoadGeometry
                 ? undefined
                 : getLocationTrackLinkingSummary(
                       getMaxTimestamp(changeTimes.geometryPlan, changeTimes.layoutLocationTrack),
@@ -144,7 +148,10 @@ export const VerticalGeometryDiagramHolder: React.FC<VerticalGeometryDiagramHold
                       alignmentId.layoutContext,
                   );
 
-        const geometryPromise = getVerticalGeometry(changeTimes, alignmentId);
+        const geometryPromise = canLoadGeometry
+            ? getVerticalGeometry(changeTimes, alignmentId)
+            : Promise.resolve([]);
+
         const startEndPromise = getStartAndEnd(changeTimes, alignmentId);
 
         Promise.all([linkingSummaryPromise, geometryPromise, startEndPromise]).then(

@@ -5,13 +5,13 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETable
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContent
 import fi.fta.geoviite.infra.ui.util.byQaId
+import getElementIfExists
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
-
-abstract class E2EDataProductVerticalGeometryListPage : E2EViewFragment(By.className("data-product-view"))  {
+abstract class E2EDataProductVerticalGeometryListPage : E2EViewFragment(By.className("data-product-view")) {
     fun layoutListPage(): E2EDataProductLayoutVerticalGeometryListPage {
         logger.info("Open layout geometry tab")
 
@@ -32,6 +32,8 @@ abstract class E2EDataProductVerticalGeometryListPage : E2EViewFragment(By.class
         clickChild(byQaId("select-entire-rail-network"))
         return E2EDataProductEntireNetworkVerticalGeometryListPage()
     }
+
+    val entireRailNetworkVerticalGeometryRadioButton = getElementIfExists(byQaId("select-entire-rail-network"))
 }
 
 class E2EDataProductPlanVerticalGeometryListPage : E2EDataProductVerticalGeometryListPage() {

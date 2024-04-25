@@ -6,7 +6,7 @@ import styles from './app-bar.scss';
 import { Menu, menuSelectOption } from 'vayla-design-lib/menu/menu';
 import { createClassName } from 'vayla-design-lib/utils';
 import { filterNotEmpty } from 'utils/array-utils';
-import { VIEW_GEOMETRY_FILE, VIEW_LAYOUT, userHasPrivilege } from 'user/user-model';
+import { VIEW_GEOMETRY_FILE, userHasPrivilege, VIEW_GEOMETRY } from 'user/user-model';
 import { useCommonDataAppSelector } from 'store/hooks';
 
 const DataProductsMenu: React.FC = () => {
@@ -39,7 +39,7 @@ const DataProductsMenu: React.FC = () => {
                   'vertical-geometry-menu-link',
               )
             : undefined,
-        userHasPrivilege(currentPrivileges, VIEW_LAYOUT)
+        userHasPrivilege(currentPrivileges, VIEW_GEOMETRY)
             ? menuSelectOption(
                   () => {
                       setShowMenu(false);
@@ -50,32 +50,41 @@ const DataProductsMenu: React.FC = () => {
               )
             : undefined,
     ].filter(filterNotEmpty);
+    const locationWithinDataProducts = useLocation().pathname.includes('data-products');
 
     return (
-        <div
-            ref={menuRef}
-            className={
-                useLocation().pathname.includes('data-products')
-                    ? createClassName(
-                          styles['app-bar__link'],
-                          styles['app-bar__link--active'],
-                          styles['app-bar__menu-button'],
-                      )
-                    : createClassName(styles['app-bar__link'], styles['app-bar__menu-button'])
-            }
-            qa-id="data-product-link"
-            onClick={() => setShowMenu(!showMenu)}>
-            <span>{t('app-bar.data-products-title')}</span>
+        <React.Fragment>
+            {dataProducts.length > 0 && (
+                <div
+                    ref={menuRef}
+                    className={
+                        locationWithinDataProducts
+                            ? createClassName(
+                                  styles['app-bar__link'],
+                                  styles['app-bar__link--active'],
+                                  styles['app-bar__menu-button'],
+                              )
+                            : createClassName(
+                                  styles['app-bar__link'],
+                                  styles['app-bar__menu-button'],
+                              )
+                    }
+                    qa-id="data-product-link"
+                    onClick={() => setShowMenu(!showMenu)}>
+                    <span>{t('app-bar.data-products-title')}</span>
 
-            {showMenu && dataProducts.length && (
-                <Menu
-                    positionRef={menuRef}
-                    items={dataProducts}
-                    className={styles['app-bar__data-products-menu']}
-                    onClickOutside={() => setShowMenu(false)}
-                />
+                    {showMenu && (
+                        <Menu
+                            positionRef={menuRef}
+                            items={dataProducts}
+                            className={styles['app-bar__data-products-menu']}
+                            onClickOutside={() => setShowMenu(false)}
+                            qa-id={'data-products-menu'}
+                        />
+                    )}
+                </div>
             )}
-        </div>
+        </React.Fragment>
     );
 };
 
