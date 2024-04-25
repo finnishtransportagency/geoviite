@@ -41,8 +41,8 @@ fun getLocationTrackDuplicatesByJoint(
 ): List<LocationTrackDuplicate> {
     val mainTrackJoints = collectSwitchJoints(mainTrack, mainAlignment)
     return duplicateTracksAndAlignments.asSequence().flatMap { (duplicateTrack, duplicateAlignment) ->
-            getLocationTrackDuplicatesByJoint(mainTrack.id, mainTrackJoints, duplicateTrack, duplicateAlignment)
-        }.sortedWith(compareBy({ it.first }, { it.second.name })).map { (_, duplicate) -> duplicate }.toList()
+        getLocationTrackDuplicatesByJoint(mainTrack.id, mainTrackJoints, duplicateTrack, duplicateAlignment)
+    }.sortedWith(compareBy({ it.first }, { it.second.name })).map { (_, duplicate) -> duplicate }.toList()
 }
 
 private fun getLocationTrackDuplicatesByJoint(
@@ -75,7 +75,9 @@ fun getDuplicateMatches(
     mainTrackId: DomainId<LocationTrack>,
     duplicateOf: IntId<LocationTrack>?,
 ): List<Pair<Int, DuplicateStatus>> {
-    val matchIndices = findOrderedMatches(mainTrackJoints, duplicateTrackJoints)
+    val matchIndices = findOrderedMatches(mainTrackJoints, duplicateTrackJoints) { joint1, joint2 ->
+        joint1.switchId == joint2.switchId && joint1.jointNumber == joint2.jointNumber
+    }
     val matchRanges = buildDuplicateIndexRanges(matchIndices)
 
     return if (matchRanges.isEmpty() && duplicateOf != mainTrackId) {
