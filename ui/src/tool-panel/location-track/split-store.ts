@@ -103,11 +103,11 @@ const findDuplicateStartingAt = (duplicates: SplitDuplicate[], switchId: LayoutS
 
 export const splitReducers = {
     onStartSplitting: (state: TrackLayoutState, { payload }: PayloadAction<SplitStart>): void => {
-        if (
-            state.selection.selectedItems.locationTracks.some(
-                (lt) => lt === payload.locationTrack.id,
-            )
-        ) {
+        const locationTrackSelected = state.selection.selectedItems.locationTracks.some(
+            (lt) => lt === payload.locationTrack.id,
+        );
+
+        if (locationTrackSelected) {
             const duplicateAtStart = findDuplicateStartingAt(
                 payload.duplicateTracks,
                 payload.startAndEndSwitches[0],
