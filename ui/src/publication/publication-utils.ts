@@ -42,9 +42,11 @@ export type PublicationAssetChangeAmounts = {
     total: number;
     staged: number;
     unstaged: number;
-    groupAmounts: Record<PublicationGroupId, number>;
+    groupAmounts: PublicationGroupAmounts;
     ownUnstaged: number;
 };
+
+export type PublicationGroupAmounts = Record<PublicationGroupId, number>;
 
 export const countPublicationGroupAmounts = (
     publicationCandidates: PublicationCandidate[],
@@ -59,7 +61,7 @@ export const countPublicationGroupAmounts = (
         }
 
         return groupSizes;
-    }, {} as Record<PublicationGroupId, number>);
+    }, {} as PublicationGroupAmounts);
 };
 
 export const createPublicationCandidateReference = (
