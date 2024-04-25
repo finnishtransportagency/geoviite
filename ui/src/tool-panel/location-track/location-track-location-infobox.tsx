@@ -283,7 +283,8 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 !!splittingState ||
                                                 extraInfo?.partOfUnfinishedSplit ||
                                                 !startAndEndPoints.start?.point ||
-                                                !startAndEndPoints.end?.point
+                                                !startAndEndPoints.end?.point ||
+                                                startingSplitting
                                             }
                                             onClick={() => {
                                                 getEndLinkPoints(
