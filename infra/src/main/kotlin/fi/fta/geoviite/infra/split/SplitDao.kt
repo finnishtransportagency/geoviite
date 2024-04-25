@@ -27,6 +27,7 @@ import java.sql.ResultSet
 
 private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>) = Split(
     id = rs.getIntId("id"),
+    rowVersion = rs.getRowVersion("id", "version"),
     sourceLocationTrackId = rs.getIntId("source_location_track_official_id"),
     sourceLocationTrackVersion = rs.getRowVersion(
         "source_location_track_row_id",
@@ -167,6 +168,7 @@ class SplitDao(
         val sql = """
           select
               split.id,
+              split.version,
               split.bulk_transfer_state,
               split.publication_id,
               coalesce(source_track.official_row_id, source_track.id) as source_location_track_official_id,
@@ -188,6 +190,39 @@ class SplitDao(
             splitId,
             jdbcTemplate.query(sql, mapOf("id" to splitId.intValue)) { rs, _ -> toSplit(rs, getSplitTargets(splitId)) },
         ).also { logger.daoAccess(AccessType.FETCH, Split::class, splitId) }
+    }
+
+    fun get(splitVersion: RowVersion<Split>): Split {
+        val sql = """
+          select
+              split.id,
+              split.version,
+              split.bulk_transfer_state,
+              split.publication_id,
+              coalesce(source_track.official_row_id, source_track.id) as source_location_track_official_id,
+              split.source_location_track_row_id,
+              split.source_location_track_row_version,
+              array_agg(split_relinked_switch.switch_id) as switch_ids,
+              array_agg(split_updated_duplicate.duplicate_location_track_id) as updated_duplicate_ids
+          from publication.split_version split
+              inner join layout.location_track_version source_track 
+                  on split.source_location_track_row_id = source_track.id
+                   and split.source_location_track_row_version = source_track.version
+              left join publication.split_relinked_switch on split.id = split_relinked_switch.split_id
+              left join publication.split_updated_duplicate on split.id = split_updated_duplicate.split_id
+          -- Note: split content tables are never edited -> only the main split is fetched by id and version
+          where split.id = :id and split.version = :version
+          group by split.id, split.version, source_track.official_row_id, source_track.id
+        """.trimIndent()
+
+        val params = mapOf(
+            "id" to splitVersion.id.intValue,
+            "version" to splitVersion.version,
+        )
+        return getOne(
+            splitVersion,
+            jdbcTemplate.query(sql, params) { rs, _ -> toSplit(rs, getSplitTargets(splitVersion.id)) },
+        ).also { logger.daoAccess(AccessType.FETCH, Split::class, splitVersion) }
     }
 
     fun getSplitHeader(splitId: IntId<Split>): SplitHeader {
@@ -272,6 +307,7 @@ class SplitDao(
         val sql = """
           select
               split.id,
+              split.version,
               split.bulk_transfer_state,
               split.publication_id,
               array_agg(split_relinked_switch.switch_id) as switch_ids,
@@ -297,26 +333,25 @@ class SplitDao(
         }
     }
 
-    fun fetchUnfinishedSplitIdsByTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): List<IntId<Split>> {
-        val sql = """
-            select distinct split.id
-            from publication.split 
-                inner join layout.location_track_version source
-                    on source.id = split.source_location_track_row_id
-                      and source.version = split.source_location_track_row_version
-                left join publication.split_target_location_track tlt on tlt.split_id = split.id
-                left join layout.location_track target on target.id = tlt.location_track_id 
-            where split.bulk_transfer_state != 'DONE'
-              and (source.track_number_id = :trackNumberId or target.track_number_id = :trackNumberId)
-        """.trimIndent()
-
-        return jdbcTemplate.query(sql, mapOf("trackNumberId" to trackNumberId.intValue)) { rs, _ ->
-            rs.getIntId<Split>("id")
-        }.also { ids ->
-            logger.daoAccess(AccessType.FETCH, Split::class, ids)
-        }
-    }
-
+//    fun fetchUnfinishedSplitIdsByTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): List<IntId<Split>> {
+//        val sql = """
+//            select distinct split.id
+//            from publication.split
+//                inner join layout.location_track_version source
+//                    on source.id = split.source_location_track_row_id
+//                      and source.version = split.source_location_track_row_version
+//                left join publication.split_target_location_track tlt on tlt.split_id = split.id
+//                left join layout.location_track target on target.id = tlt.location_track_id
+//            where split.bulk_transfer_state != 'DONE'
+//              and (source.track_number_id = :trackNumberId or target.track_number_id = :trackNumberId)
+//        """.trimIndent()
+//        return jdbcTemplate.query(sql, mapOf("trackNumberId" to trackNumberId.intValue)) { rs, _ ->
+//            rs.getIntId<Split>("id")
+//        }.also { ids ->
+//            logger.daoAccess(AccessType.FETCH, Split::class, ids)
+//        }
+//    }
+//
     fun fetchChangeTime() = fetchLatestChangeTime(DbTable.PUBLICATION_SPLIT)
 
     fun fetchSplitIdByPublication(publicationId: IntId<Publication>): IntId<Split>? {

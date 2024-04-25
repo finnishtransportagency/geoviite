@@ -218,6 +218,8 @@ data class ValidationVersions(
     val referenceLines: List<ValidationVersion<ReferenceLine>>,
     val switches: List<ValidationVersion<TrackLayoutSwitch>>,
     val kmPosts: List<ValidationVersion<TrackLayoutKmPost>>,
+    // TODO: GVT-2524 do we actually need these here? Maybe it's just stuff to fetch from context?
+    val splits: List<ValidationVersion<Split>>,
 ) {
     fun containsLocationTrack(id: IntId<LocationTrack>) = locationTracks.any { it.officialId == id }
     fun containsKmPost(id: IntId<TrackLayoutKmPost>) = kmPosts.any { it.officialId == id }
@@ -232,6 +234,7 @@ data class ValidationVersions(
     fun getLocationTrackIds() = locationTracks.map { v -> v.officialId }
     fun getSwitchIds() = switches.map { v -> v.officialId }
     fun getKmPostIds() = kmPosts.map { v -> v.officialId }
+    fun getSplitIds() = splits.map { v -> v.officialId }
 }
 
 data class PublicationGroup(

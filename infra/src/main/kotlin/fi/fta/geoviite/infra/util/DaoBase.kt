@@ -118,12 +118,23 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
 }
 
 inline fun <reified T, reified S> getOne(id: DomainId<T>, result: List<S>) =
-    getOptional(id, result) ?: throw NoSuchEntityException(T::class, id)
+    requireOne(T::class, id, result)
 
-inline fun <reified T, reified S> getOptional(id: DomainId<T>, result: List<S>): S? {
+inline fun <reified T, reified S> getOne(rowVersion: RowVersion<T>, result: List<S>) =
+    requireOne(T::class, rowVersion, result)
+
+inline fun <reified T, reified S> getOptional(rowVersion: RowVersion<T>, result: List<S>): S? =
+    requireOneOrNull(T::class, rowVersion, result)
+
+inline fun <reified T, reified S> getOptional(id: DomainId<T>, result: List<S>): S? =
+    requireOneOrNull(T::class, id, result)
+
+fun <T> requireOne(clazz: KClass<*>, id: Any, result: List<T>): T =
+    requireOneOrNull(clazz, id, result) ?: throw NoSuchEntityException(clazz, id.toString())
+
+fun <T> requireOneOrNull(clazz: KClass<*>, id: Any, result: List<T>): T? {
     require(result.size <= 1) {
-        val idDesc = if (S::class == T::class) "id $id" else "${T::class.simpleName}.id $id"
-        "Found more than one ${S::class.simpleName} with same $idDesc"
+        "Found more than one (${result.size}) ${clazz.simpleName} with identifier $id"
     }
     return result.firstOrNull()
 }

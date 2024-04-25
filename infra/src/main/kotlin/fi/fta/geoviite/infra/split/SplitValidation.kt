@@ -1,17 +1,17 @@
 package fi.fta.geoviite.infra.split
 
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
-import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.PublicationValidationError
 import fi.fta.geoviite.infra.publication.PublicationValidationErrorType.ERROR
 import fi.fta.geoviite.infra.publication.VALIDATION
-import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.publication.validate
+import fi.fta.geoviite.infra.publication.validationError
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.util.produceIf
 import kotlin.math.min
 
 const val VALIDATION_SPLIT = "$VALIDATION.split"
@@ -43,9 +43,9 @@ internal fun validateSourceGeometry(
 }
 
 internal fun validateSplitContent(
-    trackVersions: List<ValidationVersion<LocationTrack>>,
-    switchVersions: List<ValidationVersion<TrackLayoutSwitch>>,
-    splits: Collection<Split>,
+    trackIds: List<IntId<LocationTrack>>,
+    switchIds: List<IntId<TrackLayoutSwitch>>,
+    splits: List<Split>,
     allowMultipleSplits: Boolean,
 ): List<Pair<Split, PublicationValidationError>> {
     val multipleSplitsStagedErrors = if (!allowMultipleSplits && splits.size > 1) {
@@ -59,11 +59,9 @@ internal fun validateSplitContent(
     val contentErrors = splits
         .filter { it.isPending }
         .flatMap { split ->
-            val containsSource = trackVersions.any { it.officialId == split.sourceLocationTrackId }
-            val containsTargets = split.targetLocationTracks.all { tlt ->
-                trackVersions.any { it.officialId == tlt.locationTrackId }
-            }
-            val containsSwitches = split.relinkedSwitches.all { s -> switchVersions.any { sv -> sv.officialId == s } }
+            val containsSource = trackIds.contains(split.sourceLocationTrackId)
+            val containsTargets = split.targetLocationTracks.all { tlt -> trackIds.contains(tlt.locationTrackId) }
+            val containsSwitches = split.relinkedSwitches.all(switchIds::contains)
             listOfNotNull(
                 validate(containsSource && containsTargets, ERROR) {
                     "$VALIDATION_SPLIT.split-missing-location-tracks"
@@ -104,26 +102,39 @@ internal fun validateTargetGeometry(
     }
 }
 
-internal fun validateTargetTrackNumber(
+internal fun validateTargetTrackNumberIsUnchanged(
     sourceLocationTrack: LocationTrack,
     targetLocationTrack: LocationTrack,
 ): PublicationValidationError? =
-    if (sourceLocationTrack.trackNumberId != targetLocationTrack.trackNumberId) {
-        PublicationValidationError(
-            ERROR,
-            LocalizationKey("$VALIDATION_SPLIT.source-and-target-track-numbers-are-different"),
-            localizationParams("trackName" to targetLocationTrack.name),
+    produceIf(sourceLocationTrack.trackNumberId != targetLocationTrack.trackNumberId) {
+        validationError(
+            "$VALIDATION_SPLIT.source-and-target-track-numbers-are-different",
+            // TODO: GVT-2524 add param to localized message
+            "sourceName" to sourceLocationTrack.name,
+            "trackName" to targetLocationTrack.name,
         )
-    } else {
-        null
+    }
+
+internal fun validateSplitStatus(
+    track: LocationTrack,
+    sourceTrack: LocationTrack,
+    split: Split,
+): PublicationValidationError? =
+    produceIf(track.isDraft && split.isPublishedAndWaitingTransfer) {
+        // TODO: GVT-2524 add localized message
+        validationError("$VALIDATION_SPLIT.previous-split-in-progress", "sourceName" to sourceTrack.name)
     }
 
 internal fun validateSplitSourceLocationTrack(
     locationTrack: LocationTrack,
-): PublicationValidationError? {
-    return if (locationTrack.exists) {
-        PublicationValidationError(ERROR, "$VALIDATION_SPLIT.source-not-deleted")
-    } else {
-        null
+    split: Split,
+): List<PublicationValidationError> = listOfNotNull(
+    produceIf(locationTrack.exists) {
+        // TODO: GVT-2524 add param to localized message
+        validationError("$VALIDATION_SPLIT.source-not-deleted", "sourceName" to locationTrack.name)
+    },
+    produceIf(locationTrack.version != split.sourceLocationTrackVersion) {
+        // TODO: GVT-2524 add localized message
+        validationError("$VALIDATION_SPLIT.source-edited-after-split", "sourceName" to locationTrack.name)
     }
-}
+)

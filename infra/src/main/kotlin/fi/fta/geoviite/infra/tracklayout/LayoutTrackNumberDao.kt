@@ -6,8 +6,20 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
-import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_TRACK_NUMBER
+import fi.fta.geoviite.infra.util.getDaoResponse
+import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getFreeText
+import fi.fta.geoviite.infra.util.getInstant
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getIntIdOrNull
+import fi.fta.geoviite.infra.util.getLayoutContextData
+import fi.fta.geoviite.infra.util.getOidOrNull
+import fi.fta.geoviite.infra.util.getOne
+import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.getTrackNumber
+import fi.fta.geoviite.infra.util.setUser
+import fi.fta.geoviite.infra.util.toDbId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -127,7 +139,7 @@ class LayoutTrackNumberDao(
         state = rs.getEnum("state"),
         externalId = rs.getOidOrNull("external_id"),
         version = rs.getRowVersion("row_id", "row_version"),
-        // TODO: GVT-2442 This should be non-null but we have a lot of tests that produce broken data
+        // TODO: GVT-2524 This should be non-null but we have a lot of tests that produce broken data
         referenceLineId = rs.getIntIdOrNull("reference_line_id"),
         contextData = rs.getLayoutContextData("official_row_id", "row_id", "draft"),
     )

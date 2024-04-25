@@ -262,13 +262,13 @@ class PublicationService @Autowired constructor(
     }
 
     private fun createValidationContext(
-        trackNumbers: List<ValidationVersion<TrackLayoutTrackNumber>> = listOf(),
-        locationTracks: List<ValidationVersion<LocationTrack>> = listOf(),
-        referenceLines: List<ValidationVersion<ReferenceLine>> = listOf(),
-        switches: List<ValidationVersion<TrackLayoutSwitch>> = listOf(),
-        kmPosts: List<ValidationVersion<TrackLayoutKmPost>> = listOf(),
+        trackNumbers: List<ValidationVersion<TrackLayoutTrackNumber>> = emptyList(),
+        locationTracks: List<ValidationVersion<LocationTrack>> = emptyList(),
+        referenceLines: List<ValidationVersion<ReferenceLine>> = emptyList(),
+        switches: List<ValidationVersion<TrackLayoutSwitch>> = emptyList(),
+        kmPosts: List<ValidationVersion<TrackLayoutKmPost>> = emptyList(),
     ): ValidationContext = createValidationContext(
-        ValidationVersions(trackNumbers, locationTracks, referenceLines, switches, kmPosts)
+        ValidationVersions(trackNumbers, locationTracks, referenceLines, switches, kmPosts, emptyList())
     )
 
     private fun createValidationContext(publicationSet: ValidationVersions): ValidationContext = ValidationContext(
@@ -294,8 +294,7 @@ class PublicationService @Autowired constructor(
         val versions = candidates.getValidationVersions()
 
         val validationContext = createValidationContext(versions).also { ctx -> ctx.preloadByPublicationSet() }
-        // TODO: GVT-2442 split validation could (should) also use the validation context
-        val splitErrors = splitService.validateSplit(versions, allowMultipleSplits)
+        val splitErrors = splitService.validateSplit(versions, validationContext, allowMultipleSplits)
 
         return PublicationCandidates(
             trackNumbers = candidates.trackNumbers.map { candidate ->
@@ -329,9 +328,8 @@ class PublicationService @Autowired constructor(
     @Transactional(readOnly = true)
     fun validatePublicationRequest(versions: ValidationVersions) {
         logger.serviceCall("validatePublicationRequest", "versions" to versions)
-        // TODO: GVT-2442 split validation could (should) also use the validation context
-        splitService.validateSplit(versions, allowMultipleSplits = false).also(::assertNoSplitErrors)
         val validationContext = createValidationContext(versions).also { ctx -> ctx.preloadByPublicationSet() }
+        splitService.validateSplit(versions, validationContext, allowMultipleSplits = false).also(::assertNoSplitErrors)
 
         versions.trackNumbers.forEach { version ->
             assertNoErrors(version, requireNotNull(validateTrackNumber(version.officialId, validationContext)))
@@ -367,15 +365,16 @@ class PublicationService @Autowired constructor(
             .map { it.id as IntId }
 
         val revertLocationTrackIds = requestIds.locationTracks + draftOnlyTrackNumberIds.flatMap { tnId ->
-            locationTrackDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
-        }.map(RowVersion<LocationTrack>::id)
+            locationTrackDao.fetchOnlyDraftVersions(includeDeleted = true, tnId).map(locationTrackDao::fetch)
+        }.map { track -> track.id as IntId }
 
-        val revertSplitTracks = splitService.findUnpublishedSplitsForLocationTracks(revertLocationTrackIds)
-            .flatMap { split -> split.locationTracks }
+        val revertSplits = splitService.findUnpublishedSplits(revertLocationTrackIds, requestIds.switches)
+        val revertSplitTracks = revertSplits.flatMap { s -> s.locationTracks }.distinct()
+        val revertSplitSwitches = revertSplits.flatMap { s -> s.relinkedSwitches }.distinct()
 
         val revertKmPostIds = requestIds.kmPosts.toSet() + draftOnlyTrackNumberIds.flatMap { tnId ->
-            kmPostDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
-        }.map { kp -> kp.id }
+            kmPostDao.fetchOnlyDraftVersions(includeDeleted = true, tnId).map(kmPostDao::fetch)
+        }.map { kmPost -> kmPost.id as IntId }
 
         val referenceLines = requestIds.referenceLines.toSet() + requestIds.trackNumbers.mapNotNull { tnId ->
             referenceLineService.getByTrackNumber(DRAFT, tnId)
@@ -385,7 +384,7 @@ class PublicationService @Autowired constructor(
             trackNumbers = revertTrackNumberIds.toList(),
             referenceLines = referenceLines.toList(),
             locationTracks = (revertLocationTrackIds + revertSplitTracks).distinct(),
-            switches = requestIds.switches.distinct(),
+            switches = (requestIds.switches + revertSplitSwitches).distinct(),
             kmPosts = revertKmPostIds.toList()
         )
     }
@@ -394,14 +393,9 @@ class PublicationService @Autowired constructor(
     fun revertPublicationCandidates(toDelete: PublicationRequestIds): PublicationResult {
         logger.serviceCall("revertPublicationCandidates", "toDelete" to toDelete)
 
-        listOf(
-            splitService.findUnpublishedSplitsForLocationTracks(toDelete.locationTracks),
-            splitService.findUnpublishedSplitsForSwitches(toDelete.switches),
-        )
-            .flatten()
-            .map { split -> split.id }
-            .distinct()
-            .forEach(splitService::deleteSplit)
+        splitService.fetchPublicationVersions(toDelete.locationTracks, toDelete.switches).forEach { split ->
+            splitService.deleteSplit(split.officialId)
+        }
 
         val locationTrackCount = toDelete.locationTracks.map { id -> locationTrackService.deleteDraft(id) }.size
         val referenceLineCount = toDelete.referenceLines.map { id -> referenceLineService.deleteDraft(id) }.size
@@ -455,6 +449,7 @@ class PublicationService @Autowired constructor(
             kmPosts = kmPostDao.fetchPublicationVersions(request.kmPosts),
             locationTracks = locationTrackDao.fetchPublicationVersions(request.locationTracks),
             switches = switchDao.fetchPublicationVersions(request.switches),
+            splits = splitService.fetchPublicationVersions(request.locationTracks, request.switches),
         )
     }
 

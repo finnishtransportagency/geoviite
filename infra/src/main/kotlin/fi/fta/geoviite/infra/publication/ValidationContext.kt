@@ -1,10 +1,29 @@
 package fi.fta.geoviite.infra.publication
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.ILayoutAssetDao
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import java.util.concurrent.ConcurrentHashMap
 
 class NullableCache<K, V> {
@@ -184,6 +203,14 @@ class ValidationContext(
             geocodingService.getGeocodingContextCacheKey(tnId, publicationSet)
         }
 
+    fun getAddressPoints(trackId: IntId<LocationTrack>): AlignmentAddresses? =
+        getLocationTrack(trackId)?.let(::getAddressPoints)
+
+    fun getAddressPoints(track: LocationTrack): AlignmentAddresses? =
+        getGeocodingContextCacheKey(track.trackNumberId)?.let { key ->
+            geocodingService.getAddressPoints(key, track.getAlignmentVersionOrThrow())
+        }
+
     fun preloadByPublicationSet() {
         preloadAssociatedTrackNumberAndReferenceLineVersions(publicationSet)
 
@@ -358,6 +385,11 @@ class ValidationContext(
             val official = officialVersions[id]?.map { v -> v.id } ?: emptyList()
             draft + official
         }
+    }
+
+    fun getUnfinishedSplits(): List<Split> {
+        // TODO: GVT-2524
+TODO("Not implemented yet")
     }
 }
 

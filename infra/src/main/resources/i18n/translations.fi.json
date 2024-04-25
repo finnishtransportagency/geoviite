@@ -685,7 +685,8 @@
                     "duplicate-not-published": "Duplikaattiraiteen {{duplicateName}} muutoksia ei ole julkaistu Ratkoon. Poikkeavat tiedot Geoviitteen ja Ratkon välillä voivat aiheuttaa ongelmia kohteiden massasiirrossa Ratkossa.",
                     "publish-duplicate": "Julkaise tai hylkää duplikaattiraiteen muutokset ja yritä jakamista sitten uudestaan.",
                     "has-errors": "Tiedoissa on virheitä",
-                    "show": "näytä"
+                    "show": "näytä",
+                    "split-in-progress": "Muutos voi vaikuttaa osoitteistoon raiteella, jonka jakamista ei ole vielä viety ratkoon"
                 },
                 "validation-in-progress": "Raiteen vaihteita validoidaan...",
                 "relink-critical-errors": "Raiteen vaihteiden linkityksessä on kriittisiä ongelmia, jotka täytyy korjata ennen raiteen jakamista",

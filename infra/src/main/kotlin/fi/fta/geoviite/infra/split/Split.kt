@@ -38,6 +38,7 @@ data class SplitHeader(
 
 data class Split(
     val id: IntId<Split>,
+    val rowVersion: RowVersion<Split>,
     val sourceLocationTrackId: IntId<LocationTrack>,
     val sourceLocationTrackVersion: RowVersion<LocationTrack>,
     val bulkTransferState: BulkTransferState,
@@ -52,6 +53,11 @@ data class Split(
     @JsonIgnore
     val isPending: Boolean = bulkTransferState == BulkTransferState.PENDING && publicationId == null
 
+    @JsonIgnore
+    val isPublishedAndWaitingTransfer: Boolean = bulkTransferState != BulkTransferState.DONE && publicationId != null
+
+    fun containsTargetTrack(trackId: IntId<LocationTrack>): Boolean =
+        targetLocationTracks.any { tlt -> tlt.locationTrackId == trackId }
     fun containsLocationTrack(trackId: IntId<LocationTrack>): Boolean = locationTracks.contains(trackId)
     fun getTargetLocationTrack(trackId: IntId<LocationTrack>): SplitTarget? =
         targetLocationTracks.find { track -> track.locationTrackId == trackId }
