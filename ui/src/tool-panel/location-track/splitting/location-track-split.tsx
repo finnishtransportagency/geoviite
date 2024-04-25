@@ -79,7 +79,6 @@ export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({
     editingDisabled,
     onSwitchClick,
 }) => {
-    // const { t } = useTranslation();
     return (
         <div
             className={createClassName(

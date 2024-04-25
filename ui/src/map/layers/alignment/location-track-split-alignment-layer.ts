@@ -98,7 +98,6 @@ export function createLocationTrackSplitAlignmentLayer(
             createAlignmentFeature(splitTrack, false, splittingLocationTrackFocusedStyle);
         }
 
-        // const showEndPointTicks = resolution <= Limits.SHOW_LOCATION_TRACK_BADGES;
         return splitToParts(
             splitTrack,
             [splittingState.firstSplit, ...splittingState.splits],
