@@ -101,34 +101,43 @@ class LayoutSearchServiceIT @Autowired constructor(
     }
 
     @Test
-    fun `free text search using locationt track as search scope should only return location track and its duplicates`() {
-        val trackNumbers = listOf(
-            TrackNumber("track number 1"),
-        )
-
+    fun `free text search using locationt track as search scope should return only assets relating to search scope`() {
         val trackNumberId = saveTrackNumbersWithSaveRequests(
-            trackNumbers,
+            listOf(TrackNumber("track number 1")),
             LayoutState.IN_USE,
         ).first()
-        val topologyStartSwitchId = switchDao.fetch(switchService.saveDraft(switch(name = "blaa V0001", draft = true)).rowVersion).id as IntId
-        val topologyEndSwitchId = switchDao.fetch(switchService.saveDraft(switch(name = "blee V0002", draft = true)).rowVersion).id as IntId
 
-        val lt1 = insertLocationTrack(
+        // Search scope origin track's start switch, should be included
+        val topologyStartSwitchId =
+            switchDao.fetch(switchService.saveDraft(switch(name = "blaa V0001", draft = true)).rowVersion).id as IntId
+        // Search scope origin track's end switch, should be included
+        val topologyEndSwitchId =
+            switchDao.fetch(switchService.saveDraft(switch(name = "blee V0002", draft = true)).rowVersion).id as IntId
+        // Related to duplicate but not in search scope, should be left out of search results
+        val duplicateStartSwitchId =
+            switchDao.fetch(switchService.saveDraft(switch(name = "bluu V0003", draft = true)).rowVersion).id as IntId
+        // Entirely unrelated, should be left out of search results
+        switchDao.fetch(switchService.saveDraft(switch(name = "bluu V0003", draft = true)).rowVersion).id as IntId
+
+        val lt1 = insertLocationTrack( // Location track search scope origin, should be included
             locationTrack(
                 trackNumberId = trackNumberId,
                 name = "blaa",
                 topologyStartSwitch = TopologyLocationTrackSwitch(topologyStartSwitchId, JointNumber(3)),
                 topologyEndSwitch = TopologyLocationTrackSwitch(topologyEndSwitchId, JointNumber(5)),
                 draft = true,
-            ), someAlignment()
+            ),
+            someAlignment()
         )
         val lt2 = insertLocationTrack( // Duplicate based on duplicateOf, should be included
             locationTrack(
                 trackNumberId = trackNumberId,
                 name = "blee",
+                topologyStartSwitch = TopologyLocationTrackSwitch(duplicateStartSwitchId, JointNumber(3)),
                 duplicateOf = lt1.id,
                 draft = true,
-            ), someAlignment()
+            ),
+            someAlignment()
         )
         val lt3 = insertLocationTrack( // Duplicate based on switches, should be included
             locationTrack(
@@ -137,14 +146,16 @@ class LayoutSearchServiceIT @Autowired constructor(
                 topologyStartSwitch = TopologyLocationTrackSwitch(topologyStartSwitchId, JointNumber(3)),
                 topologyEndSwitch = TopologyLocationTrackSwitch(topologyEndSwitchId, JointNumber(5)),
                 draft = true,
-            ), someAlignment()
+            ),
+            someAlignment()
         )
         insertLocationTrack( // Non-duplicate, shouldn't be included in search results
             locationTrack(
                 trackNumberId = trackNumberId,
                 name = "bluu",
                 draft = true,
-            ), someAlignment()
+            ),
+            someAlignment()
         )
 
         val searchResults = searchService.searchAssets(PublicationState.DRAFT, FreeText("bl"), 100, lt1.id)
