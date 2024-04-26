@@ -306,6 +306,9 @@ export const splitReducers = {
 };
 
 function getTrackNameFormattedSwitchName(switchName: string): string {
+    // Example:
+    // V0123 -> V123
+    // <space><space><space>V0123<space><space> -> <space>V123<space>
     return switchName.replace(/\s+/g, ' ').replace(/V0(\d{3})/, 'V$1');
 }
 

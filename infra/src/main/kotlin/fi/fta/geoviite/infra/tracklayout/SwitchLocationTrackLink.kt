@@ -153,11 +153,11 @@ fun collectSwitchJoints(
     track: LocationTrack,
     alignment: LayoutAlignment,
 ): List<SwitchJointOnTrack> {
-    val topologyStartJoint = track.topologyStartSwitch?.let { s ->
-        SwitchJointOnTrack(s.switchId, s.jointNumber, alignment.start!!)
+    val topologyStartJoint = alignment.start?.let { start ->
+        track.topologyStartSwitch?.let { s -> SwitchJointOnTrack(s.switchId, s.jointNumber, start) }
     }
-    val topologyEndJoint = track.topologyEndSwitch?.let { s ->
-        SwitchJointOnTrack(s.switchId, s.jointNumber, alignment.end!!)
+    val topologyEndJoint = alignment.end?.let { end ->
+        track.topologyEndSwitch?.let { s -> SwitchJointOnTrack(s.switchId, s.jointNumber, end) }
     }
 
     val allJoints = listOf(
