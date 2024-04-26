@@ -88,13 +88,13 @@ type SearchItemValue = LocationTrackItemValue | SwitchItemValue | TrackNumberIte
 async function getOptions(
     layoutContext: LayoutContext,
     searchTerm: string,
-    contextLocationTrackId: LocationTrackId | undefined,
+    locationTrackSearchScope: LocationTrackId | undefined,
 ): Promise<Item<SearchItemValue>[]> {
     if (isNilOrBlank(searchTerm)) {
         return Promise.resolve([]);
     }
 
-    const searchResult = await getBySearchTerm(searchTerm, layoutContext, contextLocationTrackId);
+    const searchResult = await getBySearchTerm(searchTerm, layoutContext, locationTrackSearchScope);
 
     const locationTrackDescriptions = await getLocationTrackDescriptions(
         searchResult.locationTracks.map((lt) => lt.id),

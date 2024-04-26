@@ -423,6 +423,8 @@ fun <T> someOid() = Oid<T>(
     "${nextInt(10, 1000)}.${nextInt(10, 1000)}.${nextInt(10, 1000)}"
 )
 
+fun someAlignment() = alignment(someSegment())
+
 fun alignmentFromPoints(vararg points: Point) = alignment(segment(*points))
 
 fun alignment(vararg segments: LayoutSegment) = alignment(segments.toList())
