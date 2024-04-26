@@ -212,8 +212,6 @@ class LocationTrackService(
         return dao.list(publicationState, false).filter { tn -> bbox.intersects(tn.boundingBox) }
     }
 
-    fun sortSearchResult(list: List<LocationTrack>): List<LocationTrack> = list.sortedBy(LocationTrack::name)
-
     fun list(
         publicationState: PublicationState,
         trackNumberId: IntId<TrackLayoutTrackNumber>,

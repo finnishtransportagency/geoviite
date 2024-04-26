@@ -41,9 +41,9 @@ class LayoutSearchServiceIT @Autowired constructor(
             LayoutState.IN_USE,
         )
 
-        assertEquals(2, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("tRaCk number"), null).size)
-        assertEquals(3, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("11"), null).size)
-        assertEquals(4, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("1"), null).size)
+        assertEquals(2, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("tRaCk number"), 100).size)
+        assertEquals(3, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("11"), 100).size)
+        assertEquals(4, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("1"), 100).size)
     }
 
     @Test
@@ -70,7 +70,7 @@ class LayoutSearchServiceIT @Autowired constructor(
         )
 
         saveTrackNumbersWithSaveRequests(trackNumbers, LayoutState.DELETED)
-        assertEquals(0, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("tRaCk number"), null).size)
+        assertEquals(0, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("tRaCk number"), 100).size)
     }
 
     @Test
@@ -87,12 +87,12 @@ class LayoutSearchServiceIT @Autowired constructor(
             val oid = Oid<TrackLayoutTrackNumber>("1.2.3.4.5.6.$index")
             trackNumberService.updateExternalId(trackNumberId, oid)
 
-            assertEquals(1, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText(oid.toString()), null).size)
-            assertEquals(1, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText(trackNumberId.toString()), null).size)
+            assertEquals(1, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText(oid.toString()), 100).size)
+            assertEquals(1, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText(trackNumberId.toString()), 100).size)
         }
 
         // LayoutState was set to DELETED, meaning that these track numbers should not be found by free text.
-        assertEquals(0, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("tRaCk number"), null).size)
+        assertEquals(0, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("tRaCk number"), 100).size)
     }
 
     private fun saveTrackNumbersWithSaveRequests(

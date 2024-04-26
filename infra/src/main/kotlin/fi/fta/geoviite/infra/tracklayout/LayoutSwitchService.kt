@@ -118,8 +118,6 @@ class LayoutSwitchService @Autowired constructor(
         return dao.list(publicationState, includeDeleted).map(::withStructure)
     }
 
-    fun sortSearchResult(list: List<TrackLayoutSwitch>) = list.sortedBy(TrackLayoutSwitch::name)
-
     override fun idMatches(term: String, item: TrackLayoutSwitch) =
         item.externalId.toString() == term || item.id.toString() == term
 
