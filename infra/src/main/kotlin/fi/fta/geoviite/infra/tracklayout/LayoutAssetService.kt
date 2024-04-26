@@ -62,8 +62,6 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
             list.filter { item -> idMatches(term, item) || contentMatches(term, item) }
         } ?: listOf()
 
-    //abstract fun sortSearchResult(list: List<ObjectType>): List<ObjectType>
-
     protected open fun idMatches(term: String, item: ObjectType): Boolean = false
 
     protected open fun contentMatches(term: String, item: ObjectType): Boolean = false
