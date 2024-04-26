@@ -212,7 +212,7 @@ class LocationTrackService(
         return dao.list(publicationState, false).filter { tn -> bbox.intersects(tn.boundingBox) }
     }
 
-    override fun sortSearchResult(list: List<LocationTrack>): List<LocationTrack> = list.sortedBy(LocationTrack::name)
+    fun sortSearchResult(list: List<LocationTrack>): List<LocationTrack> = list.sortedBy(LocationTrack::name)
 
     fun list(
         publicationState: PublicationState,
@@ -458,6 +458,7 @@ class LocationTrackService(
             locationTrack.topologyEndSwitch?.switchId,
         ) + switchDao.findSwitchesNearAlignment(alignmentVersion)).distinct().size
 
+    @Transactional(readOnly = true)
     fun getLocationTrackDuplicates(
         track: LocationTrack,
         alignment: LayoutAlignment,

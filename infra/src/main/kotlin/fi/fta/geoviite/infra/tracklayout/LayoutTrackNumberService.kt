@@ -78,7 +78,7 @@ class LayoutTrackNumberService(
         return deleteDraft(id).id
     }
 
-    override fun sortSearchResult(list: List<TrackLayoutTrackNumber>) = list.sortedBy(TrackLayoutTrackNumber::number)
+    fun sortSearchResult(list: List<TrackLayoutTrackNumber>) = list.sortedBy(TrackLayoutTrackNumber::number)
 
     override fun idMatches(term: String, item: TrackLayoutTrackNumber) =
         item.externalId.toString() == term || item.id.toString() == term

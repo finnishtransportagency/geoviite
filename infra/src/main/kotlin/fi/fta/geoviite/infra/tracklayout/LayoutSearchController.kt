@@ -30,16 +30,16 @@ class LayoutSearchController(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("searchTerm", required = true) searchTerm: FreeText,
         @RequestParam("limitPerResultType", required = true) limitPerResultType: Int,
-        @RequestParam("contextLocationTrackId", required = false) contextLocationTrackId: IntId<LocationTrack>?,
+        @RequestParam("locationTrackSearchScope", required = false) locationTrackSearchScope: IntId<LocationTrack>?,
     ): TrackLayoutSearchResult {
         logger.apiCall(
             "searchAssets",
             PUBLICATION_STATE to publicationState,
             "searchTerm" to searchTerm,
             "limitPerResultType" to limitPerResultType,
-            "contextLocationTrackId" to contextLocationTrackId,
+            "locationTrackSearchScope" to locationTrackSearchScope,
         )
 
-        return searchService.searchAssets(publicationState, searchTerm, limitPerResultType, contextLocationTrackId)
+        return searchService.searchAssets(publicationState, searchTerm, limitPerResultType, locationTrackSearchScope)
     }
 }

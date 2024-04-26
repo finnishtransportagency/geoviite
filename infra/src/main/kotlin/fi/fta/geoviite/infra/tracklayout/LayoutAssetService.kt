@@ -23,24 +23,6 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         return dao.list(publicationState, includeDeleted)
     }
 
-    fun list(
-        publicationState: PublicationState,
-        searchTerm: FreeText,
-        limit: Int?,
-    ): List<ObjectType> {
-        logger.serviceCall(
-            "list",
-            "publicationState" to publicationState,
-            "searchTerm" to searchTerm,
-            "limit" to limit,
-        )
-
-        return dao.list(publicationState, true)
-            .let { list -> filterBySearchTerm(list, searchTerm) }
-            .let { list -> sortSearchResult(list) }
-            .let { list -> if (limit != null) list.take(limit) else list }
-    }
-
     fun get(publicationState: PublicationState, id: IntId<ObjectType>): ObjectType? {
         logger.serviceCall("get", "publicationState" to publicationState, "id" to id)
         return dao.get(publicationState, id)
@@ -80,7 +62,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
             list.filter { item -> idMatches(term, item) || contentMatches(term, item) }
         } ?: listOf()
 
-    protected open fun sortSearchResult(list: List<ObjectType>): List<ObjectType> = list
+    //abstract fun sortSearchResult(list: List<ObjectType>): List<ObjectType>
 
     protected open fun idMatches(term: String, item: ObjectType): Boolean = false
 
