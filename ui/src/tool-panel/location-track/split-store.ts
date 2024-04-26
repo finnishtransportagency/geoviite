@@ -296,10 +296,6 @@ export const splitReducers = {
     ): void => {
         if (state.splittingState) {
             state.splittingState.highlightedSwitch = switchId;
-            console.log(
-                ' state.splittingState.highlightedSwitch',
-                state.splittingState.highlightedSwitch,
-            );
         }
     },
     startPostingSplit: (state: TrackLayoutState): void => {

@@ -577,11 +577,9 @@ const MapView: React.FC<MapViewProps> = ({
                         return createLocationTrackSplitAlignmentLayer(
                             mapTiles,
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
-                            selection,
                             layoutContext,
                             splittingState,
                             changeTimes,
-                            olView,
                             (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'reference-line-selected-alignment-layer':

@@ -1,9 +1,7 @@
 import { LineString, Point as OlPoint } from 'ol/geom';
-import OlView from 'ol/View';
 import mapStyles from 'map/map.module.scss';
 import Feature from 'ol/Feature';
 import { MapLayerName, MapTile } from 'map/map-model';
-import { Selection } from 'selection/selection-model';
 import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { ChangeTimes } from 'common/common-slice';
@@ -67,17 +65,13 @@ function splitToParts(
 export function createLocationTrackSplitAlignmentLayer(
     mapTiles: MapTile[],
     existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
-    _selection: Selection,
     layoutContext: LayoutContext,
     splittingState: SplittingState | undefined,
     changeTimes: ChangeTimes,
-    olView: OlView,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const _resolution = olView.getResolution() || 0;
-    console.log('splittingState', splittingState);
     const alignmentPromise: Promise<AlignmentDataHolder[]> =
         splittingState != undefined
             ? getSelectedLocationTrackMapAlignmentByTiles(
