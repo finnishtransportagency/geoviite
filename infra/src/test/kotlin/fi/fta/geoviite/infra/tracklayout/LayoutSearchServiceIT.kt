@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
@@ -21,6 +23,9 @@ import kotlin.test.assertEquals
 class LayoutSearchServiceIT @Autowired constructor(
     val searchService: LayoutSearchService,
     val trackNumberService: LayoutTrackNumberService,
+    val locationTrackService: LocationTrackService,
+    val switchService: LayoutSwitchService,
+    val switchDao: LayoutSwitchDao,
 ): DBTestBase() {
     @BeforeEach
     fun cleanup() {
@@ -93,6 +98,67 @@ class LayoutSearchServiceIT @Autowired constructor(
 
         // LayoutState was set to DELETED, meaning that these track numbers should not be found by free text.
         assertEquals(0, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("tRaCk number"), 100).size)
+    }
+
+    @Test
+    fun `free text search using locationt track as search scope should only return location track and its duplicates`() {
+        val trackNumbers = listOf(
+            TrackNumber("track number 1"),
+        )
+
+        val trackNumberId = saveTrackNumbersWithSaveRequests(
+            trackNumbers,
+            LayoutState.IN_USE,
+        ).first()
+        val topologyStartSwitchId = switchDao.fetch(switchService.saveDraft(switch(name = "blaa V0001", draft = true)).rowVersion).id as IntId
+        val topologyEndSwitchId = switchDao.fetch(switchService.saveDraft(switch(name = "blee V0002", draft = true)).rowVersion).id as IntId
+
+        val lt1 = insertLocationTrack(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                name = "blaa",
+                topologyStartSwitch = TopologyLocationTrackSwitch(topologyStartSwitchId, JointNumber(3)),
+                topologyEndSwitch = TopologyLocationTrackSwitch(topologyEndSwitchId, JointNumber(5)),
+                draft = true,
+            ), someAlignment()
+        )
+        val lt2 = insertLocationTrack( // Duplicate based on duplicateOf, should be included
+            locationTrack(
+                trackNumberId = trackNumberId,
+                name = "blee",
+                duplicateOf = lt1.id,
+                draft = true,
+            ), someAlignment()
+        )
+        val lt3 = insertLocationTrack( // Duplicate based on switches, should be included
+            locationTrack(
+                trackNumberId = trackNumberId,
+                name = "bloo",
+                topologyStartSwitch = TopologyLocationTrackSwitch(topologyStartSwitchId, JointNumber(3)),
+                topologyEndSwitch = TopologyLocationTrackSwitch(topologyEndSwitchId, JointNumber(5)),
+                draft = true,
+            ), someAlignment()
+        )
+        insertLocationTrack( // Non-duplicate, shouldn't be included in search results
+            locationTrack(
+                trackNumberId = trackNumberId,
+                name = "bluu",
+                draft = true,
+            ), someAlignment()
+        )
+
+        val searchResults = searchService.searchAssets(PublicationState.DRAFT, FreeText("bl"), 100, lt1.id)
+
+        assertEquals(3, searchResults.locationTracks.size)
+        assertContains(searchResults.locationTracks.map { it.id }, lt1.id)
+        assertContains(searchResults.locationTracks.map { it.id }, lt2.id)
+        assertContains(searchResults.locationTracks.map { it.id }, lt3.id)
+
+        assertEquals(2, searchResults.switches.size)
+        assertContains(searchResults.switches.map { it.id }, topologyStartSwitchId)
+        assertContains(searchResults.switches.map { it.id }, topologyEndSwitchId)
+
+        assertEquals(0, searchResults.trackNumbers.size)
     }
 
     private fun saveTrackNumbersWithSaveRequests(
