@@ -84,13 +84,17 @@ export const createLocationTrackSplitLocationLayer = (
                     splittingState.highlightedSwitch != undefined &&
                     splittingState.highlightedSwitch == switchId;
 
-                feature.setStyle(
-                    isDeleted
-                        ? deletedSplitPointStyle
-                        : isSwitchHighlighted
-                          ? splitPointFocusedStyle
-                          : splitPointStyle,
-                );
+                const getSelectedStyle = () => {
+                    if (isDeleted) {
+                        return deletedSplitPointStyle;
+                    } else if (isSwitchHighlighted) {
+                        return splitPointFocusedStyle;
+                    } else {
+                        return splitPointStyle;
+                    }
+                };
+
+                feature.setStyle(getSelectedStyle);
                 return feature;
             });
         } else {

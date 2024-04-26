@@ -66,10 +66,7 @@ export function createSwitchLayer(
 
     const getSwitchesFromApi = async () => {
         if (splittingState && resolution <= Limits.HIGHLIGHTS_SHOW) {
-            const switchIds =
-                allowedSwitches
-                    .map((sw) => sw.switchId)
-                    .concat(splittingState?.startAndEndSwitches) || [];
+            const switchIds = allowedSwitches.map((sw) => sw.switchId) || [];
 
             const switches = await getSwitches(switchIds, layoutContext);
             return switches.filter((sw_1) => sw_1.stateCategory !== 'NOT_EXISTING');
@@ -85,10 +82,7 @@ export function createSwitchLayer(
 
     const getSwitchValidation = () => {
         if (splittingState && resolution <= Limits.HIGHLIGHTS_SHOW) {
-            const switchIds =
-                allowedSwitches
-                    .map((sw) => sw.switchId)
-                    .concat(splittingState?.startAndEndSwitches) || [];
+            const switchIds = allowedSwitches.map((sw) => sw.switchId) || [];
 
             return getSwitchesValidation(layoutContext, switchIds);
         } else if (resolution <= Limits.SWITCH_SHOW) {

@@ -136,8 +136,8 @@ const operatingPointStyleResolutionsSmallestFirst = operatingPointStyleResolutio
     fieldComparator((a) => a.resolutionUpperLimit),
 );
 
-function getOperatingPointStyleForFeature(_feature: Feature, resolution: number) {
-    const point = _feature.get('operatingPoint') as OperatingPoint;
+function getOperatingPointStyleForFeature(feature: Feature, resolution: number) {
+    const point = feature.get('operatingPoint') as OperatingPoint;
     const smallestResolutionConf = operatingPointStyleResolutionsSmallestFirst.find(
         (styleResolution) => resolution <= styleResolution.resolutionUpperLimit,
     );

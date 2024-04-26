@@ -88,9 +88,7 @@ export function createLocationTrackSplitAlignmentLayer(
             return [];
         }
 
-        if (Math.random() >= 0) {
-            createAlignmentFeature(splitTrack, false, splittingLocationTrackFocusedStyle);
-        }
+        createAlignmentFeature(splitTrack, false, splittingLocationTrackFocusedStyle);
 
         return splitToParts(
             splitTrack,

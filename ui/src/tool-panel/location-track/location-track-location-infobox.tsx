@@ -32,7 +32,6 @@ import { ChangeTimes } from 'common/common-slice';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { useCommonDataAppSelector } from 'store/hooks';
 import { getSplittingInitializationParameters } from 'track-layout/layout-location-track-api';
-import { filterNotEmpty } from 'utils/array-utils';
 import {
     useCoordinateSystem,
     useLocationTrackInfoboxExtras,
@@ -174,10 +173,8 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                     onStartSplitting({
                         locationTrack: locationTrack,
                         trackSwitches: splitInitializationParameters?.switches || [],
-                        startAndEndSwitches: [
-                            extraInfo?.switchAtStart?.id,
-                            extraInfo?.switchAtEnd?.id,
-                        ].filter(filterNotEmpty),
+                        startSwitchId: extraInfo?.switchAtStart?.id,
+                        endSwitchId: extraInfo?.switchAtEnd?.id,
                         duplicateTracks: splitInitializationParameters?.duplicates || [],
                         startLocation: startAndEndPoints.start.point,
                         endLocation: startAndEndPoints.end.point,

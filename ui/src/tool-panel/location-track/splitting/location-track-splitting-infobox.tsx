@@ -297,10 +297,12 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         [allowedSwitches],
     );
     const endSwitch = splittingState.trackSwitches.find(
-        (switchOnTrack) => switchOnTrack.switchId == splittingState.startAndEndSwitches[1],
+        (switchOnTrack) => switchOnTrack.switchId == splittingState.endSwitchId,
     );
     const switches = useSwitches(
-        [...allowedSwitchIds, ...splittingState.startAndEndSwitches],
+        [...allowedSwitchIds, splittingState.startSwitchId, splittingState.endSwitchId].filter(
+            filterNotEmpty,
+        ),
         draftLayoutContext(layoutContext),
         changeTimes.layoutSwitch,
     );
@@ -328,7 +330,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             allSplits.map((s) => s.name),
             conflictingLocationTracks || [],
             switches,
-            switches.find((sw) => sw.id == splittingState.startAndEndSwitches[1]),
+            switches.find((sw) => sw.id == splittingState.endSwitchId),
         ),
     );
     const allErrors = splitsValidated.flatMap((validated) => [
@@ -404,7 +406,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             () => setFocusedSplit(undefined),
             () => setHighlightedSplit(split.split.id),
             () => setHighlightedSplit(undefined),
-            () => setHighlightedSwitch(split.split.switch.switchId),
+            () => split.split.switch && setHighlightedSwitch(split.split.switch.switchId),
             () => setHighlightedSwitch(undefined),
         );
     });
@@ -423,7 +425,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         editingDisabled={splittingState.disabled}
                         showArea={showArea}
                         onSwitchClick={() =>
-                            endSwitch && showArea(getShowSwitchOnMapBoundingBox(sourceEnd.point))
+                            showArea(getShowSwitchOnMapBoundingBox(sourceEnd.point))
                         }
                     />
                     {splittingState.disabled && locationTrack.editState !== 'UNEDITED' && (

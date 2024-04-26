@@ -18,10 +18,7 @@ import {
 } from 'map/layers/utils/highlight-layer-utils';
 import { LocationTrackId } from 'track-layout/track-layout-model';
 import { SplittingState } from 'tool-panel/location-track/split-store';
-import {
-    getLocationTrackInfoboxExtras,
-    SplitDuplicate,
-} from 'track-layout/layout-location-track-api';
+import { SplitDuplicate } from 'track-layout/layout-location-track-api';
 import { filterNotEmpty } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
 
@@ -92,16 +89,14 @@ function getValidDuplicateIds(splittingState: SplittingState): LocationTrackId[]
     const allSplits = [splittingState.firstSplit, ...splittingState.splits];
     const validDuplicateIds = allSplits
         .map((split, index, allSplits) => {
-            const startSwitchId = split.switch.switchId;
+            const startSwitchId = split.switch?.switchId;
             const nextSplit = index + 1 < allSplits.length ? allSplits[index + 1] : undefined;
             const endSwitchId =
-                nextSplit !== undefined
-                    ? nextSplit.switch.switchId
-                    : splittingState.startAndEndSwitches[1];
+                nextSplit !== undefined ? nextSplit.switch?.switchId : splittingState.endSwitchId;
             if (
                 split.duplicateTrackId &&
                 startSwitchId == split.duplicateStatus?.startSwitchId &&
-                endSwitchId == split.duplicateStatus.endSwitchId
+                endSwitchId == split.duplicateStatus?.endSwitchId
             ) {
                 return split.duplicateTrackId;
             }
@@ -120,16 +115,11 @@ async function getDuplicateSplitSectionData(
 ): Promise<DuplicateSplitSectionData> {
     if (resolution <= HIGHLIGHTS_SHOW && splittingState) {
         const linkedDuplicates = getValidDuplicateIds(splittingState);
-
-        const [alignments, _extras] = await Promise.all([
-            getLocationTrackMapAlignmentsByTiles(changeTimes, mapTiles, layoutContext),
-            getLocationTrackInfoboxExtras(
-                splittingState.originLocationTrack.id,
-                layoutContext,
-                changeTimes,
-            ),
-        ]);
-
+        const alignments = await getLocationTrackMapAlignmentsByTiles(
+            changeTimes,
+            mapTiles,
+            layoutContext,
+        );
         return { linkedDuplicates, duplicates: splittingState.duplicateTracks, alignments };
     } else {
         return { linkedDuplicates: [], duplicates: [], alignments: [] };

@@ -659,6 +659,7 @@
                 "start-address": "Alkusijainti (km + m)",
                 "split-address": "Katkaisukohta (km + m)",
                 "end-address": "Loppusijainti (km + m)",
+                "endpoint": "Päätepiste",
                 "operation": {
                     "OVERWRITE": "Korvaa duplikaattiraiteen",
                     "TRANSFER": "Siirretään vain ratakohteet",
