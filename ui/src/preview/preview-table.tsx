@@ -38,7 +38,7 @@ import { useLoader } from 'utils/react-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { PublicationAssetChangeAmounts } from 'publication/publication-utils';
+import { PublicationGroupAmounts } from 'publication/publication-utils';
 import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
 import styles from './preview-view.scss';
 import { PreviewTableItem } from 'preview/preview-table-item';
@@ -65,7 +65,8 @@ type PreviewTableProps = {
     changesBeingReverted?: ChangesBeingReverted;
     onShowOnMap: (bbox: BoundingBox) => void;
     changeTimes: ChangeTimes;
-    publicationAssetChangeAmounts: PublicationAssetChangeAmounts;
+    publicationGroupAmounts: PublicationGroupAmounts;
+    displayedTotalPublicationAssetAmount: number;
     previewOperations: PreviewOperations;
     showStatusSpinner: boolean;
 };
@@ -76,7 +77,8 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     staged,
     changesBeingReverted,
     changeTimes,
-    publicationAssetChangeAmounts,
+    publicationGroupAmounts,
+    displayedTotalPublicationAssetAmount,
     previewOperations,
     onShowOnMap,
     showStatusSpinner,
@@ -216,7 +218,10 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                                     changesBeingReverted={changesBeingReverted}
                                     onShowOnMap={onShowOnMap}
                                     previewOperations={previewOperations}
-                                    publicationAssetChangeAmounts={publicationAssetChangeAmounts}
+                                    publicationGroupAmounts={publicationGroupAmounts}
+                                    displayedTotalPublicationAssetAmount={
+                                        displayedTotalPublicationAssetAmount
+                                    }
                                 />
                             }
                         </React.Fragment>

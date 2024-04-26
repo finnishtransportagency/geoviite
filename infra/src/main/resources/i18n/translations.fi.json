@@ -1197,8 +1197,8 @@
         "switches": "Vaihteita",
         "move-publication-group": "Siirrä kokonaisuus ({{amount}} kpl)",
         "revert-publication-group": "Hylkää kokonaisuus  ({{amount}} kpl)",
-        "move-stage-changes": "Siirrä kaikki listan muutokset ({{amount}} kpl)",
-        "revert-stage-changes": "Hylkää kaikki listan muutokset ({{amount}} kpl)"
+        "move-all-shown-changes": "Siirrä kaikki listan muutokset ({{amount}} kpl)",
+        "revert-all-shown-changes": "Hylkää kaikki listan muutokset ({{amount}} kpl)"
     },
     "validation": {
         "layout": {

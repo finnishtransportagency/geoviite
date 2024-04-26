@@ -15,11 +15,11 @@ import { OnSelectFunction } from 'selection/selection-model';
 import { CalculatedChangesView } from './calculated-changes-view';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import {
-    PublicationGroup,
-    PublicationStage,
+    emptyValidatedPublicationCandidates,
     PublicationCandidate,
     PublicationCandidateReference,
-    emptyValidatedPublicationCandidates,
+    PublicationGroup,
+    PublicationStage,
 } from 'publication/publication-model';
 import PreviewTable from 'preview/preview-table';
 import { PreviewConfirmRevertChangesDialog } from 'preview/preview-confirm-revert-changes-dialog';
@@ -71,7 +71,7 @@ export type PreviewOperations = {
             publicationCandidatesToBeUpdated: PublicationCandidate[],
             newStage: PublicationStage,
         ) => void;
-        forAllStageChanges: (currentStage: PublicationStage, newStage: PublicationStage) => void;
+        forAllShownChanges: (currentStage: PublicationStage, newStage: PublicationStage) => void;
         forPublicationGroup: (
             publicationGroup: PublicationGroup,
             newStage: PublicationStage,
@@ -247,9 +247,18 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         currentStage: PublicationStage,
         newStage: PublicationStage,
     ) => {
+        const updateCondition = (candidate: PublicationCandidate): boolean => {
+            const userFilter =
+                currentStage === PublicationStage.UNSTAGED && props.showOnlyOwnUnstagedChanges
+                    ? candidate.userName === user?.details.userName
+                    : true;
+
+            return candidate.stage === currentStage && userFilter;
+        };
+
         const updatedCandidates = conditionallyUpdateCandidates(
             publicationCandidates,
-            (candidate) => candidate.stage === currentStage,
+            updateCondition,
             stageTransform(newStage),
         );
 
@@ -279,7 +288,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         const candidatesToRevert =
             stage === PublicationStage.STAGED
                 ? stagedPublicationCandidates
-                : unstagedPublicationCandidates;
+                : displayedUnstagedPublicationCandidates;
 
         setChangesBeingReverted({
             requestedRevertChange: {
@@ -322,7 +331,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const previewOperations: PreviewOperations = {
         setPublicationStage: {
             forSpecificChanges: setStageForSpecificChanges,
-            forAllStageChanges: setNewStageForStageChanges,
+            forAllShownChanges: setNewStageForStageChanges,
             forPublicationGroup: setPublicationGroupStage,
         },
 
@@ -366,7 +375,14 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     staged={false}
                                     onShowOnMap={props.onShowOnMap}
                                     changeTimes={props.changeTimes}
-                                    publicationAssetChangeAmounts={publicationAssetChangeAmounts}
+                                    publicationGroupAmounts={
+                                        publicationAssetChangeAmounts.groupAmounts
+                                    }
+                                    displayedTotalPublicationAssetAmount={
+                                        props.showOnlyOwnUnstagedChanges
+                                            ? publicationAssetChangeAmounts.ownUnstaged
+                                            : publicationAssetChangeAmounts.unstaged
+                                    }
                                     previewOperations={previewOperations}
                                     showStatusSpinner={showValidationStatusSpinner}
                                 />
@@ -387,7 +403,12 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     staged={true}
                                     onShowOnMap={props.onShowOnMap}
                                     changeTimes={props.changeTimes}
-                                    publicationAssetChangeAmounts={publicationAssetChangeAmounts}
+                                    publicationGroupAmounts={
+                                        publicationAssetChangeAmounts.groupAmounts
+                                    }
+                                    displayedTotalPublicationAssetAmount={
+                                        publicationAssetChangeAmounts.staged
+                                    }
                                     previewOperations={previewOperations}
                                     showStatusSpinner={showValidationStatusSpinner}
                                 />
