@@ -37,6 +37,7 @@ import org.springframework.web.bind.annotation.RestController
 @RequestMapping("/track-layout")
 class LocationTrackController(
     private val locationTrackService: LocationTrackService,
+    private val searchService: LayoutSearchService,
     private val geocodingService: GeocodingService,
     private val publicationService: PublicationService,
     private val switchLinkingService: SwitchLinkingService,
@@ -61,7 +62,7 @@ class LocationTrackController(
         @RequestParam("limit", required = true) limit: Int,
     ): List<LocationTrack> {
         logger.apiCall("searchLocationTracks", PUBLICATION_STATE to publicationState, "searchTerm" to searchTerm, "limit" to limit)
-        return locationTrackService.list(publicationState, searchTerm, limit)
+        return searchService.searchAllLocationTracks(publicationState, searchTerm, limit)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)

@@ -7,27 +7,19 @@ import { Link } from 'vayla-design-lib/link/link';
 import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
 import { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import { SplittingState } from 'tool-panel/location-track/split-store';
-import { LocationTrackId } from 'track-layout/track-layout-model';
 import { SwitchRelinkingValidationResult } from 'linking/linking-model';
 import { hasUnrelinkableSwitches } from 'tool-panel/location-track/splitting/split-utils';
 
 type LocationTrackSplitRelinkingNoticeProps = {
     splittingState: SplittingState;
-    stopSplitting: () => void;
-    onShowTaskList: (id: LocationTrackId) => void;
+    onClickRelink: () => void;
     switchRelinkingErrors: SwitchRelinkingValidationResult[] | undefined;
     switchRelinkingLoadingState: LoaderStatus;
 };
 
 export const LocationTrackSplitRelinkingNotice: React.FC<
     LocationTrackSplitRelinkingNoticeProps
-> = ({
-    splittingState,
-    stopSplitting,
-    onShowTaskList,
-    switchRelinkingErrors,
-    switchRelinkingLoadingState,
-}) => {
+> = ({ onClickRelink, switchRelinkingErrors, switchRelinkingLoadingState }) => {
     const hasCriticalErrors = hasUnrelinkableSwitches(switchRelinkingErrors || []);
 
     const { t } = useTranslation();
@@ -41,11 +33,7 @@ export const LocationTrackSplitRelinkingNotice: React.FC<
                             ? t('tool-panel.location-track.splitting.relink-critical-errors')
                             : t('tool-panel.location-track.splitting.relink-message')}
                         <div className={styles['location-track-infobox__relink-link']}>
-                            <Link
-                                onClick={() => {
-                                    stopSplitting();
-                                    onShowTaskList(splittingState.originLocationTrack.id);
-                                }}>
+                            <Link onClick={() => onClickRelink()}>
                                 {t('tool-panel.location-track.splitting.cancel-and-relink', {
                                     count: switchRelinkingErrors.length,
                                 })}

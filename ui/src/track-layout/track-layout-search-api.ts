@@ -17,14 +17,14 @@ export interface LayoutSearchResult {
 export async function getBySearchTerm(
     searchTerm: string,
     layoutContext: LayoutContext,
-    contextLocationTrackId?: LocationTrackId,
+    locationTrackSearchScope?: LocationTrackId,
     limitPerResultType: number = 10,
 ): Promise<LayoutSearchResult> {
     const uri = `${TRACK_LAYOUT_URI}/search/${layoutContext.publicationState.toLowerCase()}`;
 
     const params = queryParams({
         searchTerm: searchTerm,
-        contextLocationTrackId: contextLocationTrackId,
+        locationTrackSearchScope: locationTrackSearchScope,
         limitPerResultType: limitPerResultType,
     });
 
