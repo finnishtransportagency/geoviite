@@ -851,9 +851,11 @@ fun switchFromDbStructure(
     name: String,
     switchStart: IPoint,
     structure: SwitchStructure,
-    draft: Boolean
+    draft: Boolean,
+    externalId: String? = null,
 ): TrackLayoutSwitch = switch(
     name = name,
+    externalId = externalId,
     structureId = structure.id as IntId,
     draft = draft,
     joints = structure.joints.map { j ->

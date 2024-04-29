@@ -32,6 +32,7 @@ export const SplitDetailsDialog: React.FC<SplitDetailsViewProps> = ({ publicatio
 
     return (
         <Dialog
+            qaId={'split-details-dialog'}
             width={DialogWidth.THREE_COLUMNS}
             onClose={onClose}
             footerContent={
@@ -41,7 +42,10 @@ export const SplitDetailsDialog: React.FC<SplitDetailsViewProps> = ({ publicatio
                             {t(`split-details-dialog.download-csv`)}
                         </Button>
                     </a>
-                    <Button variant={ButtonVariant.PRIMARY} onClick={onClose}>
+                    <Button
+                        variant={ButtonVariant.PRIMARY}
+                        onClick={onClose}
+                        qa-id={'split-details-dialog-close'}>
                         {t('button.close')}
                     </Button>
                 </div>
@@ -53,7 +57,9 @@ export const SplitDetailsDialog: React.FC<SplitDetailsViewProps> = ({ publicatio
                 inProgress={splitDetailsStatus !== LoaderStatus.Ready}>
                 <div>
                     <FieldLayout label={t('split-details-dialog.source-name')}>
-                        <div>{splitDetails?.locationTrack?.name}</div>
+                        <div qa-id={'split-source-track-name'}>
+                            {splitDetails?.locationTrack?.name}
+                        </div>
                     </FieldLayout>
                     <FieldLayout label={t('split-details-dialog.source-oid')}>
                         <div>{splitDetails?.locationTrack?.externalId}</div>

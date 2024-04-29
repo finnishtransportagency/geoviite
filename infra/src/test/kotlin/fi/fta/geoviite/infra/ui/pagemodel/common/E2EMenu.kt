@@ -11,6 +11,12 @@ open class E2EMenu(
 
 }
 
-data class E2EMenuItem(val name: String) {
-    constructor(item: WebElement) : this(name = item.text)
+data class E2EMenuItem(
+    val name: String,
+    val element: WebElement?,
+) {
+    constructor(item: WebElement) : this(
+        name = item.text,
+        element = item,
+    )
 }

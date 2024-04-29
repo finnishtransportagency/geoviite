@@ -107,7 +107,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         t('publish.move-publication-group', {
             amount: publicationGroupAssetAmount,
         }),
-        'preview-move-publication-group',
+        `preview-move-publication-group-${tableEntry.publicationGroup?.id ?? 'unknown'}`,
     );
 
     const menuOptionRevertSingleChange: MenuSelectOption = menuSelectOption(
