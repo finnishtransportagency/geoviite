@@ -17,7 +17,7 @@ import java.time.Instant
 import java.util.stream.Collectors
 import kotlin.math.tan
 
-private const val VERTICAL_GEOMETRY_CSV_PREFIX = "data-products.vertical-geometry.csv"
+private const val VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX = "data-products.vertical-geometry.csv"
 
 data class CurvedSectionEndpoint(
     val address: TrackMeter?,
@@ -332,21 +332,21 @@ fun planVerticalGeometryListingToCsv(listing: List<VerticalGeometryListing>, tra
     printCsv(commonVerticalGeometryListingCsvEntries(translation).toList(), listing)
 
 private fun trackNumberCsvEntry(translation: Translation) =
-    CsvEntry<VerticalGeometryListing>(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.track-number")) {
+    CsvEntry<VerticalGeometryListing>(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.track-number")) {
        verticalGeometryListing -> verticalGeometryListing.trackNumber ?: ""
     }
 
 private fun locationTrackCsvEntry(translation: Translation) =
-    CsvEntry<VerticalGeometryListing>(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.location-track")) {
+    CsvEntry<VerticalGeometryListing>(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.location-track")) {
         it.locationTrackName
     }
 
 private fun commonVerticalGeometryListingCsvEntries(translation: Translation) = arrayOf(
-    CsvEntry<VerticalGeometryListing>(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.plan-name")) { it.fileName },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.crs")) { it.coordinateSystemSrid ?: it.coordinateSystemName },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.creation-date")) { it.creationTime?.let(::toCsvDate) },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.plan-track")) { it.alignmentName },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.track-address-start")) {
+    CsvEntry<VerticalGeometryListing>(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.plan-name")) { it.fileName },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.crs")) { it.coordinateSystemSrid ?: it.coordinateSystemName },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.creation-date")) { it.creationTime?.let(::toCsvDate) },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.plan-track")) { it.alignmentName },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.track-address-start")) {
         it.start.address?.let { address ->
             formatTrackMeter(
                 address.kmNumber,
@@ -354,11 +354,11 @@ private fun commonVerticalGeometryListingCsvEntries(translation: Translation) = 
             )
         }
     },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.height-start")) { it.start.height },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.angle-start")) { it.start.angle },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.location-e-start")) { it.start.location?.roundedX },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.location-n-start")) { it.start.location?.roundedY },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.track-address-point")) {
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.height-start")) { it.start.height },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.angle-start")) { it.start.angle },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.location-e-start")) { it.start.location?.roundedX },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.location-n-start")) { it.start.location?.roundedY },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.track-address-point")) {
         it.point.address?.let { address ->
             formatTrackMeter(
                 address.kmNumber,
@@ -366,10 +366,10 @@ private fun commonVerticalGeometryListingCsvEntries(translation: Translation) = 
             )
         }
     },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.height-point")) { it.point.height },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.location-e-point")) { it.point.location?.roundedX },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.location-n-point")) { it.point.location?.roundedY },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.track-address-end")) {
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.height-point")) { it.point.height },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.location-e-point")) { it.point.location?.roundedX },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.location-n-point")) { it.point.location?.roundedY },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.track-address-end")) {
         it.end.address?.let { address ->
             formatTrackMeter(
                 address.kmNumber,
@@ -377,33 +377,33 @@ private fun commonVerticalGeometryListingCsvEntries(translation: Translation) = 
             )
         }
     },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.height-end")) { it.end.height },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.angle-end")) { it.end.angle },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.location-e-end")) { it.end.location?.roundedX },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.location-n-end")) { it.end.location?.roundedY },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.radius")) { it.radius },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.tangent")) { it.tangent },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.linear-section-backward-length")) { it.linearSectionBackward.stationValueDistance },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.linear-section-backward-linear-section")) { it.linearSectionBackward.linearSegmentLength },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.linear-section-forward-length")) { it.linearSectionForward.stationValueDistance },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.linear-section-forward-linear-section")) { it.linearSectionForward.linearSegmentLength },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.station-start")) { it.start.station },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.station-point")) { it.point.station },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.station-end")) { it.end.station },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.vertical-coordinate-system")) { it.verticalCoordinateSystem },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.elevation-measurement-method")) {
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.height-end")) { it.end.height },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.angle-end")) { it.end.angle },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.location-e-end")) { it.end.location?.roundedX },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.location-n-end")) { it.end.location?.roundedY },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.radius")) { it.radius },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.tangent")) { it.tangent },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.linear-section-backward-length")) { it.linearSectionBackward.stationValueDistance },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.linear-section-backward-linear-section")) { it.linearSectionBackward.linearSegmentLength },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.linear-section-forward-length")) { it.linearSectionForward.stationValueDistance },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.linear-section-forward-linear-section")) { it.linearSectionForward.linearSegmentLength },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.station-start")) { it.start.station },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.station-point")) { it.point.station },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.station-end")) { it.end.station },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.vertical-coordinate-system")) { it.verticalCoordinateSystem },
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.elevation-measurement-method")) {
         translateElevationMeasurementMethod(it.elevationMeasurementMethod, translation)
     },
-    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.remarks")) {
+    CsvEntry(translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.remarks")) {
         if (it.overlapsAnother) translation.t("data-products.vertical-geometry.overlaps-another") else ""
     }
 )
 
 fun translateElevationMeasurementMethod(elevationMeasurementMethod: ElevationMeasurementMethod?, translation: Translation) =
     when (elevationMeasurementMethod) {
-        ElevationMeasurementMethod.TOP_OF_SLEEPER -> translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.top-of-sleeper")
-        ElevationMeasurementMethod.TOP_OF_RAIL -> translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.top-of-rail")
-        null -> translation.t("$VERTICAL_GEOMETRY_CSV_PREFIX.unknown")
+        ElevationMeasurementMethod.TOP_OF_SLEEPER -> translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.top-of-sleeper")
+        ElevationMeasurementMethod.TOP_OF_RAIL -> translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.top-of-rail")
+        null -> translation.t("$VERTICAL_GEOMETRY_CSV_TRANSLATION_PREFIX.unknown")
     }
 
 fun previousLinearSection(

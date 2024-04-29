@@ -24,7 +24,7 @@ const val CANT_DECIMALS = 6
 
 const val SEGMENT_AND_ELEMENT_LENGTH_MAX_DELTA = 1.0
 
-const val ELEMENT_LIST_CSV_PREFIX = "data-products.element-list.csv"
+const val ELEMENT_LIST_CSV_TRANSLATION_PREFIX = "data-products.element-list.csv"
 
 data class ElementListing(
     val id: StringId<ElementListing>,
@@ -239,19 +239,19 @@ fun locationTrackElementListingToCsv(
 ) = printCsv(locationTrackCsvEntries(translation), elementListing)
 
 private fun trackNumberCsvEntry(translation: Translation) =
-    CsvEntry<ElementListing>(translation.t("$ELEMENT_LIST_CSV_PREFIX.track-number")) {
+    CsvEntry<ElementListing>(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.track-number")) {
         it.trackNumber
     }
 
 private fun commonElementListingCsvEntries(translation: Translation) = arrayOf(
-    CsvEntry<ElementListing>(translation.t("$ELEMENT_LIST_CSV_PREFIX.plan-track")) { it.alignmentName },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.element-type")) {
+    CsvEntry<ElementListing>(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.plan-track")) { it.alignmentName },
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.element-type")) {
         translateTrackGeometryElementType(
             it.elementType,
             translation
         )
     },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.track-address-start")) {
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.track-address-start")) {
         it.start.address?.let { address ->
             formatTrackMeter(
                 address.kmNumber,
@@ -259,7 +259,7 @@ private fun commonElementListingCsvEntries(translation: Translation) = arrayOf(
             )
         }
     },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.track-address-end")) {
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.track-address-end")) {
         it.end.address?.let { address ->
             formatTrackMeter(
                 address.kmNumber,
@@ -267,37 +267,37 @@ private fun commonElementListingCsvEntries(translation: Translation) = arrayOf(
             )
         }
     },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.crs")) {
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.crs")) {
         it.coordinateSystemSrid ?: it.coordinateSystemName
     },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.location-start-e")) { it.start.coordinate.roundedX.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.location-start-n")) { it.start.coordinate.roundedY.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.location-end-e")) { it.end.coordinate.roundedX.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.location-end-n")) { it.end.coordinate.roundedY.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.length")) { it.lengthMeters },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.radius-start")) { it.start.radiusMeters?.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.radius-end")) { it.end.radiusMeters?.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.cant-start")) { it.start.cant?.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.cant-end")) { it.end.cant?.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.direction-start")) { it.start.directionGrads.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.direction-end")) { it.end.directionGrads.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.plan-name")) { it.fileName },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.plan-source")) { it.planSource },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.remarks")) { remarks(it, translation) }
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-start-e")) { it.start.coordinate.roundedX.toPlainString() },
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-start-n")) { it.start.coordinate.roundedY.toPlainString() },
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-end-e")) { it.end.coordinate.roundedX.toPlainString() },
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-end-n")) { it.end.coordinate.roundedY.toPlainString() },
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.length")) { it.lengthMeters },
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.radius-start")) { it.start.radiusMeters?.toPlainString() },
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.radius-end")) { it.end.radiusMeters?.toPlainString() },
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.cant-start")) { it.start.cant?.toPlainString() },
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.cant-end")) { it.end.cant?.toPlainString() },
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.direction-start")) { it.start.directionGrads.toPlainString() },
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.direction-end")) { it.end.directionGrads.toPlainString() },
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.plan-name")) { it.fileName },
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.plan-source")) { it.planSource },
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.remarks")) { remarks(it, translation) }
 )
 
 fun translateTrackGeometryElementType(type: TrackGeometryElementType, translation: Translation) =
     when (type) {
-        TrackGeometryElementType.LINE -> translation.t("$ELEMENT_LIST_CSV_PREFIX.line")
-        TrackGeometryElementType.CURVE -> translation.t("$ELEMENT_LIST_CSV_PREFIX.curve")
-        TrackGeometryElementType.CLOTHOID -> translation.t("$ELEMENT_LIST_CSV_PREFIX.clothoid")
-        TrackGeometryElementType.BIQUADRATIC_PARABOLA -> translation.t("$ELEMENT_LIST_CSV_PREFIX.biquadratic-parabola")
-        TrackGeometryElementType.MISSING_SECTION -> translation.t("$ELEMENT_LIST_CSV_PREFIX.missing-section")
+        TrackGeometryElementType.LINE -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.line")
+        TrackGeometryElementType.CURVE -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.curve")
+        TrackGeometryElementType.CLOTHOID -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.clothoid")
+        TrackGeometryElementType.BIQUADRATIC_PARABOLA -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.biquadratic-parabola")
+        TrackGeometryElementType.MISSING_SECTION -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.missing-section")
     }
 
 fun locationTrackCsvEntries(translation: Translation) = listOf(
     trackNumberCsvEntry(translation),
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_PREFIX.location-track")) { it.locationTrackName },
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-track")) { it.locationTrackName },
     *commonElementListingCsvEntries(translation)
 )
 

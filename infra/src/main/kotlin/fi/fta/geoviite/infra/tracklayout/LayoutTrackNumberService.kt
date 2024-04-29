@@ -18,7 +18,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.stream.Collectors
 
-const val KM_LENGTH_CSV_PREFIX = "data-products.km-lengths.csv"
+const val KM_LENGTHS_CSV_TRANSLATION_PREFIX = "data-products.km-lengths.csv"
 
 @Service
 class LayoutTrackNumberService(
@@ -185,18 +185,18 @@ class LayoutTrackNumberService(
 
 private fun asCsvFile(items: List<TrackLayoutKmLengthDetails>, translation: Translation): String {
     val columns = mapOf<String, (item: TrackLayoutKmLengthDetails) -> Any?>(
-        "$KM_LENGTH_CSV_PREFIX.track-number" to { it.trackNumber },
-        "$KM_LENGTH_CSV_PREFIX.kilometer" to { it.kmNumber },
-        "$KM_LENGTH_CSV_PREFIX.station-start" to { it.startM },
-        "$KM_LENGTH_CSV_PREFIX.station-end" to { it.endM },
-        "$KM_LENGTH_CSV_PREFIX.length" to { it.length },
-        "$KM_LENGTH_CSV_PREFIX.location-e" to { it.location?.x?.let(::roundTo3Decimals) },
-        "$KM_LENGTH_CSV_PREFIX.location-n" to { it.location?.y?.let(::roundTo3Decimals) },
-        "$KM_LENGTH_CSV_PREFIX.warning" to { kmPost ->
+        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.track-number" to { it.trackNumber },
+        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.kilometer" to { it.kmNumber },
+        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.station-start" to { it.startM },
+        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.station-end" to { it.endM },
+        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.length" to { it.length },
+        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-e" to { it.location?.x?.let(::roundTo3Decimals) },
+        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-n" to { it.location?.y?.let(::roundTo3Decimals) },
+        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.warning" to { kmPost ->
             if (kmPost.location != null && kmPost.locationSource == GeometrySource.IMPORTED) {
-                translation.t("$KM_LENGTH_CSV_PREFIX.imported-warning")
+                translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.imported-warning")
             } else if (kmPost.location != null && kmPost.locationSource == GeometrySource.GENERATED) {
-                translation.t("$KM_LENGTH_CSV_PREFIX.generated-warning")
+                translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.generated-warning")
             } else {
                 ""
             }
