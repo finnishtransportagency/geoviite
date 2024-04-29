@@ -58,7 +58,7 @@ class SplitTestDataService @Autowired constructor(
                 startPoint,
                 structure,
                 draft = false,
-                externalId = externalId.toString(),
+                externalId = externalId?.toString(),
             )
         )
         return SwitchAndSegments(
