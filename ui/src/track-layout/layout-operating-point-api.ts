@@ -1,5 +1,5 @@
 import { OperatingPoint } from 'track-layout/track-layout-model';
-import { getNonNull, queryParams } from 'api/api-fetch';
+import { API_URI, getNonNull, queryParams } from 'api/api-fetch';
 import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
 import { bboxString } from 'common/common-api';
@@ -13,6 +13,6 @@ export async function getOperatingPoints(
 ): Promise<OperatingPoint[]> {
     return operatingPointCache.get(changeTime, mapTile.id, () => {
         const params = queryParams({ bbox: bboxString(mapTile.area) });
-        return getNonNull<OperatingPoint[]>(`api/ratko/operating-points${params}`);
+        return getNonNull<OperatingPoint[]>(`${API_URI}/ratko/operating-points${params}`);
     });
 }
