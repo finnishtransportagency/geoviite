@@ -7,6 +7,8 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EMenuItem
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETable
 import fi.fta.geoviite.infra.ui.pagemodel.common.getColumnContent
 import fi.fta.geoviite.infra.ui.util.byQaId
+import getElement
+import getElementWhenExists
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
@@ -30,7 +32,9 @@ class E2EChangePreviewTable(
     fun revertChange(change: E2EChangePreviewRow): E2EChangePreviewTable = apply {
         logger.info("Revert change $change")
 
-        openMenu(change).select(E2EMenuItem("Hylkää muutos", null))
+        openMenu(change)
+        getElementWhenExists(byQaId("preview-revert-change")).click()
+
         E2EPreviewChangesSaveOrDiscardDialog().reject()
     }
 
