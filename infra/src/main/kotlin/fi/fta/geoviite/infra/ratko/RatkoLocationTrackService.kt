@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.localization.FINNISH_LANG
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.PublishedLocationTrack
 import fi.fta.geoviite.infra.ratko.model.*
@@ -14,8 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.stereotype.Service
 import java.time.Instant
-
-const val FINNISH = "fi"
 
 @Service
 @ConditionalOnBean(RatkoClientConfiguration::class)
@@ -114,7 +113,7 @@ class RatkoLocationTrackService @Autowired constructor(
             nodeCollection = ratkoNodes,
             duplicateOfOid = duplicateOfOidLocationTrack,
             descriptionGetter = { locationTrack ->
-                locationTrackService.getFullDescription(PublicationState.OFFICIAL, locationTrack, FINNISH).toString()
+                locationTrackService.getFullDescription(PublicationState.OFFICIAL, locationTrack, FINNISH_LANG).toString()
             })
         val locationTrackOid = ratkoClient.newLocationTrack(ratkoLocationTrack)
         checkNotNull(locationTrackOid) {
@@ -351,7 +350,7 @@ class RatkoLocationTrackService @Autowired constructor(
             nodeCollection = changedNodeCollection,
             duplicateOfOid = duplicateOfOidLocationTrack,
             descriptionGetter = { locationTrack ->
-                locationTrackService.getFullDescription(PublicationState.OFFICIAL, locationTrack, FINNISH).toString()
+                locationTrackService.getFullDescription(PublicationState.OFFICIAL, locationTrack, FINNISH_LANG).toString()
             })
 
         ratkoClient.updateLocationTrackProperties(ratkoLocationTrack)

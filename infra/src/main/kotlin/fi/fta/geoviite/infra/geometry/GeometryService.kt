@@ -16,11 +16,10 @@ import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.DatabaseLock.ELEMENT_LIST_GEN
 import fi.fta.geoviite.infra.integration.DatabaseLock.VERTICAL_GEOMETRY_LIST_GEN
 import fi.fta.geoviite.infra.integration.LockDao
+import fi.fta.geoviite.infra.localization.FINNISH_LANG
 import fi.fta.geoviite.infra.localization.LocalizationService
-import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.ratko.FINNISH
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
@@ -304,7 +303,7 @@ class GeometryService @Autowired constructor(
     @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
     fun makeElementListingCsv() = runElementListGeneration {
         logger.serviceCall("makeElementListingCsv")
-        val translation = localizationService.getLocalization(FINNISH)
+        val translation = localizationService.getLocalization(FINNISH_LANG)
         val geocodingContexts = geocodingService.getGeocodingContexts(OFFICIAL)
         val elementListing = locationTrackService
             .list(OFFICIAL, includeDeleted = false)
@@ -418,7 +417,7 @@ class GeometryService @Autowired constructor(
                 }
             }
 
-        val translation = localizationService.getLocalization(FINNISH)
+        val translation = localizationService.getLocalization(FINNISH_LANG)
         val csvFileContent = entireTrackNetworkVerticalGeometryListingToCsv(verticalGeometryListingWithTrackNumbers, translation)
         val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
 
