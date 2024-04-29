@@ -17,10 +17,10 @@ import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationValidationError
-import fi.fta.geoviite.infra.publication.PublicationValidationErrorType.ERROR
 import fi.fta.geoviite.infra.publication.ValidationContext
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.publication.ValidationVersions
+import fi.fta.geoviite.infra.publication.validationError
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -98,36 +98,54 @@ class SplitService(
         }
     }
 
+    @Transactional
     fun publishSplit(
         locationTracks: Collection<DaoResponse<LocationTrack>>,
         publicationId: IntId<Publication>,
+        validatedSplitVersions: List<ValidationVersion<Split>>,
     ): List<RowVersion<Split>> {
         logger.serviceCall("publishSplit", "locationTracks" to locationTracks, "publicationId" to publicationId)
+        require(validatedSplitVersions.size <= 1) {
+            "Cannot have more than one split in a single publication: splits=$validatedSplitVersions"
+        }
+        // TODO: GVT-2524 prettify
         return findPendingSplitsForLocationTracks(locationTracks.map { v -> v.id }.distinct())
             .map { split ->
-                val track = locationTracks.find { t -> t.id == split.sourceLocationTrackId }
+                val track = requireNotNull(locationTracks.find { t -> t.id == split.sourceLocationTrackId }) {
+                    "Source track must be part of the same publication as the split: split=$split"
+                }
+                val validatedSplit = requireNotNull(validatedSplitVersions.find { s -> s.officialId == split.id }) {
+                    "Split must be validated before publication: split=$split"
+                }
                 splitDao.updateSplit(
                     splitId = split.id,
                     publicationId = publicationId,
-                    sourceTrackVersion = track?.rowVersion,
-                )
+                    sourceTrackVersion = track.rowVersion,
+                ).also { updatedVersion ->
+                    // Sanity-check the version for conflicting update, though this should not be possible
+                    require (updatedVersion.version == validatedSplit.validatedAssetVersion.version + 1) {
+                        "Conflict: Split version has changed between validation and publication: split=${split.id}"
+                    }
+                }
             }
     }
 
+    @Transactional
     fun deleteSplit(splitId: IntId<Split>) {
         logger.serviceCall("deleteSplit", "splitId" to splitId)
         splitDao.deleteSplit(splitId)
     }
 
+    @Transactional(readOnly = true)
     fun validateSplit(
         candidates: ValidationVersions,
         context: ValidationContext,
         allowMultipleSplits: Boolean,
     ): SplitPublicationValidationErrors {
         val splitErrors = validateSplitContent(
-            trackIds = candidates.getLocationTrackIds(),
-            switchIds = candidates.getSwitchIds(),
-            splits = candidates.splits.map { sv -> splitDao.get(sv.validatedAssetVersion) },
+            trackVersions = candidates.locationTracks,
+            switchVersions = candidates.switches,
+            splits = context.getUnfinishedSplits(),
             allowMultipleSplits = allowMultipleSplits,
         )
 
@@ -187,8 +205,9 @@ class SplitService(
         trackId: IntId<LocationTrack>,
         context: ValidationContext,
     ): List<PublicationValidationError> {
-        val splits = context.getUnfinishedSplits().filter { s -> s.locationTracks.contains(trackId) }
-            .map { s -> s to locationTrackDao.fetch(s.sourceLocationTrackVersion) }
+        val splits = context.getUnfinishedSplits()
+            .filter { split -> split.locationTracks.contains(trackId) }
+            .map { split -> split to locationTrackDao.fetch(split.sourceLocationTrackVersion) }
         val track = requireNotNull(context.getLocationTrack(trackId)) {
             "The track to validate must exist in the validation context: id=$trackId"
         }
@@ -199,7 +218,7 @@ class SplitService(
 
         val statusErrors = splits.mapNotNull { (split, sourceTrack) -> validateSplitStatus(track, sourceTrack, split) }
 
-        // Note: we only check draft splits from here on since after publish, the situation cannot change:
+        // Note: we only check draft splits from here on, since the situation cannot change after publication:
         // - Official tracks are already validated and published
         // - The above status check will not allow draft tracks to be involved in published pending splits
         // - Published DONE splits don't matter and shouldn't affect future changes
@@ -233,8 +252,6 @@ class SplitService(
         splits: List<Pair<Split, LocationTrack>>,
         context: ValidationContext,
     ): List<PublicationValidationError> {
-        // TODO: GVT-2524 prettify?
-
         // Target address validation ensures that all split target addresspoints match the source addresspoints in
         // the validation context (that is: draft target geometry is a subset of draft source geometry)
         val targetGeometryErrors = splits.mapNotNull { (split, sourceTrack) ->
@@ -295,7 +312,7 @@ class SplitService(
         val sourceAlignment = alignmentDao.fetch(alignmentVersion)
         val sourceStartM = sourceAlignment.getSegmentStartM(segmentIndices.first)
         val sourceEndM = sourceAlignment.getSegmentEndM(segmentIndices.last)
-        return if(sourceStartM != null && sourceEndM != null) {
+        return if (sourceStartM != null && sourceEndM != null) {
             sourceStartM..sourceEndM
         } else {
             null
@@ -307,16 +324,22 @@ class SplitService(
         context: ValidationContext,
     ): PublicationValidationError? {
         val affectedTracks = context.getLocationTracksByTrackNumber(trackNumberId)
-        val affectedSplits = context.getUnfinishedSplits().filter { split ->
-            split.locationTracks.any { ltId -> affectedTracks.any { a -> a.id == ltId } }
-        }
+        val affectedSplits = context.getUnfinishedSplits()
+            .filter { split -> split.locationTracks.any { ltId -> affectedTracks.any { a -> a.id == ltId } } }
         return if (affectedSplits.isNotEmpty()) {
-            PublicationValidationError(ERROR, "$VALIDATION_SPLIT.split-in-progress")
+            val sourceTrackNames = affectedSplits
+                .mapNotNull { split -> context.getLocationTrack(split.sourceLocationTrackId)?.name }
+                .joinToString(",")
+            validationError(
+                "$VALIDATION_SPLIT.affected-split-in-progress",
+                "sourceName" to sourceTrackNames,
+            )
         } else {
             null
         }
     }
 
+    @Transactional
     fun updateSplitState(splitId: IntId<Split>, state: BulkTransferState): RowVersion<Split> {
         logger.serviceCall("updateSplitState", "splitId" to splitId)
 
@@ -376,35 +399,35 @@ class SplitService(
 
         val savedSource = locationTrackService.updateState(request.sourceTrackId, LocationTrackState.DELETED)
 
-        return savedSplitTargetLocationTracks.map { splitTargetResult ->
-            SplitTarget(
-                locationTrackId = splitTargetResult.locationTrack.id as IntId,
-                segmentIndices = splitTargetResult.indices,
-                operation = splitTargetResult.operation,
-            )
-        }.let { splitTargets ->
-            splitDao.saveSplit(savedSource.rowVersion, splitTargets, relinkedSwitches, sourceTrackDuplicateIds)
-        }
+        return savedSplitTargetLocationTracks
+            .map { splitTargetResult ->
+                SplitTarget(
+                    locationTrackId = splitTargetResult.locationTrack.id as IntId,
+                    segmentIndices = splitTargetResult.indices,
+                    operation = splitTargetResult.operation,
+                )
+            }
+            .let { splitTargets ->
+                splitDao.saveSplit(savedSource.rowVersion, splitTargets, relinkedSwitches, sourceTrackDuplicateIds)
+            }
     }
 
-    @Transactional(readOnly = true)
     fun fetchPublicationVersions(
         locationTracks: List<IntId<LocationTrack>>,
         switches: List<IntId<TrackLayoutSwitch>>,
-    ): List<ValidationVersion<Split>> = findUnpublishedSplits(locationTracks, switches).map { split ->
-         ValidationVersion(split.id, split.rowVersion)
-    }
+    ): List<ValidationVersion<Split>> = findUnpublishedSplits(locationTracks, switches)
+        .map { split -> ValidationVersion(split.id, split.rowVersion) }
 
-    @Transactional(readOnly = true)
+    fun findUnpublishedSplits(): List<Split> = findUnfinishedSplits()
+        .filter { split -> split.publicationId == null }
+
+    fun findUnfinishedSplits(): List<Split> = splitDao.fetchUnfinishedSplits()
+
     fun findUnpublishedSplits(
         locationTracks: List<IntId<LocationTrack>>,
         switches: List<IntId<TrackLayoutSwitch>>,
-    ): List<Split> {
-        return splitDao.fetchUnfinishedSplits().filter { split ->
-            split.publicationId == null &&
-                (locationTracks.any(split::containsLocationTrack) || switches.any(split::containsSwitch))
-        }
-    }
+    ): List<Split> = findUnpublishedSplits()
+        .filter { split -> (locationTracks.any(split::containsLocationTrack) || switches.any(split::containsSwitch)) }
 
     private fun updateUnusedDuplicateReferencesToSplitTargetTracks(
         geocodingContext: GeocodingContext,

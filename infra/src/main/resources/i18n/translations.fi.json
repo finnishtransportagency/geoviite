@@ -686,7 +686,8 @@
                     "publish-duplicate": "Julkaise tai hylkää duplikaattiraiteen muutokset ja yritä jakamista sitten uudestaan.",
                     "has-errors": "Tiedoissa on virheitä",
                     "show": "näytä",
-                    "split-in-progress": "Muutos voi vaikuttaa osoitteistoon raiteella, jonka jakamista ei ole vielä viety ratkoon"
+                    "affected-split-in-progress": "Muutos voi vaikuttaa osoitteistoon raiteella, jonka jakamista ({{sourceName}}) ei ole vielä viety ratkoon",
+                    "track-split-in-progress": "Raidetta ei voida muuttaa, koska sen jakamista ({{sourceName}}) ei ole vielä viety ratkoon"
                 },
                 "validation-in-progress": "Raiteen vaihteita validoidaan...",
                 "relink-critical-errors": "Raiteen vaihteiden linkityksessä on kriittisiä ongelmia, jotka täytyy korjata ennen raiteen jakamista",
@@ -1352,8 +1353,9 @@
                 "start-km-too-long": "Alkukilometri ottaen huomioon alkupisteen metrit on liian pitkä"
             },
             "split": {
-                "source-not-deleted": "Jaettava raide ei ole Poistettu-tilassa",
-                "source-and-target-track-numbers-are-different": "Jakamisessa syntynyt raide {{trackName}} on eri ratanumerolla on kuin alkuperäinen jaettu raide",
+                "source-not-deleted": "Jaettava raide {{sourceName}} ei ole Poistettu-tilassa",
+                "source-edited-after-split": "Jaettavaa raidetta {{sourceName}} on muokattu vaikka jako on vielä kesken",
+                "source-and-target-track-numbers-are-different": "Jakamisessa syntynyt raide {{trackName}} on eri ratanumerolla on kuin alkuperäinen jaettu raide {{sourceName}}",
                 "duplicate-on-different-track-number": "Duplikaattiraide {{duplicateTrack}} on eri ratanumerolla kuin jaettava raide",
                 "split-missing-location-tracks": "Kaikki jakoon liittyvät sijaintiraiteet eivät ole mukana julkaisussa",
                 "split-missing-switches": "Kaikki jakoon liittyvät vaihteet eivät ole mukana julkaisussa",

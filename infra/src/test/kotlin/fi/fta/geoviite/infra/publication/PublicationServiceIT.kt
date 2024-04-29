@@ -2842,7 +2842,8 @@ class PublicationServiceIT @Autowired constructor(
         val trackValidationVersions = splitSetup.trackValidationVersions + splitSetup2.trackValidationVersions
 
         assertContains(
-            validateSplitContent(trackValidationVersions, emptyList(), listOf(split, split2), false).map { it.second },
+            validateSplitContent(trackValidationVersions, emptyList(), listOf(split, split2), false)
+                .map { it.second },
             validationError("validation.layout.split.multiple-splits-not-allowed"),
         )
         assertTrue(

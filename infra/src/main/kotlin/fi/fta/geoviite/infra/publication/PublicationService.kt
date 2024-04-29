@@ -22,6 +22,7 @@ import fi.fta.geoviite.infra.publication.PublicationValidationErrorType.ERROR
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.split.Split
+import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitPublicationValidationErrors
 import fi.fta.geoviite.infra.split.SplitService
@@ -96,6 +97,7 @@ class PublicationService @Autowired constructor(
     private val transactionTemplate: TransactionTemplate,
     private val publicationGeometryChangeRemarksUpdateService: PublicationGeometryChangeRemarksUpdateService,
     private val splitService: SplitService,
+    private val splitDao: SplitDao,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -281,6 +283,7 @@ class PublicationService @Autowired constructor(
         alignmentDao = alignmentDao,
         publicationDao = publicationDao,
         switchLibraryService = switchLibraryService,
+        splitService = splitService,
         publicationSet = publicationSet,
     )
 
@@ -291,7 +294,11 @@ class PublicationService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun validateAsPublicationUnit(candidates: PublicationCandidates, allowMultipleSplits: Boolean): PublicationCandidates {
-        val versions = candidates.getValidationVersions()
+        val splitVersions = splitService.fetchPublicationVersions(
+            locationTracks = candidates.locationTracks.map { it.id },
+            switches = candidates.switches.map { it.id },
+        )
+        val versions = candidates.getValidationVersions(splitVersions)
 
         val validationContext = createValidationContext(versions).also { ctx -> ctx.preloadByPublicationSet() }
         val splitErrors = splitService.validateSplit(versions, validationContext, allowMultipleSplits)
@@ -513,8 +520,9 @@ class PublicationService @Autowired constructor(
         )
 
         try {
-            return transactionTemplate.execute { publishChangesTransaction(versions, calculatedChanges, message) }
-                ?: throw Exception("unexpected null from publishChangesTransaction")
+            return requireNotNull(
+                transactionTemplate.execute { publishChangesTransaction(versions, calculatedChanges, message) }
+            )
         } catch (exception: DataIntegrityViolationException) {
             enrichDuplicateNameExceptionOrRethrow(exception)
         }
@@ -534,7 +542,7 @@ class PublicationService @Autowired constructor(
         publicationDao.insertCalculatedChanges(publicationId, calculatedChanges)
         publicationGeometryChangeRemarksUpdateService.processPublication(publicationId)
 
-        splitService.publishSplit(locationTracks, publicationId)
+        splitService.publishSplit(locationTracks, publicationId, versions.splits)
 
         return PublicationResult(
             publicationId = publicationId,

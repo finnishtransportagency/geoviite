@@ -192,38 +192,39 @@ class SplitDao(
         ).also { logger.daoAccess(AccessType.FETCH, Split::class, splitId) }
     }
 
-    fun get(splitVersion: RowVersion<Split>): Split {
-        val sql = """
-          select
-              split.id,
-              split.version,
-              split.bulk_transfer_state,
-              split.publication_id,
-              coalesce(source_track.official_row_id, source_track.id) as source_location_track_official_id,
-              split.source_location_track_row_id,
-              split.source_location_track_row_version,
-              array_agg(split_relinked_switch.switch_id) as switch_ids,
-              array_agg(split_updated_duplicate.duplicate_location_track_id) as updated_duplicate_ids
-          from publication.split_version split
-              inner join layout.location_track_version source_track 
-                  on split.source_location_track_row_id = source_track.id
-                   and split.source_location_track_row_version = source_track.version
-              left join publication.split_relinked_switch on split.id = split_relinked_switch.split_id
-              left join publication.split_updated_duplicate on split.id = split_updated_duplicate.split_id
-          -- Note: split content tables are never edited -> only the main split is fetched by id and version
-          where split.id = :id and split.version = :version
-          group by split.id, split.version, source_track.official_row_id, source_track.id
-        """.trimIndent()
-
-        val params = mapOf(
-            "id" to splitVersion.id.intValue,
-            "version" to splitVersion.version,
-        )
-        return getOne(
-            splitVersion,
-            jdbcTemplate.query(sql, params) { rs, _ -> toSplit(rs, getSplitTargets(splitVersion.id)) },
-        ).also { logger.daoAccess(AccessType.FETCH, Split::class, splitVersion) }
-    }
+    // TODO: GVT-2524 cleanup
+//    fun get(splitVersion: RowVersion<Split>): Split {
+//        val sql = """
+//          select
+//              split.id,
+//              split.version,
+//              split.bulk_transfer_state,
+//              split.publication_id,
+//              coalesce(source_track.official_row_id, source_track.id) as source_location_track_official_id,
+//              split.source_location_track_row_id,
+//              split.source_location_track_row_version,
+//              array_agg(split_relinked_switch.switch_id) as switch_ids,
+//              array_agg(split_updated_duplicate.duplicate_location_track_id) as updated_duplicate_ids
+//          from publication.split_version split
+//              inner join layout.location_track_version source_track
+//                  on split.source_location_track_row_id = source_track.id
+//                   and split.source_location_track_row_version = source_track.version
+//              left join publication.split_relinked_switch on split.id = split_relinked_switch.split_id
+//              left join publication.split_updated_duplicate on split.id = split_updated_duplicate.split_id
+//          -- Note: split content tables are never edited -> only the main split is fetched by id and version
+//          where split.id = :id and split.version = :version
+//          group by split.id, split.version, source_track.official_row_id, source_track.id
+//        """.trimIndent()
+//
+//        val params = mapOf(
+//            "id" to splitVersion.id.intValue,
+//            "version" to splitVersion.version,
+//        )
+//        return getOne(
+//            splitVersion,
+//            jdbcTemplate.query(sql, params) { rs, _ -> toSplit(rs, getSplitTargets(splitVersion.id)) },
+//        ).also { logger.daoAccess(AccessType.FETCH, Split::class, splitVersion) }
+//    }
 
     fun getSplitHeader(splitId: IntId<Split>): SplitHeader {
         val sql = """
@@ -333,6 +334,7 @@ class SplitDao(
         }
     }
 
+    // TODO: GVT-2524 cleanup
 //    fun fetchUnfinishedSplitIdsByTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): List<IntId<Split>> {
 //        val sql = """
 //            select distinct split.id

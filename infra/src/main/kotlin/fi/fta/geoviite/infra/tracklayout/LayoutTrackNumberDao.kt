@@ -139,7 +139,7 @@ class LayoutTrackNumberDao(
         state = rs.getEnum("state"),
         externalId = rs.getOidOrNull("external_id"),
         version = rs.getRowVersion("row_id", "row_version"),
-        // TODO: GVT-2524 This should be non-null but we have a lot of tests that produce broken data
+        // TODO: GVT-2442 This should be non-null but we have a lot of tests that produce broken data
         referenceLineId = rs.getIntIdOrNull("reference_line_id"),
         contextData = rs.getLayoutContextData("official_row_id", "row_id", "draft"),
     )

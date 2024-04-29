@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.split.Split
+import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.ILayoutAssetDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -77,6 +78,7 @@ class ValidationContext(
     val switchLibraryService: SwitchLibraryService,
     val publicationDao: PublicationDao,
     val geocodingService: GeocodingService,
+    val splitService: SplitService,
     val publicationSet: ValidationVersions,
 ) {
     private val trackNumberVersionCache = RowVersionCache<TrackLayoutTrackNumber>()
@@ -94,6 +96,8 @@ class ValidationContext(
     private val switchNameCache = NameCache(::fetchSwitchesByName)
     private val trackNameCache = NameCache(::fetchLocationTracksByName)
     private val trackNumberNumberCache = NameCache(::fetchTrackNumbersByNumber)
+
+    private val allUnfinishedSplits: List<Split> by lazy { splitService.findUnfinishedSplits() }
 
     fun getTrackNumber(id: IntId<TrackLayoutTrackNumber>): TrackLayoutTrackNumber? =
         getObject(id, publicationSet.trackNumbers, trackNumberDao, trackNumberVersionCache)
@@ -192,6 +196,10 @@ class ValidationContext(
             val name = switch?.name ?: requireNotNull(getDraftSwitch(switchId)).name
             name to switch
         }
+
+    fun getUnfinishedSplits(): List<Split> = allUnfinishedSplits.filter { split ->
+        split.publicationId != null || publicationSet.containsSplit(split.id)
+    }
 
     fun getGeocodingContext(trackNumberId: IntId<TrackLayoutTrackNumber>) =
         getGeocodingContextCacheKey(trackNumberId)?.let { key ->
@@ -385,11 +393,6 @@ class ValidationContext(
             val official = officialVersions[id]?.map { v -> v.id } ?: emptyList()
             draft + official
         }
-    }
-
-    fun getUnfinishedSplits(): List<Split> {
-        // TODO: GVT-2524
-TODO("Not implemented yet")
     }
 }
 
