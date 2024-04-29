@@ -379,7 +379,6 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
     fun fetchOperatingPoints(): List<RatkoOperatingPointParse> {
         logger.integrationCall("fetchOperatingPoints")
         val allPoints = mutableListOf<RatkoOperatingPointParse>()
-        var pagePoints: List<RatkoOperatingPointParse>
         var pageNumber = 0
         do {
             logger.info("fetching operating points for page $pageNumber")
