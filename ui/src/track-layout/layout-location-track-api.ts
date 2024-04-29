@@ -4,6 +4,7 @@ import {
     AlignmentStartAndEnd,
     DuplicateStatus,
     LayoutLocationTrack,
+    LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackDescription,
     LocationTrackId,
@@ -11,8 +12,8 @@ import {
     OperatingPoint,
 } from 'track-layout/track-layout-model';
 import {
-    LayoutAssetChangeInfo,
     draftLayoutContext,
+    LayoutAssetChangeInfo,
     LayoutContext,
     TimeStamp,
     TrackMeter,
@@ -63,6 +64,18 @@ export type AlignmentPlanSection = {
     start: PlanSectionPoint | undefined;
     end: PlanSectionPoint | undefined;
     id: string;
+};
+
+export type SplitDuplicateMatch = 'FULL' | 'PARTIAL' | 'NONE';
+
+// TODO: GVT-2525 combine into SplitDuplicate
+export type SplitDuplicateStatus = {
+    match: SplitDuplicateMatch;
+    duplicateOfId: LocationTrackId | undefined;
+    startSwitchId: LayoutSwitchId | undefined;
+    endSwitchId: LayoutSwitchId | undefined;
+    startPoint: AlignmentPoint | undefined;
+    endPoint: AlignmentPoint | undefined;
 };
 
 export type SplitDuplicate = {

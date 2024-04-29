@@ -3,9 +3,32 @@ package fi.fta.geoviite.infra.ratko
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.module.kotlin.*
+import com.fasterxml.jackson.module.kotlin.KotlinFeature
+import com.fasterxml.jackson.module.kotlin.jsonMapper
+import com.fasterxml.jackson.module.kotlin.kotlinModule
+import com.fasterxml.jackson.module.kotlin.readValue
+import com.fasterxml.jackson.module.kotlin.treeToValue
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.ratko.model.*
+import fi.fta.geoviite.infra.ratko.model.IncomingRatkoAssetLocation
+import fi.fta.geoviite.infra.ratko.model.IncomingRatkoGeometry
+import fi.fta.geoviite.infra.ratko.model.IncomingRatkoNode
+import fi.fta.geoviite.infra.ratko.model.IncomingRatkoNodes
+import fi.fta.geoviite.infra.ratko.model.IncomingRatkoPoint
+import fi.fta.geoviite.infra.ratko.model.RatkoAssetGeometry
+import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
+import fi.fta.geoviite.infra.ratko.model.RatkoAssetProperty
+import fi.fta.geoviite.infra.ratko.model.RatkoAssetType
+import fi.fta.geoviite.infra.ratko.model.RatkoCrs
+import fi.fta.geoviite.infra.ratko.model.RatkoGeometryType
+import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
+import fi.fta.geoviite.infra.ratko.model.RatkoMetadataAsset
+import fi.fta.geoviite.infra.ratko.model.RatkoNodeType
+import fi.fta.geoviite.infra.ratko.model.RatkoOid
+import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointAsset
+import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointAssetsResponse
+import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointParse
+import fi.fta.geoviite.infra.ratko.model.RatkoPoint
+import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import org.mockserver.client.ForwardChainExpectation
 import org.mockserver.configuration.Configuration
@@ -277,7 +300,7 @@ private fun marshallOperatingPoint(point: RatkoOperatingPointParse): RatkoOperat
             nodecollection = IncomingRatkoNodes(
                 nodes = listOf(
                     IncomingRatkoNode(
-                        nodeType = RatkoNodeType.MIDDLE_POINT,
+                        nodeType = RatkoNodeType.SOLO_POINT,
                         point = IncomingRatkoPoint(
                             geometry = IncomingRatkoGeometry(
                                 RatkoGeometryType.POINT,

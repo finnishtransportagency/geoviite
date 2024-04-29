@@ -31,20 +31,22 @@ export function createSelectedReferenceLineAlignmentLayer(
     existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
+    splittingIsActive: boolean, // TODO: This will be removed when layer visibility logic is revised
     changeTimes: ChangeTimes,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
     const selectedTrackNumber = first(selection.selectedItems.trackNumbers);
-    const dataPromise: Promise<AlignmentDataHolder[]> = selectedTrackNumber
-        ? getSelectedReferenceLineMapAlignmentByTiles(
-              changeTimes,
-              mapTiles,
-              layoutContext,
-              selectedTrackNumber,
-          )
-        : Promise.resolve([]);
+    const dataPromise: Promise<AlignmentDataHolder[]> =
+        selectedTrackNumber && !splittingIsActive
+            ? getSelectedReferenceLineMapAlignmentByTiles(
+                  changeTimes,
+                  mapTiles,
+                  layoutContext,
+                  selectedTrackNumber,
+              )
+            : Promise.resolve([]);
 
     const createFeatures = (referenceLines: AlignmentDataHolder[]) => {
         const selectedReferenceLine = first(referenceLines);

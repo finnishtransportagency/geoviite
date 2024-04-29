@@ -20,6 +20,15 @@ const splitPointStyle = new Style({
         fill: new Fill({ color: mapStyles.splitPointCircleColor }),
         stroke: new Stroke({ color: mapStyles.alignmentBadgeWhite, width: 2 }),
     }),
+    zIndex: 2,
+});
+const splitPointFocusedStyle = new Style({
+    image: new Circle({
+        radius: 10,
+        fill: new Fill({ color: mapStyles.splitPointCircleColor }),
+        stroke: new Stroke({ color: mapStyles.alignmentBadgeWhite, width: 2 }),
+    }),
+    zIndex: 3,
 });
 
 const deletedSplitPointStyle = new Style({
@@ -47,7 +56,7 @@ export const createLocationTrackSplitLocationLayer = (
 
     const dataPromise: Promise<LayoutSwitch[]> = splittingState
         ? getSwitches(
-              splittingState.splits.map((sw) => sw.switchId),
+              splittingState.splits.map((sw) => sw.switch.switchId),
               draftLayoutContext(layoutContext),
           )
         : Promise.resolve([]);
@@ -60,7 +69,7 @@ export const createLocationTrackSplitLocationLayer = (
             ];
             const splits: SwitchIdAndLocation[] = splittingState.splits.map((split) => ({
                 location: split.location,
-                switchId: split.switchId,
+                switchId: split.switch.switchId,
             }));
             const switchesAndLocations = firstAndLast.concat(splits);
 
@@ -70,7 +79,22 @@ export const createLocationTrackSplitLocationLayer = (
                 const feature = new Feature({
                     geometry: new OlPoint(pointToCoords(location)),
                 });
-                feature.setStyle(isDeleted ? deletedSplitPointStyle : splitPointStyle);
+
+                const isSwitchHighlighted =
+                    splittingState.highlightedSwitch != undefined &&
+                    splittingState.highlightedSwitch == switchId;
+
+                const getSelectedStyle = () => {
+                    if (isDeleted) {
+                        return deletedSplitPointStyle;
+                    } else if (isSwitchHighlighted) {
+                        return splitPointFocusedStyle;
+                    } else {
+                        return splitPointStyle;
+                    }
+                };
+
+                feature.setStyle(getSelectedStyle);
                 return feature;
             });
         } else {

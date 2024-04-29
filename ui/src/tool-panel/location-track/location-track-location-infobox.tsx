@@ -21,7 +21,6 @@ import Infobox from 'tool-panel/infobox/infobox';
 import {
     LAYOUT_SRID,
     LayoutLocationTrack,
-    LayoutSwitchId,
     LayoutTrackNumber,
 } from 'track-layout/track-layout-model';
 import {
@@ -33,7 +32,6 @@ import { ChangeTimes } from 'common/common-slice';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { useCommonDataAppSelector } from 'store/hooks';
 import { getSplittingInitializationParameters } from 'track-layout/layout-location-track-api';
-import { filterNotEmpty } from 'utils/array-utils';
 import {
     useCoordinateSystem,
     useLocationTrackInfoboxExtras,
@@ -102,10 +100,6 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     onStartSplitting,
 }: LocationTrackLocationInfoboxProps) => {
     const { t } = useTranslation();
-
-    const isStartOrEndSwitch = (switchId: LayoutSwitchId) =>
-        switchId === extraInfo?.switchAtStart?.id || switchId === extraInfo?.switchAtEnd?.id;
-
     const [startAndEndPoints, startAndEndPointFetchStatus] = useLocationTrackStartAndEnd(
         locationTrack?.id,
         layoutContext,
@@ -178,22 +172,13 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                 if (startAndEndPoints?.start && startAndEndPoints?.end && trackNumber) {
                     onStartSplitting({
                         locationTrack: locationTrack,
-                        allowedSwitches:
-                            splitInitializationParameters?.switches.filter(
-                                (sw) => !isStartOrEndSwitch(sw.switchId),
-                            ) || [],
-                        startAndEndSwitches: [
-                            extraInfo?.switchAtStart?.id,
-                            extraInfo?.switchAtEnd?.id,
-                        ].filter(filterNotEmpty),
+                        trackSwitches: splitInitializationParameters?.switches || [],
+                        startSwitchId: extraInfo?.switchAtStart?.id,
+                        endSwitchId: extraInfo?.switchAtEnd?.id,
                         duplicateTracks: splitInitializationParameters?.duplicates || [],
                         startLocation: startAndEndPoints.start.point,
                         endLocation: startAndEndPoints.end.point,
                         trackNumber: trackNumber.number,
-                        nearestOperatingPointToStart:
-                            splitInitializationParameters.nearestOperatingPointToStart,
-                        nearestOperatingPointToEnd:
-                            splitInitializationParameters.nearestOperatingPointToEnd,
                     });
                 }
             })

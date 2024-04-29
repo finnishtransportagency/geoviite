@@ -202,6 +202,8 @@ data class DuplicateStatus(
     val duplicateOfId: IntId<LocationTrack>?,
     val startSwitchId: IntId<TrackLayoutSwitch>?,
     val endSwitchId: IntId<TrackLayoutSwitch>?,
+    val startPoint: LayoutPoint?,
+    val endPoint: LayoutPoint?,
 )
 
 data class SplitDuplicateTrack(
@@ -217,8 +219,6 @@ data class SplittingInitializationParameters(
     val id: IntId<LocationTrack>,
     val switches: List<SwitchOnLocationTrack>,
     val duplicates: List<SplitDuplicateTrack>,
-    val nearestOperatingPointToStart: RatkoOperatingPoint?,
-    val nearestOperatingPointToEnd: RatkoOperatingPoint?,
 )
 
 data class LocationTrack(

@@ -24,7 +24,7 @@ import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { fromExtent } from 'ol/geom/Polygon';
-import { SplittingState } from 'tool-panel/location-track/split-store';
+import { getAllowedSwitchesFromState, SplittingState } from 'tool-panel/location-track/split-store';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { ValidatedSwitch } from 'publication/publication-model';
 
@@ -62,12 +62,11 @@ export function createSwitchLayer(
 
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
+    const allowedSwitches = splittingState ? getAllowedSwitchesFromState(splittingState) : [];
+
     const getSwitchesFromApi = async () => {
         if (splittingState && resolution <= Limits.HIGHLIGHTS_SHOW) {
-            const switchIds =
-                splittingState?.allowedSwitches
-                    .map((sw) => sw.switchId)
-                    .concat(splittingState?.startAndEndSwitches) || [];
+            const switchIds = allowedSwitches.map((sw) => sw.switchId) || [];
 
             const switches = await getSwitches(switchIds, layoutContext);
             return switches.filter((sw_1) => sw_1.stateCategory !== 'NOT_EXISTING');
@@ -83,10 +82,7 @@ export function createSwitchLayer(
 
     const getSwitchValidation = () => {
         if (splittingState && resolution <= Limits.HIGHLIGHTS_SHOW) {
-            const switchIds =
-                splittingState?.allowedSwitches
-                    .map((sw) => sw.switchId)
-                    .concat(splittingState?.startAndEndSwitches) || [];
+            const switchIds = allowedSwitches.map((sw) => sw.switchId) || [];
 
             return getSwitchesValidation(layoutContext, switchIds);
         } else if (resolution <= Limits.SWITCH_SHOW) {

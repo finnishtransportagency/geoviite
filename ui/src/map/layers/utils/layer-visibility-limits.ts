@@ -19,10 +19,11 @@ const mapLayerOrder: MapLayerName[] = [
     'location-track-alignment-layer',
     'geometry-alignment-layer',
     'duplicate-split-section-highlight-layer',
-    'location-track-selected-alignment-layer',
     'reference-line-selected-alignment-layer',
+    'location-track-selected-alignment-layer',
     'location-track-badge-layer',
     'reference-line-badge-layer',
+    'location-track-split-alignment-layer',
     'location-track-split-badge-layer',
     'km-post-layer',
     'switch-layer',
@@ -76,3 +77,7 @@ export const SUGGESTED_SWITCH_SHOW = 100.0;
 
 // Map resolution is ~ meters/pixel -> line points will have this many pixels between them
 export const MAP_RESOLUTION_MULTIPLIER = 10;
+
+export const OPERATING_POINTS_LARGE = SWITCH_SHOW;
+export const OPERATING_POINTS_MEDIUM = 10;
+export const OPERATING_POINTS_SMALL = 500;

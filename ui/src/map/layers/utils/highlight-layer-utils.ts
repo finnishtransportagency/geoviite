@@ -66,3 +66,10 @@ export const redSplitSectionStyle = new Style({
         width: 12,
     }),
 });
+
+export const notOverlappingDuplicateSplitSectionStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.splitSectionNotOverlappingDuplicate,
+        width: 6,
+    }),
+});

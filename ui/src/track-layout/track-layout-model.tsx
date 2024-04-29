@@ -129,6 +129,8 @@ export type DuplicateStatus = {
     duplicateOfId?: LocationTrackId;
     startSwitchId?: LayoutSwitchId;
     endSwitchId?: LayoutSwitchId;
+    startPoint?: AlignmentPoint;
+    endPoint?: AlignmentPoint;
 };
 
 export type LocationTrackDuplicate = {

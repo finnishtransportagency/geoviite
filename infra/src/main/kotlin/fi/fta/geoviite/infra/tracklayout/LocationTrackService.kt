@@ -587,9 +587,7 @@ class LocationTrackService(
                 }
 
             SplittingInitializationParameters(
-                trackId, switches, duplicateTracks,
-                nearestOperatingPointToStart = getNearestOperatingPoint(alignment.firstSegmentStart!!.toPoint()),
-                nearestOperatingPointToEnd = getNearestOperatingPoint(alignment.lastSegmentEnd!!.toPoint())
+                trackId, switches, duplicateTracks
             )
         }
     }

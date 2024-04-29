@@ -42,9 +42,11 @@
     selectedAlignmentLine: geoviite-design.$color-geoviite-blue;
 
     alignmentRedHighlight: rgba(geoviite-design.$color-geoviite-map-red, 0.2);
-    splitSectionRedHighlight: rgba(geoviite-design.$color-geoviite-map-red, 0.5);
     alignmentBlueHighlight: rgba(geoviite-design.$color-geoviite-map-blue, 0.2);
+
+    splitSectionRedHighlight: rgba(geoviite-design.$color-geoviite-map-red, 0.5);
     splitSectionBlueHighlight: rgba(geoviite-design.$color-geoviite-map-blue, 0.5);
+    splitSectionNotOverlappingDuplicate: rgba(vayla-design.$color-black-lighter, 0.5);
 }
 
 // Alignment badge styling

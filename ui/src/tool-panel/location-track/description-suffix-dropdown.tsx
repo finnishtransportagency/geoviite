@@ -7,6 +7,7 @@ type DescriptionSuffixDropdownProps = {
     suffixMode: LocationTrackDescriptionSuffixMode | undefined;
     onChange: (value: LocationTrackDescriptionSuffixMode) => void;
     onBlur: () => void;
+    onFocus?: () => void;
     size?: DropdownSize;
     disabled?: boolean;
     qaId?: string;
@@ -16,6 +17,7 @@ export const DescriptionSuffixDropdown: React.FC<DescriptionSuffixDropdownProps>
     suffixMode,
     onChange,
     onBlur,
+    onFocus,
     size,
     qaId,
     disabled = false,
@@ -28,6 +30,7 @@ export const DescriptionSuffixDropdown: React.FC<DescriptionSuffixDropdownProps>
             options={options}
             value={suffixMode}
             onChange={onChange}
+            onFocus={onFocus}
             onBlur={onBlur}
             canUnselect={false}
             wideList

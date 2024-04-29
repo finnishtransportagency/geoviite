@@ -83,6 +83,7 @@ import { createLocationTrackSplitBadgeLayer } from 'map/layers/alignment/locatio
 import { createSelectedReferenceLineAlignmentLayer } from './layers/alignment/reference-line-selected-alignment-layer';
 import { createOperatingPointLayer } from 'map/layers/operating-point/operating-points-layer';
 import { layersCoveringLayers } from 'map/map-store';
+import { createLocationTrackSplitAlignmentLayer } from 'map/layers/alignment/location-track-split-alignment-layer';
 
 declare global {
     interface Window {
@@ -567,9 +568,18 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
                             selection,
                             layoutContext,
-                            splittingState,
+                            splittingState !== undefined,
                             changeTimes,
                             olView,
+                            (loading) => onLayerLoading(layerName, loading),
+                        );
+                    case 'location-track-split-alignment-layer':
+                        return createLocationTrackSplitAlignmentLayer(
+                            mapTiles,
+                            existingOlLayer as VectorLayer<VectorSource<LineString>>,
+                            layoutContext,
+                            splittingState,
+                            changeTimes,
                             (loading) => onLayerLoading(layerName, loading),
                         );
                     case 'reference-line-selected-alignment-layer':
@@ -578,6 +588,7 @@ const MapView: React.FC<MapViewProps> = ({
                             existingOlLayer as VectorLayer<VectorSource<LineString>>,
                             selection,
                             layoutContext,
+                            splittingState !== undefined,
                             changeTimes,
                             (loading) => onLayerLoading(layerName, loading),
                         );

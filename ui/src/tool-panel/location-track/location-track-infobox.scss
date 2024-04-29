@@ -56,8 +56,36 @@ $-color-warning: vayla-design.$color-lemon-dark;
     position: relative;
 }
 
+.location-track-infobox__split-container--endpoint {
+    margin-bottom: 8px;
+}
+
 .location-track-infobox__split-fields-container {
     display: flex;
+    padding-bottom: 6px;
+}
+
+.location-track-infobox__split-switch-row {
+    display: flex;
+    align-items: center;
+    padding-bottom: 8px;
+    padding-top: 2px;
+    padding-left: 24px;
+    margin-right: -12px;
+}
+
+.location-track-infobox__split-switch-row-fill {
+    flex: 1;
+}
+
+.location-track-infobox__split-switch-name {
+    cursor: pointer;
+    padding-right: 8px;
+}
+
+.location-track-infobox__split-track-address {
+    @include vayla-design.typography-sub-heading();
+    font-weight: normal;
 }
 
 .location-track-infobox__split-row-with-close-button {
@@ -69,28 +97,50 @@ $-color-warning: vayla-design.$color-lemon-dark;
 }
 
 .location-track-infobox__split-close-button {
-    margin-left: 5px;
-    border-radius: 18px;
-    width: 20px;
+    width: 22px;
     height: 20px;
-    fill: vayla-design.$color-white-default;
+    fill: vayla-design.$color-blue-dark;
     display: flex;
     justify-content: center;
     align-items: center;
 
     &--disabled {
-        background-color: vayla-design.$color-black-lighter;
+        fill: vayla-design.$color-black-lighter;
     }
 
     &--enabled {
-        background-color: vayla-design.$color-blue-default;
+        fill: vayla-design.$color-blue-dark;
         cursor: pointer;
 
         &:hover {
-            fill: vayla-design.$color-white-default;
-            background: vayla-design.$color-blue-light;
+            fill: vayla-design.$color-blue-light;
         }
     }
+}
+
+.location-track-infobox__split-switch-error-msg {
+    padding: 4px;
+    padding-left: 12px;
+    margin-left: 12px;
+
+    @include vayla-design.typography-caption;
+    color: vayla-design.$color-black-default;
+    background-color: vayla-design.$color-lemon-light;
+}
+
+.location-track-infobox__split-switch-error-msg--start {
+    margin-bottom: 4px;
+    margin-top: -4px;
+}
+
+.location-track-infobox__split-switch-error-msg--end {
+    margin-bottom: -2px;
+    margin-top: 8px;
+}
+
+.location-track-infobox__split-switch-error-msg--error {
+    color: $-color-error;
+    background-color: vayla-design.$color-red-lighter;
 }
 
 .location-track-infobox__split-remark {
@@ -110,27 +160,41 @@ $-color-warning: vayla-design.$color-lemon-dark;
     color: $-color-warning;
 }
 
-.location-track-infobox__split-item-ball {
+.location-track-infobox__split-item-ball-container {
     position: absolute;
-    margin-right: 5px;
-    margin-top: 3px;
-    border-width: 18px;
-    border-radius: 9px;
+    left: -6px;
+    top: 3px;
+    width: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.location-track-infobox__split-item-ball {
+    border-radius: 50%;
+    background-color: vayla-design.$color-blue-default;
     width: 18px;
     height: 18px;
-    background-color: vayla-design.$color-blue-default;
+    cursor: pointer;
 
     &--disabled {
         background-color: vayla-design.$color-red-default;
     }
 }
 
-.location-track-infobox__split-item-line {
+.location-track-infobox__split-item-line-container {
     position: absolute;
-    margin-bottom: 12px;
-    margin-left: 6px;
-    margin-top: 5px;
-    height: 100%;
+    left: -2px;
+    top: 5px;
+    bottom: -4px;
+
+    padding: 0 8px;
+    display: flex;
+    cursor: pointer;
+}
+
+.location-track-infobox__split-item-line {
     width: 6px;
     background-color: vayla-design.$color-blue-default;
 
