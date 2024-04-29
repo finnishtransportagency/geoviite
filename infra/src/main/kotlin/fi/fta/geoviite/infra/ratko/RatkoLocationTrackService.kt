@@ -15,6 +15,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.stereotype.Service
 import java.time.Instant
 
+const val FINNISH = "fi"
+
 @Service
 @ConditionalOnBean(RatkoClientConfiguration::class)
 class RatkoLocationTrackService @Autowired constructor(
@@ -112,7 +114,7 @@ class RatkoLocationTrackService @Autowired constructor(
             nodeCollection = ratkoNodes,
             duplicateOfOid = duplicateOfOidLocationTrack,
             descriptionGetter = { locationTrack ->
-                locationTrackService.getFullDescription(PublicationState.OFFICIAL, locationTrack).toString()
+                locationTrackService.getFullDescription(PublicationState.OFFICIAL, locationTrack, FINNISH).toString()
             })
         val locationTrackOid = ratkoClient.newLocationTrack(ratkoLocationTrack)
         checkNotNull(locationTrackOid) {
@@ -349,7 +351,7 @@ class RatkoLocationTrackService @Autowired constructor(
             nodeCollection = changedNodeCollection,
             duplicateOfOid = duplicateOfOidLocationTrack,
             descriptionGetter = { locationTrack ->
-                locationTrackService.getFullDescription(PublicationState.OFFICIAL, locationTrack).toString()
+                locationTrackService.getFullDescription(PublicationState.OFFICIAL, locationTrack, FINNISH).toString()
             })
 
         ratkoClient.updateLocationTrackProperties(ratkoLocationTrack)

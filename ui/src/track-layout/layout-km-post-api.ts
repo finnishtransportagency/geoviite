@@ -28,6 +28,7 @@ import { KmPostSaveError, KmPostSaveRequest } from 'linking/linking-model';
 import { Result } from 'neverthrow';
 import { ValidatedKmPost } from 'publication/publication-model';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
+import i18next from 'i18next';
 
 const kmPostListCache = asyncCache<string, LayoutKmPost[]>();
 const kmPostForLinkingCache = asyncCache<string, LayoutKmPost[]>();
@@ -210,6 +211,7 @@ export const getKmLengthsAsCsv = (
     const params = queryParams({
         startKmNumber,
         endKmNumber,
+        lang: i18next.language,
     });
 
     return `${layoutUri('track-numbers', layoutContext, trackNumberId)}/km-lengths/as-csv${params}`;
