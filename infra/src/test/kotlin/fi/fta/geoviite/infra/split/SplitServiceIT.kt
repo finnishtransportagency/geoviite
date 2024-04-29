@@ -96,13 +96,17 @@ class SplitServiceIT @Autowired constructor(
         val preSegments = splitTestDataService.createSegments(Point(0.0, 0.0), 3)
 
         // Segments that are a part of the first switch + the branching track for switch re-linking to work
-        val (switch1, switchSegments1, turningSegments1) = splitTestDataService.createSwitchAndGeometry(lastPoint(preSegments))
+        val (switch1, switchSegments1, turningSegments1) =
+            splitTestDataService.createSwitchAndGeometry(lastPoint(preSegments))
+
         splitTestDataService.insertAsTrack(turningSegments1)
 
         val segments1To2 = splitTestDataService.createSegments(lastPoint(switchSegments1), 2)
 
         // Segments that are a part of the second switch + the branching track for switch re-linking to work
-        val (switch2, switchSegments2, turningSegments2) = splitTestDataService.createSwitchAndGeometry(lastPoint(segments1To2))
+        val (switch2, switchSegments2, turningSegments2) =
+            splitTestDataService.createSwitchAndGeometry(lastPoint(segments1To2))
+
         splitTestDataService.insertAsTrack(turningSegments2)
 
         val postSegments = splitTestDataService.createSegments(lastPoint(switchSegments2), 4)
