@@ -139,6 +139,8 @@ class SplitTestUI @Autowired constructor(
             getElementWhenExists(byQaId("start-splitting")).isEnabled,
             "splitting a target track again should be possible after setting the bulk transfer to be completed"
         )
+
+        fakeRatko.stop()
     }
 }
 
