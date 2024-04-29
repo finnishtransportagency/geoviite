@@ -1551,16 +1551,16 @@ class PublicationService @Autowired constructor(
 
         when (constraint) {
             "switch_unique_official_name" -> maybeThrowDuplicateSwitchNameException(detail, exception)
-            "track_number_number_draft_unique" -> maybeThrowDuplicateTrackNumberNumberException(detail, exception)
+            "track_number_number_layout_context_unique" -> maybeThrowDuplicateTrackNumberNumberException(detail, exception)
             "location_track_unique_official_name" -> maybeThrowDuplicateLocationTrackNameException(detail, exception)
         }
         throw exception
     }
 
     private val duplicateLocationTrackErrorRegex =
-        Regex("""Key \(track_number_id, name\)=\((\d+), ([^)]+)\) conflicts with existing key""")
-    private val duplicateTrackNumberErrorRegex = Regex("""Key \(number, draft\)=\(([^)]+), ([tf])\) already exists""")
-    private val duplicateSwitchErrorRegex = Regex("""Key \(name\)=\(([^)]+)\) conflicts with existing key""")
+        Regex("""Key \(track_number_id, name, layout_context_id\)=\((\d+), ([^,]+), [^)]+\) conflicts with existing key""")
+    private val duplicateTrackNumberErrorRegex = Regex("""Key \(number, layout_context_id\)=\(([^,]+), [^)]+\) already exists""")
+    private val duplicateSwitchErrorRegex = Regex("""Key \(name, layout_context_id\)=\(([^,]+), [^)]+\) conflicts with existing key""")
 
     private fun maybeThrowDuplicateLocationTrackNameException(
         detail: String,
