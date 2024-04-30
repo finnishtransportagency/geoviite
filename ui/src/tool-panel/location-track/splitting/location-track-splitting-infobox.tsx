@@ -69,6 +69,7 @@ import { BoundingBox, boundingBoxAroundPoints, multiplyBoundingBox, Point } from
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { validateLocationTrackSwitchRelinking } from 'linking/linking-api';
 import { SwitchRelinkingValidationResult } from 'linking/linking-model';
+import { expectDefined } from 'utils/type-utils';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     layoutContext: LayoutContext;
@@ -420,12 +421,12 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         );
     };
 
-
     const splitComponents = splitsValidated.map((split, index, allSplits) => {
         const endLocation =
             index + 1 < allSplits.length
-                ? allSplits[index + 1].split.location
+                ? expectDefined(allSplits[index + 1]).split.location
                 : splittingState.endLocation;
+
         return createSplitComponent(
             split,
             switches,
