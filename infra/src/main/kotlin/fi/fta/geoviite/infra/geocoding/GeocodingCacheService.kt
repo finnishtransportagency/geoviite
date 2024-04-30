@@ -88,7 +88,7 @@ class GeocodingCacheService(
         logger.daoAccess(AccessType.FETCH, GeocodingContext::class, "cacheKey" to key)
         val trackNumber = trackNumberDao.fetch(key.trackNumberVersion)
         val referenceLine = referenceLineDao.fetch(key.referenceLineVersion)
-        val alignment = referenceLine.getAlignmentVersionOrThrow().let(alignmentDao::fetch)
+        val alignment = alignmentDao.fetch(referenceLine.getAlignmentVersionOrThrow())
         // If the track number is deleted or reference line has no geometry, we cannot geocode.
         if (!trackNumber.exists || alignment.segments.isEmpty()) return null
         val kmPosts = key.kmPostVersions.map(kmPostDao::fetch).sortedBy { post -> post.kmNumber }
