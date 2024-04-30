@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.DatabaseLock.ELEMENT_LIST_GEN
 import fi.fta.geoviite.infra.integration.DatabaseLock.VERTICAL_GEOMETRY_LIST_GEN
 import fi.fta.geoviite.infra.integration.LockDao
+import fi.fta.geoviite.infra.localization.FINNISH_LANG
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -219,13 +220,14 @@ class GeometryService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getElementListingCsv(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): ElementListingFile {
-        logger.serviceCall("getElementListingCsv", "planId" to planId, "elementTypes" to elementTypes)
+    fun getElementListingCsv(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>, lang: String): ElementListingFile {
+        logger.serviceCall("getElementListingCsv", "planId" to planId, "elementTypes" to elementTypes, "lang" to lang)
         val plan = getPlanHeader(planId)
         val elementListing = getElementListing(planId, elementTypes)
+        val translation = localizationService.getLocalization(lang)
 
-        val csvFileContent = planElementListingToCsv(elementListing)
-        return ElementListingFile(FileName("$ELEMENT_LISTING ${plan.fileName}"), csvFileContent)
+        val csvFileContent = planElementListingToCsv(elementListing, translation)
+        return ElementListingFile(FileName("${translation.t("data-products.element-list.element-list-title")} ${plan.fileName}"), csvFileContent)
     }
 
     @Transactional(readOnly = true)
@@ -282,22 +284,26 @@ class GeometryService @Autowired constructor(
         elementTypes: List<TrackGeometryElementType>,
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
+        lang: String,
     ): ElementListingFile {
         logger.serviceCall(
             "getElementListing",
             "trackId" to trackId, "elementTypes" to elementTypes,
             "startAddress" to startAddress, "endAddress" to endAddress,
+            "lang" to lang
         )
         val track = locationTrackService.getOrThrow(OFFICIAL, trackId)
         val elementListing = getElementListing(trackId, elementTypes, startAddress, endAddress)
-        val csvFileContent = locationTrackElementListingToCsv(elementListing)
-        return ElementListingFile(FileName("$ELEMENT_LISTING ${track.name}"), csvFileContent)
+        val translation = localizationService.getLocalization(lang)
+        val csvFileContent = locationTrackElementListingToCsv(elementListing, translation)
+        return ElementListingFile(FileName("${translation.t("data-products.element-list.element-list-title")} ${track.name}"), csvFileContent)
     }
 
     @Scheduled(cron = "\${geoviite.rail-network-export.schedule}")
     @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
     fun makeElementListingCsv() = runElementListGeneration {
         logger.serviceCall("makeElementListingCsv")
+        val translation = localizationService.getLocalization(FINNISH_LANG)
         val geocodingContexts = geocodingService.getGeocodingContexts(OFFICIAL)
         val elementListing = locationTrackService
             .list(OFFICIAL, includeDeleted = false)
@@ -308,12 +314,12 @@ class GeometryService @Autowired constructor(
                 val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrack.id as IntId)
                 getElementListing(locationTrack, alignment, trackNumber, geocodingContexts[locationTrack.trackNumberId])
             }
-        val csvFileContent = locationTrackElementListingToCsv( elementListing)
+        val csvFileContent = locationTrackElementListingToCsv(elementListing, translation)
         val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
 
         elementListingFileDao.upsertElementListingFile(
             ElementListingFile(
-                name = FileName("$ELEMENT_LISTING_ENTIRE_RAIL_NETWORK ${dateFormatter.format(Instant.now())}"),
+                name = FileName("${translation.t("data-products.element-list.element-list-whole-network-title")} ${dateFormatter.format(Instant.now())}"),
                 content = csvFileContent
             )
         )
@@ -333,13 +339,14 @@ class GeometryService @Autowired constructor(
         )
     }
 
-    fun getVerticalGeometryListingCsv(planId: IntId<GeometryPlan>): Pair<FileName, ByteArray> {
+    fun getVerticalGeometryListingCsv(planId: IntId<GeometryPlan>, lang: String): Pair<FileName, ByteArray> {
         logger.serviceCall("getVerticalGeometryListingCsv", "planId" to planId)
         val plan = getPlanHeader(planId)
         val verticalGeometryListing = getVerticalGeometryListing(planId)
+        val translation = localizationService.getLocalization(lang)
 
-        val csvFileContent = planVerticalGeometryListingToCsv(verticalGeometryListing)
-        return FileName("$VERTICAL_GEOMETRY ${plan.fileName}") to csvFileContent.toByteArray()
+        val csvFileContent = planVerticalGeometryListingToCsv(verticalGeometryListing, translation)
+        return FileName("${translation.t("data-products.vertical-geometry.vertical-geometry-title")} ${plan.fileName}") to csvFileContent.toByteArray()
     }
 
     @Transactional(readOnly = true)
@@ -372,6 +379,7 @@ class GeometryService @Autowired constructor(
         locationTrackId: IntId<LocationTrack>,
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
+        lang: String,
     ): Pair<FileName, ByteArray> {
         logger.serviceCall(
             "getVerticalGeometryListingCsv",
@@ -381,9 +389,10 @@ class GeometryService @Autowired constructor(
         )
         val locationTrack = locationTrackService.getOrThrow(OFFICIAL, locationTrackId)
         val verticalGeometryListing = getVerticalGeometryListing(OFFICIAL, locationTrackId, startAddress, endAddress)
+        val translation = localizationService.getLocalization(lang)
 
-        val csvFileContent = locationTrackVerticalGeometryListingToCsv(verticalGeometryListing)
-        return FileName("$VERTICAL_GEOMETRY ${locationTrack.name}") to csvFileContent.toByteArray()
+        val csvFileContent = locationTrackVerticalGeometryListingToCsv(verticalGeometryListing, translation)
+        return FileName("${translation.t("data-products.vertical-geometry.vertical-geometry-title")} ${locationTrack.name}") to csvFileContent.toByteArray()
     }
 
     @Scheduled(cron = "\${geoviite.rail-network-export.vertical-geometry-schedule}")
@@ -408,12 +417,13 @@ class GeometryService @Autowired constructor(
                 }
             }
 
-        val csvFileContent = entireTrackNetworkVerticalGeometryListingToCsv(verticalGeometryListingWithTrackNumbers)
+        val translation = localizationService.getLocalization(FINNISH_LANG)
+        val csvFileContent = entireTrackNetworkVerticalGeometryListingToCsv(verticalGeometryListingWithTrackNumbers, translation)
         val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
 
         verticalGeometryListingFileDao.upsertVerticalGeometryListingFile(
             VerticalGeometryListingFile(
-                name = FileName("$VERTICAL_GEOMETRY_ENTIRE_RAIL_NETWORK ${dateFormatter.format(Instant.now())}"),
+                name = FileName("${translation.t("data-products.vertical-geometry.vertical-geometry-whole-network-title")} ${dateFormatter.format(Instant.now())}"),
                 content = csvFileContent
             )
         )

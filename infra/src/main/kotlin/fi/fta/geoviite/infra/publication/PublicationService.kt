@@ -9,10 +9,9 @@ import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.geocoding.*
 import fi.fta.geoviite.infra.geography.calculateDistance
-import fi.fta.geoviite.infra.geometry.SplitTargetListingHeader
-import fi.fta.geoviite.infra.geometry.translateSplitTargetListingHeader
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.linking.*
+import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -45,34 +44,6 @@ import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-private val splitCsvColumns = listOf(
-    CsvEntry<Pair<LocationTrack, SplitTargetInPublication>>(
-        translateSplitTargetListingHeader(SplitTargetListingHeader.SOURCE_NAME),
-    ) { (lt, _) -> lt.name },
-    CsvEntry(
-        translateSplitTargetListingHeader(SplitTargetListingHeader.SOURCE_OID),
-    ) { (lt, _) -> lt.externalId },
-    CsvEntry(
-        translateSplitTargetListingHeader(SplitTargetListingHeader.TARGET_NAME),
-    ) { (_, split) -> split.name },
-    CsvEntry(
-        translateSplitTargetListingHeader(SplitTargetListingHeader.TARGET_OID),
-    ) { (_, split) -> split.oid },
-    CsvEntry(
-        translateSplitTargetListingHeader(SplitTargetListingHeader.OPERATION),
-    ) { (_, split) -> when (split.operation) {
-        SplitTargetOperation.CREATE -> "Uusi kohde"
-        SplitTargetOperation.OVERWRITE -> "Duplikaatti korvattu"
-        SplitTargetOperation.TRANSFER -> "Kohteet siirretty"
-    } },
-    CsvEntry(
-        translateSplitTargetListingHeader(SplitTargetListingHeader.START_ADDRESS),
-    ) { (_, split) -> split.startAddress },
-    CsvEntry(
-        translateSplitTargetListingHeader(SplitTargetListingHeader.END_ADDRESS),
-    ) { (_, split) -> split.endAddress },
-)
-
 @Service
 class PublicationService @Autowired constructor(
     private val publicationDao: PublicationDao,
@@ -96,8 +67,26 @@ class PublicationService @Autowired constructor(
     private val transactionTemplate: TransactionTemplate,
     private val publicationGeometryChangeRemarksUpdateService: PublicationGeometryChangeRemarksUpdateService,
     private val splitService: SplitService,
+    private val localizationService: LocalizationService
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
+
+    private fun splitCsvColumns(translation: Translation): List<CsvEntry<Pair<LocationTrack, SplitTargetInPublication>>> =
+        mapOf<String, (item: Pair<LocationTrack, SplitTargetInPublication>) -> Any?>(
+            "split-details-csv.source-name" to { (lt, _) -> lt.name },
+            "split-details-csv.source-oid" to { (lt, _) -> lt.externalId },
+            "split-details-csv.target-name" to { (_, split) -> split.name },
+            "split-details-csv.target-oid" to { (_, split) -> split.oid },
+            "split-details-csv.operation" to { (_, split) ->
+                when (split.operation) {
+                    SplitTargetOperation.CREATE -> translation.t("split-details-csv.newly-created")
+                    SplitTargetOperation.OVERWRITE -> translation.t("split-details-csv.replaces-duplicate")
+                    SplitTargetOperation.TRANSFER -> translation.t("split-details-csv.transfers-assets")
+                }
+            },
+            "split-details-csv.start-address" to { (_, split) -> split.startAddress },
+            "split-details-csv.end-address" to { (_, split) -> split.endAddress },
+        ).map { (key, fn) -> CsvEntry(translation.t(key), fn) }
 
     @Transactional(readOnly = true)
     fun collectPublicationCandidates(): PublicationCandidates {
@@ -876,12 +865,14 @@ class PublicationService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getSplitInPublicationCsv(id: IntId<Publication>): Pair<String, AlignmentName?> {
+    fun getSplitInPublicationCsv(id: IntId<Publication>, lang: String): Pair<String, AlignmentName?> {
         logger.serviceCall("getSplitInPublicationCsv", "id" to id)
         return getSplitInPublication(id).let { splitInPublication ->
             val data = splitInPublication?.targetLocationTracks?.map { lt -> splitInPublication.locationTrack to lt }
                 ?: emptyList()
-            printCsv(splitCsvColumns, data) to splitInPublication?.locationTrack?.name
+            printCsv(
+                splitCsvColumns(localizationService.getLocalization(lang)), data
+            ) to splitInPublication?.locationTrack?.name
         }
     }
 

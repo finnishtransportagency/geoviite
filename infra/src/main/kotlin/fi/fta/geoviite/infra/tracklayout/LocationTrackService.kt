@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.START_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.TopologyLinkFindingSwitch
+import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
@@ -37,9 +38,6 @@ import java.time.Instant
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
 
-const val BUFFER_TRANSLATION = "Puskin"
-const val OWNERSHIP_BOUNDARY_TRANSLATION = "Omistusraja"
-
 @Service
 class LocationTrackService(
     locationTrackDao: LocationTrackDao,
@@ -50,6 +48,7 @@ class LocationTrackService(
     private val switchLibraryService: SwitchLibraryService,
     private val splitDao: SplitDao,
     private val ratkoOperatingPointDao: RatkoOperatingPointDao,
+    private val localizationService: LocalizationService,
 ) : LayoutAssetService<LocationTrack, LocationTrackDao>(locationTrackDao) {
 
     @Transactional
@@ -372,7 +371,7 @@ class LocationTrackService(
         else alignment.segments.lastOrNull()?.switchId as IntId?
 
     @Transactional(readOnly = true)
-    fun getFullDescription(publicationState: PublicationState, locationTrack: LocationTrack): FreeText {
+    fun getFullDescription(publicationState: PublicationState, locationTrack: LocationTrack, lang: String): FreeText {
         val alignmentVersion = locationTrack.alignmentVersion
         val (startSwitch, endSwitch) = alignmentVersion?.let {
             val alignment = alignmentDao.fetch(alignmentVersion)
@@ -386,12 +385,13 @@ class LocationTrackService(
 
         val startSwitchName = startSwitch?.let(::getSwitchShortName)
         val endSwitchName = endSwitch?.let(::getSwitchShortName)
+        val translation = localizationService.getLocalization(lang)
 
         return when (locationTrack.descriptionSuffix) {
             DescriptionSuffixType.NONE -> locationTrack.descriptionBase
 
             DescriptionSuffixType.SWITCH_TO_BUFFER -> FreeText(
-                "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - $BUFFER_TRANSLATION"
+                "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.buffer")}"
             )
 
             DescriptionSuffixType.SWITCH_TO_SWITCH -> FreeText(
@@ -399,7 +399,7 @@ class LocationTrackService(
             )
 
             DescriptionSuffixType.SWITCH_TO_OWNERSHIP_BOUNDARY -> FreeText(
-                "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - $OWNERSHIP_BOUNDARY_TRANSLATION"
+                "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.ownership-boundary")}"
             )
         }
     }

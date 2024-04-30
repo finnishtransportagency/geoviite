@@ -136,17 +136,19 @@ class LayoutTrackNumberController(
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
         @RequestParam("startKmNumber") startKmNumber: KmNumber? = null,
         @RequestParam("endKmNumber") endKmNumber: KmNumber? = null,
+        @RequestParam("lang") lang: String,
     ): ResponseEntity<ByteArray> {
         logger.apiCall(
             "getTrackNumberKmLengthsAsCsv",
             "$PUBLICATION_STATE" to publicationState,
             "id" to id,
             "startKmNumber" to startKmNumber,
-            "endKmNumber" to endKmNumber
+            "endKmNumber" to endKmNumber,
+            "lang" to lang
         )
 
         val csv = trackNumberService.getKmLengthsAsCsv(
-            publicationState = publicationState, trackNumberId = id, startKmNumber = startKmNumber, endKmNumber = endKmNumber
+            publicationState = publicationState, trackNumberId = id, startKmNumber = startKmNumber, endKmNumber = endKmNumber, lang = lang
         )
 
         val trackNumber = trackNumberService.getOrThrow(publicationState, id)
@@ -165,6 +167,7 @@ class LayoutTrackNumberController(
         val csv = trackNumberService.getAllKmLengthsAsCsv(
             publicationState = OFFICIAL,
             trackNumberIds = trackNumberService.list(OFFICIAL).map { tn -> tn.id as IntId },
+            lang
         )
 
         val localization = localizationService.getLocalization(lang)

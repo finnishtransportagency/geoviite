@@ -148,7 +148,8 @@ export async function getGeometryPlanElements(
 export const getGeometryPlanElementsCsv = (
     planId: GeometryPlanId,
     elementTypes: GeometryTypeIncludingMissing[],
-) => `${GEOMETRY_URI}/plans/${planId}/element-listing/file${queryParams({ elementTypes })}`;
+) =>
+    `${GEOMETRY_URI}/plans/${planId}/element-listing/file${queryParams({ elementTypes, lang: i18next.language })}`;
 
 export const getEntireRailNetworkElementsCsvUrl = () =>
     `${GEOMETRY_URI}/rail-network/element-listing/file`;
@@ -210,12 +211,13 @@ export const getLocationTrackVerticalGeometryCsv = (
     const params = queryParams({
         startAddress: startAddress,
         endAddress: endAddress,
+        lang: i18next.language,
     });
     return `${GEOMETRY_URI}/layout/location-tracks/${trackId}/vertical-geometry/file${params}`;
 };
 
 export const getGeometryPlanVerticalGeometryCsv = (planId: GeometryPlanId) =>
-    `${GEOMETRY_URI}/plans/${planId}/vertical-geometry/file`;
+    `${GEOMETRY_URI}/plans/${planId}/vertical-geometry/file${queryParams({ lang: i18next.language })}`;
 
 export const getEntireRailNetworkVerticalGeometryCsvUrl = () =>
     `${GEOMETRY_URI}/rail-network/vertical-geometry/file`;
@@ -230,6 +232,7 @@ export const getLocationTrackElementsCsv = (
         elementTypes,
         startAddress,
         endAddress,
+        lang: i18next.language,
     });
     return `${GEOMETRY_URI}/layout/location-tracks/${locationTrackId}/element-listing/file${searchQueryParameters}`;
 };

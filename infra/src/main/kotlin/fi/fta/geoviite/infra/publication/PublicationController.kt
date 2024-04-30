@@ -215,10 +215,10 @@ class PublicationController @Autowired constructor(
 
     @PreAuthorize(AUTH_DOWNLOAD_PUBLICATION)
     @GetMapping("/{id}/split-details/csv")
-    fun getSplitDetailsAsCsv(@PathVariable("id") id: IntId<Publication>): ResponseEntity<ByteArray> {
+    fun getSplitDetailsAsCsv(@PathVariable("id") id: IntId<Publication>, @RequestParam("lang") lang: String): ResponseEntity<ByteArray> {
         logger.apiCall("getSplitDetailsAsCsv", "id" to id)
         return publicationService
-            .getSplitInPublicationCsv(id)
+            .getSplitInPublicationCsv(id, lang)
             .let { (csv, ltName) -> getCsvResponseEntity(csv, FileName("Raiteen jakaminen $ltName.csv")) }
     }
 }
