@@ -11,15 +11,7 @@ import fi.fta.geoviite.infra.geometry.PlanLayoutService
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.map.MapAlignmentType
-import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
-import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
-import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
-import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -88,7 +80,8 @@ class GeocodingCacheService(
         logger.daoAccess(AccessType.FETCH, GeocodingContext::class, "cacheKey" to key)
         val trackNumber = trackNumberDao.fetch(key.trackNumberVersion)
         val referenceLine = referenceLineDao.fetch(key.referenceLineVersion)
-        val alignment = alignmentDao.fetch(referenceLine.getAlignmentVersionOrThrow())
+        val alignment = referenceLine.alignmentVersion?.let(alignmentDao::fetch)
+            ?: throw IllegalStateException("DB ReferenceLine should have an alignment")
         // If the track number is deleted or reference line has no geometry, we cannot geocode.
         if (!trackNumber.exists || alignment.segments.isEmpty()) return null
         val kmPosts = key.kmPostVersions.map(kmPostDao::fetch).sortedBy { post -> post.kmNumber }
