@@ -74,6 +74,8 @@ class LayoutTrackNumberDao(
               tn.id as row_id,
               tn.version as row_version,
               tn.official_row_id,
+              tn.design_row_id,
+              tn.design_id,
               tn.draft,
               tn.external_id,
               tn.number,
@@ -104,7 +106,9 @@ class LayoutTrackNumberDao(
             select distinct on (tn.id)
               tn.id as row_id,
               tn.version as row_version,
-              tn.official_row_id, 
+              tn.official_row_id,
+              tn.design_row_id,
+              tn.design_id,
               tn.draft,
               tn.external_id, 
               tn.number, 
@@ -129,7 +133,7 @@ class LayoutTrackNumberDao(
         version = rs.getRowVersion("row_id", "row_version"),
         // TODO: GVT-2442 This should be non-null but we have a lot of tests that produce broken data
         referenceLineId = rs.getIntIdOrNull("reference_line_id"),
-        contextData = rs.getLayoutContextData("official_row_id", "row_id", "draft"),
+        contextData = rs.getLayoutContextData("official_row_id", "design_row_id", "design_id", "row_id", "draft"),
     )
 
     @Transactional
@@ -141,7 +145,9 @@ class LayoutTrackNumberDao(
               description, 
               state, 
               draft, 
-              official_row_id
+              official_row_id,
+              design_row_id,
+              design_id
             ) 
             values (
               :external_id, 
@@ -149,7 +155,9 @@ class LayoutTrackNumberDao(
               :description, 
               :state::layout.state,
               :draft, 
-              :official_row_id
+              :official_row_id,
+              :design_row_id,
+              :design_id
             ) 
             returning 
               coalesce(official_row_id, id) as official_id,
@@ -163,6 +171,8 @@ class LayoutTrackNumberDao(
             "state" to newItem.state.name,
             "draft" to newItem.isDraft,
             "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
+            "design_row_id" to newItem.contextData.designRowId?.let(::toDbId)?.intValue,
+            "design_id" to newItem.contextData.designId?.let(::toDbId)?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
@@ -182,7 +192,9 @@ class LayoutTrackNumberDao(
               description = :description,
               state = :state::layout.state,
               draft = :draft,
-              official_row_id = :official_row_id
+              official_row_id = :official_row_id,
+              design_row_id = :design_row_id,
+              design_id = :design_id
             where id = :id
             returning 
               coalesce(official_row_id, id) as official_id,
@@ -197,6 +209,8 @@ class LayoutTrackNumberDao(
             "state" to updatedItem.state.name,
             "draft" to updatedItem.isDraft,
             "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
+            "design_row_id" to updatedItem.contextData.designRowId?.let(::toDbId)?.intValue,
+            "design_id" to updatedItem.contextData.designId?.let(::toDbId)?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
