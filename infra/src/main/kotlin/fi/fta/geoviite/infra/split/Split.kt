@@ -47,11 +47,17 @@ data class Split(
     val relinkedSwitches: List<IntId<TrackLayoutSwitch>>,
     val updatedDuplicates: List<IntId<LocationTrack>>,
 ) {
+    init {
+        if (publicationId != null) {
+            require(id == rowVersion.id) { "Split source row version must refer to official row, once published" }
+        }
+        if (publicationId == null) {
+            require(bulkTransferState == BulkTransferState.PENDING) { "Split must be pending if not published" }
+        }
+    }
+
     @get:JsonIgnore
     val locationTracks by lazy { targetLocationTracks.map { it.locationTrackId } + sourceLocationTrackId }
-
-    @JsonIgnore
-    val isPending: Boolean = bulkTransferState == BulkTransferState.PENDING && publicationId == null
 
     @JsonIgnore
     val isPublishedAndWaitingTransfer: Boolean = bulkTransferState != BulkTransferState.DONE && publicationId != null

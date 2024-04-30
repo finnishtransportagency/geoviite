@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.DaoBase
+import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdArray
@@ -294,6 +295,8 @@ class SplitDao(
             logger.daoAccess(AccessType.FETCH, SplitTarget::class, ids.map { it.id })
         }
     }
+
+    fun fetchChangeTime() = fetchLatestChangeTime(DbTable.PUBLICATION_SPLIT)
 
     fun fetchSplitIdByPublication(publicationId: IntId<Publication>): IntId<Split>? {
         val sql = "select id from publication.split where publication_id = :publication_id"

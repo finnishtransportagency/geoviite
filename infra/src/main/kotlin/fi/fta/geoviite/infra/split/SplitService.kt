@@ -78,9 +78,13 @@ class SplitService(
         locationTrackIds: List<IntId<LocationTrack>>? = null,
         switchIds: List<IntId<TrackLayoutSwitch>>? = null,
     ): List<Split> = splitDao.fetchUnfinishedSplits().filter { split ->
-        val containsTrack = locationTrackIds?.any(split::containsLocationTrack) ?: true
-        val containsSwitch = switchIds?.any(split::containsSwitch) ?: true
-        containsTrack || containsSwitch
+        val containsTrack = locationTrackIds?.any(split::containsLocationTrack)
+        val containsSwitch = switchIds?.any(split::containsSwitch)
+        if (containsTrack != null && containsSwitch != null) {
+            containsTrack || containsSwitch
+        } else {
+            containsTrack ?: containsSwitch ?: true
+        }
     }
 
     fun fetchPublicationVersions(
@@ -211,7 +215,7 @@ class SplitService(
         // - The above status check will not allow draft tracks to be involved in published pending splits
         // - Published DONE splits don't matter and shouldn't affect future changes
         // - Changes to the geocoding context are blocked for any tracks associated with a split
-        val draftSplits = splits.filter { (split, _) -> split.publicationId != null }
+        val draftSplits = splits.filter { (split, _) -> split.publicationId == null }
 
         val trackNumberMismatchErrors = draftSplits.mapNotNull { (split, sourceTrack) ->
             produceIf(split.containsTargetTrack(trackId)) {
@@ -347,10 +351,12 @@ class SplitService(
             .map { duplicateTrack -> duplicateTrack.id as IntId }
 
         val sourceTrack = locationTrackDao.getOrThrow(DRAFT, request.sourceTrackId)
-        if (sourceTrack.state != LocationTrackState.IN_USE) throw SplitFailureException(
-            message = "Source track state is not IN_USE: id=${sourceTrack.id}",
-            localizedMessageKey = "source-track-state-not-in-use",
-        )
+        if (sourceTrack.state != LocationTrackState.IN_USE) {
+            throw SplitFailureException(
+                message = "Source track state is not IN_USE: id=${sourceTrack.id}",
+                localizedMessageKey = "source-track-state-not-in-use",
+            )
+        }
 
         val suggestions = verifySwitchSuggestions(switchLinkingService.getTrackSwitchSuggestions(DRAFT, sourceTrack))
         val relinkedSwitches = switchLinkingService.relinkTrack(request.sourceTrackId).map { it.id }
@@ -682,8 +688,9 @@ private fun throwSwitchSegmentMappingFailure(alignment: LayoutAlignment, switch:
 
 private fun findIndex(alignment: LayoutAlignment, switchId: IntId<TrackLayoutSwitch>, joint: JointNumber): Int {
     alignment.segments.forEachIndexed { index, segment ->
-        if (segment.switchId == switchId && segment.startJointNumber == joint) return index
-        else if (segment.switchId == switchId && segment.endJointNumber == joint) return index + 1
+        if (segment.switchId == switchId && segment.startJointNumber == joint) {
+            return index
+        } else if (segment.switchId == switchId && segment.endJointNumber == joint) return index + 1
     }
     return -1
 }

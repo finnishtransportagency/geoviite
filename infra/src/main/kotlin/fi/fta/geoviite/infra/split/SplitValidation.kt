@@ -57,7 +57,7 @@ internal fun validateSplitContent(
     }
 
     val contentErrors = splits
-        .filter { it.isPending }
+        .filter { split -> split.publicationId == null }
         .flatMap { split ->
             val containsSource = trackVersions.any { it.officialId == split.sourceLocationTrackId }
             val containsTargets = split.targetLocationTracks.all { tlt ->
