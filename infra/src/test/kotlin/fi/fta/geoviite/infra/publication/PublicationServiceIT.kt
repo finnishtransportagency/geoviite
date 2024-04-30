@@ -3220,8 +3220,8 @@ class PublicationServiceIT @Autowired constructor(
     fun `Publication group should be set for assets related to a split`() {
         (1..4).forEach { testIndex ->
             val testData = insertPublicationGroupTestData()
-            val splits = splitService.findUnfinishedSplitsForLocationTracks(
-                listOf(testData.sourceLocationTrackId)
+            val splits = splitService.findUnfinishedSplits(
+                locationTrackIds = listOf(testData.sourceLocationTrackId)
             )
 
             assertEquals(1, splits.size)

@@ -542,7 +542,7 @@ class PublicationService @Autowired constructor(
         publicationDao.insertCalculatedChanges(publicationId, calculatedChanges)
         publicationGeometryChangeRemarksUpdateService.processPublication(publicationId)
 
-        splitService.publishSplit(locationTracks, publicationId, versions.splits)
+        splitService.publishSplit(versions.splits, locationTracks, publicationId)
 
         return PublicationResult(
             publicationId = publicationId,

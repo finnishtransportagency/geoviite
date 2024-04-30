@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.error.SplitFailureException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
@@ -41,6 +42,7 @@ import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.produceIf
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -66,68 +68,54 @@ class SplitService(
         return splitDao.fetchChangeTime()
     }
 
-    fun findPendingSplitsForLocationTracks(locationTracks: Collection<IntId<LocationTrack>>) =
-        findUnfinishedSplitsForLocationTracks(locationTracks).filter { it.isPending }
+    fun findUnpublishedSplits(
+        locationTrackIds: List<IntId<LocationTrack>>? = null,
+        switchIds: List<IntId<TrackLayoutSwitch>>? = null,
+    ): List<Split> = findUnfinishedSplits(locationTrackIds, switchIds)
+        .filter { split -> split.publicationId == null }
 
-    // TODO: GVT-2524 cleanup these split-fetch functions
-//    fun findUnpublishedSplitsForLocationTracks(locationTracks: Collection<IntId<LocationTrack>>): List<Split> {
-//        logger.serviceCall("findUnpublishedSplitsForLocationTracks", "locationTracks" to locationTracks)
-//        return findUnfinishedSplitsForLocationTracks(locationTracks)
-//            .filter { split -> split.publicationId == null }
-//    }
-//
-    fun findUnfinishedSplitsForLocationTracks(locationTracks: Collection<IntId<LocationTrack>>): List<Split> {
-        logger.serviceCall("findUnfinishedSplitsForLocationTracks", "locationTracks" to locationTracks)
-
-        return splitDao
-            .fetchUnfinishedSplits()
-            .filter { split -> locationTracks.any { lt -> split.containsLocationTrack(lt) } }
+    fun findUnfinishedSplits(
+        locationTrackIds: List<IntId<LocationTrack>>? = null,
+        switchIds: List<IntId<TrackLayoutSwitch>>? = null,
+    ): List<Split> = splitDao.fetchUnfinishedSplits().filter { split ->
+        val containsTrack = locationTrackIds?.any(split::containsLocationTrack) ?: true
+        val containsSwitch = switchIds?.any(split::containsSwitch) ?: true
+        containsTrack || containsSwitch
     }
 
-//    fun findUnpublishedSplitsForSwitches(switches: Collection<IntId<TrackLayoutSwitch>>): List<Split> {
-//        logger.serviceCall("findUnpublishedSplitsForSwitches", "switches" to switches)
-//        return findUnfinishedSplitsForSwitches(switches)
-//            .filter { split -> split.publicationId == null }
-//    }
-//
-    fun findUnfinishedSplitsForSwitches(switches: Collection<IntId<TrackLayoutSwitch>>): List<Split> {
-        logger.serviceCall("findUnfinishedSplitsForSwitches", "switches" to switches)
-
-        return splitDao.fetchUnfinishedSplits().filter { split ->
-            switches.any { s -> split.containsSwitch(s) }
-        }
-    }
+    fun fetchPublicationVersions(
+        locationTracks: List<IntId<LocationTrack>>,
+        switches: List<IntId<TrackLayoutSwitch>>,
+    ): List<ValidationVersion<Split>> = findUnpublishedSplits(locationTracks, switches)
+        .map { split -> ValidationVersion(split.id, split.rowVersion) }
 
     @Transactional
     fun publishSplit(
+        validatedSplitVersions: List<ValidationVersion<Split>>,
         locationTracks: Collection<DaoResponse<LocationTrack>>,
         publicationId: IntId<Publication>,
-        validatedSplitVersions: List<ValidationVersion<Split>>,
     ): List<RowVersion<Split>> {
         logger.serviceCall("publishSplit", "locationTracks" to locationTracks, "publicationId" to publicationId)
-        require(validatedSplitVersions.size <= 1) {
-            "Cannot have more than one split in a single publication: splits=$validatedSplitVersions"
-        }
-        // TODO: GVT-2524 prettify
-        return findPendingSplitsForLocationTracks(locationTracks.map { v -> v.id }.distinct())
-            .map { split ->
-                val track = requireNotNull(locationTracks.find { t -> t.id == split.sourceLocationTrackId }) {
-                    "Source track must be part of the same publication as the split: split=$split"
-                }
-                val validatedSplit = requireNotNull(validatedSplitVersions.find { s -> s.officialId == split.id }) {
-                    "Split must be validated before publication: split=$split"
-                }
-                splitDao.updateSplit(
-                    splitId = split.id,
-                    publicationId = publicationId,
-                    sourceTrackVersion = track.rowVersion,
-                ).also { updatedVersion ->
-                    // Sanity-check the version for conflicting update, though this should not be possible
-                    require (updatedVersion.version == validatedSplit.validatedAssetVersion.version + 1) {
-                        "Conflict: Split version has changed between validation and publication: split=${split.id}"
-                    }
+        return validatedSplitVersions.map { splitVersion ->
+            val split = splitDao.getOrThrow(splitVersion.officialId)
+            val track = requireNotNull(locationTracks.find { t -> t.id == split.sourceLocationTrackId }) {
+                "Source track must be part of the same publication as the split: split=$split"
+            }
+            splitDao.updateSplit(
+                splitId = split.id,
+                publicationId = publicationId,
+                sourceTrackVersion = track.rowVersion,
+            ).also { updatedVersion ->
+                // Sanity-check the version for conflicting update, though this should not be possible
+                if (updatedVersion.version != splitVersion.validatedAssetVersion.version + 1) {
+                    throw PublicationFailureException(
+                        message = "Split version has changed between validation and publication: split=${split.id}",
+                        localizedMessageKey = "split-version-changed",
+                        status = HttpStatus.CONFLICT,
+                    )
                 }
             }
+        }
     }
 
     @Transactional
@@ -411,23 +399,6 @@ class SplitService(
                 splitDao.saveSplit(savedSource.rowVersion, splitTargets, relinkedSwitches, sourceTrackDuplicateIds)
             }
     }
-
-    fun fetchPublicationVersions(
-        locationTracks: List<IntId<LocationTrack>>,
-        switches: List<IntId<TrackLayoutSwitch>>,
-    ): List<ValidationVersion<Split>> = findUnpublishedSplits(locationTracks, switches)
-        .map { split -> ValidationVersion(split.id, split.rowVersion) }
-
-    fun findUnpublishedSplits(): List<Split> = findUnfinishedSplits()
-        .filter { split -> split.publicationId == null }
-
-    fun findUnfinishedSplits(): List<Split> = splitDao.fetchUnfinishedSplits()
-
-    fun findUnpublishedSplits(
-        locationTracks: List<IntId<LocationTrack>>,
-        switches: List<IntId<TrackLayoutSwitch>>,
-    ): List<Split> = findUnpublishedSplits()
-        .filter { split -> (locationTracks.any(split::containsLocationTrack) || switches.any(split::containsSwitch)) }
 
     private fun updateUnusedDuplicateReferencesToSplitTargetTracks(
         geocodingContext: GeocodingContext,

@@ -342,7 +342,7 @@ class SplitServiceIT @Autowired constructor(
         val splitId = insertSplitWithTwoTracks()
         val split = splitDao.getOrThrow(splitId)
 
-        val foundSplits = splitService.findUnfinishedSplitsForLocationTracks(listOf(split.sourceLocationTrackId))
+        val foundSplits = splitService.findUnfinishedSplits(locationTrackIds = listOf(split.sourceLocationTrackId))
 
         assertEquals(splitId, foundSplits.first().id)
     }
@@ -352,8 +352,8 @@ class SplitServiceIT @Autowired constructor(
         val splitId = insertSplitWithTwoTracks()
         val split = splitDao.getOrThrow(splitId)
 
-        val foundSplits = splitService.findUnfinishedSplitsForLocationTracks(
-            listOf(split.targetLocationTracks.first().locationTrackId)
+        val foundSplits = splitService.findUnfinishedSplits(
+            locationTrackIds = listOf(split.targetLocationTracks.first().locationTrackId)
         )
 
         assertEquals(splitId, foundSplits.first().id)
@@ -364,7 +364,7 @@ class SplitServiceIT @Autowired constructor(
         val splitId = insertSplitWithTwoTracks()
         val split = splitDao.getOrThrow(splitId)
 
-        val foundSplits = splitService.findUnfinishedSplitsForSwitches(split.relinkedSwitches)
+        val foundSplits = splitService.findUnfinishedSplits(switchIds = split.relinkedSwitches)
 
         assertEquals(splitId, foundSplits.first().id)
     }

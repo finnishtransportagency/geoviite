@@ -29,7 +29,8 @@
                 "location-track": "Julkaisussa on useammalla sijaintiraiteella sama nimi {{locationTrack}} (ratanumerolla {{trackNumber}})",
                 "switch": "Julkaisussa on useammalla vaihteella sama nimi {{name}}",
                 "track-number": "Julkaisussa on useammalla radalla sama ratanumero {{name}}"
-            }
+            },
+            "split-version-changed": "Raiteen jakamista ei voitu julkaista, koska sitä muokattiin yhtä aikaa"
         },
         "input": {
             "generic": "Tarkasta syötekentät ja yritä uudestaan",
@@ -1363,7 +1364,7 @@
                 "geometry-changed": "Jaettavan raiteen geometria on muuttunut",
                 "transfer-geometry-changed": "Säilytettävän osittaisen duplikaatin osoitteisto eroaa yli metrin jaettavasta raiteesta",
                 "trackmeters-changed": "Jaetun raiteen geometria ei sisällä samoja tasametripisteitä",
-                "no-geometry": "Raiteella ei ole geometriaa"
+                "no-geometry": "Raiteella ei ole geometriaa",
             }
         }
     },
