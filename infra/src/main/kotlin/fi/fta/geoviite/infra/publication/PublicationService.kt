@@ -71,33 +71,22 @@ class PublicationService @Autowired constructor(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    private fun splitCsvColumns(translation: Translation) = listOf(
-        CsvEntry<Pair<LocationTrack, SplitTargetInPublication>>(
-            translation.t("split-details-csv.source-name"),
-        ) { (lt, _) -> lt.name },
-        CsvEntry(
-            translation.t("split-details-csv.source-oid"),
-        ) { (lt, _) -> lt.externalId },
-        CsvEntry(
-            translation.t("split-details-csv.target-name"),
-        ) { (_, split) -> split.name },
-        CsvEntry(
-            translation.t("split-details-csv.target-oid"),
-        ) { (_, split) -> split.oid },
-        CsvEntry(
-            translation.t("split-details-csv.operation"),
-        ) { (_, split) -> when (split.operation) {
-            SplitTargetOperation.CREATE -> translation.t("split-details-csv.newly-created")
-            SplitTargetOperation.OVERWRITE -> translation.t("split-details-csv.replaces-duplicate")
-            SplitTargetOperation.TRANSFER -> translation.t("split-details-csv.transfers-assets")
-        } },
-        CsvEntry(
-            translation.t("split-details-csv.start-address"),
-        ) { (_, split) -> split.startAddress },
-        CsvEntry(
-            translation.t("split-details-csv.end-address"),
-        ) { (_, split) -> split.endAddress },
-    )
+    private fun splitCsvColumns(translation: Translation): List<CsvEntry<Pair<LocationTrack, SplitTargetInPublication>>> =
+        mapOf<String, (item: Pair<LocationTrack, SplitTargetInPublication>) -> Any?>(
+            "split-details-csv.source-name" to { (lt, _) -> lt.name },
+            "split-details-csv.source-oid" to { (lt, _) -> lt.externalId },
+            "split-details-csv.target-name" to { (_, split) -> split.name },
+            "split-details-csv.target-oid" to { (_, split) -> split.oid },
+            "split-details-csv.operation" to { (_, split) ->
+                when (split.operation) {
+                    SplitTargetOperation.CREATE -> translation.t("split-details-csv.newly-created")
+                    SplitTargetOperation.OVERWRITE -> translation.t("split-details-csv.replaces-duplicate")
+                    SplitTargetOperation.TRANSFER -> translation.t("split-details-csv.transfers-assets")
+                }
+            },
+            "split-details-csv.start-address" to { (_, split) -> split.startAddress },
+            "split-details-csv.end-address" to { (_, split) -> split.endAddress },
+        ).map { (key, fn) -> CsvEntry(translation.t(key), fn) }
 
     @Transactional(readOnly = true)
     fun collectPublicationCandidates(): PublicationCandidates {

@@ -243,48 +243,49 @@ private fun trackNumberCsvEntry(translation: Translation) =
         it.trackNumber
     }
 
-private fun commonElementListingCsvEntries(translation: Translation) = arrayOf(
-    CsvEntry<ElementListing>(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.plan-track")) { it.alignmentName },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.element-type")) {
-        translateTrackGeometryElementType(
-            it.elementType,
-            translation
+private fun commonElementListingCsvEntries(translation: Translation): List<CsvEntry<ElementListing>> =
+    mapOf<String, (item: ElementListing) -> Any?>("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.plan-track" to { it.alignmentName },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.element-type" to {
+            translateTrackGeometryElementType(
+                it.elementType, translation
+            )
+        },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.track-address-start" to {
+            it.start.address?.let { address ->
+                formatTrackMeter(
+                    address.kmNumber, address.meters
+                )
+            }
+        },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.track-address-end" to {
+            it.end.address?.let { address ->
+                formatTrackMeter(
+                    address.kmNumber, address.meters
+                )
+            }
+        },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.crs" to {
+            it.coordinateSystemSrid ?: it.coordinateSystemName
+        },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-start-e" to { it.start.coordinate.roundedX.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-start-n" to { it.start.coordinate.roundedY.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-end-e" to { it.end.coordinate.roundedX.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-end-n" to { it.end.coordinate.roundedY.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.length" to { it.lengthMeters },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.radius-start" to { it.start.radiusMeters?.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.radius-end" to { it.end.radiusMeters?.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.cant-start" to { it.start.cant?.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.cant-end" to { it.end.cant?.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.direction-start" to { it.start.directionGrads.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.direction-end" to { it.end.directionGrads.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.plan-name" to { it.fileName },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.plan-source" to { it.planSource },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.remarks" to { remarks(it, translation) }).map { (key, fn) ->
+        CsvEntry(
+            translation.t(key),
+            fn
         )
-    },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.track-address-start")) {
-        it.start.address?.let { address ->
-            formatTrackMeter(
-                address.kmNumber,
-                address.meters
-            )
-        }
-    },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.track-address-end")) {
-        it.end.address?.let { address ->
-            formatTrackMeter(
-                address.kmNumber,
-                address.meters
-            )
-        }
-    },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.crs")) {
-        it.coordinateSystemSrid ?: it.coordinateSystemName
-    },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-start-e")) { it.start.coordinate.roundedX.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-start-n")) { it.start.coordinate.roundedY.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-end-e")) { it.end.coordinate.roundedX.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-end-n")) { it.end.coordinate.roundedY.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.length")) { it.lengthMeters },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.radius-start")) { it.start.radiusMeters?.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.radius-end")) { it.end.radiusMeters?.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.cant-start")) { it.start.cant?.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.cant-end")) { it.end.cant?.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.direction-start")) { it.start.directionGrads.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.direction-end")) { it.end.directionGrads.toPlainString() },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.plan-name")) { it.fileName },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.plan-source")) { it.planSource },
-    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.remarks")) { remarks(it, translation) }
-)
+    }
 
 fun translateTrackGeometryElementType(type: TrackGeometryElementType, translation: Translation) =
     when (type) {
@@ -298,13 +299,11 @@ fun translateTrackGeometryElementType(type: TrackGeometryElementType, translatio
 fun locationTrackCsvEntries(translation: Translation) = listOf(
     trackNumberCsvEntry(translation),
     CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-track")) { it.locationTrackName },
-    *commonElementListingCsvEntries(translation)
-)
+) + commonElementListingCsvEntries(translation)
 
 fun planCsvEntries(translation: Translation) = listOf(
-    trackNumberCsvEntry(translation),
-    *commonElementListingCsvEntries(translation)
-)
+    trackNumberCsvEntry(translation)
+) + commonElementListingCsvEntries(translation)
 
 private fun remarks(elementListing: ElementListing, translation: Translation) =
     listOfNotNull(
