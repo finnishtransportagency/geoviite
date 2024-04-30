@@ -4,10 +4,15 @@
         "outDir": "./dist/",
         "sourceMap": true,
         "noImplicitAny": true,
-        // TODO: Turn this back on in GVT-2510
-        // "noUncheckedIndexedAccess": true,
+        "noUncheckedIndexedAccess": true,
         "module": "commonjs",
-        "lib": ["DOM", "ES6", "DOM.Iterable", "ScriptHost", "ES2019.array"],
+        "lib": [
+            "DOM",
+            "ES6",
+            "DOM.Iterable",
+            "ScriptHost",
+            "ES2019.array"
+        ],
         "target": "es5",
         "jsx": "react",
         "strictNullChecks": true,
@@ -15,8 +20,13 @@
         "downlevelIteration": true,
         "baseUrl": "./",
         "paths": {
-            "*": ["./src/*"]
+            "*": [
+                "./src/*"
+            ]
         }
     },
-    "include": ["./src/**/*", "index.d.ts"]
+    "include": [
+        "./src/**/*",
+        "index.d.ts"
+    ]
 }

@@ -7,7 +7,8 @@
         "start": "webpack serve --mode development --env development",
         "build": "webpack --mode production",
         "test": "echo \"Error: no test specified\" && exit 1",
-        "lint": "eslint 'src/**/*.{js,ts,tsx}' --quiet --fix"
+        "lint": "eslint 'src/**/*.{js,ts,tsx}' --quiet --fix",
+        "scss": "typed-scss-modules --implementation sass src --nameFormat none --exportType default --updateStaleOnly --logLevel error"
     },
     "license": "EUPL-1.2",
     "devDependencies": {
@@ -42,6 +43,7 @@
         "ts-jest": "~29.1.1",
         "ts-loader": "~9.5.1",
         "ts-node": "~10.9.1",
+        "typed-scss-modules": "^8.0.1",
         "typescript": "~5.3.3",
         "webpack": "~5.90.3",
         "webpack-cli": "~5.1.4",

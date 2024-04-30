@@ -152,7 +152,7 @@ export function suggestedSwitchTopoLinksAsTopologicalJointConnections(
             .filter(filterNotEmpty)
             .reduce<{ [key in JointNumber]: LocationTrackId[] }>((acc, [jointNumber, id]) => {
                 acc[jointNumber] ||= [];
-                acc[jointNumber].push(id);
+                expectDefined(acc[jointNumber]).push(id);
                 return acc;
             }, {}),
     ).map(([jointNumber, locationTrackIds]) => ({ jointNumber, locationTrackIds }));
@@ -166,26 +166,23 @@ export function combineLocationTrackIds(
     }
 
     return Object.values(
-        locationTracks.flat().reduce(
-            (acc, locationTrack) => {
-                const jointNumber = locationTrack.jointNumber;
+        locationTracks.flat().reduce((acc, locationTrack) => {
+            const jointNumber = locationTrack.jointNumber;
 
-                if (acc[jointNumber]) {
-                    acc[jointNumber] = {
-                        jointNumber: jointNumber,
-                        locationTrackIds: expectDefined(
-                            acc[jointNumber]?.locationTrackIds
-                                .concat(locationTrack.locationTrackIds)
-                                .filter(filterUnique),
-                        ),
-                    };
-                } else {
-                    acc[jointNumber] = locationTrack;
-                }
+            if (acc[jointNumber]) {
+                acc[jointNumber] = {
+                    jointNumber: jointNumber,
+                    locationTrackIds: expectDefined(
+                        acc[jointNumber]?.locationTrackIds
+                            .concat(locationTrack.locationTrackIds)
+                            .filter(filterUnique),
+                    ),
+                };
+            } else {
+                acc[jointNumber] = locationTrack;
+            }
 
-                return acc;
-            },
-            {} as { [key: JointNumber]: LocationTracksEndingAtJoint },
-        ),
+            return acc;
+        }, {} as { [key: JointNumber]: LocationTracksEndingAtJoint }),
     );
 }

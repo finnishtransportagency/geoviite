@@ -1,5 +1,5 @@
 @use 'vayla-design-lib' as vayla-design;
-@use 'react-widgets/styles';
+@use '../../../node_modules/react-widgets/styles';
 
 .infra-model-list {
     display: flex;
