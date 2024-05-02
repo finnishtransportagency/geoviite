@@ -687,8 +687,8 @@
                     "publish-duplicate": "Julkaise tai hylkää duplikaattiraiteen muutokset ja yritä jakamista sitten uudestaan.",
                     "has-errors": "Tiedoissa on virheitä",
                     "show": "näytä",
-                    "affected-split-in-progress": "Muutos voi vaikuttaa osoitteistoon raiteella, jonka jakamista ({{sourceName}}) ei ole vielä viety ratkoon",
-                    "track-split-in-progress": "Raidetta ei voida muuttaa, koska sen jakamista ({{sourceName}}) ei ole vielä viety ratkoon"
+                    "affected-split-in-progress": "Muutos voi vaikuttaa osoitteistoon raiteella {{sourceName}}, jonka jakamista ei ole vielä viety Ratkoon",
+                    "track-split-in-progress": "Raiteen {{sourceName}} jakamista ei ole vielä viety Ratkoon, joten muita muutoksia ei voi vielä tehdä"
                 },
                 "validation-in-progress": "Raiteen vaihteita validoidaan...",
                 "relink-critical-errors": "Raiteen vaihteiden linkityksessä on kriittisiä ongelmia, jotka täytyy korjata ennen raiteen jakamista",
@@ -1137,7 +1137,7 @@
         "modified-moment": "Aika",
         "user": "Käyttäjä",
         "actions": "Toiminnot",
-        "pushed-to-ratko": "Viety ratkoon",
+        "pushed-to-ratko": "Viety Ratkoon",
         "errors-status-text": "virheitä ({{errors}} kpl)",
         "warnings-status-text": "varoituksia ({{warnings}} kpl)",
         "errors-group-title": "Virheitä",
@@ -1356,7 +1356,7 @@
             "split": {
                 "source-not-deleted": "Jaettava raide {{sourceName}} ei ole Poistettu-tilassa",
                 "source-edited-after-split": "Jaettavaa raidetta {{sourceName}} on muokattu vaikka jako on vielä kesken",
-                "source-and-target-track-numbers-are-different": "Jakamisessa syntynyt raide {{trackName}} on eri ratanumerolla on kuin alkuperäinen jaettu raide {{sourceName}}",
+                "source-and-target-track-numbers-are-different": "Jakamisessa syntynyt raide {{targetName}} on eri ratanumerolla on kuin alkuperäinen jaettu raide {{sourceName}}",
                 "duplicate-on-different-track-number": "Duplikaattiraide {{duplicateTrack}} on eri ratanumerolla kuin jaettava raide",
                 "split-missing-location-tracks": "Kaikki jakoon liittyvät sijaintiraiteet eivät ole mukana julkaisussa",
                 "split-missing-switches": "Kaikki jakoon liittyvät vaihteet eivät ole mukana julkaisussa",

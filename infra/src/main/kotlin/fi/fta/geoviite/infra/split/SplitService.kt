@@ -321,7 +321,7 @@ class SplitService(
         return if (affectedSplits.isNotEmpty()) {
             val sourceTrackNames = affectedSplits
                 .mapNotNull { split -> context.getLocationTrack(split.sourceLocationTrackId)?.name }
-                .joinToString(",")
+                .joinToString(", ")
             validationError(
                 "$VALIDATION_SPLIT.affected-split-in-progress",
                 "sourceName" to sourceTrackNames,

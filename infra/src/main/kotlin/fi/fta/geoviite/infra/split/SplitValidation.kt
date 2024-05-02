@@ -112,7 +112,7 @@ internal fun validateTargetTrackNumberIsUnchanged(
         validationError(
             "$VALIDATION_SPLIT.source-and-target-track-numbers-are-different",
             "sourceName" to sourceLocationTrack.name,
-            "trackName" to targetLocationTrack.name,
+            "targetName" to targetLocationTrack.name,
         )
     }
 
