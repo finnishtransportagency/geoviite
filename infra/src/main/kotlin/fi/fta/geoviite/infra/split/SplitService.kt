@@ -68,23 +68,31 @@ class SplitService(
         return splitDao.fetchChangeTime()
     }
 
+    /**
+     * Fetches all splits that are not published. Can be filtered by location tracks or switches. If both filters
+     * are defined, the result is combined by OR (match by either).
+     */
     fun findUnpublishedSplits(
         locationTrackIds: List<IntId<LocationTrack>>? = null,
         switchIds: List<IntId<TrackLayoutSwitch>>? = null,
     ): List<Split> = findUnfinishedSplits(locationTrackIds, switchIds)
         .filter { split -> split.publicationId == null }
 
+    /**
+     * Fetches all splits that are not marked as DONE. Can be filtered by location tracks or switches. If both filters
+     * are defined, the result is combined by OR (match by either).
+     */
     fun findUnfinishedSplits(
         locationTrackIds: List<IntId<LocationTrack>>? = null,
         switchIds: List<IntId<TrackLayoutSwitch>>? = null,
     ): List<Split> = splitDao.fetchUnfinishedSplits().filter { split ->
         val containsTrack = locationTrackIds?.any(split::containsLocationTrack)
         val containsSwitch = switchIds?.any(split::containsSwitch)
-        if (containsTrack != null && containsSwitch != null) {
-            // If both filters are defined, combine by OR
-            containsTrack || containsSwitch
-        } else {
-            containsTrack ?: containsSwitch ?: true
+        when {
+            containsTrack != null && containsSwitch != null -> containsTrack || containsSwitch
+            containsTrack != null -> containsTrack
+            containsSwitch != null -> containsSwitch
+            else -> true
         }
     }
 

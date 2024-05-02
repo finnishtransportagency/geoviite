@@ -2,7 +2,18 @@ package fi.fta.geoviite.infra.geometry
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LinearUnit
+import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.logging.Loggable
@@ -14,12 +25,10 @@ import fi.fta.geoviite.infra.projektivelho.PVDocument
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.Page
 import java.time.Instant
-
 
 enum class PlanSource {
     GEOMETRIAPALVELU, PAIKANNUSPALVELU,
