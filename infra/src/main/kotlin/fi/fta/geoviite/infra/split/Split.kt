@@ -38,6 +38,7 @@ data class SplitHeader(
 
 data class Split(
     val id: IntId<Split>,
+    val rowVersion: RowVersion<Split>,
     val sourceLocationTrackId: IntId<LocationTrack>,
     val sourceLocationTrackVersion: RowVersion<LocationTrack>,
     val bulkTransferState: BulkTransferState,
@@ -46,12 +47,23 @@ data class Split(
     val relinkedSwitches: List<IntId<TrackLayoutSwitch>>,
     val updatedDuplicates: List<IntId<LocationTrack>>,
 ) {
+    init {
+        if (publicationId != null) {
+            require(id == rowVersion.id) { "Split source row version must refer to official row, once published" }
+        }
+        if (publicationId == null) {
+            require(bulkTransferState == BulkTransferState.PENDING) { "Split must be pending if not published" }
+        }
+    }
+
     @get:JsonIgnore
     val locationTracks by lazy { targetLocationTracks.map { it.locationTrackId } + sourceLocationTrackId }
 
     @JsonIgnore
-    val isPending: Boolean = bulkTransferState == BulkTransferState.PENDING && publicationId == null
+    val isPublishedAndWaitingTransfer: Boolean = bulkTransferState != BulkTransferState.DONE && publicationId != null
 
+    fun containsTargetTrack(trackId: IntId<LocationTrack>): Boolean =
+        targetLocationTracks.any { tlt -> tlt.locationTrackId == trackId }
     fun containsLocationTrack(trackId: IntId<LocationTrack>): Boolean = locationTracks.contains(trackId)
     fun getTargetLocationTrack(trackId: IntId<LocationTrack>): SplitTarget? =
         targetLocationTracks.find { track -> track.locationTrackId == trackId }

@@ -185,12 +185,13 @@ data class PublicationCandidates(
         kmPosts.map { candidate -> candidate.id },
     )
 
-    fun getValidationVersions() = ValidationVersions(
+    fun getValidationVersions(splitVersions: List<ValidationVersion<Split>>) = ValidationVersions(
         trackNumbers = trackNumbers.map(TrackNumberPublicationCandidate::getPublicationVersion),
         referenceLines = referenceLines.map(ReferenceLinePublicationCandidate::getPublicationVersion),
         locationTracks = locationTracks.map(LocationTrackPublicationCandidate::getPublicationVersion),
         switches = switches.map(SwitchPublicationCandidate::getPublicationVersion),
         kmPosts = kmPosts.map(KmPostPublicationCandidate::getPublicationVersion),
+        splits = splitVersions,
     )
 
     fun filter(request: PublicationRequestIds) = PublicationCandidates(
@@ -218,10 +219,12 @@ data class ValidationVersions(
     val referenceLines: List<ValidationVersion<ReferenceLine>>,
     val switches: List<ValidationVersion<TrackLayoutSwitch>>,
     val kmPosts: List<ValidationVersion<TrackLayoutKmPost>>,
+    val splits: List<ValidationVersion<Split>>,
 ) {
     fun containsLocationTrack(id: IntId<LocationTrack>) = locationTracks.any { it.officialId == id }
     fun containsKmPost(id: IntId<TrackLayoutKmPost>) = kmPosts.any { it.officialId == id }
     fun containsSwitch(id: IntId<TrackLayoutSwitch>) = switches.any { it.officialId == id }
+    fun containsSplit(id: IntId<Split>): Boolean = splits.any { it.officialId == id }
 
     fun findTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.find { it.officialId == id }
     fun findLocationTrack(id: IntId<LocationTrack>) = locationTracks.find { it.officialId == id }
@@ -232,6 +235,7 @@ data class ValidationVersions(
     fun getLocationTrackIds() = locationTracks.map { v -> v.officialId }
     fun getSwitchIds() = switches.map { v -> v.officialId }
     fun getKmPostIds() = kmPosts.map { v -> v.officialId }
+    fun getSplitIds() = splits.map { v -> v.officialId }
 }
 
 data class PublicationGroup(

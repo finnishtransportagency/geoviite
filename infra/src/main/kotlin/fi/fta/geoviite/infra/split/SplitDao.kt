@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getEnum
@@ -18,7 +17,6 @@ import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getOne
 import fi.fta.geoviite.infra.util.getOptional
 import fi.fta.geoviite.infra.util.getRowVersion
-import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -27,6 +25,7 @@ import java.sql.ResultSet
 
 private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>) = Split(
     id = rs.getIntId("id"),
+    rowVersion = rs.getRowVersion("id", "version"),
     sourceLocationTrackId = rs.getIntId("source_location_track_official_id"),
     sourceLocationTrackVersion = rs.getRowVersion(
         "source_location_track_row_id",
@@ -120,9 +119,7 @@ class SplitDao(
 
     @Transactional
     fun deleteSplit(splitId: IntId<Split>) {
-        val sql = """
-            delete from publication.split where id = :id 
-        """.trimIndent()
+        val sql = "delete from publication.split where id = :id"
 
         jdbcTemplate.setUser()
         jdbcTemplate.update(sql, mapOf("id" to splitId.intValue)).also {
@@ -167,6 +164,7 @@ class SplitDao(
         val sql = """
           select
               split.id,
+              split.version,
               split.bulk_transfer_state,
               split.publication_id,
               coalesce(source_track.official_row_id, source_track.id) as source_location_track_official_id,
@@ -272,6 +270,7 @@ class SplitDao(
         val sql = """
           select
               split.id,
+              split.version,
               split.bulk_transfer_state,
               split.publication_id,
               array_agg(split_relinked_switch.switch_id) as switch_ids,
@@ -297,38 +296,14 @@ class SplitDao(
         }
     }
 
-    fun fetchUnfinishedSplitIdsByTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): List<IntId<Split>> {
-        val sql = """
-            select distinct split.id
-            from publication.split 
-                inner join layout.location_track_version source
-                    on source.id = split.source_location_track_row_id
-                      and source.version = split.source_location_track_row_version
-                left join publication.split_target_location_track tlt on tlt.split_id = split.id
-                left join layout.location_track target on target.id = tlt.location_track_id 
-            where split.bulk_transfer_state != 'DONE'
-              and (source.track_number_id = :trackNumberId or target.track_number_id = :trackNumberId)
-        """.trimIndent()
-
-        return jdbcTemplate.query(sql, mapOf("trackNumberId" to trackNumberId.intValue)) { rs, _ ->
-            rs.getIntId<Split>("id")
-        }.also { ids ->
-            logger.daoAccess(AccessType.FETCH, Split::class, ids)
-        }
-    }
-
     fun fetchChangeTime() = fetchLatestChangeTime(DbTable.PUBLICATION_SPLIT)
 
     fun fetchSplitIdByPublication(publicationId: IntId<Publication>): IntId<Split>? {
-        val sql = """
-            select id from publication.split where publication_id = :publication_id
-        """.trimIndent()
+        val sql = "select id from publication.split where publication_id = :publication_id"
+        val params = mapOf("publication_id" to publicationId.intValue)
 
-        return jdbcTemplate.queryOptional(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
-            rs.getIntId<Split>("id")
-        }.also { _ ->
-            logger.daoAccess(AccessType.FETCH, Split::class, "publicationId" to publicationId)
-        }
+        return getOptional(publicationId, jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<Split>("id") })
+            .also { _ -> logger.daoAccess(AccessType.FETCH, Split::class, "publicationId" to publicationId) }
     }
 
     fun locationTracksPartOfAnyUnfinishedSplit(locationTrackIds: Collection<IntId<LocationTrack>>) =

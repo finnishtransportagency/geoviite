@@ -1,10 +1,6 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
-import fi.fta.geoviite.infra.common.PublicationState.*
-import fi.fta.geoviite.infra.ui.SeleniumTest
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
-import org.springframework.beans.factory.annotation.Autowired
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
@@ -12,12 +8,19 @@ import fi.fta.geoviite.infra.publication.PublicationGroup
 import fi.fta.geoviite.infra.ratko.FakeRatkoService
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.someOid
+import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EAppBar
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
 import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementWhenExists
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -97,7 +100,7 @@ class SplitTestUI @Autowired constructor(
 
         splittingInfobox.confirmSplit()
 
-        val unpublishedSplit = splitService.findUnpublishedSplitsForLocationTracks(listOf(sourceTrackId)).first()
+        val unpublishedSplit = splitService.findUnpublishedSplits(locationTrackIds = listOf(sourceTrackId)).first()
         assertEquals(3, unpublishedSplit.targetLocationTracks.size)
 
         // External IDs are fetched from (fake) Ratko service during publication,
