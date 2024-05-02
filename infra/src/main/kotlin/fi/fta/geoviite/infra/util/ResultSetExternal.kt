@@ -31,7 +31,7 @@ fun ResultSet.getInstantOrNull(name: String): Instant? = getTimestamp(name)?.toI
 
 fun ResultSet.getLocalDate(name: String): LocalDate = verifyNotNull(name, ::getLocalDateOrNull)
 
-fun ResultSet.getLocalDateOrNull(name: String): LocalDate? = getDate(name)?.toLocalDate()
+fun ResultSet.getLocalDateOrNull(name: String): LocalDate? = getString(name)?.let(LocalDate::parse)
 
 fun <T> ResultSet.getIndexedId(parent: String, index: String): IndexedId<T> =
     requireNotNull(getIndexedIdOrNull(parent, index)) {
