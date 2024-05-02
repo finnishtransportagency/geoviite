@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.Srid
@@ -62,6 +63,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         planId: IntId<GeometryPlan>,
         publicationState: PublicationState
     ): List<GeometryAlignmentLinkStatus> {
+        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
           select
             element.alignment_id,
@@ -86,10 +88,9 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
               on reference_line.alignment_id = segment_version.alignment_id
                 and reference_line.alignment_version = segment_version.alignment_version
                 and :publication_state = any(reference_line.publication_states)
-            left join layout.track_number_publication_view reference_track_number
+            left join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) reference_track_number
               on reference_line.track_number_id = reference_track_number.row_id
                 and reference_track_number.state != 'DELETED'
-                and :publication_state = any(reference_track_number.publication_states)
             where geometry_alignment.plan_id = :plan_id
           group by element.alignment_id, element.element_index
           order by element.alignment_id, element.element_index;
@@ -97,6 +98,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         val params = mapOf(
             "plan_id" to planId.intValue,
             "publication_state" to publicationState.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
         )
 
         val elements = jdbcTemplate.query(sql, params) { rs, _ ->

@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.AccessType
@@ -206,18 +207,20 @@ class ReferenceLineDao(
         publicationState: PublicationState,
         includeDeleted: Boolean,
     ): List<RowVersion<ReferenceLine>> {
+        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select
               rl.row_id,
               rl.row_version
             from layout.reference_line_publication_view rl
-              left join layout.track_number_publication_view tn
-                on rl.track_number_id = tn.official_id and :publication_state = any(tn.publication_states)
+              left join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn
+                on rl.track_number_id = tn.official_id
             where :publication_state = any(rl.publication_states) 
               and (:include_deleted = true or tn.state != 'DELETED')
         """.trimIndent()
         val params = mapOf(
             "publication_state" to publicationState.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
             "include_deleted" to includeDeleted,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -230,6 +233,7 @@ class ReferenceLineDao(
         publicationState: PublicationState,
         bbox: BoundingBox,
     ): List<RowVersion<ReferenceLine>> {
+        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select
               rl.row_id,
@@ -242,9 +246,9 @@ class ReferenceLineDao(
                                               bounding_box)
               ) sv
                 join layout.reference_line_publication_view rl using (alignment_id, alignment_version)
-                join layout.track_number_publication_view tn on rl.track_number_id = tn.official_id
+                join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn
+                  on rl.track_number_id = tn.official_id
               where :publication_state = any (rl.publication_states)
-                and :publication_state = any (tn.publication_states)
                 and tn.state != 'DELETED';
         """.trimIndent()
 
@@ -255,6 +259,7 @@ class ReferenceLineDao(
             "y_max" to bbox.max.y,
             "layout_srid" to LAYOUT_SRID.code,
             "publication_state" to publicationState.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -263,18 +268,20 @@ class ReferenceLineDao(
     }
 
     fun fetchVersionsNonLinked(publicationState: PublicationState): List<RowVersion<ReferenceLine>> {
+        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select
               rl.row_id,
               rl.row_version
             from layout.reference_line_publication_view rl
-              left join layout.track_number_publication_view tn
-                on rl.track_number_id = tn.official_id and :publication_state = any(tn.publication_states)
+              left join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn
+                on rl.track_number_id = tn.official_id
             where :publication_state = any(rl.publication_states) 
               and tn.state != 'DELETED'
               and rl.segment_count = 0
         """.trimIndent()
-        val params = mapOf("publication_state" to publicationState.name)
+        val params =
+            mapOf("publication_state" to publicationState.name, "design_id" to layoutContext.branch.designId?.intValue)
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
         }

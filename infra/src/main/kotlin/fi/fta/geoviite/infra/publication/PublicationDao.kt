@@ -41,10 +41,9 @@ class PublicationDao(
                 official_track_number.state,
                 draft_track_number.state
               ) as operation
-            from layout.track_number_publication_view draft_track_number
-              left join layout.track_number_publication_view official_track_number 
+            from layout.track_number_in_layout_context('DRAFT', null) draft_track_number
+              left join layout.track_number_in_layout_context('OFFICIAL', null) official_track_number 
                 on draft_track_number.official_id = official_track_number.official_id
-                  and 'OFFICIAL' = any(official_track_number.publication_states)
             where draft_track_number.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
@@ -80,12 +79,10 @@ class PublicationDao(
               ) as operation,
               postgis.st_astext(alignment_version.bounding_box) as bounding_box
             from layout.reference_line_publication_view draft_reference_line
-              left join layout.track_number_publication_view draft_track_number
+              left join layout.track_number_in_layout_context('DRAFT', null) draft_track_number
                 on draft_track_number.official_id = draft_reference_line.track_number_id
-                  and 'DRAFT' = any(draft_track_number.publication_states)
-              left join layout.track_number_publication_view official_track_number
+              left join layout.track_number_in_layout_context('OFFICIAL', null) official_track_number
                 on official_track_number.official_id = draft_reference_line.track_number_id
-                  and 'OFFICIAL' = any(official_track_number.publication_states)
               left join layout.alignment_version alignment_version
                 on draft_reference_line.alignment_id = alignment_version.id
                   and draft_reference_line.alignment_version = alignment_version.version
