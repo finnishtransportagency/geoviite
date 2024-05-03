@@ -4,11 +4,36 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
-import fi.fta.geoviite.infra.logging.AccessType.*
+import fi.fta.geoviite.infra.logging.AccessType.FETCH
+import fi.fta.geoviite.infra.logging.AccessType.INSERT
+import fi.fta.geoviite.infra.logging.AccessType.UPDATE
+import fi.fta.geoviite.infra.logging.AccessType.UPSERT
 import fi.fta.geoviite.infra.logging.daoAccess
-import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.*
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.DOCUMENT_TYPE
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.MATERIAL_CATEGORY
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.MATERIAL_GROUP
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.MATERIAL_STATE
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.PROJECT_STATE
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.TECHNICS_FIELD
 import fi.fta.geoviite.infra.projektivelho.PVFetchStatus.WAITING
-import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.util.DaoBase
+import fi.fta.geoviite.infra.util.DbTable
+import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getFileName
+import fi.fta.geoviite.infra.util.getFreeTextOrNull
+import fi.fta.geoviite.infra.util.getInstant
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getOid
+import fi.fta.geoviite.infra.util.getOidOrNull
+import fi.fta.geoviite.infra.util.getOne
+import fi.fta.geoviite.infra.util.getOptional
+import fi.fta.geoviite.infra.util.getPVDictionaryCode
+import fi.fta.geoviite.infra.util.getPVDictionaryName
+import fi.fta.geoviite.infra.util.getPVId
+import fi.fta.geoviite.infra.util.getPVProjectName
+import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.setUser
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -308,7 +333,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             "reason" to reason,
         )
         jdbcTemplate.setUser()
-        return getOne<PVDocument, IntId<PVDocumentRejection>?>(
+        return getOne<PVDocument, IntId<PVDocumentRejection>>(
             documentRowVersion.id,
             jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId("id") },
         ).also { id -> logger.daoAccess(INSERT, PVDocumentRejection::class, id) }
@@ -326,13 +351,16 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             "document_version" to documentRowVersion.version,
         )
         jdbcTemplate.setUser()
-        return getOne<PVDocument, PVDocumentRejection>(documentRowVersion.id, jdbcTemplate.query(sql, params) { rs, _ ->
-            PVDocumentRejection(
-                id = rs.getIntId("id"),
-                documentVersion = rs.getRowVersion("document_id", "document_version"),
-                reason = LocalizationKey(rs.getString("reason")),
-            )
-        })
+        return getOne<PVDocument, PVDocumentRejection>(
+            documentRowVersion.id,
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                PVDocumentRejection(
+                    id = rs.getIntId("id"),
+                    documentVersion = rs.getRowVersion("document_id", "document_version"),
+                    reason = LocalizationKey(rs.getString("reason")),
+                )
+            }
+        )
     }
 
     fun getDocumentHeader(id: IntId<PVDocument>) = getDocumentHeaders(id = id).single()
@@ -483,5 +511,4 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             PROJECT_STATE -> "project_state"
         }
     }"
-
 }

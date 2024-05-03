@@ -165,7 +165,7 @@ export function getLocationTrackDescriptions(
     locationTrackIds: LocationTrackId[],
     layoutContext: LayoutContext,
 ): Promise<LocationTrackDescription[] | undefined> {
-    const params = queryParams({ ids: locationTrackIds.join(',') });
+    const params = queryParams({ ids: locationTrackIds.join(','), lang: i18next.language });
     return getNullable<LocationTrackDescription[]>(
         `${layoutUri('location-tracks', layoutContext)}/description${params}`,
     );

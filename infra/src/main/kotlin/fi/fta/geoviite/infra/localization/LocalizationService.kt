@@ -12,6 +12,8 @@ import java.util.concurrent.ConcurrentHashMap
 private val LOCALIZATION_PARAMS_KEY_REGEX = Regex("[a-zA-Z0-9_\\s\\-]*")
 private val LOCALIZATION_PARAMS_PLACEHOLDER_REGEX = Regex("\\{\\{[a-zA-Z0-9_\\s\\-]*\\}\\}")
 
+const val FINNISH_LANG = "fi"
+
 data class LocalizationParams @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
     constructor(@JsonValue val params: Map<String, String>) {
 

@@ -6,8 +6,8 @@ NVM_DIR="${HOME}/.nvm"
 
 rm -rf NVM_DIR
 set +e
-git clone https://github.com/nvm-sh/nvm.git $NVM_DIR
+git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR"
 set -e
-cd $NVM_DIR
+cd "$NVM_DIR"
 git fetch
 git checkout $NVM_VERSION

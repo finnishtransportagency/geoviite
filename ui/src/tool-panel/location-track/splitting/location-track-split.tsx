@@ -180,7 +180,8 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
         <div
             className={styles['location-track-infobox__split-container']}
             onMouseEnter={onHighlight}
-            onMouseLeave={onReleaseHighlight}>
+            onMouseLeave={onReleaseHighlight}
+            qa-id={'split-target-track-container'}>
             <div
                 className={createClassName(
                     styles['location-track-infobox__split-item-line-container'],
@@ -291,6 +292,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                 setNameCommitted(true);
                                 onBlur();
                             }}
+                            qa-id={'split-target-track-name'}
                         />
                     </InfoboxField>
                     {(nameErrorsVisible || split.operation) && (
@@ -338,6 +340,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                 onBlur();
                             }}
                             ref={descriptionBaseRef}
+                            qa-id={'split-target-track-description'}
                         />
                     </InfoboxField>
                     {descriptionErrorsVisible && (

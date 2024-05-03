@@ -143,6 +143,8 @@ class LayoutSwitchDao(
                 owner_id,
                 draft,
                 official_row_id,
+                design_row_id,
+                design_id,
                 source
             )
             values (
@@ -155,6 +157,8 @@ class LayoutSwitchDao(
               :owner_id,
               :draft,
               :official_row_id,
+              :design_row_id,
+              :design_id,
               :source::layout.geometry_source
             )
             returning 
@@ -174,6 +178,8 @@ class LayoutSwitchDao(
                 "owner_id" to newItem.ownerId?.intValue,
                 "draft" to newItem.isDraft,
                 "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
+                "design_row_id" to newItem.contextData.designRowId?.let(::toDbId)?.intValue,
+                "design_id" to newItem.contextData.designId?.let(::toDbId)?.intValue,
                 "source" to newItem.source.name
             )
         ) { rs, _ -> rs.getDaoResponse("official_id", "row_id", "row_version") }
@@ -196,6 +202,8 @@ class LayoutSwitchDao(
               trap_point = :trap_point,
               draft = :draft,
               official_row_id = :official_row_id,
+              design_row_id = :design_row_id,
+              design_id = :design_id,
               owner_id = :owner_id
             where id = :id
             returning 
@@ -213,6 +221,8 @@ class LayoutSwitchDao(
             "trap_point" to updatedItem.trapPoint,
             "draft" to updatedItem.isDraft,
             "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
+            "design_row_id" to updatedItem.contextData.designRowId?.let(::toDbId)?.intValue,
+            "design_id" to updatedItem.contextData.designRowId?.let(::toDbId)?.intValue,
             "owner_id" to updatedItem.ownerId?.intValue
         )
         jdbcTemplate.setUser()
@@ -285,7 +295,9 @@ class LayoutSwitchDao(
             select 
               sv.id as row_id,
               sv.version as row_version,
-              sv.official_row_id, 
+              sv.official_row_id,
+              sv.design_row_id,
+              sv.design_id,
               sv.draft,
               sv.geometry_switch_id, 
               sv.external_id, 
@@ -320,7 +332,9 @@ class LayoutSwitchDao(
             select 
               s.id as row_id,
               s.version as row_version,
-              s.official_row_id, 
+              s.official_row_id,
+              s.design_row_id,
+              s.design_id,
               s.draft,
               s.geometry_switch_id, 
               s.external_id, 
@@ -366,7 +380,7 @@ class LayoutSwitchDao(
             ownerId = rs.getIntIdOrNull("owner_id"),
             version = switchVersion,
             source = rs.getEnum("source"),
-            contextData = rs.getLayoutContextData("official_row_id", "row_id", "draft"),
+            contextData = rs.getLayoutContextData("official_row_id", "design_row_id", "design_id", "row_id", "draft"),
         )
     }
 

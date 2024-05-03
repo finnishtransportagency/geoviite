@@ -2,16 +2,16 @@ package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
-import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.PublicationValidationError
 import fi.fta.geoviite.infra.publication.PublicationValidationErrorType.ERROR
 import fi.fta.geoviite.infra.publication.VALIDATION
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.publication.validate
+import fi.fta.geoviite.infra.publication.validationError
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.util.produceIf
 import kotlin.math.min
 
 const val VALIDATION_SPLIT = "$VALIDATION.split"
@@ -57,7 +57,7 @@ internal fun validateSplitContent(
     }
 
     val contentErrors = splits
-        .filter { it.isPending }
+        .filter { split -> split.publicationId == null }
         .flatMap { split ->
             val containsSource = trackVersions.any { it.officialId == split.sourceLocationTrackId }
             val containsTargets = split.targetLocationTracks.all { tlt ->
@@ -104,26 +104,35 @@ internal fun validateTargetGeometry(
     }
 }
 
-internal fun validateTargetTrackNumber(
+internal fun validateTargetTrackNumberIsUnchanged(
     sourceLocationTrack: LocationTrack,
     targetLocationTrack: LocationTrack,
 ): PublicationValidationError? =
-    if (sourceLocationTrack.trackNumberId != targetLocationTrack.trackNumberId) {
-        PublicationValidationError(
-            ERROR,
-            LocalizationKey("$VALIDATION_SPLIT.source-and-target-track-numbers-are-different"),
-            localizationParams("trackName" to targetLocationTrack.name),
+    produceIf(sourceLocationTrack.trackNumberId != targetLocationTrack.trackNumberId) {
+        validationError(
+            "$VALIDATION_SPLIT.source-and-target-track-numbers-are-different",
+            "sourceName" to sourceLocationTrack.name,
+            "targetName" to targetLocationTrack.name,
         )
-    } else {
-        null
+    }
+
+internal fun validateSplitStatus(
+    track: LocationTrack,
+    sourceTrack: LocationTrack,
+    split: Split,
+): PublicationValidationError? =
+    produceIf(track.isDraft && split.isPublishedAndWaitingTransfer) {
+        validationError("$VALIDATION_SPLIT.track-split-in-progress", "sourceName" to sourceTrack.name)
     }
 
 internal fun validateSplitSourceLocationTrack(
     locationTrack: LocationTrack,
-): PublicationValidationError? {
-    return if (locationTrack.exists) {
-        PublicationValidationError(ERROR, "$VALIDATION_SPLIT.source-not-deleted")
-    } else {
-        null
+    split: Split,
+): List<PublicationValidationError> = listOfNotNull(
+    produceIf(locationTrack.exists) {
+        validationError("$VALIDATION_SPLIT.source-not-deleted", "sourceName" to locationTrack.name)
+    },
+    produceIf(locationTrack.version != split.sourceLocationTrackVersion) {
+        validationError("$VALIDATION_SPLIT.source-edited-after-split", "sourceName" to locationTrack.name)
     }
-}
+)

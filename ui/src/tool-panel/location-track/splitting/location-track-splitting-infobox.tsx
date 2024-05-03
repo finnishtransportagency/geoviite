@@ -69,6 +69,7 @@ import { BoundingBox, boundingBoxAroundPoints, multiplyBoundingBox, Point } from
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { validateLocationTrackSwitchRelinking } from 'linking/linking-api';
 import { SwitchRelinkingValidationResult } from 'linking/linking-model';
+import { expectDefined } from 'utils/type-utils';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     layoutContext: LayoutContext;
@@ -365,6 +366,10 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         locationTrackName: locationTrack.name,
                         count: splitsValidated.length,
                     }),
+                    undefined,
+                    {
+                        id: 'toast-splitting-success',
+                    },
                 );
             })
             .catch(() => returnToSplitting());
@@ -416,12 +421,12 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         );
     };
 
-
     const splitComponents = splitsValidated.map((split, index, allSplits) => {
         const endLocation =
             index + 1 < allSplits.length
-                ? allSplits[index + 1].split.location
+                ? expectDefined(allSplits[index + 1]).split.location
                 : splittingState.endLocation;
+
         return createSplitComponent(
             split,
             switches,
@@ -449,7 +454,8 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             <Infobox
                 contentVisible={visibilities.splitting}
                 onContentVisibilityChange={() => visibilityChange('splitting')}
-                title={t('tool-panel.location-track.splitting.title')}>
+                title={t('tool-panel.location-track.splitting.title')}
+                qa-id={'location-track-splitting-infobox'}>
                 <InfoboxContent className={styles['location-track-infobox__split']}>
                     {splitComponents.map((split) => split.component)}
                     <LocationTrackSplittingEndpoint
@@ -501,7 +507,8 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                             variant={ButtonVariant.SECONDARY}
                             size={ButtonSize.SMALL}
                             disabled={isPostingSplit}
-                            onClick={() => setConfirmExit(true)}>
+                            onClick={() => setConfirmExit(true)}
+                            qa-id={'cancel-split'}>
                             {t('button.cancel')}
                         </Button>
                         <Button
@@ -515,7 +522,8 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                 !!firstChangedDuplicateInSplits ||
                                 splittingState.splits.length < 1 ||
                                 isPostingSplit
-                            }>
+                            }
+                            qa-id={'confirm-split'}>
                             {t('tool-panel.location-track.splitting.confirm-split')}
                         </Button>
                     </InfoboxButtons>

@@ -91,6 +91,8 @@ class FrontPageTestUI @Autowired constructor(
             Thread.sleep(100)
         }
         assertEquals("updated name", fakeRatko.getPushedRouteNumber(Oid("1.2.3.4.5"))[0].name)
+
+        fakeRatko.stop()
     }
 
     private fun changesTouchingTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): CalculatedChanges =

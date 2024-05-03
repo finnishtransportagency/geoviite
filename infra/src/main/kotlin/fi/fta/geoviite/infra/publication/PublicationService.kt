@@ -9,10 +9,9 @@ import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.geocoding.*
 import fi.fta.geoviite.infra.geography.calculateDistance
-import fi.fta.geoviite.infra.geometry.SplitTargetListingHeader
-import fi.fta.geoviite.infra.geometry.translateSplitTargetListingHeader
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.linking.*
+import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -22,6 +21,7 @@ import fi.fta.geoviite.infra.publication.PublicationValidationErrorType.ERROR
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.split.Split
+import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitPublicationValidationErrors
 import fi.fta.geoviite.infra.split.SplitService
@@ -44,34 +44,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
-
-private val splitCsvColumns = listOf(
-    CsvEntry<Pair<LocationTrack, SplitTargetInPublication>>(
-        translateSplitTargetListingHeader(SplitTargetListingHeader.SOURCE_NAME),
-    ) { (lt, _) -> lt.name },
-    CsvEntry(
-        translateSplitTargetListingHeader(SplitTargetListingHeader.SOURCE_OID),
-    ) { (lt, _) -> lt.externalId },
-    CsvEntry(
-        translateSplitTargetListingHeader(SplitTargetListingHeader.TARGET_NAME),
-    ) { (_, split) -> split.name },
-    CsvEntry(
-        translateSplitTargetListingHeader(SplitTargetListingHeader.TARGET_OID),
-    ) { (_, split) -> split.oid },
-    CsvEntry(
-        translateSplitTargetListingHeader(SplitTargetListingHeader.OPERATION),
-    ) { (_, split) -> when (split.operation) {
-        SplitTargetOperation.CREATE -> "Uusi kohde"
-        SplitTargetOperation.OVERWRITE -> "Duplikaatti korvattu"
-        SplitTargetOperation.TRANSFER -> "Kohteet siirretty"
-    } },
-    CsvEntry(
-        translateSplitTargetListingHeader(SplitTargetListingHeader.START_ADDRESS),
-    ) { (_, split) -> split.startAddress },
-    CsvEntry(
-        translateSplitTargetListingHeader(SplitTargetListingHeader.END_ADDRESS),
-    ) { (_, split) -> split.endAddress },
-)
 
 @Service
 class PublicationService @Autowired constructor(
@@ -96,8 +68,27 @@ class PublicationService @Autowired constructor(
     private val transactionTemplate: TransactionTemplate,
     private val publicationGeometryChangeRemarksUpdateService: PublicationGeometryChangeRemarksUpdateService,
     private val splitService: SplitService,
+    private val splitDao: SplitDao,
+    private val localizationService: LocalizationService
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
+
+    private fun splitCsvColumns(translation: Translation): List<CsvEntry<Pair<LocationTrack, SplitTargetInPublication>>> =
+        mapOf<String, (item: Pair<LocationTrack, SplitTargetInPublication>) -> Any?>(
+            "split-details-csv.source-name" to { (lt, _) -> lt.name },
+            "split-details-csv.source-oid" to { (lt, _) -> lt.externalId },
+            "split-details-csv.target-name" to { (_, split) -> split.name },
+            "split-details-csv.target-oid" to { (_, split) -> split.oid },
+            "split-details-csv.operation" to { (_, split) ->
+                when (split.operation) {
+                    SplitTargetOperation.CREATE -> translation.t("split-details-csv.newly-created")
+                    SplitTargetOperation.OVERWRITE -> translation.t("split-details-csv.replaces-duplicate")
+                    SplitTargetOperation.TRANSFER -> translation.t("split-details-csv.transfers-assets")
+                }
+            },
+            "split-details-csv.start-address" to { (_, split) -> split.startAddress },
+            "split-details-csv.end-address" to { (_, split) -> split.endAddress },
+        ).map { (key, fn) -> CsvEntry(translation.t(key), fn) }
 
     @Transactional(readOnly = true)
     fun collectPublicationCandidates(): PublicationCandidates {
@@ -262,13 +253,13 @@ class PublicationService @Autowired constructor(
     }
 
     private fun createValidationContext(
-        trackNumbers: List<ValidationVersion<TrackLayoutTrackNumber>> = listOf(),
-        locationTracks: List<ValidationVersion<LocationTrack>> = listOf(),
-        referenceLines: List<ValidationVersion<ReferenceLine>> = listOf(),
-        switches: List<ValidationVersion<TrackLayoutSwitch>> = listOf(),
-        kmPosts: List<ValidationVersion<TrackLayoutKmPost>> = listOf(),
+        trackNumbers: List<ValidationVersion<TrackLayoutTrackNumber>> = emptyList(),
+        locationTracks: List<ValidationVersion<LocationTrack>> = emptyList(),
+        referenceLines: List<ValidationVersion<ReferenceLine>> = emptyList(),
+        switches: List<ValidationVersion<TrackLayoutSwitch>> = emptyList(),
+        kmPosts: List<ValidationVersion<TrackLayoutKmPost>> = emptyList(),
     ): ValidationContext = createValidationContext(
-        ValidationVersions(trackNumbers, locationTracks, referenceLines, switches, kmPosts)
+        ValidationVersions(trackNumbers, locationTracks, referenceLines, switches, kmPosts, emptyList())
     )
 
     private fun createValidationContext(publicationSet: ValidationVersions): ValidationContext = ValidationContext(
@@ -281,6 +272,7 @@ class PublicationService @Autowired constructor(
         alignmentDao = alignmentDao,
         publicationDao = publicationDao,
         switchLibraryService = switchLibraryService,
+        splitService = splitService,
         publicationSet = publicationSet,
     )
 
@@ -291,11 +283,14 @@ class PublicationService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun validateAsPublicationUnit(candidates: PublicationCandidates, allowMultipleSplits: Boolean): PublicationCandidates {
-        val versions = candidates.getValidationVersions()
+        val splitVersions = splitService.fetchPublicationVersions(
+            locationTracks = candidates.locationTracks.map { it.id },
+            switches = candidates.switches.map { it.id },
+        )
+        val versions = candidates.getValidationVersions(splitVersions)
 
         val validationContext = createValidationContext(versions).also { ctx -> ctx.preloadByPublicationSet() }
-        // TODO: GVT-2442 split validation could (should) also use the validation context
-        val splitErrors = splitService.validateSplit(versions, allowMultipleSplits)
+        val splitErrors = splitService.validateSplit(versions, validationContext, allowMultipleSplits)
 
         return PublicationCandidates(
             trackNumbers = candidates.trackNumbers.map { candidate ->
@@ -329,9 +324,8 @@ class PublicationService @Autowired constructor(
     @Transactional(readOnly = true)
     fun validatePublicationRequest(versions: ValidationVersions) {
         logger.serviceCall("validatePublicationRequest", "versions" to versions)
-        // TODO: GVT-2442 split validation could (should) also use the validation context
-        splitService.validateSplit(versions, allowMultipleSplits = false).also(::assertNoSplitErrors)
         val validationContext = createValidationContext(versions).also { ctx -> ctx.preloadByPublicationSet() }
+        splitService.validateSplit(versions, validationContext, allowMultipleSplits = false).also(::assertNoSplitErrors)
 
         versions.trackNumbers.forEach { version ->
             assertNoErrors(version, requireNotNull(validateTrackNumber(version.officialId, validationContext)))
@@ -367,15 +361,16 @@ class PublicationService @Autowired constructor(
             .map { it.id as IntId }
 
         val revertLocationTrackIds = requestIds.locationTracks + draftOnlyTrackNumberIds.flatMap { tnId ->
-            locationTrackDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
-        }.map(RowVersion<LocationTrack>::id)
+            locationTrackDao.fetchOnlyDraftVersions(includeDeleted = true, tnId).map(locationTrackDao::fetch)
+        }.map { track -> track.id as IntId }
 
-        val revertSplitTracks = splitService.findUnpublishedSplitsForLocationTracks(revertLocationTrackIds)
-            .flatMap { split -> split.locationTracks }
+        val revertSplits = splitService.findUnpublishedSplits(revertLocationTrackIds, requestIds.switches)
+        val revertSplitTracks = revertSplits.flatMap { s -> s.locationTracks }.distinct()
+        val revertSplitSwitches = revertSplits.flatMap { s -> s.relinkedSwitches }.distinct()
 
         val revertKmPostIds = requestIds.kmPosts.toSet() + draftOnlyTrackNumberIds.flatMap { tnId ->
-            kmPostDao.fetchOnlyDraftVersions(includeDeleted = true, tnId)
-        }.map { kp -> kp.id }
+            kmPostDao.fetchOnlyDraftVersions(includeDeleted = true, tnId).map(kmPostDao::fetch)
+        }.map { kmPost -> kmPost.id as IntId }
 
         val referenceLines = requestIds.referenceLines.toSet() + requestIds.trackNumbers.mapNotNull { tnId ->
             referenceLineService.getByTrackNumber(DRAFT, tnId)
@@ -385,7 +380,7 @@ class PublicationService @Autowired constructor(
             trackNumbers = revertTrackNumberIds.toList(),
             referenceLines = referenceLines.toList(),
             locationTracks = (revertLocationTrackIds + revertSplitTracks).distinct(),
-            switches = requestIds.switches.distinct(),
+            switches = (requestIds.switches + revertSplitSwitches).distinct(),
             kmPosts = revertKmPostIds.toList()
         )
     }
@@ -394,14 +389,9 @@ class PublicationService @Autowired constructor(
     fun revertPublicationCandidates(toDelete: PublicationRequestIds): PublicationResult {
         logger.serviceCall("revertPublicationCandidates", "toDelete" to toDelete)
 
-        listOf(
-            splitService.findUnpublishedSplitsForLocationTracks(toDelete.locationTracks),
-            splitService.findUnpublishedSplitsForSwitches(toDelete.switches),
-        )
-            .flatten()
-            .map { split -> split.id }
-            .distinct()
-            .forEach(splitService::deleteSplit)
+        splitService.fetchPublicationVersions(toDelete.locationTracks, toDelete.switches).forEach { split ->
+            splitService.deleteSplit(split.officialId)
+        }
 
         val locationTrackCount = toDelete.locationTracks.map { id -> locationTrackService.deleteDraft(id) }.size
         val referenceLineCount = toDelete.referenceLines.map { id -> referenceLineService.deleteDraft(id) }.size
@@ -455,6 +445,7 @@ class PublicationService @Autowired constructor(
             kmPosts = kmPostDao.fetchPublicationVersions(request.kmPosts),
             locationTracks = locationTrackDao.fetchPublicationVersions(request.locationTracks),
             switches = switchDao.fetchPublicationVersions(request.switches),
+            splits = splitService.fetchPublicationVersions(request.locationTracks, request.switches),
         )
     }
 
@@ -518,8 +509,9 @@ class PublicationService @Autowired constructor(
         )
 
         try {
-            return transactionTemplate.execute { publishChangesTransaction(versions, calculatedChanges, message) }
-                ?: throw Exception("unexpected null from publishChangesTransaction")
+            return requireNotNull(
+                transactionTemplate.execute { publishChangesTransaction(versions, calculatedChanges, message) }
+            )
         } catch (exception: DataIntegrityViolationException) {
             enrichDuplicateNameExceptionOrRethrow(exception)
         }
@@ -539,7 +531,7 @@ class PublicationService @Autowired constructor(
         publicationDao.insertCalculatedChanges(publicationId, calculatedChanges)
         publicationGeometryChangeRemarksUpdateService.processPublication(publicationId)
 
-        splitService.publishSplit(locationTracks, publicationId)
+        splitService.publishSplit(versions.splits, locationTracks, publicationId)
 
         return PublicationResult(
             publicationId = publicationId,
@@ -876,12 +868,14 @@ class PublicationService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getSplitInPublicationCsv(id: IntId<Publication>): Pair<String, AlignmentName?> {
+    fun getSplitInPublicationCsv(id: IntId<Publication>, lang: String): Pair<String, AlignmentName?> {
         logger.serviceCall("getSplitInPublicationCsv", "id" to id)
         return getSplitInPublication(id).let { splitInPublication ->
             val data = splitInPublication?.targetLocationTracks?.map { lt -> splitInPublication.locationTrack to lt }
                 ?: emptyList()
-            printCsv(splitCsvColumns, data) to splitInPublication?.locationTrack?.name
+            printCsv(
+                splitCsvColumns(localizationService.getLocalization(lang)), data
+            ) to splitInPublication?.locationTrack?.name
         }
     }
 

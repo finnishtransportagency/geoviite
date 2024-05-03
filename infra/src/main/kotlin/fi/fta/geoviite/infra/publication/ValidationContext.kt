@@ -1,10 +1,30 @@
 package fi.fta.geoviite.infra.publication
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.split.Split
+import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.ILayoutAssetDao
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import java.util.concurrent.ConcurrentHashMap
 
 class NullableCache<K, V> {
@@ -58,6 +78,7 @@ class ValidationContext(
     val switchLibraryService: SwitchLibraryService,
     val publicationDao: PublicationDao,
     val geocodingService: GeocodingService,
+    val splitService: SplitService,
     val publicationSet: ValidationVersions,
 ) {
     private val trackNumberVersionCache = RowVersionCache<TrackLayoutTrackNumber>()
@@ -75,6 +96,8 @@ class ValidationContext(
     private val switchNameCache = NameCache(::fetchSwitchesByName)
     private val trackNameCache = NameCache(::fetchLocationTracksByName)
     private val trackNumberNumberCache = NameCache(::fetchTrackNumbersByNumber)
+
+    private val allUnfinishedSplits: List<Split> by lazy { splitService.findUnfinishedSplits() }
 
     fun getTrackNumber(id: IntId<TrackLayoutTrackNumber>): TrackLayoutTrackNumber? =
         getObject(id, publicationSet.trackNumbers, trackNumberDao, trackNumberVersionCache)
@@ -174,6 +197,10 @@ class ValidationContext(
             name to switch
         }
 
+    fun getUnfinishedSplits(): List<Split> = allUnfinishedSplits.filter { split ->
+        split.publicationId != null || publicationSet.containsSplit(split.id)
+    }
+
     fun getGeocodingContext(trackNumberId: IntId<TrackLayoutTrackNumber>) =
         getGeocodingContextCacheKey(trackNumberId)?.let { key ->
             geocodingService.getGeocodingContext(key)
@@ -182,6 +209,14 @@ class ValidationContext(
     fun getGeocodingContextCacheKey(trackNumberId: IntId<TrackLayoutTrackNumber>) =
         geocodingContextKeys.get(trackNumberId) { tnId ->
             geocodingService.getGeocodingContextCacheKey(tnId, publicationSet)
+        }
+
+    fun getAddressPoints(trackId: IntId<LocationTrack>): AlignmentAddresses? =
+        getLocationTrack(trackId)?.let(::getAddressPoints)
+
+    fun getAddressPoints(track: LocationTrack): AlignmentAddresses? =
+        getGeocodingContextCacheKey(track.trackNumberId)?.let { key ->
+            geocodingService.getAddressPoints(key, track.getAlignmentVersionOrThrow())
         }
 
     fun preloadByPublicationSet() {

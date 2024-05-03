@@ -139,11 +139,12 @@ class LocationTrackController(
     fun getDescription(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids") ids: List<IntId<LocationTrack>>,
+        @RequestParam("lang") lang: String,
     ): List<LocationTrackDescription> {
         logger.apiCall("getDescription", PUBLICATION_STATE to publicationState, "ids" to ids)
         return ids.mapNotNull { id ->
             id.let { locationTrackService.get(publicationState, it) }?.let { lt ->
-                LocationTrackDescription(id, locationTrackService.getFullDescription(publicationState, lt))
+                LocationTrackDescription(id, locationTrackService.getFullDescription(publicationState, lt, lang))
             }
         }
     }

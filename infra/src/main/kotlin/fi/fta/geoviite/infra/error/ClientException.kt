@@ -1,13 +1,20 @@
 package fi.fta.geoviite.infra.error
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.idToString
 import fi.fta.geoviite.infra.inframodel.INFRAMODEL_PARSING_KEY_GENERIC
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.formatForException
 import org.springframework.http.HttpStatus
-import org.springframework.http.HttpStatus.*
+import org.springframework.http.HttpStatus.BAD_REQUEST
+import org.springframework.http.HttpStatus.NOT_FOUND
+import org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE
+import org.springframework.http.HttpStatus.UNAUTHORIZED
 import kotlin.reflect.KClass
 
 interface HasLocalizedMessage {
@@ -65,7 +72,8 @@ class PublicationFailureException(
     message: String,
     cause: Throwable? = null,
     localizedMessageKey: String = "generic",
-) : ClientException(BAD_REQUEST, "Publishing failed: $message", cause, "$LOCALIZATION_KEY_BASE.$localizedMessageKey") {
+    status: HttpStatus = BAD_REQUEST,
+) : ClientException(status, "Publishing failed: $message", cause, "$LOCALIZATION_KEY_BASE.$localizedMessageKey") {
     companion object {
         const val LOCALIZATION_KEY_BASE = "error.publication"
     }

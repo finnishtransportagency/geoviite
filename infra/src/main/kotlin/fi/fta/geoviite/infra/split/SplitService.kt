@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.error.SplitFailureException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
@@ -17,11 +18,14 @@ import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationValidationError
-import fi.fta.geoviite.infra.publication.PublicationValidationErrorType.ERROR
+import fi.fta.geoviite.infra.publication.ValidationContext
+import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.publication.ValidationVersions
+import fi.fta.geoviite.infra.publication.validationError
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
@@ -35,8 +39,10 @@ import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
+import fi.fta.geoviite.infra.util.produceIf
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -52,6 +58,7 @@ class SplitService(
     private val switchLinkingService: SwitchLinkingService,
     private val switchLibraryService: SwitchLibraryService,
     private val switchService: LayoutSwitchService,
+    private val alignmentDao: LayoutAlignmentDao,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -61,99 +68,110 @@ class SplitService(
         return splitDao.fetchChangeTime()
     }
 
-    fun findPendingSplitsForLocationTracks(locationTracks: Collection<IntId<LocationTrack>>) =
-        findUnfinishedSplitsForLocationTracks(locationTracks).filter { it.isPending }
+    /**
+     * Fetches all splits that are not published. Can be filtered by location tracks or switches. If both filters
+     * are defined, the result is combined by OR (match by either).
+     */
+    fun findUnpublishedSplits(
+        locationTrackIds: List<IntId<LocationTrack>>? = null,
+        switchIds: List<IntId<TrackLayoutSwitch>>? = null,
+    ): List<Split> = findUnfinishedSplits(locationTrackIds, switchIds)
+        .filter { split -> split.publicationId == null }
 
-    fun findUnpublishedSplitsForLocationTracks(locationTracks: Collection<IntId<LocationTrack>>): List<Split> {
-        logger.serviceCall("findUnpublishedSplitsForLocationTracks", "locationTracks" to locationTracks)
-
-        return findUnfinishedSplitsForLocationTracks(locationTracks)
-            .filter { split -> split.publicationId == null }
-    }
-
-    fun findUnfinishedSplitsForLocationTracks(locationTracks: Collection<IntId<LocationTrack>>): List<Split> {
-        logger.serviceCall("findUnfinishedSplitsForLocationTracks", "locationTracks" to locationTracks)
-
-        return splitDao
-            .fetchUnfinishedSplits()
-            .filter { split -> locationTracks.any { lt -> split.containsLocationTrack(lt) } }
-    }
-
-    fun findUnpublishedSplitsForSwitches(switches: Collection<IntId<TrackLayoutSwitch>>): List<Split> {
-        logger.serviceCall("findUnpublishedSplitsForSwitches", "switches" to switches)
-
-        return findUnfinishedSplitsForSwitches(switches)
-            .filter { split -> split.publicationId == null }
-    }
-
-    fun findUnfinishedSplitsForSwitches(switches: Collection<IntId<TrackLayoutSwitch>>): List<Split> {
-        logger.serviceCall("findUnfinishedSplitsForSwitches", "switches" to switches)
-
-        return splitDao.fetchUnfinishedSplits().filter { split ->
-            switches.any { s -> split.containsSwitch(s) }
+    /**
+     * Fetches all splits that are not marked as DONE. Can be filtered by location tracks or switches. If both filters
+     * are defined, the result is combined by OR (match by either).
+     */
+    fun findUnfinishedSplits(
+        locationTrackIds: List<IntId<LocationTrack>>? = null,
+        switchIds: List<IntId<TrackLayoutSwitch>>? = null,
+    ): List<Split> = splitDao.fetchUnfinishedSplits().filter { split ->
+        val containsTrack = locationTrackIds?.any(split::containsLocationTrack)
+        val containsSwitch = switchIds?.any(split::containsSwitch)
+        when {
+            containsTrack != null && containsSwitch != null -> containsTrack || containsSwitch
+            containsTrack != null -> containsTrack
+            containsSwitch != null -> containsSwitch
+            else -> true
         }
     }
 
+    fun fetchPublicationVersions(
+        locationTracks: List<IntId<LocationTrack>>,
+        switches: List<IntId<TrackLayoutSwitch>>,
+    ): List<ValidationVersion<Split>> = findUnpublishedSplits(locationTracks, switches)
+        .map { split -> ValidationVersion(split.id, split.rowVersion) }
+
+    @Transactional
     fun publishSplit(
+        validatedSplitVersions: List<ValidationVersion<Split>>,
         locationTracks: Collection<DaoResponse<LocationTrack>>,
         publicationId: IntId<Publication>,
     ): List<RowVersion<Split>> {
         logger.serviceCall("publishSplit", "locationTracks" to locationTracks, "publicationId" to publicationId)
-        return findPendingSplitsForLocationTracks(locationTracks.map { v -> v.id }.distinct())
-            .map { split ->
-                val track = locationTracks.find { t -> t.id == split.sourceLocationTrackId }
-                splitDao.updateSplit(
-                    splitId = split.id,
-                    publicationId = publicationId,
-                    sourceTrackVersion = track?.rowVersion,
-                )
+        return validatedSplitVersions.map { splitVersion ->
+            val split = splitDao.getOrThrow(splitVersion.officialId)
+            val track = requireNotNull(locationTracks.find { t -> t.id == split.sourceLocationTrackId }) {
+                "Source track must be part of the same publication as the split: split=$split"
             }
+            splitDao.updateSplit(
+                splitId = split.id,
+                publicationId = publicationId,
+                sourceTrackVersion = track.rowVersion,
+            ).also { updatedVersion ->
+                // Sanity-check the version for conflicting update, though this should not be possible
+                if (updatedVersion.version != splitVersion.validatedAssetVersion.version + 1) {
+                    throw PublicationFailureException(
+                        message = "Split version has changed between validation and publication: split=${split.id}",
+                        localizedMessageKey = "split-version-changed",
+                        status = HttpStatus.CONFLICT,
+                    )
+                }
+            }
+        }
     }
 
+    @Transactional
     fun deleteSplit(splitId: IntId<Split>) {
         logger.serviceCall("deleteSplit", "splitId" to splitId)
         splitDao.deleteSplit(splitId)
     }
 
-    fun validateSplit(candidates: ValidationVersions, allowMultipleSplits: Boolean): SplitPublicationValidationErrors {
-        val splitsByLocationTracks = candidates.locationTracks.map { locationTrackValidationVersion ->
-            locationTrackValidationVersion.officialId
-        }.let(::findUnpublishedSplitsForLocationTracks)
-
-        val splitsBySwitches = candidates.switches.map { switchValidationVersion ->
-            switchValidationVersion.officialId
-        }.let(::findUnpublishedSplitsForSwitches)
-
-        val splits = (splitsByLocationTracks + splitsBySwitches).distinctBy { it.id }
+    @Transactional(readOnly = true)
+    fun validateSplit(
+        candidates: ValidationVersions,
+        context: ValidationContext,
+        allowMultipleSplits: Boolean,
+    ): SplitPublicationValidationErrors {
         val splitErrors = validateSplitContent(
             trackVersions = candidates.locationTracks,
             switchVersions = candidates.switches,
-            splits = splits,
+            splits = context.getUnfinishedSplits(),
             allowMultipleSplits = allowMultipleSplits,
         )
 
         val tnSplitErrors = candidates.trackNumbers.associate { (id, _) ->
-            id to listOfNotNull(validateSplitReferencesByTrackNumber(id))
+            id to listOfNotNull(validateSplitReferencesByTrackNumber(id, context))
         }.filterValues { it.isNotEmpty() }
 
         val rlSplitErrors = candidates.referenceLines.associate { (id, version) ->
-            val rl = referenceLineDao.fetch(version)
-            id to listOfNotNull(validateSplitReferencesByTrackNumber(rl.trackNumberId))
+            val trackNumberId = referenceLineDao.fetch(version).trackNumberId
+            id to listOfNotNull(validateSplitReferencesByTrackNumber(trackNumberId, context))
         }.filterValues { it.isNotEmpty() }
 
         val kpSplitErrors = candidates.kmPosts.associate { (id, version) ->
             val trackNumberId = kmPostDao.fetch(version).trackNumberId
-            id to listOfNotNull(trackNumberId?.let(::validateSplitReferencesByTrackNumber))
+            id to listOfNotNull(trackNumberId?.let { tnId -> validateSplitReferencesByTrackNumber(tnId, context) })
         }.filterValues { it.isNotEmpty() }
 
         val trackSplitErrors = candidates.locationTracks.associate { (id, _) ->
-            val ltSplitErrors = validateSplitForLocationTrack(id, splits)
+            val ltSplitErrors = validateSplitForLocationTrack(id, context)
             val contentErrors = splitErrors.mapNotNull { (split, error) ->
                 if (split.containsLocationTrack(id)) error else null
             }
-
             id to ltSplitErrors + contentErrors
         }.filterValues { it.isNotEmpty() }
+
         val switchSplitErrors = candidates.switches.associate { (id, _) ->
             id to splitErrors.mapNotNull { (split, error) ->
                 if (split.containsSwitch(id)) error else null
@@ -171,62 +189,60 @@ class SplitService(
 
     fun getSplitIdByPublicationId(publicationId: IntId<Publication>): IntId<Split>? {
         logger.serviceCall("getSplitIdByPublicationId", "publicationId" to publicationId)
-
         return splitDao.fetchSplitIdByPublication(publicationId)
     }
 
     fun get(splitId: IntId<Split>): Split? {
         logger.serviceCall("get", "splitId" to splitId)
-
         return splitDao.get(splitId)
     }
 
     fun getOrThrow(splitId: IntId<Split>): Split {
         logger.serviceCall("getOrThrow", "splitId" to splitId)
-
         return splitDao.getOrThrow(splitId)
     }
 
     private fun validateSplitForLocationTrack(
         trackId: IntId<LocationTrack>,
-        splits: Collection<Split>,
+        context: ValidationContext,
     ): List<PublicationValidationError> {
-        val pendingSplits = splits.filter { it.isPending }
+        val splits = context.getUnfinishedSplits()
+            .filter { split -> split.locationTracks.contains(trackId) }
+            .map { split -> split to locationTrackDao.fetch(split.sourceLocationTrackVersion) }
+        val track = requireNotNull(context.getLocationTrack(trackId)) {
+            "The track to validate must exist in the validation context: id=$trackId"
+        }
 
-        val trackNumberMismatchErrors = splits
-            .firstOrNull { it.targetLocationTracks.any { tlt -> tlt.locationTrackId == trackId } }
-            ?.let { split ->
-                val sourceLocationTrack = locationTrackDao.fetch(split.sourceLocationTrackVersion)
-                split.targetLocationTracks.mapNotNull { targetLt ->
-                    val targetLocationTrack = locationTrackService.getOrThrow(DRAFT, targetLt.locationTrackId)
-                    validateTargetTrackNumber(sourceLocationTrack, targetLocationTrack)
-                }
-            } ?: emptyList()
+        val splitSourceLocationTrackErrors = splits.flatMap { (split, _) ->
+            if (split.sourceLocationTrackId == trackId) validateSplitSourceLocationTrack(track, split) else emptyList()
+        }
 
-        // As an optimization, geometry error checking is skipped if the track numbers are different
-        // between any source & target location tracks. The geometry check will rarely if ever succeed
-        // for differing track numbers on source & target tracks, and differing track number for any
-        // source & target track is already a considered a publication-blocking error.
+        val statusErrors = splits.mapNotNull { (split, sourceTrack) -> validateSplitStatus(track, sourceTrack, split) }
+
+        // Note: we only check draft splits from here on, since the situation cannot change after publication:
+        // - Official tracks are already validated and published
+        // - The above status check will not allow draft tracks to be involved in published pending splits
+        // - Published DONE splits don't matter and shouldn't affect future changes
+        // - Changes to the geocoding context are blocked for any tracks associated with a split
+        val draftSplits = splits.filter { (split, _) -> split.publicationId == null }
+
+        val trackNumberMismatchErrors = draftSplits.mapNotNull { (split, sourceTrack) ->
+            produceIf(split.containsTargetTrack(trackId)) {
+                validateTargetTrackNumberIsUnchanged(sourceTrack, track)
+            }
+        }
+
+        // Geometry error checking is skipped if the track numbers are different between any source & target tracks,
+        // The geometry check will rarely if ever succeed for differing track numbers on source & target tracks, and
+        // differing track number for any source & target track is already a considered a publication-blocking error.
         val splitGeometryErrors = when {
-            trackNumberMismatchErrors.isEmpty() -> validateSplitGeometries(trackId, pendingSplits)
+            trackNumberMismatchErrors.isEmpty() -> validateSplitGeometries(trackId, draftSplits, context)
             else -> emptyList()
         }
 
-        val splitSourceLocationTrackError = splits
-            .firstOrNull { split -> split.sourceLocationTrackId == trackId }
-            ?.let {
-                validateSplitSourceLocationTrack(locationTrackService.getOrThrow(DRAFT, trackId))
-            }
-
-        val statusError = splits
-            .firstOrNull { !it.isPending }
-            ?.let { PublicationValidationError(ERROR, "$VALIDATION_SPLIT.split-in-progress") }
-
         return listOf(
-            listOfNotNull(
-                statusError,
-                splitSourceLocationTrackError,
-            ),
+            statusErrors,
+            splitSourceLocationTrackErrors,
             trackNumberMismatchErrors,
             splitGeometryErrors,
         ).flatten()
@@ -234,55 +250,48 @@ class SplitService(
 
     private fun validateSplitGeometries(
         trackId: IntId<LocationTrack>,
-        pendingSplits: Collection<Split>,
+        splits: List<Pair<Split, LocationTrack>>,
+        context: ValidationContext,
     ): List<PublicationValidationError> {
-        val targetGeometryError = pendingSplits
-            .firstNotNullOfOrNull { split ->
-                split.targetLocationTracks
-                    .find { tlt -> tlt.locationTrackId == trackId }
-                    ?.let { t -> split to t }
-            }
-            ?.let { (split, target) ->
-                val (sourceAddresses, targetAddresses) = getTargetValidationAddressPoints(
-                    split.sourceLocationTrackVersion,
-                    target,
-                )
+        // Target address validation ensures that all split target addresspoints match the source addresspoints in
+        // the validation context (that is: draft target geometry is a subset of draft source geometry)
+        val targetGeometryErrors = splits.mapNotNull { (split, sourceTrack) ->
+            split.getTargetLocationTrack(trackId)?.let { target ->
+                val (sourceAddresses, targetAddresses) = getTargetValidationAddressPoints(sourceTrack, target, context)
                 validateTargetGeometry(target.operation, targetAddresses, sourceAddresses)
             }
+        }
 
-        val sourceGeometryErrors = pendingSplits
-            .firstOrNull { it.sourceLocationTrackId == trackId }
-            ?.let {
-                // TODO: GVT-2442 Source track should be with fixed version. Source geocoding context should be official versus in-validation-context
-                val draftAddresses = geocodingService.getAddressPoints(trackId, DRAFT)
+        // Source address validation ensures that the in-validationcontext source addresspoints are unchanged from the
+        // official ones (that is: draft source geometry == official source geometry)
+        val sourceGeometryErrors = splits.mapNotNull { (_, sourceTrack) ->
+            produceIf(trackId == sourceTrack.id) {
+                val draftAddresses = context.getAddressPoints(sourceTrack)
                 val officialAddresses = geocodingService.getAddressPoints(trackId, OFFICIAL)
                 validateSourceGeometry(draftAddresses, officialAddresses)
             }
+        }
 
-        return listOfNotNull(targetGeometryError, sourceGeometryErrors)
+        return targetGeometryErrors + sourceGeometryErrors
     }
 
     private fun getTargetValidationAddressPoints(
-        sourceTrackVersion: RowVersion<LocationTrack>,
+        sourceTrack: LocationTrack,
         target: SplitTarget,
+        context: ValidationContext,
     ): Pair<List<AddressPoint>?, List<AddressPoint>?> {
-        val sourceMRange = getSourceMRange(sourceTrackVersion, target.segmentIndices)
-        val sourceAddresses = if (sourceMRange != null) {
-            val locationTrack = locationTrackDao.fetch(sourceTrackVersion)
-            // TODO: GVT-2442 Source track should be with fixed version. Source geocoding context should be in-validation-context for comparing with in-validation-context target tracks
-            geocodingService.getGeocodingContextCacheKey(locationTrack.trackNumberId, OFFICIAL)
-                ?.let { key -> geocodingService.getAddressPoints(key, locationTrack.getAlignmentVersionOrThrow()) }
-                ?.exactMeterPoints
-                ?.filter { p -> p.point.m in sourceMRange }
-        } else {
-            null
+        val sourceMRange = getMRange(sourceTrack.getAlignmentVersionOrThrow(), target.segmentIndices)
+        val sourceAddresses = sourceMRange?.let { range ->
+            context.getAddressPoints(sourceTrack)
+                ?.integerPrecisionPoints
+                ?.filter { p -> p.point.m in range }
         }
 
         val targetAddressStart = sourceAddresses?.firstOrNull()?.address
         val targetAddressEnd = sourceAddresses?.lastOrNull()?.address
         val targetAddresses = if (targetAddressStart != null && targetAddressEnd != null) {
-            geocodingService.getAddressPoints(target.locationTrackId, DRAFT)
-                ?.exactMeterPoints
+            context.getAddressPoints(target.locationTrackId)
+                ?.integerPrecisionPoints
                 ?.let { points ->
                     if (target.operation == SplitTargetOperation.TRANSFER) {
                         points.filter { p -> p.address in targetAddressStart..targetAddressEnd }
@@ -297,14 +306,14 @@ class SplitService(
         return sourceAddresses to targetAddresses
     }
 
-    private fun getSourceMRange(
-        trackVersion: RowVersion<LocationTrack>,
+    private fun getMRange(
+        alignmentVersion: RowVersion<LayoutAlignment>,
         segmentIndices: IntRange,
     ): ClosedFloatingPointRange<Double>? {
-        val (_, sourceAlignment) = locationTrackService.getWithAlignment(trackVersion)
+        val sourceAlignment = alignmentDao.fetch(alignmentVersion)
         val sourceStartM = sourceAlignment.getSegmentStartM(segmentIndices.first)
         val sourceEndM = sourceAlignment.getSegmentEndM(segmentIndices.last)
-        return if(sourceStartM != null && sourceEndM != null) {
+        return if (sourceStartM != null && sourceEndM != null) {
             sourceStartM..sourceEndM
         } else {
             null
@@ -313,15 +322,25 @@ class SplitService(
 
     private fun validateSplitReferencesByTrackNumber(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
+        context: ValidationContext,
     ): PublicationValidationError? {
-        val splitIds = splitDao.fetchUnfinishedSplitIdsByTrackNumber(trackNumberId)
-        return if (splitIds.isNotEmpty()) {
-            PublicationValidationError(ERROR, "$VALIDATION_SPLIT.split-in-progress")
+        val affectedTracks = context.getLocationTracksByTrackNumber(trackNumberId)
+        val affectedSplits = context.getUnfinishedSplits()
+            .filter { split -> split.locationTracks.any { ltId -> affectedTracks.any { a -> a.id == ltId } } }
+        return if (affectedSplits.isNotEmpty()) {
+            val sourceTrackNames = affectedSplits
+                .mapNotNull { split -> context.getLocationTrack(split.sourceLocationTrackId)?.name }
+                .joinToString(", ")
+            validationError(
+                "$VALIDATION_SPLIT.affected-split-in-progress",
+                "sourceName" to sourceTrackNames,
+            )
         } else {
             null
         }
     }
 
+    @Transactional
     fun updateSplitState(splitId: IntId<Split>, state: BulkTransferState): RowVersion<Split> {
         logger.serviceCall("updateSplitState", "splitId" to splitId)
 
@@ -341,10 +360,12 @@ class SplitService(
             .map { duplicateTrack -> duplicateTrack.id as IntId }
 
         val sourceTrack = locationTrackDao.getOrThrow(DRAFT, request.sourceTrackId)
-        if (sourceTrack.state != LocationTrackState.IN_USE) throw SplitFailureException(
-            message = "Source track state is not IN_USE: id=${sourceTrack.id}",
-            localizedMessageKey = "source-track-state-not-in-use",
-        )
+        if (sourceTrack.state != LocationTrackState.IN_USE) {
+            throw SplitFailureException(
+                message = "Source track state is not IN_USE: id=${sourceTrack.id}",
+                localizedMessageKey = "source-track-state-not-in-use",
+            )
+        }
 
         val suggestions = verifySwitchSuggestions(switchLinkingService.getTrackSwitchSuggestions(DRAFT, sourceTrack))
         val relinkedSwitches = switchLinkingService.relinkTrack(request.sourceTrackId).map { it.id }
@@ -381,15 +402,17 @@ class SplitService(
 
         val savedSource = locationTrackService.updateState(request.sourceTrackId, LocationTrackState.DELETED)
 
-        return savedSplitTargetLocationTracks.map { splitTargetResult ->
-            SplitTarget(
-                locationTrackId = splitTargetResult.locationTrack.id as IntId,
-                segmentIndices = splitTargetResult.indices,
-                operation = splitTargetResult.operation,
-            )
-        }.let { splitTargets ->
-            splitDao.saveSplit(savedSource.rowVersion, splitTargets, relinkedSwitches, sourceTrackDuplicateIds)
-        }
+        return savedSplitTargetLocationTracks
+            .map { splitTargetResult ->
+                SplitTarget(
+                    locationTrackId = splitTargetResult.locationTrack.id as IntId,
+                    segmentIndices = splitTargetResult.indices,
+                    operation = splitTargetResult.operation,
+                )
+            }
+            .let { splitTargets ->
+                splitDao.saveSplit(savedSource.rowVersion, splitTargets, relinkedSwitches, sourceTrackDuplicateIds)
+            }
     }
 
     private fun updateUnusedDuplicateReferencesToSplitTargetTracks(
@@ -674,8 +697,9 @@ private fun throwSwitchSegmentMappingFailure(alignment: LayoutAlignment, switch:
 
 private fun findIndex(alignment: LayoutAlignment, switchId: IntId<TrackLayoutSwitch>, joint: JointNumber): Int {
     alignment.segments.forEachIndexed { index, segment ->
-        if (segment.switchId == switchId && segment.startJointNumber == joint) return index
-        else if (segment.switchId == switchId && segment.endJointNumber == joint) return index + 1
+        if (segment.switchId == switchId && segment.startJointNumber == joint) {
+            return index
+        } else if (segment.switchId == switchId && segment.endJointNumber == joint) return index + 1
     }
     return -1
 }

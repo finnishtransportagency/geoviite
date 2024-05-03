@@ -16,6 +16,7 @@ import { createAlignmentFeature } from '../utils/alignment-layer-utils';
 import { Stroke, Style } from 'ol/style';
 import { filterNotEmpty, first, last } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
+import { expectDefined } from 'utils/type-utils';
 
 const splittingLocationTrackStyle = new Style({
     stroke: new Stroke({
@@ -40,10 +41,13 @@ function splitToParts(
     splits: SplitTarget[],
     focusedSplits: SplitTargetId[],
 ): Feature<LineString | OlPoint>[] {
-    const endOfAlignment = last(alignment.points).m;
+    const endOfAlignment = expectDefined(last(alignment.points)).m;
     return splits.flatMap((split, index, allSplits) => {
         const start = split.distance;
-        const end = index + 1 < allSplits.length ? allSplits[index + 1].distance : endOfAlignment;
+        const end =
+            index + 1 < allSplits.length
+                ? expectDefined(allSplits[index + 1]).distance
+                : endOfAlignment;
         const pointsForSplit = alignment.points.filter(
             (point) => point.m >= start && point.m <= end,
         );

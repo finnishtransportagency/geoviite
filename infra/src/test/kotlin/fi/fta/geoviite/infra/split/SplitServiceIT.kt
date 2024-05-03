@@ -43,6 +43,7 @@ class SplitServiceIT @Autowired constructor(
     val switchDao: LayoutSwitchDao,
     val switchStructureDao: SwitchStructureDao,
     val locationTrackService: LocationTrackService,
+    val splitTestDataService: SplitTestDataService,
 ) : DBTestBase() {
     // The run order of the tests in this test suite matters if the database is not cleaned before each test.
     // This gave false positive results for tests.
@@ -92,21 +93,25 @@ class SplitServiceIT @Autowired constructor(
         // Main       |---------|
         // Splits     |--|--|---|
 
-        val preSegments = createSegments(Point(0.0, 0.0), 3)
+        val preSegments = splitTestDataService.createSegments(Point(0.0, 0.0), 3)
 
         // Segments that are a part of the first switch + the branching track for switch re-linking to work
-        val (switch1, switchSegments1, turningSegments1) = createSwitchAndGeometry(lastPoint(preSegments))
-        insertAsTrack(turningSegments1)
+        val (switch1, switchSegments1, turningSegments1) =
+            splitTestDataService.createSwitchAndGeometry(lastPoint(preSegments))
 
-        val segments1To2 = createSegments(lastPoint(switchSegments1), 2)
+        splitTestDataService.insertAsTrack(turningSegments1)
+
+        val segments1To2 = splitTestDataService.createSegments(lastPoint(switchSegments1), 2)
 
         // Segments that are a part of the second switch + the branching track for switch re-linking to work
-        val (switch2, switchSegments2, turningSegments2) = createSwitchAndGeometry(lastPoint(segments1To2))
-        insertAsTrack(turningSegments2)
+        val (switch2, switchSegments2, turningSegments2) =
+            splitTestDataService.createSwitchAndGeometry(lastPoint(segments1To2))
 
-        val postSegments = createSegments(lastPoint(switchSegments2), 4)
+        splitTestDataService.insertAsTrack(turningSegments2)
 
-        val track = createAsMainTrack(
+        val postSegments = splitTestDataService.createSegments(lastPoint(switchSegments2), 4)
+
+        val track = splitTestDataService.createAsMainTrack(
             preSegments + switchSegments1 + segments1To2 + switchSegments2 + postSegments
         )
 
@@ -135,27 +140,32 @@ class SplitServiceIT @Autowired constructor(
         // Duplicates |--|--|
         // Splits     |--|--|---|
 
-        val preSegments = createSegments(Point(0.0, 0.0), 3)
+        val preSegments = splitTestDataService.createSegments(Point(0.0, 0.0), 3)
 
         // Segments that are a part of the first switch + the branching track for switch re-linking to work
-        val (switch1, switchSegments1, turningSegments1) = createSwitchAndGeometry(lastPoint(preSegments))
-        insertAsTrack(turningSegments1)
+        val (switch1, switchSegments1, turningSegments1) = splitTestDataService.createSwitchAndGeometry(lastPoint(preSegments))
+        splitTestDataService.insertAsTrack(turningSegments1)
 
-        val segments1To2 = createSegments(lastPoint(switchSegments1), 2)
+        val segments1To2 = splitTestDataService.createSegments(lastPoint(switchSegments1), 2)
 
         // Segments that are a part of the second switch + the branching track for switch re-linking to work
-        val (switch2, switchSegments2, turningSegments2) = createSwitchAndGeometry(lastPoint(segments1To2))
-        insertAsTrack(turningSegments2)
+        val (switch2, switchSegments2, turningSegments2) = splitTestDataService.createSwitchAndGeometry(lastPoint(segments1To2))
+        splitTestDataService.insertAsTrack(turningSegments2)
 
-        val postSegments = createSegments(lastPoint(switchSegments2), 4)
+        val postSegments = splitTestDataService.createSegments(lastPoint(switchSegments2), 4)
 
-        val track = createAsMainTrack(
+        val track = splitTestDataService.createAsMainTrack(
             preSegments + switchSegments1 + segments1To2 + switchSegments2 + postSegments
         )
 
         // Create duplicates as completely separate of the original, as they're overwritten anyhow
-        val duplicate1 = insertAsTrack(createSegments(Point(5.0, 5.0), 2), duplicateOf = track.id)
-        val duplicate2 = insertAsTrack(createSegments(Point(15.0, 15.0), 5), duplicateOf = track.id)
+        val duplicate1 = splitTestDataService.insertAsTrack(
+            splitTestDataService.createSegments(Point(5.0, 5.0), 2), duplicateOf = track.id
+        )
+
+        val duplicate2 = splitTestDataService.insertAsTrack(
+            splitTestDataService.createSegments(Point(15.0, 15.0), 5), duplicateOf = track.id
+        )
 
         val request = splitRequest(
             track.id,
@@ -182,37 +192,37 @@ class SplitServiceIT @Autowired constructor(
         // Duplicates |-----|-------|
         // Splits        |--|---|
 
-        val preSegments = createSegments(Point(0.0, 0.0), 3)
+        val preSegments = splitTestDataService.createSegments(Point(0.0, 0.0), 3)
 
         // Segments that are a part of the first switch + the branching track for switch re-linking to work
-        val (switch1, switchSegments1, switchTurningSegments1) = createSwitchAndGeometry(lastPoint(preSegments))
-        insertAsTrack(switchTurningSegments1)
+        val (switch1, switchSegments1, switchTurningSegments1) = splitTestDataService.createSwitchAndGeometry(lastPoint(preSegments))
+        splitTestDataService.insertAsTrack(switchTurningSegments1)
 
-        val segments1To2 = createSegments(lastPoint(switchSegments1), 2)
-
-        // Segments that are a part of the second switch + the branching track for switch re-linking to work
-        val (switch2, switchSegments2, switchTurningSegments2) = createSwitchAndGeometry(lastPoint(segments1To2))
-        insertAsTrack(switchTurningSegments2)
-
-        val segments2To3 = createSegments(lastPoint(switchSegments2), 3)
+        val segments1To2 = splitTestDataService.createSegments(lastPoint(switchSegments1), 2)
 
         // Segments that are a part of the second switch + the branching track for switch re-linking to work
-        val (_, switchSegments3, switchTurningSegments3) = createSwitchAndGeometry(lastPoint(segments2To3))
-        insertAsTrack(switchTurningSegments3)
+        val (switch2, switchSegments2, switchTurningSegments2) = splitTestDataService.createSwitchAndGeometry(lastPoint(segments1To2))
+        splitTestDataService.insertAsTrack(switchTurningSegments2)
 
-        val postSegments = createSegments(lastPoint(switchSegments3), 4)
+        val segments2To3 = splitTestDataService.createSegments(lastPoint(switchSegments2), 3)
+
+        // Segments that are a part of the second switch + the branching track for switch re-linking to work
+        val (_, switchSegments3, switchTurningSegments3) = splitTestDataService.createSwitchAndGeometry(lastPoint(segments2To3))
+        splitTestDataService.insertAsTrack(switchTurningSegments3)
+
+        val postSegments = splitTestDataService.createSegments(lastPoint(switchSegments3), 4)
 
         // The main track goes from switch 1 to switch 3
-        val track = createAsMainTrack(
+        val track = splitTestDataService.createAsMainTrack(
             switchSegments1 + segments1To2 + switchSegments2 + segments2To3
         )
         // Duplicate 1 starts before the main track and continues after the first switch
-        val duplicate1 = insertAsTrack(
+        val duplicate1 = splitTestDataService.insertAsTrack(
             segments = preSegments + switchSegments1 + segments1To2,
             duplicateOf = track.id,
         )
         // Duplicate 2 starts from the second switch and continues beyond the main track
-        val duplicate2 = insertAsTrack(
+        val duplicate2 = splitTestDataService.insertAsTrack(
             segments = switchSegments2 + segments2To3 + switchSegments3 + postSegments,
             duplicateOf = track.id,
         )
@@ -233,14 +243,6 @@ class SplitServiceIT @Autowired constructor(
         assertEquals(LocationTrackState.DELETED, locationTrackService.get(DRAFT, track.id)?.state)
     }
 
-    private fun createSegments(startPoint: IPoint, count: Int = 3, pointOffset: Double = 10.0): List<LayoutSegment> {
-        return (0..<count).map { idx ->
-            val start = startPoint + Point(idx * pointOffset, 0.0)
-            val end = start + Point(pointOffset, 0.0)
-            segment(start, end)
-        }
-    }
-
     private fun lastPoint(segments: List<LayoutSegment>): IPoint = segments.last().segmentPoints.last()
 
     private fun assertSplitMatchesRequest(request: SplitRequest, split: Split) {
@@ -258,40 +260,6 @@ class SplitServiceIT @Autowired constructor(
                 assertEquals(d.id, targetResult.locationTrackId)
             }
         }
-    }
-
-    private fun createAsMainTrack(segments: List<LayoutSegment>): DaoResponse<LocationTrack> {
-        val alignment = alignment(segments)
-
-        val trackNumberId = insertOfficialTrackNumber()
-        insertReferenceLine(referenceLine(trackNumberId, draft = false), alignment)
-
-        return insertLocationTrack(locationTrack(trackNumberId, draft = false), alignment).also { r ->
-            val (dbTrack, dbAlignment) = locationTrackService.getWithAlignment(r.rowVersion)
-            assertEquals(trackNumberId, dbTrack.trackNumberId)
-            assertEquals(segments.size, dbAlignment.segments.size)
-            assertEquals(segments.sumOf { s -> s.length }, dbAlignment.length, 0.001)
-        }
-    }
-
-    private data class SwitchAndSegments(
-        val switch: DaoResponse<TrackLayoutSwitch>,
-        val straightSwitchSegments: List<LayoutSegment>,
-        val turningSwitchSegments: List<LayoutSegment>,
-    )
-
-    private fun createSwitchAndGeometry(
-        startPoint: IPoint,
-        structure: SwitchStructure = getYvStructure(),
-    ): SwitchAndSegments {
-        val switchInsertResponse = insertSwitch(
-            switchFromDbStructure(getUnusedSwitchName().toString(), startPoint, structure, draft = false)
-        )
-        return SwitchAndSegments(
-            switchInsertResponse,
-            segmentsFromSwitchStructure(startPoint, switchInsertResponse.id, structure, listOf(1, 5, 2)),
-            segmentsFromSwitchStructure(startPoint, switchInsertResponse.id, structure, listOf(1, 3)),
-        )
     }
 
     private fun assertTransferTargetTrack(request: SplitRequestTarget, response: SplitTarget) {
@@ -342,7 +310,7 @@ class SplitServiceIT @Autowired constructor(
         val splitId = insertSplitWithTwoTracks()
         val split = splitDao.getOrThrow(splitId)
 
-        val foundSplits = splitService.findUnfinishedSplitsForLocationTracks(listOf(split.sourceLocationTrackId))
+        val foundSplits = splitService.findUnfinishedSplits(locationTrackIds = listOf(split.sourceLocationTrackId))
 
         assertEquals(splitId, foundSplits.first().id)
     }
@@ -352,8 +320,8 @@ class SplitServiceIT @Autowired constructor(
         val splitId = insertSplitWithTwoTracks()
         val split = splitDao.getOrThrow(splitId)
 
-        val foundSplits = splitService.findUnfinishedSplitsForLocationTracks(
-            listOf(split.targetLocationTracks.first().locationTrackId)
+        val foundSplits = splitService.findUnfinishedSplits(
+            locationTrackIds = listOf(split.targetLocationTracks.first().locationTrackId)
         )
 
         assertEquals(splitId, foundSplits.first().id)
@@ -364,7 +332,7 @@ class SplitServiceIT @Autowired constructor(
         val splitId = insertSplitWithTwoTracks()
         val split = splitDao.getOrThrow(splitId)
 
-        val foundSplits = splitService.findUnfinishedSplitsForSwitches(split.relinkedSwitches)
+        val foundSplits = splitService.findUnfinishedSplits(switchIds = split.relinkedSwitches)
 
         assertEquals(splitId, foundSplits.first().id)
     }
@@ -496,15 +464,6 @@ class SplitServiceIT @Autowired constructor(
         )
     }
 
-    private fun insertAsTrack(
-        segments: List<LayoutSegment>,
-        duplicateOf: IntId<LocationTrack>? = null,
-    ): IntId<LocationTrack> {
-        val alignment = alignment(segments)
-        val trackNumberId = insertOfficialTrackNumber()
-        return insertLocationTrack(locationTrack(trackNumberId, draft = false, duplicateOf = duplicateOf), alignment).id
-    }
-
     private fun getYvStructure(): SwitchStructure =
         requireNotNull(switchStructureDao.fetchSwitchStructures().find { s -> s.type.typeName == "YV60-300-1:9-O" })
 
@@ -565,9 +524,9 @@ class SplitServiceIT @Autowired constructor(
         return startPoints.zip(
             startPoints.drop(1) + null
         ).fold(initialSwitchesAndSegments) { switchesAndSegments, (startPoint, nextStartPoint) ->
-            val (switch, switchSegments, turningSegments) = createSwitchAndGeometry(startPoint, structure)
+            val (switch, switchSegments, turningSegments) = splitTestDataService.createSwitchAndGeometry(startPoint, structure)
             // For the switch relinking to have another track to find near the start of every switch.
-            insertAsTrack(turningSegments)
+            splitTestDataService.insertAsTrack(turningSegments)
 
             val switchEnd = switchSegments.last().segmentPoints.last()
             val pointAfterSwitch = switchEnd + Point(10.0, startPoint.y)

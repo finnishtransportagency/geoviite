@@ -255,4 +255,5 @@ export const getRevertRequestDependencies = (candidates: PublicationCandidateRef
 export const getSplitDetails = (id: string) =>
     getNonNull<SplitInPublication>(`${PUBLICATION_URL}/${id}/split-details`);
 
-export const splitDetailsCsvUri = (id: string) => `${PUBLICATION_URL}/${id}/split-details/csv`;
+export const splitDetailsCsvUri = (id: string) =>
+    `${PUBLICATION_URL}/${id}/split-details/csv${queryParams({ lang: i18next.language })}`;

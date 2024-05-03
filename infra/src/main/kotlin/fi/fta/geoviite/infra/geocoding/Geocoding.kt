@@ -64,7 +64,7 @@ data class AlignmentAddresses(
     }
 
     @get:JsonIgnore
-    val exactMeterPoints: List<AddressPoint> by lazy {
+    val integerPrecisionPoints: List<AddressPoint> by lazy {
         // midPoints are even anyhow, so just transform start/end
         listOfNotNull(startPoint.withIntegerPrecision()) + midPoints + listOfNotNull(endPoint.withIntegerPrecision())
     }

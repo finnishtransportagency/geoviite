@@ -1,7 +1,16 @@
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.publication.*
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.publication.PublicationRequestIds
+import fi.fta.geoviite.infra.publication.PublicationResult
+import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.ValidationVersion
+import fi.fta.geoviite.infra.publication.ValidationVersions
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 
 fun publicationRequest(
     trackNumbers: List<IntId<TrackLayoutTrackNumber>> = listOf(),
@@ -29,6 +38,7 @@ fun validationVersions(
     kmPosts = kmPosts.map { (id,version) -> ValidationVersion(id, version) },
     locationTracks = locationTracks.map { (id,version) -> ValidationVersion(id, version) },
     switches = switches.map { (id,version) -> ValidationVersion(id, version) },
+    splits = listOf(),
 )
 
 fun publish(

@@ -373,10 +373,6 @@ data class IntegralTrackLayoutKmPost(
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
 )
 
-enum class TrackLayoutKmPostTableColumn {
-    TRACK_NUMBER, KILOMETER, START_M, END_M, LENGTH, LOCATION_E, LOCATION_N, WARNING
-}
-
 data class TrackLayoutKmLengthDetails(
     val trackNumber: TrackNumber,
     val kmNumber: KmNumber,
@@ -427,19 +423,4 @@ data class TrackNumberAndChangeTime(
     val id: IntId<TrackLayoutTrackNumber>,
     val number: TrackNumber,
     val changeTime: Instant,
-)
-
-fun getTranslation(key: String) = kmLengthTranslations[key] ?: ""
-
-private val kmLengthTranslations = mapOf(
-    "projected-location-warning" to "Sijainti on raiteen keskilinjalle projisoitu sijainti.",
-    "start-address-location-warning" to "Sijainti on pituusmittauslinjan alun sijainti.",
-    "TRACK_NUMBER-header" to "Ratanumero",
-    "KILOMETER-header" to "Ratakilometri",
-    "START_M-header" to "Alkupaalu",
-    "END_M-header" to "Loppupaalu",
-    "LENGTH-header" to "Pituus (m)",
-    "LOCATION_E-header" to "Koordinaatti E",
-    "LOCATION_N-header" to "Koordinaatti N",
-    "WARNING-header" to "Huomiot"
 )
