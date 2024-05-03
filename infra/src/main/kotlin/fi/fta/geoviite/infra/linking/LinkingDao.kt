@@ -79,11 +79,10 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
             left join layout.segment_version
               on element.alignment_id = segment_version.geometry_alignment_id
                 and element.element_index = segment_version.geometry_element_index
-            left join layout.location_track_publication_view location_track
+            left join layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) location_track
               on location_track.alignment_id = segment_version.alignment_id
                 and location_track.alignment_version = segment_version.alignment_version
                 and location_track.state != 'DELETED'
-                and :publication_state = any(location_track.publication_states)
             left join layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) reference_line
               on reference_line.alignment_id = segment_version.alignment_id
                 and reference_line.alignment_version = segment_version.alignment_version
@@ -147,6 +146,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         planId: IntId<GeometryPlan>,
         publicationState: PublicationState
     ): List<GeometrySwitchLinkStatus> {
+        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
         select
             switch.id,
@@ -163,11 +163,11 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
             left join layout.segment_version
                       on segment_version.geometry_element_index = element.element_index
                         and segment_version.geometry_alignment_id = element.alignment_id
-            left join layout.location_track_publication_view location_track
-                      on location_track.alignment_id = segment_version.alignment_id
+            left join
+              layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
+                location_track on location_track.alignment_id = segment_version.alignment_id
                         and location_track.alignment_version = segment_version.alignment_version
                         and location_track.state != 'DELETED'
-                        and :publication_state = any(location_track.publication_states)
             left join layout.switch_publication_view layout_switch
                       on layout_switch.official_id = segment_version.switch_id
                         and layout_switch.state_category != 'NOT_EXISTING'
@@ -177,7 +177,8 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         """.trimIndent()
         val params = mapOf(
             "plan_id" to planId.intValue,
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -204,11 +205,10 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
               plan.srid,
               plan.id as plan_id
             from layout.segment_version
-            inner join layout.location_track_publication_view location_track
+            inner join layout.location_track_in_layout_context('DRAFT', null) location_track
               on location_track.alignment_id = segment_version.alignment_id
                 and location_track.alignment_version = segment_version.alignment_version
                 and location_track.state != 'DELETED'
-                and 'DRAFT' = any(location_track.publication_states)
             inner join geometry.element
               on element.alignment_id = segment_version.geometry_alignment_id 
               and element.element_index = segment_version.geometry_element_index
@@ -280,6 +280,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         publicationState: PublicationState,
         switchId: IntId<TrackLayoutSwitch>,
     ): BoundingBox? {
+        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """ 
             select 
                case 
@@ -300,10 +301,9 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
               inner join layout.segment_version on alignment.id = segment_version.alignment_id
                 and alignment.version = segment_version.alignment_version
               inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
-              inner join layout.location_track_publication_view location_track 
+              inner join layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) location_track 
                 on location_track.alignment_id = alignment.id and location_track.alignment_version = alignment.version
-            where :publication_state = any(publication_states)
-              and (
+            where (
                 segment_version.switch_id = :switch_id
                 or (segment_version.segment_index = 0 and location_track.topology_start_switch_id = :switch_id)
                 or (segment_version.segment_index = alignment.segment_count-1 and location_track.topology_end_switch_id = :switch_id)
@@ -311,7 +311,8 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         """.trimIndent()
         val params = mapOf(
             "switch_id" to switchId.intValue,
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
         )
         val allPoints = jdbcTemplate.query(sql, params) { rs, _ ->
             val start =

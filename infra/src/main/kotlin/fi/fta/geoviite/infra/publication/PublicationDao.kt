@@ -136,10 +136,9 @@ class PublicationDao(
               ) as operation,
               postgis.st_astext(alignment_version.bounding_box) as bounding_box,
               splits.split_id
-            from layout.location_track_publication_view draft_location_track
-                left join layout.location_track_publication_view official_location_track
+            from layout.location_track_in_layout_context('DRAFT', null) draft_location_track
+                left join layout.location_track_in_layout_context('OFFICIAL', null) official_location_track
                     on official_location_track.official_id = draft_location_track.official_id
-                        and 'OFFICIAL' = any(official_location_track.publication_states)
                 left join layout.alignment_version alignment_version
                     on draft_location_track.alignment_id = alignment_version.id
                         and draft_location_track.alignment_version = alignment_version.version
@@ -147,7 +146,6 @@ class PublicationDao(
                     on splits.source_track_id = draft_location_track.official_id 
                         or draft_location_track.official_id = any(splits.target_track_ids)
                         or draft_location_track.official_id = any(splits.split_updated_duplicate_ids)
-            where draft_location_track.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             LocationTrackPublicationCandidate(
@@ -188,7 +186,7 @@ class PublicationDao(
               draft_switch.change_time,
               draft_switch.change_user,
               (select array_agg(sltn)
-                 from layout.switch_linked_track_numbers(coalesce(official_switch.row_id, draft_switch.row_id), :publication_state) sltn
+                 from layout.switch_linked_track_numbers(coalesce(official_switch.row_id, draft_switch.row_id), :publication_state::layout.publication_state, :design_id) sltn
               ) as track_numbers,
               layout.infer_operation_from_state_category_transition(
                 official_switch.state_category,
@@ -212,8 +210,9 @@ class PublicationDao(
             where draft_switch.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(
-            sql, mapOf<String, Any>(
+            sql, mapOf<String, Any?>(
                 "publication_state" to PublicationState.DRAFT.name,
+                "design_id" to null,
             )
         ) { rs, _ ->
             SwitchPublicationCandidate(
@@ -314,12 +313,17 @@ class PublicationDao(
               array(select distinct v from unnest(
                 array_agg(s.switch_id) || array_agg(lt.topology_start_switch_id) || array_agg(lt.topology_end_switch_id)
               ) as t(v) where v in (:switch_ids)) as switch_ids
-              from layout.location_track_publication_view lt
+              from (select *
+                    from layout.location_track_in_layout_context('OFFICIAL', null) lt
+                     where not ($draftTrackIncludedCondition)
+                    union all
+                    select *
+                    from layout.location_track_in_layout_context('DRAFT', null) lt
+                     where ($draftTrackIncludedCondition)
+                    ) lt
                 left join layout.segment_version s on s.alignment_id = lt.alignment_id
                 and s.alignment_version = lt.alignment_version
-              where case
-                when $draftTrackIncludedCondition then 'DRAFT' ELSE 'OFFICIAL' end = any(lt.publication_states)
-                and (:include_deleted or lt.state != 'DELETED')
+              where (:include_deleted or lt.state != 'DELETED')
                 and (
                     lt.topology_start_switch_id in (:switch_ids) or
                     lt.topology_end_switch_id in (:switch_ids) or

@@ -50,6 +50,7 @@ class LayoutSwitchDao(
         publicationState: PublicationState,
         switchId: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
+        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             with alignment as (
               select
@@ -62,11 +63,11 @@ class LayoutSwitchDao(
                 segment_version.switch_end_joint_number
               from layout.segment_version
                 inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
-                inner join layout.location_track_publication_view location_track
-                  on location_track.alignment_id = segment_version.alignment_id
+                inner join
+                  layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
+                    location_track on location_track.alignment_id = segment_version.alignment_id
                     and location_track.alignment_version = segment_version.alignment_version
                     and location_track.state != 'DELETED'
-                    and :publication_state = any (location_track.publication_states)
             )
             select
               switch_joint.number as joint_number,
@@ -96,7 +97,8 @@ class LayoutSwitchDao(
         """.trimIndent()
         val params = mapOf(
             "switch_id" to switchId.intValue,
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
         )
 
         data class JointKey(
@@ -423,17 +425,18 @@ class LayoutSwitchDao(
     ): List<LocationTrackIdentifiers> {
         if (switchIds.isEmpty()) return emptyList()
 
+        val layoutContext = MainLayoutContext.of(publicationState)
+
         val sql = """ 
             select 
               location_track.row_id,
               location_track.row_version,
               location_track.external_id
             from layout.segment_version
-              inner join layout.location_track_publication_view location_track 
-                on location_track.alignment_id = segment_version.alignment_id
+              inner join layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
+                location_track on location_track.alignment_id = segment_version.alignment_id
                   and location_track.alignment_version = segment_version.alignment_version
-            where :publication_state = any(publication_states)
-              and (segment_version.switch_id in (:switch_ids) 
+            where (segment_version.switch_id in (:switch_ids) 
                 or location_track.topology_start_switch_id in (:switch_ids)
                 or location_track.topology_end_switch_id in (:switch_ids)
               )
@@ -444,7 +447,8 @@ class LayoutSwitchDao(
         """.trimIndent()
         val params = mapOf(
             "switch_ids" to switchIds.map { it.intValue },
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             LocationTrackIdentifiers(
