@@ -45,6 +45,10 @@ const LocationTrackDuplicateTrackNumberWarning: React.FC<
     );
 };
 
+function isImplicitDuplicate(duplicate: LocationTrackDuplicate): boolean {
+    return duplicate.duplicateStatus.duplicateOfId == undefined;
+}
+
 export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDuplicateOfProps> = ({
     targetLocationTrack,
     existingDuplicate,
@@ -54,6 +58,7 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
 }: LocationTrackInfoboxDuplicateOfProps) => {
     const { t } = useTranslation();
     const trackNumbers = useTrackNumbers(layoutContext);
+
     return existingDuplicate ? (
         <React.Fragment>
             <LocationTrackLink
@@ -78,7 +83,7 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
                         locationTrackId={duplicate.id}
                         locationTrackName={duplicate.name}
                     />
-                    {duplicate.duplicateStatus.duplicateOfId == undefined && (
+                    {isImplicitDuplicate(duplicate) && (
                         <span
                             className={
                                 styles[
