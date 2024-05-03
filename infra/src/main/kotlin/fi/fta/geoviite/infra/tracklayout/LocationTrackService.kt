@@ -416,12 +416,25 @@ class LocationTrackService(
         return lines.map { line -> line to alignments.getValue(line.getAlignmentVersionOrThrow()) }
     }
 
+    fun sortDuplicatesByTrackAddress(publicationState: PublicationState, trackNumberId: IntId<TrackLayoutTrackNumber>, duplicates: List<LocationTrackDuplicate>): List<LocationTrackDuplicate> {
+        val geocodingContext = geocodingService.getGeocodingContext(publicationState, trackNumberId)
+            ?: throw Exception("Failed to create geocoding context for track number $trackNumberId")
+        return duplicates.sortedBy { duplicate ->
+            val address = duplicate.duplicateStatus.startPoint?.let { start ->
+                geocodingContext.getAddress(start)
+            }
+            address?.first
+        }
+    }
+
     @Transactional(readOnly = true)
     fun getInfoboxExtras(publicationState: PublicationState, id: IntId<LocationTrack>): LocationTrackInfoboxExtras? {
         val locationTrackAndAlignment = getWithAlignment(publicationState, id)
         return locationTrackAndAlignment?.let { (locationTrack, alignment) ->
             val duplicateOf = getDuplicateTrackParent(locationTrack, publicationState)
-            val sortedDuplicates = getLocationTrackDuplicates(locationTrack, alignment, publicationState)
+            val sortedDuplicates = sortDuplicatesByTrackAddress(
+                publicationState, locationTrack.trackNumberId, getLocationTrackDuplicates(locationTrack, alignment, publicationState)
+            )
             val startSwitch = (alignment.segments.firstOrNull()?.switchId as IntId?
                 ?: locationTrack.topologyStartSwitch?.switchId)?.let { id -> fetchSwitchAtEndById(id, publicationState) }
             val endSwitch = (alignment.segments.lastOrNull()?.switchId as IntId?

@@ -16,6 +16,10 @@ $-color-warning: vayla-design.$color-lemon-dark;
     margin: 0; /* Remove margins */
 }
 
+.location-track-infobox-duplicate-of__partial-duplicate-info {
+    padding: 0 8px;
+}
+
 .location-track-infobox-duplicate-of__on-different-track {
     .icon {
         fill: vayla-design.$color-red-dark;
