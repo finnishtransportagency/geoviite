@@ -421,9 +421,9 @@ class LocationTrackService(
             ?: throw Exception("Failed to create geocoding context for track number $trackNumberId")
         return duplicates.sortedBy { duplicate ->
             val address = duplicate.duplicateStatus.startPoint?.let { start ->
-                geocodingContext.getAddress(start)
+                geocodingContext.getAddress(start)?.first
             }
-            address?.first
+            address
         }
     }
 
