@@ -195,15 +195,14 @@ class PublicationDao(
               postgis.st_x(switch_joint_version.location) as point_x, 
               postgis.st_y(switch_joint_version.location) as point_y,
               splits.split_id
-            from layout.switch_publication_view draft_switch
-              left join layout.switch_publication_view official_switch
+            from layout.switch_in_layout_context('DRAFT', null) draft_switch
+              left join layout.switch_in_layout_context('OFFICIAL', null) official_switch
                 on official_switch.official_id = draft_switch.official_id
-                  and 'OFFICIAL' = any(official_switch.publication_states)
               left join common.switch_structure
                 on draft_switch.switch_structure_id = switch_structure.id
               left join layout.switch_joint_version 
                 on switch_joint_version.switch_id = coalesce(draft_switch.draft_id, draft_switch.official_id)
-                  and switch_joint_version.switch_version = coalesce(draft_switch.draft_version, draft_switch.official_id)
+                  and switch_joint_version.switch_version = coalesce(draft_switch.row_version, official_switch.row_version)
                   and switch_joint_version.number = switch_structure.presentation_joint_number
              left join splits 
                 on draft_switch.official_id = any(splits.split_relinked_switch_ids)

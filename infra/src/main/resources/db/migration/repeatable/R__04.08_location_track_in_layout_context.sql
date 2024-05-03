@@ -81,5 +81,4 @@ select
                                  and not overriding_design_official.draft
                                  and overriding_design_official.official_row_id = row.id))
         end
-
 $$;

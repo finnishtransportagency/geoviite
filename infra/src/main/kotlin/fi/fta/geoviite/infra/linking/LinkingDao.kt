@@ -168,10 +168,9 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                 location_track on location_track.alignment_id = segment_version.alignment_id
                         and location_track.alignment_version = segment_version.alignment_version
                         and location_track.state != 'DELETED'
-            left join layout.switch_publication_view layout_switch
-                      on layout_switch.official_id = segment_version.switch_id
+            left join layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id)
+              layout_switch on layout_switch.official_id = segment_version.switch_id
                         and layout_switch.state_category != 'NOT_EXISTING'
-                        and :publication_state = any(layout_switch.publication_states)
           where switch.plan_id = :plan_id
           group by switch.id;
         """.trimIndent()
@@ -235,9 +234,8 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                     inner join geometry.element e
                       on e.alignment_id = s.geometry_alignment_id 
                         and e.element_index = s.geometry_element_index
-                  left join layout.switch_publication_view switch 
+                  left join layout.switch_in_layout_context('DRAFT', null) switch 
                     on switch.official_id = s.switch_id
-                      and 'DRAFT' = any(switch.publication_states)
                   where
                     postgis.st_intersects(
                       postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid),
