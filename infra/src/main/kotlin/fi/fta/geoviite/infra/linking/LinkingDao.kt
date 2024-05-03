@@ -118,20 +118,22 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         planId: IntId<GeometryPlan>,
         publicationState: PublicationState
     ): List<GeometryKmPostLinkStatus> {
+        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
            select
               geometry_km_post.id,
               array_agg(km_post.official_id) as km_post_id_list
               from geometry.km_post geometry_km_post
-              join layout.km_post_publication_view as km_post on geometry_km_post.id = km_post.geometry_km_post_id 
-               and :publication_state = any(km_post.publication_states)
+              join layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id)
+                as km_post on geometry_km_post.id = km_post.geometry_km_post_id
               where
                plan_id=:plan_id
               group by geometry_km_post.id
         """.trimIndent()
         val params = mapOf(
             "plan_id" to planId.intValue,
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->

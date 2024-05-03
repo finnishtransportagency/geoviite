@@ -86,6 +86,7 @@ class PublicationDao(
               left join layout.alignment_version alignment_version
                 on draft_reference_line.alignment_id = alignment_version.id
                   and draft_reference_line.alignment_version = alignment_version.version
+            where draft_reference_line.draft
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             ReferenceLinePublicationCandidate(
@@ -146,6 +147,7 @@ class PublicationDao(
                     on splits.source_track_id = draft_location_track.official_id 
                         or draft_location_track.official_id = any(splits.target_track_ids)
                         or draft_location_track.official_id = any(splits.split_updated_duplicate_ids)
+            where draft_location_track.draft
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             LocationTrackPublicationCandidate(
@@ -247,10 +249,9 @@ class PublicationDao(
               ) as operation,
               postgis.st_x(draft_km_post.location) as point_x, 
               postgis.st_y(draft_km_post.location) as point_y
-            from layout.km_post_publication_view draft_km_post
-              left join layout.km_post_publication_view official_km_post
+            from layout.km_post_in_layout_context('DRAFT', null) draft_km_post
+              left join layout.km_post_in_layout_context('OFFICIAL', null) official_km_post
                 on official_km_post.official_id = draft_km_post.official_id
-                  and 'OFFICIAL' = any(official_km_post.publication_states)
             where draft_km_post.draft = true
             order by km_number
         """.trimIndent()

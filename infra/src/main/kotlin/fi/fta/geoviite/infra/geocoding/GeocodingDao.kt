@@ -55,8 +55,8 @@ class GeocodingDao(
               left join
                 layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id)
                   rl on rl.track_number_id = tn.official_id
-              left join layout.km_post_publication_view kmp on kmp.track_number_id = tn.official_id
-                and :publication_state = any(kmp.publication_states)
+              left join layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id)
+                kmp on kmp.track_number_id = tn.official_id
                 and kmp.state = 'IN_USE'
             where (:tn_id::int is null or :tn_id = tn.official_id)
             group by tn.row_id, tn.row_version, rl.row_id, rl.row_version

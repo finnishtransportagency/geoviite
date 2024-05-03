@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geography.create2DPolygonString
@@ -42,11 +43,11 @@ class LayoutKmPostDao(
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         bbox: BoundingBox? = null,
     ): List<RowVersion<TrackLayoutKmPost>> {
+        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select km_post.row_id, km_post.row_version 
-            from layout.km_post_publication_view km_post
-            where :publication_state = any(km_post.publication_states)
-              and (:include_deleted = true or km_post.state != 'DELETED')
+            from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id) km_post
+            where (:include_deleted = true or km_post.state != 'DELETED')
               and (:track_number_id::int is null or track_number_id = :track_number_id)
               and (:polygon_wkt::varchar is null or postgis.st_intersects(
                 km_post.location,
@@ -57,7 +58,8 @@ class LayoutKmPostDao(
         return jdbcTemplate.query(
             sql, mapOf(
                 "track_number_id" to trackNumberId?.intValue,
-                "publicationState" to publicationState,
+                "publication_state" to layoutContext.state.name,
+                "design_id" to layoutContext.branch.designId?.intValue,
                 "include_deleted" to includeDeleted,
                 "publication_state" to publicationState.name,
                 "polygon_wkt" to bbox?.let { b -> create2DPolygonString(b.polygonFromCorners) },
@@ -75,12 +77,14 @@ class LayoutKmPostDao(
         if (trackNumberIds.isEmpty()) return emptyMap()
         val sql = """
             select km_post.track_number_id, km_post.official_id, km_post.row_id, km_post.row_version
-            from layout.km_post_publication_view km_post
-            where (('DRAFT' = any(km_post.publication_states)
-                     and km_post.official_id in (:km_post_ids_to_publish))
-                   or ('OFFICIAL' = any(km_post.publication_states)
-                         and (km_post.official_id in (:km_post_ids_to_publish) is distinct from true)))
-              and track_number_id in (:track_number_ids)
+            from (
+              select * from layout.km_post_in_layout_context('DRAFT', null)
+                where official_id in (:km_post_ids_to_publish)
+              union all
+              select * from layout.km_post_in_layout_context('OFFICIAL', null)
+                where (official_id in (:km_post_ids_to_publish)) is distinct from true
+              ) km_post
+            where track_number_id in (:track_number_ids)
               and km_post.state != 'DELETED'
             order by km_post.track_number_id, km_post.km_number
         """.trimIndent()
@@ -107,18 +111,19 @@ class LayoutKmPostDao(
         kmNumber: KmNumber,
         includeDeleted: Boolean,
     ): RowVersion<TrackLayoutKmPost>? {
+        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select km_post.row_id, km_post.row_version 
-            from layout.km_post_publication_view km_post
-            where :publication_state = any(km_post.publication_states)
-              and (:include_deleted or km_post.state != 'DELETED')
+            from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id) km_post
+            where (:include_deleted or km_post.state != 'DELETED')
               and km_post.track_number_id = :track_number_id
               and km_post.km_number = :km_number
         """.trimIndent()
         val params = mapOf(
             "track_number_id" to trackNumberId.intValue,
             "km_number" to kmNumber.toString(),
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
             "include_deleted" to includeDeleted,
         )
         val result = jdbcTemplate.query(sql, params) { rs, _ ->
@@ -314,12 +319,12 @@ class LayoutKmPostDao(
         publicationState: PublicationState,
         state: LayoutState,
     ): RowVersion<TrackLayoutKmPost>? {
+        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select row_id, row_version
-            from layout.km_post_publication_view
+            from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id)
             where track_number_id = :track_number_id
               and state = :state::layout.state
-              and :publication_state = any (publication_states)
               and location is not null
               and km_number > :km_number
             order by km_number asc
@@ -329,7 +334,8 @@ class LayoutKmPostDao(
             sql, mapOf(
                 "track_number_id" to trackNumberId.intValue,
                 "state" to state.name,
-                "publication_state" to publicationState.name,
+                "publication_state" to layoutContext.state.name,
+                "design_id" to layoutContext.branch.designId?.intValue,
                 "km_number" to kmNumber.toString()
             )
         ) { rs, _ -> rs.getRowVersion("row_id", "row_version") }
