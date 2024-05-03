@@ -84,10 +84,9 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                 and location_track.alignment_version = segment_version.alignment_version
                 and location_track.state != 'DELETED'
                 and :publication_state = any(location_track.publication_states)
-            left join layout.reference_line_publication_view reference_line
+            left join layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) reference_line
               on reference_line.alignment_id = segment_version.alignment_id
                 and reference_line.alignment_version = segment_version.alignment_version
-                and :publication_state = any(reference_line.publication_states)
             left join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) reference_track_number
               on reference_line.track_number_id = reference_track_number.row_id
                 and reference_track_number.state != 'DELETED'

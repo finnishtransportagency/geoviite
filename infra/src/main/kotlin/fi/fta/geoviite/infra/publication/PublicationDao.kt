@@ -78,7 +78,7 @@ class PublicationDao(
                 draft_track_number.state
               ) as operation,
               postgis.st_astext(alignment_version.bounding_box) as bounding_box
-            from layout.reference_line_publication_view draft_reference_line
+            from layout.reference_line_in_layout_context('DRAFT', null) draft_reference_line
               left join layout.track_number_in_layout_context('DRAFT', null) draft_track_number
                 on draft_track_number.official_id = draft_reference_line.track_number_id
               left join layout.track_number_in_layout_context('OFFICIAL', null) official_track_number
@@ -86,7 +86,6 @@ class PublicationDao(
               left join layout.alignment_version alignment_version
                 on draft_reference_line.alignment_id = alignment_version.id
                   and draft_reference_line.alignment_version = alignment_version.version
-            where draft_reference_line.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             ReferenceLinePublicationCandidate(

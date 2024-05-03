@@ -9,8 +9,6 @@ create function layout.track_number_in_layout_context(publication_state_in layou
             official_id integer,
             draft_id    integer,
             row_version integer,
---            official_version integer,
---            draft_version    integer,
             external_id varchar(50),
             number      varchar(30),
             description varchar(100),

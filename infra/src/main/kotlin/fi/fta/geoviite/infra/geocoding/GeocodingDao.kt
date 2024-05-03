@@ -52,8 +52,9 @@ class GeocodingDao(
               array_agg(kmp.row_version order by kmp.row_id, kmp.row_version) 
                 filter (where kmp.row_id is not null) as kmp_row_versions
             from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn
-              left join layout.reference_line_publication_view rl on rl.track_number_id = tn.official_id
-                and :publication_state = any(rl.publication_states)
+              left join
+                layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id)
+                  rl on rl.track_number_id = tn.official_id
               left join layout.km_post_publication_view kmp on kmp.track_number_id = tn.official_id
                 and :publication_state = any(kmp.publication_states)
                 and kmp.state = 'IN_USE'
