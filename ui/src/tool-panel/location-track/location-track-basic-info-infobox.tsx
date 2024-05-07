@@ -178,6 +178,7 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
                     }
                     value={
                         <LocationTrackInfoboxDuplicateOf
+                            targetLocationTrack={locationTrack}
                             existingDuplicate={extraInfo?.duplicateOf}
                             duplicatesOfLocationTrack={extraInfo?.duplicates ?? []}
                             layoutContext={layoutContext}
