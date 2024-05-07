@@ -1,16 +1,40 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.FeatureTypeCode
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.geography.HeightTriangle
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.transformHeightValue
-import fi.fta.geoviite.infra.geometry.*
-import fi.fta.geoviite.infra.geometry.PlanState.*
+import fi.fta.geoviite.infra.geometry.GeometryAlignment
+import fi.fta.geoviite.infra.geometry.GeometryCant
+import fi.fta.geoviite.infra.geometry.GeometryElement
+import fi.fta.geoviite.infra.geometry.GeometryKmPost
+import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.GeometryProfile
+import fi.fta.geoviite.infra.geometry.GeometrySwitch
+import fi.fta.geoviite.infra.geometry.PlanState
+import fi.fta.geoviite.infra.geometry.PlanState.ABANDONED
+import fi.fta.geoviite.infra.geometry.PlanState.DESTROYED
+import fi.fta.geoviite.infra.geometry.PlanState.EXISTING
+import fi.fta.geoviite.infra.geometry.PlanState.PROPOSED
 import fi.fta.geoviite.infra.map.AlignmentHeader
 import fi.fta.geoviite.infra.map.MapAlignmentSource
 import fi.fta.geoviite.infra.map.MapAlignmentType
-import fi.fta.geoviite.infra.math.*
-import fi.fta.geoviite.infra.tracklayout.LayoutState.*
+import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Point3DM
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
+import fi.fta.geoviite.infra.math.round
+import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
+import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
+import fi.fta.geoviite.infra.tracklayout.LayoutState.NOT_IN_USE
+import fi.fta.geoviite.infra.tracklayout.LayoutState.PLANNED
 import java.math.BigDecimal
 import kotlin.math.max
 
@@ -65,7 +89,7 @@ fun toTrackLayoutKmPosts(
                 state = getLayoutStateOrDefault(kmPost.state),
                 sourceId = kmPost.id,
                 trackNumberId = trackNumberId,
-                contextData = LayoutContextData.newDraft(deriveFromSourceId("KMP_", kmPost.id)),
+                contextData = LayoutContextData.newDraft(LayoutBranch.main, deriveFromSourceId("KMP_", kmPost.id)),
             )
         } else null
     }
@@ -89,7 +113,7 @@ fun toTrackLayoutSwitch(switch: GeometrySwitch, toMapCoordinate: Transformation)
         trapPoint = null,
         ownerId = null,
         source = GeometrySource.PLAN,
-        contextData = LayoutContextData.newDraft(deriveFromSourceId("S_", switch.id)),
+        contextData = LayoutContextData.newDraft(LayoutBranch.main, deriveFromSourceId("S_", switch.id)),
     )
 
 fun toTrackLayoutSwitches(

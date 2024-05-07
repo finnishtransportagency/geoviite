@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
@@ -244,7 +245,7 @@ fun trackNumber(
     contextData = if (draft) {
         MainDraftContextData(rowId = id, officialRowId = draftOfId, designRowId = null, dataType = DataType.TEMP)
     } else {
-        LayoutContextData.newOfficial(id)
+        LayoutContextData.newOfficial(LayoutBranch.main, id)
     },
 )
 
@@ -285,7 +286,7 @@ fun referenceLine(
     segmentCount = alignment?.segments?.size ?: 0,
     length = alignment?.length ?: 0.0,
     alignmentVersion = alignmentVersion,
-    contextData = if (draft) LayoutContextData.newDraft(id) else LayoutContextData.newOfficial(id),
+    contextData = if (draft) LayoutContextData.newDraft(LayoutBranch.main, id) else LayoutContextData.newOfficial(LayoutBranch.main, id),
 )
 
 private var locationTrackNameCounter = 0
@@ -369,7 +370,7 @@ fun locationTrack(
 ) = locationTrack(
     trackNumberId = trackNumberId,
     alignment = alignment,
-    contextData = if (draft) LayoutContextData.newDraft(id) else LayoutContextData.newOfficial(id),
+    contextData = if (draft) LayoutContextData.newDraft(LayoutBranch.main, id) else LayoutContextData.newOfficial(LayoutBranch.main, id),
     name = name,
     description = description,
     type = type,
@@ -890,7 +891,7 @@ fun switch(
     source = GENERATED,
     contextData = if (draft) {
         MainDraftContextData(id, draftOfId, null, DataType.TEMP)
-    } else LayoutContextData.newOfficial(id),
+    } else LayoutContextData.newOfficial(LayoutBranch.main, id),
 )
 
 fun joints(seed: Int = 1, count: Int = 5) = (1..count).map { jointSeed -> switchJoint(seed * 100 + jointSeed) }
@@ -919,7 +920,7 @@ fun kmPost(
     location = location?.toPoint(),
     state = state,
     sourceId = null,
-    contextData = if (draft) LayoutContextData.newDraft() else LayoutContextData.newOfficial(),
+    contextData = if (draft) LayoutContextData.newDraft(LayoutBranch.main) else LayoutContextData.newOfficial(LayoutBranch.main),
 )
 
 fun segmentPoint(x: Double, y: Double, m: Double = 1.0) = SegmentPoint(x, y, null, m, null)
