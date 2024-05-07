@@ -40,7 +40,6 @@ sealed class DomainId<T> {
         private fun <T> tryParse(source: String): DomainId<T>? = source
             .takeIf { v -> v.length in stringLength }
             ?.let { v ->
-                println("parsing $source")
                 when (getType(v)) {
                     INT -> IntId.tryParse(v)
                     STRING -> StringId.tryParse(v)
@@ -63,7 +62,6 @@ data class StringId<T>(val stringValue: String = "${UUID.randomUUID()}") : Domai
         fun <T> parse(source: String): StringId<T> = tryParse(source) ?: parsingError<IntId<T>>(source)
 
         fun <T> tryParse(source: String): StringId<T>? = source
-            .also { println("parsing (string) $source") }
             .takeIf { s -> s.length in stringLength && getType(s) == STRING }
             ?.let { STRING.clipType(source) }
             ?.let(::StringId)
@@ -82,7 +80,6 @@ data class IntId<T>(val intValue: Int) : DomainId<T>() {
         fun <T> parse(source: String): IntId<T> = tryParse(source) ?: parsingError<IntId<T>>(source)
 
         fun <T> tryParse(source: String): IntId<T>? = source
-            .also { println("parsing (int) $source") }
             .takeIf { s -> s.length in stringLength && getType(s) == INT }
             ?.let { INT.clipType(source).toIntOrNull() }
             ?.let(::IntId)
@@ -101,7 +98,6 @@ data class IndexedId<T>(val parentId: Int, val index: Int) : DomainId<T>() {
         fun <T> parse(source: String): IndexedId<T> = tryParse(source) ?: parsingError<IndexedId<T>>(source)
 
         fun <T> tryParse(source: String): IndexedId<T>? = source
-            .also { println("parsing (indexed) $source") }
             .takeIf { s -> s.length in stringLength && getType(s) == INDEXED }
             ?.let { s ->
                 val raw = INDEXED.clipType(s)
