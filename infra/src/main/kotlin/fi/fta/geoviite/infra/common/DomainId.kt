@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.IdType.INDEXED
 import fi.fta.geoviite.infra.common.IdType.INT
 import fi.fta.geoviite.infra.common.IdType.STRING
 import fi.fta.geoviite.infra.util.formatForException
-import org.springframework.core.convert.converter.Converter
 import java.util.*
 
 private const val SEPARATOR = "_"
@@ -113,36 +112,4 @@ data class IndexedId<T>(val parentId: Int, val index: Int) : DomainId<T>() {
 
     @JsonValue
     override fun toString(): String = "${INDEXED.shortName}$SEPARATOR$parentId$SEPARATOR$index"
-}
-
-class StringToDomainIdConverter<T> : Converter<String, DomainId<T>> {
-    override fun convert(source: String): DomainId<T> = DomainId.parse(source)
-}
-
-class DomainIdToStringConverter<T> : Converter<DomainId<T>, String> {
-    override fun convert(source: DomainId<T>): String = source.toString()
-}
-
-class StringToStringIdConverter<T> : Converter<String, StringId<T>> {
-    override fun convert(source: String): StringId<T> = StringId.parse(source)
-}
-
-class StringIdToStringConverter<T> : Converter<StringId<T>, String> {
-    override fun convert(source: StringId<T>): String = source.toString()
-}
-
-class StringToIntIdConverter<T> : Converter<String, IntId<T>> {
-    override fun convert(source: String): IntId<T> = IntId.parse(source)
-}
-
-class IntIdToStringConverter<T> : Converter<IntId<T>, String> {
-    override fun convert(source: IntId<T>): String = source.toString()
-}
-
-class StringToIndexedIdConverter<T> : Converter<String, IndexedId<T>> {
-    override fun convert(source: String): IndexedId<T> = IndexedId.parse(source)
-}
-
-class IndexedIdToStringConverter<T> : Converter<IndexedId<T>, String> {
-    override fun convert(source: IndexedId<T>): String = source.toString()
 }
