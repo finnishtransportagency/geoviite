@@ -17,8 +17,8 @@ class SwitchLocationTrackLinkTest {
         assertEquals(
             expected = listOf(fullMatch(2, 3)),
             actual = getDuplicateMatches(
-                mainTrackJoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackJoints = matchRange(2 to 1, 2 to 2, 3 to 1),
+                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                duplicateTrackSplitPoints = matchRange(2 to 1, 2 to 2, 3 to 1),
                 mainTrackId = StringId(),
                 duplicateOf = null,
             ),
@@ -34,8 +34,8 @@ class SwitchLocationTrackLinkTest {
         assertEquals(
             expected = listOf(fullMatch(1, 1)),
             actual = getDuplicateMatches(
-                mainTrackJoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackJoints = matchRange(1 to 1, 1 to 2),
+                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2),
                 mainTrackId = StringId(),
                 duplicateOf = null,
             ),
@@ -51,8 +51,8 @@ class SwitchLocationTrackLinkTest {
         assertEquals(
             expected = listOf(fullMatch(3, 3)),
             actual = getDuplicateMatches(
-                mainTrackJoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackJoints = matchRange(3 to 1, 3 to 2),
+                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                duplicateTrackSplitPoints = matchRange(3 to 1, 3 to 2),
                 mainTrackId = StringId(),
                 duplicateOf = null,
             ),
@@ -68,8 +68,8 @@ class SwitchLocationTrackLinkTest {
         assertEquals(
             expected = listOf(partialMatch(1, 1)),
             actual = getDuplicateMatches(
-                mainTrackJoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackJoints = matchRange(1 to 1, 1 to 2, 5 to 1, 5 to 2),
+                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2, 5 to 1, 5 to 2),
                 mainTrackId = StringId(),
                 duplicateOf = null,
             ),
@@ -85,8 +85,8 @@ class SwitchLocationTrackLinkTest {
         assertEquals(
             expected = listOf(partialMatch(1, 2, from = 1)),
             actual = getDuplicateMatches(
-                mainTrackJoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackJoints = matchRange(5 to 1, 1 to 2, 2 to 1, 6 to 2),
+                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                duplicateTrackSplitPoints = matchRange(5 to 1, 1 to 2, 2 to 1, 6 to 2),
                 mainTrackId = StringId(),
                 duplicateOf = null,
             ),
@@ -102,8 +102,8 @@ class SwitchLocationTrackLinkTest {
         assertEquals(
             expected = listOf(partialMatch(2, 3, from = 1)),
             actual = getDuplicateMatches(
-                mainTrackJoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackJoints = matchRange(5 to 1, 2 to 2, 3 to 1, 3 to 2),
+                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                duplicateTrackSplitPoints = matchRange(5 to 1, 2 to 2, 3 to 1, 3 to 2),
                 mainTrackId = StringId(),
                 duplicateOf = null,
             ),
@@ -122,8 +122,8 @@ class SwitchLocationTrackLinkTest {
                 partialMatch(2, 3, from = 2),
             ),
             actual = getDuplicateMatches(
-                mainTrackJoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackJoints = matchRange(1 to 1, 1 to 2, 2 to 2, 3 to 1),
+                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 2, 3 to 1),
                 mainTrackId = StringId(),
                 duplicateOf = null,
             ),
@@ -142,8 +142,8 @@ class SwitchLocationTrackLinkTest {
                 partialMatch(2, 3, from = 3),
             ),
             actual = getDuplicateMatches(
-                mainTrackJoints = matchRange(1 to 1, 1 to 2, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackJoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1),
+                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 2, 3 to 1, 3 to 2),
+                duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1),
                 mainTrackId = StringId(),
                 duplicateOf = null,
             ),
@@ -162,8 +162,8 @@ class SwitchLocationTrackLinkTest {
                 partialMatch(2, 3, from = 2),
             ),
             actual = getDuplicateMatches(
-                mainTrackJoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackJoints = matchRange(1 to 1, 1 to 2, 2 to 2, 3 to 1),
+                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 2, 3 to 1),
                 mainTrackId = StringId(),
                 duplicateOf = null,
             ),
@@ -179,8 +179,8 @@ class SwitchLocationTrackLinkTest {
         assertEquals(
             expected = listOf(partialMatch(1, 1)),
             actual = getDuplicateMatches(
-                mainTrackJoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackJoints = matchRange(1 to 1, 1 to 2, 3 to 1),
+                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2, 3 to 1),
                 mainTrackId = StringId(),
                 duplicateOf = null,
             ),

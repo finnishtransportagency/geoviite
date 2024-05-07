@@ -22,6 +22,7 @@ import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.linking.SuggestedSwitch
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
@@ -195,15 +196,43 @@ data class SwitchOnLocationTrack(
     val nearestOperatingPoint: RatkoOperatingPoint?,
 )
 
+const val EndpointSplitPointLocationToleranceInMeters = 2
+
 enum class DuplicateMatch { FULL, PARTIAL, NONE }
+enum class DuplicateEndPointType { START, END }
+
+sealed class SplitPoint {
+    abstract val location:AlignmentPoint
+
+    abstract fun isSame(other:SplitPoint):Boolean
+}
+
+data class SwitchSplitPoint(
+    override val location: AlignmentPoint,
+    val switchId: IntId<TrackLayoutSwitch>,
+    val jointNumber: JointNumber,
+): SplitPoint() {
+    override fun isSame(other:SplitPoint):Boolean {
+        return other is SwitchSplitPoint && switchId==other.switchId && jointNumber==other.jointNumber
+    }
+}
+
+data class EndpointSplitPoint(
+    override val location: AlignmentPoint,
+    val endPointType: DuplicateEndPointType
+): SplitPoint() {
+    override fun isSame(other:SplitPoint):Boolean {
+        return other is EndpointSplitPoint
+            && endPointType==other.endPointType
+            && lineLength(location, other.location)<=EndpointSplitPointLocationToleranceInMeters
+    }
+}
 
 data class DuplicateStatus(
     val match: DuplicateMatch,
     val duplicateOfId: IntId<LocationTrack>?,
-    val startSwitchId: IntId<TrackLayoutSwitch>?,
-    val endSwitchId: IntId<TrackLayoutSwitch>?,
-    val startPoint: LayoutPoint?,
-    val endPoint: LayoutPoint?,
+    val startSplitPoint: SplitPoint?,
+    val endSplitPoint: SplitPoint?
 )
 
 data class SplitDuplicateTrack(
@@ -211,7 +240,6 @@ data class SplitDuplicateTrack(
     val name: AlignmentName,
     val start: AddressPoint,
     val end: AddressPoint,
-
     val status: DuplicateStatus,
 )
 

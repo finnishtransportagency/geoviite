@@ -470,7 +470,7 @@ class LocationTrackService(
             .distinct()
             .map(::getWithAlignmentInternal)
             .filter { (duplicateTrack, _) -> duplicateTrack.id != track.id && duplicateTrack.id != track.duplicateOf }
-        return getLocationTrackDuplicatesByJoint(track, alignment, duplicateTracksAndAlignments)
+        return getLocationTrackDuplicatesBySplitPoints(track, alignment, duplicateTracksAndAlignments)
     }
 
     private fun getDuplicateTrackParent(
