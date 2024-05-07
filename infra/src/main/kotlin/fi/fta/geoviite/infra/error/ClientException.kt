@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.common.idToString
 import fi.fta.geoviite.infra.inframodel.INFRAMODEL_PARSING_KEY_GENERIC
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
@@ -127,9 +126,9 @@ class NoSuchEntityException(
     id: String,
     localizedMessageKey: String = "error.entity-not-found",
 ) : ClientException(NOT_FOUND, "No element of type $type exists with id $id", null, localizedMessageKey) {
-    constructor(type: KClass<*>, id: DomainId<*>) : this(type.simpleName ?: type.toString(), idToString(id))
+    constructor(type: KClass<*>, id: DomainId<*>) : this(type.simpleName ?: type.toString(), id.toString())
     constructor(type: KClass<*>, id: RowVersion<*>) : this(type.simpleName ?: type.toString(), id.toString())
-    constructor(type: String, id: DomainId<*>) : this(type, idToString(id))
+    constructor(type: String, id: DomainId<*>) : this(type, id.toString())
     constructor(type: KClass<*>, id: String) : this(type.simpleName ?: type.toString(), id)
 }
 

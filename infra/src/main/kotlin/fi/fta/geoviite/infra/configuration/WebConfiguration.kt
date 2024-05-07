@@ -4,7 +4,25 @@ import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS
 import fi.fta.geoviite.infra.authorization.AuthName
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DesignBranch
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.FeatureTypeCode
+import fi.fta.geoviite.infra.common.IndexedId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainBranch
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.ProjectName
+import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geometry.CompanyName
 import fi.fta.geoviite.infra.geometry.GeometrySwitchTypeName
@@ -16,7 +34,11 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryCode
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
 import fi.fta.geoviite.infra.projektivelho.PVId
 import fi.fta.geoviite.infra.projektivelho.PVTargetCategory
-import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.util.Code
+import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.HttpsUrl
+import fi.fta.geoviite.infra.util.LocalizationKey
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
@@ -63,14 +85,10 @@ class WebConfig : WebMvcConfigurer {
         registry.addStringConstructorConverter(::JointNumber)
 
         logger.info("Registering custom ID converters")
-        registry.addConverter(StringToDomainIdConverter<Any>())
-        registry.addConverter(DomainIdToStringConverter<Any>())
-        registry.addConverter(StringToStringIdConverter<Any>())
-        registry.addConverter(StringIdToStringConverter<Any>())
-        registry.addConverter(StringToIntIdConverter<Any>())
-        registry.addConverter(IntIdToStringConverter<Any>())
-        registry.addConverter(StringToIndexedIdConverter<Any>())
-        registry.addConverter(IndexedIdToStringConverter<Any>())
+        registry.addStringConstructorConverter { DomainId.parse<Any>(it) }
+        registry.addStringConstructorConverter { StringId.parse<Any>(it) }
+        registry.addStringConstructorConverter { IntId.parse<Any>(it) }
+        registry.addStringConstructorConverter { IndexedId.parse<Any>(it) }
 
         logger.info("Registering LayoutContext converters")
         registry.addStringConstructorConverter(LayoutBranch::parse)
