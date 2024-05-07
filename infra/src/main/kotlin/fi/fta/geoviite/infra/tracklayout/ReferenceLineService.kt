@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.DataType.STORED
 import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.RowVersion
@@ -36,7 +37,8 @@ class ReferenceLineService(
                 trackNumberId = trackNumberId,
                 startAddress = startAddress,
                 sourceId = null,
-                contextData = LayoutContextData.newDraft(),
+                // TODO: GVT-2398
+                contextData = LayoutContextData.newDraft(LayoutBranch.main),
             ),
             emptyAlignment(),
         )

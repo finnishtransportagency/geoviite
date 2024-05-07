@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
@@ -33,7 +34,7 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
             description = FreeText("empty-test-track-number"),
             state = IN_USE,
             externalId = null,
-            contextData = LayoutContextData.newDraft(),
+            contextData = LayoutContextData.newDraft(LayoutBranch.main),
         )
         val (id, version) = trackNumberDao.insert(original)
         val fromDb = trackNumberDao.fetch(version)

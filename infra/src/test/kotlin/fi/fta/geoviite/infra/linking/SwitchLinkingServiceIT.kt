@@ -1,10 +1,25 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geography.KkjTm35finTriangulationDao
 import fi.fta.geoviite.infra.geography.TriangulationDirection
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.GeometryAlignment
+import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.GeometrySwitch
+import fi.fta.geoviite.infra.geometry.plan
+import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -12,8 +27,35 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.publication.PublicationValidationError
 import fi.fta.geoviite.infra.publication.PublicationValidationErrorType
-import fi.fta.geoviite.infra.switchLibrary.*
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
+import fi.fta.geoviite.infra.tracklayout.GeometrySource
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutContextData
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
+import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.switchAndMatchingAlignments
+import fi.fta.geoviite.infra.tracklayout.switchLinkingAtEnd
+import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import fi.fta.geoviite.infra.ui.testdata.createSwitchAndAlignments
 import fi.fta.geoviite.infra.ui.testdata.locationTrackAndAlignmentForGeometryAlignment
 import fi.fta.geoviite.infra.ui.testdata.switchJoint
@@ -856,7 +898,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
     )
 
     private fun shiftSwitch(source: TrackLayoutSwitch, name: String, shiftVector: Point) = source.copy(
-        contextData = LayoutContextData.newOfficial(),
+        contextData = LayoutContextData.newOfficial(LayoutBranch.main),
         joints = source.joints.map { joint -> joint.copy(location = joint.location + shiftVector) },
         name = SwitchName(name)
     )
@@ -1097,7 +1139,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
         val templateThroughTrackSegments = templateTrackSections[0].second.segments
         val branchingTrackSegments = templateTrackSections[1].second.segments
-        val switch = switchDao.insert(templateSwitch.copy(contextData = LayoutContextData.newOfficial()))
+        val switch = switchDao.insert(templateSwitch.copy(contextData = LayoutContextData.newOfficial(LayoutBranch.main)))
         val throughTrack = locationTrackService.saveDraft(
             locationTrack(trackNumberId, name = "through track", draft = true),
             alignment(
@@ -1163,7 +1205,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         val templateFourThreeTrackSegments = templateTrackSections[1].second.segments
         val oneFive = templateOneTwoTrackSegments[0]
         val fiveTwo = templateOneTwoTrackSegments[1]
-        val switch = switchDao.insert(templateSwitch.copy(contextData = LayoutContextData.newOfficial()))
+        val switch = switchDao.insert(templateSwitch.copy(contextData = LayoutContextData.newOfficial(LayoutBranch.main)))
 
         val oneFiveTrack = locationTrackService.saveDraft(
             locationTrack(
@@ -1215,7 +1257,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
         val templateThroughTrackSegments = templateTrackSections[0].second.segments
         val templateBranchingTrackSegments = templateTrackSections[1].second.segments
-        val switch = switchDao.insert(templateSwitch.copy(contextData = LayoutContextData.newOfficial()))
+        val switch = switchDao.insert(templateSwitch.copy(contextData = LayoutContextData.newOfficial(LayoutBranch.main)))
         val shift =
             templateThroughTrackSegments.last().segmentEnd.toPoint() - templateThroughTrackSegments.first().segmentStart.toPoint()
         val fullShift = shift + Point(100.0, 0.0)
@@ -1277,7 +1319,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
         val templateThroughTrackSegments = templateTrackSections[0].second.segments
         val templateBranchingTrackSegments = templateTrackSections[1].second.segments
-        val switch = switchDao.insert(templateSwitch.copy(contextData = LayoutContextData.newOfficial()))
+        val switch = switchDao.insert(templateSwitch.copy(contextData = LayoutContextData.newOfficial(LayoutBranch.main)))
         val someOtherSwitch = switchDao.insert(switch(123, draft = false))
 
         val shift =
@@ -1339,7 +1381,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             structure = switchStructure,
             draft = false,
         )
-        val switch = switchDao.insert(templateSwitch.copy(contextData = LayoutContextData.newOfficial()))
+        val switch = switchDao.insert(templateSwitch.copy(contextData = LayoutContextData.newOfficial(LayoutBranch.main)))
         templateTrackSections.forEach { (_, a) ->
             locationTrackService.saveDraft(
                 locationTrack(trackNumberId, draft = true),

@@ -1,7 +1,12 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
@@ -38,7 +43,8 @@ class LayoutTrackNumberService(
                 description = saveRequest.description,
                 state = saveRequest.state,
                 externalId = null,
-                contextData = LayoutContextData.newDraft(),
+                // TODO: GVT-2397
+                contextData = LayoutContextData.newDraft(LayoutBranch.main),
             )
         )
         referenceLineService.addTrackNumberReferenceLine(draftSaveResponse.id, saveRequest.startAddress)

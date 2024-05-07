@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.geography.calculateDistance
@@ -28,7 +29,8 @@ class LayoutKmPostService(
             state = request.state,
             trackNumberId = request.trackNumberId,
             sourceId = null,
-            contextData = LayoutContextData.newDraft(),
+            // TODO: GVT-2401
+            contextData = LayoutContextData.newDraft(LayoutBranch.main),
         )
         return saveDraftInternal(kmPost).id
     }

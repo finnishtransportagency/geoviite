@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
@@ -646,7 +647,8 @@ private fun createSplitTarget(
         segmentCount = newAlignment.segments.size,
         length = newAlignment.length,
         boundingBox = newAlignment.boundingBox,
-        contextData = LayoutContextData.newDraft(),
+        // TODO: GVT-2399
+        contextData = LayoutContextData.newDraft(LayoutBranch.main),
     )
     return newTrack to newAlignment
 }
