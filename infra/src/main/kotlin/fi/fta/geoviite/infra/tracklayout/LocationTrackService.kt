@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
@@ -73,7 +74,8 @@ class LocationTrackService(
             topologyStartSwitch = null,
             topologyEndSwitch = null,
             ownerId = request.ownerId,
-            contextData = LayoutContextData.newDraft(),
+            // TODO: GVT-2399
+            contextData = LayoutContextData.newDraft(LayoutBranch.main),
         )
         return saveDraftInternal(locationTrack)
     }

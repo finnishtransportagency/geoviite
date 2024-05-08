@@ -21,8 +21,14 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.access.prepost.PreAuthorize
-import org.springframework.web.bind.annotation.*
-
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/linking")
@@ -93,9 +99,9 @@ class LinkingController @Autowired constructor(
     @GetMapping("{$PUBLICATION_STATE}/plans/{id}/status")
     fun getPlanLinkStatus(
         @PathVariable("id") planId: IntId<GeometryPlan>,
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
     ): GeometryPlanLinkStatus {
-        logger.apiCall("getPlanLinkStatus", "planId" to planId, "$PUBLICATION_STATE" to publicationState)
+        logger.apiCall("getPlanLinkStatus", "planId" to planId, PUBLICATION_STATE to publicationState)
         return linkingService.getGeometryPlanLinkStatus(planId = planId, publicationState = publicationState)
     }
 
@@ -103,9 +109,9 @@ class LinkingController @Autowired constructor(
     @GetMapping("{$PUBLICATION_STATE}/plans/status")
     fun getManyPlanLinkStatuses(
         @RequestParam("ids") planIds: List<IntId<GeometryPlan>>,
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
     ): List<GeometryPlanLinkStatus> {
-        logger.apiCall("getManyPlanLinkStatuses", "$PUBLICATION_STATE" to publicationState)
+        logger.apiCall("getManyPlanLinkStatuses", PUBLICATION_STATE to publicationState)
         return linkingService.getGeometryPlanLinkStatuses(planIds = planIds, publicationState = publicationState)
     }
 
@@ -158,8 +164,15 @@ class LinkingController @Autowired constructor(
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/switches/{switchId}/geometry")
-    fun saveSwitchLinking(@RequestBody suggestedSwitch: SuggestedSwitch, @PathVariable switchId: IntId<TrackLayoutSwitch>): IntId<TrackLayoutSwitch> {
-        logger.apiCall("saveSwitchLinking", "switchLinkingParameters" to suggestedSwitch, "switchId" to switchId)
+    fun saveSwitchLinking(
+        @RequestBody suggestedSwitch: SuggestedSwitch,
+        @PathVariable switchId: IntId<TrackLayoutSwitch>,
+    ): IntId<TrackLayoutSwitch> {
+        logger.apiCall(
+            "saveSwitchLinking",
+            "switchLinkingParameters" to suggestedSwitch,
+            "switchId" to switchId,
+        )
         return switchLinkingService.saveSwitchLinking(suggestedSwitch, switchId).id
     }
 

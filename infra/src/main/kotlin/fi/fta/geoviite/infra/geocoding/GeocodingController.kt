@@ -17,7 +17,11 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/geocoding")
@@ -30,7 +34,7 @@ class GeocodingController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$PUBLICATION_STATE}/address/{trackNumberId}")
     fun getTrackAddress(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
         @RequestParam("coordinate") coordinate: Point,
     ): ResponseEntity<TrackMeter> {
@@ -52,7 +56,7 @@ class GeocodingController(
     @GetMapping("/{$PUBLICATION_STATE}/address-pointlist/{alignmentId}")
     fun getAlignmentAddressPoints(
         @PathVariable("alignmentId") locationTrackId: IntId<LocationTrack>,
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
     ): ResponseEntity<AlignmentAddresses> {
         logger.apiCall("getAlignmentAddressPoints", "locationTrackId" to locationTrackId)
         return toResponse(geocodingService.getAddressPoints(locationTrackId, publicationState))

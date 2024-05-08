@@ -1,26 +1,44 @@
 package fi.fta.geoviite.infra.geometry
 
-import fi.fta.geoviite.infra.authorization.*
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.authorization.AUTH_DOWNLOAD_GEOMETRY
+import fi.fta.geoviite.infra.authorization.AUTH_EDIT_GEOMETRY_FILE
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_GEOMETRY
+import fi.fta.geoviite.infra.authorization.AUTH_VIEW_GEOMETRY_FILE
+import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
+import fi.fta.geoviite.infra.common.IndexedId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.ID
-import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.KnownFileSuffix.CSV
+import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.SortOrder.ASCENDING
+import fi.fta.geoviite.infra.util.logger
+import fi.fta.geoviite.infra.util.pageAndRest
+import fi.fta.geoviite.infra.util.toFileDownloadResponse
+import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/geometry")
@@ -351,17 +369,17 @@ class GeometryController @Autowired constructor(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("{$PUBLICATION_STATE}/layout/location-tracks/{id}/linking-summary")
     fun getLocationTrackLinkingSummary(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): List<PlanLinkingSummaryItem>? {
-        logger.apiCall("getLocationTrackLinkingSummary", "$PUBLICATION_STATE" to publicationState, "id" to id)
+        logger.apiCall("getLocationTrackLinkingSummary", PUBLICATION_STATE to publicationState, "id" to id)
         return geometryService.getLocationTrackGeometryLinkingSummary(id, publicationState)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$PUBLICATION_STATE}/layout/location-tracks/{id}/alignment-heights")
     fun getLayoutAlignmentHeights(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
         @RequestParam("startDistance") startDistance: Double,
         @RequestParam("endDistance") endDistance: Double,
@@ -369,7 +387,7 @@ class GeometryController @Autowired constructor(
     ): List<KmHeights>? {
         logger.apiCall(
             "getLayoutAlignmentHeights",
-            "$PUBLICATION_STATE" to publicationState,
+            PUBLICATION_STATE to publicationState,
             "id" to id,
             "startDistance" to startDistance,
             "endDistance" to endDistance,

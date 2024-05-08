@@ -1,6 +1,15 @@
 package fi.fta.geoviite.infra.geometry
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IndexedId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.formatTrackMeter
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geography.Transformation
@@ -8,8 +17,17 @@ import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.MISSING_SECTION
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.Translation
-import fi.fta.geoviite.infra.math.*
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.RoundedPoint
+import fi.fta.geoviite.infra.math.radsMathToGeo
+import fi.fta.geoviite.infra.math.radsToGrads
+import fi.fta.geoviite.infra.math.round
+import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.printCsv
@@ -159,7 +177,7 @@ private fun toMissingElementListing(
     locationTrack: LocationTrack,
     getSwitchName: (IntId<TrackLayoutSwitch>) -> SwitchName,
 ) = ElementListing(
-    id = StringId("MEL_${segment.id.stringFormat()}"),
+    id = StringId("MEL_${segment.id}"),
     planId = null,
     planSource = null,
     fileName = null,
@@ -293,7 +311,7 @@ fun translateTrackGeometryElementType(type: TrackGeometryElementType, translatio
         TrackGeometryElementType.CURVE -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.curve")
         TrackGeometryElementType.CLOTHOID -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.clothoid")
         TrackGeometryElementType.BIQUADRATIC_PARABOLA -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.biquadratic-parabola")
-        TrackGeometryElementType.MISSING_SECTION -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.missing-section")
+        MISSING_SECTION -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.missing-section")
     }
 
 fun locationTrackCsvEntries(translation: Translation) = listOf(
@@ -332,7 +350,7 @@ private fun elementListing(
     val start = getStartLocation(context, transformation, alignment, element)
     val end = getEndLocation(context, transformation, alignment, element)
     ElementListing(
-        id = StringId("EL_${element.id.stringFormat()}"),
+        id = StringId("EL_${element.id}"),
         planId = planId,
         planSource = planSource,
         fileName = fileName,

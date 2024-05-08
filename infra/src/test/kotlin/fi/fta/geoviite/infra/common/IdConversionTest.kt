@@ -217,7 +217,7 @@ class IdConversionTest @Autowired constructor(
             testApi.doPostWithString("/id-test-body", "{\"id\":\"asdf\"}", HttpStatus.BAD_REQUEST),
             "Request body not readable",
             "Failed to instantiate Lfi/fta/geoviite/infra/common/DomainId;",
-            "Invalid indexed id: \"asdf\"",
+            "Invalid DomainId: \"asdf\"",
         )
     }
 
@@ -239,6 +239,39 @@ class IdConversionTest @Autowired constructor(
             "Failed to instantiate Lfi/fta/geoviite/infra/common/Srid;",
             "Input validation failed: Invalid string prefix: prefix=EPSG: value=\"1a\"",
         )
+    }
+
+    @Test
+    fun `Minimal and maximal StringIds are parsed successfully`() {
+        val minId = StringId<IdConversionTest>("a")
+        assertEquals(minId, DomainId.parse(minId.toString()))
+        assertEquals(minId, StringId.parse(minId.toString()))
+
+        val maxId = StringId<IdConversionTest>("a".repeat(96))
+        assertEquals(maxId, DomainId.parse(maxId.toString()))
+        assertEquals(maxId, StringId.parse(maxId.toString()))
+    }
+
+    @Test
+    fun `Minimal and maximal IntIds are parsed successfully`() {
+        val minId = IntId<IdConversionTest>(1)
+        assertEquals(minId, DomainId.parse(minId.toString()))
+        assertEquals(minId, IntId.parse(minId.toString()))
+
+        val maxId = IntId<IdConversionTest>(Int.MAX_VALUE)
+        assertEquals(maxId, DomainId.parse(maxId.toString()))
+        assertEquals(maxId, IntId.parse(maxId.toString()))
+    }
+
+    @Test
+    fun `Minimal and maximal IndexedIds are parsed successfully`() {
+        val minStringId = IndexedId<IdConversionTest>(1, 0)
+        assertEquals(minStringId, DomainId.parse(minStringId.toString()))
+        assertEquals(minStringId, IndexedId.parse(minStringId.toString()))
+
+        val maxId = IndexedId<IdConversionTest>(Int.MAX_VALUE, Int.MAX_VALUE)
+        assertEquals(maxId, DomainId.parse(maxId.toString()))
+        assertEquals(maxId, IndexedId.parse(maxId.toString()))
     }
 
     private fun successResponse(id: DomainId<IdTestObject>): String = testApi.response(IdTestObject(id))

@@ -2,11 +2,33 @@ package fi.fta.geoviite.infra.ui.testdata
 
 import com.github.davidmoten.rtree2.RTree
 import com.github.davidmoten.rtree2.geometry.Rectangle
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.FeatureTypeCode
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LinearUnit
+import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.ProjectName
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.geography.KkjTm35finTriangle
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.calculateDistance
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.GeometryAlignment
+import fi.fta.geoviite.infra.geometry.GeometryElement
+import fi.fta.geoviite.infra.geometry.GeometryKmPost
+import fi.fta.geoviite.infra.geometry.GeometrySwitch
+import fi.fta.geoviite.infra.geometry.GeometrySwitchJoint
+import fi.fta.geoviite.infra.geometry.GeometrySwitchTypeName
+import fi.fta.geoviite.infra.geometry.GeometryUnits
+import fi.fta.geoviite.infra.geometry.PlanState
+import fi.fta.geoviite.infra.geometry.Project
+import fi.fta.geoviite.infra.geometry.SwitchData
+import fi.fta.geoviite.infra.geometry.geometryLine
 import fi.fta.geoviite.infra.getSomeNullableValue
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.AngularUnit
@@ -17,7 +39,28 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchElement
 import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.GeometrySource
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutContextData
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.SegmentGeometry
+import fi.fta.geoviite.infra.tracklayout.SegmentPoint
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.switchOwnerVayla
+import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.logger
 import java.math.BigDecimal
@@ -133,7 +176,7 @@ fun trackLayoutSwitch(name: String, jointPoints: List<Point>, switchStructure: S
     trapPoint = false,
     ownerId = switchOwnerVayla().id,
     source = GeometrySource.GENERATED,
-    contextData = LayoutContextData.newOfficial(),
+    contextData = LayoutContextData.newOfficial(LayoutBranch.main),
 )
 
 fun switchJoint(location: Point) = TrackLayoutSwitchJoint(

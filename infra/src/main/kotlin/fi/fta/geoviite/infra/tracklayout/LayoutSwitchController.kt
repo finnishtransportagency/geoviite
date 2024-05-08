@@ -17,7 +17,15 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 
 @RestController
 @RequestMapping("/track-layout/switches")
@@ -30,7 +38,7 @@ class LayoutSwitchController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$PUBLICATION_STATE}")
     fun getTrackLayoutSwitches(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("bbox") bbox: BoundingBox?,
         @RequestParam("namePart") namePart: String?,
         @RequestParam("exactName") exactName: SwitchName?,
@@ -43,7 +51,7 @@ class LayoutSwitchController(
     ): List<TrackLayoutSwitch> {
         logger.apiCall(
             "getTrackLayoutSwitches",
-            "$PUBLICATION_STATE" to publicationState,
+            PUBLICATION_STATE to publicationState,
             "bbox" to bbox,
             "namePart" to namePart,
             "exactName" to exactName,
@@ -61,41 +69,41 @@ class LayoutSwitchController(
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$PUBLICATION_STATE}/{id}")
     fun getTrackLayoutSwitch(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<TrackLayoutSwitch>,
     ): ResponseEntity<TrackLayoutSwitch> {
-        logger.apiCall("getTrackLayoutSwitch", "id" to id, "$PUBLICATION_STATE" to publicationState)
+        logger.apiCall("getTrackLayoutSwitch", "id" to id, PUBLICATION_STATE to publicationState)
         return toResponse(switchService.get(publicationState, id))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$PUBLICATION_STATE}", params = ["ids"])
     fun getTrackLayoutSwitches(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids", required = true) ids: List<IntId<TrackLayoutSwitch>>,
     ): List<TrackLayoutSwitch> {
-        logger.apiCall("getTrackLayoutSwitches", "ids" to ids, "$PUBLICATION_STATE" to publicationState)
+        logger.apiCall("getTrackLayoutSwitches", "ids" to ids, PUBLICATION_STATE to publicationState)
         return switchService.getMany(publicationState, ids)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$PUBLICATION_STATE}/{id}/joint-connections")
     fun getSwitchJointConnections(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
-        logger.apiCall("getSwitchJointConnections", "switchId" to id, "$PUBLICATION_STATE" to publicationState)
+        logger.apiCall("getSwitchJointConnections", "switchId" to id, PUBLICATION_STATE to publicationState)
         return switchService.getSwitchJointConnections(publicationState, id)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("{$PUBLICATION_STATE}/validation")
     fun validateSwitches(
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids") ids: List<IntId<TrackLayoutSwitch>>?,
         @RequestParam("bbox") bbox: BoundingBox?,
     ): List<ValidatedAsset<TrackLayoutSwitch>> {
-        logger.apiCall("validateSwitches", "$PUBLICATION_STATE" to publicationState, "ids" to ids, "bbox" to bbox)
+        logger.apiCall("validateSwitches", PUBLICATION_STATE to publicationState, "ids" to ids, "bbox" to bbox)
         val switches = if (ids != null) {
             switchService.getMany(publicationState, ids)
         } else {
@@ -135,9 +143,9 @@ class LayoutSwitchController(
     @GetMapping("/{$PUBLICATION_STATE}/{id}/change-times")
     fun getSwitchChangeInfo(
         @PathVariable("id") switchId: IntId<TrackLayoutSwitch>,
-        @PathVariable("$PUBLICATION_STATE") publicationState: PublicationState,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
     ): ResponseEntity<LayoutAssetChangeInfo> {
-        logger.apiCall("getSwitchChangeInfo", "id" to switchId, "$PUBLICATION_STATE" to publicationState)
+        logger.apiCall("getSwitchChangeInfo", "id" to switchId, PUBLICATION_STATE to publicationState)
         return toResponse(switchService.getLayoutAssetChangeInfo(switchId, publicationState))
     }
 }

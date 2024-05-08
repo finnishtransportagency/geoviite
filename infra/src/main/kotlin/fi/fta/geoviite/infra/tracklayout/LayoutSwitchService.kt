@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
@@ -40,7 +41,8 @@ class LayoutSwitchService @Autowired constructor(
             trapPoint = request.trapPoint,
             ownerId = request.ownerId,
             source = GeometrySource.GENERATED,
-            contextData = LayoutContextData.newDraft(),
+            // TODO: GVT-2400
+            contextData = LayoutContextData.newDraft(LayoutBranch.main),
         )
         return saveDraftInternal(switch).id
     }
