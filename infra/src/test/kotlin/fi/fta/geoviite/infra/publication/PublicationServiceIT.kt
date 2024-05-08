@@ -1525,6 +1525,7 @@ class PublicationServiceIT @Autowired constructor(
         val kmPost = kmPostService.getOrThrow(
             DRAFT,
             kmPostService.insertKmPost(
+                LayoutBranch.main,
                 TrackLayoutKmPostSaveRequest(
                     KmNumber(0),
                     LayoutState.IN_USE,
@@ -1540,6 +1541,7 @@ class PublicationServiceIT @Autowired constructor(
         val updatedKmPost = kmPostService.getOrThrow(
             DRAFT,
             kmPostService.updateKmPost(
+                LayoutBranch.main,
                 kmPost.id as IntId,
                 TrackLayoutKmPostSaveRequest(
                     KmNumber(1),
@@ -1577,12 +1579,12 @@ class PublicationServiceIT @Autowired constructor(
 
         val kmPost = kmPostService.getOrThrow(
             DRAFT,
-            kmPostService.insertKmPost(saveReq),
+            kmPostService.insertKmPost(LayoutBranch.main, saveReq),
         )
         publish(publicationService, kmPosts = listOf(kmPost.id as IntId))
         val updatedKmPost = kmPostService.getOrThrow(
             DRAFT,
-            kmPostService.updateKmPost(kmPost.id as IntId, saveReq.copy(kmNumber = KmNumber(1))),
+            kmPostService.updateKmPost(LayoutBranch.main, kmPost.id as IntId, saveReq.copy(kmNumber = KmNumber(1))),
         )
         publish(publicationService, kmPosts = listOf(updatedKmPost.id as IntId))
         val latestPubs = publicationService.fetchLatestPublicationDetails(2)

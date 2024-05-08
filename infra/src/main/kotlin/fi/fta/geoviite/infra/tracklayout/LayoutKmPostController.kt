@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLIC
 import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.logging.apiCall
@@ -36,50 +37,64 @@ class LayoutKmPostController(
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
+    private fun assertMainBranch(branch: LayoutBranch) = require(branch == LayoutBranch.main) {
+        // TODO: GVT-2401: DAO support missing for fetching design branch data
+        "Design branch use is not yet supported"
+    }
+
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/{$PUBLICATION_STATE}/{id}")
+    @GetMapping("/{layout_branch}/{$PUBLICATION_STATE}/{id}")
     fun getKmPost(
+        @PathVariable("layout_branch") branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<TrackLayoutKmPost>,
     ): ResponseEntity<TrackLayoutKmPost> {
-        logger.apiCall("getKmPost", PUBLICATION_STATE to publicationState, "id" to id)
+        logger.apiCall("getKmPost", "branch" to branch, PUBLICATION_STATE to publicationState, "id" to id)
+        assertMainBranch(branch)
         return toResponse(kmPostService.get(publicationState, id))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/{$PUBLICATION_STATE}", params = ["ids"])
+    @GetMapping("/{layout_branch}/{$PUBLICATION_STATE}", params = ["ids"])
     fun getKmPosts(
+        @PathVariable("layout_branch") branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids", required = true) ids: List<IntId<TrackLayoutKmPost>>,
     ): List<TrackLayoutKmPost> {
-        logger.apiCall("getKmPost", PUBLICATION_STATE to publicationState, "ids" to ids)
+        logger.apiCall("getKmPost", "branch" to branch, PUBLICATION_STATE to publicationState, "ids" to ids)
+        assertMainBranch(branch)
         return kmPostService.getMany(publicationState, ids)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/{$PUBLICATION_STATE}/on-track-number/{trackNumberId}")
+    @GetMapping("/{layout_branch}/{$PUBLICATION_STATE}/on-track-number/{trackNumberId}")
     fun getKmPostsOnTrackNumber(
+        @PathVariable("layout_branch") branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("trackNumberId") id: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmPost> {
-        logger.apiCall("getKmPostsOnTrackNumber", PUBLICATION_STATE to publicationState, "id" to id)
+        logger.apiCall("getKmPostsOnTrackNumber", "branch" to branch, PUBLICATION_STATE to publicationState, "id" to id)
+        assertMainBranch(branch)
         return kmPostService.list(publicationState, id)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/{$PUBLICATION_STATE}", params = ["bbox", "step"])
+    @GetMapping("/{layout_branch}/{$PUBLICATION_STATE}", params = ["bbox", "step"])
     fun findKmPosts(
+        @PathVariable("layout_branch") branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("bbox") bbox: BoundingBox,
         @RequestParam("step") step: Int,
     ): List<TrackLayoutKmPost> {
-        logger.apiCall("getKmPosts", PUBLICATION_STATE to publicationState, "bbox" to bbox, "step" to step)
+        logger.apiCall("findKmPosts", "branch" to branch, PUBLICATION_STATE to publicationState, "bbox" to bbox, "step" to step)
+        assertMainBranch(branch)
         return kmPostService.list(publicationState, bbox, step)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/{$PUBLICATION_STATE}", params = ["location", "offset", "limit"])
+    @GetMapping("/{layout_branch}/{$PUBLICATION_STATE}", params = ["location", "offset", "limit"])
     fun findKmPosts(
+        @PathVariable("layout_branch") branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>?,
         @RequestParam("location") location: Point,
@@ -88,12 +103,14 @@ class LayoutKmPostController(
     ): List<TrackLayoutKmPost> {
         logger.apiCall(
             "getNearbyKmPostsOnTrack",
+            "branch" to branch,
             PUBLICATION_STATE to publicationState,
             "trackNumberId" to trackNumberId,
             "location" to location,
             "offset" to offset,
             "limit" to limit
         )
+        assertMainBranch(branch)
         return kmPostService.listNearbyOnTrackPaged(
             publicationState = publicationState,
             location = location,
@@ -104,8 +121,9 @@ class LayoutKmPostController(
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/{$PUBLICATION_STATE}", params = ["trackNumberId", "kmNumber"])
+    @GetMapping("/{layout_branch}/{$PUBLICATION_STATE}", params = ["trackNumberId", "kmNumber"])
     fun getKmPost(
+        @PathVariable("layout_branch") branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
         @RequestParam("kmNumber") kmNumber: KmNumber,
@@ -113,65 +131,81 @@ class LayoutKmPostController(
     ): ResponseEntity<TrackLayoutKmPost> {
         logger.apiCall(
             "getKmPostOnTrack",
+            "branch" to branch,
             PUBLICATION_STATE to publicationState,
             "trackNumberId" to trackNumberId,
             "kmNumber" to kmNumber,
             "includeDeleted" to includeDeleted,
         )
+        assertMainBranch(branch)
         return toResponse(kmPostService.getByKmNumber(publicationState, trackNumberId, kmNumber, includeDeleted))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("{$PUBLICATION_STATE}/{id}/validation")
+    @GetMapping("/{layout_branch}/{$PUBLICATION_STATE}/{id}/validation")
     fun validateKmPost(
+        @PathVariable("layout_branch") branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<TrackLayoutKmPost>,
     ): ResponseEntity<ValidatedAsset<TrackLayoutKmPost>> {
-        logger.apiCall("validateKmPost", PUBLICATION_STATE to publicationState, "id" to id)
+        logger.apiCall("validateKmPost", "branch" to branch, PUBLICATION_STATE to publicationState, "id" to id)
+        assertMainBranch(branch)
         return publicationService.validateKmPosts(listOf(id), publicationState).firstOrNull().let(::toResponse)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PostMapping("/draft")
-    fun insertTrackLayoutKmPost(@RequestBody request: TrackLayoutKmPostSaveRequest): IntId<TrackLayoutKmPost> {
-        logger.apiCall("insertTrackLayoutKmPost", "request" to request)
-        return kmPostService.insertKmPost(request)
+    @PostMapping("/{layout_branch}/draft")
+    fun insertTrackLayoutKmPost(
+        @PathVariable("layout_branch") branch: LayoutBranch,
+        @RequestBody request: TrackLayoutKmPostSaveRequest,
+     ): IntId<TrackLayoutKmPost> {
+        logger.apiCall("insertTrackLayoutKmPost", "branch" to branch, "request" to request)
+        return kmPostService.insertKmPost(branch, request)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PutMapping("/draft/{id}")
+    @PutMapping("/{layout_branch}/draft/{id}")
     fun updateKmPost(
+        @PathVariable("layout_branch") branch: LayoutBranch,
         @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
         @RequestBody request: TrackLayoutKmPostSaveRequest,
     ): IntId<TrackLayoutKmPost> {
-        logger.apiCall("updateKmPost", "kmPostId" to kmPostId, "request" to request)
-        return kmPostService.updateKmPost(kmPostId, request)
+        logger.apiCall("updateKmPost", "branch" to branch, "kmPostId" to kmPostId, "request" to request)
+        return kmPostService.updateKmPost(branch, kmPostId, request)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @DeleteMapping("/draft/{id}")
-    fun deleteDraftKmPost(@PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>): IntId<TrackLayoutKmPost> {
-        logger.apiCall("deleteDraftKmPost", "kmPostId" to kmPostId)
+    @DeleteMapping("/{layout_branch}/draft/{id}")
+    fun deleteDraftKmPost(
+        @PathVariable("layout_branch") branch: LayoutBranch,
+        @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
+    ): IntId<TrackLayoutKmPost> {
+        logger.apiCall("deleteDraftKmPost", "branch" to branch, "kmPostId" to kmPostId)
+        assertMainBranch(branch)
         return kmPostService.deleteDraft(kmPostId).id
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/{$PUBLICATION_STATE}/{id}/change-times")
+    @GetMapping("/{layout_branch}/{$PUBLICATION_STATE}/{id}/change-times")
     fun getKmPostChangeInfo(
+        @PathVariable("layout_branch") branch: LayoutBranch,
         @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
     ): ResponseEntity<LayoutAssetChangeInfo> {
-        logger.apiCall("getKmPostChangeInfo", "id" to kmPostId, "publicationState" to publicationState)
+        logger.apiCall("getKmPostChangeInfo", "id" to kmPostId, "branch" to branch, PUBLICATION_STATE to publicationState)
+        assertMainBranch(branch)
         return toResponse(kmPostService.getLayoutAssetChangeInfo(kmPostId, publicationState))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/{$PUBLICATION_STATE}/{id}/km-length")
+    @GetMapping("/{layout_branch}/{$PUBLICATION_STATE}/{id}/km-length")
     fun getKmLength(
+        @PathVariable("layout_branch") branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
     ): ResponseEntity<Double> {
-        logger.apiCall("getKmLength", "id" to kmPostId, PUBLICATION_STATE to publicationState)
+        logger.apiCall("getKmLength", "id" to kmPostId, "branch" to branch, PUBLICATION_STATE to publicationState)
+        assertMainBranch(branch)
         return toResponse(kmPostService.getSingleKmPostLength(publicationState, kmPostId))
     }
 }

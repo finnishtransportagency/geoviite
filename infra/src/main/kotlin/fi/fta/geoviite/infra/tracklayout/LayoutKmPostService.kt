@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.geography.calculateDistance
@@ -21,7 +22,7 @@ class LayoutKmPostService(
 ) : LayoutAssetService<TrackLayoutKmPost, LayoutKmPostDao>(dao) {
 
     @Transactional
-    fun insertKmPost(request: TrackLayoutKmPostSaveRequest): IntId<TrackLayoutKmPost> {
+    fun insertKmPost(branch: LayoutBranch, request: TrackLayoutKmPostSaveRequest): IntId<TrackLayoutKmPost> {
         logger.serviceCall("insertKmPost", "request" to request)
         val kmPost = TrackLayoutKmPost(
             kmNumber = request.kmNumber,
@@ -29,22 +30,28 @@ class LayoutKmPostService(
             state = request.state,
             trackNumberId = request.trackNumberId,
             sourceId = null,
-            // TODO: GVT-2401
-            contextData = LayoutContextData.newDraft(LayoutBranch.main),
+            contextData = LayoutContextData.newDraft(branch),
         )
-        // TODO: GVT-2401
-        return saveDraftInternal(LayoutBranch.main, kmPost).id
+        return saveDraftInternal(branch, kmPost).id
     }
 
     @Transactional
-    fun updateKmPost(id: IntId<TrackLayoutKmPost>, kmPost: TrackLayoutKmPostSaveRequest): IntId<TrackLayoutKmPost> {
+    fun updateKmPost(
+        branch: LayoutBranch,
+        id: IntId<TrackLayoutKmPost>,
+        kmPost: TrackLayoutKmPostSaveRequest,
+    ): IntId<TrackLayoutKmPost> {
         logger.serviceCall("updateKmPost", "id" to id, "kmPost" to kmPost)
-        val trackLayoutKmPost = dao.getOrThrow(DRAFT, id).copy(
-            kmNumber = kmPost.kmNumber,
-            state = kmPost.state,
-        )
-        // TODO: GVT-2401
-        return saveDraftInternal(LayoutBranch.main, trackLayoutKmPost).id
+        val trackLayoutKmPost = if (branch is MainBranch) {
+            dao.getOrThrow(DRAFT, id).copy(
+                kmNumber = kmPost.kmNumber,
+                state = kmPost.state,
+            )
+        } else {
+            // GVT-2401: DAO-side not implemented yet: we need to fetch the branch-specific draft to update it
+            TODO("DAO side not implemented yet: design branch updates cannot be done")
+        }
+        return saveDraftInternal(branch, trackLayoutKmPost).id
     }
 
     fun list(

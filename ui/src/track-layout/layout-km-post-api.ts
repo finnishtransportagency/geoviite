@@ -20,7 +20,11 @@ import {
     putNonNullAdt,
     queryParams,
 } from 'api/api-fetch';
-import { changeTimeUri, layoutUri, TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
+import {
+    changeTimeUri,
+    contextAwareLayoutUri,
+    TRACK_LAYOUT_URI,
+} from 'track-layout/track-layout-api';
 import { getChangeTimes, updateKmPostChangeTime } from 'common/change-time-api';
 import { BoundingBox, Point } from 'model/geometry';
 import { bboxString, pointString } from 'common/common-api';
@@ -43,7 +47,7 @@ export async function getKmPost(
     changeTime: TimeStamp = getChangeTimes().layoutKmPost,
 ): Promise<LayoutKmPost | undefined> {
     return kmPostCache.get(changeTime, cacheKey(id, layoutContext), () =>
-        getNullable<LayoutKmPost>(layoutUri('km-posts', layoutContext, id)),
+        getNullable<LayoutKmPost>(contextAwareLayoutUri('km-posts', layoutContext, id)),
     );
 }
 
@@ -59,7 +63,7 @@ export async function getKmPosts(
             (id) => cacheKey(id, layoutContext),
             (fetchIds) =>
                 getNonNull<LayoutKmPost[]>(
-                    `${layoutUri('km-posts', layoutContext)}?ids=${fetchIds}`,
+                    `${contextAwareLayoutUri('km-posts', layoutContext)}?ids=${fetchIds}`,
                 ).then((kmPosts) => {
                     const kmPostMap = indexIntoMap(kmPosts);
                     return (id) => kmPostMap.get(id);
@@ -79,7 +83,9 @@ export async function getKmPostByNumber(
         kmNumber: kmNumber,
         includeDeleted: includeDeleted,
     });
-    return getNullable<LayoutKmPost>(`${layoutUri('km-posts', layoutContext)}${params}`);
+    return getNullable<LayoutKmPost>(
+        `${contextAwareLayoutUri('km-posts', layoutContext)}${params}`,
+    );
 }
 
 export async function getKmPostsByTile(
@@ -95,7 +101,7 @@ export async function getKmPostsByTile(
     return kmPostListCache.get(
         changeTime,
         `${layoutContext.publicationState}_${layoutContext.designId}_${JSON.stringify(params)}`,
-        () => getNonNull(`${layoutUri('km-posts', layoutContext)}${params}`),
+        () => getNonNull(`${contextAwareLayoutUri('km-posts', layoutContext)}${params}`),
     );
 }
 
@@ -114,7 +120,7 @@ export async function getKmPostForLinking(
         limit: limit,
     });
     return kmPostForLinkingCache.get(kmPostChangeTime, params, () =>
-        getNonNull(`${layoutUri('km-posts', layoutContext)}${params}`),
+        getNonNull(`${contextAwareLayoutUri('km-posts', layoutContext)}${params}`),
     );
 }
 
@@ -123,7 +129,7 @@ export async function insertKmPost(
     kmPost: KmPostSaveRequest,
 ): Promise<Result<LayoutKmPostId, KmPostSaveError>> {
     const apiResult = await postNonNullAdt<KmPostSaveRequest, LayoutKmPostId>(
-        layoutUri('km-posts', draftLayoutContext(layoutContext)),
+        contextAwareLayoutUri('km-posts', draftLayoutContext(layoutContext)),
         kmPost,
     );
 
@@ -141,7 +147,7 @@ export async function updateKmPost(
     kmPost: KmPostSaveRequest,
 ): Promise<Result<LayoutKmPostId, KmPostSaveError>> {
     const apiResult = await putNonNullAdt<KmPostSaveRequest, LayoutKmPostId>(
-        layoutUri('km-posts', draftLayoutContext(layoutContext), id),
+        contextAwareLayoutUri('km-posts', draftLayoutContext(layoutContext), id),
         kmPost,
     );
 
@@ -158,7 +164,7 @@ export const deleteDraftKmPost = async (
     id: LayoutKmPostId,
 ): Promise<Result<LayoutKmPostId, KmPostSaveError>> => {
     const apiResult = await deleteNonNullAdt<undefined, LayoutKmPostId>(
-        layoutUri('km-posts', draftLayoutContext(layoutContext), id),
+        contextAwareLayoutUri('km-posts', draftLayoutContext(layoutContext), id),
         undefined,
     );
 
@@ -174,7 +180,9 @@ export async function getKmPostValidation(
     layoutContext: LayoutContext,
     id: LayoutKmPostId,
 ): Promise<ValidatedKmPost | undefined> {
-    return getNullable<ValidatedKmPost>(`${layoutUri('km-posts', layoutContext, id)}/validation`);
+    return getNullable<ValidatedKmPost>(
+        `${contextAwareLayoutUri('km-posts', layoutContext, id)}/validation`,
+    );
 }
 
 export async function getKmPostsOnTrackNumber(
@@ -182,7 +190,7 @@ export async function getKmPostsOnTrackNumber(
     id: LayoutTrackNumberId,
 ): Promise<LayoutKmPost[]> {
     return getNonNull<LayoutKmPost[]>(
-        `${layoutUri('km-posts', layoutContext)}/on-track-number/${id}`,
+        `${contextAwareLayoutUri('km-posts', layoutContext)}/on-track-number/${id}`,
     );
 }
 
@@ -191,7 +199,7 @@ export async function getKmLengths(
     id: LayoutTrackNumberId,
 ): Promise<LayoutKmLengthDetails[]> {
     return getNonNull<LayoutKmLengthDetails[]>(
-        `${layoutUri('track-numbers', layoutContext, id)}/km-lengths`,
+        `${contextAwareLayoutUri('track-numbers', layoutContext, id)}/km-lengths`,
     );
 }
 
@@ -199,7 +207,7 @@ export async function getSingleKmPostKmLength(
     layoutContext: LayoutContext,
     id: LayoutKmPostId,
 ): Promise<number | undefined> {
-    return getNullable<number>(`${layoutUri('km-posts', layoutContext, id)}/km-length`);
+    return getNullable<number>(`${contextAwareLayoutUri('km-posts', layoutContext, id)}/km-length`);
 }
 
 export const getKmLengthsAsCsv = (
@@ -214,7 +222,7 @@ export const getKmLengthsAsCsv = (
         lang: i18next.language,
     });
 
-    return `${layoutUri('track-numbers', layoutContext, trackNumberId)}/km-lengths/as-csv${params}`;
+    return `${contextAwareLayoutUri('track-numbers', layoutContext, trackNumberId)}/km-lengths/as-csv${params}`;
 };
 
 export const getKmPostChangeTimes = (id: LayoutKmPostId, layoutContext: LayoutContext) =>

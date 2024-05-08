@@ -1,4 +1,4 @@
-import { LayoutContext } from 'common/common-model';
+import { LayoutContext, LayoutDesignId } from 'common/common-model';
 import { API_URI } from 'api/api-fetch';
 
 type LayoutDataType =
@@ -25,4 +25,20 @@ export function layoutUri(
 ): string {
     const baseUri = `${TRACK_LAYOUT_URI}/${dataType}/${layoutContext.publicationState.toLowerCase()}`;
     return id ? `${baseUri}/${id}` : baseUri;
+}
+
+// TODO: GVT-2401 This is a temporary solution until all APIs are changed to the new format (including branch)
+export function contextAwareLayoutUri(
+    dataType: LayoutDataType,
+    layoutContext: LayoutContext,
+    id?: string,
+): string {
+    const branch = toBranchName(layoutContext.designId).toLowerCase();
+    const publicationState = layoutContext.publicationState.toLowerCase();
+    const baseUri = `${TRACK_LAYOUT_URI}/${dataType}/${branch}/${publicationState}`;
+    return id ? `${baseUri}/${id}` : baseUri;
+}
+
+function toBranchName(designId?: LayoutDesignId): string {
+    return designId ? `DESIGN_${designId}` : 'MAIN';
 }

@@ -15,7 +15,7 @@ import kotlin.math.sqrt
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
-class VerticalGeometryListingTest() {
+class VerticalGeometryListingTest {
     @Test
     fun `Station point is calculated correctly when other line goes straight up`() {
         val curve = CurvedProfileSegment(

@@ -150,7 +150,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
             state = LayoutState.IN_USE,
             trackNumberId = trackNumberId,
         )
-        val kmPostId = kmPostService.insertKmPost(kmPost)
+        val kmPostId = kmPostService.insertKmPost(LayoutBranch.main, kmPost)
 
         val fetchedKmPost = kmPostService.get(DRAFT, kmPostId)!!
         assertNull(kmPostService.get(OFFICIAL, kmPostId))
