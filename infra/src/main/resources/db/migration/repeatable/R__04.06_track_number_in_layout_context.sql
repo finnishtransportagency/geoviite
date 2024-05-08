@@ -1,5 +1,3 @@
-drop view if exists layout.track_number_publication_view;
-
 drop function if exists layout.track_number_in_layout_context(layout.publication_state, int);
 
 create function layout.track_number_in_layout_context(publication_state_in layout.publication_state, design_id_in int)
