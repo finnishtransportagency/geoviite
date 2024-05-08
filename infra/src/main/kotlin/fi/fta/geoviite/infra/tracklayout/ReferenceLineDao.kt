@@ -275,8 +275,7 @@ class ReferenceLineDao(
             from layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl
               left join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn
                 on rl.track_number_id = tn.official_id
-            where :publication_state = any(rl.publication_states) 
-              and tn.state != 'DELETED'
+            where tn.state != 'DELETED'
               and rl.segment_count = 0
         """.trimIndent()
         val params =

@@ -68,13 +68,16 @@ select
                             from layout.location_track overriding_draft
                             where overriding_draft.design_id is not distinct from design_id_in
                               and overriding_draft.draft
-                              and (overriding_draft.official_row_id = row.id or
-                                   overriding_draft.design_row_id = row.id))
+                              and row.id = case
+                                             when design_id_in is null then overriding_draft.official_row_id
+                                             else overriding_draft.design_row_id
+                                           end)
         end
     and case
           when design_id_in is null then row.design_id is null
           else design_id_in = row.design_id
             or (row.design_id is null
+              and not draft
               and not exists(select *
                                from layout.location_track overriding_design_official
                                where overriding_design_official.design_id = design_id_in
