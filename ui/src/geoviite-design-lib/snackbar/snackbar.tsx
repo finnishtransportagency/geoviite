@@ -246,6 +246,10 @@ export const hideDesignSelectionToast = (toastId: Id) => {
     toast.dismiss(toastId);
 };
 
+export const hideAll = () => {
+    toast.dismiss();
+};
+
 type SelectOrAddProjectProps = {
     toastId: Id | undefined;
     onAddProject: () => void;
