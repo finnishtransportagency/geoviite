@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackMeter
@@ -12,7 +13,13 @@ import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.FreeText
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertDoesNotThrow
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -113,7 +120,9 @@ class ReferenceLineServiceIT @Autowired constructor(
         val referenceLineId = referenceLineService.getByTrackNumber(DRAFT, trackNumberId)!!.id as IntId
         val (publishResponse, published) = publishAndVerify(trackNumberId, referenceLineId)
 
-        val editedVersion = referenceLineService.saveDraft(published.copy(startAddress = TrackMeter(1, 1)))
+        val editedVersion = referenceLineService.saveDraft(
+            LayoutBranch.main, published.copy(startAddress = TrackMeter(1, 1)),
+        )
         assertEquals(publishResponse.id, editedVersion.id)
         assertNotEquals(publishResponse.rowVersion.id, editedVersion.rowVersion.id)
 
@@ -122,7 +131,10 @@ class ReferenceLineServiceIT @Autowired constructor(
         // Creating a draft should duplicate the alignment
         assertNotEquals(published.alignmentVersion!!.id, editedDraft.alignmentVersion!!.id)
 
-        val editedVersion2 = referenceLineService.saveDraft(editedDraft.copy(startAddress = TrackMeter(2, 2)))
+        val editedVersion2 = referenceLineService.saveDraft(
+            LayoutBranch.main,
+            editedDraft.copy(startAddress = TrackMeter(2, 2)),
+        )
         assertEquals(publishResponse.id, editedVersion2.id)
         assertNotEquals(publishResponse.rowVersion.id, editedVersion2.rowVersion.id)
 

@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
@@ -126,7 +127,7 @@ class LocationTrackServiceIT @Autowired constructor(
     fun savingCreatesDraft() {
         val (publicationResponse, published) = createPublishedLocationTrack(1)
 
-        val editedVersion = locationTrackService.saveDraft(published.copy(name = AlignmentName("EDITED1")))
+        val editedVersion = locationTrackService.saveDraft(LayoutBranch.main, published.copy(name = AlignmentName("EDITED1")))
         assertEquals(publicationResponse.id, editedVersion.id)
         assertNotEquals(publicationResponse.rowVersion.id, editedVersion.rowVersion.id)
 
@@ -135,7 +136,7 @@ class LocationTrackServiceIT @Autowired constructor(
         // Creating a draft should duplicate the alignment
         assertNotEquals(published.alignmentVersion!!.id, editedDraft.alignmentVersion!!.id)
 
-        val editedVersion2 = locationTrackService.saveDraft(editedDraft.copy(name = AlignmentName("EDITED2")))
+        val editedVersion2 = locationTrackService.saveDraft(LayoutBranch.main, editedDraft.copy(name = AlignmentName("EDITED2")))
         assertEquals(publicationResponse.id, editedVersion2.id)
         assertNotEquals(publicationResponse.rowVersion.id, editedVersion2.rowVersion.id)
 
@@ -548,7 +549,7 @@ class LocationTrackServiceIT @Autowired constructor(
     )
 
     private fun insertAndFetchDraft(switch: TrackLayoutSwitch): TrackLayoutSwitch =
-        switchDao.fetch(switchService.saveDraft(switch).rowVersion)
+        switchDao.fetch(switchService.saveDraft(LayoutBranch.main, switch).rowVersion)
 
     private fun insertAndFetchDraft(
         locationTrack: LocationTrack,

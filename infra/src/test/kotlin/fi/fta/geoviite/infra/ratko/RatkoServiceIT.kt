@@ -1,8 +1,19 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.geometryAlignment
 import fi.fta.geoviite.infra.geometry.lineFromOrigin
@@ -13,8 +24,51 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.publication.PublicationRequestIds
 import fi.fta.geoviite.infra.publication.PublicationService
-import fi.fta.geoviite.infra.ratko.model.*
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.ratko.model.OperationalPointType
+import fi.fta.geoviite.infra.ratko.model.RatkoAssetState
+import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrackState
+import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrackType
+import fi.fta.geoviite.infra.ratko.model.RatkoMeasurementMethod
+import fi.fta.geoviite.infra.ratko.model.RatkoNodeType
+import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointParse
+import fi.fta.geoviite.infra.ratko.model.RatkoPoint
+import fi.fta.geoviite.infra.ratko.model.RatkoPointStates
+import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
+import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumberStateType
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.switchJoint
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.queryOne
@@ -188,7 +242,10 @@ class RatkoServiceIT @Autowired constructor(
         assertEquals(RatkoAssetState.BUILT.name, createdPush.state.name)
         assertEquals(RatkoLocationTrackType.CHORD.name, createdPush.type.name)
 
-        locationTrackService.saveDraft(locationTrackDao.fetch(officialVersion).copy(state = LocationTrackState.DELETED))
+        locationTrackService.saveDraft(
+            LayoutBranch.main,
+            locationTrackDao.fetch(officialVersion).copy(state = LocationTrackState.DELETED),
+        )
         publishAndPush(locationTracks = listOf(officialVersion))
 
         assertEquals(listOf(""), fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6"))
@@ -225,6 +282,7 @@ class RatkoServiceIT @Autowired constructor(
         fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
         val officialVersion = locationTrackDao.fetchVersion(locationTrackOriginalVersion.id, PublicationState.OFFICIAL)!!
         locationTrackService.saveDraft(
+            LayoutBranch.main,
             asMainDraft(
                 locationTrackDao.fetch(officialVersion).copy(
                     descriptionBase = FreeText("aoeu"),
@@ -435,11 +493,13 @@ class RatkoServiceIT @Autowired constructor(
     fun pushTwoTrackNumbers() {
         val trackNumber1 = getUnusedTrackNumber()
         val trackNumber1Version = trackNumberService.saveDraft(
+            LayoutBranch.main,
             trackNumber(trackNumber1, externalId = null, draft = true)
         )
         insertSomeOfficialReferenceLineFor(trackNumber1Version.id)
         val trackNumber2 = getUnusedTrackNumber()
         val trackNumber2Version = trackNumberService.saveDraft(
+            LayoutBranch.main,
             trackNumber(trackNumber2, externalId = null, draft = true)
         )
         insertSomeOfficialReferenceLineFor(trackNumber2Version.id)
@@ -479,6 +539,7 @@ class RatkoServiceIT @Autowired constructor(
     fun shortenReferenceLine() {
         val trackNumber = getUnusedTrackNumber()
         val originalTrackNumberVersion = trackNumberService.saveDraft(
+            LayoutBranch.main,
             trackNumber(trackNumber, description = "augh", externalId = null, draft = true)
         ).rowVersion
         val originalReferenceLineDaoResponse = referenceLineService.saveDraft(
@@ -521,6 +582,7 @@ class RatkoServiceIT @Autowired constructor(
     fun changeReferenceLineGeometry() {
         val trackNumber = getUnusedTrackNumber()
         val originalTrackNumberVersion = trackNumberService.saveDraft(
+            LayoutBranch.main,
             trackNumber(trackNumber, description = "augh", externalId = null, draft = true)
         ).rowVersion
         val originalReferenceLineDaoResponse = referenceLineService.saveDraft(
@@ -587,9 +649,11 @@ class RatkoServiceIT @Autowired constructor(
         ).rowVersion.id
         insertSomeOfficialReferenceLineFor(trackNumberId)
         val kmPost1 = kmPostService.saveDraft(
+            LayoutBranch.main,
             kmPost(trackNumberId, KmNumber(1), Point(2.0, 0.0), draft = true)
         )
         val kmPost2 = kmPostService.saveDraft(
+            LayoutBranch.main,
             kmPost(trackNumberId, KmNumber(2), Point(4.0, 0.0), draft = true)
         )
 
@@ -605,6 +669,7 @@ class RatkoServiceIT @Autowired constructor(
         )
 
         kmPostService.saveDraft(
+            LayoutBranch.main,
             asMainDraft(kmPostDao.fetch(kmPostDao.fetchVersion(kmPost2.id, PublicationState.OFFICIAL)!!)).copy(
                 state = LayoutState.DELETED
             )
@@ -626,9 +691,11 @@ class RatkoServiceIT @Autowired constructor(
     fun removeLocationTrackWithSwitch() {
         val trackNumber = establishedTrackNumber()
         val kmPost1 = kmPostService.saveDraft(
+            LayoutBranch.main,
             kmPost(trackNumber.id, KmNumber(1), Point(2.0, 0.0), draft = true)
         )
         val kmPost2 = kmPostService.saveDraft(
+            LayoutBranch.main,
             kmPost(trackNumber.id, KmNumber(2), Point(4.0, 0.0), draft = true)
         )
 
@@ -644,6 +711,7 @@ class RatkoServiceIT @Autowired constructor(
         listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::hostPushedLocationTrack)
         val officialThroughTrackVersion = locationTrackDao.fetchVersion(throughTrack.id, PublicationState.OFFICIAL)!!
         locationTrackService.saveDraft(
+            LayoutBranch.main,
             locationTrackDao.fetch(officialThroughTrackVersion).copy(state = LocationTrackState.DELETED)
         )
         publishAndPush(locationTracks = listOf(officialThroughTrackVersion))
@@ -664,9 +732,11 @@ class RatkoServiceIT @Autowired constructor(
     fun modifySwitchJointPositionAccuracy() {
         val trackNumber = establishedTrackNumber()
         val kmPost1 = kmPostService.saveDraft(
+            LayoutBranch.main,
             kmPost(trackNumber.id, KmNumber(1), Point(2.0, 0.0), draft = true)
         )
         val kmPost2 = kmPostService.saveDraft(
+            LayoutBranch.main,
             kmPost(trackNumber.id, KmNumber(2), Point(4.0, 0.0), draft = true)
         )
 
@@ -685,6 +755,7 @@ class RatkoServiceIT @Autowired constructor(
         val officialSwitchVersion = switchDao.fetchVersion(switch.id, PublicationState.OFFICIAL)!!
         val officialSwitch = switchDao.fetch(officialSwitchVersion)
         switchService.saveDraft(
+            LayoutBranch.main,
             officialSwitch.copy(
                 joints = officialSwitch.joints.map { j ->
                     j.copy(locationAccuracy = LocationAccuracy.GEOMETRY_CALCULATED)
@@ -784,9 +855,11 @@ class RatkoServiceIT @Autowired constructor(
     fun changeSwitchStateCategory() {
         val trackNumber = establishedTrackNumber()
         val kmPost1 = kmPostService.saveDraft(
+            LayoutBranch.main,
             kmPost(trackNumber.id, KmNumber(1), Point(2.0, 0.0), draft = true)
         )
         val kmPost2 = kmPostService.saveDraft(
+            LayoutBranch.main,
             kmPost(trackNumber.id, KmNumber(2), Point(4.0, 0.0), draft = true)
         )
 
@@ -802,6 +875,7 @@ class RatkoServiceIT @Autowired constructor(
         fakeRatko.hostPushedSwitch("3.4.5.6.7")
         val officialSwitchVersion = switchDao.fetchVersion(switch.id, PublicationState.OFFICIAL)!!
         switchService.saveDraft(
+            LayoutBranch.main,
             switchDao.fetch(officialSwitchVersion).copy(stateCategory = LayoutStateCategory.FUTURE_EXISTING)
         )
         publishAndPush(switches = listOf(officialSwitchVersion))
@@ -815,6 +889,7 @@ class RatkoServiceIT @Autowired constructor(
 
     private fun setupDraftSwitchAndLocationTracks(trackNumberId: IntId<TrackLayoutTrackNumber>): Triple<DaoResponse<TrackLayoutSwitch>, DaoResponse<LocationTrack>, DaoResponse<LocationTrack>> {
         val switch = switchService.saveDraft(
+            LayoutBranch.main,
             switch(
                 seed = 123,
                 joints = listOf(
@@ -856,6 +931,7 @@ class RatkoServiceIT @Autowired constructor(
         val pushedPoints = fakeRatko.getCreatedRouteNumberPoints("1.2.3.4.5")
 
         val kmPost = kmPostService.saveDraft(
+            LayoutBranch.main,
             kmPost(trackNumber.id, KmNumber(1), Point(5.0, 0.0), draft = true)
         )
         publishAndPush(kmPosts = listOf(kmPost.rowVersion))
@@ -872,14 +948,20 @@ class RatkoServiceIT @Autowired constructor(
     @Test
     fun pushTrackNumberDeletion() {
         val trackNumber = establishedTrackNumber()
-        trackNumberService.saveDraft(trackNumber.trackNumberObject.copy(state = LayoutState.DELETED))
+        trackNumberService.saveDraft(
+            LayoutBranch.main,
+            trackNumber.trackNumberObject.copy(state = LayoutState.DELETED),
+        )
 
         val originalLocationTrackVersion = locationTrackService.saveDraft(
             locationTrack(trackNumber.id, draft = true),
             alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
         ).rowVersion
         val locationTrack = locationTrackDao.fetch(originalLocationTrackVersion)
-        locationTrackService.saveDraft(locationTrack.copy(state = LocationTrackState.DELETED))
+        locationTrackService.saveDraft(
+            LayoutBranch.main,
+            locationTrack.copy(state = LocationTrackState.DELETED),
+        )
 
         fakeRatko.hasLocationTrack(ratkoLocationTrack(id = locationTrack.externalId.toString()))
 
@@ -930,6 +1012,7 @@ class RatkoServiceIT @Autowired constructor(
     @Test
     fun fetchAndFindOperatingPoints() {
         val trackNumberId = trackNumberService.saveDraft(
+            LayoutBranch.main,
             trackNumber(
                 getUnusedTrackNumber(),
                 externalId = Oid("5.5.5.5.5"),
@@ -971,6 +1054,7 @@ class RatkoServiceIT @Autowired constructor(
     @Test
     fun updateOperatingPointsVersioning() {
         trackNumberService.saveDraft(
+            LayoutBranch.main,
             trackNumber(
                 getUnusedTrackNumber(),
                 externalId = Oid("5.5.5.5.5"),

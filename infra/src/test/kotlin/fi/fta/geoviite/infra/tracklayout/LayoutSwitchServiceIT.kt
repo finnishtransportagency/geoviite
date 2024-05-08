@@ -1,9 +1,15 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
@@ -13,7 +19,10 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao.LocationTrackIdentifiers
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -21,7 +30,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import java.time.Instant
-
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -251,13 +259,13 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun returnsNullIfFetchingDraftOnlySwitchUsingOfficialFetch() {
-        val draftSwitch = switchService.saveDraft(switch(draft = true))
+        val draftSwitch = switchService.saveDraft(LayoutBranch.main, switch(draft = true))
         assertNull(switchService.get(OFFICIAL, draftSwitch.id))
     }
 
     @Test
     fun throwsIfFetchingOfficialVersionOfDraftOnlySwitchUsingGetOrThrow() {
-        val draftSwitch = switchService.saveDraft(switch(draft = true))
+        val draftSwitch = switchService.saveDraft(LayoutBranch.main, switch(draft = true))
         assertThrows<NoSuchEntityException> { switchService.getOrThrow(OFFICIAL, draftSwitch.id) }
     }
 
@@ -265,7 +273,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
     fun switchConnectedLocationTracksFound() {
         val trackNumber = getOrCreateTrackNumber(TrackNumber("123"))
         val tnId = trackNumber.id as IntId
-        val switch = switchService.get(DRAFT, switchService.saveDraft(switch(1, draft = true)).id)!!
+        val switch = switchService.get(DRAFT, switchService.saveDraft(LayoutBranch.main, switch(1, draft = true)).id)!!
         val (_, withStartLink) = insertDraft(
             locationTrack(tnId, externalId = someOid(), draft = true).copy(
                 topologyStartSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(1)),

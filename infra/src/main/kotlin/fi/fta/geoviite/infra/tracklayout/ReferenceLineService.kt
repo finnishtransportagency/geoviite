@@ -55,19 +55,22 @@ class ReferenceLineService(
             ?: throw IllegalStateException("Track number should have a reference line")
         val original = dao.fetch(originalVersion)
         return if (original.startAddress != startAddress) {
-            saveDraftInternal(original.copy(
-                startAddress = startAddress,
-                alignmentVersion = updatedAlignmentVersion(original),
-            ))
+            // TODO: GVT-2398
+            saveDraftInternal(
+                LayoutBranch.main,
+                original.copy(
+                    startAddress = startAddress,
+                    alignmentVersion = updatedAlignmentVersion(original),
+                )
+            )
         } else {
             null
         }
     }
 
     @Transactional
-    override fun saveDraft(draft: ReferenceLine): DaoResponse<ReferenceLine> = super.saveDraft(
-        draft.copy(alignmentVersion = updatedAlignmentVersion(draft))
-    )
+    override fun saveDraft(branch: LayoutBranch, draftItem: ReferenceLine): DaoResponse<ReferenceLine> =
+        super.saveDraft(branch, draftItem.copy(alignmentVersion = updatedAlignmentVersion(draftItem)))
 
     @Transactional
     fun saveDraft(draft: ReferenceLine, alignment: LayoutAlignment): DaoResponse<ReferenceLine> {
@@ -90,7 +93,8 @@ class ReferenceLineService(
             } else {
                 alignmentService.save(alignment)
             }
-        return saveDraftInternal(draft.copy(alignmentVersion = alignmentVersion))
+        // TODO: GVT-2398
+        return saveDraftInternal(LayoutBranch.main, draft.copy(alignmentVersion = alignmentVersion))
     }
 
     private fun updatedAlignmentVersion(line: ReferenceLine) =

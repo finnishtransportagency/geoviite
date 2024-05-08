@@ -32,7 +32,8 @@ class LayoutKmPostService(
             // TODO: GVT-2401
             contextData = LayoutContextData.newDraft(LayoutBranch.main),
         )
-        return saveDraftInternal(kmPost).id
+        // TODO: GVT-2401
+        return saveDraftInternal(LayoutBranch.main, kmPost).id
     }
 
     @Transactional
@@ -42,7 +43,8 @@ class LayoutKmPostService(
             kmNumber = kmPost.kmNumber,
             state = kmPost.state,
         )
-        return saveDraftInternal(trackLayoutKmPost).id
+        // TODO: GVT-2401
+        return saveDraftInternal(LayoutBranch.main, trackLayoutKmPost).id
     }
 
     fun list(

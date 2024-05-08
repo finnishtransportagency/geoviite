@@ -44,7 +44,9 @@ class LayoutSwitchService @Autowired constructor(
             // TODO: GVT-2400
             contextData = LayoutContextData.newDraft(LayoutBranch.main),
         )
-        return saveDraftInternal(switch).id
+
+        // TODO: GVT-2400
+        return saveDraftInternal(LayoutBranch.main, switch).id
     }
 
     @Transactional
@@ -66,7 +68,8 @@ class LayoutSwitchService @Autowired constructor(
             joints = switchJoints,
             ownerId = switch.ownerId,
         )
-        return saveDraftInternal(updatedLayoutSwitch).id
+        // TODO: GVT-2400
+        return saveDraftInternal(LayoutBranch.main, updatedLayoutSwitch).id
     }
 
     @Transactional
@@ -133,7 +136,8 @@ class LayoutSwitchService @Autowired constructor(
     ): DaoResponse<TrackLayoutSwitch> {
         logger.serviceCall("updateExternalIdForSwitch", "id" to id, "oid" to oid)
         val original = dao.getOrThrow(DRAFT, id)
-        return saveDraft(original.copy(externalId = oid))
+        // TODO: GVT-2400
+        return saveDraft(LayoutBranch.main, original.copy(externalId = oid))
     }
 
     private fun withStructure(switch: TrackLayoutSwitch): Pair<TrackLayoutSwitch, SwitchStructure> =
