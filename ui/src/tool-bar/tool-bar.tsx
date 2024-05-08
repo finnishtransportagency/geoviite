@@ -311,11 +311,19 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         setShowNewAssetMenu(false);
     }
 
-    function switchToOfficialContext() {
+    function switchToMainOfficial() {
         onLayoutContextChange({ publicationState: 'OFFICIAL', designId: undefined });
         setShowNewAssetMenu(false);
         setSelectingDesignProject(false);
     }
+
+    const switchToMainDraft = () => {
+        onLayoutContextChange({
+            publicationState: 'DRAFT',
+            designId: undefined,
+        });
+        setSelectingDesignProject(false);
+    };
 
     function openPreviewAndStopLinking() {
         onOpenPreview();
@@ -363,7 +371,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                             !selectingDesignProject &&
                             layoutContext.publicationState === 'OFFICIAL'
                         }
-                        onClick={() => switchToOfficialContext()}>
+                        onClick={() => switchToMainOfficial()}>
                         {t('tool-bar.current-mode')}
                     </TabHeader>
                     <TabHeader
@@ -373,13 +381,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                             !selectingDesignProject &&
                             layoutContext.publicationState === 'DRAFT'
                         }
-                        onClick={() => {
-                            onLayoutContextChange({
-                                publicationState: 'DRAFT',
-                                designId: undefined,
-                            });
-                            setSelectingDesignProject(false);
-                        }}>
+                        onClick={() => switchToMainDraft()}>
                         {t('tool-bar.draft-mode')}
                     </TabHeader>
                     <EnvRestricted restrictTo={'test'}>
