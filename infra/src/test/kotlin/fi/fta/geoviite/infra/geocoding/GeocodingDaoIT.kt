@@ -3,8 +3,7 @@ package fi.fta.geoviite.infra.geocoding
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentService
@@ -46,8 +45,8 @@ class GeocodingDaoIT @Autowired constructor(
     @Test
     fun trackNumberWithoutReferenceLineHasNoContext() {
         val id = trackNumberDao.insert(trackNumber(getUnusedTrackNumber(), draft = false)).id
-        assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(DRAFT, id))
-        assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, id))
+        assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.draft, id))
+        assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, id))
     }
 
     @Test
@@ -55,8 +54,8 @@ class GeocodingDaoIT @Autowired constructor(
         val id = trackNumberDao.insert(trackNumber(getUnusedTrackNumber(), draft = false)).id
         val alignmentVersion = alignmentDao.insert(alignment())
         referenceLineDao.insert(referenceLine(id, alignmentVersion = alignmentVersion, draft = false))
-        assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(DRAFT, id))
-        assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, id))
+        assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.draft, id))
+        assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, id))
     }
 
     @Test
@@ -83,7 +82,7 @@ class GeocodingDaoIT @Autowired constructor(
         // Add a deleted post - should not appear in results
         kmPostDao.insert(kmPost(tnId, KmNumber(4), state = LayoutState.DELETED, draft = false))
 
-        val officialKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, tnId)!!
+        val officialKey = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId)!!
         assertEquals(
             LayoutGeocodingContextCacheKey(
                 trackNumberVersion = tnOfficialVersion,
@@ -93,7 +92,7 @@ class GeocodingDaoIT @Autowired constructor(
             officialKey,
         )
 
-        val draftKey = geocodingDao.getLayoutGeocodingContextCacheKey(DRAFT, tnId)!!
+        val draftKey = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.draft, tnId)!!
         assertEquals(
             LayoutGeocodingContextCacheKey(
                 trackNumberVersion = tnDraftVersion,
@@ -166,7 +165,7 @@ class GeocodingDaoIT @Autowired constructor(
         val originalTime = kmPostDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that later objects get a new changetime so that moment-fetch makes sense
 
-        val originalKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, tnId)!!
+        val originalKey = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId)!!
         assertEquals(
             LayoutGeocodingContextCacheKey(
                 trackNumberVersion = tnOfficialVersion,
@@ -191,7 +190,7 @@ class GeocodingDaoIT @Autowired constructor(
 
         val updatedTime = kmPostDao.fetchChangeTime()
 
-        val updatedKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, tnId)!!
+        val updatedKey = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId)!!
         assertEquals(
             LayoutGeocodingContextCacheKey(
                 trackNumberVersion = updatedTrackNumberVersion,

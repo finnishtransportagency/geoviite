@@ -2,10 +2,29 @@ package fi.fta.geoviite.infra
 
 import currentUser
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.ProjectName
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.switchNameLength
+import fi.fta.geoviite.infra.common.trackNumberLength
 import fi.fta.geoviite.infra.geometry.MetaDataName
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
@@ -81,7 +100,7 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
         getOrCreateTrackNumber(getUnusedTrackNumber()).id as IntId
 
     fun getOrCreateTrackNumber(trackNumber: TrackNumber): TrackLayoutTrackNumber {
-        val version = trackNumberDao.fetchVersions(DRAFT, false, trackNumber).firstOrNull()
+        val version = trackNumberDao.fetchVersions(MainLayoutContext.draft, false, trackNumber).firstOrNull()
             ?: insertNewTrackNumber(trackNumber, false).rowVersion
         return version.let(trackNumberDao::fetch)
     }

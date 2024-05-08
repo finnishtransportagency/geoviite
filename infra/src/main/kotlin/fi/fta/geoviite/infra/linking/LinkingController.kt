@@ -3,8 +3,11 @@ package fi.fta.geoviite.infra.linking
 import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT_DRAFT
+import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
@@ -40,84 +43,105 @@ class LinkingController @Autowired constructor(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PostMapping("/reference-lines/geometry")
+    @PostMapping("/{$LAYOUT_BRANCH}/reference-lines/geometry")
     fun saveReferenceLineLinking(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestBody linkingParameters: LinkingParameters<ReferenceLine>,
     ): IntId<ReferenceLine> {
-        logger.apiCall("saveReferenceLineLinking", "linkingParameters" to linkingParameters)
-        return linkingService.saveReferenceLineLinking(linkingParameters)
+        logger.apiCall("saveReferenceLineLinking", "branch" to branch, "linkingParameters" to linkingParameters)
+        return linkingService.saveReferenceLineLinking(branch, linkingParameters)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PostMapping("/location-tracks/geometry")
+    @PostMapping("/{$LAYOUT_BRANCH}/location-tracks/geometry")
     fun saveLocationTrackLinking(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestBody linkingParameters: LinkingParameters<LocationTrack>,
     ): IntId<LocationTrack> {
-        logger.apiCall("saveLocationTrackLinking", "linkingParameters" to linkingParameters)
-        return linkingService.saveLocationTrackLinking(linkingParameters)
+        logger.apiCall("saveLocationTrackLinking", "branch" to branch, "linkingParameters" to linkingParameters)
+        return linkingService.saveLocationTrackLinking(branch, linkingParameters)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PostMapping("/reference-lines/empty-geometry")
+    @PostMapping("/{$LAYOUT_BRANCH}/reference-lines/empty-geometry")
     fun saveEmptyReferenceLineLinking(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestBody linkingParameters: EmptyAlignmentLinkingParameters<ReferenceLine>,
     ): IntId<ReferenceLine> {
-        logger.apiCall("saveEmptyReferenceLineLinking", "linkingParameters" to linkingParameters)
-        return linkingService.saveReferenceLineLinking(linkingParameters)
+        logger.apiCall("saveEmptyReferenceLineLinking", "branch" to branch, "linkingParameters" to linkingParameters)
+        return linkingService.saveReferenceLineLinking(branch, linkingParameters)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PostMapping("/location-tracks/empty-geometry")
+    @PostMapping("/{$LAYOUT_BRANCH}/location-tracks/empty-geometry")
     fun saveEmptyLocationTrackLinking(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestBody linkingParameters: EmptyAlignmentLinkingParameters<LocationTrack>,
     ): IntId<LocationTrack> {
-        logger.apiCall("saveEmptyLocationTrackLinking", "linkingParameters" to linkingParameters)
-        return linkingService.saveLocationTrackLinking(linkingParameters)
+        logger.apiCall("saveEmptyLocationTrackLinking", "branch" to branch, "linkingParameters" to linkingParameters)
+        return linkingService.saveLocationTrackLinking(branch, linkingParameters)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PutMapping("/location-tracks/{id}/geometry")
+    @PutMapping("/{$LAYOUT_BRANCH}/location-tracks/{id}/geometry")
     fun updateLocationTrackGeometry(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable("id") alignmentId: IntId<LocationTrack>,
         @RequestBody mRange: Range<Double>,
     ): IntId<LocationTrack> {
-        logger.apiCall("updateLocationTrackGeometry", "alignmentId" to alignmentId, "mRange" to mRange)
-        return linkingService.updateLocationTrackGeometry(alignmentId, mRange)
+        logger.apiCall(
+            "updateLocationTrackGeometry",
+            "branch" to branch,
+            "alignmentId" to alignmentId,
+            "mRange" to mRange,
+        )
+        return linkingService.updateLocationTrackGeometry(branch, alignmentId, mRange)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PutMapping("/reference-lines/{id}/geometry")
+    @PutMapping("/{$LAYOUT_BRANCH}/reference-lines/{id}/geometry")
     fun updateReferenceLineGeometry(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable("id") alignmentId: IntId<ReferenceLine>,
         @RequestBody mRange: Range<Double>,
     ): IntId<ReferenceLine> {
-        logger.apiCall("updateReferenceLineGeometry", "alignmentId" to alignmentId, "mRange" to mRange)
-        return linkingService.updateReferenceLineGeometry(alignmentId, mRange)
+        logger.apiCall(
+            "updateReferenceLineGeometry",
+            "branch" to branch,
+            "alignmentId" to alignmentId,
+            "mRange" to mRange,
+        )
+        return linkingService.updateReferenceLineGeometry(branch, alignmentId, mRange)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("{$PUBLICATION_STATE}/plans/{id}/status")
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/plans/{id}/status")
     fun getPlanLinkStatus(
-        @PathVariable("id") planId: IntId<GeometryPlan>,
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @PathVariable("id") planId: IntId<GeometryPlan>,
     ): GeometryPlanLinkStatus {
-        logger.apiCall("getPlanLinkStatus", "planId" to planId, PUBLICATION_STATE to publicationState)
-        return linkingService.getGeometryPlanLinkStatus(planId = planId, publicationState = publicationState)
+        val layoutContext = LayoutContext.of(branch, publicationState)
+        logger.apiCall("getPlanLinkStatus", "layoutContext" to layoutContext, "planId" to planId)
+        return linkingService.getGeometryPlanLinkStatus(layoutContext, planId)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("{$PUBLICATION_STATE}/plans/status")
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/plans/status")
     fun getManyPlanLinkStatuses(
-        @RequestParam("ids") planIds: List<IntId<GeometryPlan>>,
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @RequestParam("ids") planIds: List<IntId<GeometryPlan>>,
     ): List<GeometryPlanLinkStatus> {
-        logger.apiCall("getManyPlanLinkStatuses", PUBLICATION_STATE to publicationState)
-        return linkingService.getGeometryPlanLinkStatuses(planIds = planIds, publicationState = publicationState)
+        val layoutContext = LayoutContext.of(branch, publicationState)
+        logger.apiCall("getManyPlanLinkStatuses", "layoutContext" to layoutContext)
+        return linkingService.getGeometryPlanLinkStatuses(layoutContext, planIds)
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
-    @GetMapping("/location-tracks/suggested")
+    @GetMapping("/{$LAYOUT_BRANCH}/location-tracks/suggested")
     fun getSuggestedConnectedLocationTracks(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestParam("id") locationTrackId: IntId<LocationTrack>,
         @RequestParam("location") location: Point,
         @RequestParam("locationTrackPointUpdateType") locationTrackPointUpdateType: LocationTrackPointUpdateType,
@@ -125,12 +149,15 @@ class LinkingController @Autowired constructor(
     ): List<LocationTrack> {
         logger.apiCall(
             "getSuggestedConnectedLocationTracks",
+            "branch" to branch,
+            "branch" to branch,
             "locationTrackId" to locationTrackId,
             "location" to location,
             "locationTrackPointUpdateType" to locationTrackPointUpdateType,
             "bbox" to bbox,
         )
         return linkingService.getSuggestedAlignments(
+            branch,
             locationTrackId,
             location,
             locationTrackPointUpdateType,
@@ -139,61 +166,79 @@ class LinkingController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
-    @GetMapping("/switches/suggested", params = ["bbox"])
-    fun getSuggestedSwitches(@RequestParam("bbox") bbox: BoundingBox): List<SuggestedSwitch> {
-        logger.apiCall("getSuggestedSwitches", "bbox" to bbox)
-        return switchLinkingService.getSuggestedSwitches(bbox)
+    @GetMapping("/{$LAYOUT_BRANCH}/switches/suggested", params = ["bbox"])
+    fun getSuggestedSwitches(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @RequestParam("bbox") bbox: BoundingBox,
+    ): List<SuggestedSwitch> {
+        logger.apiCall("getSuggestedSwitches", "branch" to branch, "bbox" to bbox)
+        return switchLinkingService.getSuggestedSwitches(branch, bbox)
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
-    @GetMapping("/switches/suggested", params = ["location", "switchId"])
+    @GetMapping("/{$LAYOUT_BRANCH}/switches/suggested", params = ["location", "switchId"])
     fun getSuggestedSwitches(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestParam("location") location: Point,
         @RequestParam("switchId") switchId: IntId<TrackLayoutSwitch>,
     ): List<SuggestedSwitch> {
-        logger.apiCall("getSuggestedSwitches", "location" to location, "switchId" to switchId)
-        return listOfNotNull(switchLinkingService.getSuggestedSwitch(location, switchId))
+        logger.apiCall("getSuggestedSwitches", "branch" to branch, "location" to location, "switchId" to switchId)
+        return listOfNotNull(switchLinkingService.getSuggestedSwitch(branch, location, switchId))
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PostMapping("/switches/suggested")
-    fun getSuggestedSwitch(@RequestBody createParams: SuggestedSwitchCreateParams): List<SuggestedSwitch> {
-        logger.apiCall("getSuggestedSwitch", "createParams" to createParams)
-        return listOfNotNull(switchLinkingService.getSuggestedSwitch(createParams))
+    @PostMapping("/{$LAYOUT_BRANCH}/switches/suggested")
+    fun getSuggestedSwitch(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @RequestBody createParams: SuggestedSwitchCreateParams,
+    ): List<SuggestedSwitch> {
+        logger.apiCall("getSuggestedSwitch", "branch" to branch, "createParams" to createParams)
+        return listOfNotNull(switchLinkingService.getSuggestedSwitch(branch, createParams))
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PostMapping("/switches/{switchId}/geometry")
+    @PostMapping("/{$LAYOUT_BRANCH}/switches/{switchId}/geometry")
     fun saveSwitchLinking(
-        @RequestBody suggestedSwitch: SuggestedSwitch,
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable switchId: IntId<TrackLayoutSwitch>,
+        @RequestBody suggestedSwitch: SuggestedSwitch,
     ): IntId<TrackLayoutSwitch> {
         logger.apiCall(
             "saveSwitchLinking",
+            "branch" to branch,
             "switchLinkingParameters" to suggestedSwitch,
             "switchId" to switchId,
         )
-        return switchLinkingService.saveSwitchLinking(suggestedSwitch, switchId).id
+        return switchLinkingService.saveSwitchLinking(branch, suggestedSwitch, switchId).id
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PostMapping("/km-posts/geometry")
-    fun saveKmPostLinking(@RequestBody linkingParameters: KmPostLinkingParameters): IntId<TrackLayoutKmPost> {
-        logger.apiCall("saveKmPostLinking", "linkingParameters" to linkingParameters)
-        return linkingService.saveKmPostLinking(linkingParameters).id
+    @PostMapping("/{$LAYOUT_BRANCH}/km-posts/geometry")
+    fun saveKmPostLinking(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @RequestBody linkingParameters: KmPostLinkingParameters,
+    ): IntId<TrackLayoutKmPost> {
+        logger.apiCall("saveKmPostLinking", "branch" to branch, "linkingParameters" to linkingParameters)
+        return linkingService.saveKmPostLinking(branch, linkingParameters).id
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
-    @GetMapping("/validate-relinking-track/{id}")
-    fun validateRelinkingTrack(@PathVariable("id") id: IntId<LocationTrack>): List<SwitchRelinkingValidationResult> {
-        logger.apiCall("validateRelinkingTrack", "id" to id)
-        return switchLinkingService.validateRelinkingTrack(id)
+    @GetMapping("/{$LAYOUT_BRANCH}/location-tracks/{id}/validate-relinking")
+    fun validateRelinkingTrack(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable("id") id: IntId<LocationTrack>,
+    ): List<SwitchRelinkingValidationResult> {
+        logger.apiCall("validateRelinkingTrack", "branch" to branch, "id" to id)
+        return switchLinkingService.validateRelinkingTrack(branch, id)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PostMapping("/relink-track-switches/{id}")
-    fun relinkTrackSwitches(@PathVariable("id") id: IntId<LocationTrack>): List<TrackSwitchRelinkingResult> {
-        logger.apiCall("relinkTrackSwitches", "id" to id)
-        return switchLinkingService.relinkTrack(id)
+    @PostMapping("/{$LAYOUT_BRANCH}/location-tracks/{id}/relink-switches")
+    fun relinkTrackSwitches(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable("id") id: IntId<LocationTrack>,
+    ): List<TrackSwitchRelinkingResult> {
+        logger.apiCall("relinkTrackSwitches", "branch" to branch, "id" to id)
+        return switchLinkingService.relinkTrack(branch, id)
     }
 }

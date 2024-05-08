@@ -26,7 +26,7 @@ import {
     putNonNullAdt,
     queryParams,
 } from 'api/api-fetch';
-import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
+import { changeInfoUri, layoutUri } from 'track-layout/track-layout-api';
 import { asyncCache } from 'cache/cache';
 import { BoundingBox } from 'model/geometry';
 import { bboxString } from 'common/common-api';
@@ -310,7 +310,7 @@ export const getLocationTrackChangeTimes = (
     id: LocationTrackId,
     layoutContext: LayoutContext,
 ): Promise<LayoutAssetChangeInfo | undefined> => {
-    return getNullable<LayoutAssetChangeInfo>(changeTimeUri('location-tracks', id, layoutContext));
+    return getNullable<LayoutAssetChangeInfo>(changeInfoUri('location-tracks', id, layoutContext));
 };
 
 export const getLocationTrackSectionsByPlan = async (

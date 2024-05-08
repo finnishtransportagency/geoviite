@@ -1,8 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.util.FreeText
 import org.slf4j.Logger
@@ -19,100 +18,92 @@ class LayoutSearchService @Autowired constructor(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun searchAssets(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         searchTerm: FreeText,
         limitPerResultType: Int,
         locationTrackSearchScope: IntId<LocationTrack>?,
     ): TrackLayoutSearchResult {
         logger.serviceCall(
             "searchAssets",
-            PUBLICATION_STATE to publicationState,
+            "layoutContext" to layoutContext,
             "searchTerm" to searchTerm,
             "limitPerResultType" to limitPerResultType,
             "locationTrackSearchScope" to locationTrackSearchScope,
         )
 
         return if (locationTrackSearchScope != null) {
-            searchByLocationTrackSearchScope(locationTrackSearchScope, publicationState, searchTerm, limitPerResultType)
+            searchByLocationTrackSearchScope(layoutContext, locationTrackSearchScope, searchTerm, limitPerResultType)
         } else {
-            searchFromEntireRailwayNetwork(publicationState, searchTerm, limitPerResultType)
+            searchFromEntireRailwayNetwork(layoutContext, searchTerm, limitPerResultType)
         }
     }
 
-    fun searchAllLocationTracks(
-        publicationState: PublicationState,
-        searchTerm: FreeText,
-        limit: Int,
-    ): List<LocationTrack> {
+    fun searchAllLocationTracks(layoutContext: LayoutContext, searchTerm: FreeText, limit: Int): List<LocationTrack> {
         logger.serviceCall(
             "searchAllLocationTracks",
-            "publicationState" to publicationState,
+            "layoutContext" to layoutContext,
             "searchTerm" to searchTerm,
             "limit" to limit,
         )
 
-        return locationTrackService.list(publicationState, true)
+        return locationTrackService.list(layoutContext, true)
             .let { list -> locationTrackService.filterBySearchTerm(list, searchTerm) }
             .sortedBy(LocationTrack::name)
             .take(limit)
     }
 
     fun searchAllSwitches(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         searchTerm: FreeText,
         limit: Int,
     ): List<TrackLayoutSwitch> {
         logger.serviceCall(
             "searchAllLayoutSwitches",
-            "publicationState" to publicationState,
+            "layoutContext" to layoutContext,
             "searchTerm" to searchTerm,
             "limit" to limit,
         )
 
-        return switchService.list(publicationState, true)
+        return switchService.list(layoutContext, true)
             .let { list -> switchService.filterBySearchTerm(list, searchTerm) }
             .sortedBy(TrackLayoutSwitch::name)
             .take(limit)
     }
 
-    fun searchAllTrackNumbers(
-        publicationState: PublicationState,
-        searchTerm: FreeText,
-        limit: Int,
-    ): List<TrackLayoutTrackNumber> {
+    fun searchAllTrackNumbers(layoutContext: LayoutContext, searchTerm: FreeText, limit: Int): List<TrackLayoutTrackNumber> {
         logger.serviceCall(
             "searchAllTrackNumbers",
-            "publicationState" to publicationState,
+            "layoutContext" to layoutContext,
             "searchTerm" to searchTerm,
             "limit" to limit,
         )
 
-        return trackNumberService.list(publicationState, true)
+        return trackNumberService.list(layoutContext, true)
             .let { list -> trackNumberService.filterBySearchTerm(list, searchTerm) }
             .sortedBy(TrackLayoutTrackNumber::number)
             .take(limit)
     }
 
     private fun searchFromEntireRailwayNetwork(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         searchTerm: FreeText,
         limitPerResultType: Int,
     ) = TrackLayoutSearchResult(
-        switches = searchAllSwitches(publicationState, searchTerm, limitPerResultType),
-        locationTracks = searchAllLocationTracks(publicationState, searchTerm, limitPerResultType),
-        trackNumbers = searchAllTrackNumbers(publicationState, searchTerm, limitPerResultType),
+        switches = searchAllSwitches(layoutContext, searchTerm, limitPerResultType),
+        locationTracks = searchAllLocationTracks(layoutContext, searchTerm, limitPerResultType),
+        trackNumbers = searchAllTrackNumbers(layoutContext, searchTerm, limitPerResultType),
     )
 
     private fun searchByLocationTrackSearchScope(
+        layoutContext: LayoutContext,
         locationTrackSearchScope: IntId<LocationTrack>,
-        publicationState: PublicationState,
         searchTerm: FreeText,
         limit: Int,
     ): TrackLayoutSearchResult {
         val switches = locationTrackService
-            .getSwitchesForLocationTrack(locationTrackSearchScope, publicationState)
-            .let { ids -> switchService.getMany(publicationState, ids) }
-        val locationTracks = getLocationTrackAndDuplicatesByScope(locationTrackSearchScope, publicationState)
+            .getSwitchesForLocationTrack(layoutContext, locationTrackSearchScope)
+            .let { ids -> switchService.getMany(layoutContext, ids) }
+        val locationTracks = getLocationTrackAndDuplicatesByScope(layoutContext, locationTrackSearchScope)
         val trackNumbers = emptyList<TrackLayoutTrackNumber>()
 
         return TrackLayoutSearchResult(
@@ -129,20 +120,14 @@ class LayoutSearchService @Autowired constructor(
     }
 
     private fun getLocationTrackAndDuplicatesByScope(
+        layoutContext: LayoutContext,
         locationTrackSearchScope: IntId<LocationTrack>,
-        publicationState: PublicationState,
     ): List<LocationTrack> = locationTrackService
-        .getWithAlignmentOrThrow(publicationState, locationTrackSearchScope)
+        .getWithAlignmentOrThrow(layoutContext, locationTrackSearchScope)
         .let { (lt, alignment) ->
-            lt to locationTrackService.getLocationTrackDuplicates(
-                lt,
-                alignment,
-                publicationState
-            )
+            lt to locationTrackService.getLocationTrackDuplicates(layoutContext, lt, alignment)
         }
         .let { (locationTrack, duplicates) ->
-            listOf(locationTrack) + locationTrackService.getMany(
-                publicationState,
-                duplicates.map { d -> d.id })
+            listOf(locationTrack) + locationTrackService.getMany(layoutContext, duplicates.map { d -> d.id })
         }
 }

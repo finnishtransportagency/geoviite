@@ -31,8 +31,14 @@ import { PublicationDetailsTableSortField } from 'publication/table/publication-
 import { SortDirection } from 'utils/table-utils';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { createPublicationCandidateReference } from 'publication/publication-utils';
+import { LayoutDesignId } from 'common/common-model';
+import { toBranchName } from 'track-layout/track-layout-api';
 
 const PUBLICATION_URL = `${API_URI}/publications`;
+
+function publicationUri(designId: LayoutDesignId | undefined): string {
+    return `${PUBLICATION_URL}/${toBranchName(designId).toLowerCase()}`;
+}
 
 export type PublicationCandidatesResponse = {
     trackNumbers: TrackNumberPublicationCandidate[];
@@ -155,19 +161,19 @@ const toValidatedPublicationCandidates = (
 };
 
 export const getPublicationCandidates = (): Promise<PublicationCandidate[]> =>
-    getNonNull<PublicationCandidatesResponse>(`${PUBLICATION_URL}/candidates`).then(
+    getNonNull<PublicationCandidatesResponse>(`${publicationUri(undefined)}/candidates`).then(
         toPublicationCandidates,
     );
 
 export const validatePublicationCandidates = (candidates: PublicationCandidateReference[]) =>
     postNonNull<PublicationRequestIds, ValidatedPublicationCandidatesResponse>(
-        `${PUBLICATION_URL}/validate`,
+        `${publicationUri(undefined)}/validate`,
         toPublicationRequestIds(candidates),
     ).then(toValidatedPublicationCandidates);
 
 export const revertPublicationCandidates = (candidates: PublicationCandidateReference[]) =>
     deleteNonNullAdt<PublicationRequestIds, PublicationResult>(
-        `${PUBLICATION_URL}/candidates`,
+        `${publicationUri(undefined)}/candidates`,
         toPublicationRequestIds(candidates),
     );
 
@@ -180,17 +186,19 @@ export const publishPublicationCandidates = (
         message,
     };
 
-    return postNonNull<PublicationRequest, PublicationResult>(`${PUBLICATION_URL}`, request);
+    return postNonNull<PublicationRequest, PublicationResult>(
+        `${publicationUri(undefined)}`,
+        request,
+    );
 };
 
-export const getLatestPublications = (count: number) => {
+export const getLatestPublications = async (count: number) => {
     const params = queryParams({
         count,
     });
 
-    return getNonNull<Page<PublicationDetails>>(`${PUBLICATION_URL}/latest${params}`).then(
-        (page) => page.items,
-    );
+    const page = await getNonNull<Page<PublicationDetails>>(`${PUBLICATION_URL}/latest${params}`);
+    return page.items;
 };
 
 export const getPublication = (id: PublicationId) =>
@@ -242,13 +250,13 @@ export const getPublicationsCsvUri = (
 
 export const getCalculatedChanges = (candidates: PublicationCandidateReference[]) =>
     postNonNull<PublicationRequestIds, CalculatedChanges>(
-        `${PUBLICATION_URL}/calculated-changes`,
+        `${publicationUri(undefined)}/calculated-changes`,
         toPublicationRequestIds(candidates),
     );
 
 export const getRevertRequestDependencies = (candidates: PublicationCandidateReference[]) =>
     postNonNull<PublicationRequestIds, PublicationRequestIds>(
-        `${PUBLICATION_URL}/candidates/revert-request-dependencies`,
+        `${publicationUri(undefined)}/candidates/revert-request-dependencies`,
         toPublicationRequestIds(candidates),
     ).then(toPublicationCandidateReferences);
 

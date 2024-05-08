@@ -23,6 +23,7 @@ fun moveLocationTrackGeometryPointsAndUpdate(
     moveFunc: (point: IPoint3DM) -> IPoint,
     locationTrackService: LocationTrackService,
 ) = locationTrackService.saveDraft(
+    LayoutBranch.main,
     locationTrack,
     moveAlignmentPoints(alignment, moveFunc),
 )
@@ -34,6 +35,7 @@ fun addTopologyEndSwitchIntoLocationTrackAndUpdate(
     jointNumber: JointNumber,
     locationTrackService: LocationTrackService,
 ) = locationTrackService.saveDraft(
+    LayoutBranch.main,
     locationTrack.copy(
         topologyEndSwitch = TopologyLocationTrackSwitch(
             switchId = switchId,
@@ -48,6 +50,7 @@ fun removeTopologySwitchesFromLocationTrackAndUpdate(
     alignment: LayoutAlignment,
     locationTrackService: LocationTrackService,
 ) = locationTrackService.saveDraft(
+    LayoutBranch.main,
     locationTrack.copy(
         topologyStartSwitch = null,
         topologyEndSwitch = null,
@@ -61,7 +64,8 @@ fun addTopologyStartSwitchIntoLocationTrackAndUpdate(
     switchId: IntId<TrackLayoutSwitch>,
     jointNumber: JointNumber,
     locationTrackService: LocationTrackService,
-) = locationTrackService.saveDraft(
+): DaoResponse<LocationTrack> = locationTrackService.saveDraft(
+    LayoutBranch.main,
     locationTrack.copy(
         topologyStartSwitch = TopologyLocationTrackSwitch(
             switchId = switchId,
@@ -76,7 +80,11 @@ fun moveReferenceLineGeometryPointsAndUpdate(
     alignment: LayoutAlignment,
     moveFunc: (point: IPoint3DM) -> IPoint,
     referenceLineService: ReferenceLineService,
-) = referenceLineService.saveDraft(referenceLine, moveAlignmentPoints(alignment, moveFunc))
+): DaoResponse<ReferenceLine> = referenceLineService.saveDraft(
+    LayoutBranch.main,
+    referenceLine,
+    moveAlignmentPoints(alignment, moveFunc),
+)
 
 fun moveAlignmentPoints(
     alignment: LayoutAlignment,

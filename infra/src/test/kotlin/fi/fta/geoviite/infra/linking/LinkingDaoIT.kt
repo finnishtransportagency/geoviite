@@ -1,12 +1,10 @@
 package fi.fta.geoviite.infra.linking
 
-
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
@@ -34,16 +32,22 @@ class LinkingDaoIT @Autowired constructor(
 
     @Test
     fun noSwitchBoundsAreFoundWhenNotLinkedToTracks() {
-        val switch = switchService.getOrThrow(DRAFT, switchService.saveDraft(LayoutBranch.main, switch(1, draft = true)).id)
-        assertEquals(null, linkingDao.getSwitchBoundsFromTracks(OFFICIAL, switch.id as IntId))
-        assertEquals(null, linkingDao.getSwitchBoundsFromTracks(DRAFT, switch.id as IntId))
+        val switch = switchService.getOrThrow(
+            MainLayoutContext.draft,
+            switchService.saveDraft(LayoutBranch.main, switch(1, draft = true)).id,
+        )
+        assertEquals(null, linkingDao.getSwitchBoundsFromTracks(MainLayoutContext.official, switch.id as IntId))
+        assertEquals(null, linkingDao.getSwitchBoundsFromTracks(MainLayoutContext.draft, switch.id as IntId))
     }
 
     @Test
     fun switchBoundsAreFoundFromTracks() {
         val trackNumber = getOrCreateTrackNumber(TrackNumber("123"))
         val tnId = trackNumber.id as IntId
-        val switch = switchService.getOrThrow(DRAFT, switchService.saveDraft(LayoutBranch.main, switch(1, draft = true)).id)
+        val switch = switchService.getOrThrow(
+            MainLayoutContext.draft,
+            switchService.saveDraft(LayoutBranch.main, switch(1, draft = true)).id,
+        )
 
         val point1 = Point(10.0, 10.0)
         val point2 = Point(12.0, 10.0)
@@ -52,18 +56,23 @@ class LinkingDaoIT @Autowired constructor(
 
         // Linked from the start only -> second point shouldn't matter
         locationTrackService.saveDraft(
+            LayoutBranch.main,
             locationTrack(tnId, externalId = someOid(), draft = true).copy(
                 topologyStartSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(1)),
-            ), alignment(segment(point1, point1 + Point(5.0, 5.0)))
+            ),
+            alignment(segment(point1, point1 + Point(5.0, 5.0))),
         )
         // Linked from the end only -> first point shouldn't matter
         locationTrackService.saveDraft(
+            LayoutBranch.main,
             locationTrack(tnId, externalId = null, draft = true).copy(
                 topologyEndSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(2)),
-            ), alignment(segment(point2 - Point(5.0, 5.0), point2))
+            ),
+            alignment(segment(point2 - Point(5.0, 5.0), point2)),
         )
         // Linked by segment ends -> both points matter
         locationTrackService.saveDraft(
+            LayoutBranch.main,
             locationTrack(tnId, externalId = someOid(), draft = true),
             alignment(
                 segment(point3_1, point3_2).copy(
@@ -73,10 +82,10 @@ class LinkingDaoIT @Autowired constructor(
                 )
             ),
         )
-        assertEquals(null, linkingDao.getSwitchBoundsFromTracks(OFFICIAL, switch.id as IntId))
+        assertEquals(null, linkingDao.getSwitchBoundsFromTracks(MainLayoutContext.official, switch.id as IntId))
         assertEquals(
             boundingBoxAroundPoints(point1, point2, point3_1, point3_2),
-            linkingDao.getSwitchBoundsFromTracks(DRAFT, switch.id as IntId),
+            linkingDao.getSwitchBoundsFromTracks(MainLayoutContext.draft, switch.id as IntId),
         )
     }
 }

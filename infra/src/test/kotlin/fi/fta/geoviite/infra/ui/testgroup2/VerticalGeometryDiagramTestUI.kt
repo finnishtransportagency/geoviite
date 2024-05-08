@@ -1,13 +1,30 @@
 package fi.fta.geoviite.infra.ui.testgroup2
 
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LinearUnit
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryProfile
+import fi.fta.geoviite.infra.geometry.GeometryUnits
+import fi.fta.geoviite.infra.geometry.VICircularCurve
+import fi.fta.geoviite.infra.geometry.VIPoint
+import fi.fta.geoviite.infra.geometry.geometryAlignment
+import fi.fta.geoviite.infra.geometry.line
+import fi.fta.geoviite.infra.geometry.plan
+import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.AngularUnit
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ETrackLayoutPage
 import org.junit.jupiter.api.BeforeEach
@@ -36,6 +53,7 @@ class VerticalGeometryDiagramTestUI @Autowired constructor(
         val trackNumber = getUnusedTrackNumber()
         val trackNumberId = insertOfficialTrackNumber(trackNumber)
         referenceLineService.saveDraft(
+            LayoutBranch.main,
             referenceLine(trackNumberId, draft = true),
             alignment(segment(DEFAULT_BASE_POINT + Point(0.0, 0.0), DEFAULT_BASE_POINT + Point(1000.0, 0.0)))
         )
@@ -49,20 +67,24 @@ class VerticalGeometryDiagramTestUI @Autowired constructor(
         val plan = geometryDao.fetchPlan(
             geometryDao.insertPlan(
                 plan(
-                    trackNumber, units = GeometryUnits(
+                    trackNumber = trackNumber,
+                    units = GeometryUnits(
                         coordinateSystemSrid = LAYOUT_SRID,
                         coordinateSystemName = null,
                         verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
                         directionUnit = AngularUnit.GRADS,
                         linearUnit = LinearUnit.METER,
-                    ), alignments = listOf(
+                    ),
+                    alignments = listOf(
                         geometryAlignment(
                             elements = listOf(
                                 line(
                                     DEFAULT_BASE_POINT + Point(0.0, 0.0), DEFAULT_BASE_POINT + Point(1000.0, 0.0)
                                 )
-                            ), profile = GeometryProfile(
-                                PlanElementName("aoeu"), listOf(
+                            ),
+                            profile = GeometryProfile(
+                                PlanElementName("aoeu"),
+                                listOf(
                                     VIPoint(PlanElementName("startpoint"), Point(0.0, 50.0)),
                                     VICircularCurve(
                                         PlanElementName("rounding"),
@@ -73,13 +95,15 @@ class VerticalGeometryDiagramTestUI @Autowired constructor(
                                     VIPoint(PlanElementName("endpoint"), Point(600.0, 51.0)),
                                 )
                             )
-                        )
-
+                        ),
                     )
-                ), testFile(), null
+                ),
+                testFile(),
+                null,
             )
         )
         locationTrackService.saveDraft(
+            LayoutBranch.main,
             locationTrack(trackNumberId = trackNumberId, name = "foo bar", draft = true),
             alignment(
                 segment(DEFAULT_BASE_POINT + Point(0.0, 0.0), DEFAULT_BASE_POINT + Point(1000.0, 0.0)).copy(
@@ -94,5 +118,4 @@ class VerticalGeometryDiagramTestUI @Autowired constructor(
         page.toolPanel.locationTrackVerticalGeometry.toggleVerticalGeometryDiagram()
         page.verticalGeometryDiagram.waitForContent()
     }
-
 }

@@ -2,7 +2,9 @@ package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT_DRAFT
+import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.util.toResponse
 import org.slf4j.Logger
@@ -25,10 +27,13 @@ class SplitController(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PostMapping
-    fun splitLocationTrack(@RequestBody request: SplitRequest): IntId<Split> {
-        logger.apiCall("splitLocationTrack", "request" to request)
-        return splitService.split(request)
+    @PostMapping("/{$LAYOUT_BRANCH}")
+    fun splitLocationTrack(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @RequestBody request: SplitRequest,
+    ): IntId<Split> {
+        logger.apiCall("splitLocationTrack", "branch" to branch, "request" to request)
+        return splitService.split(branch, request)
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)

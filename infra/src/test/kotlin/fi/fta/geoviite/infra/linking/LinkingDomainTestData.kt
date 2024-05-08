@@ -1,4 +1,5 @@
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.publication.PublicationRequestIds
 import fi.fta.geoviite.infra.publication.PublicationResult
@@ -32,7 +33,9 @@ fun validationVersions(
     kmPosts: List<Pair<IntId<TrackLayoutKmPost>, RowVersion<TrackLayoutKmPost>>> = listOf(),
     locationTracks: List<Pair<IntId<LocationTrack>, RowVersion<LocationTrack>>> = listOf(),
     switches: List<Pair<IntId<TrackLayoutSwitch>, RowVersion<TrackLayoutSwitch>>> = listOf(),
+    branch: LayoutBranch = LayoutBranch.main,
 ) = ValidationVersions(
+    branch = branch,
     trackNumbers = trackNumbers.map { (id,version) -> ValidationVersion(id, version) },
     referenceLines = referenceLines.map { (id,version) -> ValidationVersion(id, version) },
     kmPosts = kmPosts.map { (id,version) -> ValidationVersion(id, version) },
@@ -50,10 +53,14 @@ fun publish(
     locationTracks: List<IntId<LocationTrack>> = listOf(),
 ) = publish(publicationService, publicationRequest(trackNumbers, kmPosts, switches, referenceLines, locationTracks))
 
-fun publish(publicationService: PublicationService, request: PublicationRequestIds): PublicationResult {
-    val versions = publicationService.getValidationVersions(request)
+fun publish(
+    publicationService: PublicationService,
+    request: PublicationRequestIds,
+    branch: LayoutBranch = LayoutBranch.main,
+): PublicationResult {
+    val versions = publicationService.getValidationVersions(branch, request)
     val calculatedChanges = publicationService.getCalculatedChanges(versions)
-    return publicationService.publishChanges(versions, calculatedChanges, "Test")
+    return publicationService.publishChanges(branch, versions, calculatedChanges, "Test")
 }
 
 fun <T> daoResponseToValidationVersion(response: DaoResponse<T>) = ValidationVersion<T>(response.id, response.rowVersion)

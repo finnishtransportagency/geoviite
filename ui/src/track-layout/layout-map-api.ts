@@ -32,7 +32,7 @@ import {
 import { bboxString, pointString } from 'common/common-api';
 import { getTrackLayoutPlan } from 'geometry/geometry-api';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
-import { TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
+import { TRACK_LAYOUT_URI, contextInUri } from 'track-layout/track-layout-api';
 import { alignmentPointToLinkPoint, createLinkPoints } from 'linking/linking-store';
 import {
     deduplicate,
@@ -128,7 +128,7 @@ export const GEOCODING_URI = `${API_URI}/geocoding`;
 export type AlignmentFetchType = 'LOCATION_TRACKS' | 'REFERENCE_LINES' | 'ALL';
 
 function mapUri(layoutContext: LayoutContext): string {
-    return `${TRACK_LAYOUT_URI}/map/${layoutContext.publicationState.toLowerCase()}`;
+    return `${TRACK_LAYOUT_URI}/map/${contextInUri(layoutContext)}`;
 }
 
 function mapAlignmentUri(
@@ -137,12 +137,12 @@ function mapAlignmentUri(
     content?: string,
 ): string {
     const type = alignmentType == 'LOCATION_TRACK' ? 'location-track' : 'reference-line';
-    const baseUri = `${TRACK_LAYOUT_URI}/map/${layoutContext.publicationState.toLowerCase()}/${type}`;
+    const baseUri = `${TRACK_LAYOUT_URI}/map/${contextInUri(layoutContext)}/${type}`;
     return content ? `${baseUri}/${content}` : baseUri;
 }
 
 function geocodingUri(layoutContext: LayoutContext): string {
-    return `${GEOCODING_URI}/${layoutContext.publicationState.toLowerCase()}`;
+    return `${GEOCODING_URI}/${contextInUri(layoutContext)}`;
 }
 
 function cacheKey(id: ReferenceLineId | LocationTrackId, layoutContext: LayoutContext) {

@@ -3,12 +3,22 @@ package fi.fta.geoviite.infra.inframodel
 import fi.fta.geoviite.infra.codeDictionary.CodeDictionaryService
 import fi.fta.geoviite.infra.codeDictionary.FeatureType
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.GeographyService
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.Author
+import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.GeometryService
+import fi.fta.geoviite.infra.geometry.PlanLayoutCache
+import fi.fta.geoviite.infra.geometry.PlanSource
+import fi.fta.geoviite.infra.geometry.Project
+import fi.fta.geoviite.infra.geometry.TransformationError
+import fi.fta.geoviite.infra.geometry.ValidationError
+import fi.fta.geoviite.infra.geometry.getBoundingPolygonPointsFromAlignments
+import fi.fta.geoviite.infra.geometry.validate
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -238,7 +248,7 @@ class InfraModelService @Autowired constructor(
             geometryPlan,
             codeDictionaryService.getFeatureTypes(),
             switchLibraryService.getSwitchStructuresById(),
-            trackNumberService.list(OFFICIAL).map { it.number },
+            trackNumberService.list(MainLayoutContext.official).map { it.number },
         )
     }
 

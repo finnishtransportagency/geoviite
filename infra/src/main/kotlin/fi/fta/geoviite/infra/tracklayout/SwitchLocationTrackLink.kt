@@ -174,16 +174,12 @@ fun collectSwitchJoints(
 
 fun getSwitchJoints(segment: LayoutSegment): List<SwitchJointOnTrack> {
     val switchId = segment.switchId as IntId?
-    val joints = switchId?.let { switchId ->
+    val joints = switchId?.let { id ->
         val startJoint = segment.startJointNumber?.let { jointNumber ->
-            SwitchJointOnTrack(
-                switchId, jointNumber, segment.alignmentStart
-            )
+            SwitchJointOnTrack(id, jointNumber, segment.alignmentStart)
         }
         val endJoint = segment.endJointNumber?.let { jointNumber ->
-            SwitchJointOnTrack(
-                switchId, jointNumber, segment.alignmentEnd
-            )
+            SwitchJointOnTrack(id, jointNumber, segment.alignmentEnd)
         }
         listOfNotNull(startJoint, endJoint)
     } ?: emptyList()

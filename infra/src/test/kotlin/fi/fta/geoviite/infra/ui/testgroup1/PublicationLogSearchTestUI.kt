@@ -1,23 +1,23 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationRequest
 import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
-
-import fi.fta.geoviite.infra.publication.publicationRequestIds
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.setUser
 import org.junit.jupiter.api.Test
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.time.ZoneOffset
@@ -131,9 +131,14 @@ class PublicationLogSearchTestUI @Autowired constructor(
     }
 
     private fun testPublish(publicationRequest: PublicationRequest): IntId<Publication> {
-        val versions = publicationService.getValidationVersions(publicationRequest.content)
+        val versions = publicationService.getValidationVersions(LayoutBranch.main, publicationRequest.content)
         val calculatedChanges = publicationService.getCalculatedChanges(versions)
-        val result = publicationService.publishChanges(versions, calculatedChanges, publicationRequest.message)
+        val result = publicationService.publishChanges(
+            LayoutBranch.main,
+            versions,
+            calculatedChanges,
+            publicationRequest.message,
+        )
 
         return result.publicationId!!
     }

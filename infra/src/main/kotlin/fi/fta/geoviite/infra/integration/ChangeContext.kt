@@ -1,11 +1,17 @@
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.publication.ValidationVersion
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import java.time.Instant
 import kotlin.reflect.KClass
 
@@ -36,12 +42,13 @@ class ChangeContext(
 }
 
 inline fun <reified T : LayoutAsset<T>> createTypedContext(
+    branch: LayoutBranch,
     dao: LayoutAssetDao<T>,
     versions: List<ValidationVersion<T>>
 ): TypedChangeContext<T> = createTypedContext(
     dao,
-    { id -> dao.fetchVersion(id, OFFICIAL) },
-    { id -> versions.find { v -> v.officialId == id }?.validatedAssetVersion ?: dao.fetchVersion(id, OFFICIAL) },
+    { id -> dao.fetchVersion(branch.official, id) },
+    { id -> versions.find { v -> v.officialId == id }?.validatedAssetVersion ?: dao.fetchVersion(branch.official, id) },
 )
 
 inline fun <reified T : LayoutAsset<T>> createTypedContext(

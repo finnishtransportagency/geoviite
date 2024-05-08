@@ -3,17 +3,45 @@ package fi.fta.geoviite.infra.integration
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.geocoding.*
+import fi.fta.geoviite.infra.geocoding.AddressPoint
+import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
+import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
+import fi.fta.geoviite.infra.geocoding.GeocodingDao
+import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.ValidationVersion
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import fi.fta.geoviite.infra.tracklayout.SegmentPoint
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.fixMValues
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.splitSegment
+import fi.fta.geoviite.infra.tracklayout.toAlignmentPoints
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -38,7 +66,7 @@ class AddressChangesServiceIT @Autowired constructor(
     val layoutTrackNumberDao: LayoutTrackNumberDao,
     val layoutKmPostDao: LayoutKmPostDao,
     val addressChangesService: AddressChangesService,
-): DBTestBase() {
+) : DBTestBase() {
 
     @Test
     fun addressChangesAreEmptyIfNothingCanBeGeocoded() {
@@ -56,7 +84,10 @@ class AddressChangesServiceIT @Autowired constructor(
     @Test
     fun addressChangesAreEmptyIfNothingIsChanged() {
         val setupData = createAndInsertTrackNumberAndLocationTrack()
-        val contextKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
+        val contextKey = geocodingDao.getLayoutGeocodingContextCacheKey(
+            MainLayoutContext.official,
+            setupData.locationTrack.trackNumberId,
+        )!!
         val changes = addressChangesService.getAddressChanges(
             beforeTrack = setupData.locationTrack,
             afterTrack = setupData.locationTrack,
@@ -69,7 +100,10 @@ class AddressChangesServiceIT @Autowired constructor(
     @Test
     fun addressChangesContainAllAddressesIfThereIsNoBeforeVersion() {
         val setupData = createAndInsertTrackNumberAndLocationTrack()
-        val contextKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
+        val contextKey = geocodingDao.getLayoutGeocodingContextCacheKey(
+            MainLayoutContext.official,
+            setupData.locationTrack.trackNumberId,
+        )!!
         val changes = addressChangesService.getAddressChanges(
             beforeTrack = null,
             afterTrack = setupData.locationTrack,
@@ -90,7 +124,10 @@ class AddressChangesServiceIT @Autowired constructor(
     @Test
     fun addressChangesContainAllAddressesIfTrackIsBeingRestoredFromBeingDeleted() {
         val setupData = createAndInsertTrackNumberAndLocationTrack()
-        val contextKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
+        val contextKey = geocodingDao.getLayoutGeocodingContextCacheKey(
+            MainLayoutContext.official,
+            setupData.locationTrack.trackNumberId,
+        )!!
         val changes = addressChangesService.getAddressChanges(
             beforeTrack = setupData.locationTrack.copy(state = LocationTrackState.DELETED),
             afterTrack = setupData.locationTrack,
@@ -114,7 +151,10 @@ class AddressChangesServiceIT @Autowired constructor(
         val initialLocationTrack = setupData.locationTrack
         val locationTrackId = initialLocationTrack.id as IntId
         val initialChangeMoment = locationTrackDao.fetchChangeTime()
-        val contextKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!
+        val contextKey = geocodingDao.getLayoutGeocodingContextCacheKey(
+            MainLayoutContext.official,
+            setupData.locationTrack.trackNumberId,
+        )!!
 
         removeLocationTrackGeometryAndUpdate(initialLocationTrack, setupData.locationTrackGeometry)
         val updateMoment = locationTrackDao.fetchChangeTime()
@@ -169,7 +209,11 @@ class AddressChangesServiceIT @Autowired constructor(
         assertTrue(changes.isChanged())
         assertTrue(changes.startPointChanged)
         assertFalse(changes.endPointChanged)
-        val startAddress = geocodingService.getAddress(OFFICIAL, trackNumberId, setupData.locationTrackGeometry.start!!)!!.first
+        val startAddress = geocodingService.getAddress(
+            MainLayoutContext.official,
+            trackNumberId,
+            setupData.locationTrackGeometry.start!!
+        )!!.first
         assertEquals(setOf(startAddress.kmNumber), changes.changedKmNumbers)
     }
 
@@ -200,7 +244,10 @@ class AddressChangesServiceIT @Autowired constructor(
         assertTrue(changes.startPointChanged, "Start should change: changes=$changes")
         assertTrue(changes.endPointChanged, "End should change: changes=$changes")
         val allKms = getAllKms(
-            geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, setupData.locationTrack.trackNumberId)!!,
+            geocodingDao.getLayoutGeocodingContextCacheKey(
+                MainLayoutContext.official,
+                setupData.locationTrack.trackNumberId,
+            )!!,
             setupData.locationTrackGeometry.start!!,
             setupData.locationTrackGeometry.end!!,
         )
@@ -399,7 +446,6 @@ class AddressChangesServiceIT @Autowired constructor(
             "Contains wrong km numbers",
         )
     }
-
 
     @Test
     fun shouldFindDifferencesInAddressesNewIsLongerInMiddle() {
@@ -623,7 +669,6 @@ class AddressChangesServiceIT @Autowired constructor(
         val kmPosts: List<TrackLayoutKmPost>,
     )
 
-
     fun createAndInsertTrackNumberAndLocationTrack(): SetupData {
         val sequence = System.currentTimeMillis().toString().takeLast(8)
         val refPoint = Point(370000.0, 7100000.0) // any point in Finland
@@ -699,8 +744,8 @@ class AddressChangesServiceIT @Autowired constructor(
         updateAndPublish(locationTrack, alignment.copy(segments = listOf()))
 
     fun updateAndPublish(locationTrack: LocationTrack, alignment: LayoutAlignment) {
-        val version = locationTrackService.saveDraft(locationTrack, alignment)
-        locationTrackService.publish(ValidationVersion(version.id, version.rowVersion))
+        val version = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
+        locationTrackService.publish(LayoutBranch.main, ValidationVersion(version.id, version.rowVersion))
     }
 
     fun moveReferenceLineGeometryPointsAndUpdate(
@@ -710,6 +755,7 @@ class AddressChangesServiceIT @Autowired constructor(
     ) {
         var index = 0
         val version = referenceLineService.saveDraft(
+            LayoutBranch.main,
             referenceLine,
             alignment.copy(
                 segments = fixSegmentStarts(alignment.segments.map { segment ->
@@ -725,7 +771,7 @@ class AddressChangesServiceIT @Autowired constructor(
                 }),
             ),
         )
-        referenceLineService.publish(ValidationVersion(version.id, version.rowVersion))
+        referenceLineService.publish(LayoutBranch.main, ValidationVersion(version.id, version.rowVersion))
     }
 
     fun moveKmPostAndUpdate(

@@ -88,10 +88,10 @@ class CalculatedChangesServiceIT @Autowired constructor(
 
     @BeforeEach
     fun setup() {
-        locationTrackDao.deleteDrafts()
-        referenceLineDao.deleteDrafts()
-        alignmentDao.deleteOrphanedAlignments()
-        switchDao.deleteDrafts()
+        locationTrackDao.deleteDrafts(LayoutBranch.main)
+        referenceLineDao.deleteDrafts(LayoutBranch.main)
+        alignmentDao.deleteOrphanedAlignments(LayoutBranch.main)
+        switchDao.deleteDrafts(LayoutBranch.main)
     }
 
     @Test
@@ -183,7 +183,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             alignment1,
             locationTrackService,
         ).let { (id, version) ->
-            val (_, publishedVersion) = locationTrackService.publish(ValidationVersion(id, version))
+            val (_, publishedVersion) = locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, version))
             locationTrackService.getWithAlignment(publishedVersion)
         }
 
@@ -262,7 +262,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             alignment1,
             locationTrackService,
         ).let { (id, version) ->
-            val (_, publishedVersion) = locationTrackService.publish(ValidationVersion(id, version))
+            val (_, publishedVersion) = locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, version))
             locationTrackService.getWithAlignment(publishedVersion)
         }
 
@@ -409,7 +409,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             JointNumber(1),
             locationTrackService = locationTrackService,
         ).let { (id, version) ->
-            val (_, publishedVersion) = locationTrackService.publish(ValidationVersion(id, version))
+            val (_, publishedVersion) = locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, version))
             locationTrackService.getWithAlignment(publishedVersion)
         }
 
@@ -1107,14 +1107,20 @@ class CalculatedChangesServiceIT @Autowired constructor(
     fun `switch change with joint linked to segment gap should still be reported as only one change`() {
         val trackNumberId = insertDraftTrackNumber()
         val referenceLineId = referenceLineService.saveDraft(
-            referenceLine(trackNumberId, draft = true), alignment(segment(Point(0.0, 0.0), Point(0.0, 20.0)))
+            LayoutBranch.main,
+            referenceLine(trackNumberId, draft = true),
+            alignment(segment(Point(0.0, 0.0), Point(0.0, 20.0))),
         ).id
         val switch = switchService.saveDraft(LayoutBranch.main, switch(123, draft = true)).id
         val wibblyTrack = locationTrackService.saveDraft(
-            locationTrack(trackNumberId, draft = true), alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 10.0)).copy(switchId = switch, endJointNumber = JointNumber(5)),
-                segment(Point(0.0, 10.00001), Point(0.0, 20.0)).copy(switchId = switch, startJointNumber = JointNumber(5))
-            )
+            LayoutBranch.main,
+            locationTrack(trackNumberId, draft = true),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 10.0))
+                    .copy(switchId = switch, endJointNumber = JointNumber(5)),
+                segment(Point(0.0, 10.00001), Point(0.0, 20.0))
+                    .copy(switchId = switch, startJointNumber = JointNumber(5))
+            ),
         )
         val changes = getCalculatedChanges(
             locationTrackIds = listOf(wibblyTrack.id),
@@ -1125,7 +1131,6 @@ class CalculatedChangesServiceIT @Autowired constructor(
         assertEquals(1, changes.directChanges.switchChanges.size)
         assertEquals(1, changes.directChanges.switchChanges.find { it.switchId == switch }?.changedJoints?.size)
     }
-
 
     data class TestData(
         val trackNumber: TrackLayoutTrackNumber,
@@ -1275,10 +1280,10 @@ class CalculatedChangesServiceIT @Autowired constructor(
 
         val publishedLocationTracksAndAlignments = locationTracksAndAlignments.map { (locationTrack, _) ->
             val id = locationTrack.id as IntId
-            val rowVersion = locationTrackDao.fetchDraftVersionOrThrow(id)
+            val rowVersion = locationTrackDao.fetchDraftVersionOrThrow(LayoutBranch.main, id)
             val (edited, editedAlignment) = locationTrackService.getWithAlignment(rowVersion)
             if (edited.isDraft) {
-                val publicationResponse = locationTrackService.publish(ValidationVersion(id, rowVersion))
+                val publicationResponse = locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, rowVersion))
                 locationTrackService.getWithAlignment(publicationResponse.rowVersion)
             } else {
                 edited to editedAlignment
@@ -1286,10 +1291,10 @@ class CalculatedChangesServiceIT @Autowired constructor(
         }
         val publishedSwitches = switches.map { switch ->
             val id = switch.id as IntId
-            val rowVersion = switchDao.fetchDraftVersionOrThrow(id)
+            val rowVersion = switchDao.fetchDraftVersionOrThrow(LayoutBranch.main, id)
             val edited = switchDao.fetch(rowVersion)
             if (edited.isDraft) {
-                val publicationResponse = switchService.publish(ValidationVersion(id, rowVersion))
+                val publicationResponse = switchService.publish(LayoutBranch.main, ValidationVersion(id, rowVersion))
                 switchDao.fetch(publicationResponse.rowVersion)
             } else {
                 edited
@@ -1369,7 +1374,8 @@ class CalculatedChangesServiceIT @Autowired constructor(
             name = SwitchName("abc"),
         )
         switchLinkingService.saveSwitchLinking(
-            switchLinkingService.matchFittedSwitch(suggestedFitting, switch.id as IntId),
+            LayoutBranch.main,
+            switchLinkingService.matchFittedSwitch(LayoutBranch.main, suggestedFitting, switch.id as IntId),
             switch.id as IntId,
         )
         return switch
@@ -1422,11 +1428,12 @@ class CalculatedChangesServiceIT @Autowired constructor(
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>> = emptyList(),
     ): CalculatedChanges {
         val publicationVersions = ValidationVersions(
-            locationTracks = locationTrackDao.fetchPublicationVersions(locationTrackIds),
-            kmPosts = layoutKmPostDao.fetchPublicationVersions(kmPostIds),
-            referenceLines = referenceLineDao.fetchPublicationVersions(referenceLineIds),
-            switches = switchDao.fetchPublicationVersions(switchIds),
-            trackNumbers = layoutTrackNumberDao.fetchPublicationVersions(trackNumberIds),
+            branch = LayoutBranch.main,
+            locationTracks = locationTrackDao.fetchPublicationVersions(LayoutBranch.main, locationTrackIds),
+            kmPosts = layoutKmPostDao.fetchPublicationVersions(LayoutBranch.main, kmPostIds),
+            referenceLines = referenceLineDao.fetchPublicationVersions(LayoutBranch.main, referenceLineIds),
+            switches = switchDao.fetchPublicationVersions(LayoutBranch.main, switchIds),
+            trackNumbers = layoutTrackNumberDao.fetchPublicationVersions(LayoutBranch.main, trackNumberIds),
             splits = listOf(),
         )
 

@@ -2,17 +2,31 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.configuration.CACHE_COMMON_LOCATION_TRACK_OWNER
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.ValidationVersion
-import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_LOCATION_TRACK
+import fi.fta.geoviite.infra.util.getBboxOrNull
+import fi.fta.geoviite.infra.util.getDaoResponse
+import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getFreeText
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getIntIdArray
+import fi.fta.geoviite.infra.util.getIntIdOrNull
+import fi.fta.geoviite.infra.util.getJointNumber
+import fi.fta.geoviite.infra.util.getLayoutContextData
+import fi.fta.geoviite.infra.util.getOidOrNull
+import fi.fta.geoviite.infra.util.getOne
+import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.setUser
+import fi.fta.geoviite.infra.util.toDbId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -30,11 +44,10 @@ class LocationTrackDao(
 ) : LayoutAssetDao<LocationTrack>(jdbcTemplateParam, LAYOUT_LOCATION_TRACK, cacheEnabled, LOCATIONTRACK_CACHE_SIZE) {
 
     fun fetchDuplicateVersions(
+        layoutContext: LayoutContext,
         id: IntId<LocationTrack>,
-        publicationState: PublicationState,
         includeDeleted: Boolean = false,
     ): List<RowVersion<LocationTrack>> {
-        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select row_id, row_version
             from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
@@ -354,23 +367,22 @@ class LocationTrackDao(
         return response
     }
 
-    override fun fetchVersions(publicationState: PublicationState, includeDeleted: Boolean) =
-        fetchVersions(publicationState, includeDeleted, null)
+    override fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean) =
+        fetchVersions(layoutContext, includeDeleted, null)
 
     fun list(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         names: List<AlignmentName> = emptyList(),
-    ): List<LocationTrack> = fetchVersions(publicationState, includeDeleted, trackNumberId, names).map(::fetch)
+    ): List<LocationTrack> = fetchVersions(layoutContext, includeDeleted, trackNumberId, names).map(::fetch)
 
     fun fetchVersions(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         names: List<AlignmentName> = emptyList(),
     ): List<RowVersion<LocationTrack>> {
-        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select lt.row_id, lt.row_version 
             from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
@@ -391,11 +403,10 @@ class LocationTrackDao(
         }
     }
 
-    fun listNear(publicationState: PublicationState, bbox: BoundingBox): List<LocationTrack> =
-        fetchVersionsNear(publicationState, bbox).map(::fetch)
+    fun listNear(context: LayoutContext, bbox: BoundingBox): List<LocationTrack> =
+        fetchVersionsNear(context, bbox).map(::fetch)
 
-    fun fetchVersionsNear(publicationState: PublicationState, bbox: BoundingBox): List<RowVersion<LocationTrack>> {
-        val layoutContext = MainLayoutContext.of(publicationState)
+    fun fetchVersionsNear(context: LayoutContext, bbox: BoundingBox): List<RowVersion<LocationTrack>> {
         val sql = """
             select
               distinct lt.row_id, lt.row_version
@@ -420,8 +431,8 @@ class LocationTrackDao(
             "x_max" to bbox.max.x,
             "y_max" to bbox.max.y,
             "layout_srid" to LAYOUT_SRID.code,
-            "publication_state" to layoutContext.state.name,
-            "design_id" to layoutContext.branch.designId?.intValue,
+            "publication_state" to context.state.name,
+            "design_id" to context.branch.designId?.intValue,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -449,7 +460,12 @@ class LocationTrackDao(
         return locationTrackOwners
     }
 
-    fun fetchOnlyDraftVersions(includeDeleted: Boolean, trackNumberId: IntId<TrackLayoutTrackNumber>? = null): List<RowVersion<LocationTrack>> {
+    fun fetchOnlyDraftVersions(
+        branch: LayoutBranch,
+        includeDeleted: Boolean,
+        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+    ): List<RowVersion<LocationTrack>> {
+        assertMainBranch(branch)
         val sql = """
             select id, version
             from layout.location_track
@@ -468,9 +484,11 @@ class LocationTrackDao(
     }
 
     fun fetchVersionsForPublication(
+        branch: LayoutBranch,
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         trackIdsToPublish: List<IntId<LocationTrack>>,
     ): Map<IntId<TrackLayoutTrackNumber>, List<ValidationVersion<LocationTrack>>> {
+        assertMainBranch(branch)
         if (trackNumberIds.isEmpty()) return emptyMap()
 
         val sql = """
