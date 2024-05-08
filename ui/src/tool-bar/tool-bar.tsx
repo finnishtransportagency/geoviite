@@ -43,10 +43,9 @@ import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
 import { createClassName } from 'vayla-design-lib/utils';
 import {
-    hideDesignSelectionToast,
+    hideLatestDesignSelectionToast,
     showDesignSelectionToast,
 } from 'geoviite-design-lib/snackbar/snackbar';
-import { Id as ToastId } from 'react-toastify';
 import { DesignProjectCreateDialog } from 'tool-bar/design-project-create-dialog';
 import { EnvRestricted } from 'environment/env-restricted';
 
@@ -167,21 +166,14 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddKmPostDialog, setShowAddKmPostDialog] = React.useState(false);
-    const [designSelectionToastId, setDesignSelectionToastId] = React.useState<
-        ToastId | undefined
-    >();
     const [showCreateDesignDialog, setShowCreateDesignDialog] = React.useState(false);
     const menuRef = React.useRef(null);
 
     React.useEffect(() => {
         if (selectingDesignProject) {
-            setDesignSelectionToastId(
-                showDesignSelectionToast(designSelectionToastId, () =>
-                    setShowCreateDesignDialog(true),
-                ),
-            );
-        } else if (!selectingDesignProject && designSelectionToastId) {
-            hideDesignSelectionToast(designSelectionToastId);
+            showDesignSelectionToast(() => setShowCreateDesignDialog(true));
+        } else if (!selectingDesignProject) {
+            hideLatestDesignSelectionToast();
         }
     }, [selectingDesignProject]);
 
@@ -310,6 +302,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 break;
             case NewMenuItems.designProject:
                 setShowCreateDesignDialog(true);
+                setSelectingDesignProject(false);
                 break;
             default:
                 return exhaustiveMatchingGuard(dialog);

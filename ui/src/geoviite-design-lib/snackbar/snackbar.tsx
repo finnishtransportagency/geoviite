@@ -228,11 +228,11 @@ let designToastIdCounter = 0;
 
 const getDesignToastId = (id: number): string => `design-toast-${id}`;
 
-export const showDesignSelectionToast = (toastId: Id | undefined, onAddProject: () => void) => {
+export const showDesignSelectionToast = (onAddProject: () => void) => {
     const id = getToastId(getDesignToastId(++designToastIdCounter));
     showInfoToast(
         <ToastContentContainer>
-            <SelectOrAddProjectToast onAddProject={onAddProject} toastId={toastId} />
+            <SelectOrAddProjectToast onAddProject={onAddProject} toastId={id} />
         </ToastContentContainer>,
         {
             closeOnClick: false,
