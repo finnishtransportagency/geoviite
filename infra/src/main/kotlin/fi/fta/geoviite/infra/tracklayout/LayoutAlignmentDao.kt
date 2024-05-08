@@ -305,7 +305,7 @@ class LayoutAlignmentDao(
                   )
                 group by alignment_id, alignment_version
               ),
-              orig_metadata_plan as (
+              orig_metadata_plan as materialized (
                 select
                   plan.id as plan_id,
                   plan_file.name as file_name
