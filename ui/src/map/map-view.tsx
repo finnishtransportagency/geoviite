@@ -24,7 +24,7 @@ import styles from './map.module.scss';
 import { selectTool } from './tools/select-tool';
 import { MapToolActivateOptions } from './tools/tool-model';
 import { calculateMapTiles } from 'map/map-utils';
-import { defaults as defaultControls, ScaleLine, Control } from 'ol/control';
+import { defaults as defaultControls, ScaleLine } from 'ol/control';
 import { highlightTool } from 'map/tools/highlight-tool';
 import { LineString, Point as OlPoint, Polygon } from 'ol/geom';
 import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
@@ -247,7 +247,7 @@ const MapView: React.FC<MapViewProps> = ({
             olMapContainer.current.innerHTML = '';
 
             const controls = defaultControls();
-            controls.extend([defaultScaleLine].filter(filterNotEmpty));
+            controls.extend([defaultScaleLine]);
             const interactions = defaultInteractions();
             //Mouse middle click pan
             interactions.push(
@@ -291,11 +291,6 @@ const MapView: React.FC<MapViewProps> = ({
         });
         olMap.addOverlay(popup);
     }, [olMap, firstClusterPoint]);
-
-    React.useEffect(() => {
-        const mapLayerButton = document.getElementById('maplayermenubutton');
-        if (mapLayerButton) olMap?.addControl(new Control({ element: mapLayerButton }));
-    }, [olMap]);
 
     // Update the view"port" of the map
     React.useEffect(() => {

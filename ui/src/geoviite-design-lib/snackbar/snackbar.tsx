@@ -230,7 +230,7 @@ export const showDesignSelectionToast = (toastId: Id | undefined, onAddProject: 
     const id = getToastId(`design-selection-${++designToastIdCounter}`);
     showInfoToast(
         <ToastContentContainer>
-            <SelectOrAddProject onAddProject={onAddProject} toastId={toastId} />
+            <SelectOrAddProjectToast onAddProject={onAddProject} toastId={toastId} />
         </ToastContentContainer>,
         {
             closeOnClick: false,
@@ -251,7 +251,7 @@ type SelectOrAddProjectProps = {
     onAddProject: () => void;
 };
 
-const SelectOrAddProject: React.FC<SelectOrAddProjectProps> = ({ toastId, onAddProject }) => {
+const SelectOrAddProjectToast: React.FC<SelectOrAddProjectProps> = ({ toastId, onAddProject }) => {
     const { t } = useTranslation();
 
     return (
@@ -272,7 +272,7 @@ const SelectOrAddProject: React.FC<SelectOrAddProjectProps> = ({ toastId, onAddP
     );
 };
 
-const SessionExpirationError: React.FC = () => {
+const SessionExpirationErrorToast: React.FC = () => {
     const { t } = useTranslation();
 
     return (
@@ -307,7 +307,7 @@ export function sessionExpired() {
 
         toast.error(
             <ToastContentContainer>
-                <SessionExpirationError />
+                <SessionExpirationErrorToast />
             </ToastContentContainer>,
             toastOptions,
         );
