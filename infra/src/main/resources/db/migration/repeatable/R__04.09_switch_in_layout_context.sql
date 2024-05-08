@@ -56,6 +56,7 @@ select
           when design_id_in is null then row.design_id is null
           else design_id_in = row.design_id
             or (row.design_id is null
+              and not draft
               and not exists(select *
                                from layout.switch overriding_design_official
                                where overriding_design_official.design_id = design_id_in
