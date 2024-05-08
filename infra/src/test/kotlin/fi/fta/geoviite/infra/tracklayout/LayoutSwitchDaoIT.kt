@@ -2,10 +2,10 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.mainDraft
+import fi.fta.geoviite.infra.common.mainOfficial
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -115,18 +115,18 @@ class LayoutSwitchDaoIT @Autowired constructor(
         val deletedDraftVersion = insertDraft().rowVersion
         assertEquals(deletedDraftVersion, switchDao.deleteDraft(deletedDraftVersion.id).rowVersion)
 
-        val official = switchDao.fetchVersions(OFFICIAL, false)
+        val official = switchDao.fetchVersions(mainOfficial, false)
         assertContains(official, officialVersion)
         assertFalse(official.contains(undeletedDraftVersion))
         assertFalse(official.contains(deleteStateDraftVersion))
         assertFalse(official.contains(deletedDraftVersion))
 
-        val draftWithoutDeleted = switchDao.fetchVersions(DRAFT, false)
+        val draftWithoutDeleted = switchDao.fetchVersions(mainDraft, false)
         assertContains(draftWithoutDeleted, undeletedDraftVersion)
         assertFalse(draftWithoutDeleted.contains(deleteStateDraftVersion))
         assertFalse(draftWithoutDeleted.contains(deletedDraftVersion))
 
-        val draftWithDeleted = switchDao.fetchVersions(DRAFT, true)
+        val draftWithDeleted = switchDao.fetchVersions(mainDraft, true)
         assertContains(draftWithDeleted, undeletedDraftVersion)
         assertContains(draftWithDeleted, deleteStateDraftVersion)
         assertFalse(draftWithDeleted.contains(deletedDraftVersion))

@@ -4,9 +4,9 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.mainDraft
+import fi.fta.geoviite.infra.common.mainOfficial
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
@@ -96,18 +96,18 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
         val (deletedDraftId, deletedDraftVersion) = insertNewTrackNumber(getUnusedTrackNumber(), true)
         trackNumberDao.deleteDraft(deletedDraftId)
 
-        val official = trackNumberDao.fetchVersions(OFFICIAL, false)
+        val official = trackNumberDao.fetchVersions(mainOfficial, false)
         assertContains(official, officialVersion)
         assertFalse(official.contains(undeletedDraftVersion))
         assertFalse(official.contains(deleteStateDraftVersion))
         assertFalse(official.contains(deletedDraftVersion))
 
-        val draftWithoutDeleted = trackNumberDao.fetchVersions(DRAFT, false)
+        val draftWithoutDeleted = trackNumberDao.fetchVersions(mainDraft, false)
         assertContains(draftWithoutDeleted, undeletedDraftVersion)
         assertFalse(draftWithoutDeleted.contains(deleteStateDraftVersion))
         assertFalse(draftWithoutDeleted.contains(deletedDraftVersion))
 
-        val draftWithDeleted = trackNumberDao.fetchVersions(DRAFT, true)
+        val draftWithDeleted = trackNumberDao.fetchVersions(mainDraft, true)
         assertContains(draftWithDeleted, undeletedDraftVersion)
         assertContains(draftWithDeleted, deleteStateDraftVersion)
         assertFalse(draftWithDeleted.contains(deletedDraftVersion))

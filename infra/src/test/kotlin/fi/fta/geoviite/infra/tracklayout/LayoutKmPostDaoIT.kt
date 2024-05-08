@@ -3,8 +3,6 @@ package fi.fta.geoviite.infra.tracklayout
 import daoResponseToValidationVersion
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.ValidationVersion
@@ -50,7 +48,7 @@ class LayoutKmPostDaoIT @Autowired constructor(
         insertAndVerify(post1)
         insertAndVerify(post2)
         insertAndVerify(post3)
-        val allPosts = fetchTrackNumberKmPosts(OFFICIAL, trackNumberId)
+        val allPosts = fetchTrackNumberKmPosts(mainOfficial, trackNumberId)
         assertEquals(3, allPosts.size)
         assertMatches(post1, allPosts[0])
         assertMatches(post2, allPosts[2]) // The order should be by post-number, not insert order
@@ -131,18 +129,18 @@ class LayoutKmPostDaoIT @Autowired constructor(
         val (deletedDraftId, deletedDraftVersion) = insertDraft(tnId, 4)
         kmPostDao.deleteDraft(deletedDraftId)
 
-        val official = kmPostDao.fetchVersions(OFFICIAL, false)
+        val official = kmPostDao.fetchVersions(mainOfficial, false)
         assertContains(official, officialVersion)
         assertFalse(official.contains(undeletedDraftVersion))
         assertFalse(official.contains(deleteStateDraftVersion))
         assertFalse(official.contains(deletedDraftVersion))
 
-        val draftWithoutDeleted = kmPostDao.fetchVersions(DRAFT, false)
+        val draftWithoutDeleted = kmPostDao.fetchVersions(mainDraft, false)
         assertContains(draftWithoutDeleted, undeletedDraftVersion)
         assertFalse(draftWithoutDeleted.contains(deleteStateDraftVersion))
         assertFalse(draftWithoutDeleted.contains(deletedDraftVersion))
 
-        val draftWithDeleted = kmPostDao.fetchVersions(DRAFT, true)
+        val draftWithDeleted = kmPostDao.fetchVersions(mainDraft, true)
         assertContains(draftWithDeleted, undeletedDraftVersion)
         assertContains(draftWithDeleted, deleteStateDraftVersion)
         assertFalse(draftWithDeleted.contains(deletedDraftVersion))
@@ -175,11 +173,11 @@ class LayoutKmPostDaoIT @Autowired constructor(
 
         assertEquals(
             listOf(officialTrackVersion1, officialTrackVersion2).toSet(),
-            kmPostDao.fetchVersions(OFFICIAL, false, tnId).toSet(),
+            kmPostDao.fetchVersions(mainOfficial, false, tnId).toSet(),
         )
         assertEquals(
             listOf(officialTrackVersion1, officialTrackVersion2, draftTrackVersion),
-            kmPostDao.fetchVersions(DRAFT, false, tnId),
+            kmPostDao.fetchVersions(mainDraft, false, tnId),
         )
     }
 
@@ -196,20 +194,20 @@ class LayoutKmPostDaoIT @Autowired constructor(
 
         assertEquals(
             listOf(changeTrackNumberOriginal),
-            kmPostDao.fetchVersions(OFFICIAL, false, tnId),
+            kmPostDao.fetchVersions(mainOfficial, false, tnId),
         )
         assertEquals(
             listOf(undeletedDraftVersion),
-            kmPostDao.fetchVersions(DRAFT, false, tnId),
+            kmPostDao.fetchVersions(mainDraft, false, tnId),
         )
 
         assertEquals(
             listOf(undeletedDraftVersion, deleteStateDraftVersion).toSet(),
-            kmPostDao.fetchVersions(DRAFT, true, tnId).toSet(),
+            kmPostDao.fetchVersions(mainDraft, true, tnId).toSet(),
         )
         assertEquals(
             listOf(changeTrackNumberChanged),
-            kmPostDao.fetchVersions(DRAFT, true, tnId2),
+            kmPostDao.fetchVersions(mainDraft, true, tnId2),
         )
     }
 
@@ -249,9 +247,9 @@ class LayoutKmPostDaoIT @Autowired constructor(
     }
 
     private fun fetchTrackNumberKmPosts(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmPost> {
-        return kmPostDao.fetchVersions(publicationState, false, trackNumberId, null).map(kmPostDao::fetch)
+        return kmPostDao.fetchVersions(layoutContext, false, trackNumberId, null).map(kmPostDao::fetch)
     }
 }

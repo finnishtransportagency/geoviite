@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
@@ -354,23 +355,22 @@ class LocationTrackDao(
         return response
     }
 
-    override fun fetchVersions(publicationState: PublicationState, includeDeleted: Boolean) =
-        fetchVersions(publicationState, includeDeleted, null)
+    override fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean) =
+        fetchVersions(layoutContext, includeDeleted, null)
 
     fun list(
         publicationState: PublicationState,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         names: List<AlignmentName> = emptyList(),
-    ): List<LocationTrack> = fetchVersions(publicationState, includeDeleted, trackNumberId, names).map(::fetch)
+    ): List<LocationTrack> = fetchVersions(MainLayoutContext.of(publicationState), includeDeleted, trackNumberId, names).map(::fetch)
 
     fun fetchVersions(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         names: List<AlignmentName> = emptyList(),
     ): List<RowVersion<LocationTrack>> {
-        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select lt.row_id, lt.row_version 
             from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt

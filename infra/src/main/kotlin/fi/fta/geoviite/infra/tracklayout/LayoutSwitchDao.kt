@@ -26,10 +26,9 @@ class LayoutSwitchDao(
 ) : LayoutAssetDao<TrackLayoutSwitch>(jdbcTemplateParam, LAYOUT_SWITCH, cacheEnabled, SWITCH_CACHE_SIZE) {
 
     override fun fetchVersions(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         includeDeleted: Boolean,
     ): List<RowVersion<TrackLayoutSwitch>> {
-        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select
               row_id,

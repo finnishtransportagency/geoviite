@@ -450,7 +450,7 @@ class CalculatedChangesService(
             geocodingService.getGeocodingContextCacheKey(id, versions)
         },
         getTrackNumberTracksBefore = { trackNumberId: IntId<TrackLayoutTrackNumber> ->
-            locationTrackDao.fetchVersions(OFFICIAL, false, trackNumberId)
+            locationTrackDao.fetchVersions(MainLayoutContext.of(OFFICIAL), false, trackNumberId)
         },
     )
 }

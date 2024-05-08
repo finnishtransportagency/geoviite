@@ -4,6 +4,8 @@ import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
@@ -47,7 +49,7 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
     fun fetchLayoutAssetChangeInfo(id: IntId<T>, publicationState: PublicationState): LayoutAssetChangeInfo?
 
     fun fetchAllVersions(): List<RowVersion<T>>
-    fun fetchVersions(publicationState: PublicationState, includeDeleted: Boolean): List<RowVersion<T>>
+    fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean): List<RowVersion<T>>
 
     fun fetchPublicationVersions(): List<ValidationVersion<T>>
     fun fetchPublicationVersions(ids: List<IntId<T>>): List<ValidationVersion<T>>
@@ -93,7 +95,7 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
     }.map(::fetch)
 
     fun list(publicationState: PublicationState, includeDeleted: Boolean): List<T> =
-        fetchVersions(publicationState, includeDeleted).map(::fetch)
+        fetchVersions(MainLayoutContext.of(publicationState), includeDeleted).map(::fetch)
 }
 
 interface ILayoutAssetDao<T : LayoutAsset<T>> : LayoutAssetReader<T>, LayoutAssetWriter<T>

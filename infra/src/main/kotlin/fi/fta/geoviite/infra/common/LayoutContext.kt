@@ -93,6 +93,9 @@ sealed class LayoutContext {
     }
 }
 
+val mainOfficial = MainLayoutContext.official
+val mainDraft = MainLayoutContext.draft
+
 @Suppress("DataClassPrivateConstructor")
 data class MainLayoutContext private constructor(override val state: PublicationState) : LayoutContext() {
     override val branch: LayoutBranch = MainBranch.instance

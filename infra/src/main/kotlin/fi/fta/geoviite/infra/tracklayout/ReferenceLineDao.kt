@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
@@ -205,10 +206,9 @@ class ReferenceLineDao(
     }
 
     override fun fetchVersions(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         includeDeleted: Boolean,
     ): List<RowVersion<ReferenceLine>> {
-        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select
               rl.row_id,
@@ -219,7 +219,7 @@ class ReferenceLineDao(
             where (:include_deleted = true or tn.state != 'DELETED')
         """.trimIndent()
         val params = mapOf(
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
             "design_id" to layoutContext.branch.designId?.intValue,
             "include_deleted" to includeDeleted,
         )

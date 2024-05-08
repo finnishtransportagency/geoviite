@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
@@ -29,18 +30,17 @@ class LayoutTrackNumberDao(
     TRACK_NUMBER_CACHE_SIZE,
 ) {
 
-    override fun fetchVersions(publicationState: PublicationState, includeDeleted: Boolean) =
-        fetchVersions(publicationState, includeDeleted, null)
+    override fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean) =
+        fetchVersions(layoutContext, includeDeleted, null)
 
     fun list(trackNumber: TrackNumber, publicationState: PublicationState): List<TrackLayoutTrackNumber> =
-        fetchVersions(publicationState, false, trackNumber).map(::fetch)
+        fetchVersions(MainLayoutContext.of(publicationState), false, trackNumber).map(::fetch)
 
     fun fetchVersions(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         includeDeleted: Boolean,
         number: TrackNumber?,
     ): List<RowVersion<TrackLayoutTrackNumber>> {
-        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select row_id, row_version
             from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id)

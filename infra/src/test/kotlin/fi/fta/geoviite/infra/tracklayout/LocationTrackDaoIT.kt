@@ -4,9 +4,10 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.mainDraft
+import fi.fta.geoviite.infra.common.mainOfficial
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType.MAIN
@@ -43,8 +44,8 @@ class LocationTrackDaoIT @Autowired constructor(
         )
 
         val (id, version) = locationTrackDao.insert(locationTrack)
-        assertEquals(version, locationTrackDao.fetchVersion(id, OFFICIAL))
-        assertEquals(version, locationTrackDao.fetchVersion(id, DRAFT))
+        assertEquals(version, locationTrackDao.fetchVersion(id, PublicationState.OFFICIAL))
+        assertEquals(version, locationTrackDao.fetchVersion(id, PublicationState.DRAFT))
         val fromDb = locationTrackDao.fetch(version)
         assertMatches(locationTrack, fromDb, contextMatch = false)
         assertEquals(id, fromDb.id)
@@ -59,8 +60,8 @@ class LocationTrackDaoIT @Autowired constructor(
         val (updatedId, updatedVersion) = locationTrackDao.update(updatedTrack)
         assertEquals(id, updatedId)
         assertEquals(version.id, updatedVersion.id)
-        assertEquals(updatedVersion, locationTrackDao.fetchVersion(version.id, OFFICIAL))
-        assertEquals(updatedVersion, locationTrackDao.fetchVersion(version.id, DRAFT))
+        assertEquals(updatedVersion, locationTrackDao.fetchVersion(version.id, PublicationState.OFFICIAL))
+        assertEquals(updatedVersion, locationTrackDao.fetchVersion(version.id, PublicationState.DRAFT))
         val updatedFromDb = locationTrackDao.fetch(updatedVersion)
         assertMatches(updatedTrack, updatedFromDb, contextMatch = false)
         assertEquals(id, updatedFromDb.id)
@@ -149,18 +150,18 @@ class LocationTrackDaoIT @Autowired constructor(
         val (deletedDraftId, deletedDraftVersion) = insertDraftLocationTrack(tnId)
         locationTrackDao.deleteDraft(deletedDraftId)
 
-        val official = locationTrackDao.fetchVersions(OFFICIAL, false)
+        val official = locationTrackDao.fetchVersions(mainOfficial, false)
         assertContains(official, officialVersion)
         assertFalse(official.contains(undeletedDraftVersion))
         assertFalse(official.contains(deleteStateDraftVersion))
         assertFalse(official.contains(deletedDraftVersion))
 
-        val draftWithoutDeleted = locationTrackDao.fetchVersions(DRAFT, false)
+        val draftWithoutDeleted = locationTrackDao.fetchVersions(mainDraft, false)
         assertContains(draftWithoutDeleted, undeletedDraftVersion)
         assertFalse(draftWithoutDeleted.contains(deleteStateDraftVersion))
         assertFalse(draftWithoutDeleted.contains(deletedDraftVersion))
 
-        val draftWithDeleted = locationTrackDao.fetchVersions(DRAFT, true)
+        val draftWithDeleted = locationTrackDao.fetchVersions(mainDraft, true)
         assertContains(draftWithDeleted, undeletedDraftVersion)
         assertContains(draftWithDeleted, deleteStateDraftVersion)
         assertFalse(draftWithDeleted.contains(deletedDraftVersion))
@@ -193,11 +194,11 @@ class LocationTrackDaoIT @Autowired constructor(
 
         assertEquals(
             listOf(officialTrackVersion1, officialTrackVersion2).toSet(),
-            locationTrackDao.fetchVersions(OFFICIAL, false, tnId).toSet(),
+            locationTrackDao.fetchVersions(mainOfficial, false, tnId).toSet(),
         )
         assertEquals(
             listOf(officialTrackVersion1, officialTrackVersion2, draftTrackVersion).toSet(),
-            locationTrackDao.fetchVersions(DRAFT, false, tnId).toSet(),
+            locationTrackDao.fetchVersions(mainDraft, false, tnId).toSet(),
         )
     }
 
@@ -214,20 +215,20 @@ class LocationTrackDaoIT @Autowired constructor(
 
         assertEquals(
             listOf(changeTrackNumberOriginal),
-            locationTrackDao.fetchVersions(OFFICIAL, false, tnId),
+            locationTrackDao.fetchVersions(mainOfficial, false, tnId),
         )
         assertEquals(
             listOf(undeletedDraftVersion),
-            locationTrackDao.fetchVersions(DRAFT, false, tnId),
+            locationTrackDao.fetchVersions(mainDraft, false, tnId),
         )
 
         assertEquals(
             listOf(undeletedDraftVersion, deleteStateDraftVersion).toSet(),
-            locationTrackDao.fetchVersions(DRAFT, true, tnId).toSet(),
+            locationTrackDao.fetchVersions(mainDraft, true, tnId).toSet(),
         )
         assertEquals(
             listOf(changeTrackNumberChanged),
-            locationTrackDao.fetchVersions(DRAFT, true, tnId2),
+            locationTrackDao.fetchVersions(mainDraft, true, tnId2),
         )
     }
 

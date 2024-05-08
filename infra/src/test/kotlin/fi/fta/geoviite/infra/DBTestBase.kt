@@ -81,7 +81,7 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
         getOrCreateTrackNumber(getUnusedTrackNumber()).id as IntId
 
     fun getOrCreateTrackNumber(trackNumber: TrackNumber): TrackLayoutTrackNumber {
-        val version = trackNumberDao.fetchVersions(DRAFT, false, trackNumber).firstOrNull()
+        val version = trackNumberDao.fetchVersions(mainDraft, false, trackNumber).firstOrNull()
             ?: insertNewTrackNumber(trackNumber, false).rowVersion
         return version.let(trackNumberDao::fetch)
     }

@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
@@ -27,23 +28,22 @@ class LayoutKmPostDao(
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) : LayoutAssetDao<TrackLayoutKmPost>(jdbcTemplateParam, LAYOUT_KM_POST, cacheEnabled, KM_POST_CACHE_SIZE) {
 
-    override fun fetchVersions(publicationState: PublicationState, includeDeleted: Boolean) =
-        fetchVersions(publicationState, includeDeleted, null, null)
+    override fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean) =
+        fetchVersions(layoutContext, includeDeleted, null, null)
 
     fun list(
         publicationState: PublicationState,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         bbox: BoundingBox? = null,
-    ): List<TrackLayoutKmPost> = fetchVersions(publicationState, includeDeleted, trackNumberId, bbox).map(::fetch)
+    ): List<TrackLayoutKmPost> = fetchVersions(MainLayoutContext.of(publicationState), includeDeleted, trackNumberId, bbox).map(::fetch)
 
     fun fetchVersions(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         bbox: BoundingBox? = null,
     ): List<RowVersion<TrackLayoutKmPost>> {
-        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select km_post.row_id, km_post.row_version 
             from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id) km_post
@@ -61,7 +61,6 @@ class LayoutKmPostDao(
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue,
                 "include_deleted" to includeDeleted,
-                "publication_state" to publicationState.name,
                 "polygon_wkt" to bbox?.let { b -> create2DPolygonString(b.polygonFromCorners) },
                 "map_srid" to LAYOUT_SRID.code,
             )
