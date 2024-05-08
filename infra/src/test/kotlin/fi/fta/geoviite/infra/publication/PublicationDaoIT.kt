@@ -4,11 +4,46 @@ import daoResponseToValidationVersion
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TEST_USER
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
-import fi.fta.geoviite.infra.integration.*
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.integration.CalculatedChanges
+import fi.fta.geoviite.infra.integration.DirectChanges
+import fi.fta.geoviite.infra.integration.IndirectChanges
+import fi.fta.geoviite.infra.integration.LocationTrackChange
+import fi.fta.geoviite.infra.integration.SwitchChange
+import fi.fta.geoviite.infra.integration.SwitchJointChange
+import fi.fta.geoviite.infra.integration.TrackNumberChange
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import fi.fta.geoviite.infra.tracklayout.assertMatches
+import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -111,6 +146,7 @@ class PublicationDaoIT @Autowired constructor(
         val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
         publishAndCheck(version)
         locationTrackService.saveDraft(
+            LayoutBranch.main,
             locationTrackService.getOrThrow(OFFICIAL, draft.id as IntId).let { lt ->
                 lt.copy(name = AlignmentName("${lt.name} TEST"))
             },
@@ -127,6 +163,7 @@ class PublicationDaoIT @Autowired constructor(
         val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
         publishAndCheck(version)
         locationTrackService.saveDraft(
+            LayoutBranch.main,
             locationTrackService.getOrThrow(OFFICIAL, draft.id as IntId).copy(state = LocationTrackState.DELETED)
         )
         val candidates = publicationDao.fetchLocationTrackPublicationCandidates()
@@ -146,6 +183,7 @@ class PublicationDaoIT @Autowired constructor(
         )
         publishAndCheck(version)
         locationTrackService.saveDraft(
+            LayoutBranch.main,
             locationTrackService.getOrThrow(OFFICIAL, draft.id as IntId).copy(state = LocationTrackState.IN_USE)
         )
         val candidates = publicationDao.fetchLocationTrackPublicationCandidates()

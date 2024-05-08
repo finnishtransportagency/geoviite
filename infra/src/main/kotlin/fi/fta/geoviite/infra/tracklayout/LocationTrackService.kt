@@ -77,7 +77,8 @@ class LocationTrackService(
             // TODO: GVT-2399
             contextData = LayoutContextData.newDraft(LayoutBranch.main),
         )
-        return saveDraftInternal(locationTrack)
+        // TODO: GVT-2399
+        return saveDraftInternal(LayoutBranch.main, locationTrack)
     }
 
     @Transactional
@@ -97,7 +98,8 @@ class LocationTrackService(
         )
 
         return if (locationTrack.state != LocationTrackState.DELETED) {
-            saveDraft(fetchNearbyTracksAndCalculateLocationTrackTopology(locationTrack, originalAlignment))
+            // TODO: GVT-2399
+            saveDraft(LayoutBranch.main, fetchNearbyTracksAndCalculateLocationTrackTopology(locationTrack, originalAlignment))
         } else {
             clearDuplicateReferences(id)
             val segmentsWithoutSwitch = originalAlignment.segments.map(LayoutSegment::withoutSwitch)
@@ -113,7 +115,8 @@ class LocationTrackService(
         val locationTrack = originalTrack.copy(state = state)
 
         return if (locationTrack.state != LocationTrackState.DELETED) {
-            saveDraft(locationTrack)
+            // TODO: GVT-2399
+            saveDraft(LayoutBranch.main, locationTrack)
         } else {
             clearDuplicateReferences(id)
             val segmentsWithoutSwitch = originalAlignment.segments.map(LayoutSegment::withoutSwitch)
@@ -123,8 +126,8 @@ class LocationTrackService(
     }
 
     @Transactional
-    override fun saveDraft(draft: LocationTrack): DaoResponse<LocationTrack> =
-        super.saveDraft(draft.copy(alignmentVersion = updatedAlignmentVersion(draft)))
+    override fun saveDraft(branch: LayoutBranch, draftItem: LocationTrack): DaoResponse<LocationTrack> =
+        super.saveDraft(branch, draftItem.copy(alignmentVersion = updatedAlignmentVersion(draftItem)))
 
     private fun updatedAlignmentVersion(track: LocationTrack): RowVersion<LayoutAlignment>? =
         // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
@@ -145,14 +148,16 @@ class LocationTrackService(
             } else {
                 alignmentService.save(alignment)
             }
-        return saveDraftInternal(draft.copy(alignmentVersion = alignmentVersion))
+        return saveDraftInternal(LayoutBranch.main, draft.copy(alignmentVersion = alignmentVersion))
     }
 
     @Transactional
     fun updateExternalId(id: IntId<LocationTrack>, oid: Oid<LocationTrack>): DaoResponse<LocationTrack> {
         logger.serviceCall("updateExternalIdForLocationTrack", "id" to id, "oid" to oid)
         val original = dao.getOrThrow(DRAFT, id)
+        // TODO: GVT-2399
         return saveDraftInternal(
+            LayoutBranch.main,
             original.copy(
                 externalId = oid,
                 alignmentVersion = updatedAlignmentVersion(original),
@@ -201,7 +206,10 @@ class LocationTrackService(
         .fetchDuplicateVersions(id, DRAFT, includeDeleted = true)
         .map(dao::fetch)
         .map(::asMainDraft)
-        .forEach { duplicate -> saveDraft(duplicate.copy(duplicateOf = null)) }
+        .forEach { duplicate ->
+            // TODO: GVT-2399
+            saveDraft(LayoutBranch.main, duplicate.copy(duplicateOf = null))
+        }
 
     fun listNonLinked(): List<LocationTrack> {
         logger.serviceCall("listNonLinked")

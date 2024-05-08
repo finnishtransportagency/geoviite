@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -766,6 +767,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val testData = insertTestData()
         val kmPost = testData.kmPosts.first()
         kmPostService.saveDraft(
+            LayoutBranch.main,
             kmPost.copy(
                 kmNumber = KmNumber(kmPost.kmNumber.number, "A")
             )
@@ -861,6 +863,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val testData = insertTestData()
         val (referenceLine, _) = testData.referenceLineAndAlignment
         referenceLineService.saveDraft(
+            LayoutBranch.main,
             referenceLine.copy(
                 startAddress = TrackMeter(0, 500)
             )
@@ -917,6 +920,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val testData = insertTestData()
         val trackNumber = testData.trackNumber
         trackNumberservice.saveDraft(
+            LayoutBranch.main,
             trackNumber.copy(
                 description = FreeText(UUID.randomUUID().toString())
             )
@@ -974,6 +978,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val testData = insertTestData()
         val switch = testData.switches.first()
         switchService.saveDraft(
+            LayoutBranch.main,
             switch.copy(
                 name = SwitchName(UUID.randomUUID().toString())
             )
@@ -992,6 +997,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
 
         val trackNumber = testData.trackNumber
         trackNumberservice.saveDraft(
+            LayoutBranch.main,
             trackNumber.copy(
                 description = FreeText(UUID.randomUUID().toString())
             )
@@ -1069,6 +1075,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val switch = testData.switches.first()
 
         switchService.saveDraft(
+            LayoutBranch.main,
             switch.copy(
                 name = SwitchName(UUID.randomUUID().toString())
             )
@@ -1102,7 +1109,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val referenceLineId = referenceLineService.saveDraft(
             referenceLine(trackNumberId, draft = true), alignment(segment(Point(0.0, 0.0), Point(0.0, 20.0)))
         ).id
-        val switch = switchService.saveDraft(switch(123, draft = true)).id
+        val switch = switchService.saveDraft(LayoutBranch.main, switch(123, draft = true)).id
         val wibblyTrack = locationTrackService.saveDraft(
             locationTrack(trackNumberId, draft = true), alignment(
                 segment(Point(0.0, 0.0), Point(0.0, 10.0)).copy(switchId = switch, endJointNumber = JointNumber(5)),

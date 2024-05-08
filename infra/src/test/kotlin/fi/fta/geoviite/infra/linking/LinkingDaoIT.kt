@@ -4,12 +4,20 @@ package fi.fta.geoviite.infra.linking
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.someOid
+import fi.fta.geoviite.infra.tracklayout.switch
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -24,10 +32,9 @@ class LinkingDaoIT @Autowired constructor(
     private val locationTrackService: LocationTrackService,
 ) : DBTestBase() {
 
-
     @Test
     fun noSwitchBoundsAreFoundWhenNotLinkedToTracks() {
-        val switch = switchService.getOrThrow(DRAFT, switchService.saveDraft(switch(1, draft = true)).id)
+        val switch = switchService.getOrThrow(DRAFT, switchService.saveDraft(LayoutBranch.main, switch(1, draft = true)).id)
         assertEquals(null, linkingDao.getSwitchBoundsFromTracks(OFFICIAL, switch.id as IntId))
         assertEquals(null, linkingDao.getSwitchBoundsFromTracks(DRAFT, switch.id as IntId))
     }
@@ -36,7 +43,7 @@ class LinkingDaoIT @Autowired constructor(
     fun switchBoundsAreFoundFromTracks() {
         val trackNumber = getOrCreateTrackNumber(TrackNumber("123"))
         val tnId = trackNumber.id as IntId
-        val switch = switchService.getOrThrow(DRAFT, switchService.saveDraft(switch(1, draft = true)).id)
+        val switch = switchService.getOrThrow(DRAFT, switchService.saveDraft(LayoutBranch.main, switch(1, draft = true)).id)
 
         val point1 = Point(10.0, 10.0)
         val point2 = Point(12.0, 10.0)

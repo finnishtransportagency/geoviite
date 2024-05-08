@@ -37,7 +37,9 @@ class LayoutTrackNumberService(
     @Transactional
     fun insert(saveRequest: TrackNumberSaveRequest): IntId<TrackLayoutTrackNumber> {
         logger.serviceCall("insert", "trackNumber" to saveRequest)
+        // TODO: GVT-2397
         val draftSaveResponse = saveDraftInternal(
+            LayoutBranch.main,
             TrackLayoutTrackNumber(
                 number = saveRequest.number,
                 description = saveRequest.description,
@@ -58,7 +60,9 @@ class LayoutTrackNumberService(
     ): IntId<TrackLayoutTrackNumber> {
         logger.serviceCall("update", "trackNumber" to saveRequest)
         val original = dao.getOrThrow(DRAFT, id)
+        // TODO: GVT-2397
         val draftSaveResponse = saveDraftInternal(
+            LayoutBranch.main,
             original.copy(
                 number = saveRequest.number,
                 description = saveRequest.description,
@@ -79,7 +83,8 @@ class LayoutTrackNumberService(
         val original = dao.getOrThrow(DRAFT, id)
         val trackLayoutTrackNumber = original.copy(externalId = oid)
 
-        return saveDraftInternal(trackLayoutTrackNumber)
+        // TODO: GVT-2397
+        return saveDraftInternal(LayoutBranch.main, trackLayoutTrackNumber)
     }
 
     @Transactional

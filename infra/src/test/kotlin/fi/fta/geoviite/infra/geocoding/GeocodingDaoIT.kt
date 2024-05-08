@@ -2,11 +2,29 @@ package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.tracklayout.*
-import org.junit.jupiter.api.Assertions.*
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentService
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
+import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.trackNumber
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -56,7 +74,10 @@ class GeocodingDaoIT @Autowired constructor(
 
         val kmPostOneOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(1), draft = false)).rowVersion
         val kmPostOneDraftVersion = kmPostDao.insert(asMainDraft(kmPostDao.fetch(kmPostOneOfficialVersion))).rowVersion
-        val kmPostTwoOnlyDraftVersion = kmPostService.saveDraft(kmPost(tnId, KmNumber(2), draft = true)).rowVersion
+        val kmPostTwoOnlyDraftVersion = kmPostService.saveDraft(
+            LayoutBranch.main,
+            kmPost(tnId, KmNumber(2), draft = true),
+        ).rowVersion
         val kmPostThreeOnlyOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(3), draft = false)).rowVersion
 
         // Add a deleted post - should not appear in results
@@ -158,7 +179,7 @@ class GeocodingDaoIT @Autowired constructor(
         // Add some draft changes as well. These shouldn't affect the results
         trackNumberDao.insert(asMainDraft(trackNumberDao.fetch(tnOfficialVersion)))
         createDraftReferenceLine(rlOfficialVersion)
-        kmPostService.saveDraft(kmPost(tnId, KmNumber(10), draft = true))
+        kmPostService.saveDraft(LayoutBranch.main, kmPost(tnId, KmNumber(10), draft = true))
 
         // Update the official stuff
         val updatedTrackNumberVersion = updateTrackNumber(tnOfficialVersion)

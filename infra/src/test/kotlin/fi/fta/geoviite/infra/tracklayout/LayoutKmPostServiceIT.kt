@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
@@ -14,7 +15,6 @@ import org.springframework.test.context.ActiveProfiles
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -132,7 +132,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
         val trackNumberId = insertOfficialTrackNumber()
         val kmPost = kmPost(trackNumberId, KmNumber(7654), draft = true)
 
-        val draftId = kmPostService.saveDraft(asMainDraft(kmPost)).id
+        val draftId = kmPostService.saveDraft(LayoutBranch.main, asMainDraft(kmPost)).id
         val draftFromDb = kmPostService.get(DRAFT, draftId)
 
         assertEquals(1, kmPostService.list(DRAFT) { k -> k == draftFromDb }.size)
@@ -165,9 +165,14 @@ class LayoutKmPostServiceIT @Autowired constructor(
     fun kmPostLengthMatchesTrackNumberService() {
         val trackNumberId = insertDraftTrackNumber()
         referenceLineService.saveDraft(
-            referenceLine(trackNumberId, draft = true), alignment(
+            referenceLine(trackNumberId, draft = true),
+            alignment(
                 segment(
-                    Point(0.0, 0.0), Point(0.0, 5.0), Point(1.0, 10.0), Point(3.0, 15.0), Point(4.0, 20.0)
+                    Point(0.0, 0.0),
+                    Point(0.0, 5.0),
+                    Point(1.0, 10.0),
+                    Point(3.0, 15.0),
+                    Point(4.0, 20.0),
                 )
             )
         )
@@ -179,10 +184,14 @@ class LayoutKmPostServiceIT @Autowired constructor(
             kmPost(trackNumberId, KmNumber(5), Point(0.0, 10.0), state = LayoutState.PLANNED, draft = true),
             kmPost(trackNumberId, KmNumber(6, "A"), Point(3.0, 14.0), draft = true),
             kmPost(trackNumberId, KmNumber(6, "AA"), Point(6.0, 18.0), draft = true),
-        ).map(kmPostService::saveDraft).map(DaoResponse<TrackLayoutKmPost>::id)
+        )
+        val kmPostSaveResults = kmPosts
+            .map { d -> kmPostService.saveDraft(LayoutBranch.main, d) }
+            .map(DaoResponse<TrackLayoutKmPost>::id)
+
         // drop(1) because the track number km lengths include the section before the first km post
         val expected = trackNumberService.getKmLengths(DRAFT, trackNumberId)!!.drop(1)
-        val actual = kmPosts.mapNotNull { kmPost -> kmPostService.getSingleKmPostLength(DRAFT, kmPost) }
+        val actual = kmPostSaveResults.mapNotNull { kmPost -> kmPostService.getSingleKmPostLength(DRAFT, kmPost) }
         assertEquals(expected.size, actual.size)
         expected.zip(actual) { e, a -> assertEquals(e.length.toDouble(), a, 0.001) }
     }

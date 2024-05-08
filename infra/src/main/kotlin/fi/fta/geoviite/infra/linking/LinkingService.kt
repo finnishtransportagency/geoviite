@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.error.LinkingFailureException
@@ -269,7 +270,8 @@ class LinkingService @Autowired constructor(
             location = newLocationInLayoutSpace, sourceId = geometryKmPost.id
         )
 
-        return layoutKmPostService.saveDraft(modifiedLayoutKmPost)
+        // TODO: GVT-2401
+        return layoutKmPostService.saveDraft(LayoutBranch.main, modifiedLayoutKmPost)
     }
 
     fun verifyPlanNotHidden(id: IntId<GeometryPlan>) {

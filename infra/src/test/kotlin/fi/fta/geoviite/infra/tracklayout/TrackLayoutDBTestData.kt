@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IPoint3DM
 import fi.fta.geoviite.infra.math.Point
@@ -12,6 +13,7 @@ fun moveKmPostLocation(
     location: Point,
     kmPostService: LayoutKmPostService,
 ) = kmPostService.saveDraft(
+    LayoutBranch.main,
     kmPost.copy(location = location)
 )
 
@@ -100,7 +102,7 @@ fun moveSwitchPoints(
     switch: TrackLayoutSwitch,
     moveFunc: (point: IPoint) -> IPoint,
     switchService: LayoutSwitchService,
-) = switchService.saveDraft(moveSwitchPoints(switch, moveFunc))
+) = switchService.saveDraft(LayoutBranch.main, moveSwitchPoints(switch, moveFunc))
 
 fun moveSwitchPoints(
     switch: TrackLayoutSwitch,

@@ -436,7 +436,8 @@ class SplitService(
             unusedDuplicates,
             splitTargetLocationTracks,
         ).forEach { updatedDuplicate ->
-            locationTrackService.saveDraft(updatedDuplicate)
+            // TODO: GVT-2399
+            locationTrackService.saveDraft(LayoutBranch.main, updatedDuplicate)
         }
     }
 

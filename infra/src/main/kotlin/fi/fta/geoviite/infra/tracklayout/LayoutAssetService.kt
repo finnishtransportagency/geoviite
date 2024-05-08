@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -67,22 +68,22 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     protected open fun contentMatches(term: String, item: ObjectType): Boolean = false
 
     @Transactional
-    open fun saveDraft(draft: ObjectType): DaoResponse<ObjectType> {
-        logger.serviceCall("saveDraft", "draft" to draft)
-        return saveDraftInternal(draft)
+    open fun saveDraft(branch: LayoutBranch, draftItem: ObjectType): DaoResponse<ObjectType> {
+        logger.serviceCall("saveDraft", "draftItem" to draftItem)
+        return saveDraftInternal(branch, draftItem)
     }
 
-    protected fun saveDraftInternal(item: ObjectType): DaoResponse<ObjectType> {
-        val draft = asMainDraft(item)
+    protected fun saveDraftInternal(branch: LayoutBranch, draftItem: ObjectType): DaoResponse<ObjectType> {
+        val draft = asDraft(branch, draftItem)
         require(draft.isDraft) { "Item is not a draft: id=${draft.id}" }
-        val officialId = if (item.id is IntId) item.id as IntId else null
+        val officialId = if (draftItem.id is IntId) draftItem.id as IntId else null
         return if (draft.dataType == DataType.TEMP) {
             verifyObjectIsNew(draft)
             dao.insert(draft).also { response -> verifyInsertResponse(officialId, response) }
         } else {
             requireNotNull(officialId) { "Updating item that has no known official ID" }
             verifyObjectIsExisting(draft)
-            val previousVersion = requireNotNull(draft.version) { "Updating item without rowVersion: $item" }
+            val previousVersion = requireNotNull(draft.version) { "Updating item without rowVersion: $draftItem" }
             dao.update(draft).also { response -> verifyUpdateResponse(officialId, previousVersion, response) }
         }
     }

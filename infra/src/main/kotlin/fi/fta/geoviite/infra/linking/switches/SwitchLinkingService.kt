@@ -1,21 +1,63 @@
 package fi.fta.geoviite.infra.linking.switches
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
-import fi.fta.geoviite.infra.linking.*
+import fi.fta.geoviite.infra.linking.FittedSwitch
+import fi.fta.geoviite.infra.linking.FittedSwitchJoint
+import fi.fta.geoviite.infra.linking.FittedSwitchJointMatch
+import fi.fta.geoviite.infra.linking.SuggestedSwitch
+import fi.fta.geoviite.infra.linking.SuggestedSwitchCreateParams
+import fi.fta.geoviite.infra.linking.SwitchLinkingJoint
+import fi.fta.geoviite.infra.linking.SwitchLinkingTopologicalTrackLink
+import fi.fta.geoviite.infra.linking.SwitchLinkingTrackLinks
+import fi.fta.geoviite.infra.linking.SwitchRelinkingSuggestion
+import fi.fta.geoviite.infra.linking.SwitchRelinkingValidationResult
+import fi.fta.geoviite.infra.linking.TopologyLinkFindingSwitch
+import fi.fta.geoviite.infra.linking.TrackEnd
+import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResult
+import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResultType
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.math.*
+import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
+import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
+import fi.fta.geoviite.infra.math.isSame
 import fi.fta.geoviite.infra.publication.PublicationValidationError
 import fi.fta.geoviite.infra.publication.PublicationValidationErrorType
 import fi.fta.geoviite.infra.publication.VALIDATION_SWITCH
 import fi.fta.geoviite.infra.publication.validateSwitchLocationTrackLinkStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
+import fi.fta.geoviite.infra.tracklayout.GeometrySource
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.NearbyTracks
+import fi.fta.geoviite.infra.tracklayout.TRACK_SEARCH_AREA_SIZE
+import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
+import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import fi.fta.geoviite.infra.tracklayout.calculateLocationTrackTopology
+import fi.fta.geoviite.infra.tracklayout.clearLinksToSwitch
+import fi.fta.geoviite.infra.tracklayout.collectAllSwitches
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -114,9 +156,11 @@ class SwitchLinkingService @Autowired constructor(
     ) = maybeChanged.forEach { (locationTrack, alignment) ->
         val (originalLocationTrack, originalAlignment) = original[locationTrack.id as IntId] ?: (null to null)
         if (originalAlignment != alignment) {
+            // TODO: GVT-2399
             locationTrackService.saveDraft(locationTrack, alignment)
         } else if (originalLocationTrack != locationTrack) {
-            locationTrackService.saveDraft(locationTrack)
+            // TODO: GVT-2400
+            locationTrackService.saveDraft(LayoutBranch.main, locationTrack)
         }
     }
 
@@ -346,7 +390,8 @@ class SwitchLinkingService @Autowired constructor(
 
     private fun updateLayoutSwitch(suggestedSwitch: SuggestedSwitch, switchId: IntId<TrackLayoutSwitch>): DaoResponse<TrackLayoutSwitch> {
         return createModifiedLayoutSwitchLinking(suggestedSwitch, switchId).let { modifiedLayoutSwitch ->
-            switchService.saveDraft(modifiedLayoutSwitch)
+            // TODO: GVT-2400
+            switchService.saveDraft(LayoutBranch.main, modifiedLayoutSwitch)
         }
     }
 
