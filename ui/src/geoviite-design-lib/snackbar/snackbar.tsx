@@ -226,8 +226,10 @@ function showErrorToast(toastContent: React.ReactNode, opts: SnackbarToastOption
 
 let designToastIdCounter = 0;
 
+const getDesignToastId = (id: number): string => `design-toast-${id}`;
+
 export const showDesignSelectionToast = (toastId: Id | undefined, onAddProject: () => void) => {
-    const id = getToastId(`design-selection-${++designToastIdCounter}`);
+    const id = getToastId(getDesignToastId(++designToastIdCounter));
     showInfoToast(
         <ToastContentContainer>
             <SelectOrAddProjectToast onAddProject={onAddProject} toastId={toastId} />
@@ -246,9 +248,8 @@ export const hideDesignSelectionToast = (toastId: Id) => {
     toast.dismiss(toastId);
 };
 
-export const hideAll = () => {
-    toast.dismiss();
-};
+export const hideLatestDesignSelectionToast = () =>
+    toast.dismiss(getToastId(getDesignToastId(designToastIdCounter)));
 
 type SelectOrAddProjectProps = {
     toastId: Id | undefined;

@@ -120,7 +120,7 @@ export const MainContainer: React.FC = () => {
     }, []);
 
     React.useEffect(() => {
-        Snackbar.hideAll();
+        Snackbar.hideLatestDesignSelectionToast();
     }, [loc]);
 
     React.useEffect(() => {
