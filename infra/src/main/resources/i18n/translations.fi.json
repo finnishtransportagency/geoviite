@@ -121,6 +121,11 @@
         "title": "Istunto on vanhentunut.",
         "button": "Lataa sivu uudestaan"
     },
+    "select-design-project-toast": {
+        "select-or": "Valitse tai",
+        "add-new": "lisää uusi",
+        "project": "projekti"
+    },
     "button": {
         "return": "Poistu",
         "cancel": "Peruuta",
@@ -1226,8 +1231,12 @@
         "publish-tracklayout": "Julkaistava paikannuspohja"
     },
     "preview-toolbar": {
-        "title": "ESIKATSELUTILA",
-        "return-to-draft": "Palaa luonnostilaan"
+        "title-draft": "Esikatselu",
+        "title-design": "Suunnitelmatilan esikatselu",
+        "return-to-draft": "Palaa luonnostilaan",
+        "return-to-design": "Palaa suunnitelmatilaan",
+        "publish-changes": "Muutosten hyväksyntä",
+        "design-to-draft": "Muutosten siirto luonnostilaan"
     },
     "publish": {
         "publish-confirm": {
@@ -1607,14 +1616,12 @@
         }
     },
     "tool-bar": {
+        "current-mode": "Nykytila",
+        "draft-mode": "Luonnostila",
+        "design-mode": "Suunnitelmatila",
         "search-from-whole-network": "Hae koko rataverkolta...",
         "search-from-track": "Hae raiteelta {{track}}...",
         "new": "Luo uusi",
-        "draft-mode": {
-            "title": "LUONNOSTILA",
-            "enable": "Luonnostila",
-            "disable": "Poistu"
-        },
         "preview-mode": {
             "enable": "Esikatselu"
         },
@@ -1622,8 +1629,10 @@
         "new-switch": "Uusi vaihde",
         "new-location-track": "Uusi sijaintiraide",
         "new-km-post": "Uusi tasakilometripiste",
+        "new-design-project": "Uusi projekti",
         "splitting-in-progress": "Raiteen jakaminen on kesken",
-        "linking-in-progress": "Linkitys on kesken"
+        "linking-in-progress": "Linkitys on kesken",
+        "choose-design-project": "Valitse projekti"
     },
     "user-card": {
         "my-details": "Omat tiedot",
@@ -1718,6 +1727,13 @@
         "move-to-edit": "Voit siirtyä muokkaamaan vaihdetta {{name}} tästä",
         "name-in-use-deleted": "Huomaa, että paikannuspohjassa on poistettu vaihde samalla tunnuksella",
         "move-to-edit-deleted": "Voit siirtyä palauttamaan poistetun vaihteen tästä"
+    },
+    "design-project-dialog": {
+        "title-new": "Uusi projekti",
+        "title-edit": "Muokkaa projektia",
+        "basic-info": "Perustiedot",
+        "name": "Projektin nimi",
+        "completion-date": "Arvioitu valmistumisajankohta"
     },
     "switch-delete-dialog": {
         "title": "Poistetaanko luonnos?",

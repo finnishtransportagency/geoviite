@@ -11,15 +11,12 @@ import { Override } from 'utils/type-utils';
 
 let blockToasts = false;
 
-type SnackbarButtonOptions = {
-    text: string;
-    onClick: () => void;
-};
-
 type SnackbarOptions = {
     id?: Id;
     className?: string;
     replace?: boolean;
+    closeOnClick?: boolean;
+    autoClose?: number | false;
 };
 
 type SnackbarToastOptions = Override<SnackbarOptions, { id: Id }>;
@@ -31,10 +28,7 @@ type ToastContentProps = {
 type ToastTextContentProps = {
     header: string;
     body?: string;
-};
-
-type ToastButtonContentProps = {
-    button: SnackbarButtonOptions;
+    inline?: boolean;
 };
 
 type ApiErrorSnackbarProps = {
@@ -62,18 +56,11 @@ const ToastTextContent: React.FC<ToastTextContentProps> = ({ header, body }) => 
     );
 };
 
-const ToastButtonContent: React.FC<ToastButtonContentProps> = ({ button }) => {
-    const { t } = useTranslation();
-    const buttonText = t(button.text);
-
-    return (
-        <div className={styles['Toastify__button']} onClick={button.onClick} title={buttonText}>
-            {buttonText}
-        </div>
-    );
-};
-
 const ToastContent: React.FC<ToastContentProps> = ({ children }) => (
+    <div className={styles['Toastify__toast-content']}>{children}</div>
+);
+
+const ToastContentContainer: React.FC<ToastContentProps> = ({ children }) => (
     <div className={styles['Toastify__toast-content']}>{children}</div>
 );
 
@@ -90,7 +77,7 @@ const ApiErrorToast: React.FC<ApiErrorSnackbarProps> = ({ header, path, apiError
     };
 
     return (
-        <ToastContent>
+        <ToastContentContainer>
             <div className={styles['Toastify__toast-text']}>
                 <span className={styles['Toastify__toast-header-container']}>
                     <span className={styles['Toastify__toast-header']} title={header}>
@@ -108,7 +95,7 @@ const ApiErrorToast: React.FC<ApiErrorSnackbarProps> = ({ header, path, apiError
                     {date} | {apiError.correlationId}
                 </span>
             </div>
-        </ToastContent>
+        </ToastContentContainer>
     );
 };
 
@@ -126,9 +113,9 @@ export function info(header: string, body?: string, opts?: SnackbarOptions): Id 
     const toastOptions = { ...opts, id: opts?.id ?? getToastId(header, body) };
 
     return showInfoToast(
-        <ToastContent>
+        <ToastContentContainer>
             <ToastTextContent header={header} body={body} />
-        </ToastContent>,
+        </ToastContentContainer>,
         toastOptions,
     );
 }
@@ -165,9 +152,9 @@ export function success(header: string, body?: string, opts?: SnackbarOptions): 
     };
 
     return showSuccessToast(
-        <ToastContent>
+        <ToastContentContainer>
             <ToastTextContent header={header} body={body} />
-        </ToastContent>,
+        </ToastContentContainer>,
         toastOptions,
     );
 }
@@ -202,9 +189,9 @@ export function error(header: string, body?: string, opts?: SnackbarOptions): Id
     const toastOptions = { ...opts, id: opts?.id ?? getToastId(header, body) };
 
     return showErrorToast(
-        <ToastContent>
+        <ToastContentContainer>
             <ToastTextContent header={header} body={body} />
-        </ToastContent>,
+        </ToastContentContainer>,
         toastOptions,
     );
 }
@@ -237,17 +224,79 @@ function showErrorToast(toastContent: React.ReactNode, opts: SnackbarToastOption
     }
 }
 
+let designToastIdCounter = 0;
+
+export const showDesignSelectionToast = (toastId: Id | undefined, onAddProject: () => void) => {
+    const id = getToastId(`design-selection-${++designToastIdCounter}`);
+    showInfoToast(
+        <ToastContentContainer>
+            <SelectOrAddProject onAddProject={onAddProject} toastId={toastId} />
+        </ToastContentContainer>,
+        {
+            closeOnClick: false,
+            autoClose: false,
+            id,
+        },
+    );
+
+    return id;
+};
+
+export const hideDesignSelectionToast = (toastId: Id) => {
+    toast.dismiss(toastId);
+};
+
+type SelectOrAddProjectProps = {
+    toastId: Id | undefined;
+    onAddProject: () => void;
+};
+
+const SelectOrAddProject: React.FC<SelectOrAddProjectProps> = ({ toastId, onAddProject }) => {
+    const { t } = useTranslation();
+
+    return (
+        <ToastContent>
+            <div className={styles['Toastify__toast-text']}>
+                {`${t('select-design-project-toast.select-or')} `}
+                <a
+                    className={styles['Toastify__button']}
+                    onClick={() => {
+                        toast.dismiss(toastId);
+                        onAddProject();
+                    }}>
+                    {`${t('select-design-project-toast.add-new')}`}
+                </a>
+                {` ${t('select-design-project-toast.project')}`}
+            </div>
+        </ToastContent>
+    );
+};
+
+const SessionExpirationError: React.FC = () => {
+    const { t } = useTranslation();
+
+    return (
+        <ToastContentContainer>
+            <div className={styles['Toastify__toast-text']}>
+                <span
+                    className={styles['Toastify__toast-header']}
+                    title={t('unauthorized-request.title')}>
+                    {t('unauthorized-request.title')}
+                </span>{' '}
+                <a onClick={() => location.reload()} className={styles['Toastify__button']}>
+                    {t('unauthorized-request.button')}
+                </a>
+            </div>
+        </ToastContentContainer>
+    );
+};
+
 export function sessionExpired() {
     if (!blockToasts) {
         blockToasts = true;
 
         toast.clearWaitingQueue();
         toast.dismiss();
-
-        const buttonOptions = {
-            text: 'unauthorized-request.button',
-            onClick: () => location.reload(),
-        };
 
         const toastOptions: ToastOptions = {
             autoClose: false,
@@ -257,10 +306,9 @@ export function sessionExpired() {
         };
 
         toast.error(
-            <ToastContent>
-                <ToastTextContent header="unauthorized-request.title" />
-                <ToastButtonContent button={buttonOptions} />
-            </ToastContent>,
+            <ToastContentContainer>
+                <SessionExpirationError />
+            </ToastContentContainer>,
             toastOptions,
         );
     }
@@ -268,9 +316,9 @@ export function sessionExpired() {
 
 export function apiError(header: string, path: string, apiError: ApiErrorResponse): Id | undefined {
     return showErrorToast(
-        <ToastContent>
+        <ToastContentContainer>
             <ApiErrorToast header={header} apiError={apiError} path={path} />
-        </ToastContent>,
+        </ToastContentContainer>,
         {
             id: getToastId(header, path),
         },

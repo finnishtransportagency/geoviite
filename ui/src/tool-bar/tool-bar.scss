@@ -3,7 +3,7 @@
 .tool-bar {
     @include vayla-design.shadow-4dp;
 
-    padding: 0 6px;
+    padding-right: 6px;
     grid-column: 1 / -1;
     display: flex;
     background: vayla-design.$color-white-dark;
@@ -11,6 +11,10 @@
 
     &--draft {
         background: vayla-design.$color-blue-lighter;
+    }
+
+    &--design {
+        background: vayla-design.$color-lemon-light;
     }
 
     &__left-section,
@@ -24,6 +28,11 @@
     &__left-section,
     &__right-section {
         grid-column-gap: 6px;
+    }
+
+    &__tabs {
+        width: 330px;
+        height: 100%;
     }
 
     &__left-section .dropdown {
@@ -42,5 +51,14 @@
 
     &__new-menu-button {
         position: relative;
+    }
+
+    &__tab-header {
+        height: 100%;
+        padding: 12px 8px;
+
+        &:not(:last-child) {
+            margin-right: 10px;
+        }
     }
 }

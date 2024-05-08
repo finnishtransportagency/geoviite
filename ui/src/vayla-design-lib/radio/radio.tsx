@@ -4,7 +4,6 @@ import { createClassName } from 'vayla-design-lib/utils';
 
 export type RadioProps = {
     qaId?: string;
-    foo?: string;
 } & React.InputHTMLAttributes<HTMLInputElement>;
 
 export const Radio: React.FC<RadioProps> = ({ children, qaId, ...props }: RadioProps) => {

@@ -8,7 +8,7 @@ import {
 import { Switch } from 'vayla-design-lib/switch/switch';
 import styles from './map-layer-menu.scss';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
 import { EnvRestricted } from 'environment/env-restricted';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
@@ -156,6 +156,7 @@ export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
                 <Button
                     variant={ButtonVariant.SECONDARY}
                     icon={Icons.Layers}
+                    size={ButtonSize.X_SMALL}
                     title={t('map-layer-menu.title')}
                     onClick={() => setShowMapLayerMenu(!showMapLayerMenu)}
                     qa-id="map-layers-button"

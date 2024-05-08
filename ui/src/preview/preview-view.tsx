@@ -345,7 +345,10 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     return (
         <React.Fragment>
             <div className={styles['preview-view']} qa-id="preview-content">
-                <PreviewToolBar onClosePreview={props.onClosePreview} />
+                <PreviewToolBar
+                    onClosePreview={props.onClosePreview}
+                    designId={props.layoutContext.designId}
+                />
                 <div className={styles['preview-view__changes']}>
                     {(showPreview && (
                         <>

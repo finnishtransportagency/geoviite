@@ -4,7 +4,15 @@ import { useTrackLayoutAppSelector } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 
-export const ToolBarContainer: React.FC = () => {
+type ToolBarContainerProps = {
+    selectingDesignProject: boolean;
+    setSelectingDesignProject: (selecting: boolean) => void;
+};
+
+export const ToolBarContainer: React.FC<ToolBarContainerProps> = ({
+    selectingDesignProject,
+    setSelectingDesignProject,
+}) => {
     const trackLayoutState = useTrackLayoutAppSelector((state) => state);
     const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
 
@@ -14,7 +22,7 @@ export const ToolBarContainer: React.FC = () => {
             showArea={delegates.showArea}
             onSelect={delegates.onSelect}
             onUnselect={delegates.onUnselect}
-            onPublicationStateChange={delegates.onPublicationStateChange}
+            onLayoutContextChange={delegates.onLayoutContextChange}
             onOpenPreview={() => delegates.onLayoutModeChange('PREVIEW')}
             onStopLinking={delegates.stopLinking}
             linkingState={trackLayoutState.linkingState}
@@ -22,6 +30,8 @@ export const ToolBarContainer: React.FC = () => {
             visibleLayers={trackLayoutState.map.visibleLayers}
             mapLayerMenuGroups={trackLayoutState.map.layerMenu}
             onMapLayerChange={delegates.onLayerMenuItemChange}
+            selectingDesignProject={selectingDesignProject}
+            setSelectingDesignProject={setSelectingDesignProject}
         />
     );
 };

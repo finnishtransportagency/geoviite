@@ -23,9 +23,8 @@ import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dial
 import { SwitchEditDialogContainer } from 'tool-panel/switch/dialog/switch-edit-dialog';
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
-import { Menu, MenuOption, menuValueOption } from 'vayla-design-lib/menu/menu';
+import { Menu, menuDividerOption, MenuOption, menuValueOption } from 'vayla-design-lib/menu/menu';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import { MapLayerMenuChange, MapLayerMenuGroups, MapLayerName } from 'map/map-model';
 import { getTrackNumberReferenceLine } from 'track-layout/layout-reference-line-api';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
@@ -40,12 +39,21 @@ import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
-import { draftLayoutContext, LayoutContext, PublicationState } from 'common/common-model';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
+import { createClassName } from 'vayla-design-lib/utils';
+import {
+    hideDesignSelectionToast,
+    showDesignSelectionToast,
+} from 'geoviite-design-lib/snackbar/snackbar';
+import { Id as ToastId } from 'react-toastify';
+import { DesignProjectCreateDialog } from 'tool-bar/design-project-create-dialog';
+import { EnvRestricted } from 'environment/env-restricted';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
-    onPublicationStateChange: (publicationState: PublicationState) => void;
+    onLayoutContextChange: (context: LayoutContext) => void;
     onOpenPreview: () => void;
     showArea: (area: BoundingBox) => void;
     layoutContext: LayoutContext;
@@ -55,6 +63,8 @@ export type ToolbarParams = {
     visibleLayers: MapLayerName[];
     splittingState: SplittingState | undefined;
     linkingState: LinkingState | undefined;
+    selectingDesignProject: boolean;
+    setSelectingDesignProject: (selecting: boolean) => void;
 };
 
 type LocationTrackItemValue = {
@@ -140,16 +150,15 @@ async function getOptions(
 export const ToolBar: React.FC<ToolbarParams> = ({
     onSelect,
     onUnselect,
-    onPublicationStateChange,
+    onLayoutContextChange,
     onOpenPreview,
     showArea,
     layoutContext,
     onStopLinking,
-    onMapLayerChange,
-    mapLayerMenuGroups,
-    visibleLayers,
     splittingState,
     linkingState,
+    selectingDesignProject,
+    setSelectingDesignProject,
 }: ToolbarParams) => {
     const { t } = useTranslation();
 
@@ -158,7 +167,23 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddKmPostDialog, setShowAddKmPostDialog] = React.useState(false);
+    const [designSelectionToastId, setDesignSelectionToastId] = React.useState<
+        ToastId | undefined
+    >();
+    const [showCreateDesignDialog, setShowCreateDesignDialog] = React.useState(false);
     const menuRef = React.useRef(null);
+
+    React.useEffect(() => {
+        if (selectingDesignProject) {
+            setDesignSelectionToastId(
+                showDesignSelectionToast(designSelectionToastId, () =>
+                    setShowCreateDesignDialog(true),
+                ),
+            );
+        } else if (!selectingDesignProject && designSelectionToastId) {
+            hideDesignSelectionToast(designSelectionToastId);
+        }
+    }, [selectingDesignProject]);
 
     const disableNewAssetMenu =
         linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
@@ -170,21 +195,42 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         'locationTrack' = 2,
         'switch' = 3,
         'kmPost' = 4,
+        'designProject' = 5,
     }
 
+    const projectOptionAndDivider = [
+        menuValueOption(
+            NewMenuItems.designProject,
+            t('tool-bar.new-design-project'),
+            'tool-bar.new-design-project',
+        ),
+        menuDividerOption(),
+    ];
     const newMenuItems: MenuOption<NewMenuItems>[] = [
         menuValueOption(
             NewMenuItems.trackNumber,
             t('tool-bar.new-track-number'),
             'tool-bar.new-track-number',
+            selectingDesignProject,
         ),
         menuValueOption(
             NewMenuItems.locationTrack,
             t('tool-bar.new-location-track'),
             'tool-bar.new-location-track',
+            selectingDesignProject,
         ),
-        menuValueOption(NewMenuItems.switch, t('tool-bar.new-switch'), 'tool-bar.new-switch'),
-        menuValueOption(NewMenuItems.kmPost, t('tool-bar.new-km-post'), 'tool-bar.new-km-post'),
+        menuValueOption(
+            NewMenuItems.switch,
+            t('tool-bar.new-switch'),
+            'tool-bar.new-switch',
+            selectingDesignProject,
+        ),
+        menuValueOption(
+            NewMenuItems.kmPost,
+            t('tool-bar.new-km-post'),
+            'tool-bar.new-km-post',
+            selectingDesignProject,
+        ),
     ];
 
     const handleNewMenuItemChange = (item: NewMenuItems) => {
@@ -262,6 +308,9 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             case NewMenuItems.kmPost:
                 setShowAddKmPostDialog(true);
                 break;
+            case NewMenuItems.designProject:
+                setShowCreateDesignDialog(true);
+                break;
             default:
                 return exhaustiveMatchingGuard(dialog);
         }
@@ -270,8 +319,9 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     }
 
     function switchToOfficialContext() {
-        onPublicationStateChange('OFFICIAL');
+        onLayoutContextChange({ publicationState: 'OFFICIAL', designId: undefined });
         setShowNewAssetMenu(false);
+        setSelectingDesignProject(false);
     }
 
     function openPreviewAndStopLinking() {
@@ -303,9 +353,51 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         }
     };
 
+    const className = createClassName(
+        'tool-bar',
+        !layoutContext.designId && `tool-bar--${layoutContext.publicationState.toLowerCase()}`,
+        layoutContext.designId || (selectingDesignProject && `tool-bar--design`),
+    );
+
     return (
-        <div className={`tool-bar tool-bar--${layoutContext.publicationState.toLowerCase()}`}>
+        <div className={className}>
             <div className={styles['tool-bar__left-section']}>
+                <span className={styles['tool-bar__tabs']}>
+                    <TabHeader
+                        className={styles['tool-bar__tab-header']}
+                        selected={
+                            !layoutContext.designId &&
+                            !selectingDesignProject &&
+                            layoutContext.publicationState === 'OFFICIAL'
+                        }
+                        onClick={() => switchToOfficialContext()}>
+                        {t('tool-bar.current-mode')}
+                    </TabHeader>
+                    <TabHeader
+                        className={styles['tool-bar__tab-header']}
+                        selected={
+                            !layoutContext.designId &&
+                            !selectingDesignProject &&
+                            layoutContext.publicationState === 'DRAFT'
+                        }
+                        onClick={() => {
+                            onLayoutContextChange({
+                                publicationState: 'DRAFT',
+                                designId: undefined,
+                            });
+                            setSelectingDesignProject(false);
+                        }}>
+                        {t('tool-bar.draft-mode')}
+                    </TabHeader>
+                    <EnvRestricted restrictTo={'test'}>
+                        <TabHeader
+                            className={styles['tool-bar__tab-header']}
+                            selected={!!layoutContext.designId || selectingDesignProject}
+                            onClick={() => setSelectingDesignProject(true)}>
+                            {t('tool-bar.design-mode')}
+                        </TabHeader>
+                    </EnvRestricted>
+                </span>
                 <Dropdown
                     placeholder={
                         splittingState
@@ -314,6 +406,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                               })
                             : t('tool-bar.search-from-whole-network')
                     }
+                    disabled={selectingDesignProject}
                     options={memoizedDebouncedGetOptions}
                     searchable
                     onChange={onItemSelected}
@@ -322,77 +415,68 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     wide
                     qa-id="search-box"
                 />
-                <MapLayerMenu
-                    onMenuChange={onMapLayerChange}
-                    mapLayerMenuGroups={mapLayerMenuGroups}
-                    visibleLayers={visibleLayers}
-                />
-                <div className={styles['tool-bar__new-menu-button']} qa-id={'tool-bar.new'}>
-                    <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                        <Button
-                            ref={menuRef}
-                            title={t('tool-bar.new')}
-                            variant={ButtonVariant.SECONDARY}
-                            icon={Icons.Append}
-                            disabled={
-                                layoutContext.publicationState !== 'DRAFT' || disableNewAssetMenu
-                            }
-                            onClick={() => setShowNewAssetMenu(!showNewAssetMenu)}
-                        />
-                    </PrivilegeRequired>
-                </div>
             </div>
-
-            <div className={styles['tool-bar__middle-section']}>
-                {layoutContext.publicationState === 'DRAFT' && t('tool-bar.draft-mode.title')}
-            </div>
-
             <div className={styles['tool-bar__right-section']}>
-                {layoutContext.publicationState === 'OFFICIAL' && (
-                    <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                        <Button
-                            variant={ButtonVariant.PRIMARY}
-                            qa-id="switch-to-draft-mode"
-                            onClick={() => onPublicationStateChange('DRAFT')}>
-                            {t('tool-bar.draft-mode.enable')}
-                        </Button>
-                    </PrivilegeRequired>
-                )}
-                {layoutContext.publicationState === 'DRAFT' && (
+                {!layoutContext.designId && layoutContext.publicationState === 'DRAFT' && (
                     <React.Fragment>
-                        <Button
-                            disabled={
-                                !!splittingState ||
-                                linkingState?.state === 'allSet' ||
-                                linkingState?.state === 'setup'
-                            }
-                            variant={ButtonVariant.SECONDARY}
-                            title={modeNavigationButtonsDisabledReason()}
-                            qa-id="exit-draft-mode"
-                            onClick={() => switchToOfficialContext()}>
-                            {t('tool-bar.draft-mode.disable')}
-                        </Button>
-                        <Button
-                            disabled={
-                                !!splittingState ||
-                                linkingState?.state === 'allSet' ||
-                                linkingState?.state === 'setup'
-                            }
-                            icon={Icons.VectorRight}
-                            variant={ButtonVariant.PRIMARY}
-                            title={modeNavigationButtonsDisabledReason()}
-                            qa-id="open-preview-view"
-                            onClick={() => openPreviewAndStopLinking()}>
-                            {t('tool-bar.preview-mode.enable')}
-                        </Button>
+                        <div className={styles['tool-bar__new-menu-button']} qa-id={'tool-bar.new'}>
+                            <PrivilegeRequired privilege={EDIT_LAYOUT}>
+                                <Button
+                                    ref={menuRef}
+                                    title={t('tool-bar.new')}
+                                    variant={ButtonVariant.GHOST}
+                                    icon={Icons.Append}
+                                    disabled={
+                                        layoutContext.publicationState !== 'DRAFT' ||
+                                        disableNewAssetMenu
+                                    }
+                                    onClick={() => setShowNewAssetMenu(!showNewAssetMenu)}
+                                />
+                            </PrivilegeRequired>
+                        </div>
                     </React.Fragment>
+                )}
+                {(layoutContext.designId || selectingDesignProject) && (
+                    <React.Fragment>
+                        {/* TODO Add functionality once design projects have a data model */}
+                        <Dropdown placeholder={t('tool-bar.choose-design-project')} />
+                        <Button
+                            variant={ButtonVariant.GHOST}
+                            icon={Icons.Edit}
+                            disabled={!layoutContext.designId}
+                        />
+                        <Button
+                            variant={ButtonVariant.GHOST}
+                            icon={Icons.Delete}
+                            disabled={!layoutContext.designId}
+                        />
+                    </React.Fragment>
+                )}
+                {layoutContext.publicationState == 'DRAFT' && (
+                    <Button
+                        disabled={
+                            selectingDesignProject ||
+                            !!splittingState ||
+                            linkingState?.state === 'allSet' ||
+                            linkingState?.state === 'setup'
+                        }
+                        variant={ButtonVariant.PRIMARY}
+                        title={modeNavigationButtonsDisabledReason()}
+                        qa-id="open-preview-view"
+                        onClick={() => openPreviewAndStopLinking()}>
+                        {t('tool-bar.preview-mode.enable')}
+                    </Button>
                 )}
             </div>
 
             {showNewAssetMenu && (
                 <Menu
                     positionRef={menuRef}
-                    items={newMenuItems}
+                    items={
+                        selectingDesignProject
+                            ? [...projectOptionAndDivider, ...newMenuItems]
+                            : newMenuItems
+                    }
                     onSelect={(item) => item && handleNewMenuItemChange(item)}
                     onClickOutside={() => setShowNewAssetMenu(false)}
                 />
@@ -422,6 +506,16 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 <KmPostEditDialogContainer
                     onClose={() => setShowAddKmPostDialog(false)}
                     onSave={handleKmPostSave}
+                />
+            )}
+
+            {showCreateDesignDialog && (
+                <DesignProjectCreateDialog
+                    onCancel={() => {
+                        setShowCreateDesignDialog(false);
+                        setSelectingDesignProject(false);
+                    }}
+                    onSave={() => setShowCreateDesignDialog(false)}
                 />
             )}
         </div>
