@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -39,16 +40,17 @@ class LayoutTrackNumberDao(
         includeDeleted: Boolean,
         number: TrackNumber?,
     ): List<RowVersion<TrackLayoutTrackNumber>> {
+        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select row_id, row_version
-            from layout.track_number_publication_view
-            where :publication_state = any(publication_states)
-              and (:number::varchar is null or :number = number)
+            from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id)
+            where (:number::varchar is null or :number = number)
               and (:include_deleted = true or state != 'DELETED')
             order by number
         """.trimIndent()
         val params = mapOf(
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
             "include_deleted" to includeDeleted,
             "number" to number,
         )

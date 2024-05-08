@@ -29,16 +29,17 @@ class LayoutSwitchDao(
         publicationState: PublicationState,
         includeDeleted: Boolean,
     ): List<RowVersion<TrackLayoutSwitch>> {
+        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select
               row_id,
               row_version
-            from layout.switch_publication_view 
-            where :publication_state = any(publication_states) 
-              and (:include_deleted = true or state_category != 'NOT_EXISTING')
+            from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id)
+            where (:include_deleted = true or state_category != 'NOT_EXISTING')
         """.trimIndent()
         val params = mapOf(
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
             "include_deleted" to includeDeleted,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -50,6 +51,7 @@ class LayoutSwitchDao(
         publicationState: PublicationState,
         switchId: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
+        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             with alignment as (
               select
@@ -62,11 +64,11 @@ class LayoutSwitchDao(
                 segment_version.switch_end_joint_number
               from layout.segment_version
                 inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
-                inner join layout.location_track_publication_view location_track
-                  on location_track.alignment_id = segment_version.alignment_id
+                inner join
+                  layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
+                    location_track on location_track.alignment_id = segment_version.alignment_id
                     and location_track.alignment_version = segment_version.alignment_version
                     and location_track.state != 'DELETED'
-                    and :publication_state = any (location_track.publication_states)
             )
             select
               switch_joint.number as joint_number,
@@ -85,18 +87,19 @@ class LayoutSwitchDao(
               postgis.st_y(postgis.st_endpoint(alignment.geometry)) as location_end_y,
               alignment.official_id as location_track_id
             from layout.switch_joint
-              inner join layout.switch_publication_view switch 
+              inner join layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) switch
                 on switch.row_id = switch_joint.switch_id
                   and switch.state_category != 'NOT_EXISTING'
               left join alignment
                 on alignment.switch_id = switch.official_id
                       and (alignment.switch_start_joint_number = switch_joint.number
                         or alignment.switch_end_joint_number = switch_joint.number)
-            where switch.official_id = :switch_id and :publication_state = any(switch.publication_states)
+            where switch.official_id = :switch_id
         """.trimIndent()
         val params = mapOf(
             "switch_id" to switchId.intValue,
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
         )
 
         data class JointKey(
@@ -423,17 +426,18 @@ class LayoutSwitchDao(
     ): List<LocationTrackIdentifiers> {
         if (switchIds.isEmpty()) return emptyList()
 
+        val layoutContext = MainLayoutContext.of(publicationState)
+
         val sql = """ 
             select 
               location_track.row_id,
               location_track.row_version,
               location_track.external_id
             from layout.segment_version
-              inner join layout.location_track_publication_view location_track 
-                on location_track.alignment_id = segment_version.alignment_id
+              inner join layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
+                location_track on location_track.alignment_id = segment_version.alignment_id
                   and location_track.alignment_version = segment_version.alignment_version
-            where :publication_state = any(publication_states)
-              and (segment_version.switch_id in (:switch_ids) 
+            where (segment_version.switch_id in (:switch_ids) 
                 or location_track.topology_start_switch_id in (:switch_ids)
                 or location_track.topology_end_switch_id in (:switch_ids)
               )
@@ -444,7 +448,8 @@ class LayoutSwitchDao(
         """.trimIndent()
         val params = mapOf(
             "switch_ids" to switchIds.map { it.intValue },
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             LocationTrackIdentifiers(
@@ -522,16 +527,16 @@ class LayoutSwitchDao(
 
     fun findSwitchesNearAlignment(alignmentVersion: RowVersion<LayoutAlignment>, maxDistance: Double = 1.0): List<IntId<TrackLayoutSwitch>> {
         val sql = """
-            select distinct switch_publication_view.official_id as switch_id
+            select distinct switch.official_id as switch_id
               from layout.segment_version
                 join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
                 join layout.switch_joint on
                   postgis.st_contains(postgis.st_expand(segment_geometry.bounding_box, :dist), switch_joint.location)
                   and postgis.st_distance(segment_geometry.geometry, switch_joint.location) < :dist
-                join layout.switch_publication_view on switch_joint.switch_id = switch_publication_view.row_id
+                join layout.switch_in_layout_context('DRAFT', null) switch on switch_joint.switch_id = switch.row_id
               where segment_version.alignment_id = :alignmentId
                 and segment_version.alignment_version = :alignmentVersion
-                and switch_publication_view.state_category != 'NOT_EXISTING';
+                and switch.state_category != 'NOT_EXISTING';
         """.trimIndent()
         return jdbcTemplate.query(
             sql,

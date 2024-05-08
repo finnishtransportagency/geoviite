@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
@@ -38,6 +39,7 @@ class GeocodingDao(
         publicationState: PublicationState,
         trackNumberId: IntId<TrackLayoutTrackNumber>?,
     ): List<LayoutGeocodingContextCacheKey> {
+        val layoutContext = MainLayoutContext.of(publicationState)
         //language=SQL
         val sql = """
             select
@@ -49,19 +51,20 @@ class GeocodingDao(
                 filter (where kmp.row_id is not null) as kmp_row_ids,
               array_agg(kmp.row_version order by kmp.row_id, kmp.row_version) 
                 filter (where kmp.row_id is not null) as kmp_row_versions
-            from layout.track_number_publication_view tn
-              left join layout.reference_line_publication_view rl on rl.track_number_id = tn.official_id
-                and :publication_state = any(rl.publication_states)
-              left join layout.km_post_publication_view kmp on kmp.track_number_id = tn.official_id
-                and :publication_state = any(kmp.publication_states)
+            from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn
+              left join
+                layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id)
+                  rl on rl.track_number_id = tn.official_id
+              left join layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id)
+                kmp on kmp.track_number_id = tn.official_id
                 and kmp.state = 'IN_USE'
-            where :publication_state = any(tn.publication_states)
-              and (:tn_id::int is null or :tn_id = tn.official_id)
+            where (:tn_id::int is null or :tn_id = tn.official_id)
             group by tn.row_id, tn.row_version, rl.row_id, rl.row_version
         """.trimIndent()
         val params = mapOf(
             "tn_id" to trackNumberId?.intValue,
             "publication_state" to publicationState.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
         )
         return jdbcTemplate.queryNotNull(sql, params) { rs, _ -> toGeocodingContextCacheKey(rs) }
     }

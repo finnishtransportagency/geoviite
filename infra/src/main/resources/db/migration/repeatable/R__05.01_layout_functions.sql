@@ -40,7 +40,7 @@ end
 $$ language plpgsql called on null input
                     immutable;
 
-create or replace function layout.switch_linked_track_numbers(switch_id_in integer, publication_state text)
+create or replace function layout.switch_linked_track_numbers(switch_id_in integer, publication_state layout.publication_state, design_id int)
   returns setof integer as
 $$
 select distinct track_number_id
@@ -48,16 +48,16 @@ select distinct track_number_id
     (
       select track_number_id
         from layout.segment_version
-          inner join layout.location_track_publication_view location_track using (alignment_id, alignment_version)
-        where switch_id_in = segment_version.switch_id and publication_state = any(location_track.publication_states)
+          inner join layout.location_track_in_layout_context(publication_state, design_id) location_track
+                     using (alignment_id, alignment_version)
+        where switch_id_in = segment_version.switch_id
     )
     union all
     (
       select track_number_id
-        from layout.location_track_publication_view location_track
+        from layout.location_track_in_layout_context(publication_state, design_id) location_track
         where (switch_id_in = location_track.topology_start_switch_id
            or switch_id_in = location_track.topology_end_switch_id)
-          and publication_state = any(location_track.publication_states)
     )
   ) tns
 $$ language sql stable;

@@ -26,6 +26,8 @@ sealed class LayoutBranch {
             "Value is not a ${LayoutBranch::class.simpleName}: ${formatForException(value)}"
         }
     }
+
+    open val designId: IntId<LayoutDesign>? get() = null
 }
 
 class MainBranch private constructor() : LayoutBranch() {
@@ -49,7 +51,7 @@ class MainBranch private constructor() : LayoutBranch() {
 }
 
 @Suppress("DataClassPrivateConstructor")
-data class DesignBranch private constructor(val designId: IntId<LayoutDesign>) : LayoutBranch() {
+data class DesignBranch private constructor(override val designId: IntId<LayoutDesign>) : LayoutBranch() {
     private val stringFormat by lazy { "$prefix$designId" }
 
     companion object {

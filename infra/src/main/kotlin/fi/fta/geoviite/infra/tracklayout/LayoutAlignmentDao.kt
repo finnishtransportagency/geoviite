@@ -490,6 +490,7 @@ class LayoutAlignmentDao(
         publicationState: PublicationState,
         bbox: BoundingBox,
     ): List<MapSegmentProfileInfo<T>> {
+        val layoutContext = MainLayoutContext.of(publicationState)
         //language=SQL
         val sql = """
             select
@@ -499,7 +500,8 @@ class LayoutAlignmentDao(
               segment_version.start,
               postgis.st_m(postgis.st_endpoint(segment_geometry.geometry)) max_m,
               plan.vertical_coordinate_system
-              from layout.location_track_publication_view location_track_v
+              from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
+                  location_track_v
                 inner join layout.segment_version on
                     location_track_v.alignment_id = segment_version.alignment_id and
                     location_track_v.alignment_version = segment_version.alignment_version
@@ -510,7 +512,6 @@ class LayoutAlignmentDao(
                   postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
                   segment_geometry.bounding_box
                 )
-                and :publication_state = any(location_track_v.publication_states)
               order by segment_version.segment_index
         """.trimIndent()
 
@@ -520,7 +521,8 @@ class LayoutAlignmentDao(
             "x_max" to bbox.max.x,
             "y_max" to bbox.max.y,
             "layout_srid" to LAYOUT_SRID.code,
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->

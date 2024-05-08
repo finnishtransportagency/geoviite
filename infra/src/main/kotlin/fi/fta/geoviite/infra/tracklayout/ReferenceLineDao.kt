@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.AccessType
@@ -186,16 +187,17 @@ class ReferenceLineDao(
         publicationState: PublicationState,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): RowVersion<ReferenceLine>? {
+        val layoutContext = MainLayoutContext.of(publicationState)
         //language=SQL
         val sql = """
             select rl.row_id, rl.row_version 
-            from layout.reference_line_publication_view rl
-            where rl.track_number_id = :track_number_id 
-              and :publication_state = any(rl.publication_states)
+            from layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl
+            where rl.track_number_id = :track_number_id
         """.trimIndent()
         val params = mapOf(
             "track_number_id" to trackNumberId.intValue,
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
         )
         return jdbcTemplate.queryOptional(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
@@ -206,18 +208,19 @@ class ReferenceLineDao(
         publicationState: PublicationState,
         includeDeleted: Boolean,
     ): List<RowVersion<ReferenceLine>> {
+        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select
               rl.row_id,
               rl.row_version
-            from layout.reference_line_publication_view rl
-              left join layout.track_number_publication_view tn
-                on rl.track_number_id = tn.official_id and :publication_state = any(tn.publication_states)
-            where :publication_state = any(rl.publication_states) 
-              and (:include_deleted = true or tn.state != 'DELETED')
+            from layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl
+              left join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn
+                on rl.track_number_id = tn.official_id
+            where (:include_deleted = true or tn.state != 'DELETED')
         """.trimIndent()
         val params = mapOf(
             "publication_state" to publicationState.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
             "include_deleted" to includeDeleted,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -230,6 +233,7 @@ class ReferenceLineDao(
         publicationState: PublicationState,
         bbox: BoundingBox,
     ): List<RowVersion<ReferenceLine>> {
+        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select
               rl.row_id,
@@ -241,11 +245,10 @@ class ReferenceLineDao(
                   where postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
                                               bounding_box)
               ) sv
-                join layout.reference_line_publication_view rl using (alignment_id, alignment_version)
-                join layout.track_number_publication_view tn on rl.track_number_id = tn.official_id
-              where :publication_state = any (rl.publication_states)
-                and :publication_state = any (tn.publication_states)
-                and tn.state != 'DELETED';
+                join layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl using (alignment_id, alignment_version)
+                join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn
+                  on rl.track_number_id = tn.official_id
+              where tn.state != 'DELETED';
         """.trimIndent()
 
         val params = mapOf(
@@ -255,6 +258,7 @@ class ReferenceLineDao(
             "y_max" to bbox.max.y,
             "layout_srid" to LAYOUT_SRID.code,
             "publication_state" to publicationState.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -263,18 +267,20 @@ class ReferenceLineDao(
     }
 
     fun fetchVersionsNonLinked(publicationState: PublicationState): List<RowVersion<ReferenceLine>> {
+        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select
               rl.row_id,
               rl.row_version
-            from layout.reference_line_publication_view rl
-              left join layout.track_number_publication_view tn
-                on rl.track_number_id = tn.official_id and :publication_state = any(tn.publication_states)
+            from layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl
+              left join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn
+                on rl.track_number_id = tn.official_id
             where :publication_state = any(rl.publication_states) 
               and tn.state != 'DELETED'
               and rl.segment_count = 0
         """.trimIndent()
-        val params = mapOf("publication_state" to publicationState.name)
+        val params =
+            mapOf("publication_state" to publicationState.name, "design_id" to layoutContext.branch.designId?.intValue)
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
         }
