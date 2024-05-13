@@ -1,4 +1,4 @@
-import { Table, Th, ThContentAlignment } from 'vayla-design-lib/table/table';
+import { Table, Th } from 'vayla-design-lib/table/table';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -39,7 +39,6 @@ import { ChangeTimes } from 'common/common-slice';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { PublicationGroupAmounts } from 'publication/publication-utils';
-import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
 import styles from './preview-view.scss';
 import { PreviewTableItem } from 'preview/preview-table-item';
 
@@ -68,7 +67,7 @@ type PreviewTableProps = {
     publicationGroupAmounts: PublicationGroupAmounts;
     displayedTotalPublicationAssetAmount: number;
     previewOperations: PreviewOperations;
-    showStatusSpinner: boolean;
+    itemIsValidating: (tableEntry: PreviewTableEntry) => boolean;
 };
 
 const PreviewTable: React.FC<PreviewTableProps> = ({
@@ -81,7 +80,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     displayedTotalPublicationAssetAmount,
     previewOperations,
     onShowOnMap,
-    showStatusSpinner,
+    itemIsValidating,
 }) => {
     const { t } = useTranslation();
     const trackNumbers =
@@ -162,25 +161,14 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
         setSortInfo(newSortInfo);
     };
 
-    const sortableTableHeader = (
-        prop: SortProps,
-        translationKey: string,
-        showSpinner: boolean = false,
-    ) => (
+    const sortableTableHeader = (prop: SortProps, translationKey: string) => (
         <Th
             onClick={() => sortByProp(prop)}
             qa-id={translationKey}
-            icon={sortInfo.propName === prop ? getSortDirectionIcon(sortInfo.direction) : undefined}
-            contentAlignment={showSpinner ? ThContentAlignment.VERTICALLY_ALIGNED : undefined}>
+            icon={
+                sortInfo.propName === prop ? getSortDirectionIcon(sortInfo.direction) : undefined
+            }>
             {t(translationKey)}
-            {showSpinner && (
-                <Spinner
-                    inline={true}
-                    size={SpinnerSize.SMALL}
-                    tableHeader={true}
-                    qaId={'table-validation-in-progress'}
-                />
-            )}
         </Th>
     );
 
@@ -200,11 +188,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                             'preview-table.modified-moment',
                         )}
                         {sortableTableHeader(SortProps.USER_NAME, 'preview-table.user')}
-                        {sortableTableHeader(
-                            SortProps.ERRORS,
-                            'preview-table.status',
-                            showStatusSpinner,
-                        )}
+                        {sortableTableHeader(SortProps.ERRORS, 'preview-table.status')}
                         <Th>{t('preview-table.actions')}</Th>
                     </tr>
                 </thead>
@@ -222,6 +206,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                                     displayedTotalPublicationAssetAmount={
                                         displayedTotalPublicationAssetAmount
                                     }
+                                    isValidating={itemIsValidating}
                                 />
                             }
                         </React.Fragment>

@@ -33,6 +33,7 @@ export type PreviewTableItemProps = {
     publicationGroupAmounts: PublicationGroupAmounts;
     displayedTotalPublicationAssetAmount: number;
     onShowOnMap: (bbox: BoundingBox) => void;
+    isValidating: (item: PreviewTableEntry) => boolean;
 };
 
 export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
@@ -43,6 +44,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     publicationGroupAmounts,
     displayedTotalPublicationAssetAmount,
     onShowOnMap,
+    isValidating,
 }) => {
     const { t } = useTranslation();
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
@@ -181,7 +183,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                 </td>
                 <td>{formatDateFull(tableEntry.changeTime)}</td>
                 <td>{tableEntry.userName}</td>
-                {tableEntry.pendingValidation ? (
+                {isValidating(tableEntry) ? (
                     <td>
                         <Spinner />
                     </td>
