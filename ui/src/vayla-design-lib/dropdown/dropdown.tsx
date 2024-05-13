@@ -47,6 +47,7 @@ export type DropdownProps<TItemValue> = {
     onAddClickTitle?: string;
     wideList?: boolean;
     qaId?: string;
+    inputRef?: React.RefObject<HTMLInputElement>;
 } & Pick<React.HTMLProps<HTMLInputElement>, 'disabled' | 'title'>;
 
 function isOptionsArray<TItemValue>(
@@ -67,7 +68,7 @@ export const Dropdown = function <TItemValue>({
 }: DropdownProps<TItemValue>): JSX.Element {
     const { t } = useTranslation();
     const menuRef = React.useRef<HTMLDivElement>(null);
-    const inputRef = React.useRef<HTMLInputElement>(null);
+    const inputRefInternal = React.useRef<HTMLInputElement>(null);
     const listRef = React.useRef<HTMLUListElement>(null);
     const focusedOptionRef = React.useRef<HTMLLIElement>(null);
     const optionsIsFunc = props.options && !isOptionsArray(props.options);
@@ -88,6 +89,7 @@ export const Dropdown = function <TItemValue>({
     const [searchCommitted, setSearchTermCommitted] = React.useState(false);
     const [optionFocusIndex, setOptionFocusIndex] = React.useState(0);
     const showEmptyOption = props.canUnselect && !searchTerm && (props.value || optionsIsFunc);
+    const inputRef = props.inputRef ?? inputRefInternal;
 
     let isMouseDown = false;
     const className = createClassName(
@@ -123,6 +125,7 @@ export const Dropdown = function <TItemValue>({
             props.onFocus && props.onFocus();
         }
         _setHasFocus(value);
+        if (value) openList();
     }
 
     function focusInput() {
@@ -318,7 +321,6 @@ export const Dropdown = function <TItemValue>({
                     if (!props.disabled) {
                         e.stopPropagation();
                         focusInput();
-                        open ? closeList() : openList();
                     }
                 }}
                 title={props.title ? props.title : selectedName}>

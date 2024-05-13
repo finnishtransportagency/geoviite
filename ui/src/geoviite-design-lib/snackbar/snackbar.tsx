@@ -56,10 +56,6 @@ const ToastTextContent: React.FC<ToastTextContentProps> = ({ header, body }) => 
     );
 };
 
-const ToastContent: React.FC<ToastContentProps> = ({ children }) => (
-    <div className={styles['Toastify__toast-content']}>{children}</div>
-);
-
 const ToastContentContainer: React.FC<ToastContentProps> = ({ children }) => (
     <div className={styles['Toastify__toast-content']}>{children}</div>
 );
@@ -223,59 +219,6 @@ function showErrorToast(toastContent: React.ReactNode, opts: SnackbarToastOption
         }
     }
 }
-
-let designToastIdCounter = 0;
-
-const getDesignToastId = (id: number): string => `design-toast-${id}`;
-
-export const showDesignSelectionToast = (onAddProject: () => void) => {
-    const id = getToastId(getDesignToastId(++designToastIdCounter));
-    showInfoToast(
-        <ToastContentContainer>
-            <SelectOrAddProjectToast onAddProject={onAddProject} toastId={id} />
-        </ToastContentContainer>,
-        {
-            closeOnClick: false,
-            autoClose: false,
-            id,
-        },
-    );
-
-    return id;
-};
-
-export const hideDesignSelectionToast = (toastId: Id) => {
-    toast.dismiss(toastId);
-};
-
-export const hideLatestDesignSelectionToast = () =>
-    toast.dismiss(getToastId(getDesignToastId(designToastIdCounter)));
-
-type SelectOrAddProjectProps = {
-    toastId: Id | undefined;
-    onAddProject: () => void;
-};
-
-const SelectOrAddProjectToast: React.FC<SelectOrAddProjectProps> = ({ toastId, onAddProject }) => {
-    const { t } = useTranslation();
-
-    return (
-        <ToastContent>
-            <div className={styles['Toastify__toast-text']}>
-                {`${t('select-design-project-toast.select-or')} `}
-                <a
-                    className={styles['Toastify__button']}
-                    onClick={() => {
-                        toast.dismiss(toastId);
-                        onAddProject();
-                    }}>
-                    {`${t('select-design-project-toast.add-new')}`}
-                </a>
-                {` ${t('select-design-project-toast.project')}`}
-            </div>
-        </ToastContent>
-    );
-};
 
 const SessionExpirationErrorToast: React.FC = () => {
     const { t } = useTranslation();

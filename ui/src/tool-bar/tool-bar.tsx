@@ -23,7 +23,7 @@ import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dial
 import { SwitchEditDialogContainer } from 'tool-panel/switch/dialog/switch-edit-dialog';
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
-import { Menu, menuDividerOption, MenuOption, menuValueOption } from 'vayla-design-lib/menu/menu';
+import { Menu, MenuOption, menuValueOption } from 'vayla-design-lib/menu/menu';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { MapLayerMenuChange, MapLayerMenuGroups, MapLayerName } from 'map/map-model';
 import { getTrackNumberReferenceLine } from 'track-layout/layout-reference-line-api';
@@ -42,11 +42,7 @@ import { EDIT_LAYOUT } from 'user/user-model';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
 import { createClassName } from 'vayla-design-lib/utils';
-import {
-    hideLatestDesignSelectionToast,
-    showDesignSelectionToast,
-} from 'geoviite-design-lib/snackbar/snackbar';
-import { DesignProjectCreateDialog } from 'tool-bar/design-project-create-dialog';
+import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { EnvRestricted } from 'environment/env-restricted';
 
 export type ToolbarParams = {
@@ -62,8 +58,8 @@ export type ToolbarParams = {
     visibleLayers: MapLayerName[];
     splittingState: SplittingState | undefined;
     linkingState: LinkingState | undefined;
-    selectingDesignProject: boolean;
-    setSelectingDesignProject: (selecting: boolean) => void;
+    selectingWorkspace: boolean;
+    setSelectingWorkspace: (selecting: boolean) => void;
 };
 
 type LocationTrackItemValue = {
@@ -156,8 +152,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     onStopLinking,
     splittingState,
     linkingState,
-    selectingDesignProject,
-    setSelectingDesignProject,
+    selectingWorkspace,
+    setSelectingWorkspace,
 }: ToolbarParams) => {
     const { t } = useTranslation();
 
@@ -166,18 +162,17 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddKmPostDialog, setShowAddKmPostDialog] = React.useState(false);
-    const [showCreateDesignDialog, setShowCreateDesignDialog] = React.useState(false);
+    const [showCreateWorkspaceDialog, setShowCreateWorkspaceDialog] = React.useState(false);
     const menuRef = React.useRef(null);
+    const selectWorkspaceDropdownRef = React.useRef<HTMLInputElement>(null);
 
     React.useEffect(() => {
-        if (selectingDesignProject) {
-            showDesignSelectionToast(() => setShowCreateDesignDialog(true));
-        } else if (!selectingDesignProject) {
-            hideLatestDesignSelectionToast();
-        }
-    }, [selectingDesignProject]);
+        if (selectingWorkspace) selectWorkspaceDropdownRef?.current?.focus();
+    }, [selectingWorkspace]);
 
     const disableNewAssetMenu =
+        layoutContext.publicationState !== 'DRAFT' ||
+        selectingWorkspace ||
         linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
         linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment ||
         !!splittingState;
@@ -187,42 +182,21 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         'locationTrack' = 2,
         'switch' = 3,
         'kmPost' = 4,
-        'designProject' = 5,
     }
 
-    const projectOptionAndDivider = [
-        menuValueOption(
-            NewMenuItems.designProject,
-            t('tool-bar.new-design-project'),
-            'tool-bar.new-design-project',
-        ),
-        menuDividerOption(),
-    ];
     const newMenuItems: MenuOption<NewMenuItems>[] = [
         menuValueOption(
             NewMenuItems.trackNumber,
             t('tool-bar.new-track-number'),
             'tool-bar.new-track-number',
-            selectingDesignProject,
         ),
         menuValueOption(
             NewMenuItems.locationTrack,
             t('tool-bar.new-location-track'),
             'tool-bar.new-location-track',
-            selectingDesignProject,
         ),
-        menuValueOption(
-            NewMenuItems.switch,
-            t('tool-bar.new-switch'),
-            'tool-bar.new-switch',
-            selectingDesignProject,
-        ),
-        menuValueOption(
-            NewMenuItems.kmPost,
-            t('tool-bar.new-km-post'),
-            'tool-bar.new-km-post',
-            selectingDesignProject,
-        ),
+        menuValueOption(NewMenuItems.switch, t('tool-bar.new-switch'), 'tool-bar.new-switch'),
+        menuValueOption(NewMenuItems.kmPost, t('tool-bar.new-km-post'), 'tool-bar.new-km-post'),
     ];
 
     const handleNewMenuItemChange = (item: NewMenuItems) => {
@@ -300,10 +274,6 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             case NewMenuItems.kmPost:
                 setShowAddKmPostDialog(true);
                 break;
-            case NewMenuItems.designProject:
-                setShowCreateDesignDialog(true);
-                setSelectingDesignProject(false);
-                break;
             default:
                 return exhaustiveMatchingGuard(dialog);
         }
@@ -314,7 +284,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     function switchToMainOfficial() {
         onLayoutContextChange({ publicationState: 'OFFICIAL', designId: undefined });
         setShowNewAssetMenu(false);
-        setSelectingDesignProject(false);
+        setSelectingWorkspace(false);
     }
 
     const switchToMainDraft = () => {
@@ -322,7 +292,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             publicationState: 'DRAFT',
             designId: undefined,
         });
-        setSelectingDesignProject(false);
+        setSelectingWorkspace(false);
     };
 
     function openPreviewAndStopLinking() {
@@ -357,7 +327,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const className = createClassName(
         'tool-bar',
         !layoutContext.designId && `tool-bar--${layoutContext.publicationState.toLowerCase()}`,
-        layoutContext.designId || (selectingDesignProject && `tool-bar--design`),
+        layoutContext.designId || (selectingWorkspace && `tool-bar--design`),
     );
 
     return (
@@ -368,7 +338,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         className={styles['tool-bar__tab-header']}
                         selected={
                             !layoutContext.designId &&
-                            !selectingDesignProject &&
+                            !selectingWorkspace &&
                             layoutContext.publicationState === 'OFFICIAL'
                         }
                         onClick={() => switchToMainOfficial()}>
@@ -378,7 +348,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         className={styles['tool-bar__tab-header']}
                         selected={
                             !layoutContext.designId &&
-                            !selectingDesignProject &&
+                            !selectingWorkspace &&
                             layoutContext.publicationState === 'DRAFT'
                         }
                         onClick={() => switchToMainDraft()}>
@@ -387,8 +357,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     <EnvRestricted restrictTo={'test'}>
                         <TabHeader
                             className={styles['tool-bar__tab-header']}
-                            selected={!!layoutContext.designId || selectingDesignProject}
-                            onClick={() => setSelectingDesignProject(true)}>
+                            selected={!!layoutContext.designId || selectingWorkspace}
+                            onClick={() => setSelectingWorkspace(true)}>
                             {t('tool-bar.design-mode')}
                         </TabHeader>
                     </EnvRestricted>
@@ -401,7 +371,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                               })
                             : t('tool-bar.search-from-whole-network')
                     }
-                    disabled={selectingDesignProject}
+                    disabled={selectingWorkspace}
                     options={memoizedDebouncedGetOptions}
                     searchable
                     onChange={onItemSelected}
@@ -421,20 +391,21 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                     title={t('tool-bar.new')}
                                     variant={ButtonVariant.GHOST}
                                     icon={Icons.Append}
-                                    disabled={
-                                        layoutContext.publicationState !== 'DRAFT' ||
-                                        disableNewAssetMenu
-                                    }
+                                    disabled={disableNewAssetMenu}
                                     onClick={() => setShowNewAssetMenu(!showNewAssetMenu)}
                                 />
                             </PrivilegeRequired>
                         </div>
                     </React.Fragment>
                 )}
-                {(layoutContext.designId || selectingDesignProject) && (
+                {(layoutContext.designId || selectingWorkspace) && (
                     <React.Fragment>
                         {/* TODO Add functionality once design projects have a data model */}
-                        <Dropdown placeholder={t('tool-bar.choose-design-project')} />
+                        <Dropdown
+                            inputRef={selectWorkspaceDropdownRef}
+                            placeholder={t('tool-bar.choose-workspace')}
+                            onAddClick={() => setShowCreateWorkspaceDialog(true)}
+                        />
                         <Button
                             variant={ButtonVariant.GHOST}
                             icon={Icons.Edit}
@@ -450,7 +421,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 {layoutContext.publicationState == 'DRAFT' && (
                     <Button
                         disabled={
-                            selectingDesignProject ||
+                            selectingWorkspace ||
                             !!splittingState ||
                             linkingState?.state === 'allSet' ||
                             linkingState?.state === 'setup'
@@ -467,11 +438,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             {showNewAssetMenu && (
                 <Menu
                     positionRef={menuRef}
-                    items={
-                        selectingDesignProject
-                            ? [...projectOptionAndDivider, ...newMenuItems]
-                            : newMenuItems
-                    }
+                    items={newMenuItems}
                     onSelect={(item) => item && handleNewMenuItemChange(item)}
                     onClickOutside={() => setShowNewAssetMenu(false)}
                 />
@@ -504,13 +471,13 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 />
             )}
 
-            {showCreateDesignDialog && (
-                <DesignProjectCreateDialog
+            {showCreateWorkspaceDialog && (
+                <WorkspaceDialog
                     onCancel={() => {
-                        setShowCreateDesignDialog(false);
-                        setSelectingDesignProject(false);
+                        setShowCreateWorkspaceDialog(false);
+                        setSelectingWorkspace(false);
                     }}
-                    onSave={() => setShowCreateDesignDialog(false)}
+                    onSave={() => setShowCreateWorkspaceDialog(false)}
                 />
             )}
         </div>

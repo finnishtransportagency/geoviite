@@ -8,24 +8,21 @@ import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { DatePicker } from 'vayla-design-lib/datepicker/datepicker';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import styles from './design-project-create-dialog.scss';
+import styles from './workspace-dialog.scss';
 
-type DesignProjectCreateDialogProps = {
+type WorkspaceDialogProps = {
     onCancel: () => void;
     onSave: () => void;
 };
 
-export const DesignProjectCreateDialog: React.FC<DesignProjectCreateDialogProps> = ({
-    onCancel,
-    onSave,
-}) => {
+export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({ onCancel, onSave }) => {
     const { t } = useTranslation();
 
     // TODO Add data bindings and such once design projects have a data model
     return (
         <Dialog
-            className={styles['design-project-create-dialog']}
-            title={t('design-project-dialog.title-new')}
+            className={styles['workspace-dialog']}
+            title={t('workspace-dialog.title-new')}
             onClose={onCancel}
             footerContent={
                 <React.Fragment>
@@ -39,15 +36,13 @@ export const DesignProjectCreateDialog: React.FC<DesignProjectCreateDialogProps>
             }>
             <FormLayout>
                 <FormLayoutColumn>
-                    <Heading size={HeadingSize.SUB}>
-                        {t('design-project-dialog.basic-info')}
-                    </Heading>
+                    <Heading size={HeadingSize.SUB}>{t('workspace-dialog.basic-info')}</Heading>
                     <FieldLayout
-                        label={`${t('design-project-dialog.name')} *`}
+                        label={`${t('workspace-dialog.name')} *`}
                         value={<TextField wide />}
                     />
                     <FieldLayout
-                        label={`${t('design-project-dialog.completion-date')} *`}
+                        label={`${t('workspace-dialog.completion-date')} *`}
                         value={<DatePicker value={new Date()} />}
                     />
                 </FormLayoutColumn>

@@ -5,13 +5,13 @@ import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 
 type ToolBarContainerProps = {
-    selectingDesignProject: boolean;
-    setSelectingDesignProject: (selecting: boolean) => void;
+    selectingWorkspace: boolean;
+    setSelectingWorkspace: (selecting: boolean) => void;
 };
 
 export const ToolBarContainer: React.FC<ToolBarContainerProps> = ({
-    selectingDesignProject,
-    setSelectingDesignProject,
+    selectingWorkspace,
+    setSelectingWorkspace,
 }) => {
     const trackLayoutState = useTrackLayoutAppSelector((state) => state);
     const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
@@ -30,8 +30,8 @@ export const ToolBarContainer: React.FC<ToolBarContainerProps> = ({
             visibleLayers={trackLayoutState.map.visibleLayers}
             mapLayerMenuGroups={trackLayoutState.map.layerMenu}
             onMapLayerChange={delegates.onLayerMenuItemChange}
-            selectingDesignProject={selectingDesignProject}
-            setSelectingDesignProject={setSelectingDesignProject}
+            selectingWorkspace={selectingWorkspace}
+            setSelectingWorkspace={setSelectingWorkspace}
         />
     );
 };

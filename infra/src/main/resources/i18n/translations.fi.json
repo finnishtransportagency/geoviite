@@ -121,11 +121,6 @@
         "title": "Istunto on vanhentunut.",
         "button": "Lataa sivu uudestaan"
     },
-    "select-design-project-toast": {
-        "select-or": "Valitse tai",
-        "add-new": "lisää uusi",
-        "project": "projekti"
-    },
     "button": {
         "return": "Poistu",
         "cancel": "Peruuta",
@@ -1629,10 +1624,9 @@
         "new-switch": "Uusi vaihde",
         "new-location-track": "Uusi sijaintiraide",
         "new-km-post": "Uusi tasakilometripiste",
-        "new-design-project": "Uusi projekti",
         "splitting-in-progress": "Raiteen jakaminen on kesken",
         "linking-in-progress": "Linkitys on kesken",
-        "choose-design-project": "Valitse projekti"
+        "choose-workspace": "Valitse työtila"
     },
     "user-card": {
         "my-details": "Omat tiedot",
@@ -1728,11 +1722,11 @@
         "name-in-use-deleted": "Huomaa, että paikannuspohjassa on poistettu vaihde samalla tunnuksella",
         "move-to-edit-deleted": "Voit siirtyä palauttamaan poistetun vaihteen tästä"
     },
-    "design-project-dialog": {
-        "title-new": "Uusi projekti",
-        "title-edit": "Muokkaa projektia",
+    "workspace-dialog": {
+        "title-new": "Uusi työtila",
+        "title-edit": "Muokkaa työtilaa",
         "basic-info": "Perustiedot",
-        "name": "Projektin nimi",
+        "name": "Työtilan nimi",
         "completion-date": "Arvioitu valmistumisajankohta"
     },
     "switch-delete-dialog": {

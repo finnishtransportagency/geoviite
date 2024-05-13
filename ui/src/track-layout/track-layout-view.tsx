@@ -30,19 +30,19 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
 
     const [hoveredOverPlanSection, setHoveredOverPlanSection] =
         React.useState<HighlightedAlignment>();
-    const [selectingDesignProject, setSelectingDesignProject] = React.useState(false);
+    const [selectingWorkspace, setSelectingWorkspace] = React.useState(false);
 
     return (
         <div className={className} qa-id="track-layout-content">
             <ToolBarContainer
-                setSelectingDesignProject={setSelectingDesignProject}
-                selectingDesignProject={selectingDesignProject}
+                setSelectingWorkspace={setSelectingWorkspace}
+                selectingWorkspace={selectingWorkspace}
             />
 
             <div className={'track-layout__progress-indicator-wrapper'}>
                 <ProgressIndicatorWrapper
                     indicator={ProgressIndicatorType.Area}
-                    inProgress={selectingDesignProject}
+                    inProgress={selectingWorkspace}
                     inline={false}>
                     <div className={styles['track-layout__main-view']}>
                         <div className={styles['track-layout__navi']}>

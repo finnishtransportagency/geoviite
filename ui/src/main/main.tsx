@@ -1,6 +1,6 @@
 import * as React from 'react';
 import 'i18n/config';
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import styles from './main.module.scss';
 import { TrackLayoutContainer } from 'track-layout/track-layout-container';
 import { Slide, ToastContainer } from 'react-toastify';
@@ -34,7 +34,6 @@ import { PublicationDetailsContainer } from 'publication/publication-details-con
 import { purgePersistentState } from 'index';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { VIEW_GEOMETRY } from 'user/user-model';
-import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 
 type MainProps = {
     layoutMode: LayoutMode;
@@ -107,7 +106,6 @@ export const MainContainer: React.FC = () => {
         'loading',
     );
     const delegates = React.useMemo(() => createDelegates(commonActionCreators), []);
-    const loc = useLocation();
 
     React.useEffect(() => {
         getOwnUser().then((user) => {
@@ -118,10 +116,6 @@ export const MainContainer: React.FC = () => {
             }
         });
     }, []);
-
-    React.useEffect(() => {
-        Snackbar.hideLatestDesignSelectionToast();
-    }, [loc]);
 
     React.useEffect(() => {
         if (typeof versionFromBackend == 'string') {
