@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.switchNameLength
 import fi.fta.geoviite.infra.common.trackNumberLength
 import fi.fta.geoviite.infra.geometry.MetaDataName
+import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
@@ -131,6 +132,10 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
         getUniqueName(DbTable.GEOMETRY_PLAN_AUTHOR, 100)
     )
 
+    fun getUnusedBulkTransferId(): IntId<BulkTransfer> {
+        return getUniqueId(DbTable.PUBLICATION_SPLIT, "bulk_transfer_id")
+    }
+
     private fun getUniqueName(table: DbTable, maxLength: Int): String {
         val sql = "select max(id) max_id from ${table.versionTable}"
         val maxId = jdbc.queryForObject(sql, mapOf<String, Any>()) { rs, _ -> rs.getInt("max_id") }!!
@@ -140,6 +145,16 @@ abstract class DBTestBase(val testUser: String = TEST_USER) {
             else className
         }
         return "$baseName ${maxId + 1}"
+    }
+
+    private fun<T> getUniqueId(table: DbTable, column: String): IntId<T> {
+        val sql = "select max($column) max_id from ${table.fullName}"
+        val maxId = jdbc.queryForObject(sql, mapOf<String, Any>()) { rs, _ -> rs.getInt("max_id") }
+
+        return when {
+            maxId == null -> IntId(0)
+            else -> IntId(maxId + 1)
+        }
     }
 
     fun insertNewTrackNumber(

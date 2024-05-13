@@ -21,6 +21,7 @@ import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
+import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.PublicationRequestIds
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.ratko.model.OperationalPointType
@@ -34,6 +35,10 @@ import fi.fta.geoviite.infra.ratko.model.RatkoPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoPointStates
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumberStateType
+import fi.fta.geoviite.infra.split.BulkTransferState
+import fi.fta.geoviite.infra.split.SplitDao
+import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -101,8 +106,11 @@ class RatkoServiceIT @Autowired constructor(
     val kmPostDao: LayoutKmPostDao,
     val fakeRatkoService: FakeRatkoService,
     val geometryDao: GeometryDao,
-) : DBTestBase() {
-
+    val publicationDao: PublicationDao,
+    val splitDao: SplitDao,
+    val splitService: SplitService,
+    val splitTestDataService: SplitTestDataService,
+    ) : DBTestBase() {
     @BeforeEach
     fun cleanup() {
         val sql = """
@@ -1190,6 +1198,175 @@ class RatkoServiceIT @Autowired constructor(
         assertEquals(listOf("Liukuainen", "Turpasauna"), pointsFromDatabase.map { it.name }.sorted())
         assertEquals(5,
             jdbc.queryOne("""select count(*) as c from layout.operating_point_version""") { rs, _ -> rs.getInt("c") })
+    }
+
+    @Test
+    fun `Bulk transfers should not be started for any unpublished splits`() {
+        splitTestDataService.forcefullyFinishAllCurrentlyUnfinishedSplits(LayoutBranch.main)
+
+        val splitId = splitTestDataService.insertSplit()
+        ratkoService.manageRatkoBulkTransfers(LayoutBranch.main)
+        val splitAfterManagerRun = splitDao.getOrThrow(splitId)
+
+        assertEquals(null, splitAfterManagerRun.publicationId)
+        assertEquals(null, splitAfterManagerRun.bulkTransferId)
+        assertEquals(BulkTransferState.PENDING, splitAfterManagerRun.bulkTransferState)
+    }
+
+    @Test
+    fun `Bulk transfer manager should start and poll bulk transfers for pending & published splits`() {
+        splitTestDataService.forcefullyFinishAllCurrentlyUnfinishedSplits(LayoutBranch.main)
+
+        val splitId = splitTestDataService.insertSplit()
+        val publicationId = publicationDao.createPublication("test: bulk transfer to in progress")
+        splitDao.updateSplit(splitId = splitId, publicationId = publicationId)
+
+        val someBulkTransferId = getUnusedBulkTransferId()
+        fakeRatko.acceptsNewBulkTransferGivingItId(someBulkTransferId)
+
+        ratkoService.manageRatkoBulkTransfers(LayoutBranch.main)
+
+        val splitAfterBulkTransferStart = splitDao.getOrThrow(splitId)
+        assertEquals(BulkTransferState.IN_PROGRESS, splitAfterBulkTransferStart.bulkTransferState)
+        assertEquals(someBulkTransferId, splitAfterBulkTransferStart.bulkTransferId)
+
+        ratkoService.manageRatkoBulkTransfers(LayoutBranch.main)
+
+        val splitAfterPoll = splitDao.getOrThrow(splitId)
+        assertEquals(BulkTransferState.DONE, splitAfterPoll.bulkTransferState)
+        assertEquals(someBulkTransferId, splitAfterPoll.bulkTransferId)
+    }
+
+    @Test
+    fun `Bulk transfer should not be started when another bulk transfer is in progress`() {
+        splitTestDataService.insertSplit().let { splitId ->
+            splitDao.updateSplit(
+                splitId = splitId,
+                publicationId = publicationDao.createPublication("some in progress bulk transfer"),
+                bulkTransferState = BulkTransferState.IN_PROGRESS,
+                bulkTransferId = getUnusedBulkTransferId(),
+            ).id
+        }
+
+        val pendingSplitId = splitTestDataService.insertSplit().let { splitId ->
+            splitDao.updateSplit(
+                splitId = splitId,
+                publicationId = publicationDao.createPublication("pending bulk transfer"),
+            ).id
+        }
+
+        ratkoService.processBulkTransferStarts(LayoutBranch.main)
+
+        val pendingSplitAfterBulkTransferProcessing = splitDao.getOrThrow(pendingSplitId)
+        assertEquals(null, pendingSplitAfterBulkTransferProcessing.bulkTransferId)
+        assertEquals(BulkTransferState.PENDING, pendingSplitAfterBulkTransferProcessing.bulkTransferState)
+    }
+
+    @Test
+    fun `Temporary failed bulk transfer should be retried`() {
+        splitTestDataService.forcefullyFinishAllCurrentlyUnfinishedSplits(LayoutBranch.main)
+
+        val splitId = splitTestDataService.insertSplit().let { splitId ->
+            splitDao.updateSplit(
+                splitId = splitId,
+                publicationId = publicationDao.createPublication("pending bulk transfer"),
+            ).id
+        }
+
+        val bulkTransferIdThatWillFail = getUnusedBulkTransferId()
+        fakeRatko.acceptsNewBulkTransferGivingItId(bulkTransferIdThatWillFail)
+        ratkoService.manageRatkoBulkTransfers(LayoutBranch.main)
+
+        val splitAfterFirstBulkTransferStart = splitDao.getOrThrow(splitId)
+        assertEquals(bulkTransferIdThatWillFail, splitAfterFirstBulkTransferStart.bulkTransferId)
+        assertEquals(BulkTransferState.IN_PROGRESS, splitAfterFirstBulkTransferStart.bulkTransferState)
+
+        splitDao.updateSplit(
+            splitId = splitId,
+            bulkTransferState = BulkTransferState.TEMPORARY_FAILURE,
+        )
+
+        val retriedBulkTransferId = getUnusedBulkTransferId()
+        fakeRatko.acceptsNewBulkTransferGivingItId(retriedBulkTransferId)
+        ratkoService.manageRatkoBulkTransfers(LayoutBranch.main)
+
+        val splitAfterSecondExpectedBulkTransferStart = splitDao.getOrThrow(splitId)
+        assertEquals(retriedBulkTransferId, splitAfterSecondExpectedBulkTransferStart.bulkTransferId)
+        assertEquals(BulkTransferState.IN_PROGRESS, splitAfterSecondExpectedBulkTransferStart.bulkTransferState)
+    }
+    @Test
+    fun `Bulk transfer should be started after another bulk transfer has just finished`() {
+        val somePreviousBulkTransferId = getUnusedBulkTransferId()
+
+        val previouslyCreatedSplitId = splitTestDataService.insertSplit().let { splitId ->
+            splitDao.updateSplit(
+                splitId = splitId,
+                publicationId = publicationDao.createPublication("some previous bulk transfer"),
+            ).id
+        }
+
+        fakeRatko.acceptsNewBulkTransferGivingItId(somePreviousBulkTransferId)
+        ratkoService.manageRatkoBulkTransfers(LayoutBranch.main)
+
+        val inProgressSplit = splitDao.getOrThrow(previouslyCreatedSplitId)
+        assertEquals(somePreviousBulkTransferId, inProgressSplit.bulkTransferId)
+        assertEquals(BulkTransferState.IN_PROGRESS, inProgressSplit.bulkTransferState)
+
+        val newSplitId = splitTestDataService.insertSplit().let { splitId ->
+            splitDao.updateSplit(
+                splitId = splitId,
+                publicationId = publicationDao.createPublication("some other bulk transfer"),
+            ).id
+        }
+
+        val newBulkTransferId = getUnusedBulkTransferId()
+        fakeRatko.acceptsNewBulkTransferGivingItId(newBulkTransferId)
+        ratkoService.manageRatkoBulkTransfers(LayoutBranch.main)
+
+        val splitWithFinishedBulkTransfer = splitDao.getOrThrow(previouslyCreatedSplitId)
+        assertEquals(somePreviousBulkTransferId, splitWithFinishedBulkTransfer.bulkTransferId)
+        assertEquals(BulkTransferState.DONE, splitWithFinishedBulkTransfer.bulkTransferState)
+
+        val newSplitAfterBulkTransferManagerRun = splitDao.getOrThrow(newSplitId)
+        assertEquals(newBulkTransferId, newSplitAfterBulkTransferManagerRun.bulkTransferId)
+        assertEquals(BulkTransferState.IN_PROGRESS, newSplitAfterBulkTransferManagerRun.bulkTransferState)
+    }
+
+    @Test
+    fun `Polling bulk transfer state updates should not change the state of any splits that are not in progress`() {
+        val splitsAndExpectedBulkTransferStates = BulkTransferState.entries
+            .filter { state -> state != BulkTransferState.IN_PROGRESS }
+            .map { bulkTransferState ->
+                val splitId = splitTestDataService.insertSplit()
+
+                when (bulkTransferState) {
+                    BulkTransferState.PENDING ->
+                        splitDao.updateSplit(
+                            splitId = splitId,
+                            bulkTransferState = bulkTransferState
+                        )
+
+                    else ->
+                        splitDao.updateSplit(
+                            splitId = splitId,
+                            publicationId = publicationDao.createPublication("testing $bulkTransferState"),
+                            bulkTransferId = getUnusedBulkTransferId(),
+                            bulkTransferState = bulkTransferState,
+                        )
+                }
+
+                splitId to bulkTransferState
+            }
+
+        (0..2).forEach { _ ->
+            ratkoService.pollBulkTransferStateUpdates(LayoutBranch.main)
+        }
+
+        splitsAndExpectedBulkTransferStates.forEach { (splitId, expectedBulkTransferState) ->
+            splitDao.getOrThrow(splitId).let { split ->
+                assertEquals(expectedBulkTransferState, split.bulkTransferState)
+            }
+        }
     }
 
     private fun insertSomeOfficialReferenceLineFor(

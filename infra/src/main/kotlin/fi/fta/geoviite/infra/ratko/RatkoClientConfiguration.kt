@@ -30,6 +30,7 @@ class RatkoClientConfiguration @Autowired constructor(
     @Value("\${geoviite.ratko.url:}") private val ratkoBaseUrl: String,
     @Value("\${geoviite.ratko.username:}") private val basicAuthUsername: String,
     @Value("\${geoviite.ratko.password:}") private val basicAuthPassword: String,
+    @Value("\${geoviite.ratko.bulk-transfers-enabled:}") val bulkTransfersEnabled: Boolean,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(RatkoClient::class.java)

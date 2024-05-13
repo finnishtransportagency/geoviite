@@ -34,6 +34,7 @@ private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>) = Sp
         "source_location_track_row_version",
     ),
     bulkTransferState = rs.getEnum("bulk_transfer_state"),
+    bulkTransferId = rs.getIntIdOrNull("bulk_transfer_id"),
     publicationId = rs.getIntIdOrNull("publication_id"),
     targetLocationTracks = targetLocationTracks,
     relinkedSwitches = rs.getIntIdArray("switch_ids"),
@@ -58,12 +59,14 @@ class SplitDao(
               source_location_track_row_id,
               source_location_track_row_version,
               bulk_transfer_state,
+              bulk_transfer_id,
               publication_id
             ) 
             values (
               :source_location_track_row_id,
               :source_location_track_row_version,
               'PENDING',
+              null,
               null
             )
             returning id
@@ -168,6 +171,7 @@ class SplitDao(
               split.id,
               split.version,
               split.bulk_transfer_state,
+              split.bulk_transfer_id,
               split.publication_id,
               coalesce(source_track.official_row_id, source_track.id) as source_location_track_official_id,
               split.source_location_track_row_id,
@@ -220,6 +224,7 @@ class SplitDao(
     fun updateSplit(
         splitId: IntId<Split>,
         bulkTransferState: BulkTransferState? = null,
+        bulkTransferId: IntId<BulkTransfer>? = null,
         publicationId: IntId<Publication>? = null,
         sourceTrackVersion: RowVersion<LocationTrack>? = null,
     ): RowVersion<Split> {
@@ -227,6 +232,7 @@ class SplitDao(
             update publication.split
             set 
                 bulk_transfer_state = coalesce(:bulk_transfer_state::publication.bulk_transfer_state, bulk_transfer_state),
+                bulk_transfer_id = coalesce(:bulk_transfer_id, bulk_transfer_id),
                 publication_id = coalesce(:publication_id, publication_id),
                 source_location_track_row_id = coalesce(:source_track_row_id, source_location_track_row_id),
                 source_location_track_row_version = coalesce(:source_track_row_version, source_location_track_row_version)
@@ -236,6 +242,7 @@ class SplitDao(
 
         val params = mapOf(
             "bulk_transfer_state" to bulkTransferState?.name,
+            "bulk_transfer_id" to bulkTransferId?.intValue,
             "publication_id" to publicationId?.intValue,
             "split_id" to splitId.intValue,
             "source_track_row_id" to sourceTrackVersion?.id?.intValue,
@@ -274,6 +281,7 @@ class SplitDao(
               split.id,
               split.version,
               split.bulk_transfer_state,
+              split.bulk_transfer_id,
               split.publication_id,
               array_agg(split_relinked_switch.switch_id) as switch_ids,
               array_agg(split_updated_duplicate.duplicate_location_track_id) as updated_duplicate_ids,

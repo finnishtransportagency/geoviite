@@ -14,6 +14,8 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FreeText
 
+class BulkTransfer
+
 enum class BulkTransferState {
     PENDING,
     IN_PROGRESS,
@@ -42,6 +44,7 @@ data class Split(
     val sourceLocationTrackId: IntId<LocationTrack>,
     val sourceLocationTrackVersion: RowVersion<LocationTrack>,
     val bulkTransferState: BulkTransferState,
+    val bulkTransferId: IntId<BulkTransfer>?,
     val publicationId: IntId<Publication>?,
     val targetLocationTracks: List<SplitTarget>,
     val relinkedSwitches: List<IntId<TrackLayoutSwitch>>,
@@ -53,6 +56,12 @@ data class Split(
         }
         if (publicationId == null) {
             require(bulkTransferState == BulkTransferState.PENDING) { "Split must be pending if not published" }
+        }
+
+        if (bulkTransferState == BulkTransferState.IN_PROGRESS) {
+            requireNotNull(bulkTransferId) {
+                "Split must have a non-null bulk transfer id when bulk transfer state is set to be in progress"
+            }
         }
     }
 

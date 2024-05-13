@@ -8,6 +8,7 @@ import com.fasterxml.jackson.module.kotlin.jsonMapper
 import com.fasterxml.jackson.module.kotlin.kotlinModule
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.kotlin.treeToValue
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.ratko.model.IncomingRatkoAssetLocation
 import fi.fta.geoviite.infra.ratko.model.IncomingRatkoGeometry
@@ -29,6 +30,8 @@ import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointAssetsResponse
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointParse
 import fi.fta.geoviite.infra.ratko.model.RatkoPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
+import fi.fta.geoviite.infra.split.BulkTransfer
+import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import org.mockserver.client.ForwardChainExpectation
 import org.mockserver.configuration.Configuration
@@ -127,6 +130,14 @@ class FakeRatko(port: Int) {
                 val json = jsonMapper.readValue(body, RatkoRouteNumber::class.java)
                 if (json.id == oid.toString()) json else null
             }
+
+    fun acceptsNewBulkTransferGivingItId(bulkTransferId: IntId<BulkTransfer>) {
+        val responseStarted = BulkTransferResponse(id = bulkTransferId, state = BulkTransferState.IN_PROGRESS)
+        val responseFinished = BulkTransferResponse(id = bulkTransferId, state = BulkTransferState.DONE)
+
+        post("/api/split/bulk-transfer/start", times = Times.once()).respond(okJson(responseStarted))
+        get("/api/split/bulk-transfer/$bulkTransferId/state").respond(okJson(responseFinished))
+    }
 
     // return deleted route number kms, or an empty string if all of a route number points were deleted
     fun getRouteNumberPointDeletions(oid: String): List<String> =
@@ -314,4 +325,9 @@ private fun marshallOperatingPoint(point: RatkoOperatingPointParse): RatkoOperat
             )
         )
     ),
+)
+
+data class BulkTransferResponse(
+    val id: IntId<BulkTransfer>,
+    val state: BulkTransferState,
 )

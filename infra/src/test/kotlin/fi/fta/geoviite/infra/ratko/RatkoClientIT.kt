@@ -4,6 +4,9 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoSwitchAsset
 import fi.fta.geoviite.infra.ratko.model.convertToRatkoSwitch
+import fi.fta.geoviite.infra.split.BulkTransferState
+import fi.fta.geoviite.infra.split.SplitDao
+import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.switch
@@ -23,6 +26,8 @@ class RatkoClientIT @Autowired constructor(
     private val ratkoClient: RatkoClient,
     private val switchLibraryService: SwitchLibraryService,
     private val fakeRatkoService: FakeRatkoService,
+    private val splitDao: SplitDao,
+    private val splitTestDataService: SplitTestDataService,
 ) : DBTestBase() {
 
     lateinit var fakeRatko: FakeRatko
@@ -81,5 +86,34 @@ class RatkoClientIT @Autowired constructor(
     fun shouldGetExternalIdForNewTrackNumber() {
         fakeRatko.acceptsNewRouteNumbersGivingThemOids(listOf("1.2.3.4.5"))
         assertEquals("1.2.3.4.5", ratkoClient.getNewRouteNumberOid()!!.id)
+    }
+
+    @Test
+    fun shouldStartNewBulkTransfer() {
+        val split = splitTestDataService
+            .insertSplit()
+            .let(splitDao::getOrThrow)
+
+        val expectedBulkTransferId = getUnusedBulkTransferId()
+
+        fakeRatko.acceptsNewBulkTransferGivingItId(expectedBulkTransferId)
+        val (receivedBulkTransferId, receivedBulkTransferState) = ratkoClient.startNewBulkTransfer(split)
+
+        assertEquals(expectedBulkTransferId, receivedBulkTransferId)
+        assertEquals(BulkTransferState.IN_PROGRESS, receivedBulkTransferState)
+    }
+
+    @Test
+    fun shouldPollBulkTransferState() {
+        val split = splitTestDataService
+            .insertSplit()
+            .let(splitDao::getOrThrow)
+
+        val expectedBulkTransferId = getUnusedBulkTransferId()
+
+        fakeRatko.acceptsNewBulkTransferGivingItId(expectedBulkTransferId)
+        val (receivedBulkTransferId, receivedBulkTransferState) = ratkoClient.startNewBulkTransfer(split)
+
+        kotlin.test.assertEquals(BulkTransferState.DONE, ratkoClient.pollBulkTransferState(receivedBulkTransferId))
     }
 }

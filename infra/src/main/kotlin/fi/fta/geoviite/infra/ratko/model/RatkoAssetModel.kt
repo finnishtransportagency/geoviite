@@ -2,6 +2,9 @@ package fi.fta.geoviite.infra.ratko.model
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonValue
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.split.BulkTransfer
+import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -153,3 +156,4 @@ data class IncomingRatkoNode(val point: IncomingRatkoPoint, val nodeType: RatkoN
 data class IncomingRatkoPoint(val geometry: IncomingRatkoGeometry, val routenumber: RatkoOid<RatkoRouteNumber>)
 data class IncomingRatkoGeometry(val type: RatkoGeometryType, val coordinates: List<Double>, val crs: RatkoCrs)
 
+data class RatkoBulkTransferResponse(val id: IntId<BulkTransfer>, val state: BulkTransferState)
