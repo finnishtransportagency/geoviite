@@ -21,7 +21,7 @@ import {
     queryParams,
 } from 'api/api-fetch';
 import {
-    changeTimeUri,
+    contextAwareChangeInfoUri,
     contextAwareLayoutUri,
     TRACK_LAYOUT_URI,
 } from 'track-layout/track-layout-api';
@@ -225,8 +225,8 @@ export const getKmLengthsAsCsv = (
     return `${contextAwareLayoutUri('track-numbers', layoutContext, trackNumberId)}/km-lengths/as-csv${params}`;
 };
 
-export const getKmPostChangeTimes = (id: LayoutKmPostId, layoutContext: LayoutContext) =>
-    getNullable<LayoutAssetChangeInfo>(changeTimeUri('km-posts', id, layoutContext));
+export const getKmPostChangeInfo = (id: LayoutKmPostId, layoutContext: LayoutContext) =>
+    getNullable<LayoutAssetChangeInfo>(contextAwareChangeInfoUri('km-posts', id, layoutContext));
 
 export const getEntireRailNetworkKmLengthsCsvUrl = () =>
     `${TRACK_LAYOUT_URI}/track-numbers/rail-network/km-lengths/file`;

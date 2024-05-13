@@ -186,7 +186,7 @@ class LayoutKmPostController(
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/{layout_branch}/{$PUBLICATION_STATE}/{id}/change-times")
+    @GetMapping("/{layout_branch}/{$PUBLICATION_STATE}/{id}/change-info")
     fun getKmPostChangeInfo(
         @PathVariable("layout_branch") branch: LayoutBranch,
         @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,

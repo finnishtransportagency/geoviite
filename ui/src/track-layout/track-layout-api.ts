@@ -28,6 +28,17 @@ export function layoutUri(
 }
 
 // TODO: GVT-2401 This is a temporary solution until all APIs are changed to the new format (including branch)
+export function contextAwareChangeInfoUri(
+    dataType: LayoutDataType,
+    id: string,
+    layoutContext: LayoutContext,
+): string {
+    const branch = toBranchName(layoutContext.designId).toLowerCase();
+    const publicationState = layoutContext.publicationState.toLowerCase();
+    return `${TRACK_LAYOUT_URI}/${dataType}/${branch}/${publicationState}/${id}/change-info`;
+}
+
+// TODO: GVT-2401 This is a temporary solution until all APIs are changed to the new format (including branch)
 export function contextAwareLayoutUri(
     dataType: LayoutDataType,
     layoutContext: LayoutContext,
