@@ -13,7 +13,7 @@ create function layout.location_track_in_layout_context(publication_state_in lay
             external_id                        varchar(50),
             name                               varchar(50),
             description_base                   varchar(256),
-            description_suffix                 varchar,
+            description_suffix                 layout.location_track_description_suffix,
             type                               layout.track_type,
             state                              layout.location_track_state,
             draft                              boolean,
