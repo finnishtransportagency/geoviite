@@ -24,7 +24,6 @@ import { OnSelectFunction } from 'selection/selection-model';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { TextArea } from 'vayla-design-lib/text-area/text-area';
 import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
-import { pendingValidations } from 'preview/preview-view-filters';
 
 type PreviewFooterProps = {
     onSelect: OnSelectFunction;
@@ -32,6 +31,7 @@ type PreviewFooterProps = {
     layoutContext: LayoutContext;
     onChangeLayoutContext: (context: LayoutContext) => void;
     stagedPublicationCandidates: PublicationCandidate[];
+    validating: boolean;
 };
 
 function previewChangesCanBePublished(publishCandidates: PublicationCandidate[]) {
@@ -103,7 +103,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                     disabled={
                         candidateCount === 0 ||
                         publishConfirmVisible ||
-                        pendingValidations(props.stagedPublicationCandidates) ||
+                        props.validating ||
                         (allPublishErrors && allPublishErrors?.length > 0) ||
                         !publishPreviewChanges
                     }>
