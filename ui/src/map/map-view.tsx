@@ -13,6 +13,8 @@ import OlView from 'ol/View';
 import {
     HELSINKI_RAILWAY_STATION_COORDS,
     Map,
+    MapLayerMenuChange,
+    MapLayerMenuGroups,
     MapLayerName,
     MapViewport,
     OptionalShownItems,
@@ -84,6 +86,7 @@ import { createSelectedReferenceLineAlignmentLayer } from './layers/alignment/re
 import { createOperatingPointLayer } from 'map/layers/operating-point/operating-points-layer';
 import { layersCoveringLayers } from 'map/map-store';
 import { createLocationTrackSplitAlignmentLayer } from 'map/layers/alignment/location-track-split-alignment-layer';
+import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 
 declare global {
     interface Window {
@@ -111,6 +114,9 @@ export type MapViewProps = {
     onRemoveLayoutLinkPoint: (linkPoint: LinkPoint) => void;
     hoveredOverPlanSection?: HighlightedAlignment | undefined;
     manuallySetPlan?: GeometryPlanLayout;
+    onMapLayerChange: (change: MapLayerMenuChange) => void;
+    mapLayerMenuGroups: MapLayerMenuGroups;
+    visibleLayerNames: MapLayerName[];
 };
 
 export type ClickType = 'all' | 'geometryPoint' | 'layoutPoint' | 'remove';
@@ -172,6 +178,9 @@ const MapView: React.FC<MapViewProps> = ({
     onShownLayerItemsChange,
     onHighlightItems,
     onClickLocation,
+    onMapLayerChange,
+    mapLayerMenuGroups,
+    visibleLayerNames,
 }: MapViewProps) => {
     const { t } = useTranslation();
 
@@ -741,6 +750,13 @@ const MapView: React.FC<MapViewProps> = ({
                         </div>
                     </div>
                 )}
+            </div>
+            <div id={'maplayermenubutton'} className={'map__layer-menu'}>
+                <MapLayerMenu
+                    onMenuChange={onMapLayerChange}
+                    mapLayerMenuGroups={mapLayerMenuGroups}
+                    visibleLayers={visibleLayerNames}
+                />
             </div>
 
             <LocationHolderView

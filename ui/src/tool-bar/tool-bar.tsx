@@ -25,7 +25,6 @@ import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edi
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { Menu, MenuOption, menuValueOption } from 'vayla-design-lib/menu/menu';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import { MapLayerMenuChange, MapLayerMenuGroups, MapLayerName } from 'map/map-model';
 import { getTrackNumberReferenceLine } from 'track-layout/layout-reference-line-api';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
@@ -40,12 +39,16 @@ import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
-import { draftLayoutContext, LayoutContext, PublicationState } from 'common/common-model';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
+import { createClassName } from 'vayla-design-lib/utils';
+import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
+import { EnvRestricted } from 'environment/env-restricted';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
-    onPublicationStateChange: (publicationState: PublicationState) => void;
+    onLayoutContextChange: (context: LayoutContext) => void;
     onOpenPreview: () => void;
     showArea: (area: BoundingBox) => void;
     layoutContext: LayoutContext;
@@ -55,6 +58,8 @@ export type ToolbarParams = {
     visibleLayers: MapLayerName[];
     splittingState: SplittingState | undefined;
     linkingState: LinkingState | undefined;
+    selectingWorkspace: boolean;
+    setSelectingWorkspace: (selecting: boolean) => void;
 };
 
 type LocationTrackItemValue = {
@@ -140,16 +145,15 @@ async function getOptions(
 export const ToolBar: React.FC<ToolbarParams> = ({
     onSelect,
     onUnselect,
-    onPublicationStateChange,
+    onLayoutContextChange,
     onOpenPreview,
     showArea,
     layoutContext,
     onStopLinking,
-    onMapLayerChange,
-    mapLayerMenuGroups,
-    visibleLayers,
     splittingState,
     linkingState,
+    selectingWorkspace,
+    setSelectingWorkspace,
 }: ToolbarParams) => {
     const { t } = useTranslation();
 
@@ -158,9 +162,17 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddKmPostDialog, setShowAddKmPostDialog] = React.useState(false);
+    const [showCreateWorkspaceDialog, setShowCreateWorkspaceDialog] = React.useState(false);
     const menuRef = React.useRef(null);
+    const selectWorkspaceDropdownRef = React.useRef<HTMLInputElement>(null);
+
+    React.useEffect(() => {
+        if (selectingWorkspace) selectWorkspaceDropdownRef?.current?.focus();
+    }, [selectingWorkspace]);
 
     const disableNewAssetMenu =
+        layoutContext.publicationState !== 'DRAFT' ||
+        selectingWorkspace ||
         linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
         linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment ||
         !!splittingState;
@@ -269,10 +281,19 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         setShowNewAssetMenu(false);
     }
 
-    function switchToOfficialContext() {
-        onPublicationStateChange('OFFICIAL');
+    function switchToMainOfficial() {
+        onLayoutContextChange({ publicationState: 'OFFICIAL', designId: undefined });
         setShowNewAssetMenu(false);
+        setSelectingWorkspace(false);
     }
+
+    const switchToMainDraft = () => {
+        onLayoutContextChange({
+            publicationState: 'DRAFT',
+            designId: undefined,
+        });
+        setSelectingWorkspace(false);
+    };
 
     function openPreviewAndStopLinking() {
         onOpenPreview();
@@ -303,9 +324,45 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         }
     };
 
+    const className = createClassName(
+        'tool-bar',
+        !layoutContext.designId && `tool-bar--${layoutContext.publicationState.toLowerCase()}`,
+        layoutContext.designId || (selectingWorkspace && `tool-bar--design`),
+    );
+
     return (
-        <div className={`tool-bar tool-bar--${layoutContext.publicationState.toLowerCase()}`}>
+        <div className={className}>
             <div className={styles['tool-bar__left-section']}>
+                <span className={styles['tool-bar__tabs']}>
+                    <TabHeader
+                        className={styles['tool-bar__tab-header']}
+                        selected={
+                            !layoutContext.designId &&
+                            !selectingWorkspace &&
+                            layoutContext.publicationState === 'OFFICIAL'
+                        }
+                        onClick={() => switchToMainOfficial()}>
+                        {t('tool-bar.current-mode')}
+                    </TabHeader>
+                    <TabHeader
+                        className={styles['tool-bar__tab-header']}
+                        selected={
+                            !layoutContext.designId &&
+                            !selectingWorkspace &&
+                            layoutContext.publicationState === 'DRAFT'
+                        }
+                        onClick={() => switchToMainDraft()}>
+                        {t('tool-bar.draft-mode')}
+                    </TabHeader>
+                    <EnvRestricted restrictTo={'test'}>
+                        <TabHeader
+                            className={styles['tool-bar__tab-header']}
+                            selected={!!layoutContext.designId || selectingWorkspace}
+                            onClick={() => setSelectingWorkspace(true)}>
+                            {t('tool-bar.design-mode')}
+                        </TabHeader>
+                    </EnvRestricted>
+                </span>
                 <Dropdown
                     placeholder={
                         splittingState
@@ -314,6 +371,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                               })
                             : t('tool-bar.search-from-whole-network')
                     }
+                    disabled={selectingWorkspace}
                     options={memoizedDebouncedGetOptions}
                     searchable
                     onChange={onItemSelected}
@@ -322,70 +380,58 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     wide
                     qa-id="search-box"
                 />
-                <MapLayerMenu
-                    onMenuChange={onMapLayerChange}
-                    mapLayerMenuGroups={mapLayerMenuGroups}
-                    visibleLayers={visibleLayers}
-                />
-                <div className={styles['tool-bar__new-menu-button']} qa-id={'tool-bar.new'}>
-                    <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                        <Button
-                            ref={menuRef}
-                            title={t('tool-bar.new')}
-                            variant={ButtonVariant.SECONDARY}
-                            icon={Icons.Append}
-                            disabled={
-                                layoutContext.publicationState !== 'DRAFT' || disableNewAssetMenu
-                            }
-                            onClick={() => setShowNewAssetMenu(!showNewAssetMenu)}
-                        />
-                    </PrivilegeRequired>
-                </div>
             </div>
-
-            <div className={styles['tool-bar__middle-section']}>
-                {layoutContext.publicationState === 'DRAFT' && t('tool-bar.draft-mode.title')}
-            </div>
-
             <div className={styles['tool-bar__right-section']}>
-                {layoutContext.publicationState === 'OFFICIAL' && (
-                    <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                        <Button
-                            variant={ButtonVariant.PRIMARY}
-                            qa-id="switch-to-draft-mode"
-                            onClick={() => onPublicationStateChange('DRAFT')}>
-                            {t('tool-bar.draft-mode.enable')}
-                        </Button>
-                    </PrivilegeRequired>
-                )}
-                {layoutContext.publicationState === 'DRAFT' && (
+                {!layoutContext.designId && layoutContext.publicationState === 'DRAFT' && (
                     <React.Fragment>
-                        <Button
-                            disabled={
-                                !!splittingState ||
-                                linkingState?.state === 'allSet' ||
-                                linkingState?.state === 'setup'
-                            }
-                            variant={ButtonVariant.SECONDARY}
-                            title={modeNavigationButtonsDisabledReason()}
-                            qa-id="exit-draft-mode"
-                            onClick={() => switchToOfficialContext()}>
-                            {t('tool-bar.draft-mode.disable')}
-                        </Button>
-                        <Button
-                            disabled={
-                                !!splittingState ||
-                                linkingState?.state === 'allSet' ||
-                                linkingState?.state === 'setup'
-                            }
-                            icon={Icons.VectorRight}
-                            variant={ButtonVariant.PRIMARY}
-                            title={modeNavigationButtonsDisabledReason()}
-                            qa-id="open-preview-view"
-                            onClick={() => openPreviewAndStopLinking()}>
-                            {t('tool-bar.preview-mode.enable')}
-                        </Button>
+                        <div className={styles['tool-bar__new-menu-button']} qa-id={'tool-bar.new'}>
+                            <PrivilegeRequired privilege={EDIT_LAYOUT}>
+                                <Button
+                                    ref={menuRef}
+                                    title={t('tool-bar.new')}
+                                    variant={ButtonVariant.GHOST}
+                                    icon={Icons.Append}
+                                    disabled={disableNewAssetMenu}
+                                    onClick={() => setShowNewAssetMenu(!showNewAssetMenu)}
+                                />
+                            </PrivilegeRequired>
+                        </div>
                     </React.Fragment>
+                )}
+                {(layoutContext.designId || selectingWorkspace) && (
+                    <React.Fragment>
+                        {/* TODO Add functionality once design projects have a data model */}
+                        <Dropdown
+                            inputRef={selectWorkspaceDropdownRef}
+                            placeholder={t('tool-bar.choose-workspace')}
+                            onAddClick={() => setShowCreateWorkspaceDialog(true)}
+                        />
+                        <Button
+                            variant={ButtonVariant.GHOST}
+                            icon={Icons.Edit}
+                            disabled={!layoutContext.designId}
+                        />
+                        <Button
+                            variant={ButtonVariant.GHOST}
+                            icon={Icons.Delete}
+                            disabled={!layoutContext.designId}
+                        />
+                    </React.Fragment>
+                )}
+                {layoutContext.publicationState == 'DRAFT' && (
+                    <Button
+                        disabled={
+                            selectingWorkspace ||
+                            !!splittingState ||
+                            linkingState?.state === 'allSet' ||
+                            linkingState?.state === 'setup'
+                        }
+                        variant={ButtonVariant.PRIMARY}
+                        title={modeNavigationButtonsDisabledReason()}
+                        qa-id="open-preview-view"
+                        onClick={() => openPreviewAndStopLinking()}>
+                        {t('tool-bar.preview-mode.enable')}
+                    </Button>
                 )}
             </div>
 
@@ -422,6 +468,16 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 <KmPostEditDialogContainer
                     onClose={() => setShowAddKmPostDialog(false)}
                     onSave={handleKmPostSave}
+                />
+            )}
+
+            {showCreateWorkspaceDialog && (
+                <WorkspaceDialog
+                    onCancel={() => {
+                        setShowCreateWorkspaceDialog(false);
+                        setSelectingWorkspace(false);
+                    }}
+                    onSave={() => setShowCreateWorkspaceDialog(false)}
                 />
             )}
         </div>

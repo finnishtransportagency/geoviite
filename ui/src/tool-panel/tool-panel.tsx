@@ -482,6 +482,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
                             : tabIndex === 0;
                         return (
                             <TabHeader
+                                className={'tool-panel__tab-header'}
                                 key={t.asset.type + '_' + t.asset.id}
                                 selected={selected}
                                 onClick={() => changeTab(t.asset)}>

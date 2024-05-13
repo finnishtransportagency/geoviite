@@ -11,6 +11,10 @@ import { VerticalGeometryDiagramContainer } from 'vertical-geometry/vertical-geo
 import { ToolBarContainer } from 'tool-bar/tool-bar-container';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { VIEW_GEOMETRY } from 'user/user-model';
+import {
+    ProgressIndicatorType,
+    ProgressIndicatorWrapper,
+} from 'vayla-design-lib/progress/progress-indicator-wrapper';
 
 export type TrackLayoutViewProps = {
     showVerticalGeometryDiagram: boolean;
@@ -26,35 +30,46 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
 
     const [hoveredOverPlanSection, setHoveredOverPlanSection] =
         React.useState<HighlightedAlignment>();
+    const [selectingWorkspace, setSelectingWorkspace] = React.useState(false);
 
     return (
         <div className={className} qa-id="track-layout-content">
-            <ToolBarContainer />
+            <ToolBarContainer
+                setSelectingWorkspace={setSelectingWorkspace}
+                selectingWorkspace={selectingWorkspace}
+            />
 
-            <div className={styles['track-layout__main-view']}>
-                <div className={styles['track-layout__navi']}>
-                    <SelectionPanelContainer />
-                </div>
-
-                {showVerticalGeometryDiagram && (
-                    <PrivilegeRequired privilege={VIEW_GEOMETRY}>
-                        <div className={styles['track-layout__diagram']}>
-                            <VerticalGeometryDiagramContainer />
+            <div className={'track-layout__progress-indicator-wrapper'}>
+                <ProgressIndicatorWrapper
+                    indicator={ProgressIndicatorType.Area}
+                    inProgress={selectingWorkspace}
+                    inline={false}>
+                    <div className={styles['track-layout__main-view']}>
+                        <div className={styles['track-layout__navi']}>
+                            <SelectionPanelContainer />
                         </div>
-                    </PrivilegeRequired>
-                )}
 
-                <div className={styles['track-layout__map']}>
-                    <MapContext.Provider value="track-layout">
-                        <MapViewContainer hoveredOverPlanSection={hoveredOverPlanSection} />
-                    </MapContext.Provider>
-                </div>
-                <div className={styles['track-layout__tool-panel']}>
-                    <ToolPanelContainer setHoveredOverItem={setHoveredOverPlanSection} />
-                </div>
+                        {showVerticalGeometryDiagram && (
+                            <PrivilegeRequired privilege={VIEW_GEOMETRY}>
+                                <div className={styles['track-layout__diagram']}>
+                                    <VerticalGeometryDiagramContainer />
+                                </div>
+                            </PrivilegeRequired>
+                        )}
+
+                        <div className={styles['track-layout__map']}>
+                            <MapContext.Provider value="track-layout">
+                                <MapViewContainer hoveredOverPlanSection={hoveredOverPlanSection} />
+                            </MapContext.Provider>
+                        </div>
+                        <div className={styles['track-layout__tool-panel']}>
+                            <ToolPanelContainer setHoveredOverItem={setHoveredOverPlanSection} />
+                        </div>
+                    </div>
+
+                    <SwitchSuggestionCreatorContainer />
+                </ProgressIndicatorWrapper>
             </div>
-
-            <SwitchSuggestionCreatorContainer />
         </div>
     );
 };

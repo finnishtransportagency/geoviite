@@ -1227,8 +1227,12 @@
         "publish-tracklayout": "Julkaistava paikannuspohja"
     },
     "preview-toolbar": {
-        "title": "ESIKATSELUTILA",
-        "return-to-draft": "Palaa luonnostilaan"
+        "title-draft": "Esikatselu",
+        "title-design": "Suunnitelmatilan esikatselu",
+        "return-to-draft": "Palaa luonnostilaan",
+        "return-to-design": "Palaa suunnitelmatilaan",
+        "publish-changes": "Muutosten hyväksyntä",
+        "design-to-draft": "Muutosten siirto luonnostilaan"
     },
     "publish": {
         "publish-confirm": {
@@ -1611,14 +1615,12 @@
         }
     },
     "tool-bar": {
+        "current-mode": "Nykytila",
+        "draft-mode": "Luonnostila",
+        "design-mode": "Suunnitelmatila",
         "search-from-whole-network": "Hae koko rataverkolta...",
         "search-from-track": "Hae raiteelta {{track}}...",
         "new": "Luo uusi",
-        "draft-mode": {
-            "title": "LUONNOSTILA",
-            "enable": "Luonnostila",
-            "disable": "Poistu"
-        },
         "preview-mode": {
             "enable": "Esikatselu"
         },
@@ -1627,7 +1629,8 @@
         "new-location-track": "Uusi sijaintiraide",
         "new-km-post": "Uusi tasakilometripiste",
         "splitting-in-progress": "Raiteen jakaminen on kesken",
-        "linking-in-progress": "Linkitys on kesken"
+        "linking-in-progress": "Linkitys on kesken",
+        "choose-workspace": "Valitse työtila"
     },
     "user-card": {
         "my-details": "Omat tiedot",
@@ -1722,6 +1725,13 @@
         "move-to-edit": "Voit siirtyä muokkaamaan vaihdetta {{name}} tästä",
         "name-in-use-deleted": "Huomaa, että paikannuspohjassa on poistettu vaihde samalla tunnuksella",
         "move-to-edit-deleted": "Voit siirtyä palauttamaan poistetun vaihteen tästä"
+    },
+    "workspace-dialog": {
+        "title-new": "Uusi työtila",
+        "title-edit": "Muokkaa työtilaa",
+        "basic-info": "Perustiedot",
+        "name": "Työtilan nimi",
+        "completion-date": "Arvioitu valmistumisajankohta"
     },
     "switch-delete-dialog": {
         "title": "Poistetaanko luonnos?",

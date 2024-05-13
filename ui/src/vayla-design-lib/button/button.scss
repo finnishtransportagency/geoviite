@@ -301,15 +301,32 @@ $button-animation-size-small: 12px;
     width: 24px;
 }
 
+.button--no-label.button--has-icon.button--size-x-small {
+    width: 20px;
+}
+
 .button--size-small {
     padding: 2px 12px;
     height: 24px;
+}
+
+.button--size-x-small {
+    height: 20px;
+    width: 20px;
 }
 
 .button--size-small.button--has-icon {
     padding: 2px 8px 2px 8px;
 }
 
+.button--size-x-small.button--has-icon {
+    padding: 2px 8px 2px 8px;
+}
+
 .button--size-small.button--no-label {
+    padding: 5px;
+}
+
+.button--size-x-small.button--no-label {
     padding: 5px;
 }

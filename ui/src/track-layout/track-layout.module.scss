@@ -12,6 +12,22 @@
             'navi diagram tool-panel';
     }
 
+    &__progress-indicator-wrapper {
+        overflow-y: auto;
+
+        > .progress-indicator-wrapper {
+            height: 100%;
+
+            > .progress-indicator-wrapper__content {
+                height: 100%;
+
+                > .track-layout__main-view {
+                    height: 100%;
+                }
+            }
+        }
+    }
+
     &__main-view {
         overflow: hidden;
         display: grid;

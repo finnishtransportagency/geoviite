@@ -38,6 +38,9 @@ const getTrackLayoutProps = (): MapViewProps => {
         onViewportUpdate: delegates.onViewportChange,
         layoutContext: store.layoutContext,
         selection: store.selection,
+        visibleLayerNames: store.map.visibleLayers,
+        mapLayerMenuGroups: store.map.layerMenu,
+        onMapLayerChange: delegates.onLayerMenuItemChange,
     };
 };
 
@@ -64,6 +67,9 @@ const getInfraModelProps = (): MapViewProps => {
         onViewportUpdate: delegates.onViewportChange,
         layoutContext: officialMainLayoutContext(),
         selection: store.selection,
+        visibleLayerNames: store.map.visibleLayers,
+        mapLayerMenuGroups: store.map.layerMenu,
+        onMapLayerChange: delegates.onLayerMenuItemChange,
     };
 };
 
