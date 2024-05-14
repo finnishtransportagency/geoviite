@@ -407,6 +407,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         <Dropdown
                             inputRef={selectWorkspaceDropdownRef}
                             placeholder={t('tool-bar.choose-workspace')}
+                            openOverride={selectingWorkspace ? true : undefined}
                             onAddClick={() => setShowCreateWorkspaceDialog(true)}
                         />
                         <Button

@@ -48,6 +48,7 @@ export type DropdownProps<TItemValue> = {
     wideList?: boolean;
     qaId?: string;
     inputRef?: React.RefObject<HTMLInputElement>;
+    openOverride?: boolean;
 } & Pick<React.HTMLProps<HTMLInputElement>, 'disabled' | 'title'>;
 
 function isOptionsArray<TItemValue>(
@@ -83,7 +84,9 @@ export const Dropdown = function <TItemValue>({
         }
         earlySelect.current = false;
     });
-    const [open, setOpen] = React.useState(false);
+    const [open, setOpen] = React.useState(
+        props.openOverride !== undefined ? props.openOverride : false,
+    );
     const [hasFocus, _setHasFocus] = React.useState(false);
     const [searchTerm, setSearchTerm] = React.useState('');
     const [searchCommitted, setSearchTermCommitted] = React.useState(false);
@@ -133,21 +136,23 @@ export const Dropdown = function <TItemValue>({
     }
 
     function openList() {
-        setOpen(true);
-        if (options) {
-            const selectedIndex = filteredOptions.findIndex(
-                (option) => option.value == props.value,
-            );
-            if (selectedIndex == -1) {
-                setOptionFocusIndex(showEmptyOption ? -1 : 0);
-            } else {
-                setOptionFocusIndex(selectedIndex);
+        if (props.openOverride === undefined) {
+            setOpen(true);
+            if (options) {
+                const selectedIndex = filteredOptions.findIndex(
+                    (option) => option.value == props.value,
+                );
+                if (selectedIndex == -1) {
+                    setOptionFocusIndex(showEmptyOption ? -1 : 0);
+                } else {
+                    setOptionFocusIndex(selectedIndex);
+                }
             }
         }
     }
 
     function closeList() {
-        setOpen(false);
+        if (props.openOverride === undefined) setOpen(false);
     }
 
     function select(value: TItemValue | undefined) {
