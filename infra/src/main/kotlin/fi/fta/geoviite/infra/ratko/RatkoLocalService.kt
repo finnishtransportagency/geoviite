@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.logger
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
@@ -61,5 +62,14 @@ class RatkoLocalService @Autowired constructor(
 
     fun getOperatingPoints(bbox: BoundingBox): List<RatkoOperatingPoint> {
         return ratkoOperatingPointDao.getOperatingPoints(bbox)
+    }
+
+    fun searchOperatingPoints(searchTerm: FreeText, resultLimit: Int = 10): List<RatkoOperatingPoint> {
+        logger.serviceCall(
+            "searchOperatingPoints",
+            "searchTerm" to searchTerm,
+            "resultLimit" to resultLimit,
+        )
+        return ratkoOperatingPointDao.searchOperatingPoints(searchTerm, resultLimit)
     }
 }

@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.logging.serviceCall
+import fi.fta.geoviite.infra.ratko.RatkoLocalService
 import fi.fta.geoviite.infra.util.FreeText
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -14,6 +15,7 @@ class LayoutSearchService @Autowired constructor(
     private val switchService: LayoutSwitchService,
     private val locationTrackService: LocationTrackService,
     private val trackNumberService: LayoutTrackNumberService,
+    private val ratkoLocalService: RatkoLocalService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -92,6 +94,7 @@ class LayoutSearchService @Autowired constructor(
         switches = searchAllSwitches(layoutContext, searchTerm, limitPerResultType),
         locationTracks = searchAllLocationTracks(layoutContext, searchTerm, limitPerResultType),
         trackNumbers = searchAllTrackNumbers(layoutContext, searchTerm, limitPerResultType),
+        operatingPoints = ratkoLocalService.searchOperatingPoints(searchTerm, limitPerResultType),
     )
 
     private fun searchByLocationTrackSearchScope(
@@ -115,7 +118,8 @@ class LayoutSearchService @Autowired constructor(
                 .take(limit),
             trackNumbers = trackNumbers
                 .let { list -> trackNumberService.filterBySearchTerm(list, searchTerm) }
-                .take(limit)
+                .take(limit),
+            operatingPoints = ratkoLocalService.searchOperatingPoints(searchTerm, limit)
         )
     }
 
