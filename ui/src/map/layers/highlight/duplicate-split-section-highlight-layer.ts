@@ -16,7 +16,7 @@ import {
     notOverlappingDuplicateSplitSectionStyle,
     redSplitSectionStyle,
 } from 'map/layers/utils/highlight-layer-utils';
-import { LocationTrackId } from 'track-layout/track-layout-model';
+import { LocationTrackId, splitPointsAreSame } from 'track-layout/track-layout-model';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { SplitDuplicate } from 'track-layout/layout-location-track-api';
 import { filterNotEmpty } from 'utils/array-utils';
@@ -30,8 +30,8 @@ function createFeatures(
     return alignments
         .flatMap((alignment) => {
             const duplicate = duplicates.find((duplicate) => duplicate.id == alignment.header.id);
-            const overlappingStartPoint = duplicate?.status.startPoint;
-            const overlappingEndPoint = duplicate?.status.endPoint;
+            const overlappingStartPoint = duplicate?.status.startSplitPoint?.location;
+            const overlappingEndPoint = duplicate?.status.endSplitPoint?.location;
             if (
                 duplicate != undefined &&
                 overlappingStartPoint != undefined &&
@@ -89,14 +89,16 @@ function getValidDuplicateIds(splittingState: SplittingState): LocationTrackId[]
     const allSplits = [splittingState.firstSplit, ...splittingState.splits];
     const validDuplicateIds = allSplits
         .map((split, index, allSplits) => {
-            const startSwitchId = split.switch?.switchId;
+            const startSplitPoint = split.splitPoint;
             const nextSplit = index + 1 < allSplits.length ? allSplits[index + 1] : undefined;
-            const endSwitchId =
-                nextSplit !== undefined ? nextSplit.switch?.switchId : splittingState.endSwitchId;
+            const endSplitPoint =
+                nextSplit !== undefined ? nextSplit.splitPoint : splittingState.endSplitPoint;
             if (
                 split.duplicateTrackId &&
-                startSwitchId == split.duplicateStatus?.startSwitchId &&
-                endSwitchId == split.duplicateStatus?.endSwitchId
+                split.duplicateStatus?.startSplitPoint != undefined &&
+                splitPointsAreSame(startSplitPoint, split.duplicateStatus?.startSplitPoint) &&
+                split.duplicateStatus?.endSplitPoint != undefined &&
+                splitPointsAreSame(endSplitPoint, split.duplicateStatus?.endSplitPoint)
             ) {
                 return split.duplicateTrackId;
             }

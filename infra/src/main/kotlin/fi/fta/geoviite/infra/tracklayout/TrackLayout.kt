@@ -179,6 +179,8 @@ data class LocationTrackInfoboxExtras(
     val switchAtStart: LayoutSwitchIdAndName?,
     val switchAtEnd: LayoutSwitchIdAndName?,
     val partOfUnfinishedSplit: Boolean?,
+    val startSplitPoint: SplitPoint,
+    val endSplitPoint: SplitPoint,
 )
 
 data class SwitchValidationWithSuggestedSwitch(
@@ -203,15 +205,18 @@ enum class DuplicateEndPointType { START, END }
 
 sealed class SplitPoint {
     abstract val location:AlignmentPoint
+    abstract val address: TrackMeter?
 
     abstract fun isSame(other:SplitPoint):Boolean
 }
 
 data class SwitchSplitPoint(
     override val location: AlignmentPoint,
+    override val address: TrackMeter?,
     val switchId: IntId<TrackLayoutSwitch>,
     val jointNumber: JointNumber,
 ): SplitPoint() {
+    val type = "switchSplitPoint"
     override fun isSame(other:SplitPoint):Boolean {
         return other is SwitchSplitPoint && switchId==other.switchId && jointNumber==other.jointNumber
     }
@@ -219,8 +224,10 @@ data class SwitchSplitPoint(
 
 data class EndpointSplitPoint(
     override val location: AlignmentPoint,
+    override val address: TrackMeter?,
     val endPointType: DuplicateEndPointType
 ): SplitPoint() {
+    val type = "endpointSplitPoint"
     override fun isSame(other:SplitPoint):Boolean {
         return other is EndpointSplitPoint
             && endPointType==other.endPointType

@@ -40,6 +40,22 @@ export type AlignmentPoint = {
     cant?: number;
 };
 
+export function AlignmentPoint(
+    x: number = 0,
+    y: number = 0,
+    z: number | undefined = undefined,
+    m: number = 0,
+    cant: number | undefined = undefined,
+): AlignmentPoint {
+    return {
+        x: x,
+        y: y,
+        z: z,
+        m: m,
+        cant: cant,
+    };
+}
+
 export type LayoutSegmentId = string;
 export type GeometrySource = 'IMPORTED' | 'GENERATED' | 'PLAN';
 
@@ -124,6 +140,53 @@ export type LayoutLocationTrack = {
 
 export type DuplicateMatch = 'FULL' | 'PARTIAL' | 'NONE';
 
+export type EndpointType = 'START' | 'END';
+
+export type SplitPointBase = {
+    location: AlignmentPoint;
+    address: TrackMeter;
+};
+
+export type SwitchSplitPoint = SplitPointBase & {
+    type: 'switchSplitPoint';
+    switchId: LayoutSwitchId;
+    name: string;
+};
+
+export type EndpointSplitPoint = SplitPointBase & {
+    type: 'endpointSplitPoint';
+    endpointType: EndpointType;
+    name: string;
+};
+
+export type SplitPoint = SwitchSplitPoint | EndpointSplitPoint;
+
+export function splitPointsAreSame(point1: SplitPoint, point2: SplitPoint): boolean {
+    switch (point1.type) {
+        case 'switchSplitPoint':
+            return point2.type == 'switchSplitPoint' && point2.switchId == point1.switchId;
+        case 'endpointSplitPoint':
+            return (
+                point2.type == 'endpointSplitPoint' && point2.endpointType == point1.endpointType
+            );
+    }
+}
+
+export function SwitchSplitPoint(
+    switchId: LayoutSwitchId,
+    name: string,
+    location: AlignmentPoint = AlignmentPoint(),
+    address: TrackMeter = { kmNumber: '0000', meters: 0 },
+): SwitchSplitPoint {
+    return {
+        type: 'switchSplitPoint',
+        switchId: switchId,
+        name: name,
+        location: location,
+        address: address,
+    };
+}
+
 export type DuplicateStatus = {
     match: DuplicateMatch;
     duplicateOfId?: LocationTrackId;
@@ -131,6 +194,8 @@ export type DuplicateStatus = {
     endSwitchId?: LayoutSwitchId;
     startPoint?: AlignmentPoint;
     endPoint?: AlignmentPoint;
+    startSplitPoint?: SplitPoint;
+    endSplitPoint?: SplitPoint;
 };
 
 export type LocationTrackDuplicate = {
@@ -140,11 +205,16 @@ export type LocationTrackDuplicate = {
     externalId: Oid;
     duplicateStatus: DuplicateStatus;
 };
-export type LayoutSwitchIdAndName = { id: LayoutSwitchId; name: string };
+export type LayoutSwitchIdAndName = {
+    id: LayoutSwitchId;
+    name: string;
+};
 
 export type LocationTrackInfoboxExtras = {
     duplicateOf?: LocationTrackDuplicate;
     duplicates: LocationTrackDuplicate[];
+    startSplitPoint: SplitPoint;
+    endSplitPoint: SplitPoint;
     switchAtStart?: LayoutSwitchIdAndName;
     switchAtEnd?: LayoutSwitchIdAndName;
     partOfUnfinishedSplit?: boolean;

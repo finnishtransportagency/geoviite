@@ -9,10 +9,10 @@ import mapStyles from 'map/map.module.scss';
 import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { getSwitches } from 'track-layout/layout-switch-api';
-import { LayoutSwitch, LayoutSwitchId } from 'track-layout/track-layout-model';
-import { Point } from 'model/geometry';
+import { LayoutSwitch, splitPointsAreSame } from 'track-layout/track-layout-model';
 import { MapLayerName } from 'map/map-model';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { filterNotEmpty } from 'utils/array-utils';
 
 const splitPointStyle = new Style({
     image: new Circle({
@@ -39,11 +39,6 @@ const deletedSplitPointStyle = new Style({
     }),
 });
 
-type SwitchIdAndLocation = {
-    switchId: LayoutSwitchId | undefined;
-    location: Point;
-};
-
 const layerName: MapLayerName = 'location-track-split-location-layer';
 
 export const createLocationTrackSplitLocationLayer = (
@@ -56,38 +51,44 @@ export const createLocationTrackSplitLocationLayer = (
 
     const dataPromise: Promise<LayoutSwitch[]> = splittingState
         ? getSwitches(
-              splittingState.splits.map((sw) => sw.switch.switchId),
+              splittingState.splits
+                  .map((split) =>
+                      split.splitPoint.type == 'switchSplitPoint'
+                          ? split.splitPoint.switchId
+                          : undefined,
+                  )
+                  .filter(filterNotEmpty),
               draftLayoutContext(layoutContext),
           )
         : Promise.resolve([]);
 
     const createFeatures = (switches: LayoutSwitch[]) => {
         if (splittingState) {
-            const firstAndLast: SwitchIdAndLocation[] = [
-                { location: splittingState.firstSplit.location, switchId: undefined },
-                { location: splittingState.endLocation, switchId: undefined },
+            const splitPoints = [
+                splittingState.startSplitPoint,
+                ...splittingState.splits.map((split) => split.splitPoint),
+                splittingState.endSplitPoint,
             ];
-            const splits: SwitchIdAndLocation[] = splittingState.splits.map((split) => ({
-                location: split.location,
-                switchId: split.switch.switchId,
-            }));
-            const switchesAndLocations = firstAndLast.concat(splits);
 
-            return switchesAndLocations.map(({ location, switchId }) => {
-                const isDeleted =
-                    switches.find((sw) => sw.id === switchId)?.stateCategory === 'NOT_EXISTING';
+            return splitPoints.map((splitPoint) => {
+                const isDeletedSwitch =
+                    switches.find(
+                        (sw) =>
+                            splitPoint.type == 'switchSplitPoint' && sw.id === splitPoint.switchId,
+                    )?.stateCategory === 'NOT_EXISTING';
+
                 const feature = new Feature({
-                    geometry: new OlPoint(pointToCoords(location)),
+                    geometry: new OlPoint(pointToCoords(splitPoint.location)),
                 });
 
-                const isSwitchHighlighted =
-                    splittingState.highlightedSwitch != undefined &&
-                    splittingState.highlightedSwitch == switchId;
+                const isHighlighted =
+                    splittingState.highlightedSplitPoint &&
+                    splitPointsAreSame(splittingState.highlightedSplitPoint, splitPoint);
 
                 const getSelectedStyle = () => {
-                    if (isDeleted) {
+                    if (isDeletedSwitch) {
                         return deletedSplitPointStyle;
-                    } else if (isSwitchHighlighted) {
+                    } else if (isHighlighted) {
                         return splitPointFocusedStyle;
                     } else {
                         return splitPointStyle;

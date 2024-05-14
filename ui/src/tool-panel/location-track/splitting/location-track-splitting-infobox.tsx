@@ -16,11 +16,10 @@ import {
     LayoutSwitch,
     LayoutSwitchId,
     LocationTrackId,
-    LocationTrackInfoboxExtras,
+    SplitPoint,
 } from 'track-layout/track-layout-model';
 import {
     FirstSplitTargetCandidate,
-    getAllowedSwitchesFromState,
     SplitTargetCandidate,
     SplitTargetId,
     SplittingState,
@@ -28,7 +27,6 @@ import {
 import {
     useConflictingTracks,
     useLocationTrack,
-    useLocationTrackInfoboxExtras,
     useLocationTracks,
     useLocationTrackStartAndEnd,
     useSwitches,
@@ -56,7 +54,6 @@ import {
 import { LocationTrackSplitRelinkingNotice } from 'tool-panel/location-track/splitting/location-track-split-relinking-notice';
 import {
     findRefToFirstErroredField,
-    getSplitAddressPoint,
     hasUnrelinkableSwitches,
     mandatoryFieldMissing,
     otherError,
@@ -80,21 +77,20 @@ type LocationTrackSplittingInfoboxProps = {
     locationTrack: LayoutLocationTrack;
     changeTimes: ChangeTimes;
     splittingState: SplittingState;
-    removeSplit: (switchId: LayoutSwitchId) => void;
-    sourceStart: AddressPoint;
+    removeSplit: (splitPoint: SplitPoint) => void;
     sourceEnd: AddressPoint;
     stopSplitting: () => void;
     updateSplit: (updatedSplit: SplitTargetCandidate | FirstSplitTargetCandidate) => void;
     returnToSplitting: () => void;
     startPostingSplit: () => void;
-    markSplitOld: (switchId: LayoutSwitchId | undefined) => void;
+    markSplitOld: (splitPoint: SplitPoint) => void;
     onShowTaskList: (locationTrackId: LocationTrackId) => void;
     switchRelinkingErrors: SwitchRelinkingValidationResult[];
     switchRelinkingLoaderState: LoaderStatus;
     showArea: (bbox: BoundingBox) => void;
     setFocusedSplit: (split: SplitTargetId | undefined) => void;
     setHighlightedSplit: (split: SplitTargetId | undefined) => void;
-    setHighlightedSwitch: (switchId: LayoutSwitchId | undefined) => void;
+    setHighlightedSplitPoint: (splitPoint: SplitPoint | undefined) => void;
 } & LocationTrackSplittingInfoboxContainerProps;
 
 export const LocationTrackSplittingInfoboxContainer: React.FC<
@@ -166,7 +162,6 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
                 removeSplit={delegates.removeSplit}
                 stopSplitting={stopSplitting}
                 updateSplit={delegates.updateSplit}
-                sourceStart={startAndEnd.start}
                 sourceEnd={startAndEnd.end}
                 returnToSplitting={delegates.returnToSplitting}
                 startPostingSplit={delegates.startPostingSplit}
@@ -177,21 +172,32 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
                 showArea={delegates.showArea}
                 setFocusedSplit={delegates.setFocusedSplit}
                 setHighlightedSplit={delegates.setHighlightedSplit}
-                setHighlightedSwitch={delegates.setHighlightedSwitch}
+                setHighlightedSplitPoint={delegates.setHighlightedSplitPoint}
             />
         )
     );
 };
 
+export function getSplitPointName(
+    splitPoint: SplitPoint,
+    getSwitchName: (switchId: LayoutSwitchId) => string | undefined,
+    endPointTerm: string,
+): string | undefined {
+    switch (splitPoint.type) {
+        case 'endpointSplitPoint':
+            return endPointTerm;
+        case 'switchSplitPoint':
+            return getSwitchName(splitPoint.switchId);
+    }
+}
+
 const createSplitComponent = (
     validatedSplit: ValidatedSplit,
     switches: LayoutSwitch[],
     splittingState: SplittingState,
-    originLocationTrackStart: AddressPoint,
-    removeSplit: (id: LayoutSwitchId) => void,
+    removeSplit: (splitPoint: SplitPoint) => void,
     updateSplit: (split: FirstSplitTargetCandidate | SplitTargetCandidate) => void,
     isPostingSplit: boolean,
-    locationTrackInfoboxExtras: LocationTrackInfoboxExtras | undefined,
     duplicateTracksInCurrentSplits: LayoutLocationTrack[],
     showArea: (bbox: BoundingBox) => void,
     startPoint: Point,
@@ -200,20 +206,17 @@ const createSplitComponent = (
     onBlur: () => void,
     onHighlight: () => void,
     onReleaseHighlight: () => void,
-    onHighlightSwitch: () => void,
+    onHighlightSplitPoint: () => void,
     onReleaseSwitchHighlight: () => void,
 ) => {
     const nameRef = React.createRef<HTMLInputElement>();
     const descriptionBaseRef = React.createRef<HTMLInputElement>();
-    const allowedSwitches = splittingState ? getAllowedSwitchesFromState(splittingState) : [];
 
-    const switchExists =
-        switches.find(
-            (s) =>
-                validatedSplit.split.type === 'SPLIT' &&
-                s.id === validatedSplit.split.switch.switchId,
-        )?.stateCategory !== 'NOT_EXISTING';
-
+    const splitPoint = validatedSplit.split.splitPoint;
+    const okSwitch =
+        splitPoint.type == 'endpointSplitPoint' ||
+        (splitPoint.type == 'switchSplitPoint' &&
+            switches.find((s) => s.id === splitPoint.switchId)?.stateCategory !== 'NOT_EXISTING');
     const { split, nameErrors, descriptionErrors, switchErrors } = validatedSplit;
 
     function showSplitTrackOnMap() {
@@ -226,35 +229,34 @@ const createSplitComponent = (
                 locationTrackId={splittingState.originLocationTrack.id}
                 key={`${split.location.x}_${split.location.y}`}
                 split={split}
-                addressPoint={getSplitAddressPoint(
-                    allowedSwitches,
-                    originLocationTrackStart,
-                    split,
-                )}
+                addressPoint={{
+                    point: split.splitPoint.location,
+                    address: split.splitPoint.address,
+                }}
                 onRemove={split.type === 'SPLIT' ? removeSplit : undefined}
                 updateSplit={updateSplit}
                 duplicateTrackId={split.duplicateTrackId}
                 nameErrors={nameErrors}
                 descriptionErrors={descriptionErrors}
                 switchErrors={switchErrors}
-                editingDisabled={splittingState.disabled || !switchExists || isPostingSplit}
+                editingDisabled={splittingState.disabled || !okSwitch || isPostingSplit}
                 deletingDisabled={splittingState.disabled || isPostingSplit}
                 nameRef={nameRef}
                 descriptionBaseRef={descriptionBaseRef}
-                allDuplicateLocationTracks={locationTrackInfoboxExtras?.duplicates ?? []}
+                allDuplicateLocationTracks={splittingState.duplicateTracks}
                 duplicateLocationTrack={
                     split.duplicateTrackId
                         ? findById(duplicateTracksInCurrentSplits, split.duplicateTrackId)
                         : undefined
                 }
-                underlyingAssetExists={switchExists}
+                underlyingAssetExists={okSwitch}
                 showArea={showArea}
                 onSplitTrackClicked={showSplitTrackOnMap}
                 onFocus={onFocus}
                 onBlur={onBlur}
                 onHighlight={onHighlight}
                 onReleaseHighlight={onReleaseHighlight}
-                onHighlightSwitch={onHighlightSwitch}
+                onHighlightSplitPoint={onHighlightSplitPoint}
                 onReleaseSwitchHighlight={onReleaseSwitchHighlight}
             />
         ),
@@ -274,7 +276,6 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     removeSplit,
     stopSplitting,
     updateSplit,
-    sourceStart,
     sourceEnd,
     returnToSplitting,
     startPostingSplit,
@@ -285,25 +286,14 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     showArea,
     setFocusedSplit,
     setHighlightedSplit,
-    setHighlightedSwitch,
+    setHighlightedSplitPoint,
 }) => {
     const { t } = useTranslation();
     const [confirmExit, setConfirmExit] = React.useState(false);
     const [confirmOpenTaskListAndExit, setConfirmOpenTaskListAndExit] = React.useState(false);
     const allSplits = [splittingState.firstSplit, ...splittingState.splits];
-
-    const allowedSwitches = splittingState ? getAllowedSwitchesFromState(splittingState) : [];
-    const allowedSwitchIds = React.useMemo(
-        () => allowedSwitches.map((sw) => sw.switchId),
-        [allowedSwitches],
-    );
-    const endSwitch = splittingState.trackSwitches.find(
-        (switchOnTrack) => switchOnTrack.switchId == splittingState.endSwitchId,
-    );
     const switches = useSwitches(
-        [...allowedSwitchIds, splittingState.startSwitchId, splittingState.endSwitchId].filter(
-            filterNotEmpty,
-        ),
+        splittingState.trackSwitches.map((sw) => sw.switchId),
         draftLayoutContext(layoutContext),
         changeTimes.layoutSwitch,
     );
@@ -318,12 +308,6 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         draftLayoutContext(layoutContext),
         getChangeTimes().layoutLocationTrack,
     );
-    const [locationTrackInfoboxExtras, _] = useLocationTrackInfoboxExtras(
-        locationTrack.id,
-        draftLayoutContext(layoutContext),
-        getChangeTimes(),
-    );
-
     const splitsValidated = allSplits.map((s, index) =>
         validateSplit(
             s,
@@ -331,7 +315,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             allSplits.map((s) => s.name),
             conflictingLocationTracks || [],
             switches,
-            switches.find((sw) => sw.id == splittingState.endSwitchId),
+            splittingState.endSplitPoint,
         ),
     );
     const allErrors = splitsValidated.flatMap((validated) => [
@@ -377,11 +361,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         const newSplitComponent = splitComponents.find((s) => s.splitAndValidation.split.new);
         if (newSplitComponent) {
             newSplitComponent.nameRef.current?.focus();
-            markSplitOld(
-                newSplitComponent.splitAndValidation.split.type === 'SPLIT'
-                    ? newSplitComponent.splitAndValidation.split.switch.switchId
-                    : undefined,
-            );
+            markSplitOld(newSplitComponent.splitAndValidation.split.splitPoint);
         }
     });
 
@@ -416,7 +396,6 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         );
     };
 
-
     const splitComponents = splitsValidated.map((split, index, allSplits) => {
         const endLocation =
             index + 1 < allSplits.length
@@ -426,11 +405,9 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             split,
             switches,
             splittingState,
-            sourceStart,
             removeSplit,
             updateSplit,
             isPostingSplit,
-            locationTrackInfoboxExtras,
             duplicateTracksInCurrentSplits,
             showArea,
             split.split.location,
@@ -439,8 +416,8 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             () => setFocusedSplit(undefined),
             () => setHighlightedSplit(split.split.id),
             () => setHighlightedSplit(undefined),
-            () => split.split.switch && setHighlightedSwitch(split.split.switch.switchId),
-            () => setHighlightedSwitch(undefined),
+            () => setHighlightedSplitPoint(split.split.splitPoint),
+            () => setHighlightedSplitPoint(undefined),
         );
     });
 
@@ -453,11 +430,11 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                 <InfoboxContent className={styles['location-track-infobox__split']}>
                     {splitComponents.map((split) => split.component)}
                     <LocationTrackSplittingEndpoint
-                        splitSwitch={endSwitch}
+                        splitPoint={splittingState.endSplitPoint}
                         addressPoint={sourceEnd}
                         editingDisabled={splittingState.disabled}
                         showArea={showArea}
-                        onSwitchClick={() =>
+                        onSplitPointClick={() =>
                             showArea(getShowSwitchOnMapBoundingBox(sourceEnd.point))
                         }
                     />

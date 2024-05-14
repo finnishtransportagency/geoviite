@@ -21,6 +21,7 @@ import Infobox from 'tool-panel/infobox/infobox';
 import {
     LAYOUT_SRID,
     LayoutLocationTrack,
+    LayoutSwitchId,
     LayoutTrackNumber,
 } from 'track-layout/track-layout-model';
 import {
@@ -31,7 +32,10 @@ import { SplitStart, SplittingState } from 'tool-panel/location-track/split-stor
 import { ChangeTimes } from 'common/common-slice';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { useCommonDataAppSelector } from 'store/hooks';
-import { getSplittingInitializationParameters } from 'track-layout/layout-location-track-api';
+import {
+    getSplittingInitializationParameters,
+    SplitDuplicate,
+} from 'track-layout/layout-location-track-api';
 import {
     useCoordinateSystem,
     useLocationTrackInfoboxExtras,
@@ -43,6 +47,7 @@ import { updateLocationTrackGeometry } from 'linking/linking-api';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
+import { getSplitPointName } from 'tool-panel/location-track/splitting/location-track-splitting-infobox';
 
 type LocationTrackLocationInfoboxContainerProps = {
     locationTrack: LayoutLocationTrack;
@@ -169,16 +174,67 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         setStartingSplitting(true);
         getSplittingInitializationParameters(draftLayoutContext(layoutContext), locationTrack.id)
             .then((splitInitializationParameters) => {
-                if (startAndEndPoints?.start && startAndEndPoints?.end && trackNumber) {
+                if (
+                    startAndEndPoints?.start &&
+                    startAndEndPoints?.end &&
+                    trackNumber &&
+                    extraInfo
+                ) {
+                    const switches = splitInitializationParameters?.switches || [];
+                    const getSwitchName = (switchId: LayoutSwitchId) =>
+                        switches.find((sw) => sw.switchId == switchId)?.name;
+                    const endPointTerm = t('tool-panel.location-track.splitting.endpoint');
+                    const noNameErrorTerm = 'ERROR: no name';
+                    const startSplitPointName =
+                        getSplitPointName(extraInfo.startSplitPoint, getSwitchName, endPointTerm) ||
+                        noNameErrorTerm;
+                    const endSplitPointName =
+                        getSplitPointName(extraInfo.endSplitPoint, getSwitchName, endPointTerm) ||
+                        noNameErrorTerm;
+
+                    const duplicates = splitInitializationParameters?.duplicates || [];
+                    const duplicatesWithNames: SplitDuplicate[] = duplicates.map((duplicate) => {
+                        return {
+                            ...duplicate,
+                            status: {
+                                ...duplicate.status,
+                                startSplitPoint: duplicate.status.startSplitPoint && {
+                                    ...duplicate.status.startSplitPoint,
+                                    name:
+                                        getSplitPointName(
+                                            duplicate.status.startSplitPoint,
+                                            getSwitchName,
+                                            endPointTerm,
+                                        ) || noNameErrorTerm,
+                                },
+                                endSplitPoint: duplicate.status.endSplitPoint && {
+                                    ...duplicate.status.endSplitPoint,
+                                    name:
+                                        getSplitPointName(
+                                            duplicate.status.endSplitPoint,
+                                            getSwitchName,
+                                            endPointTerm,
+                                        ) || noNameErrorTerm,
+                                },
+                            },
+                        };
+                    });
+
                     onStartSplitting({
                         locationTrack: locationTrack,
                         trackSwitches: splitInitializationParameters?.switches || [],
-                        startSwitchId: extraInfo?.switchAtStart?.id,
-                        endSwitchId: extraInfo?.switchAtEnd?.id,
-                        duplicateTracks: splitInitializationParameters?.duplicates || [],
+                        duplicateTracks: duplicatesWithNames,
                         startLocation: startAndEndPoints.start.point,
                         endLocation: startAndEndPoints.end.point,
                         trackNumber: trackNumber.number,
+                        startSplitPoint: {
+                            ...extraInfo.startSplitPoint,
+                            name: startSplitPointName,
+                        },
+                        endSplitPoint: {
+                            ...extraInfo.endSplitPoint,
+                            name: endSplitPointName,
+                        },
                     });
                 }
             })

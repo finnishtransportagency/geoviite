@@ -153,17 +153,17 @@ fun collectSplitPoints(
 ): List<SplitPoint> {
     val startSplitPoint = alignment.start?.let { start ->
         if (track.topologyStartSwitch!=null)
-            SwitchSplitPoint(start, track.topologyStartSwitch.switchId, track.topologyStartSwitch.jointNumber)
+            SwitchSplitPoint(start, null, track.topologyStartSwitch.switchId, track.topologyStartSwitch.jointNumber)
         else if (alignment.segments.first().switchId==null)
-            EndpointSplitPoint(start, DuplicateEndPointType.START)
+            EndpointSplitPoint(start,null, DuplicateEndPointType.START)
         else null
     }
 
     val endSplitPoint = alignment.end?.let { end ->
         if (track.topologyEndSwitch!=null)
-            SwitchSplitPoint(end, track.topologyEndSwitch.switchId, track.topologyEndSwitch.jointNumber)
+            SwitchSplitPoint(end, null, track.topologyEndSwitch.switchId, track.topologyEndSwitch.jointNumber)
         else if (alignment.segments.last().switchId==null)
-            EndpointSplitPoint(end, DuplicateEndPointType.END)
+            EndpointSplitPoint(end, null, DuplicateEndPointType.END)
         else null
     }
 
@@ -177,10 +177,11 @@ fun collectSplitPoints(
 
     // Skip all but first/last joint of each switch
     return allSplitPoints.filterIndexed { index, splitPoint ->
-        val currentSwitchId = (splitPoint as? SwitchSplitPoint)?.switchId
-        val prevSwitchSwitchId = (allSplitPoints.getOrNull(index - 1) as? SwitchSplitPoint)?.switchId
-        val nextSwitchSwitchId = (allSplitPoints.getOrNull(index + 1) as? SwitchSplitPoint)?.switchId
-        currentSwitchId==null || currentSwitchId!=prevSwitchSwitchId || currentSwitchId!=nextSwitchSwitchId
+        true // TODO: Testing if filtering is unnecessary
+//        val currentSwitchId = (splitPoint as? SwitchSplitPoint)?.switchId
+//        val prevSwitchSwitchId = (allSplitPoints.getOrNull(index - 1) as? SwitchSplitPoint)?.switchId
+//        val nextSwitchSwitchId = (allSplitPoints.getOrNull(index + 1) as? SwitchSplitPoint)?.switchId
+//        currentSwitchId==null || currentSwitchId!=prevSwitchSwitchId || currentSwitchId!=nextSwitchSwitchId
     }
 }
 
@@ -189,12 +190,12 @@ fun getSwitchSplitPoints(segment: LayoutSegment): List<SwitchSplitPoint> {
     val joints = switchId?.let { switchId ->
         val startPoint = segment.startJointNumber?.let { jointNumber ->
             SwitchSplitPoint(
-                segment.alignmentStart, switchId, jointNumber
+                segment.alignmentStart, null, switchId, jointNumber
             )
         }
         val endPoint = segment.endJointNumber?.let { jointNumber ->
             SwitchSplitPoint(
-                segment.alignmentEnd, switchId, jointNumber
+                segment.alignmentEnd, null, switchId, jointNumber
             )
         }
         listOfNotNull(startPoint, endPoint)
