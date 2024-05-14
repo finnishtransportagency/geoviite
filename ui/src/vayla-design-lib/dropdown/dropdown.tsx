@@ -322,7 +322,7 @@ export const Dropdown = function <TItemValue>({
         if (props.openOverride !== undefined) {
             props.openOverride ? openListAndFocusSelectedItem() : setOpen(false);
         }
-    }, []);
+    }, [props.openOverride]);
 
     return (
         <div
