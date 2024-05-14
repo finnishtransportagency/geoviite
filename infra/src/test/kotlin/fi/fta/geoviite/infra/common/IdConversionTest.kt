@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.common
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.TestApi
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -272,6 +273,27 @@ class IdConversionTest @Autowired constructor(
         val maxId = IndexedId<IdConversionTest>(Int.MAX_VALUE, Int.MAX_VALUE)
         assertEquals(maxId, DomainId.parse(maxId.toString()))
         assertEquals(maxId, IndexedId.parse(maxId.toString()))
+    }
+
+    @Test
+    fun `Overlong StringIds are rejected`() {
+        assertThrows<IllegalArgumentException> {
+            StringId.parse<IdConversionTest>(StringId<IdConversionTest>("a".repeat(96)).toString() + "a")
+        }
+    }
+
+    @Test
+    fun `Overlong IntIds are rejected`() {
+        assertThrows<IllegalArgumentException> {
+            IntId.parse<IdConversionTest>(IntId<IdConversionTest>(Int.MAX_VALUE).toString() + "0")
+        }
+    }
+
+    @Test
+    fun `Overlong IndexedIds are rejected`() {
+        assertThrows<IllegalArgumentException> {
+            IndexedId.parse<IdConversionTest>(IndexedId<IdConversionTest>(Int.MAX_VALUE, Int.MAX_VALUE).toString() + "0")
+        }
     }
 
     private fun successResponse(id: DomainId<IdTestObject>): String = testApi.response(IdTestObject(id))

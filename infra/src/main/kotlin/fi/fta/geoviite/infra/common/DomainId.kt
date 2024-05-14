@@ -99,15 +99,11 @@ data class IndexedId<T>(val parentId: Int, val index: Int) : DomainId<T>() {
         fun <T> tryParse(source: String): IndexedId<T>? = source
             .takeIf { s -> s.length in stringLength && getType(s) == INDEXED }
             ?.let { s ->
-                val raw = INDEXED.clipType(s)
-                val parent = getIntPart(raw, 0)
-                val index = getIntPart(raw, 1)
-                if (parent != null && index != null) IndexedId(parent, index) else null
+                val parts = INDEXED.clipType(s).split(SEPARATOR).map(String::toInt)
+                val parent = parts.getOrNull(0)
+                val index = parts.getOrNull(1)
+                if (parts.size == 2 && parent != null && index != null) IndexedId(parent, index) else null
             }
-
-        private fun getIntPart(source: String, index: Int): Int? = splitInts(source).getOrNull(index)
-
-        private fun splitInts(source: String): List<Int> = source.split(SEPARATOR).map(String::toInt)
     }
 
     @JsonValue
