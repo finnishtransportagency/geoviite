@@ -52,12 +52,12 @@ class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.c
 
     fun switchToDraft(): E2EToolBar = apply {
         logger.info("Enable draft/edit mode")
-        clickChild(byQaId("switch-to-draft-mode"))
+        clickChild(byQaId("draft-mode-tab"))
     }
 
     fun switchToOfficial(): E2EToolBar = apply {
         logger.info("Exit draft/edit mode")
-        clickChild(byQaId("exit-draft-mode"))
+        clickChild(byQaId("current-mode-tab"))
     }
 
     fun createNewLocationTrack(): E2ELocationTrackEditDialog {

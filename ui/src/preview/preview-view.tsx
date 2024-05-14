@@ -387,7 +387,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                             : publicationAssetChangeAmounts.unstaged
                                     }
                                     previewOperations={previewOperations}
-                                    itemIsValidating={(item) => item.pendingValidation}
+                                    validationInProgress={showValidationStatusSpinner}
+                                    isRowValidating={(item) => item.pendingValidation}
                                 />
                             </section>
 
@@ -413,7 +414,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                         publicationAssetChangeAmounts.staged
                                     }
                                     previewOperations={previewOperations}
-                                    itemIsValidating={() => showValidationStatusSpinner}
+                                    validationInProgress={showValidationStatusSpinner}
+                                    isRowValidating={() => showValidationStatusSpinner}
                                 />
                             </section>
 

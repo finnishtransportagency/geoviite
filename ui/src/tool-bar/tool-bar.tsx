@@ -336,6 +336,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 <span className={styles['tool-bar__tabs']}>
                     <TabHeader
                         className={styles['tool-bar__tab-header']}
+                        qaId="current-mode-tab"
                         selected={
                             !layoutContext.designId &&
                             !selectingWorkspace &&
@@ -346,6 +347,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     </TabHeader>
                     <TabHeader
                         className={styles['tool-bar__tab-header']}
+                        qaId={'draft-mode-tab'}
                         selected={
                             !layoutContext.designId &&
                             !selectingWorkspace &&
@@ -357,6 +359,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     <EnvRestricted restrictTo={'test'}>
                         <TabHeader
                             className={styles['tool-bar__tab-header']}
+                            qaId={'design-mode-tab'}
                             selected={!!layoutContext.designId || selectingWorkspace}
                             onClick={() => setSelectingWorkspace(true)}>
                             {t('tool-bar.design-mode')}
