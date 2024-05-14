@@ -135,7 +135,7 @@ export const Dropdown = function <TItemValue>({
         inputRef.current?.select();
     }
 
-    function openList() {
+    function openListUnlessOverridden() {
         if (props.openOverride === undefined) {
             setOpen(true);
             if (options) {
@@ -151,13 +151,13 @@ export const Dropdown = function <TItemValue>({
         }
     }
 
-    function closeList() {
+    function closeListUnlessOverridden() {
         if (props.openOverride === undefined) setOpen(false);
     }
 
     function select(value: TItemValue | undefined) {
         props.onChange && props.onChange(value);
-        closeList();
+        closeListUnlessOverridden();
         setSearchTermCommitted(false);
         searchFor('');
     }
@@ -186,7 +186,7 @@ export const Dropdown = function <TItemValue>({
             focusInput();
         } else {
             setHasFocus(false);
-            closeList();
+            closeListUnlessOverridden();
             searchFor('');
         }
     }
@@ -222,7 +222,7 @@ export const Dropdown = function <TItemValue>({
 
     function handleInputKeyPress(e: React.KeyboardEvent<HTMLInputElement>) {
         if (!searchable && e.code == 'Space') {
-            openList();
+            openListUnlessOverridden();
             e.preventDefault();
         }
     }
@@ -253,7 +253,7 @@ export const Dropdown = function <TItemValue>({
         } else {
             switch (e.code) {
                 case 'ArrowDown':
-                    openList();
+                    openListUnlessOverridden();
                     e.preventDefault();
                     break;
             }
@@ -269,7 +269,7 @@ export const Dropdown = function <TItemValue>({
     }
 
     const searchFor = (term: string) => {
-        term ? openList() : closeList();
+        term ? openListUnlessOverridden() : closeListUnlessOverridden();
         if (props.options && !isOptionsArray(props.options)) {
             loadOptions(props.options(term));
         }
@@ -325,7 +325,7 @@ export const Dropdown = function <TItemValue>({
                     if (!props.disabled) {
                         e.stopPropagation();
                         focusInput();
-                        open ? closeList() : openList();
+                        open ? closeListUnlessOverridden() : openListUnlessOverridden();
                     }
                 }}
                 title={props.title ? props.title : selectedName}>
@@ -360,7 +360,7 @@ export const Dropdown = function <TItemValue>({
             {open && (
                 <CloseableModal
                     useRefWidth
-                    onClickOutside={closeList}
+                    onClickOutside={closeListUnlessOverridden}
                     className={styles['dropdown__list-container']}
                     offsetY={36}
                     maxHeight={270}
