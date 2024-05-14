@@ -125,7 +125,6 @@ export const Dropdown = function <TItemValue>({
             props.onFocus && props.onFocus();
         }
         _setHasFocus(value);
-        if (value) openList();
     }
 
     function focusInput() {
@@ -321,6 +320,7 @@ export const Dropdown = function <TItemValue>({
                     if (!props.disabled) {
                         e.stopPropagation();
                         focusInput();
+                        open ? closeList() : openList();
                     }
                 }}
                 title={props.title ? props.title : selectedName}>

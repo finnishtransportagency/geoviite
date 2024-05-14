@@ -67,7 +67,8 @@ type PreviewTableProps = {
     publicationGroupAmounts: PublicationGroupAmounts;
     displayedTotalPublicationAssetAmount: number;
     previewOperations: PreviewOperations;
-    itemIsValidating: (tableEntry: PreviewTableEntry) => boolean;
+    validationInProgress: boolean;
+    isRowValidating: (tableEntry: PreviewTableEntry) => boolean;
 };
 
 const PreviewTable: React.FC<PreviewTableProps> = ({
@@ -80,7 +81,8 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     displayedTotalPublicationAssetAmount,
     previewOperations,
     onShowOnMap,
-    itemIsValidating,
+    validationInProgress,
+    isRowValidating,
 }) => {
     const { t } = useTranslation();
     const trackNumbers =
@@ -173,7 +175,9 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     );
 
     return (
-        <div className={styles['preview-table__container']}>
+        <div
+            className={styles['preview-table__container']}
+            qa-id={validationInProgress ? 'table-validation-in-progress' : undefined}>
             <Table wide>
                 <thead className={styles['preview-table__header']}>
                     <tr>
@@ -206,7 +210,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                                     displayedTotalPublicationAssetAmount={
                                         displayedTotalPublicationAssetAmount
                                     }
-                                    isValidating={itemIsValidating}
+                                    isValidating={isRowValidating}
                                 />
                             }
                         </React.Fragment>

@@ -227,7 +227,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                     <React.Fragment>
                         {changesBeingReverted ? (
                             <div className={'preview-table-item__revert-spinner'}>
-                                <Spinner />
+                                <Spinner qaId={'table-validation-in-progress'} />
                             </div>
                         ) : (
                             <Button

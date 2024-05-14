@@ -7,16 +7,23 @@ type TabHeaderProps = {
     onClick: () => void;
     children: React.ReactNode;
     className?: string;
+    qaId?: string;
 };
 
-export const TabHeader: React.FC<TabHeaderProps> = ({ selected, onClick, children, className }) => {
+export const TabHeader: React.FC<TabHeaderProps> = ({
+    selected,
+    onClick,
+    children,
+    className,
+    qaId,
+}) => {
     const tabClassName = createClassName(
         styles['tab-header'],
         selected && styles['tab-header--selected'],
         className,
     );
     return (
-        <button className={tabClassName} onClick={onClick}>
+        <button className={tabClassName} onClick={onClick} qa-id={qaId}>
             {children}
         </button>
     );
