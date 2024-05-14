@@ -136,17 +136,23 @@ export const Dropdown = function <TItemValue>({
     }
 
     function openListUnlessOverridden() {
-        if (props.openOverride === undefined) {
-            setOpen(true);
-            if (options) {
-                const selectedIndex = filteredOptions.findIndex(
-                    (option) => option.value == props.value,
-                );
-                if (selectedIndex == -1) {
-                    setOptionFocusIndex(showEmptyOption ? -1 : 0);
-                } else {
-                    setOptionFocusIndex(selectedIndex);
-                }
+        if (props.openOverride === undefined) openListAndFocusSelectedItem();
+    }
+
+    function openListAndFocusSelectedItem() {
+        setOpen(true);
+        focusSelectedItem();
+    }
+
+    function focusSelectedItem() {
+        if (options) {
+            const selectedIndex = filteredOptions.findIndex(
+                (option) => option.value == props.value,
+            );
+            if (selectedIndex == -1) {
+                setOptionFocusIndex(showEmptyOption ? -1 : 0);
+            } else {
+                setOptionFocusIndex(selectedIndex);
             }
         }
     }
@@ -311,6 +317,12 @@ export const Dropdown = function <TItemValue>({
                 : 0,
         );
     }, [options]);
+
+    React.useEffect(() => {
+        if (props.openOverride !== undefined) {
+            props.openOverride ? openListAndFocusSelectedItem() : setOpen(false);
+        }
+    }, []);
 
     return (
         <div
