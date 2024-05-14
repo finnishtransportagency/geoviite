@@ -48,6 +48,7 @@ export type DropdownProps<TItemValue> = {
     wideList?: boolean;
     qaId?: string;
     inputRef?: React.RefObject<HTMLInputElement>;
+    openOverride?: boolean;
 } & Pick<React.HTMLProps<HTMLInputElement>, 'disabled' | 'title'>;
 
 function isOptionsArray<TItemValue>(
@@ -83,7 +84,9 @@ export const Dropdown = function <TItemValue>({
         }
         earlySelect.current = false;
     });
-    const [open, setOpen] = React.useState(false);
+    const [open, setOpen] = React.useState(
+        props.openOverride !== undefined ? props.openOverride : false,
+    );
     const [hasFocus, _setHasFocus] = React.useState(false);
     const [searchTerm, setSearchTerm] = React.useState('');
     const [searchCommitted, setSearchTermCommitted] = React.useState(false);
@@ -132,8 +135,16 @@ export const Dropdown = function <TItemValue>({
         inputRef.current?.select();
     }
 
-    function openList() {
+    function openListUnlessOverridden() {
+        if (props.openOverride === undefined) openListAndFocusSelectedItem();
+    }
+
+    function openListAndFocusSelectedItem() {
         setOpen(true);
+        focusSelectedItem();
+    }
+
+    function focusSelectedItem() {
         if (options) {
             const selectedIndex = filteredOptions.findIndex(
                 (option) => option.value == props.value,
@@ -146,13 +157,13 @@ export const Dropdown = function <TItemValue>({
         }
     }
 
-    function closeList() {
-        setOpen(false);
+    function closeListUnlessOverridden() {
+        if (props.openOverride === undefined) setOpen(false);
     }
 
     function select(value: TItemValue | undefined) {
         props.onChange && props.onChange(value);
-        closeList();
+        closeListUnlessOverridden();
         setSearchTermCommitted(false);
         searchFor('');
     }
@@ -181,7 +192,7 @@ export const Dropdown = function <TItemValue>({
             focusInput();
         } else {
             setHasFocus(false);
-            closeList();
+            closeListUnlessOverridden();
             searchFor('');
         }
     }
@@ -217,7 +228,7 @@ export const Dropdown = function <TItemValue>({
 
     function handleInputKeyPress(e: React.KeyboardEvent<HTMLInputElement>) {
         if (!searchable && e.code == 'Space') {
-            openList();
+            openListUnlessOverridden();
             e.preventDefault();
         }
     }
@@ -248,7 +259,7 @@ export const Dropdown = function <TItemValue>({
         } else {
             switch (e.code) {
                 case 'ArrowDown':
-                    openList();
+                    openListUnlessOverridden();
                     e.preventDefault();
                     break;
             }
@@ -264,7 +275,7 @@ export const Dropdown = function <TItemValue>({
     }
 
     const searchFor = (term: string) => {
-        term ? openList() : closeList();
+        term ? openListUnlessOverridden() : closeListUnlessOverridden();
         if (props.options && !isOptionsArray(props.options)) {
             loadOptions(props.options(term));
         }
@@ -307,6 +318,12 @@ export const Dropdown = function <TItemValue>({
         );
     }, [options]);
 
+    React.useEffect(() => {
+        if (props.openOverride !== undefined) {
+            props.openOverride ? openListAndFocusSelectedItem() : setOpen(false);
+        }
+    }, [props.openOverride]);
+
     return (
         <div
             qa-id={props.qaId}
@@ -320,7 +337,7 @@ export const Dropdown = function <TItemValue>({
                     if (!props.disabled) {
                         e.stopPropagation();
                         focusInput();
-                        open ? closeList() : openList();
+                        open ? closeListUnlessOverridden() : openListUnlessOverridden();
                     }
                 }}
                 title={props.title ? props.title : selectedName}>
@@ -355,7 +372,7 @@ export const Dropdown = function <TItemValue>({
             {open && (
                 <CloseableModal
                     useRefWidth
-                    onClickOutside={closeList}
+                    onClickOutside={closeListUnlessOverridden}
                     className={styles['dropdown__list-container']}
                     offsetY={36}
                     maxHeight={270}
