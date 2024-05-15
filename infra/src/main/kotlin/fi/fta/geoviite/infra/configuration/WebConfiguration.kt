@@ -69,7 +69,6 @@ class WebConfig : WebMvcConfigurer {
 
         registry.addStringConstructorConverter(::CoordinateSystemName)
         registry.addStringConstructorConverter(::FeatureTypeCode)
-        registry.addStringConstructorConverter { enumCaseInsensitive<LocalizationLanguage>(it) }
 
         logger.info("Registering geometry name converters")
         registry.addStringConstructorConverter(::FileName)
@@ -122,6 +121,9 @@ class WebConfig : WebMvcConfigurer {
         registry.addStringConstructorConverter(::PVDictionaryCode)
         registry.addStringConstructorConverter(::PVDictionaryName)
         registry.addStringConstructorConverter(::PVTargetCategory)
+
+        logger.info("Registering localization language converters")
+        registry.addStringConstructorConverter { enumCaseInsensitive<LocalizationLanguage>(it) }
     }
 
     override fun configureMessageConverters(converters: MutableList<HttpMessageConverter<*>?>) {
