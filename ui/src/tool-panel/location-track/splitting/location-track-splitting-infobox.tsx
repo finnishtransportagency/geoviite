@@ -66,6 +66,7 @@ import { BoundingBox, boundingBoxAroundPoints, multiplyBoundingBox, Point } from
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { validateLocationTrackSwitchRelinking } from 'linking/linking-api';
 import { SwitchRelinkingValidationResult } from 'linking/linking-model';
+import { ValidationErrorType } from 'utils/validation-utils';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     layoutContext: LayoutContext;
@@ -324,7 +325,10 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         ...validated.switchErrors,
     ]);
     const anyMissingFields = allErrors.map((s) => s.reason).some(mandatoryFieldMissing);
-    const anyOtherErrors = allErrors.map((s) => s.reason).some(otherError);
+    const anyOtherErrors = allErrors
+        .filter((e) => e.type == ValidationErrorType.ERROR)
+        .map((s) => s.reason)
+        .some(otherError);
     const isPostingSplit = splittingState.state === 'POSTING';
 
     const firstChangedDuplicateInSplits = duplicateTracksInCurrentSplits.find(

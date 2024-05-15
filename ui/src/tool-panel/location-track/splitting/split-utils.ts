@@ -216,12 +216,19 @@ export const findRefToFirstErroredField = (
             predicate,
         ),
     );
-    const minIndex = [invalidNameIndex, invalidDescriptionBaseIndex]
+    const invalidSwitchBaseIndex = splitComponents.findIndex((s) =>
+        hasErrors(
+            s.splitAndValidation.switchErrors.map((err) => err.reason),
+            predicate,
+        ),
+    );
+    const minIndex = [invalidNameIndex, invalidDescriptionBaseIndex, invalidSwitchBaseIndex]
         .filter((i) => i >= 0)
         .sort()[0];
 
     if (minIndex === undefined) return undefined;
-    else if (minIndex === invalidNameIndex) return splitComponents[minIndex]?.nameRef;
+    else if (minIndex === invalidNameIndex || minIndex == invalidSwitchBaseIndex)
+        return splitComponents[minIndex]?.nameRef;
     else return splitComponents[minIndex]?.descriptionBaseRef;
 };
 
