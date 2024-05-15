@@ -60,7 +60,7 @@ data class Translation(val lang: LocalizationLanguage, val localization: String)
 class TranslationCache {
     private val translations = ConcurrentHashMap<LocalizationLanguage, Translation>()
     fun getOrLoadTranslation(lang: LocalizationLanguage): Translation = translations.getOrPut(lang) {
-        this::class.java.classLoader.getResource("i18n/translations.${lang}.json")
+        this::class.java.classLoader.getResource("i18n/translations.${lang.lowercase()}.json")
             .let { Translation(lang, it?.readText() ?: "") }
     }
 }
@@ -70,7 +70,7 @@ class LocalizationService(@Value("\${geoviite.i18n.override-path:}") val overrid
     val translationCache = TranslationCache()
 
     fun getLocalization(language: LocalizationLanguage): Translation = if (overridePath.isNotEmpty()) {
-        Translation(language, File("${overridePath}translations.${language}.json").readText())
+        Translation(language, File("${overridePath}translations.${language.lowercase()}.json").readText())
     } else {
         translationCache.getOrLoadTranslation(language)
     }
