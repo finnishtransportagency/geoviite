@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.geometry.CompanyName
 import fi.fta.geoviite.infra.geometry.GeometrySwitchTypeName
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.inframodel.PlanElementName
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryCode
@@ -120,6 +121,9 @@ class WebConfig : WebMvcConfigurer {
         registry.addStringConstructorConverter(::PVDictionaryCode)
         registry.addStringConstructorConverter(::PVDictionaryName)
         registry.addStringConstructorConverter(::PVTargetCategory)
+
+        logger.info("Registering localization language converters")
+        registry.addStringConstructorConverter { enumCaseInsensitive<LocalizationLanguage>(it) }
     }
 
     override fun configureMessageConverters(converters: MutableList<HttpMessageConverter<*>?>) {

@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.ID
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
@@ -59,7 +60,7 @@ class GeometryController @Autowired constructor(
         @RequestParam("offset") offset: Int?,
         @RequestParam("sortField") sortField: GeometryPlanSortField?,
         @RequestParam("sortOrder") sortOrder: SortOrder?,
-        @RequestParam("lang") lang: String,
+        @RequestParam("lang") lang: LocalizationLanguage,
     ): GeometryPlanHeadersSearchResult {
         log.apiCall("getPlanHeaders", "sources" to sources)
         val filter = geometryService.getFilter(freeText, trackNumbers ?: listOf())
@@ -210,7 +211,7 @@ class GeometryController @Autowired constructor(
     fun getPlanElementListingCsv(
         @PathVariable("id") id: IntId<GeometryPlan>,
         @RequestParam("elementTypes") elementTypes: List<GeometryElementType>,
-        @RequestParam("lang") lang: String
+        @RequestParam("lang") lang: LocalizationLanguage
     ): ResponseEntity<ByteArray> {
         log.apiCall("getPlanElementList", "id" to id, "elementTypes" to elementTypes, "lang" to lang)
         val (filename, content) = geometryService.getElementListingCsv(id, elementTypes, lang)
@@ -242,7 +243,7 @@ class GeometryController @Autowired constructor(
         @RequestParam("elementTypes") elementTypes: List<TrackGeometryElementType>,
         @RequestParam("startAddress") startAddress: TrackMeter? = null,
         @RequestParam("endAddress") endAddress: TrackMeter? = null,
-        @RequestParam("lang") lang: String,
+        @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
         log.apiCall(
             "getPlanElementListCsv",
@@ -281,7 +282,7 @@ class GeometryController @Autowired constructor(
     @GetMapping("/plans/{id}/vertical-geometry/file")
     fun getTrackVerticalGeometryListingCsv(
         @PathVariable("id") id: IntId<GeometryPlan>,
-        @RequestParam("lang") lang: String,
+        @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
         log.apiCall("getPlanVerticalGeometryListingCsv", "id" to id)
         val (filename, content) = geometryService.getVerticalGeometryListingCsv(id, lang)
@@ -312,7 +313,7 @@ class GeometryController @Autowired constructor(
         @PathVariable("id") id: IntId<LocationTrack>,
         @RequestParam("startAddress") startAddress: TrackMeter? = null,
         @RequestParam("endAddress") endAddress: TrackMeter? = null,
-        @RequestParam("lang") lang: String,
+        @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
         log.apiCall(
             "getTrackVerticalGeometryListingCsv", "id" to id, "startAddress" to startAddress, "endAddress" to endAddress

@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.geocoding.*
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.linking.*
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
@@ -868,7 +869,7 @@ class PublicationService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getSplitInPublicationCsv(id: IntId<Publication>, lang: String): Pair<String, AlignmentName?> {
+    fun getSplitInPublicationCsv(id: IntId<Publication>, lang: LocalizationLanguage): Pair<String, AlignmentName?> {
         logger.serviceCall("getSplitInPublicationCsv", "id" to id)
         return getSplitInPublication(id).let { splitInPublication ->
             val data = splitInPublication?.targetLocationTracks?.map { lt -> splitInPublication.locationTrack to lt }

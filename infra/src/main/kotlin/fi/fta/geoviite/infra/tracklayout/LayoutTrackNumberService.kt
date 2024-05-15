@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -129,7 +130,7 @@ class LayoutTrackNumberService(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         startKmNumber: KmNumber? = null,
         endKmNumber: KmNumber? = null,
-        lang: String,
+        lang: LocalizationLanguage,
     ): String {
         logger.serviceCall(
             "getKmLengthsAsCsv",
@@ -155,7 +156,7 @@ class LayoutTrackNumberService(
     fun getAllKmLengthsAsCsv(
         publicationState: PublicationState,
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
-        lang: String,
+        lang: LocalizationLanguage,
     ): String {
         val kmLengths = trackNumberIds
             .parallelStream()

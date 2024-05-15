@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationService
@@ -139,7 +140,7 @@ class LocationTrackController(
     fun getDescription(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("ids") ids: List<IntId<LocationTrack>>,
-        @RequestParam("lang") lang: String,
+        @RequestParam("lang") lang: LocalizationLanguage,
     ): List<LocationTrackDescription> {
         logger.apiCall("getDescription", PUBLICATION_STATE to publicationState, "ids" to ids)
         return ids.mapNotNull { id ->
