@@ -48,8 +48,10 @@ export const splitRequest = (
 ): SplitRequest => ({
     sourceTrackId,
     targetTracks: [firstSplit, ...splits].map((s) => {
-        const dupe = s.duplicateTrackId ? findById(allDuplicates, s.duplicateTrackId) : undefined;
-        return splitToRequestTarget(s, dupe);
+        const duplicate = s.duplicateTrackId
+            ? findById(allDuplicates, s.duplicateTrackId)
+            : undefined;
+        return splitToRequestTarget(s, duplicate);
     }),
 });
 
@@ -69,10 +71,8 @@ const splitToRequestTarget = (
         descriptionBase: (duplicate ? duplicate.descriptionBase : split.descriptionBase) ?? '',
         descriptionSuffix: (duplicate ? duplicate.descriptionSuffix : split.suffixMode) ?? 'NONE',
         duplicateTrack: duplicateTrack,
-        // TODO: split point tännekkin
         startAtSwitchId:
             split.splitPoint.type == 'switchSplitPoint' ? split.splitPoint.switchId : undefined,
-        //split.type === 'SPLIT' ? split?.switch.switchId : undefined,
     };
 };
 

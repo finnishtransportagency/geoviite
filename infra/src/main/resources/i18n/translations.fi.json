@@ -592,7 +592,7 @@
             "description": "Kuvaus",
             "track-number": "Ratanumero",
             "duplicate-of": "Duplikaatti raiteelle",
-            "implicit-duplicate-tooltip": "Raidetta \"{{trackName}}\" ei ole merkattu raiteen \"{{otherTrackName}}\" duplikaatiksi, mutta niillä on päällekkäistä geometriaa",
+            "implicit-duplicate-tooltip": "Raidetta \"{{trackName}}\" ei ole merkattu raiteen \"{{otherTrackName}}\" duplikaatiksi, mutta raiteilla on päällekkäistä geometriaa",
             "has-duplicates": "Duplikaattiraiteet",
             "not-a-duplicate": "Ei duplikaatti",
             "change-info-heading": "Lokitiedot",
