@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.geometry.CompanyName
 import fi.fta.geoviite.infra.geometry.GeometrySwitchTypeName
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.inframodel.PlanElementName
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryCode
@@ -68,6 +69,7 @@ class WebConfig : WebMvcConfigurer {
 
         registry.addStringConstructorConverter(::CoordinateSystemName)
         registry.addStringConstructorConverter(::FeatureTypeCode)
+        registry.addStringConstructorConverter { enumCaseInsensitive<LocalizationLanguage>(it) }
 
         logger.info("Registering geometry name converters")
         registry.addStringConstructorConverter(::FileName)

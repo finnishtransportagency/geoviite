@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.DatabaseLock.PUBLICATION
 import fi.fta.geoviite.infra.integration.LockDao
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.util.FileName
@@ -134,7 +135,7 @@ class PublicationController @Autowired constructor(
         @RequestParam("sortBy", required = false) sortBy: PublicationTableColumn?,
         @RequestParam("order", required = false) order: SortOrder?,
         @RequestParam("timeZone") timeZone: ZoneId?,
-        @RequestParam("lang") lang: String,
+        @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
         logger.apiCall(
             "getPublicationsAsCsv",
@@ -163,7 +164,7 @@ class PublicationController @Autowired constructor(
         @RequestParam("to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
         @RequestParam("sortBy", required = false) sortBy: PublicationTableColumn?,
         @RequestParam("order", required = false) order: SortOrder?,
-        @RequestParam("lang") lang: String,
+        @RequestParam("lang") lang: LocalizationLanguage,
     ): Page<PublicationTableItem> {
         logger.apiCall(
             "getPublicationDetailsAsTableRows",
@@ -193,7 +194,7 @@ class PublicationController @Autowired constructor(
     @GetMapping("/{id}/table-rows")
     fun getPublicationDetailsAsTableRows(
         @PathVariable("id") id: IntId<Publication>,
-        @RequestParam("lang") lang: String,
+        @RequestParam("lang") lang: LocalizationLanguage,
     ): List<PublicationTableItem> {
         logger.apiCall("getPublicationDetailsAsTableRow", "id" to id)
         return publicationService.getPublicationDetailsAsTableItems(id, localizationService.getLocalization(lang))
@@ -215,7 +216,7 @@ class PublicationController @Autowired constructor(
 
     @PreAuthorize(AUTH_DOWNLOAD_PUBLICATION)
     @GetMapping("/{id}/split-details/csv")
-    fun getSplitDetailsAsCsv(@PathVariable("id") id: IntId<Publication>, @RequestParam("lang") lang: String): ResponseEntity<ByteArray> {
+    fun getSplitDetailsAsCsv(@PathVariable("id") id: IntId<Publication>, @RequestParam("lang") lang: LocalizationLanguage): ResponseEntity<ByteArray> {
         logger.apiCall("getSplitDetailsAsCsv", "id" to id)
         return publicationService
             .getSplitInPublicationCsv(id, lang)

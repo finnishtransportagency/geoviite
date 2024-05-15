@@ -16,7 +16,7 @@ import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.DatabaseLock.ELEMENT_LIST_GEN
 import fi.fta.geoviite.infra.integration.DatabaseLock.VERTICAL_GEOMETRY_LIST_GEN
 import fi.fta.geoviite.infra.integration.LockDao
-import fi.fta.geoviite.infra.localization.FINNISH_LANG
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -220,7 +220,7 @@ class GeometryService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getElementListingCsv(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>, lang: String): ElementListingFile {
+    fun getElementListingCsv(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>, lang: LocalizationLanguage): ElementListingFile {
         logger.serviceCall("getElementListingCsv", "planId" to planId, "elementTypes" to elementTypes, "lang" to lang)
         val plan = getPlanHeader(planId)
         val elementListing = getElementListing(planId, elementTypes)
@@ -284,7 +284,7 @@ class GeometryService @Autowired constructor(
         elementTypes: List<TrackGeometryElementType>,
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
-        lang: String,
+        lang: LocalizationLanguage,
     ): ElementListingFile {
         logger.serviceCall(
             "getElementListing",
@@ -303,7 +303,7 @@ class GeometryService @Autowired constructor(
     @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
     fun makeElementListingCsv() = runElementListGeneration {
         logger.serviceCall("makeElementListingCsv")
-        val translation = localizationService.getLocalization(FINNISH_LANG)
+        val translation = localizationService.getLocalization(LocalizationLanguage.FI)
         val geocodingContexts = geocodingService.getGeocodingContexts(OFFICIAL)
         val elementListing = locationTrackService
             .list(OFFICIAL, includeDeleted = false)
@@ -339,7 +339,7 @@ class GeometryService @Autowired constructor(
         )
     }
 
-    fun getVerticalGeometryListingCsv(planId: IntId<GeometryPlan>, lang: String): Pair<FileName, ByteArray> {
+    fun getVerticalGeometryListingCsv(planId: IntId<GeometryPlan>, lang: LocalizationLanguage): Pair<FileName, ByteArray> {
         logger.serviceCall("getVerticalGeometryListingCsv", "planId" to planId)
         val plan = getPlanHeader(planId)
         val verticalGeometryListing = getVerticalGeometryListing(planId)
@@ -379,7 +379,7 @@ class GeometryService @Autowired constructor(
         locationTrackId: IntId<LocationTrack>,
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
-        lang: String,
+        lang: LocalizationLanguage,
     ): Pair<FileName, ByteArray> {
         logger.serviceCall(
             "getVerticalGeometryListingCsv",
@@ -417,7 +417,7 @@ class GeometryService @Autowired constructor(
                 }
             }
 
-        val translation = localizationService.getLocalization(FINNISH_LANG)
+        val translation = localizationService.getLocalization(LocalizationLanguage.FI)
         val csvFileContent = entireTrackNetworkVerticalGeometryListingToCsv(verticalGeometryListingWithTrackNumbers, translation)
         val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
 
@@ -437,11 +437,11 @@ class GeometryService @Autowired constructor(
         return header to geometryAlignment
     }
 
-    fun getComparator(sortField: GeometryPlanSortField, sortOrder: SortOrder, lang: String): Comparator<GeometryPlanHeader> =
+    fun getComparator(sortField: GeometryPlanSortField, sortOrder: SortOrder, lang: LocalizationLanguage): Comparator<GeometryPlanHeader> =
         if (sortOrder == SortOrder.ASCENDING) getComparator(sortField, lang)
         else getComparator(sortField, lang).reversed()
 
-    private fun getComparator(sortField: GeometryPlanSortField, lang: String): Comparator<GeometryPlanHeader> {
+    private fun getComparator(sortField: GeometryPlanSortField, lang: LocalizationLanguage): Comparator<GeometryPlanHeader> {
         val linkingSummaries by lazy { geometryDao.getLinkingSummaries() }
         val translation = localizationService.getLocalization(lang)
         return when (sortField) {

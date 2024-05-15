@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.START_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.TopologyLinkFindingSwitch
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -381,7 +382,7 @@ class LocationTrackService(
         else alignment.segments.lastOrNull()?.switchId as IntId?
 
     @Transactional(readOnly = true)
-    fun getFullDescription(publicationState: PublicationState, locationTrack: LocationTrack, lang: String): FreeText {
+    fun getFullDescription(publicationState: PublicationState, locationTrack: LocationTrack, lang: LocalizationLanguage): FreeText {
         val alignmentVersion = locationTrack.alignmentVersion
         val (startSwitch, endSwitch) = alignmentVersion?.let {
             val alignment = alignmentDao.fetch(alignmentVersion)

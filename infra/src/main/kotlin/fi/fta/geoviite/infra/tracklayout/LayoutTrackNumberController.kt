@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -136,7 +137,7 @@ class LayoutTrackNumberController(
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
         @RequestParam("startKmNumber") startKmNumber: KmNumber? = null,
         @RequestParam("endKmNumber") endKmNumber: KmNumber? = null,
-        @RequestParam("lang") lang: String,
+        @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
         logger.apiCall(
             "getTrackNumberKmLengthsAsCsv",
@@ -160,7 +161,7 @@ class LayoutTrackNumberController(
     @PreAuthorize(AUTH_DOWNLOAD_GEOMETRY)
     @GetMapping("/rail-network/km-lengths/file")
     fun getEntireRailNetworkKmLengthsAsCsv(
-        @RequestParam(name = "lang", defaultValue = "fi") lang: String,
+        @RequestParam(name = "lang", defaultValue = "fi") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
         logger.apiCall("getEntireRailNetworkTrackNumberKmLengthsAsCsv", "lang" to lang)
 

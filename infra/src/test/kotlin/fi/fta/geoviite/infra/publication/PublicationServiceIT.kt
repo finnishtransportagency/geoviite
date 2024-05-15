@@ -25,6 +25,7 @@ import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.localizationParams
@@ -1241,7 +1242,7 @@ class PublicationServiceIT @Autowired constructor(
         )
 
         val diff = publicationService.diffTrackNumber(
-            localizationService.getLocalization("fi"),
+            localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(trackNumber.id as IntId),
             thisAndPreviousPublication.first().publicationTime,
             thisAndPreviousPublication.last().publicationTime,
@@ -1292,7 +1293,7 @@ class PublicationServiceIT @Autowired constructor(
         val updatedTrackNumber = trackNumberService.getOrThrow(OFFICIAL, idOfUpdated)
 
         val diff = publicationService.diffTrackNumber(
-            localizationService.getLocalization("fi"),
+            localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(trackNumber.id as IntId),
             thisAndPreviousPublication.first().publicationTime,
             thisAndPreviousPublication.last().publicationTime,
@@ -1385,7 +1386,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
         val diff = publicationService.diffLocationTrack(
-            localizationService.getLocalization("fi"),
+            localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(locationTrack.id as IntId<LocationTrack>),
             null,
             latestPub.publicationTime,
@@ -1491,7 +1492,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
         val diff = publicationService.diffLocationTrack(
-            localizationService.getLocalization("fi"),
+            localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(locationTrack.id as IntId<LocationTrack>),
             null,
             latestPub.publicationTime,
@@ -1555,7 +1556,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationKmPostChanges(latestPub.id)
 
         val diff = publicationService.diffKmPost(
-            localizationService.getLocalization("fi"),
+            localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(kmPost.id as IntId),
             latestPub.publicationTime,
             latestPub.publicationTime.minusMillis(1),
@@ -1590,7 +1591,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationKmPostChanges(latestPub.id)
 
         val diff = publicationService.diffKmPost(
-            localizationService.getLocalization("fi"),
+            localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(kmPost.id as IntId),
             latestPub.publicationTime,
             latestPub.publicationTime.minusMillis(1),
@@ -1649,7 +1650,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
 
         val diff = publicationService.diffSwitch(
-            localizationService.getLocalization("fi"),
+            localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(switch.id as IntId),
             latestPub.publicationTime,
             previousPub.publicationTime,
@@ -1691,7 +1692,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
 
         val diff = publicationService.diffSwitch(
-            localizationService.getLocalization("fi"),
+            localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(switch.id as IntId),
             latestPub.publicationTime,
             previousPub.publicationTime,
@@ -1805,7 +1806,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
         val diff = publicationService.diffLocationTrack(
-            localizationService.getLocalization("fi"),
+            localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(originalLocationTrack.id),
             publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(latestPub.id)[originalLocationTrack.id],
             latestPub.publicationTime,
@@ -1857,7 +1858,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
         val diff = publicationService.diffLocationTrack(
-            localizationService.getLocalization("fi"),
+            localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(originalLocationTrack.id),
             publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(latestPub.id)[originalLocationTrack.id],
             latestPub.publicationTime,
@@ -1996,7 +1997,7 @@ class PublicationServiceIT @Autowired constructor(
 
         val rows1 = publicationService.fetchPublicationDetails(
             sortBy = PublicationTableColumn.NAME,
-            translation = localizationService.getLocalization("fi"),
+            translation = localizationService.getLocalization(LocalizationLanguage.FI),
         )
 
         assertEquals(2, rows1.size)
@@ -2005,7 +2006,7 @@ class PublicationServiceIT @Autowired constructor(
         val rows2 = publicationService.fetchPublicationDetails(
             sortBy = PublicationTableColumn.NAME,
             order = SortOrder.DESCENDING,
-            translation = localizationService.getLocalization("fi")
+            translation = localizationService.getLocalization(LocalizationLanguage.FI)
         )
 
         assertEquals(2, rows2.size)
@@ -2014,7 +2015,7 @@ class PublicationServiceIT @Autowired constructor(
         val rows3 = publicationService.fetchPublicationDetails(
             sortBy = PublicationTableColumn.PUBLICATION_TIME,
             order = SortOrder.ASCENDING,
-            translation = localizationService.getLocalization("fi")
+            translation = localizationService.getLocalization(LocalizationLanguage.FI)
         )
 
         assertEquals(2, rows3.size)
@@ -2072,7 +2073,7 @@ class PublicationServiceIT @Autowired constructor(
         val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
 
         val diff = publicationService.diffSwitch(
-            localizationService.getLocalization("fi"),
+            localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(switch.id),
             latestPub.publicationTime,
             previousPub.publicationTime,
