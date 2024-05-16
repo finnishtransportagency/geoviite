@@ -47,7 +47,7 @@ class LayoutKmPostDao(
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         bbox: BoundingBox? = null,
-    ): List<TrackLayoutKmPost>  = fetchVersions(layoutContext, includeDeleted, trackNumberId, bbox).map(::fetch)
+    ): List<TrackLayoutKmPost> = fetchVersions(layoutContext, includeDeleted, trackNumberId, bbox).map(::fetch)
 
     fun fetchVersions(
         layoutContext: LayoutContext,
@@ -67,14 +67,15 @@ class LayoutKmPostDao(
             order by km_post.track_number_id, km_post.km_number
         """.trimIndent()
         return jdbcTemplate.query(
-            sql, mapOf(
+            sql,
+            mapOf(
                 "track_number_id" to trackNumberId?.intValue,
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue,
                 "include_deleted" to includeDeleted,
                 "polygon_wkt" to bbox?.let { b -> create2DPolygonString(b.polygonFromCorners) },
                 "map_srid" to LAYOUT_SRID.code,
-            )
+            ),
         ) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
         }

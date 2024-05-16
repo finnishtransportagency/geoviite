@@ -48,11 +48,7 @@ interface LayoutAssetWriter<T : LayoutAsset<T>> {
     fun update(updatedItem: T): DaoResponse<T>
 
     fun deleteDraft(branch: LayoutBranch, id: IntId<T>): DaoResponse<T>
-//     = branch.let { b ->
-//        assertMainBranch(b)
-//        deleteDraft(id)
-//    }
-//    fun deleteDraft(id: IntId<T>): DaoResponse<T>
+
     fun deleteDrafts(branch: LayoutBranch): List<DaoResponse<T>>
 }
 

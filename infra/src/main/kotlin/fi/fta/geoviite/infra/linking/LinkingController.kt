@@ -150,7 +150,6 @@ class LinkingController @Autowired constructor(
         logger.apiCall(
             "getSuggestedConnectedLocationTracks",
             "branch" to branch,
-            "branch" to branch,
             "locationTrackId" to locationTrackId,
             "location" to location,
             "locationTrackPointUpdateType" to locationTrackPointUpdateType,
