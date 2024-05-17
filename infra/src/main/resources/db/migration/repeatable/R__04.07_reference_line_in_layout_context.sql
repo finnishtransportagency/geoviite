@@ -47,7 +47,7 @@ select
                             where overriding_draft.design_id is not distinct from design_id_in
                               and overriding_draft.draft
                               and row.id = case
-                                             when design_id_in is null then overriding_draft.official_row_id
+                                             when row.design_id is null then overriding_draft.official_row_id
                                              else overriding_draft.design_row_id
                                            end)
         end
