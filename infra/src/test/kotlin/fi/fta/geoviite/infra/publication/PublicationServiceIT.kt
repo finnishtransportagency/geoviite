@@ -3697,7 +3697,6 @@ fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> publishAndCheck(
     assertEquals(id, publishedId)
     assertEquals(publishedVersion, dao.fetchOfficialVersionOrThrow(LayoutBranch.main, id))
     assertEquals(publishedVersion, dao.fetchDraftVersion(LayoutBranch.main, id))
-    assertEquals(VersionPair(publishedVersion, null), dao.fetchVersionPair(LayoutBranch.main, id))
 
     val publishedItem = dao.fetch(publishedVersion)
     assertFalse(publishedItem.isDraft)

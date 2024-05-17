@@ -198,8 +198,7 @@ class LayoutAlignmentDao(
     }
 
     @Transactional
-    fun deleteOrphanedAlignments(branch: LayoutBranch): List<IntId<LayoutAlignment>> {
-        assertMainBranch(branch)
+    fun deleteOrphanedAlignments(): List<IntId<LayoutAlignment>> {
         val sql = """
            delete
            from layout.alignment alignment

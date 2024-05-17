@@ -64,22 +64,26 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
         val (id, insertVersion) = trackNumberDao.insert(tempTrackNumber)
         val inserted = trackNumberDao.fetch(insertVersion)
         assertMatches(tempTrackNumber, inserted, contextMatch = false)
-        assertEquals(VersionPair(insertVersion, null), trackNumberDao.fetchVersionPair(LayoutBranch.main, id))
+        assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
 
         val tempDraft1 = asMainDraft(inserted).copy(description = FreeText("test 2"))
         val draftVersion1 = trackNumberDao.insert(tempDraft1).rowVersion
         val draft1 = trackNumberDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1, contextMatch = false)
-        assertEquals(VersionPair(insertVersion, draftVersion1), trackNumberDao.fetchVersionPair(LayoutBranch.main, id))
+        assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(draftVersion1, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
 
         val tempDraft2 = draft1.copy(description = FreeText("test 3"))
         val draftVersion2 = trackNumberDao.update(tempDraft2).rowVersion
         val draft2 = trackNumberDao.fetch(draftVersion2)
         assertMatches(tempDraft2, draft2, contextMatch = false)
-        assertEquals(VersionPair(insertVersion, draftVersion2), trackNumberDao.fetchVersionPair(LayoutBranch.main, id))
+        assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(draftVersion2, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
 
         trackNumberDao.deleteDraft(LayoutBranch.main, insertVersion.id).rowVersion
-        assertEquals(VersionPair(insertVersion, null), trackNumberDao.fetchVersionPair(LayoutBranch.main, id))
+        assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
 
         assertEquals(inserted, trackNumberDao.fetch(insertVersion))
         assertEquals(draft1, trackNumberDao.fetch(draftVersion1))

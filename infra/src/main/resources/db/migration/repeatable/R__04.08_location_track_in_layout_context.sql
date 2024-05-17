@@ -64,14 +64,19 @@ select
   where case publication_state_in
           when 'OFFICIAL' then not row.draft
           else row.draft
-            or not exists(select *
-                            from layout.location_track overriding_draft
-                            where overriding_draft.design_id is not distinct from design_id_in
-                              and overriding_draft.draft
-                              and row.id = case
-                                             when row.design_id is null then overriding_draft.official_row_id
-                                             else overriding_draft.design_row_id
-                                           end)
+            or case
+                 when row.design_id is null then
+                   not exists(select *
+                                from layout.location_track overriding_draft
+                                where overriding_draft.design_id is not distinct from design_id_in
+                                  and overriding_draft.draft
+                                  and overriding_draft.official_row_id = row.id)
+                 else not exists(select *
+                                   from layout.location_track overriding_draft
+                                   where overriding_draft.design_id is not distinct from design_id_in
+                                     and overriding_draft.draft
+                                     and overriding_draft.design_row_id = row.id)
+               end
         end
     and case
           when design_id_in is null then row.design_id is null

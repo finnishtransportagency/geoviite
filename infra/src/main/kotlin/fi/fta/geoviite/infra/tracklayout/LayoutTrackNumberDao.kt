@@ -5,7 +5,7 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
-import fi.fta.geoviite.infra.util.DbTable.LAYOUT_TRACK_NUMBER
+import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getDaoResponse
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getFreeText
@@ -34,7 +34,7 @@ class LayoutTrackNumberDao(
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) : LayoutAssetDao<TrackLayoutTrackNumber>(
     jdbcTemplateParam,
-    LAYOUT_TRACK_NUMBER,
+    LayoutAssetTable.LAYOUT_ASSET_TRACK_NUMBER,
     cacheEnabled,
     TRACK_NUMBER_CACHE_SIZE,
 ) {

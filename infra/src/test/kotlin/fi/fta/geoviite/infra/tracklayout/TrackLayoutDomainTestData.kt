@@ -18,6 +18,7 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.MetaDataName
+import fi.fta.geoviite.infra.geometry.PlanPhase
 import fi.fta.geoviite.infra.getSomeNullableValue
 import fi.fta.geoviite.infra.getSomeValue
 import fi.fta.geoviite.infra.linking.FittedSwitchJointMatch
@@ -45,6 +46,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.util.FreeText
+import java.time.LocalDate
 import kotlin.math.ceil
 import kotlin.random.Random
 import kotlin.random.Random.Default.nextInt
@@ -1004,3 +1006,13 @@ fun switchLinkingAt(locationTrackId: DomainId<LocationTrack>, segmentIndex: Int,
         distanceToAlignment = 0.1,
         matchType = SuggestedSwitchJointMatchType.LINE,
     )
+
+fun layoutDesign(
+    name: String,
+    id: DomainId<LayoutDesign> = StringId(),
+    estimatedCompletion: LocalDate = LocalDate.parse("2022-02-02"),
+    planPhase: PlanPhase = PlanPhase.RAILWAY_PLAN,
+    designState: DesignState = DesignState.ACTIVE,
+): LayoutDesign = LayoutDesign(
+    id, FreeText(name), estimatedCompletion, planPhase, designState
+)

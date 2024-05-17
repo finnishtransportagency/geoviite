@@ -5,14 +5,13 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.configuration.CACHE_COMMON_LOCATION_TRACK_OWNER
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.ValidationVersion
-import fi.fta.geoviite.infra.util.DbTable.LAYOUT_LOCATION_TRACK
+import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBboxOrNull
 import fi.fta.geoviite.infra.util.getDaoResponse
 import fi.fta.geoviite.infra.util.getEnum
@@ -41,7 +40,7 @@ const val LOCATIONTRACK_CACHE_SIZE = 10000L
 class LocationTrackDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
-) : LayoutAssetDao<LocationTrack>(jdbcTemplateParam, LAYOUT_LOCATION_TRACK, cacheEnabled, LOCATIONTRACK_CACHE_SIZE) {
+) : LayoutAssetDao<LocationTrack>(jdbcTemplateParam, LayoutAssetTable.LAYOUT_ASSET_LOCATION_TRACK, cacheEnabled, LOCATIONTRACK_CACHE_SIZE) {
 
     fun fetchDuplicateVersions(
         layoutContext: LayoutContext,
@@ -465,17 +464,21 @@ class LocationTrackDao(
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
     ): List<RowVersion<LocationTrack>> {
-        assertMainBranch(branch)
         val sql = """
             select id, version
             from layout.location_track
             where draft
               and (:includeDeleted or state != 'DELETED')
               and (:trackNumberId::int is null or track_number_id = :trackNumberId)
+              and design_id is not distinct from :design_id
         """.trimIndent()
         return jdbcTemplate.query(
             sql,
-            mapOf("includeDeleted" to includeDeleted, "trackNumberId" to trackNumberId?.intValue)
+            mapOf(
+                "includeDeleted" to includeDeleted,
+                "trackNumberId" to trackNumberId?.intValue,
+                "design_id" to branch.designId?.intValue
+            )
         ) { rs, _ ->
             rs.getRowVersion<LocationTrack>("id", "version")
         }.also { ids ->
@@ -488,18 +491,17 @@ class LocationTrackDao(
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         trackIdsToPublish: List<IntId<LocationTrack>>,
     ): Map<IntId<TrackLayoutTrackNumber>, List<ValidationVersion<LocationTrack>>> {
-        assertMainBranch(branch)
         if (trackNumberIds.isEmpty()) return emptyMap()
 
         val sql = """
             select track.track_number_id, track.official_id, track.row_id, track.row_version
             from (
             select state, track_number_id, official_id, row_id, row_version
-              from layout.location_track_in_layout_context('OFFICIAL', null) official
+              from layout.location_track_in_layout_context('OFFICIAL', :design_id) official
               where (official_id in (:track_ids_to_publish)) is distinct from true 
             union all
             select state, track_number_id, official_id, row_id, row_version
-              from layout.location_track_in_layout_context('DRAFT', null) draft
+              from layout.location_track_in_layout_context('DRAFT', :design_id) draft
               where official_id in (:track_ids_to_publish)
             ) track
             where track_number_id in (:track_number_ids)
@@ -508,6 +510,7 @@ class LocationTrackDao(
         """.trimIndent()
         val params = mapOf(
             "track_number_ids" to trackNumberIds.map { id -> id.intValue },
+            "design_id" to branch.designId?.intValue,
             // listOf(null) to indicate an empty list due to SQL syntax limitations; the "is distinct from true" checks
             // explicitly for false or null, since "foo in (null)" in SQL is null
             "track_ids_to_publish" to (trackIdsToPublish.map { id -> id.intValue }.ifEmpty { listOf(null) }),
