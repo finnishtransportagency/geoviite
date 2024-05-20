@@ -198,7 +198,8 @@ class LayoutAlignmentDao(
     }
 
     @Transactional
-    fun deleteOrphanedAlignments(): List<IntId<LayoutAlignment>> {
+    fun deleteOrphanedAlignments(branch: LayoutBranch): List<IntId<LayoutAlignment>> {
+        assertMainBranch(branch)
         val sql = """
            delete
            from layout.alignment alignment
@@ -487,10 +488,9 @@ class LayoutAlignmentDao(
     }
 
     fun <T> fetchProfileInfoForSegmentsInBoundingBox(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         bbox: BoundingBox,
     ): List<MapSegmentProfileInfo<T>> {
-        val layoutContext = MainLayoutContext.of(publicationState)
         //language=SQL
         val sql = """
             select

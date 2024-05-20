@@ -3,13 +3,31 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.integration.*
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.assertMainBranch
+import fi.fta.geoviite.infra.integration.CalculatedChangesService
+import fi.fta.geoviite.infra.integration.DatabaseLock
+import fi.fta.geoviite.infra.integration.LocationTrackChange
+import fi.fta.geoviite.infra.integration.LockDao
+import fi.fta.geoviite.infra.integration.RatkoAssetType
+import fi.fta.geoviite.infra.integration.RatkoOperation
+import fi.fta.geoviite.infra.integration.RatkoPushErrorType
+import fi.fta.geoviite.infra.integration.RatkoPushStatus
+import fi.fta.geoviite.infra.integration.SwitchChange
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.publication.*
+import fi.fta.geoviite.infra.publication.Operation
+import fi.fta.geoviite.infra.publication.PublicationDetails
+import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.PublishedLocationTrack
+import fi.fta.geoviite.infra.publication.PublishedSwitch
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -102,7 +120,8 @@ class RatkoService @Autowired constructor(
         }
     }
 
-    fun pushLocationTracksToRatko(locationTrackChanges: Collection<LocationTrackChange>) {
+    fun pushLocationTracksToRatko(branch: LayoutBranch, locationTrackChanges: Collection<LocationTrackChange>) {
+        assertMainBranch(branch)
         lockDao.runWithLock(DatabaseLock.RATKO, databaseLockDuration) {
             logger.serviceCall("pushLocationTracksToRatko")
 
@@ -149,6 +168,7 @@ class RatkoService @Autowired constructor(
                 }
 
             val pushedLocationTrackOids = ratkoLocationTrackService.pushLocationTrackChangesToRatko(
+                branch,
                 publishedLocationTrackChanges,
                 latestPublicationMoment,
             )
@@ -180,6 +200,7 @@ class RatkoService @Autowired constructor(
             )
 
             val pushedLocationTrackOids = ratkoLocationTrackService.pushLocationTrackChangesToRatko(
+                LayoutBranch.main,
                 publications.flatMap { it.allPublishedLocationTracks },
                 lastPublicationTime
             )

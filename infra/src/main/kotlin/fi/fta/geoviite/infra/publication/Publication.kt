@@ -171,6 +171,7 @@ data class ValidatedAsset<T>(
 )
 
 data class PublicationCandidates(
+    val branch: LayoutBranch,
     val trackNumbers: List<TrackNumberPublicationCandidate>,
     val locationTracks: List<LocationTrackPublicationCandidate>,
     val referenceLines: List<ReferenceLinePublicationCandidate>,
@@ -185,7 +186,11 @@ data class PublicationCandidates(
         kmPosts.map { candidate -> candidate.id },
     )
 
-    fun getValidationVersions(splitVersions: List<ValidationVersion<Split>>) = ValidationVersions(
+    fun getValidationVersions(
+        branch: LayoutBranch,
+        splitVersions: List<ValidationVersion<Split>>,
+    ) = ValidationVersions(
+        branch = branch,
         trackNumbers = trackNumbers.map(TrackNumberPublicationCandidate::getPublicationVersion),
         referenceLines = referenceLines.map(ReferenceLinePublicationCandidate::getPublicationVersion),
         locationTracks = locationTracks.map(LocationTrackPublicationCandidate::getPublicationVersion),
@@ -194,7 +199,7 @@ data class PublicationCandidates(
         splits = splitVersions,
     )
 
-    fun filter(request: PublicationRequestIds) = PublicationCandidates(
+    fun filter(request: PublicationRequestIds) = copy(
         trackNumbers = trackNumbers.filter { candidate -> request.trackNumbers.contains(candidate.id) },
         referenceLines = referenceLines.filter { candidate -> request.referenceLines.contains(candidate.id) },
         locationTracks = locationTracks.filter { candidate -> request.locationTracks.contains(candidate.id) },
@@ -214,6 +219,7 @@ data class PublicationCandidates(
 }
 
 data class ValidationVersions(
+    val branch: LayoutBranch,
     val trackNumbers: List<ValidationVersion<TrackLayoutTrackNumber>>,
     val locationTracks: List<ValidationVersion<LocationTrack>>,
     val referenceLines: List<ValidationVersion<ReferenceLine>>,

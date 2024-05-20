@@ -3,9 +3,9 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
@@ -43,8 +43,8 @@ class LocationTrackDaoIT @Autowired constructor(
         )
 
         val (id, version) = locationTrackDao.insert(locationTrack)
-        assertEquals(version, locationTrackDao.fetchVersion(id, OFFICIAL))
-        assertEquals(version, locationTrackDao.fetchVersion(id, DRAFT))
+        assertEquals(version, locationTrackDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(version, locationTrackDao.fetchVersion(MainLayoutContext.draft, id))
         val fromDb = locationTrackDao.fetch(version)
         assertMatches(locationTrack, fromDb, contextMatch = false)
         assertEquals(id, fromDb.id)
@@ -59,8 +59,8 @@ class LocationTrackDaoIT @Autowired constructor(
         val (updatedId, updatedVersion) = locationTrackDao.update(updatedTrack)
         assertEquals(id, updatedId)
         assertEquals(version.id, updatedVersion.id)
-        assertEquals(updatedVersion, locationTrackDao.fetchVersion(version.id, OFFICIAL))
-        assertEquals(updatedVersion, locationTrackDao.fetchVersion(version.id, DRAFT))
+        assertEquals(updatedVersion, locationTrackDao.fetchVersion(MainLayoutContext.official, version.id))
+        assertEquals(updatedVersion, locationTrackDao.fetchVersion(MainLayoutContext.draft, version.id))
         val updatedFromDb = locationTrackDao.fetch(updatedVersion)
         assertMatches(updatedTrack, updatedFromDb, contextMatch = false)
         assertEquals(id, updatedFromDb.id)
@@ -112,14 +112,20 @@ class LocationTrackDaoIT @Autowired constructor(
         val inserted = locationTrackDao.fetch(insertVersion)
         assertMatches(tempTrack, inserted)
         assertEquals(id, inserted.id)
-        assertEquals(VersionPair(insertVersion, null), locationTrackDao.fetchVersionPair(id))
+        assertEquals(
+            VersionPair(insertVersion, null),
+            locationTrackDao.fetchVersionPair(LayoutBranch.main, id),
+        )
 
         val tempDraft1 = asMainDraft(inserted).copy(name = AlignmentName("test2"))
         val (draftId1, draftVersion1) = locationTrackDao.insert(tempDraft1)
         val draft1 = locationTrackDao.fetch(draftVersion1)
         assertEquals(id, draftId1)
         assertMatches(tempDraft1, draft1)
-        assertEquals(VersionPair(insertVersion, draftVersion1), locationTrackDao.fetchVersionPair(id))
+        assertEquals(
+            VersionPair(insertVersion, draftVersion1),
+            locationTrackDao.fetchVersionPair(LayoutBranch.main, id),
+        )
 
         val newTempAlignment = alignment(segment(Point(2.0, 2.0), Point(4.0, 4.0)))
         val newAlignmentVersion = alignmentDao.insert(newTempAlignment)
@@ -128,11 +134,17 @@ class LocationTrackDaoIT @Autowired constructor(
         val draft2 = locationTrackDao.fetch(draftVersion2)
         assertEquals(id, draftId2)
         assertMatches(tempDraft2, draft2)
-        assertEquals(VersionPair(insertVersion, draftVersion2), locationTrackDao.fetchVersionPair(id))
+        assertEquals(
+            VersionPair(insertVersion, draftVersion2),
+            locationTrackDao.fetchVersionPair(LayoutBranch.main, id),
+        )
 
-        locationTrackDao.deleteDraft(id)
-        alignmentDao.deleteOrphanedAlignments()
-        assertEquals(VersionPair(insertVersion, null), locationTrackDao.fetchVersionPair(id))
+        locationTrackDao.deleteDraft(LayoutBranch.main, id)
+        alignmentDao.deleteOrphanedAlignments(LayoutBranch.main)
+        assertEquals(
+            VersionPair(insertVersion, null),
+            locationTrackDao.fetchVersionPair(LayoutBranch.main, id),
+        )
 
         assertEquals(inserted, locationTrackDao.fetch(insertVersion))
         assertEquals(draft1, locationTrackDao.fetch(draftVersion1))
@@ -147,20 +159,20 @@ class LocationTrackDaoIT @Autowired constructor(
         val undeletedDraftVersion = insertDraftLocationTrack(tnId).rowVersion
         val deleteStateDraftVersion = insertDraftLocationTrack(tnId, LocationTrackState.DELETED).rowVersion
         val (deletedDraftId, deletedDraftVersion) = insertDraftLocationTrack(tnId)
-        locationTrackDao.deleteDraft(deletedDraftId)
+        locationTrackDao.deleteDraft(LayoutBranch.main, deletedDraftId)
 
-        val official = locationTrackDao.fetchVersions(OFFICIAL, false)
+        val official = locationTrackDao.fetchVersions(MainLayoutContext.official, false)
         assertContains(official, officialVersion)
         assertFalse(official.contains(undeletedDraftVersion))
         assertFalse(official.contains(deleteStateDraftVersion))
         assertFalse(official.contains(deletedDraftVersion))
 
-        val draftWithoutDeleted = locationTrackDao.fetchVersions(DRAFT, false)
+        val draftWithoutDeleted = locationTrackDao.fetchVersions(MainLayoutContext.draft, false)
         assertContains(draftWithoutDeleted, undeletedDraftVersion)
         assertFalse(draftWithoutDeleted.contains(deleteStateDraftVersion))
         assertFalse(draftWithoutDeleted.contains(deletedDraftVersion))
 
-        val draftWithDeleted = locationTrackDao.fetchVersions(DRAFT, true)
+        val draftWithDeleted = locationTrackDao.fetchVersions(MainLayoutContext.draft, true)
         assertContains(draftWithDeleted, undeletedDraftVersion)
         assertContains(draftWithDeleted, deleteStateDraftVersion)
         assertFalse(draftWithDeleted.contains(deletedDraftVersion))
@@ -193,11 +205,11 @@ class LocationTrackDaoIT @Autowired constructor(
 
         assertEquals(
             listOf(officialTrackVersion1, officialTrackVersion2).toSet(),
-            locationTrackDao.fetchVersions(OFFICIAL, false, tnId).toSet(),
+            locationTrackDao.fetchVersions(MainLayoutContext.official, false, tnId).toSet(),
         )
         assertEquals(
             listOf(officialTrackVersion1, officialTrackVersion2, draftTrackVersion).toSet(),
-            locationTrackDao.fetchVersions(DRAFT, false, tnId).toSet(),
+            locationTrackDao.fetchVersions(MainLayoutContext.draft, false, tnId).toSet(),
         )
     }
 
@@ -210,30 +222,30 @@ class LocationTrackDaoIT @Autowired constructor(
         val changeTrackNumberOriginal = insertOfficialLocationTrack(tnId).rowVersion
         val changeTrackNumberChanged = createDraftWithNewTrackNumber(changeTrackNumberOriginal, tnId2).rowVersion
         val deletedDraftId = insertDraftLocationTrack(tnId).id
-        locationTrackDao.deleteDraft(deletedDraftId)
+        locationTrackDao.deleteDraft(LayoutBranch.main, deletedDraftId)
 
         assertEquals(
             listOf(changeTrackNumberOriginal),
-            locationTrackDao.fetchVersions(OFFICIAL, false, tnId),
+            locationTrackDao.fetchVersions(MainLayoutContext.official, false, tnId),
         )
         assertEquals(
             listOf(undeletedDraftVersion),
-            locationTrackDao.fetchVersions(DRAFT, false, tnId),
+            locationTrackDao.fetchVersions(MainLayoutContext.draft, false, tnId),
         )
 
         assertEquals(
             listOf(undeletedDraftVersion, deleteStateDraftVersion).toSet(),
-            locationTrackDao.fetchVersions(DRAFT, true, tnId).toSet(),
+            locationTrackDao.fetchVersions(MainLayoutContext.draft, true, tnId).toSet(),
         )
         assertEquals(
             listOf(changeTrackNumberChanged),
-            locationTrackDao.fetchVersions(DRAFT, true, tnId2),
+            locationTrackDao.fetchVersions(MainLayoutContext.draft, true, tnId2),
         )
     }
 
     @Test
     fun `Fetching official location tracks with empty id list works`() {
-        val expected = locationTrackDao.fetchOfficialVersions(emptyList())
+        val expected = locationTrackDao.fetchOfficialVersions(LayoutBranch.main, emptyList())
         assertEquals(expected.size, 0)
     }
 
@@ -243,7 +255,10 @@ class LocationTrackDaoIT @Autowired constructor(
         val locationTrack1 = insertOfficialLocationTrack(tnId).rowVersion
         val locationTrack2 = insertOfficialLocationTrack(tnId).rowVersion
 
-        val expected = locationTrackDao.fetchOfficialVersions(listOf(locationTrack1.id, locationTrack2.id))
+        val expected = locationTrackDao.fetchOfficialVersions(
+            LayoutBranch.main,
+            listOf(locationTrack1.id, locationTrack2.id),
+        )
         assertEquals(expected.size, 2)
         assertContains(expected, locationTrack1)
         assertContains(expected, locationTrack2)
@@ -251,7 +266,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun `Fetching draft location tracks with empty id list works`() {
-        val expected = locationTrackDao.fetchDraftVersions(emptyList())
+        val expected = locationTrackDao.fetchDraftVersions(LayoutBranch.main, emptyList())
         assertEquals(expected.size, 0)
     }
 
@@ -261,7 +276,10 @@ class LocationTrackDaoIT @Autowired constructor(
         val locationTrack1 = insertDraftLocationTrack(tnId).rowVersion
         val locationTrack2 = insertDraftLocationTrack(tnId).rowVersion
 
-        val expected = locationTrackDao.fetchDraftVersions(listOf(locationTrack1.id, locationTrack2.id))
+        val expected = locationTrackDao.fetchDraftVersions(
+            LayoutBranch.main,
+            listOf(locationTrack1.id, locationTrack2.id),
+        )
         assertEquals(expected.size, 2)
         assertContains(expected, locationTrack1)
         assertContains(expected, locationTrack2)
@@ -276,7 +294,7 @@ class LocationTrackDaoIT @Autowired constructor(
         val entirelyMissing = IntId<LocationTrack>(0)
 
         val res = locationTrackDao.fetchOfficialVersions(
-            listOf(locationTrack1.id, locationTrack2.id, draftOnly.id, entirelyMissing)
+            LayoutBranch.main, listOf(locationTrack1.id, locationTrack2.id, draftOnly.id, entirelyMissing)
         )
         assertEquals(res.size, 2)
         assertContains(res, locationTrack1)

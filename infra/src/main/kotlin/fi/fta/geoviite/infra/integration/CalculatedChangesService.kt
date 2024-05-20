@@ -3,8 +3,11 @@ package fi.fta.geoviite.infra.integration
 import ChangeContext
 import LazyMap
 import createTypedContext
-import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
@@ -13,7 +16,26 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import fi.fta.geoviite.infra.tracklayout.SegmentPoint
+import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import org.springframework.stereotype.Service
 import java.time.Instant
 
@@ -438,19 +460,19 @@ class CalculatedChangesService(
 
     private fun createChangeContext(versions: ValidationVersions) = ChangeContext(
         geocodingService = geocodingService,
-        trackNumbers = createTypedContext(trackNumberDao, versions.trackNumbers),
-        referenceLines = createTypedContext(referenceLineDao, versions.referenceLines),
-        kmPosts = createTypedContext(kmPostDao, versions.kmPosts),
-        locationTracks = createTypedContext(locationTrackDao, versions.locationTracks),
-        switches = createTypedContext(switchDao, versions.switches),
+        trackNumbers = createTypedContext(versions.branch, trackNumberDao, versions.trackNumbers),
+        referenceLines = createTypedContext(versions.branch, referenceLineDao, versions.referenceLines),
+        kmPosts = createTypedContext(versions.branch, kmPostDao, versions.kmPosts),
+        locationTracks = createTypedContext(versions.branch, locationTrackDao, versions.locationTracks),
+        switches = createTypedContext(versions.branch, switchDao, versions.switches),
         geocodingKeysBefore = LazyMap { id: IntId<TrackLayoutTrackNumber> ->
-            geocodingService.getGeocodingContextCacheKey(id, OFFICIAL)
+            geocodingService.getGeocodingContextCacheKey(versions.branch.official, id)
         },
         geocodingKeysAfter = LazyMap { id: IntId<TrackLayoutTrackNumber> ->
             geocodingService.getGeocodingContextCacheKey(id, versions)
         },
         getTrackNumberTracksBefore = { trackNumberId: IntId<TrackLayoutTrackNumber> ->
-            locationTrackDao.fetchVersions(OFFICIAL, false, trackNumberId)
+            locationTrackDao.fetchVersions(versions.branch.official, false, trackNumberId)
         },
     )
 }

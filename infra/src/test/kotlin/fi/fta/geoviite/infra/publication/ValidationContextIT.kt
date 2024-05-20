@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.publication
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -180,6 +181,7 @@ class ValidationContextIT @Autowired constructor(
     }
 
     private fun validationContext(
+        branch: LayoutBranch = LayoutBranch.main,
         trackNumbers: List<IntId<TrackLayoutTrackNumber>> = listOf(),
         locationTracks: List<IntId<LocationTrack>> = listOf(),
         referenceLines: List<IntId<ReferenceLine>> = listOf(),
@@ -197,12 +199,13 @@ class ValidationContextIT @Autowired constructor(
         switchLibraryService = switchLibraryService,
         splitService = splitService,
         publicationSet = ValidationVersions(
-            trackNumbers = trackNumberDao.fetchPublicationVersions(trackNumbers),
-            referenceLines = referenceLineDao.fetchPublicationVersions(referenceLines),
-            kmPosts = kmPostDao.fetchPublicationVersions(kmPosts),
-            locationTracks = locationTrackDao.fetchPublicationVersions(locationTracks),
-            switches = switchDao.fetchPublicationVersions(switches),
-            splits = splitService.fetchPublicationVersions(locationTracks, switches),
+            branch = branch,
+            trackNumbers = trackNumberDao.fetchPublicationVersions(branch, trackNumbers),
+            referenceLines = referenceLineDao.fetchPublicationVersions(branch, referenceLines),
+            kmPosts = kmPostDao.fetchPublicationVersions(branch, kmPosts),
+            locationTracks = locationTrackDao.fetchPublicationVersions(branch, locationTracks),
+            switches = switchDao.fetchPublicationVersions(branch, switches),
+            splits = splitService.fetchPublicationVersions(branch, locationTracks, switches),
         )
     )
 }

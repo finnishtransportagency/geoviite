@@ -2,10 +2,12 @@ package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT
+import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.Point
@@ -32,33 +34,54 @@ class GeocodingController(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/{$PUBLICATION_STATE}/address/{trackNumberId}")
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/address/{trackNumberId}")
     fun getTrackAddress(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
         @RequestParam("coordinate") coordinate: Point,
     ): ResponseEntity<TrackMeter> {
-        logger.apiCall("getTrackAddress", "trackNumberId" to trackNumberId, "coordinate" to coordinate)
-        return toResponse(geocodingService.getAddressIfWithin(publicationState, trackNumberId, coordinate))
+        val layoutContext = LayoutContext.of(branch, publicationState)
+        logger.apiCall(
+            "getTrackAddress",
+            "layoutContext" to layoutContext,
+            "trackNumberId" to trackNumberId,
+            "coordinate" to coordinate,
+        )
+        return toResponse(geocodingService.getAddressIfWithin(layoutContext, trackNumberId, coordinate))
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)
-    @GetMapping("/location/{locationTrackId}")
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/location/{locationTrackId}")
     fun getTrackPoint(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("locationTrackId") locationTrackId: IntId<LocationTrack>,
         @RequestParam("address") address: TrackMeter,
     ): ResponseEntity<AddressPoint> {
-        logger.apiCall("getTrackPoint", "locationTrackId" to locationTrackId, "address" to address)
-        return toResponse(locationTrackService.getTrackPoint(OFFICIAL, locationTrackId, address))
+        val layoutContext = LayoutContext.of(branch, publicationState)
+        logger.apiCall(
+            "getTrackPoint",
+            "layoutContext" to layoutContext,
+            "locationTrackId" to locationTrackId,
+            "address" to address,
+        )
+        return toResponse(locationTrackService.getTrackPoint(layoutContext, locationTrackId, address))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/{$PUBLICATION_STATE}/address-pointlist/{alignmentId}")
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/address-pointlist/{alignmentId}")
     fun getAlignmentAddressPoints(
-        @PathVariable("alignmentId") locationTrackId: IntId<LocationTrack>,
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @PathVariable("alignmentId") locationTrackId: IntId<LocationTrack>,
     ): ResponseEntity<AlignmentAddresses> {
-        logger.apiCall("getAlignmentAddressPoints", "locationTrackId" to locationTrackId)
-        return toResponse(geocodingService.getAddressPoints(locationTrackId, publicationState))
+        val layoutContext = LayoutContext.of(branch, publicationState)
+        logger.apiCall(
+            "getAlignmentAddressPoints",
+            "layoutContext" to layoutContext,
+            "locationTrackId" to locationTrackId,
+        )
+        return toResponse(geocodingService.getAddressPoints(layoutContext, locationTrackId))
     }
 }

@@ -2,8 +2,8 @@ package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.OVERWRITE
@@ -23,8 +23,6 @@ import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
-import fi.fta.geoviite.infra.tracklayout.segmentsFromSwitchStructure
-import fi.fta.geoviite.infra.tracklayout.switchFromDbStructure
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -121,7 +119,7 @@ class SplitServiceIT @Autowired constructor(
             targetRequest(switch1.id, "part2"),
             targetRequest(switch2.id, "part3"),
         )
-        val result = splitDao.getOrThrow(splitService.split(request))
+        val result = splitDao.getOrThrow(splitService.split(LayoutBranch.main, request))
 
         assertSplitMatchesRequest(request, result)
 
@@ -129,7 +127,7 @@ class SplitServiceIT @Autowired constructor(
             assertTargetTrack(track, targetRequest, result.targetLocationTracks[index])
         }
 
-        assertEquals(LocationTrackState.DELETED, locationTrackService.get(DRAFT, track.id)?.state)
+        assertEquals(LocationTrackState.DELETED, locationTrackService.get(MainLayoutContext.draft, track.id)?.state)
     }
 
     @Test
@@ -173,7 +171,7 @@ class SplitServiceIT @Autowired constructor(
             targetRequest(switch1.id, "part2", duplicateTrackId = duplicate2, operation = OVERWRITE),
             targetRequest(switch2.id, "part3"),
         )
-        val result = splitDao.getOrThrow(splitService.split(request))
+        val result = splitDao.getOrThrow(splitService.split(LayoutBranch.main, request))
 
         assertSplitMatchesRequest(request, result)
 
@@ -181,7 +179,7 @@ class SplitServiceIT @Autowired constructor(
             assertTargetTrack(track, targetRequest, result.targetLocationTracks[index])
         }
 
-        assertEquals(LocationTrackState.DELETED, locationTrackService.get(DRAFT, track.id)?.state)
+        assertEquals(LocationTrackState.DELETED, locationTrackService.get(MainLayoutContext.draft, track.id)?.state)
     }
 
     @Test
@@ -195,19 +193,22 @@ class SplitServiceIT @Autowired constructor(
         val preSegments = splitTestDataService.createSegments(Point(0.0, 0.0), 3)
 
         // Segments that are a part of the first switch + the branching track for switch re-linking to work
-        val (switch1, switchSegments1, switchTurningSegments1) = splitTestDataService.createSwitchAndGeometry(lastPoint(preSegments))
+        val (switch1, switchSegments1, switchTurningSegments1) = splitTestDataService
+            .createSwitchAndGeometry(lastPoint(preSegments))
         splitTestDataService.insertAsTrack(switchTurningSegments1)
 
         val segments1To2 = splitTestDataService.createSegments(lastPoint(switchSegments1), 2)
 
         // Segments that are a part of the second switch + the branching track for switch re-linking to work
-        val (switch2, switchSegments2, switchTurningSegments2) = splitTestDataService.createSwitchAndGeometry(lastPoint(segments1To2))
+        val (switch2, switchSegments2, switchTurningSegments2) = splitTestDataService
+            .createSwitchAndGeometry(lastPoint(segments1To2))
         splitTestDataService.insertAsTrack(switchTurningSegments2)
 
         val segments2To3 = splitTestDataService.createSegments(lastPoint(switchSegments2), 3)
 
         // Segments that are a part of the second switch + the branching track for switch re-linking to work
-        val (_, switchSegments3, switchTurningSegments3) = splitTestDataService.createSwitchAndGeometry(lastPoint(segments2To3))
+        val (_, switchSegments3, switchTurningSegments3) = splitTestDataService
+            .createSwitchAndGeometry(lastPoint(segments2To3))
         splitTestDataService.insertAsTrack(switchTurningSegments3)
 
         val postSegments = splitTestDataService.createSegments(lastPoint(switchSegments3), 4)
@@ -232,7 +233,7 @@ class SplitServiceIT @Autowired constructor(
             targetRequest(switch1.id, "part2", duplicateTrackId = duplicate1, operation = TRANSFER),
             targetRequest(switch2.id, "part3", duplicateTrackId = duplicate2, operation = TRANSFER),
         )
-        val result = splitDao.getOrThrow(splitService.split(request))
+        val result = splitDao.getOrThrow(splitService.split(LayoutBranch.main, request))
 
         assertSplitMatchesRequest(request, result)
 
@@ -240,7 +241,7 @@ class SplitServiceIT @Autowired constructor(
             assertTransferTargetTrack(targetRequest, result.targetLocationTracks[index])
         }
 
-        assertEquals(LocationTrackState.DELETED, locationTrackService.get(DRAFT, track.id)?.state)
+        assertEquals(LocationTrackState.DELETED, locationTrackService.get(MainLayoutContext.draft, track.id)?.state)
     }
 
     private fun lastPoint(segments: List<LayoutSegment>): IPoint = segments.last().segmentPoints.last()
@@ -266,9 +267,12 @@ class SplitServiceIT @Autowired constructor(
         // This assert is for TRANSFER only: use assertTargetTrack for other operations
         assertEquals(SplitTargetOperation.TRANSFER, request.getOperation())
 
-        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, response.locationTrackId)
+        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(
+            MainLayoutContext.draft,
+            response.locationTrackId,
+        )
         val (originalTrack, originalAlignment) = locationTrackService.getWithAlignmentOrThrow(
-            OFFICIAL,
+            MainLayoutContext.official,
             response.locationTrackId,
         )
 
@@ -291,7 +295,7 @@ class SplitServiceIT @Autowired constructor(
         assertNotEquals(SplitTargetOperation.TRANSFER, request.getOperation())
 
         val (_, source) = locationTrackService.getWithAlignment(sourceResponse.rowVersion)
-        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, response.locationTrackId)
+        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, response.locationTrackId)
 
         assertEquals(request.name, track.name)
         assertEquals(request.descriptionBase, track.descriptionBase)
@@ -310,7 +314,10 @@ class SplitServiceIT @Autowired constructor(
         val splitId = insertSplitWithTwoTracks()
         val split = splitDao.getOrThrow(splitId)
 
-        val foundSplits = splitService.findUnfinishedSplits(locationTrackIds = listOf(split.sourceLocationTrackId))
+        val foundSplits = splitService.findUnfinishedSplits(
+            LayoutBranch.main,
+            locationTrackIds = listOf(split.sourceLocationTrackId),
+        )
 
         assertEquals(splitId, foundSplits.first().id)
     }
@@ -321,7 +328,8 @@ class SplitServiceIT @Autowired constructor(
         val split = splitDao.getOrThrow(splitId)
 
         val foundSplits = splitService.findUnfinishedSplits(
-            locationTrackIds = listOf(split.targetLocationTracks.first().locationTrackId)
+            LayoutBranch.main,
+            locationTrackIds = listOf(split.targetLocationTracks.first().locationTrackId),
         )
 
         assertEquals(splitId, foundSplits.first().id)
@@ -332,7 +340,7 @@ class SplitServiceIT @Autowired constructor(
         val splitId = insertSplitWithTwoTracks()
         val split = splitDao.getOrThrow(splitId)
 
-        val foundSplits = splitService.findUnfinishedSplits(switchIds = split.relinkedSwitches)
+        val foundSplits = splitService.findUnfinishedSplits(LayoutBranch.main, switchIds = split.relinkedSwitches)
 
         assertEquals(splitId, foundSplits.first().id)
     }
@@ -435,15 +443,15 @@ class SplitServiceIT @Autowired constructor(
                 ),
             ),
         )
-        val splitResult = splitDao.getOrThrow(splitService.split(splitRequest))
+        val splitResult = splitDao.getOrThrow(splitService.split(LayoutBranch.main, splitRequest))
 
         val usedDuplicateTrackAfterSplit = locationTrackService.getOrThrow(
-            DRAFT,
+            MainLayoutContext.draft,
             splitResult.targetLocationTracks[1].locationTrackId,
         )
-        val unusedDuplicateFullyOverlappingNewTrack = locationTrackService.getOrThrow(DRAFT, duplicateIds[1])
-        val unusedDuplicatePartiallyOverlappingNewTrack = locationTrackService.getOrThrow(DRAFT, duplicateIds[2])
-        val unusedDuplicateWithFlippedPartialOverlap = locationTrackService.getOrThrow(DRAFT, duplicateIds[3])
+        val unusedDuplicateFullyOverlappingNewTrack = locationTrackService.getOrThrow(MainLayoutContext.draft, duplicateIds[1])
+        val unusedDuplicatePartiallyOverlappingNewTrack = locationTrackService.getOrThrow(MainLayoutContext.draft, duplicateIds[2])
+        val unusedDuplicateWithFlippedPartialOverlap = locationTrackService.getOrThrow(MainLayoutContext.draft, duplicateIds[3])
 
         assertEquals(null, usedDuplicateTrackAfterSplit.duplicateOf)
 

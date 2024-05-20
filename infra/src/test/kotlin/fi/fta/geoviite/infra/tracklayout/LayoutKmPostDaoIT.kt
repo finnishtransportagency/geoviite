@@ -2,14 +2,24 @@ package fi.fta.geoviite.infra.tracklayout
 
 import daoResponseToValidationVersion
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.ValidationVersion
-import fi.fta.geoviite.infra.tracklayout.LayoutState.*
-import org.junit.jupiter.api.Assertions.*
+import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
+import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
+import fi.fta.geoviite.infra.tracklayout.LayoutState.NOT_IN_USE
+import fi.fta.geoviite.infra.tracklayout.LayoutState.PLANNED
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -61,11 +71,11 @@ class LayoutKmPostDaoIT @Autowired constructor(
     fun checkingIfKmPostIsOfficialWorks() {
         val trackNumberId = insertOfficialTrackNumber()
         val officialId = kmPostDao.insert(kmPost(trackNumberId, KmNumber(234), draft = false)).id
-        assertEquals(officialId, kmPostDao.fetchOfficialVersion(officialId)?.id)
+        assertEquals(officialId, kmPostDao.fetchOfficialVersion(LayoutBranch.main, officialId)?.id)
 
         val draftId = kmPostDao.insert(kmPost(trackNumberId, KmNumber(432), draft = true)).id
-        assertNull(kmPostDao.fetchOfficialVersion(draftId))
-        assertEquals(draftId, kmPostDao.fetchDraftVersion(draftId)?.id)
+        assertNull(kmPostDao.fetchOfficialVersion(LayoutBranch.main, draftId))
+        assertEquals(draftId, kmPostDao.fetchDraftVersion(LayoutBranch.main, draftId)?.id)
     }
 
     @Test
@@ -75,22 +85,33 @@ class LayoutKmPostDaoIT @Autowired constructor(
         val insertVersion = kmPostDao.insert(tempPost).rowVersion
         val inserted = kmPostDao.fetch(insertVersion)
         assertMatches(tempPost, inserted, contextMatch = false)
-        assertEquals(VersionPair(insertVersion, null), kmPostDao.fetchVersionPair(insertVersion.id))
+        assertEquals(
+            VersionPair(insertVersion, null),
+            kmPostDao.fetchVersionPair(LayoutBranch.main, insertVersion.id),
+        )
 
         val tempDraft1 = asMainDraft(inserted).copy(location = Point(2.0, 2.0))
         val draftVersion1 = kmPostDao.insert(tempDraft1).rowVersion
         val draft1 = kmPostDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1, contextMatch = false)
-        assertEquals(VersionPair(insertVersion, draftVersion1), kmPostDao.fetchVersionPair(insertVersion.id))
+        assertEquals(
+            VersionPair(insertVersion, draftVersion1),
+            kmPostDao.fetchVersionPair(LayoutBranch.main, insertVersion.id),
+        )
 
         val tempDraft2 = draft1.copy(location = Point(3.0, 3.0))
         val draftVersion2 = kmPostDao.update(tempDraft2).rowVersion
         val draft2 = kmPostDao.fetch(draftVersion2)
         assertMatches(tempDraft2, draft2, contextMatch = false)
-        assertEquals(VersionPair(insertVersion, draftVersion2), kmPostDao.fetchVersionPair(insertVersion.id))
+        assertEquals(
+            VersionPair(insertVersion, draftVersion2),
+            kmPostDao.fetchVersionPair(LayoutBranch.main, insertVersion.id),
+        )
 
-        kmPostDao.deleteDraft(insertVersion.id)
-        assertEquals(VersionPair(insertVersion, null), kmPostDao.fetchVersionPair(insertVersion.id))
+        kmPostDao.deleteDraft(LayoutBranch.main, insertVersion.id)
+        assertEquals(VersionPair(insertVersion, null),
+            kmPostDao.fetchVersionPair(LayoutBranch.main, insertVersion.id),
+        )
 
         assertEquals(inserted, kmPostDao.fetch(insertVersion))
         assertEquals(draft1, kmPostDao.fetch(draftVersion1))
@@ -108,9 +129,21 @@ class LayoutKmPostDaoIT @Autowired constructor(
         val postThreeOnlyDraft = kmPostDao.insert(kmPost(trackNumberId, KmNumber(3), draft = true))
         val postFourOnlyOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(4), draft = false))
 
-        val versionsEmpty = kmPostDao.fetchVersionsForPublication(listOf(trackNumberId), listOf())[trackNumberId]!!
-        val versionsOnlyOne = kmPostDao.fetchVersionsForPublication(listOf(trackNumberId), listOf(postOneOfficial.id))[trackNumberId]!!
-        val versionsOneAndThree = kmPostDao.fetchVersionsForPublication(listOf(trackNumberId), listOf(postOneOfficial.id, postThreeOnlyDraft.id))[trackNumberId]!!
+        val versionsEmpty = kmPostDao.fetchVersionsForPublication(
+            LayoutBranch.main,
+            listOf(trackNumberId),
+            listOf(),
+        )[trackNumberId]!!
+        val versionsOnlyOne = kmPostDao.fetchVersionsForPublication(
+            LayoutBranch.main,
+            listOf(trackNumberId),
+            listOf(postOneOfficial.id),
+        )[trackNumberId]!!
+        val versionsOneAndThree = kmPostDao.fetchVersionsForPublication(
+            LayoutBranch.main,
+            listOf(trackNumberId),
+            listOf(postOneOfficial.id, postThreeOnlyDraft.id),
+        )[trackNumberId]!!
 
         assertEquals(validationVersions(postOneOfficial, postTwoOfficial, postFourOnlyOfficial), versionsEmpty.toSet())
         assertEquals(validationVersions(postOneDraft, postTwoOfficial, postFourOnlyOfficial), versionsOnlyOne.toSet())
@@ -129,20 +162,20 @@ class LayoutKmPostDaoIT @Autowired constructor(
         val undeletedDraftVersion = insertDraft(tnId, 2).rowVersion
         val deleteStateDraftVersion = insertDraft(tnId, 3, DELETED).rowVersion
         val (deletedDraftId, deletedDraftVersion) = insertDraft(tnId, 4)
-        kmPostDao.deleteDraft(deletedDraftId)
+        kmPostDao.deleteDraft(LayoutBranch.main, deletedDraftId)
 
-        val official = kmPostDao.fetchVersions(OFFICIAL, false)
+        val official = kmPostDao.fetchVersions(MainLayoutContext.official, false)
         assertContains(official, officialVersion)
         assertFalse(official.contains(undeletedDraftVersion))
         assertFalse(official.contains(deleteStateDraftVersion))
         assertFalse(official.contains(deletedDraftVersion))
 
-        val draftWithoutDeleted = kmPostDao.fetchVersions(DRAFT, false)
+        val draftWithoutDeleted = kmPostDao.fetchVersions(MainLayoutContext.draft, false)
         assertContains(draftWithoutDeleted, undeletedDraftVersion)
         assertFalse(draftWithoutDeleted.contains(deleteStateDraftVersion))
         assertFalse(draftWithoutDeleted.contains(deletedDraftVersion))
 
-        val draftWithDeleted = kmPostDao.fetchVersions(DRAFT, true)
+        val draftWithDeleted = kmPostDao.fetchVersions(MainLayoutContext.draft, true)
         assertContains(draftWithDeleted, undeletedDraftVersion)
         assertContains(draftWithDeleted, deleteStateDraftVersion)
         assertFalse(draftWithDeleted.contains(deletedDraftVersion))
@@ -175,11 +208,11 @@ class LayoutKmPostDaoIT @Autowired constructor(
 
         assertEquals(
             listOf(officialTrackVersion1, officialTrackVersion2).toSet(),
-            kmPostDao.fetchVersions(OFFICIAL, false, tnId).toSet(),
+            kmPostDao.fetchVersions(MainLayoutContext.official, false, tnId).toSet(),
         )
         assertEquals(
             listOf(officialTrackVersion1, officialTrackVersion2, draftTrackVersion),
-            kmPostDao.fetchVersions(DRAFT, false, tnId),
+            kmPostDao.fetchVersions(MainLayoutContext.draft, false, tnId),
         )
     }
 
@@ -192,24 +225,24 @@ class LayoutKmPostDaoIT @Autowired constructor(
         val changeTrackNumberOriginal = insertOfficial(tnId, 3).rowVersion
         val changeTrackNumberChanged = createDraftWithNewTrackNumber(changeTrackNumberOriginal, tnId2).rowVersion
         val deletedDraftVersion = insertDraft(tnId, 4).rowVersion
-        kmPostDao.deleteDraft(deletedDraftVersion.id)
+        kmPostDao.deleteDraft(LayoutBranch.main, deletedDraftVersion.id)
 
         assertEquals(
             listOf(changeTrackNumberOriginal),
-            kmPostDao.fetchVersions(OFFICIAL, false, tnId),
+            kmPostDao.fetchVersions(MainLayoutContext.official, false, tnId),
         )
         assertEquals(
             listOf(undeletedDraftVersion),
-            kmPostDao.fetchVersions(DRAFT, false, tnId),
+            kmPostDao.fetchVersions(MainLayoutContext.draft, false, tnId),
         )
 
         assertEquals(
             listOf(undeletedDraftVersion, deleteStateDraftVersion).toSet(),
-            kmPostDao.fetchVersions(DRAFT, true, tnId).toSet(),
+            kmPostDao.fetchVersions(MainLayoutContext.draft, true, tnId).toSet(),
         )
         assertEquals(
             listOf(changeTrackNumberChanged),
-            kmPostDao.fetchVersions(DRAFT, true, tnId2),
+            kmPostDao.fetchVersions(MainLayoutContext.draft, true, tnId2),
         )
     }
 
@@ -252,6 +285,8 @@ class LayoutKmPostDaoIT @Autowired constructor(
         publicationState: PublicationState,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmPost> {
-        return kmPostDao.fetchVersions(publicationState, false, trackNumberId, null).map(kmPostDao::fetch)
+        return kmPostDao
+            .fetchVersions(MainLayoutContext.of(publicationState), false, trackNumberId, null)
+            .map(kmPostDao::fetch)
     }
 }

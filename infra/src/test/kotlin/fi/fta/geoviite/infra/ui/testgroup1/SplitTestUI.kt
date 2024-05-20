@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
@@ -61,7 +62,7 @@ class SplitTestUI @Autowired constructor(
             segments = preSegments + switchSegments1 + segments1To2 + switchSegments2 + postSegments
         ).id
 
-        val sourceTrackName = locationTrackService.get(OFFICIAL, sourceTrackId)!!.name.toString()
+        val sourceTrackName = locationTrackService.get(MainLayoutContext.official, sourceTrackId)!!.name.toString()
         splitTestDataService.insertAsTrack(trackNumberId = trackNumberId, segments = turningSegments1)
         splitTestDataService.insertAsTrack(trackNumberId = trackNumberId, segments = turningSegments2)
 
@@ -100,7 +101,10 @@ class SplitTestUI @Autowired constructor(
 
         splittingInfobox.confirmSplit()
 
-        val unpublishedSplit = splitService.findUnpublishedSplits(locationTrackIds = listOf(sourceTrackId)).first()
+        val unpublishedSplit = splitService.findUnpublishedSplits(
+            branch = LayoutBranch.main,
+            locationTrackIds = listOf(sourceTrackId),
+        ).first()
         assertEquals(3, unpublishedSplit.targetLocationTracks.size)
 
         // External IDs are fetched from (fake) Ratko service during publication,

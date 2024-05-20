@@ -4,9 +4,7 @@ import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.PublicationState
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
-import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geocoding.GeocodingService
@@ -84,33 +82,37 @@ class SwitchLinkingService @Autowired constructor(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @Transactional(readOnly = true)
-    fun getSuggestedSwitches(bbox: BoundingBox): List<SuggestedSwitch> {
-        return switchFittingService.getFitsInArea(bbox).map(::matchFittedSwitch)
+    fun getSuggestedSwitches(branch: LayoutBranch, bbox: BoundingBox): List<SuggestedSwitch> {
+        return switchFittingService.getFitsInArea(branch, bbox).map { fit -> matchFittedSwitch(branch, fit) }
     }
 
     @Transactional(readOnly = true)
-    fun getSuggestedSwitches(points: List<Pair<IPoint, IntId<TrackLayoutSwitch>>>): List<SuggestedSwitch?> {
+    fun getSuggestedSwitches(
+        branch: LayoutBranch,
+        points: List<Pair<IPoint, IntId<TrackLayoutSwitch>>>,
+    ): List<SuggestedSwitch?> {
         logger.serviceCall("getSuggestedSwitches", "points" to points)
-        return getSuggestedSwitchesWithRelevantTracks(points).map { it?.first }
+        return getSuggestedSwitchesWithRelevantTracks(branch, points).map { it?.first }
     }
 
     // "relevant" = definitely includes tracks that the switches are linked to after the suggestion, but also tracks
     // that are just within the expanded bounding box of the fitted switch joints, or that the switch was originally
     // linked to
     private fun getSuggestedSwitchesWithRelevantTracks(
+        branch: LayoutBranch,
         points: List<Pair<IPoint, IntId<TrackLayoutSwitch>>>,
     ): List<Pair<SuggestedSwitch, Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>>?> {
-        val originalSwitches = points.map { (_, switchId) -> switchService.getOrThrow(DRAFT, switchId) }
+        val originalSwitches = points.map { (_, switchId) -> switchService.getOrThrow(branch.draft, switchId) }
         val originallyLinkedLocationTracksBySwitch =
-            collectOriginallyLinkedLocationTracksBySwitch(points.map { (_, switchId) -> switchId })
+            collectOriginallyLinkedLocationTracksBySwitch(branch, points.map { (_, switchId) -> switchId })
 
         val pointsWithStructures = points.mapIndexed { index, (point) ->
             point to originalSwitches[index].switchStructureId
         }
 
-        return switchFittingService.getFitsAtPoints(pointsWithStructures).mapIndexed { index, fit ->
+        return switchFittingService.getFitsAtPoints(branch, pointsWithStructures).mapIndexed { index, fit ->
             fit?.let {
-                val tracksAroundFit = findLocationTracksForMatchingSwitchToTracks(fit)
+                val tracksAroundFit = findLocationTracksForMatchingSwitchToTracks(branch, fit)
                 val originallyLinkedTracks = originallyLinkedLocationTracksBySwitch[points[index].second] ?: mapOf()
                 val relevantTracks = tracksAroundFit + originallyLinkedTracks
                 val match = matchFittedSwitchToTracks(
@@ -125,68 +127,77 @@ class SwitchLinkingService @Autowired constructor(
         }
     }
 
-    fun getSuggestedSwitch(location: IPoint, switchId: IntId<TrackLayoutSwitch>): SuggestedSwitch? =
-        getSuggestedSwitches(listOf(location to switchId)).getOrNull(0)
+    @Transactional(readOnly = true)
+    fun getSuggestedSwitch(
+        branch: LayoutBranch,
+        location: IPoint,
+        switchId: IntId<TrackLayoutSwitch>,
+    ): SuggestedSwitch? = getSuggestedSwitches(branch, listOf(location to switchId)).getOrNull(0)
 
     @Transactional(readOnly = true)
-    fun getSuggestedSwitch(createParams: SuggestedSwitchCreateParams): SuggestedSwitch? {
-        logger.serviceCall("getSuggestedSwitch", "createParams" to createParams)
+    fun getSuggestedSwitch(branch: LayoutBranch, createParams: SuggestedSwitchCreateParams): SuggestedSwitch? {
+        logger.serviceCall("getSuggestedSwitch", "branch" to branch, "createParams" to createParams)
 
-        return switchFittingService.getFitAtEndpoint(createParams)?.let(::matchFittedSwitch)
+        return switchFittingService
+            .getFitAtEndpoint(branch, createParams)
+            ?.let { fit -> matchFittedSwitch(branch, fit) }
     }
 
     @Transactional
-    fun saveSwitchLinking(suggestedSwitch: SuggestedSwitch, switchId: IntId<TrackLayoutSwitch>): DaoResponse<TrackLayoutSwitch> {
+    fun saveSwitchLinking(
+        branch: LayoutBranch,
+        suggestedSwitch: SuggestedSwitch,
+        switchId: IntId<TrackLayoutSwitch>,
+    ): DaoResponse<TrackLayoutSwitch> {
         logger.serviceCall("saveSwitchLinking", "switchLinkingParameters" to suggestedSwitch)
 
         suggestedSwitch.geometrySwitchId?.let(::verifyPlanNotHidden)
         val originalTracks = suggestedSwitch.trackLinks.keys.associateWith { id ->
-            locationTrackService.getWithAlignmentOrThrow(DRAFT, id)
+            locationTrackService.getWithAlignmentOrThrow(branch.draft, id)
         }
-        saveLocationTrackChanges(
-            withChangesFromLinkingSwitch(suggestedSwitch, switchId, originalTracks),
-            originalTracks
-        )
-        return updateLayoutSwitch(suggestedSwitch, switchId)
+        val changedTracks = withChangesFromLinkingSwitch(suggestedSwitch, switchId, originalTracks)
+        saveLocationTrackChanges(branch, changedTracks, originalTracks)
+        return updateLayoutSwitch(branch, suggestedSwitch, switchId)
     }
 
     private fun saveLocationTrackChanges(
+        branch: LayoutBranch,
         maybeChanged: List<Pair<LocationTrack, LayoutAlignment>>,
         original: Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>,
     ) = maybeChanged.forEach { (locationTrack, alignment) ->
         val (originalLocationTrack, originalAlignment) = original[locationTrack.id as IntId] ?: (null to null)
         if (originalAlignment != alignment) {
-            // TODO: GVT-2399
-            locationTrackService.saveDraft(locationTrack, alignment)
+            locationTrackService.saveDraft(branch, locationTrack, alignment)
         } else if (originalLocationTrack != locationTrack) {
-            // TODO: GVT-2400
-            locationTrackService.saveDraft(LayoutBranch.main, locationTrack)
+            locationTrackService.saveDraft(branch, locationTrack)
         }
     }
 
     @Transactional(readOnly = true)
     fun matchFittedSwitch(
+        branch: LayoutBranch,
         fittedSwitch: FittedSwitch,
         switchId: IntId<TrackLayoutSwitch>? = null,
     ): SuggestedSwitch = matchFittedSwitchToTracks(
         fittedSwitch,
         switchLibraryService.getSwitchStructure(fittedSwitch.switchStructureId),
-        findLocationTracksForMatchingSwitchToTracks(fittedSwitch, switchId),
+        findLocationTracksForMatchingSwitchToTracks(branch, fittedSwitch, switchId),
         switchId,
         fittedSwitch.geometrySwitchId?.let { id -> geometryDao.getSwitch(id).name },
     )
 
     private fun findLocationTracksForMatchingSwitchToTracks(
+        branch: LayoutBranch,
         fittedSwitch: FittedSwitch,
         switchId: IntId<TrackLayoutSwitch>? = null,
     ): Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>> {
         fun indexTracksInBounds(boundingBox: BoundingBox?) = boundingBox
-            ?.let { bounds -> locationTrackDao.fetchVersionsNear(DRAFT, bounds) }
+            ?.let { bounds -> locationTrackDao.fetchVersionsNear(branch.draft, bounds) }
             ?.map(locationTrackService::getWithAlignment)
             ?.associate { trackAndAlignment -> trackAndAlignment.first.id as IntId to trackAndAlignment } ?: mapOf()
 
         val originalTracks = if (switchId == null) emptyMap() else {
-            switchDao.findLocationTracksLinkedToSwitch(DRAFT, switchId).associate { ids ->
+            switchDao.findLocationTracksLinkedToSwitch(branch.draft, switchId).associate { ids ->
                 val trackAndAlignment = locationTrackService.getWithAlignment(ids.rowVersion)
                 (trackAndAlignment.first.id as IntId) to trackAndAlignment
             }
@@ -199,10 +210,11 @@ class SwitchLinkingService @Autowired constructor(
     }
 
     private fun collectOriginallyLinkedLocationTracksBySwitch(
+        branch: LayoutBranch,
         switches: List<IntId<TrackLayoutSwitch>>,
     ): Map<IntId<TrackLayoutSwitch>, Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>> =
         switchDao
-            .findLocationTracksLinkedToSwitches(DRAFT, switches)
+            .findLocationTracksLinkedToSwitches(branch.draft, switches)
             .map {
                 locationTrackService.getWithAlignment(it.rowVersion)
             }
@@ -215,14 +227,14 @@ class SwitchLinkingService @Autowired constructor(
             .mapValues { (_, tracksAndAlignments) -> tracksAndAlignments.associateBy { it.first.id as IntId } }
 
     @Transactional
-    fun relinkTrack(trackId: IntId<LocationTrack>): List<TrackSwitchRelinkingResult> {
-        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, trackId)
+    fun relinkTrack(branch: LayoutBranch, trackId: IntId<LocationTrack>): List<TrackSwitchRelinkingResult> {
+        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(branch.draft, trackId)
 
-        val originalSwitches = collectAllSwitchesOnTrackAndNearby(track, track.alignmentVersion!!, alignment).map { switchId ->
-            switchId to switchService.getOrThrow(DRAFT, switchId)
-        }
+        val originalSwitches = collectAllSwitchesOnTrackAndNearby(branch, track, alignment)
+            .map { switchId -> switchId to switchService.getOrThrow(branch.draft, switchId) }
+
         val originallyLinkedLocationTracksBySwitch =
-            collectOriginallyLinkedLocationTracksBySwitch(originalSwitches.map { (switchId) -> switchId })
+            collectOriginallyLinkedLocationTracksBySwitch(branch, originalSwitches.map { (switchId) -> switchId })
 
         val changedLocationTracks: MutableMap<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>> =
             mutableMapOf()
@@ -232,7 +244,7 @@ class SwitchLinkingService @Autowired constructor(
             val presentationJointLocation = originalSwitch.getJoint(switchStructure.presentationJointNumber)?.location
             checkNotNull(presentationJointLocation) { "no presentation joint on switch ${originalSwitch.id}" }
             val nearbyTracksForFit =
-                locationTrackService.getLocationTracksNear(presentationJointLocation, DRAFT).let { nearby ->
+                locationTrackService.getLocationTracksNear(branch.draft, presentationJointLocation).let { nearby ->
                     val map = nearby.associateBy { it.first.id as IntId }
                     map + changedLocationTracks.filterKeys { id -> map.containsKey(id) }
                 }.values.toList()
@@ -242,45 +254,47 @@ class SwitchLinkingService @Autowired constructor(
             if (fittedSwitch == null) {
                 TrackSwitchRelinkingResult(switchId, TrackSwitchRelinkingResultType.NOT_AUTOMATICALLY_LINKABLE)
             } else {
-                val nearbyTracksForMatch = findLocationTracksForMatchingSwitchToTracks(
-                    fittedSwitch,
-                ).let { nearby ->
-                    val original = originallyLinkedLocationTracksBySwitch[switchId] ?: mapOf()
-                    nearby + original + changedLocationTracks.filterKeys { key ->
-                        nearby.containsKey(key) || original.containsKey(key)
+                val nearbyTracksForMatch = findLocationTracksForMatchingSwitchToTracks(branch, fittedSwitch)
+                    .let { nearby ->
+                        val original = originallyLinkedLocationTracksBySwitch[switchId] ?: mapOf()
+                        nearby + original + changedLocationTracks.filterKeys { key ->
+                            nearby.containsKey(key) || original.containsKey(key)
+                        }
                     }
-                }
                 val match = matchFittedSwitchToTracks(fittedSwitch, switchStructure, nearbyTracksForMatch, switchId)
                 withChangesFromLinkingSwitch(
                     match,
                     switchId,
                     nearbyTracksForMatch.filterKeys { track -> match.trackLinks.containsKey(track) },
                 ).forEach { track -> changedLocationTracks[track.first.id as IntId] = track }
-                updateLayoutSwitch(match, switchId)
+                updateLayoutSwitch(branch, match, switchId)
                 TrackSwitchRelinkingResult(switchId, TrackSwitchRelinkingResultType.RELINKED)
             }
         }
-        changedLocationTracks.values.forEach { (track, alignment) -> locationTrackService.saveDraft(track, alignment) }
+        changedLocationTracks.values.forEach { (track, alignment) ->
+            locationTrackService.saveDraft(branch, track, alignment)
+        }
         return relinkingResults
     }
 
     @Transactional(readOnly = true)
-    fun validateRelinkingTrack(trackId: IntId<LocationTrack>): List<SwitchRelinkingValidationResult> {
-        val trackVersion = locationTrackDao.fetchDraftVersionOrThrow(trackId)
+    fun validateRelinkingTrack(
+        branch: LayoutBranch,
+        trackId: IntId<LocationTrack>,
+    ): List<SwitchRelinkingValidationResult> {
+        val trackVersion = locationTrackDao.fetchDraftVersionOrThrow(branch, trackId)
         val track = trackVersion.let(locationTrackDao::fetch)
-        val alignment = requireNotNull(track.alignmentVersion) {
-            "No alignment on track ${track.toLog()}"
-        }.let(alignmentDao::fetch)
+        val alignment = track.getAlignmentVersionOrThrow().let(alignmentDao::fetch)
 
-        val switchIds = collectAllSwitchesOnTrackAndNearby(track, track.alignmentVersion, alignment)
+        val switchIds = collectAllSwitchesOnTrackAndNearby(branch, track, alignment)
 
         val replacementSwitchLocations = switchIds.map { switchId ->
-            val switch = switchService.getOrThrow(DRAFT, switchId)
+            val switch = switchService.getOrThrow(branch.draft, switchId)
             switchService.getPresentationJointOrThrow(switch).location to switchId
         }
 
-        val switchSuggestions = getSuggestedSwitchesWithRelevantTracks(replacementSwitchLocations)
-        val geocodingContext = requireNotNull(geocodingService.getGeocodingContext(DRAFT, track.trackNumberId)) {
+        val switchSuggestions = getSuggestedSwitchesWithRelevantTracks(branch, replacementSwitchLocations)
+        val geocodingContext = requireNotNull(geocodingService.getGeocodingContext(branch.draft, track.trackNumberId)) {
             "Could not get geocoding context: trackNumber=${track.trackNumberId} track=$track"
         }
         return switchIds.mapIndexed { index, switchId ->
@@ -293,14 +307,14 @@ class SwitchLinkingService @Autowired constructor(
                         PublicationValidationError(
                             PublicationValidationErrorType.ERROR,
                             "$VALIDATION_SWITCH.track-linkage.relinking-failed",
-                            mapOf("switch" to switchService.getOrThrow(DRAFT, switchId).name)
+                            mapOf("switch" to switchService.getOrThrow(branch.draft, switchId).name)
                         )
                     )
                 )
             else {
                 val (suggestedSwitch, relevantTracks) = suggestionWithTracks
                 val (validationResults, presentationJointLocation) = validateForSplit(
-                    suggestedSwitch, switchId, relevantTracks
+                    branch, suggestedSwitch, switchId, relevantTracks
                 )
                 val address = requireNotNull(geocodingContext.getAddress(presentationJointLocation)) {
                     "Could not geocode relinked location for switch $switchId on track $track"
@@ -315,44 +329,47 @@ class SwitchLinkingService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun getTrackSwitchSuggestions(publicationState: PublicationState, trackId: IntId<LocationTrack>) =
-        getTrackSwitchSuggestions(publicationState, locationTrackDao.getOrThrow(publicationState, trackId))
+    fun getTrackSwitchSuggestions(context: LayoutContext, trackId: IntId<LocationTrack>) =
+        getTrackSwitchSuggestions(context, locationTrackDao.getOrThrow(context, trackId))
 
     @Transactional(readOnly = true)
     fun getTrackSwitchSuggestions(
-        publicationState: PublicationState,
-        track: LocationTrack
+        layoutContext: LayoutContext,
+        track: LocationTrack,
     ): List<Pair<IntId<TrackLayoutSwitch>, SuggestedSwitch?>> {
-        logger.serviceCall("getTrackSwitchSuggestions", "track" to track)
+        logger.serviceCall(
+            "getTrackSwitchSuggestions",
+            "layoutContext" to layoutContext,
+            "track" to track,
+        )
 
-        val alignment = requireNotNull(track.alignmentVersion) {
-            "No alignment on track ${track.toLog()}"
-        }.let(alignmentDao::fetch)
+        val alignment = track.getAlignmentVersionOrThrow().let(alignmentDao::fetch)
 
         val switchIds = collectAllSwitches(track, alignment)
         val replacementSwitchLocations = switchIds.map { switchId ->
-            val switch = switchService.getOrThrow(publicationState, switchId)
+            val switch = switchService.getOrThrow(layoutContext, switchId)
             switchService.getPresentationJointOrThrow(switch).location to switchId
         }
-        val switchSuggestions = getSuggestedSwitches(replacementSwitchLocations)
+        val switchSuggestions = getSuggestedSwitches(layoutContext.branch, replacementSwitchLocations)
         return switchIds.mapIndexed { index, id -> id to switchSuggestions[index] }
     }
 
     private fun collectAllSwitchesOnTrackAndNearby(
+        branch: LayoutBranch,
         locationTrack: LocationTrack,
-        alignmentVersion: RowVersion<LayoutAlignment>,
         alignment: LayoutAlignment,
     ): List<IntId<TrackLayoutSwitch>> {
         val topologySwitches = listOfNotNull(
             locationTrack.topologyStartSwitch?.switchId, locationTrack.topologyEndSwitch?.switchId
         )
         val segmentSwitches = alignment.segments.mapNotNull { segment -> segment.switchId as IntId? }
-        val nearbySwitches = switchDao.findSwitchesNearAlignment(alignmentVersion)
+        val nearbySwitches = switchDao.findSwitchesNearAlignment(branch, locationTrack.getAlignmentVersionOrThrow())
 
         return (topologySwitches + segmentSwitches + nearbySwitches).distinct()
     }
 
     private fun validateForSplit(
+        branch: LayoutBranch,
         suggestedSwitch: SuggestedSwitch,
         switchId: IntId<TrackLayoutSwitch>,
         relevantLocationTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>,
@@ -363,7 +380,7 @@ class SwitchLinkingService @Autowired constructor(
             switchId,
             relevantLocationTracks,
         )
-        val createdSwitch = createModifiedLayoutSwitchLinking(suggestedSwitch, switchId)
+        val createdSwitch = createModifiedLayoutSwitchLinking(branch, suggestedSwitch, switchId)
         val presentationJointLocation = switchService.getPresentationJointOrThrow(createdSwitch).location
         val switchStructure = switchLibraryService.getSwitchStructure(suggestedSwitch.switchStructureId)
 
@@ -375,10 +392,11 @@ class SwitchLinkingService @Autowired constructor(
     }
 
     private fun createModifiedLayoutSwitchLinking(
+        branch: LayoutBranch,
         suggestedSwitch: SuggestedSwitch,
         switchId: IntId<TrackLayoutSwitch>,
     ): TrackLayoutSwitch {
-        val layoutSwitch = switchService.getOrThrow(DRAFT, switchId)
+        val layoutSwitch = switchService.getOrThrow(branch.draft, switchId)
         val newGeometrySwitchId = suggestedSwitch.geometrySwitchId ?: layoutSwitch.sourceId
 
         return layoutSwitch.copy(
@@ -388,16 +406,22 @@ class SwitchLinkingService @Autowired constructor(
         )
     }
 
-    private fun updateLayoutSwitch(suggestedSwitch: SuggestedSwitch, switchId: IntId<TrackLayoutSwitch>): DaoResponse<TrackLayoutSwitch> {
-        return createModifiedLayoutSwitchLinking(suggestedSwitch, switchId).let { modifiedLayoutSwitch ->
-            // TODO: GVT-2400
-            switchService.saveDraft(LayoutBranch.main, modifiedLayoutSwitch)
-        }
+    private fun updateLayoutSwitch(
+        branch: LayoutBranch,
+        suggestedSwitch: SuggestedSwitch,
+        switchId: IntId<TrackLayoutSwitch>,
+    ): DaoResponse<TrackLayoutSwitch> {
+        return createModifiedLayoutSwitchLinking(branch, suggestedSwitch, switchId)
+            .let { modifiedLayoutSwitch -> switchService.saveDraft(branch, modifiedLayoutSwitch) }
     }
 
     private fun verifyPlanNotHidden(id: IntId<GeometrySwitch>) {
-        if (geometryDao.getSwitchPlanId(id)?.let(geometryDao::fetchPlanVersion)?.let(geometryDao::getPlanHeader)?.isHidden != false) throw LinkingFailureException(
-            message = "Cannot link a plan that is hidden", localizedMessageKey = "plan-hidden"
+        val header = geometryDao.getSwitchPlanId(id)
+            ?.let(geometryDao::fetchPlanVersion)
+            ?.let(geometryDao::getPlanHeader)
+        if (header?.isHidden != false) throw LinkingFailureException(
+            message = "Cannot link a plan that is hidden",
+            localizedMessageKey = "plan-hidden",
         )
     }
 }
@@ -709,7 +733,6 @@ private fun withExistingLinksToSwitchCleared(
 private fun draft(tracks: List<Pair<LocationTrack, LayoutAlignment>>) =
     tracks.map { (track, alignment) -> asMainDraft(track) to alignment }
 
-
 fun updateLocationTrackWithTopologyEndLinking(
     locationTrack: LocationTrack,
     switchId: IntId<TrackLayoutSwitch>,
@@ -743,7 +766,7 @@ fun updateAlignmentSegmentsWithSwitchLinking(
                 .filter { joint -> joint.segmentIndex == index }
 
             if (switchLinkingJoints.isEmpty()) {
-                //Segment that is between two other segments that are linked to the switch joints
+                // Segment that is between two other segments that are linked to the switch joints
                 listOf(segment.copy(switchId = layoutSwitchId, startJointNumber = null, endJointNumber = null))
             } else {
                 getSegmentsByLinkingJoints(
@@ -779,9 +802,9 @@ private fun filterMatchingJointsBySwitchAlignment(
         val hasBackJoint = locationTrackSwitchJoints.any { joint -> joint.number == backJoint }
         val hasSeparatePresentationJoint =
             presentationJoint != frontJoint &&
-                    presentationJoint != backJoint &&
-                    alignment.jointNumbers.any { jointNumber -> jointNumber == presentationJoint } &&
-                    locationTrackSwitchJoints.any { joint -> joint.number == presentationJoint }
+                presentationJoint != backJoint &&
+                alignment.jointNumbers.any { jointNumber -> jointNumber == presentationJoint } &&
+                locationTrackSwitchJoints.any { joint -> joint.number == presentationJoint }
 
         // Alignment must contain at least two of these ("etujatkos", "takajatkos", presentation joint)
         listOf(hasFrontJoint, hasBackJoint, hasSeparatePresentationJoint).count { it } >= 2
@@ -804,24 +827,24 @@ private fun getSegmentsByLinkingJoints(
     val suggestedPointM = linkingJoint.m
 
     if (isSame(segment.startM, suggestedPointM, TOLERANCE_JOINT_LOCATION_SAME_POINT)) {
-        //Check if suggested point is start point
+        // Check if suggested point is start point
         acc.add(setStartJointNumber(segment, layoutSwitchId, jointNumber))
     } else if (isSame(segment.endM, suggestedPointM, TOLERANCE_JOINT_LOCATION_SAME_POINT)) {
-        //Check if suggested point is end point
+        // Check if suggested point is end point
         if (linkingJoints.size == 1) {
             acc.add(setEndJointNumber(previousSegment, layoutSwitchId, jointNumber))
         } else {
             acc.add(previousSegment.copy(endJointNumber = jointNumber))
         }
     } else {
-        //Otherwise split the segment
-        //StartSplitSegment: before M-value
-        //EndSplitSegment: after M-value
+        // Otherwise split the segment
+        // StartSplitSegment: before M-value
+        // EndSplitSegment: after M-value
         val (startSplitSegment, endSplitSegment) = previousSegment.splitAtM(
             suggestedPointM, TOLERANCE_JOINT_LOCATION_NEW_POINT
         )
 
-        //Handle cases differently when there are multiple joint matches in a single segment
+        // Handle cases differently when there are multiple joint matches in a single segment
         if (linkingJoints.size == 1) {
             acc.add(
                 if (isFirstSegment) startSplitSegment.withoutSwitch()
@@ -839,7 +862,7 @@ private fun getSegmentsByLinkingJoints(
             }
         } else {
             when (index) {
-                //First joint match
+                // First joint match
                 0 -> {
                     acc.add(
                         if (isFirstSegment) startSplitSegment.withoutSwitch()
@@ -854,7 +877,7 @@ private fun getSegmentsByLinkingJoints(
                         acc.add(setStartJointNumber(endSplitSegment, layoutSwitchId, jointNumber))
                     }
                 }
-                //Last joint match
+                // Last joint match
                 linkingJoints.lastIndex -> {
                     acc.add(startSplitSegment.copy(endJointNumber = jointNumber))
 

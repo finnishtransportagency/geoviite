@@ -10,6 +10,11 @@ enum class PublicationState { OFFICIAL, DRAFT }
 
 enum class LayoutBranchType { MAIN, DESIGN }
 
+fun assertMainBranch(branch: LayoutBranch) = require(branch == LayoutBranch.main) {
+    // TODO: GVT-2397, GVT-2398, GVT-2401: DAO support missing for fetching design branch data
+    "Design branch use is not yet supported"
+}
+
 sealed class LayoutBranch {
     companion object {
         @JvmStatic
@@ -26,6 +31,10 @@ sealed class LayoutBranch {
             "Value is not a ${LayoutBranch::class.simpleName}: ${formatForException(value)}"
         }
     }
+
+    val draft by lazy { LayoutContext.of(this, PublicationState.DRAFT) }
+
+    val official by lazy { LayoutContext.of(this, PublicationState.OFFICIAL) }
 
     open val designId: IntId<LayoutDesign>? get() = null
 }

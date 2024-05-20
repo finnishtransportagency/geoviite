@@ -28,7 +28,8 @@ class PublicationDao(
     val alignmentDao: LayoutAlignmentDao,
 ) : DaoBase(jdbcTemplateParam) {
 
-    fun fetchTrackNumberPublicationCandidates(): List<TrackNumberPublicationCandidate> {
+    fun fetchTrackNumberPublicationCandidates(branch: LayoutBranch): List<TrackNumberPublicationCandidate> {
+        assertMainBranch(branch)
         val sql = """
             select
               draft_track_number.row_id,
@@ -55,7 +56,7 @@ class PublicationDao(
                 draftChangeTime = rs.getInstant("change_time"),
                 operation = rs.getEnum("operation"),
                 userName = UserName.of(rs.getString("change_user")),
-                boundingBox = referenceLineDao.fetchVersionByTrackNumberId(PublicationState.DRAFT, id)
+                boundingBox = referenceLineDao.fetchVersionByTrackNumberId(branch.draft, id)
                     ?.let(referenceLineDao::fetch)?.boundingBox
             )
         }
@@ -63,7 +64,8 @@ class PublicationDao(
         return candidates
     }
 
-    fun fetchReferenceLinePublicationCandidates(): List<ReferenceLinePublicationCandidate> {
+    fun fetchReferenceLinePublicationCandidates(branch: LayoutBranch): List<ReferenceLinePublicationCandidate> {
+        assertMainBranch(branch)
         val sql = """
             select 
               draft_reference_line.row_id,
@@ -104,7 +106,8 @@ class PublicationDao(
         return candidates
     }
 
-    fun fetchLocationTrackPublicationCandidates(): List<LocationTrackPublicationCandidate> {
+    fun fetchLocationTrackPublicationCandidates(branch: LayoutBranch): List<LocationTrackPublicationCandidate> {
+        assertMainBranch(branch)
         val sql = """
             with splits as (
                 select
@@ -168,7 +171,8 @@ class PublicationDao(
         return candidates
     }
 
-    fun fetchSwitchPublicationCandidates(): List<SwitchPublicationCandidate> {
+    fun fetchSwitchPublicationCandidates(branch: LayoutBranch): List<SwitchPublicationCandidate> {
+        assertMainBranch(branch)
         val sql = """
             with splits as (
                 select
@@ -233,7 +237,8 @@ class PublicationDao(
         return candidates
     }
 
-    fun fetchKmPostPublicationCandidates(): List<KmPostPublicationCandidate> {
+    fun fetchKmPostPublicationCandidates(branch: LayoutBranch): List<KmPostPublicationCandidate> {
+        assertMainBranch(branch)
         val sql = """
             select
               draft_km_post.row_id,

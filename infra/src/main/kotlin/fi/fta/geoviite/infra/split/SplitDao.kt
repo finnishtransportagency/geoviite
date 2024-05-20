@@ -1,7 +1,9 @@
 package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -266,7 +268,8 @@ class SplitDao(
         }
     }
 
-    fun fetchUnfinishedSplits(): List<Split> {
+    fun fetchUnfinishedSplits(branch: LayoutBranch): List<Split> {
+        assertMainBranch(branch)
         val sql = """
           select
               split.id,
@@ -306,8 +309,8 @@ class SplitDao(
             .also { _ -> logger.daoAccess(AccessType.FETCH, Split::class, "publicationId" to publicationId) }
     }
 
-    fun locationTracksPartOfAnyUnfinishedSplit(locationTrackIds: Collection<IntId<LocationTrack>>) =
-        fetchUnfinishedSplits().filter { split ->
+    fun locationTracksPartOfAnyUnfinishedSplit(branch: LayoutBranch, locationTrackIds: Collection<IntId<LocationTrack>>) =
+        fetchUnfinishedSplits(branch).filter { split ->
             locationTrackIds.any { lt -> split.containsLocationTrack(lt) }
         }
 }

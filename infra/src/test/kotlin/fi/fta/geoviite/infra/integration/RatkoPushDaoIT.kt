@@ -2,11 +2,20 @@ package fi.fta.geoviite.infra.integration
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getInstantOrNull
 import org.junit.jupiter.api.Assertions
@@ -225,8 +234,8 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
     fun insertAndPublishLocationTrack(): DaoResponse<LocationTrack> =
         locationTrackAndAlignment(trackNumberId, draft = true).let { (track, alignment) ->
-            val draftVersion = locationTrackService.saveDraft(track, alignment)
-            locationTrackService.publish(ValidationVersion(draftVersion.id, draftVersion.rowVersion))
+            val draftVersion = locationTrackService.saveDraft(LayoutBranch.main, track, alignment)
+            locationTrackService.publish(LayoutBranch.main, ValidationVersion(draftVersion.id, draftVersion.rowVersion))
         }
 
     fun createPublication(

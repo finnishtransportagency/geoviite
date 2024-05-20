@@ -46,7 +46,7 @@ import {
     getTrackNumberChangeTimes,
     getTrackNumbers,
 } from 'track-layout/layout-track-number-api';
-import { getKmPost, getKmPostChangeTimes, getKmPosts } from 'track-layout/layout-km-post-api';
+import { getKmPost, getKmPostChangeInfo, getKmPosts } from 'track-layout/layout-km-post-api';
 import { PVDocumentHeader, PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { getPVDocument } from 'infra-model/infra-model-api';
 import { updateAllChangeTimes } from 'common/change-time-api';
@@ -325,7 +325,7 @@ export function useKmPostChangeTimes(
     layoutContext: LayoutContext,
 ): LayoutAssetChangeInfo | undefined {
     return useOptionalLoader(
-        () => (id ? getKmPostChangeTimes(id, layoutContext) : undefined),
+        () => (id ? getKmPostChangeInfo(id, layoutContext) : undefined),
         [id, layoutContext.designId, layoutContext.publicationState],
     );
 }

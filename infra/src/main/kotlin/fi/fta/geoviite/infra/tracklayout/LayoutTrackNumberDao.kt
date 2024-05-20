@@ -1,14 +1,24 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
-import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_TRACK_NUMBER
+import fi.fta.geoviite.infra.util.getDaoResponse
+import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getFreeText
+import fi.fta.geoviite.infra.util.getInstant
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getIntIdOrNull
+import fi.fta.geoviite.infra.util.getLayoutContextData
+import fi.fta.geoviite.infra.util.getOidOrNull
+import fi.fta.geoviite.infra.util.getOne
+import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.getTrackNumber
+import fi.fta.geoviite.infra.util.setUser
+import fi.fta.geoviite.infra.util.toDbId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -29,18 +39,17 @@ class LayoutTrackNumberDao(
     TRACK_NUMBER_CACHE_SIZE,
 ) {
 
-    override fun fetchVersions(publicationState: PublicationState, includeDeleted: Boolean) =
-        fetchVersions(publicationState, includeDeleted, null)
+    override fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean) =
+        fetchVersions(layoutContext, includeDeleted, null)
 
-    fun list(trackNumber: TrackNumber, publicationState: PublicationState): List<TrackLayoutTrackNumber> =
-        fetchVersions(publicationState, false, trackNumber).map(::fetch)
+    fun list(layoutContext: LayoutContext, trackNumber: TrackNumber): List<TrackLayoutTrackNumber> =
+        fetchVersions(layoutContext, false, trackNumber).map(::fetch)
 
     fun fetchVersions(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         includeDeleted: Boolean,
         number: TrackNumber?,
     ): List<RowVersion<TrackLayoutTrackNumber>> {
-        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select row_id, row_version
             from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id)
@@ -57,16 +66,6 @@ class LayoutTrackNumberDao(
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
         }
-    }
-
-    fun getTrackNumberToIdMapping(): Map<TrackNumber, IntId<TrackLayoutTrackNumber>> {
-        val sql = "select id, number from layout.track_number"
-        val result: List<Pair<TrackNumber, IntId<TrackLayoutTrackNumber>>> =
-            jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-                rs.getTrackNumber("number") to rs.getIntId("id")
-            }
-        logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, result.map { r -> r.second })
-        return result.associate { it }
     }
 
     override fun fetchInternal(version: RowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber {

@@ -7,6 +7,7 @@ import { Point } from 'model/geometry';
 import { LayoutContext, TrackMeter } from 'common/common-model';
 import { API_URI, getNullable, queryParams } from 'api/api-fetch';
 import { pointString } from 'common/common-api';
+import { contextInUri } from 'track-layout/track-layout-api';
 
 export const GEOCODING_URI = `${API_URI}/geocoding`;
 
@@ -27,7 +28,7 @@ export type AlignmentAddresses = {
 };
 
 function geocodingUri(layoutContext: LayoutContext) {
-    return `${GEOCODING_URI}/${layoutContext.publicationState.toLowerCase()}`;
+    return `${GEOCODING_URI}/${contextInUri(layoutContext)}`;
 }
 
 export async function getAddress(

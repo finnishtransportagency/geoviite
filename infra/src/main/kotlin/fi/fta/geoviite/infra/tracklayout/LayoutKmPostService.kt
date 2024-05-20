@@ -3,8 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.PublicationState
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -21,74 +20,73 @@ class LayoutKmPostService(
 ) : LayoutAssetService<TrackLayoutKmPost, LayoutKmPostDao>(dao) {
 
     @Transactional
-    fun insertKmPost(request: TrackLayoutKmPostSaveRequest): IntId<TrackLayoutKmPost> {
-        logger.serviceCall("insertKmPost", "request" to request)
+    fun insertKmPost(branch: LayoutBranch, request: TrackLayoutKmPostSaveRequest): IntId<TrackLayoutKmPost> {
+        logger.serviceCall("insertKmPost", "branch" to branch, "request" to request)
         val kmPost = TrackLayoutKmPost(
             kmNumber = request.kmNumber,
             location = null,
             state = request.state,
             trackNumberId = request.trackNumberId,
             sourceId = null,
-            // TODO: GVT-2401
-            contextData = LayoutContextData.newDraft(LayoutBranch.main),
+            contextData = LayoutContextData.newDraft(branch),
         )
-        // TODO: GVT-2401
-        return saveDraftInternal(LayoutBranch.main, kmPost).id
+        return saveDraftInternal(branch, kmPost).id
     }
 
     @Transactional
-    fun updateKmPost(id: IntId<TrackLayoutKmPost>, kmPost: TrackLayoutKmPostSaveRequest): IntId<TrackLayoutKmPost> {
-        logger.serviceCall("updateKmPost", "id" to id, "kmPost" to kmPost)
-        val trackLayoutKmPost = dao.getOrThrow(DRAFT, id).copy(
+    fun updateKmPost(
+        branch: LayoutBranch,
+        id: IntId<TrackLayoutKmPost>,
+        kmPost: TrackLayoutKmPostSaveRequest,
+    ): IntId<TrackLayoutKmPost> {
+        logger.serviceCall("updateKmPost", "branch" to branch, "id" to id, "kmPost" to kmPost)
+        val trackLayoutKmPost = dao.getOrThrow(branch.draft, id).copy(
             kmNumber = kmPost.kmNumber,
             state = kmPost.state,
         )
-        // TODO: GVT-2401
-        return saveDraftInternal(LayoutBranch.main, trackLayoutKmPost).id
+        return saveDraftInternal(branch, trackLayoutKmPost).id
     }
 
-    fun list(
-        publicationState: PublicationState,
-        filter: ((kmPost: TrackLayoutKmPost) -> Boolean)?,
-    ): List<TrackLayoutKmPost> {
-        logger.serviceCall("list", "publicationState" to publicationState, "filter" to (filter != null))
-        val all = dao.list(publicationState, false)
+    fun list(layoutContext: LayoutContext, filter: ((kmPost: TrackLayoutKmPost) -> Boolean)?): List<TrackLayoutKmPost> {
+        logger.serviceCall("list", "layoutContext" to layoutContext, "filter" to (filter != null))
+        val all = dao.list(layoutContext, false)
         return filter?.let(all::filter) ?: all
     }
 
-    fun list(publicationState: PublicationState, trackNumberId: IntId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> {
-        logger.serviceCall(
-            "list", "publicationState" to publicationState, "trackNumberId" to trackNumberId
-        )
-        return dao.list(publicationState, false, trackNumberId)
+    fun list(layoutContext: LayoutContext, trackNumberId: IntId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> {
+        logger.serviceCall("list", "layoutContext" to layoutContext, "trackNumberId" to trackNumberId)
+        return dao.list(layoutContext, false, trackNumberId)
     }
 
-    fun list(publicationState: PublicationState, boundingBox: BoundingBox, step: Int): List<TrackLayoutKmPost> {
+    fun list(layoutContext: LayoutContext, boundingBox: BoundingBox, step: Int): List<TrackLayoutKmPost> {
         logger.serviceCall(
-            "getKmPosts", "publicationState" to publicationState, "boundingBox" to boundingBox, "step" to step
+            "getKmPosts",
+            "layoutContext" to layoutContext,
+            "boundingBox" to boundingBox,
+            "step" to step,
         )
         return dao
-            .list(publicationState, false, bbox = boundingBox)
+            .list(layoutContext, false, bbox = boundingBox)
             .filter { p -> (step <= 1 || (p.kmNumber.isPrimary() && p.kmNumber.number % step == 0)) }
     }
 
     fun getByKmNumber(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         kmNumber: KmNumber,
         includeDeleted: Boolean,
     ): TrackLayoutKmPost? {
         logger.serviceCall(
             "getByKmNumber",
-            "trackNumberId" to trackNumberId,
+            "layoutContext" to layoutContext,
             "kmNumber" to kmNumber,
             "includeDeleted" to includeDeleted
         )
-        return dao.fetchVersion(publicationState, trackNumberId, kmNumber, includeDeleted)?.let(dao::fetch)
+        return dao.fetchVersion(layoutContext, trackNumberId, kmNumber, includeDeleted)?.let(dao::fetch)
     }
 
     fun listNearbyOnTrackPaged(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         location: Point,
         trackNumberId: IntId<TrackLayoutTrackNumber>?,
         offset: Int,
@@ -96,43 +94,45 @@ class LayoutKmPostService(
     ): List<TrackLayoutKmPost> {
         logger.serviceCall(
             "getNearbyKmPostsOnTrackPaged",
-            "publicationState" to publicationState,
+            "layoutContext" to layoutContext,
             "location" to location,
             "trackNumberId" to trackNumberId,
             "offset" to offset,
             "limit" to limit
         )
-        val allPosts = dao.list(publicationState, false, trackNumberId)
+        val allPosts = dao.list(layoutContext, false, trackNumberId)
         val postsByDistance = allPosts.map { post -> associateByDistance(post, location) }
         return pageToList(postsByDistance, offset, limit, ::compareByDistanceNullsFirst).map { (kmPost, _) -> kmPost }
     }
 
     @Transactional(readOnly = true)
-    fun getSingleKmPostLength(
-        publicationState: PublicationState,
-        id: IntId<TrackLayoutKmPost>,
-    ): Double? = dao.get(publicationState, id)?.getAsIntegral()?.let { kmPost ->
-        referenceLineService
-            .getByTrackNumberWithAlignment(publicationState, kmPost.trackNumberId)
-            ?.let { (_, referenceLineAlignment) ->
-                val kmPostM = referenceLineAlignment.getClosestPointM(kmPost.location)?.first
-                val kmEndM = getKmEndM(publicationState, kmPost.trackNumberId, kmPost.kmNumber, referenceLineAlignment)
-                if (kmPostM == null || kmEndM == null) null else kmEndM - kmPostM
-            }
+    fun getSingleKmPostLength(layoutContext: LayoutContext, id: IntId<TrackLayoutKmPost>): Double? {
+        logger.serviceCall("getSingleKmPostLength", "layoutContext" to layoutContext, "id" to id)
+        return dao.get(layoutContext, id)?.getAsIntegral()?.let { kmPost ->
+            referenceLineService.getByTrackNumberWithAlignment(layoutContext, kmPost.trackNumberId)
+                ?.let { (_, alignment) ->
+                    val kmPostM = alignment.getClosestPointM(kmPost.location)?.first
+                    val kmEndM = getKmEndM(layoutContext, kmPost.trackNumberId, kmPost.kmNumber, alignment)
+                    if (kmPostM == null || kmEndM == null) null else kmEndM - kmPostM
+                }
+        }
     }
 
     private fun getKmEndM(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         kmNumber: KmNumber,
         referenceLineAlignment: LayoutAlignment,
     ): Double? {
         val nextKmPost = dao
-            .fetchNextWithLocationAfter(trackNumberId, kmNumber, publicationState, LayoutState.IN_USE)
+            .fetchNextWithLocationAfter(layoutContext, trackNumberId, kmNumber, LayoutState.IN_USE)
             ?.let(dao::fetch)
             ?.getAsIntegral()
-        return if (nextKmPost == null) referenceLineAlignment.length
-        else referenceLineAlignment.getClosestPointM(nextKmPost.location)?.first
+        return if (nextKmPost == null) {
+            referenceLineAlignment.length
+        } else {
+            referenceLineAlignment.getClosestPointM(nextKmPost.location)?.first
+        }
     }
 }
 

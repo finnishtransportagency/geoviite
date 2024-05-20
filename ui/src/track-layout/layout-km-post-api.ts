@@ -20,7 +20,7 @@ import {
     putNonNullAdt,
     queryParams,
 } from 'api/api-fetch';
-import { changeTimeUri, layoutUri, TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
+import { changeInfoUri, layoutUri } from 'track-layout/track-layout-api';
 import { getChangeTimes, updateKmPostChangeTime } from 'common/change-time-api';
 import { BoundingBox, Point } from 'model/geometry';
 import { bboxString, pointString } from 'common/common-api';
@@ -217,8 +217,8 @@ export const getKmLengthsAsCsv = (
     return `${layoutUri('track-numbers', layoutContext, trackNumberId)}/km-lengths/as-csv${params}`;
 };
 
-export const getKmPostChangeTimes = (id: LayoutKmPostId, layoutContext: LayoutContext) =>
-    getNullable<LayoutAssetChangeInfo>(changeTimeUri('km-posts', id, layoutContext));
+export const getKmPostChangeInfo = (id: LayoutKmPostId, layoutContext: LayoutContext) =>
+    getNullable<LayoutAssetChangeInfo>(changeInfoUri('km-posts', id, layoutContext));
 
-export const getEntireRailNetworkKmLengthsCsvUrl = () =>
-    `${TRACK_LAYOUT_URI}/track-numbers/rail-network/km-lengths/file`;
+export const getEntireRailNetworkKmLengthsCsvUrl = (layoutContext: LayoutContext) =>
+    `${layoutUri('track-numbers', layoutContext)}/rail-network/km-lengths/file`;

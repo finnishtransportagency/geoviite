@@ -357,6 +357,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                 splittingState.splits,
                 duplicateTracksInCurrentSplits,
             ),
+            undefined,
         )
             .then(async () => {
                 await updateAllChangeTimes();

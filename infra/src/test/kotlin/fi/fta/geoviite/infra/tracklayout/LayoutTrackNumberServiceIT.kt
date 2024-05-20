@@ -1,9 +1,11 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
@@ -21,7 +23,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -46,14 +47,14 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 KmNumber(5555), 5.5, 1
             )
         )
-        val id = trackNumberService.insert(saveRequest)
-        val trackNumber = trackNumberService.get(DRAFT, id)!!
+        val id = trackNumberService.insert(LayoutBranch.main, saveRequest)
+        val trackNumber = trackNumberService.get(MainLayoutContext.draft, id)!!
 
         assertNull(trackNumber.externalId)
 
-        trackNumberService.updateExternalId(trackNumber.id as IntId, externalIdForTrackNumber())
+        trackNumberService.updateExternalId(LayoutBranch.main, trackNumber.id as IntId, externalIdForTrackNumber())
 
-        val updatedTrackNumber = trackNumberService.get(DRAFT, id)!!
+        val updatedTrackNumber = trackNumberService.get(MainLayoutContext.draft, id)!!
         assertNotNull(updatedTrackNumber.externalId)
     }
 
@@ -63,12 +64,12 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
         assertEquals(referenceLine.alignmentVersion?.id, alignment.id as IntId)
         val trackNumberId = trackNumber.id as IntId
 
-        assertDoesNotThrow { trackNumberService.deleteDraftAndReferenceLine(trackNumberId) }
+        assertDoesNotThrow { trackNumberService.deleteDraftAndReferenceLine(LayoutBranch.main, trackNumberId) }
         assertThrows<NoSuchEntityException> {
-            referenceLineService.getOrThrow(DRAFT, referenceLine.id as IntId)
+            referenceLineService.getOrThrow(MainLayoutContext.draft, referenceLine.id as IntId)
         }
         assertThrows<NoSuchEntityException> {
-            trackNumberService.getOrThrow(DRAFT, trackNumberId)
+            trackNumberService.getOrThrow(MainLayoutContext.draft, trackNumberId)
         }
         assertFalse(alignmentDao.fetchVersions().map { rv -> rv.id }.contains(alignment.id))
     }
@@ -80,7 +81,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
         publishReferenceLine(referenceLine.id as IntId)
 
         assertThrows<DeletingFailureException> {
-            trackNumberService.deleteDraft(trackNumber.id as IntId)
+            trackNumberService.deleteDraft(LayoutBranch.main, trackNumber.id as IntId)
         }
     }
 
@@ -122,7 +123,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
             ),
         ).map(kmPostDao::insert)
 
-        val kmLengths = trackNumberService.getKmLengths(OFFICIAL, trackNumber.id as IntId)
+        val kmLengths = trackNumberService.getKmLengths(MainLayoutContext.official, trackNumber.id as IntId)
         assertNotNull(kmLengths)
         assertEquals(3, kmLengths.size)
 
@@ -201,7 +202,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
             ),
         ).map(kmPostDao::insert)
 
-        val kmLengths = trackNumberService.getKmLengths(OFFICIAL, trackNumber.id as IntId)
+        val kmLengths = trackNumberService.getKmLengths(MainLayoutContext.official, trackNumber.id as IntId)
         assertNotNull(kmLengths)
         assertEquals(2, kmLengths.size)
 
@@ -236,22 +237,23 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 KmNumber(5555), 5.5, 1
             )
         )
-        val id = trackNumberService.insert(saveRequest)
-        val trackNumber = trackNumberService.get(DRAFT, id)!!
+        val id = trackNumberService.insert(LayoutBranch.main, saveRequest)
+        val trackNumber = trackNumberService.get(MainLayoutContext.draft, id)!!
 
         val (referenceLine, alignment) = referenceLineService.getByTrackNumberWithAlignment(
-            DRAFT, trackNumber.id as IntId<TrackLayoutTrackNumber>
+            MainLayoutContext.draft, trackNumber.id as IntId<TrackLayoutTrackNumber>
         )!! // Always exists, since we just created it
 
         return Triple(trackNumber, referenceLine, alignment)
     }
 
     private fun publishTrackNumber(id: IntId<TrackLayoutTrackNumber>) =
-        trackNumberDao.fetchPublicationVersions(listOf(id))
+        trackNumberDao.fetchPublicationVersions(LayoutBranch.main, listOf(id))
             .first()
-            .let { version -> trackNumberService.publish(version) }
+            .let { version -> trackNumberService.publish(LayoutBranch.main, version) }
 
-    private fun publishReferenceLine(id: IntId<ReferenceLine>) = referenceLineDao.fetchPublicationVersions(listOf(id))
+    private fun publishReferenceLine(id: IntId<ReferenceLine>): DaoResponse<ReferenceLine> = referenceLineDao
+        .fetchPublicationVersions(LayoutBranch.main, listOf(id))
         .first()
-        .let { version -> referenceLineService.publish(version) }
+        .let { version -> referenceLineService.publish(LayoutBranch.main, version) }
 }

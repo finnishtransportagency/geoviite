@@ -1,12 +1,37 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.logging.AccessType.*
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.assertMainBranch
+import fi.fta.geoviite.infra.logging.AccessType.FETCH
+import fi.fta.geoviite.infra.logging.AccessType.INSERT
+import fi.fta.geoviite.infra.logging.AccessType.UPDATE
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_SWITCH
+import fi.fta.geoviite.infra.util.getBooleanOrNull
+import fi.fta.geoviite.infra.util.getDaoResponse
+import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getEnumOrNull
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getIntIdOrNull
+import fi.fta.geoviite.infra.util.getLayoutContextData
+import fi.fta.geoviite.infra.util.getNullableDoubleArray
+import fi.fta.geoviite.infra.util.getNullableEnumArray
+import fi.fta.geoviite.infra.util.getNullableIntArray
+import fi.fta.geoviite.infra.util.getOidOrNull
+import fi.fta.geoviite.infra.util.getOne
+import fi.fta.geoviite.infra.util.getPoint
+import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.setUser
+import fi.fta.geoviite.infra.util.toDbId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -26,10 +51,9 @@ class LayoutSwitchDao(
 ) : LayoutAssetDao<TrackLayoutSwitch>(jdbcTemplateParam, LAYOUT_SWITCH, cacheEnabled, SWITCH_CACHE_SIZE) {
 
     override fun fetchVersions(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         includeDeleted: Boolean,
     ): List<RowVersion<TrackLayoutSwitch>> {
-        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select
               row_id,
@@ -48,10 +72,9 @@ class LayoutSwitchDao(
     }
 
     fun fetchSegmentSwitchJointConnections(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         switchId: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
-        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             with alignment as (
               select
@@ -416,17 +439,15 @@ class LayoutSwitchDao(
     )
 
     fun findLocationTracksLinkedToSwitch(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         switchId: IntId<TrackLayoutSwitch>,
-    ): List<LocationTrackIdentifiers> = findLocationTracksLinkedToSwitches(publicationState, listOf(switchId))
+    ): List<LocationTrackIdentifiers> = findLocationTracksLinkedToSwitches(layoutContext, listOf(switchId))
 
     fun findLocationTracksLinkedToSwitches(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         switchIds: List<IntId<TrackLayoutSwitch>>,
     ): List<LocationTrackIdentifiers> {
         if (switchIds.isEmpty()) return emptyList()
-
-        val layoutContext = MainLayoutContext.of(publicationState)
 
         val sql = """ 
             select 
@@ -525,7 +546,12 @@ class LayoutSwitchDao(
         }
     }
 
-    fun findSwitchesNearAlignment(alignmentVersion: RowVersion<LayoutAlignment>, maxDistance: Double = 1.0): List<IntId<TrackLayoutSwitch>> {
+    fun findSwitchesNearAlignment(
+        branch: LayoutBranch,
+        alignmentVersion: RowVersion<LayoutAlignment>,
+        maxDistance: Double = 1.0,
+    ): List<IntId<TrackLayoutSwitch>> {
+        assertMainBranch(branch)
         val sql = """
             select distinct switch.official_id as switch_id
               from layout.segment_version
