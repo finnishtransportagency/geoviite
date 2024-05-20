@@ -445,7 +445,7 @@ class SplitService(
     private fun saveTargetTrack(branch: LayoutBranch, target: SplitTargetResult): DaoResponse<LocationTrack> =
         locationTrackService.saveDraft(
             branch = branch,
-            draft = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
+            draftAsset = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(
                 layoutContext = branch.draft,
                 track = target.locationTrack,
                 alignment = target.alignment,

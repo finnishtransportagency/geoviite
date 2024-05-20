@@ -132,8 +132,8 @@ class LocationTrackService(
     }
 
     @Transactional
-    override fun saveDraft(branch: LayoutBranch, draftItem: LocationTrack): DaoResponse<LocationTrack> =
-        super.saveDraft(branch, draftItem.copy(alignmentVersion = updatedAlignmentVersion(draftItem)))
+    override fun saveDraft(branch: LayoutBranch, draftAsset: LocationTrack): DaoResponse<LocationTrack> =
+        super.saveDraft(branch, draftAsset.copy(alignmentVersion = updatedAlignmentVersion(draftAsset)))
 
     private fun updatedAlignmentVersion(track: LocationTrack): RowVersion<LayoutAlignment>? =
         // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
@@ -141,20 +141,26 @@ class LocationTrackService(
         else track.alignmentVersion
 
     @Transactional
-    fun saveDraft(branch: LayoutBranch, draft: LocationTrack, alignment: LayoutAlignment): DaoResponse<LocationTrack> {
-        logger.serviceCall("save", "branch" to branch, "draft" to draft, "alignment" to alignment)
+    fun saveDraft(
+        branch: LayoutBranch,
+        draftAsset: LocationTrack,
+        alignment: LayoutAlignment,
+    ): DaoResponse<LocationTrack> {
+        logger.serviceCall("save", "branch" to branch, "draftAsset" to draftAsset, "alignment" to alignment)
         val alignmentVersion =
             // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
-            if (draft.dataType == TEMP || draft.isOfficial) {
+            if (draftAsset.dataType == TEMP || draftAsset.isOfficial) {
                 alignmentService.saveAsNew(alignment)
             }
             // Ensure that we update the correct one.
-            else if (draft.getAlignmentVersionOrThrow().id != alignment.id) {
-                alignmentService.save(alignment.copy(id = draft.getAlignmentVersionOrThrow().id, dataType = STORED))
+            else if (draftAsset.getAlignmentVersionOrThrow().id != alignment.id) {
+                alignmentService.save(
+                    alignment.copy(id = draftAsset.getAlignmentVersionOrThrow().id, dataType = STORED),
+                )
             } else {
                 alignmentService.save(alignment)
             }
-        return saveDraftInternal(branch, draft.copy(alignmentVersion = alignmentVersion))
+        return saveDraftInternal(branch, draftAsset.copy(alignmentVersion = alignmentVersion))
     }
 
     @Transactional

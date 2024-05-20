@@ -356,11 +356,10 @@ class GeometryService @Autowired constructor(
         val geocodingContexts = geocodingService.getGeocodingContexts(MainLayoutContext.official)
         val elementListing = locationTrackService
             .listWithAlignments(MainLayoutContext.official, includeDeleted = false)
-            .sortedBy { (locationTrack, _) -> locationTrack.name }
             .map { (locationTrack, alignment) ->
                 Triple(locationTrack, alignment, geocodingContexts[locationTrack.trackNumberId]?.trackNumber)
             }
-            .sortedBy { (_, _, trackNumber) -> trackNumber }
+            .sortedWith(compareBy({ (_, _, tn) -> tn }, { (track, _, _) -> track.name }))
             .flatMap { (track, alignment, trackNumber) ->
                 getElementListing(track, alignment, trackNumber, geocodingContexts[track.trackNumberId])
             }
@@ -370,7 +369,7 @@ class GeometryService @Autowired constructor(
         elementListingFileDao.upsertElementListingFile(
             ElementListingFile(
                 name = FileName("${translation.t("data-products.element-list.element-list-whole-network-title")} ${dateFormatter.format(Instant.now())}"),
-                content = csvFileContent
+                content = csvFileContent,
             )
         )
     }
