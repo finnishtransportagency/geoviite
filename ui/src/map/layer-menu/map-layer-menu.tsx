@@ -167,15 +167,7 @@ export const MapLayerMenu: React.FC<MapLayerMenuProps> = ({
                     offsetY={layerOffset}
                     className={styles['map-layer-menu']}
                     positionRef={buttonRef}
-                    onClickOutside={() => undefined}>
-                    <span className={styles['map-layer-menu__close-button']}>
-                        <Button
-                            variant={ButtonVariant.GHOST}
-                            icon={Icons.Close}
-                            onClick={() => setShowMapLayerMenu(false)}
-                        />
-                    </span>
-
+                    onClickOutside={() => setShowMapLayerMenu(false)}>
                     <MapLayerGroup
                         title={t('map-layer-menu.layout-title')}
                         menuItemVisibilities={mapLayerMenuGroups.layout}

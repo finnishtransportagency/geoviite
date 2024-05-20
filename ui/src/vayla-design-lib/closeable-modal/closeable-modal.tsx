@@ -118,7 +118,6 @@ export const CloseableModal: React.FC<CloseableModalProps> = ({
             ref={modalRef}
             style={{
                 position: 'absolute',
-                overflowY: 'auto',
                 visibility: modalPosition === undefined ? 'hidden' : undefined,
                 ...modalPosition,
                 ...modalSize,

@@ -44,6 +44,14 @@ import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
 import { createClassName } from 'vayla-design-lib/utils';
 import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { EnvRestricted } from 'environment/env-restricted';
+import {
+    getLayoutDesigns,
+    insertLayoutDesign,
+    updateLayoutDesign,
+} from 'track-layout/layout-design-api';
+import { useLoader } from 'utils/react-utils';
+import { getChangeTimes, updateLayoutDesignChangeTime } from 'common/change-time-api';
+import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
@@ -163,8 +171,16 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddKmPostDialog, setShowAddKmPostDialog] = React.useState(false);
     const [showCreateWorkspaceDialog, setShowCreateWorkspaceDialog] = React.useState(false);
+    const [showEditWorkspaceDialog, setShowEditWorkspaceDialog] = React.useState(false);
+    const [showDeleteWorkspaceDialog, setShowDeleteWorkspaceDialog] = React.useState(false);
     const menuRef = React.useRef(null);
     const selectWorkspaceDropdownRef = React.useRef<HTMLInputElement>(null);
+
+    const designs = useLoader(
+        () => getLayoutDesigns(getChangeTimes().layoutDesign),
+        [getChangeTimes().layoutDesign],
+    );
+    const currentDesign = designs?.find((d) => d.id === layoutContext.designId);
 
     React.useEffect(() => {
         if (selectingWorkspace) selectWorkspaceDropdownRef?.current?.focus();
@@ -327,7 +343,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const className = createClassName(
         'tool-bar',
         !layoutContext.designId && `tool-bar--${layoutContext.publicationState.toLowerCase()}`,
-        layoutContext.designId || (selectingWorkspace && `tool-bar--design`),
+        (layoutContext.designId || selectingWorkspace) && `tool-bar--design`,
     );
 
     return (
@@ -403,22 +419,38 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 )}
                 {(layoutContext.designId || selectingWorkspace) && (
                     <React.Fragment>
-                        {/* TODO Add functionality once design projects have a data model */}
                         <Dropdown
                             inputRef={selectWorkspaceDropdownRef}
                             placeholder={t('tool-bar.choose-workspace')}
-                            openOverride={selectingWorkspace ? true : undefined}
+                            openOverride={selectingWorkspace}
                             onAddClick={() => setShowCreateWorkspaceDialog(true)}
+                            onChange={(designId) => {
+                                setSelectingWorkspace(false);
+                                onLayoutContextChange({
+                                    publicationState: 'DRAFT',
+                                    designId: designId,
+                                });
+                            }}
+                            options={
+                                designs?.map((design) => ({
+                                    value: design.id,
+                                    name: design.name,
+                                    qaId: `workspace-${design.id}`,
+                                })) ?? []
+                            }
+                            value={layoutContext.designId}
                         />
                         <Button
                             variant={ButtonVariant.GHOST}
                             icon={Icons.Edit}
                             disabled={!layoutContext.designId}
+                            onClick={() => setShowEditWorkspaceDialog(true)}
                         />
                         <Button
                             variant={ButtonVariant.GHOST}
                             icon={Icons.Delete}
                             disabled={!layoutContext.designId}
+                            onClick={() => setShowDeleteWorkspaceDialog(true)}
                         />
                     </React.Fragment>
                 )}
@@ -481,7 +513,43 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         setShowCreateWorkspaceDialog(false);
                         setSelectingWorkspace(false);
                     }}
-                    onSave={() => setShowCreateWorkspaceDialog(false)}
+                    onSave={(_, request) => {
+                        insertLayoutDesign(request)
+                            .then((id) => {
+                                setSelectingWorkspace(false);
+                                onLayoutContextChange({ publicationState: 'DRAFT', designId: id });
+                            })
+                            .finally(() => {
+                                updateLayoutDesignChangeTime();
+                                setShowCreateWorkspaceDialog(false);
+                            });
+                    }}
+                />
+            )}
+
+            {showEditWorkspaceDialog && (
+                <WorkspaceDialog
+                    existingDesign={currentDesign}
+                    onCancel={() => {
+                        setShowEditWorkspaceDialog(false);
+                        setSelectingWorkspace(false);
+                    }}
+                    onSave={(_, request) => {
+                        if (currentDesign) {
+                            updateLayoutDesign(currentDesign.id, request).finally(() => {
+                                updateLayoutDesignChangeTime();
+                                setShowEditWorkspaceDialog(false);
+                            });
+                        }
+                    }}
+                />
+            )}
+
+            {showDeleteWorkspaceDialog && currentDesign && (
+                <WorkspaceDeleteConfirmDialog
+                    closeDialog={() => setShowDeleteWorkspaceDialog(false)}
+                    currentDesign={currentDesign}
+                    onLayoutContextChange={onLayoutContextChange}
                 />
             )}
         </div>
