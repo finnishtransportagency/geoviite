@@ -311,6 +311,14 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         setSelectingWorkspace(false);
     };
 
+    const unselectDesign = () => {
+        onLayoutContextChange({
+            publicationState: layoutContext.publicationState,
+            designId: undefined,
+        });
+        setSelectingWorkspace(true);
+    };
+
     function openPreviewAndStopLinking() {
         onOpenPreview();
         onStopLinking();
@@ -422,7 +430,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         <Dropdown
                             inputRef={selectWorkspaceDropdownRef}
                             placeholder={t('tool-bar.choose-workspace')}
-                            openOverride={selectingWorkspace}
+                            openOverride={selectingWorkspace || undefined}
                             onAddClick={() => setShowCreateWorkspaceDialog(true)}
                             onChange={(designId) => {
                                 setSelectingWorkspace(false);
@@ -549,7 +557,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 <WorkspaceDeleteConfirmDialog
                     closeDialog={() => setShowDeleteWorkspaceDialog(false)}
                     currentDesign={currentDesign}
-                    onLayoutContextChange={onLayoutContextChange}
+                    onDesignDeleted={unselectDesign}
                 />
             )}
         </div>

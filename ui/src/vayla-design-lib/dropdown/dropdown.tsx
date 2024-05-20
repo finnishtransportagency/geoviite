@@ -84,15 +84,15 @@ export const Dropdown = function <TItemValue>({
         }
         earlySelect.current = false;
     });
-    const [open, setOpen] = React.useState(
-        props.openOverride !== undefined ? props.openOverride : false,
-    );
+    const [open, setOpen] = React.useState(false);
     const [hasFocus, _setHasFocus] = React.useState(false);
     const [searchTerm, setSearchTerm] = React.useState('');
     const [searchCommitted, setSearchTermCommitted] = React.useState(false);
     const [optionFocusIndex, setOptionFocusIndex] = React.useState(0);
     const showEmptyOption = props.canUnselect && !searchTerm && (props.value || optionsIsFunc);
     const inputRef = props.inputRef ?? inputRefInternal;
+
+    const isOpen = () => (props.openOverride !== undefined ? props.openOverride : open);
 
     let isMouseDown = false;
     const className = createClassName(
@@ -136,7 +136,7 @@ export const Dropdown = function <TItemValue>({
     }
 
     function openListUnlessOverridden() {
-        if (props.openOverride === undefined) openListAndFocusSelectedItem();
+        openListAndFocusSelectedItem();
     }
 
     function openListAndFocusSelectedItem() {
@@ -158,7 +158,7 @@ export const Dropdown = function <TItemValue>({
     }
 
     function closeListUnlessOverridden() {
-        if (props.openOverride === undefined) setOpen(false);
+        setOpen(false);
     }
 
     function select(value: TItemValue | undefined) {
@@ -234,7 +234,7 @@ export const Dropdown = function <TItemValue>({
     }
 
     function handleInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-        if (open) {
+        if (isOpen()) {
             switch (e.code) {
                 case 'ArrowUp':
                     updateOptionFocusIndex(-1);
@@ -318,12 +318,6 @@ export const Dropdown = function <TItemValue>({
         );
     }, [options]);
 
-    React.useEffect(() => {
-        if (props.openOverride !== undefined) {
-            props.openOverride ? openListAndFocusSelectedItem() : setOpen(false);
-        }
-    }, [props.openOverride]);
-
     return (
         <div
             qa-id={props.qaId}
@@ -337,7 +331,7 @@ export const Dropdown = function <TItemValue>({
                     if (!props.disabled) {
                         e.stopPropagation();
                         focusInput();
-                        open ? closeListUnlessOverridden() : openListUnlessOverridden();
+                        isOpen() ? closeListUnlessOverridden() : openListUnlessOverridden();
                     }
                 }}
                 title={props.title ? props.title : selectedName}>
@@ -369,7 +363,7 @@ export const Dropdown = function <TItemValue>({
                     )}
                 </div>
             </div>
-            {open && (
+            {isOpen() && (
                 <CloseableModal
                     useRefWidth
                     onClickOutside={closeListUnlessOverridden}

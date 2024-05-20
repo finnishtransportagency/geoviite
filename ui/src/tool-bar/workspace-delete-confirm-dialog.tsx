@@ -5,17 +5,17 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LayoutDesign, updateLayoutDesign } from 'track-layout/layout-design-api';
 import { updateLayoutDesignChangeTime } from 'common/change-time-api';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import { LayoutContext } from 'common/common-model';
+import { LayoutDesignId } from 'common/common-model';
 
 type WorkspaceDeleteConfirmDialogProps = {
     closeDialog: () => void;
     currentDesign: LayoutDesign;
-    onLayoutContextChange: (layoutContext: LayoutContext) => void;
+    onDesignDeleted: (id: LayoutDesignId) => void;
 };
 
 export const WorkspaceDeleteConfirmDialog: React.FC<WorkspaceDeleteConfirmDialogProps> = ({
     currentDesign,
-    onLayoutContextChange,
+    onDesignDeleted,
     closeDialog,
 }) => {
     const { t } = useTranslation();
@@ -25,10 +25,7 @@ export const WorkspaceDeleteConfirmDialog: React.FC<WorkspaceDeleteConfirmDialog
             designState: 'DELETED',
         }).then(() => {
             updateLayoutDesignChangeTime();
-            onLayoutContextChange({
-                publicationState: 'OFFICIAL',
-                designId: undefined,
-            });
+            onDesignDeleted(currentDesign.id);
             closeDialog();
         });
     };
