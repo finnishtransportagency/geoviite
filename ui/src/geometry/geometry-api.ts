@@ -41,11 +41,11 @@ import {
     KmNumber,
     LayoutContext,
     LayoutDesignId,
+    officialMainLayoutContext,
     PublicationState,
     TimeStamp,
     TrackNumber,
     VerticalCoordinateSystem,
-    officialMainLayoutContext,
 } from 'common/common-model';
 import { bboxString } from 'common/common-api';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
@@ -421,7 +421,7 @@ export async function getLocationTrackHeights(
     tickLength: number,
 ): Promise<TrackKmHeights[]> {
     return getNonNull(
-        `${GEOMETRY_URI}/${layoutContext.publicationState}/layout/location-tracks/${locationTrackId}/alignment-heights` +
+        `${geometryLayoutPath(layoutContext)}/location-tracks/${locationTrackId}/alignment-heights` +
             queryParams({ startDistance, endDistance, tickLength }),
     ).catch(() => []) as Promise<TrackKmHeights[]>;
 }
@@ -441,7 +441,7 @@ export async function getLocationTrackLinkingSummary(
         `${locationTrackId}_${layoutContext.publicationState}_${layoutContext.designId}`,
         () =>
             getNonNull(
-                `${GEOMETRY_URI}/${layoutContext.publicationState}/layout/location-tracks/${locationTrackId}/linking-summary`,
+                `${geometryLayoutPath(layoutContext)}/location-tracks/${locationTrackId}/linking-summary`,
             ),
     );
 }

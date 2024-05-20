@@ -57,10 +57,12 @@ class RatkoLocationTrackService @Autowired constructor(
         }.sortedWith(
             compareBy(
                 { sortByNullDuplicateOfFirst(it.first.duplicateOf) },
-                { sortByDeletedStateFirst(it.first.state) })
+                { sortByDeletedStateFirst(it.first.state) },
+            )
         ).map { (layoutLocationTrack, changedKmNumbers) ->
-            val externalId =
-                requireNotNull(layoutLocationTrack.externalId) { "OID required for location track, lt=${layoutLocationTrack.id}" }
+            val externalId = requireNotNull(layoutLocationTrack.externalId) {
+                "OID required for location track, lt=${layoutLocationTrack.id}"
+            }
             try {
                 ratkoClient.getLocationTrack(RatkoOid(externalId))?.let { existingLocationTrack ->
                     if (layoutLocationTrack.state == LocationTrackState.DELETED) {
@@ -316,7 +318,7 @@ class RatkoLocationTrackService @Autowired constructor(
             (addresses.midPoints + switchPoints).filter { p -> changedKmNumbers.contains(p.address.kmNumber) }
                 .sortedBy { p -> p.address }
 
-        //Update location track end points before deleting anything, otherwise old end points will stay in use
+        // Update location track end points before deleting anything, otherwise old end points will stay in use
         updateLocationTrackProperties(
             branch = branch,
             layoutLocationTrack = layoutLocationTrack,
