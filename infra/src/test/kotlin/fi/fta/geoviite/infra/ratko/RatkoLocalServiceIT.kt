@@ -188,7 +188,7 @@ class RatkoLocalServiceIT @Autowired constructor(
     }
 
     @Test
-    fun `Operating points search only matches name or abbreviation, not both`() {
+    fun `Operating points search matching both name and abbreviation returns the result only once`() {
         listOf(
             createTestOperatingPoint(
                 name = "AAA",

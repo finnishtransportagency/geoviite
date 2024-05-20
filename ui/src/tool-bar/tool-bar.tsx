@@ -45,7 +45,10 @@ import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
 import { createClassName } from 'vayla-design-lib/utils';
 import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { EnvRestricted } from 'environment/env-restricted';
-import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
+import {
+    calculateBoundingBoxToShowAroundLocation,
+    MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
+} from 'map/map-utils';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
@@ -251,6 +254,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             case 'operatingPointSearchItem': {
                 const operatingPointArea = calculateBoundingBoxToShowAroundLocation(
                     item.operatingPoint.location,
+                    MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
                 );
 
                 showArea(operatingPointArea);
