@@ -24,9 +24,11 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
         val insertAsIs = layoutDesignDao.insert(layoutDesignSaveRequest("foo bar")).let(layoutDesignDao::fetch)
         val update = layoutDesignDao.insert(layoutDesignSaveRequest("aa bee see")).let(layoutDesignDao::fetch)
         layoutDesignDao.update(
-            update.copy(
+            update.id,
+            LayoutDesignSaveRequest(
                 name = FreeText("abc"),
-                estimatedCompletion = LocalDate.parse("2024-01-02")
+                estimatedCompletion = LocalDate.parse("2024-01-02"),
+                designState = update.designState
             )
         )
         assertEquals(

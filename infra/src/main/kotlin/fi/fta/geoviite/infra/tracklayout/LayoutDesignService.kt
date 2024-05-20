@@ -25,8 +25,8 @@ class LayoutDesignService(
 
     @Transactional
     fun update(id: IntId<LayoutDesign>, request: LayoutDesignSaveRequest): IntId<LayoutDesign> {
-        logger.serviceCall("update", "design" to request)
-        return dao.update(LayoutDesign(id, request.name, request.estimatedCompletion, request.designState))
+        logger.serviceCall("update", "request" to request)
+        return dao.update(id, request)
     }
 
     @Transactional

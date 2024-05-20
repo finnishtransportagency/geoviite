@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -28,7 +29,7 @@ class LayoutDesignDao(
         val sql = """
             select id, name, estimated_completion, design_state
             from layout.design
-            where id = :id and design_state = 'ACTIVE'::layout.design_state
+            where id = :id
         """.trimIndent()
         return jdbcTemplate.queryOne(sql, mapOf("id" to id.intValue)) { rs, _ ->
             LayoutDesign(
@@ -57,10 +58,10 @@ class LayoutDesignDao(
     }
 
     @Transactional
-    fun update(design: LayoutDesign): IntId<LayoutDesign> {
+    fun update(id: DomainId<LayoutDesign>, design: LayoutDesignSaveRequest): IntId<LayoutDesign> {
         jdbcTemplate.setUser()
         val params = mapOf(
-            "id" to toDbId(design.id).intValue,
+            "id" to toDbId(id).intValue,
             "name" to design.name,
             "estimated_completion" to design.estimatedCompletion,
             "design_state" to design.designState.name,
