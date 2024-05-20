@@ -51,6 +51,7 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
                             {t('button.cancel')}
                         </Button>
                         <Button
+                            disabled={!name || !selectedDate}
                             onClick={() => {
                                 if (name && selectedDate) {
                                     onSave(existingDesign?.id, saveRequest(name, selectedDate));
@@ -80,7 +81,7 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
                             <DatePicker
                                 value={selectedDate}
                                 onChange={(date) => setSelectedDate(date)}
-                                wide={true}
+                                //wide={true}
                             />
                         }
                     />
