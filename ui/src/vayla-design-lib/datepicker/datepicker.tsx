@@ -15,7 +15,6 @@ type DatePickerProps = {
     value: Date | undefined;
     onChange: (date: Date | undefined) => void;
     wide?: boolean;
-    className?: string;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>;
 
 type DatePickerInputProps = {
