@@ -8,6 +8,7 @@ import {
     LayoutSwitch,
     LayoutTrackNumber,
     LocationTrackId,
+    OperatingPoint,
 } from 'track-layout/track-layout-model';
 import { debounceAsync } from 'utils/async-utils';
 import { isNilOrBlank } from 'utils/string-utils';
@@ -44,6 +45,10 @@ import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
 import { createClassName } from 'vayla-design-lib/utils';
 import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { EnvRestricted } from 'environment/env-restricted';
+import {
+    calculateBoundingBoxToShowAroundLocation,
+    MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
+} from 'map/map-utils';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
@@ -67,17 +72,44 @@ type LocationTrackItemValue = {
     type: 'locationTrackSearchItem';
 };
 
+function createLocationTrackOptionItem(
+    locationTrack: LayoutLocationTrack,
+    description: string,
+): Item<LocationTrackItemValue> {
+    return menuValueOption(
+        {
+            type: 'locationTrackSearchItem',
+            locationTrack: locationTrack,
+        } as const,
+        `${locationTrack.name}, ${description}`,
+        `location-track-${locationTrack.id}`,
+    );
+}
+
 type SwitchItemValue = {
     layoutSwitch: LayoutSwitch;
     type: 'switchSearchItem';
 };
+
+function createSwitchOptionItem(layoutSwitch: LayoutSwitch): Item<SwitchItemValue> {
+    return menuValueOption(
+        {
+            type: 'switchSearchItem',
+            layoutSwitch: layoutSwitch,
+        } as const,
+        layoutSwitch.name,
+        `switch-${layoutSwitch.id}`,
+    );
+}
 
 type TrackNumberItemValue = {
     trackNumber: LayoutTrackNumber;
     type: 'trackNumberSearchItem';
 };
 
-function createTrackNumberItem(layoutTrackNumber: LayoutTrackNumber): Item<TrackNumberItemValue> {
+function createTrackNumberOptionItem(
+    layoutTrackNumber: LayoutTrackNumber,
+): Item<TrackNumberItemValue> {
     return menuValueOption(
         {
             type: 'trackNumberSearchItem',
@@ -88,7 +120,29 @@ function createTrackNumberItem(layoutTrackNumber: LayoutTrackNumber): Item<Track
     );
 }
 
-type SearchItemValue = LocationTrackItemValue | SwitchItemValue | TrackNumberItemValue;
+type OperatingPointItemValue = {
+    operatingPoint: OperatingPoint;
+    type: 'operatingPointSearchItem';
+};
+
+function createOperatingPointOptionItem(
+    operatingPoint: OperatingPoint,
+): Item<OperatingPointItemValue> {
+    return menuValueOption(
+        {
+            operatingPoint: operatingPoint,
+            type: 'operatingPointSearchItem',
+        } as const,
+        `${operatingPoint.name}, ${operatingPoint.abbreviation}`,
+        `operating-point-${operatingPoint.name}`,
+    );
+}
+
+type SearchItemValue =
+    | LocationTrackItemValue
+    | SwitchItemValue
+    | TrackNumberItemValue
+    | OperatingPointItemValue;
 
 async function getOptions(
     layoutContext: LayoutContext,
@@ -106,40 +160,19 @@ async function getOptions(
         layoutContext,
     );
 
-    const locationTracks: Item<LocationTrackItemValue>[] = searchResult.locationTracks.map(
-        (locationTrack) =>
-            menuValueOption(
-                {
-                    type: 'locationTrackSearchItem',
-                    locationTrack: locationTrack,
-                } as const,
-                `${locationTrack.name}, ${
-                    (locationTrackDescriptions &&
-                        locationTrackDescriptions.find((d) => d.id == locationTrack.id)
-                            ?.description) ??
-                    ''
-                }`,
-                `location-track-${locationTrack.id}`,
-            ),
-    );
+    const locationTrackOptions = searchResult.locationTracks.map((locationTrack) => {
+        const description =
+            locationTrackDescriptions?.find((d) => d.id == locationTrack.id)?.description ?? '';
 
-    const switches: Item<SwitchItemValue>[] = searchResult.switches.map((layoutSwitch) =>
-        menuValueOption(
-            {
-                type: 'switchSearchItem',
-                layoutSwitch: layoutSwitch,
-            } as const,
-            layoutSwitch.name,
-            `switch-${layoutSwitch.id}`,
-        ),
-    );
+        return createLocationTrackOptionItem(locationTrack, description);
+    });
 
-    const trackNumbers: Item<TrackNumberItemValue>[] =
-        searchResult.trackNumbers.map(createTrackNumberItem);
-
-    return await Promise.all([locationTracks, switches, trackNumbers]).then((results) =>
-        results.flat(),
-    );
+    return [
+        searchResult.operatingPoints.map(createOperatingPointOptionItem),
+        locationTrackOptions,
+        searchResult.switches.map(createSwitchOptionItem),
+        searchResult.trackNumbers.map(createTrackNumberOptionItem),
+    ].flat();
 }
 
 export const ToolBar: React.FC<ToolbarParams> = ({
@@ -213,7 +246,21 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     );
 
     function onItemSelected(item: SearchItemValue | undefined) {
-        switch (item?.type) {
+        if (!item) {
+            return;
+        }
+
+        switch (item.type) {
+            case 'operatingPointSearchItem': {
+                const operatingPointArea = calculateBoundingBoxToShowAroundLocation(
+                    item.operatingPoint.location,
+                    MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
+                );
+
+                showArea(operatingPointArea);
+                return;
+            }
+
             case 'locationTrackSearchItem':
                 item.locationTrack.boundingBox && showArea(item.locationTrack.boundingBox);
                 return onSelect({
@@ -256,7 +303,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 });
 
             default:
-                return;
+                return exhaustiveMatchingGuard(item);
         }
     }
 

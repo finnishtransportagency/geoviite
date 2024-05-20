@@ -9,7 +9,20 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 import java.time.Instant
+
+fun toRatkoOperatingPoint(rs: ResultSet): RatkoOperatingPoint {
+    return RatkoOperatingPoint(
+        externalId = rs.getOid("external_id"),
+        name = rs.getString("name"),
+        abbreviation = rs.getString("abbreviation"),
+        uicCode = rs.getString("uic_code"),
+        type = rs.getEnum("type"),
+        location = rs.getPoint("x", "y"),
+        trackNumberId = rs.getIntId("track_number_id"),
+    )
+}
 
 @Service
 @Component
@@ -107,15 +120,37 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
                 "layout_srid" to LAYOUT_SRID.code
             )
         ) { rs, _ ->
-            RatkoOperatingPoint(
-                rs.getOid("external_id"),
-                rs.getString("name"),
-                rs.getString("abbreviation"),
-                rs.getString("uic_code"),
-                rs.getEnum("type"),
-                rs.getPoint("x", "y"),
-                rs.getIntId("track_number_id"),
+            toRatkoOperatingPoint(rs)
+        }
+    }
+
+    @Transactional(readOnly = true)
+    fun searchOperatingPoints(searchTerm: FreeText, resultLimit: Int): List<RatkoOperatingPoint> {
+        val sql = """
+            select
+              external_id,
+              name,
+              abbreviation,
+              uic_code,
+              type,
+              postgis.st_x(location) as x,
+              postgis.st_y(location) as y,
+              track_number_id
+            from layout.operating_point
+              where name ilike :searchPattern 
+              or abbreviation ilike :searchPattern
+            order by name
+            limit :resultLimit
+        """.trimIndent()
+
+        return jdbcTemplate.query(
+            sql,
+            mapOf(
+                "searchPattern" to "%$searchTerm%",
+                "resultLimit" to resultLimit,
             )
+        ) { rs, _ ->
+            toRatkoOperatingPoint(rs)
         }
     }
 }
