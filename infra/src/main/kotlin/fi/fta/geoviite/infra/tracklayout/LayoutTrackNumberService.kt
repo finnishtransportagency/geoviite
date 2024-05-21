@@ -3,9 +3,8 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.PublicationState
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
@@ -36,63 +35,67 @@ class LayoutTrackNumberService(
 ) : LayoutAssetService<TrackLayoutTrackNumber, LayoutTrackNumberDao>(dao) {
 
     @Transactional
-    fun insert(saveRequest: TrackNumberSaveRequest): IntId<TrackLayoutTrackNumber> {
-        logger.serviceCall("insert", "trackNumber" to saveRequest)
-        // TODO: GVT-2397
+    fun insert(
+        branch: LayoutBranch,
+        saveRequest: TrackNumberSaveRequest,
+    ): IntId<TrackLayoutTrackNumber> {
+        logger.serviceCall("insert", "branch" to branch, "trackNumber" to saveRequest)
         val draftSaveResponse = saveDraftInternal(
-            LayoutBranch.main,
+            branch,
             TrackLayoutTrackNumber(
                 number = saveRequest.number,
                 description = saveRequest.description,
                 state = saveRequest.state,
                 externalId = null,
-                // TODO: GVT-2397
-                contextData = LayoutContextData.newDraft(LayoutBranch.main),
+                contextData = LayoutContextData.newDraft(branch),
             )
         )
-        referenceLineService.addTrackNumberReferenceLine(draftSaveResponse.id, saveRequest.startAddress)
+        referenceLineService.addTrackNumberReferenceLine(branch, draftSaveResponse.id, saveRequest.startAddress)
         return draftSaveResponse.id
     }
 
     @Transactional
     fun update(
+        branch: LayoutBranch,
         id: IntId<TrackLayoutTrackNumber>,
         saveRequest: TrackNumberSaveRequest,
     ): IntId<TrackLayoutTrackNumber> {
-        logger.serviceCall("update", "trackNumber" to saveRequest)
-        val original = dao.getOrThrow(DRAFT, id)
-        // TODO: GVT-2397
+        logger.serviceCall("update", "branch" to branch, "trackNumber" to saveRequest)
+        val original = dao.getOrThrow(branch.draft, id)
         val draftSaveResponse = saveDraftInternal(
-            LayoutBranch.main,
+            branch,
             original.copy(
                 number = saveRequest.number,
                 description = saveRequest.description,
                 state = saveRequest.state,
             )
         )
-        referenceLineService.updateTrackNumberReferenceLine(id, saveRequest.startAddress)
+        referenceLineService.updateTrackNumberReferenceLine(branch, id, saveRequest.startAddress)
         return draftSaveResponse.id
     }
 
     @Transactional
     fun updateExternalId(
+        branch: LayoutBranch,
         id: IntId<TrackLayoutTrackNumber>,
         oid: Oid<TrackLayoutTrackNumber>,
     ): DaoResponse<TrackLayoutTrackNumber> {
-        logger.serviceCall("updateExternalIdForTrackNumber", "id" to id, "oid" to oid)
+        logger.serviceCall("updateExternalIdForTrackNumber", "branch" to branch, "id" to id, "oid" to oid)
 
-        val original = dao.getOrThrow(DRAFT, id)
+        val original = dao.getOrThrow(branch.draft, id)
         val trackLayoutTrackNumber = original.copy(externalId = oid)
 
-        // TODO: GVT-2397
-        return saveDraftInternal(LayoutBranch.main, trackLayoutTrackNumber)
+        return saveDraftInternal(branch, trackLayoutTrackNumber)
     }
 
     @Transactional
-    fun deleteDraftAndReferenceLine(id: IntId<TrackLayoutTrackNumber>): IntId<TrackLayoutTrackNumber> {
-        logger.serviceCall("deleteDraftAndReferenceLine", "id" to id)
-        referenceLineService.deleteDraftByTrackNumberId(id)
-        return deleteDraft(id).id
+    fun deleteDraftAndReferenceLine(
+        branch: LayoutBranch,
+        id: IntId<TrackLayoutTrackNumber>,
+    ): IntId<TrackLayoutTrackNumber> {
+        logger.serviceCall("deleteDraftAndReferenceLine", "branch" to branch, "id" to id)
+        referenceLineService.deleteDraftByTrackNumberId(branch, id)
+        return deleteDraft(branch, id).id
     }
 
     override fun idMatches(term: String, item: TrackLayoutTrackNumber) =
@@ -101,32 +104,29 @@ class LayoutTrackNumberService(
     override fun contentMatches(term: String, item: TrackLayoutTrackNumber) =
         item.exists && item.number.toString().replace("  ", " ").contains(term, true)
 
-    fun mapById(publicationState: PublicationState) = list(publicationState).associateBy { tn -> tn.id as IntId }
+    fun mapById(context: LayoutContext): Map<IntId<TrackLayoutTrackNumber>, TrackLayoutTrackNumber> =
+        list(context).associateBy { tn -> tn.id as IntId }
 
-    fun mapByNumber(publicationState: PublicationState) = list(publicationState).associateBy(TrackLayoutTrackNumber::number)
-
-    fun find(trackNumber: TrackNumber, publicationState: PublicationState): List<TrackLayoutTrackNumber> {
-        logger.serviceCall("find", "trackNumber" to trackNumber, "publicationState" to publicationState)
-        return dao.list(trackNumber, publicationState)
+    fun find(context: LayoutContext, trackNumber: TrackNumber): List<TrackLayoutTrackNumber> {
+        logger.serviceCall("find", "context" to context, "trackNumber" to trackNumber)
+        return dao.list(context, trackNumber)
     }
 
     fun getKmLengths(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmLengthDetails>? {
         logger.serviceCall(
             "getKmLengths",
+            "layoutContext" to layoutContext,
             "trackNumberId" to trackNumberId,
-            "publicationState" to publicationState,
         )
-
-        return geocodingService.getGeocodingContextCreateResult(publicationState, trackNumberId)?.let { contextResult ->
-            extractTrackKmLengths(contextResult.geocodingContext, contextResult)
-        }
+        return geocodingService.getGeocodingContextCreateResult(layoutContext, trackNumberId)
+            ?.let { contextResult -> extractTrackKmLengths(contextResult.geocodingContext, contextResult) }
     }
 
     fun getKmLengthsAsCsv(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         startKmNumber: KmNumber? = null,
         endKmNumber: KmNumber? = null,
@@ -134,19 +134,18 @@ class LayoutTrackNumberService(
     ): String {
         logger.serviceCall(
             "getKmLengthsAsCsv",
+            "layoutContext" to layoutContext,
             "trackNumberId" to trackNumberId,
-            "publicationState" to publicationState,
             "startKmNumber" to startKmNumber,
             "endKmNumber" to endKmNumber,
             "lang" to lang,
         )
 
-        val kmLengths = getKmLengths(publicationState, trackNumberId) ?: emptyList()
+        val kmLengths = getKmLengths(layoutContext, trackNumberId) ?: emptyList()
 
         val filteredKmLengths = kmLengths.filter { kmPost ->
             val start = startKmNumber ?: kmLengths.first().kmNumber
             val end = endKmNumber ?: kmLengths.last().kmNumber
-
             kmPost.kmNumber in start..end
         }
 
@@ -154,13 +153,13 @@ class LayoutTrackNumberService(
     }
 
     fun getAllKmLengthsAsCsv(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         lang: LocalizationLanguage,
     ): String {
         val kmLengths = trackNumberIds
             .parallelStream()
-            .flatMap { trackNumberId -> (getKmLengths(publicationState, trackNumberId) ?: emptyList()).stream() }
+            .flatMap { trackNumberId -> (getKmLengths(layoutContext, trackNumberId) ?: emptyList()).stream() }
             .sorted(compareBy { kmLengthDetails -> kmLengthDetails.trackNumber })
             .collect(Collectors.toList())
 
@@ -169,20 +168,20 @@ class LayoutTrackNumberService(
 
     @Transactional(readOnly = true)
     fun getMetadataSections(
+        layoutContext: LayoutContext,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-        publicationState: PublicationState,
         boundingBox: BoundingBox?,
     ): List<AlignmentPlanSection> {
         logger.serviceCall(
             "getSectionsByPlan",
+            "layoutContext" to layoutContext,
             "trackNumberId" to trackNumberId,
-            "publicationState" to publicationState,
             "boundingBox" to boundingBox,
         )
-        return get(publicationState, trackNumberId)?.let { trackNumber ->
-            val referenceLine = referenceLineService.getByTrackNumber(publicationState, trackNumberId)
+        return get(layoutContext, trackNumberId)?.let { trackNumber ->
+            val referenceLine = referenceLineService.getByTrackNumber(layoutContext, trackNumberId)
                 ?: throw NoSuchEntityException("No ReferenceLine for TrackNumber", trackNumberId)
-            val geocodingContext = geocodingService.getGeocodingContext(publicationState, trackNumberId)
+            val geocodingContext = geocodingService.getGeocodingContext(layoutContext, trackNumberId)
             if (geocodingContext != null && referenceLine.alignmentVersion != null) {
                 alignmentService.getGeometryMetadataSections(
                     referenceLine.alignmentVersion,

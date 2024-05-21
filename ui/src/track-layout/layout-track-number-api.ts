@@ -14,7 +14,7 @@ import {
     putNonNull,
     queryParams,
 } from 'api/api-fetch';
-import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
+import { changeInfoUri, layoutUri } from 'track-layout/track-layout-api';
 import { TrackNumberSaveRequest } from 'tool-panel/track-number/dialog/track-number-edit-store';
 import {
     getChangeTimes,
@@ -114,5 +114,5 @@ export const getTrackNumberChangeTimes = (
     id: LayoutTrackNumberId,
     layoutContext: LayoutContext,
 ): Promise<LayoutAssetChangeInfo | undefined> => {
-    return getNullable<LayoutAssetChangeInfo>(changeTimeUri('track-numbers', id, layoutContext));
+    return getNullable<LayoutAssetChangeInfo>(changeInfoUri('track-numbers', id, layoutContext));
 };

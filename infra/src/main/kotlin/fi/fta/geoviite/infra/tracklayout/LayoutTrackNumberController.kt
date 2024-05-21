@@ -4,11 +4,13 @@ import fi.fta.geoviite.infra.authorization.AUTH_DOWNLOAD_GEOMETRY
 import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_GEOMETRY
+import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.authorization.PUBLICATION_STATE
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
@@ -47,101 +49,114 @@ class LayoutTrackNumberController(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/{$PUBLICATION_STATE}")
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}")
     fun getTrackNumbers(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("includeDeleted", defaultValue = "false") includeDeleted: Boolean,
     ): List<TrackLayoutTrackNumber> {
-        logger.apiCall("getTrackNumbers", PUBLICATION_STATE to publicationState)
-        return trackNumberService.list(publicationState, includeDeleted)
+        val context = LayoutContext.of(branch, publicationState)
+        logger.apiCall("getTrackNumbers", "context" to context)
+        return trackNumberService.list(context, includeDeleted)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/{$PUBLICATION_STATE}/{id}")
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}")
     fun getTrackNumber(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
     ): ResponseEntity<TrackLayoutTrackNumber> {
-        logger.apiCall("getTrackNumber", PUBLICATION_STATE to publicationState, "id" to id)
-        return toResponse(trackNumberService.get(publicationState, id))
+        val context = LayoutContext.of(branch, publicationState)
+        logger.apiCall("getTrackNumber", "context" to context, "id" to id)
+        return toResponse(trackNumberService.get(context, id))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("{$PUBLICATION_STATE}/{id}/validation")
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/validation")
     fun validateTrackNumberAndReferenceLine(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
     ): ResponseEntity<ValidatedAsset<TrackLayoutTrackNumber>> {
-        logger.apiCall("validateTrackNumberAndReferenceLine", PUBLICATION_STATE to publicationState, "id" to id)
+        val context = LayoutContext.of(branch, publicationState)
+        logger.apiCall("validateTrackNumberAndReferenceLine", "context" to context, "id" to id)
         return publicationService
-            .validateTrackNumbersAndReferenceLines(listOf(id), publicationState)
+            .validateTrackNumbersAndReferenceLines(context, listOf(id))
             .firstOrNull()
             .let(::toResponse)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PostMapping("/draft")
-    fun insertTrackNumber(@RequestBody saveRequest: TrackNumberSaveRequest): IntId<TrackLayoutTrackNumber> {
-        logger.apiCall("insertTrackNumber", "trackNumber" to saveRequest)
-        return trackNumberService.insert(saveRequest)
+    @PostMapping("/{$LAYOUT_BRANCH}/draft")
+    fun insertTrackNumber(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @RequestBody saveRequest: TrackNumberSaveRequest,
+    ): IntId<TrackLayoutTrackNumber> {
+        logger.apiCall("insertTrackNumber", "branch" to branch, "request" to saveRequest)
+        return trackNumberService.insert(branch, saveRequest)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PutMapping("/draft/{id}")
+    @PutMapping("/{$LAYOUT_BRANCH}/draft/{id}")
     fun updateTrackNumber(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable id: IntId<TrackLayoutTrackNumber>,
         @RequestBody saveRequest: TrackNumberSaveRequest,
     ): IntId<TrackLayoutTrackNumber> {
-        logger.apiCall("updateTrackNumber", "id" to id, "trackNumber" to saveRequest)
-        trackNumberService.update(id, saveRequest)
-        return id
+        logger.apiCall("updateTrackNumber", "branch" to branch, "id" to id, "request" to saveRequest)
+        return trackNumberService.update(branch, id, saveRequest)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @DeleteMapping("/draft/{id}")
-    fun deleteDraftTrackNumber(@PathVariable("id") id: IntId<TrackLayoutTrackNumber>): IntId<TrackLayoutTrackNumber> {
-        logger.apiCall("deleteDraftTrackNumber", "id" to id)
-        return trackNumberService.deleteDraftAndReferenceLine(id)
+    @DeleteMapping("/{$LAYOUT_BRANCH}/draft/{id}")
+    fun deleteDraftTrackNumber(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
+    ): IntId<TrackLayoutTrackNumber> {
+        logger.apiCall("deleteDraftTrackNumber", "branch" to branch, "id" to id)
+        return trackNumberService.deleteDraftAndReferenceLine(branch, id)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/{$PUBLICATION_STATE}/{id}/plan-geometry")
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/plan-geometry")
     fun getTrackSectionsByPlan(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
         @RequestParam("bbox") boundingBox: BoundingBox? = null,
     ): List<AlignmentPlanSection> {
-        logger.apiCall(
-            "getTrackSectionsByPlan", PUBLICATION_STATE to publicationState, "id" to id, "bbox" to boundingBox
-        )
-        return trackNumberService.getMetadataSections(id, publicationState, boundingBox)
+        val context = LayoutContext.of(branch, publicationState)
+        logger.apiCall("getTrackSectionsByPlan", "context" to context, "id" to id, "bbox" to boundingBox)
+        return trackNumberService.getMetadataSections(context, id, boundingBox)
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)
-    @GetMapping("/{$PUBLICATION_STATE}/{id}/km-lengths")
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/km-lengths")
     fun getTrackNumberKmLengths(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmLengthDetails> {
-        logger.apiCall(
-            "getTrackNumberKmLengths", PUBLICATION_STATE to publicationState, "id" to id
-        )
-
-        return trackNumberService.getKmLengths(publicationState, id) ?: emptyList()
+        val context = LayoutContext.of(branch, publicationState)
+        logger.apiCall("getTrackNumberKmLengths", "context" to context, "id" to id)
+        return trackNumberService.getKmLengths(context, id) ?: emptyList()
     }
 
     @PreAuthorize(AUTH_DOWNLOAD_GEOMETRY)
-    @GetMapping("/{$PUBLICATION_STATE}/{id}/km-lengths/as-csv")
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/km-lengths/as-csv")
     fun getTrackNumberKmLengthsAsCsv(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
         @RequestParam("startKmNumber") startKmNumber: KmNumber? = null,
         @RequestParam("endKmNumber") endKmNumber: KmNumber? = null,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
+        val context = LayoutContext.of(branch, publicationState)
         logger.apiCall(
             "getTrackNumberKmLengthsAsCsv",
-            PUBLICATION_STATE to publicationState,
+            "context" to context,
             "id" to id,
             "startKmNumber" to startKmNumber,
             "endKmNumber" to endKmNumber,
@@ -149,26 +164,37 @@ class LayoutTrackNumberController(
         )
 
         val csv = trackNumberService.getKmLengthsAsCsv(
-            publicationState = publicationState, trackNumberId = id, startKmNumber = startKmNumber, endKmNumber = endKmNumber, lang = lang
+            layoutContext = context,
+            trackNumberId = id,
+            startKmNumber = startKmNumber,
+            endKmNumber = endKmNumber,
+            lang = lang,
         )
 
-        val trackNumber = trackNumberService.getOrThrow(publicationState, id)
+        val trackNumber = trackNumberService.getOrThrow(context, id)
 
         val fileName = FileName("ratakilometrien-pituudet_${trackNumber.number}.csv")
         return getCsvResponseEntity(csv, fileName)
     }
 
     @PreAuthorize(AUTH_DOWNLOAD_GEOMETRY)
-    @GetMapping("/rail-network/km-lengths/file")
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/rail-network/km-lengths/file")
     fun getEntireRailNetworkKmLengthsAsCsv(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam(name = "lang", defaultValue = "fi") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
-        logger.apiCall("getEntireRailNetworkTrackNumberKmLengthsAsCsv", "lang" to lang)
+        val layoutContext = LayoutContext.of(branch, publicationState)
+        logger.apiCall(
+            "getEntireRailNetworkTrackNumberKmLengthsAsCsv",
+            "layoutContext" to layoutContext,
+            "lang" to lang,
+        )
 
         val csv = trackNumberService.getAllKmLengthsAsCsv(
-            publicationState = OFFICIAL,
-            trackNumberIds = trackNumberService.list(OFFICIAL).map { tn -> tn.id as IntId },
-            lang
+            layoutContext = layoutContext,
+            trackNumberIds = trackNumberService.list(layoutContext).map { tn -> tn.id as IntId },
+            lang = lang,
         )
 
         val localization = localizationService.getLocalization(lang)
@@ -182,12 +208,14 @@ class LayoutTrackNumberController(
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/{$PUBLICATION_STATE}/{id}/change-times")
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/change-info")
     fun getTrackNumberChangeInfo(
-        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
+        @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
     ): ResponseEntity<LayoutAssetChangeInfo> {
-        logger.apiCall("getTrackNumberChangeInfo", "id" to id, PUBLICATION_STATE to publicationState)
-        return toResponse(trackNumberService.getLayoutAssetChangeInfo(id, publicationState))
+        val context = LayoutContext.of(branch, publicationState)
+        logger.apiCall("getTrackNumberChangeInfo", "context" to context, "id" to id)
+        return toResponse(trackNumberService.getLayoutAssetChangeInfo(context, id))
     }
 }

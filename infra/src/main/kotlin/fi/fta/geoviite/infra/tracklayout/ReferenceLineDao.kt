@@ -1,14 +1,22 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_REFERENCE_LINE
+import fi.fta.geoviite.infra.util.getBboxOrNull
+import fi.fta.geoviite.infra.util.getDaoResponse
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getLayoutContextData
+import fi.fta.geoviite.infra.util.getOne
+import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.getTrackMeter
+import fi.fta.geoviite.infra.util.queryOptional
+import fi.fta.geoviite.infra.util.setUser
+import fi.fta.geoviite.infra.util.toDbId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -180,14 +188,13 @@ class ReferenceLineDao(
         return result
     }
 
-    fun getByTrackNumber(publicationState: PublicationState, trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? =
-        fetchVersionByTrackNumberId(publicationState, trackNumberId)?.let(::fetch)
+    fun getByTrackNumber(context: LayoutContext, trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? =
+        fetchVersionByTrackNumberId(context, trackNumberId)?.let(::fetch)
 
     fun fetchVersionByTrackNumberId(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): RowVersion<ReferenceLine>? {
-        val layoutContext = MainLayoutContext.of(publicationState)
         //language=SQL
         val sql = """
             select rl.row_id, rl.row_version 
@@ -205,10 +212,9 @@ class ReferenceLineDao(
     }
 
     override fun fetchVersions(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         includeDeleted: Boolean,
     ): List<RowVersion<ReferenceLine>> {
-        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select
               rl.row_id,
@@ -219,7 +225,7 @@ class ReferenceLineDao(
             where (:include_deleted = true or tn.state != 'DELETED')
         """.trimIndent()
         val params = mapOf(
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
             "design_id" to layoutContext.branch.designId?.intValue,
             "include_deleted" to includeDeleted,
         )
@@ -230,10 +236,9 @@ class ReferenceLineDao(
 
     // TODO: No IT test runs this
     fun fetchVersionsNear(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         bbox: BoundingBox,
     ): List<RowVersion<ReferenceLine>> {
-        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
             select
               rl.row_id,
@@ -257,7 +262,7 @@ class ReferenceLineDao(
             "x_max" to bbox.max.x,
             "y_max" to bbox.max.y,
             "layout_srid" to LAYOUT_SRID.code,
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
             "design_id" to layoutContext.branch.designId?.intValue,
         )
 
@@ -266,8 +271,7 @@ class ReferenceLineDao(
         }
     }
 
-    fun fetchVersionsNonLinked(publicationState: PublicationState): List<RowVersion<ReferenceLine>> {
-        val layoutContext = MainLayoutContext.of(publicationState)
+    fun fetchVersionsNonLinked(context: LayoutContext): List<RowVersion<ReferenceLine>> {
         val sql = """
             select
               rl.row_id,
@@ -278,8 +282,10 @@ class ReferenceLineDao(
             where tn.state != 'DELETED'
               and rl.segment_count = 0
         """.trimIndent()
-        val params =
-            mapOf("publication_state" to publicationState.name, "design_id" to layoutContext.branch.designId?.intValue)
+        val params = mapOf(
+            "publication_state" to context.state.name,
+            "design_id" to context.branch.designId?.intValue,
+        )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
         }

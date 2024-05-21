@@ -98,6 +98,47 @@ type LocationTrackSplittingInfoboxProps = {
     setHighlightedSwitch: (switchId: LayoutSwitchId | undefined) => void;
 } & LocationTrackSplittingInfoboxContainerProps;
 
+type ExitSplittingConfirmationDialogProps = {
+    showTaskList?: () => void;
+    closeDialog: () => void;
+    stopSplitting: () => void;
+};
+
+const ExitSplittingConfirmationDialog: React.FC<ExitSplittingConfirmationDialogProps> = ({
+    closeDialog,
+    showTaskList,
+    stopSplitting,
+}) => {
+    const { t } = useTranslation();
+
+    return (
+        <Dialog
+            title={t('tool-panel.location-track.splitting.exit-title')}
+            allowClose={false}
+            variant={DialogVariant.DARK}
+            footerContent={
+                <div className={dialogStyles['dialog__footer-content--centered']}>
+                    <Button onClick={closeDialog} variant={ButtonVariant.SECONDARY}>
+                        {t('tool-panel.location-track.splitting.back')}
+                    </Button>
+                    <Button
+                        variant={ButtonVariant.WARNING}
+                        onClick={() => {
+                            if (showTaskList) {
+                                showTaskList();
+                            }
+                            closeDialog();
+                            stopSplitting();
+                        }}>
+                        {t('tool-panel.location-track.splitting.exit')}
+                    </Button>
+                </div>
+            }>
+            {t('tool-panel.location-track.splitting.confirm-exit')}
+        </Dialog>
+    );
+};
+
 export const LocationTrackSplittingInfoboxContainer: React.FC<
     LocationTrackSplittingInfoboxContainerProps
 > = ({ visibilities, visibilityChange, layoutContext }) => {
@@ -357,6 +398,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                 splittingState.splits,
                 duplicateTracksInCurrentSplits,
             ),
+            undefined,
         )
             .then(async () => {
                 await updateAllChangeTimes();
@@ -389,37 +431,6 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             );
         }
     });
-
-    const createExitSplittingConfirmationDialog = (openTaskList: boolean) => {
-        return (
-            <Dialog
-                title={t('tool-panel.location-track.splitting.exit-title')}
-                allowClose={false}
-                variant={DialogVariant.DARK}
-                footerContent={
-                    <div className={dialogStyles['dialog__footer-content--centered']}>
-                        <Button
-                            onClick={() => setConfirmExit(false)}
-                            variant={ButtonVariant.SECONDARY}>
-                            {t('tool-panel.location-track.splitting.back')}
-                        </Button>
-                        <Button
-                            variant={ButtonVariant.WARNING}
-                            onClick={() => {
-                                if (openTaskList) {
-                                    onShowTaskList(splittingState.originLocationTrack.id);
-                                }
-                                setConfirmExit(false);
-                                stopSplitting();
-                            }}>
-                            {t('tool-panel.location-track.splitting.exit')}
-                        </Button>
-                    </div>
-                }>
-                {t('tool-panel.location-track.splitting.confirm-exit')}
-            </Dialog>
-        );
-    };
 
     const splitComponents = splitsValidated.map((split, index, allSplits) => {
         const endLocation =
@@ -529,8 +540,19 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                     </InfoboxButtons>
                 </InfoboxContent>
             </Infobox>
-            {confirmExit && createExitSplittingConfirmationDialog(false)}
-            {confirmOpenTaskListAndExit && createExitSplittingConfirmationDialog(true)}
+            {confirmExit && (
+                <ExitSplittingConfirmationDialog
+                    closeDialog={() => setConfirmExit(false)}
+                    stopSplitting={stopSplitting}
+                />
+            )}
+            {confirmOpenTaskListAndExit && (
+                <ExitSplittingConfirmationDialog
+                    closeDialog={() => setConfirmOpenTaskListAndExit(false)}
+                    stopSplitting={stopSplitting}
+                    showTaskList={() => onShowTaskList(locationTrack.id)}
+                />
+            )}
         </React.Fragment>
     );
 };

@@ -18,7 +18,7 @@ import {
     putNonNullAdt,
     queryParams,
 } from 'api/api-fetch';
-import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
+import { changeInfoUri, layoutUri } from 'track-layout/track-layout-api';
 import { bboxString, pointString } from 'common/common-api';
 import { getChangeTimes, updateSwitchChangeTime } from 'common/change-time-api';
 import { asyncCache } from 'cache/cache';
@@ -200,5 +200,5 @@ export const getSwitchChangeTimes = (
     id: LayoutSwitchId,
     layoutContext: LayoutContext,
 ): Promise<LayoutAssetChangeInfo | undefined> => {
-    return getNonNull<LayoutAssetChangeInfo>(changeTimeUri('switches', id, layoutContext));
+    return getNonNull<LayoutAssetChangeInfo>(changeInfoUri('switches', id, layoutContext));
 };

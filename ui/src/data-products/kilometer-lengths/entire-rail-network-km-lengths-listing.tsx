@@ -6,6 +6,7 @@ import { Icons } from 'vayla-design-lib/icon/Icon';
 import { getEntireRailNetworkKmLengthsCsvUrl } from 'track-layout/layout-km-post-api';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { DOWNLOAD_GEOMETRY } from 'user/user-model';
+import { officialMainLayoutContext } from 'common/common-model';
 
 export const EntireRailNetworkKmLengthsListing = () => {
     const { t } = useTranslation();
@@ -17,7 +18,9 @@ export const EntireRailNetworkKmLengthsListing = () => {
             </p>
             <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
                 <div className={styles['data-products__search']}>
-                    <a qa-id="km-lengths-csv-download" href={getEntireRailNetworkKmLengthsCsvUrl()}>
+                    <a
+                        qa-id="km-lengths-csv-download"
+                        href={getEntireRailNetworkKmLengthsCsvUrl(officialMainLayoutContext())}>
                         <Button
                             className={
                                 styles['vertical-geometry-list__download-button--left-aligned']

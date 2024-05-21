@@ -226,6 +226,11 @@ fun <T : LayoutAsset<T>> asMainDraft(item: T): T = item.contextData.let { ctx ->
     }
 }
 
+fun <T : LayoutAsset<T>> asOfficial(branch: LayoutBranch, item: T): T = when (branch) {
+    is MainBranch -> asMainOfficial(item)
+    is DesignBranch -> asDesignOfficial(item, branch.designId)
+}
+
 fun <T : LayoutAsset<T>> asMainOfficial(item: T): T =
     item.contextData.let { ctx ->
         when (ctx) {

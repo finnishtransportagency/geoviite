@@ -1,4 +1,4 @@
-import { LayoutContext } from 'common/common-model';
+import { LayoutContext, LayoutDesignId } from 'common/common-model';
 import { API_URI } from 'api/api-fetch';
 
 type LayoutDataType =
@@ -10,12 +10,12 @@ type LayoutDataType =
 
 export const TRACK_LAYOUT_URI = `${API_URI}/track-layout`;
 
-export function changeTimeUri(
+export function changeInfoUri(
     dataType: LayoutDataType,
     id: string,
     layoutContext: LayoutContext,
 ): string {
-    return `${TRACK_LAYOUT_URI}/${dataType}/${layoutContext.publicationState}/${id}/change-times`;
+    return `${TRACK_LAYOUT_URI}/${dataType}/${contextInUri(layoutContext)}/${id}/change-info`;
 }
 
 export function layoutUri(
@@ -23,6 +23,14 @@ export function layoutUri(
     layoutContext: LayoutContext,
     id?: string,
 ): string {
-    const baseUri = `${TRACK_LAYOUT_URI}/${dataType}/${layoutContext.publicationState.toLowerCase()}`;
+    const baseUri = `${TRACK_LAYOUT_URI}/${dataType}/${contextInUri(layoutContext)}`;
     return id ? `${baseUri}/${id}` : baseUri;
+}
+
+export function contextInUri(layoutContext: LayoutContext): string {
+    return `${toBranchName(layoutContext.designId).toLowerCase()}/${layoutContext.publicationState.toLowerCase()}`;
+}
+
+export function toBranchName(designId?: LayoutDesignId): string {
+    return designId ? `DESIGN_${designId}` : 'MAIN';
 }

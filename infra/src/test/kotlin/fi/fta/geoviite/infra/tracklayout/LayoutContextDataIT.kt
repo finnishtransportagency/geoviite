@@ -1,11 +1,17 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.math.Point
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -46,16 +52,26 @@ class LayoutContextDataIT @Autowired constructor(
         assertNotEquals(dbDraft.first.contextData.rowId, dbDraft.first.id)
 
         assertMatches(
-            dbLineAndAlignment.first, referenceLineService.get(OFFICIAL, dbLineAndAlignment.first.id as IntId)!!, true
+            dbLineAndAlignment.first,
+            referenceLineService.getOrThrow(MainLayoutContext.official, dbLineAndAlignment.first.id as IntId),
+            true,
         )
         assertMatches(
             dbLineAndAlignment.first,
-            referenceLineService.get(OFFICIAL, dbDraft.first.contextData.rowId as IntId)!!,
+            referenceLineService.getOrThrow(MainLayoutContext.official, dbDraft.first.contextData.rowId as IntId),
             true
         )
 
-        assertMatches(dbDraft.first, referenceLineService.get(DRAFT, dbDraft.first.id as IntId)!!, true)
-        assertMatches(dbDraft.first, referenceLineService.get(DRAFT, dbDraft.first.contextData.rowId as IntId)!!, true)
+        assertMatches(
+            dbDraft.first,
+            referenceLineService.get(MainLayoutContext.draft, dbDraft.first.id as IntId)!!,
+            true,
+        )
+        assertMatches(
+            dbDraft.first,
+            referenceLineService.get(MainLayoutContext.draft, dbDraft.first.contextData.rowId as IntId)!!,
+            true,
+        )
     }
 
     @Test
@@ -70,16 +86,26 @@ class LayoutContextDataIT @Autowired constructor(
         assertNotEquals(dbDraft.first.contextData.rowId, dbDraft.first.id)
 
         assertMatches(
-            dbTrackAndAlignment.first, locationTrackService.get(OFFICIAL, dbTrackAndAlignment.first.id as IntId)!!, true
+            dbTrackAndAlignment.first,
+            locationTrackService.getOrThrow(MainLayoutContext.official, dbTrackAndAlignment.first.id as IntId),
+            true,
         )
         assertMatches(
             dbTrackAndAlignment.first,
-            locationTrackService.get(OFFICIAL, dbDraft.first.contextData.rowId as IntId)!!,
-            true
+            locationTrackService.getOrThrow(MainLayoutContext.official, dbDraft.first.contextData.rowId as IntId),
+            true,
         )
 
-        assertMatches(dbDraft.first, locationTrackService.get(DRAFT, dbDraft.first.id as IntId)!!, true)
-        assertMatches(dbDraft.first, locationTrackService.get(DRAFT, dbDraft.first.contextData.rowId as IntId)!!, true)
+        assertMatches(
+            dbDraft.first,
+            locationTrackService.getOrThrow(MainLayoutContext.draft, dbDraft.first.id as IntId),
+            true,
+        )
+        assertMatches(
+            dbDraft.first,
+            locationTrackService.getOrThrow(MainLayoutContext.draft, dbDraft.first.contextData.rowId as IntId),
+            true,
+        )
     }
 
     @Test
@@ -88,11 +114,27 @@ class LayoutContextDataIT @Autowired constructor(
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbSwitch)))
         assertNotEquals(dbSwitch, dbDraft)
 
-        assertMatches(dbSwitch, switchService.get(OFFICIAL, dbSwitch.id as IntId)!!, true)
-        assertMatches(dbSwitch, switchService.get(OFFICIAL, dbDraft.contextData.rowId as IntId)!!, true)
+        assertMatches(
+            dbSwitch,
+            switchService.get(MainLayoutContext.official, dbSwitch.id as IntId)!!,
+            true,
+        )
+        assertMatches(
+            dbSwitch,
+            switchService.get(MainLayoutContext.official, dbDraft.contextData.rowId as IntId)!!,
+            true,
+        )
 
-        assertMatches(dbDraft, switchService.get(DRAFT, dbDraft.id as IntId)!!, true)
-        assertMatches(dbDraft, switchService.get(DRAFT, dbDraft.contextData.rowId as IntId)!!, true)
+        assertMatches(
+            dbDraft,
+            switchService.get(MainLayoutContext.draft, dbDraft.id as IntId)!!,
+            true,
+        )
+        assertMatches(
+            dbDraft,
+            switchService.get(MainLayoutContext.draft, dbDraft.contextData.rowId as IntId)!!,
+            true,
+        )
     }
 
     @Test
@@ -101,11 +143,27 @@ class LayoutContextDataIT @Autowired constructor(
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbKmPost)))
         assertNotEquals(dbKmPost, dbDraft)
 
-        assertMatches(dbKmPost, kmPostService.get(OFFICIAL, dbKmPost.id as IntId)!!, true)
-        assertMatches(dbKmPost, kmPostService.get(OFFICIAL, dbDraft.contextData.rowId as IntId)!!, true)
+        assertMatches(
+            dbKmPost,
+            kmPostService.getOrThrow(MainLayoutContext.official, dbKmPost.id as IntId),
+            true,
+        )
+        assertMatches(
+            dbKmPost,
+            kmPostService.getOrThrow(MainLayoutContext.official, dbDraft.contextData.rowId as IntId),
+            true,
+        )
 
-        assertMatches(dbDraft, kmPostService.get(DRAFT, dbDraft.id as IntId)!!, true)
-        assertMatches(dbDraft, kmPostService.get(DRAFT, dbDraft.contextData.rowId as IntId)!!, true)
+        assertMatches(
+            dbDraft,
+            kmPostService.getOrThrow(MainLayoutContext.draft, dbDraft.id as IntId),
+            true,
+        )
+        assertMatches(
+            dbDraft,
+            kmPostService.getOrThrow(MainLayoutContext.draft, dbDraft.contextData.rowId as IntId),
+            true,
+        )
     }
 
     @Test
@@ -161,8 +219,8 @@ class LayoutContextDataIT @Autowired constructor(
         val dbOfficial = insertAndVerifyLine(createReferenceLineAndAlignment(false))
         val dbDraft = insertAndVerifyLine(alterLine(createAndVerifyDraftLine(dbOfficial)))
 
-        val officials = referenceLineService.list(OFFICIAL)
-        val drafts = referenceLineService.list(DRAFT)
+        val officials = referenceLineService.list(MainLayoutContext.official)
+        val drafts = referenceLineService.list(MainLayoutContext.draft)
 
         assertFalse(officials.contains(dbDraft.first))
         assertFalse(drafts.contains(dbOfficial.first))
@@ -176,8 +234,8 @@ class LayoutContextDataIT @Autowired constructor(
         val dbOfficial = insertAndVerifyTrack(createLocationTrackAndAlignment(false))
         val dbDraft = insertAndVerifyTrack(alterTrack(createAndVerifyDraftTrack(dbOfficial)))
 
-        val officials = locationTrackService.list(OFFICIAL)
-        val drafts = locationTrackService.list(DRAFT)
+        val officials = locationTrackService.list(MainLayoutContext.official)
+        val drafts = locationTrackService.list(MainLayoutContext.draft)
 
         assertFalse(officials.contains(dbDraft.first))
         assertFalse(drafts.contains(dbOfficial.first))
@@ -191,8 +249,8 @@ class LayoutContextDataIT @Autowired constructor(
         val dbSwitch = insertAndVerify(switch(456, draft = false))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbSwitch)))
 
-        val officials = switchService.list(OFFICIAL)
-        val drafts = switchService.list(DRAFT)
+        val officials = switchService.list(MainLayoutContext.official)
+        val drafts = switchService.list(MainLayoutContext.draft)
 
         assertFalse(officials.contains(dbDraft))
         assertFalse(drafts.contains(dbSwitch))
@@ -206,8 +264,8 @@ class LayoutContextDataIT @Autowired constructor(
         val dbKmPost = insertAndVerify(kmPost(insertOfficialTrackNumber(), someKmNumber(), draft = false))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbKmPost)))
 
-        val officials = kmPostService.list(OFFICIAL)
-        val drafts = kmPostService.list(DRAFT)
+        val officials = kmPostService.list(MainLayoutContext.official)
+        val drafts = kmPostService.list(MainLayoutContext.draft)
 
         assertFalse(officials.contains(dbDraft))
         assertFalse(drafts.contains(dbKmPost))

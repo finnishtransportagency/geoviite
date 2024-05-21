@@ -1,11 +1,17 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.Srid
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.GeometryAlignment
+import fi.fta.geoviite.infra.geometry.GeometryAlignmentLinkStatus
+import fi.fta.geoviite.infra.geometry.GeometryElementLinkStatus
+import fi.fta.geoviite.infra.geometry.GeometryKmPostLinkStatus
+import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
+import fi.fta.geoviite.infra.geometry.GeometrySwitch
+import fi.fta.geoviite.infra.geometry.GeometrySwitchLinkStatus
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -13,7 +19,14 @@ import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.util.DaoBase
+import fi.fta.geoviite.infra.util.getIndexedId
+import fi.fta.geoviite.infra.util.getIntArray
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getIntIdArray
+import fi.fta.geoviite.infra.util.getPoint
+import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.getSrid
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -43,27 +56,26 @@ data class MissingLayoutSwitchLinkingRowData(
 @Component
 class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
-    fun fetchPlanLinkStatus(planId: IntId<GeometryPlan>, publicationState: PublicationState): GeometryPlanLinkStatus {
+    fun fetchPlanLinkStatus(layoutContext: LayoutContext, planId: IntId<GeometryPlan>): GeometryPlanLinkStatus {
         logger.daoAccess(
             AccessType.FETCH,
             GeometryPlanLinkStatus::class,
+            "layoutContext" to layoutContext,
             "planId" to planId,
-            "publicationState" to publicationState,
         )
 
         return GeometryPlanLinkStatus(
             planId,
-            fetchAlignmentLinkStatus(planId = planId, publicationState = publicationState),
-            fetchSwitchLinkStatus(planId = planId, publicationState = publicationState),
-            fetchKmPostLinkStatus(planId = planId, publicationState = publicationState),
+            fetchAlignmentLinkStatus(layoutContext, planId = planId),
+            fetchSwitchLinkStatus(layoutContext, planId = planId),
+            fetchKmPostLinkStatus(layoutContext, planId = planId),
         )
     }
 
     private fun fetchAlignmentLinkStatus(
+        layoutContext: LayoutContext,
         planId: IntId<GeometryPlan>,
-        publicationState: PublicationState
     ): List<GeometryAlignmentLinkStatus> {
-        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
           select
             element.alignment_id,
@@ -95,7 +107,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         """.trimIndent()
         val params = mapOf(
             "plan_id" to planId.intValue,
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
             "design_id" to layoutContext.branch.designId?.intValue,
         )
 
@@ -115,10 +127,9 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
     }
 
     private fun fetchKmPostLinkStatus(
+        layoutContext: LayoutContext,
         planId: IntId<GeometryPlan>,
-        publicationState: PublicationState
     ): List<GeometryKmPostLinkStatus> {
-        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
            select
               geometry_km_post.id,
@@ -145,10 +156,9 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
     }
 
     private fun fetchSwitchLinkStatus(
+        layoutContext: LayoutContext,
         planId: IntId<GeometryPlan>,
-        publicationState: PublicationState
     ): List<GeometrySwitchLinkStatus> {
-        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """
         select
             switch.id,
@@ -277,10 +287,9 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
     }
 
     fun getSwitchBoundsFromTracks(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         switchId: IntId<TrackLayoutSwitch>,
     ): BoundingBox? {
-        val layoutContext = MainLayoutContext.of(publicationState)
         val sql = """ 
             select 
                case 

@@ -2,9 +2,8 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.PublicationState
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
@@ -28,7 +27,7 @@ class LayoutSwitchService @Autowired constructor(
 ) : LayoutAssetService<TrackLayoutSwitch, LayoutSwitchDao>(dao) {
 
     @Transactional
-    fun insertSwitch(request: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
+    fun insertSwitch(branch: LayoutBranch, request: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
         logger.serviceCall("insertSwitch", "request" to request)
 
         val switch = TrackLayoutSwitch(
@@ -41,23 +40,21 @@ class LayoutSwitchService @Autowired constructor(
             trapPoint = request.trapPoint,
             ownerId = request.ownerId,
             source = GeometrySource.GENERATED,
-            // TODO: GVT-2400
-            contextData = LayoutContextData.newDraft(LayoutBranch.main),
+            contextData = LayoutContextData.newDraft(branch),
         )
 
-        // TODO: GVT-2400
-        return saveDraftInternal(LayoutBranch.main, switch).id
+        return saveDraftInternal(branch, switch).id
     }
 
     @Transactional
-    fun updateSwitch(id: IntId<TrackLayoutSwitch>, switch: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
+    fun updateSwitch(branch: LayoutBranch, id: IntId<TrackLayoutSwitch>, switch: TrackLayoutSwitchSaveRequest): IntId<TrackLayoutSwitch> {
         logger.serviceCall("updateSwitch", "id" to id, "switch" to switch)
-        val layoutSwitch = dao.getOrThrow(DRAFT, id)
+        val layoutSwitch = dao.getOrThrow(branch.draft, id)
         val switchStructureChanged = switch.switchStructureId != layoutSwitch.switchStructureId
         val switchJoints = if (switchStructureChanged) emptyList() else layoutSwitch.joints
 
         if (switch.stateCategory == LayoutStateCategory.NOT_EXISTING || switchStructureChanged) {
-            clearSwitchInformationFromSegments(id)
+            clearSwitchInformationFromSegments(branch, id)
         }
 
         val updatedLayoutSwitch = layoutSwitch.copy(
@@ -68,40 +65,41 @@ class LayoutSwitchService @Autowired constructor(
             joints = switchJoints,
             ownerId = switch.ownerId,
         )
-        // TODO: GVT-2400
-        return saveDraftInternal(LayoutBranch.main, updatedLayoutSwitch).id
+        return saveDraftInternal(branch, updatedLayoutSwitch).id
     }
 
     @Transactional
-    override fun deleteDraft(id: IntId<TrackLayoutSwitch>): DaoResponse<TrackLayoutSwitch> {
-        val draft = dao.getOrThrow(DRAFT, id)
+    override fun deleteDraft(branch: LayoutBranch, id: IntId<TrackLayoutSwitch>): DaoResponse<TrackLayoutSwitch> {
+        val draft = dao.getOrThrow(branch.draft, id)
         // If removal also breaks references, clear them out first
         if (draft.contextData.officialRowId == null) {
-            clearSwitchInformationFromSegments(id)
+            clearSwitchInformationFromSegments(branch, id)
         }
-        return super.deleteDraft(id)
+        return super.deleteDraft(branch, id)
     }
 
     @Transactional
-    fun clearSwitchInformationFromSegments(layoutSwitchId: IntId<TrackLayoutSwitch>) {
-        getLocationTracksLinkedToSwitch(DRAFT, layoutSwitchId).forEach { (locationTrack, alignment) ->
+    fun clearSwitchInformationFromSegments(branch: LayoutBranch, layoutSwitchId: IntId<TrackLayoutSwitch>) {
+        getLocationTracksLinkedToSwitch(branch.draft, layoutSwitchId).forEach { (locationTrack, alignment) ->
             val (updatedLocationTrack, updatedAlignment) = clearLinksToSwitch(
                 locationTrack,
                 alignment,
                 layoutSwitchId,
             )
-            locationTrackService.saveDraft(updatedLocationTrack, updatedAlignment)
+            locationTrackService.saveDraft(branch, updatedLocationTrack, updatedAlignment)
         }
     }
 
     fun getSegmentSwitchJointConnections(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         switchId: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
         logger.serviceCall(
-            "getSegmentSwitchJointConnections", "publicationState" to publicationState, "switchId" to switchId
+            "getSegmentSwitchJointConnections",
+            "layoutContext" to layoutContext,
+            "switchId" to switchId,
         )
-        return dao.fetchSegmentSwitchJointConnections(publicationState, switchId)
+        return dao.fetchSegmentSwitchJointConnections(layoutContext, switchId)
     }
 
     fun getPresentationJoint(switch: TrackLayoutSwitch): TrackLayoutSwitchJoint? {
@@ -116,11 +114,11 @@ class LayoutSwitchService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun listWithStructure(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         includeDeleted: Boolean = false,
     ): List<Pair<TrackLayoutSwitch, SwitchStructure>> {
-        logger.serviceCall("list", "publicationState" to publicationState)
-        return dao.list(publicationState, includeDeleted).map(::withStructure)
+        logger.serviceCall("list", "layoutContext" to layoutContext)
+        return dao.list(layoutContext, includeDeleted).map(::withStructure)
     }
 
     override fun idMatches(term: String, item: TrackLayoutSwitch) =
@@ -131,13 +129,13 @@ class LayoutSwitchService @Autowired constructor(
 
     @Transactional
     fun updateExternalIdForSwitch(
+        branch: LayoutBranch,
         id: IntId<TrackLayoutSwitch>,
         oid: Oid<TrackLayoutSwitch>,
     ): DaoResponse<TrackLayoutSwitch> {
-        logger.serviceCall("updateExternalIdForSwitch", "id" to id, "oid" to oid)
-        val original = dao.getOrThrow(DRAFT, id)
-        // TODO: GVT-2400
-        return saveDraft(LayoutBranch.main, original.copy(externalId = oid))
+        logger.serviceCall("updateExternalIdForSwitch", "branch" to branch, "id" to id, "oid" to oid)
+        val original = dao.getOrThrow(branch.draft, id)
+        return saveDraft(branch, original.copy(externalId = oid))
     }
 
     private fun withStructure(switch: TrackLayoutSwitch): Pair<TrackLayoutSwitch, SwitchStructure> =
@@ -145,25 +143,25 @@ class LayoutSwitchService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getSwitchJointConnections(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         switchId: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
         logger.serviceCall(
-            "getSwitchJointConnections", "publicationState" to publicationState, "switchId" to switchId
+            "getSwitchJointConnections", "layoutContext" to layoutContext, "switchId" to switchId
         )
-        val segment = getSegmentSwitchJointConnections(publicationState, switchId)
-        val topological = getTopologySwitchJointConnections(publicationState, switchId)
+        val segment = getSegmentSwitchJointConnections(layoutContext, switchId)
+        val topological = getTopologySwitchJointConnections(layoutContext, switchId)
         return (segment + topological).groupBy { joint -> joint.number }.values.map { jointConnections ->
             jointConnections.reduceRight(TrackLayoutSwitchJointConnection::merge)
         }
     }
 
     private fun getTopologySwitchJointConnections(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         layoutSwitchId: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
-        val layoutSwitch = get(publicationState, layoutSwitchId) ?: return listOf()
-        val linkedTracks = getLocationTracksLinkedToSwitch(publicationState, layoutSwitchId)
+        val layoutSwitch = get(layoutContext, layoutSwitchId) ?: return listOf()
+        val linkedTracks = getLocationTracksLinkedToSwitch(layoutContext, layoutSwitchId)
         return linkedTracks.flatMap { (track, alignment) ->
             getTopologyPoints(layoutSwitchId, track, alignment).mapNotNull { (connection, point) ->
                 layoutSwitch.getJoint(connection.jointNumber)?.let { joint ->
@@ -178,11 +176,11 @@ class LayoutSwitchService @Autowired constructor(
     }
 
     private fun getLocationTracksLinkedToSwitch(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         layoutSwitchId: IntId<TrackLayoutSwitch>,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
         return dao
-            .findLocationTracksLinkedToSwitch(publicationState, layoutSwitchId)
+            .findLocationTracksLinkedToSwitch(layoutContext, layoutSwitchId)
             .map { ids -> locationTrackService.getWithAlignment(ids.rowVersion) }
     }
 }

@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.configuration.CACHE_GEOCODING_CONTEXTS
@@ -11,7 +11,15 @@ import fi.fta.geoviite.infra.geometry.PlanLayoutService
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.map.MapAlignmentType
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -96,8 +104,11 @@ class GeocodingCacheService(
         val startAddress = plan?.startAddress
         val referenceLine = plan?.let(::getGeometryGeocodingContextReferenceLine)
 
-        return if (startAddress == null || referenceLine == null) null
-        else GeocodingContext.create(key.trackNumber, startAddress, referenceLine, plan.kmPosts)
+        return if (startAddress == null || referenceLine == null) {
+            null
+        } else {
+            GeocodingContext.create(key.trackNumber, startAddress, referenceLine, plan.kmPosts)
+        }
     }
 
     private fun getGeometryGeocodingContextReferenceLine(plan: GeometryPlanLayout): PlanLayoutAlignment? {
@@ -109,10 +120,10 @@ class GeocodingCacheService(
 
     @Transactional(readOnly = true)
     fun getGeocodingContextCreateResult(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): GeocodingContextCreateResult? = geocodingDao
-        .getLayoutGeocodingContextCacheKey(publicationState, trackNumberId)
+        .getLayoutGeocodingContextCacheKey(layoutContext, trackNumberId)
         ?.let(geocodingCacheService::getGeocodingContextWithReasons)
 
     @Transactional(readOnly = true)
