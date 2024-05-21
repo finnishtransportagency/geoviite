@@ -3425,7 +3425,7 @@ class PublicationServiceIT @Autowired constructor(
         )
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            draft = targetTrackToModify.copy(name = AlignmentName("Some other draft name")),
+            draftAsset = targetTrackToModify.copy(name = AlignmentName("Some other draft name")),
             alignment = targetAlignment,
         )
 

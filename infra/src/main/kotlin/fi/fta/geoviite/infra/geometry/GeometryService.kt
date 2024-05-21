@@ -59,6 +59,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
 
+val unknownSwitchName = SwitchName("-")
+
 val elementListingGenerationUser = UserName.of("ELEMENT_LIST_GEN")
 val verticalGeometryListingGenerationUser = UserName.of("VERT_GEOM_LIST_GEN")
 
@@ -228,7 +230,7 @@ class GeometryService @Autowired constructor(
     }
 
     private fun getSwitchName(context: LayoutContext, switchId: IntId<TrackLayoutSwitch>): SwitchName =
-        switchService.get(context, switchId)?.name ?: SwitchName("-")
+        switchService.get(context, switchId)?.name ?: unknownSwitchName
 
     @Transactional(readOnly = true)
     fun getElementListing(
@@ -357,7 +359,6 @@ class GeometryService @Autowired constructor(
         val trackNumbers = trackNumberService.mapById(MainLayoutContext.official)
         val elementListing = locationTrackService
             .listWithAlignments(MainLayoutContext.official, includeDeleted = false)
-            .sortedBy { (locationTrack, _) -> locationTrack.name }
             .map { (locationTrack, alignment) ->
                 Triple(
                     locationTrack,
@@ -365,7 +366,7 @@ class GeometryService @Autowired constructor(
                     trackNumbers[locationTrack.trackNumberId]?.number
                 )
             }
-            .sortedBy { (_, _, trackNumber) -> trackNumber }
+            .sortedWith(compareBy({ (_, _, tn) -> tn }, { (track, _, _) -> track.name }))
             .flatMap { (track, alignment, trackNumber) ->
                 getElementListing(track, alignment, trackNumber, geocodingContexts[track.trackNumberId])
             }
@@ -375,7 +376,7 @@ class GeometryService @Autowired constructor(
         elementListingFileDao.upsertElementListingFile(
             ElementListingFile(
                 name = FileName("${translation.t("data-products.element-list.element-list-whole-network-title")} ${dateFormatter.format(Instant.now())}"),
-                content = csvFileContent
+                content = csvFileContent,
             )
         )
     }
