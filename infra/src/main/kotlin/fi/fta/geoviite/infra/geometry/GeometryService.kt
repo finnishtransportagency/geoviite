@@ -354,7 +354,7 @@ class GeometryService @Autowired constructor(
         logger.serviceCall("makeElementListingCsv")
         val translation = localizationService.getLocalization(LocalizationLanguage.FI)
         val geocodingContexts = geocodingService.getGeocodingContexts(MainLayoutContext.official)
-        val layoutContext = MainLayoutContext.official
+        val trackNumbers = trackNumberService.mapById(MainLayoutContext.official)
         val elementListing = locationTrackService
             .listWithAlignments(MainLayoutContext.official, includeDeleted = false)
             .sortedBy { (locationTrack, _) -> locationTrack.name }
@@ -362,7 +362,7 @@ class GeometryService @Autowired constructor(
                 Triple(
                     locationTrack,
                     alignment,
-                    trackNumberService.get(layoutContext, locationTrack.trackNumberId)?.number
+                    trackNumbers[locationTrack.trackNumberId]?.number
                 )
             }
             .sortedBy { (_, _, trackNumber) -> trackNumber }
