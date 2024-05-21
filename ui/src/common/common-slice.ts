@@ -18,6 +18,7 @@ export type ChangeTimes = {
     pvDocument: TimeStamp;
     split: TimeStamp;
     operatingPoints: TimeStamp;
+    layoutDesign: TimeStamp;
 };
 
 export const initialChangeTime: TimeStamp = '1970-01-01T00:00:00.000Z';
@@ -35,6 +36,7 @@ export const initialChangeTimes: ChangeTimes = {
     pvDocument: initialChangeTime,
     split: initialChangeTime,
     operatingPoints: initialChangeTime,
+    layoutDesign: initialChangeTime,
 };
 
 export type CommonState = {
@@ -135,6 +137,9 @@ const commonSlice = createSlice({
         },
         setSplitChangeTime: function ({ changeTimes }, { payload }) {
             updateChangeTime(changeTimes, 'split', payload);
+        },
+        setLayoutDesignChangeTime: function ({ changeTimes }, { payload }) {
+            updateChangeTime(changeTimes, 'layoutDesign', payload);
         },
         setUser: (state: CommonState, { payload: user }: PayloadAction<User>): void => {
             state.user = user;

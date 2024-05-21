@@ -32,6 +32,7 @@ data class CollectedChangeTimes(
     val pvDocument: Instant,
     val split: Instant,
     val operatingPoints: Instant,
+    val layoutDesign: Instant,
 )
 
 @RestController
@@ -48,6 +49,7 @@ class ChangeTimeController(
     private val pvDocumentService: PVDocumentService,
     private val splitService: SplitService,
     private val ratkoOperatingPointDao: RatkoOperatingPointDao,
+    private val layoutDesignDao: LayoutDesignDao,
 ) {
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -71,6 +73,7 @@ class ChangeTimeController(
             pvDocument = pvDocumentService.getDocumentChangeTime(),
             split = splitService.getChangeTime(),
             operatingPoints = ratkoOperatingPointDao.getChangeTime(),
+            layoutDesign = layoutDesignDao.getChangeTime(),
         )
     }
 
@@ -149,5 +152,12 @@ class ChangeTimeController(
     fun getSplitChangeTime(): Instant {
         logger.apiCall("getSplitChangeTime")
         return splitService.getChangeTime()
+    }
+
+    @PreAuthorize(AUTH_BASIC)
+    @GetMapping("/layout-designs")
+    fun getLayoutDesignChangeTime(): Instant {
+        logger.apiCall("getLayoutDesignChangeTime")
+        return layoutDesignDao.getChangeTime()
     }
 }
