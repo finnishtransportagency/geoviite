@@ -59,6 +59,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
 
+val unknownSwitchName = SwitchName("-")
+
 val elementListingGenerationUser = UserName.of("ELEMENT_LIST_GEN")
 val verticalGeometryListingGenerationUser = UserName.of("VERT_GEOM_LIST_GEN")
 
@@ -228,7 +230,7 @@ class GeometryService @Autowired constructor(
     }
 
     private fun getSwitchName(context: LayoutContext, switchId: IntId<TrackLayoutSwitch>): SwitchName =
-        switchService.get(context, switchId)?.name ?: SwitchName("-")
+        switchService.get(context, switchId)?.name ?: unknownSwitchName
 
     @Transactional(readOnly = true)
     fun getElementListing(
