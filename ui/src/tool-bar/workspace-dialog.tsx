@@ -81,7 +81,7 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
                             <DatePicker
                                 value={selectedDate}
                                 onChange={(date) => setSelectedDate(date)}
-                                //wide={true}
+                                wide={true}
                             />
                         }
                     />
