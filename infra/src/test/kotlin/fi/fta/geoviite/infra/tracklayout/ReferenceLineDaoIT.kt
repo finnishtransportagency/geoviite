@@ -24,7 +24,7 @@ class ReferenceLineDaoIT @Autowired constructor(
 
     @Test
     fun referenceLineSaveAndLoadWorks() {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.insertTrackNumber().id
         val alignment = alignment()
         val alignmentVersion = alignmentDao.insert(alignment)
         val referenceLine = referenceLine(trackNumberId, alignment, draft = false).copy(
@@ -55,7 +55,7 @@ class ReferenceLineDaoIT @Autowired constructor(
 
     @Test
     fun referenceLineVersioningWorks() {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.insertTrackNumber().id
         val tempAlignment = alignment(segment(Point(1.0, 1.0), Point(2.0, 2.0)))
         val alignmentVersion = alignmentDao.insert(tempAlignment)
         val tempTrack = referenceLine(

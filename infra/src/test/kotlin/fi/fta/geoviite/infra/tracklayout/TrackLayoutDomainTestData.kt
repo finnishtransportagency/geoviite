@@ -7,7 +7,6 @@ import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
@@ -18,7 +17,6 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.MetaDataName
-import fi.fta.geoviite.infra.geometry.PlanPhase
 import fi.fta.geoviite.infra.getSomeNullableValue
 import fi.fta.geoviite.infra.getSomeValue
 import fi.fta.geoviite.infra.linking.FittedSwitchJointMatch
@@ -232,36 +230,37 @@ private fun valueOnRange(range: ClosedRange<Double>, index: Int, count: Int) =
 fun trackNumber(
     number: TrackNumber = TrackNumber("100"),
     description: String = "Test Track number $number",
-    draft: Boolean,
-    externalId: Oid<TrackLayoutTrackNumber>? = Oid(
-        "${nextInt(10, 1000)}.${nextInt(10, 1000)}.${nextInt(10, 1000)}"
-    ),
+    draft: Boolean = false,
+    externalId: Oid<TrackLayoutTrackNumber>? = someOid(),
     state: LayoutState = LayoutState.IN_USE,
     id: DomainId<TrackLayoutTrackNumber> = StringId(),
     draftOfId: DomainId<TrackLayoutTrackNumber>? = null,
+    contextData: LayoutContextData<TrackLayoutTrackNumber> = createMainContext(id, draftOfId, draft),
 ) = TrackLayoutTrackNumber(
     number = number,
     description = FreeText(description),
     state = state,
     externalId = externalId,
-    contextData = if (draft) {
-        MainDraftContextData(rowId = id, officialRowId = draftOfId, designRowId = null, dataType = DataType.TEMP)
-    } else {
-        LayoutContextData.newOfficial(LayoutBranch.main, id)
-    },
+    contextData = contextData,
 )
 
 fun referenceLineAndAlignment(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     vararg segments: LayoutSegment,
-    draft: Boolean,
-): Pair<ReferenceLine, LayoutAlignment> = referenceLineAndAlignment(trackNumberId, segments.toList(), draft = draft)
+    startAddress: TrackMeter = TrackMeter.ZERO,
+    draft: Boolean = false,
+): Pair<ReferenceLine, LayoutAlignment> = referenceLineAndAlignment(
+    trackNumberId,
+    segments.toList(),
+    startAddress = startAddress,
+    draft = draft,
+)
 
 fun referenceLineAndAlignment(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     segments: List<LayoutSegment>,
     startAddress: TrackMeter = TrackMeter.ZERO,
-    draft: Boolean,
+    draft: Boolean = false,
 ): Pair<ReferenceLine, LayoutAlignment> {
     val alignment = alignment(segments)
     val referenceLine = referenceLine(
@@ -279,7 +278,8 @@ fun referenceLine(
     startAddress: TrackMeter = TrackMeter.ZERO,
     alignmentVersion: RowVersion<LayoutAlignment>? = null,
     id: DomainId<ReferenceLine> = StringId(),
-    draft: Boolean,
+    draft: Boolean = false,
+    contextData: LayoutContextData<ReferenceLine> = createMainContext(id, null, draft)
 ) = ReferenceLine(
     trackNumberId = trackNumberId,
     startAddress = startAddress,
@@ -288,7 +288,7 @@ fun referenceLine(
     segmentCount = alignment?.segments?.size ?: 0,
     length = alignment?.length ?: 0.0,
     alignmentVersion = alignmentVersion,
-    contextData = if (draft) LayoutContextData.newDraft(LayoutBranch.main, id) else LayoutContextData.newOfficial(LayoutBranch.main, id),
+    contextData = contextData,
 )
 
 private var locationTrackNameCounter = 0
@@ -317,7 +317,7 @@ fun locationTrackAndAlignment(
     duplicateOf: IntId<LocationTrack>? = null,
     state: LocationTrackState = LocationTrackState.IN_USE,
     id: IntId<LocationTrack>? = null,
-    draft: Boolean,
+    draft: Boolean = false,
 ): Pair<LocationTrack, LayoutAlignment> = locationTrackAndAlignment(
     trackNumberId,
     segments.toList(),
@@ -333,7 +333,7 @@ fun locationTrackAndAlignment(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     segments: List<LayoutSegment>,
     id: DomainId<LocationTrack> = StringId(),
-    draft: Boolean,
+    draft: Boolean = false,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     duplicateOf: IntId<LocationTrack>? = null,
@@ -357,7 +357,7 @@ fun locationTrack(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     alignment: LayoutAlignment? = null,
     id: DomainId<LocationTrack> = StringId(),
-    draft: Boolean,
+    draft: Boolean = false,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
     type: LocationTrackType = LocationTrackType.SIDE,
@@ -369,10 +369,11 @@ fun locationTrack(
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
     duplicateOf: IntId<LocationTrack>? = null,
     ownerId: IntId<LocationTrackOwner> = IntId(1),
+    contextData: LayoutContextData<LocationTrack> = createMainContext(id, null, draft),
 ) = locationTrack(
     trackNumberId = trackNumberId,
     alignment = alignment,
-    contextData = if (draft) LayoutContextData.newDraft(LayoutBranch.main, id) else LayoutContextData.newOfficial(LayoutBranch.main, id),
+    contextData = contextData,
     name = name,
     description = description,
     type = type,
@@ -878,9 +879,10 @@ fun switch(
     externalId: String? = null,
     stateCategory: LayoutStateCategory = getSomeValue(seed),
     id: DomainId<TrackLayoutSwitch> = StringId(),
-    draft: Boolean,
+    draft: Boolean = false,
     draftOfId: DomainId<TrackLayoutSwitch>? = null,
     ownerId: IntId<SwitchOwner>? = switchOwnerVayla().id,
+    contextData: LayoutContextData<TrackLayoutSwitch> = createMainContext(id, draftOfId, draft),
 ) = TrackLayoutSwitch(
     externalId = if (externalId != null) Oid(externalId) else null,
     sourceId = null,
@@ -891,10 +893,14 @@ fun switch(
     trapPoint = false,
     ownerId = ownerId,
     source = GENERATED,
-    contextData = if (draft) {
-        MainDraftContextData(id, draftOfId, null, DataType.TEMP)
-    } else LayoutContextData.newOfficial(LayoutBranch.main, id),
+    contextData = contextData,
 )
+
+fun <T> createMainContext(id: DomainId<T>, draftOfId: DomainId<T>?, draft: Boolean): LayoutContextData<T> = if (draft) {
+    MainDraftContextData(id, draftOfId, null, DataType.TEMP)
+} else {
+    MainOfficialContextData(id, DataType.TEMP)
+}
 
 fun joints(seed: Int = 1, count: Int = 5) = (1..count).map { jointSeed -> switchJoint(seed * 100 + jointSeed) }
 
@@ -914,15 +920,16 @@ fun kmPost(
     trackNumberId: IntId<TrackLayoutTrackNumber>?,
     km: KmNumber,
     location: IPoint? = Point(1.0, 1.0),
-    draft: Boolean,
+    draft: Boolean = false,
     state: LayoutState = LayoutState.IN_USE,
+    contextData: LayoutContextData<TrackLayoutKmPost> = createMainContext(StringId(), null, draft),
 ) = TrackLayoutKmPost(
     trackNumberId = trackNumberId,
     kmNumber = km,
     location = location?.toPoint(),
     state = state,
     sourceId = null,
-    contextData = if (draft) LayoutContextData.newDraft(LayoutBranch.main) else LayoutContextData.newOfficial(LayoutBranch.main),
+    contextData = contextData,
 )
 
 fun segmentPoint(x: Double, y: Double, m: Double = 1.0) = SegmentPoint(x, y, null, m, null)

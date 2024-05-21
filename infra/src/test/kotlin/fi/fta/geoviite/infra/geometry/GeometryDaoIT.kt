@@ -154,8 +154,7 @@ class GeometryDaoIT @Autowired constructor(
 
     @Test
     fun insertPlanWorks() {
-        val trackNumber = getUnusedTrackNumber()
-        insertOfficialTrackNumber(trackNumber)
+        val trackNumber = mainOfficialContext.insertAndFetchTrackNumber().number
         val plan = plan(trackNumber, source = PlanSource.GEOMETRIAPALVELU)
         val fileContent = "<a></a>"
         val id = geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent), null)
@@ -178,8 +177,7 @@ class GeometryDaoIT @Autowired constructor(
     @Test
     fun minimalElementInsertsWork() {
         val file = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem.xml")
-        val trackNumber = getUnusedTrackNumber()
-        insertOfficialTrackNumber(trackNumber)
+        val trackNumber = mainOfficialContext.insertAndFetchTrackNumber().number
         val plan = plan(
             trackNumber = trackNumber,
             fileName = file.name,
@@ -196,8 +194,7 @@ class GeometryDaoIT @Autowired constructor(
     @Test
     fun getLinkingSummariesHappyCase() {
         val file = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem.xml")
-        val trackNumber = getUnusedTrackNumber()
-        val trackNumberId = insertOfficialTrackNumber(trackNumber)
+        val (trackNumber, trackNumberId) = mainOfficialContext.getNewTrackNumberAndId()
         val plan = plan(
             trackNumber = trackNumber,
             fileName = file.name,
@@ -232,7 +229,7 @@ class GeometryDaoIT @Autowired constructor(
     fun `Geometry plan header mass fetch works`() {
         val file1 = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem_1.xml")
         val file2 = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem_2.xml")
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
         val plan1 = plan(
             trackNumber = trackNumber,
             fileName = file1.name,

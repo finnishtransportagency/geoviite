@@ -97,7 +97,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @BeforeEach
     fun cleanup() {
-        deleteFromTables("layout", "switch_joint", "switch", "location_track")
+        testDBService.clearLayoutTables()
     }
 
     @Test()
@@ -169,7 +169,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         }
 
         val (locationTrack, locationTrackAlignment) = locationTrackAndAlignment(
-            trackNumberId = getUnusedTrackNumberId(),
+            trackNumberId = mainDraftContext.insertTrackNumber().id,
             segments = segments,
             draft = true,
         )
@@ -249,7 +249,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         }
 
         val (locationTrack, locationTrackAlignment) = locationTrackAndAlignment(
-            trackNumberId = getUnusedTrackNumberId(),
+            trackNumberId = mainDraftContext.insertTrackNumber().id,
             segments = segments,
             draft = true,
         )
@@ -931,7 +931,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun `validateRelinkingTrack relinks okay cases and gives validation errors about bad ones`() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.insertTrackNumber().id
         referenceLineDao.insert(
             referenceLine(
                 trackNumberId = trackNumberId,
@@ -1021,7 +1021,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun `relinkTrack and validateRelinkingTrack find nearby switches`() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.insertTrackNumber().id
         referenceLineDao.insert(
             referenceLine(
                 trackNumberId,
@@ -1068,7 +1068,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun `validateRelinkingTrack relinks switches that don't end up linked to the original track as well`() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.insertTrackNumber().id
         referenceLineDao.insert(
             referenceLine(
                 trackNumberId = trackNumberId,
@@ -1162,7 +1162,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun `re-linking switch cleans up previous references consistently`() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.insertTrackNumber().id
         referenceLineDao.insert(
             referenceLine(
                 trackNumberId = trackNumberId,
@@ -1231,7 +1231,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun `re-linking switch cleans up topological connections`() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.insertTrackNumber().id
         referenceLineDao.insert(
             referenceLine(
                 trackNumberId = trackNumberId,
@@ -1288,7 +1288,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun `mislinked track with wrong alignment link gets replaced with topology link`() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.insertTrackNumber().id
         referenceLineDao.insert(
             referenceLine(
                 trackNumberId = trackNumberId,
@@ -1354,7 +1354,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun `relinking moves mislinked topo link to correct switch despite confuser branching track, and does not pointlessly update alignments or tracks`() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.insertTrackNumber().id
         referenceLineDao.insert(
             referenceLine(
                 trackNumberId = trackNumberId,
@@ -1423,7 +1423,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun `relinking removes misplaced topological switch link`() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.insertTrackNumber().id
         referenceLineDao.insert(
             referenceLine(
                 trackNumberId = trackNumberId,
@@ -1490,7 +1490,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
 
     private fun setupForLinkingTopoLinkToTrackOutsideSwitchJointBoundingBox(): Triple<IntId<LocationTrack>, IntId<LocationTrack>, IntId<TrackLayoutSwitch>> {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.insertTrackNumber().id
         referenceLineDao.insert(
             referenceLine(
                 trackNumberId = trackNumberId,
@@ -1607,7 +1607,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         layoutSegments: List<LayoutSegment>,
     ): Pair<LocationTrack, LayoutAlignment> {
         val (locationTrack, alignment) = locationTrackAndAlignment(
-            trackNumberId = getUnusedTrackNumberId(),
+            trackNumberId = mainDraftContext.insertTrackNumber().id,
             segments = layoutSegments,
             draft = true,
         )
@@ -1616,8 +1616,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
     }
 
     private fun setupJointLocationAccuracyTest(): SuggestedSwitchCreateParams {
-        val trackNumber = getUnusedTrackNumber()
-        val trackNumberId = insertOfficialTrackNumber(trackNumber)
+        val trackNumber = mainOfficialContext.insertAndFetchTrackNumber()
         val (switch, switchAlignments) = createSwitchAndAlignments(
             "fooSwitch",
             switchStructure,
@@ -1626,21 +1625,21 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         val plan1 = makeAndSavePlan(
-            trackNumber,
+            trackNumber.number,
             MeasurementMethod.DIGITIZED_AERIAL_IMAGE,
             switches = listOf(switch),
             alignments = listOf(switchAlignments[0]),
         )
 
         val plan2 = makeAndSavePlan(
-            trackNumber,
+            trackNumber.number,
             measurementMethod = null,
             alignments = listOf(switchAlignments[1]),
         )
 
         val trackNumberIds = (plan1.alignments + plan2.alignments).map { a ->
             val (locationTrack, alignment) = locationTrackAndAlignmentForGeometryAlignment(
-                trackNumberId,
+                trackNumber.id as IntId,
                 a,
                 kkjTm35FinTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.KKJ_TO_TM35FIN),
                 kkjTm35FinTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.TM35FIN_TO_KKJ),

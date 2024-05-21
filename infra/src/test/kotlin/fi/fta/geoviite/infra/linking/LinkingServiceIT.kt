@@ -61,7 +61,7 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun alignmentGeometryLinkingWorks() {
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
 
         val geometryStart = Point(377680.0, 6676160.0)
         // 6m of geometry to replace
@@ -101,7 +101,7 @@ class LinkingServiceIT @Autowired constructor(
         )
 
         val (locationTrack, alignment) = locationTrackAndAlignment(
-            insertOfficialTrackNumber(), segment1, segment2, segment3, draft = true
+            mainOfficialContext.insertTrackNumber().id, segment1, segment2, segment3, draft = true
         )
         val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
         locationTrackService.publish(LayoutBranch.main, ValidationVersion(locationTrackId, locationTrackVersion))
@@ -160,13 +160,13 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun kmPostGeometryLinkingWorks() {
-        val kmPost = kmPost(insertOfficialTrackNumber(), someKmNumber(), draft = false)
+        val kmPost = kmPost(mainOfficialContext.insertTrackNumber().id, someKmNumber(), draft = false)
         val kmPostId = kmPostDao.insert(kmPost).id
         val officialKmPost = kmPostService.get(MainLayoutContext.official, kmPostId)
 
         assertMatches(officialKmPost!!, kmPostService.getOrThrow(MainLayoutContext.draft, kmPostId), contextMatch = false)
 
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
 
         trackNumberDao.insert(trackNumber(trackNumber, draft = false))
         val plan = plan(trackNumber)
@@ -191,12 +191,12 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun `Linking alignments throws if alignment is deleted`() {
-        val plan = plan(getUnusedTrackNumber(), LAYOUT_SRID)
+        val plan = plan(testDBService.getUnusedTrackNumber(), LAYOUT_SRID)
 
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
         val (locationTrack, alignment) = locationTrackAndAlignment(
-            trackNumberId = insertOfficialTrackNumber(),
+            trackNumberId = mainOfficialContext.insertTrackNumber().id,
             state = LocationTrackState.DELETED,
             draft = true,
         )
@@ -228,12 +228,12 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun `Linking alignments throws if alignment has splits`() {
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
         val plan = plan(trackNumber, LAYOUT_SRID)
 
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
-        val (locationTrack, alignment) = locationTrackAndAlignment(insertOfficialTrackNumber(), draft = true)
+        val (locationTrack, alignment) = locationTrackAndAlignment(mainOfficialContext.insertTrackNumber().id, draft = true)
         val locationTrackResponse = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
             .let { (id, rowVersion) -> locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, rowVersion)) }
 
@@ -265,7 +265,7 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun `Linking alignments works if all alignment splits are finished`() {
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
 
         val geometryStart = Point(377680.0, 6676160.0)
         // 6m of geometry to replace
@@ -292,7 +292,7 @@ class LinkingServiceIT @Autowired constructor(
         )
 
         val (locationTrack, alignment) = locationTrackAndAlignment(
-            insertOfficialTrackNumber(), segment1, draft = true,
+            mainOfficialContext.insertTrackNumber().id, segment1, draft = true,
         )
         val locationTrackResponse = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
             .let { (id, rowVersion) -> locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, rowVersion)) }

@@ -188,7 +188,7 @@ class ReferenceLineServiceIT @Autowired constructor(
 
     @Test
     fun `should throw exception when there are switches linked to reference line`() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.insertTrackNumber().id
 
         val (referenceLine, alignment) = referenceLineAndAlignment(
             trackNumberId = trackNumberId,
@@ -260,7 +260,7 @@ class ReferenceLineServiceIT @Autowired constructor(
     private fun createTrackNumber() = trackNumberService.insert(
         LayoutBranch.main,
         TrackNumberSaveRequest(
-            number = getUnusedTrackNumber(),
+            number = testDBService.getUnusedTrackNumber(),
             description = FreeText(trackNumberDescription),
             state = LayoutState.IN_USE,
             startAddress = TrackMeter.ZERO,

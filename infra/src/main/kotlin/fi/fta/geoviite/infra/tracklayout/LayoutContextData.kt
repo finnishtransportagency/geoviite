@@ -8,7 +8,10 @@ import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainBranch
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.logging.Loggable
@@ -58,15 +61,23 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
     }
 
     companion object {
-        fun <T> newDraft(branch: LayoutBranch, id: DomainId<T> = StringId()) = when (branch) {
-            is MainBranch -> MainDraftContextData(id, null, null, TEMP)
-            is DesignBranch -> DesignDraftContextData(id, null, null, branch.designId, TEMP)
-        }
+        fun <T : LayoutAsset<T>> new(context: LayoutContext, id: DomainId<T> = StringId()): LayoutContextData<T> =
+            when (context.state) {
+                DRAFT -> newDraft(context.branch, id)
+                OFFICIAL -> newOfficial(context.branch, id)
+            }
 
-        fun <T> newOfficial(branch: LayoutBranch, id: DomainId<T> = StringId()) = when (branch) {
-            is MainBranch -> MainOfficialContextData(id, TEMP)
-            is DesignBranch -> DesignOfficialContextData(id, null, branch.designId, TEMP)
-        }
+        fun <T : LayoutAsset<T>> newDraft(branch: LayoutBranch, id: DomainId<T> = StringId()): LayoutContextData<T> =
+            when (branch) {
+                is MainBranch -> MainDraftContextData(id, null, null, TEMP)
+                is DesignBranch -> DesignDraftContextData(id, null, null, branch.designId, TEMP)
+            }
+
+        fun <T : LayoutAsset<T>> newOfficial(branch: LayoutBranch, id: DomainId<T> = StringId()): LayoutContextData<T> =
+            when (branch) {
+                is MainBranch -> MainOfficialContextData(id, TEMP)
+                is DesignBranch -> DesignOfficialContextData(id, null, branch.designId, TEMP)
+            }
     }
 }
 

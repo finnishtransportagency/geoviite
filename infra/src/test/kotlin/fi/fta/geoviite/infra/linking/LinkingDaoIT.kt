@@ -42,7 +42,7 @@ class LinkingDaoIT @Autowired constructor(
 
     @Test
     fun switchBoundsAreFoundFromTracks() {
-        val trackNumber = getOrCreateTrackNumber(TrackNumber("123"))
+        val trackNumber = mainDraftContext.getOrCreateTrackNumber(TrackNumber("123"))
         val tnId = trackNumber.id as IntId
         val switch = switchService.getOrThrow(
             MainLayoutContext.draft,

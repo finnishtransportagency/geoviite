@@ -30,7 +30,7 @@ class LayoutSearchServiceIT @Autowired constructor(
 ) : DBTestBase() {
     @BeforeEach
     fun cleanup() {
-        deleteFromTables("layout", "track_number", "reference_line")
+        testDBService.clearLayoutTables()
     }
 
     @Test

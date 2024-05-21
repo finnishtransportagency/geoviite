@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationRequest
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.publicationRequestIds
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
 import fi.fta.geoviite.infra.util.DaoBase
@@ -33,9 +34,9 @@ class PublicationLogSearchTestUI @Autowired constructor(
 
     @Test
     fun `Publication log date search works`() {
-        clearAllTestData()
+        testDBService.clearAllTables()
 
-        val someTrackNumberId = insertDraftTrackNumber(TrackNumber("Test track number"))
+        val someTrackNumberId = mainDraftContext.insert(trackNumber(TrackNumber("Test track number"))).id
         val someReferenceLine = HelsinkiTestData.westReferenceLine(someTrackNumberId, draft = true)
         val someTrack = HelsinkiTestData.westMainLocationTrack(someTrackNumberId, draft = true)
 

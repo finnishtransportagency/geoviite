@@ -16,7 +16,7 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
 
     @BeforeEach
     fun cleanup() {
-        deleteFromTables("layout", "design")
+        testDBService.clearLayoutTables()
     }
 
     @Test
@@ -34,8 +34,9 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
         assertEquals(
             listOf(
                 update.copy(name = FreeText("abc"), estimatedCompletion = LocalDate.parse("2024-01-02")),
-                insertAsIs
-            ), layoutDesignDao.list().sortedBy(LayoutDesign::name)
+                insertAsIs,
+            ),
+            layoutDesignDao.list().sortedBy(LayoutDesign::name),
         )
     }
 

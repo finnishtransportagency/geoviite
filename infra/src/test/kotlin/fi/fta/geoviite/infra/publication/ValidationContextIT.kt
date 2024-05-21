@@ -22,7 +22,6 @@ import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.switch
-import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -62,11 +61,11 @@ class ValidationContextIT @Autowired constructor(
 
     @Test
     fun `ValidationContext returns correct versions for TrackNumber`() {
-        val trackNumber1 = trackNumber(getUnusedTrackNumber(), draft = false)
-        val (tn1Id, tn1OfficialVersion) = trackNumberDao.insert(trackNumber1)
-        val (_, tn1DraftVersion) = trackNumberDao.insert(asMainDraft(trackNumberDao.fetch(tn1OfficialVersion)))
-        val trackNumber2 = trackNumber(getUnusedTrackNumber(), draft = true)
-        val (tn2Id, tn2DraftVersion) = trackNumberDao.insert(trackNumber2)
+        val (tn1Id, tn1OfficialVersion) = mainOfficialContext.insertTrackNumber()
+        val trackNumber1 = trackNumberDao.fetch(tn1OfficialVersion)
+        val (_, tn1DraftVersion) = mainDraftContext.insert(asMainDraft(trackNumber1))
+        val (tn2Id, tn2DraftVersion) = mainDraftContext.insertTrackNumber()
+        val trackNumber2 = trackNumberDao.fetch(tn2DraftVersion)
         assertEquals(
             trackNumberDao.fetch(tn1OfficialVersion),
             validationContext().getTrackNumber(tn1Id),
@@ -102,7 +101,7 @@ class ValidationContextIT @Autowired constructor(
 
     @Test
     fun `ValidationContext returns correct versions for LocationTrack`() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.insertTrackNumber().id
         val (lt1Id, lt1OfficialVersion) = insertLocationTrack(locationTrackAndAlignment(trackNumberId, draft = false))
         val (_, lt1DraftVersion) = locationTrackDao.insert(asMainDraft(locationTrackDao.fetch(lt1OfficialVersion)))
         val (lt2Id, lt2DraftVersion) = insertLocationTrack(locationTrackAndAlignment(trackNumberId, draft = true))
@@ -124,10 +123,10 @@ class ValidationContextIT @Autowired constructor(
 
     @Test
     fun `ValidationContext returns correct versions for Switch`() {
-        val switchName1 = getUnusedSwitchName()
+        val switchName1 = testDBService.getUnusedSwitchName()
         val (s1Id, s1OfficialVersion) = switchDao.insert(switch(name = switchName1.toString(), draft = false))
         val (_, s1DraftVersion) = switchDao.insert(asMainDraft(switchDao.fetch(s1OfficialVersion)))
-        val switchName2 = getUnusedSwitchName()
+        val switchName2 = testDBService.getUnusedSwitchName()
         val (s2Id, s2DraftVersion) = switchDao.insert(switch(name = switchName2.toString(), draft = true))
 
         assertEquals(
@@ -161,7 +160,7 @@ class ValidationContextIT @Autowired constructor(
 
     @Test
     fun `ValidationContext returns correct versions for KM-Post`() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.insertTrackNumber().id
         val (kmp1Id, kmp1OfficialVersion) = kmPostDao.insert(kmPost(trackNumberId, KmNumber(1), draft = false))
         val (_, kmp1DraftVersion) = kmPostDao.insert(asMainDraft(kmPostDao.fetch(kmp1OfficialVersion)))
         val (kmp2Id, kmp2DraftVersion) = kmPostDao.insert(kmPost(trackNumberId, KmNumber(2), draft = true))

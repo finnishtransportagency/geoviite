@@ -5,9 +5,22 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.GeometryService
+import fi.fta.geoviite.infra.geometry.geometryAlignment
+import fi.fta.geoviite.infra.geometry.infraModelFile
+import fi.fta.geoviite.infra.geometry.line
+import fi.fta.geoviite.infra.geometry.minimalClothoid
+import fi.fta.geoviite.infra.geometry.minimalCurve
+import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.ui.LocalHostWebClient
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -31,13 +44,13 @@ class GeometryElementListTestUI @Autowired constructor(
 
     @BeforeEach
     fun cleanup() {
-        clearAllTestData()
+        testDBService.clearAllTables()
     }
 
     @Test
     fun `List layout geometry`() {
         val trackNumber = TrackNumber("foo")
-        val trackNumberId = insertOfficialTrackNumber(trackNumber)
+        val trackNumberId = mainOfficialContext.getOrCreateTrackNumber(trackNumber).id as IntId
         val planVersion = insertSomePlan(trackNumber)
         linkPlanToSomeLocationTrack(planVersion, trackNumberId)
 
@@ -64,7 +77,7 @@ class GeometryElementListTestUI @Autowired constructor(
 
     @Test
     fun `List plan geometry`() {
-        insertSomePlan(getUnusedTrackNumber())
+        insertSomePlan(testDBService.getUnusedTrackNumber())
         startGeoviite()
         val planListPage = navigationBar.goToElementListPage().planListPage()
         planListPage.selectPlan("testfile")
@@ -89,8 +102,7 @@ class GeometryElementListTestUI @Autowired constructor(
 
     @Test
     fun `List whole network geometry`() {
-        val trackNumber = getUnusedTrackNumber()
-        val trackNumberId = insertOfficialTrackNumber(trackNumber)
+        val (trackNumber, trackNumberId) = mainOfficialContext.getNewTrackNumberAndId()
         val planVersion = insertSomePlan(trackNumber)
         linkPlanToSomeLocationTrack(planVersion, trackNumberId)
         geometryService.makeElementListingCsv()

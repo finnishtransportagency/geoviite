@@ -26,7 +26,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
 
     @Test
     fun nearbyKmPostsAreReturnedInOrder() {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.insertTrackNumber().id
         val kmPost1 = kmPostDao.fetch(
             kmPostDao.insert(
                 kmPost(
@@ -60,7 +60,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
 
         kmPostDao.insert(
             kmPost(
-                trackNumberId = insertOfficialTrackNumber(),
+                trackNumberId = mainOfficialContext.insertTrackNumber().id,
                 km = KmNumber(4),
                 location = null,
                 draft = false,
@@ -80,7 +80,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
 
     @Test
     fun findsKmPostAtKmNumber() {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.insertTrackNumber().id
         val kmPost = kmPostDao.fetch(
             kmPostDao.insert(
                 kmPost(
@@ -104,7 +104,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
 
     @Test
     fun doesntFindKmPostAtWrongKmNumber() {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.insertTrackNumber().id
         kmPostDao.insert(
             kmPost(
                 trackNumberId = trackNumberId,
@@ -119,8 +119,8 @@ class LayoutKmPostServiceIT @Autowired constructor(
 
     @Test
     fun doesntFindKmPostOnWrongTrack() {
-        val trackNumber1Id = insertOfficialTrackNumber()
-        val trackNumber2Id = insertOfficialTrackNumber()
+        val trackNumber1Id = mainOfficialContext.insertTrackNumber().id
+        val trackNumber2Id = mainOfficialContext.insertTrackNumber().id
         val kmPost = kmPostDao.fetch(
             kmPostDao.insert(
                 kmPost(
@@ -137,7 +137,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
 
     @Test
     fun draftKmPostIsDeletedOk() {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.insertTrackNumber().id
         val kmPost = kmPost(trackNumberId, KmNumber(7654), draft = true)
 
         val draftId = kmPostService.saveDraft(LayoutBranch.main, asMainDraft(kmPost)).id
@@ -152,7 +152,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
 
     @Test
     fun kmPostIdIsReturnedWhenAddingNewKmPost() {
-        val trackNumberId = insertDraftTrackNumber()
+        val trackNumberId = mainDraftContext.insertTrackNumber().id
         val kmPost = TrackLayoutKmPostSaveRequest(
             kmNumber = someKmNumber(),
             state = LayoutState.IN_USE,
@@ -171,7 +171,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
 
     @Test
     fun kmPostLengthMatchesTrackNumberService() {
-        val trackNumberId = insertDraftTrackNumber()
+        val trackNumberId = mainDraftContext.insertTrackNumber().id
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId, draft = true),

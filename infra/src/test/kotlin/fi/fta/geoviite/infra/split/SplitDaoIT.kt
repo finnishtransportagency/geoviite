@@ -28,7 +28,7 @@ class SplitDaoIT @Autowired constructor(
 
     @Test
     fun `should save split in pending state`() {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.insertTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         val sourceTrack = insertLocationTrack(
             locationTrack(trackNumberId = trackNumberId, draft = false) to alignment
@@ -60,7 +60,7 @@ class SplitDaoIT @Autowired constructor(
 
     @Test
     fun `should update split with new state, errorCause, and publicationId`() {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.insertTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         val sourceTrack = insertLocationTrack(
             locationTrack(trackNumberId = trackNumberId, draft = false) to alignment
@@ -93,7 +93,7 @@ class SplitDaoIT @Autowired constructor(
 
     @Test
     fun `should fetch unfinished splits only`() {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.insertTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         val sourceTrack = insertLocationTrack(
             locationTrack(trackNumberId = trackNumberId, draft = false) to alignment
@@ -135,7 +135,7 @@ class SplitDaoIT @Autowired constructor(
 
     @Test
     fun `should delete split`() {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.insertTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         val sourceTrack = insertLocationTrack(
             locationTrack(trackNumberId = trackNumberId, draft = false) to alignment
@@ -167,7 +167,7 @@ class SplitDaoIT @Autowired constructor(
 
     @Test
     fun `Should fetch split header`() {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.insertTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         val sourceTrack = insertLocationTrack(
             locationTrack(trackNumberId = trackNumberId, draft = false) to alignment
@@ -245,7 +245,7 @@ class SplitDaoIT @Autowired constructor(
     }
 
     private fun createSplit(): IntId<Split> {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.insertTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
         val sourceTrack = insertLocationTrack(
             locationTrack(trackNumberId = trackNumberId, draft = false) to alignment

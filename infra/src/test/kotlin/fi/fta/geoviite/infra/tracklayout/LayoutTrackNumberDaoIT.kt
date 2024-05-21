@@ -29,7 +29,7 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
     @Test
     fun trackNumberIsStoredAndLoadedOk() {
         val original = TrackLayoutTrackNumber(
-            number = getUnusedTrackNumber(),
+            number = testDBService.getUnusedTrackNumber(),
             description = FreeText("empty-test-track-number"),
             state = IN_USE,
             externalId = null,
@@ -52,15 +52,15 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
             jdbc.update(deleteSql, mapOf("external_id" to oid))
         }
 
-        val tn1 = trackNumber(getUnusedTrackNumber(), externalId = oid, draft = false)
-        val tn2 = trackNumber(getUnusedTrackNumber(), externalId = oid, draft = false)
+        val tn1 = trackNumber(testDBService.getUnusedTrackNumber(), externalId = oid, draft = false)
+        val tn2 = trackNumber(testDBService.getUnusedTrackNumber(), externalId = oid, draft = false)
         trackNumberDao.insert(tn1)
         assertThrows<DuplicateKeyException> { trackNumberDao.insert(tn2) }
     }
 
     @Test
     fun trackNumberVersioningWorks() {
-        val tempTrackNumber = trackNumber(getUnusedTrackNumber(), description = "test 1", draft = false)
+        val tempTrackNumber = trackNumber(testDBService.getUnusedTrackNumber(), description = "test 1", draft = false)
         val (id, insertVersion) = trackNumberDao.insert(tempTrackNumber)
         val inserted = trackNumberDao.fetch(insertVersion)
         assertMatches(tempTrackNumber, inserted, contextMatch = false)
@@ -93,10 +93,10 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
 
     @Test
     fun listingTrackNumberVersionsWorks() {
-        val officialVersion = insertNewTrackNumber(getUnusedTrackNumber(), false).rowVersion
-        val undeletedDraftVersion = insertNewTrackNumber(getUnusedTrackNumber(), true).rowVersion
-        val deleteStateDraftVersion = insertNewTrackNumber(getUnusedTrackNumber(), true, DELETED).rowVersion
-        val (deletedDraftId, deletedDraftVersion) = insertNewTrackNumber(getUnusedTrackNumber(), true)
+        val officialVersion = insertNewTrackNumber(testDBService.getUnusedTrackNumber(), false).rowVersion
+        val undeletedDraftVersion = insertNewTrackNumber(testDBService.getUnusedTrackNumber(), true).rowVersion
+        val deleteStateDraftVersion = insertNewTrackNumber(testDBService.getUnusedTrackNumber(), true, DELETED).rowVersion
+        val (deletedDraftId, deletedDraftVersion) = insertNewTrackNumber(testDBService.getUnusedTrackNumber(), true)
         trackNumberDao.deleteDraft(LayoutBranch.main, deletedDraftId)
 
         val official = trackNumberDao.fetchVersions(MainLayoutContext.official, false)
@@ -120,7 +120,7 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
     fun fetchOfficialVersionByMomentWorks() {
         val beforeCreationTime = trackNumberDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
-        val (id, firstVersion) = insertNewTrackNumber(getUnusedTrackNumber(), false)
+        val (id, firstVersion) = insertNewTrackNumber(testDBService.getUnusedTrackNumber(), false)
         val firstVersionTime = trackNumberDao.fetchChangeTime()
 
         Thread.sleep(1) // Ensure that they get different timestamps

@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -37,10 +38,10 @@ class SplitTestUI @Autowired constructor(
 
     @Test
     fun `Split can be created and published`() {
-        clearAllTestData()
+        testDBService.clearAllTables()
 
         val trackNumber = TrackNumber("876")
-        val trackNumberId = insertOfficialTrackNumber(trackNumber)
+        val trackNumberId = mainOfficialContext.getOrCreateTrackNumber(trackNumber).id as IntId
 
         val trackStartPoint = HelsinkiTestData.HKI_BASE_POINT + Point(x = 675.0, y = 410.0)
         val preSegments = splitTestDataService.createSegments(trackStartPoint, 3)

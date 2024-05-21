@@ -1,26 +1,5 @@
 package fi.fta.geoviite.infra.projektivelho
 
-import fi.fta.geoviite.infra.common.Oid
-import java.time.Instant
-
-
-val velhoTables =
-    listOf(
-        "document_content",
-        "document_rejection",
-        "document",
-        "document_type",
-        "material_category",
-        "material_group",
-        "material_state",
-        "technics_field",
-        "project_state",
-        "assignment",
-        "project",
-        "project_group",
-        "search",
-    )
-
 val materialDictionaries: Map<PVDictionaryType, List<PVDictionaryEntry>> = mapOf(
     PVDictionaryType.DOCUMENT_TYPE to listOf(
         PVDictionaryEntry("dokumenttityyppi/dt01", "test doc type 1"),

@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import java.util.*
 
-
 const val UI_TEST_USER = "UI_TEST_USER"
 
 @ExtendWith(E2ETestWatcher::class)
@@ -29,7 +28,6 @@ open class SeleniumTest : DBTestBase(UI_TEST_USER) {
     init {
         TimeZone.setDefault(TimeZone.getTimeZone("Europe/Helsinki"))
     }
-
 
     val geoviite: E2EFrontPage
         get() {
@@ -52,67 +50,4 @@ open class SeleniumTest : DBTestBase(UI_TEST_USER) {
     fun selectRole(roleCode: E2ERole) = navigationBar.selectRole(roleCode.toString())
 
     fun goToInfraModelPage() = navigationBar.goToInfraModel()
-
-    protected fun clearAllTestData() {
-        deleteFromTables(
-            schema = "publication", tables = arrayOf(
-                "km_post",
-                "location_track",
-                "reference_line",
-                "switch",
-                "track_number",
-                "track_number_km",
-                "publication",
-                "split",
-                "split_version",
-                "split_relinked_switch",
-                "split_relinked_switch_version",
-                "split_target_location_track",
-                "split_target_location_track_version",
-                "split_updated_duplicate",
-                "split_updated_duplicate_version",
-            )
-        )
-
-        deleteFromTables(
-            schema = "layout", tables = arrayOf(
-                "alignment",
-                "alignment_version",
-                "km_post",
-                "km_post_version",
-                "location_track",
-                "location_track_version",
-                "reference_line",
-                "reference_line_version",
-                "switch",
-                "switch_version",
-                "switch_joint",
-                "switch_joint_version",
-                "track_number",
-                "track_number_version",
-                "segment_version",
-                "segment_geometry",
-            )
-        )
-
-        deleteFromTables(
-            schema = "geometry", tables = arrayOf(
-                "alignment",
-                "cant_point",
-                "element",
-                "plan",
-                "plan_application",
-                "plan_application_version",
-                "plan_file",
-                "plan_project",
-                "plan_project_version",
-                "plan_author",
-                "plan_author_version",
-                "plan_version",
-                "switch",
-                "switch_joint",
-                "vertical_intersection"
-            )
-        )
-    }
 }

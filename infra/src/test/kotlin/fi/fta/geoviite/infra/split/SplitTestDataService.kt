@@ -68,7 +68,7 @@ class SplitTestDataService @Autowired constructor(
     ): SwitchAndSegments {
         val switchInsertResponse = insertSwitch(
             switchFromDbStructure(
-                getUnusedSwitchName().toString(),
+                testDBService.getUnusedSwitchName().toString(),
                 startPoint,
                 structure,
                 draft = false,
@@ -93,7 +93,7 @@ class SplitTestDataService @Autowired constructor(
     fun insertAsTrack(
         segments: List<LayoutSegment>,
         duplicateOf: IntId<LocationTrack>? = null,
-        trackNumberId: IntId<TrackLayoutTrackNumber> = insertOfficialTrackNumber(),
+        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.insertTrackNumber().id,
     ): IntId<LocationTrack> {
         val alignment = alignment(segments)
         return insertLocationTrack(
@@ -108,7 +108,7 @@ class SplitTestDataService @Autowired constructor(
 
     fun createAsMainTrack(
         segments: List<LayoutSegment>,
-        trackNumberId: IntId<TrackLayoutTrackNumber> = insertOfficialTrackNumber(),
+        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.insertTrackNumber().id,
     ): DaoResponse<LocationTrack> {
         val alignment = alignment(segments)
         insertReferenceLine(referenceLine(trackNumberId, draft = false), alignment)

@@ -3,10 +3,14 @@ package fi.fta.geoviite.infra.projektivelho
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.projektivelho.*
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.MATERIAL
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.PROJECT
-import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.*
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.DOCUMENT_TYPE
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.MATERIAL_CATEGORY
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.MATERIAL_GROUP
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.MATERIAL_STATE
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.PROJECT_STATE
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.TECHNICS_FIELD
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.junit.jupiter.api.BeforeEach
@@ -33,7 +37,7 @@ class PVIntegrationServiceIT @Autowired constructor(
 
     @BeforeEach
     fun setup() {
-        deleteFromTables("projektivelho", *velhoTables.toTypedArray())
+        testDBService.clearProjektivelhoTables()
     }
 
     @Test

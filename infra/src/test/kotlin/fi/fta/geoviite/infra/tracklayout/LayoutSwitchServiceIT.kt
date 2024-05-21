@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.SwitchName
-import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
@@ -43,7 +42,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @BeforeEach
     fun cleanup() {
-        deleteFromTables("layout", "switch_joint", "switch", "location_track")
+        testDBService.clearLayoutTables()
     }
 
     @Test
@@ -109,7 +108,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun switchIsReturnedByName() {
-        val name = getUnusedSwitchName()
+        val name = testDBService.getUnusedSwitchName()
         val switch = switch(name = name.toString(), draft = false)
 
         val id = switchDao.insert(switch).id
@@ -127,12 +126,12 @@ class LayoutSwitchServiceIT @Autowired constructor(
     @Test
     fun returnsOnlySwitchesThatAreNotDeleted() {
         val inUseSwitch = switch(
-            name = getUnusedSwitchName().toString(),
+            name = testDBService.getUnusedSwitchName().toString(),
             stateCategory = LayoutStateCategory.EXISTING,
             draft = false,
         )
         val deletedSwitch = switch(
-            name = getUnusedSwitchName().toString(),
+            name = testDBService.getUnusedSwitchName().toString(),
             stateCategory = LayoutStateCategory.NOT_EXISTING,
             draft = false,
         )
@@ -152,7 +151,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun numberOfSwitchesIsReturnedCorrectlyByGivenOffset() {
-        repeat(2) { switchDao.insert(switch(name = getUnusedSwitchName().toString(), draft = false)) }
+        repeat(2) { switchDao.insert(switch(name = testDBService.getUnusedSwitchName().toString(), draft = false)) }
         val switches = getSwitches()
 
         assertEquals(switches.size, getSwitches(switchFilter()).size)
@@ -164,7 +163,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun numberOfSwitchesIsReturnedCorrectlyByGivenLimit() {
-        repeat(2) { switchDao.insert(switch(name = getUnusedSwitchName().toString(), draft = false)) }
+        repeat(2) { switchDao.insert(switch(name = testDBService.getUnusedSwitchName().toString(), draft = false)) }
         val switches = getSwitches()
 
         assertEquals(switches.size, pageSwitches(switches, 0, null, null).items.size)
@@ -180,14 +179,14 @@ class LayoutSwitchServiceIT @Autowired constructor(
     fun switchWithNoJointsIsReturnedFirst() {
         val idOfSwitchWithNoJoints = switchDao.insert(
             switch(
-                name = getUnusedSwitchName().toString(),
+                name = testDBService.getUnusedSwitchName().toString(),
                 joints = listOf(),
                 draft = false,
             )
         ).id
         val idOfRandomSwitch = switchDao.insert(
             switch(
-                name = getUnusedSwitchName().toString(),
+                name = testDBService.getUnusedSwitchName().toString(),
                 draft = false,
             )
         ).id
@@ -204,11 +203,11 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun switchesAreSortedByComparisonPoint() {
-        val idOfRandomSwitch = switchDao.insert(switch(name = getUnusedSwitchName().toString(), draft = false)).id
+        val idOfRandomSwitch = switchDao.insert(switch(name = testDBService.getUnusedSwitchName().toString(), draft = false)).id
 
         val idOfSwitchLocatedAtComparisonPoint = switchDao.insert(
             switch(
-                name = getUnusedSwitchName().toString(),
+                name = testDBService.getUnusedSwitchName().toString(),
                 joints = listOf(
                     TrackLayoutSwitchJoint(
                         JointNumber(1),
@@ -272,8 +271,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun switchConnectedLocationTracksFound() {
-        val trackNumber = getOrCreateTrackNumber(TrackNumber("123"))
-        val tnId = trackNumber.id as IntId
+        val tnId = mainDraftContext.insertTrackNumber().id
         val switch = switchService.getOrThrow(
             MainLayoutContext.draft,
             switchService.saveDraft(LayoutBranch.main, switch(1, draft = true)).id,
@@ -318,8 +316,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun shouldReturnLocationTracksThatAreLinkedToSwitchAtMoment() {
-        val trackNumber = getOrCreateTrackNumber(TrackNumber("123"))
-        val trackNumberId = trackNumber.id as IntId
+        val trackNumberId = mainDraftContext.insertTrackNumber().id
         val switch = switchDao.fetch(switchDao.insert(switch(1, draft = false)).rowVersion)
 
         val locationTrack1Oid = someOid<LocationTrack>()
@@ -408,7 +405,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
         val switchVersion = switchDao.insert(switch)
         val joint1Point = switch.getJoint(JointNumber(1))!!.location
         val (locationTrack, alignment) = locationTrackAndAlignment(
-            getUnusedTrackNumberId(),
+            mainDraftContext.insertTrackNumber().id,
             segment(joint1Point - 1.0, joint1Point),
             draft = true,
         )
