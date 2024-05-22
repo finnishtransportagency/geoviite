@@ -38,7 +38,7 @@ class LayoutDesignController(
         return layoutDesignService.insert(request)
     }
 
-    @PutMapping("/{id}/")
+    @PutMapping("/{id}")
     fun updateLayoutDesign(
         @PathVariable id: IntId<LayoutDesign>,
         @RequestBody request: LayoutDesignSaveRequest,
