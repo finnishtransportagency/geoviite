@@ -3679,8 +3679,8 @@ fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> publishAndCheck(
     val id = draft.id
 
     assertTrue(id is IntId)
-    assertNotEquals(rowVersion, dao.fetchOfficialVersion(LayoutBranch.main, id))
-    assertEquals(rowVersion, dao.fetchDraftVersion(LayoutBranch.main, id))
+    assertNotEquals(rowVersion, dao.fetchVersion(MainLayoutContext.official, id))
+    assertEquals(rowVersion, dao.fetchVersion(MainLayoutContext.draft, id))
     assertTrue(draft.isDraft)
     assertEquals(DataType.STORED, draft.dataType)
     assertEquals(
@@ -3695,8 +3695,8 @@ fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> publishAndCheck(
 
     val (publishedId, publishedVersion) = service.publish(LayoutBranch.main, ValidationVersion(id, rowVersion))
     assertEquals(id, publishedId)
-    assertEquals(publishedVersion, dao.fetchOfficialVersionOrThrow(LayoutBranch.main, id))
-    assertEquals(publishedVersion, dao.fetchDraftVersion(LayoutBranch.main, id))
+    assertEquals(publishedVersion, dao.fetchVersionOrThrow(MainLayoutContext.official, id))
+    assertEquals(publishedVersion, dao.fetchVersion(MainLayoutContext.draft, id))
 
     val publishedItem = dao.fetch(publishedVersion)
     assertFalse(publishedItem.isDraft)
@@ -3720,8 +3720,8 @@ fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> verifyPublished(
     dao: S,
     checkMatch: (draft: T, published: T) -> Unit,
 ) {
-    val currentOfficialVersion = dao.fetchOfficialVersionOrThrow(LayoutBranch.main, validationVersion.officialId)
-    val currentDraftVersion = dao.fetchDraftVersionOrThrow(LayoutBranch.main, validationVersion.officialId)
+    val currentOfficialVersion = dao.fetchVersionOrThrow(MainLayoutContext.official, validationVersion.officialId)
+    val currentDraftVersion = dao.fetchVersionOrThrow(MainLayoutContext.draft, validationVersion.officialId)
     assertEquals(currentDraftVersion.id, currentOfficialVersion.id)
     assertEquals(currentOfficialVersion, currentDraftVersion)
     val draft = dao.fetch(validationVersion.validatedAssetVersion)

@@ -282,7 +282,7 @@ class SwitchLinkingService @Autowired constructor(
         branch: LayoutBranch,
         trackId: IntId<LocationTrack>,
     ): List<SwitchRelinkingValidationResult> {
-        val trackVersion = locationTrackDao.fetchDraftVersionOrThrow(branch, trackId)
+        val trackVersion = locationTrackDao.fetchVersionOrThrow(branch.draft, trackId)
         val track = trackVersion.let(locationTrackDao::fetch)
         val alignment = track.getAlignmentVersionOrThrow().let(alignmentDao::fetch)
 
