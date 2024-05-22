@@ -24,6 +24,9 @@ type DatePickerInputProps = {
     wide: boolean | undefined;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>;
 
+const DATE_FORMAT = 'dd.MM.yyyy';
+const DATE_PICKER_POPUP_LEFT_PAD_PX = 14;
+
 const DatePickerInput = React.forwardRef<HTMLInputElement, DatePickerInputProps>(
     ({ openDatePicker, date, setDate, wide, ...props }, ref) => {
         const [value, setValue] = React.useState<string>('');
@@ -37,14 +40,14 @@ const DatePickerInput = React.forwardRef<HTMLInputElement, DatePickerInputProps>
         function setValueAndSetDateIfValid(e: React.ChangeEvent<HTMLInputElement>): void {
             setValue(e.target.value);
 
-            const newDate = parse(e.target.value, 'dd.MM.yyyy', new Date());
+            const newDate = parse(e.target.value, DATE_FORMAT, new Date());
             if (isValid(newDate)) {
                 setDate(newDate);
             }
         }
 
         function setDateOrResetIfInvalid(e: React.FocusEvent<HTMLInputElement>): void {
-            const newDate = parse(e.target.value, 'dd.MM.yyyy', new Date());
+            const newDate = parse(e.target.value, DATE_FORMAT, new Date());
             if (isValid(newDate)) {
                 setDate(newDate);
             } else {
@@ -120,24 +123,17 @@ function getHeaderElement({
     );
 }
 
-const DATE_PICKER_POPUP_LEFT_PAD_PX = 14;
-
 export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, ...props }) => {
     const [open, setOpen] = React.useState(false);
     const ref = React.useRef<HTMLInputElement>(null);
     const className = createClassName(styles['datepicker'], wide && styles['datepicker--wide']);
-    const [date, setDate] = React.useState<Date | undefined>(value);
-
-    React.useEffect(() => {
-        onChange(date);
-    }, [date]);
 
     return (
         <div className={className}>
             <DatePickerInput
                 openDatePicker={() => setOpen(true)}
-                date={date}
-                setDate={setDate}
+                date={value}
+                setDate={onChange}
                 wide={wide}
                 ref={ref}
                 {...props}
@@ -153,7 +149,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, .
                         locale={fi}
                         selected={value}
                         onChange={(date) => {
-                            setDate(date ?? undefined);
+                            onChange(date ?? undefined);
                             setOpen(false);
                         }}
                         calendarStartDay={1}

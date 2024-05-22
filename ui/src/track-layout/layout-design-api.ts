@@ -24,7 +24,7 @@ export const updateLayoutDesign = async (
     saveRequest: LayoutDesignSaveRequest,
 ) =>
     putNonNull<LayoutDesignSaveRequest, LayoutDesignId>(
-        `${baseUri}/${layoutDesignId}/`,
+        `${baseUri}/${layoutDesignId}`,
         saveRequest,
     );
 

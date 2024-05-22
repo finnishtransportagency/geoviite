@@ -92,7 +92,7 @@ export const Dropdown = function <TItemValue>({
     const showEmptyOption = props.canUnselect && !searchTerm && (props.value || optionsIsFunc);
     const inputRef = props.inputRef ?? inputRefInternal;
 
-    const isOpen = () => (props.openOverride !== undefined ? props.openOverride : open);
+    const openOrOverridden = props.openOverride !== undefined ? props.openOverride : open;
 
     let isMouseDown = false;
     const className = createClassName(
@@ -226,7 +226,7 @@ export const Dropdown = function <TItemValue>({
     }
 
     function handleInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-        if (isOpen()) {
+        if (openOrOverridden) {
             switch (e.code) {
                 case 'ArrowUp':
                     updateOptionFocusIndex(-1);
@@ -323,7 +323,7 @@ export const Dropdown = function <TItemValue>({
                     if (!props.disabled) {
                         e.stopPropagation();
                         focusInput();
-                        isOpen() ? setOpen(false) : openListAndFocusSelectedItem();
+                        openOrOverridden ? setOpen(false) : openListAndFocusSelectedItem();
                     }
                 }}
                 title={props.title ? props.title : selectedName}>
@@ -355,7 +355,7 @@ export const Dropdown = function <TItemValue>({
                     )}
                 </div>
             </div>
-            {isOpen() && (
+            {openOrOverridden && (
                 <CloseableModal
                     useRefWidth
                     onClickOutside={() => setOpen(false)}
