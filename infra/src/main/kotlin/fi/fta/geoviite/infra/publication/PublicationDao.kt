@@ -29,7 +29,6 @@ class PublicationDao(
 ) : DaoBase(jdbcTemplateParam) {
 
     fun fetchTrackNumberPublicationCandidates(branch: LayoutBranch): List<TrackNumberPublicationCandidate> {
-        assertMainBranch(branch)
         val sql = """
             select
               draft_track_number.row_id,
@@ -42,12 +41,12 @@ class PublicationDao(
                 official_track_number.state,
                 draft_track_number.state
               ) as operation
-            from layout.track_number_in_layout_context('DRAFT', null) draft_track_number
-              left join layout.track_number_in_layout_context('OFFICIAL', null) official_track_number 
+            from layout.track_number_in_layout_context('DRAFT', :design_id) draft_track_number
+              left join layout.track_number_in_layout_context('OFFICIAL', :design_id) official_track_number
                 on draft_track_number.official_id = official_track_number.official_id
             where draft_track_number.draft = true
         """.trimIndent()
-        val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+        val candidates = jdbcTemplate.query(sql, mapOf("design_id" to branch.designId?.intValue)) { rs, _ ->
             val id = rs.getIntId<TrackLayoutTrackNumber>("official_id")
             TrackNumberPublicationCandidate(
                 id = id,
@@ -65,7 +64,6 @@ class PublicationDao(
     }
 
     fun fetchReferenceLinePublicationCandidates(branch: LayoutBranch): List<ReferenceLinePublicationCandidate> {
-        assertMainBranch(branch)
         val sql = """
             select 
               draft_reference_line.row_id,
@@ -80,17 +78,17 @@ class PublicationDao(
                 draft_track_number.state
               ) as operation,
               postgis.st_astext(alignment_version.bounding_box) as bounding_box
-            from layout.reference_line_in_layout_context('DRAFT', null) draft_reference_line
-              left join layout.track_number_in_layout_context('DRAFT', null) draft_track_number
+            from layout.reference_line_in_layout_context('DRAFT', :design_id) draft_reference_line
+              left join layout.track_number_in_layout_context('DRAFT', :design_id) draft_track_number
                 on draft_track_number.official_id = draft_reference_line.track_number_id
-              left join layout.track_number_in_layout_context('OFFICIAL', null) official_track_number
+              left join layout.track_number_in_layout_context('OFFICIAL', :design_id) official_track_number
                 on official_track_number.official_id = draft_reference_line.track_number_id
               left join layout.alignment_version alignment_version
                 on draft_reference_line.alignment_id = alignment_version.id
                   and draft_reference_line.alignment_version = alignment_version.version
             where draft_reference_line.draft
         """.trimIndent()
-        val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+        val candidates = jdbcTemplate.query(sql, mapOf("design_id" to branch.designId?.intValue)) { rs, _ ->
             ReferenceLinePublicationCandidate(
                 id = rs.getIntId("official_id"),
                 rowVersion = rs.getRowVersion("row_id", "row_version"),
@@ -107,7 +105,6 @@ class PublicationDao(
     }
 
     fun fetchLocationTrackPublicationCandidates(branch: LayoutBranch): List<LocationTrackPublicationCandidate> {
-        assertMainBranch(branch)
         val sql = """
             with splits as (
                 select
@@ -140,8 +137,8 @@ class PublicationDao(
               ) as operation,
               postgis.st_astext(alignment_version.bounding_box) as bounding_box,
               splits.split_id
-            from layout.location_track_in_layout_context('DRAFT', null) draft_location_track
-                left join layout.location_track_in_layout_context('OFFICIAL', null) official_location_track
+            from layout.location_track_in_layout_context('DRAFT', :design_id) draft_location_track
+                left join layout.location_track_in_layout_context('OFFICIAL', :design_id) official_location_track
                     on official_location_track.official_id = draft_location_track.official_id
                 left join layout.alignment_version alignment_version
                     on draft_location_track.alignment_id = alignment_version.id
@@ -152,7 +149,7 @@ class PublicationDao(
                         or draft_location_track.official_id = any(splits.split_updated_duplicate_ids)
             where draft_location_track.draft
         """.trimIndent()
-        val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+        val candidates = jdbcTemplate.query(sql, mapOf("design_id" to branch.designId?.intValue)) { rs, _ ->
             LocationTrackPublicationCandidate(
                 id = rs.getIntId("official_id"),
                 rowVersion = rs.getRowVersion("row_id", "row_version"),
@@ -172,7 +169,6 @@ class PublicationDao(
     }
 
     fun fetchSwitchPublicationCandidates(branch: LayoutBranch): List<SwitchPublicationCandidate> {
-        assertMainBranch(branch)
         val sql = """
             with splits as (
                 select
@@ -201,8 +197,8 @@ class PublicationDao(
               postgis.st_x(switch_joint_version.location) as point_x, 
               postgis.st_y(switch_joint_version.location) as point_y,
               splits.split_id
-            from layout.switch_in_layout_context('DRAFT', null) draft_switch
-              left join layout.switch_in_layout_context('OFFICIAL', null) official_switch
+            from layout.switch_in_layout_context('DRAFT', :design_id) draft_switch
+              left join layout.switch_in_layout_context('OFFICIAL', :design_id) official_switch
                 on official_switch.official_id = draft_switch.official_id
               left join common.switch_structure
                 on draft_switch.switch_structure_id = switch_structure.id
@@ -215,9 +211,9 @@ class PublicationDao(
             where draft_switch.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(
-            sql, mapOf<String, Any?>(
+            sql, mapOf(
                 "publication_state" to PublicationState.DRAFT.name,
-                "design_id" to null,
+                "design_id" to branch.designId?.intValue,
             )
         ) { rs, _ ->
             SwitchPublicationCandidate(
@@ -238,7 +234,6 @@ class PublicationDao(
     }
 
     fun fetchKmPostPublicationCandidates(branch: LayoutBranch): List<KmPostPublicationCandidate> {
-        assertMainBranch(branch)
         val sql = """
             select
               draft_km_post.row_id,
@@ -254,13 +249,13 @@ class PublicationDao(
               ) as operation,
               postgis.st_x(draft_km_post.location) as point_x, 
               postgis.st_y(draft_km_post.location) as point_y
-            from layout.km_post_in_layout_context('DRAFT', null) draft_km_post
-              left join layout.km_post_in_layout_context('OFFICIAL', null) official_km_post
+            from layout.km_post_in_layout_context('DRAFT', :design_id) draft_km_post
+              left join layout.km_post_in_layout_context('OFFICIAL', :design_id) official_km_post
                 on official_km_post.official_id = draft_km_post.official_id
             where draft_km_post.draft = true
             order by km_number
         """.trimIndent()
-        val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+        val candidates = jdbcTemplate.query(sql, mapOf("design_id" to branch.designId?.intValue)) { rs, _ ->
             KmPostPublicationCandidate(
                 id = rs.getIntId("official_id"),
                 rowVersion = rs.getRowVersion("row_id", "row_version"),

@@ -11,7 +11,7 @@ enum class PublicationState { OFFICIAL, DRAFT }
 enum class LayoutBranchType { MAIN, DESIGN }
 
 fun assertMainBranch(branch: LayoutBranch) = require(branch == LayoutBranch.main) {
-    // TODO: GVT-2397, GVT-2398, GVT-2401: DAO support missing for fetching design branch data
+    // TODO: Design branch support missing in Ratko integration and splits
     "Design branch use is not yet supported"
 }
 

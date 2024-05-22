@@ -42,7 +42,7 @@ class LocationTrackServiceIT @Autowired constructor(
     @BeforeEach
     fun setup() {
         locationTrackDao.deleteDrafts(LayoutBranch.main)
-        alignmentDao.deleteOrphanedAlignments(LayoutBranch.main)
+        alignmentDao.deleteOrphanedAlignments()
         switchDao.deleteDrafts(LayoutBranch.main)
     }
 

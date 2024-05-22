@@ -85,33 +85,26 @@ class LayoutKmPostDaoIT @Autowired constructor(
         val insertVersion = kmPostDao.insert(tempPost).rowVersion
         val inserted = kmPostDao.fetch(insertVersion)
         assertMatches(tempPost, inserted, contextMatch = false)
-        assertEquals(
-            VersionPair(insertVersion, null),
-            kmPostDao.fetchVersionPair(LayoutBranch.main, insertVersion.id),
-        )
+        assertEquals(insertVersion, kmPostDao.fetchVersion(MainLayoutContext.official, insertVersion.id))
+        assertEquals(insertVersion, kmPostDao.fetchVersion(MainLayoutContext.draft, insertVersion.id))
 
         val tempDraft1 = asMainDraft(inserted).copy(location = Point(2.0, 2.0))
         val draftVersion1 = kmPostDao.insert(tempDraft1).rowVersion
         val draft1 = kmPostDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1, contextMatch = false)
-        assertEquals(
-            VersionPair(insertVersion, draftVersion1),
-            kmPostDao.fetchVersionPair(LayoutBranch.main, insertVersion.id),
-        )
+        assertEquals(insertVersion, kmPostDao.fetchVersion(MainLayoutContext.official, insertVersion.id))
+        assertEquals(draftVersion1, kmPostDao.fetchVersion(MainLayoutContext.draft, insertVersion.id))
 
         val tempDraft2 = draft1.copy(location = Point(3.0, 3.0))
         val draftVersion2 = kmPostDao.update(tempDraft2).rowVersion
         val draft2 = kmPostDao.fetch(draftVersion2)
         assertMatches(tempDraft2, draft2, contextMatch = false)
-        assertEquals(
-            VersionPair(insertVersion, draftVersion2),
-            kmPostDao.fetchVersionPair(LayoutBranch.main, insertVersion.id),
-        )
+        assertEquals(insertVersion, kmPostDao.fetchVersion(MainLayoutContext.official, insertVersion.id))
+        assertEquals(draftVersion2, kmPostDao.fetchVersion(MainLayoutContext.draft, insertVersion.id))
 
         kmPostDao.deleteDraft(LayoutBranch.main, insertVersion.id)
-        assertEquals(VersionPair(insertVersion, null),
-            kmPostDao.fetchVersionPair(LayoutBranch.main, insertVersion.id),
-        )
+        assertEquals(insertVersion, kmPostDao.fetchVersion(MainLayoutContext.official, insertVersion.id))
+        assertEquals(insertVersion, kmPostDao.fetchVersion(MainLayoutContext.draft, insertVersion.id))
 
         assertEquals(inserted, kmPostDao.fetch(insertVersion))
         assertEquals(draft1, kmPostDao.fetch(draftVersion1))

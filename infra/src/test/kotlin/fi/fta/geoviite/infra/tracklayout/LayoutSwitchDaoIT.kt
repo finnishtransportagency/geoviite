@@ -60,34 +60,26 @@ class LayoutSwitchDaoIT @Autowired constructor(
         val (insertId, insertVersion) = switchDao.insert(tempSwitch)
         val inserted = switchDao.fetch(insertVersion)
         assertMatches(tempSwitch, inserted)
-        assertEquals(
-            VersionPair(insertVersion, null),
-            switchDao.fetchVersionPair(LayoutBranch.main, insertId),
-        )
+        assertEquals(insertVersion, switchDao.fetchVersion(MainLayoutContext.official, insertVersion.id))
+        assertEquals(insertVersion, switchDao.fetchVersion(MainLayoutContext.draft, insertVersion.id))
 
         val tempDraft1 = asMainDraft(inserted).copy(name = SwitchName("TST002"))
         val draftVersion1 = switchDao.insert(tempDraft1).rowVersion
         val draft1 = switchDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1)
-        assertEquals(
-            VersionPair(insertVersion, draftVersion1),
-            switchDao.fetchVersionPair(LayoutBranch.main, insertId),
-        )
+        assertEquals(insertVersion, switchDao.fetchVersion(MainLayoutContext.official, insertVersion.id))
+        assertEquals(draftVersion1, switchDao.fetchVersion(MainLayoutContext.draft, insertVersion.id))
 
         val tempDraft2 = draft1.copy(joints = joints(5, 4))
         val draftVersion2 = switchDao.update(tempDraft2).rowVersion
         val draft2 = switchDao.fetch(draftVersion2)
         assertMatches(tempDraft2, draft2)
-        assertEquals(
-            VersionPair(insertVersion, draftVersion2),
-            switchDao.fetchVersionPair(LayoutBranch.main, insertId)
-        )
+        assertEquals(insertVersion, switchDao.fetchVersion(MainLayoutContext.official, insertVersion.id))
+        assertEquals(draftVersion2, switchDao.fetchVersion(MainLayoutContext.draft, insertVersion.id))
 
         switchDao.deleteDraft(LayoutBranch.main, insertId)
-        assertEquals(
-            VersionPair(insertVersion, null),
-            switchDao.fetchVersionPair(LayoutBranch.main, insertId)
-        )
+        assertEquals(insertVersion, switchDao.fetchVersion(MainLayoutContext.official, insertVersion.id))
+        assertEquals(insertVersion, switchDao.fetchVersion(MainLayoutContext.draft, insertVersion.id))
 
         assertEquals(inserted, switchDao.fetch(insertVersion))
         assertEquals(draft1, switchDao.fetch(draftVersion1))

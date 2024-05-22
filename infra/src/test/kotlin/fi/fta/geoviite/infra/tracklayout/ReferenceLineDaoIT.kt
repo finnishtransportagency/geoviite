@@ -68,19 +68,15 @@ class ReferenceLineDaoIT @Autowired constructor(
         val (id, insertVersion) = referenceLineDao.insert(tempTrack)
         val inserted = referenceLineDao.fetch(insertVersion)
         assertMatches(tempTrack, inserted, contextMatch = false)
-        assertEquals(
-            VersionPair(insertVersion, null),
-            referenceLineDao.fetchVersionPair(LayoutBranch.main, id),
-        )
+        assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.draft, id))
 
         val tempDraft1 = asMainDraft(inserted).copy(startAddress = TrackMeter(2, 4))
         val draftVersion1 = referenceLineDao.insert(tempDraft1).rowVersion
         val draft1 = referenceLineDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1, contextMatch = false)
-        assertEquals(
-            VersionPair(insertVersion, draftVersion1),
-            referenceLineDao.fetchVersionPair(LayoutBranch.main, id),
-        )
+        assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(draftVersion1, referenceLineDao.fetchVersion(MainLayoutContext.draft, id))
 
         val newTempAlignment = alignment(segment(Point(2.0, 2.0), Point(4.0, 4.0)))
         val newAlignmentVersion = alignmentDao.insert(newTempAlignment)
@@ -88,17 +84,13 @@ class ReferenceLineDaoIT @Autowired constructor(
         val draftVersion2 = referenceLineDao.update(tempDraft2).rowVersion
         val draft2 = referenceLineDao.fetch(draftVersion2)
         assertMatches(tempDraft2, draft2, contextMatch = false)
-        assertEquals(
-            VersionPair(insertVersion, draftVersion2),
-            referenceLineDao.fetchVersionPair(LayoutBranch.main, id),
-        )
+        assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(draftVersion2, referenceLineDao.fetchVersion(MainLayoutContext.draft, id))
 
         referenceLineDao.deleteDraft(LayoutBranch.main, id)
-        alignmentDao.deleteOrphanedAlignments(LayoutBranch.main)
-        assertEquals(
-            VersionPair(insertVersion, null),
-            referenceLineDao.fetchVersionPair(LayoutBranch.main, id),
-        )
+        alignmentDao.deleteOrphanedAlignments()
+        assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.draft, id))
 
         assertEquals(inserted, referenceLineDao.fetch(insertVersion))
         assertEquals(draft1, referenceLineDao.fetch(draftVersion1))

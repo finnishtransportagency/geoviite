@@ -128,7 +128,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         assertMatches(alignmentLocationTrack, alignmentDao.fetch(locationTrackAlignmentVersion))
         assertMatches(alignmentReferenceLine, alignmentDao.fetch(referenceLineAlignmentVersion))
 
-        alignmentDao.deleteOrphanedAlignments(LayoutBranch.main)
+        alignmentDao.deleteOrphanedAlignments()
 
         assertEquals(orphanAlignmentBeforeDelete, alignmentDao.fetch(orphanAlignmentVersion))
         assertThrows<NoSuchEntityException> { alignmentDao.fetch(orphanAlignmentVersion.next()) }
