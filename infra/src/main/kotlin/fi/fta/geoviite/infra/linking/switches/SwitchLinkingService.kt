@@ -35,6 +35,7 @@ import fi.fta.geoviite.infra.publication.PublicationValidationError
 import fi.fta.geoviite.infra.publication.PublicationValidationErrorType
 import fi.fta.geoviite.infra.publication.VALIDATION_SWITCH
 import fi.fta.geoviite.infra.publication.validateSwitchLocationTrackLinkStructure
+import fi.fta.geoviite.infra.split.VALIDATION_SPLIT
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
@@ -314,7 +315,7 @@ class SwitchLinkingService @Autowired constructor(
             else {
                 val (suggestedSwitch, relevantTracks) = suggestionWithTracks
                 val (validationResults, presentationJointLocation) = validateForSplit(
-                    branch, suggestedSwitch, switchId, relevantTracks
+                    branch, suggestedSwitch, switchId, trackId, relevantTracks
                 )
                 val address = requireNotNull(geocodingContext.getAddress(presentationJointLocation)) {
                     "Could not geocode relinked location for switch $switchId on track $track"
@@ -372,9 +373,9 @@ class SwitchLinkingService @Autowired constructor(
         branch: LayoutBranch,
         suggestedSwitch: SuggestedSwitch,
         switchId: IntId<TrackLayoutSwitch>,
+        originLocationTrackId: IntId<LocationTrack>,
         relevantLocationTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>,
     ): Pair<List<PublicationValidationError>, Point> {
-
         val changedTracks = withChangesFromLinkingSwitch(
             suggestedSwitch,
             switchId,
@@ -384,11 +385,44 @@ class SwitchLinkingService @Autowired constructor(
         val presentationJointLocation = switchService.getPresentationJointOrThrow(createdSwitch).location
         val switchStructure = switchLibraryService.getSwitchStructure(suggestedSwitch.switchStructureId)
 
-        return validateSwitchLocationTrackLinkStructure(
+        val originTrackLinkErrors =
+            validateOriginLocationTrackLink(suggestedSwitch, originLocationTrackId, branch, switchId)
+        val publicationValidationErrorsMapped = validateSwitchLocationTrackLinkStructure(
             createdSwitch,
             switchStructure,
             draft(changedTracks),
-        ) to presentationJointLocation
+        ).map { error ->
+            // No structure based errors are critical for splitting/relinking -> turn them into warnings
+            PublicationValidationError(
+                PublicationValidationErrorType.WARNING,
+                error.localizationKey,
+                error.params
+            )
+        }
+
+        return (
+            publicationValidationErrorsMapped + originTrackLinkErrors
+            ) to presentationJointLocation
+    }
+
+    private fun validateOriginLocationTrackLink(
+        suggestedSwitch: SuggestedSwitch,
+        originLocationTrackId: IntId<LocationTrack>,
+        branch: LayoutBranch,
+        switchId: IntId<TrackLayoutSwitch>,
+    ) = suggestedSwitch.trackLinks.entries.find { t -> t.key == originLocationTrackId }.let { originTrackLink ->
+        if (originTrackLink == null || originTrackLink.value.topologyJoint == null && originTrackLink.value.segmentJoints.isEmpty()) {
+            listOf(
+                PublicationValidationError(
+                    PublicationValidationErrorType.ERROR, "$VALIDATION_SPLIT.switch-segment-mapping-failed", mapOf(
+                        "switchName" to switchService.getOrThrow(branch.draft, switchId).name,
+                        "sourceName" to locationTrackService.getOrThrow(branch.draft, originLocationTrackId).name
+                    )
+                )
+            )
+        } else {
+            emptyList()
+        }
     }
 
     private fun createModifiedLayoutSwitchLinking(

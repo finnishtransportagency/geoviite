@@ -230,8 +230,13 @@ export const getSplitAddressPoint = (
     }
 };
 
-export const hasUnrelinkableSwitches = (switchRelinkingErrors: SwitchRelinkingValidationResult[]) =>
-    switchRelinkingErrors?.some((err) => !err.successfulSuggestion) || false;
+export const hasUnrelinkableSwitches = (
+    relinkingValidationResults: SwitchRelinkingValidationResult[],
+) =>
+    relinkingValidationResults.some((err) => !err.successfulSuggestion) ||
+    relinkingValidationResults.some((err) =>
+        err.validationErrors.some((ve) => ve.type === 'ERROR'),
+    );
 
 export const getOperation = (
     trackId: LocationTrackId,

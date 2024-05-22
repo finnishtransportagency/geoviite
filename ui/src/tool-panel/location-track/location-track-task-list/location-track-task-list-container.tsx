@@ -27,6 +27,8 @@ import { useTrackLayoutAppSelector } from 'store/hooks';
 import { useTranslation } from 'react-i18next';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { ifDefined } from 'utils/type-utils';
+import { first } from 'utils/array-utils';
 
 type SwitchRelinkingValidationTaskListProps = {
     layoutContext: LayoutContext;
@@ -146,18 +148,30 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
                         <ul className={styles['switch-relinking-validation-task-list__switches']}>
                             {switches.map((lSwitch) => {
                                 const selected = selectedSwitches.some((sId) => sId == lSwitch.id);
-                                const relinkingFailed = !errors?.find((e) => e.id == lSwitch.id)
-                                    ?.successfulSuggestion;
+                                const switchRelinkingResult = errors?.find(
+                                    (e) => e.id == lSwitch.id,
+                                );
+                                const relinkingFailed =
+                                    !switchRelinkingResult?.successfulSuggestion ||
+                                    switchRelinkingResult?.validationErrors.some(
+                                        (t) => t.type === 'ERROR',
+                                    );
+                                const firstError = ifDefined(
+                                    switchRelinkingResult?.validationErrors?.filter(
+                                        (e) => e.type === 'ERROR',
+                                    ),
+                                    first,
+                                );
+
+                                const errorTitle = firstError
+                                    ? t(firstError.localizationKey, firstError.params)
+                                    : t(
+                                          'tool-panel.location-track.task-list.switch-relinking.relinking-failed',
+                                      );
 
                                 return (
                                     <li
-                                        title={
-                                            relinkingFailed
-                                                ? t(
-                                                      'tool-panel.location-track.task-list.switch-relinking.relinking-failed',
-                                                  )
-                                                : ''
-                                        }
+                                        title={relinkingFailed ? errorTitle : undefined}
                                         key={lSwitch.id}
                                         className={
                                             styles['switch-relinking-validation-task-list__switch']
