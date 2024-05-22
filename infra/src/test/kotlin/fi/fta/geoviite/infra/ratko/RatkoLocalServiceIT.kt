@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.ratko.model.OperationalPointType
+import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointParse
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.tracklayout.someOid
@@ -262,9 +263,43 @@ class RatkoLocalServiceIT @Autowired constructor(
             }
     }
 
+    @Test
+    fun `Operating points can be found by their oid`() {
+        val oids = (0..1).map { _ -> someOid<RatkoOperatingPoint>() }
+
+        listOf(
+            createTestOperatingPoint(
+                name = "AAA",
+                abbreviation = "unused",
+                externalId = oids[0],
+            ),
+
+            createTestOperatingPoint(
+                name = "BBB",
+                abbreviation = "unused",
+                externalId = oids[1],
+            ),
+        ).let(operatingPointDao::updateOperatingPoints)
+
+        ratkoLocalService
+            .searchOperatingPoints(FreeText(oids[0].toString()))
+            .let { result ->
+                assertEquals(1, result.size)
+                assertEquals("AAA", result[0].name)
+            }
+
+        ratkoLocalService
+            .searchOperatingPoints(FreeText(oids[1].toString()))
+            .let { result ->
+                assertEquals(1, result.size)
+                assertEquals("BBB", result[0].name)
+            }
+    }
+
     private fun createTestOperatingPoint(
         name: String,
         abbreviation: String,
+        externalId: Oid<RatkoOperatingPoint> = someOid(),
         ratkoRouteNumberOid: Oid<RatkoRouteNumber>? = null,
     ): RatkoOperatingPointParse {
 
@@ -274,7 +309,7 @@ class RatkoLocalServiceIT @Autowired constructor(
         }
 
         return RatkoOperatingPointParse(
-            externalId = someOid(),
+            externalId = externalId,
             name = name,
             abbreviation = abbreviation,
             uicCode = "",

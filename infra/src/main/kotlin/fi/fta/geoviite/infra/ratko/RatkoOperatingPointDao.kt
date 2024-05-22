@@ -139,6 +139,7 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
             from layout.operating_point
               where name ilike :searchPattern 
               or abbreviation ilike :searchPattern
+              or external_id ilike :searchPattern
             order by name
             limit :resultLimit
         """.trimIndent()
