@@ -46,6 +46,7 @@ enum class DbTable(schema: String, table: String, sortColumns: List<String> = li
     LAYOUT_KM_POST("layout", "km_post", listOf("track_number_id", "km_number")),
     LAYOUT_TRACK_NUMBER("layout", "track_number"),
 
+    LAYOUT_DESIGN("layout", "design"),
     OPERATING_POINT("layout", "operating_point"),
 
     GEOMETRY_PLAN("geometry", "plan"),

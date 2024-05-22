@@ -64,22 +64,22 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     protected open fun contentMatches(term: String, item: ObjectType): Boolean = false
 
     @Transactional
-    open fun saveDraft(branch: LayoutBranch, draftItem: ObjectType): DaoResponse<ObjectType> {
-        logger.serviceCall("saveDraft", "branch" to branch, "draftItem" to draftItem)
-        return saveDraftInternal(branch, draftItem)
+    open fun saveDraft(branch: LayoutBranch, draftAsset: ObjectType): DaoResponse<ObjectType> {
+        logger.serviceCall("saveDraft", "branch" to branch, "draftAsset" to draftAsset)
+        return saveDraftInternal(branch, draftAsset)
     }
 
-    protected fun saveDraftInternal(branch: LayoutBranch, draftItem: ObjectType): DaoResponse<ObjectType> {
-        val draft = asDraft(branch, draftItem)
+    protected fun saveDraftInternal(branch: LayoutBranch, draftAsset: ObjectType): DaoResponse<ObjectType> {
+        val draft = asDraft(branch, draftAsset)
         require(draft.isDraft) { "Item is not a draft: id=${draft.id}" }
-        val officialId = if (draftItem.id is IntId) draftItem.id as IntId else null
+        val officialId = if (draftAsset.id is IntId) draftAsset.id as IntId else null
         return if (draft.dataType == DataType.TEMP) {
             verifyObjectIsNew(draft)
             dao.insert(draft).also { response -> verifyInsertResponse(officialId, response) }
         } else {
             requireNotNull(officialId) { "Updating item that has no known official ID" }
             verifyObjectIsExisting(draft)
-            val previousVersion = requireNotNull(draft.version) { "Updating item without rowVersion: $draftItem" }
+            val previousVersion = requireNotNull(draft.version) { "Updating item without rowVersion: $draftAsset" }
             dao.update(draft).also { response -> verifyUpdateResponse(officialId, previousVersion, response) }
         }
     }

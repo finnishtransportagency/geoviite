@@ -8,6 +8,7 @@ import {
     LayoutSwitch,
     LayoutTrackNumber,
     LocationTrackId,
+    OperatingPoint,
 } from 'track-layout/track-layout-model';
 import { debounceAsync } from 'utils/async-utils';
 import { isNilOrBlank } from 'utils/string-utils';
@@ -44,6 +45,18 @@ import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
 import { createClassName } from 'vayla-design-lib/utils';
 import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { EnvRestricted } from 'environment/env-restricted';
+import {
+    getLayoutDesigns,
+    insertLayoutDesign,
+    updateLayoutDesign,
+} from 'track-layout/layout-design-api';
+import { useLoader } from 'utils/react-utils';
+import { getChangeTimes, updateLayoutDesignChangeTime } from 'common/change-time-api';
+import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
+import {
+    calculateBoundingBoxToShowAroundLocation,
+    MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
+} from 'map/map-utils';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
@@ -67,17 +80,44 @@ type LocationTrackItemValue = {
     type: 'locationTrackSearchItem';
 };
 
+function createLocationTrackOptionItem(
+    locationTrack: LayoutLocationTrack,
+    description: string,
+): Item<LocationTrackItemValue> {
+    return menuValueOption(
+        {
+            type: 'locationTrackSearchItem',
+            locationTrack: locationTrack,
+        } as const,
+        `${locationTrack.name}, ${description}`,
+        `location-track-${locationTrack.id}`,
+    );
+}
+
 type SwitchItemValue = {
     layoutSwitch: LayoutSwitch;
     type: 'switchSearchItem';
 };
+
+function createSwitchOptionItem(layoutSwitch: LayoutSwitch): Item<SwitchItemValue> {
+    return menuValueOption(
+        {
+            type: 'switchSearchItem',
+            layoutSwitch: layoutSwitch,
+        } as const,
+        layoutSwitch.name,
+        `switch-${layoutSwitch.id}`,
+    );
+}
 
 type TrackNumberItemValue = {
     trackNumber: LayoutTrackNumber;
     type: 'trackNumberSearchItem';
 };
 
-function createTrackNumberItem(layoutTrackNumber: LayoutTrackNumber): Item<TrackNumberItemValue> {
+function createTrackNumberOptionItem(
+    layoutTrackNumber: LayoutTrackNumber,
+): Item<TrackNumberItemValue> {
     return menuValueOption(
         {
             type: 'trackNumberSearchItem',
@@ -88,7 +128,29 @@ function createTrackNumberItem(layoutTrackNumber: LayoutTrackNumber): Item<Track
     );
 }
 
-type SearchItemValue = LocationTrackItemValue | SwitchItemValue | TrackNumberItemValue;
+type OperatingPointItemValue = {
+    operatingPoint: OperatingPoint;
+    type: 'operatingPointSearchItem';
+};
+
+function createOperatingPointOptionItem(
+    operatingPoint: OperatingPoint,
+): Item<OperatingPointItemValue> {
+    return menuValueOption(
+        {
+            operatingPoint: operatingPoint,
+            type: 'operatingPointSearchItem',
+        } as const,
+        `${operatingPoint.name}, ${operatingPoint.abbreviation}`,
+        `operating-point-${operatingPoint.name}`,
+    );
+}
+
+type SearchItemValue =
+    | LocationTrackItemValue
+    | SwitchItemValue
+    | TrackNumberItemValue
+    | OperatingPointItemValue;
 
 async function getOptions(
     layoutContext: LayoutContext,
@@ -106,40 +168,19 @@ async function getOptions(
         layoutContext,
     );
 
-    const locationTracks: Item<LocationTrackItemValue>[] = searchResult.locationTracks.map(
-        (locationTrack) =>
-            menuValueOption(
-                {
-                    type: 'locationTrackSearchItem',
-                    locationTrack: locationTrack,
-                } as const,
-                `${locationTrack.name}, ${
-                    (locationTrackDescriptions &&
-                        locationTrackDescriptions.find((d) => d.id == locationTrack.id)
-                            ?.description) ??
-                    ''
-                }`,
-                `location-track-${locationTrack.id}`,
-            ),
-    );
+    const locationTrackOptions = searchResult.locationTracks.map((locationTrack) => {
+        const description =
+            locationTrackDescriptions?.find((d) => d.id == locationTrack.id)?.description ?? '';
 
-    const switches: Item<SwitchItemValue>[] = searchResult.switches.map((layoutSwitch) =>
-        menuValueOption(
-            {
-                type: 'switchSearchItem',
-                layoutSwitch: layoutSwitch,
-            } as const,
-            layoutSwitch.name,
-            `switch-${layoutSwitch.id}`,
-        ),
-    );
+        return createLocationTrackOptionItem(locationTrack, description);
+    });
 
-    const trackNumbers: Item<TrackNumberItemValue>[] =
-        searchResult.trackNumbers.map(createTrackNumberItem);
-
-    return await Promise.all([locationTracks, switches, trackNumbers]).then((results) =>
-        results.flat(),
-    );
+    return [
+        searchResult.operatingPoints.map(createOperatingPointOptionItem),
+        locationTrackOptions,
+        searchResult.switches.map(createSwitchOptionItem),
+        searchResult.trackNumbers.map(createTrackNumberOptionItem),
+    ].flat();
 }
 
 export const ToolBar: React.FC<ToolbarParams> = ({
@@ -163,8 +204,16 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddKmPostDialog, setShowAddKmPostDialog] = React.useState(false);
     const [showCreateWorkspaceDialog, setShowCreateWorkspaceDialog] = React.useState(false);
+    const [showEditWorkspaceDialog, setShowEditWorkspaceDialog] = React.useState(false);
+    const [showDeleteWorkspaceDialog, setShowDeleteWorkspaceDialog] = React.useState(false);
     const menuRef = React.useRef(null);
     const selectWorkspaceDropdownRef = React.useRef<HTMLInputElement>(null);
+
+    const designs = useLoader(
+        () => getLayoutDesigns(getChangeTimes().layoutDesign),
+        [getChangeTimes().layoutDesign],
+    );
+    const currentDesign = designs?.find((d) => d.id === layoutContext.designId);
 
     React.useEffect(() => {
         if (selectingWorkspace) selectWorkspaceDropdownRef?.current?.focus();
@@ -213,7 +262,21 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     );
 
     function onItemSelected(item: SearchItemValue | undefined) {
-        switch (item?.type) {
+        if (!item) {
+            return;
+        }
+
+        switch (item.type) {
+            case 'operatingPointSearchItem': {
+                const operatingPointArea = calculateBoundingBoxToShowAroundLocation(
+                    item.operatingPoint.location,
+                    MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
+                );
+
+                showArea(operatingPointArea);
+                return;
+            }
+
             case 'locationTrackSearchItem':
                 item.locationTrack.boundingBox && showArea(item.locationTrack.boundingBox);
                 return onSelect({
@@ -256,7 +319,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 });
 
             default:
-                return;
+                return exhaustiveMatchingGuard(item);
         }
     }
 
@@ -295,6 +358,14 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         setSelectingWorkspace(false);
     };
 
+    const unselectDesign = () => {
+        onLayoutContextChange({
+            publicationState: layoutContext.publicationState,
+            designId: undefined,
+        });
+        setSelectingWorkspace(true);
+    };
+
     function openPreviewAndStopLinking() {
         onOpenPreview();
         onStopLinking();
@@ -327,7 +398,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const className = createClassName(
         'tool-bar',
         !layoutContext.designId && `tool-bar--${layoutContext.publicationState.toLowerCase()}`,
-        layoutContext.designId || (selectingWorkspace && `tool-bar--design`),
+        (layoutContext.designId || selectingWorkspace) && `tool-bar--design`,
     );
 
     return (
@@ -403,22 +474,38 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 )}
                 {(layoutContext.designId || selectingWorkspace) && (
                     <React.Fragment>
-                        {/* TODO Add functionality once design projects have a data model */}
                         <Dropdown
                             inputRef={selectWorkspaceDropdownRef}
                             placeholder={t('tool-bar.choose-workspace')}
-                            openOverride={selectingWorkspace ? true : undefined}
+                            openOverride={selectingWorkspace || undefined}
                             onAddClick={() => setShowCreateWorkspaceDialog(true)}
+                            onChange={(designId) => {
+                                setSelectingWorkspace(false);
+                                onLayoutContextChange({
+                                    publicationState: 'DRAFT',
+                                    designId: designId,
+                                });
+                            }}
+                            options={
+                                designs?.map((design) => ({
+                                    value: design.id,
+                                    name: design.name,
+                                    qaId: `workspace-${design.id}`,
+                                })) ?? []
+                            }
+                            value={layoutContext.designId}
                         />
                         <Button
                             variant={ButtonVariant.GHOST}
                             icon={Icons.Edit}
                             disabled={!layoutContext.designId}
+                            onClick={() => setShowEditWorkspaceDialog(true)}
                         />
                         <Button
                             variant={ButtonVariant.GHOST}
                             icon={Icons.Delete}
                             disabled={!layoutContext.designId}
+                            onClick={() => setShowDeleteWorkspaceDialog(true)}
                         />
                     </React.Fragment>
                 )}
@@ -481,7 +568,43 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         setShowCreateWorkspaceDialog(false);
                         setSelectingWorkspace(false);
                     }}
-                    onSave={() => setShowCreateWorkspaceDialog(false)}
+                    onSave={(_, request) => {
+                        insertLayoutDesign(request)
+                            .then((id) => {
+                                setSelectingWorkspace(false);
+                                onLayoutContextChange({ publicationState: 'DRAFT', designId: id });
+                            })
+                            .finally(() => {
+                                updateLayoutDesignChangeTime();
+                                setShowCreateWorkspaceDialog(false);
+                            });
+                    }}
+                />
+            )}
+
+            {showEditWorkspaceDialog && (
+                <WorkspaceDialog
+                    existingDesign={currentDesign}
+                    onCancel={() => {
+                        setShowEditWorkspaceDialog(false);
+                        setSelectingWorkspace(false);
+                    }}
+                    onSave={(_, request) => {
+                        if (currentDesign) {
+                            updateLayoutDesign(currentDesign.id, request).finally(() => {
+                                updateLayoutDesignChangeTime();
+                                setShowEditWorkspaceDialog(false);
+                            });
+                        }
+                    }}
+                />
+            )}
+
+            {showDeleteWorkspaceDialog && currentDesign && (
+                <WorkspaceDeleteConfirmDialog
+                    closeDialog={() => setShowDeleteWorkspaceDialog(false)}
+                    currentDesign={currentDesign}
+                    onDesignDeleted={unselectDesign}
                 />
             )}
         </div>

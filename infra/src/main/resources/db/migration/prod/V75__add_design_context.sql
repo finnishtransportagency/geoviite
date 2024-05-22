@@ -5,7 +5,6 @@ create table layout.design
   id                   int primary key generated always as identity,
   name                 text                not null,
   estimated_completion date                not null,
-  plan_phase           geometry.plan_phase not null,
   design_state         layout.design_state not null
 );
 comment on table layout.design is 'Overlays for planned changes to the layout.';

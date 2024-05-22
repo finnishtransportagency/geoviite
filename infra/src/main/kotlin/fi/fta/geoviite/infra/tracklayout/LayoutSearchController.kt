@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
 import fi.fta.geoviite.infra.util.FreeText
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -22,6 +23,7 @@ data class TrackLayoutSearchResult(
     val locationTracks: List<LocationTrack>,
     val switches: List<TrackLayoutSwitch>,
     val trackNumbers: List<TrackLayoutTrackNumber>,
+    val operatingPoints: List<RatkoOperatingPoint>,
 )
 
 @RestController

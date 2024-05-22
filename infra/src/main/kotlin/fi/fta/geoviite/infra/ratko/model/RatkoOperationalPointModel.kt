@@ -5,7 +5,13 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 
-enum class OperationalPointType { LP, LPO, OLP, SEIS, LVH; }
+enum class OperationalPointType {
+    LP, // Liikennepaikka
+    LPO, // Liikennepaikan osa
+    OLP, // Osiin jaettu liikennepaikka
+    SEIS, // Seisake
+    LVH; // Linjavaihde
+}
 
 abstract class AbstractRatkoOperatingPoint(
     open val name: String,

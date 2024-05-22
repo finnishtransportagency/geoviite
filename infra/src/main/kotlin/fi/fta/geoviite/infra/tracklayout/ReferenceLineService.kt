@@ -73,35 +73,44 @@ class ReferenceLineService(
     }
 
     @Transactional
-    override fun saveDraft(branch: LayoutBranch, draftItem: ReferenceLine): DaoResponse<ReferenceLine> =
-        super.saveDraft(branch, draftItem.copy(alignmentVersion = updatedAlignmentVersion(draftItem)))
+    override fun saveDraft(branch: LayoutBranch, draftAsset: ReferenceLine): DaoResponse<ReferenceLine> =
+        super.saveDraft(branch, draftAsset.copy(alignmentVersion = updatedAlignmentVersion(draftAsset)))
 
     @Transactional
-    fun saveDraft(branch: LayoutBranch, draft: ReferenceLine, alignment: LayoutAlignment): DaoResponse<ReferenceLine> {
-        logger.serviceCall("save", "branch" to branch, "locationTrack" to draft, "alignment" to alignment)
-        return saveDraftInternal(branch, draft, alignment)
+    fun saveDraft(
+        branch: LayoutBranch,
+        draftAsset: ReferenceLine,
+        alignment: LayoutAlignment,
+    ): DaoResponse<ReferenceLine> {
+        logger.serviceCall("save", "branch" to branch, "draftAsset" to draftAsset, "alignment" to alignment)
+        return saveDraftInternal(branch, draftAsset, alignment)
     }
 
     private fun saveDraftInternal(
         branch: LayoutBranch,
-        draft: ReferenceLine,
+        draftAsset: ReferenceLine,
         alignment: LayoutAlignment,
     ): DaoResponse<ReferenceLine> {
         require(alignment.segments.all { it.switchId == null }) {
-            "Reference line cannot have switches, id=${draft.id} trackNumberId=${draft.trackNumberId}"
+            "Reference lines cannot have switches: id=${draftAsset.id} referenceLine=$draftAsset"
         }
         val alignmentVersion =
             // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
-            if (draft.dataType == TEMP || draft.isOfficial) {
+            if (draftAsset.dataType == TEMP || draftAsset.isOfficial) {
                 alignmentService.saveAsNew(alignment)
             }
             // Ensure that we update the correct one.
-            else if (draft.getAlignmentVersionOrThrow().id != alignment.id) {
-                alignmentService.save(alignment.copy(id = draft.getAlignmentVersionOrThrow().id, dataType = STORED))
+            else if (draftAsset.getAlignmentVersionOrThrow().id != alignment.id) {
+                alignmentService.save(
+                    alignment.copy(
+                        id = draftAsset.getAlignmentVersionOrThrow().id,
+                        dataType = STORED,
+                    )
+                )
             } else {
                 alignmentService.save(alignment)
             }
-        return saveDraftInternal(branch, draft.copy(alignmentVersion = alignmentVersion))
+        return saveDraftInternal(branch, draftAsset.copy(alignmentVersion = alignmentVersion))
     }
 
     private fun updatedAlignmentVersion(line: ReferenceLine) =

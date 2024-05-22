@@ -1731,7 +1731,12 @@
         "title-edit": "Muokkaa työtilaa",
         "basic-info": "Perustiedot",
         "name": "Työtilan nimi",
-        "completion-date": "Arvioitu valmistumisajankohta"
+        "completion-date": "Arvioitu valmistumisajankohta",
+        "delete-confirm": {
+            "title": "Työtilan poistaminen",
+            "guide": "Poistettua työtilaa ei voi palauttaa eikä sen sisältöä muokata.",
+            "confirm": "Haluatko poistaa työtilan?"
+        }
     },
     "switch-delete-dialog": {
         "title": "Poistetaanko luonnos?",

@@ -15,6 +15,11 @@ data class LayoutDesign(
     val id: DomainId<LayoutDesign>,
     val name: FreeText,
     val estimatedCompletion: LocalDate,
-    val planPhase: PlanPhase,
+    val designState: DesignState,
+)
+
+data class LayoutDesignSaveRequest(
+    val name: FreeText,
+    val estimatedCompletion: LocalDate,
     val designState: DesignState,
 )
