@@ -108,7 +108,7 @@ export function getDistance(point: OlPoint, geom: Geometry): number {
 
 export function findMatchingEntities<T>(
     hitArea: Rectangle,
-    source: VectorSource<Feature>,
+    source: VectorSource,
     propertyName: string,
     options?: SearchItemsOptions,
 ): T[] {
@@ -122,7 +122,7 @@ export function findMatchingEntities<T>(
 
 export function findIntersectingFeatures<T extends Geometry>(
     hitArea: Rectangle,
-    source: VectorSource<Feature>,
+    source: VectorSource,
 ): Feature<T>[] {
     const features: Feature<T>[] = [];
 
