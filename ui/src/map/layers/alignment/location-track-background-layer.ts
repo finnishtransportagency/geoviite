@@ -11,7 +11,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { createAlignmentBackgroundFeatures } from 'map/layers/utils/background-layer-utils';
 import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
+import Feature from 'ol/Feature';
 import { Selection } from 'selection/selection-model';
 import {
     NORMAL_ALIGNMENT_OPACITY,
@@ -25,7 +25,7 @@ const layerName: MapLayerName = 'location-track-background-layer';
 
 export function createLocationTrackBackgroundLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
+    existingOlLayer: VectorLayer<Feature<LineString>> | undefined,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,

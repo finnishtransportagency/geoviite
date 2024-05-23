@@ -1006,7 +1006,7 @@ const layerName: MapLayerName = 'alignment-linking-layer';
 
 export function createAlignmentLinkingLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<OlPoint | LineString>> | undefined,
+    existingOlLayer: VectorLayer<Feature<OlPoint | LineString>> | undefined,
     layoutContext: LayoutContext,
     selection: Selection,
     linkingState: LinkingState | undefined,

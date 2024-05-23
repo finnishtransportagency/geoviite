@@ -17,16 +17,16 @@ import {
 } from 'map/layers/utils/switch-layer-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import { filterNotEmpty } from 'utils/array-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayerName, MapTile } from 'map/map-model';
+import Feature from 'ol/Feature';
 
 const layerName: MapLayerName = 'geometry-switch-layer';
 
 export function createGeometrySwitchLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
+    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,

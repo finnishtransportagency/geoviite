@@ -10,17 +10,17 @@ import { ChangeTimes } from 'common/common-slice';
 import { createAlignmentBackgroundFeatures } from 'map/layers/utils/background-layer-utils';
 import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import {
     NORMAL_ALIGNMENT_OPACITY,
     OTHER_ALIGNMENTS_OPACITY_WHILE_SPLITTING,
 } from 'map/layers/utils/alignment-layer-utils';
+import Feature from 'ol/Feature';
 
 const layerName: MapLayerName = 'reference-line-background-layer';
 
 export function createReferenceLineBackgroundLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
+    existingOlLayer: VectorLayer<Feature<LineString>> | undefined,
     isSplitting: boolean,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,

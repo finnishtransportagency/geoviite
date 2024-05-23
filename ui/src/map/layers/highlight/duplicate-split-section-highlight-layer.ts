@@ -8,7 +8,6 @@ import {
 } from 'track-layout/layout-map-api';
 import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import { LineString } from 'ol/geom';
 import Feature from 'ol/Feature';
 import {
@@ -130,7 +129,7 @@ const layerName: MapLayerName = 'duplicate-split-section-highlight-layer';
 
 export function createDuplicateSplitSectionHighlightLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
+    existingOlLayer: VectorLayer<Feature<LineString>> | undefined,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,

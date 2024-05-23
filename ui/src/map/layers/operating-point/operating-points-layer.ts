@@ -1,6 +1,5 @@
 import { MapLayerName, MapTile } from 'map/map-model';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import { Point as OlPoint } from 'ol/geom';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
@@ -40,7 +39,7 @@ const operatingPointStyleResolutions = [
 
 export function createOperatingPointLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
+    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
     olView: OlView,
     changeTimes: ChangeTimes,
 ): MapLayer {

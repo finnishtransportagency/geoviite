@@ -11,7 +11,6 @@ import {
 } from 'track-layout/layout-map-api';
 import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import { LineString } from 'ol/geom';
 import Feature from 'ol/Feature';
 import { blueHighlightStyle } from 'map/layers/utils/highlight-layer-utils';
@@ -80,7 +79,7 @@ function getAlignments(
 
 export function createPlanSectionHighlightLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
+    existingOlLayer: VectorLayer<Feature<LineString>> | undefined,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,

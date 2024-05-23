@@ -19,7 +19,6 @@ import {
     getDefaultColorKey,
     TrackNumberColor,
 } from 'selection-panel/track-number-panel/color-selector/color-selector-utils';
-import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 
 const getColorForTrackNumber = (
@@ -68,7 +67,7 @@ const layerName: MapLayerName = 'track-number-diagram-layer';
 
 export function createTrackNumberDiagramLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
+    existingOlLayer: VectorLayer<Feature<LineString>> | undefined,
     changeTimes: ChangeTimes,
     layoutContext: LayoutContext,
     resolution: number,

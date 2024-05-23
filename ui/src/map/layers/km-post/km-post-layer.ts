@@ -14,7 +14,7 @@ import {
 } from 'map/layers/utils/km-post-layer-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
+import Feature from 'ol/Feature';
 import { filterUniqueById } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
 
@@ -24,7 +24,7 @@ const layerName: MapLayerName = 'km-post-layer';
 
 export function createKmPostLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<OlPoint | Rectangle>> | undefined,
+    existingOlLayer: VectorLayer<Feature<OlPoint | Rectangle>> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
