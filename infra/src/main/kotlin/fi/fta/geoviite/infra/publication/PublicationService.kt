@@ -1608,7 +1608,7 @@ class PublicationService @Autowired constructor(
             val nameString = match.groups[2]?.value
             val trackId = IntId<TrackLayoutTrackNumber>(Integer.parseInt(trackIdString))
             if (trackIdString != null && nameString != null) {
-                val trackNumberVersion = trackNumberDao.fetchOfficialVersion(branch, trackId)
+                val trackNumberVersion = trackNumberDao.fetchVersion(branch.official, trackId)
                 if (trackNumberVersion != null) {
                     val trackNumber = trackNumberDao.fetch(trackNumberVersion)
                     throw DuplicateLocationTrackNameInPublicationException(

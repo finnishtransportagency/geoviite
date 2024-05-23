@@ -69,17 +69,6 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
     fun fetchVersionOrThrow(layoutContext: LayoutContext, id: IntId<T>): RowVersion<T>
     fun fetchVersions(layoutContext: LayoutContext, ids: List<IntId<T>>): List<RowVersion<T>>
 
-    fun fetchDraftVersion(branch: LayoutBranch, id: IntId<T>): RowVersion<T>? =
-        fetchVersion(branch.draft, id)
-    fun fetchDraftVersions(branch: LayoutBranch, ids: List<IntId<T>>): List<RowVersion<T>> = fetchVersions(branch.draft, ids)
-    fun fetchDraftVersionOrThrow(branch: LayoutBranch, id: IntId<T>): RowVersion<T> =
-        fetchVersionOrThrow(branch.draft, id)
-    fun fetchOfficialVersion(branch: LayoutBranch, id: IntId<T>): RowVersion<T>? =
-        fetchVersion(branch.official, id)
-    fun fetchOfficialVersionOrThrow(branch: LayoutBranch, id: IntId<T>): RowVersion<T> =
-        fetchVersionOrThrow(branch.official, id)
-    fun fetchOfficialVersions(branch: LayoutBranch, ids: List<IntId<T>>): List<RowVersion<T>> = fetchVersions(branch.official, ids)
-
     fun fetchOfficialVersionAtMomentOrThrow(id: IntId<T>, moment: Instant): RowVersion<T>
     fun fetchOfficialVersionAtMoment(id: IntId<T>, moment: Instant): RowVersion<T>?
 

@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -1280,7 +1281,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
 
         val publishedLocationTracksAndAlignments = locationTracksAndAlignments.map { (locationTrack, _) ->
             val id = locationTrack.id as IntId
-            val rowVersion = locationTrackDao.fetchDraftVersionOrThrow(LayoutBranch.main, id)
+            val rowVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
             val (edited, editedAlignment) = locationTrackService.getWithAlignment(rowVersion)
             if (edited.isDraft) {
                 val publicationResponse = locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, rowVersion))
@@ -1291,7 +1292,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         }
         val publishedSwitches = switches.map { switch ->
             val id = switch.id as IntId
-            val rowVersion = switchDao.fetchDraftVersionOrThrow(LayoutBranch.main, id)
+            val rowVersion = switchDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
             val edited = switchDao.fetch(rowVersion)
             if (edited.isDraft) {
                 val publicationResponse = switchService.publish(LayoutBranch.main, ValidationVersion(id, rowVersion))

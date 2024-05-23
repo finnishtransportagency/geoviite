@@ -121,7 +121,7 @@ class ReferenceLineService(
     @Transactional
     override fun publish(branch: LayoutBranch, version: ValidationVersion<ReferenceLine>): DaoResponse<ReferenceLine> {
         logger.serviceCall("publish", "branch" to branch, "version" to version)
-        val officialVersion = dao.fetchOfficialVersion(branch, version.officialId)
+        val officialVersion = dao.fetchVersion(branch.official, version.officialId)
         val oldDraft = dao.fetch(version.validatedAssetVersion)
         val oldOfficial = officialVersion?.let(dao::fetch)
         val publishedVersion = publishInternal(branch, VersionPair(officialVersion, version.validatedAssetVersion))

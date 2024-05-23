@@ -71,11 +71,11 @@ class LayoutKmPostDaoIT @Autowired constructor(
     fun checkingIfKmPostIsOfficialWorks() {
         val trackNumberId = insertOfficialTrackNumber()
         val officialId = kmPostDao.insert(kmPost(trackNumberId, KmNumber(234), draft = false)).id
-        assertEquals(officialId, kmPostDao.fetchOfficialVersion(LayoutBranch.main, officialId)?.id)
+        assertEquals(officialId, kmPostDao.fetchVersion(MainLayoutContext.official, officialId)?.id)
 
         val draftId = kmPostDao.insert(kmPost(trackNumberId, KmNumber(432), draft = true)).id
-        assertNull(kmPostDao.fetchOfficialVersion(LayoutBranch.main, draftId))
-        assertEquals(draftId, kmPostDao.fetchDraftVersion(LayoutBranch.main, draftId)?.id)
+        assertNull(kmPostDao.fetchVersion(MainLayoutContext.official, draftId))
+        assertEquals(draftId, kmPostDao.fetchVersion(MainLayoutContext.draft, draftId)?.id)
     }
 
     @Test
