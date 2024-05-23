@@ -5,7 +5,6 @@ import { Circle, Fill, Stroke, Style, Text } from 'ol/style';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { clearFeatures, createLayer, pointToCoords } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import { MapLayerName } from 'map/map-model';
 
 type DebugLayerPoint = {
@@ -70,7 +69,7 @@ function createDebugFeatures(points: DebugLayerPoint[]): Feature<OlPoint>[] {
 const layerName: MapLayerName = 'debug-layer';
 
 export function createDebugLayer(
-    existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
+    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
 ): MapLayer {
     const { layer, source } = createLayer(layerName, existingOlLayer);
 

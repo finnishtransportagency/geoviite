@@ -1,13 +1,13 @@
 import { asyncCache } from 'cache/cache';
 import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import {
-    LayoutAssetChangeInfo,
     draftLayoutContext,
+    LayoutAssetChangeInfo,
     LayoutContext,
     TimeStamp,
 } from 'common/common-model';
 import {
-    deleteNonNullAdt,
+    deleteNonNull,
     getNonNull,
     getNullable,
     postNonNull,
@@ -21,8 +21,6 @@ import {
     updateReferenceLineChangeTime,
     updateTrackNumberChangeTime,
 } from 'common/change-time-api';
-import { LocationTrackSaveError } from 'linking/linking-model';
-import { Result } from 'neverthrow';
 import { ValidatedTrackNumber } from 'publication/publication-model';
 import { AlignmentPlanSection } from 'track-layout/layout-location-track-api';
 import { bboxString } from 'common/common-api';
@@ -77,17 +75,14 @@ export async function createTrackNumber(
 export async function deleteTrackNumber(
     layoutContext: LayoutContext,
     trackNumberId: LayoutTrackNumberId,
-): Promise<Result<LayoutTrackNumberId, LocationTrackSaveError>> {
+): Promise<LayoutTrackNumberId> {
     const path = layoutUri('track-numbers', draftLayoutContext(layoutContext), trackNumberId);
-    const apiResult = await deleteNonNullAdt<undefined, LayoutTrackNumberId>(path, undefined);
+    const result = await deleteNonNull<LayoutTrackNumberId>(path);
 
     await updateTrackNumberChangeTime();
     await updateReferenceLineChangeTime();
 
-    return apiResult.mapErr(() => ({
-        // Here it is possible to return more accurate validation errors
-        validationErrors: [],
-    }));
+    return result;
 }
 
 export async function getTrackNumberValidation(

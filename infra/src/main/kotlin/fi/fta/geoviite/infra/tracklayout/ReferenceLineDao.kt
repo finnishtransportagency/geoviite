@@ -6,7 +6,7 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.util.DbTable.LAYOUT_REFERENCE_LINE
+import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBboxOrNull
 import fi.fta.geoviite.infra.util.getDaoResponse
 import fi.fta.geoviite.infra.util.getIntId
@@ -30,7 +30,7 @@ const val REFERENCE_LINE_CACHE_SIZE = 1000L
 class ReferenceLineDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
-) : LayoutAssetDao<ReferenceLine>(jdbcTemplateParam, LAYOUT_REFERENCE_LINE, cacheEnabled, REFERENCE_LINE_CACHE_SIZE) {
+) : LayoutAssetDao<ReferenceLine>(jdbcTemplateParam, LayoutAssetTable.LAYOUT_ASSET_REFERENCE_LINE, cacheEnabled, REFERENCE_LINE_CACHE_SIZE) {
 
     override fun fetchInternal(version: RowVersion<ReferenceLine>): ReferenceLine {
         val sql = """

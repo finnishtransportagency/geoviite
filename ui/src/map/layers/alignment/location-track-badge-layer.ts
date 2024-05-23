@@ -10,7 +10,7 @@ import {
     getBadgeDrawDistance,
 } from 'map/layers/utils/badge-layer-utils';
 import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
-import VectorSource from 'ol/source/Vector';
+import Feature from 'ol/Feature';
 import VectorLayer from 'ol/layer/Vector';
 import {
     getLocationTrackMapAlignmentsByTiles,
@@ -22,7 +22,7 @@ const layerName: MapLayerName = 'location-track-badge-layer';
 
 export function createLocationTrackBadgeLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
+    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
     linkingState: LinkingState | undefined,

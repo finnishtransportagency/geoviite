@@ -11,7 +11,6 @@ import { ChangeTimes } from 'common/common-slice';
 import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { redHighlightStyle } from 'map/layers/utils/highlight-layer-utils';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import { LayoutContext } from 'common/common-model';
 
 function createHighlightFeatures(locationTracks: AlignmentDataHolder[]): Feature<LineString>[] {
@@ -30,7 +29,7 @@ const layerName: MapLayerName = 'duplicate-tracks-highlight-layer';
 
 export function createDuplicateTracksHighlightLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
+    existingOlLayer: VectorLayer<Feature<LineString>> | undefined,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,

@@ -90,7 +90,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
     fun setup() {
         locationTrackDao.deleteDrafts(LayoutBranch.main)
         referenceLineDao.deleteDrafts(LayoutBranch.main)
-        alignmentDao.deleteOrphanedAlignments(LayoutBranch.main)
+        alignmentDao.deleteOrphanedAlignments()
         switchDao.deleteDrafts(LayoutBranch.main)
     }
 

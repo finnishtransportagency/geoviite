@@ -24,6 +24,19 @@ fun idOrIdsEqualSqlFragment(fetchType: FetchType) = when (fetchType) {
     SINGLE -> "= :id"
 }
 
+enum class LayoutAssetTable(val dbTable: DbTable, layoutContextFunction: String) {
+    LAYOUT_ASSET_TRACK_NUMBER(DbTable.LAYOUT_TRACK_NUMBER, "track_number_in_layout_context"),
+    LAYOUT_ASSET_REFERENCE_LINE(DbTable.LAYOUT_REFERENCE_LINE, "reference_line_in_layout_context"),
+    LAYOUT_ASSET_LOCATION_TRACK(DbTable.LAYOUT_LOCATION_TRACK, "location_track_in_layout_context"),
+    LAYOUT_ASSET_SWITCH(DbTable.LAYOUT_SWITCH, "switch_in_layout_context"),
+    LAYOUT_ASSET_KM_POST(DbTable.LAYOUT_KM_POST, "km_post_in_layout_context"),
+    ;
+
+    val fullLayoutContextFunction: String = "layout.${layoutContextFunction}"
+    val fullName: String = dbTable.fullName
+    val versionTable: String = dbTable.versionTable
+}
+
 enum class DbTable(schema: String, table: String, sortColumns: List<String> = listOf("id")) {
 
     LAYOUT_ALIGNMENT("layout", "alignment"),

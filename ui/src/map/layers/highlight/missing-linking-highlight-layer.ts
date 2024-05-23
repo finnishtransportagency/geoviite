@@ -15,7 +15,7 @@ import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { createHighlightFeatures } from 'map/layers/utils/highlight-layer-utils';
 import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
+import Feature from 'ol/Feature';
 
 const highlightBackgroundStyle = new Style({
     stroke: new Stroke({
@@ -33,7 +33,7 @@ const layerName: MapLayerName = 'missing-linking-highlight-layer';
 
 export function createMissingLinkingHighlightLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
+    existingOlLayer: VectorLayer<Feature<LineString>> | undefined,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,

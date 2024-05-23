@@ -19,9 +19,9 @@ import {
 import { ReferenceLineId } from 'track-layout/track-layout-model';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import { Stroke, Style } from 'ol/style';
 import mapStyles from 'map/map.module.scss';
+import Feature from 'ol/Feature';
 
 let shownReferenceLinesCompare: string;
 
@@ -45,7 +45,7 @@ const layerName: MapLayerName = 'reference-line-alignment-layer';
 
 export function createReferenceLineAlignmentLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
+    existingOlLayer: VectorLayer<Feature<LineString | OlPoint>> | undefined,
     selection: Selection,
     isSplitting: boolean,
     layoutContext: LayoutContext,

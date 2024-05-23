@@ -8,14 +8,13 @@ import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
-import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.AccessType.UPDATE
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.util.DbTable.LAYOUT_SWITCH
+import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBooleanOrNull
 import fi.fta.geoviite.infra.util.getDaoResponse
 import fi.fta.geoviite.infra.util.getEnum
@@ -48,7 +47,7 @@ const val SWITCH_CACHE_SIZE = 10000L
 class LayoutSwitchDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
-) : LayoutAssetDao<TrackLayoutSwitch>(jdbcTemplateParam, LAYOUT_SWITCH, cacheEnabled, SWITCH_CACHE_SIZE) {
+) : LayoutAssetDao<TrackLayoutSwitch>(jdbcTemplateParam, LayoutAssetTable.LAYOUT_ASSET_SWITCH, cacheEnabled, SWITCH_CACHE_SIZE) {
 
     override fun fetchVersions(
         layoutContext: LayoutContext,
@@ -551,7 +550,6 @@ class LayoutSwitchDao(
         alignmentVersion: RowVersion<LayoutAlignment>,
         maxDistance: Double = 1.0,
     ): List<IntId<TrackLayoutSwitch>> {
-        assertMainBranch(branch)
         val sql = """
             select distinct switch.official_id as switch_id
               from layout.segment_version
@@ -559,7 +557,7 @@ class LayoutSwitchDao(
                 join layout.switch_joint on
                   postgis.st_contains(postgis.st_expand(segment_geometry.bounding_box, :dist), switch_joint.location)
                   and postgis.st_distance(segment_geometry.geometry, switch_joint.location) < :dist
-                join layout.switch_in_layout_context('DRAFT', null) switch on switch_joint.switch_id = switch.row_id
+                join layout.switch_in_layout_context('DRAFT', :design_id) switch on switch_joint.switch_id = switch.row_id
               where segment_version.alignment_id = :alignmentId
                 and segment_version.alignment_version = :alignmentVersion
                 and switch.state_category != 'NOT_EXISTING';
@@ -570,6 +568,7 @@ class LayoutSwitchDao(
                 "alignmentId" to alignmentVersion.id.intValue,
                 "alignmentVersion" to alignmentVersion.version,
                 "dist" to maxDistance,
+                "design_id" to branch.designId?.intValue,
             )
         ) { rs, _ ->
             rs.getIntId<TrackLayoutSwitch>("switch_id")
