@@ -1,7 +1,7 @@
 import { BoundingBox, Point } from 'model/geometry';
 import {
-    LayoutAssetChangeInfo,
     draftLayoutContext,
+    LayoutAssetChangeInfo,
     LayoutContext,
     TimeStamp,
 } from 'common/common-model';
@@ -14,8 +14,8 @@ import {
     deleteNonNull,
     getNonNull,
     getNullable,
-    postNonNullAdt,
-    putNonNullAdt,
+    postNonNull,
+    putNonNull,
     queryParams,
 } from 'api/api-fetch';
 import { changeInfoUri, layoutUri } from 'track-layout/track-layout-api';
@@ -23,8 +23,7 @@ import { bboxString, pointString } from 'common/common-api';
 import { getChangeTimes, updateSwitchChangeTime } from 'common/change-time-api';
 import { asyncCache } from 'cache/cache';
 import { MapTile } from 'map/map-model';
-import { Result } from 'neverthrow';
-import { TrackLayoutSaveError, TrackLayoutSwitchSaveRequest } from 'linking/linking-model';
+import { TrackLayoutSwitchSaveRequest } from 'linking/linking-model';
 import { filterNotEmpty, first, indexIntoMap } from 'utils/array-utils';
 import { ValidatedSwitch } from 'publication/publication-model';
 import { getMaxTimestamp } from 'utils/date-utils';
@@ -116,36 +115,30 @@ export async function getSwitchJointConnections(
 export async function insertSwitch(
     newSwitch: TrackLayoutSwitchSaveRequest,
     layoutContext: LayoutContext,
-): Promise<Result<LayoutSwitchId, TrackLayoutSaveError>> {
-    const apiResult = await postNonNullAdt<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
+): Promise<LayoutSwitchId> {
+    const result = await postNonNull<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
         layoutUri('switches', draftLayoutContext(layoutContext)),
         newSwitch,
     );
 
     await updateSwitchChangeTime();
 
-    return apiResult.mapErr(() => ({
-        // Here it is possible to return more accurate validation errors
-        validationErrors: [],
-    }));
+    return result;
 }
 
 export async function updateSwitch(
     id: LayoutSwitchId,
     updatedSwitch: TrackLayoutSwitchSaveRequest,
     layoutContext: LayoutContext,
-): Promise<Result<LayoutSwitchId, TrackLayoutSaveError>> {
-    const apiResult = await putNonNullAdt<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
+): Promise<LayoutSwitchId> {
+    const result = await putNonNull<TrackLayoutSwitchSaveRequest, LayoutSwitchId>(
         layoutUri('switches', draftLayoutContext(layoutContext), id),
         updatedSwitch,
     );
 
     await updateSwitchChangeTime();
 
-    return apiResult.mapErr(() => ({
-        // Here it is possible to return more accurate validation errors
-        validationErrors: [],
-    }));
+    return result;
 }
 
 export async function deleteDraftSwitch(

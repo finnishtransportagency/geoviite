@@ -229,21 +229,14 @@ export const SwitchEditDialog = ({
                 trapPoint: trapPointToBoolean(trapPoint),
             };
 
-            insertSwitch(newSwitch, layoutContext)
-                .then((result) => {
-                    result
-                        .map((switchId) => {
-                            onSave && onSave(switchId);
-                            onClose();
-                            Snackbar.success('switch-dialog.new-switch-added');
-                        })
-                        .mapErr((_err) => {
-                            Snackbar.error('switch-dialog.adding-switch-failed');
-                        });
-                })
-                .catch(() => {
-                    Snackbar.error('switch-dialog.adding-switch-failed');
-                });
+            insertSwitch(newSwitch, layoutContext).then(
+                (switchId) => {
+                    onSave && onSave(switchId);
+                    onClose();
+                    Snackbar.success('switch-dialog.new-switch-added');
+                },
+                () => Snackbar.error('switch-dialog.adding-switch-failed'),
+            );
         }
         //save updated switch here
         if (
@@ -261,21 +254,14 @@ export const SwitchEditDialog = ({
                 ownerId: switchOwnerId,
                 trapPoint: trapPointToBoolean(trapPoint),
             };
-            updateSwitch(existingSwitch.id, updatedSwitch, layoutContext)
-                .then((result) => {
-                    result
-                        .map(() => {
-                            onSave && onSave(existingSwitch.id);
-                            onClose();
-                            Snackbar.success('switch-dialog.modified-successfully');
-                        })
-                        .mapErr((_err) => {
-                            Snackbar.error('switch-dialog.modify-failed');
-                        });
-                })
-                .catch(() => {
-                    Snackbar.error('switch-dialog.modify-failed');
-                });
+            updateSwitch(existingSwitch.id, updatedSwitch, layoutContext).then(
+                () => {
+                    onSave && onSave(existingSwitch.id);
+                    onClose();
+                    Snackbar.success('switch-dialog.modified-successfully');
+                },
+                () => Snackbar.error('switch-dialog.modify-failed'),
+            );
         }
     }
 

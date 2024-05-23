@@ -21,17 +21,14 @@ const LocationTrackDeleteConfirmationDialog: React.FC<
     const { t } = useTranslation();
 
     const deleteDraftLocationTrack = (id: LocationTrackId) => {
-        deleteLocationTrack(layoutContext, id).then((result) => {
-            result
-                .map((locationTrackId) => {
-                    Snackbar.success('tool-panel.location-track.delete-dialog.delete-succeeded');
-                    onSave && onSave(locationTrackId);
-                    onClose();
-                })
-                .mapErr(() => {
-                    Snackbar.error('tool-panel.location-track.delete-dialog.delete-failed');
-                });
-        });
+        deleteLocationTrack(layoutContext, id).then(
+            (locationTrackId) => {
+                Snackbar.success('tool-panel.location-track.delete-dialog.delete-succeeded');
+                onSave && onSave(locationTrackId);
+                onClose();
+            },
+            () => Snackbar.error('tool-panel.location-track.delete-dialog.delete-failed'),
+        );
     };
 
     return (

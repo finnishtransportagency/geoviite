@@ -232,22 +232,20 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         if (canSaveLocationTrack(state) && state.locationTrack) {
             stateActions.onStartSaving();
             if (state.isNewLocationTrack) {
-                insertLocationTrack(layoutContextDraft, state.locationTrack).then((result) => {
-                    stateActions.onEndSaving();
-                    result.map((locationTrackId) => {
+                insertLocationTrack(layoutContextDraft, state.locationTrack)
+                    .then((locationTrackId) => {
                         props.onSave && props.onSave(locationTrackId);
                         Snackbar.success('location-track-dialog.created-successfully');
                         props.onClose();
-                    });
-                });
+                    })
+                    .finally(() => stateActions.onEndSaving());
             } else if (state.existingLocationTrack) {
                 updateLocationTrack(
                     layoutContextDraft,
                     state.existingLocationTrack.id,
                     state.locationTrack,
-                ).then((result) => {
-                    stateActions.onEndSaving();
-                    result.map((locationTrackId) => {
+                )
+                    .then((locationTrackId) => {
                         props.onSave && props.onSave(locationTrackId);
                         const successMessage =
                             state.locationTrack?.state === 'DELETED'
@@ -255,8 +253,8 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                 : 'location-track-dialog.modified-successfully';
                         Snackbar.success(successMessage);
                         props.onClose();
-                    });
-                });
+                    })
+                    .finally(() => stateActions.onEndSaving());
             }
         }
     }
