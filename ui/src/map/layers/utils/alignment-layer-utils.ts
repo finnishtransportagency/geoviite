@@ -219,7 +219,7 @@ export const ALIGNMENT_FEATURE_DATA_PROPERTY = 'alignment-data';
 
 export function findMatchingAlignments(
     hitArea: Rectangle,
-    source: VectorSource<Feature>,
+    source: VectorSource,
     options: SearchItemsOptions,
 ): AlignmentDataHolder[] {
     return findMatchingEntities<AlignmentDataHolder>(

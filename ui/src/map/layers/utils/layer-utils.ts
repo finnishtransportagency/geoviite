@@ -154,15 +154,15 @@ const incrementAndGetLayerId = (name: MapLayerName) => {
 };
 const isLatestLayerId = (name: MapLayerName, id: number) => latestLayerIds.get(name) === id;
 
-export type LayerResult<FeatureType extends Feature> = {
+export type LayerResult<FeatureType extends Geometry> = {
     layer: BaseLayer;
-    source: VectorSource<FeatureType>;
+    source: VectorSource<Feature<FeatureType>>;
     isLatest: () => boolean;
 };
 
-export function createLayer<FeatureType extends Feature>(
+export function createLayer<FeatureType extends Geometry>(
     name: MapLayerName,
-    existingLayer: VectorLayer<FeatureType> | undefined,
+    existingLayer: VectorLayer<Feature<FeatureType>> | undefined,
     allowDefaultStyle: boolean = true,
     declutter: boolean = false,
 ): LayerResult<FeatureType> {
@@ -182,12 +182,12 @@ export function createLayer<FeatureType extends Feature>(
     };
 }
 
-export function loadLayerData<Data, FeatureType extends Feature>(
-    source: VectorSource<FeatureType>,
+export function loadLayerData<Data, FeatureType extends Geometry>(
+    source: VectorSource<Feature<FeatureType>>,
     isLatest: () => boolean,
     onLoadingData: (loading: boolean, loadedData: Data | undefined) => void,
     dataPromise: Promise<Data>,
-    createFeatures: (data: Data) => FeatureType[],
+    createFeatures: (data: Data) => Feature<FeatureType>[],
 ) {
     onLoadingData(true, undefined);
     dataPromise
@@ -207,7 +207,7 @@ export function loadLayerData<Data, FeatureType extends Feature>(
         });
 }
 
-export const clearFeatures = (vectorSource: VectorSource<Feature>) => vectorSource.clear();
+export const clearFeatures = (vectorSource: VectorSource) => vectorSource.clear();
 
 function mergeOptionalArrays<T>(a1: T[] | undefined, a2: T[] | undefined): T[] | undefined {
     if (a1 === undefined) return a2;
