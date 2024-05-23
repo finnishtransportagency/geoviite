@@ -22,11 +22,11 @@ import { ChangeTimes } from 'common/common-slice';
 import { filterUniqueById } from 'utils/array-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import { fromExtent } from 'ol/geom/Polygon';
 import { getAllowedSwitchesFromState, SplittingState } from 'tool-panel/location-track/split-store';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { ValidatedSwitch } from 'publication/publication-model';
+import Feature from 'ol/Feature';
 
 let shownSwitchesCompare: string;
 
@@ -49,7 +49,7 @@ const layerName: MapLayerName = 'switch-layer';
 
 export function createSwitchLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
+    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
     selection: Selection,
     splittingState: SplittingState | undefined,
     layoutContext: LayoutContext,

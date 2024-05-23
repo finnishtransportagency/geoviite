@@ -15,18 +15,18 @@ import {
 } from '../utils/km-post-layer-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import { filterNotEmpty } from 'utils/array-utils';
 import { ChangeTimes } from 'common/common-slice';
 import { MapLayerName, MapTile } from 'map/map-model';
 import { LayoutContext } from 'common/common-model';
+import Feature from 'ol/Feature';
 
 const layerName: MapLayerName = 'geometry-km-post-layer';
 
 export function createGeometryKmPostLayer(
     mapTiles: MapTile[],
     resolution: number,
-    existingOlLayer: VectorLayer<VectorSource<OlPoint | Rectangle>> | undefined,
+    existingOlLayer: VectorLayer<Feature<OlPoint | Rectangle>> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,

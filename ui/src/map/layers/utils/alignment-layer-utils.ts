@@ -18,6 +18,7 @@ import { SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { Rectangle } from 'model/geometry';
 import { cache } from 'cache/cache';
 import { exhaustiveMatchingGuard, expectCoordinate } from 'utils/type-utils';
+import { FeatureLike } from 'ol/Feature';
 
 const tickImageCache = cache<string, RegularShape>();
 
@@ -43,7 +44,7 @@ export function getTickStyle(
         cacheKey,
         () =>
             new RegularShape({
-                stroke: style.getStroke(),
+                stroke: style.getStroke() || undefined,
                 points: 2,
                 radius: length,
                 radius2: 0,
@@ -219,7 +220,7 @@ export const ALIGNMENT_FEATURE_DATA_PROPERTY = 'alignment-data';
 
 export function findMatchingAlignments(
     hitArea: Rectangle,
-    source: VectorSource,
+    source: VectorSource<FeatureLike>,
     options: SearchItemsOptions,
 ): AlignmentDataHolder[] {
     return findMatchingEntities<AlignmentDataHolder>(

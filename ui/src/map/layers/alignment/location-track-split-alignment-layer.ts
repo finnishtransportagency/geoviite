@@ -6,7 +6,6 @@ import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { ChangeTimes } from 'common/common-slice';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import {
     AlignmentDataHolder,
     getSelectedLocationTrackMapAlignmentByTiles,
@@ -68,7 +67,7 @@ function splitToParts(
 
 export function createLocationTrackSplitAlignmentLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
+    existingOlLayer: VectorLayer<Feature<LineString | OlPoint>> | undefined,
     layoutContext: LayoutContext,
     splittingState: SplittingState | undefined,
     changeTimes: ChangeTimes,

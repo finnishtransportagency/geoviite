@@ -1,4 +1,4 @@
-import Feature from 'ol/Feature';
+import Feature, { FeatureLike } from 'ol/Feature';
 import { Coordinate } from 'ol/coordinate';
 import { Geometry, LineString, Point as OlPoint, Polygon } from 'ol/geom';
 import { GeometryPlanLayout, LAYOUT_SRID, PlanAndStatus } from 'track-layout/track-layout-model';
@@ -108,7 +108,7 @@ export function getDistance(point: OlPoint, geom: Geometry): number {
 
 export function findMatchingEntities<T>(
     hitArea: Rectangle,
-    source: VectorSource,
+    source: VectorSource<FeatureLike>,
     propertyName: string,
     options?: SearchItemsOptions,
 ): T[] {
@@ -122,7 +122,7 @@ export function findMatchingEntities<T>(
 
 export function findIntersectingFeatures<T extends Geometry>(
     hitArea: Rectangle,
-    source: VectorSource,
+    source: VectorSource<FeatureLike>,
 ): Feature<T>[] {
     const features: Feature<T>[] = [];
 
@@ -154,15 +154,15 @@ const incrementAndGetLayerId = (name: MapLayerName) => {
 };
 const isLatestLayerId = (name: MapLayerName, id: number) => latestLayerIds.get(name) === id;
 
-export type LayerResult<FeatureType extends Geometry> = {
+export type LayerResult<FeatureType extends FeatureLike> = {
     layer: BaseLayer;
     source: VectorSource<FeatureType>;
     isLatest: () => boolean;
 };
 
-export function createLayer<FeatureType extends Geometry>(
+export function createLayer<FeatureType extends FeatureLike>(
     name: MapLayerName,
-    existingLayer: VectorLayer<VectorSource<FeatureType>> | undefined,
+    existingLayer: VectorLayer<FeatureType> | undefined,
     allowDefaultStyle: boolean = true,
     declutter: boolean = false,
 ): LayerResult<FeatureType> {
@@ -182,12 +182,12 @@ export function createLayer<FeatureType extends Geometry>(
     };
 }
 
-export function loadLayerData<Data, FeatureType extends Geometry>(
+export function loadLayerData<Data, FeatureType extends FeatureLike>(
     source: VectorSource<FeatureType>,
     isLatest: () => boolean,
     onLoadingData: (loading: boolean, loadedData: Data | undefined) => void,
     dataPromise: Promise<Data>,
-    createFeatures: (data: Data) => Feature<FeatureType>[],
+    createFeatures: (data: Data) => FeatureType[],
 ) {
     onLoadingData(true, undefined);
     dataPromise
@@ -207,7 +207,7 @@ export function loadLayerData<Data, FeatureType extends Geometry>(
         });
 }
 
-export const clearFeatures = (vectorSource: VectorSource) => vectorSource.clear();
+export const clearFeatures = (vectorSource: VectorSource<FeatureLike>) => vectorSource.clear();
 
 function mergeOptionalArrays<T>(a1: T[] | undefined, a2: T[] | undefined): T[] | undefined {
     if (a1 === undefined) return a2;

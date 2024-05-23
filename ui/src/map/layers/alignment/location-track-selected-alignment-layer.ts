@@ -7,7 +7,7 @@ import { MapLayer } from 'map/layers/utils/layer-model';
 import * as Limits from 'map/layers/utils/layer-visibility-limits';
 import { ChangeTimes } from 'common/common-slice';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
+import Feature from 'ol/Feature';
 import {
     AlignmentDataHolder,
     getSelectedLocationTrackMapAlignmentByTiles,
@@ -30,7 +30,7 @@ const layerName: MapLayerName = 'location-track-selected-alignment-layer';
 
 export function createLocationTrackSelectedAlignmentLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<LineString | OlPoint>> | undefined,
+    existingOlLayer: VectorLayer<Feature<LineString | OlPoint>> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
     splittingIsActive: boolean, // TODO: This will be removed when layer visibility logic is revised

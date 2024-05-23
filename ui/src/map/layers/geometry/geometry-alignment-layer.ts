@@ -28,7 +28,6 @@ import {
 } from 'map/layers/utils/alignment-layer-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { cache } from 'cache/cache';
 import { MapLayerName, MapTile } from 'map/map-model';
@@ -149,7 +148,7 @@ type PlanAlignments = {
 
 export function createGeometryAlignmentLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<LineString>> | undefined,
+    existingOlLayer: VectorLayer<Feature<LineString>> | undefined,
     selection: Selection,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,

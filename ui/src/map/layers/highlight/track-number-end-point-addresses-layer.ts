@@ -22,7 +22,6 @@ import { formatTrackMeter } from 'utils/geography-utils';
 import { Coordinate } from 'ol/coordinate';
 import mapStyles from 'map/map.module.scss';
 import { State } from 'ol/render';
-import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 import {
     DASHED_LINE_INDICATOR_FONT_SIZE,
@@ -156,7 +155,7 @@ const layerName: MapLayerName = 'track-number-addresses-layer';
 
 export function createTrackNumberEndPointAddressesLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
+    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
     changeTimes: ChangeTimes,
     layoutContext: LayoutContext,
     resolution: number,
