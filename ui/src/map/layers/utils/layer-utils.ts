@@ -1,4 +1,4 @@
-import Feature, { FeatureLike } from 'ol/Feature';
+import Feature from 'ol/Feature';
 import { Coordinate } from 'ol/coordinate';
 import { Geometry, LineString, Point as OlPoint, Polygon } from 'ol/geom';
 import { GeometryPlanLayout, LAYOUT_SRID, PlanAndStatus } from 'track-layout/track-layout-model';
@@ -108,7 +108,7 @@ export function getDistance(point: OlPoint, geom: Geometry): number {
 
 export function findMatchingEntities<T>(
     hitArea: Rectangle,
-    source: VectorSource<FeatureLike>,
+    source: VectorSource<Feature>,
     propertyName: string,
     options?: SearchItemsOptions,
 ): T[] {
@@ -122,7 +122,7 @@ export function findMatchingEntities<T>(
 
 export function findIntersectingFeatures<T extends Geometry>(
     hitArea: Rectangle,
-    source: VectorSource<FeatureLike>,
+    source: VectorSource<Feature>,
 ): Feature<T>[] {
     const features: Feature<T>[] = [];
 
@@ -154,13 +154,13 @@ const incrementAndGetLayerId = (name: MapLayerName) => {
 };
 const isLatestLayerId = (name: MapLayerName, id: number) => latestLayerIds.get(name) === id;
 
-export type LayerResult<FeatureType extends FeatureLike> = {
+export type LayerResult<FeatureType extends Feature> = {
     layer: BaseLayer;
     source: VectorSource<FeatureType>;
     isLatest: () => boolean;
 };
 
-export function createLayer<FeatureType extends FeatureLike>(
+export function createLayer<FeatureType extends Feature>(
     name: MapLayerName,
     existingLayer: VectorLayer<FeatureType> | undefined,
     allowDefaultStyle: boolean = true,
@@ -182,7 +182,7 @@ export function createLayer<FeatureType extends FeatureLike>(
     };
 }
 
-export function loadLayerData<Data, FeatureType extends FeatureLike>(
+export function loadLayerData<Data, FeatureType extends Feature>(
     source: VectorSource<FeatureType>,
     isLatest: () => boolean,
     onLoadingData: (loading: boolean, loadedData: Data | undefined) => void,
@@ -207,7 +207,7 @@ export function loadLayerData<Data, FeatureType extends FeatureLike>(
         });
 }
 
-export const clearFeatures = (vectorSource: VectorSource<FeatureLike>) => vectorSource.clear();
+export const clearFeatures = (vectorSource: VectorSource<Feature>) => vectorSource.clear();
 
 function mergeOptionalArrays<T>(a1: T[] | undefined, a2: T[] | undefined): T[] | undefined {
     if (a1 === undefined) return a2;
