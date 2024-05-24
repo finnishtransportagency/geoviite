@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -82,11 +83,11 @@ class LayoutTrackNumberDao(
               tn.number,
               tn.description,
               tn.state,
-              coalesce(rl.official_row_id, rl.id) reference_line_id
+              coalesce(rl.official_row_id, rl.design_row_id, rl.id) reference_line_id
             from layout.track_number_version tn
               -- TrackNumber reference line identity should never change, so we can join version 1
               left join layout.reference_line_version rl on 
-                rl.track_number_id = coalesce(tn.official_row_id, tn.id) and rl.version = 1
+                rl.track_number_id = coalesce(tn.official_row_id, tn.design_row_id, tn.id) and rl.version = 1
             where tn.id = :id
               and tn.version = :version
               and tn.deleted = false
@@ -198,7 +199,7 @@ class LayoutTrackNumberDao(
               design_id = :design_id
             where id = :id
             returning 
-              coalesce(official_row_id, id) as official_id,
+              coalesce(official_row_id, design_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -239,19 +240,20 @@ class LayoutTrackNumberDao(
     }
 
     fun findOfficialNumberDuplicates(
+        layoutBranch: LayoutBranch,
         numbers: List<TrackNumber>,
     ): Map<TrackNumber, List<RowVersion<TrackLayoutTrackNumber>>> {
         return if (numbers.isEmpty()) {
             emptyMap()
         } else {
             val sql = """
-                select id, version, number
-                from layout.track_number
+                select row_id as id, row_version as version, number
+                from layout.track_number_in_layout_context('OFFICIAL', :design_id)
                 where number in (:numbers)
                   and draft = false
                   and state != 'DELETED'
             """.trimIndent()
-            val params = mapOf("numbers" to numbers)
+            val params = mapOf("numbers" to numbers, "design_id" to layoutBranch.designId?.intValue)
             val found =
                 jdbcTemplate.query<Pair<TrackNumber, RowVersion<TrackLayoutTrackNumber>>>(sql, params) { rs, _ ->
                     val version = rs.getRowVersion<TrackLayoutTrackNumber>("id", "version")

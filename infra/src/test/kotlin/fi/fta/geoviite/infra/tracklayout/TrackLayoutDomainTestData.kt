@@ -1027,7 +1027,7 @@ fun switchLinkingAt(locationTrackId: DomainId<LocationTrack>, segmentIndex: Int,
     )
 
 fun layoutDesign(
-    name: String,
+    name: String = "foo",
     estimatedCompletion: LocalDate = LocalDate.parse("2022-02-02"),
     designState: DesignState = DesignState.ACTIVE,
 ) = LayoutDesignSaveRequest(

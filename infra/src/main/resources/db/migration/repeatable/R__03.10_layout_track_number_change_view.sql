@@ -9,7 +9,7 @@ select
   track_number_version.state,
   track_number_version.version,
   lag(track_number_version.state)
-      over (partition by track_number_version.id order by track_number_version.version) old_state
+      over (partition by track_number_version.id, design_id order by track_number_version.version) old_state
   from layout.track_number_version
-  where layout_context_id = 'main_official'
+  where not draft
 );

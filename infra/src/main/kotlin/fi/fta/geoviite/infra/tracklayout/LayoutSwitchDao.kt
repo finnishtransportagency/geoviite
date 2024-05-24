@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.AccessType.UPDATE
@@ -232,7 +233,7 @@ class LayoutSwitchDao(
               owner_id = :owner_id
             where id = :id
             returning 
-              coalesce(official_row_id, id) as official_id,
+              coalesce(official_row_id, design_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -247,7 +248,7 @@ class LayoutSwitchDao(
             "draft" to updatedItem.isDraft,
             "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
             "design_row_id" to updatedItem.contextData.designRowId?.let(::toDbId)?.intValue,
-            "design_id" to updatedItem.contextData.designRowId?.let(::toDbId)?.intValue,
+            "design_id" to updatedItem.contextData.designId?.let(::toDbId)?.intValue,
             "owner_id" to updatedItem.ownerId?.intValue
         )
         jdbcTemplate.setUser()
@@ -477,10 +478,12 @@ class LayoutSwitchDao(
     }
 
     fun findLocationTracksLinkedToSwitchAtMoment(
+        layoutBranch: LayoutBranch,
         switchId: IntId<TrackLayoutSwitch>,
         topologyJointNumber: JointNumber,
         moment: Instant,
     ): List<LocationTrackIdentifiers> {
+        assertMainBranch(layoutBranch)
         val sql = """ 
             select distinct
               location_track.id, 
@@ -516,18 +519,20 @@ class LayoutSwitchDao(
         }.also { logger.daoAccess(FETCH, "LocationTracks linked to switch at moment", switchId) }
     }
 
-    fun findOfficialNameDuplicates(names: List<SwitchName>): Map<SwitchName, List<RowVersion<TrackLayoutSwitch>>> {
+    fun findOfficialNameDuplicates(
+        layoutBranch: LayoutBranch,
+        names: List<SwitchName>,
+    ): Map<SwitchName, List<RowVersion<TrackLayoutSwitch>>> {
         return if (names.isEmpty()) {
             emptyMap()
         } else {
             val sql = """
-                select id, version, name
-                from layout.switch
+                select row_id as id, row_version as version, name
+                from layout.switch_in_layout_context('OFFICIAL', :design_id)
                 where name in (:names)
-                  and draft = false
                   and state_category != 'NOT_EXISTING'
             """.trimIndent()
-            val params = mapOf("names" to names)
+            val params = mapOf("names" to names, "design_id" to layoutBranch.designId?.intValue)
             val found = jdbcTemplate.query<Pair<SwitchName, RowVersion<TrackLayoutSwitch>>>(sql, params) { rs, _ ->
                 val version = rs.getRowVersion<TrackLayoutSwitch>("id", "version")
                 val name = rs.getString("name").let(::SwitchName)

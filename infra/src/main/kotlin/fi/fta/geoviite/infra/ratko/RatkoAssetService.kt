@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.PublishedSwitch
@@ -28,7 +29,11 @@ class RatkoAssetService @Autowired constructor(
 
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun pushSwitchChangesToRatko(publishedSwitches: Collection<PublishedSwitch>, publicationTime: Instant) {
+    fun pushSwitchChangesToRatko(
+        layoutBranch: LayoutBranch,
+        publishedSwitches: Collection<PublishedSwitch>,
+        publicationTime: Instant,
+    ) {
         publishedSwitches
             .groupBy { it.version.id }
             .map { (_, switches) ->
@@ -48,6 +53,7 @@ class RatkoAssetService @Autowired constructor(
                         .let { oid -> ratkoClient.getSwitchAsset(RatkoOid<RatkoSwitchAsset>(oid)) }
                         ?.also { existingRatkoSwitch ->
                             updateSwitch(
+                                layoutBranch = layoutBranch,
                                 layoutSwitch = layoutSwitch,
                                 existingRatkoSwitch = existingRatkoSwitch,
                                 jointChanges = changedJoints,
@@ -62,6 +68,7 @@ class RatkoAssetService @Autowired constructor(
     }
 
     private fun updateSwitch(
+        layoutBranch: LayoutBranch,
         layoutSwitch: TrackLayoutSwitch,
         existingRatkoSwitch: RatkoSwitchAsset,
         jointChanges: List<SwitchJointChange>,
@@ -98,6 +105,7 @@ class RatkoAssetService @Autowired constructor(
         val baseRatkoLocations =
             if (includeBaseLocations && existingLocations.isNotEmpty())
                 getBaseRatkoSwitchLocations(
+                    layoutBranch = layoutBranch,
                     switchId = layoutSwitch.id,
                     existingRatkoLocations = existingLocations,
                     jointChanges = jointChanges,
@@ -127,6 +135,7 @@ class RatkoAssetService @Autowired constructor(
     }
 
     private fun getBaseRatkoSwitchLocations(
+        layoutBranch: LayoutBranch,
         switchId: IntId<TrackLayoutSwitch>,
         existingRatkoLocations: List<RatkoAssetLocation>,
         jointChanges: Collection<SwitchJointChange>,
@@ -134,6 +143,7 @@ class RatkoAssetService @Autowired constructor(
         moment: Instant,
     ): List<RatkoAssetLocation> {
         val linkedLocationTracks = switchDao.findLocationTracksLinkedToSwitchAtMoment(
+            layoutBranch = layoutBranch,
             switchId = switchId,
             topologyJointNumber = switchStructure.presentationJointNumber,
             moment = moment

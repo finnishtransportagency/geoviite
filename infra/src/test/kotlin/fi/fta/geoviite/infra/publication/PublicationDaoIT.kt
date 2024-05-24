@@ -227,7 +227,7 @@ class PublicationDaoIT @Autowired constructor(
             ),
             indirectChanges = IndirectChanges(emptyList(), emptyList(), emptyList()),
         )
-        val publicationId = publicationDao.createPublication("")
+        val publicationId = publicationDao.createPublication(LayoutBranch.main, "")
         publicationDao.insertCalculatedChanges(publicationId, changes)
 
         val publishedTrackNumbers = publicationDao.fetchPublishedTrackNumbers(publicationId)
@@ -252,7 +252,7 @@ class PublicationDaoIT @Autowired constructor(
     @Test
     fun `Publication message is stored and fetched correctly`() {
         val message = "Test"
-        val publicationId = publicationDao.createPublication(message)
+        val publicationId = publicationDao.createPublication(LayoutBranch.main, message)
         assertEquals(message, publicationDao.getPublication(publicationId).message)
     }
 

@@ -43,7 +43,7 @@ class RatkoController(
     @PostMapping("/push")
     fun pushChangesToRatko(): HttpStatus {
         logger.apiCall("pushChangesToRatko")
-        ratkoService.pushChangesToRatko()
+        ratkoService.pushChangesToRatko(LayoutBranch.main)
 
         return HttpStatus.NO_CONTENT
     }

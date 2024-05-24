@@ -47,7 +47,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
         // Mark off any old junk as done
         transactional {
             val lastSuccessTime = ratkoPushDao.getLatestPushedPublicationMoment()
-            val hangingPublications = publicationDao.fetchPublicationsBetween(lastSuccessTime, null)
+            val hangingPublications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, lastSuccessTime, null)
                 .filterNot { it.publicationTime == lastSuccessTime }
             if (hangingPublications.isNotEmpty()) {
                 ratkoPushDao.startPushing(hangingPublications.map { publication -> publication.id })
@@ -130,7 +130,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
         val lastPush = ratkoPushDao.getLatestPushedPublicationMoment()
         Assertions.assertTrue(lastPush < publicationMoment)
 
-        val publications = publicationDao.fetchPublicationsBetween(lastPush, null)
+        val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, lastPush, null)
         val (publishedLocationTracks, _) = publicationDao.fetchPublishedLocationTracks(publications[1].id)
 
         assertEquals(publicationId, publications[1].id)
@@ -144,7 +144,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
         val latestPushMoment = ratkoPushDao.getLatestPushedPublicationMoment()
         assertEquals(publicationMoment, latestPushMoment)
-        val publications = publicationDao.fetchPublicationsBetween(latestPushMoment, null)
+        val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, latestPushMoment, null)
         assertEquals(1, publications.size)
     }
 
@@ -155,7 +155,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
         val latestPushedPublish = ratkoPushDao.getLatestPushedPublicationMoment()
         Assertions.assertTrue(latestPushedPublish < publicationMoment)
-        val publications = publicationDao.fetchPublicationsBetween(latestPushedPublish, null)
+        val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, latestPushedPublish, null)
         val (publishedLocationTracks, _) = publicationDao.fetchPublishedLocationTracks(publications[1].id)
 
         assertEquals(2, publications.size)
@@ -173,7 +173,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
 
         val latestPushedMoment = ratkoPushDao.getLatestPushedPublicationMoment()
         Assertions.assertTrue(latestPushedMoment < publicationMoment)
-        val publications = publicationDao.fetchPublicationsBetween(latestPushedMoment, null)
+        val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, latestPushedMoment, null)
 
         val fetchedLayoutPublish = publications.find { it.id == publicationId }
         val fetchedLayoutPublish2 = publications.find { it.id == publicationId2 }
@@ -198,7 +198,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
         val locationTrack2Response = insertAndPublishLocationTrack()
         val publicationId2 = createPublication(locationTracks = listOf(locationTrack2Response.id), message = "Test")
 
-        val publications = publicationDao.fetchLatestPublications(2)
+        val publications = publicationDao.fetchLatestPublications(LayoutBranch.main, 2)
 
         assertEquals(publications.size, 2)
         assertEquals(publications[0].id, publicationId2)
@@ -239,13 +239,15 @@ internal class RatkoPushDaoIT @Autowired constructor(
         }
 
     fun createPublication(
+        layoutBranch: LayoutBranch = LayoutBranch.main,
         trackNumbers: List<IntId<TrackLayoutTrackNumber>> = listOf(),
         referenceLines: List<IntId<ReferenceLine>> = listOf(),
         locationTracks: List<IntId<LocationTrack>> = listOf(),
         switches: List<IntId<TrackLayoutSwitch>> = listOf(),
         kmPosts: List<IntId<TrackLayoutKmPost>> = listOf(),
         message: String = "",
-    ): IntId<Publication> = publicationDao.createPublication(message = message).also { publicationId ->
+    ): IntId<Publication> =
+        publicationDao.createPublication(layoutBranch = layoutBranch, message = message).also { publicationId ->
         val calculatedChanges = CalculatedChanges(
             directChanges = DirectChanges(
                 kmPostChanges = kmPosts,

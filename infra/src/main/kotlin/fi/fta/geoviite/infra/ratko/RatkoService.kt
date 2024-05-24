@@ -83,7 +83,7 @@ class RatkoService @Autowired constructor(
         withUser(ratkoSchedulerUserName) {
             logger.serviceCall("scheduledRatkoPush")
             // Don't retry failed on auto-push
-            pushChangesToRatko(retryFailed = false)
+            pushChangesToRatko(LayoutBranch.main, retryFailed = false)
         }
     }
 
@@ -101,7 +101,9 @@ class RatkoService @Autowired constructor(
         }
     }
 
-    fun pushChangesToRatko(retryFailed: Boolean = true) {
+    fun pushChangesToRatko(layoutBranch: LayoutBranch, retryFailed: Boolean = true) {
+        assertMainBranch(layoutBranch)
+
         lockDao.runWithLock(DatabaseLock.RATKO, databaseLockDuration) {
             logger.serviceCall("pushChangesToRatko")
 
@@ -116,16 +118,16 @@ class RatkoService @Autowired constructor(
                 val lastPublicationMoment = ratkoPushDao.getLatestPushedPublicationMoment()
 
                 // Inclusive search, therefore the already pushed one is also returned
-                val publications = publicationService.fetchPublications(lastPublicationMoment)
+                val publications = publicationService.fetchPublications(layoutBranch, lastPublicationMoment)
                     .filter { it.publicationTime > lastPublicationMoment }
                     .map { publicationService.getPublicationDetails(it.id) }
 
                 if (publications.isNotEmpty()) {
-                    pushChanges(publications)
+                    pushChanges(layoutBranch, publications)
                 }
 
                 if (ratkoClientConfiguration.bulkTransfersEnabled) {
-                    manageRatkoBulkTransfers(LayoutBranch.main)
+                    manageRatkoBulkTransfers(layoutBranch)
                 }
             }
         }
@@ -257,7 +259,7 @@ class RatkoService @Autowired constructor(
                 latestPublicationMoment,
             )
 
-            ratkoAssetService.pushSwitchChangesToRatko(switchChanges, latestPublicationMoment)
+            ratkoAssetService.pushSwitchChangesToRatko(branch, switchChanges, latestPublicationMoment)
 
             try {
                 ratkoLocationTrackService.forceRedraw(
@@ -274,7 +276,7 @@ class RatkoService @Autowired constructor(
         return states.any { state -> previousPush.status == state }
     }
 
-    private fun pushChanges(publications: List<PublicationDetails>) {
+    private fun pushChanges(layoutBranch: LayoutBranch, publications: List<PublicationDetails>) {
         val ratkoPushId = ratkoPushDao.startPushing(publications.map { it.id })
         val lastPublicationTime = publications.maxOf { it.publicationTime }
         try {
@@ -290,6 +292,7 @@ class RatkoService @Autowired constructor(
             )
 
             pushSwitchChanges(
+                layoutBranch = layoutBranch,
                 publishedSwitches = publications.flatMap { it.allPublishedSwitches },
                 publishedLocationTracks = publications.flatMap { it.allPublishedLocationTracks },
                 publicationTime = lastPublicationTime,
@@ -358,6 +361,7 @@ class RatkoService @Autowired constructor(
     }
 
     private fun pushSwitchChanges(
+        layoutBranch: LayoutBranch,
         publishedSwitches: Collection<PublishedSwitch>,
         publishedLocationTracks: List<PublishedLocationTrack>,
         publicationTime: Instant,
@@ -376,7 +380,7 @@ class RatkoService @Autowired constructor(
             }.map { switchChange -> toFakePublishedSwitch(switchChange, publicationTime) }
 
         val switchChanges = publishedSwitches + locationTrackSwitchChanges
-        ratkoAssetService.pushSwitchChangesToRatko(switchChanges, publicationTime)
+        ratkoAssetService.pushSwitchChangesToRatko(layoutBranch, switchChanges, publicationTime)
     }
 
 

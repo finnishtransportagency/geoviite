@@ -552,7 +552,7 @@ class PublicationService @Autowired constructor(
         val switches = versions.switches.map { v -> switchService.publish(branch, v) }
         val referenceLines = versions.referenceLines.map { v -> referenceLineService.publish(branch, v) }
         val locationTracks = versions.locationTracks.map { v -> locationTrackService.publish(branch, v) }
-        val publicationId = publicationDao.createPublication(message)
+        val publicationId = publicationDao.createPublication(branch, message)
         publicationDao.insertCalculatedChanges(publicationId, calculatedChanges)
         publicationGeometryChangeRemarksUpdateService.processPublication(publicationId)
 
@@ -767,6 +767,7 @@ class PublicationService @Autowired constructor(
                 switches = publishedIndirectSwitches
             ),
             split = split?.let(::SplitHeader),
+            layoutBranch = publication.layoutBranch,
         )
     }
 
@@ -779,7 +780,7 @@ class PublicationService @Autowired constructor(
         val geocodingContextCache =
             ConcurrentHashMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, Optional<GeocodingContext>>>()
         return getPublicationDetails(id).let { publication ->
-            val previousPublication = publicationDao.fetchPublicationTimes().entries
+            val previousPublication = publicationDao.fetchPublicationTimes(publication.layoutBranch).entries
                 .sortedByDescending { it.key }
                 .find { it.key < publication.publicationTime }
             mapToPublicationTableItems(
@@ -795,25 +796,26 @@ class PublicationService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun fetchPublications(from: Instant? = null, to: Instant? = null): List<Publication> {
+    fun fetchPublications(layoutBranch: LayoutBranch, from: Instant? = null, to: Instant? = null): List<Publication> {
         logger.serviceCall("fetchPublications", "from" to from, "to" to to)
-        return publicationDao.fetchPublicationsBetween(from, to)
+        return publicationDao.fetchPublicationsBetween(layoutBranch, from, to)
     }
 
     @Transactional(readOnly = true)
-    fun fetchPublicationDetailsBetweenInstants(from: Instant? = null, to: Instant? = null): List<PublicationDetails> {
+    fun fetchPublicationDetailsBetweenInstants(layoutBranch: LayoutBranch, from: Instant? = null, to: Instant? = null): List<PublicationDetails> {
         logger.serviceCall("fetchPublicationDetailsBetweenInstants", "from" to from, "to" to to)
-        return publicationDao.fetchPublicationsBetween(from, to).map { getPublicationDetails(it.id) }
+        return publicationDao.fetchPublicationsBetween(layoutBranch, from, to).map { getPublicationDetails(it.id) }
     }
 
     @Transactional(readOnly = true)
-    fun fetchLatestPublicationDetails(count: Int): List<PublicationDetails> {
+    fun fetchLatestPublicationDetails(layoutBranch: LayoutBranch, count: Int): List<PublicationDetails> {
         logger.serviceCall("fetchLatestPublicationDetails", "count" to count)
-        return publicationDao.fetchLatestPublications(count).map { getPublicationDetails(it.id) }
+        return publicationDao.fetchLatestPublications(layoutBranch, count).map { getPublicationDetails(it.id) }
     }
 
     @Transactional(readOnly = true)
     fun fetchPublicationDetails(
+        layoutBranch: LayoutBranch,
         from: Instant? = null,
         to: Instant? = null,
         sortBy: PublicationTableColumn? = null,
@@ -828,9 +830,12 @@ class PublicationService @Autowired constructor(
             "order" to order,
         )
 
-        val switchLinkChanges = publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(null, from, to)
+        val switchLinkChanges =
+            publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(null, layoutBranch, from, to)
 
-        return fetchPublicationDetailsBetweenInstants(from, to).sortedBy { it.publicationTime }.let { publications ->
+        return fetchPublicationDetailsBetweenInstants(layoutBranch, from, to)
+            .sortedBy { it.publicationTime }
+            .let { publications ->
             val geocodingContextCache =
                 ConcurrentHashMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, Optional<GeocodingContext>>>()
             val trackNumbersCache = trackNumberDao.fetchTrackNumberNames()
@@ -914,6 +919,7 @@ class PublicationService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun fetchPublicationsAsCsv(
+        layoutBranch: LayoutBranch,
         from: Instant? = null,
         to: Instant? = null,
         sortBy: PublicationTableColumn? = null,
@@ -931,6 +937,7 @@ class PublicationService @Autowired constructor(
         )
 
         val orderedPublishedItems = fetchPublicationDetails(
+            layoutBranch = layoutBranch,
             from = from,
             to = to,
             sortBy = sortBy,
@@ -1376,7 +1383,7 @@ class PublicationService @Autowired constructor(
     ): List<PublicationTableItem> {
         val publicationLocationTrackChanges = publicationDao.fetchPublicationLocationTrackChanges(publication.id)
         val publicationTrackNumberChanges =
-            publicationDao.fetchPublicationTrackNumberChanges(publication.id, previousComparisonTime)
+            publicationDao.fetchPublicationTrackNumberChanges(publication.layoutBranch, publication.id, previousComparisonTime)
         val publicationKmPostChanges = publicationDao.fetchPublicationKmPostChanges(publication.id)
         val publicationReferenceLineChanges = publicationDao.fetchPublicationReferenceLineChanges(publication.id)
         val publicationSwitchChanges = publicationDao.fetchPublicationSwitchChanges(publication.id)

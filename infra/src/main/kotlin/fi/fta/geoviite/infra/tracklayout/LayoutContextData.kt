@@ -156,6 +156,7 @@ data class DesignOfficialContextData<T>(
 ) : DesignContextData<T>() {
     override val id: DomainId<T> get() = officialRowId ?: rowId
     override val editState: EditState get() = EditState.UNEDITED
+    override val isOfficial: Boolean get() = true
     override val isDesign: Boolean get() = true
 
     init {
@@ -219,6 +220,10 @@ data class DesignDraftContextData<T>(
             dataType = STORED, // There will always be an existing row to update: the draft-row or the original official
         )
     }
+}
+
+fun <T : LayoutAsset<T>> asDraftInItemBranch(item: T): T = item.contextData.designId.let { designId ->
+    if (designId is IntId) asDesignDraft(item, designId) else asMainDraft(item)
 }
 
 fun <T : LayoutAsset<T>> asDraft(branch: LayoutBranch, item: T): T = when (branch) {

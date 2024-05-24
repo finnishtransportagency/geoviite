@@ -183,7 +183,7 @@ class LocationTrackService(
     @Transactional
     override fun publish(branch: LayoutBranch, version: ValidationVersion<LocationTrack>): DaoResponse<LocationTrack> {
         logger.serviceCall("publish", "branch" to branch, "version" to version)
-        val officialVersion = dao.fetchVersion(branch.official, version.officialId)
+        val officialVersion = dao.fetchOfficialRowVersionForPublishingInBranch(branch, version.validatedAssetVersion)
         val oldDraft = dao.fetch(version.validatedAssetVersion)
         val oldOfficial = officialVersion?.let(dao::fetch)
         val publishedVersion = publishInternal(branch, VersionPair(officialVersion, version.validatedAssetVersion))

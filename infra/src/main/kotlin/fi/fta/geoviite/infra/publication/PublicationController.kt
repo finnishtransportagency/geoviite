@@ -127,11 +127,13 @@ class PublicationController @Autowired constructor(
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
     @GetMapping
     fun getPublicationsBetween(
+        @RequestParam("layoutBranch", required = false) layoutBranch: LayoutBranch?,
         @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
         @RequestParam("to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
     ): Page<PublicationDetails> {
         logger.apiCall("getPublicationsBetween", "from" to from, "to" to to)
-        val publications = publicationService.fetchPublicationDetailsBetweenInstants(from, to)
+        val publications =
+            publicationService.fetchPublicationDetailsBetweenInstants(layoutBranch ?: LayoutBranch.main, from, to)
 
         return Page(
             totalCount = publications.size,
@@ -143,10 +145,11 @@ class PublicationController @Autowired constructor(
     @PreAuthorize(AUTH_VIEW_PUBLICATION)
     @GetMapping("latest")
     fun getLatestPublications(
+        @RequestParam("layoutBranch", required = false) layoutBranch: LayoutBranch?,
         @RequestParam("count") count: Int,
     ): Page<PublicationDetails> {
-        logger.apiCall("getLatestPublications", "count" to count)
-        val publications = publicationService.fetchLatestPublicationDetails(count)
+        logger.apiCall("getLatestPublications", "count" to count, "layoutBranch" to layoutBranch)
+        val publications = publicationService.fetchLatestPublicationDetails(layoutBranch ?: LayoutBranch.main, count)
 
         return Page(totalCount = publications.size, start = 0, items = publications)
     }
@@ -154,6 +157,7 @@ class PublicationController @Autowired constructor(
     @PreAuthorize(AUTH_DOWNLOAD_PUBLICATION)
     @GetMapping("csv")
     fun getPublicationsAsCsv(
+        @RequestParam("layoutBranch", required = false) layoutBranch: LayoutBranch?,
         @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
         @RequestParam("to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
         @RequestParam("sortBy", required = false) sortBy: PublicationTableColumn?,
@@ -172,7 +176,13 @@ class PublicationController @Autowired constructor(
         )
 
         val publicationsAsCsv = publicationService.fetchPublicationsAsCsv(
-            from, to, sortBy, order, timeZone, localizationService.getLocalization(lang)
+            layoutBranch ?: LayoutBranch.main,
+            from,
+            to,
+            sortBy,
+            order,
+            timeZone,
+            localizationService.getLocalization(lang)
         )
 
         val dateString = getDateStringForFileName(from, to, timeZone ?: ZoneId.of("UTC"))
@@ -184,6 +194,7 @@ class PublicationController @Autowired constructor(
     @PreAuthorize(AUTH_VIEW_PUBLICATION)
     @GetMapping("/table-rows")
     fun getPublicationDetailsAsTableRows(
+        @RequestParam("layoutBranch", required = false) layoutBranch: LayoutBranch?,
         @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
         @RequestParam("to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
         @RequestParam("sortBy", required = false) sortBy: PublicationTableColumn?,
@@ -200,6 +211,7 @@ class PublicationController @Autowired constructor(
         )
 
         val publications = publicationService.fetchPublicationDetails(
+            layoutBranch = layoutBranch ?: LayoutBranch.main,
             from = from,
             to = to,
             sortBy = sortBy,

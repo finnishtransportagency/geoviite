@@ -281,7 +281,7 @@ class LayoutKmPostDao(
               design_id = :design_id
             where id = :km_post_id
             returning 
-              coalesce(official_row_id, id) as official_id,
+              coalesce(official_row_id, design_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()

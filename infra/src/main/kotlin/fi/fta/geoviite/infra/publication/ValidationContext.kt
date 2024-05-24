@@ -292,7 +292,7 @@ class ValidationContext(
     )
 
     fun fetchSwitchesByName(names: List<SwitchName>): Map<SwitchName, List<IntId<TrackLayoutSwitch>>> {
-        val officialVersions = switchDao.findOfficialNameDuplicates(names)
+        val officialVersions = switchDao.findOfficialNameDuplicates(branch, names)
         cacheOfficialVersions(officialVersions.values.flatten(), switchVersionCache)
         return mapIdsByField(names, { s -> s.name }, publicationSet.switches, officialVersions, switchDao)
     }
@@ -302,7 +302,7 @@ class ValidationContext(
     )
 
     fun fetchLocationTracksByName(names: List<AlignmentName>): Map<AlignmentName, List<IntId<LocationTrack>>> {
-        val officialVersions = locationTrackDao.findOfficialNameDuplicates(names)
+        val officialVersions = locationTrackDao.findOfficialNameDuplicates(branch, names)
         cacheOfficialVersions(officialVersions.values.flatten(), locationTrackVersionCache)
         return mapIdsByField(names, { t -> t.name }, publicationSet.locationTracks, officialVersions, locationTrackDao)
     }
@@ -312,7 +312,7 @@ class ValidationContext(
     )
 
     private fun fetchTrackNumbersByNumber(numbers: List<TrackNumber>): Map<TrackNumber, List<IntId<TrackLayoutTrackNumber>>> {
-        val officialVersions = trackNumberDao.findOfficialNumberDuplicates(numbers)
+        val officialVersions = trackNumberDao.findOfficialNumberDuplicates(branch, numbers)
         cacheOfficialVersions(officialVersions.values.flatten(), trackNumberVersionCache)
         return mapIdsByField(numbers, { t -> t.number }, publicationSet.trackNumbers, officialVersions, trackNumberDao)
     }
@@ -382,7 +382,7 @@ class ValidationContext(
         ids: List<IntId<LocationTrack>>
     ): Map<IntId<LocationTrack>, List<IntId<LocationTrack>>> {
         val officialVersions = publicationDao
-            .fetchOfficialDuplicateTrackVersions(ids)
+            .fetchOfficialDuplicateTrackVersions(branch, ids)
             .mapValues { (_, versions) -> versions.filterNot { v -> publicationSet.containsLocationTrack(v.id) } }
             .also { duplicateMap -> cacheOfficialVersions(duplicateMap.values.flatten(), locationTrackVersionCache) }
         val draftTracks = publicationSet.locationTracks.map { v -> locationTrackDao.fetch(v.validatedAssetVersion) }

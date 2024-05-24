@@ -93,7 +93,10 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     @Transactional
     open fun publish(branch: LayoutBranch, version: ValidationVersion<ObjectType>): DaoResponse<ObjectType> {
         logger.serviceCall("Publish", "branch" to branch, "version" to version)
-        val versions = VersionPair(dao.fetchVersion(branch.official, version.officialId), version.validatedAssetVersion)
+        val versions = VersionPair(
+            dao.fetchOfficialRowVersionForPublishingInBranch(branch, version.validatedAssetVersion),
+            version.validatedAssetVersion
+        )
         return publishInternal(branch, versions)
     }
 

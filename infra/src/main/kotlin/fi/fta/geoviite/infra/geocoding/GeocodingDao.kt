@@ -105,14 +105,15 @@ class GeocodingDao(
                 limit 1
               ),
               kmp as (
-                select distinct on (id)
+                select distinct on (official_id)
                   id, version, state, 
                   case when deleted or state != 'IN_USE' then true else false end as hide
-                from layout.km_post_version
+                from (select *, coalesce(official_row_id, design_row_id, id) as official_id
+                      from layout.km_post_version) km_post_version
                 where track_number_id = :tn_id
                   and draft = false
                   and change_time <= :moment
-                order by id, version desc
+                order by official_id, version desc
               )
             select
               tn.id as tn_row_id,
@@ -166,7 +167,13 @@ class GeocodingDao(
             ?.validatedAssetVersion
             ?: official?.referenceLineVersion
         return if (trackNumberVersion != null && referenceLineVersion != null) {
-            val officialKmPosts = official?.kmPostVersions?.filter { v -> !versions.containsKmPost(v.id) } ?: listOf()
+            val mainOrDesignOfficialIdsWithDraftKmPosts =
+                versions.kmPosts.map { v -> kmPostDao.fetch(v.validatedAssetVersion) }.flatMap { draft ->
+                    listOfNotNull(draft.contextData.designRowId as? IntId, draft.contextData.officialRowId as? IntId)
+                }
+            val officialKmPosts =
+                official?.kmPostVersions?.filter { v -> !mainOrDesignOfficialIdsWithDraftKmPosts.contains(v.id) }
+                    ?: listOf()
             val draftKmPosts = versions.kmPosts.filter { draftPost ->
                 val draft = kmPostDao.fetch(draftPost.validatedAssetVersion)
                 draft.trackNumberId == trackNumberId && draft.state == LayoutState.IN_USE
