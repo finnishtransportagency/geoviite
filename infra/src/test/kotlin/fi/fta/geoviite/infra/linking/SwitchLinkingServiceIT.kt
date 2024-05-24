@@ -25,8 +25,8 @@ import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
-import fi.fta.geoviite.infra.publication.PublicationValidationError
-import fi.fta.geoviite.infra.publication.PublicationValidationErrorType
+import fi.fta.geoviite.infra.publication.LayoutValidationIssue
+import fi.fta.geoviite.infra.publication.LayoutValidationIssueType
 import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -991,14 +991,14 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 SwitchRelinkingValidationResult(
                     id = okSwitch.id,
                     successfulSuggestion = SwitchRelinkingSuggestion(Point(0.0, 0.0), TrackMeter("0000+0000.000")),
-                    validationErrors = listOf(),
+                    validationIssues = listOf(),
                 ),
                 SwitchRelinkingValidationResult(
                     id = okButValidationErrorSwitch.id,
                     successfulSuggestion = SwitchRelinkingSuggestion(shift1, TrackMeter("0000+0044.430")),
-                    validationErrors = listOf(
-                        PublicationValidationError(
-                            type = PublicationValidationErrorType.WARNING,
+                    validationIssues = listOf(
+                        LayoutValidationIssue(
+                            type = LayoutValidationIssueType.WARNING,
                             localizationKey = LocalizationKey("validation.layout.switch.track-linkage.switch-alignment-only-connected-to-duplicate"),
                             params = LocalizationParams(mapOf("locationTracks" to "1-3", "switch" to "ok but val"))
                         )
@@ -1007,9 +1007,9 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 SwitchRelinkingValidationResult(
                     id = unsaveableSwitch.id,
                     successfulSuggestion = null,
-                    validationErrors = listOf(
-                        PublicationValidationError(
-                            type = PublicationValidationErrorType.ERROR,
+                    validationIssues = listOf(
+                        LayoutValidationIssue(
+                            type = LayoutValidationIssueType.ERROR,
                             localizationKey = LocalizationKey("validation.layout.switch.track-linkage.relinking-failed"),
                             params = LocalizationParams(mapOf("switch" to "unsaveable"))
                         )
@@ -1137,14 +1137,14 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 SwitchRelinkingValidationResult(
                     id = okSwitch.id,
                     successfulSuggestion = SwitchRelinkingSuggestion(basePoint, TrackMeter("0000+0010.000")),
-                    validationErrors = listOf(),
+                    validationIssues = listOf(),
                 ),
                 SwitchRelinkingValidationResult(
                     id = switchSomewhereElse.id,
                     successfulSuggestion = SwitchRelinkingSuggestion(somewhereElse, TrackMeter("0000+0100.000")),
-                    validationErrors = listOf(
-                        PublicationValidationError(
-                            PublicationValidationErrorType.WARNING,
+                    validationIssues = listOf(
+                        LayoutValidationIssue(
+                            LayoutValidationIssueType.WARNING,
                             localizationKey = LocalizationKey("validation.layout.switch.track-linkage.front-joint-not-connected"),
                             params = LocalizationParams(mapOf("switch" to "somewhere else")),
                         )

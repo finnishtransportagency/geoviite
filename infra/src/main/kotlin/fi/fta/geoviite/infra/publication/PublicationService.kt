@@ -18,13 +18,13 @@ import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.roundTo1Decimal
-import fi.fta.geoviite.infra.publication.PublicationValidationErrorType.ERROR
+import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitHeader
-import fi.fta.geoviite.infra.split.SplitPublicationValidationErrors
+import fi.fta.geoviite.infra.split.SplitLayoutValidationIssues
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -157,12 +157,12 @@ class PublicationService @Autowired constructor(
         validationContext.preloadLocationTracksByTrackNumbers(trackNumberIds)
 
         return trackNumberIds.mapNotNull { id ->
-            val trackNumberErrors = validateTrackNumber(id, validationContext)
+            val trackNumberIssues = validateTrackNumber(id, validationContext)
             val referenceLineId = validationContext.getReferenceLineIdByTrackNumber(id)
-            val referenceLineErrors = referenceLineId?.let { rlId -> validateReferenceLine(rlId, validationContext) }
-            if (trackNumberErrors != null || referenceLineErrors != null) {
-                val allErrors = ((trackNumberErrors ?: emptyList()) + (referenceLineErrors ?: emptyList())).distinct()
-                ValidatedAsset(id, allErrors)
+            val referenceLineIssues = referenceLineId?.let { rlId -> validateReferenceLine(rlId, validationContext) }
+            if (trackNumberIssues != null || referenceLineIssues != null) {
+                val allIssues = ((trackNumberIssues ?: emptyList()) + (referenceLineIssues ?: emptyList())).distinct()
+                ValidatedAsset(id, allIssues)
             } else null
         }
     }
@@ -200,7 +200,7 @@ class PublicationService @Autowired constructor(
         validationContext.preloadSwitchTrackLinks(linkedSwitchIds)
 
         return trackIds.mapNotNull { id ->
-            validateLocationTrack(id, validationContext)?.let { errors -> ValidatedAsset(id, errors) }
+            validateLocationTrack(id, validationContext)?.let { issues -> ValidatedAsset(id, issues) }
         }
     }
 
@@ -227,7 +227,7 @@ class PublicationService @Autowired constructor(
         validationContext.preloadSwitchesByName(switchIds)
 
         return switchIds.mapNotNull { id ->
-            validateSwitch(id, validationContext)?.let { errors -> ValidatedAsset(id, errors) }
+            validateSwitch(id, validationContext)?.let { issues -> ValidatedAsset(id, issues) }
         }
     }
 
@@ -257,7 +257,7 @@ class PublicationService @Autowired constructor(
         )
 
         return kmPostIds.mapNotNull { id ->
-            validateKmPost(id, validationContext)?.let { errors -> ValidatedAsset(id, errors) }
+            validateKmPost(id, validationContext)?.let { issues -> ValidatedAsset(id, issues) }
         }
     }
 
@@ -306,34 +306,34 @@ class PublicationService @Autowired constructor(
         val versions = candidates.getValidationVersions(candidates.branch, splitVersions)
 
         val validationContext = createValidationContext(versions).also { ctx -> ctx.preloadByPublicationSet() }
-        val splitErrors = splitService.validateSplit(versions, validationContext, allowMultipleSplits)
+        val splitIssues = splitService.validateSplit(versions, validationContext, allowMultipleSplits)
 
         return PublicationCandidates(
             branch = candidates.branch,
             trackNumbers = candidates.trackNumbers.map { candidate ->
-                val trackNumberSplitErrors = splitErrors.trackNumbers[candidate.id] ?: emptyList()
-                val validationErrors = validateTrackNumber(candidate.id, validationContext) ?: emptyList()
-                candidate.copy(errors = trackNumberSplitErrors + validationErrors)
+                val trackNumberSplitIssues = splitIssues.trackNumbers[candidate.id] ?: emptyList()
+                val validationIssues = validateTrackNumber(candidate.id, validationContext) ?: emptyList()
+                candidate.copy(issues = trackNumberSplitIssues + validationIssues)
             },
             referenceLines = candidates.referenceLines.map { candidate ->
-                val referenceLineSplitErrors = splitErrors.referenceLines[candidate.id] ?: emptyList()
-                val validationErrors = validateReferenceLine(candidate.id, validationContext) ?: emptyList()
-                candidate.copy(errors = referenceLineSplitErrors + validationErrors)
+                val referenceLineSplitIssues = splitIssues.referenceLines[candidate.id] ?: emptyList()
+                val validationIssues = validateReferenceLine(candidate.id, validationContext) ?: emptyList()
+                candidate.copy(issues = referenceLineSplitIssues + validationIssues)
             },
             locationTracks = candidates.locationTracks.map { candidate ->
-                val locationTrackSplitErrors = splitErrors.locationTracks[candidate.id] ?: emptyList()
-                val validationErrors = validateLocationTrack(candidate.id, validationContext) ?: emptyList()
-                candidate.copy(errors = validationErrors + locationTrackSplitErrors)
+                val locationTrackSplitIssues = splitIssues.locationTracks[candidate.id] ?: emptyList()
+                val validationIssues = validateLocationTrack(candidate.id, validationContext) ?: emptyList()
+                candidate.copy(issues = validationIssues + locationTrackSplitIssues)
             },
             switches = candidates.switches.map { candidate ->
-                val switchSplitErrors = splitErrors.switches[candidate.id] ?: emptyList()
-                val validationErrors = validateSwitch(candidate.id, validationContext) ?: emptyList()
-                candidate.copy(errors = validationErrors + switchSplitErrors)
+                val switchSplitIssues = splitIssues.switches[candidate.id] ?: emptyList()
+                val validationIssues = validateSwitch(candidate.id, validationContext) ?: emptyList()
+                candidate.copy(issues = validationIssues + switchSplitIssues)
             },
             kmPosts = candidates.kmPosts.map { candidate ->
-                val kmPostSplitErrors = splitErrors.kmPosts[candidate.id] ?: emptyList()
-                val validationErrors = validateKmPost(candidate.id, validationContext) ?: emptyList()
-                candidate.copy(errors = validationErrors + kmPostSplitErrors)
+                val kmPostSplitIssues = splitIssues.kmPosts[candidate.id] ?: emptyList()
+                val validationIssues = validateKmPost(candidate.id, validationContext) ?: emptyList()
+                candidate.copy(issues = validationIssues + kmPostSplitIssues)
             },
         )
     }
@@ -491,11 +491,11 @@ class PublicationService @Autowired constructor(
 
     private inline fun <reified T> assertNoErrors(
         version: ValidationVersion<T>,
-        errors: List<PublicationValidationError>,
+        issues: List<LayoutValidationIssue>,
     ) {
-        val severeErrors = errors.filter { error -> error.type == ERROR }
-        if (severeErrors.isNotEmpty()) {
-            logger.warn("Validation errors in published ${T::class.simpleName}: item=$version errors=$severeErrors")
+        val errors = issues.filter { issue -> issue.type == ERROR }
+        if (errors.isNotEmpty()) {
+            logger.warn("Validation errors in published ${T::class.simpleName}: item=$version errors=$errors")
             throw PublicationFailureException(
                 message = "Cannot publish ${T::class.simpleName} due to validation errors: $version",
                 localizedMessageKey = "validation-failed",
@@ -503,8 +503,8 @@ class PublicationService @Autowired constructor(
         }
     }
 
-    private fun assertNoSplitErrors(errors: SplitPublicationValidationErrors) {
-        val splitErrors = errors.allErrors().filter { error -> error.type == ERROR }
+    private fun assertNoSplitErrors(issues: SplitLayoutValidationIssues) {
+        val splitErrors = issues.allIssues().filter { error -> error.type == ERROR }
 
         if (splitErrors.isNotEmpty()) {
             logger.warn("Validation errors in split: errors=$splitErrors")
@@ -571,37 +571,37 @@ class PublicationService @Autowired constructor(
     private fun validateTrackNumber(
         id: IntId<TrackLayoutTrackNumber>,
         validationContext: ValidationContext,
-    ): List<PublicationValidationError>? = validationContext.getTrackNumber(id)?.let { trackNumber ->
+    ): List<LayoutValidationIssue>? = validationContext.getTrackNumber(id)?.let { trackNumber ->
         val kmPosts = validationContext.getKmPostsByTrackNumber(id)
         val referenceLine = validationContext.getReferenceLineByTrackNumber(id)
         val locationTracks = validationContext.getLocationTracksByTrackNumber(id)
-        val fieldErrors = validateDraftTrackNumberFields(trackNumber)
-        val referenceErrors = validateTrackNumberReferences(trackNumber, referenceLine, kmPosts, locationTracks)
-        val geocodingErrors = if (trackNumber.exists && referenceLine != null) {
+        val fieldIssues = validateDraftTrackNumberFields(trackNumber)
+        val referenceIssues = validateTrackNumberReferences(trackNumber, referenceLine, kmPosts, locationTracks)
+        val geocodingIssues = if (trackNumber.exists && referenceLine != null) {
             val geocodingContextCacheKey = validationContext.getGeocodingContextCacheKey(id)
             validateGeocodingContext(geocodingContextCacheKey, VALIDATION_TRACK_NUMBER, trackNumber.number)
         } else {
             listOf()
         }
-        val duplicateNameErrors = validateTrackNumberNumberDuplication(
+        val duplicateNameIssues = validateTrackNumberNumberDuplication(
             trackNumber = trackNumber,
             duplicates = validationContext.getTrackNumbersByNumber(trackNumber.number),
         )
-        return fieldErrors + referenceErrors + geocodingErrors + duplicateNameErrors
+        return fieldIssues + referenceIssues + geocodingIssues + duplicateNameIssues
     }
 
     private fun validateKmPost(
         id: IntId<TrackLayoutKmPost>,
         context: ValidationContext,
-    ): List<PublicationValidationError>? = context.getKmPost(id)?.let { kmPost ->
+    ): List<LayoutValidationIssue>? = context.getKmPost(id)?.let { kmPost ->
         val trackNumber = kmPost.trackNumberId?.let(context::getTrackNumber)
         val trackNumberNumber = (trackNumber ?: kmPost.trackNumberId?.let(context::getDraftTrackNumber))?.number
         val referenceLine = trackNumber?.referenceLineId?.let(context::getReferenceLine)
 
-        val fieldErrors = validateDraftKmPostFields(kmPost)
-        val referenceErrors = validateKmPostReferences(kmPost, trackNumber, referenceLine, trackNumberNumber)
+        val fieldIssues = validateDraftKmPostFields(kmPost)
+        val referenceIssues = validateKmPostReferences(kmPost, trackNumber, referenceLine, trackNumberNumber)
 
-        val geocodingErrors = if (kmPost.exists && trackNumber?.exists == true && referenceLine != null) {
+        val geocodingIssues = if (kmPost.exists && trackNumber?.exists == true && referenceLine != null) {
             validateGeocodingContext(
                 context.getGeocodingContextCacheKey(kmPost.trackNumberId),
                 VALIDATION_KM_POST,
@@ -610,81 +610,81 @@ class PublicationService @Autowired constructor(
         } else {
             listOf()
         }
-        fieldErrors + referenceErrors + geocodingErrors
+        fieldIssues + referenceIssues + geocodingIssues
     }
 
     private fun validateSwitch(
         id: IntId<TrackLayoutSwitch>,
         validationContext: ValidationContext,
-    ): List<PublicationValidationError>? = validationContext.getSwitch(id)?.let { switch ->
+    ): List<LayoutValidationIssue>? = validationContext.getSwitch(id)?.let { switch ->
         val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
         val linkedTracksAndAlignments = validationContext.getSwitchTracksWithAlignments(id)
         val linkedTracks = linkedTracksAndAlignments.map(Pair<LocationTrack, *>::first)
 
-        val fieldErrors = validateDraftSwitchFields(switch)
-        val referenceErrors = validateSwitchLocationTrackLinkReferences(switch, linkedTracks)
+        val fieldIssues = validateDraftSwitchFields(switch)
+        val referenceIssues = validateSwitchLocationTrackLinkReferences(switch, linkedTracks)
 
-        val locationErrors = if (switch.exists) validateSwitchLocation(switch) else emptyList()
-        val structureErrors = locationErrors.ifEmpty {
+        val locationIssues = if (switch.exists) validateSwitchLocation(switch) else emptyList()
+        val structureIssues = locationIssues.ifEmpty {
             validateSwitchLocationTrackLinkStructure(switch, structure, linkedTracksAndAlignments)
         }
 
-        val duplicationErrors = validateSwitchNameDuplication(switch, validationContext.getSwitchesByName(switch.name))
-        return fieldErrors + referenceErrors + structureErrors + duplicationErrors
+        val duplicationIssues = validateSwitchNameDuplication(switch, validationContext.getSwitchesByName(switch.name))
+        return fieldIssues + referenceIssues + structureIssues + duplicationIssues
     }
 
     private fun validateReferenceLine(
         id: IntId<ReferenceLine>,
         validationContext: ValidationContext,
-    ): List<PublicationValidationError>? =
+    ): List<LayoutValidationIssue>? =
         validationContext.getReferenceLineWithAlignment(id)?.let { (referenceLine, alignment) ->
             val trackNumber = validationContext.getTrackNumber(referenceLine.trackNumberId)
-            val referenceErrors = validateReferenceLineReference(
+            val referenceIssues = validateReferenceLineReference(
                 referenceLine = referenceLine,
                 trackNumber = trackNumber,
                 trackNumberNumber = validationContext.getDraftTrackNumber(referenceLine.trackNumberId)?.number,
             )
-            val alignmentErrors = if (trackNumber?.exists == true) {
+            val alignmentIssues = if (trackNumber?.exists == true) {
                 validateReferenceLineAlignment(alignment)
             } else {
                 listOf()
             }
-            val geocodingErrors: List<PublicationValidationError> = if (trackNumber?.exists == true) {
+            val geocodingIssues: List<LayoutValidationIssue> = if (trackNumber?.exists == true) {
                 val contextKey = validationContext.getGeocodingContextCacheKey(referenceLine.trackNumberId)
-                val contextErrors = validateGeocodingContext(contextKey, VALIDATION_REFERENCE_LINE, trackNumber.number)
-                val addressErrors = contextKey?.let { key ->
+                val contextIssues = validateGeocodingContext(contextKey, VALIDATION_REFERENCE_LINE, trackNumber.number)
+                val addressIssues = contextKey?.let { key ->
                     val locationTracks = validationContext.getLocationTracksByTrackNumber(referenceLine.trackNumberId)
                     locationTracks.flatMap { track ->
                         validateAddressPoints(trackNumber, key, track, VALIDATION_REFERENCE_LINE)
                     }
                 } ?: listOf()
-                contextErrors + addressErrors
+                contextIssues + addressIssues
             } else {
                 listOf()
             }
 
-            return referenceErrors + alignmentErrors + geocodingErrors
+            return referenceIssues + alignmentIssues + geocodingIssues
         }
 
     private fun validateLocationTrack(
         id: IntId<LocationTrack>,
         validationContext: ValidationContext,
-    ): List<PublicationValidationError>? =
+    ): List<LayoutValidationIssue>? =
         validationContext
             .getLocationTrackWithAlignment(id)
             ?.let { (track, alignment) ->
                 val trackNumber = validationContext.getTrackNumber(track.trackNumberId)
                 val trackNumberName = (trackNumber ?: validationContext.getDraftTrackNumber(track.trackNumberId))?.number
-                val fieldErrors = validateDraftLocationTrackFields(track)
+                val fieldIssues = validateDraftLocationTrackFields(track)
 
-                val referenceErrors = validateLocationTrackReference(track, trackNumber, trackNumberName)
+                val referenceIssues = validateLocationTrackReference(track, trackNumber, trackNumberName)
                 val segmentSwitches = validationContext.getSegmentSwitches(alignment)
-                val switchSegmentErrors = validateSegmentSwitchReferences(track, segmentSwitches)
-                val topologicallyConnectedSwitchError = validateTopologicallyConnectedSwitchReferences(
+                val switchSegmentIssues = validateSegmentSwitchReferences(track, segmentSwitches)
+                val topologicallyConnectedSwitchIssues = validateTopologicallyConnectedSwitchReferences(
                     track,
                     validationContext.getTopologicallyConnectedSwitches(track),
                 )
-                val trackNetworkTopologyErrors = validationContext
+                val trackNetworkTopologyIssues = validationContext
                     .getPotentiallyAffectedSwitches(id)
                     .filter(TrackLayoutSwitch::exists)
                     .flatMap { switch ->
@@ -692,7 +692,7 @@ class PublicationService @Autowired constructor(
                         val switchTracks = validationContext.getSwitchTracksWithAlignments(switch.id as IntId)
                         validateSwitchTopologicalConnectivity(switch, structure, switchTracks, track)
                     }
-                val switchConnectivityErrors = if (track.exists) {
+                val switchConnectivityIssues = if (track.exists) {
                     validateLocationTrackSwitchConnectivity(track, alignment)
                 } else {
                     emptyList()
@@ -700,39 +700,39 @@ class PublicationService @Autowired constructor(
 
                 val duplicatesAfterPublication = validationContext.getDuplicateTracks(id)
                 val duplicateOf = track.duplicateOf?.let(validationContext::getLocationTrack)
-                // Draft-only won't be found if it's not in the publication set -> get name from draft for validation errors
+                // Draft-only won't be found if it's not in the publication set -> get name from draft for validation issue
                 val duplicateOfName = track.duplicateOf?.let(validationContext::getDraftLocationTrack)?.name
-                val duplicateErrors = validateDuplicateOfState(
+                val duplicateIssues = validateDuplicateOfState(
                     track,
                     duplicateOf,
                     duplicateOfName,
                     duplicatesAfterPublication,
                 )
 
-                val alignmentErrors = if (track.exists) validateLocationTrackAlignment(alignment) else listOf()
-                val geocodingErrors = if (track.exists && trackNumber != null) {
+                val alignmentIssues = if (track.exists) validateLocationTrackAlignment(alignment) else listOf()
+                val geocodingIssues = if (track.exists && trackNumber != null) {
                     validationContext.getGeocodingContextCacheKey(track.trackNumberId)?.let { key ->
                         validateAddressPoints(trackNumber, key, track, VALIDATION_REFERENCE_LINE)
                     } ?: listOf(noGeocodingContext(VALIDATION_LOCATION_TRACK))
                 } else listOf()
 
                 val tracksWithSameName = validationContext.getLocationTracksByName(track.name)
-                val duplicateNameErrors = validateLocationTrackNameDuplication(
+                val duplicateNameIssues = validateLocationTrackNameDuplication(
                     track,
                     trackNumberName,
                     tracksWithSameName,
                 )
 
-                (fieldErrors +
-                        referenceErrors +
-                        switchSegmentErrors +
-                        topologicallyConnectedSwitchError +
-                        duplicateErrors +
-                        alignmentErrors +
-                        geocodingErrors +
-                        duplicateNameErrors +
-                        trackNetworkTopologyErrors +
-                        switchConnectivityErrors)
+                (fieldIssues +
+                        referenceIssues +
+                        switchSegmentIssues +
+                        topologicallyConnectedSwitchIssues +
+                        duplicateIssues +
+                        alignmentIssues +
+                        geocodingIssues +
+                        duplicateNameIssues +
+                        trackNetworkTopologyIssues +
+                        switchConnectivityIssues)
             }
 
     @Transactional(readOnly = true)
@@ -1346,7 +1346,7 @@ class PublicationService @Autowired constructor(
         contextKey: GeocodingContextCacheKey,
         track: LocationTrack,
         validationTargetLocalizationPrefix: String,
-    ): List<PublicationValidationError> = if (!track.exists) {
+    ): List<LayoutValidationIssue> = if (!track.exists) {
         listOf()
     } else if (track.alignmentVersion == null) {
         throw IllegalStateException("LocationTrack in DB should have an alignment: track=$track")
@@ -1608,7 +1608,7 @@ class PublicationService @Autowired constructor(
             val nameString = match.groups[2]?.value
             val trackId = IntId<TrackLayoutTrackNumber>(Integer.parseInt(trackIdString))
             if (trackIdString != null && nameString != null) {
-                val trackNumberVersion = trackNumberDao.fetchOfficialVersion(branch, trackId)
+                val trackNumberVersion = trackNumberDao.fetchVersion(branch.official, trackId)
                 if (trackNumberVersion != null) {
                     val trackNumber = trackNumberDao.fetch(trackNumberVersion)
                     throw DuplicateLocationTrackNameInPublicationException(

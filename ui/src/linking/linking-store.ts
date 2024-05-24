@@ -60,7 +60,7 @@ export const linkingReducers = {
                 state: 'setup',
                 layoutAlignment: payload.alignment,
                 type: payload.type,
-                errors: [],
+                issues: [],
             };
         }
     },
@@ -189,7 +189,7 @@ export const linkingReducers = {
                 layoutAlignmentInterval: interval,
                 type: LinkingType.LinkingAlignment,
                 state: 'setup',
-                errors: [],
+                issues: [],
             });
         }
     },
@@ -202,7 +202,7 @@ export const linkingReducers = {
             layoutSwitch: layoutSwitch,
             location: undefined,
             state: 'preliminary',
-            errors: [],
+            issues: [],
         };
     },
     startSwitchLinking: (
@@ -214,7 +214,7 @@ export const linkingReducers = {
             type: LinkingType.LinkingSwitch,
             suggestedSwitch: payload,
             state: 'preliminary',
-            errors: [],
+            issues: [],
         };
 
         // Ensure that layout switch is not selected by accident,
@@ -241,7 +241,7 @@ export const linkingReducers = {
             type: LinkingType.LinkingKmPost,
             geometryKmPostId: geometryKmPostId,
             state: 'setup',
-            errors: [],
+            issues: [],
         };
     },
 };
@@ -343,7 +343,7 @@ function validateLinkingGeometryWithAlignment(
     return {
         ...state,
         state: canLink ? 'allSet' : 'setup',
-        errors: errors,
+        issues: errors,
     };
 }
 

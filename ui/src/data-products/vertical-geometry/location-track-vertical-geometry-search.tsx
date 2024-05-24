@@ -82,8 +82,8 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
             return Promise.resolve([]);
         }
         if (
-            hasErrors(state.committedFields, state.validationErrors, 'startTrackMeter') ||
-            hasErrors(state.committedFields, state.validationErrors, 'endTrackMeter')
+            hasErrors(state.committedFields, state.validationIssues, 'startTrackMeter') ||
+            hasErrors(state.committedFields, state.validationIssues, 'endTrackMeter')
         ) {
             return Promise.resolve(state.verticalGeometry);
         }
@@ -132,7 +132,7 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
                             onBlur={() => onCommitField('startTrackMeter')}
                             hasError={hasErrors(
                                 state.committedFields,
-                                state.validationErrors,
+                                state.validationIssues,
                                 'startTrackMeter',
                             )}
                             wide
@@ -140,7 +140,7 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
                     }
                     errors={getVisibleErrorsByProp(
                         state.committedFields,
-                        state.validationErrors,
+                        state.validationIssues,
                         'startTrackMeter',
                     ).map((error) => t(`data-products.search.${error}`))}
                 />
@@ -153,7 +153,7 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
                             onBlur={() => onCommitField('endTrackMeter')}
                             hasError={hasErrors(
                                 state.committedFields,
-                                state.validationErrors,
+                                state.validationIssues,
                                 'endTrackMeter',
                             )}
                             wide
@@ -161,7 +161,7 @@ export const LocationTrackVerticalGeometrySearch: React.FC<
                     }
                     errors={getVisibleErrorsByProp(
                         state.committedFields,
-                        state.validationErrors,
+                        state.validationIssues,
                         'endTrackMeter',
                     ).map((error) => t(`data-products.search.${error}`))}
                 />

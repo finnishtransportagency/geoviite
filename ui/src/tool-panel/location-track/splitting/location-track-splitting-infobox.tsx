@@ -162,7 +162,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
         () =>
             splittingState
                 ? validateLocationTrackSwitchRelinking(splittingState.originLocationTrack.id).then(
-                      (results) => results.filter((res) => res.validationErrors.length > 0),
+                      (results) => results.filter((res) => res.validationIssues.length > 0),
                   )
                 : Promise.resolve([]),
         [changeTimes.layoutLocationTrack, changeTimes.layoutSwitch],
@@ -256,7 +256,7 @@ const createSplitComponent = (
                 s.id === validatedSplit.split.switch.switchId,
         )?.stateCategory !== 'NOT_EXISTING';
 
-    const { split, nameErrors, descriptionErrors, switchErrors } = validatedSplit;
+    const { split, nameIssues, descriptionIssues, switchIssues } = validatedSplit;
 
     function showSplitTrackOnMap() {
         showArea(multiplyBoundingBox(boundingBoxAroundPoints([startPoint, endPoint]), 1.15));
@@ -276,9 +276,9 @@ const createSplitComponent = (
                 onRemove={split.type === 'SPLIT' ? removeSplit : undefined}
                 updateSplit={updateSplit}
                 duplicateTrackId={split.duplicateTrackId}
-                nameErrors={nameErrors}
-                descriptionErrors={descriptionErrors}
-                switchErrors={switchErrors}
+                nameIssues={nameIssues}
+                descriptionIssues={descriptionIssues}
+                switchIssues={switchIssues}
                 editingDisabled={splittingState.disabled || !switchExists || isPostingSplit}
                 deletingDisabled={splittingState.disabled || isPostingSplit}
                 nameRef={nameRef}
@@ -377,9 +377,9 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         ),
     );
     const allErrors = splitsValidated.flatMap((validated) => [
-        ...validated.descriptionErrors,
-        ...validated.nameErrors,
-        ...validated.switchErrors,
+        ...validated.descriptionIssues,
+        ...validated.nameIssues,
+        ...validated.switchIssues,
     ]);
     const anyMissingFields = allErrors.map((s) => s.reason).some(mandatoryFieldMissing);
     const anyOtherErrors = allErrors.map((s) => s.reason).some(otherError);

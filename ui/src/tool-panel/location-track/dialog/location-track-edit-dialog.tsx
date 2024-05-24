@@ -160,7 +160,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
         if (duplicate && !selectedDuplicateTrack) setSelectedDuplicateTrack(duplicate);
     }, [duplicate]);
 
-    const validTrackName = !state.validationErrors.some((e) => e.field === 'name')
+    const validTrackName = !state.validationIssues.some((e) => e.field === 'name')
         ? state.locationTrack.name
         : '';
     const trackWithSameName = ifDefined(
@@ -272,9 +272,9 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
 
     function getVisibleErrorsByProp(prop: keyof LocationTrackSaveRequest) {
         return state.allFieldsCommitted || state.committedFields.includes(prop)
-            ? state.validationErrors
-                  .filter((error) => error.field == prop)
-                  .map((error) => t(`location-track-dialog.${error.reason}`))
+            ? state.validationIssues
+                  .filter((issue) => issue.field == prop)
+                  .map((issue) => t(`location-track-dialog.${issue.reason}`))
             : [];
     }
 
@@ -408,7 +408,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
                                     saveOrConfirm();
                                 }}
                                 title={getSaveDisabledReasons(
-                                    state.validationErrors.map((e) => e.reason),
+                                    state.validationIssues.map((e) => e.reason),
                                     state.isSaving,
                                 )
                                     .map((reason) => t(`location-track-dialog.${reason}`))

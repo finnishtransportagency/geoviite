@@ -166,7 +166,7 @@ class ValidationContext(
         val draftLinks = track?.switchIds ?: emptyList()
         val officialLinks = if (track == null || track.isDraft) {
             locationTrackVersionCache
-                .get(trackId) { id -> locationTrackDao.fetchOfficialVersion(branch, id) }
+                .get(trackId) { id -> locationTrackDao.fetchVersion(branch.official, id) }
                 ?.let(locationTrackDao::fetch)?.switchIds ?: emptyList()
         } else emptyList()
         return (officialLinks + draftLinks).distinct()
@@ -404,7 +404,7 @@ private fun <T : LayoutAsset<T>> getObject(
     val version = publicationVersions
         .find { v -> v.officialId == itemId }
         ?.validatedAssetVersion
-        ?: versionCache.get(itemId) { id -> dao.fetchOfficialVersion(branch, id) }
+        ?: versionCache.get(itemId) { id -> dao.fetchVersion(branch.official, id) }
     return version?.let(dao::fetch)
 }
 
@@ -413,7 +413,7 @@ private fun <T : LayoutAsset<T>> preloadOfficialVersions(
     ids: List<IntId<T>>,
     dao: ILayoutAssetDao<T>,
     versionCache: RowVersionCache<T>,
-) = cacheOfficialVersions(dao.fetchOfficialVersions(branch, ids), versionCache)
+) = cacheOfficialVersions(dao.fetchVersions(branch.official, ids), versionCache)
 
 private fun <T : LayoutAsset<T>> cacheOfficialVersions(versions: List<RowVersion<T>>, cache: RowVersionCache<T>) {
     cache.putAll(versions.filterNot { (id) -> cache.contains(id) }.associateBy { v -> v.id })

@@ -244,7 +244,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun `Fetching official location tracks with empty id list works`() {
-        val expected = locationTrackDao.fetchOfficialVersions(LayoutBranch.main, emptyList())
+        val expected = locationTrackDao.fetchVersions(MainLayoutContext.official, emptyList())
         assertEquals(expected.size, 0)
     }
 
@@ -254,8 +254,8 @@ class LocationTrackDaoIT @Autowired constructor(
         val locationTrack1 = insertOfficialLocationTrack(tnId).rowVersion
         val locationTrack2 = insertOfficialLocationTrack(tnId).rowVersion
 
-        val expected = locationTrackDao.fetchOfficialVersions(
-            LayoutBranch.main,
+        val expected = locationTrackDao.fetchVersions(
+            MainLayoutContext.official,
             listOf(locationTrack1.id, locationTrack2.id),
         )
         assertEquals(expected.size, 2)
@@ -265,7 +265,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun `Fetching draft location tracks with empty id list works`() {
-        val expected = locationTrackDao.fetchDraftVersions(LayoutBranch.main, emptyList())
+        val expected = locationTrackDao.fetchVersions(MainLayoutContext.draft, emptyList())
         assertEquals(expected.size, 0)
     }
 
@@ -275,8 +275,8 @@ class LocationTrackDaoIT @Autowired constructor(
         val locationTrack1 = insertDraftLocationTrack(tnId).rowVersion
         val locationTrack2 = insertDraftLocationTrack(tnId).rowVersion
 
-        val expected = locationTrackDao.fetchDraftVersions(
-            LayoutBranch.main,
+        val expected = locationTrackDao.fetchVersions(
+            MainLayoutContext.draft,
             listOf(locationTrack1.id, locationTrack2.id),
         )
         assertEquals(expected.size, 2)
@@ -292,8 +292,8 @@ class LocationTrackDaoIT @Autowired constructor(
         val draftOnly = insertDraftLocationTrack(tnId).rowVersion
         val entirelyMissing = IntId<LocationTrack>(0)
 
-        val res = locationTrackDao.fetchOfficialVersions(
-            LayoutBranch.main, listOf(locationTrack1.id, locationTrack2.id, draftOnly.id, entirelyMissing)
+        val res = locationTrackDao.fetchVersions(
+            MainLayoutContext.official, listOf(locationTrack1.id, locationTrack2.id, draftOnly.id, entirelyMissing)
         )
         assertEquals(res.size, 2)
         assertContains(res, locationTrack1)

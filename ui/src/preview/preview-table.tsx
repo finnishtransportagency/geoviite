@@ -28,7 +28,7 @@ import {
 import {
     DraftChangeType,
     PublicationCandidate,
-    PublicationValidationError,
+    LayoutValidationIssue,
 } from 'publication/publication-model';
 import { ChangesBeingReverted, PreviewOperations } from 'preview/preview-view';
 import { BoundingBox } from 'model/geometry';
@@ -52,7 +52,7 @@ export type PublishableObjectId =
 export type PreviewTableEntry = {
     publishCandidate: PublicationCandidate;
     type: DraftChangeType;
-    errors: PublicationValidationError[];
+    issues: LayoutValidationIssue[];
     pendingValidation: boolean;
     boundingBox?: BoundingBox;
 } & ChangeTableEntry;
@@ -143,7 +143,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             ...tableEntry,
             publishCandidate: candidate,
             boundingBox,
-            errors: candidate.errors,
+            issues: candidate.issues,
             type: candidate.type,
             pendingValidation: candidate.pendingValidation,
         };
@@ -192,7 +192,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                             'preview-table.modified-moment',
                         )}
                         {sortableTableHeader(SortProps.USER_NAME, 'preview-table.user')}
-                        {sortableTableHeader(SortProps.ERRORS, 'preview-table.status')}
+                        {sortableTableHeader(SortProps.ISSUES, 'preview-table.status')}
                         <Th>{t('preview-table.actions')}</Th>
                     </tr>
                 </thead>

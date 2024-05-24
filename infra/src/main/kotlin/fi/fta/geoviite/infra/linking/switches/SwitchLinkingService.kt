@@ -31,8 +31,8 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
 import fi.fta.geoviite.infra.math.isSame
-import fi.fta.geoviite.infra.publication.PublicationValidationError
-import fi.fta.geoviite.infra.publication.PublicationValidationErrorType
+import fi.fta.geoviite.infra.publication.LayoutValidationIssue
+import fi.fta.geoviite.infra.publication.LayoutValidationIssueType
 import fi.fta.geoviite.infra.publication.VALIDATION_SWITCH
 import fi.fta.geoviite.infra.publication.validateSwitchLocationTrackLinkStructure
 import fi.fta.geoviite.infra.split.VALIDATION_SPLIT
@@ -283,7 +283,7 @@ class SwitchLinkingService @Autowired constructor(
         branch: LayoutBranch,
         trackId: IntId<LocationTrack>,
     ): List<SwitchRelinkingValidationResult> {
-        val trackVersion = locationTrackDao.fetchDraftVersionOrThrow(branch, trackId)
+        val trackVersion = locationTrackDao.fetchVersionOrThrow(branch.draft, trackId)
         val track = trackVersion.let(locationTrackDao::fetch)
         val alignment = track.getAlignmentVersionOrThrow().let(alignmentDao::fetch)
 
@@ -305,8 +305,8 @@ class SwitchLinkingService @Autowired constructor(
                     switchId,
                     null,
                     listOf(
-                        PublicationValidationError(
-                            PublicationValidationErrorType.ERROR,
+                        LayoutValidationIssue(
+                            LayoutValidationIssueType.ERROR,
                             "$VALIDATION_SWITCH.track-linkage.relinking-failed",
                             mapOf("switch" to switchService.getOrThrow(branch.draft, switchId).name)
                         )
@@ -375,7 +375,7 @@ class SwitchLinkingService @Autowired constructor(
         switchId: IntId<TrackLayoutSwitch>,
         originLocationTrackId: IntId<LocationTrack>,
         relevantLocationTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>,
-    ): Pair<List<PublicationValidationError>, Point> {
+    ): Pair<List<LayoutValidationIssue>, Point> {
         val changedTracks = withChangesFromLinkingSwitch(
             suggestedSwitch,
             switchId,

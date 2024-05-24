@@ -1,15 +1,17 @@
-import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
+import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
 
 export const ALIGNMENT_NAME_REGEX = /^[A-Za-zÄÖÅäöå0-9 \-_]+$/g;
 export const ALIGNMENT_NAME_MAX_LENGTH = 50;
 
-export const validateLocationTrackName = (name: string): ValidationError<{ name: string }>[] => {
+export const validateLocationTrackName = (
+    name: string,
+): FieldValidationIssue<{ name: string }>[] => {
     if (name && (!name.match(ALIGNMENT_NAME_REGEX) || name.length > ALIGNMENT_NAME_MAX_LENGTH)) {
         return [
             {
                 field: 'name',
                 reason: `invalid-name`,
-                type: ValidationErrorType.ERROR,
+                type: FieldValidationIssueType.ERROR,
             },
         ];
     } else if (name.trim() === '') {
@@ -17,7 +19,7 @@ export const validateLocationTrackName = (name: string): ValidationError<{ name:
             {
                 field: 'name',
                 reason: `mandatory-field`,
-                type: ValidationErrorType.ERROR,
+                type: FieldValidationIssueType.ERROR,
             },
         ];
     } else {
@@ -27,13 +29,13 @@ export const validateLocationTrackName = (name: string): ValidationError<{ name:
 
 export const validateLocationTrackDescriptionBase = (
     descriptionBase: string | undefined,
-): ValidationError<{ descriptionBase?: string }>[] => {
+): FieldValidationIssue<{ descriptionBase?: string }>[] => {
     return descriptionBase && (descriptionBase.length < 4 || descriptionBase.length > 256)
         ? [
               {
                   field: 'descriptionBase',
                   reason: 'invalid-description',
-                  type: ValidationErrorType.ERROR,
+                  type: FieldValidationIssueType.ERROR,
               },
           ]
         : [];

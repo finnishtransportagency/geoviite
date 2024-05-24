@@ -16,7 +16,7 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { IconColor, Icons } from 'vayla-design-lib/icon/Icon';
-import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
+import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
 import { TrackLayoutSwitchSaveRequest } from 'linking/linking-model';
 import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import {
@@ -265,7 +265,7 @@ export const SwitchEditDialog = ({
         }
     }
 
-    const validationErrors = [
+    const validationIssues = [
         ...validateSwitchName(switchName),
         ...validateSwitchStateCategory(switchStateCategory),
         ...validateSwitchStructureId(switchStructureId),
@@ -278,7 +278,7 @@ export const SwitchEditDialog = ({
 
     function getVisibleErrorsByProp(prop: keyof TrackLayoutSwitchSaveRequest) {
         if (visitedFields.includes(prop)) {
-            return validationErrors
+            return validationIssues
                 .filter((error) => error.field == prop)
                 .map(({ reason }) => t(`switch-dialog.${reason}`));
         }
@@ -324,11 +324,11 @@ export const SwitchEditDialog = ({
                             </Button>
                             <Button
                                 qa-id="save-switch-changes"
-                                disabled={validationErrors.length > 0 || isSaving}
+                                disabled={validationIssues.length > 0 || isSaving}
                                 isProcessing={isSaving}
                                 onClick={saveOrConfirm}
                                 title={getSaveDisabledReasons(
-                                    validationErrors.map((e) => e.reason),
+                                    validationIssues.map((e) => e.reason),
                                     isSaving,
                                 )
                                     .map((reason) => t(`switch-dialog.${reason}`))
@@ -526,27 +526,27 @@ export const SwitchEditDialog = ({
     );
 };
 
-function validateSwitchName(name: string): ValidationError<TrackLayoutSwitchSaveRequest>[] {
-    const errors: ValidationError<TrackLayoutSwitchSaveRequest>[] = [];
+function validateSwitchName(name: string): FieldValidationIssue<TrackLayoutSwitchSaveRequest>[] {
+    const errors: FieldValidationIssue<TrackLayoutSwitchSaveRequest>[] = [];
     if (!name) {
         errors.push({
             field: 'name',
             reason: 'mandatory-field',
-            type: ValidationErrorType.ERROR,
+            type: FieldValidationIssueType.ERROR,
         });
     }
     if (name.length > 20) {
         errors.push({
             field: 'name',
             reason: 'name-max-limit',
-            type: ValidationErrorType.ERROR,
+            type: FieldValidationIssueType.ERROR,
         });
     }
     if (!name.match(SWITCH_NAME_REGEX)) {
         errors.push({
             field: 'name',
             reason: 'invalid-name',
-            type: ValidationErrorType.ERROR,
+            type: FieldValidationIssueType.ERROR,
         });
     }
     return errors;
@@ -554,13 +554,13 @@ function validateSwitchName(name: string): ValidationError<TrackLayoutSwitchSave
 
 function validateSwitchStateCategory(
     stateCategory?: LayoutStateCategory,
-): ValidationError<TrackLayoutSwitchSaveRequest>[] {
+): FieldValidationIssue<TrackLayoutSwitchSaveRequest>[] {
     if (!stateCategory)
         return [
             {
                 field: 'stateCategory',
                 reason: 'mandatory-field',
-                type: ValidationErrorType.ERROR,
+                type: FieldValidationIssueType.ERROR,
             },
         ];
     else return [];
@@ -568,13 +568,13 @@ function validateSwitchStateCategory(
 
 function validateSwitchStructureId(
     structureId?: SwitchStructureId,
-): ValidationError<TrackLayoutSwitchSaveRequest>[] {
+): FieldValidationIssue<TrackLayoutSwitchSaveRequest>[] {
     if (!structureId)
         return [
             {
                 field: 'switchStructureId',
                 reason: 'mandatory-field',
-                type: ValidationErrorType.ERROR,
+                type: FieldValidationIssueType.ERROR,
             },
         ];
     else return [];
@@ -582,13 +582,13 @@ function validateSwitchStructureId(
 
 function validateSwitchOwnerId(
     ownerId?: SwitchStructureId,
-): ValidationError<TrackLayoutSwitchSaveRequest>[] {
+): FieldValidationIssue<TrackLayoutSwitchSaveRequest>[] {
     if (!ownerId)
         return [
             {
                 field: 'ownerId',
                 reason: 'mandatory-field',
-                type: ValidationErrorType.ERROR,
+                type: FieldValidationIssueType.ERROR,
             },
         ];
     else return [];
