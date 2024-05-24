@@ -453,18 +453,13 @@ class LayoutSwitchDao(
               location_track.row_id,
               location_track.row_version,
               location_track.external_id
-            from layout.segment_version
-              inner join layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
-                location_track on location_track.alignment_id = segment_version.alignment_id
-                  and location_track.alignment_version = segment_version.alignment_version
-            where (segment_version.switch_id in (:switch_ids) 
-                or location_track.topology_start_switch_id in (:switch_ids)
-                or location_track.topology_end_switch_id in (:switch_ids)
-              )
-            group by 
-              location_track.row_id, 
-              location_track.row_version, 
-              location_track.external_id
+            from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) location_track
+            where location_track.topology_start_switch_id in (:switch_ids)
+              or location_track.topology_end_switch_id in (:switch_ids)
+              or exists (select * from layout.segment_version sv
+                           where sv.switch_id in (:switch_ids)
+                             and sv.alignment_id = location_track.alignment_id
+                             and sv.alignment_version = location_track.alignment_version)
         """.trimIndent()
         val params = mapOf(
             "switch_ids" to switchIds.map { it.intValue },
