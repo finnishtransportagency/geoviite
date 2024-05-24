@@ -9,8 +9,8 @@ import { filterNotEmpty } from 'utils/array-utils';
 import {
     isPropEditFieldCommitted,
     PropEdit,
-    ValidationError,
-    ValidationErrorType,
+    FieldValidationIssue,
+    FieldValidationIssueType,
 } from 'utils/validation-utils';
 import { ZERO_TRACK_METER } from 'common/common-model';
 import { formatTrackMeter } from 'utils/geography-utils';
@@ -40,7 +40,7 @@ export type TrackNumberEditState = {
     inEditReferenceLine: LayoutReferenceLine | undefined;
     existingTrackNumbers: LayoutTrackNumber[];
     request: TrackNumberSaveRequest;
-    validationErrors: ValidationError<TrackNumberSaveRequest>[];
+    validationIssues: FieldValidationIssue<TrackNumberSaveRequest>[];
     committedFields: (keyof TrackNumberSaveRequest)[];
 };
 
@@ -59,25 +59,25 @@ export function initialTrackNumberEditState(
             state: existingTrackNumber?.state || 'IN_USE',
             startAddress: formatTrackMeter(existingReferenceLine?.startAddress || ZERO_TRACK_METER),
         },
-        validationErrors: [],
+        validationIssues: [],
         committedFields: [],
     };
     return {
         ...state,
-        validationErrors: validateTrackNumberEdit(state),
+        validationIssues: validateTrackNumberEdit(state),
     };
 }
 
 function validateTrackNumberEdit(
     state: TrackNumberEditState,
-): ValidationError<TrackNumberSaveRequest>[] {
+): FieldValidationIssue<TrackNumberSaveRequest>[] {
     const mandatoryFieldErrors = ['number', 'description', 'state', 'startAddress'].map(
         (prop: keyof TrackNumberSaveRequest) => {
             if (isNilOrBlank(state.request[prop])) {
                 return {
                     field: prop,
                     reason: `mandatory-field-${prop}`,
-                    type: ValidationErrorType.ERROR,
+                    type: FieldValidationIssueType.ERROR,
                 };
             }
         },
@@ -88,7 +88,7 @@ function validateTrackNumberEdit(
             ? {
                   field: validation.field,
                   reason: `invalid-${validation.field}`,
-                  type: ValidationErrorType.ERROR,
+                  type: FieldValidationIssueType.ERROR,
               }
             : undefined;
     });
@@ -100,7 +100,7 @@ function validateTrackNumberEdit(
             ? {
                   field: 'number' as keyof TrackNumberSaveRequest,
                   reason: 'duplicate-number',
-                  type: ValidationErrorType.ERROR,
+                  type: FieldValidationIssueType.ERROR,
               }
             : undefined,
     ];
@@ -116,9 +116,9 @@ const trackNumberEditSlice = createSlice({
             { payload: propEdit }: PayloadAction<PropEdit<TrackNumberSaveRequest, TKey>>,
         ) {
             state.request[propEdit.key] = propEdit.value;
-            state.validationErrors = validateTrackNumberEdit(state);
+            state.validationIssues = validateTrackNumberEdit(state);
 
-            if (isPropEditFieldCommitted(propEdit, state.committedFields, state.validationErrors)) {
+            if (isPropEditFieldCommitted(propEdit, state.committedFields, state.validationIssues)) {
                 // Valid value entered for a field, mark that field as committed
                 state.committedFields = [...state.committedFields, propEdit.key];
             }
@@ -140,9 +140,9 @@ const trackNumberEditSlice = createSlice({
 export function getErrors(
     state: TrackNumberEditState,
     key: keyof TrackNumberSaveRequest,
-): ValidationError<TrackNumberSaveRequest>[] {
+): FieldValidationIssue<TrackNumberSaveRequest>[] {
     return state.committedFields.includes(key)
-        ? state.validationErrors.filter((e) => e.field == key)
+        ? state.validationIssues.filter((e) => e.field == key)
         : [];
 }
 

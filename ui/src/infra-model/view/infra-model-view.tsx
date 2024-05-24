@@ -11,11 +11,11 @@ import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Dialog } from 'geoviite-design-lib/dialog/dialog';
 import { Prop } from 'utils/type-utils';
-import { ValidationErrorType } from 'utils/validation-utils';
+import { FieldValidationIssueType } from 'utils/validation-utils';
 import { useTranslation } from 'react-i18next';
 import { FileMenuOption, InfraModelToolbar } from 'infra-model/view/infra-model-toolbar';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
-import InfraModelValidationErrorList from 'infra-model/view/infra-model-validation-error-list';
+import InfraModelValidationIssueList from 'infra-model/view/infra-model-validation-issue-list';
 import { ChangeTimes } from 'common/common-slice';
 import { Item } from 'vayla-design-lib/dropdown/dropdown';
 import { CharsetSelectDialog } from './dialogs/charset-select-dialog';
@@ -77,18 +77,22 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
             .map((item) => item.localizationKey) || [];
 
     const getFieldValidationWarnings = () => {
-        return props.validationErrors.filter((error) => error.type === ValidationErrorType.WARNING);
+        return props.validationIssues.filter(
+            (error) => error.type === FieldValidationIssueType.WARNING,
+        );
     };
 
-    const getFieldValidationErrors = () => {
-        return props.validationErrors.filter((error) => error.type === ValidationErrorType.ERROR);
+    const getFieldValidationIssues = () => {
+        return props.validationIssues.filter(
+            (error) => error.type === FieldValidationIssueType.ERROR,
+        );
     };
 
     const getVisibleErrors = () => {
-        const fieldValidationErrors = getFieldValidationErrors().map((error) =>
+        const fieldValidationIssues = getFieldValidationIssues().map((error) =>
             t(`im-form.${error.reason}`),
         );
-        return fieldValidationErrors.length > 0 ? fieldValidationErrors.join(', ') : '';
+        return fieldValidationIssues.length > 0 ? fieldValidationIssues.join(', ') : '';
     };
 
     const fileName = geometryPlan?.fileName || '';
@@ -107,7 +111,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                     {geometryPlan && (
                         <InfraModelForm
                             changeTimes={props.changeTimes}
-                            validationErrors={props.validationErrors}
+                            validationIssues={props.validationIssues}
                             upLoading={props.isLoading}
                             geometryPlan={geometryPlan}
                             onInfraModelOverrideParametersChange={props.onOverrideParametersChange}
@@ -120,7 +124,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                 </div>
 
                 {props.validationResponse && (
-                    <InfraModelValidationErrorList validationResponse={props.validationResponse} />
+                    <InfraModelValidationIssueList validationResponse={props.validationResponse} />
                 )}
 
                 <div className={styles['infra-model-upload__buttons-container']}>
@@ -150,7 +154,7 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
                                 props.isLoading ||
                                 !props.validationResponse ||
                                 fileHandlingFailedErrors.length > 0 ||
-                                getFieldValidationErrors().length > 0
+                                getFieldValidationIssues().length > 0
                             }
                             icon={Icons.Tick}
                             isProcessing={props.isLoading}>

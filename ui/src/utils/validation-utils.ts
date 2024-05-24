@@ -1,15 +1,15 @@
 import { TOptions } from 'i18next';
 import { filterNotEmpty } from 'utils/array-utils';
 
-export enum ValidationErrorType {
+export enum FieldValidationIssueType {
     WARNING = 'WARNING',
     ERROR = 'ERROR',
 }
 
-export type ValidationError<TEntity> = {
+export type FieldValidationIssue<TEntity> = {
     field: keyof TEntity;
     reason: string;
-    type: ValidationErrorType;
+    type: FieldValidationIssueType;
     params?: TOptions;
 };
 
@@ -27,12 +27,12 @@ const OID_REGEX = /^\d+(\.\d+){2,9}$/g;
 export function isPropEditFieldCommitted<T, TKey extends keyof T>(
     propEdit: PropEdit<T, TKey>,
     committedFields: TKey[],
-    validationErrors: ValidationError<T>[],
+    validationIssues: FieldValidationIssue<T>[],
 ) {
     return (
         propEdit.editingExistingValue ||
         (!committedFields.includes(propEdit.key) &&
-            !validationErrors.some((error) => error.field == propEdit.key))
+            !validationIssues.some((error) => error.field == propEdit.key))
     );
 }
 
@@ -49,5 +49,5 @@ export function validateOid(oid: string): string[] {
     ].filter(filterNotEmpty);
 }
 
-export const validate = <T>(isValid: boolean, error: ValidationError<T>) =>
+export const validate = <T>(isValid: boolean, error: FieldValidationIssue<T>) =>
     isValid ? undefined : error;

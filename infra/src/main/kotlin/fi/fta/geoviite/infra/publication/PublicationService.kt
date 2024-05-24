@@ -18,13 +18,13 @@ import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.roundTo1Decimal
-import fi.fta.geoviite.infra.publication.PublicationValidationErrorType.ERROR
+import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitHeader
-import fi.fta.geoviite.infra.split.SplitPublicationValidationErrors
+import fi.fta.geoviite.infra.split.SplitLayoutValidationIssues
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -306,34 +306,34 @@ class PublicationService @Autowired constructor(
         val versions = candidates.getValidationVersions(candidates.branch, splitVersions)
 
         val validationContext = createValidationContext(versions).also { ctx -> ctx.preloadByPublicationSet() }
-        val splitErrors = splitService.validateSplit(versions, validationContext, allowMultipleSplits)
+        val splitIssues = splitService.validateSplit(versions, validationContext, allowMultipleSplits)
 
         return PublicationCandidates(
             branch = candidates.branch,
             trackNumbers = candidates.trackNumbers.map { candidate ->
-                val trackNumberSplitErrors = splitErrors.trackNumbers[candidate.id] ?: emptyList()
-                val validationErrors = validateTrackNumber(candidate.id, validationContext) ?: emptyList()
-                candidate.copy(errors = trackNumberSplitErrors + validationErrors)
+                val trackNumberSplitIssues = splitIssues.trackNumbers[candidate.id] ?: emptyList()
+                val validationIssues = validateTrackNumber(candidate.id, validationContext) ?: emptyList()
+                candidate.copy(issues = trackNumberSplitIssues + validationIssues)
             },
             referenceLines = candidates.referenceLines.map { candidate ->
-                val referenceLineSplitErrors = splitErrors.referenceLines[candidate.id] ?: emptyList()
-                val validationErrors = validateReferenceLine(candidate.id, validationContext) ?: emptyList()
-                candidate.copy(errors = referenceLineSplitErrors + validationErrors)
+                val referenceLineSplitIssues = splitIssues.referenceLines[candidate.id] ?: emptyList()
+                val validationIssues = validateReferenceLine(candidate.id, validationContext) ?: emptyList()
+                candidate.copy(issues = referenceLineSplitIssues + validationIssues)
             },
             locationTracks = candidates.locationTracks.map { candidate ->
-                val locationTrackSplitErrors = splitErrors.locationTracks[candidate.id] ?: emptyList()
-                val validationErrors = validateLocationTrack(candidate.id, validationContext) ?: emptyList()
-                candidate.copy(errors = validationErrors + locationTrackSplitErrors)
+                val locationTrackSplitIssues = splitIssues.locationTracks[candidate.id] ?: emptyList()
+                val validationIssues = validateLocationTrack(candidate.id, validationContext) ?: emptyList()
+                candidate.copy(issues = validationIssues + locationTrackSplitIssues)
             },
             switches = candidates.switches.map { candidate ->
-                val switchSplitErrors = splitErrors.switches[candidate.id] ?: emptyList()
-                val validationErrors = validateSwitch(candidate.id, validationContext) ?: emptyList()
-                candidate.copy(errors = validationErrors + switchSplitErrors)
+                val switchSplitIssues = splitIssues.switches[candidate.id] ?: emptyList()
+                val validationIssues = validateSwitch(candidate.id, validationContext) ?: emptyList()
+                candidate.copy(issues = validationIssues + switchSplitIssues)
             },
             kmPosts = candidates.kmPosts.map { candidate ->
-                val kmPostSplitErrors = splitErrors.kmPosts[candidate.id] ?: emptyList()
-                val validationErrors = validateKmPost(candidate.id, validationContext) ?: emptyList()
-                candidate.copy(errors = validationErrors + kmPostSplitErrors)
+                val kmPostSplitIssues = splitIssues.kmPosts[candidate.id] ?: emptyList()
+                val validationIssues = validateKmPost(candidate.id, validationContext) ?: emptyList()
+                candidate.copy(issues = validationIssues + kmPostSplitIssues)
             },
         )
     }
@@ -491,7 +491,7 @@ class PublicationService @Autowired constructor(
 
     private inline fun <reified T> assertNoErrors(
         version: ValidationVersion<T>,
-        errors: List<PublicationValidationError>,
+        errors: List<LayoutValidationIssue>,
     ) {
         val severeErrors = errors.filter { error -> error.type == ERROR }
         if (severeErrors.isNotEmpty()) {
@@ -503,7 +503,7 @@ class PublicationService @Autowired constructor(
         }
     }
 
-    private fun assertNoSplitErrors(errors: SplitPublicationValidationErrors) {
+    private fun assertNoSplitErrors(errors: SplitLayoutValidationIssues) {
         val splitErrors = errors.allErrors().filter { error -> error.type == ERROR }
 
         if (splitErrors.isNotEmpty()) {
@@ -571,7 +571,7 @@ class PublicationService @Autowired constructor(
     private fun validateTrackNumber(
         id: IntId<TrackLayoutTrackNumber>,
         validationContext: ValidationContext,
-    ): List<PublicationValidationError>? = validationContext.getTrackNumber(id)?.let { trackNumber ->
+    ): List<LayoutValidationIssue>? = validationContext.getTrackNumber(id)?.let { trackNumber ->
         val kmPosts = validationContext.getKmPostsByTrackNumber(id)
         val referenceLine = validationContext.getReferenceLineByTrackNumber(id)
         val locationTracks = validationContext.getLocationTracksByTrackNumber(id)
@@ -593,7 +593,7 @@ class PublicationService @Autowired constructor(
     private fun validateKmPost(
         id: IntId<TrackLayoutKmPost>,
         context: ValidationContext,
-    ): List<PublicationValidationError>? = context.getKmPost(id)?.let { kmPost ->
+    ): List<LayoutValidationIssue>? = context.getKmPost(id)?.let { kmPost ->
         val trackNumber = kmPost.trackNumberId?.let(context::getTrackNumber)
         val trackNumberNumber = (trackNumber ?: kmPost.trackNumberId?.let(context::getDraftTrackNumber))?.number
         val referenceLine = trackNumber?.referenceLineId?.let(context::getReferenceLine)
@@ -616,7 +616,7 @@ class PublicationService @Autowired constructor(
     private fun validateSwitch(
         id: IntId<TrackLayoutSwitch>,
         validationContext: ValidationContext,
-    ): List<PublicationValidationError>? = validationContext.getSwitch(id)?.let { switch ->
+    ): List<LayoutValidationIssue>? = validationContext.getSwitch(id)?.let { switch ->
         val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
         val linkedTracksAndAlignments = validationContext.getSwitchTracksWithAlignments(id)
         val linkedTracks = linkedTracksAndAlignments.map(Pair<LocationTrack, *>::first)
@@ -636,7 +636,7 @@ class PublicationService @Autowired constructor(
     private fun validateReferenceLine(
         id: IntId<ReferenceLine>,
         validationContext: ValidationContext,
-    ): List<PublicationValidationError>? =
+    ): List<LayoutValidationIssue>? =
         validationContext.getReferenceLineWithAlignment(id)?.let { (referenceLine, alignment) ->
             val trackNumber = validationContext.getTrackNumber(referenceLine.trackNumberId)
             val referenceErrors = validateReferenceLineReference(
@@ -649,7 +649,7 @@ class PublicationService @Autowired constructor(
             } else {
                 listOf()
             }
-            val geocodingErrors: List<PublicationValidationError> = if (trackNumber?.exists == true) {
+            val geocodingErrors: List<LayoutValidationIssue> = if (trackNumber?.exists == true) {
                 val contextKey = validationContext.getGeocodingContextCacheKey(referenceLine.trackNumberId)
                 val contextErrors = validateGeocodingContext(contextKey, VALIDATION_REFERENCE_LINE, trackNumber.number)
                 val addressErrors = contextKey?.let { key ->
@@ -669,7 +669,7 @@ class PublicationService @Autowired constructor(
     private fun validateLocationTrack(
         id: IntId<LocationTrack>,
         validationContext: ValidationContext,
-    ): List<PublicationValidationError>? =
+    ): List<LayoutValidationIssue>? =
         validationContext
             .getLocationTrackWithAlignment(id)
             ?.let { (track, alignment) ->
@@ -1346,7 +1346,7 @@ class PublicationService @Autowired constructor(
         contextKey: GeocodingContextCacheKey,
         track: LocationTrack,
         validationTargetLocalizationPrefix: String,
-    ): List<PublicationValidationError> = if (!track.exists) {
+    ): List<LayoutValidationIssue> = if (!track.exists) {
         listOf()
     } else if (track.alignmentVersion == null) {
         throw IllegalStateException("LocationTrack in DB should have an alignment: track=$track")

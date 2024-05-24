@@ -183,9 +183,9 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
 
     function getVisibleErrorsByProp(prop: keyof KmPostSaveRequest) {
         return state.allFieldsCommitted || state.committedFields.includes(prop)
-            ? state.validationErrors
-                  .filter((error) => error.field == prop)
-                  .map((error) => t(`km-post-dialog.${error.reason}`))
+            ? state.validationIssues
+                  .filter((issue) => issue.field == prop)
+                  .map((issue) => t(`km-post-dialog.${issue.reason}`))
             : [];
     }
 
@@ -249,7 +249,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                                     isProcessing={state.isSaving}
                                     onClick={() => saveOrConfirm()}
                                     title={getSaveDisabledReasons(
-                                        state.validationErrors.map((e) => e.reason),
+                                        state.validationIssues.map((e) => e.reason),
                                         state.isSaving,
                                     )
                                         .map((reason) => t(`km-post-dialog.${reason}`))

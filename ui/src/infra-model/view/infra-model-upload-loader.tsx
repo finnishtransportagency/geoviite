@@ -2,7 +2,7 @@ import React from 'react';
 import styles from './form/infra-model-form.module.scss';
 import { InfraModelBaseProps, InfraModelView } from 'infra-model/view/infra-model-view';
 import {
-    getValidationErrorsForInfraModelFile,
+    getGeometryValidationIssuesForInfraModelFile,
     saveInfraModelFile,
 } from 'infra-model/infra-model-api';
 import { convertToNativeFile, SerializableFile } from 'utils/file-utils';
@@ -35,7 +35,9 @@ export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ 
     const onValidate: () => void = async () => {
         if (file) {
             props.setLoading(true);
-            props.onValidation(await getValidationErrorsForInfraModelFile(file, overrideParams));
+            props.onValidation(
+                await getGeometryValidationIssuesForInfraModelFile(file, overrideParams),
+            );
             props.setLoading(false);
         }
     };

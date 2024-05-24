@@ -36,7 +36,7 @@ class ValidationTest {
         val alignment = geometryAlignment(
             elements = lines(Point(1.0, 2.0), 1, 12.34, 1.0)
         )
-        assertValidationErrors(
+        assertGeometryValidationIssues(
             validateAlignmentGeometry(alignment),
             listOf("$VALIDATION_ELEMENT.field-incorrect-length"),
         )
@@ -45,7 +45,7 @@ class ValidationTest {
     @Test
     fun validationFindsNonContinuousLine() {
         val lines = lines(Point(1.0, 2.0), 3, 12.34).filterIndexed { i, _ -> i % 2 == 0 }
-        assertValidationErrors(
+        assertGeometryValidationIssues(
             validateAlignmentGeometry(geometryAlignment(elements = lines)),
             listOf("$VALIDATION_ELEMENT.coordinates-not-continuous")
         )
@@ -56,7 +56,7 @@ class ValidationTest {
         val alignment = geometryAlignment(
             elements = lines(Point(1.0, 2.0), 1, 12.34, 1.0)
         )
-        assertValidationErrors(
+        assertGeometryValidationIssues(
             validateAlignmentCant(alignment),
             listOf("$VALIDATION_ALIGNMENT.no-cant"),
         )
@@ -68,7 +68,7 @@ class ValidationTest {
             elements = lines(Point(1.0, 2.0), 1, 12.34, 1.0),
             profile = null,
         )
-        assertValidationErrors(
+        assertGeometryValidationIssues(
             validateAlignmentProfile(alignment),
             listOf("$VALIDATION_ALIGNMENT.no-profile"),
         )
@@ -92,7 +92,7 @@ class ValidationTest {
             viPoint(3.0, 0.04),
         )
         val alignment = geometryAlignment(profile = profile(points))
-        assertValidationErrors(
+        assertGeometryValidationIssues(
             validateAlignmentProfile(alignment),
             listOf("$VALIDATION_PROFILE.incorrect-station", "$VALIDATION_PROFILE.calculation-failed"),
         )
@@ -105,7 +105,7 @@ class ValidationTest {
             viPoint(2.0, 2.0),
         )
         val alignment = geometryAlignment(profile = profile(points))
-        assertValidationErrors(
+        assertGeometryValidationIssues(
             validateAlignmentProfile(alignment),
             listOf("$VALIDATION_PROFILE.incorrect-slope"),
         )
@@ -130,7 +130,7 @@ class ValidationTest {
             cantPoint(3.0, 0.3, CCW),
         )
         val alignment = geometryAlignment(cant = cant(points))
-        assertValidationErrors(
+        assertGeometryValidationIssues(
             validateAlignmentCant(alignment),
             listOf("$VALIDATION_CANT.station-not-continuous"),
         )
@@ -150,7 +150,7 @@ class ValidationTest {
             featureTypeCode = FeatureTypeCode("281"), // cant should exist on tracks
         )
 
-        assertValidationErrors(
+        assertGeometryValidationIssues(
             validateAlignmentCant(alignment),
             listOf("$VALIDATION_ALIGNMENT.cant-rotation-point-undefined"),
         )
@@ -164,7 +164,7 @@ class ValidationTest {
             cantPoint(3.0, 0.3, CCW),
         )
         val alignment = geometryAlignment(cant = cant(points))
-        assertValidationErrors(
+        assertGeometryValidationIssues(
             validateAlignmentCant(alignment),
             listOf("$VALIDATION_CANT.value-incorrect"),
         )
@@ -201,7 +201,7 @@ class ValidationTest {
         val alignmentSwitches = alignments.mapNotNull { alignment ->
             collectAlignmentSwitchJoints(invalidSwitch.id, alignment)
         }
-        assertValidationErrors(
+        assertGeometryValidationIssues(
             validateSwitch(invalidSwitch, yvStructure, alignmentSwitches),
             listOf("$VALIDATION_SWITCH.incorrect-joint-locations"),
         )
@@ -226,13 +226,13 @@ class ValidationTest {
         val alignmentSwitches = alignments.mapNotNull { alignment ->
             collectAlignmentSwitchJoints(inaccurateSwitch.id, alignment)
         }
-        assertValidationErrors(
+        assertGeometryValidationIssues(
             validateSwitch(inaccurateSwitch, yvStructure, alignmentSwitches),
             listOf("$VALIDATION_SWITCH.inaccurate-joint-locations"),
         )
     }
 
-    private fun assertValidationErrors(
+    private fun assertGeometryValidationIssues(
         errors: List<GeometryValidationIssue>,
         keyParts: List<String>
     ) {

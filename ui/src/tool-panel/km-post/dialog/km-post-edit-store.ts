@@ -4,8 +4,8 @@ import { LayoutKmPost, LayoutTrackNumberId } from 'track-layout/track-layout-mod
 import {
     isPropEditFieldCommitted,
     PropEdit,
-    ValidationError,
-    ValidationErrorType,
+    FieldValidationIssue,
+    FieldValidationIssueType,
 } from 'utils/validation-utils';
 import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
@@ -16,7 +16,7 @@ export type KmPostEditState = {
     trackNumberKmPost?: LayoutKmPost;
     kmPost: KmPostSaveRequest;
     isSaving: boolean;
-    validationErrors: ValidationError<KmPostSaveRequest>[];
+    validationIssues: FieldValidationIssue<KmPostSaveRequest>[];
     committedFields: (keyof KmPostSaveRequest)[];
     allFieldsCommitted: boolean;
 };
@@ -28,7 +28,7 @@ export const initialKmPostEditState: KmPostEditState = {
         kmNumber: '',
     },
     isSaving: false,
-    validationErrors: [],
+    validationIssues: [],
     committedFields: [],
     allFieldsCommitted: false,
 };
@@ -41,7 +41,7 @@ function newLinkingKmPost(trackNumberId: LayoutTrackNumberId | undefined): KmPos
     };
 }
 
-function validateLinkingKmPost(state: KmPostEditState): ValidationError<KmPostSaveRequest>[] {
+function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmPostSaveRequest>[] {
     let errors = [
         ...['kmNumber', 'state', 'trackNumberId']
             .map((prop: keyof KmPostSaveRequest) => {
@@ -49,7 +49,7 @@ function validateLinkingKmPost(state: KmPostEditState): ValidationError<KmPostSa
                     return {
                         field: prop,
                         reason: 'mandatory-field',
-                        type: ValidationErrorType.ERROR,
+                        type: FieldValidationIssueType.ERROR,
                     };
                 }
             })
@@ -69,23 +69,23 @@ function validateLinkingKmPost(state: KmPostEditState): ValidationError<KmPostSa
     return errors;
 }
 
-function getKmNumberDoesntMatchRegExpError(): ValidationError<KmPostSaveRequest>[] {
+function getKmNumberDoesntMatchRegExpError(): FieldValidationIssue<KmPostSaveRequest>[] {
     return [
         {
             field: 'kmNumber',
             reason: 'km-post-regexp',
-            type: ValidationErrorType.ERROR,
+            type: FieldValidationIssueType.ERROR,
         },
     ];
 }
 
-function getErrorForKmPostExistsOnTrack(): ValidationError<KmPostSaveRequest>[] {
+function getErrorForKmPostExistsOnTrack(): FieldValidationIssue<KmPostSaveRequest>[] {
     return [
         ...['kmNumber'].map((prop: keyof KmPostSaveRequest) => {
             return {
                 field: prop,
                 reason: 'km-number-already-in-use',
-                type: ValidationErrorType.ERROR,
+                type: FieldValidationIssueType.ERROR,
             };
         }),
     ];
@@ -102,7 +102,7 @@ const kmPostEditSlice = createSlice({
         ): void => {
             state.isNewKmPost = true;
             state.kmPost = newLinkingKmPost(trackNumberId);
-            state.validationErrors = validateLinkingKmPost(state);
+            state.validationIssues = validateLinkingKmPost(state);
         },
         onKmPostLoaded: (
             state: KmPostEditState,
@@ -110,7 +110,7 @@ const kmPostEditSlice = createSlice({
         ): void => {
             state.existingKmPost = existingKmPost;
             state.kmPost = existingKmPost;
-            state.validationErrors = validateLinkingKmPost(state);
+            state.validationIssues = validateLinkingKmPost(state);
         },
         onUpdateProp: function <TKey extends keyof KmPostSaveRequest>(
             state: KmPostEditState,
@@ -118,13 +118,13 @@ const kmPostEditSlice = createSlice({
         ) {
             if (state.kmPost) {
                 state.kmPost[propEdit.key] = propEdit.value;
-                state.validationErrors = validateLinkingKmPost(state);
+                state.validationIssues = validateLinkingKmPost(state);
 
                 if (
                     isPropEditFieldCommitted(
                         propEdit,
                         state.committedFields,
-                        state.validationErrors,
+                        state.validationIssues,
                     )
                 ) {
                     // Valid value entered for a field, mark that field as committed
@@ -146,7 +146,7 @@ const kmPostEditSlice = createSlice({
         },
         validate: (state: KmPostEditState): void => {
             if (state.kmPost) {
-                state.validationErrors = validateLinkingKmPost(state);
+                state.validationIssues = validateLinkingKmPost(state);
                 state.allFieldsCommitted = true;
             }
         },
@@ -155,13 +155,13 @@ const kmPostEditSlice = createSlice({
             { payload: tnKmPost }: PayloadAction<LayoutKmPost | undefined>,
         ): void => {
             state.trackNumberKmPost = tnKmPost;
-            state.validationErrors = validateLinkingKmPost(state);
+            state.validationIssues = validateLinkingKmPost(state);
         },
     },
 });
 
 export function canSaveKmPost(state: KmPostEditState): boolean {
-    return !!(state.kmPost && !state.validationErrors.length && !state.isSaving);
+    return !!(state.kmPost && !state.validationIssues.length && !state.isSaving);
 }
 
 export function isValidKmNumber(kmNumber: string): boolean {

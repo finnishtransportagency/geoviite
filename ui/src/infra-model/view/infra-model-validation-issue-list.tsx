@@ -9,7 +9,7 @@ import {
 } from 'infra-model/infra-model-slice';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
-type InframodelValidationErrorListProps = {
+type InframodelValidationIssueListProps = {
     validationResponse?: ValidationResponse;
 };
 
@@ -40,9 +40,9 @@ const createErrorRow = (issueType: GeometryValidationIssueType, message: string,
     );
 };
 
-const InfraModelValidationErrorList: React.FC<InframodelValidationErrorListProps> = ({
+const InfraModelValidationIssueList: React.FC<InframodelValidationIssueListProps> = ({
     validationResponse,
-}: InframodelValidationErrorListProps) => {
+}: InframodelValidationIssueListProps) => {
     const { t } = useTranslation();
     const errorListDiv = (errorList: ValidationResponse) => {
         const errors = errorList.geometryValidationIssues.filter(
@@ -115,4 +115,4 @@ const InfraModelValidationErrorList: React.FC<InframodelValidationErrorListProps
     );
 };
 
-export default InfraModelValidationErrorList;
+export default InfraModelValidationIssueList;

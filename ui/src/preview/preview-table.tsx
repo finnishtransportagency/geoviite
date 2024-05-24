@@ -28,7 +28,7 @@ import {
 import {
     DraftChangeType,
     PublicationCandidate,
-    PublicationValidationError,
+    LayoutValidationIssue,
 } from 'publication/publication-model';
 import { ChangesBeingReverted, PreviewOperations } from 'preview/preview-view';
 import { BoundingBox } from 'model/geometry';
@@ -52,7 +52,7 @@ export type PublishableObjectId =
 export type PreviewTableEntry = {
     publishCandidate: PublicationCandidate;
     type: DraftChangeType;
-    errors: PublicationValidationError[];
+    errors: LayoutValidationIssue[];
     pendingValidation: boolean;
     boundingBox?: BoundingBox;
 } & ChangeTableEntry;

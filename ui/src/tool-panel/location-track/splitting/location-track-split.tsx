@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
+import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
 import styles from 'tool-panel/location-track/location-track-infobox.scss';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
@@ -50,9 +50,9 @@ type SplitProps = CommonProps & {
     onRemove?: (switchId: LayoutSwitchId) => void;
     updateSplit: (updateSplit: SplitTargetCandidate | FirstSplitTargetCandidate) => void;
     duplicateTrackId: LocationTrackId | undefined;
-    nameErrors: ValidationError<SplitTargetCandidate>[];
-    descriptionErrors: ValidationError<SplitTargetCandidate>[];
-    switchErrors: ValidationError<SplitTargetCandidate>[];
+    nameErrors: FieldValidationIssue<SplitTargetCandidate>[];
+    descriptionErrors: FieldValidationIssue<SplitTargetCandidate>[];
+    switchErrors: FieldValidationIssue<SplitTargetCandidate>[];
     nameRef: React.RefObject<HTMLInputElement>;
     descriptionBaseRef: React.RefObject<HTMLInputElement>;
     deletingDisabled: boolean;
@@ -383,7 +383,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             className={createClassName(
                                 styles['location-track-infobox__split-switch-error-msg'],
                                 styles['location-track-infobox__split-switch-error-msg--end'],
-                                endSwitchMatchingError.type == ValidationErrorType.ERROR &&
+                                endSwitchMatchingError.type == FieldValidationIssueType.ERROR &&
                                     styles['location-track-infobox__split-switch-error-msg--error'],
                             )}>
                             {t(
@@ -399,12 +399,12 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
 };
 
 type SplitErrorMessageProps = {
-    error: ValidationError<SplitTargetCandidate>;
+    error: FieldValidationIssue<SplitTargetCandidate>;
 };
 const SplitErrorMessage: React.FC<SplitErrorMessageProps> = ({ error }) => {
     const { t } = useTranslation();
     const style =
-        error.type === ValidationErrorType.ERROR
+        error.type === FieldValidationIssueType.ERROR
             ? 'location-track-infobox__split-error'
             : 'location-track-infobox__split-warning';
     return (

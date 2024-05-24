@@ -1,7 +1,7 @@
 import {
     API_URI,
     ApiErrorResponse,
-    getLocalizedError,
+    getLocalizedIssue,
     getNonNull,
     postFormNonNullAdt,
     putFormNonNullAdt,
@@ -42,26 +42,26 @@ export const inframodelDownloadUri = (planId: GeometryPlanId) => `${INFRAMODEL_U
 export const projektivelhoDocumentDownloadUri = (docId: PVDocumentId) =>
     `${PROJEKTIVELHO_URI}/${docId}`;
 
-const defaultValidationErrorHandler = (
+const defaultValidationIssueHandler = (
     response: ApiErrorResponse | undefined,
 ): ValidationResponse => ({
     ...EMPTY_VALIDATION_RESPONSE,
     geometryValidationIssues: [
         {
-            localizationKey: getLocalizedError(response, 'error.infra-model.request-failed'),
+            localizationKey: getLocalizedIssue(response, 'error.infra-model.request-failed'),
             issueType: 'REQUEST_ERROR',
         },
     ],
 });
 
-export const getValidationErrorsForInfraModelFile = async (
+export const getGeometryValidationIssuesForInfraModelFile = async (
     file?: File,
     overrideParameters?: OverrideInfraModelParameters,
 ): Promise<ValidationResponse> => {
     if (file) {
         const formData = createFormData(file, undefined, overrideParameters);
         return postFormNonNullAdt<ValidationResponse>(`${INFRAMODEL_URI}/validate`, formData).then(
-            (r) => (r.isOk() ? r.value : defaultValidationErrorHandler(r.error)),
+            (r) => (r.isOk() ? r.value : defaultValidationIssueHandler(r.error)),
         );
     } else {
         return Promise.resolve({
@@ -71,7 +71,7 @@ export const getValidationErrorsForInfraModelFile = async (
     }
 };
 
-export const getValidationErrorsForGeometryPlan = async (
+export const getValidationIssuesForGeometryPlan = async (
     planId: GeometryPlanId,
     overrideParameters: OverrideInfraModelParameters,
 ): Promise<ValidationResponse> => {
@@ -80,7 +80,7 @@ export const getValidationErrorsForGeometryPlan = async (
     return postFormNonNullAdt<ValidationResponse>(
         `${INFRAMODEL_URI}/${planId}/validate`,
         formData,
-    ).then((r) => (r.isOk() ? r.value : defaultValidationErrorHandler(r.error)));
+    ).then((r) => (r.isOk() ? r.value : defaultValidationIssueHandler(r.error)));
 };
 
 export const saveInfraModelFile = async (
@@ -184,7 +184,7 @@ export async function restorePVDocuments(id: PVDocumentId[]): Promise<undefined>
     });
 }
 
-export const getValidationErrorsForPVDocument = async (
+export const getValidationIssuesForPVDocument = async (
     pvDocumentId: PVDocumentId,
     overrideParameters?: OverrideInfraModelParameters,
 ): Promise<ValidationResponse> => {
@@ -194,7 +194,7 @@ export const getValidationErrorsForPVDocument = async (
         formData,
     );
 
-    return result.isOk() ? result.value : defaultValidationErrorHandler(result.error);
+    return result.isOk() ? result.value : defaultValidationIssueHandler(result.error);
 };
 
 export async function importPVDocument(

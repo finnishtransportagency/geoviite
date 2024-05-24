@@ -16,7 +16,7 @@ import {
     SwitchOnLocationTrack,
 } from 'tool-panel/location-track/split-store';
 import { findById } from 'utils/array-utils';
-import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
+import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
 import {
     validateLocationTrackDescriptionBase,
     validateLocationTrackName,
@@ -29,9 +29,9 @@ export const END_SWITCH_NOT_MATCHING_ERROR = 'switch-not-matching-end-switch';
 
 export type ValidatedSplit = {
     split: SplitTargetCandidate | FirstSplitTargetCandidate;
-    nameErrors: ValidationError<SplitTargetCandidate>[];
-    descriptionErrors: ValidationError<SplitTargetCandidate>[];
-    switchErrors: ValidationError<SplitTargetCandidate>[];
+    nameErrors: FieldValidationIssue<SplitTargetCandidate>[];
+    descriptionErrors: FieldValidationIssue<SplitTargetCandidate>[];
+    switchErrors: FieldValidationIssue<SplitTargetCandidate>[];
 };
 
 export type SplitComponentAndRefs = {
@@ -100,19 +100,20 @@ const validateSplitName = (
     allSplitNames: string[],
     conflictingTrackNames: string[],
 ) => {
-    const errors: ValidationError<SplitTargetCandidate>[] = validateLocationTrackName(splitName);
+    const errors: FieldValidationIssue<SplitTargetCandidate>[] =
+        validateLocationTrackName(splitName);
 
     if (allSplitNames.filter((s) => s !== '' && isEqualIgnoreCase(s, splitName)).length > 1)
         errors.push({
             field: 'name',
             reason: 'conflicts-with-split',
-            type: ValidationErrorType.ERROR,
+            type: FieldValidationIssueType.ERROR,
         });
     if (conflictingTrackNames.map((t) => t.toLowerCase()).includes(splitName.toLowerCase())) {
         errors.push({
             field: 'name',
             reason: 'conflicts-with-track',
-            type: ValidationErrorType.ERROR,
+            type: FieldValidationIssueType.ERROR,
         });
     }
     return errors;
@@ -122,13 +123,13 @@ const validateSplitDescription = (
     description: string,
     duplicateOf: LocationTrackId | undefined,
 ) => {
-    const errors: ValidationError<SplitTargetCandidate>[] =
+    const errors: FieldValidationIssue<SplitTargetCandidate>[] =
         validateLocationTrackDescriptionBase(description);
     if (!duplicateOf && description === '')
         errors.push({
             field: 'descriptionBase',
             reason: 'mandatory-field',
-            type: ValidationErrorType.ERROR,
+            type: FieldValidationIssueType.ERROR,
         });
     return errors;
 };
@@ -138,20 +139,22 @@ export const validateSplitSwitch = (
     nextSplit: SplitTargetCandidate | FirstSplitTargetCandidate | undefined,
     switchIds: LayoutSwitchId[],
     lastSwitch: LayoutSwitch | undefined,
-): ValidationError<SplitTargetCandidate>[] => {
-    const errors: ValidationError<SplitTargetCandidate>[] = [];
+): FieldValidationIssue<SplitTargetCandidate>[] => {
+    const errors: FieldValidationIssue<SplitTargetCandidate>[] = [];
     const switchExists = split.switch !== undefined && switchIds.includes(split.switch.switchId);
     if (split.type === 'SPLIT' && !switchExists) {
         errors.push({
             field: 'switch',
             reason: 'switch-not-found',
-            type: ValidationErrorType.ERROR,
+            type: FieldValidationIssueType.ERROR,
         });
     }
     const switchIdAtDuplicateStart = split.duplicateStatus?.startSwitchId;
     if (switchIdAtDuplicateStart && split.switch?.switchId !== switchIdAtDuplicateStart) {
         const type =
-            split.operation == 'TRANSFER' ? ValidationErrorType.ERROR : ValidationErrorType.WARNING;
+            split.operation == 'TRANSFER'
+                ? FieldValidationIssueType.ERROR
+                : FieldValidationIssueType.WARNING;
         errors.push({
             field: 'switch',
             reason: START_SWITCH_NOT_MATCHING_ERROR,
@@ -163,7 +166,9 @@ export const validateSplitSwitch = (
     const nextSwitch = nextSplit?.switch || lastSwitch;
     if (switchIdAtDuplicateEnd && nextSplit?.switch?.switchId !== switchIdAtDuplicateEnd) {
         const type =
-            split.operation == 'TRANSFER' ? ValidationErrorType.ERROR : ValidationErrorType.WARNING;
+            split.operation == 'TRANSFER'
+                ? FieldValidationIssueType.ERROR
+                : FieldValidationIssueType.WARNING;
         errors.push({
             field: 'switch',
             reason: END_SWITCH_NOT_MATCHING_ERROR,

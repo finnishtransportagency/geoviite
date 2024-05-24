@@ -16,7 +16,7 @@ import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.Publication
-import fi.fta.geoviite.infra.publication.PublicationValidationError
+import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.publication.ValidationContext
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.publication.ValidationVersions
@@ -144,48 +144,48 @@ class SplitService(
         candidates: ValidationVersions,
         context: ValidationContext,
         allowMultipleSplits: Boolean,
-    ): SplitPublicationValidationErrors {
-        val splitErrors = validateSplitContent(
+    ): SplitLayoutValidationIssues {
+        val splitIssues = validateSplitContent(
             trackVersions = candidates.locationTracks,
             switchVersions = candidates.switches,
             splits = context.getUnfinishedSplits(),
             allowMultipleSplits = allowMultipleSplits,
         )
 
-        val tnSplitErrors = candidates.trackNumbers.associate { (id, _) ->
+        val tnSplitIssues = candidates.trackNumbers.associate { (id, _) ->
             id to listOfNotNull(validateSplitReferencesByTrackNumber(id, context))
         }.filterValues { it.isNotEmpty() }
 
-        val rlSplitErrors = candidates.referenceLines.associate { (id, version) ->
+        val rlSplitIssues = candidates.referenceLines.associate { (id, version) ->
             val trackNumberId = referenceLineDao.fetch(version).trackNumberId
             id to listOfNotNull(validateSplitReferencesByTrackNumber(trackNumberId, context))
         }.filterValues { it.isNotEmpty() }
 
-        val kpSplitErrors = candidates.kmPosts.associate { (id, version) ->
+        val kpSplitIssues = candidates.kmPosts.associate { (id, version) ->
             val trackNumberId = kmPostDao.fetch(version).trackNumberId
             id to listOfNotNull(trackNumberId?.let { tnId -> validateSplitReferencesByTrackNumber(tnId, context) })
         }.filterValues { it.isNotEmpty() }
 
-        val trackSplitErrors = candidates.locationTracks.associate { (id, _) ->
-            val ltSplitErrors = validateSplitForLocationTrack(id, context)
-            val contentErrors = splitErrors.mapNotNull { (split, error) ->
+        val trackSplitIssues = candidates.locationTracks.associate { (id, _) ->
+            val ltSplitIssues = validateSplitForLocationTrack(id, context)
+            val contentIssues = splitIssues.mapNotNull { (split, error) ->
                 if (split.containsLocationTrack(id)) error else null
             }
-            id to ltSplitErrors + contentErrors
+            id to ltSplitIssues + contentIssues
         }.filterValues { it.isNotEmpty() }
 
-        val switchSplitErrors = candidates.switches.associate { (id, _) ->
-            id to splitErrors.mapNotNull { (split, error) ->
+        val switchSplitIssues = candidates.switches.associate { (id, _) ->
+            id to splitIssues.mapNotNull { (split, error) ->
                 if (split.containsSwitch(id)) error else null
             }
         }
 
-        return SplitPublicationValidationErrors(
-            tnSplitErrors,
-            rlSplitErrors,
-            kpSplitErrors,
-            trackSplitErrors,
-            switchSplitErrors,
+        return SplitLayoutValidationIssues(
+            tnSplitIssues,
+            rlSplitIssues,
+            kpSplitIssues,
+            trackSplitIssues,
+            switchSplitIssues,
         )
     }
 
@@ -207,7 +207,7 @@ class SplitService(
     private fun validateSplitForLocationTrack(
         trackId: IntId<LocationTrack>,
         context: ValidationContext,
-    ): List<PublicationValidationError> {
+    ): List<LayoutValidationIssue> {
         val splits = context.getUnfinishedSplits()
             .filter { split -> split.locationTracks.contains(trackId) }
             .map { split -> split to locationTrackDao.fetch(split.sourceLocationTrackVersion) }
@@ -254,7 +254,7 @@ class SplitService(
         trackId: IntId<LocationTrack>,
         splits: List<Pair<Split, LocationTrack>>,
         context: ValidationContext,
-    ): List<PublicationValidationError> {
+    ): List<LayoutValidationIssue> {
         // Target address validation ensures that all split target addresspoints match the source addresspoints in
         // the validation context (that is: draft target geometry is a subset of draft source geometry)
         val targetGeometryErrors = splits.mapNotNull { (split, sourceTrack) ->
@@ -325,7 +325,7 @@ class SplitService(
     private fun validateSplitReferencesByTrackNumber(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         context: ValidationContext,
-    ): PublicationValidationError? {
+    ): LayoutValidationIssue? {
         val affectedTracks = context.getLocationTracksByTrackNumber(trackNumberId)
         val affectedSplits = context.getUnfinishedSplits()
             .filter { split -> split.locationTracks.any { ltId -> affectedTracks.any { a -> a.id == ltId } } }

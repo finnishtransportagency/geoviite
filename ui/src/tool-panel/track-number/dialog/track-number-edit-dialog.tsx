@@ -22,7 +22,7 @@ import {
     TrackNumberSaveRequest,
 } from './track-number-edit-store';
 import { createDelegatesWithDispatcher } from 'store/store-utils';
-import { ValidationErrorType } from 'utils/validation-utils';
+import { FieldValidationIssueType } from 'utils/validation-utils';
 import {
     LayoutReferenceLine,
     LayoutTrackNumber,
@@ -162,7 +162,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
     };
 
     const hasErrors =
-        state.validationErrors.filter((e) => e.type === ValidationErrorType.ERROR).length > 0;
+        state.validationIssues.filter((e) => e.type === FieldValidationIssueType.ERROR).length > 0;
     const numberErrors = getErrors(state, 'number');
     const stateErrors = getErrors(state, 'state');
     const descriptionErrors = getErrors(state, 'description');
@@ -217,7 +217,7 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
                                 qa-id="save-track-number-changes"
                                 onClick={saveOrConfirm}
                                 title={getSaveDisabledReasons(
-                                    state.validationErrors.map((e) => e.reason),
+                                    state.validationIssues.map((e) => e.reason),
                                     saveInProgress,
                                 )
                                     .map((reason) => t(mapError(reason)))

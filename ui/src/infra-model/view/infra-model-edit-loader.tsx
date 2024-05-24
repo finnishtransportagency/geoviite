@@ -6,7 +6,7 @@ import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { InfraModelBaseProps, InfraModelView } from 'infra-model/view/infra-model-view';
 import { ValidationResponse } from 'infra-model/infra-model-slice';
 import {
-    getValidationErrorsForGeometryPlan,
+    getValidationIssuesForGeometryPlan,
     updateGeometryPlan,
 } from 'infra-model/infra-model-api';
 
@@ -27,7 +27,7 @@ export const InfraModelEditLoader: React.FC<InfraModelLoaderProps> = ({ ...props
     const onValidate: () => void = async () => {
         if (planId && planId === initializedPlanId) {
             props.setLoading(true);
-            props.onValidation(await getValidationErrorsForGeometryPlan(planId, overrideParams));
+            props.onValidation(await getValidationIssuesForGeometryPlan(planId, overrideParams));
             props.setLoading(false);
         }
     };

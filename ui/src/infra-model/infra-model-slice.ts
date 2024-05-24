@@ -19,7 +19,7 @@ import {
 } from 'geometry/geometry-model';
 import { GeometryPlanLayout } from 'track-layout/track-layout-model';
 import { SerializableFile } from 'utils/file-utils';
-import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
+import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
 import {
     ElevationMeasurementMethod,
     MeasurementMethod,
@@ -52,7 +52,7 @@ export type InfraModelState = {
     file?: SerializableFile;
     extraInfraModelParameters: ExtraInfraModelParameters;
     overrideInfraModelParameters: OverrideInfraModelParameters;
-    validationErrors: ValidationError<InfraModelParameters>[];
+    validationIssues: FieldValidationIssue<InfraModelParameters>[];
     committedFields: InfraModelParametersProp[];
     infraModelActiveTab: InfraModelTabType;
 };
@@ -139,7 +139,7 @@ export const initialInfraModelState: InfraModelState = {
         createdDate: undefined,
         source: undefined,
     },
-    validationErrors: [],
+    validationIssues: [],
     committedFields: [],
     infraModelActiveTab: InfraModelTabType.PLAN,
 };
@@ -177,14 +177,14 @@ const infraModelSlice = createSlice({
             { payload: propEdit }: PayloadAction<Prop<ExtraInfraModelParameters, TKey>>,
         ) {
             state.extraInfraModelParameters[propEdit.key] = propEdit.value;
-            state.validationErrors = validateParams(
+            state.validationIssues = validateParams(
                 state.validationResponse?.geometryPlan,
                 state.extraInfraModelParameters,
                 state.overrideInfraModelParameters,
             );
             if (
                 !state.committedFields.includes(propEdit.key) &&
-                !state.validationErrors.some((error) => error.field == propEdit.key)
+                !state.validationIssues.some((error) => error.field == propEdit.key)
             ) {
                 // Valid value entered for a field, mark that field as committed
                 state.committedFields = [...state.committedFields, propEdit.key];
@@ -195,7 +195,7 @@ const infraModelSlice = createSlice({
             { payload }: PayloadAction<OverrideInfraModelParameters>,
         ) => {
             state.overrideInfraModelParameters = { ...payload };
-            state.validationErrors = validateParams(
+            state.validationIssues = validateParams(
                 state.validationResponse?.geometryPlan,
                 state.extraInfraModelParameters,
                 state.overrideInfraModelParameters,
@@ -220,7 +220,7 @@ const infraModelSlice = createSlice({
             state.extraInfraModelParameters = initialInfraModelState.extraInfraModelParameters;
             state.overrideInfraModelParameters =
                 initialInfraModelState.overrideInfraModelParameters;
-            state.validationErrors = validateParams(
+            state.validationIssues = validateParams(
                 state.validationResponse?.geometryPlan,
                 state.extraInfraModelParameters,
                 state.overrideInfraModelParameters,
@@ -243,7 +243,7 @@ const infraModelSlice = createSlice({
             state.selection = initialSelectionState;
             state.map.viewport = initialMapState.viewport;
             state.committedFields = [];
-            state.validationErrors = initialInfraModelState.validationErrors;
+            state.validationIssues = initialInfraModelState.validationIssues;
         },
         clearInfraModelState: (state: InfraModelState) => {
             state.validationResponse = initialInfraModelState.validationResponse;
@@ -254,7 +254,7 @@ const infraModelSlice = createSlice({
             state.selection = initialSelectionState;
             state.map.viewport = initialInfraModelState.map.viewport;
             state.committedFields = [];
-            state.validationErrors = initialInfraModelState.validationErrors;
+            state.validationIssues = initialInfraModelState.validationIssues;
         },
         setInfraModelActiveTab: (
             state: InfraModelState,
@@ -268,7 +268,11 @@ const infraModelSlice = createSlice({
     },
 });
 
-function createError<TEntity>(field: keyof TEntity, reason: string, type: ValidationErrorType) {
+function createError<TEntity>(
+    field: keyof TEntity,
+    reason: string,
+    type: FieldValidationIssueType,
+) {
     return {
         field,
         reason,
@@ -280,33 +284,35 @@ function validateParams(
     plan: GeometryPlan | undefined,
     extraParams: ExtraInfraModelParameters,
     overrideParams: OverrideInfraModelParameters,
-): ValidationError<InfraModelParameters>[] {
-    const errors: ValidationError<InfraModelParameters>[] = [];
+): FieldValidationIssue<InfraModelParameters>[] {
+    const errors: FieldValidationIssue<InfraModelParameters>[] = [];
 
     extraParams.planPhase === undefined &&
-        errors.push(createError('planPhase', 'critical', ValidationErrorType.WARNING));
+        errors.push(createError('planPhase', 'critical', FieldValidationIssueType.WARNING));
     extraParams.measurementMethod === undefined &&
-        errors.push(createError('measurementMethod', 'critical', ValidationErrorType.WARNING));
+        errors.push(createError('measurementMethod', 'critical', FieldValidationIssueType.WARNING));
     extraParams.elevationMeasurementMethod === undefined &&
         errors.push(
-            createError('elevationMeasurementMethod', 'critical', ValidationErrorType.WARNING),
+            createError('elevationMeasurementMethod', 'critical', FieldValidationIssueType.WARNING),
         );
     extraParams.decisionPhase === undefined &&
-        errors.push(createError('decisionPhase', 'critical', ValidationErrorType.WARNING));
+        errors.push(createError('decisionPhase', 'critical', FieldValidationIssueType.WARNING));
     overrideParams.createdDate === undefined &&
         plan?.planTime === undefined &&
-        errors.push(createError('createdDate', 'critical', ValidationErrorType.WARNING));
+        errors.push(createError('createdDate', 'critical', FieldValidationIssueType.WARNING));
     overrideParams.trackNumber === undefined &&
         plan?.trackNumber === undefined &&
-        errors.push(createError('trackNumber', 'critical', ValidationErrorType.WARNING));
+        errors.push(createError('trackNumber', 'critical', FieldValidationIssueType.WARNING));
     overrideParams.verticalCoordinateSystem === undefined &&
         plan?.units.verticalCoordinateSystem === undefined &&
         errors.push(
-            createError('verticalCoordinateSystem', 'critical', ValidationErrorType.WARNING),
+            createError('verticalCoordinateSystem', 'critical', FieldValidationIssueType.WARNING),
         );
     overrideParams.coordinateSystemSrid === undefined &&
         plan?.units.coordinateSystemSrid === undefined &&
-        errors.push(createError('coordinateSystemSrid', 'critical', ValidationErrorType.WARNING));
+        errors.push(
+            createError('coordinateSystemSrid', 'critical', FieldValidationIssueType.WARNING),
+        );
 
     return errors;
 }

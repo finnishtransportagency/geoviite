@@ -171,8 +171,8 @@ class InfraModelService @Autowired constructor(
             includeGeometryData = true,
             pointListStepLength = VALIDATION_LAYOUT_POINTS_RESOLUTION,
         )
-        val validationErrors = validateGeometryPlanContent(plan) + listOfNotNull(layoutCreationError)
-        return ValidationResponse(validationErrors, plan, planLayout?.withLayoutGeometry(), plan.source)
+        val validationIssues = validateGeometryPlanContent(plan) + listOfNotNull(layoutCreationError)
+        return ValidationResponse(validationIssues, plan, planLayout?.withLayoutGeometry(), plan.source)
     }
 
     @Transactional

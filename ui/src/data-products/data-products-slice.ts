@@ -3,8 +3,8 @@ import {
     isPropEditFieldCommitted,
     PropEdit,
     validate,
-    ValidationError,
-    ValidationErrorType,
+    FieldValidationIssue,
+    FieldValidationIssueType,
 } from 'utils/validation-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import {
@@ -36,7 +36,7 @@ export type PlanGeometrySearchState = {
     searchGeometries: SearchGeometries;
 
     elements: ElementItem[];
-    validationErrors: ValidationError<PlanGeometrySearchState>[];
+    validationIssues: FieldValidationIssue<PlanGeometrySearchState>[];
     committedFields: (keyof PlanGeometrySearchState)[];
 };
 
@@ -50,7 +50,7 @@ export type LocationTrackVerticalGeometrySearchState = {
     searchFields: LocationTrackVerticalGeometrySearchParameters;
     searchParameters: LocationTrackVerticalGeometrySearchParameters;
 
-    validationErrors: ValidationError<LocationTrackVerticalGeometrySearchParameters>[];
+    validationIssues: FieldValidationIssue<LocationTrackVerticalGeometrySearchParameters>[];
     committedFields: (keyof LocationTrackVerticalGeometrySearchParameters)[];
     verticalGeometry: VerticalGeometryItem[];
 };
@@ -59,7 +59,7 @@ export type PlanVerticalGeometrySearchState = {
     source: PlanSource;
     plan: GeometryPlanHeader | undefined;
 
-    validationErrors: ValidationError<PlanVerticalGeometrySearchState>[];
+    validationIssues: FieldValidationIssue<PlanVerticalGeometrySearchState>[];
     committedFields: (keyof PlanVerticalGeometrySearchState)[];
     verticalGeometry: VerticalGeometryItem[];
 };
@@ -71,7 +71,7 @@ export type KmLengthsSearchState = {
     startKm: KmNumber | undefined;
     endKm: KmNumber | undefined;
 
-    validationErrors: ValidationError<KmLengthsSearchState>[];
+    validationIssues: FieldValidationIssue<KmLengthsSearchState>[];
     committedFields: (keyof KmLengthsSearchState)[];
     kmLengths: LayoutKmLengthDetails[];
 
@@ -95,7 +95,7 @@ export const initialPlanGeometrySearchState: PlanGeometrySearchState = {
     },
 
     elements: [],
-    validationErrors: [],
+    validationIssues: [],
     committedFields: [],
 };
 
@@ -111,7 +111,7 @@ export type ElementListContinuousGeometrySearchState = {
     searchParameters: ContinuousSearchParameters;
 
     elements: ElementItem[];
-    validationErrors: ValidationError<ContinuousSearchParameters>[];
+    validationIssues: FieldValidationIssue<ContinuousSearchParameters>[];
     committedFields: (keyof ContinuousSearchParameters)[];
 };
 
@@ -141,7 +141,7 @@ export const initialContinuousSearchState: ElementListContinuousGeometrySearchSt
     },
 
     elements: [],
-    validationErrors: [],
+    validationIssues: [],
     committedFields: [],
 };
 
@@ -156,7 +156,7 @@ const initialLocationTrackVerticalGeometrySearchState: LocationTrackVerticalGeom
         startTrackMeter: '',
         endTrackMeter: '',
     },
-    validationErrors: [],
+    validationIssues: [],
     committedFields: [],
     verticalGeometry: [],
 };
@@ -164,7 +164,7 @@ const initialLocationTrackVerticalGeometrySearchState: LocationTrackVerticalGeom
 const initialPlanVerticalGeometrySearchState: PlanVerticalGeometrySearchState = {
     plan: undefined,
     source: 'GEOMETRIAPALVELU',
-    validationErrors: [],
+    validationIssues: [],
     committedFields: [],
     verticalGeometry: [],
 };
@@ -176,7 +176,7 @@ const initialKmLengthsSearchState: KmLengthsSearchState = {
     startKm: undefined,
     endKm: undefined,
 
-    validationErrors: [],
+    validationIssues: [],
     committedFields: [],
     kmLengths: [],
 };
@@ -207,12 +207,12 @@ export const validTrackMeterOrUndefined = (trackMeterCandidate: string) => {
 
 const validateContinuousGeometry = (
     state: ElementListContinuousGeometrySearchState,
-): ValidationError<ContinuousSearchParameters>[] =>
+): FieldValidationIssue<ContinuousSearchParameters>[] =>
     [
         validate(hasAtLeastOneTypeSelected(state.searchFields.searchGeometries), {
             field: 'searchGeometries',
             reason: 'no-types-selected',
-            type: ValidationErrorType.ERROR,
+            type: FieldValidationIssueType.ERROR,
         }),
         validate(
             state.searchFields.startTrackMeter === '' ||
@@ -220,7 +220,7 @@ const validateContinuousGeometry = (
             {
                 field: 'startTrackMeter',
                 reason: 'invalid-track-meter',
-                type: ValidationErrorType.ERROR,
+                type: FieldValidationIssueType.ERROR,
             },
         ),
         validate(
@@ -233,7 +233,7 @@ const validateContinuousGeometry = (
             {
                 field: 'endTrackMeter',
                 reason: 'end-before-start',
-                type: ValidationErrorType.ERROR,
+                type: FieldValidationIssueType.ERROR,
             },
         ),
         validate(
@@ -242,14 +242,14 @@ const validateContinuousGeometry = (
             {
                 field: 'endTrackMeter' as keyof ContinuousSearchParameters,
                 reason: 'invalid-track-meter',
-                type: ValidationErrorType.ERROR,
+                type: FieldValidationIssueType.ERROR,
             },
         ),
     ].filter(filterNotEmpty);
 
 const validateLocationTrackVerticalGeometrySearch = (
     state: LocationTrackVerticalGeometrySearchState,
-): ValidationError<LocationTrackVerticalGeometrySearchParameters>[] =>
+): FieldValidationIssue<LocationTrackVerticalGeometrySearchParameters>[] =>
     [
         validate(
             state.searchFields.startTrackMeter === '' ||
@@ -257,7 +257,7 @@ const validateLocationTrackVerticalGeometrySearch = (
             {
                 field: 'startTrackMeter',
                 reason: 'invalid-track-meter',
-                type: ValidationErrorType.ERROR,
+                type: FieldValidationIssueType.ERROR,
             },
         ),
         validate(
@@ -270,7 +270,7 @@ const validateLocationTrackVerticalGeometrySearch = (
             {
                 field: 'endTrackMeter',
                 reason: 'end-before-start',
-                type: ValidationErrorType.ERROR,
+                type: FieldValidationIssueType.ERROR,
             },
         ),
         validate(
@@ -279,7 +279,7 @@ const validateLocationTrackVerticalGeometrySearch = (
             {
                 field: 'endTrackMeter' as keyof LocationTrackVerticalGeometrySearchParameters,
                 reason: 'invalid-track-meter',
-                type: ValidationErrorType.ERROR,
+                type: FieldValidationIssueType.ERROR,
             },
         ),
     ].filter(filterNotEmpty);
@@ -300,8 +300,8 @@ export const continuousGeometrySearchSlice = createSlice({
                 state.searchFields['endTrackMeter'] = '';
             }
 
-            state.validationErrors = validateContinuousGeometry(state);
-            if (isPropEditFieldCommitted(propEdit, state.committedFields, state.validationErrors)) {
+            state.validationIssues = validateContinuousGeometry(state);
+            if (isPropEditFieldCommitted(propEdit, state.committedFields, state.validationIssues)) {
                 // Valid value entered for a field, mark that field as committed
                 state.committedFields = [...state.committedFields, propEdit.key];
             }
@@ -334,14 +334,14 @@ export const planSearchSlice = createSlice({
             { payload: propEdit }: PayloadAction<PropEdit<PlanGeometrySearchState, TKey>>,
         ) {
             state[propEdit.key] = propEdit.value;
-            state.validationErrors = [
+            state.validationIssues = [
                 validate(hasAtLeastOneTypeSelected(state.searchGeometries), {
                     field: 'searchGeometries' as keyof PlanGeometrySearchState,
                     reason: 'no-types-selected',
-                    type: ValidationErrorType.ERROR,
+                    type: FieldValidationIssueType.ERROR,
                 }),
             ].filter(filterNotEmpty);
-            if (isPropEditFieldCommitted(propEdit, state.committedFields, state.validationErrors)) {
+            if (isPropEditFieldCommitted(propEdit, state.committedFields, state.validationIssues)) {
                 // Valid value entered for a field, mark that field as committed
                 state.committedFields = [...state.committedFields, propEdit.key];
             }
@@ -375,8 +375,8 @@ export const locationTrackVerticalGeometrySearchSlice = createSlice({
                 state.searchFields['endTrackMeter'] = '';
             }
 
-            state.validationErrors = validateLocationTrackVerticalGeometrySearch(state);
-            if (isPropEditFieldCommitted(propEdit, state.committedFields, state.validationErrors)) {
+            state.validationIssues = validateLocationTrackVerticalGeometrySearch(state);
+            if (isPropEditFieldCommitted(propEdit, state.committedFields, state.validationIssues)) {
                 // Valid value entered for a field, mark that field as committed
                 state.committedFields = [...state.committedFields, propEdit.key];
             }
@@ -410,7 +410,7 @@ export const planVerticalGeometrySearchSlice = createSlice({
             { payload: propEdit }: PayloadAction<PropEdit<PlanVerticalGeometrySearchState, TKey>>,
         ) {
             state[propEdit.key] = propEdit.value;
-            if (isPropEditFieldCommitted(propEdit, state.committedFields, state.validationErrors)) {
+            if (isPropEditFieldCommitted(propEdit, state.committedFields, state.validationIssues)) {
                 // Valid value entered for a field, mark that field as committed
                 state.committedFields = [...state.committedFields, propEdit.key];
             }
@@ -442,11 +442,11 @@ export const kmLengthsSearchSlice = createSlice({
                     new Set([...state.committedFields, propEdit.key]),
                 );
             }
-            state.validationErrors = [
+            state.validationIssues = [
                 validate(!state.startKm || !state.endKm || state.endKm >= state.startKm, {
                     field: 'endKm',
                     reason: 'km-end-before-start',
-                    type: ValidationErrorType.ERROR,
+                    type: FieldValidationIssueType.ERROR,
                 }),
             ].filter(filterNotEmpty);
         },
