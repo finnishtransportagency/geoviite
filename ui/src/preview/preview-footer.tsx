@@ -18,7 +18,7 @@ import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import {
     PublicationCandidate,
     PublicationResult,
-    PublicationValidationError,
+    LayoutValidationIssue,
 } from 'publication/publication-model';
 import { OnSelectFunction } from 'selection/selection-model';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
@@ -42,8 +42,8 @@ function describe(name: string, value: number | undefined): string | undefined {
     return value !== undefined && value > 0 ? `${name}: ${value}` : undefined;
 }
 
-function publishErrors(publishCandidates: PublicationCandidate[]): PublicationValidationError[] {
-    return publishCandidates.flatMap((candidate) => candidate.errors);
+function publishErrors(publishCandidates: PublicationCandidate[]): LayoutValidationIssue[] {
+    return publishCandidates.flatMap((candidate) => candidate.issues);
 }
 
 export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooterProps) => {

@@ -34,7 +34,7 @@ import {
     SwitchStructureId,
     TrackMeter,
 } from 'common/common-model';
-import { PublicationValidationError } from 'publication/publication-model';
+import { LayoutValidationIssue } from 'publication/publication-model';
 
 export type LocationTrackSaveRequest = {
     name: string;
@@ -46,10 +46,6 @@ export type LocationTrackSaveRequest = {
     duplicateOf?: string;
     topologicalConnectivity?: TopologicalConnectivityType;
     ownerId?: LocationTrackOwnerId;
-};
-
-export type LocationTrackSaveError = {
-    validationErrors: string[];
 };
 
 export type LinkingState =
@@ -109,7 +105,7 @@ export type LinkingPhase = 'preliminary' | 'setup' | 'allSet';
 type LinkingBaseType = {
     type: LinkingType;
     state: LinkingPhase;
-    errors: string[];
+    issues: string[];
 };
 
 export type GeometryPreliminaryLinkingParameters = {
@@ -170,10 +166,6 @@ export type KmPostSaveRequest = {
     kmNumber: KmNumber;
     state?: LayoutState;
     trackNumberId?: LayoutTrackNumberId;
-};
-
-export type KmPostSaveError = {
-    validationErrors: string[];
 };
 
 export enum LinkingType {
@@ -322,10 +314,6 @@ export type TrackLayoutSwitchSaveRequest = {
     trapPoint?: boolean;
 };
 
-export type TrackLayoutSaveError = {
-    validationErrors: string[];
-};
-
 export type LocationTrackEndpoint = {
     // "id" generated at runtime and is for UI only
     id: string;
@@ -349,7 +337,7 @@ export type SuggestedSwitchCreateParams = {
 export type SwitchRelinkingValidationResult = {
     id: LayoutSwitchId;
     successfulSuggestion: SwitchRelinkingSuggestion;
-    validationErrors: PublicationValidationError[];
+    validationIssues: LayoutValidationIssue[];
 };
 
 export type SwitchRelinkingSuggestion = {

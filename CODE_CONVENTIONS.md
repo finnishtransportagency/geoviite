@@ -72,7 +72,7 @@
 
 - Object models that are not part of the main domain model
 - Each API may have their own additional types, and they should reside in said APIs package
-- For example, the geometry validation API needs a model for describing the results: `ValidationError`
+- For example, the geometry validation API needs a model for describing the results: `GeometryValidationIssue`
 
 ### Error Handling
 

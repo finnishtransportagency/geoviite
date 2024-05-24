@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { InfraModelBaseProps, InfraModelView } from 'infra-model/view/infra-model-view';
-import { getValidationErrorsForPVDocument, importPVDocument } from 'infra-model/infra-model-api';
+import { getValidationIssuesForPVDocument, importPVDocument } from 'infra-model/infra-model-api';
 import { ValidationResponse } from 'infra-model/infra-model-slice';
 import { PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { GeometryPlan } from 'geometry/geometry-model';
@@ -21,7 +21,7 @@ export const InfraModelImportLoader: React.FC<InfraModelImportLoaderProps> = ({ 
     const onInit: () => void = async () => {
         if (pvDocumentId) {
             props.setLoading(true);
-            const validation = await getValidationErrorsForPVDocument(pvDocumentId);
+            const validation = await getValidationIssuesForPVDocument(pvDocumentId);
             props.setExistingInfraModel(validation.geometryPlan);
             props.onValidation(validation);
             setInitPVDocumentId(pvDocumentId);
@@ -32,7 +32,7 @@ export const InfraModelImportLoader: React.FC<InfraModelImportLoaderProps> = ({ 
         if (pvDocumentId && pvDocumentId == initPVDocumentId) {
             props.setLoading(true);
             props.onValidation(
-                await getValidationErrorsForPVDocument(pvDocumentId, overrideParams),
+                await getValidationIssuesForPVDocument(pvDocumentId, overrideParams),
             );
             props.setLoading(false);
         }

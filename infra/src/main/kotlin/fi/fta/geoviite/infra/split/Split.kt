@@ -5,7 +5,7 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.publication.Publication
-import fi.fta.geoviite.infra.publication.PublicationValidationError
+import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -88,14 +88,14 @@ data class SplitTarget(
     val operation: SplitTargetOperation,
 )
 
-data class SplitPublicationValidationErrors(
-    val trackNumbers: Map<IntId<TrackLayoutTrackNumber>, List<PublicationValidationError>>,
-    val referenceLines: Map<IntId<ReferenceLine>, List<PublicationValidationError>>,
-    val kmPosts: Map<IntId<TrackLayoutKmPost>, List<PublicationValidationError>>,
-    val locationTracks: Map<IntId<LocationTrack>, List<PublicationValidationError>>,
-    val switches: Map<IntId<TrackLayoutSwitch>, List<PublicationValidationError>>,
+data class SplitLayoutValidationIssues(
+    val trackNumbers: Map<IntId<TrackLayoutTrackNumber>, List<LayoutValidationIssue>>,
+    val referenceLines: Map<IntId<ReferenceLine>, List<LayoutValidationIssue>>,
+    val kmPosts: Map<IntId<TrackLayoutKmPost>, List<LayoutValidationIssue>>,
+    val locationTracks: Map<IntId<LocationTrack>, List<LayoutValidationIssue>>,
+    val switches: Map<IntId<TrackLayoutSwitch>, List<LayoutValidationIssue>>,
 ) {
-    fun allErrors(): List<PublicationValidationError> =
+    fun allIssues(): List<LayoutValidationIssue> =
         (trackNumbers.values + referenceLines.values + kmPosts.values + locationTracks.values + switches.values).flatten()
 }
 

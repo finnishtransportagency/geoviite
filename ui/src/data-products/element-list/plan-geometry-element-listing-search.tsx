@@ -62,7 +62,7 @@ const PlanGeometryElementListingSearch = ({
 
     function hasErrors(prop: keyof PlanGeometrySearchState) {
         return (
-            getVisibleErrorsByProp(state.committedFields, state.validationErrors, prop).length > 0
+            getVisibleErrorsByProp(state.committedFields, state.validationIssues, prop).length > 0
         );
     }
 
@@ -164,7 +164,7 @@ const PlanGeometryElementListingSearch = ({
                         }
                         errors={getVisibleErrorsByProp(
                             state.committedFields,
-                            state.validationErrors,
+                            state.validationIssues,
                             'searchGeometries',
                         ).map((error) => t(`data-products.search.${error}`))}
                     />

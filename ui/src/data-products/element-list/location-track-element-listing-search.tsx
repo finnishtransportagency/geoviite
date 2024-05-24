@@ -82,9 +82,9 @@ const LocationTrackElementListingSearch = ({
 
     const [elementList, fetchStatus] = useLoaderWithStatus(() => {
         return !state.searchParameters.locationTrack ||
-            hasErrors(state.committedFields, state.validationErrors, 'searchGeometries') ||
-            hasErrors(state.committedFields, state.validationErrors, 'startTrackMeter') ||
-            hasErrors(state.committedFields, state.validationErrors, 'endTrackMeter')
+            hasErrors(state.committedFields, state.validationIssues, 'searchGeometries') ||
+            hasErrors(state.committedFields, state.validationIssues, 'startTrackMeter') ||
+            hasErrors(state.committedFields, state.validationIssues, 'endTrackMeter')
             ? Promise.resolve(state.elements)
             : debouncedTrackElementsFetch(
                   state.searchParameters.locationTrack.id,
@@ -131,7 +131,7 @@ const LocationTrackElementListingSearch = ({
                             onBlur={() => onCommitField('startTrackMeter')}
                             hasError={hasErrors(
                                 state.committedFields,
-                                state.validationErrors,
+                                state.validationIssues,
                                 'startTrackMeter',
                             )}
                             wide
@@ -139,7 +139,7 @@ const LocationTrackElementListingSearch = ({
                     }
                     errors={getVisibleErrorsByProp(
                         state.committedFields,
-                        state.validationErrors,
+                        state.validationIssues,
                         'startTrackMeter',
                     ).map((error) => t(`data-products.search.${error}`))}
                 />
@@ -153,7 +153,7 @@ const LocationTrackElementListingSearch = ({
                             onBlur={() => onCommitField('endTrackMeter')}
                             hasError={hasErrors(
                                 state.committedFields,
-                                state.validationErrors,
+                                state.validationIssues,
                                 'endTrackMeter',
                             )}
                             wide
@@ -161,7 +161,7 @@ const LocationTrackElementListingSearch = ({
                     }
                     errors={getVisibleErrorsByProp(
                         state.committedFields,
-                        state.validationErrors,
+                        state.validationIssues,
                         'endTrackMeter',
                     ).map((error) => t(`data-products.search.${error}`))}
                 />
@@ -220,7 +220,7 @@ const LocationTrackElementListingSearch = ({
                         }
                         errors={getVisibleErrorsByProp(
                             state.committedFields,
-                            state.validationErrors,
+                            state.validationIssues,
                             'searchGeometries',
                         ).map((error) => t(`data-products.search.${error}`))}
                     />

@@ -109,7 +109,7 @@ export const addValidationState = (
         return validatedCandidate
             ? {
                   ...candidate,
-                  errors: validatedCandidate.errors,
+                  issues: validatedCandidate.issues,
                   pendingValidation: false,
               }
             : candidate;

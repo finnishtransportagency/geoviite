@@ -3,7 +3,7 @@ import styles from './preview-view.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
-import { PublicationStage, PublicationValidationError } from 'publication/publication-model';
+import { PublicationStage, LayoutValidationIssue } from 'publication/publication-model';
 import { createClassName } from 'vayla-design-lib/utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -50,13 +50,13 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
     const [actionMenuVisible, setActionMenuVisible] = React.useState(false);
 
-    const errorsToStrings = (list: PublicationValidationError[], type: 'ERROR' | 'WARNING') => {
+    const issuesToStrings = (list: LayoutValidationIssue[], type: 'ERROR' | 'WARNING') => {
         const filtered = list.filter((e) => e.type === type);
         return filtered.map((error) => t(error.localizationKey, error.params));
     };
-    const errorTexts = errorsToStrings(tableEntry.errors, 'ERROR');
-    const warningTexts = errorsToStrings(tableEntry.errors, 'WARNING');
-    const hasErrors = tableEntry.errors.length > 0;
+    const errorTexts = issuesToStrings(tableEntry.issues, 'ERROR');
+    const warningTexts = issuesToStrings(tableEntry.issues, 'WARNING');
+    const hasErrors = tableEntry.issues.length > 0;
 
     const statusCellClassName = createClassName(
         styles['preview-table-item__status-cell'],

@@ -16,7 +16,7 @@ import fi.fta.geoviite.infra.geometry.PlanLayoutCache
 import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.TransformationError
-import fi.fta.geoviite.infra.geometry.ValidationError
+import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
 import fi.fta.geoviite.infra.geometry.getBoundingPolygonPointsFromAlignments
 import fi.fta.geoviite.infra.geometry.validate
 import fi.fta.geoviite.infra.localization.localizationParams
@@ -39,7 +39,7 @@ const val VALIDATION_LAYOUT_POINTS_RESOLUTION = 10
 val noFileValidationError = ParsingError(LocalizationKey(INFRAMODEL_PARSING_KEY_EMPTY))
 
 fun noFileValidationResponse(overrideParameters: OverrideParameters?) = ValidationResponse(
-    validationErrors = listOf(noFileValidationError),
+    geometryValidationIssues = listOf(noFileValidationError),
     geometryPlan = null,
     planLayout = null,
     source = overrideParameters?.source ?: PlanSource.GEOMETRIAPALVELU,
@@ -171,8 +171,8 @@ class InfraModelService @Autowired constructor(
             includeGeometryData = true,
             pointListStepLength = VALIDATION_LAYOUT_POINTS_RESOLUTION,
         )
-        val validationErrors = validateGeometryPlanContent(plan) + listOfNotNull(layoutCreationError)
-        return ValidationResponse(validationErrors, plan, planLayout?.withLayoutGeometry(), plan.source)
+        val validationIssues = validateGeometryPlanContent(plan) + listOfNotNull(layoutCreationError)
+        return ValidationResponse(validationIssues, plan, planLayout?.withLayoutGeometry(), plan.source)
     }
 
     @Transactional
@@ -243,7 +243,7 @@ class InfraModelService @Autowired constructor(
         )
     }
 
-    private fun validateGeometryPlanContent(geometryPlan: GeometryPlan): List<ValidationError> {
+    private fun validateGeometryPlanContent(geometryPlan: GeometryPlan): List<GeometryValidationIssue> {
         return validate(
             geometryPlan,
             codeDictionaryService.getFeatureTypes(),

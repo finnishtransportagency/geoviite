@@ -24,7 +24,7 @@ import {
     TrackNumber,
 } from 'common/common-model';
 import { getCoordinateSystem, getSridList } from 'common/common-api';
-import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
+import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
 import { Prop } from 'utils/type-utils';
 import { useTranslation } from 'react-i18next';
 import { fetchAuthors, getProject } from 'geometry/geometry-api';
@@ -58,7 +58,9 @@ import { ManualTrackNumberDialog } from 'infra-model/view/dialogs/manual-track-n
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
-    validationErrors: ValidationError<ExtraInfraModelParameters & OverrideInfraModelParameters>[];
+    validationIssues: FieldValidationIssue<
+        ExtraInfraModelParameters & OverrideInfraModelParameters
+    >[];
     upLoading: boolean;
     geometryPlan: GeometryPlan;
     onInfraModelOverrideParametersChange: (
@@ -104,7 +106,7 @@ function profileInformationAvailable(alignments: GeometryAlignment[]): boolean {
 
 const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     changeTimes,
-    validationErrors,
+    validationIssues,
     upLoading,
     geometryPlan,
     onInfraModelOverrideParametersChange,
@@ -233,9 +235,10 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
     function getVisibleErrorsByProp(prop: InfraModelParametersProp) {
         return committedFields.includes(prop)
-            ? validationErrors
+            ? validationIssues
                   .filter(
-                      (error) => error.field == prop && error.type === ValidationErrorType.ERROR,
+                      (error) =>
+                          error.field == prop && error.type === FieldValidationIssueType.ERROR,
                   )
                   .map((error) => {
                       return t(`im-form.${error.reason}`);

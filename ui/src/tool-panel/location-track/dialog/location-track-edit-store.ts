@@ -6,8 +6,8 @@ import { filterNotEmpty } from 'utils/array-utils';
 import {
     isPropEditFieldCommitted,
     PropEdit,
-    ValidationError,
-    ValidationErrorType,
+    FieldValidationIssue,
+    FieldValidationIssueType,
 } from 'utils/validation-utils';
 import { LocationTrackOwner, LocationTrackOwnerId } from 'common/common-model';
 import {
@@ -25,7 +25,7 @@ export type LocationTrackEditState = {
     isSaving: boolean;
     trackNumbers: LayoutTrackNumber[];
     locationTrack: LocationTrackSaveRequest;
-    validationErrors: ValidationError<LocationTrackSaveRequest>[];
+    validationIssues: FieldValidationIssue<LocationTrackSaveRequest>[];
     committedFields: (keyof LocationTrackSaveRequest)[];
     allFieldsCommitted: boolean;
 };
@@ -48,7 +48,7 @@ export const initialLocationTrackEditState: LocationTrackEditState = {
         duplicateOf: undefined,
         ownerId: '',
     },
-    validationErrors: [],
+    validationIssues: [],
     committedFields: [],
     allFieldsCommitted: false,
 };
@@ -70,8 +70,8 @@ function newLinkingLocationTrack(): LocationTrackSaveRequest {
 
 function validateLinkingLocationTrack(
     saveRequest: LocationTrackSaveRequest,
-): ValidationError<LocationTrackSaveRequest>[] {
-    const errors: ValidationError<LocationTrackSaveRequest>[] = [
+): FieldValidationIssue<LocationTrackSaveRequest>[] {
+    const errors: FieldValidationIssue<LocationTrackSaveRequest>[] = [
         ...[
             'trackNumberId',
             'type',
@@ -86,7 +86,7 @@ function validateLinkingLocationTrack(
                     return {
                         field: prop,
                         reason: 'mandatory-field',
-                        type: ValidationErrorType.ERROR,
+                        type: FieldValidationIssueType.ERROR,
                     };
                 }
             })
@@ -120,7 +120,7 @@ const locationTrackEditSlice = createSlice({
         ): void => {
             state.isNewLocationTrack = true;
             state.locationTrack = newLinkingLocationTrack();
-            state.validationErrors = validateLinkingLocationTrack(state.locationTrack);
+            state.validationIssues = validateLinkingLocationTrack(state.locationTrack);
             setVaylavirastoOwnerIdFrom(owners, (id) => (state.locationTrack.ownerId = id));
         },
         onStartLoadingTrackNumbers: (state: LocationTrackEditState) => {
@@ -147,7 +147,7 @@ const locationTrackEditSlice = createSlice({
                 type: existingLocationTrack.type || 'MAIN',
                 duplicateOf: existingLocationTrack.duplicateOf,
             };
-            state.validationErrors = validateLinkingLocationTrack(state.locationTrack);
+            state.validationIssues = validateLinkingLocationTrack(state.locationTrack);
             state.loading.locationTrack = false;
         },
         onUpdateProp: function <TKey extends keyof LocationTrackSaveRequest>(
@@ -156,13 +156,13 @@ const locationTrackEditSlice = createSlice({
         ) {
             if (state.locationTrack) {
                 state.locationTrack[propEdit.key] = propEdit.value;
-                state.validationErrors = validateLinkingLocationTrack(state.locationTrack);
+                state.validationIssues = validateLinkingLocationTrack(state.locationTrack);
 
                 if (
                     isPropEditFieldCommitted(
                         propEdit,
                         state.committedFields,
-                        state.validationErrors,
+                        state.validationIssues,
                     )
                 ) {
                     // Valid value entered for a field, mark that field as committed
@@ -178,7 +178,7 @@ const locationTrackEditSlice = createSlice({
         },
         validate: (state: LocationTrackEditState): void => {
             if (state.locationTrack) {
-                state.validationErrors = validateLinkingLocationTrack(state.locationTrack);
+                state.validationIssues = validateLinkingLocationTrack(state.locationTrack);
                 state.allFieldsCommitted = true;
             }
         },
@@ -200,7 +200,7 @@ export function isProcessing(state: LocationTrackEditState): boolean {
 }
 
 export function canSaveLocationTrack(state: LocationTrackEditState): boolean {
-    return !!(state.locationTrack && !state.validationErrors.length && !isProcessing(state));
+    return !!(state.locationTrack && !state.validationIssues.length && !isProcessing(state));
 }
 
 export const reducer = locationTrackEditSlice.reducer;

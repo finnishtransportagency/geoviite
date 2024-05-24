@@ -396,7 +396,7 @@ const GeometryAlignmentLinkingInfobox: React.FC<GeometryAlignmentLinkingInfoboxP
                                     </MessageBox>
                                 </InfoboxContentSpread>
                             )}
-                            {linkingState.errors.map((errorKey) => (
+                            {linkingState.issues.map((errorKey) => (
                                 <InfoboxContentSpread key={errorKey}>
                                     <MessageBox>{t(errorKey)}</MessageBox>
                                 </InfoboxContentSpread>

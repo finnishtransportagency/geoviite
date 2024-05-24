@@ -365,10 +365,14 @@ async function tryToReadText(response: Response): Promise<string | undefined> {
 }
 
 const showHttpError = (path: string, response: ApiErrorResponse) => {
-    Snackbar.apiError(getLocalizedError(response, 'error.request-failed', { path }), path, response);
+    Snackbar.apiError(
+        getLocalizedIssue(response, 'error.request-failed', { path }),
+        path,
+        response,
+    );
 };
 
-export const getLocalizedError = (
+export const getLocalizedIssue = (
     response: ApiErrorResponse | undefined,
     defaultKey: string,
     defaultParams: LocalizationParams = {},

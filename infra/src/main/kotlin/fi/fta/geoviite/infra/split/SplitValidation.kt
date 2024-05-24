@@ -3,8 +3,8 @@ package fi.fta.geoviite.infra.split
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.math.lineLength
-import fi.fta.geoviite.infra.publication.PublicationValidationError
-import fi.fta.geoviite.infra.publication.PublicationValidationErrorType.ERROR
+import fi.fta.geoviite.infra.publication.LayoutValidationIssue
+import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.publication.VALIDATION
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.publication.validate
@@ -19,9 +19,9 @@ const val VALIDATION_SPLIT = "$VALIDATION.split"
 internal fun validateSourceGeometry(
     draftAddresses: AlignmentAddresses?,
     officialAddressPoint: AlignmentAddresses?,
-): PublicationValidationError? {
+): LayoutValidationIssue? {
     return if (draftAddresses == null || officialAddressPoint == null) {
-        PublicationValidationError(ERROR, "$VALIDATION_SPLIT.no-geometry")
+        LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.no-geometry")
     } else {
         val officialPoints = officialAddressPoint.allPoints
 
@@ -33,7 +33,7 @@ internal fun validateSourceGeometry(
                 !targetPoint.isSame(officialPoints[idx])
             }
             ?.let { (_, point) ->
-                PublicationValidationError(
+                LayoutValidationIssue(
                     ERROR,
                     "$VALIDATION_SPLIT.geometry-changed",
                     mapOf("point" to point),
@@ -47,10 +47,10 @@ internal fun validateSplitContent(
     switchVersions: List<ValidationVersion<TrackLayoutSwitch>>,
     splits: Collection<Split>,
     allowMultipleSplits: Boolean,
-): List<Pair<Split, PublicationValidationError>> {
+): List<Pair<Split, LayoutValidationIssue>> {
     val multipleSplitsStagedErrors = if (!allowMultipleSplits && splits.size > 1) {
         splits.map { split ->
-            split to PublicationValidationError(ERROR, "$VALIDATION_SPLIT.multiple-splits-not-allowed")
+            split to LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.multiple-splits-not-allowed")
         }
     } else {
         emptyList()
@@ -83,20 +83,20 @@ internal fun validateTargetGeometry(
     operation: SplitTargetOperation,
     targetPoints: List<AddressPoint>?,
     sourcePoints: List<AddressPoint>?,
-): PublicationValidationError? {
+): LayoutValidationIssue? {
     return if (targetPoints == null || sourcePoints == null) {
-        PublicationValidationError(ERROR, "$VALIDATION_SPLIT.no-geometry")
+        LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.no-geometry")
     } else {
         targetPoints
             .withIndex()
             .firstNotNullOfOrNull { (targetIndex, targetPoint) ->
                 val sourcePoint = sourcePoints.getOrNull(targetIndex)
                 if (sourcePoint?.address != targetPoint.address) {
-                    PublicationValidationError(ERROR, "$VALIDATION_SPLIT.trackmeters-changed")
+                    LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.trackmeters-changed")
                 } else if (operation != SplitTargetOperation.TRANSFER && !targetPoint.point.isSame(sourcePoint.point)) {
-                    PublicationValidationError(ERROR, "$VALIDATION_SPLIT.geometry-changed")
+                    LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.geometry-changed")
                 } else if (operation == SplitTargetOperation.TRANSFER && lineLength(targetPoint.point, sourcePoint.point) > MAX_SPLIT_POINT_OFFSET) {
-                    PublicationValidationError(ERROR, "$VALIDATION_SPLIT.transfer-geometry-changed")
+                    LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.transfer-geometry-changed")
                 } else {
                     null
                 }
@@ -107,7 +107,7 @@ internal fun validateTargetGeometry(
 internal fun validateTargetTrackNumberIsUnchanged(
     sourceLocationTrack: LocationTrack,
     targetLocationTrack: LocationTrack,
-): PublicationValidationError? =
+): LayoutValidationIssue? =
     produceIf(sourceLocationTrack.trackNumberId != targetLocationTrack.trackNumberId) {
         validationError(
             "$VALIDATION_SPLIT.source-and-target-track-numbers-are-different",
@@ -120,7 +120,7 @@ internal fun validateSplitStatus(
     track: LocationTrack,
     sourceTrack: LocationTrack,
     split: Split,
-): PublicationValidationError? =
+): LayoutValidationIssue? =
     produceIf(track.isDraft && split.isPublishedAndWaitingTransfer) {
         validationError("$VALIDATION_SPLIT.track-split-in-progress", "sourceName" to sourceTrack.name)
     }
@@ -128,7 +128,7 @@ internal fun validateSplitStatus(
 internal fun validateSplitSourceLocationTrack(
     locationTrack: LocationTrack,
     split: Split,
-): List<PublicationValidationError> = listOfNotNull(
+): List<LayoutValidationIssue> = listOfNotNull(
     produceIf(locationTrack.exists) {
         validationError("$VALIDATION_SPLIT.source-not-deleted", "sourceName" to locationTrack.name)
     },
