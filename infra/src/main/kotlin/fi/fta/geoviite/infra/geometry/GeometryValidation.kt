@@ -223,7 +223,7 @@ fun validateMetadata(plan: GeometryPlan, officialTrackNumbers: List<TrackNumber>
         MetadataError("track-number-missing", OBSERVATION_MAJOR)
     },
     validate(plan.trackNumber == null || officialTrackNumbers.contains(plan.trackNumber)) {
-        MetadataError("track-number-not-found", OBSERVATION_MAJOR)
+        MetadataError("track-number-not-found", OBSERVATION_MAJOR, plan.trackNumber?.toString())
     },
     validate(plan.planTime != null) {
         MetadataError("plan-time-missing", OBSERVATION_MINOR)
