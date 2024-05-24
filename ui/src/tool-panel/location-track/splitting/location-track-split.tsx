@@ -50,9 +50,9 @@ type SplitProps = CommonProps & {
     onRemove?: (switchId: LayoutSwitchId) => void;
     updateSplit: (updateSplit: SplitTargetCandidate | FirstSplitTargetCandidate) => void;
     duplicateTrackId: LocationTrackId | undefined;
-    nameErrors: FieldValidationIssue<SplitTargetCandidate>[];
-    descriptionErrors: FieldValidationIssue<SplitTargetCandidate>[];
-    switchErrors: FieldValidationIssue<SplitTargetCandidate>[];
+    nameIssues: FieldValidationIssue<SplitTargetCandidate>[];
+    descriptionIssues: FieldValidationIssue<SplitTargetCandidate>[];
+    switchIssues: FieldValidationIssue<SplitTargetCandidate>[];
     nameRef: React.RefObject<HTMLInputElement>;
     descriptionBaseRef: React.RefObject<HTMLInputElement>;
     deletingDisabled: boolean;
@@ -127,9 +127,9 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     onRemove,
     updateSplit,
     duplicateTrackId,
-    nameErrors,
-    descriptionErrors,
-    switchErrors,
+    nameIssues,
+    descriptionIssues,
+    switchIssues,
     editingDisabled,
     deletingDisabled,
     nameRef,
@@ -152,25 +152,25 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     const [descriptionCommitted, setDescriptionCommitted] = React.useState(
         split.descriptionBase !== '',
     );
-    const startSwitchMatchingError = switchErrors.find(
+    const startSwitchMatchingError = switchIssues.find(
         (error) => error.reason == START_SWITCH_NOT_MATCHING_ERROR,
     );
-    const endSwitchMatchingError = switchErrors.find(
+    const endSwitchMatchingError = switchIssues.find(
         (error) => error.reason == END_SWITCH_NOT_MATCHING_ERROR,
     );
 
     // TODO: Adding any kind of dependency array causes infinite re-render loops, find out why
     React.useEffect(() => {
-        if (!nameErrors.length) {
+        if (!nameIssues.length) {
             setNameCommitted(true);
         }
-        if (!descriptionErrors.length) {
+        if (!descriptionIssues.length) {
             setDescriptionCommitted(true);
         }
     });
 
-    const nameErrorsVisible = nameCommitted && nameErrors.length > 0;
-    const descriptionErrorsVisible = descriptionCommitted && descriptionErrors.length > 0;
+    const nameErrorsVisible = nameCommitted && nameIssues.length > 0;
+    const descriptionErrorsVisible = descriptionCommitted && descriptionIssues.length > 0;
 
     function showSwitchOnMap(location: Point) {
         showArea(getShowSwitchOnMapBoundingBox(location));
@@ -310,7 +310,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                 />
                             )}
                             {nameErrorsVisible &&
-                                nameErrors.map((error, i) => (
+                                nameIssues.map((error, i) => (
                                     <SplitErrorMessage key={i.toString()} error={error} />
                                 ))}
                         </InfoboxField>
@@ -351,7 +351,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             hasErrors={descriptionErrorsVisible}
                             label={''}>
                             {descriptionErrorsVisible &&
-                                descriptionErrors.map((error, index) => (
+                                descriptionIssues.map((error, index) => (
                                     <InfoboxText
                                         value={t(
                                             `tool-panel.location-track.splitting.validation.${error.reason}`,

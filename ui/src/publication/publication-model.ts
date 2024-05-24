@@ -62,7 +62,7 @@ export type BasePublicationCandidate = {
     userName: string;
     operation: Operation;
     publicationGroup?: PublicationGroup;
-    errors: LayoutValidationIssue[];
+    issues: LayoutValidationIssue[];
     validated: boolean;
     pendingValidation: boolean;
     stage: PublicationStage;

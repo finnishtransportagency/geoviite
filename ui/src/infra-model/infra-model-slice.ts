@@ -285,36 +285,36 @@ function validateParams(
     extraParams: ExtraInfraModelParameters,
     overrideParams: OverrideInfraModelParameters,
 ): FieldValidationIssue<InfraModelParameters>[] {
-    const errors: FieldValidationIssue<InfraModelParameters>[] = [];
+    const issues: FieldValidationIssue<InfraModelParameters>[] = [];
 
     extraParams.planPhase === undefined &&
-        errors.push(createError('planPhase', 'critical', FieldValidationIssueType.WARNING));
+        issues.push(createError('planPhase', 'critical', FieldValidationIssueType.WARNING));
     extraParams.measurementMethod === undefined &&
-        errors.push(createError('measurementMethod', 'critical', FieldValidationIssueType.WARNING));
+        issues.push(createError('measurementMethod', 'critical', FieldValidationIssueType.WARNING));
     extraParams.elevationMeasurementMethod === undefined &&
-        errors.push(
+        issues.push(
             createError('elevationMeasurementMethod', 'critical', FieldValidationIssueType.WARNING),
         );
     extraParams.decisionPhase === undefined &&
-        errors.push(createError('decisionPhase', 'critical', FieldValidationIssueType.WARNING));
+        issues.push(createError('decisionPhase', 'critical', FieldValidationIssueType.WARNING));
     overrideParams.createdDate === undefined &&
         plan?.planTime === undefined &&
-        errors.push(createError('createdDate', 'critical', FieldValidationIssueType.WARNING));
+        issues.push(createError('createdDate', 'critical', FieldValidationIssueType.WARNING));
     overrideParams.trackNumber === undefined &&
         plan?.trackNumber === undefined &&
-        errors.push(createError('trackNumber', 'critical', FieldValidationIssueType.WARNING));
+        issues.push(createError('trackNumber', 'critical', FieldValidationIssueType.WARNING));
     overrideParams.verticalCoordinateSystem === undefined &&
         plan?.units.verticalCoordinateSystem === undefined &&
-        errors.push(
+        issues.push(
             createError('verticalCoordinateSystem', 'critical', FieldValidationIssueType.WARNING),
         );
     overrideParams.coordinateSystemSrid === undefined &&
         plan?.units.coordinateSystemSrid === undefined &&
-        errors.push(
+        issues.push(
             createError('coordinateSystemSrid', 'critical', FieldValidationIssueType.WARNING),
         );
 
-    return errors;
+    return issues;
 }
 
 export const infraModelReducer = infraModelSlice.reducer;

@@ -50,13 +50,13 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
     const [actionMenuVisible, setActionMenuVisible] = React.useState(false);
 
-    const errorsToStrings = (list: LayoutValidationIssue[], type: 'ERROR' | 'WARNING') => {
+    const issuesToStrings = (list: LayoutValidationIssue[], type: 'ERROR' | 'WARNING') => {
         const filtered = list.filter((e) => e.type === type);
         return filtered.map((error) => t(error.localizationKey, error.params));
     };
-    const errorTexts = errorsToStrings(tableEntry.errors, 'ERROR');
-    const warningTexts = errorsToStrings(tableEntry.errors, 'WARNING');
-    const hasErrors = tableEntry.errors.length > 0;
+    const errorTexts = issuesToStrings(tableEntry.issues, 'ERROR');
+    const warningTexts = issuesToStrings(tableEntry.issues, 'WARNING');
+    const hasErrors = tableEntry.issues.length > 0;
 
     const statusCellClassName = createClassName(
         styles['preview-table-item__status-cell'],

@@ -43,7 +43,7 @@ function describe(name: string, value: number | undefined): string | undefined {
 }
 
 function publishErrors(publishCandidates: PublicationCandidate[]): LayoutValidationIssue[] {
-    return publishCandidates.flatMap((candidate) => candidate.errors);
+    return publishCandidates.flatMap((candidate) => candidate.issues);
 }
 
 export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooterProps) => {

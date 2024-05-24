@@ -29,9 +29,9 @@ export const END_SWITCH_NOT_MATCHING_ERROR = 'switch-not-matching-end-switch';
 
 export type ValidatedSplit = {
     split: SplitTargetCandidate | FirstSplitTargetCandidate;
-    nameErrors: FieldValidationIssue<SplitTargetCandidate>[];
-    descriptionErrors: FieldValidationIssue<SplitTargetCandidate>[];
-    switchErrors: FieldValidationIssue<SplitTargetCandidate>[];
+    nameIssues: FieldValidationIssue<SplitTargetCandidate>[];
+    descriptionIssues: FieldValidationIssue<SplitTargetCandidate>[];
+    switchIssues: FieldValidationIssue<SplitTargetCandidate>[];
 };
 
 export type SplitComponentAndRefs = {
@@ -83,9 +83,9 @@ export const validateSplit = (
     lastSwitch: LayoutSwitch | undefined,
 ): ValidatedSplit => ({
     split: split,
-    nameErrors: validateSplitName(split.name, allSplitNames, conflictingTrackNames),
-    descriptionErrors: validateSplitDescription(split.descriptionBase, split.duplicateTrackId),
-    switchErrors: validateSplitSwitch(
+    nameIssues: validateSplitName(split.name, allSplitNames, conflictingTrackNames),
+    descriptionIssues: validateSplitDescription(split.descriptionBase, split.duplicateTrackId),
+    switchIssues: validateSplitSwitch(
         split,
         nextSplit,
         switches
@@ -192,13 +192,13 @@ export const findRefToFirstErroredField = (
 ): React.RefObject<HTMLInputElement> | undefined => {
     const invalidNameIndex = splitComponents.findIndex((s) =>
         hasErrors(
-            s.splitAndValidation.nameErrors.map((err) => err.reason),
+            s.splitAndValidation.nameIssues.map((err) => err.reason),
             predicate,
         ),
     );
     const invalidDescriptionBaseIndex = splitComponents.findIndex((s) =>
         hasErrors(
-            s.splitAndValidation.descriptionErrors.map((err) => err.reason),
+            s.splitAndValidation.descriptionIssues.map((err) => err.reason),
             predicate,
         ),
     );

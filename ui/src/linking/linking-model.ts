@@ -105,7 +105,7 @@ export type LinkingPhase = 'preliminary' | 'setup' | 'allSet';
 type LinkingBaseType = {
     type: LinkingType;
     state: LinkingPhase;
-    errors: string[];
+    issues: string[];
 };
 
 export type GeometryPreliminaryLinkingParameters = {
