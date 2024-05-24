@@ -269,7 +269,6 @@ class SplitDao(
     }
 
     fun fetchUnfinishedSplits(branch: LayoutBranch): List<Split> {
-        assertMainBranch(branch)
         val sql = """
           select
               split.id,
@@ -278,7 +277,7 @@ class SplitDao(
               split.publication_id,
               array_agg(split_relinked_switch.switch_id) as switch_ids,
               array_agg(split_updated_duplicate.duplicate_location_track_id) as updated_duplicate_ids,
-              coalesce(ltv.official_row_id, ltv.id) as source_location_track_official_id,
+              coalesce(ltv.official_row_id, ltv.design_row_id, ltv.id) as source_location_track_official_id,
               split.source_location_track_row_id,
               split.source_location_track_row_version
           from publication.split 
@@ -288,10 +287,11 @@ class SplitDao(
                   on split.source_location_track_row_id = ltv.id
                    and split.source_location_track_row_version = ltv.version
           where split.bulk_transfer_state != 'DONE'
-          group by split.id, ltv.official_row_id, ltv.id
+            and (ltv.design_id is null or ltv.design_id = :design_id)
+          group by split.id, ltv.official_row_id, ltv.design_row_id, ltv.id
         """.trimIndent()
 
-        return jdbcTemplate.query(sql) { rs, _ ->
+        return jdbcTemplate.query(sql, mapOf("design_id" to branch.designId?.intValue)) { rs, _ ->
             val splitId = rs.getIntId<Split>("id")
             toSplit(rs, getSplitTargets(splitId))
         }.also { ids ->
