@@ -359,7 +359,7 @@ class ValidationContext(
     private fun fetchSwitchTrackLinks(
         ids: List<IntId<TrackLayoutSwitch>>,
     ): Map<IntId<TrackLayoutSwitch>, List<IntId<LocationTrack>>> = publicationDao
-        .fetchLinkedLocationTracks(ids, publicationSet.locationTracks.map { v -> v.officialId })
+        .fetchLinkedLocationTracks(branch, ids, publicationSet.locationTracks.map { v -> v.officialId })
         .mapValues { (_, versions) ->
             val officialVersions = versions.filterNot { v -> publicationSet.containsLocationTrack(v.officialId) }
             cacheOfficialVersions(officialVersions.map { v -> v.validatedAssetVersion }, locationTrackVersionCache)
