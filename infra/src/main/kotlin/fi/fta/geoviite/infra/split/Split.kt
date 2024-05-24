@@ -95,7 +95,7 @@ data class SplitLayoutValidationIssues(
     val locationTracks: Map<IntId<LocationTrack>, List<LayoutValidationIssue>>,
     val switches: Map<IntId<TrackLayoutSwitch>, List<LayoutValidationIssue>>,
 ) {
-    fun allErrors(): List<LayoutValidationIssue> =
+    fun allIssues(): List<LayoutValidationIssue> =
         (trackNumbers.values + referenceLines.values + kmPosts.values + locationTracks.values + switches.values).flatten()
 }
 
