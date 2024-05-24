@@ -26,7 +26,7 @@ import { asyncCache } from 'cache/cache';
 import { Oid, TimeStamp } from 'common/common-model';
 
 export const EMPTY_VALIDATION_RESPONSE: ValidationResponse = {
-    validationErrors: [],
+    geometryValidationIssues: [],
     geometryPlan: undefined,
     planLayout: undefined,
 };
@@ -46,10 +46,10 @@ const defaultValidationErrorHandler = (
     response: ApiErrorResponse | undefined,
 ): ValidationResponse => ({
     ...EMPTY_VALIDATION_RESPONSE,
-    validationErrors: [
+    geometryValidationIssues: [
         {
             localizationKey: getLocalizedError(response, 'error.infra-model.request-failed'),
-            errorType: 'REQUEST_ERROR',
+            issueType: 'REQUEST_ERROR',
         },
     ],
 });

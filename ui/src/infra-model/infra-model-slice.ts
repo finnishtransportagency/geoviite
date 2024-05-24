@@ -83,7 +83,7 @@ export type InfraModelParametersProp = keyof InfraModelParameters;
 
 export type LocalizationKey = string;
 
-export type ErrorType =
+export type GeometryValidationIssueType =
     | 'REQUEST_ERROR'
     | 'PARSING_ERROR'
     | 'TRANSFORMATION_ERROR'
@@ -91,16 +91,16 @@ export type ErrorType =
     | 'OBSERVATION_MAJOR'
     | 'OBSERVATION_MINOR';
 
-export interface CustomValidationError extends LocalizationParams {
+export type CustomGeometryValidationIssue = {
     localizationKey: LocalizationKey;
-    errorType: ErrorType;
-}
+    issueType: GeometryValidationIssueType;
+} & LocalizationParams;
 
-export interface ValidationResponse {
-    validationErrors: CustomValidationError[];
+export type ValidationResponse = {
+    geometryValidationIssues: CustomGeometryValidationIssue[];
     geometryPlan?: GeometryPlan;
     planLayout?: GeometryPlanLayout;
-}
+};
 
 const visibleMapLayers: MapLayerName[] = [
     'background-map-layer',

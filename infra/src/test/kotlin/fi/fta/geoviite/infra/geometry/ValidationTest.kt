@@ -28,7 +28,7 @@ class ValidationTest {
         val alignment = geometryAlignment(
             elements = lines(Point(1.0, 2.0), 4, 12.34)
         )
-        assertEquals(listOf<ValidationError>(), validateAlignmentGeometry(alignment))
+        assertEquals(listOf<GeometryValidationIssue>(), validateAlignmentGeometry(alignment))
     }
 
     @Test
@@ -81,7 +81,7 @@ class ValidationTest {
             viPoint(10.1, 1.0),
         )
         val alignment = geometryAlignment(profile = profile(points))
-        assertEquals(listOf<ValidationError>(), validateAlignmentProfile(alignment))
+        assertEquals(listOf<GeometryValidationIssue>(), validateAlignmentProfile(alignment))
     }
 
     @Test
@@ -119,7 +119,7 @@ class ValidationTest {
             cantPoint(2.1, 0.15, CCW),
         )
         val alignment = geometryAlignment(cant = cant(points))
-        assertEquals(listOf<ValidationError>(), validateAlignmentCant(alignment))
+        assertEquals(listOf<GeometryValidationIssue>(), validateAlignmentCant(alignment))
     }
 
     @Test
@@ -179,7 +179,7 @@ class ValidationTest {
         val alignmentSwitches = alignments.mapNotNull { alignment ->
             collectAlignmentSwitchJoints(switch.id, alignment)
         }
-        assertEquals(listOf<ValidationError>(), validateSwitch(switch, yvStructure, alignmentSwitches))
+        assertEquals(listOf<GeometryValidationIssue>(), validateSwitch(switch, yvStructure, alignmentSwitches))
     }
 
     @Test
@@ -233,7 +233,7 @@ class ValidationTest {
     }
 
     private fun assertValidationErrors(
-        errors: List<ValidationError>,
+        errors: List<GeometryValidationIssue>,
         keyParts: List<String>
     ) {
         assertEquals(keyParts.size, errors.size, errors.toString())

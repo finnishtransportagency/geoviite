@@ -3,8 +3,8 @@ import styles from './form/infra-model-form.module.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { useTranslation } from 'react-i18next';
 import {
-    CustomValidationError,
-    ErrorType,
+    CustomGeometryValidationIssue,
+    GeometryValidationIssueType,
     ValidationResponse,
 } from 'infra-model/infra-model-slice';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
@@ -13,8 +13,8 @@ type InframodelValidationErrorListProps = {
     validationResponse?: ValidationResponse;
 };
 
-const getIcon = (errorType: ErrorType) => {
-    switch (errorType) {
+const getIcon = (issueType: GeometryValidationIssueType) => {
+    switch (issueType) {
         case 'REQUEST_ERROR':
         case 'PARSING_ERROR':
         case 'VALIDATION_ERROR':
@@ -24,12 +24,12 @@ const getIcon = (errorType: ErrorType) => {
         case 'OBSERVATION_MINOR':
             return Icons.StatusError;
         default:
-            return exhaustiveMatchingGuard(errorType);
+            return exhaustiveMatchingGuard(issueType);
     }
 };
 
-const createErrorRow = (errorType: ErrorType, message: string, index: number) => {
-    const Icon = getIcon(errorType);
+const createErrorRow = (issueType: GeometryValidationIssueType, message: string, index: number) => {
+    const Icon = getIcon(issueType);
     return (
         <li key={index}>
             <div className={styles['infra-model-upload__error']}>
@@ -45,14 +45,18 @@ const InfraModelValidationErrorList: React.FC<InframodelValidationErrorListProps
 }: InframodelValidationErrorListProps) => {
     const { t } = useTranslation();
     const errorListDiv = (errorList: ValidationResponse) => {
-        const errors = errorList.validationErrors.filter(
+        const errors = errorList.geometryValidationIssues.filter(
             (e) =>
-                e.errorType === 'PARSING_ERROR' ||
-                e.errorType === 'VALIDATION_ERROR' ||
-                e.errorType === 'TRANSFORMATION_ERROR',
+                e.issueType === 'PARSING_ERROR' ||
+                e.issueType === 'VALIDATION_ERROR' ||
+                e.issueType === 'TRANSFORMATION_ERROR',
         );
-        const major = errorList.validationErrors.filter((e) => e.errorType === 'OBSERVATION_MAJOR');
-        const minor = errorList.validationErrors.filter((e) => e.errorType === 'OBSERVATION_MINOR');
+        const major = errorList.geometryValidationIssues.filter(
+            (e) => e.issueType === 'OBSERVATION_MAJOR',
+        );
+        const minor = errorList.geometryValidationIssues.filter(
+            (e) => e.issueType === 'OBSERVATION_MINOR',
+        );
 
         return (
             <div className={styles['infra-model-upload__validation-errors']}>
@@ -62,9 +66,9 @@ const InfraModelValidationErrorList: React.FC<InframodelValidationErrorListProps
                             {t('im-form.validation-errors')}
                         </h2>
                         <ul className={styles['infra-model-upload__errors']}>
-                            {errors.map((error: CustomValidationError, index: number) =>
+                            {errors.map((error: CustomGeometryValidationIssue, index: number) =>
                                 createErrorRow(
-                                    error.errorType,
+                                    error.issueType,
                                     t(error.localizationKey, error),
                                     index,
                                 ),
@@ -80,7 +84,7 @@ const InfraModelValidationErrorList: React.FC<InframodelValidationErrorListProps
                         <ol className={styles['infra-model-upload__errors']}>
                             {major.map((error, index) =>
                                 createErrorRow(
-                                    error.errorType,
+                                    error.issueType,
                                     t(error.localizationKey, error),
                                     index,
                                 ),
@@ -88,7 +92,7 @@ const InfraModelValidationErrorList: React.FC<InframodelValidationErrorListProps
 
                             {minor.map((error, index) =>
                                 createErrorRow(
-                                    error.errorType,
+                                    error.issueType,
                                     t(error.localizationKey, error),
                                     index,
                                 ),

@@ -30,10 +30,10 @@ internal class InfraModelControllerIT @Autowired constructor(
         )
         val result = infraModelService.validateInfraModelFile(emptyFile, null)
         assertNull(result.geometryPlan)
-        assertEquals(1, result.validationErrors.size)
+        assertEquals(1, result.geometryValidationIssues.size)
         assertEquals(
             LocalizationKey(INFRAMODEL_PARSING_KEY_EMPTY),
-            result.validationErrors[0].localizationKey,
+            result.geometryValidationIssues[0].localizationKey,
         )
     }
 
@@ -59,10 +59,10 @@ internal class InfraModelControllerIT @Autowired constructor(
         )
         val result = infraModelService.validateInfraModelFile(textFile, null)
         assertNull(result.geometryPlan)
-        assertEquals(1, result.validationErrors.size)
+        assertEquals(1, result.geometryValidationIssues.size)
         assertEquals(
             LocalizationKey("$INFRAMODEL_PARSING_KEY_PARENT.wrong-content-type"),
-            result.validationErrors[0].localizationKey,
+            result.geometryValidationIssues[0].localizationKey,
         )
     }
 
@@ -77,6 +77,6 @@ internal class InfraModelControllerIT @Autowired constructor(
         )
         val result = infraModelService.validateInfraModelFile(invalidFile, null)
         assertNull(result.geometryPlan)
-        assertEquals(1, result.validationErrors.size)
+        assertEquals(1, result.geometryValidationIssues.size)
     }
 }
