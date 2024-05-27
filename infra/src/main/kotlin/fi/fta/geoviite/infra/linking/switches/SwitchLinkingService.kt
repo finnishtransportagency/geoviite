@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.linking.TopologyLinkFindingSwitch
 import fi.fta.geoviite.infra.linking.TrackEnd
 import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResult
 import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResultType
+import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
@@ -35,6 +36,7 @@ import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType
 import fi.fta.geoviite.infra.publication.VALIDATION_SWITCH
 import fi.fta.geoviite.infra.publication.validateSwitchLocationTrackLinkStructure
+import fi.fta.geoviite.infra.publication.validateWithParams
 import fi.fta.geoviite.infra.split.VALIDATION_SPLIT
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -386,7 +388,7 @@ class SwitchLinkingService @Autowired constructor(
         val switchStructure = switchLibraryService.getSwitchStructure(suggestedSwitch.switchStructureId)
 
         val originTrackLinkErrors =
-            validateExistingTrackLinksAfterRelinking(suggestedSwitch, originLocationTrackId, branch, switchId)
+            validateRelinkingRetainsLocationTrackConnections(suggestedSwitch, originLocationTrackId, branch, switchId)
         val publicationValidationErrorsMapped = validateSwitchLocationTrackLinkStructure(
             createdSwitch,
             switchStructure,
@@ -405,7 +407,7 @@ class SwitchLinkingService @Autowired constructor(
             ) to presentationJointLocation
     }
 
-    private fun validateExistingTrackLinksAfterRelinking(
+    private fun validateRelinkingRetainsLocationTrackConnections(
         suggestedSwitch: SuggestedSwitch,
         originLocationTrackId: IntId<LocationTrack>,
         branch: LayoutBranch,
@@ -421,22 +423,16 @@ class SwitchLinkingService @Autowired constructor(
             .filter { link -> link.value.segmentJoints.any() || link.value.topologyJoint != null }
             .keys
 
-        return suggestedConnections.containsAll(currentConnections).let { allTracksLinked ->
-                if (!allTracksLinked) {
-                    listOf(
-                        LayoutValidationIssue(
-                            LayoutValidationIssueType.ERROR, "$VALIDATION_SPLIT.track-links-missing-after-relinking", mapOf(
-                                "switchName" to switchService.getOrThrow(branch.draft, switchId).name,
-                                "sourceName" to locationTrackService.getOrThrow(
-                                    branch.draft, originLocationTrackId
-                                ).name
-                            )
-                        )
-                    )
-                } else {
-                    emptyList()
-                }
-            }
+        return listOfNotNull(
+            validateWithParams(
+                suggestedConnections.containsAll(currentConnections),
+                LayoutValidationIssueType.ERROR
+            ) {
+                "$VALIDATION_SPLIT.track-links-missing-after-relinking" to localizationParams(
+                    "switchName" to switchService.getOrThrow(branch.draft, switchId).name,
+                    "sourceName" to locationTrackService.getOrThrow(branch.draft, originLocationTrackId).name
+                )
+            })
     }
 
     private fun createModifiedLayoutSwitchLinking(
