@@ -386,15 +386,15 @@ class SwitchLinkingService @Autowired constructor(
         val switchStructure = switchLibraryService.getSwitchStructure(suggestedSwitch.switchStructureId)
 
         val originTrackLinkErrors =
-            validateOriginLocationTrackLink(suggestedSwitch, originLocationTrackId, branch, switchId)
+            validateExistingTrackLinksAfterRelinking(suggestedSwitch, originLocationTrackId, branch, switchId)
         val publicationValidationErrorsMapped = validateSwitchLocationTrackLinkStructure(
             createdSwitch,
             switchStructure,
             draft(changedTracks),
         ).map { error ->
-            // No structure based errors are critical for splitting/relinking -> turn them into warnings
-            PublicationValidationError(
-                PublicationValidationErrorType.WARNING,
+            // Structure based issues aren't critical for splitting/relinking -> turn them into warnings
+            LayoutValidationIssue(
+                LayoutValidationIssueType.WARNING,
                 error.localizationKey,
                 error.params
             )
@@ -405,24 +405,38 @@ class SwitchLinkingService @Autowired constructor(
             ) to presentationJointLocation
     }
 
-    private fun validateOriginLocationTrackLink(
+    private fun validateExistingTrackLinksAfterRelinking(
         suggestedSwitch: SuggestedSwitch,
         originLocationTrackId: IntId<LocationTrack>,
         branch: LayoutBranch,
         switchId: IntId<TrackLayoutSwitch>,
-    ) = suggestedSwitch.trackLinks.entries.find { t -> t.key == originLocationTrackId }.let { originTrackLink ->
-        if (originTrackLink == null || originTrackLink.value.topologyJoint == null && originTrackLink.value.segmentJoints.isEmpty()) {
-            listOf(
-                PublicationValidationError(
-                    PublicationValidationErrorType.ERROR, "$VALIDATION_SPLIT.switch-segment-mapping-failed", mapOf(
-                        "switchName" to switchService.getOrThrow(branch.draft, switchId).name,
-                        "sourceName" to locationTrackService.getOrThrow(branch.draft, originLocationTrackId).name
+    ): List<LayoutValidationIssue> {
+        val currentConnections = switchService
+            .getSwitchJointConnections(branch.draft, switchId)
+            .flatMap { it.accurateMatches.map { it.locationTrackId } }
+            .distinct()
+
+        val suggestedConnections = suggestedSwitch
+            .trackLinks
+            .filter { link -> link.value.segmentJoints.any() || link.value.topologyJoint != null }
+            .keys
+
+        return suggestedConnections.containsAll(currentConnections).let { allTracksLinked ->
+                if (!allTracksLinked) {
+                    listOf(
+                        LayoutValidationIssue(
+                            LayoutValidationIssueType.ERROR, "$VALIDATION_SPLIT.track-links-missing-after-relinking", mapOf(
+                                "switchName" to switchService.getOrThrow(branch.draft, switchId).name,
+                                "sourceName" to locationTrackService.getOrThrow(
+                                    branch.draft, originLocationTrackId
+                                ).name
+                            )
+                        )
                     )
-                )
-            )
-        } else {
-            emptyList()
-        }
+                } else {
+                    emptyList()
+                }
+            }
     }
 
     private fun createModifiedLayoutSwitchLinking(

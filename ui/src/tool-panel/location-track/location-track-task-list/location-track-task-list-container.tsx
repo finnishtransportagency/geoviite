@@ -153,11 +153,11 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
                                 );
                                 const relinkingFailed =
                                     !switchRelinkingResult?.successfulSuggestion ||
-                                    switchRelinkingResult?.validationErrors.some(
+                                    switchRelinkingResult?.validationIssues?.some(
                                         (t) => t.type === 'ERROR',
                                     );
                                 const firstError = ifDefined(
-                                    switchRelinkingResult?.validationErrors?.filter(
+                                    switchRelinkingResult?.validationIssues?.filter(
                                         (e) => e.type === 'ERROR',
                                     ),
                                     first,

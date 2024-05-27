@@ -1449,7 +1449,7 @@
                 "no-geometry": "Raiteella ei ole geometriaa",
                 "affected-split-in-progress": "Muutos voi vaikuttaa osoitteistoon raiteella {{sourceName}}, jonka jakamista ei ole vielä viety Ratkoon",
                 "track-split-in-progress": "Raiteen {{sourceName}} jakamista ei ole vielä viety Ratkoon, joten muita muutoksia ei voi vielä tehdä",
-                "switch-segment-mapping-failed": "Raide {{sourceName}} ei kulje vaihteen {{switchName}} kautta uudelleenlinkityksen jälkeen"
+                "switch-segment-mapping-failed": "Vaihteen {{switchName}} kaikki linjat eivät enää kulje vaihteen kautta uudelleenlinkityksen jälkeen"
             }
         }
     },

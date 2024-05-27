@@ -240,7 +240,7 @@ export const hasUnrelinkableSwitches = (
 ) =>
     relinkingValidationResults.some((err) => !err.successfulSuggestion) ||
     relinkingValidationResults.some((err) =>
-        err.validationErrors.some((ve) => ve.type === 'ERROR'),
+        err.validationIssues.some((ve) => ve.type === 'ERROR'),
     );
 
 export const getOperation = (
