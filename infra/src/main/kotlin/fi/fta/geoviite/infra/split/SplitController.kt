@@ -50,6 +50,6 @@ class SplitController(
         @RequestBody state: BulkTransferState,
     ): IntId<Split> {
         logger.apiCall("updateSplitTransferState", "id" to id, "state" to state)
-        return splitService.updateSplitState(id, state).id
+        return splitService.updateSplit(id, state).id
     }
 }

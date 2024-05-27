@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.split
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -13,6 +12,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getInstantOrNull
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdArray
 import fi.fta.geoviite.infra.util.getIntIdOrNull
@@ -34,7 +34,9 @@ private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>) = Sp
         "source_location_track_row_version",
     ),
     bulkTransferState = rs.getEnum("bulk_transfer_state"),
+    bulkTransferId = rs.getIntIdOrNull("bulk_transfer_id"),
     publicationId = rs.getIntIdOrNull("publication_id"),
+    publicationTime = rs.getInstantOrNull("publication_time"),
     targetLocationTracks = targetLocationTracks,
     relinkedSwitches = rs.getIntIdArray("switch_ids"),
     updatedDuplicates = rs.getIntIdArray("updated_duplicate_ids"),
@@ -58,12 +60,14 @@ class SplitDao(
               source_location_track_row_id,
               source_location_track_row_version,
               bulk_transfer_state,
+              bulk_transfer_id,
               publication_id
             ) 
             values (
               :source_location_track_row_id,
               :source_location_track_row_version,
               'PENDING',
+              null,
               null
             )
             returning id
@@ -168,7 +172,9 @@ class SplitDao(
               split.id,
               split.version,
               split.bulk_transfer_state,
+              split.bulk_transfer_id,
               split.publication_id,
+              publication.publication_time,
               coalesce(source_track.official_row_id, source_track.id) as source_location_track_official_id,
               split.source_location_track_row_id,
               split.source_location_track_row_version,
@@ -178,10 +184,11 @@ class SplitDao(
               inner join layout.location_track_version source_track 
                   on split.source_location_track_row_id = source_track.id
                    and split.source_location_track_row_version = source_track.version
+              left join publication.publication on split.publication_id = publication.id
               left join publication.split_relinked_switch on split.id = split_relinked_switch.split_id
               left join publication.split_updated_duplicate on split.id = split_updated_duplicate.split_id
           where split.id = :id
-          group by split.id, source_track.official_row_id, source_track.id
+          group by split.id, source_track.official_row_id, source_track.id, publication.publication_time
         """.trimIndent()
 
         return getOptional(
@@ -220,6 +227,7 @@ class SplitDao(
     fun updateSplit(
         splitId: IntId<Split>,
         bulkTransferState: BulkTransferState? = null,
+        bulkTransferId: IntId<BulkTransfer>? = null,
         publicationId: IntId<Publication>? = null,
         sourceTrackVersion: RowVersion<LocationTrack>? = null,
     ): RowVersion<Split> {
@@ -227,6 +235,7 @@ class SplitDao(
             update publication.split
             set 
                 bulk_transfer_state = coalesce(:bulk_transfer_state::publication.bulk_transfer_state, bulk_transfer_state),
+                bulk_transfer_id = coalesce(:bulk_transfer_id, bulk_transfer_id),
                 publication_id = coalesce(:publication_id, publication_id),
                 source_location_track_row_id = coalesce(:source_track_row_id, source_location_track_row_id),
                 source_location_track_row_version = coalesce(:source_track_row_version, source_location_track_row_version)
@@ -236,6 +245,7 @@ class SplitDao(
 
         val params = mapOf(
             "bulk_transfer_state" to bulkTransferState?.name,
+            "bulk_transfer_id" to bulkTransferId?.intValue,
             "publication_id" to publicationId?.intValue,
             "split_id" to splitId.intValue,
             "source_track_row_id" to sourceTrackVersion?.id?.intValue,
@@ -274,13 +284,16 @@ class SplitDao(
               split.id,
               split.version,
               split.bulk_transfer_state,
+              split.bulk_transfer_id,
               split.publication_id,
+              publication.publication_time,
               array_agg(split_relinked_switch.switch_id) as switch_ids,
               array_agg(split_updated_duplicate.duplicate_location_track_id) as updated_duplicate_ids,
               coalesce(ltv.official_row_id, ltv.design_row_id, ltv.id) as source_location_track_official_id,
               split.source_location_track_row_id,
               split.source_location_track_row_version
           from publication.split 
+              left join publication.publication on split.publication_id = publication.id
               left join publication.split_relinked_switch on split.id = split_relinked_switch.split_id
               left join publication.split_updated_duplicate on split.id = split_updated_duplicate.split_id
               inner join layout.location_track_version ltv 
@@ -288,7 +301,7 @@ class SplitDao(
                    and split.source_location_track_row_version = ltv.version
           where split.bulk_transfer_state != 'DONE'
             and (ltv.design_id is null or ltv.design_id = :design_id)
-          group by split.id, ltv.official_row_id, ltv.design_row_id, ltv.id
+          group by split.id, ltv.official_row_id, ltv.design_row_id, ltv.id, publication.publication_time
         """.trimIndent()
 
         return jdbcTemplate.query(sql, mapOf("design_id" to branch.designId?.intValue)) { rs, _ ->

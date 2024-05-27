@@ -15,8 +15,8 @@ import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
+import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.ValidationContext
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.publication.ValidationVersions
@@ -38,6 +38,8 @@ import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
+import fi.fta.geoviite.infra.util.conditionalFilter
+import fi.fta.geoviite.infra.util.conditionalSortedBy
 import fi.fta.geoviite.infra.util.produceIf
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -86,16 +88,17 @@ class SplitService(
         branch: LayoutBranch,
         locationTrackIds: List<IntId<LocationTrack>>? = null,
         switchIds: List<IntId<TrackLayoutSwitch>>? = null,
-    ): List<Split> = splitDao.fetchUnfinishedSplits(branch).filter { split ->
-        val containsTrack = locationTrackIds?.any(split::containsLocationTrack)
-        val containsSwitch = switchIds?.any(split::containsSwitch)
-        when {
-            containsTrack != null && containsSwitch != null -> containsTrack || containsSwitch
-            containsTrack != null -> containsTrack
-            containsSwitch != null -> containsSwitch
-            else -> true
+    ): List<Split> = splitDao.fetchUnfinishedSplits(branch)
+        .filter { split ->
+            val containsTrack = locationTrackIds?.any(split::containsLocationTrack)
+            val containsSwitch = switchIds?.any(split::containsSwitch)
+            when {
+                containsTrack != null && containsSwitch != null -> containsTrack || containsSwitch
+                containsTrack != null -> containsTrack
+                containsSwitch != null -> containsSwitch
+                else -> true
+            }
         }
-    }
 
     fun fetchPublicationVersions(
         branch: LayoutBranch,
@@ -343,11 +346,19 @@ class SplitService(
     }
 
     @Transactional
-    fun updateSplitState(splitId: IntId<Split>, state: BulkTransferState): RowVersion<Split> {
-        logger.serviceCall("updateSplitState", "splitId" to splitId)
+    fun updateSplit(
+        splitId: IntId<Split>,
+        bulkTransferState: BulkTransferState,
+        bulkTransferId: IntId<BulkTransfer>? = null
+    ): RowVersion<Split> {
+        logger.serviceCall("updateSplit", "splitId" to splitId)
 
         return splitDao.getOrThrow(splitId).let { split ->
-            splitDao.updateSplit(split.id, bulkTransferState = state)
+            splitDao.updateSplit(
+                splitId = split.id,
+                bulkTransferState = bulkTransferState,
+                bulkTransferId = bulkTransferId,
+            )
         }
     }
 

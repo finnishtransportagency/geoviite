@@ -204,6 +204,46 @@ class SplitDaoIT @Autowired constructor(
         assertThrows<NoSuchEntityException> { splitDao.getOrThrow(IntId(-1)) }
     }
 
+    @Test
+    fun `Initial split bulk transfer state is PENDING`() {
+        val splitId = createSplit()
+        assertEquals(BulkTransferState.PENDING, splitDao.getOrThrow(splitId).bulkTransferState)
+    }
+
+    @Test
+    fun `Split bulk transfer state can be updated`() {
+        val splitId = createSplit()
+        val publicationId = publicationDao.createPublication("test: bulk transfer state update")
+
+        BulkTransferState.entries.forEach { newBulkTransferState ->
+            when (newBulkTransferState) {
+                BulkTransferState.PENDING -> splitDao.updateSplit(
+                    splitId = splitId,
+                    bulkTransferState = newBulkTransferState
+                )
+
+                else -> splitDao.updateSplit(
+                    splitId = splitId,
+                    publicationId = publicationId,
+                    bulkTransferState = newBulkTransferState,
+                    bulkTransferId = getUnusedBulkTransferId(),
+                )
+            }
+            splitDao.updateSplit(splitId, bulkTransferState = newBulkTransferState)
+            assertEquals(newBulkTransferState, splitDao.getOrThrow(splitId).bulkTransferState)
+        }
+    }
+
+    @Test
+    fun `Split bulk transfer id can be updated`() {
+        val splitId = createSplit()
+
+        val bulkTransferId = getUnusedBulkTransferId()
+        splitDao.updateSplit(splitId, bulkTransferId = bulkTransferId)
+
+        assertEquals(bulkTransferId, splitDao.getOrThrow(splitId).bulkTransferId)
+    }
+
     private fun createSplit(): IntId<Split> {
         val trackNumberId = insertOfficialTrackNumber()
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
