@@ -238,7 +238,6 @@ export const getSplitAddressPoint = (
 export const hasUnrelinkableSwitches = (
     relinkingValidationResults: SwitchRelinkingValidationResult[],
 ) =>
-    relinkingValidationResults.some((err) => !err.successfulSuggestion) ||
     relinkingValidationResults.some((err) =>
         err.validationIssues.some((ve) => ve.type === 'ERROR'),
     );

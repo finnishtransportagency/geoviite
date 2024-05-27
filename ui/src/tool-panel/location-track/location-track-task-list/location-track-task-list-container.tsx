@@ -27,8 +27,6 @@ import { useTrackLayoutAppSelector } from 'store/hooks';
 import { useTranslation } from 'react-i18next';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
-import { ifDefined } from 'utils/type-utils';
-import { first } from 'utils/array-utils';
 
 type SwitchRelinkingValidationTaskListProps = {
     layoutContext: LayoutContext;
@@ -91,18 +89,19 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
     );
 
     const [switchesAndErrors, switchesLoadingStatus] = useLoaderWithStatus(async () => {
-        const errors = await validateLocationTrackSwitchRelinking(locationTrackId);
-        const switchIds = errors
+        const relinkingResults = await validateLocationTrackSwitchRelinking(locationTrackId);
+        const switchIds = relinkingResults
             .filter((r) => r.validationIssues.length > 0 || r.successfulSuggestion == null)
             .map((s) => s.id);
+        const switches = await getSwitches(switchIds, draftLayoutContext(layoutContext));
 
         return {
-            errors,
-            switches: await getSwitches(switchIds, draftLayoutContext(layoutContext)),
+            relinkingResults,
+            switches,
         };
     }, [changeTimes.layoutSwitch, locationTrackId, changeTimes.layoutLocationTrack]);
     const switches = switchesAndErrors?.switches;
-    const errors = switchesAndErrors?.errors;
+    const relinkingResults = switchesAndErrors?.relinkingResults;
 
     const onClick = (layoutSwitch: LayoutSwitch) => {
         const presJointNumber = switchStructures?.find(
@@ -148,30 +147,22 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
                         <ul className={styles['switch-relinking-validation-task-list__switches']}>
                             {switches.map((lSwitch) => {
                                 const selected = selectedSwitches.some((sId) => sId == lSwitch.id);
-                                const switchRelinkingResult = errors?.find(
+                                const switchRelinkingResult = relinkingResults?.find(
                                     (e) => e.id == lSwitch.id,
                                 );
-                                const relinkingFailed =
-                                    !switchRelinkingResult?.successfulSuggestion ||
-                                    switchRelinkingResult?.validationIssues?.some(
-                                        (t) => t.type === 'ERROR',
-                                    );
-                                const firstError = ifDefined(
+
+                                const errors =
                                     switchRelinkingResult?.validationIssues?.filter(
                                         (e) => e.type === 'ERROR',
-                                    ),
-                                    first,
-                                );
+                                    ) ?? [];
 
-                                const errorTitle = firstError
-                                    ? t(firstError.localizationKey, firstError.params)
-                                    : t(
-                                          'tool-panel.location-track.task-list.switch-relinking.relinking-failed',
-                                      );
+                                const title = errors
+                                    .map((e) => t(e.localizationKey, e.params))
+                                    .join('\n');
 
                                 return (
                                     <li
-                                        title={relinkingFailed ? errorTitle : undefined}
+                                        title={title}
                                         key={lSwitch.id}
                                         className={
                                             styles['switch-relinking-validation-task-list__switch']
@@ -185,7 +176,7 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
                                                     : SwitchBadgeStatus.DEFAULT
                                             }
                                         />
-                                        {relinkingFailed && (
+                                        {errors.length > 0 && (
                                             <span
                                                 className={
                                                     'switch-relinking-validation-task-list__critical-error'
