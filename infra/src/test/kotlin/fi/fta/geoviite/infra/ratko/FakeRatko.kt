@@ -139,6 +139,14 @@ class FakeRatko(port: Int) {
         get("/api/split/bulk-transfer/$bulkTransferId/state").respond(okJson(responseFinished))
     }
 
+    fun allowsBulkTransferStatePollingAndAnswersWithState(
+        bulkTransferId: IntId<BulkTransfer>,
+        bulkTransferState: BulkTransferState,
+    ) {
+        val response = BulkTransferResponse(id = bulkTransferId, state = bulkTransferState)
+        get("/api/split/bulk-transfer/$bulkTransferId/state").respond(okJson(response))
+    }
+
     // return deleted route number kms, or an empty string if all of a route number points were deleted
     fun getRouteNumberPointDeletions(oid: String): List<String> =
         getPointDeletions(oid, "infra/v1.0/routenumber/points")

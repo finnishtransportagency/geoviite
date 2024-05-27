@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FreeText
+import java.time.Instant
 
 class BulkTransfer
 
@@ -46,6 +47,7 @@ data class Split(
     val bulkTransferState: BulkTransferState,
     val bulkTransferId: IntId<BulkTransfer>?,
     val publicationId: IntId<Publication>?,
+    val publicationTime: Instant?,
     val targetLocationTracks: List<SplitTarget>,
     val relinkedSwitches: List<IntId<TrackLayoutSwitch>>,
     val updatedDuplicates: List<IntId<LocationTrack>>,

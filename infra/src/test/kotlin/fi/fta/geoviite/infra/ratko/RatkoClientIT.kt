@@ -89,7 +89,7 @@ class RatkoClientIT @Autowired constructor(
     }
 
     @Test
-    fun shouldStartNewBulkTransfer() {
+    fun `New bulk transfer can be started`() {
         val split = splitTestDataService
             .insertSplit()
             .let(splitDao::getOrThrow)
@@ -104,7 +104,7 @@ class RatkoClientIT @Autowired constructor(
     }
 
     @Test
-    fun shouldPollBulkTransferState() {
+    fun `Bulk transfer state can be polled`() {
         val split = splitTestDataService
             .insertSplit()
             .let(splitDao::getOrThrow)
@@ -112,8 +112,8 @@ class RatkoClientIT @Autowired constructor(
         val expectedBulkTransferId = getUnusedBulkTransferId()
 
         fakeRatko.acceptsNewBulkTransferGivingItId(expectedBulkTransferId)
-        val (receivedBulkTransferId, receivedBulkTransferState) = ratkoClient.startNewBulkTransfer(split)
+        val (receivedBulkTransferId, _) = ratkoClient.startNewBulkTransfer(split)
 
-        kotlin.test.assertEquals(BulkTransferState.DONE, ratkoClient.pollBulkTransferState(receivedBulkTransferId))
+        assertEquals(BulkTransferState.DONE, ratkoClient.pollBulkTransferState(receivedBulkTransferId))
     }
 }

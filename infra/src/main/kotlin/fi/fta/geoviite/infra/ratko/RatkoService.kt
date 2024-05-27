@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.split.BulkTransferState
+import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -83,10 +84,6 @@ class RatkoService @Autowired constructor(
             logger.serviceCall("scheduledRatkoPush")
             // Don't retry failed on auto-push
             pushChangesToRatko(retryFailed = false)
-
-            if (ratkoClientConfiguration.bulkTransfersEnabled) {
-                manageRatkoBulkTransfers(LayoutBranch.main)
-            }
         }
     }
 
@@ -118,84 +115,91 @@ class RatkoService @Autowired constructor(
             } else {
                 val lastPublicationMoment = ratkoPushDao.getLatestPushedPublicationMoment()
 
-                //Inclusive search, therefore the already pushed one is also returned
+                // Inclusive search, therefore the already pushed one is also returned
                 val publications = publicationService.fetchPublications(lastPublicationMoment)
                     .filter { it.publicationTime > lastPublicationMoment }
                     .map { publicationService.getPublicationDetails(it.id) }
 
-                if (publications.isNotEmpty()) pushChanges(publications)
+                if (publications.isNotEmpty()) {
+                    pushChanges(publications)
+                }
+
+                if (ratkoClientConfiguration.bulkTransfersEnabled) {
+                    manageRatkoBulkTransfers(LayoutBranch.main)
+                }
             }
         }
     }
 
     fun manageRatkoBulkTransfers(branch: LayoutBranch) {
+        logger.serviceCall("manageRatkoBulkTransfers", "branch" to branch)
+
         assertMainBranch(branch)
 
-        lockDao.runWithLock(DatabaseLock.RATKO_BULK_TRANSFER, databaseLockDuration) {
-            logger.serviceCall("manageRatkoBulkTransfers")
-
-            pollBulkTransferStateUpdates(branch)
-            processBulkTransferStarts(branch)
-        }
-    }
-
-    fun pollBulkTransferStateUpdates(branch: LayoutBranch) {
-        logger.serviceCall("processBulkTransferStateUpdates")
-
-        val inProgressSplit = splitService.findSplitWithBulkTransferInProgress(branch)
-        if (inProgressSplit == null) {
-            logger.info("Skipping bulk transfer state polling: no in progress splits found")
-            return
-        }
-
-        checkNotNull(inProgressSplit.bulkTransferId) {
-            error("Was about to poll bulk transfer state for split=${inProgressSplit.id}, but bulkTransferId was null!")
-        }
-
-        val oldState = inProgressSplit.bulkTransferState
-        val newState = ratkoClient.pollBulkTransferState(inProgressSplit.bulkTransferId)
-
-        if (newState != oldState) {
-            logger.info("Updating split=${inProgressSplit.id} bulkTransferState from $oldState to $newState")
-            splitService.updateSplit(inProgressSplit.id, newState)
-        } else {
-            logger.info("Split=${inProgressSplit.id} still has the same bulkTransferState=$oldState")
-        }
-    }
-
-    fun processBulkTransferStarts(branch: LayoutBranch) {
-        logger.serviceCall("processBulkTransferStarts")
-
-        val inProgressSplit = splitService.findSplitWithBulkTransferInProgress(branch)
-        if (inProgressSplit != null) {
-            logger.info("Skipping new bulk transfer, split=${inProgressSplit.id} bulk transfer is in progress")
-            return
-        }
-
-        val pendingPublishedSplit = splitService
-            .findUnfinishedSplits(
-                branch = branch,
-                filterToPublished = true,
-                filterToBulkTransferStates = listOf(
+        splitService
+            .findUnfinishedSplits(branch)
+            .filter { split -> split.publicationId != null && split.publicationTime != null }
+            .sortedWith(compareBy { split -> split.publicationTime ?: Instant.MAX })
+            .firstOrNull()
+            ?.let { split ->
+                pollBulkTransferStateUpdate(branch, split)
+            }
+            .takeIf { split ->
+                split?.bulkTransferState in listOf(
                     BulkTransferState.PENDING,
                     BulkTransferState.TEMPORARY_FAILURE,
-                ),
-                sortBySplitId = true,
-            )
-            .firstOrNull()
-
-        if (pendingPublishedSplit == null) {
-            logger.info("Skipping new bulk transfer, no splits with pending bulk transfers found")
-        } else {
-            logger.info("Starting a new bulk transfer for split=${pendingPublishedSplit.id}")
-
-            ratkoClient.startNewBulkTransfer(pendingPublishedSplit).let { (bulkTransferId, bulkTransferState) ->
-                splitService.updateSplit(
-                    splitId = pendingPublishedSplit.id,
-                    bulkTransferState = bulkTransferState,
-                    bulkTransferId = bulkTransferId,
                 )
             }
+            ?.let { split ->
+                beginNewBulkTransfer(branch, split)
+            }
+    }
+
+    fun pollBulkTransferStateUpdate(branch: LayoutBranch, split: Split): Split {
+        logger.serviceCall(
+            "pollBulkTransferStateUpdate",
+            "branch" to branch,
+            "split" to split,
+        )
+
+        if (split.bulkTransferState != BulkTransferState.IN_PROGRESS) {
+            logger.info(
+                "Skipping bulk transfer state poll: split is not in progress (current state=${split.bulkTransferState})"
+            )
+
+            return split
+        }
+
+        checkNotNull(split.bulkTransferId) {
+            error("Was about to poll bulk transfer state for split=${split.id}, but bulkTransferId was null!")
+        }
+
+        val oldState = split.bulkTransferState
+        val newState = ratkoClient.pollBulkTransferState(split.bulkTransferId)
+
+        return if (newState != oldState) {
+            logger.info("Updating split=${split.id} bulkTransferState from $oldState to $newState")
+            splitService.updateSplit(split.id, newState)
+            splitService.getOrThrow(split.id)
+        } else {
+            logger.info("Split=${split.id} still has the same bulkTransferState=$oldState")
+            split
+        }
+    }
+
+    fun beginNewBulkTransfer(branch: LayoutBranch, split: Split) {
+        logger.serviceCall(
+            "beginBulkTransfer",
+            "branch" to branch,
+            "split" to split,
+        )
+
+        ratkoClient.startNewBulkTransfer(split).let { (bulkTransferId, bulkTransferState) ->
+            splitService.updateSplit(
+                splitId = split.id,
+                bulkTransferState = bulkTransferState,
+                bulkTransferId = bulkTransferId,
+            )
         }
     }
 

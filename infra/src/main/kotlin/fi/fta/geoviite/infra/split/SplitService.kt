@@ -80,14 +80,6 @@ class SplitService(
     ): List<Split> = findUnfinishedSplits(branch, locationTrackIds, switchIds)
         .filter { split -> split.publicationId == null }
 
-    fun findSplitWithBulkTransferInProgress(branch: LayoutBranch): Split? {
-        return findUnfinishedSplits(
-            branch = branch,
-            filterToPublished = true,
-            filterToBulkTransferStates = listOf(BulkTransferState.IN_PROGRESS)
-        ).singleOrNull()
-    }
-
     /**
      * Fetches all splits that are not marked as DONE. Can be filtered by location tracks or switches. If both filters
      * are defined, the result is combined by OR (match by either).
@@ -96,9 +88,6 @@ class SplitService(
         branch: LayoutBranch,
         locationTrackIds: List<IntId<LocationTrack>>? = null,
         switchIds: List<IntId<TrackLayoutSwitch>>? = null,
-        filterToPublished: Boolean = false,
-        filterToBulkTransferStates: List<BulkTransferState> = emptyList(),
-        sortBySplitId: Boolean = false,
     ): List<Split> = splitDao.fetchUnfinishedSplits(branch)
         .filter { split ->
             val containsTrack = locationTrackIds?.any(split::containsLocationTrack)
@@ -110,13 +99,6 @@ class SplitService(
                 else -> true
             }
         }
-        .conditionalFilter(filterToPublished) { split ->
-            split.publicationId != null
-        }
-        .conditionalFilter(filterToBulkTransferStates.isNotEmpty()) { split ->
-            split.bulkTransferState in filterToBulkTransferStates
-        }
-        .conditionalSortedBy(sortBySplitId) { split -> split.id.intValue }
 
     fun fetchPublicationVersions(
         branch: LayoutBranch,

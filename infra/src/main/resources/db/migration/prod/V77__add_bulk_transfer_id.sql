@@ -4,7 +4,3 @@ alter table publication.split
 
 alter table publication.split_version
   add column bulk_transfer_id int null;
-
-create unique index bulk_transfer_state_in_progress_unique
-  on publication.split (bulk_transfer_state)
-  where geoviite.publication.split.bulk_transfer_state = 'IN_PROGRESS';
