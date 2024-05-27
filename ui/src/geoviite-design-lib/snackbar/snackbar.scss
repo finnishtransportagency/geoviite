@@ -18,13 +18,13 @@
     &__toast-text {
         overflow: hidden;
         text-overflow: ellipsis;
+        user-select: text;
         margin-left: 16px;
     }
 
     &__toast-header {
         font-weight: 600;
         line-height: 20px;
-        white-space: nowrap;
         overflow: hidden;
     }
 
