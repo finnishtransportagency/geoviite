@@ -295,6 +295,7 @@ class PublicationDao(
      * @param includeDeleted Filters location tracks, not switches
      */
     fun fetchLinkedLocationTracks(
+        layoutBranch: LayoutBranch,
         switchIds: List<IntId<TrackLayoutSwitch>>,
         locationTrackIdsInPublicationUnit: List<IntId<LocationTrack>>? = null,
         includeDeleted: Boolean = false,
@@ -310,31 +311,41 @@ class PublicationDao(
               lt.official_id,
               lt.row_id,
               lt.row_version,
-              array(select distinct v from unnest(
-                array_agg(s.switch_id) || array_agg(lt.topology_start_switch_id) || array_agg(lt.topology_end_switch_id)
-              ) as t(v) where v in (:switch_ids)) as switch_ids
+              array_agg(distinct switch_id) as switch_ids
               from (select *
-                    from layout.location_track_in_layout_context('OFFICIAL', null) lt
+                    from layout.location_track_in_layout_context('OFFICIAL', :design_id) lt
                      where not ($draftTrackIncludedCondition)
                     union all
                     select *
-                    from layout.location_track_in_layout_context('DRAFT', null) lt
+                    from layout.location_track_in_layout_context('DRAFT', :design_id) lt
                      where ($draftTrackIncludedCondition)
                     ) lt
-                left join layout.segment_version s on s.alignment_id = lt.alignment_id
-                and s.alignment_version = lt.alignment_version
+              join (
+                select location_track.id as row_id, sv_switch.switch_id
+                  from (
+                    select distinct alignment_id, alignment_version, switch_id
+                      from layout.segment_version
+                      where switch_id in (:switch_ids)
+                  ) sv_switch
+                    join layout.location_track using (alignment_id, alignment_version)
+                union all
+                select id, topology_start_switch_id
+                  from layout.location_track
+                  where topology_start_switch_id in (:switch_ids)
+                union all
+                select id, topology_end_switch_id
+                  from layout.location_track
+                  where topology_end_switch_id in (:switch_ids)
+              ) sid
+                using (row_id)
               where (:include_deleted or lt.state != 'DELETED')
-                and (
-                    lt.topology_start_switch_id in (:switch_ids) or
-                    lt.topology_end_switch_id in (:switch_ids) or
-                    s.switch_id in (:switch_ids)
-                )
               group by
                 lt.official_id,
                 lt.row_id,
                 lt.row_version
         """.trimIndent()
         val params = mapOf(
+            "design_id" to layoutBranch.designId?.intValue,
             "switch_ids" to switchIds.map(IntId<TrackLayoutSwitch>::intValue),
             "location_track_ids" to locationTrackIdsInPublicationUnit?.map(IntId<*>::intValue),
             "include_deleted" to includeDeleted,

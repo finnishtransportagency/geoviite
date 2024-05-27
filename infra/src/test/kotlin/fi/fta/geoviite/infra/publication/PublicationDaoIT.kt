@@ -360,11 +360,15 @@ class PublicationDaoIT @Autowired constructor(
                 daoResponseToValidationVersion(officialLinkedAlignment),
                 daoResponseToValidationVersion(draftLinkedAlignment),
             ),
-            publicationDao.fetchLinkedLocationTracks(listOf(switchByAlignment))[switchByAlignment],
+            publicationDao.fetchLinkedLocationTracks(LayoutBranch.main, listOf(switchByAlignment))[switchByAlignment],
         )
         assertEquals(
             setOf(daoResponseToValidationVersion(officialLinkedAlignment)),
-            publicationDao.fetchLinkedLocationTracks(listOf(switchByAlignment), listOf())[switchByAlignment]
+            publicationDao.fetchLinkedLocationTracks(
+                LayoutBranch.main,
+                listOf(switchByAlignment),
+                listOf()
+            )[switchByAlignment]
         )
         assertEquals(
             setOf(
@@ -372,6 +376,7 @@ class PublicationDaoIT @Autowired constructor(
                 daoResponseToValidationVersion(draftLinkedAlignment),
             ),
             publicationDao.fetchLinkedLocationTracks(
+                LayoutBranch.main,
                 listOf(switchByAlignment),
                 listOf(draftLinkedAlignment.id),
             )[switchByAlignment],
@@ -381,15 +386,19 @@ class PublicationDaoIT @Autowired constructor(
                 daoResponseToValidationVersion(officialLinkedTopo),
                 daoResponseToValidationVersion(draftLinkedTopo),
             ),
-            publicationDao.fetchLinkedLocationTracks(listOf(switchByTopo))[switchByTopo],
+            publicationDao.fetchLinkedLocationTracks(LayoutBranch.main, listOf(switchByTopo))[switchByTopo],
         )
         assertEquals(
             setOf(daoResponseToValidationVersion(officialLinkedTopo)),
-            publicationDao.fetchLinkedLocationTracks(listOf(switchByTopo), listOf())[switchByTopo]
+            publicationDao.fetchLinkedLocationTracks(LayoutBranch.main, listOf(switchByTopo), listOf())[switchByTopo]
         )
         assertEquals(
             setOf(daoResponseToValidationVersion(officialLinkedTopo), daoResponseToValidationVersion(draftLinkedTopo)),
-            publicationDao.fetchLinkedLocationTracks(listOf(switchByTopo), listOf(draftLinkedTopo.id))[switchByTopo]
+            publicationDao.fetchLinkedLocationTracks(
+                LayoutBranch.main,
+                listOf(switchByTopo),
+                listOf(draftLinkedTopo.id)
+            )[switchByTopo]
         )
     }
 
