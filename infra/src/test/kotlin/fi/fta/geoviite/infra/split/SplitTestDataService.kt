@@ -50,7 +50,7 @@ class SplitTestDataService @Autowired constructor(
         return splitDao.saveSplit(
             sourceLocationTrackVersion = sourceTrack.rowVersion,
             splitTargets = listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE)),
-            relinkedSwitches = listOf(mainOfficialContext.insertUniqueSwitch().id),
+            relinkedSwitches = listOf(mainOfficialContext.insertSwitch().id),
             updatedDuplicates = emptyList(),
         )
     }

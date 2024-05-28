@@ -458,7 +458,7 @@ class SplitServiceIT @Autowired constructor(
             alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
         )
 
-        val relinkedSwitchId = mainOfficialContext.insertUniqueSwitch().id
+        val relinkedSwitchId = mainOfficialContext.insertSwitch().id
 
         return splitDao.saveSplit(
             sourceTrack.rowVersion,

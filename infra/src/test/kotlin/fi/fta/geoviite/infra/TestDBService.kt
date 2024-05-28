@@ -359,6 +359,6 @@ data class TestLayoutContext(
         return version.let(trackNumberDao::fetch)
     }
 
-    fun insertUniqueSwitch(): DaoResponse<TrackLayoutSwitch> =
+    fun insertSwitch(): DaoResponse<TrackLayoutSwitch> =
         insert(switch(name = testService.getUnusedSwitchName().toString()))
 }

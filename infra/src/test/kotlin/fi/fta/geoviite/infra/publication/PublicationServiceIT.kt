@@ -2919,7 +2919,7 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Split validation should fail if switches are missing`() {
         val splitSetup = simpleSplitSetup()
-        val switch = mainOfficialContext.insertUniqueSwitch()
+        val switch = mainOfficialContext.insertSwitch()
         val split = saveSplit(
             sourceTrackVersion = splitSetup.sourceTrack.rowVersion,
             targetTracks = splitSetup.targetParams,
@@ -2940,7 +2940,7 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Split validation should fail if only switches are staged`() {
         val splitSetup = simpleSplitSetup()
-        val switch = mainOfficialContext.insertUniqueSwitch()
+        val switch = mainOfficialContext.insertSwitch()
         val split = saveSplit(
             sourceTrackVersion = splitSetup.sourceTrack.rowVersion,
             targetTracks = splitSetup.targetParams,
@@ -2961,7 +2961,7 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Split validation should not fail if switches and location tracks are staged`() {
         val splitSetup = simpleSplitSetup()
-        val switch = mainOfficialContext.insertUniqueSwitch()
+        val switch = mainOfficialContext.insertSwitch()
         val split = saveSplit(
             sourceTrackVersion = splitSetup.sourceTrack.rowVersion,
             targetTracks = splitSetup.targetParams,
@@ -3265,7 +3265,7 @@ class PublicationServiceIT @Autowired constructor(
             someDuplicateTrack.id,
         )
 
-        val someSwitchId = mainDraftContext.insertUniqueSwitch().id
+        val someSwitchId = mainDraftContext.insertSwitch().id
 
         val publicationCandidates = publicationService.collectPublicationCandidates(LayoutBranch.main)
 
@@ -3370,7 +3370,7 @@ class PublicationServiceIT @Autowired constructor(
     fun `Published split should not be deleted when a relinked switch is later modified and reverted`() {
         val splitSetup = simpleSplitSetup()
 
-        val someSwitch = mainDraftContext.insertUniqueSwitch()
+        val someSwitch = mainDraftContext.insertSwitch()
 
         val splitId = saveSplit(
             sourceTrackVersion = splitSetup.sourceTrack.rowVersion,
@@ -3441,7 +3441,7 @@ class PublicationServiceIT @Autowired constructor(
         )
 
         val someSwitches = (0..5).map {
-            mainDraftContext.insertUniqueSwitch().id
+            mainDraftContext.insertSwitch().id
         }
 
         val someDuplicates = (0..4).map { i ->
