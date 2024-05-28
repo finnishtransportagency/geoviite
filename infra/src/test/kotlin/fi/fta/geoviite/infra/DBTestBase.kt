@@ -6,9 +6,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.common.switchNameLength
-import fi.fta.geoviite.infra.common.trackNumberLength
-import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
