@@ -420,7 +420,7 @@ class SwitchLinkingService @Autowired constructor(
 
         val suggestedConnections = suggestedSwitch
             .trackLinks
-            .filter { link -> link.value.segmentJoints.any() || link.value.topologyJoint != null }
+            .filter { link -> link.value.isLinked() }
             .keys
 
         return listOfNotNull(
