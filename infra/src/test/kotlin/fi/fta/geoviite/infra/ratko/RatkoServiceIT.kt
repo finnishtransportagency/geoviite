@@ -1219,7 +1219,7 @@ class RatkoServiceIT @Autowired constructor(
         val publicationId = publicationDao.createPublication("test: bulk transfer to in progress")
         splitDao.updateSplit(splitId = splitId, publicationId = publicationId)
 
-        val someBulkTransferId = getUnusedBulkTransferId()
+        val someBulkTransferId = testDBService.getUnusedBulkTransferId()
         fakeRatko.acceptsNewBulkTransferGivingItId(someBulkTransferId)
 
         ratkoService.manageRatkoBulkTransfers(LayoutBranch.main)
@@ -1237,7 +1237,7 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun `Bulk transfer should not be started when another bulk transfer is in progress`() {
-        val someBulkTransferId = getUnusedBulkTransferId()
+        val someBulkTransferId = testDBService.getUnusedBulkTransferId()
 
         splitTestDataService.insertSplit().let { splitId ->
             splitDao.updateSplit(
@@ -1274,7 +1274,7 @@ class RatkoServiceIT @Autowired constructor(
             ).id
         }
 
-        val bulkTransferIdThatWillFail = getUnusedBulkTransferId()
+        val bulkTransferIdThatWillFail = testDBService.getUnusedBulkTransferId()
         fakeRatko.acceptsNewBulkTransferGivingItId(bulkTransferIdThatWillFail)
         ratkoService.manageRatkoBulkTransfers(LayoutBranch.main)
 
@@ -1287,7 +1287,7 @@ class RatkoServiceIT @Autowired constructor(
             bulkTransferState = BulkTransferState.TEMPORARY_FAILURE,
         )
 
-        val retriedBulkTransferId = getUnusedBulkTransferId()
+        val retriedBulkTransferId = testDBService.getUnusedBulkTransferId()
         fakeRatko.acceptsNewBulkTransferGivingItId(retriedBulkTransferId)
         ratkoService.manageRatkoBulkTransfers(LayoutBranch.main)
 
@@ -1309,7 +1309,7 @@ class RatkoServiceIT @Autowired constructor(
             }
         }
 
-        val someBulkTransferId = getUnusedBulkTransferId()
+        val someBulkTransferId = testDBService.getUnusedBulkTransferId()
         fakeRatko.acceptsNewBulkTransferGivingItId(someBulkTransferId)
         ratkoService.manageRatkoBulkTransfers(LayoutBranch.main)
 
@@ -1336,7 +1336,7 @@ class RatkoServiceIT @Autowired constructor(
                         splitDao.updateSplit(
                             splitId = splitId,
                             publicationId = publicationDao.createPublication("testing $bulkTransferState"),
-                            bulkTransferId = getUnusedBulkTransferId(),
+                            bulkTransferId = testDBService.getUnusedBulkTransferId(),
                             bulkTransferState = bulkTransferState,
                         )
                 }

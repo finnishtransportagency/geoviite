@@ -71,8 +71,8 @@ class BasicMapTestUI @Autowired constructor(
         val eastReferenceLine = eastReferenceLine(trackNumberEastId.id)
         val eastLocationTrack = eastLocationTrack(trackNumberEastId.id)
 
-        insertLocationTrack(WEST_LT)
-        insertLocationTrack(eastLocationTrack)
+        mainOfficialContext.insert(WEST_LT)
+        mainOfficialContext.insert(eastLocationTrack)
         insertReferenceLine(WEST_REFERENCE_LINE)
         insertReferenceLine(eastReferenceLine)
 

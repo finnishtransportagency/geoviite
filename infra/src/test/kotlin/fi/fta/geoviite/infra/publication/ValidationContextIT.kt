@@ -102,9 +102,9 @@ class ValidationContextIT @Autowired constructor(
     @Test
     fun `ValidationContext returns correct versions for LocationTrack`() {
         val trackNumberId = mainDraftContext.insertTrackNumber().id
-        val (lt1Id, lt1OfficialVersion) = insertLocationTrack(locationTrackAndAlignment(trackNumberId, draft = false))
+        val (lt1Id, lt1OfficialVersion) = mainOfficialContext.insert(locationTrackAndAlignment(trackNumberId))
         val (_, lt1DraftVersion) = locationTrackDao.insert(asMainDraft(locationTrackDao.fetch(lt1OfficialVersion)))
-        val (lt2Id, lt2DraftVersion) = insertLocationTrack(locationTrackAndAlignment(trackNumberId, draft = true))
+        val (lt2Id, lt2DraftVersion) = mainDraftContext.insert(locationTrackAndAlignment(trackNumberId, draft = true))
 
         assertEquals(
             locationTrackDao.fetch(lt1OfficialVersion),

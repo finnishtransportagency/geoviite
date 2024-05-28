@@ -146,41 +146,37 @@ class LayoutSearchServiceIT @Autowired constructor(
             switchService.saveDraft(LayoutBranch.main, switch(name = "bluu V0003", draft = true)).rowVersion
         ).id as IntId
 
-        val lt1 = insertLocationTrack( // Location track search scope origin, should be included
+        val lt1 = mainDraftContext.insert( // Location track search scope origin, should be included
             locationTrack(
                 trackNumberId = trackNumberId,
                 name = "blaa",
                 topologyStartSwitch = TopologyLocationTrackSwitch(topologyStartSwitchId, JointNumber(3)),
                 topologyEndSwitch = TopologyLocationTrackSwitch(topologyEndSwitchId, JointNumber(5)),
-                draft = true,
             ),
             someAlignment()
         )
-        val lt2 = insertLocationTrack( // Duplicate based on duplicateOf, should be included
+        val lt2 = mainDraftContext.insert( // Duplicate based on duplicateOf, should be included
             locationTrack(
                 trackNumberId = trackNumberId,
                 name = "blee",
                 topologyStartSwitch = TopologyLocationTrackSwitch(duplicateStartSwitchId, JointNumber(3)),
                 duplicateOf = lt1.id,
-                draft = true,
             ),
             someAlignment()
         )
-        val lt3 = insertLocationTrack( // Duplicate based on switches, should be included
+        val lt3 = mainDraftContext.insert( // Duplicate based on switches, should be included
             locationTrack(
                 trackNumberId = trackNumberId,
                 name = "bloo",
                 topologyStartSwitch = TopologyLocationTrackSwitch(topologyStartSwitchId, JointNumber(3)),
                 topologyEndSwitch = TopologyLocationTrackSwitch(topologyEndSwitchId, JointNumber(5)),
-                draft = true,
             ),
             someAlignment()
         )
-        insertLocationTrack( // Non-duplicate, shouldn't be included in search results
+        mainDraftContext.insert( // Non-duplicate, shouldn't be included in search results
             locationTrack(
                 trackNumberId = trackNumberId,
                 name = "bluu",
-                draft = true,
             ),
             someAlignment()
         )

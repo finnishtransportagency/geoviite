@@ -8,8 +8,8 @@ select
   switch_version.state_category,
   switch_version.version,
   switch_version.change_user,
-      lag(switch_version.state_category)
+  lag(switch_version.state_category)
       over (partition by switch_version.id order by switch_version.version) as old_state_category
   from layout.switch_version
-  where draft = false
+  where layout_context_id = 'main_official'
 );

@@ -43,18 +43,14 @@ class SplitTestDataService @Autowired constructor(
         trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.insertTrackNumber().id,
     ): IntId<Split> {
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
-        val sourceTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = false) to alignment
-        )
 
-        val targetTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = true) to alignment
-        )
+        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
+        val targetTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
 
         return splitDao.saveSplit(
             sourceLocationTrackVersion = sourceTrack.rowVersion,
             splitTargets = listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE)),
-            relinkedSwitches = listOf(insertUniqueSwitch().id),
+            relinkedSwitches = listOf(mainOfficialContext.insertUniqueSwitch().id),
             updatedDuplicates = emptyList(),
         )
     }
@@ -64,12 +60,11 @@ class SplitTestDataService @Autowired constructor(
         structure: SwitchStructure = getYvStructure(),
         externalId: Oid<TrackLayoutSwitch>? = null,
     ): SwitchAndSegments {
-        val switchInsertResponse = insertSwitch(
+        val switchInsertResponse = mainOfficialContext.insert(
             switchFromDbStructure(
                 testDBService.getUnusedSwitchName().toString(),
                 startPoint,
                 structure,
-                draft = false,
                 externalId = externalId?.toString(),
             )
         )
@@ -94,12 +89,8 @@ class SplitTestDataService @Autowired constructor(
         trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.insertTrackNumber().id,
     ): IntId<LocationTrack> {
         val alignment = alignment(segments)
-        return insertLocationTrack(
-            locationTrack(
-                trackNumberId = trackNumberId,
-                draft = false,
-                duplicateOf = duplicateOf
-            ),
+        return mainOfficialContext.insert(
+            locationTrack(trackNumberId = trackNumberId, duplicateOf = duplicateOf),
             alignment,
         ).id
     }
@@ -109,9 +100,9 @@ class SplitTestDataService @Autowired constructor(
         trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.insertTrackNumber().id,
     ): DaoResponse<LocationTrack> {
         val alignment = alignment(segments)
-        insertReferenceLine(referenceLine(trackNumberId, draft = false), alignment)
+        mainOfficialContext.insert(referenceLine(trackNumberId), alignment)
 
-        return insertLocationTrack(locationTrack(trackNumberId, draft = false), alignment).also { r ->
+        return mainOfficialContext.insert(locationTrack(trackNumberId), alignment).also { r ->
             val (dbTrack, dbAlignment) = locationTrackService.getWithAlignment(r.rowVersion)
             assertEquals(trackNumberId, dbTrack.trackNumberId)
             assertEquals(segments.size, dbAlignment.segments.size)

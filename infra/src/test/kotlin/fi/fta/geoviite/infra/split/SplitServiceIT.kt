@@ -317,8 +317,8 @@ class SplitServiceIT @Autowired constructor(
     @Test
     fun `Duplicate tracks should be reassigned to most overlapping tracks if left unused`() {
         val trackNumberId = mainOfficialContext.insertTrackNumber().id
-        insertReferenceLine(
-            referenceLine(trackNumberId = trackNumberId, draft = false),
+        mainOfficialContext.insert(
+            referenceLine(trackNumberId),
             alignment(segment(Point(-1000.0, 0.0), Point(1000.0, 0.0))),
         )
 
@@ -335,13 +335,10 @@ class SplitServiceIT @Autowired constructor(
             alignment
         ) = alignmentWithMultipleSwitches(switchStartPoints)
 
-        val sourceTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = false),
-            alignment,
-        )
+        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
 
         val duplicateIds = listOf(
-            insertLocationTrack(
+            mainOfficialContext.insert(
                 locationTrack(
                     name = "Used duplicate between first and second switch",
                     trackNumberId = trackNumberId,
@@ -351,7 +348,7 @@ class SplitServiceIT @Autowired constructor(
                 alignment(segment(Point(100.0, 0.0), Point(200.0, 0.0))),
             ),
 
-            insertLocationTrack(
+            mainOfficialContext.insert(
                 locationTrack(
                     name = "Unused dupe with full overlap",
                     trackNumberId = trackNumberId,
@@ -361,7 +358,7 @@ class SplitServiceIT @Autowired constructor(
                 alignment(segment(Point(250.0, 0.0), Point(275.0, 0.0))),
             ),
 
-            insertLocationTrack(
+            mainOfficialContext.insert(
                 locationTrack(
                     name = "Unused dupe with partial overlap of two new tracks",
                     trackNumberId = trackNumberId,
@@ -371,7 +368,7 @@ class SplitServiceIT @Autowired constructor(
                 alignment(segment(Point(275.0, 0.0), Point(350.0, 0.0))),
             ),
 
-            insertLocationTrack(
+            mainOfficialContext.insert(
                 locationTrack(
                     name = "Unused dupe with flipped partial overlap",
                     trackNumberId = trackNumberId,
@@ -446,22 +443,22 @@ class SplitServiceIT @Autowired constructor(
 
     private fun insertSplitWithTwoTracks(): IntId<Split> {
         val trackNumberId = mainOfficialContext.insertTrackNumber().id
-        insertReferenceLine(
-            referenceLine(trackNumberId = trackNumberId, draft = false),
+        mainOfficialContext.insert(
+            referenceLine(trackNumberId),
             alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
         )
 
-        val sourceTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = false),
+        val sourceTrack = mainOfficialContext.insert(
+            locationTrack(trackNumberId),
             alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
         )
 
-        val endTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = false),
+        val endTrack = mainOfficialContext.insert(
+            locationTrack(trackNumberId),
             alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
         )
 
-        val relinkedSwitchId = insertUniqueSwitch().id
+        val relinkedSwitchId = mainOfficialContext.insertUniqueSwitch().id
 
         return splitDao.saveSplit(
             sourceTrack.rowVersion,

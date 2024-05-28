@@ -27,12 +27,11 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
             "test-lt B3" to "test-desc-3",
         )
         ltNames.forEach { (name, desc) ->
-            insertLocationTrack(
+            mainOfficialContext.insert(
                 locationTrackAndAlignment(
                     trackNumberId = tnId,
                     name = name,
                     description = desc,
-                    draft = false,
                 )
             )
         }
@@ -53,13 +52,13 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
     @Test
     fun `Search opens specific location track`() {
         val (trackNumber, trackNumberId) = mainOfficialContext.getNewTrackNumberAndId()
-        val (track, alignment) = locationTrackAndAlignment(
-            trackNumberId = trackNumberId,
-            name = "test-lt specific 001",
-            description = "specific track selection test track 001",
-            draft = false,
+        val (track, _) = mainOfficialContext.insertAndFetch(
+            locationTrackAndAlignment(
+                trackNumberId = trackNumberId,
+                name = "test-lt specific 001",
+                description = "specific track selection test track 001",
+            )
         )
-        insertLocationTrack(track, alignment)
 
         startGeoviite()
         val mapPage = goToMap()

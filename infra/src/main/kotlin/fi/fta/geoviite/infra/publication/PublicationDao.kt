@@ -1428,7 +1428,7 @@ class PublicationDao(
                 left join layout.track_number_change_view tn
                           on tn.id = ptn.track_number_id and tn.version = ptn.track_number_version
                 left join layout.track_number_at(coalesce(prev_pub.prev_publication_time, p.publication_time - interval '00:00:00.001')) tn_old
-                          on tn_old.id = ptn.track_number_id
+                          on tn_old.id = ptn.track_number_id and tn_old.layout_context_id = 'main_official'
                 left join publication.track_number_km ptnk
                           on ptnk.track_number_id = ptn.track_number_id and ptnk.publication_id = ptn.publication_id
               where prl.publication_id = :publication_id

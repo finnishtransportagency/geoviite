@@ -50,14 +50,14 @@ class PublicationLogSearchTestUI @Autowired constructor(
 
             PublicationRequest(
                 content = publicationRequestIds(
-                    referenceLines = listOf(insertReferenceLine(someReferenceLine.first, someReferenceLine.second).id)
+                    referenceLines = listOf(mainDraftContext.insert(someReferenceLine.first, someReferenceLine.second).id)
                 ),
                 message = "some test publication 2",
             ),
 
             PublicationRequest(
                 content = publicationRequestIds(
-                    locationTracks = listOf(insertLocationTrack(someTrack).id)
+                    locationTracks = listOf(mainDraftContext.insert(someTrack).id)
                 ),
                 message = "some test publication 3",
             )

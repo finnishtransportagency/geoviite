@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.geometry.CompanyName
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.project
+import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
@@ -34,6 +35,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
@@ -232,6 +234,10 @@ class TestDBService(
         getUniqueName(DbTable.GEOMETRY_PLAN_AUTHOR, 100)
     )
 
+    fun getUnusedBulkTransferId(): IntId<BulkTransfer> {
+        return getUniqueId(DbTable.PUBLICATION_SPLIT, "bulk_transfer_id")
+    }
+
     private fun getUniqueName(table: DbTable, maxLength: Int): String {
         val sql = "select max(id) max_id from ${table.versionTable}"
         val maxId = jdbc.queryForObject(sql, mapOf<String, Any>()) { rs, _ -> rs.getInt("max_id") }!!
@@ -242,6 +248,15 @@ class TestDBService(
         return "$baseName ${maxId + 1}"
     }
 
+    private fun<T> getUniqueId(table: DbTable, column: String): IntId<T> {
+        val sql = "select max($column) max_id from ${table.fullName}"
+        val maxId = jdbc.queryForObject(sql, mapOf<String, Any>()) { rs, _ -> rs.getInt("max_id") }
+
+        return when {
+            maxId == null -> IntId(0)
+            else -> IntId(maxId + 1)
+        }
+    }
 
     final inline fun <reified T : LayoutAsset<T>> fetch(rowVersion: RowVersion<T>): T =
         getDao(T::class).fetch(rowVersion)
@@ -343,4 +358,7 @@ data class TestLayoutContext(
             ?: insert(trackNumber(trackNumber)).rowVersion
         return version.let(trackNumberDao::fetch)
     }
+
+    fun insertUniqueSwitch(): DaoResponse<TrackLayoutSwitch> =
+        insert(switch(name = testService.getUnusedSwitchName().toString()))
 }
