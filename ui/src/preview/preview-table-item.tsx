@@ -59,7 +59,6 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     const hasErrors = tableEntry.issues.length > 0;
 
     const statusCellClassName = createClassName(
-        styles['preview-table-item__status-cell'],
         hasErrors && styles['preview-table-item__status-cell--expandable'],
     );
 
@@ -196,20 +195,23 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                                 <Icons.Tick color={IconColor.INHERIT} size={IconSize.SMALL} />
                             </span>
                         )}
-                        {errorTexts.length > 0 && (
-                            <span className={styles['preview-table-item__error-status']}>
-                                {t('preview-table.errors-status-text', {
-                                    errors: errorTexts.length,
-                                })}
-                            </span>
-                        )}
-                        {warningTexts.length > 0 && (
-                            <span className={styles['preview-table-item__warning-status']}>
-                                {t('preview-table.warnings-status-text', {
-                                    warnings: warningTexts.length,
-                                })}
-                            </span>
-                        )}
+                        <span>
+                            {errorTexts.length > 0 && (
+                                <span className={styles['preview-table-item__error-status']}>
+                                    {t('preview-table.errors-status-text', {
+                                        errors: errorTexts.length,
+                                    })}
+                                </span>
+                            )}
+                            {errorTexts.length > 0 && warningTexts.length > 0 && ' '}
+                            {warningTexts.length > 0 && (
+                                <span className={styles['preview-table-item__warning-status']}>
+                                    {t('preview-table.warnings-status-text', {
+                                        warnings: warningTexts.length,
+                                    })}
+                                </span>
+                            )}
+                        </span>
                     </td>
                 )}
                 <td className={'preview-table-item preview-table-item__actions--cell'}>
