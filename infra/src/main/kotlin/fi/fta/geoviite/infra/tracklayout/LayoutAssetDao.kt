@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
@@ -154,7 +155,6 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
                 rs.getRowVersion("row_id", "row_version"),
             )
         }.also { found ->
-            println("$table seek=$distinctIds found=$found")
             distinctIds.forEach { id ->
                 if (found.none { f -> f.officialId == id }) throw NoSuchEntityException(table.name, id)
             }
