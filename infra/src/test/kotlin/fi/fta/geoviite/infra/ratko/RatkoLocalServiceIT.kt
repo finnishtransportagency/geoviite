@@ -265,34 +265,27 @@ class RatkoLocalServiceIT @Autowired constructor(
 
     @Test
     fun `Operating points can be found by their oid`() {
-        val oids = (0..1).map { _ -> someOid<RatkoOperatingPoint>() }
-
         listOf(
             createTestOperatingPoint(
                 name = "AAA",
                 abbreviation = "unused",
-                externalId = oids[0],
+                externalId = someOid(),
             ),
 
             createTestOperatingPoint(
                 name = "BBB",
                 abbreviation = "unused",
-                externalId = oids[1],
+                externalId = someOid(),
             ),
-        ).let(operatingPointDao::updateOperatingPoints)
-
-        ratkoLocalService
-            .searchOperatingPoints(FreeText(oids[0].toString()))
-            .let { result ->
-                assertEquals(1, result.size)
-                assertEquals("AAA", result[0].name)
-            }
-
-        ratkoLocalService
-            .searchOperatingPoints(FreeText(oids[1].toString()))
-            .let { result ->
-                assertEquals(1, result.size)
-                assertEquals("BBB", result[0].name)
+        )
+            .also(operatingPointDao::updateOperatingPoints)
+            .forEach { testOperatingPoint ->
+                ratkoLocalService
+                    .searchOperatingPoints(FreeText(testOperatingPoint.externalId.toString()))
+                    .let { result ->
+                        assertEquals(1, result.size)
+                        assertEquals(testOperatingPoint.name, result[0].name)
+                    }
             }
     }
 
