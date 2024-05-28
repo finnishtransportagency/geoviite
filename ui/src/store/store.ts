@@ -6,7 +6,6 @@ import { FLUSH, PAUSE, PERSIST, PURGE, REGISTER, REHYDRATE, persistReducer } fro
 import storage from 'redux-persist/lib/storage';
 import { combineReducers } from 'redux';
 
-import thunk from 'redux-thunk';
 import { commonReducer } from 'common/common-slice';
 
 const persistedTrackLayoutReducer = persistReducer(
@@ -48,14 +47,15 @@ export const appStore = configureStore({
         infraModel: persistedInfraModelReducer,
         common: persistedCommonReducer,
     }),
-    middleware: (getDefaultMiddleware) => [
-        ...getDefaultMiddleware({
+    middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware({
             serializableCheck: {
                 ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
             },
+            thunk: {
+                extraArgument: undefined,
+            },
         }),
-        thunk,
-    ],
 });
 
 export type AppState = ReturnType<typeof appStore.getState>;
