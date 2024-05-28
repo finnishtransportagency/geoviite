@@ -137,9 +137,9 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
               postgis.st_y(location) as y,
               track_number_id
             from layout.operating_point
-              where name ilike :searchPattern 
-              or abbreviation ilike :searchPattern
-              or external_id ilike :searchPattern
+              where name ilike concat('%', :searchTerm, '%')
+              or abbreviation ilike concat('%', :searchTerm, '%')
+              or external_id ilike concat('%', :searchTerm, '%')
             order by name
             limit :resultLimit
         """.trimIndent()
@@ -147,7 +147,7 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
         return jdbcTemplate.query(
             sql,
             mapOf(
-                "searchPattern" to "%$searchTerm%",
+                "searchTerm" to searchTerm,
                 "resultLimit" to resultLimit,
             )
         ) { rs, _ ->
