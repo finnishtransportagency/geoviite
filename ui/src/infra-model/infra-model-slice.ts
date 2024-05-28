@@ -268,7 +268,7 @@ const infraModelSlice = createSlice({
     },
 });
 
-function createError<TEntity>(
+function createValidationIssue<TEntity>(
     field: keyof TEntity,
     reason: string,
     type: FieldValidationIssueType,
@@ -288,30 +288,56 @@ function validateParams(
     const issues: FieldValidationIssue<InfraModelParameters>[] = [];
 
     extraParams.planPhase === undefined &&
-        issues.push(createError('planPhase', 'critical', FieldValidationIssueType.WARNING));
+        issues.push(
+            createValidationIssue('planPhase', 'critical', FieldValidationIssueType.WARNING),
+        );
     extraParams.measurementMethod === undefined &&
-        issues.push(createError('measurementMethod', 'critical', FieldValidationIssueType.WARNING));
+        issues.push(
+            createValidationIssue(
+                'measurementMethod',
+                'critical',
+                FieldValidationIssueType.WARNING,
+            ),
+        );
     extraParams.elevationMeasurementMethod === undefined &&
         issues.push(
-            createError('elevationMeasurementMethod', 'critical', FieldValidationIssueType.WARNING),
+            createValidationIssue(
+                'elevationMeasurementMethod',
+                'critical',
+                FieldValidationIssueType.WARNING,
+            ),
         );
     extraParams.decisionPhase === undefined &&
-        issues.push(createError('decisionPhase', 'critical', FieldValidationIssueType.WARNING));
+        issues.push(
+            createValidationIssue('decisionPhase', 'critical', FieldValidationIssueType.WARNING),
+        );
     overrideParams.createdDate === undefined &&
         plan?.planTime === undefined &&
-        issues.push(createError('createdDate', 'critical', FieldValidationIssueType.WARNING));
+        issues.push(
+            createValidationIssue('createdDate', 'critical', FieldValidationIssueType.WARNING),
+        );
     overrideParams.trackNumber === undefined &&
         plan?.trackNumber === undefined &&
-        issues.push(createError('trackNumber', 'critical', FieldValidationIssueType.WARNING));
+        issues.push(
+            createValidationIssue('trackNumber', 'critical', FieldValidationIssueType.WARNING),
+        );
     overrideParams.verticalCoordinateSystem === undefined &&
         plan?.units.verticalCoordinateSystem === undefined &&
         issues.push(
-            createError('verticalCoordinateSystem', 'critical', FieldValidationIssueType.WARNING),
+            createValidationIssue(
+                'verticalCoordinateSystem',
+                'critical',
+                FieldValidationIssueType.WARNING,
+            ),
         );
     overrideParams.coordinateSystemSrid === undefined &&
         plan?.units.coordinateSystemSrid === undefined &&
         issues.push(
-            createError('coordinateSystemSrid', 'critical', FieldValidationIssueType.WARNING),
+            createValidationIssue(
+                'coordinateSystemSrid',
+                'critical',
+                FieldValidationIssueType.WARNING,
+            ),
         );
 
     return issues;

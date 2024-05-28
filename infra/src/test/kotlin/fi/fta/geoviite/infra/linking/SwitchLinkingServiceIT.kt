@@ -1137,7 +1137,13 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 SwitchRelinkingValidationResult(
                     id = okSwitch.id,
                     successfulSuggestion = SwitchRelinkingSuggestion(basePoint, TrackMeter("0000+0010.000")),
-                    validationIssues = listOf(),
+                    validationIssues = listOf(
+                        LayoutValidationIssue(
+                        LayoutValidationIssueType.ERROR,
+                        localizationKey = LocalizationKey("validation.layout.split.track-links-missing-after-relinking"),
+                        params = LocalizationParams(mapOf("switchName" to "ok", "sourceName" to "topoTrack")),
+                    )
+                    ),
                 ),
                 SwitchRelinkingValidationResult(
                     id = switchSomewhereElse.id,

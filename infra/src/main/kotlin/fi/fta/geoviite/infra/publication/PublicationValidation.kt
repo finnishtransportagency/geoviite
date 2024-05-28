@@ -835,15 +835,15 @@ private fun isAddressDiffOk(address1: TrackMeter?, address2: TrackMeter?): Boole
     else if (address1.kmNumber != address2.kmNumber) true
     else (address2.meters - address1.meters).toDouble() in 0.0..MAX_LAYOUT_METER_LENGTH
 
-fun validate(valid: Boolean, type: LayoutValidationIssueType = ERROR, error: () -> String) =
-    validateWithParams(valid, type) { error() to LocalizationParams.empty }
+fun validate(valid: Boolean, type: LayoutValidationIssueType = ERROR, issue: () -> String) =
+    validateWithParams(valid, type) { issue() to LocalizationParams.empty }
 
-private fun validateWithParams(
+fun validateWithParams(
     valid: Boolean,
     type: LayoutValidationIssueType = ERROR,
-    error: () -> Pair<String, LocalizationParams>,
+    issue: () -> Pair<String, LocalizationParams>,
 ): LayoutValidationIssue? = if (!valid) {
-    error().let { (key, params) -> LayoutValidationIssue(type, LocalizationKey(key), params) }
+    issue().let { (key, params) -> LayoutValidationIssue(type, LocalizationKey(key), params) }
 } else {
     null
 }

@@ -394,12 +394,6 @@ data class TrackLayoutSwitchJointConnection(
     val accurateMatches: List<TrackLayoutSwitchJointMatch>,
     val locationAccuracy: LocationAccuracy?,
 ) {
-    val matches by lazy {
-        accurateMatches.map { accurateMatch ->
-            accurateMatch.locationTrackId
-        }
-    }
-
     fun merge(other: TrackLayoutSwitchJointConnection): TrackLayoutSwitchJointConnection {
         check(number == other.number) { "expected $number == $other.number in TrackLayoutSwitchJointConnection#merge" }
         // location accuracy comes from the joint and hence can't differ

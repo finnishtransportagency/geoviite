@@ -24,6 +24,7 @@ import fi.fta.geoviite.infra.linking.TopologyLinkFindingSwitch
 import fi.fta.geoviite.infra.linking.TrackEnd
 import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResult
 import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResultType
+import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
@@ -35,6 +36,8 @@ import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType
 import fi.fta.geoviite.infra.publication.VALIDATION_SWITCH
 import fi.fta.geoviite.infra.publication.validateSwitchLocationTrackLinkStructure
+import fi.fta.geoviite.infra.publication.validateWithParams
+import fi.fta.geoviite.infra.split.VALIDATION_SPLIT
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
@@ -314,7 +317,7 @@ class SwitchLinkingService @Autowired constructor(
             else {
                 val (suggestedSwitch, relevantTracks) = suggestionWithTracks
                 val (validationResults, presentationJointLocation) = validateForSplit(
-                    branch, suggestedSwitch, switchId, relevantTracks
+                    branch, suggestedSwitch, switchId, trackId, relevantTracks
                 )
                 val address = requireNotNull(geocodingContext.getAddress(presentationJointLocation)) {
                     "Could not geocode relinked location for switch $switchId on track $track"
@@ -372,9 +375,9 @@ class SwitchLinkingService @Autowired constructor(
         branch: LayoutBranch,
         suggestedSwitch: SuggestedSwitch,
         switchId: IntId<TrackLayoutSwitch>,
+        originLocationTrackId: IntId<LocationTrack>,
         relevantLocationTracks: Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>,
     ): Pair<List<LayoutValidationIssue>, Point> {
-
         val changedTracks = withChangesFromLinkingSwitch(
             suggestedSwitch,
             switchId,
@@ -384,11 +387,52 @@ class SwitchLinkingService @Autowired constructor(
         val presentationJointLocation = switchService.getPresentationJointOrThrow(createdSwitch).location
         val switchStructure = switchLibraryService.getSwitchStructure(suggestedSwitch.switchStructureId)
 
-        return validateSwitchLocationTrackLinkStructure(
+        val originTrackLinkErrors =
+            validateRelinkingRetainsLocationTrackConnections(suggestedSwitch, originLocationTrackId, branch, switchId)
+        val publicationValidationErrorsMapped = validateSwitchLocationTrackLinkStructure(
             createdSwitch,
             switchStructure,
             draft(changedTracks),
-        ) to presentationJointLocation
+        ).map { error ->
+            // Structure based issues aren't critical for splitting/relinking -> turn them into warnings
+            LayoutValidationIssue(
+                LayoutValidationIssueType.WARNING,
+                error.localizationKey,
+                error.params
+            )
+        }
+
+        return (
+            publicationValidationErrorsMapped + originTrackLinkErrors
+            ) to presentationJointLocation
+    }
+
+    private fun validateRelinkingRetainsLocationTrackConnections(
+        suggestedSwitch: SuggestedSwitch,
+        originLocationTrackId: IntId<LocationTrack>,
+        branch: LayoutBranch,
+        switchId: IntId<TrackLayoutSwitch>,
+    ): List<LayoutValidationIssue> {
+        val currentConnections = switchService
+            .getSwitchJointConnections(branch.draft, switchId)
+            .flatMap { it.accurateMatches.map { it.locationTrackId } }
+            .distinct()
+
+        val suggestedConnections = suggestedSwitch
+            .trackLinks
+            .filter { link -> link.value.isLinked() }
+            .keys
+
+        return listOfNotNull(
+            validateWithParams(
+                suggestedConnections.containsAll(currentConnections),
+                LayoutValidationIssueType.ERROR
+            ) {
+                "$VALIDATION_SPLIT.track-links-missing-after-relinking" to localizationParams(
+                    "switchName" to switchService.getOrThrow(branch.draft, switchId).name,
+                    "sourceName" to locationTrackService.getOrThrow(branch.draft, originLocationTrackId).name
+                )
+            })
     }
 
     private fun createModifiedLayoutSwitchLinking(

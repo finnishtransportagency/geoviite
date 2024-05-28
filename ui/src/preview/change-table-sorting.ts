@@ -21,7 +21,7 @@ const includesErrors = (issues: LayoutValidationIssue[]) =>
     issues.some((err) => err.type == 'ERROR');
 const includesWarnings = (issues: LayoutValidationIssue[]) =>
     issues.some((err) => err.type == 'WARNING');
-const errorSeverityPriority = (issues: LayoutValidationIssue[]) => {
+const issueSeverityPriority = (issues: LayoutValidationIssue[]) => {
     let priority = 0;
     if (includesErrors(issues)) priority += 2;
     if (includesWarnings(issues)) priority += 1;
@@ -32,11 +32,11 @@ const nameCompare = fieldComparator((entry: { name: string }) => entry.name.toLo
 const trackNumberCompare = fieldComparator((entry: { trackNumber: string }) => entry.trackNumber);
 const userNameCompare = fieldComparator((entry: { userName: string }) => entry.userName);
 const changeTimeCompare = fieldComparator((entry: { changeTime: string }) => entry.changeTime);
-const errorListCompare = (
+const issueListCompare = (
     a: { issues: LayoutValidationIssue[] },
     b: { issues: LayoutValidationIssue[] },
 ) => {
-    const priorityBySeverity = errorSeverityPriority(b.issues) - errorSeverityPriority(a.issues);
+    const priorityBySeverity = issueSeverityPriority(b.issues) - issueSeverityPriority(a.issues);
     return priorityBySeverity !== 0 ? priorityBySeverity : b.issues.length - a.issues.length;
 };
 export const operationPriority = (operation: Operation | undefined) => {
@@ -55,7 +55,7 @@ const sortFunctionsByPropName = {
     OPERATION: operationCompare,
     CHANGE_TIME: changeTimeCompare,
     USER_NAME: userNameCompare,
-    ISSUES: errorListCompare,
+    ISSUES: issueListCompare,
 };
 
 export const InitiallyUnsorted = {
