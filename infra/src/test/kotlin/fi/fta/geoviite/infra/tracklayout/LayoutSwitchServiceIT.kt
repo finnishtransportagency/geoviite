@@ -36,6 +36,8 @@ class LayoutSwitchServiceIT @Autowired constructor(
     private val switchLibraryService: SwitchLibraryService,
     private val locationTrackService: LocationTrackService,
     private val switchDao: LayoutSwitchDao,
+    private val alignmentDao: LayoutAlignmentDao,
+    private val locationTrackDao: LocationTrackDao,
 ) : DBTestBase() {
 
     @BeforeEach
@@ -311,20 +313,22 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
         val locationTrack1Oid = someOid<LocationTrack>()
         val locationTrack1 = mainOfficialContext.insert(
-            locationTrackAndAlignment(
+            locationTrack(
                 trackNumberId = trackNumberId,
                 externalId = locationTrack1Oid,
                 name = "LT 1",
                 topologyStartSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1)),
-            )
+            ),
+            alignment(someSegment()),
         )
 
         val locationTrack2 = mainOfficialContext.insert(
-            locationTrackAndAlignment(
+            locationTrack(
                 trackNumberId = trackNumberId,
                 name = "LT 2",
                 topologyEndSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(2)),
             ),
+            alignment(someSegment()),
         )
 
         val locationTrack3Oid = someOid<LocationTrack>()
