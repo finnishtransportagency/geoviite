@@ -160,6 +160,17 @@ class DuplicateLocationTrackNameInPublicationException(
     )
 )
 
+class SplitSourceLocationTrackUpdateException(
+    alignmentName: AlignmentName,
+    cause: Throwable? = null,
+) : ClientException(
+    status = BAD_REQUEST,
+    message = "Split source location track updates are not allowed",
+    cause = cause,
+    localizedMessageKey = "error.split.source-track-update-is-not-allowed",
+    localizedMessageParams = localizationParams("alignmentName" to alignmentName),
+)
+
 enum class Integration { RATKO, PROJEKTIVELHO }
 class IntegrationNotConfiguredException(type: Integration) : ClientException(
     status = SERVICE_UNAVAILABLE,

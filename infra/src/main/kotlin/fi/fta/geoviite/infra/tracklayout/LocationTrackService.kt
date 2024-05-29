@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.error.SplitSourceLocationTrackUpdateException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
@@ -32,8 +33,11 @@ import fi.fta.geoviite.infra.ratko.model.OperationalPointType
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.util.FreeText
+import org.postgresql.util.PSQLException
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 
 const val TRACK_SEARCH_AREA_SIZE = 2.0
@@ -50,6 +54,7 @@ class LocationTrackService(
     private val splitDao: SplitDao,
     private val ratkoOperatingPointDao: RatkoOperatingPointDao,
     private val localizationService: LocalizationService,
+    private val transactionTemplate: TransactionTemplate,
 ) : LayoutAssetService<LocationTrack, LocationTrackDao>(locationTrackDao) {
 
     @Transactional
@@ -79,13 +84,30 @@ class LocationTrackService(
         return saveDraftInternal(branch, locationTrack)
     }
 
-    @Transactional
     fun update(
         branch: LayoutBranch,
         id: IntId<LocationTrack>,
         request: LocationTrackSaveRequest,
     ): DaoResponse<LocationTrack> {
         logger.serviceCall("update", "branch" to branch, "id" to id, "request" to request)
+
+        try {
+            return requireNotNull(
+                transactionTemplate.execute { updateLocationTrackTransaction(branch, id, request) }
+            )
+        } catch (dataIntegrityException: DataIntegrityViolationException) {
+            enrichLocationTrackUpdateErrorOrRethrow(
+                dataIntegrityException,
+                request.name,
+            )
+        }
+    }
+
+    private fun updateLocationTrackTransaction(
+        branch: LayoutBranch,
+        id: IntId<LocationTrack>,
+        request: LocationTrackSaveRequest,
+    ): DaoResponse<LocationTrack> {
         val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(branch.draft, id)
         val locationTrack = originalTrack.copy(
             name = request.name,
@@ -100,7 +122,10 @@ class LocationTrackService(
         )
 
         return if (locationTrack.state != LocationTrackState.DELETED) {
-            saveDraft(branch, fetchNearbyTracksAndCalculateLocationTrackTopology(branch.draft, locationTrack, originalAlignment))
+            saveDraft(
+                branch,
+                fetchNearbyTracksAndCalculateLocationTrackTopology(branch.draft, locationTrack, originalAlignment)
+            )
         } else {
             clearDuplicateReferences(branch, id)
             val segmentsWithoutSwitch = originalAlignment.segments.map(LayoutSegment::withoutSwitch)
@@ -801,3 +826,31 @@ fun locationTrackWithAlignment(
 fun filterByBoundingBox(list: List<LocationTrack>, boundingBox: BoundingBox?): List<LocationTrack> =
     if (boundingBox != null) list.filter { t -> boundingBox.intersects(t.boundingBox) }
     else list
+
+private fun enrichLocationTrackUpdateErrorOrRethrow(
+    exception: DataIntegrityViolationException,
+    alignmentName: AlignmentName,
+): Nothing {
+    val psqlException = exception.cause as? PSQLException ?: throw exception
+    val constraint = psqlException.serverErrorMessage?.constraint
+    val detail = psqlException.serverErrorMessage?.detail ?: throw exception
+
+    when (constraint) {
+        "split_source_location_track_fkey" ->
+            maybeThrowSplitSourceTrackUpdateException(detail, exception, alignmentName)
+    }
+
+    throw exception
+}
+
+private fun maybeThrowSplitSourceTrackUpdateException(
+    detail: String,
+    exception: DataIntegrityViolationException,
+    alignmentName: AlignmentName,
+) {
+    val trackIsSplitSourceTrackError = "is still referenced from table \"split\""
+
+    if (detail.contains(trackIsSplitSourceTrackError)) {
+        throw SplitSourceLocationTrackUpdateException(alignmentName, exception)
+    }
+}

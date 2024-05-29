@@ -9,10 +9,13 @@ import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.error.SplitSourceLocationTrackUpdateException
 import fi.fta.geoviite.infra.getSomeValue
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -37,10 +40,13 @@ class LocationTrackServiceIT @Autowired constructor(
     private val switchService: LayoutSwitchService,
     private val switchDao: LayoutSwitchDao,
     private val referenceLineDao: ReferenceLineDao,
+    private val splitService: SplitService,
+    private val splitTestDataService: SplitTestDataService,
 ) : DBTestBase() {
 
     @BeforeEach
     fun setup() {
+        splitTestDataService.clearSplits()
         locationTrackDao.deleteDrafts(LayoutBranch.main)
         alignmentDao.deleteOrphanedAlignments()
         switchDao.deleteDrafts(LayoutBranch.main)
@@ -564,6 +570,36 @@ class LocationTrackServiceIT @Autowired constructor(
         assertContains(splittingParams?.switches?.map { it.switchId } ?: emptyList(), switch)
         assertContains(splittingParams?.duplicates?.map { it.id } ?: emptyList(), duplicateLocationTrack.id)
         assertEquals(50.0, splittingParams?.switches?.first()?.distance ?: 0.0, 0.01)
+    }
+
+    @Test
+    fun `Trying to update a split source location track should throw`() {
+        val split = splitTestDataService
+            .insertSplit()
+            .let(splitService::get)!!
+
+        val sourceLocationTrack = locationTrackService.get(
+            MainLayoutContext.draft,
+            split.sourceLocationTrackId,
+        )!!
+
+        assertThrows<SplitSourceLocationTrackUpdateException> {
+            locationTrackService.update(
+                LayoutBranch.main,
+                split.sourceLocationTrackId,
+                LocationTrackSaveRequest(
+                    name = AlignmentName("Some other name"),
+                    descriptionBase = sourceLocationTrack.descriptionBase,
+                    descriptionSuffix = sourceLocationTrack.descriptionSuffix,
+                    type = sourceLocationTrack.type,
+                    state = sourceLocationTrack.state,
+                    trackNumberId = sourceLocationTrack.trackNumberId,
+                    duplicateOf = sourceLocationTrack.duplicateOf,
+                    topologicalConnectivity = sourceLocationTrack.topologicalConnectivity,
+                    ownerId = sourceLocationTrack.ownerId,
+                )
+            )
+        }
     }
 
     private fun asLocationTrackDuplicate(locationTrack: LocationTrack): LocationTrackDuplicate = LocationTrackDuplicate(
