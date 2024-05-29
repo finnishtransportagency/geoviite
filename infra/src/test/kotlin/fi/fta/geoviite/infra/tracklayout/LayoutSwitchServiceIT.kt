@@ -178,9 +178,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
         val idOfSwitchWithNoJoints = mainOfficialContext.insert(
             switch(name = testDBService.getUnusedSwitchName().toString(), joints = listOf())
         ).id
-        val idOfRandomSwitch = mainOfficialContext.insert(
-            switch(name = testDBService.getUnusedSwitchName().toString())
-        ).id
+        val idOfRandomSwitch = mainOfficialContext.insertSwitch().id
 
         val switches = pageSwitches(getSwitches(), 0, null, Point(422222.2, 7222222.2)).items
 
