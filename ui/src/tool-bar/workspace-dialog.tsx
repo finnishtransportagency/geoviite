@@ -35,7 +35,7 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
     const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(
         existingDesign ? new Date(existingDesign?.estimatedCompletion) : undefined,
     );
-    const [name, setName] = React.useState<string | undefined>(existingDesign?.name);
+    const [name, setName] = React.useState<string | undefined>(existingDesign?.name ?? '');
 
     return (
         <Dialog
