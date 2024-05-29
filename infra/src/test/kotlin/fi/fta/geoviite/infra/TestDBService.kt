@@ -248,7 +248,7 @@ class TestDBService(
         return "$baseName ${maxId + 1}"
     }
 
-    private fun<T> getUniqueId(table: DbTable, column: String): IntId<T> {
+    private fun <T> getUniqueId(table: DbTable, column: String): IntId<T> {
         val sql = "select max($column) max_id from ${table.fullName}"
         val maxId = jdbc.queryForObject(sql, mapOf<String, Any>()) { rs, _ -> rs.getInt("max_id") }
 
@@ -260,6 +260,11 @@ class TestDBService(
 
     final inline fun <reified T : LayoutAsset<T>> fetch(rowVersion: RowVersion<T>): T =
         getDao(T::class).fetch(rowVersion)
+
+    final inline fun <reified T : LinearGeometryAsset<T>> fetchWithAlignment(
+        rowVersion: RowVersion<T>,
+    ): Pair<T, LayoutAlignment> =
+        fetch(rowVersion).let { a -> a to alignmentDao.fetch(a.getAlignmentVersionOrThrow()) }
 
     fun deleteFromTables(schema: String, vararg tables: String) {
         // We don't actually need transactionality, but we do need everything to be run in one session
@@ -300,6 +305,9 @@ data class TestLayoutContext(
 
     inline fun <reified T : LayoutAsset<T>> fetch(id: IntId<T>): T? =
         getDao(T::class).let { dao -> dao.fetchVersion(context, id)?.let(dao::fetch) }
+
+    inline fun <reified T : LinearGeometryAsset<T>> fetchWithAlignment(id: IntId<T>): Pair<T, LayoutAlignment>? =
+        fetch(id)?.let { a -> a to alignmentDao.fetch(a.getAlignmentVersionOrThrow()) }
 
     fun <T : LayoutAsset<T>> insert(asset: T): DaoResponse<T> = testService.getDao(asset)
         .insert(testService.updateContext(asset, context))

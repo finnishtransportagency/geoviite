@@ -297,7 +297,6 @@ class RatkoLocalServiceIT @Autowired constructor(
             }
     }
 
-    @Suppress("UNCHECKED_CAST")
     private fun createTestOperatingPoint(
         name: String,
         abbreviation: String,
@@ -308,7 +307,10 @@ class RatkoLocalServiceIT @Autowired constructor(
             ratkoRouteNumberOid != null -> ratkoRouteNumberOid
             else -> someOid<RatkoRouteNumber>().also { oid ->
                 mainDraftContext.insert(
-                    trackNumber(testDBService.getUnusedTrackNumber(), externalId = Oid(oid.toString())),
+                    trackNumber(
+                        testDBService.getUnusedTrackNumber(),
+                        externalId = Oid(oid.toString())
+                    ),
                 )
             }
         }

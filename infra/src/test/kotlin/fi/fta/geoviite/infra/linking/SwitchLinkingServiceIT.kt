@@ -168,14 +168,11 @@ class SwitchLinkingServiceIT @Autowired constructor(
             segment(Point(start, start), Point(end, end), startM = startLength).also { s -> startLength += s.length }
         }
 
-        val (locationTrack, locationTrackAlignment) = locationTrackAndAlignment(
-            trackNumberId = mainDraftContext.insertTrackNumber().id,
-            segments = segments,
-            draft = true,
-        )
-        val locationTrackId = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, locationTrackAlignment)
+        val locationTrackId = mainDraftContext.insert(
+            locationTrackAndAlignment(trackNumberId = mainDraftContext.insertTrackNumber().id, segments = segments)
+        ).id
 
-        val insertedSwitch = switchDao.fetch(switchDao.insert(switch(665, draft = false)).rowVersion)
+        val insertedSwitch = mainOfficialContext.insertAndFetch(switch(665))
 
         val linkingJoints = listOf(
             FittedSwitchJoint(
@@ -184,7 +181,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 matches = listOf(
                     suggestedSwitchJointMatch(
-                        locationTrackId = locationTrackId.id,
+                        locationTrackId = locationTrackId,
                         segmentIndex = 1,
                         m = segments[1].startM,
                     )
@@ -196,7 +193,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 matches = listOf(
                     suggestedSwitchJointMatch(
-                        locationTrackId = locationTrackId.id,
+                        locationTrackId = locationTrackId,
                         segmentIndex = 1,
                         m = segments[1].endM,
                     )
@@ -208,7 +205,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 matches = listOf(
                     suggestedSwitchJointMatch(
-                        locationTrackId = locationTrackId.id,
+                        locationTrackId = locationTrackId,
                         segmentIndex = 1,
                         m = segments[1].endM,
                     )
@@ -228,7 +225,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             ), insertedSwitch.id as IntId,
         )
 
-        val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, locationTrackId.id)
+        val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, locationTrackId)
         val joint12Segment = alignment.segments[1]
 
         assertEquals(JointNumber(1), joint12Segment.startJointNumber)
@@ -248,12 +245,9 @@ class SwitchLinkingServiceIT @Autowired constructor(
             segment(Point(start, start), Point(end, end), startM = startLength).also { s -> startLength += s.length }
         }
 
-        val (locationTrack, locationTrackAlignment) = locationTrackAndAlignment(
-            trackNumberId = mainDraftContext.insertTrackNumber().id,
-            segments = segments,
-            draft = true,
-        )
-        val locationTrackId = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, locationTrackAlignment)
+        val locationTrackId = mainDraftContext.insert(
+            locationTrackAndAlignment(trackNumberId = mainDraftContext.insertTrackNumber().id, segments = segments)
+        ).id
 
         val insertedSwitch = switchDao.fetch(switchDao.insert(switch(665, draft = false)).rowVersion)
 
@@ -264,7 +258,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 matches = listOf(
                     suggestedSwitchJointMatch(
-                        locationTrackId = locationTrackId.id,
+                        locationTrackId = locationTrackId,
                         segmentIndex = 1,
                         m = segments[1].startM,
                     )
@@ -276,7 +270,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 matches = listOf(
                     suggestedSwitchJointMatch(
-                        locationTrackId = locationTrackId.id,
+                        locationTrackId = locationTrackId,
                         segmentIndex = 1,
                         m = segments[1].endM,
                     )
@@ -288,7 +282,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
                 LocationAccuracy.DESIGNED_GEOLOCATION,
                 matches = listOf(
                     suggestedSwitchJointMatch(
-                        locationTrackId = locationTrackId.id,
+                        locationTrackId = locationTrackId,
                         segmentIndex = 1,
                         m = segments[1].endM,
                     )
@@ -308,7 +302,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             ), insertedSwitch.id as IntId,
         )
 
-        val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, locationTrackId.id)
+        val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, locationTrackId)
         val joint12Segment = alignment.segments[1]
 
         assertEquals(JointNumber(1), joint12Segment.startJointNumber)
@@ -327,10 +321,8 @@ class SwitchLinkingServiceIT @Autowired constructor(
             seed = seed,
             joints = listOf(),
             stateCategory = LayoutStateCategory.EXISTING,
-            draft = false,
         )
-            .let { switch -> switchDao.insert(switch).rowVersion }
-            .let { switchRowVersion -> switchDao.fetch(switchRowVersion) }
+            .let(mainOfficialContext::insertAndFetch)
             .let { storedSwitch ->
                 switchLinkingService.saveSwitchLinking(
                     LayoutBranch.main,

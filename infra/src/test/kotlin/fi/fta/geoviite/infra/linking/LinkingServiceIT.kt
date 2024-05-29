@@ -61,14 +61,14 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun alignmentGeometryLinkingWorks() {
-        val trackNumber = testDBService.getUnusedTrackNumber()
-
         val geometryStart = Point(377680.0, 6676160.0)
         // 6m of geometry to replace
         val geometrySegmentChange = geometryStart + Point(3.0, 3.5)
         val geometryEnd = geometrySegmentChange + Point(3.0, 2.5)
         val plan = plan(
-            trackNumber, Srid(3067), geometryAlignment(
+            trackNumber = testDBService.getUnusedTrackNumber(),
+            srid = Srid(3067),
+            geometryAlignment(
                 line(geometryStart, geometrySegmentChange),
                 line(geometrySegmentChange, geometryEnd),
             )

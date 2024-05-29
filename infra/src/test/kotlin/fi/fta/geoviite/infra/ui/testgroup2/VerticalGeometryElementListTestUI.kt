@@ -75,11 +75,11 @@ class VerticalGeometryElementListTestUI
 
     @Test
     fun `List layout vertical geometry`() {
-        val trackNumber = mainOfficialContext.insertAndFetchTrackNumber()
-        val goodPlan = insertGoodPlan(trackNumber.number)
-        insertMinimalPlan(trackNumber.number)
+        val (trackNumber, trackNumberId) = mainOfficialContext.getNewTrackNumberAndId()
+        val goodPlan = insertGoodPlan(trackNumber)
+        insertMinimalPlan(trackNumber)
 
-        linkPlanToSomeLocationTrack(goodPlan, trackNumber.id as IntId)
+        linkPlanToSomeLocationTrack(goodPlan, trackNumberId)
         startGeoviite()
         val page = navigationBar.goToVerticalGeometryListPage()
         page.selectLocationTrack("foo test track")
@@ -97,11 +97,11 @@ class VerticalGeometryElementListTestUI
 
     @Test
     fun `List entire track vertical geometry`() {
-        val trackNumber = mainOfficialContext.insertAndFetchTrackNumber()
-        val goodPlan = insertGoodPlan(trackNumber.number)
-        insertMinimalPlan(trackNumber.number)
+        val (trackNumber, trackNumberId) = mainOfficialContext.getNewTrackNumberAndId()
+        val goodPlan = insertGoodPlan(trackNumber)
+        insertMinimalPlan(trackNumber)
 
-        linkPlanToSomeLocationTrack(goodPlan, trackNumber.id as IntId)
+        linkPlanToSomeLocationTrack(goodPlan, trackNumberId)
         geometryService.makeEntireVerticalGeometryListingCsv()
         startGeoviite()
         val page = navigationBar.goToVerticalGeometryListPage().entireNetworkPage()
