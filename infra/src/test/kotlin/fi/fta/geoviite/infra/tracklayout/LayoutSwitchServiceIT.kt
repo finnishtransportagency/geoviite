@@ -36,8 +36,6 @@ class LayoutSwitchServiceIT @Autowired constructor(
     private val switchLibraryService: SwitchLibraryService,
     private val locationTrackService: LocationTrackService,
     private val switchDao: LayoutSwitchDao,
-    private val alignmentDao: LayoutAlignmentDao,
-    private val locationTrackDao: LocationTrackDao,
 ) : DBTestBase() {
 
     @BeforeEach
@@ -151,7 +149,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun numberOfSwitchesIsReturnedCorrectlyByGivenOffset() {
-        repeat(2) { switchDao.insert(switch(name = testDBService.getUnusedSwitchName().toString(), draft = false)) }
+        repeat(2) { mainOfficialContext.insertSwitch() }
         val switches = getSwitches()
 
         assertEquals(switches.size, getSwitches(switchFilter()).size)
@@ -163,7 +161,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun numberOfSwitchesIsReturnedCorrectlyByGivenLimit() {
-        repeat(2) { switchDao.insert(switch(name = testDBService.getUnusedSwitchName().toString(), draft = false)) }
+        repeat(2) { mainOfficialContext.insertSwitch() }
         val switches = getSwitches()
 
         assertEquals(switches.size, pageSwitches(switches, 0, null, null).items.size)
@@ -177,18 +175,11 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun switchWithNoJointsIsReturnedFirst() {
-        val idOfSwitchWithNoJoints = switchDao.insert(
-            switch(
-                name = testDBService.getUnusedSwitchName().toString(),
-                joints = listOf(),
-                draft = false,
-            )
+        val idOfSwitchWithNoJoints = mainOfficialContext.insert(
+            switch(name = testDBService.getUnusedSwitchName().toString(), joints = listOf())
         ).id
-        val idOfRandomSwitch = switchDao.insert(
-            switch(
-                name = testDBService.getUnusedSwitchName().toString(),
-                draft = false,
-            )
+        val idOfRandomSwitch = mainOfficialContext.insert(
+            switch(name = testDBService.getUnusedSwitchName().toString())
         ).id
 
         val switches = pageSwitches(getSwitches(), 0, null, Point(422222.2, 7222222.2)).items
@@ -203,9 +194,9 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun switchesAreSortedByComparisonPoint() {
-        val idOfRandomSwitch = switchDao.insert(switch(name = testDBService.getUnusedSwitchName().toString(), draft = false)).id
+        val idOfRandomSwitch = mainOfficialContext.insertSwitch().id
 
-        val idOfSwitchLocatedAtComparisonPoint = switchDao.insert(
+        val idOfSwitchLocatedAtComparisonPoint = mainOfficialContext.insert(
             switch(
                 name = testDBService.getUnusedSwitchName().toString(),
                 joints = listOf(
@@ -220,7 +211,6 @@ class LayoutSwitchServiceIT @Autowired constructor(
                         locationAccuracy = LocationAccuracy.GEOMETRY_CALCULATED
                     )
                 ),
-                draft = false,
             )
         ).id
 
@@ -316,63 +306,46 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun shouldReturnLocationTracksThatAreLinkedToSwitchAtMoment() {
-        val trackNumberId = mainDraftContext.insertTrackNumber().id
-        val switch = switchDao.fetch(switchDao.insert(switch(1, draft = false)).rowVersion)
+        val trackNumberId = mainOfficialContext.insertTrackNumber().id
+        val switchId = mainOfficialContext.insert(switch(1)).id
 
         val locationTrack1Oid = someOid<LocationTrack>()
-        val alignment1Version = alignmentDao.insert(alignment(someSegment()))
-        val locationTrack1 = locationTrackDao.insert(
-            locationTrack(
-                alignment = alignmentDao.fetch(alignment1Version),
+        val locationTrack1 = mainOfficialContext.insert(
+            locationTrackAndAlignment(
                 trackNumberId = trackNumberId,
                 externalId = locationTrack1Oid,
-                alignmentVersion = alignment1Version,
                 name = "LT 1",
-                draft = false,
-            ).copy(
-                topologyStartSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(1)),
+                topologyStartSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1)),
             )
         )
 
-        val alignment2Version = alignmentDao.insert(alignment(someSegment()))
-        val locationTrack2 = locationTrackDao.insert(
-            locationTrack(
-                alignment = alignmentDao.fetch(alignment2Version),
+        val locationTrack2 = mainOfficialContext.insert(
+            locationTrackAndAlignment(
                 trackNumberId = trackNumberId,
-                alignmentVersion = alignment2Version,
                 name = "LT 2",
-                draft = false,
-            ).copy(
-                topologyEndSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(2)),
-            )
+                topologyEndSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(2)),
+            ),
         )
 
-        val alignment3Version = alignmentDao.insert(
+        val locationTrack3Oid = someOid<LocationTrack>()
+        val locationTrack3 = mainOfficialContext.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                externalId = locationTrack3Oid,
+                name = "LT 3",
+                topologyEndSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(2)),
+            ),
             alignment(
                 someSegment().copy(
-                    switchId = switch.id as IntId,
+                    switchId = switchId,
                     startJointNumber = JointNumber(1),
                     endJointNumber = JointNumber(2),
                 )
             )
         )
 
-        val locationTrack3Oid = someOid<LocationTrack>()
-        val locationTrack3 = locationTrackDao.insert(
-            locationTrack(
-                alignment = alignmentDao.fetch(alignment3Version),
-                trackNumberId = trackNumberId,
-                externalId = locationTrack3Oid,
-                alignmentVersion = alignment3Version,
-                name = "LT 3",
-                draft = false,
-            ).copy(
-                topologyEndSwitch = TopologyLocationTrackSwitch(switch.id as IntId, JointNumber(2)),
-            )
-        )
-
         val linkedLocationTracks = switchDao.findLocationTracksLinkedToSwitchAtMoment(
-            switch.id as IntId,
+            switchId,
             JointNumber(1),
             Instant.now(),
         )

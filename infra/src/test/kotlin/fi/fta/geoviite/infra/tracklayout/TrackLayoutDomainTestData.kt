@@ -318,6 +318,9 @@ fun locationTrackAndAlignment(
     state: LocationTrackState = LocationTrackState.IN_USE,
     id: IntId<LocationTrack>? = null,
     draft: Boolean = false,
+    externalId: Oid<LocationTrack>? = someOid(),
+    topologyStartSwitch: TopologyLocationTrackSwitch? = null,
+    topologyEndSwitch: TopologyLocationTrackSwitch? = null,
 ): Pair<LocationTrack, LayoutAlignment> = locationTrackAndAlignment(
     trackNumberId,
     segments.toList(),
@@ -327,6 +330,9 @@ fun locationTrackAndAlignment(
     state = state,
     id = id ?: StringId(),
     draft = draft,
+    externalId = externalId,
+    topologyStartSwitch = topologyStartSwitch,
+    topologyEndSwitch = topologyEndSwitch,
 )
 
 fun locationTrackAndAlignment(
@@ -338,6 +344,9 @@ fun locationTrackAndAlignment(
     description: String = "test-alignment 001",
     duplicateOf: IntId<LocationTrack>? = null,
     state: LocationTrackState = LocationTrackState.IN_USE,
+    externalId: Oid<LocationTrack>? = someOid(),
+    topologyStartSwitch: TopologyLocationTrackSwitch? = null,
+    topologyEndSwitch: TopologyLocationTrackSwitch? = null,
 ): Pair<LocationTrack, LayoutAlignment> {
     val alignment = alignment(segments)
     val locationTrack = locationTrack(
@@ -349,6 +358,9 @@ fun locationTrackAndAlignment(
         description = description,
         duplicateOf = duplicateOf,
         state = state,
+        externalId = externalId,
+        topologyStartSwitch = topologyStartSwitch,
+        topologyEndSwitch = topologyEndSwitch,
     )
     return locationTrack to alignment
 }

@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
-import fi.fta.geoviite.infra.tracklayout.switch
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -32,7 +31,7 @@ class LinkingDaoIT @Autowired constructor(
     @Test
     fun switchBoundsAreFoundFromTracks() {
         val tnId = mainDraftContext.insertTrackNumber().id
-        val switchId = mainDraftContext.insert(switch(1)).id
+        val switchId = mainDraftContext.insertSwitch().id
 
         val point1 = Point(10.0, 10.0)
         val point2 = Point(12.0, 10.0)
