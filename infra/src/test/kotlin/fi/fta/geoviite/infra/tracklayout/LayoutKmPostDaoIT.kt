@@ -31,7 +31,7 @@ import kotlin.test.assertContains
 @SpringBootTest
 class LayoutKmPostDaoIT @Autowired constructor(
     private val kmPostDao: LayoutKmPostDao,
-): DBTestBase() {
+) : DBTestBase() {
 
     @Test
     fun kmPostsAreStoredAndLoadedOk() {

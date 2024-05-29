@@ -22,9 +22,7 @@ import fi.fta.geoviite.infra.split.SplitTarget
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
@@ -33,7 +31,6 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someKmNumber
-import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -53,8 +50,6 @@ class LinkingServiceIT @Autowired constructor(
     private val geometryDao: GeometryDao,
     private val linkingService: LinkingService,
     private val locationTrackService: LocationTrackService,
-    private val trackNumberDao: LayoutTrackNumberDao,
-    private val kmPostDao: LayoutKmPostDao,
     private val kmPostService: LayoutKmPostService,
     private val splitDao: SplitDao,
 ) : DBTestBase() {
@@ -160,15 +155,14 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun kmPostGeometryLinkingWorks() {
-        val kmPost = kmPost(mainOfficialContext.insertTrackNumber().id, someKmNumber(), draft = false)
-        val kmPostId = kmPostDao.insert(kmPost).id
+        val trackNumberId = mainOfficialContext.insertTrackNumber().id
+        val kmPostId = mainOfficialContext.insert(kmPost(trackNumberId, someKmNumber())).id
         val officialKmPost = kmPostService.get(MainLayoutContext.official, kmPostId)
 
         assertMatches(officialKmPost!!, kmPostService.getOrThrow(MainLayoutContext.draft, kmPostId), contextMatch = false)
 
         val trackNumber = testDBService.getUnusedTrackNumber()
 
-        trackNumberDao.insert(trackNumber(trackNumber, draft = false))
         val plan = plan(trackNumber)
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null).id
 

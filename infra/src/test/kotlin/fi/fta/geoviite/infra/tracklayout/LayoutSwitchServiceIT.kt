@@ -36,8 +36,6 @@ class LayoutSwitchServiceIT @Autowired constructor(
     private val switchLibraryService: SwitchLibraryService,
     private val locationTrackService: LocationTrackService,
     private val switchDao: LayoutSwitchDao,
-    private val alignmentDao: LayoutAlignmentDao,
-    private val locationTrackDao: LocationTrackDao,
 ) : DBTestBase() {
 
     @BeforeEach

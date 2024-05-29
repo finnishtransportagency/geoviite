@@ -12,7 +12,7 @@ import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: LayoutDesignDao): DBTestBase() {
+class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: LayoutDesignDao) : DBTestBase() {
 
     @BeforeEach
     fun cleanup() {

@@ -35,6 +35,8 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
@@ -357,6 +359,11 @@ data class TestLayoutContext(
 
     fun insertTrackNumber(): DaoResponse<TrackLayoutTrackNumber> =
         insert(trackNumber(testService.getUnusedTrackNumber()))
+
+    fun insertTrackNumberWithReferenceLine(
+        lineAlignment: LayoutAlignment = alignment()
+    ): DaoResponse<TrackLayoutTrackNumber> = insertTrackNumber()
+        .also { tnResponse -> insert(referenceLine(trackNumberId = tnResponse.id), lineAlignment) }
 
     fun insertTrackNumbers(count: Int): List<DaoResponse<TrackLayoutTrackNumber>> =
         (1..count).map { insertTrackNumber() }
