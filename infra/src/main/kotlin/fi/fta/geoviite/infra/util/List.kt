@@ -24,11 +24,3 @@ fun rangesOfConsecutiveIndicesOf(
         .chunked(2)
         .map { c -> c[0]..c[1] + offsetRangeEndsBy }
         .toList()
-
-fun <T> List<T>.conditionalFilter(condition: Boolean, predicate: (T) -> Boolean): List<T> {
-    return if (condition) this.filter(predicate) else this
-}
-
-fun <T, R : Comparable<R>> List<T>.conditionalSortedBy(condition: Boolean, selector: (T) -> R?): List<T> {
-    return if (condition) this.sortedBy(selector) else this
-}

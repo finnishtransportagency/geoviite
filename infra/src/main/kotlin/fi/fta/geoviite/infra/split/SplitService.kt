@@ -38,8 +38,6 @@ import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
-import fi.fta.geoviite.infra.util.conditionalFilter
-import fi.fta.geoviite.infra.util.conditionalSortedBy
 import fi.fta.geoviite.infra.util.produceIf
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
