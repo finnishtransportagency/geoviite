@@ -7,6 +7,7 @@ import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { ExamplePerson } from 'vayla-design-lib/demo/examples/dropdown-examples';
 import examplePersonsData from 'vayla-design-lib/demo/example-persons.json';
 import { menuValueOption } from 'vayla-design-lib/menu/menu';
+import { SplitButton } from 'geoviite-design-lib/split-button/split-button';
 
 export const ButtonExamples: React.FC = () => {
     const [isProcessing, setProcessing] = React.useState(false);
@@ -112,7 +113,30 @@ export const ButtonExamples: React.FC = () => {
                                                 variant={variant}
                                                 disabled
                                                 icon={Icons.Append}
+                                                isProcessing={
+                                                    isProcessing ||
+                                                    buttonProcessing == key + 'icon-only'
+                                                }
+                                            />
+                                        </td>
+                                        <td>
+                                            <SplitButton
+                                                size={size}
+                                                variant={variant}
+                                                icon={Icons.Append}
+                                                menuItems={[
+                                                    menuValueOption('1', 'Item 1', 'Item 1'),
+                                                ]}
+                                            />
+                                        </td>
+                                        <td>
+                                            <SplitButton
+                                                size={size}
+                                                variant={variant}
+                                                disabled
+                                                icon={Icons.Append}
                                                 isProcessing={isProcessing}
+                                                menuItems={[]}
                                             />
                                         </td>
                                     </tr>

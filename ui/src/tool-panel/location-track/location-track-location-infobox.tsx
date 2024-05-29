@@ -353,10 +353,38 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 isProcessing={startingSplitting}
                                                 title={getSplittingDisabledReasonsTranslated()}
                                                 onClick={startSplitting}
-                                                qa-id="start-splitting"
-                                                >
+                                                qa-id="start-splitting">
                                                 {t('tool-panel.location-track.start-splitting')}
                                             </Button>
+                                            /* TODO: Uncomment once splitting with prefilled data is implemented
+                                            <SplitButton
+                                                variant={ButtonVariant.SECONDARY}
+                                                size={ButtonSize.SMALL}
+                                                disabled={
+                                                    locationTrack.state !== 'IN_USE' ||
+                                                    !isDraft ||
+                                                    locationTrackIsDraft ||
+                                                    duplicatesOnOtherTrackNumbers ||
+                                                    extraInfo?.partOfUnfinishedSplit ||
+                                                    startingSplitting
+                                                }
+                                                isProcessing={startingSplitting}
+                                                title={getSplittingDisabledReasonsTranslated()}
+                                                onClick={startSplitting}
+                                                qaId={'start-splitting'}
+                                                menuItems={[
+                                                    menuSelectOption(
+                                                        () => {
+                                                            startSplitting();
+                                                        },
+                                                        t(
+                                                            'tool-panel.location-track.start-splitting-prefilled',
+                                                        ),
+                                                        'start-splitting-prefilled',
+                                                    ),
+                                                ]}>
+                                                {t('tool-panel.location-track.start-splitting')}
+                                            </SplitButton>*/
                                         )}
                                     </InfoboxButtons>
                                 </PrivilegeRequired>
