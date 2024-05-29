@@ -104,7 +104,7 @@ class ValidationContextIT @Autowired constructor(
         val trackNumberId = mainDraftContext.insertTrackNumber().id
         val (lt1Id, lt1OfficialVersion) = mainOfficialContext.insert(locationTrackAndAlignment(trackNumberId))
         val (_, lt1DraftVersion) = locationTrackDao.insert(asMainDraft(locationTrackDao.fetch(lt1OfficialVersion)))
-        val (lt2Id, lt2DraftVersion) = mainDraftContext.insert(locationTrackAndAlignment(trackNumberId, draft = true))
+        val (lt2Id, lt2DraftVersion) = mainDraftContext.insert(locationTrackAndAlignment(trackNumberId))
 
         assertEquals(
             locationTrackDao.fetch(lt1OfficialVersion),
@@ -124,10 +124,10 @@ class ValidationContextIT @Autowired constructor(
     @Test
     fun `ValidationContext returns correct versions for Switch`() {
         val switchName1 = testDBService.getUnusedSwitchName()
-        val (s1Id, s1OfficialVersion) = switchDao.insert(switch(name = switchName1.toString(), draft = false))
+        val (s1Id, s1OfficialVersion) = mainOfficialContext.insert(switch(name = switchName1.toString()))
         val (_, s1DraftVersion) = switchDao.insert(asMainDraft(switchDao.fetch(s1OfficialVersion)))
         val switchName2 = testDBService.getUnusedSwitchName()
-        val (s2Id, s2DraftVersion) = switchDao.insert(switch(name = switchName2.toString(), draft = true))
+        val (s2Id, s2DraftVersion) = mainDraftContext.insert(switch(name = switchName2.toString()))
 
         assertEquals(
             switchDao.fetch(s1OfficialVersion),
@@ -161,9 +161,9 @@ class ValidationContextIT @Autowired constructor(
     @Test
     fun `ValidationContext returns correct versions for KM-Post`() {
         val trackNumberId = mainDraftContext.insertTrackNumber().id
-        val (kmp1Id, kmp1OfficialVersion) = kmPostDao.insert(kmPost(trackNumberId, KmNumber(1), draft = false))
+        val (kmp1Id, kmp1OfficialVersion) = mainOfficialContext.insert(kmPost(trackNumberId, KmNumber(1)))
         val (_, kmp1DraftVersion) = kmPostDao.insert(asMainDraft(kmPostDao.fetch(kmp1OfficialVersion)))
-        val (kmp2Id, kmp2DraftVersion) = kmPostDao.insert(kmPost(trackNumberId, KmNumber(2), draft = true))
+        val (kmp2Id, kmp2DraftVersion) = mainDraftContext.insert(kmPost(trackNumberId, KmNumber(2)))
         assertEquals(
             kmPostDao.fetch(kmp1OfficialVersion),
             validationContext().getKmPost(kmp1Id),
