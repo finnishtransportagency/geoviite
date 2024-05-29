@@ -576,12 +576,12 @@ class LocationTrackServiceIT @Autowired constructor(
     fun `Trying to update a split source location track should throw`() {
         val split = splitTestDataService
             .insertSplit()
-            .let(splitService::get)!!
+            .let(splitService::getOrThrow)
 
-        val sourceLocationTrack = locationTrackService.get(
+        val sourceLocationTrack = locationTrackService.getOrThrow(
             MainLayoutContext.draft,
             split.sourceLocationTrackId,
-        )!!
+        )
 
         assertThrows<SplitSourceLocationTrackUpdateException> {
             locationTrackService.update(
