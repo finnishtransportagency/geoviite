@@ -65,7 +65,9 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
     const [diagramHeight, setDiagramHeight] = React.useState<number>(height);
     const [diagramWidth, setDiagramWidth] = React.useState<number>(width);
 
-    const ref = React.useRef<SVGSVGElement>(null);
+    const ref = React.useRef<HTMLDivElement>(null);
+    const svgRef = React.useRef<SVGSVGElement>(null);
+
     const elementPosition = ref.current?.getBoundingClientRect();
 
     React.useEffect(() => {
@@ -118,7 +120,7 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
     const onMouseMove: React.EventHandler<React.MouseEvent<unknown>> = (
         e: React.MouseEvent<SVGSVGElement>,
     ) => {
-        const elementBounds = ref.current?.getBoundingClientRect();
+        const elementBounds = svgRef.current?.getBoundingClientRect();
         if (!elementBounds) {
             return;
         }
@@ -211,7 +213,8 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
                 setPanning(undefined);
                 setMousePositionInElement(undefined);
             }}
-            onDoubleClick={onDoubleClick}>
+            onDoubleClick={onDoubleClick}
+            ref={ref}>
             {snap && elementPosition && (
                 <HeightTooltip
                     point={snap}
@@ -219,7 +222,7 @@ export const VerticalGeometryDiagram: React.FC<VerticalGeometryDiagramProps> = (
                     coordinates={coordinates}
                 />
             )}
-            <svg height="100%" width="100%" qa-id="vertical-geometry-diagram-proper" ref={ref}>
+            <svg height="100%" width="100%" qa-id="vertical-geometry-diagram-proper" ref={svgRef}>
                 <>
                     <HeightLines coordinates={coordinates} />
                     <LabeledTicks
