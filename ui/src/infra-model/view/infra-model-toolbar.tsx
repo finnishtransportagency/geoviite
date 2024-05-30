@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { useAppNavigate } from 'common/navigate';
-import { Menu, menuValueOption } from 'vayla-design-lib/menu/menu';
+import { Menu, menuOption } from 'vayla-design-lib/menu/menu';
 import { Item } from 'vayla-design-lib/dropdown/dropdown';
 
 export type FileMenuOption = 'fix-encoding';
@@ -24,7 +24,15 @@ export const InfraModelToolbar: React.FC<InfraModelToolbarProps> = (
     const fileMenuRef = React.useRef(null);
 
     const items = props.fileMenuItems.map((item) =>
-        menuValueOption(item.value, item.name, item.qaId, item.disabled),
+        menuOption(
+            () => {
+                props.fileMenuItemSelected(item.value);
+            },
+            item.name,
+            item.qaId,
+            true,
+            item.disabled,
+        ),
     );
 
     return (
@@ -52,11 +60,8 @@ export const InfraModelToolbar: React.FC<InfraModelToolbarProps> = (
                 <Menu
                     positionRef={fileMenuRef}
                     items={items}
-                    onSelect={(item) => {
-                        props.fileMenuItemSelected(item);
-                        setFileMenuVisible(false);
-                    }}
                     onClickOutside={() => setFileMenuVisible(false)}
+                    onClose={() => setFileMenuVisible(false)}
                 />
             )}
         </div>

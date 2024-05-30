@@ -3,73 +3,57 @@ import styles from './menu.scss';
 import { CloseableModal, OpenTowards } from 'vayla-design-lib/closeable-modal/closeable-modal';
 import { createClassName } from 'vayla-design-lib/utils';
 
-export type MenuOption<TValue> = MenuValueOption<TValue> | MenuSelectOption | MenuDividerOption;
+export type MenuOption = MenuSelectOption | MenuDividerOption;
 
-type MenuOptionBase = { disabled: boolean; qaId: string };
-
-export type MenuValueOption<TValue> = {
-    type: 'VALUE';
-    name: string;
-    value: TValue;
-} & MenuOptionBase;
+export type OptionBase = { disabled: boolean; qaId: string };
 
 export type MenuSelectOption = {
     type: 'SELECT';
     name: string;
     onSelect: () => void;
-} & MenuOptionBase;
+    closeAfterSelect: boolean;
+} & OptionBase;
 
 export type MenuDividerOption = {
     type: 'DIVIDER';
 };
 
-export const menuValueOption = <TValue,>(
-    value: TValue,
-    name: string,
-    qaId: string,
-    disabled: boolean = false,
-): MenuValueOption<TValue> => ({
-    type: 'VALUE',
-    name,
-    value,
-    disabled,
-    qaId,
-});
-
-export const menuSelectOption = (
+export const menuOption = (
     onSelect: () => void,
     name: string,
     qaId: string,
+    closeAfterSelect: boolean,
     disabled: boolean = false,
 ): MenuSelectOption => ({
     type: 'SELECT',
     onSelect,
     name,
     disabled,
+    closeAfterSelect,
     qaId,
 });
 
-export const menuDividerOption = (): MenuDividerOption => ({
+export const menuDivider = (): MenuDividerOption => ({
     type: 'DIVIDER',
 });
 
-type MenuProps<TValue> = {
+type MenuProps = {
     positionRef: React.MutableRefObject<HTMLElement | null>;
     onClickOutside: () => void;
-    onSelect?: (item: TValue) => void;
-    items: MenuOption<TValue>[];
+    items: MenuOption[];
     opensTowards?: OpenTowards;
+    onClose: () => void;
 } & Omit<React.HTMLAttributes<HTMLElement>, 'onSelect'>;
 
-export const Menu = function <TValue>({
+export const Menu = function ({
     positionRef,
     onClickOutside,
     items,
-    onSelect,
     className,
     opensTowards = 'RIGHT',
+    onClose,
     ...props
-}: MenuProps<TValue>) {
+}: MenuProps) {
     const { height: offsetY } = positionRef.current?.getBoundingClientRect() ?? { height: 0 };
 
     return (
@@ -94,9 +78,11 @@ export const Menu = function <TValue>({
                                     i.disabled && styles['menu__item--disabled'],
                                 )}
                                 onClick={() => {
-                                    if (!i.disabled) {
-                                        if (i.type === 'SELECT') i.onSelect();
-                                        else if (onSelect) onSelect(i.value);
+                                    if (!i.disabled && i.type === 'SELECT') {
+                                        i.onSelect();
+                                        if (i.closeAfterSelect && onClose) {
+                                            onClose();
+                                        }
                                     }
                                 }}>
                                 {i.name}

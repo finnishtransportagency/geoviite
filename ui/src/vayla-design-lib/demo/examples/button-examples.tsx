@@ -3,11 +3,11 @@ import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/butto
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Checkbox } from 'vayla-design-lib/checkbox/checkbox';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
-import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
+import { Dropdown, dropdownOption } from 'vayla-design-lib/dropdown/dropdown';
 import { ExamplePerson } from 'vayla-design-lib/demo/examples/dropdown-examples';
 import examplePersonsData from 'vayla-design-lib/demo/example-persons.json';
-import { menuValueOption } from 'vayla-design-lib/menu/menu';
 import { SplitButton } from 'geoviite-design-lib/split-button/split-button';
+import { menuOption } from 'vayla-design-lib/menu/menu';
 
 export const ButtonExamples: React.FC = () => {
     const [isProcessing, setProcessing] = React.useState(false);
@@ -39,6 +39,8 @@ export const ButtonExamples: React.FC = () => {
                         <th>With icon + disabled</th>
                         <th>Icon only</th>
                         <th>Icon only + disabled</th>
+                        <th>Split button</th>
+                        <th>Split button + disabled</th>
                     </tr>
                 </thead>
 
@@ -125,9 +127,15 @@ export const ButtonExamples: React.FC = () => {
                                                 variant={variant}
                                                 icon={Icons.Append}
                                                 menuItems={[
-                                                    menuValueOption('1', 'Item 1', 'Item 1'),
-                                                ]}
-                                            />
+                                                    menuOption(
+                                                        () => console.log(`I'm doing something!`),
+                                                        'Item 1',
+                                                        'Item 1',
+                                                        true,
+                                                    ),
+                                                ]}>
+                                                Button
+                                            </SplitButton>
                                         </td>
                                         <td>
                                             <SplitButton
@@ -136,8 +144,9 @@ export const ButtonExamples: React.FC = () => {
                                                 disabled
                                                 icon={Icons.Append}
                                                 isProcessing={isProcessing}
-                                                menuItems={[]}
-                                            />
+                                                menuItems={[]}>
+                                                Button
+                                            </SplitButton>
                                         </td>
                                     </tr>
                                 );
@@ -162,7 +171,7 @@ export const ButtonExamples: React.FC = () => {
                     value={person}
                     onChange={(person) => setPerson(person)}
                     options={examplePersonsData.map((person) =>
-                        menuValueOption(person, person.name, person.name),
+                        dropdownOption(person, person.name, person.name),
                     )}
                     attachRight
                 />
