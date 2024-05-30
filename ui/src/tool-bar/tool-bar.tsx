@@ -39,24 +39,16 @@ import { getBySearchTerm } from 'track-layout/track-layout-search-api';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { EDIT_LAYOUT } from 'user/user-model';
+import { EDIT_LAYOUT, VIEW_LAYOUT_DRAFT } from 'user/user-model';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
 import { createClassName } from 'vayla-design-lib/utils';
-import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { EnvRestricted } from 'environment/env-restricted';
-import {
-    getLayoutDesigns,
-    insertLayoutDesign,
-    updateLayoutDesign,
-} from 'track-layout/layout-design-api';
-import { useLoader } from 'utils/react-utils';
-import { getChangeTimes, updateLayoutDesignChangeTime } from 'common/change-time-api';
-import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
 import {
     calculateBoundingBoxToShowAroundLocation,
     MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
 } from 'map/map-utils';
+import { WorkspaceSelection } from 'tool-bar/workspace-selection';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
@@ -203,21 +195,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddKmPostDialog, setShowAddKmPostDialog] = React.useState(false);
-    const [showCreateWorkspaceDialog, setShowCreateWorkspaceDialog] = React.useState(false);
-    const [showEditWorkspaceDialog, setShowEditWorkspaceDialog] = React.useState(false);
-    const [showDeleteWorkspaceDialog, setShowDeleteWorkspaceDialog] = React.useState(false);
     const menuRef = React.useRef(null);
-    const selectWorkspaceDropdownRef = React.useRef<HTMLInputElement>(null);
-
-    const designs = useLoader(
-        () => getLayoutDesigns(getChangeTimes().layoutDesign),
-        [getChangeTimes().layoutDesign],
-    );
-    const currentDesign = designs?.find((d) => d.id === layoutContext.designId);
-
-    React.useEffect(() => {
-        if (selectingWorkspace) selectWorkspaceDropdownRef?.current?.focus();
-    }, [selectingWorkspace]);
 
     const disableNewAssetMenu =
         layoutContext.publicationState !== 'DRAFT' ||
@@ -358,14 +336,6 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         setSelectingWorkspace(false);
     };
 
-    const unselectDesign = () => {
-        onLayoutContextChange({
-            publicationState: layoutContext.publicationState,
-            designId: undefined,
-        });
-        setSelectingWorkspace(true);
-    };
-
     function openPreviewAndStopLinking() {
         onOpenPreview();
         onStopLinking();
@@ -416,25 +386,29 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         onClick={() => switchToMainOfficial()}>
                         {t('tool-bar.current-mode')}
                     </TabHeader>
-                    <TabHeader
-                        className={styles['tool-bar__tab-header']}
-                        qaId={'draft-mode-tab'}
-                        selected={
-                            !layoutContext.designId &&
-                            !selectingWorkspace &&
-                            layoutContext.publicationState === 'DRAFT'
-                        }
-                        onClick={() => switchToMainDraft()}>
-                        {t('tool-bar.draft-mode')}
-                    </TabHeader>
-                    <EnvRestricted restrictTo={'test'}>
+                    <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
                         <TabHeader
                             className={styles['tool-bar__tab-header']}
-                            qaId={'design-mode-tab'}
-                            selected={!!layoutContext.designId || selectingWorkspace}
-                            onClick={() => setSelectingWorkspace(true)}>
-                            {t('tool-bar.design-mode')}
+                            qaId={'draft-mode-tab'}
+                            selected={
+                                !layoutContext.designId &&
+                                !selectingWorkspace &&
+                                layoutContext.publicationState === 'DRAFT'
+                            }
+                            onClick={() => switchToMainDraft()}>
+                            {t('tool-bar.draft-mode')}
                         </TabHeader>
+                    </PrivilegeRequired>
+                    <EnvRestricted restrictTo={'test'}>
+                        <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
+                            <TabHeader
+                                className={styles['tool-bar__tab-header']}
+                                qaId={'design-mode-tab'}
+                                selected={!!layoutContext.designId || selectingWorkspace}
+                                onClick={() => setSelectingWorkspace(true)}>
+                                {t('tool-bar.design-mode')}
+                            </TabHeader>
+                        </PrivilegeRequired>
                     </EnvRestricted>
                 </span>
                 <Dropdown
@@ -473,41 +447,12 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     </React.Fragment>
                 )}
                 {(layoutContext.designId || selectingWorkspace) && (
-                    <React.Fragment>
-                        <Dropdown
-                            inputRef={selectWorkspaceDropdownRef}
-                            placeholder={t('tool-bar.choose-workspace')}
-                            openOverride={selectingWorkspace || undefined}
-                            onAddClick={() => setShowCreateWorkspaceDialog(true)}
-                            onChange={(designId) => {
-                                setSelectingWorkspace(false);
-                                onLayoutContextChange({
-                                    publicationState: 'DRAFT',
-                                    designId: designId,
-                                });
-                            }}
-                            options={
-                                designs?.map((design) => ({
-                                    value: design.id,
-                                    name: design.name,
-                                    qaId: `workspace-${design.id}`,
-                                })) ?? []
-                            }
-                            value={layoutContext.designId}
-                        />
-                        <Button
-                            variant={ButtonVariant.GHOST}
-                            icon={Icons.Edit}
-                            disabled={!layoutContext.designId}
-                            onClick={() => setShowEditWorkspaceDialog(true)}
-                        />
-                        <Button
-                            variant={ButtonVariant.GHOST}
-                            icon={Icons.Delete}
-                            disabled={!layoutContext.designId}
-                            onClick={() => setShowDeleteWorkspaceDialog(true)}
-                        />
-                    </React.Fragment>
+                    <WorkspaceSelection
+                        selectingWorkspace={selectingWorkspace}
+                        setSelectingWorkspace={setSelectingWorkspace}
+                        onLayoutContextChange={onLayoutContextChange}
+                        layoutContext={layoutContext}
+                    />
                 )}
                 {layoutContext.publicationState == 'DRAFT' && (
                     <Button
@@ -559,52 +504,6 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 <KmPostEditDialogContainer
                     onClose={() => setShowAddKmPostDialog(false)}
                     onSave={handleKmPostSave}
-                />
-            )}
-
-            {showCreateWorkspaceDialog && (
-                <WorkspaceDialog
-                    onCancel={() => {
-                        setShowCreateWorkspaceDialog(false);
-                        setSelectingWorkspace(false);
-                    }}
-                    onSave={(_, request) => {
-                        insertLayoutDesign(request)
-                            .then((id) => {
-                                setSelectingWorkspace(false);
-                                onLayoutContextChange({ publicationState: 'DRAFT', designId: id });
-                            })
-                            .finally(() => {
-                                updateLayoutDesignChangeTime();
-                                setShowCreateWorkspaceDialog(false);
-                            });
-                    }}
-                />
-            )}
-
-            {showEditWorkspaceDialog && (
-                <WorkspaceDialog
-                    existingDesign={currentDesign}
-                    onCancel={() => {
-                        setShowEditWorkspaceDialog(false);
-                        setSelectingWorkspace(false);
-                    }}
-                    onSave={(_, request) => {
-                        if (currentDesign) {
-                            updateLayoutDesign(currentDesign.id, request).finally(() => {
-                                updateLayoutDesignChangeTime();
-                                setShowEditWorkspaceDialog(false);
-                            });
-                        }
-                    }}
-                />
-            )}
-
-            {showDeleteWorkspaceDialog && currentDesign && (
-                <WorkspaceDeleteConfirmDialog
-                    closeDialog={() => setShowDeleteWorkspaceDialog(false)}
-                    currentDesign={currentDesign}
-                    onDesignDeleted={unselectDesign}
                 />
             )}
         </div>
