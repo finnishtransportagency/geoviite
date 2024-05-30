@@ -220,8 +220,9 @@ class ReferenceLineDao(
               rl.row_id,
               rl.row_version
             from layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl
-              left join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn
-                on rl.track_number_id = tn.official_id
+              left join lateral layout.track_number_in_layout_context(:publication_state::layout.publication_state,
+                                                                      :design_id,
+                                                                      rl.track_number_id) tn on true
             where (:include_deleted = true or tn.state != 'DELETED')
         """.trimIndent()
         val params = mapOf(
@@ -251,8 +252,7 @@ class ReferenceLineDao(
                                               bounding_box)
               ) sv
                 join layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl using (alignment_id, alignment_version)
-                join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn
-                  on rl.track_number_id = tn.official_id
+                cross join lateral layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id, rl.track_number_id) tn
               where tn.state != 'DELETED';
         """.trimIndent()
 
@@ -277,8 +277,9 @@ class ReferenceLineDao(
               rl.row_id,
               rl.row_version
             from layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl
-              left join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn
-                on rl.track_number_id = tn.official_id
+              left join lateral layout.track_number_in_layout_context(:publication_state::layout.publication_state,
+                                                                      :design_id,
+                                                                      rl.track_number_id) tn on(true)
             where tn.state != 'DELETED'
               and rl.segment_count = 0
         """.trimIndent()

@@ -180,9 +180,10 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                 location_track on location_track.alignment_id = segment_version.alignment_id
                         and location_track.alignment_version = segment_version.alignment_version
                         and location_track.state != 'DELETED'
-            left join layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id)
-              layout_switch on layout_switch.official_id = segment_version.switch_id
-                        and layout_switch.state_category != 'NOT_EXISTING'
+            left join lateral layout.switch_in_layout_context(:publication_state::layout.publication_state,
+                                                              :design_id,
+                                                              segment_version.switch_id)
+              layout_switch on layout_switch.state_category != 'NOT_EXISTING'
           where switch.plan_id = :plan_id
           group by switch.id;
         """.trimIndent()
