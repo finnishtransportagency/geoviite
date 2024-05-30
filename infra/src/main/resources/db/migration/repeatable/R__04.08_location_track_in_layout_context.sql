@@ -1,6 +1,8 @@
 drop function if exists layout.location_track_in_layout_context(layout.publication_state, int);
+drop function if exists layout.location_track_in_layout_context(layout.publication_state, int, int);
 
-create function layout.location_track_in_layout_context(publication_state_in layout.publication_state, design_id_in int)
+create function layout.location_track_in_layout_context(publication_state_in layout.publication_state, design_id_in int,
+                                                        official_id_in int default null)
   returns table
           (
             row_id                             integer,
@@ -59,7 +61,23 @@ select
   alignment.bounding_box,
   alignment.length,
   alignment.segment_count
-  from layout.location_track row
+  from (
+    select *
+      from layout.location_track
+      where official_row_id = official_id_in
+    union all
+    select *
+      from layout.location_track
+      where design_row_id = official_id_in
+    union all
+    select *
+      from layout.location_track
+      where id = official_id_in
+    union all
+    select *
+      from layout.location_track
+      where official_id_in is null
+  ) row
     left join layout.alignment on row.alignment_id = alignment.id
   where case publication_state_in
           when 'OFFICIAL' then not row.draft

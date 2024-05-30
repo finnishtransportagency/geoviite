@@ -322,32 +322,13 @@ private fun fetchContextVersionSql(table: LayoutAssetTable, fetchType: FetchType
     """
         select distinct id, version
           from (
-            select id, version
-              from ${table.fullName}
-              where official_row_id ${idOrIdsEqualSqlFragment(fetchType)}
-            union all
-            select id, version
-              from ${table.fullName}
-              where design_row_id ${idOrIdsEqualSqlFragment(fetchType)}
-            union all
-            select id, version
+            select coalesce(official_row_id, design_row_id, id) as official_id
               from ${table.fullName}
               where id ${idOrIdsEqualSqlFragment(fetchType)}
-            union all
-            select design_row.id, design_row.version
-              from ${table.fullName} direct
-                join ${table.fullName} design_row on direct.design_row_id = design_row.id
-              where direct.id ${idOrIdsEqualSqlFragment(fetchType)}
-            union all
-            select official_row.id, official_row.version
-              from ${table.fullName} direct
-                join ${table.fullName} official_row on direct.official_row_id = official_row.id
-              where direct.id ${idOrIdsEqualSqlFragment(fetchType)}
-          ) lookup
-            join (
-            select row_id as id
-              from ${table.fullLayoutContextFunction}(:publication_state::layout.publication_state, :design_id::int)
-          ) ilc using (id)
+          ) lookup cross join lateral (
+            select row_id as id, row_version as version
+              from ${table.fullLayoutContextFunction}(:publication_state::layout.publication_state, :design_id::int, official_id)
+          ) ilc
           """.trimIndent()
 
 fun <T : LayoutAsset<T>> verifyObjectIsExisting(item: T) = verifyObjectIsExisting(item.contextData)

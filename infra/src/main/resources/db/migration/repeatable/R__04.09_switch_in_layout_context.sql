@@ -1,6 +1,8 @@
 drop function if exists layout.switch_in_layout_context(layout.publication_state, int);
+drop function if exists layout.switch_in_layout_context(layout.publication_state, int, int);
 
-create function layout.switch_in_layout_context(publication_state_in layout.publication_state, design_id_in int)
+create function layout.switch_in_layout_context(publication_state_in layout.publication_state, design_id_in int,
+                                                official_id_in int default null)
   returns table
           (
             row_id              integer,
@@ -39,7 +41,23 @@ select
   row.change_time,
   row.source,
   row.draft
-  from layout.switch row
+  from (
+    select *
+      from layout.switch
+      where official_row_id = official_id_in
+    union all
+    select *
+      from layout.switch
+      where design_row_id = official_id_in
+    union all
+    select *
+      from layout.switch
+      where id = official_id_in
+    union all
+    select *
+      from layout.switch
+      where official_id_in is null
+  ) row
   where case publication_state_in
           when 'OFFICIAL' then not row.draft
           else row.draft
