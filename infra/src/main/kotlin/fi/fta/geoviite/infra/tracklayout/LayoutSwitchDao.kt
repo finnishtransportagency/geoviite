@@ -83,13 +83,14 @@ class LayoutSwitchDao(
                 left join (
                 select lt.official_id as location_track_id, *
                   from layout.segment_version
-                    join lateral (select *
-                                    from layout.location_track_in_layout_context(:publication_state::layout.publication_state,
-                                                                                 :design_id) lt
-                                    where lt.alignment_id = segment_version.alignment_id
-                                      and lt.alignment_version = segment_version.alignment_version
-                                      and lt.state != 'DELETED'
-                                    offset 0) lt on (true)
+                    cross join lateral
+                      (select *
+                       from layout.location_track_in_layout_context(:publication_state::layout.publication_state,
+                                                                    :design_id) lt
+                       where lt.alignment_id = segment_version.alignment_id
+                         and lt.alignment_version = segment_version.alignment_version
+                         and lt.state != 'DELETED'
+                       offset 0) lt
                     join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
                     cross join lateral
                     (select
