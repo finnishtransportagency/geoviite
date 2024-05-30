@@ -75,7 +75,7 @@ class LayoutSwitchDao(
         switchId: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
         val sql = """
-            select number, location_accuracy, location_track_id, x, y
+            select number, location_accuracy, location_track_id, postgis.st_x(point) x, postgis.st_y(point) y
               from layout.switch_in_layout_context(:publication_state::layout.publication_state,
                                                    :design_id,
                                                    :switch_id) switch
@@ -93,15 +93,11 @@ class LayoutSwitchDao(
                     join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
                     cross join lateral
                     (select
-                       switch_start_joint_number as number,
-                       postgis.st_x(postgis.st_startpoint(geometry)) as x,
-                       postgis.st_y(postgis.st_startpoint(geometry)) as y
+                       switch_start_joint_number as number, postgis.st_startpoint(geometry) as point
                        where switch_start_joint_number is not null
                      union all
                      select
-                       switch_end_joint_number,
-                       postgis.st_x(postgis.st_endpoint(geometry)),
-                       postgis.st_y(postgis.st_endpoint(geometry))
+                       switch_end_joint_number, postgis.st_endpoint(geometry)
                        where switch_end_joint_number is not null) p
                   where switch_id = :switch_id
               ) segment_joint using (number)
