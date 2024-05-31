@@ -11,7 +11,6 @@ type InfoboxFieldProps = {
     qaId?: string;
     value?: React.ReactNode;
     children?: React.ReactNode;
-    inEditMode?: boolean;
     onEdit?: () => void;
     className?: string;
     iconDisabled?: boolean;
@@ -25,7 +24,6 @@ const InfoboxField: React.FC<InfoboxFieldProps> = ({
     children,
     className,
     qaId,
-    inEditMode = false,
     iconDisabled = false,
     iconHidden = false,
     hasErrors = false,
@@ -33,6 +31,10 @@ const InfoboxField: React.FC<InfoboxFieldProps> = ({
 }: InfoboxFieldProps) => {
     const classes = createClassName(styles['infobox__field'], className);
     const { t } = useTranslation();
+    const iconTitle = iconDisabled
+        ? t('tool-panel.disabled.activity-disabled-in-official-mode')
+        : '';
+    const iconColor = iconDisabled ? IconColor.DISABLED : IconColor.ORIGINAL;
 
     return (
         <div className={classes} qa-id={qaId}>
@@ -50,20 +52,13 @@ const InfoboxField: React.FC<InfoboxFieldProps> = ({
                 )}>
                 {children || value}
             </div>
-            {!inEditMode && props.onEdit && !iconDisabled && !iconHidden && (
+            {props.onEdit && !iconHidden && (
                 <PrivilegeRequired privilege={EDIT_LAYOUT}>
                     <div
                         className={styles['infobox__edit-icon']}
-                        onClick={() => props.onEdit && props.onEdit()}>
-                        <Icons.Edit size={IconSize.SMALL} />
-                    </div>
-                </PrivilegeRequired>
-            )}
-            {iconDisabled && !iconHidden && (
-                <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                    <div className={styles['infobox__edit-icon']}>
-                        <span title={t('tool-panel.disabled.activity-disabled-in-official-mode')}>
-                            <Icons.Edit size={IconSize.SMALL} color={IconColor.DISABLED} />
+                        onClick={() => !iconDisabled && props.onEdit && props.onEdit()}>
+                        <span title={iconTitle}>
+                            <Icons.Edit size={IconSize.SMALL} color={iconColor} />
                         </span>
                     </div>
                 </PrivilegeRequired>
