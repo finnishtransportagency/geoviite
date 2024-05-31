@@ -77,7 +77,7 @@ private fun setBrowser(createWebDriver: () -> WebDriver?) {
     }
 }
 
-const val DEV_DEBUG = true
+const val DEV_DEBUG = false
 fun openBrowser() {
     val headless = !DEV_DEBUG
     logger.info("Initializing webdriver")
