@@ -51,11 +51,13 @@ const InfoboxField: React.FC<InfoboxFieldProps> = ({
                 {children || value}
             </div>
             {!inEditMode && props.onEdit && !iconDisabled && !iconHidden && (
-                <div
-                    className={styles['infobox__edit-icon']}
-                    onClick={() => props.onEdit && props.onEdit()}>
-                    <Icons.Edit size={IconSize.SMALL} />
-                </div>
+                <PrivilegeRequired privilege={EDIT_LAYOUT}>
+                    <div
+                        className={styles['infobox__edit-icon']}
+                        onClick={() => props.onEdit && props.onEdit()}>
+                        <Icons.Edit size={IconSize.SMALL} />
+                    </div>
+                </PrivilegeRequired>
             )}
             {iconDisabled && !iconHidden && (
                 <PrivilegeRequired privilege={EDIT_LAYOUT}>
