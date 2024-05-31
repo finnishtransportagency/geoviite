@@ -3175,7 +3175,6 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     @Test
-    @Disabled
     fun `create in main and alter in design twice before updating main`() {
         val trackNumber = mainOfficialContext.insert(trackNumber()).id
         val alignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))

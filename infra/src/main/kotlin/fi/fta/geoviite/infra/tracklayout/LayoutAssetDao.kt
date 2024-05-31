@@ -288,14 +288,17 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         val draft = fetch(version)
         val designRowId = draft.contextData.designRowId
         return if (branch.designId == null && draft.contextData.officialRowId == null && designRowId is IntId) {
-            jdbcTemplate.queryOne(
-                "select id, version from ${table.fullName} where id = :designRowId",
-                mapOf("designRowId" to designRowId.intValue)
-            ) { rs, _ ->
-                rs.getRowVersion("id", "version")
-            }
-        } else if (draft.isDesign && draft.contextData.officialRowId != null) null
+            queryDesignRowVersion(designRowId)
+        } else if (draft.isDesign && draft.contextData.officialRowId != null) {
+            if (designRowId is IntId) queryDesignRowVersion(designRowId) else null
+        }
         else fetchVersion(branch.official, version.id)
+    }
+
+    private fun queryDesignRowVersion(designRowId: IntId<T>): RowVersion<T> = jdbcTemplate.queryOne(
+        "select id, version from ${table.fullName} where id = :designRowId", mapOf("designRowId" to designRowId.intValue)
+    ) { rs, _ ->
+        rs.getRowVersion("id", "version")
     }
 
     @Transactional
