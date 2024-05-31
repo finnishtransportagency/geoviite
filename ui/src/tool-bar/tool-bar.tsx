@@ -48,7 +48,7 @@ import {
     calculateBoundingBoxToShowAroundLocation,
     MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
 } from 'map/map-utils';
-import { WorkspaceSelection } from 'tool-bar/workspace-selection';
+import { WorkspaceSelectionContainer } from 'tool-bar/workspace-selection';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
@@ -430,44 +430,42 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 />
             </div>
             <div className={styles['tool-bar__right-section']}>
-                {!layoutContext.designId && layoutContext.publicationState === 'DRAFT' && (
-                    <React.Fragment>
+                {layoutContext.publicationState === 'DRAFT' && (
+                    <PrivilegeRequired privilege={EDIT_LAYOUT}>
                         <div className={styles['tool-bar__new-menu-button']} qa-id={'tool-bar.new'}>
-                            <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                                <Button
-                                    ref={menuRef}
-                                    title={t('tool-bar.new')}
-                                    variant={ButtonVariant.GHOST}
-                                    icon={Icons.Append}
-                                    disabled={disableNewAssetMenu}
-                                    onClick={() => setShowNewAssetMenu(!showNewAssetMenu)}
-                                />
-                            </PrivilegeRequired>
+                            <Button
+                                ref={menuRef}
+                                title={t('tool-bar.new')}
+                                variant={ButtonVariant.GHOST}
+                                icon={Icons.Append}
+                                disabled={disableNewAssetMenu}
+                                onClick={() => setShowNewAssetMenu(!showNewAssetMenu)}
+                            />
                         </div>
-                    </React.Fragment>
+                    </PrivilegeRequired>
                 )}
                 {(layoutContext.designId || selectingWorkspace) && (
-                    <WorkspaceSelection
+                    <WorkspaceSelectionContainer
                         selectingWorkspace={selectingWorkspace}
                         setSelectingWorkspace={setSelectingWorkspace}
-                        onLayoutContextChange={onLayoutContextChange}
-                        layoutContext={layoutContext}
                     />
                 )}
                 {layoutContext.publicationState == 'DRAFT' && (
-                    <Button
-                        disabled={
-                            selectingWorkspace ||
-                            !!splittingState ||
-                            linkingState?.state === 'allSet' ||
-                            linkingState?.state === 'setup'
-                        }
-                        variant={ButtonVariant.PRIMARY}
-                        title={modeNavigationButtonsDisabledReason()}
-                        qa-id="open-preview-view"
-                        onClick={() => openPreviewAndStopLinking()}>
-                        {t('tool-bar.preview-mode.enable')}
-                    </Button>
+                    <PrivilegeRequired privilege={EDIT_LAYOUT}>
+                        <Button
+                            disabled={
+                                selectingWorkspace ||
+                                !!splittingState ||
+                                linkingState?.state === 'allSet' ||
+                                linkingState?.state === 'setup'
+                            }
+                            variant={ButtonVariant.PRIMARY}
+                            title={modeNavigationButtonsDisabledReason()}
+                            qa-id="open-preview-view"
+                            onClick={() => openPreviewAndStopLinking()}>
+                            {t('tool-bar.preview-mode.enable')}
+                        </Button>
+                    </PrivilegeRequired>
                 )}
             </div>
 

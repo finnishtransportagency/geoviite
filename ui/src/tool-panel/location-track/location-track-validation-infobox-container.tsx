@@ -7,6 +7,8 @@ import { LocationTrackId } from 'track-layout/track-layout-model';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
 import { useCommonDataAppSelector } from 'store/hooks';
+import { EDIT_LAYOUT } from 'user/user-model';
+import { PrivilegeRequired } from 'user/privilege-required';
 
 type LocationTrackValidationInfoboxProps = {
     id: LocationTrackId;
@@ -51,16 +53,18 @@ export const LocationTrackValidationInfoboxContainer: React.FC<
             errors={errors}
             warnings={warnings}
             validationLoaderStatus={validationLoaderStatus}>
-            {layoutContext.publicationState === 'OFFICIAL' || (
-                <div>
-                    <Button
-                        size={ButtonSize.SMALL}
-                        variant={ButtonVariant.SECONDARY}
-                        disabled={editingDisabled}
-                        onClick={showLinkedSwitchesRelinkingDialog}>
-                        {t('tool-panel.location-track.open-switch-relinking-dialog')}
-                    </Button>
-                </div>
+            {layoutContext.publicationState === 'DRAFT' && (
+                <PrivilegeRequired privilege={EDIT_LAYOUT}>
+                    <div>
+                        <Button
+                            size={ButtonSize.SMALL}
+                            variant={ButtonVariant.SECONDARY}
+                            disabled={editingDisabled}
+                            onClick={showLinkedSwitchesRelinkingDialog}>
+                            {t('tool-panel.location-track.open-switch-relinking-dialog')}
+                        </Button>
+                    </div>
+                </PrivilegeRequired>
             )}
         </AssetValidationInfobox>
     );
