@@ -75,48 +75,32 @@ class LayoutSwitchDao(
         switchId: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
         val sql = """
-            with alignment as (
-              select
-                location_track.official_id,
-                location_track.alignment_id,
-                segment_version.segment_index,
-                segment_version.switch_id,
-                segment_geometry.geometry,
-                segment_version.switch_start_joint_number,
-                segment_version.switch_end_joint_number
-              from layout.segment_version
-                inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
-                inner join
-                  layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
-                    location_track on location_track.alignment_id = segment_version.alignment_id
-                    and location_track.alignment_version = segment_version.alignment_version
-                    and location_track.state != 'DELETED'
-            )
-            select
-              switch_joint.number as joint_number,
-              switch_joint.location_accuracy as location_accuracy,
-              alignment.alignment_id,
-              alignment.segment_index,
-              alignment.switch_start_joint_number,
-              alignment.switch_end_joint_number,
-              case
-                when alignment.switch_start_joint_number = switch_joint.number then true
-                when alignment.switch_end_joint_number = switch_joint.number then false
-              end as matched_at_segment_start,
-              postgis.st_x(postgis.st_startpoint(alignment.geometry)) as location_start_x,
-              postgis.st_y(postgis.st_startpoint(alignment.geometry)) as location_start_y,
-              postgis.st_x(postgis.st_endpoint(alignment.geometry)) as location_end_x,
-              postgis.st_y(postgis.st_endpoint(alignment.geometry)) as location_end_y,
-              alignment.official_id as location_track_id
-            from layout.switch_joint
-              inner join layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id) switch
-                on switch.row_id = switch_joint.switch_id
-                  and switch.state_category != 'NOT_EXISTING'
-              left join alignment
-                on alignment.switch_id = switch.official_id
-                      and (alignment.switch_start_joint_number = switch_joint.number
-                        or alignment.switch_end_joint_number = switch_joint.number)
-            where switch.official_id = :switch_id
+            select number, location_accuracy, location_track_id, postgis.st_x(point) x, postgis.st_y(point) y
+              from layout.switch_in_layout_context(:publication_state::layout.publication_state,
+                                                   :design_id,
+                                                   :switch_id) switch
+                join layout.switch_joint on switch.row_id = switch_joint.switch_id
+                left join (
+                  select lt.official_id as location_track_id, *
+                    from layout.segment_version
+                      cross join lateral
+                        (select *
+                         from layout.location_track_in_layout_context(:publication_state::layout.publication_state,
+                                                                      :design_id) lt
+                         where lt.alignment_id = segment_version.alignment_id
+                           and lt.alignment_version = segment_version.alignment_version
+                           and lt.state != 'DELETED'
+                         offset 0) lt
+                      join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+                      cross join lateral
+                      (select switch_start_joint_number as number, postgis.st_startpoint(geometry) as point
+                         where switch_start_joint_number is not null
+                       union all
+                         select switch_end_joint_number, postgis.st_endpoint(geometry)
+                           where switch_end_joint_number is not null) p
+                  where switch_id = :switch_id
+              ) segment_joint using (number)
+            where state_category != 'NOT_EXISTING';
         """.trimIndent()
         val params = mapOf(
             "switch_id" to switchId.intValue,
@@ -134,14 +118,12 @@ class LayoutSwitchDao(
 
         jdbcTemplate.query(sql, params) { rs, _ ->
             val jointKey = JointKey(
-                number = JointNumber(rs.getInt("joint_number")),
+                number = JointNumber(rs.getInt("number")),
                 locationAccuracy = rs.getEnumOrNull<LocationAccuracy>("location_accuracy")
             )
             val locationTrackId = rs.getIntIdOrNull<LocationTrack>("location_track_id")
             if (locationTrackId != null) {
-                val matchedAtStart = rs.getBoolean("matched_at_segment_start")
-                val location = if (matchedAtStart) rs.getPoint("location_start_x", "location_start_y")
-                else rs.getPoint("location_end_x", "location_end_y")
+                val location = rs.getPoint("x", "y")
                 accurateMatches.computeIfAbsent(jointKey) { mutableMapOf() }[locationTrackId] = location
             } else {
                 unmatchedJoints.add(jointKey)
