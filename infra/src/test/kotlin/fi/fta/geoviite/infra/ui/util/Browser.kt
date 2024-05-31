@@ -25,7 +25,6 @@ import java.time.Instant
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Level
-import kotlin.test.assertEquals
 
 private fun createChromeDriver(headless: Boolean): WebDriver {
     val options = ChromeOptions()
@@ -78,7 +77,7 @@ private fun setBrowser(createWebDriver: () -> WebDriver?) {
     }
 }
 
-const val DEV_DEBUG = false
+const val DEV_DEBUG = true
 fun openBrowser() {
     val headless = !DEV_DEBUG
     logger.info("Initializing webdriver")

@@ -47,11 +47,15 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
             footerContent={
                 <React.Fragment>
                     <div className={dialogStyles['dialog__footer-content--centered']}>
-                        <Button variant={ButtonVariant.SECONDARY} onClick={onCancel}>
+                        <Button
+                            variant={ButtonVariant.SECONDARY}
+                            onClick={onCancel}
+                            qa-id={'workspace-dialog-cancel'}>
                             {t('button.cancel')}
                         </Button>
                         <Button
                             disabled={!name || !selectedDate}
+                            qa-id={'workspace-dialog-save'}
                             onClick={() => {
                                 if (name && selectedDate) {
                                     onSave(existingDesign?.id, saveRequest(name, selectedDate));
@@ -72,6 +76,7 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
                                 wide
                                 value={name}
                                 onChange={(evt) => setName(evt.target.value)}
+                                qa-id={'workspace-dialog-name'}
                             />
                         }
                     />
@@ -82,6 +87,7 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
                                 value={selectedDate}
                                 onChange={(date) => setSelectedDate(date)}
                                 wide={true}
+                                qa-id={'workspace-dialog-date'}
                             />
                         }
                     />

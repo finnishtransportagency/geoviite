@@ -92,6 +92,8 @@ open class SeleniumTest : DBTestBase(UI_TEST_USER) {
                 "track_number_version",
                 "segment_version",
                 "segment_geometry",
+                "design",
+                "design_version"
             )
         )
 
