@@ -13,6 +13,31 @@ import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-
 import { LayoutContext } from 'common/common-model';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
+import { useTrackLayoutAppSelector } from 'store/hooks';
+import { createDelegates } from 'store/store-utils';
+import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
+
+type WorkspaceSelectionContainerProps = {
+    setSelectingWorkspace: (selectingWorkspace: boolean) => void;
+    selectingWorkspace: boolean;
+};
+
+export const WorkspaceSelectionContainer: React.FC<WorkspaceSelectionContainerProps> = ({
+    setSelectingWorkspace,
+    selectingWorkspace,
+}) => {
+    const trackLayoutState = useTrackLayoutAppSelector((state) => state);
+    const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
+
+    return (
+        <WorkspaceSelection
+            layoutContext={trackLayoutState.layoutContext}
+            onLayoutContextChange={delegates.onLayoutContextChange}
+            selectingWorkspace={selectingWorkspace}
+            setSelectingWorkspace={setSelectingWorkspace}
+        />
+    );
+};
 
 type WorkspaceSelectionProps = {
     layoutContext: LayoutContext;

@@ -48,7 +48,7 @@ import {
     calculateBoundingBoxToShowAroundLocation,
     MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
 } from 'map/map-utils';
-import { WorkspaceSelection } from 'tool-bar/workspace-selection';
+import { WorkspaceSelectionContainer } from 'tool-bar/workspace-selection';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
@@ -445,11 +445,9 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     </PrivilegeRequired>
                 )}
                 {(layoutContext.designId || selectingWorkspace) && (
-                    <WorkspaceSelection
+                    <WorkspaceSelectionContainer
                         selectingWorkspace={selectingWorkspace}
                         setSelectingWorkspace={setSelectingWorkspace}
-                        onLayoutContextChange={onLayoutContextChange}
-                        layoutContext={layoutContext}
                     />
                 )}
                 {layoutContext.publicationState == 'DRAFT' && (
