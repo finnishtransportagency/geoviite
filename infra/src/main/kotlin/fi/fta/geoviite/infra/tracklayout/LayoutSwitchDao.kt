@@ -81,25 +81,23 @@ class LayoutSwitchDao(
                                                    :switch_id) switch
                 join layout.switch_joint on switch.row_id = switch_joint.switch_id
                 left join (
-                select lt.official_id as location_track_id, *
-                  from layout.segment_version
-                    cross join lateral
-                      (select *
-                       from layout.location_track_in_layout_context(:publication_state::layout.publication_state,
-                                                                    :design_id) lt
-                       where lt.alignment_id = segment_version.alignment_id
-                         and lt.alignment_version = segment_version.alignment_version
-                         and lt.state != 'DELETED'
-                       offset 0) lt
-                    join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
-                    cross join lateral
-                    (select
-                       switch_start_joint_number as number, postgis.st_startpoint(geometry) as point
-                       where switch_start_joint_number is not null
-                     union all
-                     select
-                       switch_end_joint_number, postgis.st_endpoint(geometry)
-                       where switch_end_joint_number is not null) p
+                  select lt.official_id as location_track_id, *
+                    from layout.segment_version
+                      cross join lateral
+                        (select *
+                         from layout.location_track_in_layout_context(:publication_state::layout.publication_state,
+                                                                      :design_id) lt
+                         where lt.alignment_id = segment_version.alignment_id
+                           and lt.alignment_version = segment_version.alignment_version
+                           and lt.state != 'DELETED'
+                         offset 0) lt
+                      join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+                      cross join lateral
+                      (select switch_start_joint_number as number, postgis.st_startpoint(geometry) as point
+                         where switch_start_joint_number is not null
+                       union all
+                         select switch_end_joint_number, postgis.st_endpoint(geometry)
+                           where switch_end_joint_number is not null) p
                   where switch_id = :switch_id
               ) segment_joint using (number)
             where state_category != 'NOT_EXISTING';
