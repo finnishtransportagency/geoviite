@@ -2,7 +2,8 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.ValidationVersion
@@ -18,19 +19,19 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
 
     protected open val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    fun list(publicationState: PublicationState, includeDeleted: Boolean = false): List<ObjectType> {
-        logger.serviceCall("list", "publicationState" to publicationState)
-        return dao.list(publicationState, includeDeleted)
+    fun list(context: LayoutContext, includeDeleted: Boolean = false): List<ObjectType> {
+        logger.serviceCall("list", "context" to context, "includeDeleted" to includeDeleted)
+        return dao.list(context, includeDeleted)
     }
 
-    fun get(publicationState: PublicationState, id: IntId<ObjectType>): ObjectType? {
-        logger.serviceCall("get", "publicationState" to publicationState, "id" to id)
-        return dao.get(publicationState, id)
+    fun get(context: LayoutContext, id: IntId<ObjectType>): ObjectType? {
+        logger.serviceCall("get", "context" to context, "id" to id)
+        return dao.get(context, id)
     }
 
-    fun getMany(publicationState: PublicationState, ids: List<IntId<ObjectType>>): List<ObjectType> {
-        logger.serviceCall("getMany", "publicationState" to publicationState, "ids" to ids)
-        return dao.getMany(publicationState, ids)
+    fun getMany(context: LayoutContext, ids: List<IntId<ObjectType>>): List<ObjectType> {
+        logger.serviceCall("getMany", "context" to context, "ids" to ids)
+        return dao.getMany(context, ids)
     }
 
     fun getOfficialAtMoment(id: IntId<ObjectType>, moment: Instant): ObjectType? {
@@ -38,9 +39,9 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         return dao.getOfficialAtMoment(id, moment)
     }
 
-    fun getOrThrow(publicationState: PublicationState, id: IntId<ObjectType>): ObjectType {
-        logger.serviceCall("get", "publicationState" to publicationState, "id" to id)
-        return dao.getOrThrow(publicationState, id)
+    fun getOrThrow(context: LayoutContext, id: IntId<ObjectType>): ObjectType {
+        logger.serviceCall("get", "context" to context, "id" to id)
+        return dao.getOrThrow(context, id)
     }
 
     fun getChangeTime(): Instant {
@@ -48,13 +49,9 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         return dao.fetchChangeTime()
     }
 
-    fun getLayoutAssetChangeInfo(id: IntId<ObjectType>, publicationState: PublicationState): LayoutAssetChangeInfo? {
-        logger.serviceCall(
-            "getLayoutAssetChangeInfo",
-            "id" to id,
-            "publicationState" to publicationState,
-        )
-        return dao.fetchLayoutAssetChangeInfo(id, publicationState)
+    fun getLayoutAssetChangeInfo(context: LayoutContext, id: IntId<ObjectType>): LayoutAssetChangeInfo? {
+        logger.serviceCall("getLayoutAssetChangeInfo", "context" to context, "id" to id)
+        return dao.fetchLayoutAssetChangeInfo(context, id)
     }
 
     fun filterBySearchTerm(list: List<ObjectType>, searchTerm: FreeText): List<ObjectType> =
@@ -67,43 +64,44 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     protected open fun contentMatches(term: String, item: ObjectType): Boolean = false
 
     @Transactional
-    open fun saveDraft(draft: ObjectType): DaoResponse<ObjectType> {
-        logger.serviceCall("saveDraft", "draft" to draft)
-        return saveDraftInternal(draft)
+    open fun saveDraft(branch: LayoutBranch, draftAsset: ObjectType): DaoResponse<ObjectType> {
+        logger.serviceCall("saveDraft", "branch" to branch, "draftAsset" to draftAsset)
+        return saveDraftInternal(branch, draftAsset)
     }
 
-    protected fun saveDraftInternal(item: ObjectType): DaoResponse<ObjectType> {
-        val draft = asMainDraft(item)
+    protected fun saveDraftInternal(branch: LayoutBranch, draftAsset: ObjectType): DaoResponse<ObjectType> {
+        val draft = asDraft(branch, draftAsset)
         require(draft.isDraft) { "Item is not a draft: id=${draft.id}" }
-        val officialId = if (item.id is IntId) item.id as IntId else null
+        val officialId = if (draftAsset.id is IntId) draftAsset.id as IntId else null
         return if (draft.dataType == DataType.TEMP) {
             verifyObjectIsNew(draft)
             dao.insert(draft).also { response -> verifyInsertResponse(officialId, response) }
         } else {
             requireNotNull(officialId) { "Updating item that has no known official ID" }
             verifyObjectIsExisting(draft)
-            val previousVersion = requireNotNull(draft.version) { "Updating item without rowVersion: $item" }
+            val previousVersion = requireNotNull(draft.version) { "Updating item without rowVersion: $draftAsset" }
             dao.update(draft).also { response -> verifyUpdateResponse(officialId, previousVersion, response) }
         }
     }
 
     @Transactional
-    open fun deleteDraft(id: IntId<ObjectType>): DaoResponse<ObjectType> {
-        logger.serviceCall("deleteDraft")
-        return dao.deleteDraft(id)
+    open fun deleteDraft(branch: LayoutBranch, id: IntId<ObjectType>): DaoResponse<ObjectType> {
+        logger.serviceCall("deleteDraft", "branch" to branch, "id" to id)
+        return dao.deleteDraft(branch, id)
     }
 
     @Transactional
-    open fun publish(version: ValidationVersion<ObjectType>): DaoResponse<ObjectType> {
-        logger.serviceCall("Publish", "version" to version)
-        return publishInternal(VersionPair(dao.fetchOfficialVersion(version.officialId), version.validatedAssetVersion))
+    open fun publish(branch: LayoutBranch, version: ValidationVersion<ObjectType>): DaoResponse<ObjectType> {
+        logger.serviceCall("Publish", "branch" to branch, "version" to version)
+        val versions = VersionPair(dao.fetchVersion(branch.official, version.officialId), version.validatedAssetVersion)
+        return publishInternal(branch, versions)
     }
 
-    protected fun publishInternal(versions: VersionPair<ObjectType>): DaoResponse<ObjectType> {
+    protected fun publishInternal(branch: LayoutBranch, versions: VersionPair<ObjectType>): DaoResponse<ObjectType> {
         val draftVersion = requireNotNull(versions.draft) { "No draft to publish: versions=$versions" }
         val draft = dao.fetch(draftVersion)
         require(draft.isDraft) { "Object to publish is not a draft: versions=$versions context=${draft.contextData}" }
-        val published = asMainOfficial(draft)
+        val published = asOfficial(branch, draft)
         require(!published.isDraft) { "Published object is still a draft: context=${published.contextData}" }
         verifyObjectIsExisting(published)
 
@@ -111,7 +109,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         verifyUpdateResponse(draft.id as IntId, versions.official ?: draftVersion, publishResponse)
         if (versions.official != null && versions.draft.id != versions.official.id) {
             // Draft data is saved on official id -> delete the draft row
-            dao.deleteDraft(versions.draft.id)
+            dao.deleteDraft(branch, versions.draft.id)
         }
         return publishResponse
     }

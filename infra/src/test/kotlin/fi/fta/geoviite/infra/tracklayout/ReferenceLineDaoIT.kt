@@ -3,8 +3,8 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
@@ -20,7 +20,7 @@ import org.springframework.test.context.ActiveProfiles
 class ReferenceLineDaoIT @Autowired constructor(
     private val alignmentDao: LayoutAlignmentDao,
     private val referenceLineDao: ReferenceLineDao,
-): DBTestBase() {
+) : DBTestBase() {
 
     @Test
     fun referenceLineSaveAndLoadWorks() {
@@ -34,8 +34,8 @@ class ReferenceLineDaoIT @Autowired constructor(
 
         assertEquals(DataType.TEMP, referenceLine.dataType)
         val (id, version) = referenceLineDao.insert(referenceLine)
-        assertEquals(version, referenceLineDao.fetchVersion(id, OFFICIAL))
-        assertEquals(version, referenceLineDao.fetchVersion(id, DRAFT))
+        assertEquals(version, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(version, referenceLineDao.fetchVersion(MainLayoutContext.draft, id))
         val fromDb = referenceLineDao.fetch(version)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertMatches(referenceLine, fromDb, contextMatch = false)
@@ -46,8 +46,8 @@ class ReferenceLineDaoIT @Autowired constructor(
         val (updatedId, updatedVersion) = referenceLineDao.update(updatedLine)
         assertEquals(id, updatedId)
         assertEquals(updatedVersion.id, version.id)
-        assertEquals(updatedVersion, referenceLineDao.fetchVersion(id, OFFICIAL))
-        assertEquals(updatedVersion, referenceLineDao.fetchVersion(id, DRAFT))
+        assertEquals(updatedVersion, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(updatedVersion, referenceLineDao.fetchVersion(MainLayoutContext.draft, id))
         val updatedFromDb = referenceLineDao.fetch(updatedVersion)
         assertEquals(DataType.STORED, updatedFromDb.dataType)
         assertMatches(updatedLine, updatedFromDb, contextMatch = false)
@@ -68,13 +68,15 @@ class ReferenceLineDaoIT @Autowired constructor(
         val (id, insertVersion) = referenceLineDao.insert(tempTrack)
         val inserted = referenceLineDao.fetch(insertVersion)
         assertMatches(tempTrack, inserted, contextMatch = false)
-        assertEquals(VersionPair(insertVersion, null), referenceLineDao.fetchVersionPair(id))
+        assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.draft, id))
 
         val tempDraft1 = asMainDraft(inserted).copy(startAddress = TrackMeter(2, 4))
         val draftVersion1 = referenceLineDao.insert(tempDraft1).rowVersion
         val draft1 = referenceLineDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1, contextMatch = false)
-        assertEquals(VersionPair(insertVersion, draftVersion1), referenceLineDao.fetchVersionPair(id))
+        assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(draftVersion1, referenceLineDao.fetchVersion(MainLayoutContext.draft, id))
 
         val newTempAlignment = alignment(segment(Point(2.0, 2.0), Point(4.0, 4.0)))
         val newAlignmentVersion = alignmentDao.insert(newTempAlignment)
@@ -82,11 +84,13 @@ class ReferenceLineDaoIT @Autowired constructor(
         val draftVersion2 = referenceLineDao.update(tempDraft2).rowVersion
         val draft2 = referenceLineDao.fetch(draftVersion2)
         assertMatches(tempDraft2, draft2, contextMatch = false)
-        assertEquals(VersionPair(insertVersion, draftVersion2), referenceLineDao.fetchVersionPair(id))
+        assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(draftVersion2, referenceLineDao.fetchVersion(MainLayoutContext.draft, id))
 
-        referenceLineDao.deleteDraft(id)
+        referenceLineDao.deleteDraft(LayoutBranch.main, id)
         alignmentDao.deleteOrphanedAlignments()
-        assertEquals(VersionPair(insertVersion, null), referenceLineDao.fetchVersionPair(id))
+        assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(insertVersion, referenceLineDao.fetchVersion(MainLayoutContext.draft, id))
 
         assertEquals(inserted, referenceLineDao.fetch(insertVersion))
         assertEquals(draft1, referenceLineDao.fetch(draftVersion1))

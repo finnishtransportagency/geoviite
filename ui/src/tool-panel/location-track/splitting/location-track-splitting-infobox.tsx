@@ -67,6 +67,7 @@ import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { validateLocationTrackSwitchRelinking } from 'linking/linking-api';
 import { SwitchRelinkingValidationResult } from 'linking/linking-model';
 import { ValidationErrorType } from 'utils/validation-utils';
+import { expectDefined } from 'utils/type-utils';
 
 type LocationTrackSplittingInfoboxContainerProps = {
     layoutContext: LayoutContext;
@@ -94,6 +95,47 @@ type LocationTrackSplittingInfoboxProps = {
     setHighlightedSplitPoint: (splitPoint: SplitPoint | undefined) => void;
 } & LocationTrackSplittingInfoboxContainerProps;
 
+type ExitSplittingConfirmationDialogProps = {
+    showTaskList?: () => void;
+    closeDialog: () => void;
+    stopSplitting: () => void;
+};
+
+const ExitSplittingConfirmationDialog: React.FC<ExitSplittingConfirmationDialogProps> = ({
+    closeDialog,
+    showTaskList,
+    stopSplitting,
+}) => {
+    const { t } = useTranslation();
+
+    return (
+        <Dialog
+            title={t('tool-panel.location-track.splitting.exit-title')}
+            allowClose={false}
+            variant={DialogVariant.DARK}
+            footerContent={
+                <div className={dialogStyles['dialog__footer-content--centered']}>
+                    <Button onClick={closeDialog} variant={ButtonVariant.SECONDARY}>
+                        {t('tool-panel.location-track.splitting.back')}
+                    </Button>
+                    <Button
+                        variant={ButtonVariant.WARNING}
+                        onClick={() => {
+                            if (showTaskList) {
+                                showTaskList();
+                            }
+                            closeDialog();
+                            stopSplitting();
+                        }}>
+                        {t('tool-panel.location-track.splitting.exit')}
+                    </Button>
+                </div>
+            }>
+            {t('tool-panel.location-track.splitting.confirm-exit')}
+        </Dialog>
+    );
+};
+
 export const LocationTrackSplittingInfoboxContainer: React.FC<
     LocationTrackSplittingInfoboxContainerProps
 > = ({ visibilities, visibilityChange, layoutContext }) => {
@@ -117,7 +159,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
         () =>
             splittingState
                 ? validateLocationTrackSwitchRelinking(splittingState.originLocationTrack.id).then(
-                      (results) => results.filter((res) => res.validationErrors.length > 0),
+                      (results) => results.filter((res) => res.validationIssues.length > 0),
                   )
                 : Promise.resolve([]),
         [changeTimes.layoutLocationTrack, changeTimes.layoutSwitch],
@@ -218,7 +260,7 @@ const createSplitComponent = (
         splitPoint.type == 'endpointSplitPoint' ||
         (splitPoint.type == 'switchSplitPoint' &&
             switches.find((s) => s.id === splitPoint.switchId)?.stateCategory !== 'NOT_EXISTING');
-    const { split, nameErrors, descriptionErrors, switchErrors } = validatedSplit;
+    const { split, nameIssues, descriptionIssues, switchIssues } = validatedSplit;
 
     function showSplitTrackOnMap() {
         showArea(multiplyBoundingBox(boundingBoxAroundPoints([startPoint, endPoint]), 1.15));
@@ -237,10 +279,10 @@ const createSplitComponent = (
                 onRemove={split.type === 'SPLIT' ? removeSplit : undefined}
                 updateSplit={updateSplit}
                 duplicateTrackId={split.duplicateTrackId}
-                nameErrors={nameErrors}
-                descriptionErrors={descriptionErrors}
-                switchErrors={switchErrors}
-                editingDisabled={splittingState.disabled || !okSwitch || isPostingSplit}
+                nameIssues={nameIssues}
+                descriptionIssues={descriptionIssues}
+                switchIssues={switchIssues}
+                editingDisabled={splittingState.disabled || !switchExists || isPostingSplit}
                 deletingDisabled={splittingState.disabled || isPostingSplit}
                 nameRef={nameRef}
                 descriptionBaseRef={descriptionBaseRef}
@@ -320,9 +362,9 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         ),
     );
     const allErrors = splitsValidated.flatMap((validated) => [
-        ...validated.descriptionErrors,
-        ...validated.nameErrors,
-        ...validated.switchErrors,
+        ...validated.descriptionIssues,
+        ...validated.nameIssues,
+        ...validated.switchIssues,
     ]);
     const anyMissingFields = allErrors.map((s) => s.reason).some(mandatoryFieldMissing);
     const anyOtherErrors = allErrors
@@ -344,6 +386,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                 splittingState.splits,
                 duplicateTracksInCurrentSplits,
             ),
+            undefined,
         )
             .then(async () => {
                 await updateAllChangeTimes();
@@ -353,6 +396,10 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                         locationTrackName: locationTrack.name,
                         count: splitsValidated.length,
                     }),
+                    undefined,
+                    {
+                        id: 'toast-splitting-success',
+                    },
                 );
             })
             .catch(() => returnToSplitting());
@@ -369,42 +416,12 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         }
     });
 
-    const createExitSplittingConfirmationDialog = (openTaskList: boolean) => {
-        return (
-            <Dialog
-                title={t('tool-panel.location-track.splitting.exit-title')}
-                allowClose={false}
-                variant={DialogVariant.DARK}
-                footerContent={
-                    <div className={dialogStyles['dialog__footer-content--centered']}>
-                        <Button
-                            onClick={() => setConfirmExit(false)}
-                            variant={ButtonVariant.SECONDARY}>
-                            {t('tool-panel.location-track.splitting.back')}
-                        </Button>
-                        <Button
-                            variant={ButtonVariant.WARNING}
-                            onClick={() => {
-                                if (openTaskList) {
-                                    onShowTaskList(splittingState.originLocationTrack.id);
-                                }
-                                setConfirmExit(false);
-                                stopSplitting();
-                            }}>
-                            {t('tool-panel.location-track.splitting.exit')}
-                        </Button>
-                    </div>
-                }>
-                {t('tool-panel.location-track.splitting.confirm-exit')}
-            </Dialog>
-        );
-    };
-
     const splitComponents = splitsValidated.map((split, index, allSplits) => {
         const endLocation =
             index + 1 < allSplits.length
-                ? allSplits[index + 1].split.location
+                ? expectDefined(allSplits[index + 1]).split.location
                 : splittingState.endLocation;
+
         return createSplitComponent(
             split,
             switches,
@@ -430,7 +447,8 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
             <Infobox
                 contentVisible={visibilities.splitting}
                 onContentVisibilityChange={() => visibilityChange('splitting')}
-                title={t('tool-panel.location-track.splitting.title')}>
+                title={t('tool-panel.location-track.splitting.title')}
+                qa-id={'location-track-splitting-infobox'}>
                 <InfoboxContent className={styles['location-track-infobox__split']}>
                     {splitComponents.map((split) => split.component)}
                     <LocationTrackSplittingEndpoint
@@ -482,7 +500,8 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                             variant={ButtonVariant.SECONDARY}
                             size={ButtonSize.SMALL}
                             disabled={isPostingSplit}
-                            onClick={() => setConfirmExit(true)}>
+                            onClick={() => setConfirmExit(true)}
+                            qa-id={'cancel-split'}>
                             {t('button.cancel')}
                         </Button>
                         <Button
@@ -496,14 +515,26 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                                 !!firstChangedDuplicateInSplits ||
                                 splittingState.splits.length < 1 ||
                                 isPostingSplit
-                            }>
+                            }
+                            qa-id={'confirm-split'}>
                             {t('tool-panel.location-track.splitting.confirm-split')}
                         </Button>
                     </InfoboxButtons>
                 </InfoboxContent>
             </Infobox>
-            {confirmExit && createExitSplittingConfirmationDialog(false)}
-            {confirmOpenTaskListAndExit && createExitSplittingConfirmationDialog(true)}
+            {confirmExit && (
+                <ExitSplittingConfirmationDialog
+                    closeDialog={() => setConfirmExit(false)}
+                    stopSplitting={stopSplitting}
+                />
+            )}
+            {confirmOpenTaskListAndExit && (
+                <ExitSplittingConfirmationDialog
+                    closeDialog={() => setConfirmOpenTaskListAndExit(false)}
+                    stopSplitting={stopSplitting}
+                    showTaskList={() => onShowTaskList(locationTrack.id)}
+                />
+            )}
         </React.Fragment>
     );
 };

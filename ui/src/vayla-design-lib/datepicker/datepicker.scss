@@ -33,6 +33,14 @@
             transform: rotate(0);
         }
     }
+
+    &__popup-container {
+        z-index: 101;
+    }
+
+    &--wide {
+        width: 100%;
+    }
 }
 
 .react-datepicker-popper {

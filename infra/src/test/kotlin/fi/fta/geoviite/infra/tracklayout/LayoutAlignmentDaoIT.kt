@@ -2,18 +2,26 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.geometryAlignment
+import fi.fta.geoviite.infra.geometry.infraModelFile
+import fi.fta.geoviite.infra.geometry.line
+import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.util.getIntId
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -194,12 +202,13 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         val trackNumber = getUnusedTrackNumber()
         val planVersion = geometryDao.insertPlan(
             plan = plan(
-                trackNumber = trackNumber, alignments = listOf(
+                trackNumber = trackNumber,
+                alignments = listOf(
                     geometryAlignment(
                         name = "test-alignment-name",
                         elements = listOf(line(Point(1.0, 1.0), Point(3.0, 3.0))),
                     )
-                )
+                ),
             ),
             file = infraModelFile("testfile.xml"),
             boundingBoxInLayoutCoordinates = null,
@@ -300,7 +309,8 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         locationTrackDao.insert(locationTrack(trackNumberId, alignmentVersion = version, draft = false))
 
         val profileInfo = alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
-            PublicationState.OFFICIAL, boundingBoxAroundPoints((points + points2 + points3 + points4 + points5).toList())
+            MainLayoutContext.official,
+            boundingBoxAroundPoints((points + points2 + points3 + points4 + points5).toList()),
         )
         assertEquals(5, profileInfo.size)
         assertTrue(profileInfo[0].hasProfile)
@@ -323,21 +333,23 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         fixSegmentStarts((0..count).map { seed -> segmentWithoutZAndCant(alignmentSeed + seed) })
 
     private fun segmentWithoutZAndCant(segmentSeed: Int) = createSegment(
-        segmentSeed, points(
+        segmentSeed,
+        points(
             count = 10,
             x = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
             y = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
-        )
+        ),
     )
 
     private fun segmentWithZAndCant(segmentSeed: Int) = createSegment(
-        segmentSeed, points(
+        segmentSeed,
+        points(
             count = 20,
             x = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
             y = (segmentSeed * 10).toDouble()..(segmentSeed * 10 + 10.0),
             z = segmentSeed.toDouble()..segmentSeed + 20.0,
             cant = segmentSeed.toDouble()..segmentSeed + 20.0,
-        )
+        ),
     )
 
     private fun createSegment(segmentSeed: Int, points: List<SegmentPoint>) = segment(
@@ -392,5 +404,4 @@ class LayoutAlignmentDaoIT @Autowired constructor(
             "All geometries should have m-values at 0.0-length: violations=$geometriesWithInvalidMValues",
         )
     }
-
 }

@@ -1,4 +1,4 @@
-import { Operation, PublicationValidationError } from 'publication/publication-model';
+import { Operation, LayoutValidationIssue } from 'publication/publication-model';
 import { fieldComparator } from 'utils/array-utils';
 import { nextSortDirection, SortDirection } from 'utils/table-utils';
 
@@ -8,7 +8,7 @@ export enum SortProps {
     OPERATION = 'OPERATION',
     CHANGE_TIME = 'CHANGE_TIME',
     USER_NAME = 'USER_NAME',
-    ERRORS = 'ERRORS',
+    ISSUES = 'ISSUES',
 }
 
 export type SortInformation = {
@@ -17,14 +17,14 @@ export type SortInformation = {
     function: (v1: unknown, v2: unknown) => number;
 };
 
-const includesErrors = (errors: PublicationValidationError[]) =>
-    errors.some((err) => err.type == 'ERROR');
-const includesWarnings = (errors: PublicationValidationError[]) =>
-    errors.some((err) => err.type == 'WARNING');
-const errorSeverityPriority = (errors: PublicationValidationError[]) => {
+const includesErrors = (issues: LayoutValidationIssue[]) =>
+    issues.some((err) => err.type == 'ERROR');
+const includesWarnings = (issues: LayoutValidationIssue[]) =>
+    issues.some((err) => err.type == 'WARNING');
+const issueSeverityPriority = (issues: LayoutValidationIssue[]) => {
     let priority = 0;
-    if (includesErrors(errors)) priority += 2;
-    if (includesWarnings(errors)) priority += 1;
+    if (includesErrors(issues)) priority += 2;
+    if (includesWarnings(issues)) priority += 1;
     return priority;
 };
 
@@ -32,12 +32,12 @@ const nameCompare = fieldComparator((entry: { name: string }) => entry.name.toLo
 const trackNumberCompare = fieldComparator((entry: { trackNumber: string }) => entry.trackNumber);
 const userNameCompare = fieldComparator((entry: { userName: string }) => entry.userName);
 const changeTimeCompare = fieldComparator((entry: { changeTime: string }) => entry.changeTime);
-const errorListCompare = (
-    a: { errors: PublicationValidationError[] },
-    b: { errors: PublicationValidationError[] },
+const issueListCompare = (
+    a: { issues: LayoutValidationIssue[] },
+    b: { issues: LayoutValidationIssue[] },
 ) => {
-    const priorityBySeverity = errorSeverityPriority(b.errors) - errorSeverityPriority(a.errors);
-    return priorityBySeverity !== 0 ? priorityBySeverity : b.errors.length - a.errors.length;
+    const priorityBySeverity = issueSeverityPriority(b.issues) - issueSeverityPriority(a.issues);
+    return priorityBySeverity !== 0 ? priorityBySeverity : b.issues.length - a.issues.length;
 };
 export const operationPriority = (operation: Operation | undefined) => {
     if (operation === 'CREATE') return 4;
@@ -55,7 +55,7 @@ const sortFunctionsByPropName = {
     OPERATION: operationCompare,
     CHANGE_TIME: changeTimeCompare,
     USER_NAME: userNameCompare,
-    ERRORS: errorListCompare,
+    ISSUES: issueListCompare,
 };
 
 export const InitiallyUnsorted = {

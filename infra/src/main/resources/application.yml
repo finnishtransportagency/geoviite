@@ -60,6 +60,7 @@ geoviite:
     url: "${RATKO_URL:}"
     username: "${RATKO_USERNAME:}"
     password: "${RATKO_PASSWORD:}"
+    bulk-transfers-enabled: "${RATKO_BULK_TRANSFERS_ENABLED:false}"
   projektivelho:
     enabled: "${PROJEKTIVELHO_ENABLED:false}"
     url: "${PROJEKTIVELHO_URL:}"

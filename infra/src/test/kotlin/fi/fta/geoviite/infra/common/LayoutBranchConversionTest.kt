@@ -36,13 +36,13 @@ class LayoutBranchConversionTest @Autowired constructor(
 
     @Test
     fun `Jackson correctly formats DesignBranch inside JSON`() {
-        assertEquals("\"DESIGN_321\"", testApi.response(LayoutBranch.design(IntId(321))))
+        assertEquals("\"DESIGN_INT_321\"", testApi.response(LayoutBranch.design(IntId(321))))
         assertEquals(
-            "{\"branch\":\"DESIGN_654\",\"type\":\"design\"}",
+            "{\"branch\":\"DESIGN_INT_654\",\"type\":\"design\"}",
             testApi.response(DesignBranchTestObject(LayoutBranch.design(IntId(654)))),
         )
         assertEquals(
-            "{\"branch\":\"DESIGN_987\",\"type\":\"baseclass\"}",
+            "{\"branch\":\"DESIGN_INT_987\",\"type\":\"baseclass\"}",
             testApi.response(LayoutBranchTestObject(LayoutBranch.design(IntId(987)))),
         )
     }
@@ -63,11 +63,11 @@ class LayoutBranchConversionTest @Autowired constructor(
     fun `design layout branch in path works`() {
         assertEquals(
             testApi.response(LayoutBranch.design(IntId(123))),
-            testApi.doGet("$LAYOUT_TEST_URL/DESIGN_123", HttpStatus.OK),
+            testApi.doGet("$LAYOUT_TEST_URL/DESIGN_INT_123", HttpStatus.OK),
         )
         assertEquals(
             testApi.response(LayoutBranch.design(IntId(321))),
-            testApi.doGet("$LAYOUT_TEST_URL/DESIGN_321", HttpStatus.OK),
+            testApi.doGet("$LAYOUT_TEST_URL/DESIGN_INT_321", HttpStatus.OK),
         )
     }
 
@@ -84,14 +84,20 @@ class LayoutBranchConversionTest @Autowired constructor(
     }
 
     @Test
+    fun `branch parsing is case insensitive`() {
+        assertEquals(LayoutBranch.main, LayoutBranch.tryParse("main"))
+        assertEquals(LayoutBranch.design(IntId(123)), LayoutBranch.tryParse("design_int_123"))
+    }
+
+    @Test
     fun `design layout branch in argument works`() {
         assertEquals(
             testApi.response(LayoutBranch.design(IntId(123))),
-            testApi.doGet("$LAYOUT_TEST_URL/arg?branch=DESIGN_123", HttpStatus.OK),
+            testApi.doGet("$LAYOUT_TEST_URL/arg?branch=DESIGN_INT_123", HttpStatus.OK),
         )
         assertEquals(
             testApi.response(LayoutBranch.design(IntId(123))),
-            testApi.doGet("$LAYOUT_TEST_URL/arg/design?branch=DESIGN_123", HttpStatus.OK),
+            testApi.doGet("$LAYOUT_TEST_URL/arg/design?branch=DESIGN_INT_123", HttpStatus.OK),
         )
     }
 

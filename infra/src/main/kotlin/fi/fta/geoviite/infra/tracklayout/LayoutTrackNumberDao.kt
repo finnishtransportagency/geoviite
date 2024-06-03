@@ -1,13 +1,24 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
-import fi.fta.geoviite.infra.util.*
-import fi.fta.geoviite.infra.util.DbTable.LAYOUT_TRACK_NUMBER
+import fi.fta.geoviite.infra.util.LayoutAssetTable
+import fi.fta.geoviite.infra.util.getDaoResponse
+import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getFreeText
+import fi.fta.geoviite.infra.util.getInstant
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getIntIdOrNull
+import fi.fta.geoviite.infra.util.getLayoutContextData
+import fi.fta.geoviite.infra.util.getOidOrNull
+import fi.fta.geoviite.infra.util.getOne
+import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.getTrackNumber
+import fi.fta.geoviite.infra.util.setUser
+import fi.fta.geoviite.infra.util.toDbId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -23,48 +34,38 @@ class LayoutTrackNumberDao(
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
 ) : LayoutAssetDao<TrackLayoutTrackNumber>(
     jdbcTemplateParam,
-    LAYOUT_TRACK_NUMBER,
+    LayoutAssetTable.LAYOUT_ASSET_TRACK_NUMBER,
     cacheEnabled,
     TRACK_NUMBER_CACHE_SIZE,
 ) {
 
-    override fun fetchVersions(publicationState: PublicationState, includeDeleted: Boolean) =
-        fetchVersions(publicationState, includeDeleted, null)
+    override fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean) =
+        fetchVersions(layoutContext, includeDeleted, null)
 
-    fun list(trackNumber: TrackNumber, publicationState: PublicationState): List<TrackLayoutTrackNumber> =
-        fetchVersions(publicationState, false, trackNumber).map(::fetch)
+    fun list(layoutContext: LayoutContext, trackNumber: TrackNumber): List<TrackLayoutTrackNumber> =
+        fetchVersions(layoutContext, false, trackNumber).map(::fetch)
 
     fun fetchVersions(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         includeDeleted: Boolean,
         number: TrackNumber?,
     ): List<RowVersion<TrackLayoutTrackNumber>> {
         val sql = """
             select row_id, row_version
-            from layout.track_number_publication_view
-            where :publication_state = any(publication_states)
-              and (:number::varchar is null or :number = number)
+            from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id)
+            where (:number::varchar is null or :number = number)
               and (:include_deleted = true or state != 'DELETED')
             order by number
         """.trimIndent()
         val params = mapOf(
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
             "include_deleted" to includeDeleted,
             "number" to number,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
         }
-    }
-
-    fun getTrackNumberToIdMapping(): Map<TrackNumber, IntId<TrackLayoutTrackNumber>> {
-        val sql = "select id, number from layout.track_number"
-        val result: List<Pair<TrackNumber, IntId<TrackLayoutTrackNumber>>> =
-            jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-                rs.getTrackNumber("number") to rs.getIntId("id")
-            }
-        logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, result.map { r -> r.second })
-        return result.associate { it }
     }
 
     override fun fetchInternal(version: RowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber {
@@ -74,6 +75,8 @@ class LayoutTrackNumberDao(
               tn.id as row_id,
               tn.version as row_version,
               tn.official_row_id,
+              tn.design_row_id,
+              tn.design_id,
               tn.draft,
               tn.external_id,
               tn.number,
@@ -104,7 +107,9 @@ class LayoutTrackNumberDao(
             select distinct on (tn.id)
               tn.id as row_id,
               tn.version as row_version,
-              tn.official_row_id, 
+              tn.official_row_id,
+              tn.design_row_id,
+              tn.design_id,
               tn.draft,
               tn.external_id, 
               tn.number, 
@@ -129,7 +134,7 @@ class LayoutTrackNumberDao(
         version = rs.getRowVersion("row_id", "row_version"),
         // TODO: GVT-2442 This should be non-null but we have a lot of tests that produce broken data
         referenceLineId = rs.getIntIdOrNull("reference_line_id"),
-        contextData = rs.getLayoutContextData("official_row_id", "row_id", "draft"),
+        contextData = rs.getLayoutContextData("official_row_id", "design_row_id", "design_id", "row_id", "draft"),
     )
 
     @Transactional
@@ -141,7 +146,9 @@ class LayoutTrackNumberDao(
               description, 
               state, 
               draft, 
-              official_row_id
+              official_row_id,
+              design_row_id,
+              design_id
             ) 
             values (
               :external_id, 
@@ -149,7 +156,9 @@ class LayoutTrackNumberDao(
               :description, 
               :state::layout.state,
               :draft, 
-              :official_row_id
+              :official_row_id,
+              :design_row_id,
+              :design_id
             ) 
             returning 
               coalesce(official_row_id, id) as official_id,
@@ -163,6 +172,8 @@ class LayoutTrackNumberDao(
             "state" to newItem.state.name,
             "draft" to newItem.isDraft,
             "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
+            "design_row_id" to newItem.contextData.designRowId?.let(::toDbId)?.intValue,
+            "design_id" to newItem.contextData.designId?.let(::toDbId)?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
@@ -182,7 +193,9 @@ class LayoutTrackNumberDao(
               description = :description,
               state = :state::layout.state,
               draft = :draft,
-              official_row_id = :official_row_id
+              official_row_id = :official_row_id,
+              design_row_id = :design_row_id,
+              design_id = :design_id
             where id = :id
             returning 
               coalesce(official_row_id, id) as official_id,
@@ -197,6 +210,8 @@ class LayoutTrackNumberDao(
             "state" to updatedItem.state.name,
             "draft" to updatedItem.isDraft,
             "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
+            "design_row_id" to updatedItem.contextData.designRowId?.let(::toDbId)?.intValue,
+            "design_id" to updatedItem.contextData.designId?.let(::toDbId)?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->

@@ -1,5 +1,25 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.geometry.PlanPhase
+import fi.fta.geoviite.infra.util.FreeText
+import java.time.Instant
+import java.time.LocalDate
 
-data class LayoutDesign(val id: IntId<LayoutDesign>)
+enum class DesignState {
+    ACTIVE, DELETED, COMPLETED
+}
+
+data class LayoutDesign(
+    val id: DomainId<LayoutDesign>,
+    val name: FreeText,
+    val estimatedCompletion: LocalDate,
+    val designState: DesignState,
+)
+
+data class LayoutDesignSaveRequest(
+    val name: FreeText,
+    val estimatedCompletion: LocalDate,
+    val designState: DesignState,
+)

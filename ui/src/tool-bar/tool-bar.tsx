@@ -8,6 +8,7 @@ import {
     LayoutSwitch,
     LayoutTrackNumber,
     LocationTrackId,
+    OperatingPoint,
 } from 'track-layout/track-layout-model';
 import { debounceAsync } from 'utils/async-utils';
 import { isNilOrBlank } from 'utils/string-utils';
@@ -25,7 +26,6 @@ import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edi
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
 import { Menu, MenuOption, menuValueOption } from 'vayla-design-lib/menu/menu';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import { MapLayerMenuChange, MapLayerMenuGroups, MapLayerName } from 'map/map-model';
 import { getTrackNumberReferenceLine } from 'track-layout/layout-reference-line-api';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
@@ -39,13 +39,21 @@ import { getBySearchTerm } from 'track-layout/track-layout-search-api';
 import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
-import { EDIT_LAYOUT } from 'user/user-model';
-import { draftLayoutContext, LayoutContext, PublicationState } from 'common/common-model';
+import { EDIT_LAYOUT, VIEW_LAYOUT_DRAFT } from 'user/user-model';
+import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
+import { createClassName } from 'vayla-design-lib/utils';
+import { EnvRestricted } from 'environment/env-restricted';
+import {
+    calculateBoundingBoxToShowAroundLocation,
+    MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
+} from 'map/map-utils';
+import { WorkspaceSelectionContainer } from 'tool-bar/workspace-selection';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
-    onPublicationStateChange: (publicationState: PublicationState) => void;
+    onLayoutContextChange: (context: LayoutContext) => void;
     onOpenPreview: () => void;
     showArea: (area: BoundingBox) => void;
     layoutContext: LayoutContext;
@@ -55,6 +63,8 @@ export type ToolbarParams = {
     visibleLayers: MapLayerName[];
     splittingState: SplittingState | undefined;
     linkingState: LinkingState | undefined;
+    selectingWorkspace: boolean;
+    setSelectingWorkspace: (selecting: boolean) => void;
 };
 
 type LocationTrackItemValue = {
@@ -62,17 +72,44 @@ type LocationTrackItemValue = {
     type: 'locationTrackSearchItem';
 };
 
+function createLocationTrackOptionItem(
+    locationTrack: LayoutLocationTrack,
+    description: string,
+): Item<LocationTrackItemValue> {
+    return menuValueOption(
+        {
+            type: 'locationTrackSearchItem',
+            locationTrack: locationTrack,
+        } as const,
+        `${locationTrack.name}, ${description}`,
+        `location-track-${locationTrack.id}`,
+    );
+}
+
 type SwitchItemValue = {
     layoutSwitch: LayoutSwitch;
     type: 'switchSearchItem';
 };
+
+function createSwitchOptionItem(layoutSwitch: LayoutSwitch): Item<SwitchItemValue> {
+    return menuValueOption(
+        {
+            type: 'switchSearchItem',
+            layoutSwitch: layoutSwitch,
+        } as const,
+        layoutSwitch.name,
+        `switch-${layoutSwitch.id}`,
+    );
+}
 
 type TrackNumberItemValue = {
     trackNumber: LayoutTrackNumber;
     type: 'trackNumberSearchItem';
 };
 
-function createTrackNumberItem(layoutTrackNumber: LayoutTrackNumber): Item<TrackNumberItemValue> {
+function createTrackNumberOptionItem(
+    layoutTrackNumber: LayoutTrackNumber,
+): Item<TrackNumberItemValue> {
     return menuValueOption(
         {
             type: 'trackNumberSearchItem',
@@ -83,7 +120,29 @@ function createTrackNumberItem(layoutTrackNumber: LayoutTrackNumber): Item<Track
     );
 }
 
-type SearchItemValue = LocationTrackItemValue | SwitchItemValue | TrackNumberItemValue;
+type OperatingPointItemValue = {
+    operatingPoint: OperatingPoint;
+    type: 'operatingPointSearchItem';
+};
+
+function createOperatingPointOptionItem(
+    operatingPoint: OperatingPoint,
+): Item<OperatingPointItemValue> {
+    return menuValueOption(
+        {
+            operatingPoint: operatingPoint,
+            type: 'operatingPointSearchItem',
+        } as const,
+        `${operatingPoint.name}, ${operatingPoint.abbreviation}`,
+        `operating-point-${operatingPoint.name}`,
+    );
+}
+
+type SearchItemValue =
+    | LocationTrackItemValue
+    | SwitchItemValue
+    | TrackNumberItemValue
+    | OperatingPointItemValue;
 
 async function getOptions(
     layoutContext: LayoutContext,
@@ -101,55 +160,33 @@ async function getOptions(
         layoutContext,
     );
 
-    const locationTracks: Item<LocationTrackItemValue>[] = searchResult.locationTracks.map(
-        (locationTrack) =>
-            menuValueOption(
-                {
-                    type: 'locationTrackSearchItem',
-                    locationTrack: locationTrack,
-                } as const,
-                `${locationTrack.name}, ${
-                    (locationTrackDescriptions &&
-                        locationTrackDescriptions.find((d) => d.id == locationTrack.id)
-                            ?.description) ??
-                    ''
-                }`,
-                `location-track-${locationTrack.id}`,
-            ),
-    );
+    const locationTrackOptions = searchResult.locationTracks.map((locationTrack) => {
+        const description =
+            locationTrackDescriptions?.find((d) => d.id == locationTrack.id)?.description ?? '';
 
-    const switches: Item<SwitchItemValue>[] = searchResult.switches.map((layoutSwitch) =>
-        menuValueOption(
-            {
-                type: 'switchSearchItem',
-                layoutSwitch: layoutSwitch,
-            } as const,
-            layoutSwitch.name,
-            `switch-${layoutSwitch.id}`,
-        ),
-    );
+        return createLocationTrackOptionItem(locationTrack, description);
+    });
 
-    const trackNumbers: Item<TrackNumberItemValue>[] =
-        searchResult.trackNumbers.map(createTrackNumberItem);
-
-    return await Promise.all([locationTracks, switches, trackNumbers]).then((results) =>
-        results.flat(),
-    );
+    return [
+        searchResult.operatingPoints.map(createOperatingPointOptionItem),
+        locationTrackOptions,
+        searchResult.switches.map(createSwitchOptionItem),
+        searchResult.trackNumbers.map(createTrackNumberOptionItem),
+    ].flat();
 }
 
 export const ToolBar: React.FC<ToolbarParams> = ({
     onSelect,
     onUnselect,
-    onPublicationStateChange,
+    onLayoutContextChange,
     onOpenPreview,
     showArea,
     layoutContext,
     onStopLinking,
-    onMapLayerChange,
-    mapLayerMenuGroups,
-    visibleLayers,
     splittingState,
     linkingState,
+    selectingWorkspace,
+    setSelectingWorkspace,
 }: ToolbarParams) => {
     const { t } = useTranslation();
 
@@ -161,6 +198,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const menuRef = React.useRef(null);
 
     const disableNewAssetMenu =
+        layoutContext.publicationState !== 'DRAFT' ||
+        selectingWorkspace ||
         linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
         linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment ||
         !!splittingState;
@@ -201,7 +240,21 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     );
 
     function onItemSelected(item: SearchItemValue | undefined) {
-        switch (item?.type) {
+        if (!item) {
+            return;
+        }
+
+        switch (item.type) {
+            case 'operatingPointSearchItem': {
+                const operatingPointArea = calculateBoundingBoxToShowAroundLocation(
+                    item.operatingPoint.location,
+                    MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
+                );
+
+                showArea(operatingPointArea);
+                return;
+            }
+
             case 'locationTrackSearchItem':
                 item.locationTrack.boundingBox && showArea(item.locationTrack.boundingBox);
                 return onSelect({
@@ -244,7 +297,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 });
 
             default:
-                return;
+                return exhaustiveMatchingGuard(item);
         }
     }
 
@@ -269,10 +322,19 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         setShowNewAssetMenu(false);
     }
 
-    function switchToOfficialContext() {
-        onPublicationStateChange('OFFICIAL');
+    function switchToMainOfficial() {
+        onLayoutContextChange({ publicationState: 'OFFICIAL', designId: undefined });
         setShowNewAssetMenu(false);
+        setSelectingWorkspace(false);
     }
+
+    const switchToMainDraft = () => {
+        onLayoutContextChange({
+            publicationState: 'DRAFT',
+            designId: undefined,
+        });
+        setSelectingWorkspace(false);
+    };
 
     function openPreviewAndStopLinking() {
         onOpenPreview();
@@ -303,9 +365,52 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         }
     };
 
+    const className = createClassName(
+        'tool-bar',
+        !layoutContext.designId && `tool-bar--${layoutContext.publicationState.toLowerCase()}`,
+        (layoutContext.designId || selectingWorkspace) && `tool-bar--design`,
+    );
+
     return (
-        <div className={`tool-bar tool-bar--${layoutContext.publicationState.toLowerCase()}`}>
+        <div className={className}>
             <div className={styles['tool-bar__left-section']}>
+                <span className={styles['tool-bar__tabs']}>
+                    <TabHeader
+                        className={styles['tool-bar__tab-header']}
+                        qaId="current-mode-tab"
+                        selected={
+                            !layoutContext.designId &&
+                            !selectingWorkspace &&
+                            layoutContext.publicationState === 'OFFICIAL'
+                        }
+                        onClick={() => switchToMainOfficial()}>
+                        {t('tool-bar.current-mode')}
+                    </TabHeader>
+                    <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
+                        <TabHeader
+                            className={styles['tool-bar__tab-header']}
+                            qaId={'draft-mode-tab'}
+                            selected={
+                                !layoutContext.designId &&
+                                !selectingWorkspace &&
+                                layoutContext.publicationState === 'DRAFT'
+                            }
+                            onClick={() => switchToMainDraft()}>
+                            {t('tool-bar.draft-mode')}
+                        </TabHeader>
+                    </PrivilegeRequired>
+                    <EnvRestricted restrictTo={'test'}>
+                        <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
+                            <TabHeader
+                                className={styles['tool-bar__tab-header']}
+                                qaId={'design-mode-tab'}
+                                selected={!!layoutContext.designId || selectingWorkspace}
+                                onClick={() => setSelectingWorkspace(true)}>
+                                {t('tool-bar.design-mode')}
+                            </TabHeader>
+                        </PrivilegeRequired>
+                    </EnvRestricted>
+                </span>
                 <Dropdown
                     placeholder={
                         splittingState
@@ -314,6 +419,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                               })
                             : t('tool-bar.search-from-whole-network')
                     }
+                    disabled={selectingWorkspace}
                     options={memoizedDebouncedGetOptions}
                     searchable
                     onChange={onItemSelected}
@@ -322,70 +428,44 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     wide
                     qa-id="search-box"
                 />
-                <MapLayerMenu
-                    onMenuChange={onMapLayerChange}
-                    mapLayerMenuGroups={mapLayerMenuGroups}
-                    visibleLayers={visibleLayers}
-                />
-                <div className={styles['tool-bar__new-menu-button']} qa-id={'tool-bar.new'}>
-                    <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                        <Button
-                            ref={menuRef}
-                            title={t('tool-bar.new')}
-                            variant={ButtonVariant.SECONDARY}
-                            icon={Icons.Append}
-                            disabled={
-                                layoutContext.publicationState !== 'DRAFT' || disableNewAssetMenu
-                            }
-                            onClick={() => setShowNewAssetMenu(!showNewAssetMenu)}
-                        />
-                    </PrivilegeRequired>
-                </div>
             </div>
-
-            <div className={styles['tool-bar__middle-section']}>
-                {layoutContext.publicationState === 'DRAFT' && t('tool-bar.draft-mode.title')}
-            </div>
-
             <div className={styles['tool-bar__right-section']}>
-                {layoutContext.publicationState === 'OFFICIAL' && (
+                {layoutContext.publicationState === 'DRAFT' && (
                     <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                        <Button
-                            variant={ButtonVariant.PRIMARY}
-                            qa-id="switch-to-draft-mode"
-                            onClick={() => onPublicationStateChange('DRAFT')}>
-                            {t('tool-bar.draft-mode.enable')}
-                        </Button>
+                        <div className={styles['tool-bar__new-menu-button']} qa-id={'tool-bar.new'}>
+                            <Button
+                                ref={menuRef}
+                                title={t('tool-bar.new')}
+                                variant={ButtonVariant.GHOST}
+                                icon={Icons.Append}
+                                disabled={disableNewAssetMenu}
+                                onClick={() => setShowNewAssetMenu(!showNewAssetMenu)}
+                            />
+                        </div>
                     </PrivilegeRequired>
                 )}
-                {layoutContext.publicationState === 'DRAFT' && (
-                    <React.Fragment>
+                {(layoutContext.designId || selectingWorkspace) && (
+                    <WorkspaceSelectionContainer
+                        selectingWorkspace={selectingWorkspace}
+                        setSelectingWorkspace={setSelectingWorkspace}
+                    />
+                )}
+                {layoutContext.publicationState == 'DRAFT' && (
+                    <PrivilegeRequired privilege={EDIT_LAYOUT}>
                         <Button
                             disabled={
+                                selectingWorkspace ||
                                 !!splittingState ||
                                 linkingState?.state === 'allSet' ||
                                 linkingState?.state === 'setup'
                             }
-                            variant={ButtonVariant.SECONDARY}
-                            title={modeNavigationButtonsDisabledReason()}
-                            qa-id="exit-draft-mode"
-                            onClick={() => switchToOfficialContext()}>
-                            {t('tool-bar.draft-mode.disable')}
-                        </Button>
-                        <Button
-                            disabled={
-                                !!splittingState ||
-                                linkingState?.state === 'allSet' ||
-                                linkingState?.state === 'setup'
-                            }
-                            icon={Icons.VectorRight}
                             variant={ButtonVariant.PRIMARY}
                             title={modeNavigationButtonsDisabledReason()}
                             qa-id="open-preview-view"
                             onClick={() => openPreviewAndStopLinking()}>
                             {t('tool-bar.preview-mode.enable')}
                         </Button>
-                    </React.Fragment>
+                    </PrivilegeRequired>
                 )}
             </div>
 

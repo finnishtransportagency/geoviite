@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.logging.AccessType
@@ -8,17 +9,16 @@ import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getInstantOrNull
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdArray
 import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getOne
 import fi.fta.geoviite.infra.util.getOptional
 import fi.fta.geoviite.infra.util.getRowVersion
-import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -27,13 +27,16 @@ import java.sql.ResultSet
 
 private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>) = Split(
     id = rs.getIntId("id"),
+    rowVersion = rs.getRowVersion("id", "version"),
     sourceLocationTrackId = rs.getIntId("source_location_track_official_id"),
     sourceLocationTrackVersion = rs.getRowVersion(
         "source_location_track_row_id",
         "source_location_track_row_version",
     ),
     bulkTransferState = rs.getEnum("bulk_transfer_state"),
+    bulkTransferId = rs.getIntIdOrNull("bulk_transfer_id"),
     publicationId = rs.getIntIdOrNull("publication_id"),
+    publicationTime = rs.getInstantOrNull("publication_time"),
     targetLocationTracks = targetLocationTracks,
     relinkedSwitches = rs.getIntIdArray("switch_ids"),
     updatedDuplicates = rs.getIntIdArray("updated_duplicate_ids"),
@@ -57,12 +60,14 @@ class SplitDao(
               source_location_track_row_id,
               source_location_track_row_version,
               bulk_transfer_state,
+              bulk_transfer_id,
               publication_id
             ) 
             values (
               :source_location_track_row_id,
               :source_location_track_row_version,
               'PENDING',
+              null,
               null
             )
             returning id
@@ -120,9 +125,7 @@ class SplitDao(
 
     @Transactional
     fun deleteSplit(splitId: IntId<Split>) {
-        val sql = """
-            delete from publication.split where id = :id 
-        """.trimIndent()
+        val sql = "delete from publication.split where id = :id"
 
         jdbcTemplate.setUser()
         jdbcTemplate.update(sql, mapOf("id" to splitId.intValue)).also {
@@ -167,8 +170,11 @@ class SplitDao(
         val sql = """
           select
               split.id,
+              split.version,
               split.bulk_transfer_state,
+              split.bulk_transfer_id,
               split.publication_id,
+              publication.publication_time,
               coalesce(source_track.official_row_id, source_track.id) as source_location_track_official_id,
               split.source_location_track_row_id,
               split.source_location_track_row_version,
@@ -178,10 +184,11 @@ class SplitDao(
               inner join layout.location_track_version source_track 
                   on split.source_location_track_row_id = source_track.id
                    and split.source_location_track_row_version = source_track.version
+              left join publication.publication on split.publication_id = publication.id
               left join publication.split_relinked_switch on split.id = split_relinked_switch.split_id
               left join publication.split_updated_duplicate on split.id = split_updated_duplicate.split_id
           where split.id = :id
-          group by split.id, source_track.official_row_id, source_track.id
+          group by split.id, source_track.official_row_id, source_track.id, publication.publication_time
         """.trimIndent()
 
         return getOptional(
@@ -220,6 +227,7 @@ class SplitDao(
     fun updateSplit(
         splitId: IntId<Split>,
         bulkTransferState: BulkTransferState? = null,
+        bulkTransferId: IntId<BulkTransfer>? = null,
         publicationId: IntId<Publication>? = null,
         sourceTrackVersion: RowVersion<LocationTrack>? = null,
     ): RowVersion<Split> {
@@ -227,6 +235,7 @@ class SplitDao(
             update publication.split
             set 
                 bulk_transfer_state = coalesce(:bulk_transfer_state::publication.bulk_transfer_state, bulk_transfer_state),
+                bulk_transfer_id = coalesce(:bulk_transfer_id, bulk_transfer_id),
                 publication_id = coalesce(:publication_id, publication_id),
                 source_location_track_row_id = coalesce(:source_track_row_id, source_location_track_row_id),
                 source_location_track_row_version = coalesce(:source_track_row_version, source_location_track_row_version)
@@ -236,6 +245,7 @@ class SplitDao(
 
         val params = mapOf(
             "bulk_transfer_state" to bulkTransferState?.name,
+            "bulk_transfer_id" to bulkTransferId?.intValue,
             "publication_id" to publicationId?.intValue,
             "split_id" to splitId.intValue,
             "source_track_row_id" to sourceTrackVersion?.id?.intValue,
@@ -268,28 +278,33 @@ class SplitDao(
         }
     }
 
-    fun fetchUnfinishedSplits(): List<Split> {
+    fun fetchUnfinishedSplits(branch: LayoutBranch): List<Split> {
         val sql = """
           select
               split.id,
+              split.version,
               split.bulk_transfer_state,
+              split.bulk_transfer_id,
               split.publication_id,
+              publication.publication_time,
               array_agg(split_relinked_switch.switch_id) as switch_ids,
               array_agg(split_updated_duplicate.duplicate_location_track_id) as updated_duplicate_ids,
-              coalesce(ltv.official_row_id, ltv.id) as source_location_track_official_id,
+              coalesce(ltv.official_row_id, ltv.design_row_id, ltv.id) as source_location_track_official_id,
               split.source_location_track_row_id,
               split.source_location_track_row_version
           from publication.split 
+              left join publication.publication on split.publication_id = publication.id
               left join publication.split_relinked_switch on split.id = split_relinked_switch.split_id
               left join publication.split_updated_duplicate on split.id = split_updated_duplicate.split_id
               inner join layout.location_track_version ltv 
                   on split.source_location_track_row_id = ltv.id
                    and split.source_location_track_row_version = ltv.version
           where split.bulk_transfer_state != 'DONE'
-          group by split.id, ltv.official_row_id, ltv.id
+            and (ltv.design_id is null or ltv.design_id = :design_id)
+          group by split.id, ltv.official_row_id, ltv.design_row_id, ltv.id, publication.publication_time
         """.trimIndent()
 
-        return jdbcTemplate.query(sql) { rs, _ ->
+        return jdbcTemplate.query(sql, mapOf("design_id" to branch.designId?.intValue)) { rs, _ ->
             val splitId = rs.getIntId<Split>("id")
             toSplit(rs, getSplitTargets(splitId))
         }.also { ids ->
@@ -297,42 +312,18 @@ class SplitDao(
         }
     }
 
-    fun fetchUnfinishedSplitIdsByTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): List<IntId<Split>> {
-        val sql = """
-            select distinct split.id
-            from publication.split 
-                inner join layout.location_track_version source
-                    on source.id = split.source_location_track_row_id
-                      and source.version = split.source_location_track_row_version
-                left join publication.split_target_location_track tlt on tlt.split_id = split.id
-                left join layout.location_track target on target.id = tlt.location_track_id 
-            where split.bulk_transfer_state != 'DONE'
-              and (source.track_number_id = :trackNumberId or target.track_number_id = :trackNumberId)
-        """.trimIndent()
-
-        return jdbcTemplate.query(sql, mapOf("trackNumberId" to trackNumberId.intValue)) { rs, _ ->
-            rs.getIntId<Split>("id")
-        }.also { ids ->
-            logger.daoAccess(AccessType.FETCH, Split::class, ids)
-        }
-    }
-
     fun fetchChangeTime() = fetchLatestChangeTime(DbTable.PUBLICATION_SPLIT)
 
     fun fetchSplitIdByPublication(publicationId: IntId<Publication>): IntId<Split>? {
-        val sql = """
-            select id from publication.split where publication_id = :publication_id
-        """.trimIndent()
+        val sql = "select id from publication.split where publication_id = :publication_id"
+        val params = mapOf("publication_id" to publicationId.intValue)
 
-        return jdbcTemplate.queryOptional(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
-            rs.getIntId<Split>("id")
-        }.also { _ ->
-            logger.daoAccess(AccessType.FETCH, Split::class, "publicationId" to publicationId)
-        }
+        return getOptional(publicationId, jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<Split>("id") })
+            .also { _ -> logger.daoAccess(AccessType.FETCH, Split::class, "publicationId" to publicationId) }
     }
 
-    fun locationTracksPartOfAnyUnfinishedSplit(locationTrackIds: Collection<IntId<LocationTrack>>) =
-        fetchUnfinishedSplits().filter { split ->
+    fun locationTracksPartOfAnyUnfinishedSplit(branch: LayoutBranch, locationTrackIds: Collection<IntId<LocationTrack>>) =
+        fetchUnfinishedSplits(branch).filter { split ->
             locationTrackIds.any { lt -> split.containsLocationTrack(lt) }
         }
 }

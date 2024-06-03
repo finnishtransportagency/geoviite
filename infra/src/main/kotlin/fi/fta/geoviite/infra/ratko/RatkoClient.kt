@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.KotlinFeature
 import com.fasterxml.jackson.module.kotlin.jsonMapper
 import com.fasterxml.jackson.module.kotlin.kotlinModule
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.integration.RatkoAssetType
@@ -14,6 +15,9 @@ import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.logging.integrationCall
 import fi.fta.geoviite.infra.ratko.model.*
+import fi.fta.geoviite.infra.split.BulkTransfer
+import fi.fta.geoviite.infra.split.BulkTransferState
+import fi.fta.geoviite.infra.split.Split
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -40,6 +44,7 @@ private const val ROUTE_NUMBER_POINTS_PATH = "$INFRA_PATH/routenumber/points"
 private const val ROUTE_NUMBER_PATH = "$INFRA_PATH/routenumbers"
 private const val ASSET_PATH = "/api/assets/v1.2"
 private const val VERSION_PATH = "/api/versions/v1.0/version"
+private const val BULK_TRANSFER_PATH = "/api/split/bulk-transfer"
 
 @Component
 @ConditionalOnBean(RatkoClientConfiguration::class)
@@ -397,6 +402,45 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             allPoints.addAll(validOperatingPointsInPage)
         } while (allAssetsInPage.size == 100)
         return allPoints
+    }
+
+    fun startNewBulkTransfer(split: Split): Pair<IntId<BulkTransfer>, BulkTransferState> {
+        logger.integrationCall("startNewBulkTransfer", "splitId" to split.id)
+
+        val body = postWithResponseBody<String>(
+            url = "$BULK_TRANSFER_PATH/start",
+            content = mapOf(
+                "this-is-something-that-should-be-defined" to "in-the-future",
+            )
+        )
+
+        val bulkTransferId = ratkoJsonMapper.readValue(body, RatkoBulkTransferResponse::class.java)?.id
+        checkNotNull(bulkTransferId) {
+            "Received bulk transfer id was null"
+        }
+
+        // The state may also be received from the api regarding how it is created in Ratko's end.
+        return bulkTransferId to BulkTransferState.IN_PROGRESS
+    }
+
+    fun pollBulkTransferState(bulkTransferId: IntId<BulkTransfer>): BulkTransferState {
+        logger.integrationCall("pollBulkTransferState", "bulkTransferId" to bulkTransferId)
+
+        return getSpec(url = "$BULK_TRANSFER_PATH/$bulkTransferId/state") // Should be changed when the URL is known
+            .bodyToMono<String>()
+            .block(defaultBlockTimeout)
+            .let { response ->
+                val bulkTransferState = ratkoJsonMapper.readValue(
+                    response,
+                    RatkoBulkTransferResponse::class.java,
+                )?.state
+
+                checkNotNull(bulkTransferState) {
+                    "Received bulk transfer id was null!"
+                }
+
+                bulkTransferState
+            }
     }
 
     private fun replaceKmM(nodeCollection: JsonNode?) {

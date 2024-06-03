@@ -2,7 +2,8 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.CACHE_COMMON_LOCATION_TRACK_OWNER
 import fi.fta.geoviite.infra.geometry.MetaDataName
@@ -10,8 +11,21 @@ import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.ValidationVersion
-import fi.fta.geoviite.infra.util.*
-import fi.fta.geoviite.infra.util.DbTable.LAYOUT_LOCATION_TRACK
+import fi.fta.geoviite.infra.util.LayoutAssetTable
+import fi.fta.geoviite.infra.util.getBboxOrNull
+import fi.fta.geoviite.infra.util.getDaoResponse
+import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getFreeText
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getIntIdArray
+import fi.fta.geoviite.infra.util.getIntIdOrNull
+import fi.fta.geoviite.infra.util.getJointNumber
+import fi.fta.geoviite.infra.util.getLayoutContextData
+import fi.fta.geoviite.infra.util.getOidOrNull
+import fi.fta.geoviite.infra.util.getOne
+import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.setUser
+import fi.fta.geoviite.infra.util.toDbId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -26,23 +40,23 @@ const val LOCATIONTRACK_CACHE_SIZE = 10000L
 class LocationTrackDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
-) : LayoutAssetDao<LocationTrack>(jdbcTemplateParam, LAYOUT_LOCATION_TRACK, cacheEnabled, LOCATIONTRACK_CACHE_SIZE) {
+) : LayoutAssetDao<LocationTrack>(jdbcTemplateParam, LayoutAssetTable.LAYOUT_ASSET_LOCATION_TRACK, cacheEnabled, LOCATIONTRACK_CACHE_SIZE) {
 
     fun fetchDuplicateVersions(
+        layoutContext: LayoutContext,
         id: IntId<LocationTrack>,
-        publicationState: PublicationState,
         includeDeleted: Boolean = false,
     ): List<RowVersion<LocationTrack>> {
         val sql = """
             select row_id, row_version
-            from layout.location_track_publication_view
+            from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
             where duplicate_of_location_track_id = :id
-              and :publication_state = any(publication_states)
               and (:include_deleted or state != 'DELETED')
         """.trimIndent()
         val params = mapOf(
             "id" to id.intValue,
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
             "include_deleted" to includeDeleted,
         )
         val versions = jdbcTemplate.query(sql, params) { rs, _ ->
@@ -79,7 +93,9 @@ class LocationTrackDao(
             select 
               ltv.id as row_id,
               ltv.version as row_version,
-              ltv.official_row_id, 
+              ltv.official_row_id,
+              ltv.design_row_id,
+              ltv.design_id,
               ltv.draft,
               ltv.alignment_id,
               ltv.alignment_version,
@@ -130,6 +146,8 @@ class LocationTrackDao(
               lt.id as row_id,
               lt.version as row_version,
               lt.official_row_id, 
+              lt.design_row_id,
+              lt.design_id,
               lt.draft,
               lt.alignment_id,
               lt.alignment_version,
@@ -199,7 +217,7 @@ class LocationTrackDao(
             )
         },
         segmentSwitchIds = rs.getIntIdArray("segment_switch_ids"),
-        contextData = rs.getLayoutContextData("official_row_id", "row_id", "draft"),
+        contextData = rs.getLayoutContextData("official_row_id", "design_row_id", "design_id", "row_id", "draft"),
     )
 
     @Transactional
@@ -216,7 +234,9 @@ class LocationTrackDao(
               type,
               state,
               draft, 
-              official_row_id,            
+              official_row_id,
+              design_row_id,
+              design_id,
               duplicate_of_location_track_id,
               topological_connectivity,
               topology_start_switch_id,
@@ -236,7 +256,9 @@ class LocationTrackDao(
               :type::layout.track_type,
               :state::layout.location_track_state,
               :draft, 
-              :official_row_id,            
+              :official_row_id,
+              :design_row_id,
+              :design_id,
               :duplicate_of_location_track_id,
               :topological_connectivity::layout.track_topological_connectivity_type,
               :topology_start_switch_id,
@@ -262,6 +284,8 @@ class LocationTrackDao(
             "state" to newItem.state.name,
             "draft" to newItem.isDraft,
             "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
+            "design_row_id" to newItem.contextData.designRowId?.let(::toDbId)?.intValue,
+            "design_id" to newItem.contextData.designId?.let(::toDbId)?.intValue,
             "duplicate_of_location_track_id" to newItem.duplicateOf?.intValue,
             "topological_connectivity" to newItem.topologicalConnectivity.name,
             "topology_start_switch_id" to newItem.topologyStartSwitch?.switchId?.intValue,
@@ -295,6 +319,8 @@ class LocationTrackDao(
               state = :state::layout.location_track_state,
               draft = :draft,
               official_row_id = :official_row_id,
+              design_row_id = :design_row_id,
+              design_id = :design_id,
               duplicate_of_location_track_id = :duplicate_of_location_track_id,
               topological_connectivity = :topological_connectivity::layout.track_topological_connectivity_type,
               topology_start_switch_id = :topology_start_switch_id,
@@ -322,6 +348,8 @@ class LocationTrackDao(
             "state" to updatedItem.state.name,
             "draft" to updatedItem.isDraft,
             "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
+            "design_row_id" to updatedItem.contextData.designRowId?.let(::toDbId)?.intValue,
+            "design_id" to updatedItem.contextData.designId?.let(::toDbId)?.intValue,
             "duplicate_of_location_track_id" to updatedItem.duplicateOf?.intValue,
             "topological_connectivity" to updatedItem.topologicalConnectivity.name,
             "topology_start_switch_id" to updatedItem.topologyStartSwitch?.switchId?.intValue,
@@ -338,34 +366,34 @@ class LocationTrackDao(
         return response
     }
 
-    override fun fetchVersions(publicationState: PublicationState, includeDeleted: Boolean) =
-        fetchVersions(publicationState, includeDeleted, null)
+    override fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean) =
+        fetchVersions(layoutContext, includeDeleted, null)
 
     fun list(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         names: List<AlignmentName> = emptyList(),
-    ): List<LocationTrack> = fetchVersions(publicationState, includeDeleted, trackNumberId, names).map(::fetch)
+    ): List<LocationTrack> = fetchVersions(layoutContext, includeDeleted, trackNumberId, names).map(::fetch)
 
     fun fetchVersions(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         names: List<AlignmentName> = emptyList(),
     ): List<RowVersion<LocationTrack>> {
         val sql = """
             select lt.row_id, lt.row_version 
-            from layout.location_track_publication_view lt
+            from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
             where 
               (cast(:track_number_id as int) is null or lt.track_number_id = :track_number_id) 
               and (:names = '' or lower(lt.name) = any(string_to_array(:names, ',')::varchar[]))
-              and :publication_state = any(lt.publication_states)
               and (:include_deleted = true or state != 'DELETED')
         """.trimIndent()
         val params = mapOf(
             "track_number_id" to trackNumberId?.intValue,
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
             "include_deleted" to includeDeleted,
             "names" to names.map { name -> name.toString().lowercase() }.joinToString(","),
         )
@@ -374,14 +402,14 @@ class LocationTrackDao(
         }
     }
 
-    fun listNear(publicationState: PublicationState, bbox: BoundingBox): List<LocationTrack> =
-        fetchVersionsNear(publicationState, bbox).map(::fetch)
+    fun listNear(context: LayoutContext, bbox: BoundingBox): List<LocationTrack> =
+        fetchVersionsNear(context, bbox).map(::fetch)
 
-    fun fetchVersionsNear(publicationState: PublicationState, bbox: BoundingBox): List<RowVersion<LocationTrack>> {
+    fun fetchVersionsNear(context: LayoutContext, bbox: BoundingBox): List<RowVersion<LocationTrack>> {
         val sql = """
             select
               distinct lt.row_id, lt.row_version
-            from layout.location_track_publication_view lt
+            from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
             inner join layout.segment_version s on lt.alignment_id = s.alignment_id 
               and lt.alignment_version = s.alignment_version
             inner join layout.segment_geometry sg on s.geometry_id = sg.id
@@ -393,8 +421,7 @@ class LocationTrackDao(
                 ),
                 sg.bounding_box
               )
-            where :publication_state = any(lt.publication_states) 
-              and lt.state != 'DELETED'
+            where lt.state != 'DELETED'
         """.trimIndent()
 
         val params = mapOf(
@@ -403,7 +430,8 @@ class LocationTrackDao(
             "x_max" to bbox.max.x,
             "y_max" to bbox.max.y,
             "layout_srid" to LAYOUT_SRID.code,
-            "publication_state" to publicationState.name,
+            "publication_state" to context.state.name,
+            "design_id" to context.branch.designId?.intValue,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -431,17 +459,26 @@ class LocationTrackDao(
         return locationTrackOwners
     }
 
-    fun fetchOnlyDraftVersions(includeDeleted: Boolean, trackNumberId: IntId<TrackLayoutTrackNumber>? = null): List<RowVersion<LocationTrack>> {
+    fun fetchOnlyDraftVersions(
+        branch: LayoutBranch,
+        includeDeleted: Boolean,
+        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+    ): List<RowVersion<LocationTrack>> {
         val sql = """
             select id, version
             from layout.location_track
             where draft
               and (:includeDeleted or state != 'DELETED')
               and (:trackNumberId::int is null or track_number_id = :trackNumberId)
+              and design_id is not distinct from :design_id
         """.trimIndent()
         return jdbcTemplate.query(
             sql,
-            mapOf("includeDeleted" to includeDeleted, "trackNumberId" to trackNumberId?.intValue)
+            mapOf(
+                "includeDeleted" to includeDeleted,
+                "trackNumberId" to trackNumberId?.intValue,
+                "design_id" to branch.designId?.intValue
+            )
         ) { rs, _ ->
             rs.getRowVersion<LocationTrack>("id", "version")
         }.also { ids ->
@@ -450,23 +487,30 @@ class LocationTrackDao(
     }
 
     fun fetchVersionsForPublication(
+        branch: LayoutBranch,
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         trackIdsToPublish: List<IntId<LocationTrack>>,
     ): Map<IntId<TrackLayoutTrackNumber>, List<ValidationVersion<LocationTrack>>> {
         if (trackNumberIds.isEmpty()) return emptyMap()
+
         val sql = """
             select track.track_number_id, track.official_id, track.row_id, track.row_version
-            from layout.location_track_publication_view track
-            where (('DRAFT' = any(track.publication_states)
-                     and track.official_id in (:track_ids_to_publish))
-                   or ('OFFICIAL' = any(track.publication_states)
-                         and (track.official_id in (:track_ids_to_publish) is distinct from true)))
-              and track_number_id in (:track_number_ids)
+            from (
+            select state, track_number_id, official_id, row_id, row_version
+              from layout.location_track_in_layout_context('OFFICIAL', :design_id) official
+              where (official_id in (:track_ids_to_publish)) is distinct from true 
+            union all
+            select state, track_number_id, official_id, row_id, row_version
+              from layout.location_track_in_layout_context('DRAFT', :design_id) draft
+              where official_id in (:track_ids_to_publish)
+            ) track
+            where track_number_id in (:track_number_ids)
               and track.state != 'DELETED'
             order by track.track_number_id, track.row_id
         """.trimIndent()
         val params = mapOf(
             "track_number_ids" to trackNumberIds.map { id -> id.intValue },
+            "design_id" to branch.designId?.intValue,
             // listOf(null) to indicate an empty list due to SQL syntax limitations; the "is distinct from true" checks
             // explicitly for false or null, since "foo in (null)" in SQL is null
             "track_ids_to_publish" to (trackIdsToPublish.map { id -> id.intValue }.ifEmpty { listOf(null) }),

@@ -24,6 +24,19 @@ fun idOrIdsEqualSqlFragment(fetchType: FetchType) = when (fetchType) {
     SINGLE -> "= :id"
 }
 
+enum class LayoutAssetTable(val dbTable: DbTable, layoutContextFunction: String) {
+    LAYOUT_ASSET_TRACK_NUMBER(DbTable.LAYOUT_TRACK_NUMBER, "track_number_in_layout_context"),
+    LAYOUT_ASSET_REFERENCE_LINE(DbTable.LAYOUT_REFERENCE_LINE, "reference_line_in_layout_context"),
+    LAYOUT_ASSET_LOCATION_TRACK(DbTable.LAYOUT_LOCATION_TRACK, "location_track_in_layout_context"),
+    LAYOUT_ASSET_SWITCH(DbTable.LAYOUT_SWITCH, "switch_in_layout_context"),
+    LAYOUT_ASSET_KM_POST(DbTable.LAYOUT_KM_POST, "km_post_in_layout_context"),
+    ;
+
+    val fullLayoutContextFunction: String = "layout.${layoutContextFunction}"
+    val fullName: String = dbTable.fullName
+    val versionTable: String = dbTable.versionTable
+}
+
 enum class DbTable(schema: String, table: String, sortColumns: List<String> = listOf("id")) {
 
     LAYOUT_ALIGNMENT("layout", "alignment"),
@@ -33,6 +46,7 @@ enum class DbTable(schema: String, table: String, sortColumns: List<String> = li
     LAYOUT_KM_POST("layout", "km_post", listOf("track_number_id", "km_number")),
     LAYOUT_TRACK_NUMBER("layout", "track_number"),
 
+    LAYOUT_DESIGN("layout", "design"),
     OPERATING_POINT("layout", "operating_point"),
 
     GEOMETRY_PLAN("geometry", "plan"),
@@ -118,12 +132,23 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
 }
 
 inline fun <reified T, reified S> getOne(id: DomainId<T>, result: List<S>) =
-    getOptional(id, result) ?: throw NoSuchEntityException(T::class, id)
+    requireOne(T::class, id, result)
 
-inline fun <reified T, reified S> getOptional(id: DomainId<T>, result: List<S>): S? {
+inline fun <reified T, reified S> getOne(rowVersion: RowVersion<T>, result: List<S>) =
+    requireOne(T::class, rowVersion, result)
+
+inline fun <reified T, reified S> getOptional(rowVersion: RowVersion<T>, result: List<S>): S? =
+    requireOneOrNull(T::class, rowVersion, result)
+
+inline fun <reified T, reified S> getOptional(id: DomainId<T>, result: List<S>): S? =
+    requireOneOrNull(T::class, id, result)
+
+fun <T> requireOne(clazz: KClass<*>, id: Any, result: List<T>): T =
+    requireOneOrNull(clazz, id, result) ?: throw NoSuchEntityException(clazz, id.toString())
+
+fun <T> requireOneOrNull(clazz: KClass<*>, id: Any, result: List<T>): T? {
     require(result.size <= 1) {
-        val idDesc = if (S::class == T::class) "id $id" else "${T::class.simpleName}.id $id"
-        "Found more than one ${S::class.simpleName} with same $idDesc"
+        "Found more than one (${result.size}) ${clazz.simpleName} with identifier $id"
     }
     return result.firstOrNull()
 }

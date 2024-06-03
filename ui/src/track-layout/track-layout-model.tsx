@@ -371,9 +371,19 @@ export type SwitchJointTrackMeter = {
     location: Point;
 };
 
+export type OperationalPointType =
+    | 'LP' // Liikennepaikka
+    | 'LPO' // Liikennepaikan osa
+    | 'OLP' // Osiin jaettu liikennepaikka
+    | 'SEIS' // Seisake
+    | 'LVH'; // Linjavaihde
+
 export type OperatingPoint = {
+    externalId: Oid;
     name: string;
     abbreviation: string;
+    uicCode: string;
+    type: OperationalPointType;
     location: Point;
 };
 

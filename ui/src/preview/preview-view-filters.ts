@@ -36,7 +36,3 @@ export const filterByPublicationStage = (
 ): PublicationCandidate[] => {
     return publicationCandidates.filter((candidate) => candidate.stage === publicationStage);
 };
-
-export const pendingValidations = (publicationCandidates: PublicationCandidate[]) => {
-    return publicationCandidates.some((candidate) => candidate.pendingValidation);
-};

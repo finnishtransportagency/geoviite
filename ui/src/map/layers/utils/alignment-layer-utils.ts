@@ -43,7 +43,7 @@ export function getTickStyle(
         cacheKey,
         () =>
             new RegularShape({
-                stroke: style.getStroke(),
+                stroke: style.getStroke() || undefined,
                 points: 2,
                 radius: length,
                 radius2: 0,

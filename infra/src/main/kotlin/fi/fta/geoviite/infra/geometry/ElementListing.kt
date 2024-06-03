@@ -1,13 +1,33 @@
 package fi.fta.geoviite.infra.geometry
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IndexedId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.formatTrackMeter
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.MISSING_SECTION
 import fi.fta.geoviite.infra.inframodel.PlanElementName
-import fi.fta.geoviite.infra.math.*
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.localization.LocalizationParams
+import fi.fta.geoviite.infra.localization.Translation
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.RoundedPoint
+import fi.fta.geoviite.infra.math.radsMathToGeo
+import fi.fta.geoviite.infra.math.radsToGrads
+import fi.fta.geoviite.infra.math.round
+import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.printCsv
@@ -21,6 +41,8 @@ const val DIRECTION_DECIMALS = 6
 const val CANT_DECIMALS = 6
 
 const val SEGMENT_AND_ELEMENT_LENGTH_MAX_DELTA = 1.0
+
+const val ELEMENT_LIST_CSV_TRANSLATION_PREFIX = "data-products.element-list.csv"
 
 data class ElementListing(
     val id: StringId<ElementListing>,
@@ -155,7 +177,7 @@ private fun toMissingElementListing(
     locationTrack: LocationTrack,
     getSwitchName: (IntId<TrackLayoutSwitch>) -> SwitchName,
 ) = ElementListing(
-    id = StringId("MEL_${segment.id.stringFormat()}"),
+    id = StringId("MEL_${segment.id}"),
     planId = null,
     planSource = null,
     fileName = null,
@@ -226,74 +248,88 @@ private fun toElementListing(
 
 fun planElementListingToCsv(
     elementListing: List<ElementListing>,
-) = printCsv(planCsvEntries(), elementListing)
+    translation: Translation,
+) = printCsv(planCsvEntries(translation), elementListing)
 
 fun locationTrackElementListingToCsv(
     elementListing: List<ElementListing>,
-) = printCsv(locationTrackCsvEntries(), elementListing)
+    translation: Translation,
+) = printCsv(locationTrackCsvEntries(translation), elementListing)
 
-private fun trackNumberCsvEntry() =
-    CsvEntry<ElementListing>(translateElementListingHeader(ElementListingHeader.TRACK_NUMBER)) {
+private fun trackNumberCsvEntry(translation: Translation) =
+    CsvEntry<ElementListing>(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.track-number")) {
         it.trackNumber
     }
 
-private val commonElementListingCsvEntries = arrayOf(
-    CsvEntry<ElementListing>(translateElementListingHeader(ElementListingHeader.PLAN_TRACK)) { it.alignmentName },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.ELEMENT_TYPE)) {
-        translateTrackGeometryElementType(
-            it.elementType
+private fun commonElementListingCsvEntries(translation: Translation): List<CsvEntry<ElementListing>> =
+    mapOf<String, (item: ElementListing) -> Any?>("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.plan-track" to { it.alignmentName },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.element-type" to {
+            translateTrackGeometryElementType(
+                it.elementType, translation
+            )
+        },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.track-address-start" to {
+            it.start.address?.let { address ->
+                formatTrackMeter(
+                    address.kmNumber, address.meters
+                )
+            }
+        },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.track-address-end" to {
+            it.end.address?.let { address ->
+                formatTrackMeter(
+                    address.kmNumber, address.meters
+                )
+            }
+        },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.crs" to {
+            it.coordinateSystemSrid ?: it.coordinateSystemName
+        },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-start-e" to { it.start.coordinate.roundedX.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-start-n" to { it.start.coordinate.roundedY.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-end-e" to { it.end.coordinate.roundedX.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-end-n" to { it.end.coordinate.roundedY.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.length" to { it.lengthMeters },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.radius-start" to { it.start.radiusMeters?.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.radius-end" to { it.end.radiusMeters?.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.cant-start" to { it.start.cant?.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.cant-end" to { it.end.cant?.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.direction-start" to { it.start.directionGrads.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.direction-end" to { it.end.directionGrads.toPlainString() },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.plan-name" to { it.fileName },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.plan-source" to { it.planSource },
+        "$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.remarks" to { remarks(it, translation) }).map { (key, fn) ->
+        CsvEntry(
+            translation.t(key),
+            fn
         )
-    },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.TRACK_ADDRESS_START)) {
-        it.start.address?.let { address ->
-            formatTrackMeter(
-                address.kmNumber,
-                address.meters
-            )
-        }
-    },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.TRACK_ADDRESS_END)) {
-        it.end.address?.let { address ->
-            formatTrackMeter(
-                address.kmNumber,
-                address.meters
-            )
-        }
-    },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.CRS)) {
-        it.coordinateSystemSrid ?: it.coordinateSystemName
-    },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.LOCATION_START_E)) { it.start.coordinate.roundedX.toPlainString() },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.LOCATION_START_N)) { it.start.coordinate.roundedY.toPlainString() },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.LOCATION_END_E)) { it.end.coordinate.roundedX.toPlainString() },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.LOCATION_END_N)) { it.end.coordinate.roundedY.toPlainString() },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.LENGTH)) { it.lengthMeters },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.RADIUS_START)) { it.start.radiusMeters?.toPlainString() },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.RADIUS_END)) { it.end.radiusMeters?.toPlainString() },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.CANT_START)) { it.start.cant?.toPlainString() },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.CANT_END)) { it.end.cant?.toPlainString() },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.DIRECTION_START)) { it.start.directionGrads.toPlainString() },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.DIRECTION_END)) { it.end.directionGrads.toPlainString() },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.PLAN_NAME)) { it.fileName },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.PLAN_SOURCE)) { it.planSource },
-    CsvEntry(translateElementListingHeader(ElementListingHeader.REMARKS)) { remarks(it) }
-)
+    }
 
-fun locationTrackCsvEntries() = listOf(
-    trackNumberCsvEntry(),
-    CsvEntry(translateElementListingHeader(ElementListingHeader.LOCATION_TRACK)) { it.locationTrackName },
-    *commonElementListingCsvEntries
-)
+fun translateTrackGeometryElementType(type: TrackGeometryElementType, translation: Translation) =
+    when (type) {
+        TrackGeometryElementType.LINE -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.line")
+        TrackGeometryElementType.CURVE -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.curve")
+        TrackGeometryElementType.CLOTHOID -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.clothoid")
+        TrackGeometryElementType.BIQUADRATIC_PARABOLA -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.biquadratic-parabola")
+        MISSING_SECTION -> translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.missing-section")
+    }
 
-fun planCsvEntries() = listOf(
-    trackNumberCsvEntry(),
-    *commonElementListingCsvEntries
-)
+fun locationTrackCsvEntries(translation: Translation) = listOf(
+    trackNumberCsvEntry(translation),
+    CsvEntry(translation.t("$ELEMENT_LIST_CSV_TRANSLATION_PREFIX.location-track")) { it.locationTrackName },
+) + commonElementListingCsvEntries(translation)
 
-private fun remarks(elementListing: ElementListing) =
+fun planCsvEntries(translation: Translation) = listOf(
+    trackNumberCsvEntry(translation)
+) + commonElementListingCsvEntries(translation)
+
+private fun remarks(elementListing: ElementListing, translation: Translation) =
     listOfNotNull(
-        if (elementListing.isPartial) IS_PARTIAL else null,
-        if (elementListing.connectedSwitchName != null) connectedToSwitch(elementListing.connectedSwitchName) else null
+        if (elementListing.isPartial) translation.t("data-products.element-list.remarks.is-partial") else null,
+        if (elementListing.connectedSwitchName != null) translation.t(
+            "data-products.element-list.remarks.connected-to-switch",
+            LocalizationParams(mapOf("switchName" to elementListing.connectedSwitchName.toString()))
+        ) else null
     ).joinToString(separator = ", ")
 
 private fun elementListing(
@@ -314,7 +350,7 @@ private fun elementListing(
     val start = getStartLocation(context, transformation, alignment, element)
     val end = getEndLocation(context, transformation, alignment, element)
     ElementListing(
-        id = StringId("EL_${element.id.stringFormat()}"),
+        id = StringId("EL_${element.id}"),
         planId = planId,
         planSource = planSource,
         fileName = fileName,

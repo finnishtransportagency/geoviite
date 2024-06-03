@@ -1,8 +1,15 @@
 package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.IndexedId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
@@ -16,10 +23,24 @@ import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.DatabaseLock.ELEMENT_LIST_GEN
 import fi.fta.geoviite.infra.integration.DatabaseLock.VERTICAL_GEOMETRY_LIST_GEN
 import fi.fta.geoviite.infra.integration.LockDao
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.ElementListingFile
+import fi.fta.geoviite.infra.tracklayout.ElementListingFileDao
+import fi.fta.geoviite.infra.tracklayout.IAlignment
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.toAlignmentHeader
+import fi.fta.geoviite.infra.tracklayout.toTrackLayoutSwitch
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
@@ -37,6 +58,8 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
+
+val unknownSwitchName = SwitchName("-")
 
 val elementListingGenerationUser = UserName.of("ELEMENT_LIST_GEN")
 val verticalGeometryListingGenerationUser = UserName.of("VERT_GEOM_LIST_GEN")
@@ -206,26 +229,48 @@ class GeometryService @Autowired constructor(
         return geometryDao.fetchDuplicateGeometryPlanVersion(newFile, source)?.let(geometryDao::getPlanHeader)
     }
 
+    private fun getSwitchName(context: LayoutContext, switchId: IntId<TrackLayoutSwitch>): SwitchName =
+        switchService.get(context, switchId)?.name ?: unknownSwitchName
+
     @Transactional(readOnly = true)
-    fun getElementListing(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): List<ElementListing> {
-        logger.serviceCall("getElementListing", "planId" to planId, "elementTypes" to elementTypes)
+    fun getElementListing(
+        planId: IntId<GeometryPlan>,
+        elementTypes: List<GeometryElementType>,
+    ): List<ElementListing> {
+        logger.serviceCall(
+            "getElementListing",
+            "planId" to planId,
+            "elementTypes" to elementTypes,
+        )
         val planVersion = geometryDao.fetchPlanVersion(planId)
         val plan = geometryDao.fetchPlan(planVersion)
-        val context = plan.trackNumber?.let { geocodingService.getGeocodingContext(plan.trackNumber, planVersion) }
+        val geocodingContext = plan.trackNumber
+            ?.let { geocodingService.getGeocodingContext(plan.trackNumber, planVersion) }
 
         return toElementListing(
-            context, coordinateTransformationService::getLayoutTransformation, plan, elementTypes
-        ) { switchId -> switchService.getOrThrow(OFFICIAL, switchId).name }
+            geocodingContext,
+            coordinateTransformationService::getLayoutTransformation,
+            plan,
+            elementTypes,
+        ) { id -> getSwitchName(MainLayoutContext.official, id) }
     }
 
     @Transactional(readOnly = true)
-    fun getElementListingCsv(planId: IntId<GeometryPlan>, elementTypes: List<GeometryElementType>): ElementListingFile {
-        logger.serviceCall("getElementListingCsv", "planId" to planId, "elementTypes" to elementTypes)
+    fun getElementListingCsv(
+        planId: IntId<GeometryPlan>,
+        elementTypes: List<GeometryElementType>,
+        lang: LocalizationLanguage,
+    ): ElementListingFile {
+        logger.serviceCall("getElementListingCsv", "planId" to planId, "elementTypes" to elementTypes, "lang" to lang)
         val plan = getPlanHeader(planId)
         val elementListing = getElementListing(planId, elementTypes)
+        val translation = localizationService.getLocalization(lang)
 
-        val csvFileContent = planElementListingToCsv(elementListing)
-        return ElementListingFile(FileName("$ELEMENT_LISTING ${plan.fileName}"), csvFileContent)
+        val csvFileContent = planElementListingToCsv(elementListing, translation)
+        return ElementListingFile(
+            FileName("${translation.t("data-products.element-list.element-list-title")} ${plan.fileName}"),
+            csvFileContent,
+        )
     }
 
     @Transactional(readOnly = true)
@@ -242,15 +287,16 @@ class GeometryService @Autowired constructor(
             locationTrack,
             alignment,
             trackNumber,
-            TrackGeometryElementType.values().toList(),
+            TrackGeometryElementType.entries,
             null,
             null,
             ::getHeaderAndAlignment,
-        ) { switchId -> switchService.getOrThrow(OFFICIAL, switchId).name }
+        ) { id -> getSwitchName(MainLayoutContext.official, id) }
     }
 
     @Transactional(readOnly = true)
     fun getElementListing(
+        layoutContext: LayoutContext,
         trackId: IntId<LocationTrack>,
         elementTypes: List<TrackGeometryElementType>,
         startAddress: TrackMeter?,
@@ -258,13 +304,16 @@ class GeometryService @Autowired constructor(
     ): List<ElementListing> {
         logger.serviceCall(
             "getElementListing",
-            "trackId" to trackId, "elementTypes" to elementTypes,
-            "startAddress" to startAddress, "endAddress" to endAddress,
+            "layoutContext" to layoutContext,
+            "trackId" to trackId,
+            "elementTypes" to elementTypes,
+            "startAddress" to startAddress,
+            "endAddress" to endAddress,
         )
-        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, trackId)
-        val trackNumber = trackNumberService.get(OFFICIAL, track.trackNumberId)?.number
+        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(layoutContext, trackId)
+        val trackNumber = trackNumberService.get(layoutContext, track.trackNumberId)?.number
         return toElementListing(
-            geocodingService.getGeocodingContext(OFFICIAL, track.trackNumberId),
+            geocodingService.getGeocodingContext(layoutContext, track.trackNumberId),
             coordinateTransformationService::getLayoutTransformation,
             track,
             alignment,
@@ -273,54 +322,66 @@ class GeometryService @Autowired constructor(
             startAddress,
             endAddress,
             ::getHeaderAndAlignment,
-        ) { switchId -> switchService.getOrThrow(OFFICIAL, switchId).name }
+        ) { id -> getSwitchName(layoutContext, id) }
     }
 
     @Transactional(readOnly = true)
     fun getElementListingCsv(
+        layoutContext: LayoutContext,
         trackId: IntId<LocationTrack>,
         elementTypes: List<TrackGeometryElementType>,
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
+        lang: LocalizationLanguage,
     ): ElementListingFile {
         logger.serviceCall(
             "getElementListing",
-            "trackId" to trackId, "elementTypes" to elementTypes,
-            "startAddress" to startAddress, "endAddress" to endAddress,
+            "layoutContext" to layoutContext,
+            "trackId" to trackId,
+            "elementTypes" to elementTypes,
+            "startAddress" to startAddress,
+            "endAddress" to endAddress,
+            "lang" to lang
         )
-        val track = locationTrackService.getOrThrow(OFFICIAL, trackId)
-        val elementListing = getElementListing(trackId, elementTypes, startAddress, endAddress)
-        val csvFileContent = locationTrackElementListingToCsv(elementListing)
-        return ElementListingFile(FileName("$ELEMENT_LISTING ${track.name}"), csvFileContent)
+        val track = locationTrackService.getOrThrow(layoutContext, trackId)
+        val elementListing = getElementListing(layoutContext, trackId, elementTypes, startAddress, endAddress)
+        val translation = localizationService.getLocalization(lang)
+        val csvFileContent = locationTrackElementListingToCsv(elementListing, translation)
+        return ElementListingFile(FileName("${translation.t("data-products.element-list.element-list-title")} ${track.name}"), csvFileContent)
     }
 
     @Scheduled(cron = "\${geoviite.rail-network-export.schedule}")
     @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
     fun makeElementListingCsv() = runElementListGeneration {
         logger.serviceCall("makeElementListingCsv")
-        val geocodingContexts = geocodingService.getGeocodingContexts(OFFICIAL)
+        val translation = localizationService.getLocalization(LocalizationLanguage.FI)
+        val geocodingContexts = geocodingService.getGeocodingContexts(MainLayoutContext.official)
+        val trackNumbers = trackNumberService.mapById(MainLayoutContext.official)
         val elementListing = locationTrackService
-            .list(OFFICIAL, includeDeleted = false)
-            .sortedBy { locationTrack -> locationTrack.name }
-            .map { locationTrack -> locationTrack to geocodingContexts[locationTrack.trackNumberId]?.trackNumber }
-            .sortedBy { (_, trackNumber) -> trackNumber }
-            .flatMap { (locationTrack, trackNumber) ->
-                val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrack.id as IntId)
-                getElementListing(locationTrack, alignment, trackNumber, geocodingContexts[locationTrack.trackNumberId])
+            .listWithAlignments(MainLayoutContext.official, includeDeleted = false)
+            .map { (locationTrack, alignment) ->
+                Triple(
+                    locationTrack,
+                    alignment,
+                    trackNumbers[locationTrack.trackNumberId]?.number
+                )
             }
-        val csvFileContent = locationTrackElementListingToCsv( elementListing)
+            .sortedWith(compareBy({ (_, _, tn) -> tn }, { (track, _, _) -> track.name }))
+            .flatMap { (track, alignment, trackNumber) ->
+                getElementListing(track, alignment, trackNumber, geocodingContexts[track.trackNumberId])
+            }
+        val csvFileContent = locationTrackElementListingToCsv(elementListing, translation)
         val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
 
         elementListingFileDao.upsertElementListingFile(
             ElementListingFile(
-                name = FileName("$ELEMENT_LISTING_ENTIRE_RAIL_NETWORK ${dateFormatter.format(Instant.now())}"),
-                content = csvFileContent
+                name = FileName("${translation.t("data-products.element-list.element-list-whole-network-title")} ${dateFormatter.format(Instant.now())}"),
+                content = csvFileContent,
             )
         )
     }
 
     fun getElementListingCsv() = elementListingFileDao.getElementListingFile()
-
 
     fun getVerticalGeometryListing(planId: IntId<GeometryPlan>): List<VerticalGeometryListing> {
         logger.serviceCall("getVerticalGeometryListing", "planId" to planId)
@@ -333,18 +394,19 @@ class GeometryService @Autowired constructor(
         )
     }
 
-    fun getVerticalGeometryListingCsv(planId: IntId<GeometryPlan>): Pair<FileName, ByteArray> {
+    fun getVerticalGeometryListingCsv(planId: IntId<GeometryPlan>, lang: LocalizationLanguage): Pair<FileName, ByteArray> {
         logger.serviceCall("getVerticalGeometryListingCsv", "planId" to planId)
         val plan = getPlanHeader(planId)
         val verticalGeometryListing = getVerticalGeometryListing(planId)
+        val translation = localizationService.getLocalization(lang)
 
-        val csvFileContent = planVerticalGeometryListingToCsv(verticalGeometryListing)
-        return FileName("$VERTICAL_GEOMETRY ${plan.fileName}") to csvFileContent.toByteArray()
+        val csvFileContent = planVerticalGeometryListingToCsv(verticalGeometryListing, translation)
+        return FileName("${translation.t("data-products.vertical-geometry.vertical-geometry-title")} ${plan.fileName}") to csvFileContent.toByteArray()
     }
 
     @Transactional(readOnly = true)
     fun getVerticalGeometryListing(
-        publicationType: PublicationState,
+        layoutContext: LayoutContext,
         locationTrackId: IntId<LocationTrack>,
         startAddress: TrackMeter? = null,
         endAddress: TrackMeter? = null,
@@ -355,8 +417,8 @@ class GeometryService @Autowired constructor(
             "startAddress" to startAddress,
             "endAddress" to endAddress
         )
-        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(publicationType, locationTrackId)
-        val geocodingContext = geocodingService.getGeocodingContext(publicationType, track.trackNumberId)
+        val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(layoutContext, locationTrackId)
+        val geocodingContext = geocodingService.getGeocodingContext(layoutContext, track.trackNumberId)
         return toVerticalGeometryListing(
             track,
             alignment,
@@ -372,34 +434,39 @@ class GeometryService @Autowired constructor(
         locationTrackId: IntId<LocationTrack>,
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
+        lang: LocalizationLanguage,
     ): Pair<FileName, ByteArray> {
         logger.serviceCall(
             "getVerticalGeometryListingCsv",
             "trackId" to locationTrackId,
             "startAddress" to startAddress,
-            "endAddress" to endAddress
+            "endAddress" to endAddress,
         )
-        val locationTrack = locationTrackService.getOrThrow(OFFICIAL, locationTrackId)
-        val verticalGeometryListing = getVerticalGeometryListing(OFFICIAL, locationTrackId, startAddress, endAddress)
+        val locationTrack = locationTrackService.getOrThrow(MainLayoutContext.official, locationTrackId)
+        val verticalGeometryListing = getVerticalGeometryListing(MainLayoutContext.official, locationTrackId, startAddress, endAddress)
+        val translation = localizationService.getLocalization(lang)
 
-        val csvFileContent = locationTrackVerticalGeometryListingToCsv(verticalGeometryListing)
-        return FileName("$VERTICAL_GEOMETRY ${locationTrack.name}") to csvFileContent.toByteArray()
+        val csvFileContent = locationTrackVerticalGeometryListingToCsv(verticalGeometryListing, translation)
+        val name = FileName(
+            "${translation.t("data-products.vertical-geometry.vertical-geometry-title")} ${locationTrack.name}"
+        )
+        return name to csvFileContent.toByteArray()
     }
 
     @Scheduled(cron = "\${geoviite.rail-network-export.vertical-geometry-schedule}")
     @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
     fun makeEntireVerticalGeometryListingCsv() = runVerticalGeometryListGeneration {
         logger.serviceCall("makeEntireVerticalGeometryListingCsv")
-        val geocodingContexts = geocodingService.getGeocodingContexts(OFFICIAL)
+        val geocodingContexts = geocodingService.getGeocodingContexts(MainLayoutContext.official)
         val verticalGeometryListingWithTrackNumbers =
-            locationTrackService.list(OFFICIAL, includeDeleted = false).sortedWith(
+            locationTrackService.list(MainLayoutContext.official, includeDeleted = false).sortedWith(
                 compareBy(
                     { locationTrack -> geocodingContexts[locationTrack.trackNumberId]?.trackNumber },
                     { locationTrack -> locationTrack.name },
                 )
             ).flatMap { locationTrack ->
                 val verticalGeometryListingWithoutTrackNumbers =
-                    getVerticalGeometryListing(OFFICIAL, locationTrack.id as IntId)
+                    getVerticalGeometryListing(MainLayoutContext.official, locationTrack.id as IntId)
 
                 verticalGeometryListingWithoutTrackNumbers.map { verticalGeometryListing ->
                     verticalGeometryListing.copy(
@@ -408,13 +475,14 @@ class GeometryService @Autowired constructor(
                 }
             }
 
-        val csvFileContent = entireTrackNetworkVerticalGeometryListingToCsv(verticalGeometryListingWithTrackNumbers)
+        val translation = localizationService.getLocalization(LocalizationLanguage.FI)
+        val csvFileContent = entireTrackNetworkVerticalGeometryListingToCsv(verticalGeometryListingWithTrackNumbers, translation)
         val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
 
         verticalGeometryListingFileDao.upsertVerticalGeometryListingFile(
             VerticalGeometryListingFile(
-                name = FileName("$VERTICAL_GEOMETRY_ENTIRE_RAIL_NETWORK ${dateFormatter.format(Instant.now())}"),
-                content = csvFileContent
+                name = FileName("${translation.t("data-products.vertical-geometry.vertical-geometry-whole-network-title")} ${dateFormatter.format(Instant.now())}"),
+                content = csvFileContent,
             )
         )
     }
@@ -427,11 +495,11 @@ class GeometryService @Autowired constructor(
         return header to geometryAlignment
     }
 
-    fun getComparator(sortField: GeometryPlanSortField, sortOrder: SortOrder, lang: String): Comparator<GeometryPlanHeader> =
+    fun getComparator(sortField: GeometryPlanSortField, sortOrder: SortOrder, lang: LocalizationLanguage): Comparator<GeometryPlanHeader> =
         if (sortOrder == SortOrder.ASCENDING) getComparator(sortField, lang)
         else getComparator(sortField, lang).reversed()
 
-    private fun getComparator(sortField: GeometryPlanSortField, lang: String): Comparator<GeometryPlanHeader> {
+    private fun getComparator(sortField: GeometryPlanSortField, lang: LocalizationLanguage): Comparator<GeometryPlanHeader> {
         val linkingSummaries by lazy { geometryDao.getLinkingSummaries() }
         val translation = localizationService.getLocalization(lang)
         return when (sortField) {
@@ -504,10 +572,10 @@ class GeometryService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getLocationTrackGeometryLinkingSummary(
+        layoutContext: LayoutContext,
         locationTrackId: IntId<LocationTrack>,
-        publicationState: PublicationState,
     ): List<PlanLinkingSummaryItem>? {
-        val locationTrack = locationTrackService.get(publicationState, locationTrackId) ?: return null
+        val locationTrack = locationTrackService.get(layoutContext, locationTrackId) ?: return null
         val alignment = layoutAlignmentDao.fetch(locationTrack.alignmentVersion ?: return null)
         val segmentSources = collectSegmentSources(alignment)
         val planLinkEndSegmentIndices = segmentSources.zipWithNext { a, b -> a.plan == b.plan }
@@ -528,17 +596,17 @@ class GeometryService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getLocationTrackHeights(
+        layoutContext: LayoutContext,
         locationTrackId: IntId<LocationTrack>,
-        publicationState: PublicationState,
         startDistance: Double,
         endDistance: Double,
         tickLength: Int,
     ): List<KmHeights>? {
-        val locationTrack = locationTrackService.get(publicationState, locationTrackId) ?: return null
+        val locationTrack = locationTrackService.get(layoutContext, locationTrackId) ?: return null
         val alignment = layoutAlignmentDao.fetch(locationTrack.alignmentVersion ?: return null)
         val boundingBox = alignment.boundingBox ?: return null
         val geocodingContext =
-            geocodingService.getGeocodingContext(publicationState, locationTrack.trackNumberId) ?: return null
+            geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId) ?: return null
 
         val segmentSources = collectSegmentSources(alignment)
         val alignmentLinkEndSegmentIndices = segmentSources.zipWithNext { a, b -> a.alignment == b.alignment }
@@ -717,17 +785,19 @@ class GeometryService @Autowired constructor(
     }
 
     private fun getLayoutGeocodingContextForPlanTrackNumber(trackNumber: TrackNumber?): GeocodingContext? = trackNumber
-        ?.let { number -> trackNumberService.find(number, OFFICIAL).firstOrNull()?.id }
-        ?.let { trackNumberId -> geocodingService.getGeocodingContext(OFFICIAL, trackNumberId) }
-
+        ?.let { number -> trackNumberService.find(MainLayoutContext.official, number).firstOrNull()?.id }
+        ?.let { trackNumberId -> geocodingService.getGeocodingContext(MainLayoutContext.official, trackNumberId) }
 }
 
 private fun getKmLengthAtReferencePointIndex(
     referencePointIndex: Int,
     geocodingContext: GeocodingContext,
 ) =
-    if (referencePointIndex == geocodingContext.referencePoints.size - 1) geocodingContext.referenceLineGeometry.length - geocodingContext.referencePoints[referencePointIndex].distance
-    else geocodingContext.referencePoints[referencePointIndex + 1].distance - geocodingContext.referencePoints[referencePointIndex].distance
+    if (referencePointIndex == geocodingContext.referencePoints.size - 1) {
+        geocodingContext.referenceLineGeometry.length - geocodingContext.referencePoints[referencePointIndex].distance
+    } else {
+        geocodingContext.referencePoints[referencePointIndex + 1].distance - geocodingContext.referencePoints[referencePointIndex].distance
+    }
 
 private fun trackNumbersMatch(
     header: GeometryPlanHeader,

@@ -3,12 +3,20 @@ package fi.fta.geoviite.infra.geometry
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.planCacheDuration
-import fi.fta.geoviite.infra.geography.*
+import fi.fta.geoviite.infra.geography.CoordinateTransformationException
+import fi.fta.geoviite.infra.geography.CoordinateTransformationService
+import fi.fta.geoviite.infra.geography.HeightTriangle
+import fi.fta.geoviite.infra.geography.HeightTriangleDao
+import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.logging.serviceCall
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.toTrackLayout
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -19,8 +27,8 @@ const val INFRAMODEL_TRANSFORMATION_KEY_PARENT = "error.infra-model.transformati
 data class TransformationError(
     private val key: String,
     private val units: GeometryUnits,
-): ValidationError {
-    override val errorType = ErrorType.TRANSFORMATION_ERROR
+): GeometryValidationIssue {
+    override val issueType = GeometryIssueType.TRANSFORMATION_ERROR
     override val localizationKey = LocalizationKey("$INFRAMODEL_TRANSFORMATION_KEY_PARENT.$key")
     val srid = units.coordinateSystemSrid
     val coordinateSystemName = units.coordinateSystemName
@@ -99,7 +107,7 @@ class PlanLayoutCache(
         }
         val heightTriangles = heightTriangleDao.fetchTriangles(polygon)
         val trackNumberId = geometryPlan.trackNumber
-            ?.let { trackNumberDao.list(geometryPlan.trackNumber, PublicationState.OFFICIAL) }
+            ?.let { trackNumberDao.list(MainLayoutContext.official, geometryPlan.trackNumber) }
             ?.firstOrNull()
             ?.id as? IntId
 
@@ -144,16 +152,18 @@ private fun transformToLayoutPlan(
         ) to null
     } catch (e: CoordinateTransformationException) {
         logger.warn("Could not convert plan coordinates: " +
-                "id=${geometryPlan.id} " +
-                "srid=${geometryPlan.units.coordinateSystemSrid} " +
-                "file=${geometryPlan.fileName}",
-            e)
+            "id=${geometryPlan.id} " +
+            "srid=${geometryPlan.units.coordinateSystemSrid} " +
+            "file=${geometryPlan.fileName}",
+            e,
+        )
         null to TransformationError("coordinate-transformation-failed", geometryPlan.units)
     } catch (e: Exception) {
         logger.warn("Failed to convert plan to layout form: " +
-                "id=${geometryPlan.id} " +
-                "srid=${geometryPlan.units.coordinateSystemSrid} " +
-                "file=${geometryPlan.fileName}",
-            e)
+            "id=${geometryPlan.id} " +
+            "srid=${geometryPlan.units.coordinateSystemSrid} " +
+            "file=${geometryPlan.fileName}",
+            e,
+        )
         null to TransformationError("plan-transformation-failed", geometryPlan.units)
     }

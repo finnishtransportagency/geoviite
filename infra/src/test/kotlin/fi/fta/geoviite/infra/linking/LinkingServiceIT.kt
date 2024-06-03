@@ -2,8 +2,8 @@ package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geometry.GeometryDao
@@ -103,12 +103,13 @@ class LinkingServiceIT @Autowired constructor(
         val (locationTrack, alignment) = locationTrackAndAlignment(
             insertOfficialTrackNumber(), segment1, segment2, segment3, draft = true
         )
-        val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(locationTrack, alignment)
-        locationTrackService.publish(ValidationVersion(locationTrackId, locationTrackVersion))
+        val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
+        locationTrackService.publish(LayoutBranch.main, ValidationVersion(locationTrackId, locationTrackVersion))
 
-        val (officialTrack, officialAlignment) = locationTrackService.getWithAlignmentOrThrow(OFFICIAL, locationTrackId)
+        val (officialTrack, officialAlignment) = locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.official, locationTrackId)
         assertMatches(
-            officialTrack to officialAlignment, locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
+            officialTrack to officialAlignment,
+            locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, locationTrackId),
         )
 
         // Pick the whole geometry as interval
@@ -129,12 +130,16 @@ class LinkingServiceIT @Autowired constructor(
             ),
         )
 
-        linkingService.saveLocationTrackLinking(LinkingParameters(geometryPlanId.id, geometryInterval, layoutInterval))
+        linkingService.saveLocationTrackLinking(
+            LayoutBranch.main,
+            LinkingParameters(geometryPlanId.id, geometryInterval, layoutInterval)
+        )
         assertEquals(
-            officialTrack to officialAlignment, locationTrackService.getWithAlignment(OFFICIAL, locationTrackId)
+            officialTrack to officialAlignment,
+            locationTrackService.getWithAlignment(MainLayoutContext.official, locationTrackId),
         )
 
-        val (_, draftAlignment) = locationTrackService.getWithAlignmentOrThrow(DRAFT, locationTrackId)
+        val (_, draftAlignment) = locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, locationTrackId)
         assertNotEquals(officialAlignment, draftAlignment)
         // Should be split so that we have;
         // all geometry segments
@@ -157,9 +162,9 @@ class LinkingServiceIT @Autowired constructor(
     fun kmPostGeometryLinkingWorks() {
         val kmPost = kmPost(insertOfficialTrackNumber(), someKmNumber(), draft = false)
         val kmPostId = kmPostDao.insert(kmPost).id
-        val officialKmPost = kmPostService.get(OFFICIAL, kmPostId)
+        val officialKmPost = kmPostService.get(MainLayoutContext.official, kmPostId)
 
-        assertMatches(officialKmPost!!, kmPostService.getOrThrow(DRAFT, kmPostId), contextMatch = false)
+        assertMatches(officialKmPost!!, kmPostService.getOrThrow(MainLayoutContext.draft, kmPostId), contextMatch = false)
 
         val trackNumber = getUnusedTrackNumber()
 
@@ -173,11 +178,11 @@ class LinkingServiceIT @Autowired constructor(
 
         val kmPostLinkingParameters = KmPostLinkingParameters(geometryPlanId, geometryKmPostId, kmPostId)
 
-        linkingService.saveKmPostLinking(kmPostLinkingParameters)
+        linkingService.saveKmPostLinking(LayoutBranch.main, kmPostLinkingParameters)
 
-        assertEquals(officialKmPost, kmPostService.get(OFFICIAL, kmPostId))
+        assertEquals(officialKmPost, kmPostService.get(MainLayoutContext.official, kmPostId))
 
-        val draftKmPost = kmPostService.getOrThrow(DRAFT, kmPostId)
+        val draftKmPost = kmPostService.getOrThrow(MainLayoutContext.draft, kmPostId)
 
         assertNotEquals(officialKmPost, draftKmPost)
 
@@ -195,8 +200,8 @@ class LinkingServiceIT @Autowired constructor(
             state = LocationTrackState.DELETED,
             draft = true,
         )
-        val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(locationTrack, alignment)
-        locationTrackService.publish(ValidationVersion(locationTrackId, locationTrackVersion))
+        val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
+        locationTrackService.publish(LayoutBranch.main, ValidationVersion(locationTrackId, locationTrackVersion))
 
         val geometryInterval = GeometryInterval(
             alignmentId = IntId(0),
@@ -210,6 +215,7 @@ class LinkingServiceIT @Autowired constructor(
 
         val ex = assertThrows<LinkingFailureException> {
             linkingService.saveLocationTrackLinking(
+                LayoutBranch.main,
                 LinkingParameters(
                     geometryPlanId.id,
                     geometryInterval,
@@ -228,8 +234,8 @@ class LinkingServiceIT @Autowired constructor(
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
         val (locationTrack, alignment) = locationTrackAndAlignment(insertOfficialTrackNumber(), draft = true)
-        val locationTrackResponse = locationTrackService.saveDraft(locationTrack, alignment)
-            .let { (id, rowVersion) -> locationTrackService.publish(ValidationVersion(id, rowVersion)) }
+        val locationTrackResponse = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
+            .let { (id, rowVersion) -> locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, rowVersion)) }
 
         val geometryInterval = GeometryInterval(
             alignmentId = IntId(0),
@@ -250,6 +256,7 @@ class LinkingServiceIT @Autowired constructor(
 
         val ex = assertThrows<LinkingFailureException> {
             linkingService.saveLocationTrackLinking(
+                LayoutBranch.main,
                 LinkingParameters(geometryPlanId.id, geometryInterval, layoutInterval)
             )
         }
@@ -287,8 +294,8 @@ class LinkingServiceIT @Autowired constructor(
         val (locationTrack, alignment) = locationTrackAndAlignment(
             insertOfficialTrackNumber(), segment1, draft = true,
         )
-        val locationTrackResponse = locationTrackService.saveDraft(locationTrack, alignment)
-            .let { (id, rowVersion) -> locationTrackService.publish(ValidationVersion(id, rowVersion)) }
+        val locationTrackResponse = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
+            .let { (id, rowVersion) -> locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, rowVersion)) }
 
         val (_, officialAlignment) = locationTrackService.getWithAlignment(locationTrackResponse.rowVersion)
 
@@ -320,6 +327,7 @@ class LinkingServiceIT @Autowired constructor(
 
         assertDoesNotThrow {
             linkingService.saveLocationTrackLinking(
+                LayoutBranch.main,
                 LinkingParameters(
                     geometryPlanId.id,
                     geometryInterval,

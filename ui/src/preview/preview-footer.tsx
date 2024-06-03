@@ -18,13 +18,12 @@ import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import {
     PublicationCandidate,
     PublicationResult,
-    PublicationValidationError,
+    LayoutValidationIssue,
 } from 'publication/publication-model';
 import { OnSelectFunction } from 'selection/selection-model';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { TextArea } from 'vayla-design-lib/text-area/text-area';
 import { draftLayoutContext, LayoutContext, officialLayoutContext } from 'common/common-model';
-import { pendingValidations } from 'preview/preview-view-filters';
 
 type PreviewFooterProps = {
     onSelect: OnSelectFunction;
@@ -32,6 +31,7 @@ type PreviewFooterProps = {
     layoutContext: LayoutContext;
     onChangeLayoutContext: (context: LayoutContext) => void;
     stagedPublicationCandidates: PublicationCandidate[];
+    validating: boolean;
 };
 
 function previewChangesCanBePublished(publishCandidates: PublicationCandidate[]) {
@@ -42,8 +42,8 @@ function describe(name: string, value: number | undefined): string | undefined {
     return value !== undefined && value > 0 ? `${name}: ${value}` : undefined;
 }
 
-function publishErrors(publishCandidates: PublicationCandidate[]): PublicationValidationError[] {
-    return publishCandidates.flatMap((candidate) => candidate.errors);
+function publishErrors(publishCandidates: PublicationCandidate[]): LayoutValidationIssue[] {
+    return publishCandidates.flatMap((candidate) => candidate.issues);
 }
 
 export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooterProps) => {
@@ -103,7 +103,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                     disabled={
                         candidateCount === 0 ||
                         publishConfirmVisible ||
-                        pendingValidations(props.stagedPublicationCandidates) ||
+                        props.validating ||
                         (allPublishErrors && allPublishErrors?.length > 0) ||
                         !publishPreviewChanges
                     }>

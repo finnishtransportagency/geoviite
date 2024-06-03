@@ -470,6 +470,16 @@ const trackLayoutSlice = createSlice({
             };
             if (publicationState === 'OFFICIAL') linkingReducers.stopLinking(state);
         },
+        onLayoutContextChange: (
+            state: TrackLayoutState,
+            { payload: layoutContext }: PayloadAction<LayoutContext>,
+        ): void => {
+            state.layoutContext = {
+                publicationState: layoutContext.publicationState,
+                designId: layoutContext.designId,
+            };
+            if (layoutContext.publicationState === 'OFFICIAL') linkingReducers.stopLinking(state);
+        },
         onLayoutModeChange: (
             state: TrackLayoutState,
             { payload: layoutMode }: PayloadAction<LayoutMode>,

@@ -1,16 +1,24 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.configuration.CACHE_RATKO_HEALTH_STATUS
-import fi.fta.geoviite.infra.integration.RatkoAssetType.*
+import fi.fta.geoviite.infra.integration.RatkoAssetType.LOCATION_TRACK
+import fi.fta.geoviite.infra.integration.RatkoAssetType.SWITCH
+import fi.fta.geoviite.infra.integration.RatkoAssetType.TRACK_NUMBER
 import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.ratko.RatkoClient.RatkoStatus
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.logger
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
@@ -35,9 +43,9 @@ class RatkoLocalService @Autowired constructor(
         logger.serviceCall("getRatkoPushError", "publicationId" to publicationId)
         return ratkoPushDao.getLatestRatkoPushErrorFor(publicationId)?.let { ratkoError ->
             val asset = when (ratkoError.assetType) {
-                TRACK_NUMBER -> trackNumberService.get(OFFICIAL, ratkoError.assetId as IntId<TrackLayoutTrackNumber>)
-                LOCATION_TRACK -> locationTrackService.get(OFFICIAL, ratkoError.assetId as IntId<LocationTrack>)
-                SWITCH -> switchService.get(OFFICIAL, ratkoError.assetId as IntId<TrackLayoutSwitch>)
+                TRACK_NUMBER -> trackNumberService.get(MainLayoutContext.official, ratkoError.assetId as IntId<TrackLayoutTrackNumber>)
+                LOCATION_TRACK -> locationTrackService.get(MainLayoutContext.official, ratkoError.assetId as IntId<LocationTrack>)
+                SWITCH -> switchService.get(MainLayoutContext.official, ratkoError.assetId as IntId<TrackLayoutSwitch>)
             }
             checkNotNull(asset) { "No asset found for id! ${ratkoError.assetType} ${ratkoError.assetId}" }
 
@@ -54,5 +62,14 @@ class RatkoLocalService @Autowired constructor(
 
     fun getOperatingPoints(bbox: BoundingBox): List<RatkoOperatingPoint> {
         return ratkoOperatingPointDao.getOperatingPoints(bbox)
+    }
+
+    fun searchOperatingPoints(searchTerm: FreeText, resultLimit: Int = 10): List<RatkoOperatingPoint> {
+        logger.serviceCall(
+            "searchOperatingPoints",
+            "searchTerm" to searchTerm,
+            "resultLimit" to resultLimit,
+        )
+        return ratkoOperatingPointDao.searchOperatingPoints(searchTerm, resultLimit)
     }
 }

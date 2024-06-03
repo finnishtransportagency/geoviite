@@ -4,11 +4,46 @@ import daoResponseToValidationVersion
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TEST_USER
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
-import fi.fta.geoviite.infra.integration.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.integration.CalculatedChanges
+import fi.fta.geoviite.infra.integration.DirectChanges
+import fi.fta.geoviite.infra.integration.IndirectChanges
+import fi.fta.geoviite.infra.integration.LocationTrackChange
+import fi.fta.geoviite.infra.integration.SwitchChange
+import fi.fta.geoviite.infra.integration.SwitchJointChange
+import fi.fta.geoviite.infra.integration.TrackNumberChange
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import fi.fta.geoviite.infra.tracklayout.assertMatches
+import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -47,11 +82,11 @@ class PublicationDaoIT @Autowired constructor(
 
     @Test
     fun noPublicationCandidatesFoundWithoutDrafts() {
-        assertTrue(publicationDao.fetchTrackNumberPublicationCandidates().isEmpty())
-        assertTrue(publicationDao.fetchReferenceLinePublicationCandidates().isEmpty())
-        assertTrue(publicationDao.fetchLocationTrackPublicationCandidates().isEmpty())
-        assertTrue(publicationDao.fetchSwitchPublicationCandidates().isEmpty())
-        assertTrue(publicationDao.fetchKmPostPublicationCandidates().isEmpty())
+        assertTrue(publicationDao.fetchTrackNumberPublicationCandidates(LayoutBranch.main).isEmpty())
+        assertTrue(publicationDao.fetchReferenceLinePublicationCandidates(LayoutBranch.main).isEmpty())
+        assertTrue(publicationDao.fetchLocationTrackPublicationCandidates(LayoutBranch.main).isEmpty())
+        assertTrue(publicationDao.fetchSwitchPublicationCandidates(LayoutBranch.main).isEmpty())
+        assertTrue(publicationDao.fetchKmPostPublicationCandidates(LayoutBranch.main).isEmpty())
     }
 
     @Test
@@ -61,7 +96,7 @@ class PublicationDaoIT @Autowired constructor(
         val (_, draft) = insertAndCheck(
             asMainDraft(line).copy(startAddress = TrackMeter("0123", 658.321, 3))
         )
-        val candidates = publicationDao.fetchReferenceLinePublicationCandidates()
+        val candidates = publicationDao.fetchReferenceLinePublicationCandidates(LayoutBranch.main)
         assertEquals(1, candidates.size)
         assertEquals(line.id, candidates.first().id)
         assertEquals(draft.trackNumberId, candidates.first().trackNumberId)
@@ -75,7 +110,7 @@ class PublicationDaoIT @Autowired constructor(
         val (_, draft) = insertAndCheck(
             asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT"))
         )
-        val candidates = publicationDao.fetchLocationTrackPublicationCandidates()
+        val candidates = publicationDao.fetchLocationTrackPublicationCandidates(LayoutBranch.main)
         assertEquals(1, candidates.size)
         assertEquals(track.id, candidates.first().id)
         assertEquals(draft.name, candidates.first().name)
@@ -88,7 +123,7 @@ class PublicationDaoIT @Autowired constructor(
     fun switchPublicationCandidatesAreFound() {
         val (_, switch) = insertAndCheck(switch(987, draft = false))
         val (_, draft) = insertAndCheck(asMainDraft(switch).copy(name = SwitchName("${switch.name} DRAFT")))
-        val candidates = publicationDao.fetchSwitchPublicationCandidates()
+        val candidates = publicationDao.fetchSwitchPublicationCandidates(LayoutBranch.main)
         assertEquals(1, candidates.size)
         assertEquals(switch.id, candidates.first().id)
         assertEquals(draft.name, candidates.first().name)
@@ -99,7 +134,7 @@ class PublicationDaoIT @Autowired constructor(
     @Test
     fun createOperationIsInferredCorrectly() {
         val (_, track) = insertAndCheck(locationTrack(insertOfficialTrackNumber(), draft = true))
-        val candidates = publicationDao.fetchLocationTrackPublicationCandidates()
+        val candidates = publicationDao.fetchLocationTrackPublicationCandidates(LayoutBranch.main)
         assertEquals(1, candidates.size)
         assertEquals(track.id, candidates.first().id)
         assertEquals(Operation.CREATE, candidates.first().operation)
@@ -111,11 +146,12 @@ class PublicationDaoIT @Autowired constructor(
         val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
         publishAndCheck(version)
         locationTrackService.saveDraft(
-            locationTrackService.getOrThrow(OFFICIAL, draft.id as IntId).let { lt ->
+            LayoutBranch.main,
+            locationTrackService.getOrThrow(MainLayoutContext.official, draft.id as IntId).let { lt ->
                 lt.copy(name = AlignmentName("${lt.name} TEST"))
             },
         )
-        val candidates = publicationDao.fetchLocationTrackPublicationCandidates()
+        val candidates = publicationDao.fetchLocationTrackPublicationCandidates(LayoutBranch.main)
         assertEquals(1, candidates.size)
         assertEquals(track.id, candidates.first().id)
         assertEquals(Operation.MODIFY, candidates.first().operation)
@@ -127,9 +163,11 @@ class PublicationDaoIT @Autowired constructor(
         val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
         publishAndCheck(version)
         locationTrackService.saveDraft(
-            locationTrackService.getOrThrow(OFFICIAL, draft.id as IntId).copy(state = LocationTrackState.DELETED)
+            LayoutBranch.main,
+            locationTrackService.getOrThrow(MainLayoutContext.official, draft.id as IntId)
+                .copy(state = LocationTrackState.DELETED),
         )
-        val candidates = publicationDao.fetchLocationTrackPublicationCandidates()
+        val candidates = publicationDao.fetchLocationTrackPublicationCandidates(LayoutBranch.main)
         assertEquals(1, candidates.size)
         assertEquals(track.id, candidates.first().id)
         assertEquals(Operation.DELETE, candidates.first().operation)
@@ -146,9 +184,11 @@ class PublicationDaoIT @Autowired constructor(
         )
         publishAndCheck(version)
         locationTrackService.saveDraft(
-            locationTrackService.getOrThrow(OFFICIAL, draft.id as IntId).copy(state = LocationTrackState.IN_USE)
+            LayoutBranch.main,
+            locationTrackService.getOrThrow(MainLayoutContext.official, draft.id as IntId)
+                .copy(state = LocationTrackState.IN_USE),
         )
-        val candidates = publicationDao.fetchLocationTrackPublicationCandidates()
+        val candidates = publicationDao.fetchLocationTrackPublicationCandidates(LayoutBranch.main)
         assertEquals(1, candidates.size)
         assertEquals(track.id, candidates.first().id)
         assertEquals(Operation.RESTORE, candidates.first().operation)
@@ -238,7 +278,7 @@ class PublicationDaoIT @Autowired constructor(
         )
         insertAndCheck(asMainDraft(switch.copy(name = SwitchName("FooEdited"))))
 
-        val publicationCandidates = publicationDao.fetchSwitchPublicationCandidates()
+        val publicationCandidates = publicationDao.fetchSwitchPublicationCandidates(LayoutBranch.main)
         val editedCandidate = publicationCandidates.first { s -> s.name == SwitchName("FooEdited") }
         assertEquals(editedCandidate.trackNumberIds, listOf(trackNumberId))
     }
@@ -256,7 +296,7 @@ class PublicationDaoIT @Autowired constructor(
                 )
             )
         )
-        val publicationCandidates = publicationDao.fetchSwitchPublicationCandidates()
+        val publicationCandidates = publicationDao.fetchSwitchPublicationCandidates(LayoutBranch.main)
         val editedCandidate = publicationCandidates.first { s -> s.name == SwitchName("Foo") }
         assertEquals(editedCandidate.trackNumberIds, listOf(trackNumberId))
     }
@@ -320,11 +360,15 @@ class PublicationDaoIT @Autowired constructor(
                 daoResponseToValidationVersion(officialLinkedAlignment),
                 daoResponseToValidationVersion(draftLinkedAlignment),
             ),
-            publicationDao.fetchLinkedLocationTracks(listOf(switchByAlignment))[switchByAlignment],
+            publicationDao.fetchLinkedLocationTracks(LayoutBranch.main, listOf(switchByAlignment))[switchByAlignment],
         )
         assertEquals(
             setOf(daoResponseToValidationVersion(officialLinkedAlignment)),
-            publicationDao.fetchLinkedLocationTracks(listOf(switchByAlignment), listOf())[switchByAlignment]
+            publicationDao.fetchLinkedLocationTracks(
+                LayoutBranch.main,
+                listOf(switchByAlignment),
+                listOf()
+            )[switchByAlignment]
         )
         assertEquals(
             setOf(
@@ -332,6 +376,7 @@ class PublicationDaoIT @Autowired constructor(
                 daoResponseToValidationVersion(draftLinkedAlignment),
             ),
             publicationDao.fetchLinkedLocationTracks(
+                LayoutBranch.main,
                 listOf(switchByAlignment),
                 listOf(draftLinkedAlignment.id),
             )[switchByAlignment],
@@ -341,15 +386,19 @@ class PublicationDaoIT @Autowired constructor(
                 daoResponseToValidationVersion(officialLinkedTopo),
                 daoResponseToValidationVersion(draftLinkedTopo),
             ),
-            publicationDao.fetchLinkedLocationTracks(listOf(switchByTopo))[switchByTopo],
+            publicationDao.fetchLinkedLocationTracks(LayoutBranch.main, listOf(switchByTopo))[switchByTopo],
         )
         assertEquals(
             setOf(daoResponseToValidationVersion(officialLinkedTopo)),
-            publicationDao.fetchLinkedLocationTracks(listOf(switchByTopo), listOf())[switchByTopo]
+            publicationDao.fetchLinkedLocationTracks(LayoutBranch.main, listOf(switchByTopo), listOf())[switchByTopo]
         )
         assertEquals(
             setOf(daoResponseToValidationVersion(officialLinkedTopo), daoResponseToValidationVersion(draftLinkedTopo)),
-            publicationDao.fetchLinkedLocationTracks(listOf(switchByTopo), listOf(draftLinkedTopo.id))[switchByTopo]
+            publicationDao.fetchLinkedLocationTracks(
+                LayoutBranch.main,
+                listOf(switchByTopo),
+                listOf(draftLinkedTopo.id)
+            )[switchByTopo]
         )
     }
 

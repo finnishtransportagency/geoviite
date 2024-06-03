@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
@@ -17,6 +18,7 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.MetaDataName
+import fi.fta.geoviite.infra.geometry.PlanPhase
 import fi.fta.geoviite.infra.getSomeNullableValue
 import fi.fta.geoviite.infra.getSomeValue
 import fi.fta.geoviite.infra.linking.FittedSwitchJointMatch
@@ -44,6 +46,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.util.FreeText
+import java.time.LocalDate
 import kotlin.math.ceil
 import kotlin.random.Random
 import kotlin.random.Random.Default.nextInt
@@ -244,7 +247,7 @@ fun trackNumber(
     contextData = if (draft) {
         MainDraftContextData(rowId = id, officialRowId = draftOfId, designRowId = null, dataType = DataType.TEMP)
     } else {
-        LayoutContextData.newOfficial(id)
+        LayoutContextData.newOfficial(LayoutBranch.main, id)
     },
 )
 
@@ -285,7 +288,7 @@ fun referenceLine(
     segmentCount = alignment?.segments?.size ?: 0,
     length = alignment?.length ?: 0.0,
     alignmentVersion = alignmentVersion,
-    contextData = if (draft) LayoutContextData.newDraft(id) else LayoutContextData.newOfficial(id),
+    contextData = if (draft) LayoutContextData.newDraft(LayoutBranch.main, id) else LayoutContextData.newOfficial(LayoutBranch.main, id),
 )
 
 private var locationTrackNameCounter = 0
@@ -369,7 +372,7 @@ fun locationTrack(
 ) = locationTrack(
     trackNumberId = trackNumberId,
     alignment = alignment,
-    contextData = if (draft) LayoutContextData.newDraft(id) else LayoutContextData.newOfficial(id),
+    contextData = if (draft) LayoutContextData.newDraft(LayoutBranch.main, id) else LayoutContextData.newOfficial(LayoutBranch.main, id),
     name = name,
     description = description,
     type = type,
@@ -851,9 +854,11 @@ fun switchFromDbStructure(
     name: String,
     switchStart: IPoint,
     structure: SwitchStructure,
-    draft: Boolean
+    draft: Boolean,
+    externalId: String? = null,
 ): TrackLayoutSwitch = switch(
     name = name,
+    externalId = externalId,
     structureId = structure.id as IntId,
     draft = draft,
     joints = structure.joints.map { j ->
@@ -888,7 +893,7 @@ fun switch(
     source = GENERATED,
     contextData = if (draft) {
         MainDraftContextData(id, draftOfId, null, DataType.TEMP)
-    } else LayoutContextData.newOfficial(id),
+    } else LayoutContextData.newOfficial(LayoutBranch.main, id),
 )
 
 fun joints(seed: Int = 1, count: Int = 5) = (1..count).map { jointSeed -> switchJoint(seed * 100 + jointSeed) }
@@ -917,7 +922,7 @@ fun kmPost(
     location = location?.toPoint(),
     state = state,
     sourceId = null,
-    contextData = if (draft) LayoutContextData.newDraft() else LayoutContextData.newOfficial(),
+    contextData = if (draft) LayoutContextData.newDraft(LayoutBranch.main) else LayoutContextData.newOfficial(LayoutBranch.main),
 )
 
 fun segmentPoint(x: Double, y: Double, m: Double = 1.0) = SegmentPoint(x, y, null, m, null)
@@ -1001,3 +1006,11 @@ fun switchLinkingAt(locationTrackId: DomainId<LocationTrack>, segmentIndex: Int,
         distanceToAlignment = 0.1,
         matchType = SuggestedSwitchJointMatchType.LINE,
     )
+
+fun layoutDesign(
+    name: String,
+    estimatedCompletion: LocalDate = LocalDate.parse("2022-02-02"),
+    designState: DesignState = DesignState.ACTIVE,
+) = LayoutDesignSaveRequest(
+    FreeText(name), estimatedCompletion, designState
+)

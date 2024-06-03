@@ -10,7 +10,6 @@ import {
     getBadgePoints,
 } from 'map/layers/utils/badge-layer-utils';
 import { createLayer, loadLayerData } from 'map/layers/utils/layer-utils';
-import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 import {
     AlignmentDataHolder,
@@ -21,6 +20,7 @@ import { AlignmentStartAndEnd } from 'track-layout/track-layout-model';
 import { getLocationTrackStartAndEnd } from 'track-layout/layout-location-track-api';
 import { first } from 'utils/array-utils';
 import { LayoutContext } from 'common/common-model';
+import Feature from 'ol/Feature';
 
 type SplitBoundsAndName = {
     start: number;
@@ -100,7 +100,7 @@ const layerName: MapLayerName = 'location-track-split-badge-layer';
 
 export function createLocationTrackSplitBadgeLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
+    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
     layoutContext: LayoutContext,
     splittingState: SplittingState | undefined,
     changeTimes: ChangeTimes,

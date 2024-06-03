@@ -11,7 +11,7 @@ import {
     TimeStamp,
 } from 'common/common-model';
 import { getNonNull, getNullable, queryParams } from 'api/api-fetch';
-import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
+import { changeInfoUri, layoutUri } from 'track-layout/track-layout-api';
 import { BoundingBox } from 'model/geometry';
 import { bboxString } from 'common/common-api';
 import { asyncCache } from 'cache/cache';
@@ -99,5 +99,5 @@ export const getReferenceLineChangeTimes = (
     id: ReferenceLineId,
     layoutContext: LayoutContext,
 ): Promise<LayoutAssetChangeInfo | undefined> => {
-    return getNullable<LayoutAssetChangeInfo>(changeTimeUri('reference-lines', id, layoutContext));
+    return getNullable<LayoutAssetChangeInfo>(changeInfoUri('reference-lines', id, layoutContext));
 };

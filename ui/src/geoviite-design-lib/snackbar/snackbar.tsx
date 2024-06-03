@@ -11,15 +11,12 @@ import { Override } from 'utils/type-utils';
 
 let blockToasts = false;
 
-type SnackbarButtonOptions = {
-    text: string;
-    onClick: () => void;
-};
-
 type SnackbarOptions = {
     id?: Id;
     className?: string;
     replace?: boolean;
+    closeOnClick?: boolean;
+    autoClose?: number | false;
 };
 
 type SnackbarToastOptions = Override<SnackbarOptions, { id: Id }>;
@@ -31,10 +28,7 @@ type ToastContentProps = {
 type ToastTextContentProps = {
     header: string;
     body?: string;
-};
-
-type ToastButtonContentProps = {
-    button: SnackbarButtonOptions;
+    inline?: boolean;
 };
 
 type ApiErrorSnackbarProps = {
@@ -62,18 +56,7 @@ const ToastTextContent: React.FC<ToastTextContentProps> = ({ header, body }) => 
     );
 };
 
-const ToastButtonContent: React.FC<ToastButtonContentProps> = ({ button }) => {
-    const { t } = useTranslation();
-    const buttonText = t(button.text);
-
-    return (
-        <div className={styles['Toastify__button']} onClick={button.onClick} title={buttonText}>
-            {buttonText}
-        </div>
-    );
-};
-
-const ToastContent: React.FC<ToastContentProps> = ({ children }) => (
+const ToastContentContainer: React.FC<ToastContentProps> = ({ children }) => (
     <div className={styles['Toastify__toast-content']}>{children}</div>
 );
 
@@ -90,7 +73,7 @@ const ApiErrorToast: React.FC<ApiErrorSnackbarProps> = ({ header, path, apiError
     };
 
     return (
-        <ToastContent>
+        <ToastContentContainer>
             <div className={styles['Toastify__toast-text']}>
                 <span className={styles['Toastify__toast-header-container']}>
                     <span className={styles['Toastify__toast-header']} title={header}>
@@ -108,7 +91,7 @@ const ApiErrorToast: React.FC<ApiErrorSnackbarProps> = ({ header, path, apiError
                     {date} | {apiError.correlationId}
                 </span>
             </div>
-        </ToastContent>
+        </ToastContentContainer>
     );
 };
 
@@ -126,9 +109,9 @@ export function info(header: string, body?: string, opts?: SnackbarOptions): Id 
     const toastOptions = { ...opts, id: opts?.id ?? getToastId(header, body) };
 
     return showInfoToast(
-        <ToastContent>
+        <ToastContentContainer>
             <ToastTextContent header={header} body={body} />
-        </ToastContent>,
+        </ToastContentContainer>,
         toastOptions,
     );
 }
@@ -159,12 +142,15 @@ function showInfoToast(toastContent: React.ReactNode, opts: SnackbarToastOptions
 }
 
 export function success(header: string, body?: string, opts?: SnackbarOptions): Id | undefined {
-    const toastOptions = { ...opts, id: opts?.id ?? getToastId(header, body) };
+    const toastOptions: SnackbarToastOptions = {
+        ...opts,
+        id: opts?.id ?? getToastId(header, body),
+    };
 
     return showSuccessToast(
-        <ToastContent>
+        <ToastContentContainer>
             <ToastTextContent header={header} body={body} />
-        </ToastContent>,
+        </ToastContentContainer>,
         toastOptions,
     );
 }
@@ -199,9 +185,9 @@ export function error(header: string, body?: string, opts?: SnackbarOptions): Id
     const toastOptions = { ...opts, id: opts?.id ?? getToastId(header, body) };
 
     return showErrorToast(
-        <ToastContent>
+        <ToastContentContainer>
             <ToastTextContent header={header} body={body} />
-        </ToastContent>,
+        </ToastContentContainer>,
         toastOptions,
     );
 }
@@ -234,17 +220,31 @@ function showErrorToast(toastContent: React.ReactNode, opts: SnackbarToastOption
     }
 }
 
+const SessionExpirationErrorToast: React.FC = () => {
+    const { t } = useTranslation();
+
+    return (
+        <ToastContentContainer>
+            <div className={styles['Toastify__toast-text']}>
+                <span
+                    className={styles['Toastify__toast-header']}
+                    title={t('unauthorized-request.title')}>
+                    {t('unauthorized-request.title')}
+                </span>{' '}
+                <a onClick={() => location.reload()} className={styles['Toastify__button']}>
+                    {t('unauthorized-request.button')}
+                </a>
+            </div>
+        </ToastContentContainer>
+    );
+};
+
 export function sessionExpired() {
     if (!blockToasts) {
         blockToasts = true;
 
         toast.clearWaitingQueue();
         toast.dismiss();
-
-        const buttonOptions = {
-            text: 'unauthorized-request.button',
-            onClick: () => location.reload(),
-        };
 
         const toastOptions: ToastOptions = {
             autoClose: false,
@@ -254,10 +254,9 @@ export function sessionExpired() {
         };
 
         toast.error(
-            <ToastContent>
-                <ToastTextContent header="unauthorized-request.title" />
-                <ToastButtonContent button={buttonOptions} />
-            </ToastContent>,
+            <ToastContentContainer>
+                <SessionExpirationErrorToast />
+            </ToastContentContainer>,
             toastOptions,
         );
     }
@@ -265,9 +264,9 @@ export function sessionExpired() {
 
 export function apiError(header: string, path: string, apiError: ApiErrorResponse): Id | undefined {
     return showErrorToast(
-        <ToastContent>
+        <ToastContentContainer>
             <ApiErrorToast header={header} apiError={apiError} path={path} />
-        </ToastContent>,
+        </ToastContentContainer>,
         {
             id: getToastId(header, path),
         },

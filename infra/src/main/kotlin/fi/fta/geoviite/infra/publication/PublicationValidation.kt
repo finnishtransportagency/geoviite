@@ -9,8 +9,8 @@ import fi.fta.geoviite.infra.math.IntersectType.WITHIN
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.directionBetweenPoints
 import fi.fta.geoviite.infra.math.lineLength
-import fi.fta.geoviite.infra.publication.PublicationValidationErrorType.ERROR
-import fi.fta.geoviite.infra.publication.PublicationValidationErrorType.WARNING
+import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
+import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.WARNING
 import fi.fta.geoviite.infra.switchLibrary.SwitchConnectivityType
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.switchConnectivityType
@@ -32,7 +32,7 @@ const val MAX_LAYOUT_POINT_ANGLE_CHANGE = PI / 2
 const val MAX_LAYOUT_METER_LENGTH = 2.0
 const val MAX_KM_POST_OFFSET = 10.0
 
-fun validateDraftTrackNumberFields(trackNumber: TrackLayoutTrackNumber): List<PublicationValidationError> =
+fun validateDraftTrackNumberFields(trackNumber: TrackLayoutTrackNumber): List<LayoutValidationIssue> =
     listOfNotNull(validate(trackNumber.state.isPublishable()) { "$VALIDATION_TRACK_NUMBER.state.${trackNumber.state}" })
 
 fun validateTrackNumberReferences(
@@ -40,7 +40,7 @@ fun validateTrackNumberReferences(
     referenceLine: ReferenceLine?,
     kmPosts: List<TrackLayoutKmPost>,
     locationTracks: List<LocationTrack>,
-): List<PublicationValidationError> = listOfNotNull(
+): List<LayoutValidationIssue> = listOfNotNull(
     validate(referenceLine != null) { "$VALIDATION_TRACK_NUMBER.reference-line.not-published" },
     locationTracks.filter(LocationTrack::exists).let { existingTracks ->
         validateWithParams(trackNumber.exists || existingTracks.isEmpty()) {
@@ -59,16 +59,16 @@ fun validateTrackNumberReferences(
 fun validateTrackNumberNumberDuplication(
     trackNumber: TrackLayoutTrackNumber,
     duplicates: List<TrackLayoutTrackNumber>,
-): List<PublicationValidationError> {
+): List<LayoutValidationIssue> {
     return if (trackNumber.exists) {
         val officialDuplicateExists = duplicates.any { d -> d.id != trackNumber.id && d.isOfficial }
         val draftDuplicateExists = duplicates.any { d -> d.id != trackNumber.id && d.isDraft }
 
         listOfNotNull(
-            if (!draftDuplicateExists && officialDuplicateExists) PublicationValidationError(
+            if (!draftDuplicateExists && officialDuplicateExists) LayoutValidationIssue(
                 ERROR, "$VALIDATION_TRACK_NUMBER.duplicate-name-official", mapOf("trackNumber" to trackNumber.number)
             ) else null,
-            if (draftDuplicateExists) PublicationValidationError(
+            if (draftDuplicateExists) LayoutValidationIssue(
                 ERROR, "$VALIDATION_TRACK_NUMBER.duplicate-name-draft", mapOf("trackNumber" to trackNumber.number)
             ) else null,
         )
@@ -78,7 +78,7 @@ fun validateTrackNumberNumberDuplication(
 }
 
 //Location is validated by GeocodingContext
-fun validateDraftKmPostFields(kmPost: TrackLayoutKmPost): List<PublicationValidationError> =
+fun validateDraftKmPostFields(kmPost: TrackLayoutKmPost): List<LayoutValidationIssue> =
     listOfNotNull(validate(kmPost.state.isPublishable()) { "$VALIDATION_KM_POST.state.${kmPost.state}" })
 
 fun validateKmPostReferences(
@@ -86,7 +86,7 @@ fun validateKmPostReferences(
     trackNumber: TrackLayoutTrackNumber?,
     referenceLine: ReferenceLine?,
     trackNumberNumber: TrackNumber?,
-): List<PublicationValidationError> = listOfNotNull(
+): List<LayoutValidationIssue> = listOfNotNull(
     validateWithParams(trackNumber != null) {
         "$VALIDATION_KM_POST.track-number.not-published" to localizationParams("trackNumber" to trackNumberNumber)
     },
@@ -101,14 +101,14 @@ fun validateKmPostReferences(
     },
 )
 
-fun validateDraftSwitchFields(switch: TrackLayoutSwitch): List<PublicationValidationError> = listOfNotNull(
+fun validateDraftSwitchFields(switch: TrackLayoutSwitch): List<LayoutValidationIssue> = listOfNotNull(
     validate(switch.stateCategory.isPublishable()) { "$VALIDATION_SWITCH.state-category.${switch.stateCategory}" },
 )
 
 fun validateSwitchLocationTrackLinkReferences(
     switch: TrackLayoutSwitch,
     locationTracks: List<LocationTrack>,
-): List<PublicationValidationError> {
+): List<LayoutValidationIssue> {
     return listOfNotNull(locationTracks.filter(LocationTrack::exists).let { existingTracks ->
         validateWithParams(switch.exists || existingTracks.isEmpty()) {
             val existingNames = existingTracks.joinToString(", ") { track -> track.name }
@@ -117,7 +117,7 @@ fun validateSwitchLocationTrackLinkReferences(
     })
 }
 
-fun validateSwitchLocation(switch: TrackLayoutSwitch): List<PublicationValidationError> =
+fun validateSwitchLocation(switch: TrackLayoutSwitch): List<LayoutValidationIssue> =
     listOfNotNull(validate(switch.joints.isNotEmpty()) {
         "$VALIDATION_SWITCH.no-location"
     })
@@ -125,7 +125,7 @@ fun validateSwitchLocation(switch: TrackLayoutSwitch): List<PublicationValidatio
 fun validateSwitchNameDuplication(
     switch: TrackLayoutSwitch,
     duplicates: List<TrackLayoutSwitch>,
-): List<PublicationValidationError> {
+): List<LayoutValidationIssue> {
     return if (switch.exists) {
         val officialDuplicateExists = duplicates.any { d -> d.id != switch.id && d.isOfficial }
         val draftDuplicateExists = duplicates.any { d -> d.id != switch.id && d.isDraft }
@@ -147,7 +147,7 @@ fun validateLocationTrackNameDuplication(
     track: LocationTrack,
     trackNumber: TrackNumber?,
     duplicates: List<LocationTrack>,
-): List<PublicationValidationError> {
+): List<LayoutValidationIssue> {
     return if (track.exists && duplicates.any { d -> d.id != track.id }) {
         // Location track names must be unique within the same track number, but there can be location tracks with the
         // same name on other track numbers
@@ -174,7 +174,7 @@ fun validateSwitchLocationTrackLinkStructure(
     switch: TrackLayoutSwitch,
     structure: SwitchStructure,
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
-): List<PublicationValidationError> {
+): List<LayoutValidationIssue> {
     val existingTracks = locationTracks.filter { (track, _) -> track.exists }
     val segmentGroups = existingTracks // Only consider the non-deleted tracks for switch alignments
         .map { (track, alignment) -> track to alignment.segments.filter { segment -> segment.switchId == switch.id } }
@@ -216,7 +216,7 @@ fun validateSwitchLocationTrackLinkStructure(
 fun validateLocationTrackSwitchConnectivity(
     layoutTrack: LocationTrack,
     alignment: LayoutAlignment,
-): List<PublicationValidationError> {
+): List<LayoutValidationIssue> {
     val startSegment = alignment.segments.firstOrNull()
     val endSegment = alignment.segments.lastOrNull()
     val topologyStartSwitch = layoutTrack.topologyStartSwitch?.switchId
@@ -278,7 +278,7 @@ fun validateSwitchTopologicalConnectivity(
     structure: SwitchStructure,
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     validatingTrack: LocationTrack?,
-): List<PublicationValidationError> {
+): List<LayoutValidationIssue> {
     val connectivityType = switchConnectivityType(structure)
     val nonDuplicateTracks = locationTracks.filter { (locationTrack, _) -> locationTrack.duplicateOf == null }
     val nonDuplicateTracksThroughJoints = getTracksThroughJoints(structure, nonDuplicateTracks, switch)
@@ -313,7 +313,7 @@ private fun validateFrontJointTopology(
     switchStructure: SwitchStructure,
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     validatingTrack: LocationTrack?,
-): PublicationValidationError? {
+): LayoutValidationIssue? {
     val connectivityType = switchConnectivityType(switchStructure)
     fun tracksHaveOkFrontJointLink(tracks: List<Pair<LocationTrack, LayoutAlignment>>) =
         tracks.any { (locationTrack, _) ->
@@ -348,7 +348,7 @@ private fun validateExcessTracksThroughJoint(
     tracksThroughJoint: Map<JointNumber, List<LocationTrack>>,
     switchName: SwitchName,
     validatingTrack: LocationTrack?,
-): PublicationValidationError? {
+): LayoutValidationIssue? {
     val excesses = tracksThroughJoint.filter { (joint, tracks) ->
         joint != connectivityType.sharedPassThroughJoint && tracks.size > 1
     }
@@ -385,7 +385,7 @@ fun validateSwitchAlignmentTopology(
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     switchName: SwitchName,
     validatingTrack: LocationTrack?,
-): PublicationValidationError? {
+): LayoutValidationIssue? {
     val nonDuplicateTracks = locationTracks.filter { (lt) -> lt.duplicateOf == null }
     val switchAlignmentsUnlinkedToNonduplicates = connectivityType.trackLinkedAlignmentsJoints.filter { switchAlignment ->
         nonDuplicateTracks.none { (_, alignment) ->
@@ -443,7 +443,7 @@ fun validateDuplicateOfState(
     duplicateOfLocationTrack: LocationTrack?,
     duplicateOfLocationTrackDraftName: AlignmentName?,
     duplicates: List<LocationTrack>,
-): List<PublicationValidationError> {
+): List<LayoutValidationIssue> {
     val duplicateNameParams = localizationParams(
         "duplicateTrack" to (duplicateOfLocationTrack?.name ?: duplicateOfLocationTrackDraftName)
     )
@@ -486,7 +486,7 @@ fun validateDuplicateOfState(
     return ownDuplicateOfErrors + otherDuplicateReferenceErrors
 }
 
-fun validateDraftLocationTrackFields(locationTrack: LocationTrack): List<PublicationValidationError> = listOfNotNull(
+fun validateDraftLocationTrackFields(locationTrack: LocationTrack): List<LayoutValidationIssue> = listOfNotNull(
     validate(locationTrack.state.isPublishable()) { "$VALIDATION_LOCATION_TRACK.state.${locationTrack.state}" },
 )
 
@@ -494,7 +494,7 @@ fun validateReferenceLineReference(
     referenceLine: ReferenceLine,
     trackNumberNumber: TrackNumber?,
     trackNumber: TrackLayoutTrackNumber?,
-): List<PublicationValidationError> {
+): List<LayoutValidationIssue> {
     val numberParams = localizationParams("trackNumber" to trackNumberNumber)
     return listOfNotNull(
         validateWithParams(trackNumber != null) {
@@ -510,7 +510,7 @@ fun validateLocationTrackReference(
     locationTrack: LocationTrack,
     trackNumber: TrackLayoutTrackNumber?,
     trackNumberName: TrackNumber?,
-): List<PublicationValidationError> {
+): List<LayoutValidationIssue> {
     return if (trackNumber == null) listOf(
         validationError("$VALIDATION_LOCATION_TRACK.track-number.not-published", "trackNumber" to trackNumberName),
     )
@@ -538,7 +538,7 @@ data class SegmentSwitch(
 fun validateSegmentSwitchReferences(
     locationTrack: LocationTrack,
     segmentSwitches: List<SegmentSwitch>,
-): List<PublicationValidationError> {
+): List<LayoutValidationIssue> {
     return segmentSwitches.flatMap { segmentSwitch ->
         val switch = segmentSwitch.switch
         val switchStructure = segmentSwitch.switchStructure
@@ -549,7 +549,7 @@ fun validateSegmentSwitchReferences(
         if (switch == null || switchStructure == null) {
             listOf(validationError("$VALIDATION_LOCATION_TRACK.switch.not-published", nameLocalizationParams))
         } else {
-            val stateErrors: List<PublicationValidationError> = listOfNotNull(
+            val stateErrors: List<LayoutValidationIssue> = listOfNotNull(
                 validateWithParams(segments.all { segment -> switch.id == segment.switchId }) {
                     "$VALIDATION_LOCATION_TRACK.switch.not-official" to nameLocalizationParams
                 },
@@ -558,7 +558,7 @@ fun validateSegmentSwitchReferences(
                 },
             )
 
-            val geometryErrors: List<PublicationValidationError> = if (locationTrack.exists && switch.exists) {
+            val geometryErrors: List<LayoutValidationIssue> = if (locationTrack.exists && switch.exists) {
                 val structureJoints = collectJoints(segmentSwitch.switchStructure)
                 val segmentJoints = collectJoints(segments)
                 listOfNotNull(
@@ -588,7 +588,7 @@ fun validateSegmentSwitchReferences(
 fun validateTopologicallyConnectedSwitchReferences(
     locationTrack: LocationTrack,
     topologicallyConnectedSwitches: List<Pair<SwitchName, TrackLayoutSwitch?>>,
-): List<PublicationValidationError> = topologicallyConnectedSwitches.mapNotNull { (name, switch) ->
+): List<LayoutValidationIssue> = topologicallyConnectedSwitches.mapNotNull { (name, switch) ->
     val nameParams = localizationParams("switch" to name)
     if (switch == null) {
         validationError("$VALIDATION_LOCATION_TRACK.switch.not-published", nameParams)
@@ -603,12 +603,12 @@ private fun jointSequence(joints: List<JointNumber>) =
     joints.joinToString("-") { jointNumber -> "${jointNumber.intValue}" }
 
 fun noGeocodingContext(validationTargetLocalizationPrefix: String) =
-    PublicationValidationError(ERROR, "$validationTargetLocalizationPrefix.no-context")
+    LayoutValidationIssue(ERROR, "$validationTargetLocalizationPrefix.no-context")
 
 fun validateGeocodingContext(
     contextCreateResult: GeocodingContextCreateResult,
     trackNumber: TrackNumber,
-): List<PublicationValidationError> {
+): List<LayoutValidationIssue> {
     val context = contextCreateResult.geocodingContext
 
     val badStartPoint = validateWithParams(contextCreateResult.startPointRejectedReason == null) {
@@ -645,23 +645,23 @@ fun validateGeocodingContext(
         val kmPostLocalizationParams = mapOf("trackNumber" to trackNumber, "kmNumber" to kmPost.kmNumber)
 
         when (reason) {
-            KmPostRejectedReason.TOO_FAR_APART -> PublicationValidationError(
+            KmPostRejectedReason.TOO_FAR_APART -> LayoutValidationIssue(
                 ERROR, "$VALIDATION_GEOCODING.km-post-too-long", kmPostLocalizationParams
             )
 
-            KmPostRejectedReason.NO_LOCATION -> PublicationValidationError(
+            KmPostRejectedReason.NO_LOCATION -> LayoutValidationIssue(
                 ERROR, "$VALIDATION_GEOCODING.km-post-no-location", kmPostLocalizationParams
             )
 
-            KmPostRejectedReason.IS_BEFORE_START_ADDRESS -> PublicationValidationError(
+            KmPostRejectedReason.IS_BEFORE_START_ADDRESS -> LayoutValidationIssue(
                 WARNING, "$VALIDATION_GEOCODING.km-post-smaller-than-track-number-start", kmPostLocalizationParams
             )
 
-            KmPostRejectedReason.INTERSECTS_BEFORE_REFERENCE_LINE -> PublicationValidationError(
+            KmPostRejectedReason.INTERSECTS_BEFORE_REFERENCE_LINE -> LayoutValidationIssue(
                 WARNING, "$VALIDATION_GEOCODING.km-post-outside-line-before", kmPostLocalizationParams
             )
 
-            KmPostRejectedReason.INTERSECTS_AFTER_REFERENCE_LINE -> PublicationValidationError(
+            KmPostRejectedReason.INTERSECTS_AFTER_REFERENCE_LINE -> LayoutValidationIssue(
                 WARNING, "$VALIDATION_GEOCODING.km-post-outside-line-after", kmPostLocalizationParams
             )
         }
@@ -679,21 +679,21 @@ fun validateAddressPoints(
     locationTrack: LocationTrack,
     validationTargetLocalizationPrefix: String,
     geocode: () -> AlignmentAddresses?,
-): List<PublicationValidationError> = try {
+): List<LayoutValidationIssue> = try {
     geocode()?.let { addresses ->
         validateAddressPoints(trackNumber, locationTrack, addresses)
     } ?: listOf(
-        PublicationValidationError(ERROR, "$validationTargetLocalizationPrefix.no-context", emptyMap()),
+        LayoutValidationIssue(ERROR, "$validationTargetLocalizationPrefix.no-context", emptyMap()),
     )
 } catch (e: ClientException) {
-    listOf(PublicationValidationError(ERROR, e.localizationKey))
+    listOf(LayoutValidationIssue(ERROR, e.localizationKey))
 }
 
 fun validateAddressPoints(
     trackNumber: TrackLayoutTrackNumber,
     locationTrack: LocationTrack,
     addresses: AlignmentAddresses,
-): List<PublicationValidationError> {
+): List<LayoutValidationIssue> {
     val allPoints = listOf(addresses.startPoint) + addresses.midPoints + listOf(addresses.endPoint)
     val allCoordinates = allPoints.map(AddressPoint::point)
     val allAddresses = allPoints.map(AddressPoint::address)
@@ -835,15 +835,15 @@ private fun isAddressDiffOk(address1: TrackMeter?, address2: TrackMeter?): Boole
     else if (address1.kmNumber != address2.kmNumber) true
     else (address2.meters - address1.meters).toDouble() in 0.0..MAX_LAYOUT_METER_LENGTH
 
-fun validate(valid: Boolean, type: PublicationValidationErrorType = ERROR, error: () -> String) =
-    validateWithParams(valid, type) { error() to LocalizationParams.empty }
+fun validate(valid: Boolean, type: LayoutValidationIssueType = ERROR, issue: () -> String) =
+    validateWithParams(valid, type) { issue() to LocalizationParams.empty }
 
-private fun validateWithParams(
+fun validateWithParams(
     valid: Boolean,
-    type: PublicationValidationErrorType = ERROR,
-    error: () -> Pair<String, LocalizationParams>,
-): PublicationValidationError? = if (!valid) {
-    error().let { (key, params) -> PublicationValidationError(type, LocalizationKey(key), params) }
+    type: LayoutValidationIssueType = ERROR,
+    issue: () -> Pair<String, LocalizationParams>,
+): LayoutValidationIssue? = if (!valid) {
+    issue().let { (key, params) -> LayoutValidationIssue(type, LocalizationKey(key), params) }
 } else {
     null
 }
@@ -877,14 +877,14 @@ fun <T> combineVersions(
     return (officialVersions + validationVersions).distinct()
 }
 
-fun validationError(key: String, vararg params: Pair<String, Any?>): PublicationValidationError =
-    PublicationValidationError(ERROR, key, params.associate { it })
+fun validationError(key: String, vararg params: Pair<String, Any?>): LayoutValidationIssue =
+    LayoutValidationIssue(ERROR, key, params.associate { it })
 
-fun validationError(key: String, params: LocalizationParams): PublicationValidationError =
-    PublicationValidationError(ERROR, LocalizationKey(key), params)
+fun validationError(key: String, params: LocalizationParams): LayoutValidationIssue =
+    LayoutValidationIssue(ERROR, LocalizationKey(key), params)
 
-fun validationWarning(key: String, vararg params: Pair<String, Any?>): PublicationValidationError =
-    PublicationValidationError(WARNING, key, params.associate { it })
+fun validationWarning(key: String, vararg params: Pair<String, Any?>): LayoutValidationIssue =
+    LayoutValidationIssue(WARNING, key, params.associate { it })
 
-fun validationWarning(key: String, params: LocalizationParams): PublicationValidationError =
-    PublicationValidationError(WARNING, LocalizationKey(key), params)
+fun validationWarning(key: String, params: LocalizationParams): LayoutValidationIssue =
+    LayoutValidationIssue(WARNING, LocalizationKey(key), params)

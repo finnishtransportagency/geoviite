@@ -167,10 +167,11 @@ data class ValidatedPublicationCandidates(
 
 data class ValidatedAsset<T>(
     val id: IntId<T>,
-    val errors: List<PublicationValidationError>,
+    val errors: List<LayoutValidationIssue>,
 )
 
 data class PublicationCandidates(
+    val branch: LayoutBranch,
     val trackNumbers: List<TrackNumberPublicationCandidate>,
     val locationTracks: List<LocationTrackPublicationCandidate>,
     val referenceLines: List<ReferenceLinePublicationCandidate>,
@@ -185,15 +186,20 @@ data class PublicationCandidates(
         kmPosts.map { candidate -> candidate.id },
     )
 
-    fun getValidationVersions() = ValidationVersions(
+    fun getValidationVersions(
+        branch: LayoutBranch,
+        splitVersions: List<ValidationVersion<Split>>,
+    ) = ValidationVersions(
+        branch = branch,
         trackNumbers = trackNumbers.map(TrackNumberPublicationCandidate::getPublicationVersion),
         referenceLines = referenceLines.map(ReferenceLinePublicationCandidate::getPublicationVersion),
         locationTracks = locationTracks.map(LocationTrackPublicationCandidate::getPublicationVersion),
         switches = switches.map(SwitchPublicationCandidate::getPublicationVersion),
         kmPosts = kmPosts.map(KmPostPublicationCandidate::getPublicationVersion),
+        splits = splitVersions,
     )
 
-    fun filter(request: PublicationRequestIds) = PublicationCandidates(
+    fun filter(request: PublicationRequestIds) = copy(
         trackNumbers = trackNumbers.filter { candidate -> request.trackNumbers.contains(candidate.id) },
         referenceLines = referenceLines.filter { candidate -> request.referenceLines.contains(candidate.id) },
         locationTracks = locationTracks.filter { candidate -> request.locationTracks.contains(candidate.id) },
@@ -213,15 +219,18 @@ data class PublicationCandidates(
 }
 
 data class ValidationVersions(
+    val branch: LayoutBranch,
     val trackNumbers: List<ValidationVersion<TrackLayoutTrackNumber>>,
     val locationTracks: List<ValidationVersion<LocationTrack>>,
     val referenceLines: List<ValidationVersion<ReferenceLine>>,
     val switches: List<ValidationVersion<TrackLayoutSwitch>>,
     val kmPosts: List<ValidationVersion<TrackLayoutKmPost>>,
+    val splits: List<ValidationVersion<Split>>,
 ) {
     fun containsLocationTrack(id: IntId<LocationTrack>) = locationTracks.any { it.officialId == id }
     fun containsKmPost(id: IntId<TrackLayoutKmPost>) = kmPosts.any { it.officialId == id }
     fun containsSwitch(id: IntId<TrackLayoutSwitch>) = switches.any { it.officialId == id }
+    fun containsSplit(id: IntId<Split>): Boolean = splits.any { it.officialId == id }
 
     fun findTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.find { it.officialId == id }
     fun findLocationTrack(id: IntId<LocationTrack>) = locationTracks.find { it.officialId == id }
@@ -232,6 +241,7 @@ data class ValidationVersions(
     fun getLocationTrackIds() = locationTracks.map { v -> v.officialId }
     fun getSwitchIds() = switches.map { v -> v.officialId }
     fun getKmPostIds() = kmPosts.map { v -> v.officialId }
+    fun getSplitIds() = splits.map { v -> v.officialId }
 }
 
 data class PublicationGroup(
@@ -270,14 +280,14 @@ data class PublicationResult(
     val kmPosts: Int,
 )
 
-enum class PublicationValidationErrorType { ERROR, WARNING }
-data class PublicationValidationError(
-    val type: PublicationValidationErrorType,
+enum class LayoutValidationIssueType { ERROR, WARNING }
+data class LayoutValidationIssue(
+    val type: LayoutValidationIssueType,
     val localizationKey: LocalizationKey,
     val params: LocalizationParams = LocalizationParams.empty,
 ) {
     constructor(
-        type: PublicationValidationErrorType,
+        type: LayoutValidationIssueType,
         key: String,
         params: Map<String, Any?> = emptyMap(),
     ) : this(type, LocalizationKey(key), localizationParams(params))
@@ -289,7 +299,7 @@ interface PublicationCandidate<T> {
     val rowVersion: RowVersion<T>
     val draftChangeTime: Instant
     val userName: UserName
-    val errors: List<PublicationValidationError>
+    val issues: List<LayoutValidationIssue>
     val operation: Operation?
     val publicationGroup: PublicationGroup?
 
@@ -302,7 +312,7 @@ data class TrackNumberPublicationCandidate(
     val number: TrackNumber,
     override val draftChangeTime: Instant,
     override val userName: UserName,
-    override val errors: List<PublicationValidationError> = listOf(),
+    override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation,
     override val publicationGroup: PublicationGroup? = null,
     val boundingBox: BoundingBox?,
@@ -317,7 +327,7 @@ data class ReferenceLinePublicationCandidate(
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     override val draftChangeTime: Instant,
     override val userName: UserName,
-    override val errors: List<PublicationValidationError> = listOf(),
+    override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation?,
     override val publicationGroup: PublicationGroup? = null,
     val boundingBox: BoundingBox?,
@@ -333,7 +343,7 @@ data class LocationTrackPublicationCandidate(
     override val draftChangeTime: Instant,
     val duplicateOf: IntId<LocationTrack>?,
     override val userName: UserName,
-    override val errors: List<PublicationValidationError> = listOf(),
+    override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation,
     override val publicationGroup: PublicationGroup? = null,
     val boundingBox: BoundingBox?,
@@ -348,7 +358,7 @@ data class SwitchPublicationCandidate(
     val trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
     override val draftChangeTime: Instant,
     override val userName: UserName,
-    override val errors: List<PublicationValidationError> = listOf(),
+    override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation,
     override val publicationGroup: PublicationGroup? = null,
     val location: Point?,
@@ -363,7 +373,7 @@ data class KmPostPublicationCandidate(
     val kmNumber: KmNumber,
     override val draftChangeTime: Instant,
     override val userName: UserName,
-    override val errors: List<PublicationValidationError> = listOf(),
+    override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation,
     override val publicationGroup: PublicationGroup? = null,
     val location: Point?,

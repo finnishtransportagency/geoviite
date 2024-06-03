@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra.geocoding
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.logging.serviceCall
@@ -42,12 +42,12 @@ class AddressPointsCache(
 
     @Transactional(readOnly = true)
     fun getAddressPointCacheKey(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         locationTrackId: IntId<LocationTrack>,
     ): AddressPointCacheKey? {
-        return locationTrackDao.fetchVersion(locationTrackId, publicationState)?.let { trackVersion ->
+        return locationTrackDao.fetchVersion(layoutContext, locationTrackId)?.let { trackVersion ->
             val track = locationTrackDao.fetch(trackVersion)
-            val contextCacheKey = geocodingDao.getLayoutGeocodingContextCacheKey(publicationState, track.trackNumberId)
+            val contextCacheKey = geocodingDao.getLayoutGeocodingContextCacheKey(layoutContext, track.trackNumberId)
             if (track.alignmentVersion != null && contextCacheKey != null) {
                 AddressPointCacheKey(track.alignmentVersion, contextCacheKey)
             } else {
@@ -56,8 +56,9 @@ class AddressPointsCache(
         }
     }
 
-    /** This is for caching address points. Please don't call this directly if possible, please
-    prefer GeocodingService's getAddressPoints method instead
+    /**
+     * This is for caching address points. Please don't call this directly if possible, please
+     * prefer GeocodingService's getAddressPoints method instead
      **/
     fun getAddressPoints(cacheKey: AddressPointCacheKey): AlignmentAddresses? {
         logger.serviceCall("getAddressPoints", "cacheKey" to cacheKey)

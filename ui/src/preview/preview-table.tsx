@@ -1,4 +1,4 @@
-import { Table, Th, ThContentAlignment } from 'vayla-design-lib/table/table';
+import { Table, Th } from 'vayla-design-lib/table/table';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -28,7 +28,7 @@ import {
 import {
     DraftChangeType,
     PublicationCandidate,
-    PublicationValidationError,
+    LayoutValidationIssue,
 } from 'publication/publication-model';
 import { ChangesBeingReverted, PreviewOperations } from 'preview/preview-view';
 import { BoundingBox } from 'model/geometry';
@@ -39,7 +39,6 @@ import { ChangeTimes } from 'common/common-slice';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { PublicationGroupAmounts } from 'publication/publication-utils';
-import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
 import styles from './preview-view.scss';
 import { PreviewTableItem } from 'preview/preview-table-item';
 
@@ -53,7 +52,7 @@ export type PublishableObjectId =
 export type PreviewTableEntry = {
     publishCandidate: PublicationCandidate;
     type: DraftChangeType;
-    errors: PublicationValidationError[];
+    issues: LayoutValidationIssue[];
     pendingValidation: boolean;
     boundingBox?: BoundingBox;
 } & ChangeTableEntry;
@@ -68,7 +67,8 @@ type PreviewTableProps = {
     publicationGroupAmounts: PublicationGroupAmounts;
     displayedTotalPublicationAssetAmount: number;
     previewOperations: PreviewOperations;
-    showStatusSpinner: boolean;
+    validationInProgress: boolean;
+    isRowValidating: (tableEntry: PreviewTableEntry) => boolean;
 };
 
 const PreviewTable: React.FC<PreviewTableProps> = ({
@@ -81,7 +81,8 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     displayedTotalPublicationAssetAmount,
     previewOperations,
     onShowOnMap,
-    showStatusSpinner,
+    validationInProgress,
+    isRowValidating,
 }) => {
     const { t } = useTranslation();
     const trackNumbers =
@@ -142,7 +143,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             ...tableEntry,
             publishCandidate: candidate,
             boundingBox,
-            errors: candidate.errors,
+            issues: candidate.issues,
             type: candidate.type,
             pendingValidation: candidate.pendingValidation,
         };
@@ -162,30 +163,21 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
         setSortInfo(newSortInfo);
     };
 
-    const sortableTableHeader = (
-        prop: SortProps,
-        translationKey: string,
-        showSpinner: boolean = false,
-    ) => (
+    const sortableTableHeader = (prop: SortProps, translationKey: string) => (
         <Th
             onClick={() => sortByProp(prop)}
             qa-id={translationKey}
-            icon={sortInfo.propName === prop ? getSortDirectionIcon(sortInfo.direction) : undefined}
-            contentAlignment={showSpinner ? ThContentAlignment.VERTICALLY_ALIGNED : undefined}>
+            icon={
+                sortInfo.propName === prop ? getSortDirectionIcon(sortInfo.direction) : undefined
+            }>
             {t(translationKey)}
-            {showSpinner && (
-                <Spinner
-                    inline={true}
-                    size={SpinnerSize.SMALL}
-                    tableHeader={true}
-                    qaId={'table-validation-in-progress'}
-                />
-            )}
         </Th>
     );
 
     return (
-        <div className={styles['preview-table__container']}>
+        <div
+            className={styles['preview-table__container']}
+            qa-id={validationInProgress ? 'table-validation-in-progress' : undefined}>
             <Table wide>
                 <thead className={styles['preview-table__header']}>
                     <tr>
@@ -200,11 +192,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                             'preview-table.modified-moment',
                         )}
                         {sortableTableHeader(SortProps.USER_NAME, 'preview-table.user')}
-                        {sortableTableHeader(
-                            SortProps.ERRORS,
-                            'preview-table.status',
-                            showStatusSpinner,
-                        )}
+                        {sortableTableHeader(SortProps.ISSUES, 'preview-table.status')}
                         <Th>{t('preview-table.actions')}</Th>
                     </tr>
                 </thead>
@@ -222,6 +210,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                                     displayedTotalPublicationAssetAmount={
                                         displayedTotalPublicationAssetAmount
                                     }
+                                    isValidating={isRowValidating}
                                 />
                             }
                         </React.Fragment>

@@ -10,6 +10,11 @@ enum class PublicationState { OFFICIAL, DRAFT }
 
 enum class LayoutBranchType { MAIN, DESIGN }
 
+fun assertMainBranch(branch: LayoutBranch) = require(branch == LayoutBranch.main) {
+    // TODO: Design branch support missing in Ratko integration and splits
+    "Design branch use is not yet supported"
+}
+
 sealed class LayoutBranch {
     companion object {
         @JvmStatic
@@ -26,6 +31,12 @@ sealed class LayoutBranch {
             "Value is not a ${LayoutBranch::class.simpleName}: ${formatForException(value)}"
         }
     }
+
+    val draft by lazy { LayoutContext.of(this, PublicationState.DRAFT) }
+
+    val official by lazy { LayoutContext.of(this, PublicationState.OFFICIAL) }
+
+    open val designId: IntId<LayoutDesign>? get() = null
 }
 
 class MainBranch private constructor() : LayoutBranch() {
@@ -33,7 +44,9 @@ class MainBranch private constructor() : LayoutBranch() {
         val type: LayoutBranchType = LayoutBranchType.MAIN
         val instance: MainBranch = MainBranch()
 
-        fun tryParse(value: String): MainBranch? = if (value == type.name) instance else null
+        fun tryParse(value: String): MainBranch? =
+            if (value.length == type.name.length && value.uppercase() == type.name) instance
+            else null
 
         @JvmStatic
         @JsonCreator
@@ -47,20 +60,24 @@ class MainBranch private constructor() : LayoutBranch() {
 }
 
 @Suppress("DataClassPrivateConstructor")
-data class DesignBranch private constructor(val designId: IntId<LayoutDesign>) : LayoutBranch() {
-    private val stringFormat by lazy { "$prefix${designId.intValue}" }
+data class DesignBranch private constructor(override val designId: IntId<LayoutDesign>) : LayoutBranch() {
+    private val stringFormat by lazy { "$prefix$designId" }
 
     companion object {
         val type: LayoutBranchType = LayoutBranchType.DESIGN
         val prefix: String = "$type$separator"
 
         private val branches: ConcurrentHashMap<IntId<LayoutDesign>, DesignBranch> = ConcurrentHashMap()
+        private val stringLength: IntRange = (IntId.stringLength.first + prefix.length)..(IntId.stringLength.last + prefix.length)
 
         fun of(designId: IntId<LayoutDesign>): DesignBranch =
             branches.computeIfAbsent(designId) { id -> DesignBranch(id) }
 
-        fun tryParse(value: String): DesignBranch? =
-            if (value.startsWith(prefix)) of(IntId(value.substring(prefix.length).toInt())) else null
+        fun tryParse(value: String): DesignBranch? = value
+            .takeIf { v -> v.length in stringLength }
+            ?.uppercase()
+            ?.takeIf { v -> v.startsWith(prefix) }
+            ?.let { v -> of(IntId.parse(v.substring(prefix.length))) }
 
         @JvmStatic
         @JsonCreator

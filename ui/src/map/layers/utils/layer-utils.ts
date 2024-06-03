@@ -156,13 +156,13 @@ const isLatestLayerId = (name: MapLayerName, id: number) => latestLayerIds.get(n
 
 export type LayerResult<FeatureType extends Geometry> = {
     layer: BaseLayer;
-    source: VectorSource<FeatureType>;
+    source: VectorSource<Feature<FeatureType>>;
     isLatest: () => boolean;
 };
 
 export function createLayer<FeatureType extends Geometry>(
     name: MapLayerName,
-    existingLayer: VectorLayer<VectorSource<FeatureType>> | undefined,
+    existingLayer: VectorLayer<Feature<FeatureType>> | undefined,
     allowDefaultStyle: boolean = true,
     declutter: boolean = false,
 ): LayerResult<FeatureType> {
@@ -183,7 +183,7 @@ export function createLayer<FeatureType extends Geometry>(
 }
 
 export function loadLayerData<Data, FeatureType extends Geometry>(
-    source: VectorSource<FeatureType>,
+    source: VectorSource<Feature<FeatureType>>,
     isLatest: () => boolean,
     onLoadingData: (loading: boolean, loadedData: Data | undefined) => void,
     dataPromise: Promise<Data>,

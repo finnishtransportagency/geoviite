@@ -6,28 +6,28 @@ import {
     LayoutTrackNumberId,
 } from 'track-layout/track-layout-model';
 import {
-    LayoutAssetChangeInfo,
     draftLayoutContext,
     KmNumber,
+    LayoutAssetChangeInfo,
     LayoutContext,
     TimeStamp,
 } from 'common/common-model';
 import {
-    deleteNonNullAdt,
+    deleteNonNull,
     getNonNull,
     getNullable,
-    postNonNullAdt,
-    putNonNullAdt,
+    postNonNull,
+    putNonNull,
     queryParams,
 } from 'api/api-fetch';
-import { changeTimeUri, layoutUri, TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
+import { changeInfoUri, layoutUri } from 'track-layout/track-layout-api';
 import { getChangeTimes, updateKmPostChangeTime } from 'common/change-time-api';
 import { BoundingBox, Point } from 'model/geometry';
 import { bboxString, pointString } from 'common/common-api';
-import { KmPostSaveError, KmPostSaveRequest } from 'linking/linking-model';
-import { Result } from 'neverthrow';
+import { KmPostSaveRequest } from 'linking/linking-model';
 import { ValidatedKmPost } from 'publication/publication-model';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
+import i18next from 'i18next';
 
 const kmPostListCache = asyncCache<string, LayoutKmPost[]>();
 const kmPostForLinkingCache = asyncCache<string, LayoutKmPost[]>();
@@ -120,53 +120,43 @@ export async function getKmPostForLinking(
 export async function insertKmPost(
     layoutContext: LayoutContext,
     kmPost: KmPostSaveRequest,
-): Promise<Result<LayoutKmPostId, KmPostSaveError>> {
-    const apiResult = await postNonNullAdt<KmPostSaveRequest, LayoutKmPostId>(
+): Promise<LayoutKmPostId> {
+    const result = await postNonNull<KmPostSaveRequest, LayoutKmPostId>(
         layoutUri('km-posts', draftLayoutContext(layoutContext)),
         kmPost,
     );
 
     await updateKmPostChangeTime();
 
-    return apiResult.mapErr(() => ({
-        // Here it is possible to return more accurate validation errors
-        validationErrors: [],
-    }));
+    return result;
 }
 
 export async function updateKmPost(
     layoutContext: LayoutContext,
     id: LayoutKmPostId,
     kmPost: KmPostSaveRequest,
-): Promise<Result<LayoutKmPostId, KmPostSaveError>> {
-    const apiResult = await putNonNullAdt<KmPostSaveRequest, LayoutKmPostId>(
+): Promise<LayoutKmPostId> {
+    const result = await putNonNull<KmPostSaveRequest, LayoutKmPostId>(
         layoutUri('km-posts', draftLayoutContext(layoutContext), id),
         kmPost,
     );
 
     await updateKmPostChangeTime();
 
-    return apiResult.mapErr(() => ({
-        // Here it is possible to return more accurate validation errors
-        validationErrors: [],
-    }));
+    return result;
 }
 
 export const deleteDraftKmPost = async (
     layoutContext: LayoutContext,
     id: LayoutKmPostId,
-): Promise<Result<LayoutKmPostId, KmPostSaveError>> => {
-    const apiResult = await deleteNonNullAdt<undefined, LayoutKmPostId>(
+): Promise<LayoutKmPostId> => {
+    const result = await deleteNonNull<LayoutKmPostId>(
         layoutUri('km-posts', draftLayoutContext(layoutContext), id),
-        undefined,
     );
 
     await updateKmPostChangeTime();
 
-    return apiResult.mapErr(() => ({
-        // Here it is possible to return more accurate validation errors
-        validationErrors: [],
-    }));
+    return result;
 };
 
 export async function getKmPostValidation(
@@ -210,13 +200,14 @@ export const getKmLengthsAsCsv = (
     const params = queryParams({
         startKmNumber,
         endKmNumber,
+        lang: i18next.language,
     });
 
     return `${layoutUri('track-numbers', layoutContext, trackNumberId)}/km-lengths/as-csv${params}`;
 };
 
-export const getKmPostChangeTimes = (id: LayoutKmPostId, layoutContext: LayoutContext) =>
-    getNullable<LayoutAssetChangeInfo>(changeTimeUri('km-posts', id, layoutContext));
+export const getKmPostChangeInfo = (id: LayoutKmPostId, layoutContext: LayoutContext) =>
+    getNullable<LayoutAssetChangeInfo>(changeInfoUri('km-posts', id, layoutContext));
 
-export const getEntireRailNetworkKmLengthsCsvUrl = () =>
-    `${TRACK_LAYOUT_URI}/track-numbers/rail-network/km-lengths/file`;
+export const getEntireRailNetworkKmLengthsCsvUrl = (layoutContext: LayoutContext) =>
+    `${layoutUri('track-numbers', layoutContext)}/rail-network/km-lengths/file`;

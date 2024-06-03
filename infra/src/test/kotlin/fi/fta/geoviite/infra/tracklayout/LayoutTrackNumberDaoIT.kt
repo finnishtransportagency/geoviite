@@ -2,9 +2,9 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
@@ -24,7 +24,7 @@ import kotlin.test.assertEquals
 @SpringBootTest
 class LayoutTrackNumberDaoIT @Autowired constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
-): DBTestBase() {
+) : DBTestBase() {
 
     @Test
     fun trackNumberIsStoredAndLoadedOk() {
@@ -33,7 +33,7 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
             description = FreeText("empty-test-track-number"),
             state = IN_USE,
             externalId = null,
-            contextData = LayoutContextData.newDraft(),
+            contextData = LayoutContextData.newDraft(LayoutBranch.main),
         )
         val (id, version) = trackNumberDao.insert(original)
         val fromDb = trackNumberDao.fetch(version)
@@ -64,22 +64,26 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
         val (id, insertVersion) = trackNumberDao.insert(tempTrackNumber)
         val inserted = trackNumberDao.fetch(insertVersion)
         assertMatches(tempTrackNumber, inserted, contextMatch = false)
-        assertEquals(VersionPair(insertVersion, null), trackNumberDao.fetchVersionPair(id))
+        assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
 
         val tempDraft1 = asMainDraft(inserted).copy(description = FreeText("test 2"))
         val draftVersion1 = trackNumberDao.insert(tempDraft1).rowVersion
         val draft1 = trackNumberDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1, contextMatch = false)
-        assertEquals(VersionPair(insertVersion, draftVersion1), trackNumberDao.fetchVersionPair(id))
+        assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(draftVersion1, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
 
         val tempDraft2 = draft1.copy(description = FreeText("test 3"))
         val draftVersion2 = trackNumberDao.update(tempDraft2).rowVersion
         val draft2 = trackNumberDao.fetch(draftVersion2)
         assertMatches(tempDraft2, draft2, contextMatch = false)
-        assertEquals(VersionPair(insertVersion, draftVersion2), trackNumberDao.fetchVersionPair(id))
+        assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(draftVersion2, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
 
-        trackNumberDao.deleteDraft(insertVersion.id).rowVersion
-        assertEquals(VersionPair(insertVersion, null), trackNumberDao.fetchVersionPair(id))
+        trackNumberDao.deleteDraft(LayoutBranch.main, insertVersion.id).rowVersion
+        assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
+        assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
 
         assertEquals(inserted, trackNumberDao.fetch(insertVersion))
         assertEquals(draft1, trackNumberDao.fetch(draftVersion1))
@@ -93,20 +97,20 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
         val undeletedDraftVersion = insertNewTrackNumber(getUnusedTrackNumber(), true).rowVersion
         val deleteStateDraftVersion = insertNewTrackNumber(getUnusedTrackNumber(), true, DELETED).rowVersion
         val (deletedDraftId, deletedDraftVersion) = insertNewTrackNumber(getUnusedTrackNumber(), true)
-        trackNumberDao.deleteDraft(deletedDraftId)
+        trackNumberDao.deleteDraft(LayoutBranch.main, deletedDraftId)
 
-        val official = trackNumberDao.fetchVersions(OFFICIAL, false)
+        val official = trackNumberDao.fetchVersions(MainLayoutContext.official, false)
         assertContains(official, officialVersion)
         assertFalse(official.contains(undeletedDraftVersion))
         assertFalse(official.contains(deleteStateDraftVersion))
         assertFalse(official.contains(deletedDraftVersion))
 
-        val draftWithoutDeleted = trackNumberDao.fetchVersions(DRAFT, false)
+        val draftWithoutDeleted = trackNumberDao.fetchVersions(MainLayoutContext.draft, false)
         assertContains(draftWithoutDeleted, undeletedDraftVersion)
         assertFalse(draftWithoutDeleted.contains(deleteStateDraftVersion))
         assertFalse(draftWithoutDeleted.contains(deletedDraftVersion))
 
-        val draftWithDeleted = trackNumberDao.fetchVersions(DRAFT, true)
+        val draftWithDeleted = trackNumberDao.fetchVersions(MainLayoutContext.draft, true)
         assertContains(draftWithDeleted, undeletedDraftVersion)
         assertContains(draftWithDeleted, deleteStateDraftVersion)
         assertFalse(draftWithDeleted.contains(deletedDraftVersion))

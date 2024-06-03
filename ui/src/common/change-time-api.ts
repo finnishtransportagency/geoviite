@@ -108,6 +108,14 @@ export function updateSplitChangeTime(): Promise<TimeStamp> {
     );
 }
 
+export function updateLayoutDesignChangeTime(): Promise<TimeStamp> {
+    return updateChangeTime(
+        `${CHANGES_API}/layout-designs`,
+        delegates.setLayoutDesignChangeTime,
+        getChangeTimes().layoutDesign,
+    );
+}
+
 function updateChangeTime(
     url: string,
     storeUpdate: (ts: TimeStamp) => void,

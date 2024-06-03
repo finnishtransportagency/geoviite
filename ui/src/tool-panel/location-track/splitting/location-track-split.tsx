@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
+import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
 import styles from 'tool-panel/location-track/location-track-infobox.scss';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
@@ -49,9 +49,9 @@ type SplitProps = CommonProps & {
     onRemove?: (splitPoint: SplitPoint) => void;
     updateSplit: (updateSplit: SplitTargetCandidate | FirstSplitTargetCandidate) => void;
     duplicateTrackId: LocationTrackId | undefined;
-    nameErrors: ValidationError<SplitTargetCandidate>[];
-    descriptionErrors: ValidationError<SplitTargetCandidate>[];
-    switchErrors: ValidationError<SplitTargetCandidate>[];
+    nameIssues: FieldValidationIssue<SplitTargetCandidate>[];
+    descriptionIssues: FieldValidationIssue<SplitTargetCandidate>[];
+    switchIssues: FieldValidationIssue<SplitTargetCandidate>[];
     nameRef: React.RefObject<HTMLInputElement>;
     descriptionBaseRef: React.RefObject<HTMLInputElement>;
     deletingDisabled: boolean;
@@ -125,9 +125,9 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     onRemove,
     updateSplit,
     duplicateTrackId,
-    nameErrors,
-    descriptionErrors,
-    switchErrors,
+    nameIssues,
+    descriptionIssues,
+    switchIssues,
     editingDisabled,
     deletingDisabled,
     nameRef,
@@ -149,25 +149,25 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     const [descriptionCommitted, setDescriptionCommitted] = React.useState(
         split.descriptionBase !== '',
     );
-    const startSwitchMatchingError = switchErrors.find(
+    const startSwitchMatchingError = switchIssues.find(
         (error) => error.reason == START_SPLIT_POINT_NOT_MATCHING_ERROR,
     );
-    const endSwitchMatchingError = switchErrors.find(
+    const endSwitchMatchingError = switchIssues.find(
         (error) => error.reason == END_SPLIT_POINT_NOT_MATCHING_ERROR,
     );
 
     // TODO: Adding any kind of dependency array causes infinite re-render loops, find out why
     React.useEffect(() => {
-        if (!nameErrors.length) {
+        if (!nameIssues.length) {
             setNameCommitted(true);
         }
-        if (!descriptionErrors.length) {
+        if (!descriptionIssues.length) {
             setDescriptionCommitted(true);
         }
     });
 
-    const nameErrorsVisible = nameCommitted && nameErrors.length > 0;
-    const descriptionErrorsVisible = descriptionCommitted && descriptionErrors.length > 0;
+    const nameErrorsVisible = nameCommitted && nameIssues.length > 0;
+    const descriptionErrorsVisible = descriptionCommitted && descriptionIssues.length > 0;
 
     function showSwitchOnMap(location: Point) {
         showArea(getShowSwitchOnMapBoundingBox(location));
@@ -177,7 +177,8 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
         <div
             className={styles['location-track-infobox__split-container']}
             onMouseEnter={onHighlight}
-            onMouseLeave={onReleaseHighlight}>
+            onMouseLeave={onReleaseHighlight}
+            qa-id={'split-target-track-container'}>
             <div
                 className={createClassName(
                     styles['location-track-infobox__split-item-line-container'],
@@ -289,6 +290,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                 setNameCommitted(true);
                                 onBlur();
                             }}
+                            qa-id={'split-target-track-name'}
                         />
                     </InfoboxField>
                     {(nameErrorsVisible || split.operation) && (
@@ -306,7 +308,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                 />
                             )}
                             {nameErrorsVisible &&
-                                nameErrors.map((error, i) => (
+                                nameIssues.map((error, i) => (
                                     <SplitErrorMessage key={i.toString()} error={error} />
                                 ))}
                         </InfoboxField>
@@ -336,6 +338,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                 onBlur();
                             }}
                             ref={descriptionBaseRef}
+                            qa-id={'split-target-track-description'}
                         />
                     </InfoboxField>
                     {descriptionErrorsVisible && (
@@ -346,7 +349,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             hasErrors={descriptionErrorsVisible}
                             label={''}>
                             {descriptionErrorsVisible &&
-                                descriptionErrors.map((error, index) => (
+                                descriptionIssues.map((error, index) => (
                                     <InfoboxText
                                         value={t(
                                             `tool-panel.location-track.splitting.validation.${error.reason}`,
@@ -378,7 +381,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             className={createClassName(
                                 styles['location-track-infobox__split-switch-error-msg'],
                                 styles['location-track-infobox__split-switch-error-msg--end'],
-                                endSwitchMatchingError.type == ValidationErrorType.ERROR &&
+                                endSwitchMatchingError.type == FieldValidationIssueType.ERROR &&
                                     styles['location-track-infobox__split-switch-error-msg--error'],
                             )}>
                             {t(
@@ -394,12 +397,12 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
 };
 
 type SplitErrorMessageProps = {
-    error: ValidationError<SplitTargetCandidate>;
+    error: FieldValidationIssue<SplitTargetCandidate>;
 };
 const SplitErrorMessage: React.FC<SplitErrorMessageProps> = ({ error }) => {
     const { t } = useTranslation();
     const style =
-        error.type === ValidationErrorType.ERROR
+        error.type === FieldValidationIssueType.ERROR
             ? 'location-track-infobox__split-error'
             : 'location-track-infobox__split-warning';
     return (

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import styles from './button.scss';
-import {IconColor, IconComponent, IconSize} from 'vayla-design-lib/icon/Icon';
-import {createClassName} from 'vayla-design-lib/utils';
+import { IconColor, IconComponent, IconSize } from 'vayla-design-lib/icon/Icon';
+import { createClassName } from 'vayla-design-lib/utils';
 
 /**
  * Buttons in Figma:
@@ -18,6 +18,7 @@ export enum ButtonVariant {
 
 export enum ButtonSize {
     SMALL = 'button--size-small',
+    X_SMALL = 'button--size-x-small',
 }
 
 // Pick some properties from default button properties

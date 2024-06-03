@@ -345,7 +345,10 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     return (
         <React.Fragment>
             <div className={styles['preview-view']} qa-id="preview-content">
-                <PreviewToolBar onClosePreview={props.onClosePreview} />
+                <PreviewToolBar
+                    onClosePreview={props.onClosePreview}
+                    designId={props.layoutContext.designId}
+                />
                 <div className={styles['preview-view__changes']}>
                     {(showPreview && (
                         <>
@@ -384,7 +387,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                             : publicationAssetChangeAmounts.unstaged
                                     }
                                     previewOperations={previewOperations}
-                                    showStatusSpinner={showValidationStatusSpinner}
+                                    validationInProgress={showValidationStatusSpinner}
+                                    isRowValidating={(item) => item.pendingValidation}
                                 />
                             </section>
 
@@ -410,7 +414,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                         publicationAssetChangeAmounts.staged
                                     }
                                     previewOperations={previewOperations}
-                                    showStatusSpinner={showValidationStatusSpinner}
+                                    validationInProgress={showValidationStatusSpinner}
+                                    isRowValidating={() => showValidationStatusSpinner}
                                 />
                             </section>
 
@@ -443,6 +448,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                         clearStagedCandidates();
                     }}
                     stagedPublicationCandidates={stagedPublicationCandidates}
+                    validating={showValidationStatusSpinner}
                 />
             </div>
             {changesBeingReverted !== undefined && (

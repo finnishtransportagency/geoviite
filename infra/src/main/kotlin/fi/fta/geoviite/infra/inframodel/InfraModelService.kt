@@ -3,12 +3,22 @@ package fi.fta.geoviite.infra.inframodel
 import fi.fta.geoviite.infra.codeDictionary.CodeDictionaryService
 import fi.fta.geoviite.infra.codeDictionary.FeatureType
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.GeographyService
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.Author
+import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.GeometryService
+import fi.fta.geoviite.infra.geometry.PlanLayoutCache
+import fi.fta.geoviite.infra.geometry.PlanSource
+import fi.fta.geoviite.infra.geometry.Project
+import fi.fta.geoviite.infra.geometry.TransformationError
+import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
+import fi.fta.geoviite.infra.geometry.getBoundingPolygonPointsFromAlignments
+import fi.fta.geoviite.infra.geometry.validate
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -29,7 +39,7 @@ const val VALIDATION_LAYOUT_POINTS_RESOLUTION = 10
 val noFileValidationError = ParsingError(LocalizationKey(INFRAMODEL_PARSING_KEY_EMPTY))
 
 fun noFileValidationResponse(overrideParameters: OverrideParameters?) = ValidationResponse(
-    validationErrors = listOf(noFileValidationError),
+    geometryValidationIssues = listOf(noFileValidationError),
     geometryPlan = null,
     planLayout = null,
     source = overrideParameters?.source ?: PlanSource.GEOMETRIAPALVELU,
@@ -161,8 +171,8 @@ class InfraModelService @Autowired constructor(
             includeGeometryData = true,
             pointListStepLength = VALIDATION_LAYOUT_POINTS_RESOLUTION,
         )
-        val validationErrors = validateGeometryPlanContent(plan) + listOfNotNull(layoutCreationError)
-        return ValidationResponse(validationErrors, plan, planLayout?.withLayoutGeometry(), plan.source)
+        val validationIssues = validateGeometryPlanContent(plan) + listOfNotNull(layoutCreationError)
+        return ValidationResponse(validationIssues, plan, planLayout?.withLayoutGeometry(), plan.source)
     }
 
     @Transactional
@@ -233,12 +243,12 @@ class InfraModelService @Autowired constructor(
         )
     }
 
-    private fun validateGeometryPlanContent(geometryPlan: GeometryPlan): List<ValidationError> {
+    private fun validateGeometryPlanContent(geometryPlan: GeometryPlan): List<GeometryValidationIssue> {
         return validate(
             geometryPlan,
             codeDictionaryService.getFeatureTypes(),
             switchLibraryService.getSwitchStructuresById(),
-            trackNumberService.list(OFFICIAL).map { it.number },
+            trackNumberService.list(MainLayoutContext.official).map { it.number },
         )
     }
 

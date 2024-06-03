@@ -1,13 +1,22 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.util.*
-import fi.fta.geoviite.infra.util.DbTable.LAYOUT_REFERENCE_LINE
+import fi.fta.geoviite.infra.util.LayoutAssetTable
+import fi.fta.geoviite.infra.util.getBboxOrNull
+import fi.fta.geoviite.infra.util.getDaoResponse
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getLayoutContextData
+import fi.fta.geoviite.infra.util.getOne
+import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.getTrackMeter
+import fi.fta.geoviite.infra.util.queryOptional
+import fi.fta.geoviite.infra.util.setUser
+import fi.fta.geoviite.infra.util.toDbId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -21,14 +30,16 @@ const val REFERENCE_LINE_CACHE_SIZE = 1000L
 class ReferenceLineDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
-) : LayoutAssetDao<ReferenceLine>(jdbcTemplateParam, LAYOUT_REFERENCE_LINE, cacheEnabled, REFERENCE_LINE_CACHE_SIZE) {
+) : LayoutAssetDao<ReferenceLine>(jdbcTemplateParam, LayoutAssetTable.LAYOUT_ASSET_REFERENCE_LINE, cacheEnabled, REFERENCE_LINE_CACHE_SIZE) {
 
     override fun fetchInternal(version: RowVersion<ReferenceLine>): ReferenceLine {
         val sql = """
             select
               rlv.id as row_id,
               rlv.version as row_version,
-              rlv.official_row_id, 
+              rlv.official_row_id,
+              rlv.design_row_id,
+              rlv.design_id,
               rlv.draft,
               rlv.alignment_id,
               rlv.alignment_version,
@@ -57,7 +68,9 @@ class ReferenceLineDao(
             select
               rl.id as row_id,
               rl.version as row_version,
-              rl.official_row_id, 
+              rl.official_row_id,
+              rl.design_row_id,
+              rl.design_id,
               rl.draft,
               rl.alignment_id,
               rl.alignment_version,
@@ -86,7 +99,7 @@ class ReferenceLineDao(
         length = rs.getDouble("length"),
         segmentCount = rs.getInt("segment_count"),
         version = rs.getRowVersion("row_id", "row_version"),
-        contextData = rs.getLayoutContextData("official_row_id", "row_id", "draft"),
+        contextData = rs.getLayoutContextData("official_row_id", "design_row_id", "design_id", "row_id", "draft"),
     )
 
     @Transactional
@@ -98,7 +111,9 @@ class ReferenceLineDao(
               alignment_version,
               start_address,
               draft, 
-              official_row_id
+              official_row_id,
+              design_row_id,
+              design_id
             ) 
             values (
               :track_number_id,
@@ -106,7 +121,9 @@ class ReferenceLineDao(
               :alignment_version,
               :start_address, 
               :draft, 
-              :official_row_id
+              :official_row_id,
+              :design_row_id,
+              :design_id
             ) 
             returning 
               coalesce(official_row_id, id) as official_id,
@@ -121,6 +138,8 @@ class ReferenceLineDao(
             "start_address" to newItem.startAddress.toString(),
             "draft" to newItem.isDraft,
             "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
+            "design_row_id" to newItem.contextData.designRowId?.let(::toDbId)?.intValue,
+            "design_id" to newItem.contextData.designId?.let(::toDbId)?.intValue,
         )
 
         jdbcTemplate.setUser()
@@ -141,7 +160,9 @@ class ReferenceLineDao(
               alignment_version = :alignment_version,
               start_address = :start_address,
               draft = :draft,
-              official_row_id = :official_row_id
+              official_row_id = :official_row_id,
+              design_row_id = :design_row_id,
+              design_id = :design_id
             where id = :id
             returning 
               coalesce(official_row_id, id) as official_id,
@@ -156,6 +177,8 @@ class ReferenceLineDao(
             "start_address" to updatedItem.startAddress.toString(),
             "draft" to updatedItem.isDraft,
             "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
+            "design_row_id" to updatedItem.contextData.designRowId?.let(::toDbId)?.intValue,
+            "design_id" to updatedItem.contextData.designId?.let(::toDbId)?.intValue,
         )
         jdbcTemplate.setUser()
         val result: DaoResponse<ReferenceLine> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
@@ -165,23 +188,23 @@ class ReferenceLineDao(
         return result
     }
 
-    fun getByTrackNumber(publicationState: PublicationState, trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? =
-        fetchVersionByTrackNumberId(publicationState, trackNumberId)?.let(::fetch)
+    fun getByTrackNumber(context: LayoutContext, trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? =
+        fetchVersionByTrackNumberId(context, trackNumberId)?.let(::fetch)
 
     fun fetchVersionByTrackNumberId(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): RowVersion<ReferenceLine>? {
         //language=SQL
         val sql = """
             select rl.row_id, rl.row_version 
-            from layout.reference_line_publication_view rl
-            where rl.track_number_id = :track_number_id 
-              and :publication_state = any(rl.publication_states)
+            from layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl
+            where rl.track_number_id = :track_number_id
         """.trimIndent()
         val params = mapOf(
             "track_number_id" to trackNumberId.intValue,
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
         )
         return jdbcTemplate.queryOptional(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
@@ -189,21 +212,22 @@ class ReferenceLineDao(
     }
 
     override fun fetchVersions(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         includeDeleted: Boolean,
     ): List<RowVersion<ReferenceLine>> {
         val sql = """
             select
               rl.row_id,
               rl.row_version
-            from layout.reference_line_publication_view rl
-              left join layout.track_number_publication_view tn
-                on rl.track_number_id = tn.official_id and :publication_state = any(tn.publication_states)
-            where :publication_state = any(rl.publication_states) 
-              and (:include_deleted = true or tn.state != 'DELETED')
+            from layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl
+              left join lateral layout.track_number_in_layout_context(:publication_state::layout.publication_state,
+                                                                      :design_id,
+                                                                      rl.track_number_id) tn on true
+            where (:include_deleted = true or tn.state != 'DELETED')
         """.trimIndent()
         val params = mapOf(
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
             "include_deleted" to includeDeleted,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -213,7 +237,7 @@ class ReferenceLineDao(
 
     // TODO: No IT test runs this
     fun fetchVersionsNear(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         bbox: BoundingBox,
     ): List<RowVersion<ReferenceLine>> {
         val sql = """
@@ -227,11 +251,9 @@ class ReferenceLineDao(
                   where postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
                                               bounding_box)
               ) sv
-                join layout.reference_line_publication_view rl using (alignment_id, alignment_version)
-                join layout.track_number_publication_view tn on rl.track_number_id = tn.official_id
-              where :publication_state = any (rl.publication_states)
-                and :publication_state = any (tn.publication_states)
-                and tn.state != 'DELETED';
+                join layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl using (alignment_id, alignment_version)
+                cross join lateral layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id, rl.track_number_id) tn
+              where tn.state != 'DELETED';
         """.trimIndent()
 
         val params = mapOf(
@@ -240,7 +262,8 @@ class ReferenceLineDao(
             "x_max" to bbox.max.x,
             "y_max" to bbox.max.y,
             "layout_srid" to LAYOUT_SRID.code,
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -248,19 +271,22 @@ class ReferenceLineDao(
         }
     }
 
-    fun fetchVersionsNonLinked(publicationState: PublicationState): List<RowVersion<ReferenceLine>> {
+    fun fetchVersionsNonLinked(context: LayoutContext): List<RowVersion<ReferenceLine>> {
         val sql = """
             select
               rl.row_id,
               rl.row_version
-            from layout.reference_line_publication_view rl
-              left join layout.track_number_publication_view tn
-                on rl.track_number_id = tn.official_id and :publication_state = any(tn.publication_states)
-            where :publication_state = any(rl.publication_states) 
-              and tn.state != 'DELETED'
+            from layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl
+              left join lateral layout.track_number_in_layout_context(:publication_state::layout.publication_state,
+                                                                      :design_id,
+                                                                      rl.track_number_id) tn on(true)
+            where tn.state != 'DELETED'
               and rl.segment_count = 0
         """.trimIndent()
-        val params = mapOf("publication_state" to publicationState.name)
+        val params = mapOf(
+            "publication_state" to context.state.name,
+            "design_id" to context.branch.designId?.intValue,
+        )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion("row_id", "row_version")
         }

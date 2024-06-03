@@ -4,12 +4,15 @@ import fi.fta.geoviite.infra.authorization.AUTH_DOWNLOAD_PUBLICATION
 import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT_DRAFT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_PUBLICATION
+import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.DatabaseLock.PUBLICATION
 import fi.fta.geoviite.infra.integration.LockDao
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.util.FileName
@@ -22,7 +25,14 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
-import org.springframework.web.bind.annotation.*
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RestController
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -41,35 +51,44 @@ class PublicationController @Autowired constructor(
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
-    @GetMapping("/candidates")
-    fun getPublicationCandidates(): PublicationCandidates {
-        logger.apiCall("getPublicationCandidates")
-        return publicationService.collectPublicationCandidates()
+    @GetMapping("/{$LAYOUT_BRANCH}/candidates")
+    fun getPublicationCandidates(@PathVariable(LAYOUT_BRANCH) branch: LayoutBranch): PublicationCandidates {
+        logger.apiCall("getPublicationCandidates", "branch" to branch)
+        return publicationService.collectPublicationCandidates(branch)
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
-    @PostMapping("/validate")
-    fun validatePublicationCandidates(@RequestBody request: PublicationRequestIds): ValidatedPublicationCandidates {
-        logger.apiCall("validatePublicationCandidates", "request" to request)
+    @PostMapping("/{$LAYOUT_BRANCH}/validate")
+    fun validatePublicationCandidates(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @RequestBody request: PublicationRequestIds,
+    ): ValidatedPublicationCandidates {
+        logger.apiCall("validatePublicationCandidates", "branch" to branch, "request" to request)
         return publicationService.validatePublicationCandidates(
-            publicationService.collectPublicationCandidates(),
+            publicationService.collectPublicationCandidates(branch),
             request,
         )
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
-    @PostMapping("/calculated-changes")
-    fun getCalculatedChanges(@RequestBody request: PublicationRequestIds): CalculatedChanges {
-        logger.apiCall("getCalculatedChanges", "request" to request)
-        return calculatedChangesService.getCalculatedChanges(publicationService.getValidationVersions(request))
+    @PostMapping("/{$LAYOUT_BRANCH}/calculated-changes")
+    fun getCalculatedChanges(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @RequestBody request: PublicationRequestIds,
+    ): CalculatedChanges {
+        logger.apiCall("getCalculatedChanges", "branch" to branch, "request" to request)
+        return calculatedChangesService.getCalculatedChanges(publicationService.getValidationVersions(branch, request))
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @DeleteMapping("/candidates")
-    fun revertPublicationCandidates(@RequestBody toDelete: PublicationRequestIds): PublicationResult {
-        logger.apiCall("revertPublicationCandidates", "toDelete" to toDelete)
+    @DeleteMapping("/{$LAYOUT_BRANCH}/candidates")
+    fun revertPublicationCandidates(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @RequestBody toDelete: PublicationRequestIds,
+    ): PublicationResult {
+        logger.apiCall("revertPublicationCandidates", "branch" to branch, "toDelete" to toDelete)
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
-            publicationService.revertPublicationCandidates(toDelete)
+            publicationService.revertPublicationCandidates(branch, toDelete)
         } ?: throw PublicationFailureException(
             message = "Could not reserve publication lock",
             localizedMessageKey = "lock-obtain-failed",
@@ -77,22 +96,28 @@ class PublicationController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
-    @PostMapping("/candidates/revert-request-dependencies")
-    fun getRevertRequestDependencies(@RequestBody toDelete: PublicationRequestIds): PublicationRequestIds {
-        logger.apiCall("getRevertRequestDependencies")
-        return publicationService.getRevertRequestDependencies(toDelete)
+    @PostMapping("/{$LAYOUT_BRANCH}/candidates/revert-request-dependencies")
+    fun getRevertRequestDependencies(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @RequestBody toDelete: PublicationRequestIds,
+    ): PublicationRequestIds {
+        logger.apiCall("getRevertRequestDependencies", "branch" to branch)
+        return publicationService.getRevertRequestDependencies(branch, toDelete)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @PostMapping
-    fun publishChanges(@RequestBody request: PublicationRequest): PublicationResult {
-        logger.apiCall("publishChanges", "request" to request)
+    @PostMapping("/{$LAYOUT_BRANCH}")
+    fun publishChanges(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @RequestBody request: PublicationRequest,
+    ): PublicationResult {
+        logger.apiCall("publishChanges", "branch" to branch, "request" to request)
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
-            publicationService.updateExternalId(request.content)
-            val versions = publicationService.getValidationVersions(request.content)
+            publicationService.updateExternalId(branch, request.content)
+            val versions = publicationService.getValidationVersions(branch, request.content)
             publicationService.validatePublicationRequest(versions)
             val calculatedChanges = publicationService.getCalculatedChanges(versions)
-            publicationService.publishChanges(versions, calculatedChanges, request.message)
+            publicationService.publishChanges(branch, versions, calculatedChanges, request.message)
         } ?: throw PublicationFailureException(
             message = "Could not reserve publication lock",
             localizedMessageKey = "lock-obtain-failed",
@@ -134,7 +159,7 @@ class PublicationController @Autowired constructor(
         @RequestParam("sortBy", required = false) sortBy: PublicationTableColumn?,
         @RequestParam("order", required = false) order: SortOrder?,
         @RequestParam("timeZone") timeZone: ZoneId?,
-        @RequestParam("lang") lang: String,
+        @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
         logger.apiCall(
             "getPublicationsAsCsv",
@@ -163,7 +188,7 @@ class PublicationController @Autowired constructor(
         @RequestParam("to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
         @RequestParam("sortBy", required = false) sortBy: PublicationTableColumn?,
         @RequestParam("order", required = false) order: SortOrder?,
-        @RequestParam("lang") lang: String,
+        @RequestParam("lang") lang: LocalizationLanguage,
     ): Page<PublicationTableItem> {
         logger.apiCall(
             "getPublicationDetailsAsTableRows",
@@ -193,7 +218,7 @@ class PublicationController @Autowired constructor(
     @GetMapping("/{id}/table-rows")
     fun getPublicationDetailsAsTableRows(
         @PathVariable("id") id: IntId<Publication>,
-        @RequestParam("lang") lang: String,
+        @RequestParam("lang") lang: LocalizationLanguage,
     ): List<PublicationTableItem> {
         logger.apiCall("getPublicationDetailsAsTableRow", "id" to id)
         return publicationService.getPublicationDetailsAsTableItems(id, localizationService.getLocalization(lang))
@@ -215,10 +240,10 @@ class PublicationController @Autowired constructor(
 
     @PreAuthorize(AUTH_DOWNLOAD_PUBLICATION)
     @GetMapping("/{id}/split-details/csv")
-    fun getSplitDetailsAsCsv(@PathVariable("id") id: IntId<Publication>): ResponseEntity<ByteArray> {
+    fun getSplitDetailsAsCsv(@PathVariable("id") id: IntId<Publication>, @RequestParam("lang") lang: LocalizationLanguage): ResponseEntity<ByteArray> {
         logger.apiCall("getSplitDetailsAsCsv", "id" to id)
         return publicationService
-            .getSplitInPublicationCsv(id)
+            .getSplitInPublicationCsv(id, lang)
             .let { (csv, ltName) -> getCsvResponseEntity(csv, FileName("Raiteen jakaminen $ltName.csv")) }
     }
 }

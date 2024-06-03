@@ -41,6 +41,7 @@ import {
     KmNumber,
     LayoutContext,
     LayoutDesignId,
+    officialMainLayoutContext,
     PublicationState,
     TimeStamp,
     TrackNumber,
@@ -51,6 +52,7 @@ import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
 import i18next from 'i18next';
+import { contextInUri } from 'track-layout/track-layout-api';
 
 export const GEOMETRY_URI = `${API_URI}/geometry`;
 
@@ -148,7 +150,8 @@ export async function getGeometryPlanElements(
 export const getGeometryPlanElementsCsv = (
     planId: GeometryPlanId,
     elementTypes: GeometryTypeIncludingMissing[],
-) => `${GEOMETRY_URI}/plans/${planId}/element-listing/file${queryParams({ elementTypes })}`;
+) =>
+    `${GEOMETRY_URI}/plans/${planId}/element-listing/file${queryParams({ elementTypes, lang: i18next.language })}`;
 
 export const getEntireRailNetworkElementsCsvUrl = () =>
     `${GEOMETRY_URI}/rail-network/element-listing/file`;
@@ -164,7 +167,9 @@ export async function getLocationTrackElements(
         startAddress: startAddress,
         endAddress: endAddress,
     });
-    return getNonNull(`${GEOMETRY_URI}/layout/location-tracks/${id}/element-listing${params}`);
+    return getNonNull(
+        `${geometryLayoutPath(officialMainLayoutContext())}/location-tracks/${id}/element-listing${params}`,
+    );
 }
 
 export async function getLocationTrackVerticalGeometry(
@@ -180,7 +185,7 @@ export async function getLocationTrackVerticalGeometry(
     });
     const fetch: () => Promise<VerticalGeometryItem[] | undefined> = () =>
         getNonNull(
-            `${GEOMETRY_URI}/layout/${layoutContext.publicationState}/location-tracks/${id}/vertical-geometry${params}`,
+            `${geometryLayoutPath(layoutContext)}/location-tracks/${id}/vertical-geometry${params}`,
         );
     return changeTime === undefined
         ? fetch()
@@ -210,15 +215,19 @@ export const getLocationTrackVerticalGeometryCsv = (
     const params = queryParams({
         startAddress: startAddress,
         endAddress: endAddress,
+        lang: i18next.language,
     });
     return `${GEOMETRY_URI}/layout/location-tracks/${trackId}/vertical-geometry/file${params}`;
 };
 
 export const getGeometryPlanVerticalGeometryCsv = (planId: GeometryPlanId) =>
-    `${GEOMETRY_URI}/plans/${planId}/vertical-geometry/file`;
+    `${GEOMETRY_URI}/plans/${planId}/vertical-geometry/file${queryParams({ lang: i18next.language })}`;
 
 export const getEntireRailNetworkVerticalGeometryCsvUrl = () =>
     `${GEOMETRY_URI}/rail-network/vertical-geometry/file`;
+
+export const geometryLayoutPath = (context: LayoutContext): string =>
+    `${GEOMETRY_URI}/layout/${contextInUri(context)}`;
 
 export const getLocationTrackElementsCsv = (
     locationTrackId: LocationTrackId,
@@ -230,8 +239,9 @@ export const getLocationTrackElementsCsv = (
         elementTypes,
         startAddress,
         endAddress,
+        lang: i18next.language,
     });
-    return `${GEOMETRY_URI}/layout/location-tracks/${locationTrackId}/element-listing/file${searchQueryParameters}`;
+    return `${geometryLayoutPath(officialMainLayoutContext())}/location-tracks/${locationTrackId}/element-listing/file${searchQueryParameters}`;
 };
 
 export async function getGeometryPlan(
@@ -411,7 +421,7 @@ export async function getLocationTrackHeights(
     tickLength: number,
 ): Promise<TrackKmHeights[]> {
     return getNonNull(
-        `${GEOMETRY_URI}/${layoutContext.publicationState}/layout/location-tracks/${locationTrackId}/alignment-heights` +
+        `${geometryLayoutPath(layoutContext)}/location-tracks/${locationTrackId}/alignment-heights` +
             queryParams({ startDistance, endDistance, tickLength }),
     ).catch(() => []) as Promise<TrackKmHeights[]>;
 }
@@ -431,7 +441,7 @@ export async function getLocationTrackLinkingSummary(
         `${locationTrackId}_${layoutContext.publicationState}_${layoutContext.designId}`,
         () =>
             getNonNull(
-                `${GEOMETRY_URI}/${layoutContext.publicationState}/layout/location-tracks/${locationTrackId}/linking-summary`,
+                `${geometryLayoutPath(layoutContext)}/location-tracks/${locationTrackId}/linking-summary`,
             ),
     );
 }

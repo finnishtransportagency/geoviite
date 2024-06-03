@@ -2,11 +2,28 @@ package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.tracklayout.*
-import org.junit.jupiter.api.Assertions.*
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentService
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
+import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.trackNumber
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -28,8 +45,8 @@ class GeocodingDaoIT @Autowired constructor(
     @Test
     fun trackNumberWithoutReferenceLineHasNoContext() {
         val id = trackNumberDao.insert(trackNumber(getUnusedTrackNumber(), draft = false)).id
-        assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(DRAFT, id))
-        assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, id))
+        assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.draft, id))
+        assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, id))
     }
 
     @Test
@@ -37,8 +54,8 @@ class GeocodingDaoIT @Autowired constructor(
         val id = trackNumberDao.insert(trackNumber(getUnusedTrackNumber(), draft = false)).id
         val alignmentVersion = alignmentDao.insert(alignment())
         referenceLineDao.insert(referenceLine(id, alignmentVersion = alignmentVersion, draft = false))
-        assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(DRAFT, id))
-        assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, id))
+        assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.draft, id))
+        assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, id))
     }
 
     @Test
@@ -56,13 +73,16 @@ class GeocodingDaoIT @Autowired constructor(
 
         val kmPostOneOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(1), draft = false)).rowVersion
         val kmPostOneDraftVersion = kmPostDao.insert(asMainDraft(kmPostDao.fetch(kmPostOneOfficialVersion))).rowVersion
-        val kmPostTwoOnlyDraftVersion = kmPostService.saveDraft(kmPost(tnId, KmNumber(2), draft = true)).rowVersion
+        val kmPostTwoOnlyDraftVersion = kmPostService.saveDraft(
+            LayoutBranch.main,
+            kmPost(tnId, KmNumber(2), draft = true),
+        ).rowVersion
         val kmPostThreeOnlyOfficialVersion = kmPostDao.insert(kmPost(tnId, KmNumber(3), draft = false)).rowVersion
 
         // Add a deleted post - should not appear in results
         kmPostDao.insert(kmPost(tnId, KmNumber(4), state = LayoutState.DELETED, draft = false))
 
-        val officialKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, tnId)!!
+        val officialKey = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId)!!
         assertEquals(
             LayoutGeocodingContextCacheKey(
                 trackNumberVersion = tnOfficialVersion,
@@ -72,7 +92,7 @@ class GeocodingDaoIT @Autowired constructor(
             officialKey,
         )
 
-        val draftKey = geocodingDao.getLayoutGeocodingContextCacheKey(DRAFT, tnId)!!
+        val draftKey = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.draft, tnId)!!
         assertEquals(
             LayoutGeocodingContextCacheKey(
                 trackNumberVersion = tnDraftVersion,
@@ -145,7 +165,7 @@ class GeocodingDaoIT @Autowired constructor(
         val originalTime = kmPostDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that later objects get a new changetime so that moment-fetch makes sense
 
-        val originalKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, tnId)!!
+        val originalKey = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId)!!
         assertEquals(
             LayoutGeocodingContextCacheKey(
                 trackNumberVersion = tnOfficialVersion,
@@ -158,7 +178,7 @@ class GeocodingDaoIT @Autowired constructor(
         // Add some draft changes as well. These shouldn't affect the results
         trackNumberDao.insert(asMainDraft(trackNumberDao.fetch(tnOfficialVersion)))
         createDraftReferenceLine(rlOfficialVersion)
-        kmPostService.saveDraft(kmPost(tnId, KmNumber(10), draft = true))
+        kmPostService.saveDraft(LayoutBranch.main, kmPost(tnId, KmNumber(10), draft = true))
 
         // Update the official stuff
         val updatedTrackNumberVersion = updateTrackNumber(tnOfficialVersion)
@@ -170,7 +190,7 @@ class GeocodingDaoIT @Autowired constructor(
 
         val updatedTime = kmPostDao.fetchChangeTime()
 
-        val updatedKey = geocodingDao.getLayoutGeocodingContextCacheKey(OFFICIAL, tnId)!!
+        val updatedKey = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId)!!
         assertEquals(
             LayoutGeocodingContextCacheKey(
                 trackNumberVersion = updatedTrackNumberVersion,

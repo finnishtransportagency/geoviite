@@ -24,6 +24,8 @@ import { useAppNavigate } from 'common/navigate';
 import { defaultPublicationSearch } from 'publication/publication-utils';
 import { DOWNLOAD_PUBLICATION } from 'user/user-model';
 
+let fetchId = 0;
+
 const PublicationLog: React.FC = () => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
@@ -77,14 +79,17 @@ const PublicationLog: React.FC = () => {
 
         setIsLoading(true);
 
+        const currentFetchId = ++fetchId;
         getPublicationsAsTableItems(
             startDate && startOfDay(startDate),
             endDate && endOfDay(endDate),
             sortInfo.propName,
             sortInfo.direction,
         ).then((r) => {
-            r && setPagedPublications(r);
-            setIsLoading(false);
+            if (fetchId === currentFetchId) {
+                r && setPagedPublications(r);
+                setIsLoading(false);
+            }
         });
     };
 

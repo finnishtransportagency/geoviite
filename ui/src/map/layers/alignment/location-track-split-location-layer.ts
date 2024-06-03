@@ -1,7 +1,6 @@
 import { MapLayer } from 'map/layers/utils/layer-model';
 import { Point as OlPoint } from 'ol/geom';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import Style from 'ol/style/Style';
 import { Circle, Fill, Stroke } from 'ol/style';
@@ -42,7 +41,7 @@ const deletedSplitPointStyle = new Style({
 const layerName: MapLayerName = 'location-track-split-location-layer';
 
 export const createLocationTrackSplitLocationLayer = (
-    existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
+    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
     layoutContext: LayoutContext,
     splittingState: SplittingState | undefined,
     onLoadingData: (loading: boolean) => void,

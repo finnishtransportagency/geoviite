@@ -24,15 +24,14 @@ const KmPostDeleteConfirmationDialog: React.FC<KmPostDeleteConfirmationDialogPro
     const { t } = useTranslation();
 
     const deleteKmPost = (id: LayoutKmPostId) =>
-        deleteDraftKmPost(layoutContext, id).then((result) => {
-            result
-                .map((kmPostId) => {
-                    Snackbar.success('km-post-delete-draft-dialog.delete-succeeded');
-                    onSave && onSave(kmPostId);
-                    onClose();
-                })
-                .mapErr(() => Snackbar.error('km-post-delete-draft-dialog.delete-failed'));
-        });
+        deleteDraftKmPost(layoutContext, id).then(
+            (kmPostId) => {
+                Snackbar.success('km-post-delete-draft-dialog.delete-succeeded');
+                onSave && onSave(kmPostId);
+                onClose();
+            },
+            () => Snackbar.error('km-post-delete-draft-dialog.delete-failed'),
+        );
 
     return (
         <Dialog

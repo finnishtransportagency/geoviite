@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LocationTrackChange
@@ -13,6 +12,8 @@ import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.SwitchChange
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.Operation
 import fi.fta.geoviite.infra.publication.PublicationDetails
@@ -22,6 +23,9 @@ import fi.fta.geoviite.infra.publication.PublishedSwitch
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
+import fi.fta.geoviite.infra.split.BulkTransferState
+import fi.fta.geoviite.infra.split.Split
+import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
@@ -61,12 +65,14 @@ class RatkoService @Autowired constructor(
     private val ratkoRouteNumberService: RatkoRouteNumberService,
     private val ratkoAssetService: RatkoAssetService,
     private val ratkoPushDao: RatkoPushDao,
+    private val ratkoClientConfiguration: RatkoClientConfiguration,
     private val publicationService: PublicationService,
     private val calculatedChangesService: CalculatedChangesService,
     private val locationTrackService: LocationTrackService,
     private val switchService: LayoutSwitchService,
     private val lockDao: LockDao,
     private val ratkoOperatingPointDao: RatkoOperatingPointDao,
+    private val splitService: SplitService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val ratkoSchedulerUserName = UserName.of("RATKO_SCHEDULER")
@@ -109,17 +115,97 @@ class RatkoService @Autowired constructor(
             } else {
                 val lastPublicationMoment = ratkoPushDao.getLatestPushedPublicationMoment()
 
-                //Inclusive search, therefore the already pushed one is also returned
+                // Inclusive search, therefore the already pushed one is also returned
                 val publications = publicationService.fetchPublications(lastPublicationMoment)
                     .filter { it.publicationTime > lastPublicationMoment }
                     .map { publicationService.getPublicationDetails(it.id) }
 
-                if (publications.isNotEmpty()) pushChanges(publications)
+                if (publications.isNotEmpty()) {
+                    pushChanges(publications)
+                }
+
+                if (ratkoClientConfiguration.bulkTransfersEnabled) {
+                    manageRatkoBulkTransfers(LayoutBranch.main)
+                }
             }
         }
     }
 
-    fun pushLocationTracksToRatko(locationTrackChanges: Collection<LocationTrackChange>) {
+    fun manageRatkoBulkTransfers(branch: LayoutBranch) {
+        logger.serviceCall("manageRatkoBulkTransfers", "branch" to branch)
+
+        assertMainBranch(branch)
+
+        splitService
+            .findUnfinishedSplits(branch)
+            .filter { split -> split.publicationId != null && split.publicationTime != null }
+            .sortedWith(compareBy { split -> split.publicationTime ?: Instant.MAX })
+            .firstOrNull()
+            ?.let { split ->
+                pollBulkTransferStateUpdate(branch, split)
+            }
+            .takeIf { split ->
+                split?.bulkTransferState in listOf(
+                    BulkTransferState.PENDING,
+                    BulkTransferState.TEMPORARY_FAILURE,
+                )
+            }
+            ?.let { split ->
+                beginNewBulkTransfer(branch, split)
+            }
+    }
+
+    fun pollBulkTransferStateUpdate(branch: LayoutBranch, split: Split): Split {
+        logger.serviceCall(
+            "pollBulkTransferStateUpdate",
+            "branch" to branch,
+            "split" to split,
+        )
+
+        if (split.bulkTransferState != BulkTransferState.IN_PROGRESS) {
+            logger.info(
+                "Skipping bulk transfer state poll: split is not in progress (current state=${split.bulkTransferState})"
+            )
+
+            return split
+        }
+
+        checkNotNull(split.bulkTransferId) {
+            error("Was about to poll bulk transfer state for split=${split.id}, but bulkTransferId was null!")
+        }
+
+        val oldState = split.bulkTransferState
+        val newState = ratkoClient.pollBulkTransferState(split.bulkTransferId)
+
+        return if (newState != oldState) {
+            logger.info("Updating split=${split.id} bulkTransferState from $oldState to $newState")
+            splitService.updateSplit(split.id, newState)
+            splitService.getOrThrow(split.id)
+        } else {
+            logger.info("Split=${split.id} still has the same bulkTransferState=$oldState")
+            split
+        }
+    }
+
+    fun beginNewBulkTransfer(branch: LayoutBranch, split: Split) {
+        logger.serviceCall(
+            "beginBulkTransfer",
+            "branch" to branch,
+            "split" to split,
+        )
+
+        ratkoClient.startNewBulkTransfer(split).let { (bulkTransferId, bulkTransferState) ->
+            splitService.updateSplit(
+                splitId = split.id,
+                bulkTransferState = bulkTransferState,
+                bulkTransferId = bulkTransferId,
+            )
+        }
+    }
+
+    fun pushLocationTracksToRatko(branch: LayoutBranch, locationTrackChanges: Collection<LocationTrackChange>) {
+        assertMainBranch(branch)
+
         lockDao.runWithLock(DatabaseLock.RATKO, databaseLockDuration) {
             logger.serviceCall("pushLocationTracksToRatko")
 
@@ -166,6 +252,7 @@ class RatkoService @Autowired constructor(
                 }
 
             val pushedLocationTrackOids = ratkoLocationTrackService.pushLocationTrackChangesToRatko(
+                branch,
                 publishedLocationTrackChanges,
                 latestPublicationMoment,
             )
@@ -207,6 +294,7 @@ class RatkoService @Autowired constructor(
             )
 
             val pushedLocationTrackOids = ratkoLocationTrackService.pushLocationTrackChangesToRatko(
+                LayoutBranch.main,
                 publications.flatMap { it.allPublishedLocationTracks },
                 lastPublicationTime
             )

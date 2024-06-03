@@ -1,28 +1,26 @@
 import { asyncCache } from 'cache/cache';
 import { LayoutTrackNumber, LayoutTrackNumberId } from 'track-layout/track-layout-model';
 import {
-    LayoutAssetChangeInfo,
     draftLayoutContext,
+    LayoutAssetChangeInfo,
     LayoutContext,
     TimeStamp,
 } from 'common/common-model';
 import {
-    deleteNonNullAdt,
+    deleteNonNull,
     getNonNull,
     getNullable,
     postNonNull,
     putNonNull,
     queryParams,
 } from 'api/api-fetch';
-import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
+import { changeInfoUri, layoutUri } from 'track-layout/track-layout-api';
 import { TrackNumberSaveRequest } from 'tool-panel/track-number/dialog/track-number-edit-store';
 import {
     getChangeTimes,
     updateReferenceLineChangeTime,
     updateTrackNumberChangeTime,
 } from 'common/change-time-api';
-import { LocationTrackSaveError } from 'linking/linking-model';
-import { Result } from 'neverthrow';
 import { ValidatedTrackNumber } from 'publication/publication-model';
 import { AlignmentPlanSection } from 'track-layout/layout-location-track-api';
 import { bboxString } from 'common/common-api';
@@ -77,17 +75,14 @@ export async function createTrackNumber(
 export async function deleteTrackNumber(
     layoutContext: LayoutContext,
     trackNumberId: LayoutTrackNumberId,
-): Promise<Result<LayoutTrackNumberId, LocationTrackSaveError>> {
+): Promise<LayoutTrackNumberId> {
     const path = layoutUri('track-numbers', draftLayoutContext(layoutContext), trackNumberId);
-    const apiResult = await deleteNonNullAdt<undefined, LayoutTrackNumberId>(path, undefined);
+    const result = await deleteNonNull<LayoutTrackNumberId>(path);
 
     await updateTrackNumberChangeTime();
     await updateReferenceLineChangeTime();
 
-    return apiResult.mapErr(() => ({
-        // Here it is possible to return more accurate validation errors
-        validationErrors: [],
-    }));
+    return result;
 }
 
 export async function getTrackNumberValidation(
@@ -114,5 +109,5 @@ export const getTrackNumberChangeTimes = (
     id: LayoutTrackNumberId,
     layoutContext: LayoutContext,
 ): Promise<LayoutAssetChangeInfo | undefined> => {
-    return getNullable<LayoutAssetChangeInfo>(changeTimeUri('track-numbers', id, layoutContext));
+    return getNullable<LayoutAssetChangeInfo>(changeInfoUri('track-numbers', id, layoutContext));
 };

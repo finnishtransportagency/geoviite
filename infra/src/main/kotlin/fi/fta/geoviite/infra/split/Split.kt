@@ -5,7 +5,7 @@ import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.publication.Publication
-import fi.fta.geoviite.infra.publication.PublicationValidationError
+import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -13,6 +13,9 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FreeText
+import java.time.Instant
+
+class BulkTransfer
 
 enum class BulkTransferState {
     PENDING,
@@ -38,20 +41,40 @@ data class SplitHeader(
 
 data class Split(
     val id: IntId<Split>,
+    val rowVersion: RowVersion<Split>,
     val sourceLocationTrackId: IntId<LocationTrack>,
     val sourceLocationTrackVersion: RowVersion<LocationTrack>,
     val bulkTransferState: BulkTransferState,
+    val bulkTransferId: IntId<BulkTransfer>?,
     val publicationId: IntId<Publication>?,
+    val publicationTime: Instant?,
     val targetLocationTracks: List<SplitTarget>,
     val relinkedSwitches: List<IntId<TrackLayoutSwitch>>,
     val updatedDuplicates: List<IntId<LocationTrack>>,
 ) {
+    init {
+        if (publicationId != null) {
+            require(id == rowVersion.id) { "Split source row version must refer to official row, once published" }
+        }
+        if (publicationId == null) {
+            require(bulkTransferState == BulkTransferState.PENDING) { "Split must be pending if not published" }
+        }
+
+        if (bulkTransferState == BulkTransferState.IN_PROGRESS) {
+            requireNotNull(bulkTransferId) {
+                "Split must have a non-null bulk transfer id when bulk transfer state is set to be in progress"
+            }
+        }
+    }
+
     @get:JsonIgnore
     val locationTracks by lazy { targetLocationTracks.map { it.locationTrackId } + sourceLocationTrackId }
 
     @JsonIgnore
-    val isPending: Boolean = bulkTransferState == BulkTransferState.PENDING && publicationId == null
+    val isPublishedAndWaitingTransfer: Boolean = bulkTransferState != BulkTransferState.DONE && publicationId != null
 
+    fun containsTargetTrack(trackId: IntId<LocationTrack>): Boolean =
+        targetLocationTracks.any { tlt -> tlt.locationTrackId == trackId }
     fun containsLocationTrack(trackId: IntId<LocationTrack>): Boolean = locationTracks.contains(trackId)
     fun getTargetLocationTrack(trackId: IntId<LocationTrack>): SplitTarget? =
         targetLocationTracks.find { track -> track.locationTrackId == trackId }
@@ -76,14 +99,14 @@ data class SplitTarget(
     val operation: SplitTargetOperation,
 )
 
-data class SplitPublicationValidationErrors(
-    val trackNumbers: Map<IntId<TrackLayoutTrackNumber>, List<PublicationValidationError>>,
-    val referenceLines: Map<IntId<ReferenceLine>, List<PublicationValidationError>>,
-    val kmPosts: Map<IntId<TrackLayoutKmPost>, List<PublicationValidationError>>,
-    val locationTracks: Map<IntId<LocationTrack>, List<PublicationValidationError>>,
-    val switches: Map<IntId<TrackLayoutSwitch>, List<PublicationValidationError>>,
+data class SplitLayoutValidationIssues(
+    val trackNumbers: Map<IntId<TrackLayoutTrackNumber>, List<LayoutValidationIssue>>,
+    val referenceLines: Map<IntId<ReferenceLine>, List<LayoutValidationIssue>>,
+    val kmPosts: Map<IntId<TrackLayoutKmPost>, List<LayoutValidationIssue>>,
+    val locationTracks: Map<IntId<LocationTrack>, List<LayoutValidationIssue>>,
+    val switches: Map<IntId<TrackLayoutSwitch>, List<LayoutValidationIssue>>,
 ) {
-    fun allErrors(): List<PublicationValidationError> =
+    fun allIssues(): List<LayoutValidationIssue> =
         (trackNumbers.values + referenceLines.values + kmPosts.values + locationTracks.values + switches.values).flatten()
 }
 

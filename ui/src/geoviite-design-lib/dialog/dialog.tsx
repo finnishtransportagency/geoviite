@@ -30,6 +30,7 @@ export type DialogProps = {
     height?: DialogHeight;
     allowClose?: boolean;
     className?: string;
+    qaId?: string;
 } & Pick<React.HTMLProps<HTMLElement>, 'style'>;
 
 type DragParams = {
@@ -40,6 +41,7 @@ type DragParams = {
 export const Dialog: React.FC<DialogProps> = ({
     allowClose = true,
     width = DialogWidth.NORMAL,
+    qaId = undefined,
     ...props
 }: DialogProps) => {
     const dialogHeaderRef = React.useRef<HTMLDivElement>(null);
@@ -84,7 +86,8 @@ export const Dialog: React.FC<DialogProps> = ({
                     dialogDragParams && styles['dialog__popup--moving'],
                 )}
                 style={{ left: dialogPositionX, top: dialogPositionY }}
-                ref={dialogHeaderRef}>
+                ref={dialogHeaderRef}
+                {...(qaId && { 'qa-id': qaId })}>
                 <div
                     className={styles['dialog__header']}
                     onMouseDown={(e) => {

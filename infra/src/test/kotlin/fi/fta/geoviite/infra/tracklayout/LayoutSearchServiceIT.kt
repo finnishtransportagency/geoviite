@@ -4,8 +4,9 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
@@ -26,7 +27,7 @@ class LayoutSearchServiceIT @Autowired constructor(
     val locationTrackService: LocationTrackService,
     val switchService: LayoutSwitchService,
     val switchDao: LayoutSwitchDao,
-): DBTestBase() {
+) : DBTestBase() {
     @BeforeEach
     fun cleanup() {
         deleteFromTables("layout", "track_number", "reference_line")
@@ -46,9 +47,18 @@ class LayoutSearchServiceIT @Autowired constructor(
             LayoutState.IN_USE,
         )
 
-        assertEquals(2, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("tRaCk number"), 100).size)
-        assertEquals(3, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("11"), 100).size)
-        assertEquals(4, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("1"), 100).size)
+        assertEquals(
+            2,
+            searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("tRaCk number"), 100).size,
+        )
+        assertEquals(
+            3,
+            searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("11"), 100).size,
+        )
+        assertEquals(
+            4,
+            searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("1"), 100).size,
+        )
     }
 
     @Test
@@ -62,9 +72,18 @@ class LayoutSearchServiceIT @Autowired constructor(
             LayoutState.IN_USE,
         )
 
-        assertEquals(5, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("some track"), 5).size)
-        assertEquals(10, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("some track"), 10).size)
-        assertEquals(15, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("some track"), 15).size)
+        assertEquals(
+            5,
+            searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("some track"), 5).size,
+        )
+        assertEquals(
+            10,
+            searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("some track"), 10).size,
+        )
+        assertEquals(
+            15,
+            searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("some track"), 15).size,
+        )
     }
 
     @Test
@@ -75,7 +94,10 @@ class LayoutSearchServiceIT @Autowired constructor(
         )
 
         saveTrackNumbersWithSaveRequests(trackNumbers, LayoutState.DELETED)
-        assertEquals(0, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("tRaCk number"), 100).size)
+        assertEquals(
+            0,
+            searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("tRaCk number"), 100).size,
+        )
     }
 
     @Test
@@ -90,14 +112,14 @@ class LayoutSearchServiceIT @Autowired constructor(
             LayoutState.DELETED,
         ).forEachIndexed { index, trackNumberId ->
             val oid = Oid<TrackLayoutTrackNumber>("1.2.3.4.5.6.$index")
-            trackNumberService.updateExternalId(trackNumberId, oid)
+            trackNumberService.updateExternalId(LayoutBranch.main, trackNumberId, oid)
 
-            assertEquals(1, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText(oid.toString()), 100).size)
-            assertEquals(1, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText(trackNumberId.toString()), 100).size)
+            assertEquals(1, searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText(oid.toString()), 100).size)
+            assertEquals(1, searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText(trackNumberId.toString()), 100).size)
         }
 
         // LayoutState was set to DELETED, meaning that these track numbers should not be found by free text.
-        assertEquals(0, searchService.searchAllTrackNumbers(PublicationState.DRAFT, FreeText("tRaCk number"), 100).size)
+        assertEquals(0, searchService.searchAllTrackNumbers(MainLayoutContext.draft, FreeText("tRaCk number"), 100).size)
     }
 
     @Test
@@ -108,16 +130,21 @@ class LayoutSearchServiceIT @Autowired constructor(
         ).first()
 
         // Search scope origin track's start switch, should be included
-        val topologyStartSwitchId =
-            switchDao.fetch(switchService.saveDraft(switch(name = "blaa V0001", draft = true)).rowVersion).id as IntId
+        val topologyStartSwitchId = switchDao.fetch(
+            switchService.saveDraft(LayoutBranch.main, switch(name = "blaa V0001", draft = true)).rowVersion
+        ).id as IntId
         // Search scope origin track's end switch, should be included
-        val topologyEndSwitchId =
-            switchDao.fetch(switchService.saveDraft(switch(name = "blee V0002", draft = true)).rowVersion).id as IntId
+        val topologyEndSwitchId = switchDao.fetch(
+            switchService.saveDraft(LayoutBranch.main, switch(name = "blee V0002", draft = true)).rowVersion
+        ).id as IntId
         // Related to duplicate but not in search scope, should be left out of search results
-        val duplicateStartSwitchId =
-            switchDao.fetch(switchService.saveDraft(switch(name = "bluu V0003", draft = true)).rowVersion).id as IntId
+        val duplicateStartSwitchId = switchDao.fetch(
+            switchService.saveDraft(LayoutBranch.main, switch(name = "bluu V0003", draft = true)).rowVersion
+        ).id as IntId
         // Entirely unrelated, should be left out of search results
-        switchDao.fetch(switchService.saveDraft(switch(name = "bluu V0003", draft = true)).rowVersion).id as IntId
+        switchDao.fetch(
+            switchService.saveDraft(LayoutBranch.main, switch(name = "bluu V0003", draft = true)).rowVersion
+        ).id as IntId
 
         val lt1 = insertLocationTrack( // Location track search scope origin, should be included
             locationTrack(
@@ -158,7 +185,7 @@ class LayoutSearchServiceIT @Autowired constructor(
             someAlignment()
         )
 
-        val searchResults = searchService.searchAssets(PublicationState.DRAFT, FreeText("bl"), 100, lt1.id)
+        val searchResults = searchService.searchAssets(MainLayoutContext.draft, FreeText("bl"), 100, lt1.id)
 
         assertEquals(3, searchResults.locationTracks.size)
         assertContains(searchResults.locationTracks.map { it.id }, lt1.id)
@@ -178,12 +205,13 @@ class LayoutSearchServiceIT @Autowired constructor(
     ): List<IntId<TrackLayoutTrackNumber>> {
         return trackNumbers.map { trackNumber ->
             TrackNumberSaveRequest(
-                trackNumber, FreeText("some description"), layoutState, TrackMeter(
-                    KmNumber(5555), 5.5, 1
-                )
+                trackNumber,
+                FreeText("some description"),
+                layoutState,
+                TrackMeter(KmNumber(5555), 5.5, 1),
             )
         }.map { saveRequest ->
-            trackNumberService.insert(saveRequest)
+            trackNumberService.insert(LayoutBranch.main, saveRequest)
         }
     }
 }

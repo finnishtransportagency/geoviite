@@ -20,19 +20,18 @@ import {
     TrackMeter,
 } from 'common/common-model';
 import {
-    deleteNonNullAdt,
+    deleteNonNull,
     getNonNull,
     getNullable,
-    postNonNullAdt,
-    putNonNullAdt,
+    postNonNull,
+    putNonNull,
     queryParams,
 } from 'api/api-fetch';
-import { changeTimeUri, layoutUri } from 'track-layout/track-layout-api';
+import { changeInfoUri, layoutUri } from 'track-layout/track-layout-api';
 import { asyncCache } from 'cache/cache';
 import { BoundingBox } from 'model/geometry';
 import { bboxString } from 'common/common-api';
-import { LocationTrackSaveError, LocationTrackSaveRequest } from 'linking/linking-model';
-import { Result } from 'neverthrow';
+import { LocationTrackSaveRequest } from 'linking/linking-model';
 import { getChangeTimes, updateLocationTrackChangeTime } from 'common/change-time-api';
 import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
@@ -174,7 +173,7 @@ export function getLocationTrackDescriptions(
     locationTrackIds: LocationTrackId[],
     layoutContext: LayoutContext,
 ): Promise<LocationTrackDescription[] | undefined> {
-    const params = queryParams({ ids: locationTrackIds.join(',') });
+    const params = queryParams({ ids: locationTrackIds.join(','), lang: i18next.language });
     return getNullable<LocationTrackDescription[]>(
         `${layoutUri('location-tracks', layoutContext)}/description${params}`,
     );
@@ -237,53 +236,43 @@ export async function getLocationTracksNear(
 export async function insertLocationTrack(
     layoutContext: LayoutContext,
     locationTrack: LocationTrackSaveRequest,
-): Promise<Result<LocationTrackId, LocationTrackSaveError>> {
-    const apiResult = await postNonNullAdt<LocationTrackSaveRequest, LocationTrackId>(
+): Promise<LocationTrackId> {
+    const result = await postNonNull<LocationTrackSaveRequest, LocationTrackId>(
         layoutUri('location-tracks', draftLayoutContext(layoutContext)),
         locationTrack,
     );
 
     await updateLocationTrackChangeTime();
 
-    return apiResult.mapErr(() => ({
-        // Here it is possible to return more accurate validation errors
-        validationErrors: [],
-    }));
+    return result;
 }
 
 export async function updateLocationTrack(
     layoutContext: LayoutContext,
     id: LocationTrackId,
     locationTrack: LocationTrackSaveRequest,
-): Promise<Result<LocationTrackId, LocationTrackSaveError>> {
-    const apiResult = await putNonNullAdt<LocationTrackSaveRequest, LocationTrackId>(
+): Promise<LocationTrackId> {
+    const apiResult = await putNonNull<LocationTrackSaveRequest, LocationTrackId>(
         layoutUri('location-tracks', draftLayoutContext(layoutContext), id),
         locationTrack,
     );
 
     await updateLocationTrackChangeTime();
 
-    return apiResult.mapErr(() => ({
-        // Here it is possible to return more accurate validation errors
-        validationErrors: [],
-    }));
+    return apiResult;
 }
 
 export const deleteLocationTrack = async (
     layoutContext: LayoutContext,
     id: LocationTrackId,
-): Promise<Result<LocationTrackId, LocationTrackSaveError>> => {
-    const apiResult = await deleteNonNullAdt<undefined, LocationTrackId>(
+): Promise<LocationTrackId> => {
+    const result = await deleteNonNull<LocationTrackId>(
         layoutUri('location-tracks', draftLayoutContext(layoutContext), id),
-        undefined,
     );
 
     await updateLocationTrackChangeTime();
 
-    return apiResult.mapErr(() => ({
-        // Here it is possible to return more accurate validation errors
-        validationErrors: [],
-    }));
+    return result;
 };
 
 export async function getLocationTracks(
@@ -319,7 +308,7 @@ export const getLocationTrackChangeTimes = (
     id: LocationTrackId,
     layoutContext: LayoutContext,
 ): Promise<LayoutAssetChangeInfo | undefined> => {
-    return getNullable<LayoutAssetChangeInfo>(changeTimeUri('location-tracks', id, layoutContext));
+    return getNullable<LayoutAssetChangeInfo>(changeInfoUri('location-tracks', id, layoutContext));
 };
 
 export const getLocationTrackSectionsByPlan = async (

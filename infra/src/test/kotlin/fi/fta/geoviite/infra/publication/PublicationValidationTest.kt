@@ -893,13 +893,13 @@ class PublicationValidationTest {
     }
 
     private fun assertContainsConnectivityWarning(
-        warnings: Collection<PublicationValidationError>,
+        warnings: Collection<LayoutValidationIssue>,
         translationKey: String,
     ) {
         assertContains(
             warnings,
-            PublicationValidationError(
-                PublicationValidationErrorType.WARNING,
+            LayoutValidationIssue(
+                LayoutValidationIssueType.WARNING,
                 "validation.layout.location-track.topological-connectivity.$translationKey",
             ),
         )
@@ -1021,7 +1021,7 @@ class PublicationValidationTest {
     private fun getSwitchSegmentStructureErrors(
         switch: TrackLayoutSwitch,
         tracks: List<Pair<LocationTrack, LayoutAlignment>>,
-    ): List<PublicationValidationError> = validateSwitchLocationTrackLinkStructure(switch, structure, tracks)
+    ): List<LayoutValidationIssue> = validateSwitchLocationTrackLinkStructure(switch, structure, tracks)
 
     private fun assertAddressPointError(hasError: Boolean, geocode: () -> AlignmentAddresses?, error: String) {
         assertContainsError(
@@ -1049,7 +1049,7 @@ class PublicationValidationTest {
         assertEquals(errorRangeDescription, errors[0].params.get("kmNumbers"))
     }
 
-    private fun assertContainsError(contains: Boolean, errors: List<PublicationValidationError>, error: String) {
+    private fun assertContainsError(contains: Boolean, errors: List<LayoutValidationIssue>, error: String) {
         val message = "Expected to ${if (contains) "have" else "not have"} error: expected=$error actual=$errors"
         assertEquals(contains, errors.any { e -> e.localizationKey == LocalizationKey(error) }, message)
     }

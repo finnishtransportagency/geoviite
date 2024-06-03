@@ -15,7 +15,7 @@ import {
     SplitTargetOperation,
 } from 'tool-panel/location-track/split-store';
 import { findById } from 'utils/array-utils';
-import { ValidationError, ValidationErrorType } from 'utils/validation-utils';
+import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
 import {
     validateLocationTrackDescriptionBase,
     validateLocationTrackName,
@@ -28,9 +28,9 @@ export const END_SPLIT_POINT_NOT_MATCHING_ERROR = 'split-point-not-matching-end'
 
 export type ValidatedSplit = {
     split: SplitTargetCandidate | FirstSplitTargetCandidate;
-    nameErrors: ValidationError<SplitTargetCandidate>[];
-    descriptionErrors: ValidationError<SplitTargetCandidate>[];
-    switchErrors: ValidationError<SplitTargetCandidate>[];
+    nameIssues: FieldValidationIssue<SplitTargetCandidate>[];
+    descriptionIssues: FieldValidationIssue<SplitTargetCandidate>[];
+    switchIssues: FieldValidationIssue<SplitTargetCandidate>[];
 };
 
 export type SplitComponentAndRefs = {
@@ -85,9 +85,9 @@ export const validateSplit = (
     lastSplitPoint: SplitPoint,
 ): ValidatedSplit => ({
     split: split,
-    nameErrors: validateSplitName(split.name, allSplitNames, conflictingTrackNames),
-    descriptionErrors: validateSplitDescription(split.descriptionBase, split.duplicateTrackId),
-    switchErrors: validateSplitSwitch(
+    nameIssues: validateSplitName(split.name, allSplitNames, conflictingTrackNames),
+    descriptionIssues: validateSplitDescription(split.descriptionBase, split.duplicateTrackId),
+    switchIssues: validateSplitSwitch(
         split,
         nextSplit,
         switches.filter((layoutSwitch) => layoutSwitch.stateCategory !== 'NOT_EXISTING'),
@@ -100,19 +100,20 @@ const validateSplitName = (
     allSplitNames: string[],
     conflictingTrackNames: string[],
 ) => {
-    const errors: ValidationError<SplitTargetCandidate>[] = validateLocationTrackName(splitName);
+    const errors: FieldValidationIssue<SplitTargetCandidate>[] =
+        validateLocationTrackName(splitName);
 
     if (allSplitNames.filter((s) => s !== '' && isEqualIgnoreCase(s, splitName)).length > 1)
         errors.push({
             field: 'name',
             reason: 'conflicts-with-split',
-            type: ValidationErrorType.ERROR,
+            type: FieldValidationIssueType.ERROR,
         });
     if (conflictingTrackNames.map((t) => t.toLowerCase()).includes(splitName.toLowerCase())) {
         errors.push({
             field: 'name',
             reason: 'conflicts-with-track',
-            type: ValidationErrorType.ERROR,
+            type: FieldValidationIssueType.ERROR,
         });
     }
     return errors;
@@ -122,13 +123,13 @@ const validateSplitDescription = (
     description: string,
     duplicateOf: LocationTrackId | undefined,
 ) => {
-    const errors: ValidationError<SplitTargetCandidate>[] =
+    const errors: FieldValidationIssue<SplitTargetCandidate>[] =
         validateLocationTrackDescriptionBase(description);
     if (!duplicateOf && description === '')
         errors.push({
             field: 'descriptionBase',
             reason: 'mandatory-field',
-            type: ValidationErrorType.ERROR,
+            type: FieldValidationIssueType.ERROR,
         });
     return errors;
 };
@@ -138,8 +139,8 @@ export const validateSplitSwitch = (
     nextSplit: SplitTargetCandidate | FirstSplitTargetCandidate | undefined,
     switches: LayoutSwitch[],
     lastSplitPoint: SplitPoint,
-): ValidationError<SplitTargetCandidate>[] => {
-    const errors: ValidationError<SplitTargetCandidate>[] = [];
+): FieldValidationIssue<SplitTargetCandidate>[] => {
+    const errors: FieldValidationIssue<SplitTargetCandidate>[] = [];
 
     if (
         !switches.some(
@@ -150,16 +151,17 @@ export const validateSplitSwitch = (
         errors.push({
             field: 'splitPoint',
             reason: 'switch-not-found',
-            type: ValidationErrorType.ERROR,
+            type: FieldValidationIssueType.ERROR,
         });
     }
-
     if (
         split.duplicateStatus?.startSplitPoint &&
         !splitPointsAreSame(split.splitPoint, split.duplicateStatus?.startSplitPoint)
     ) {
         const type =
-            split.operation == 'TRANSFER' ? ValidationErrorType.ERROR : ValidationErrorType.WARNING;
+            split.operation == 'TRANSFER'
+                ? FieldValidationIssueType.ERROR
+                : FieldValidationIssueType.WARNING;
         errors.push({
             field: 'splitPoint',
             reason: START_SPLIT_POINT_NOT_MATCHING_ERROR,
@@ -178,7 +180,9 @@ export const validateSplitSwitch = (
         !splitPointsAreSame(nextSplitPoint, split.duplicateStatus?.endSplitPoint)
     ) {
         const type =
-            split.operation == 'TRANSFER' ? ValidationErrorType.ERROR : ValidationErrorType.WARNING;
+            split.operation == 'TRANSFER'
+                ? FieldValidationIssueType.ERROR
+                : FieldValidationIssueType.WARNING;
         errors.push({
             field: 'splitPoint',
             reason: END_SPLIT_POINT_NOT_MATCHING_ERROR,
@@ -206,19 +210,19 @@ export const findRefToFirstErroredField = (
 ): React.RefObject<HTMLInputElement> | undefined => {
     const invalidNameIndex = splitComponents.findIndex((s) =>
         hasErrors(
-            s.splitAndValidation.nameErrors.map((err) => err.reason),
+            s.splitAndValidation.nameIssues.map((err) => err.reason),
             predicate,
         ),
     );
     const invalidDescriptionBaseIndex = splitComponents.findIndex((s) =>
         hasErrors(
-            s.splitAndValidation.descriptionErrors.map((err) => err.reason),
+            s.splitAndValidation.descriptionIssues.map((err) => err.reason),
             predicate,
         ),
     );
     const invalidSwitchBaseIndex = splitComponents.findIndex((s) =>
         hasErrors(
-            s.splitAndValidation.switchErrors.map((err) => err.reason),
+            s.splitAndValidation.switchIssues.map((err) => err.reason),
             predicate,
         ),
     );
@@ -232,8 +236,12 @@ export const findRefToFirstErroredField = (
     else return splitComponents[minIndex]?.descriptionBaseRef;
 };
 
-export const hasUnrelinkableSwitches = (switchRelinkingErrors: SwitchRelinkingValidationResult[]) =>
-    switchRelinkingErrors?.some((err) => !err.successfulSuggestion) || false;
+export const hasUnrelinkableSwitches = (
+    relinkingValidationResults: SwitchRelinkingValidationResult[],
+) =>
+    relinkingValidationResults.some((err) =>
+        err.validationIssues.some((ve) => ve.type === 'ERROR'),
+    );
 
 export const getOperation = (
     trackId: LocationTrackId,

@@ -4,8 +4,11 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DataType.STORED
 import fi.fta.geoviite.infra.common.DataType.TEMP
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.logging.Loggable
@@ -47,23 +50,30 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
     @get:JsonIgnore
     open val designRowId: DomainId<T>? get() = null
 
+    @get:JsonIgnore
+    open val designId: DomainId<LayoutDesign>? get() = null
+
     protected fun requireStored() = require(dataType == STORED) {
         "Only $STORED rows can transition to a different context: context=${this::class.simpleName} dataType=$dataType"
     }
 
     companion object {
-        fun <T> newDraft(id: DomainId<T> = StringId()): MainDraftContextData<T> =
-            MainDraftContextData(id, null, null, TEMP)
+        fun <T> newDraft(branch: LayoutBranch, id: DomainId<T> = StringId()) = when (branch) {
+            is MainBranch -> MainDraftContextData(id, null, null, TEMP)
+            is DesignBranch -> DesignDraftContextData(id, null, null, branch.designId, TEMP)
+        }
 
-        fun <T> newOfficial(id: DomainId<T> = StringId()): MainOfficialContextData<T> =
-            MainOfficialContextData(id, TEMP)
+        fun <T> newOfficial(branch: LayoutBranch, id: DomainId<T> = StringId()) = when (branch) {
+            is MainBranch -> MainOfficialContextData(id, TEMP)
+            is DesignBranch -> DesignOfficialContextData(id, null, branch.designId, TEMP)
+        }
     }
 }
 
 sealed class MainContextData<T> : LayoutContextData<T>()
 
 sealed class DesignContextData<T> : LayoutContextData<T>() {
-    abstract val designId: IntId<LayoutDesign>
+    abstract override val designId: IntId<LayoutDesign>
 }
 
 data class MainOfficialContextData<T>(
@@ -200,15 +210,25 @@ data class DesignDraftContextData<T>(
     }
 }
 
+fun <T : LayoutAsset<T>> asDraft(branch: LayoutBranch, item: T): T = when (branch) {
+    is MainBranch -> asMainDraft(item)
+    is DesignBranch -> asDesignDraft(item, branch.designId)
+}
+
 fun <T : LayoutAsset<T>> asMainDraft(item: T): T = item.contextData.let { ctx ->
     when (ctx) {
         is MainDraftContextData -> item
         is MainOfficialContextData -> item.withContext(ctx.asMainDraft())
         is DesignOfficialContextData -> item.withContext(ctx.asMainDraft())
         is DesignDraftContextData -> error {
-            "Creating main branch draft from a design-draft is not supported (publish design first): item=$item"
+            "Creating a main-draft from a design-draft is not supported (publish the design first): item=$item"
         }
     }
+}
+
+fun <T : LayoutAsset<T>> asOfficial(branch: LayoutBranch, item: T): T = when (branch) {
+    is MainBranch -> asMainOfficial(item)
+    is DesignBranch -> asDesignOfficial(item, branch.designId)
 }
 
 fun <T : LayoutAsset<T>> asMainOfficial(item: T): T =
@@ -217,7 +237,33 @@ fun <T : LayoutAsset<T>> asMainOfficial(item: T): T =
             is MainOfficialContextData -> item
             is MainDraftContextData -> item.withContext(ctx.asMainOfficial())
             else -> error {
-                "Creating main branch official from a design is not supported (create main draft first): item=$item"
+                "Creating a main-official from a design is not supported (create a main-draft first): item=$item"
             }
         }
     }
+
+fun <T : LayoutAsset<T>> asDesignOfficial(item: T, designId: IntId<LayoutDesign>): T = item.contextData.let { ctx ->
+    require(ctx.designId == null || ctx.designId == designId) {
+        "Creating a design-official from another design is not supported: item=$item designId=$designId"
+    }
+    when (ctx) {
+        is DesignDraftContextData -> item.withContext(ctx.asDesignOfficial())
+        else -> error {
+            "Creating a design-official from the main branch is not supported (create a design draft first): item=$item designId=$designId"
+        }
+    }
+}
+
+fun <T : LayoutAsset<T>> asDesignDraft(item: T, designId: IntId<LayoutDesign>): T = item.contextData.let { ctx ->
+    require(ctx.designId == null || ctx.designId == designId) {
+        "Creating a design-draft from another design is not supported: item=$item designId=$designId"
+    }
+    when (ctx) {
+        is DesignDraftContextData -> item
+        is MainOfficialContextData -> item.withContext(ctx.asDesignDraft(designId))
+        is DesignOfficialContextData -> item.withContext(ctx.asDesignDraft())
+        is MainDraftContextData -> error {
+            "Creating a design-draft from a main-draft is not supported (publish the draft first): item=$item designId=$designId"
+        }
+    }
+}

@@ -3,8 +3,8 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import org.junit.jupiter.api.Test
@@ -14,7 +14,6 @@ import org.springframework.test.context.ActiveProfiles
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -69,7 +68,11 @@ class LayoutKmPostServiceIT @Autowired constructor(
         )
 
         val actual = kmPostService.listNearbyOnTrackPaged(
-            OFFICIAL, Point(0.0, 0.0), trackNumberId, 0, null
+            MainLayoutContext.official,
+            Point(0.0, 0.0),
+            trackNumberId,
+            0,
+            null,
         )
         val expected = listOf(kmPost3, kmPost1, kmPost2)
         assertEquals(expected, actual)
@@ -89,7 +92,12 @@ class LayoutKmPostServiceIT @Autowired constructor(
             ).rowVersion
         )
 
-        val result = kmPostService.getByKmNumber(OFFICIAL, trackNumberId, kmPost.kmNumber, true)
+        val result = kmPostService.getByKmNumber(
+            MainLayoutContext.official,
+            trackNumberId,
+            kmPost.kmNumber,
+            true,
+        )
         assertNotNull(result)
         assertMatches(kmPost, result)
     }
@@ -106,7 +114,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
             )
         )
 
-        assertNull(kmPostService.getByKmNumber(OFFICIAL, trackNumberId, KmNumber(2), true))
+        assertNull(kmPostService.getByKmNumber(MainLayoutContext.official, trackNumberId, KmNumber(2), true))
     }
 
     @Test
@@ -124,7 +132,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
             ).rowVersion
         )
 
-        assertNull(kmPostService.getByKmNumber(OFFICIAL, trackNumber2Id, kmPost.kmNumber, true))
+        assertNull(kmPostService.getByKmNumber(MainLayoutContext.official, trackNumber2Id, kmPost.kmNumber, true))
     }
 
     @Test
@@ -132,14 +140,14 @@ class LayoutKmPostServiceIT @Autowired constructor(
         val trackNumberId = insertOfficialTrackNumber()
         val kmPost = kmPost(trackNumberId, KmNumber(7654), draft = true)
 
-        val draftId = kmPostService.saveDraft(asMainDraft(kmPost)).id
-        val draftFromDb = kmPostService.get(DRAFT, draftId)
+        val draftId = kmPostService.saveDraft(LayoutBranch.main, asMainDraft(kmPost)).id
+        val draftFromDb = kmPostService.get(MainLayoutContext.draft, draftId)
 
-        assertEquals(1, kmPostService.list(DRAFT) { k -> k == draftFromDb }.size)
+        assertEquals(1, kmPostService.list(MainLayoutContext.draft) { k -> k == draftFromDb }.size)
 
-        kmPostService.deleteDraft(draftId)
+        kmPostService.deleteDraft(LayoutBranch.main, draftId)
 
-        assertEquals(0, kmPostService.list(DRAFT) { k -> k == draftFromDb }.size)
+        assertEquals(0, kmPostService.list(MainLayoutContext.draft) { k -> k == draftFromDb }.size)
     }
 
     @Test
@@ -150,10 +158,10 @@ class LayoutKmPostServiceIT @Autowired constructor(
             state = LayoutState.IN_USE,
             trackNumberId = trackNumberId,
         )
-        val kmPostId = kmPostService.insertKmPost(kmPost)
+        val kmPostId = kmPostService.insertKmPost(LayoutBranch.main, kmPost)
 
-        val fetchedKmPost = kmPostService.get(DRAFT, kmPostId)!!
-        assertNull(kmPostService.get(OFFICIAL, kmPostId))
+        val fetchedKmPost = kmPostService.getOrThrow(MainLayoutContext.draft, kmPostId)
+        assertNull(kmPostService.get(MainLayoutContext.official, kmPostId))
 
         assertEquals(DataType.STORED, fetchedKmPost.dataType)
         assertEquals(kmPost.kmNumber, fetchedKmPost.kmNumber)
@@ -165,11 +173,17 @@ class LayoutKmPostServiceIT @Autowired constructor(
     fun kmPostLengthMatchesTrackNumberService() {
         val trackNumberId = insertDraftTrackNumber()
         referenceLineService.saveDraft(
-            referenceLine(trackNumberId, draft = true), alignment(
+            LayoutBranch.main,
+            referenceLine(trackNumberId, draft = true),
+            alignment(
                 segment(
-                    Point(0.0, 0.0), Point(0.0, 5.0), Point(1.0, 10.0), Point(3.0, 15.0), Point(4.0, 20.0)
+                    Point(0.0, 0.0),
+                    Point(0.0, 5.0),
+                    Point(1.0, 10.0),
+                    Point(3.0, 15.0),
+                    Point(4.0, 20.0),
                 )
-            )
+            ),
         )
         val kmPosts = listOf(
             kmPost(trackNumberId, KmNumber(1), Point(0.0, 3.0), draft = true),
@@ -179,10 +193,16 @@ class LayoutKmPostServiceIT @Autowired constructor(
             kmPost(trackNumberId, KmNumber(5), Point(0.0, 10.0), state = LayoutState.PLANNED, draft = true),
             kmPost(trackNumberId, KmNumber(6, "A"), Point(3.0, 14.0), draft = true),
             kmPost(trackNumberId, KmNumber(6, "AA"), Point(6.0, 18.0), draft = true),
-        ).map(kmPostService::saveDraft).map(DaoResponse<TrackLayoutKmPost>::id)
+        )
+        val kmPostSaveResults = kmPosts
+            .map { d -> kmPostService.saveDraft(LayoutBranch.main, d) }
+            .map(DaoResponse<TrackLayoutKmPost>::id)
+
         // drop(1) because the track number km lengths include the section before the first km post
-        val expected = trackNumberService.getKmLengths(DRAFT, trackNumberId)!!.drop(1)
-        val actual = kmPosts.mapNotNull { kmPost -> kmPostService.getSingleKmPostLength(DRAFT, kmPost) }
+        val expected = trackNumberService.getKmLengths(MainLayoutContext.draft, trackNumberId)!!.drop(1)
+        val actual = kmPostSaveResults.mapNotNull { kmPost ->
+            kmPostService.getSingleKmPostLength(MainLayoutContext.draft, kmPost)
+        }
         assertEquals(expected.size, actual.size)
         expected.zip(actual) { e, a -> assertEquals(e.length.toDouble(), a, 0.001) }
     }

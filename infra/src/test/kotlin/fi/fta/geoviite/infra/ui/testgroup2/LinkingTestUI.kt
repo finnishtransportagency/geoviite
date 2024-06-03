@@ -1,11 +1,32 @@
 package fi.fta.geoviite.infra.ui.testgroup2
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.TestGeometryPlanService
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.switchJoint
+import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2EKmPostEditDialog
@@ -364,11 +385,11 @@ class LinkingTestUI @Autowired constructor(
         val throughTrackGeometryAlignment = getGeometryAlignmentFromPlan("through track", plan)
         planPanel.selectAlignment("through track")
 
-        //Create LT for SW1
+        // Create LT for SW1
         val throughTrack = "lt through track"
         createAndLinkLocationTrack(trackLayoutPage, throughTrackGeometryAlignment, "foo tracknumber", throughTrack)
 
-        //Create LT for SW2
+        // Create LT for SW2
         val branchingTrackGeometryAlignment = getGeometryAlignmentFromPlan("branching track", plan)
         planPanel.selectAlignment("branching track")
 
@@ -397,7 +418,6 @@ class LinkingTestUI @Autowired constructor(
         assertEquals("YV54-200N-1:9-O", layoutSwitchInfoBox.type)
         assertEquals("Oikea", layoutSwitchInfoBox.hand)
         assertEquals("Ei tiedossa", layoutSwitchInfoBox.trap)
-
 
         val geoSwitchLocation = getGeometrySwitchFromPlan("switch to link", plan).getJoint(JointNumber(1))?.location
         val layoutSwitchLocationInfoBox = toolPanel.layoutSwitchLocation
@@ -466,7 +486,7 @@ class LinkingTestUI @Autowired constructor(
         Assertions.assertThat(locationTrackLengthBeforeLinking).isLessThan(lengthAfterLinking)
         val editedLocationTrack = getLocationTrackAndAlignment(PublicationState.DRAFT, originalLocationTrack.id)
 
-        //Check that there's a new segment between GT-end and old LT-start
+        // Check that there's a new segment between GT-end and old LT-start
         assertTrue(
             hasSegmentBetweenPoints(
                 start = geometryAlignment.elements.last().end,
@@ -613,7 +633,6 @@ class LinkingTestUI @Autowired constructor(
         )
     }
 
-
     @Test
     fun `Delete location track`() {
         val trackNumberId = insertOfficialTrackNumber()
@@ -652,12 +671,11 @@ class LinkingTestUI @Autowired constructor(
         val locationTrackJ = originalLocationTrack.second.segments.first().alignmentStart
         val pointNearLocationTrackJStart = locationTrackJ.plus(Point(x = 2.0, y = 2.0))
 
-        //Click at empty point and info box should be empty
+        // Click at empty point and info box should be empty
         trackLayoutPage.clickAtCoordinates(pointNearLocationTrackJStart)
 
         trackLayoutPage.toolPanel.locationTrackGeneralInfo.waitUntilInvisible()
     }
-
 
     @Test
     fun `Delete track layout switch`() {
@@ -696,8 +714,8 @@ class LinkingTestUI @Autowired constructor(
 
         trackLayoutPage.selectionPanel.waitUntilSwitchNotVisible("switch to delete")
 
-        //Click near deleted element point to clear tool panels
-        //and then try to select deleted element to confirm it disappeared
+        // Click near deleted element point to clear tool panels
+        // and then try to select deleted element to confirm it disappeared
         val switchPoint = DEFAULT_BASE_POINT + Point(1.0, 1.0)
         trackLayoutPage.clickAtCoordinates(switchPoint + Point(x = 1.0, y = 1.0))
         trackLayoutPage.clickAtCoordinates(switchPoint)
@@ -769,8 +787,8 @@ class LinkingTestUI @Autowired constructor(
         publicationState: PublicationState,
         id: IntId<LocationTrack>,
     ): Pair<LocationTrack, LayoutAlignment> {
-        val locationTrack = locationTrackDao.fetch(locationTrackDao.fetchVersion(id, publicationState)!!)
-        val alignment = alignmentDao.fetch(locationTrack.alignmentVersion!!)
+        val locationTrack = locationTrackDao.getOrThrow(MainLayoutContext.of(publicationState), id)
+        val alignment = alignmentDao.fetch(locationTrack.getAlignmentVersionOrThrow())
         return locationTrack to alignment
     }
 

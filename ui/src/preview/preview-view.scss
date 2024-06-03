@@ -19,14 +19,29 @@ $-color-warning: vayla-design.$color-lemon-dark;
     padding-left: 24px;
     grid-column: 1 / -1;
     display: flex;
-    background: vayla-design.$color-white-dark;
     z-index: 1;
 
+    &__draft {
+        background-color: vayla-design.$color-blue-lighter;
+    }
+
+    &__design {
+        background-color: vayla-design.$color-lemon-light;
+    }
+
     &__title {
-        @include vayla-design.typography-sub-heading;
+        @include vayla-design.typography-heading-small;
         flex: 1;
         display: flex;
         align-items: center;
+    }
+
+    &__radio-buttons {
+        margin-left: 24px;
+
+        > :first-child {
+            margin-right: 8px;
+        }
     }
 
     &__right-section {
@@ -122,13 +137,6 @@ $-color-warning: vayla-design.$color-lemon-dark;
 
     &__revert-spinner {
         padding: 10px;
-    }
-}
-
-.preview-table-item__status-cell {
-    > *:not(:first-child):before {
-        margin-left: 8px;
-        content: ' ';
     }
 }
 

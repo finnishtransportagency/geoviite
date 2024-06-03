@@ -3,9 +3,26 @@ package fi.fta.geoviite.infra.publication
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -24,6 +41,7 @@ class ValidationContextIT @Autowired constructor(
     val switchLibraryService: SwitchLibraryService,
     val publicationDao: PublicationDao,
     val geocodingService: GeocodingService,
+    val splitService: SplitService,
 ) : DBTestBase() {
 
     @Test
@@ -163,6 +181,7 @@ class ValidationContextIT @Autowired constructor(
     }
 
     private fun validationContext(
+        branch: LayoutBranch = LayoutBranch.main,
         trackNumbers: List<IntId<TrackLayoutTrackNumber>> = listOf(),
         locationTracks: List<IntId<LocationTrack>> = listOf(),
         referenceLines: List<IntId<ReferenceLine>> = listOf(),
@@ -178,12 +197,15 @@ class ValidationContextIT @Autowired constructor(
         alignmentDao = alignmentDao,
         publicationDao = publicationDao,
         switchLibraryService = switchLibraryService,
+        splitService = splitService,
         publicationSet = ValidationVersions(
-            trackNumbers = trackNumberDao.fetchPublicationVersions(trackNumbers),
-            referenceLines = referenceLineDao.fetchPublicationVersions(referenceLines),
-            kmPosts = kmPostDao.fetchPublicationVersions(kmPosts),
-            locationTracks = locationTrackDao.fetchPublicationVersions(locationTracks),
-            switches = switchDao.fetchPublicationVersions(switches),
+            branch = branch,
+            trackNumbers = trackNumberDao.fetchPublicationVersions(branch, trackNumbers),
+            referenceLines = referenceLineDao.fetchPublicationVersions(branch, referenceLines),
+            kmPosts = kmPostDao.fetchPublicationVersions(branch, kmPosts),
+            locationTracks = locationTrackDao.fetchPublicationVersions(branch, locationTracks),
+            switches = switchDao.fetchPublicationVersions(branch, switches),
+            splits = splitService.fetchPublicationVersions(branch, locationTracks, switches),
         )
     )
 }

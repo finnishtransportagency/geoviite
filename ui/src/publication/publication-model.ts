@@ -22,7 +22,7 @@ import { BoundingBox, Point } from 'model/geometry';
 import { LocalizationParams } from 'i18n/config';
 import { SplitTargetOperation } from 'tool-panel/location-track/split-store';
 
-export type PublicationValidationError = {
+export type LayoutValidationIssue = {
     type: 'ERROR' | 'WARNING';
     localizationKey: string;
     params: LocalizationParams;
@@ -58,13 +58,11 @@ export type PublicationCandidateId =
     | LayoutKmPostId;
 
 export type BasePublicationCandidate = {
-    // id: PublicationCandidateId;
-    // type: DraftChangeType;
     draftChangeTime: TimeStamp;
     userName: string;
     operation: Operation;
     publicationGroup?: PublicationGroup;
-    errors: PublicationValidationError[];
+    issues: LayoutValidationIssue[];
     validated: boolean;
     pendingValidation: boolean;
     stage: PublicationStage;
@@ -77,26 +75,12 @@ export type PublicationCandidate =
     | SwitchPublicationCandidate
     | KmPostPublicationCandidate;
 
-// export type PublicationCandidateReference = { type: DraftChangeType } & (
-//     | { id: LayoutTrackNumberId }
-//     | { id: ReferenceLineId }
-//     | { id: LocationTrackId }
-//     | { id: LayoutSwitchId }
-//     | { id: LayoutKmPostId }
-// );
-
-// export type PublicationCandidateReference = Pick<PublicationCandidate, 'id' | 'type'>;
 export type PublicationCandidateReference =
     | { id: LayoutTrackNumberId; type: DraftChangeType.TRACK_NUMBER }
     | { id: ReferenceLineId; type: DraftChangeType.REFERENCE_LINE }
     | { id: LocationTrackId; type: DraftChangeType.LOCATION_TRACK }
     | { id: LayoutSwitchId; type: DraftChangeType.SWITCH }
     | { id: LayoutKmPostId; type: DraftChangeType.KM_POST };
-// | { type: DraftChangeType.TRACK_NUMBER }
-// | { type: DraftChangeType.REFERENCE_LINE }
-// | { type: DraftChangeType.LOCATION_TRACK }
-// | { type: DraftChangeType.SWITCH }
-// | { type: DraftChangeType.KM_POST }
 
 export type WithBoundingBox = {
     boundingBox?: BoundingBox;
@@ -258,7 +242,7 @@ export type PublicationChange = {
 
 export type ValidatedAsset<Id extends AssetId> = {
     id: Id;
-    errors: PublicationValidationError[];
+    errors: LayoutValidationIssue[];
 };
 
 export type ValidatedTrackNumber = ValidatedAsset<LayoutTrackNumberId>;

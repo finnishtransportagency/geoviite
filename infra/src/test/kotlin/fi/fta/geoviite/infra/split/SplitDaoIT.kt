@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationDao
@@ -126,7 +127,7 @@ class SplitDaoIT @Autowired constructor(
             updatedDuplicates = emptyList(),
         )
 
-        val splits = splitDao.fetchUnfinishedSplits()
+        val splits = splitDao.fetchUnfinishedSplits(LayoutBranch.main)
 
         assertTrue { splits.any { s -> s.id == pendingSplitId } }
         assertTrue { splits.none { s -> s.id == doneSplit } }
@@ -157,11 +158,11 @@ class SplitDaoIT @Autowired constructor(
             updatedDuplicates = listOf(someDuplicateTrack.id)
         )
 
-        assertTrue { splitDao.fetchUnfinishedSplits().any { it.id == splitId } }
+        assertTrue { splitDao.fetchUnfinishedSplits(LayoutBranch.main).any { it.id == splitId } }
 
         splitDao.deleteSplit(splitId)
 
-        assertTrue { splitDao.fetchUnfinishedSplits().none { it.id == splitId } }
+        assertTrue { splitDao.fetchUnfinishedSplits(LayoutBranch.main).none { it.id == splitId } }
     }
 
     @Test
@@ -201,6 +202,46 @@ class SplitDaoIT @Autowired constructor(
     @Test
     fun `Should throw instead of fetching split`() {
         assertThrows<NoSuchEntityException> { splitDao.getOrThrow(IntId(-1)) }
+    }
+
+    @Test
+    fun `Initial split bulk transfer state is PENDING`() {
+        val splitId = createSplit()
+        assertEquals(BulkTransferState.PENDING, splitDao.getOrThrow(splitId).bulkTransferState)
+    }
+
+    @Test
+    fun `Split bulk transfer state can be updated`() {
+        val splitId = createSplit()
+        val publicationId = publicationDao.createPublication("test: bulk transfer state update")
+
+        BulkTransferState.entries.forEach { newBulkTransferState ->
+            when (newBulkTransferState) {
+                BulkTransferState.PENDING -> splitDao.updateSplit(
+                    splitId = splitId,
+                    bulkTransferState = newBulkTransferState
+                )
+
+                else -> splitDao.updateSplit(
+                    splitId = splitId,
+                    publicationId = publicationId,
+                    bulkTransferState = newBulkTransferState,
+                    bulkTransferId = getUnusedBulkTransferId(),
+                )
+            }
+            splitDao.updateSplit(splitId, bulkTransferState = newBulkTransferState)
+            assertEquals(newBulkTransferState, splitDao.getOrThrow(splitId).bulkTransferState)
+        }
+    }
+
+    @Test
+    fun `Split bulk transfer id can be updated`() {
+        val splitId = createSplit()
+
+        val bulkTransferId = getUnusedBulkTransferId()
+        splitDao.updateSplit(splitId, bulkTransferId = bulkTransferId)
+
+        assertEquals(bulkTransferId, splitDao.getOrThrow(splitId).bulkTransferId)
     }
 
     private fun createSplit(): IntId<Split> {

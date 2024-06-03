@@ -193,6 +193,19 @@
             }
         }
     }
+
+    &__layer-menu {
+        position: absolute;
+        top: 60px;
+        left: 10px;
+
+        background-color: rgba(vayla-design.$color-white-default, 0.6);
+        padding: 2px 4px;
+
+        button {
+            border-radius: 2px;
+        }
+    }
 }
 
 .ol-scale-line {

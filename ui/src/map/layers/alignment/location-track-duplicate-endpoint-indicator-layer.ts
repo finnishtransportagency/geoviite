@@ -6,7 +6,6 @@ import { HIGHLIGHTS_SHOW } from 'map/layers/utils/layer-visibility-limits';
 import { AlignmentDataHolder, getMapAlignmentsByTiles } from 'track-layout/layout-map-api';
 import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 import Feature from 'ol/Feature';
 import { AlignmentStartAndEnd, LocationTrackDuplicate } from 'track-layout/track-layout-model';
 import { SplittingState } from 'tool-panel/location-track/split-store';
@@ -253,7 +252,7 @@ const layerName: MapLayerName = 'location-track-duplicate-endpoint-address-layer
 
 export function createDuplicateTrackEndpointAddressLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<OlPoint>> | undefined,
+    existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
     layoutContext: LayoutContext,
     changeTimes: ChangeTimes,
     resolution: number,

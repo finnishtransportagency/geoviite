@@ -1,12 +1,24 @@
 package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.PublicationState
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.publication.ValidationVersions
-import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.util.DaoBase
+import fi.fta.geoviite.infra.util.getIntArrayOrNull
+import fi.fta.geoviite.infra.util.getIntIdArray
+import fi.fta.geoviite.infra.util.getOptional
+import fi.fta.geoviite.infra.util.getRowVersionOrNull
+import fi.fta.geoviite.infra.util.queryNotNull
+import fi.fta.geoviite.infra.util.queryOptional
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -25,17 +37,17 @@ class GeocodingDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
 ) : DaoBase(jdbcTemplateParam) {
 
-    fun listLayoutGeocodingContextCacheKeys(publicationState: PublicationState): List<LayoutGeocodingContextCacheKey> =
-        getLayoutGeocodingContextCacheKeysInternal(publicationState, null)
+    fun listLayoutGeocodingContextCacheKeys(layoutContext: LayoutContext): List<LayoutGeocodingContextCacheKey> =
+        getLayoutGeocodingContextCacheKeysInternal(layoutContext, null)
 
     fun getLayoutGeocodingContextCacheKey(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): LayoutGeocodingContextCacheKey? =
-        getOptional(trackNumberId, getLayoutGeocodingContextCacheKeysInternal(publicationState, trackNumberId))
+        getOptional(trackNumberId, getLayoutGeocodingContextCacheKeysInternal(layoutContext, trackNumberId))
 
     private fun getLayoutGeocodingContextCacheKeysInternal(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         trackNumberId: IntId<TrackLayoutTrackNumber>?,
     ): List<LayoutGeocodingContextCacheKey> {
         //language=SQL
@@ -49,19 +61,20 @@ class GeocodingDao(
                 filter (where kmp.row_id is not null) as kmp_row_ids,
               array_agg(kmp.row_version order by kmp.row_id, kmp.row_version) 
                 filter (where kmp.row_id is not null) as kmp_row_versions
-            from layout.track_number_publication_view tn
-              left join layout.reference_line_publication_view rl on rl.track_number_id = tn.official_id
-                and :publication_state = any(rl.publication_states)
-              left join layout.km_post_publication_view kmp on kmp.track_number_id = tn.official_id
-                and :publication_state = any(kmp.publication_states)
+            from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) tn
+              left join
+                layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id)
+                  rl on rl.track_number_id = tn.official_id
+              left join layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id)
+                kmp on kmp.track_number_id = tn.official_id
                 and kmp.state = 'IN_USE'
-            where :publication_state = any(tn.publication_states)
-              and (:tn_id::int is null or :tn_id = tn.official_id)
+            where (:tn_id::int is null or :tn_id = tn.official_id)
             group by tn.row_id, tn.row_version, rl.row_id, rl.row_version
         """.trimIndent()
         val params = mapOf(
             "tn_id" to trackNumberId?.intValue,
-            "publication_state" to publicationState.name,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue,
         )
         return jdbcTemplate.queryNotNull(sql, params) { rs, _ -> toGeocodingContextCacheKey(rs) }
     }
@@ -143,14 +156,15 @@ class GeocodingDao(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         versions: ValidationVersions,
     ): GeocodingContextCacheKey? {
-        val official = getLayoutGeocodingContextCacheKey(OFFICIAL, trackNumberId)
+        val official = getLayoutGeocodingContextCacheKey(versions.branch.official, trackNumberId)
         val trackNumberVersion =
             versions.findTrackNumber(trackNumberId)?.validatedAssetVersion ?: official?.trackNumberVersion
         // We have to fetch the actual objects (reference line & km-post) here to check references
         // However, when this is done, the objects are needed elsewhere as well -> they should always be in cache
-        val referenceLineVersion =
-            versions.referenceLines.find { v -> referenceLineDao.fetch(v.validatedAssetVersion).trackNumberId == trackNumberId }?.validatedAssetVersion
-                ?: official?.referenceLineVersion
+        val referenceLineVersion = versions.referenceLines
+            .find { v -> referenceLineDao.fetch(v.validatedAssetVersion).trackNumberId == trackNumberId }
+            ?.validatedAssetVersion
+            ?: official?.referenceLineVersion
         return if (trackNumberVersion != null && referenceLineVersion != null) {
             val officialKmPosts = official?.kmPostVersions?.filter { v -> !versions.containsKmPost(v.id) } ?: listOf()
             val draftKmPosts = versions.kmPosts.filter { draftPost ->

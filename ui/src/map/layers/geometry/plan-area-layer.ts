@@ -9,7 +9,6 @@ import { ChangeTimes } from 'common/common-slice';
 import { createLayer, loadLayerData, pointToCoords } from 'map/layers/utils/layer-utils';
 import { MapLayer } from 'map/layers/utils/layer-model';
 import VectorLayer from 'ol/layer/Vector';
-import VectorSource from 'ol/source/Vector';
 
 function deduplicatePlanAreas(planAreas: PlanArea[]): PlanArea[] {
     return [...new Map(planAreas.map((area) => [area.id, area])).values()];
@@ -44,7 +43,7 @@ const layerName: MapLayerName = 'plan-area-layer';
 
 export function createPlanAreaLayer(
     mapTiles: MapTile[],
-    existingOlLayer: VectorLayer<VectorSource<Polygon>> | undefined,
+    existingOlLayer: VectorLayer<Feature<Polygon>> | undefined,
     changeTimes: ChangeTimes,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {

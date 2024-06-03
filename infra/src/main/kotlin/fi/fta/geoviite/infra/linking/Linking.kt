@@ -7,7 +7,7 @@ import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
-import fi.fta.geoviite.infra.publication.PublicationValidationError
+import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.switchLibrary.*
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
@@ -118,6 +118,8 @@ data class SwitchLinkingTrackLinks(
         check(topologyJoint == null || segmentJoints.isEmpty()) { "Switch linking track link links both to segment and topology"}
         check(segmentJoints.zipWithNext { a, b -> a.m < b.m }.all { it }) { "Switch linking track link segment joints should be m-ordered"}
     }
+
+    fun isLinked(): Boolean = segmentJoints.isNotEmpty() || topologyJoint != null
 }
 
 data class SwitchLinkingJoint(
@@ -180,7 +182,7 @@ data class KmPostLinkingParameters(
 data class SwitchRelinkingValidationResult(
     val id: IntId<TrackLayoutSwitch>,
     val successfulSuggestion: SwitchRelinkingSuggestion?,
-    val validationErrors: List<PublicationValidationError>,
+    val validationIssues: List<LayoutValidationIssue>,
 )
 data class SwitchRelinkingSuggestion(
     val location: Point,

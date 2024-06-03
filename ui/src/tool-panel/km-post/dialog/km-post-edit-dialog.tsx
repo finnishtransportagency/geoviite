@@ -134,22 +134,25 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
 
     async function saveState(state: KmPostEditState): Promise<LayoutKmPostId | undefined> {
         if (state.isNewKmPost) {
-            const result = await insertKmPost(
-                draftLayoutContext(props.layoutContext),
-                state.kmPost,
+            return insertKmPost(draftLayoutContext(props.layoutContext), state.kmPost).then(
+                (kmPostId) => {
+                    Snackbar.success('km-post-dialog.insert-succeeded');
+                    return kmPostId;
+                },
+                () => void Snackbar.error('km-post-dialog.insert-failed'),
             );
-            if (result.isOk()) Snackbar.success('km-post-dialog.insert-succeeded');
-            else Snackbar.error('km-post-dialog.insert-failed');
-            return result.unwrapOr(undefined);
         } else if (state.existingKmPost) {
-            const result = await updateKmPost(
+            return updateKmPost(
                 draftLayoutContext(props.layoutContext),
                 state.existingKmPost.id,
                 state.kmPost,
+            ).then(
+                (kmPostId) => {
+                    Snackbar.success('km-post-dialog.modify-succeeded');
+                    return kmPostId;
+                },
+                () => void Snackbar.error('km-post-dialog.modify-failed'),
             );
-            if (result.isOk()) Snackbar.success('km-post-dialog.modify-succeeded');
-            else Snackbar.error('km-post-dialog.modify-failed');
-            return result.unwrapOr(undefined);
         } else {
             return Promise.resolve(undefined);
         }
@@ -180,9 +183,9 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
 
     function getVisibleErrorsByProp(prop: keyof KmPostSaveRequest) {
         return state.allFieldsCommitted || state.committedFields.includes(prop)
-            ? state.validationErrors
-                  .filter((error) => error.field == prop)
-                  .map((error) => t(`km-post-dialog.${error.reason}`))
+            ? state.validationIssues
+                  .filter((issue) => issue.field == prop)
+                  .map((issue) => t(`km-post-dialog.${issue.reason}`))
             : [];
     }
 
@@ -246,7 +249,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                                     isProcessing={state.isSaving}
                                     onClick={() => saveOrConfirm()}
                                     title={getSaveDisabledReasons(
-                                        state.validationErrors.map((e) => e.reason),
+                                        state.validationIssues.map((e) => e.reason),
                                         state.isSaving,
                                     )
                                         .map((reason) => t(`km-post-dialog.${reason}`))

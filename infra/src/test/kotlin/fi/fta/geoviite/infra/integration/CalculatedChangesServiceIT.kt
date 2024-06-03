@@ -1,7 +1,15 @@
 package fi.fta.geoviite.infra.integration
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.linking.FittedSwitch
 import fi.fta.geoviite.infra.linking.FittedSwitchJoint
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
@@ -10,7 +18,40 @@ import fi.fta.geoviite.infra.math.Line
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.publication.ValidationVersions
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.addTopologyEndSwitchIntoLocationTrackAndUpdate
+import fi.fta.geoviite.infra.tracklayout.addTopologyStartSwitchIntoLocationTrackAndUpdate
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.moveKmPostLocation
+import fi.fta.geoviite.infra.tracklayout.moveLocationTrackGeometryPointsAndUpdate
+import fi.fta.geoviite.infra.tracklayout.moveReferenceLineGeometryPointsAndUpdate
+import fi.fta.geoviite.infra.tracklayout.moveSwitchPoints
+import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.removeTopologySwitchesFromLocationTrackAndUpdate
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.segments
+import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.switchLinkingAtEnd
+import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -48,10 +89,10 @@ class CalculatedChangesServiceIT @Autowired constructor(
 
     @BeforeEach
     fun setup() {
-        locationTrackDao.deleteDrafts()
-        referenceLineDao.deleteDrafts()
+        locationTrackDao.deleteDrafts(LayoutBranch.main)
+        referenceLineDao.deleteDrafts(LayoutBranch.main)
         alignmentDao.deleteOrphanedAlignments()
-        switchDao.deleteDrafts()
+        switchDao.deleteDrafts(LayoutBranch.main)
     }
 
     @Test
@@ -143,7 +184,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             alignment1,
             locationTrackService,
         ).let { (id, version) ->
-            val (_, publishedVersion) = locationTrackService.publish(ValidationVersion(id, version))
+            val (_, publishedVersion) = locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, version))
             locationTrackService.getWithAlignment(publishedVersion)
         }
 
@@ -222,7 +263,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             alignment1,
             locationTrackService,
         ).let { (id, version) ->
-            val (_, publishedVersion) = locationTrackService.publish(ValidationVersion(id, version))
+            val (_, publishedVersion) = locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, version))
             locationTrackService.getWithAlignment(publishedVersion)
         }
 
@@ -369,7 +410,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
             JointNumber(1),
             locationTrackService = locationTrackService,
         ).let { (id, version) ->
-            val (_, publishedVersion) = locationTrackService.publish(ValidationVersion(id, version))
+            val (_, publishedVersion) = locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, version))
             locationTrackService.getWithAlignment(publishedVersion)
         }
 
@@ -727,6 +768,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val testData = insertTestData()
         val kmPost = testData.kmPosts.first()
         kmPostService.saveDraft(
+            LayoutBranch.main,
             kmPost.copy(
                 kmNumber = KmNumber(kmPost.kmNumber.number, "A")
             )
@@ -822,6 +864,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val testData = insertTestData()
         val (referenceLine, _) = testData.referenceLineAndAlignment
         referenceLineService.saveDraft(
+            LayoutBranch.main,
             referenceLine.copy(
                 startAddress = TrackMeter(0, 500)
             )
@@ -878,6 +921,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val testData = insertTestData()
         val trackNumber = testData.trackNumber
         trackNumberservice.saveDraft(
+            LayoutBranch.main,
             trackNumber.copy(
                 description = FreeText(UUID.randomUUID().toString())
             )
@@ -935,6 +979,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val testData = insertTestData()
         val switch = testData.switches.first()
         switchService.saveDraft(
+            LayoutBranch.main,
             switch.copy(
                 name = SwitchName(UUID.randomUUID().toString())
             )
@@ -953,6 +998,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
 
         val trackNumber = testData.trackNumber
         trackNumberservice.saveDraft(
+            LayoutBranch.main,
             trackNumber.copy(
                 description = FreeText(UUID.randomUUID().toString())
             )
@@ -1030,6 +1076,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val switch = testData.switches.first()
 
         switchService.saveDraft(
+            LayoutBranch.main,
             switch.copy(
                 name = SwitchName(UUID.randomUUID().toString())
             )
@@ -1061,14 +1108,20 @@ class CalculatedChangesServiceIT @Autowired constructor(
     fun `switch change with joint linked to segment gap should still be reported as only one change`() {
         val trackNumberId = insertDraftTrackNumber()
         val referenceLineId = referenceLineService.saveDraft(
-            referenceLine(trackNumberId, draft = true), alignment(segment(Point(0.0, 0.0), Point(0.0, 20.0)))
+            LayoutBranch.main,
+            referenceLine(trackNumberId, draft = true),
+            alignment(segment(Point(0.0, 0.0), Point(0.0, 20.0))),
         ).id
-        val switch = switchService.saveDraft(switch(123, draft = true)).id
+        val switch = switchService.saveDraft(LayoutBranch.main, switch(123, draft = true)).id
         val wibblyTrack = locationTrackService.saveDraft(
-            locationTrack(trackNumberId, draft = true), alignment(
-                segment(Point(0.0, 0.0), Point(0.0, 10.0)).copy(switchId = switch, endJointNumber = JointNumber(5)),
-                segment(Point(0.0, 10.00001), Point(0.0, 20.0)).copy(switchId = switch, startJointNumber = JointNumber(5))
-            )
+            LayoutBranch.main,
+            locationTrack(trackNumberId, draft = true),
+            alignment(
+                segment(Point(0.0, 0.0), Point(0.0, 10.0))
+                    .copy(switchId = switch, endJointNumber = JointNumber(5)),
+                segment(Point(0.0, 10.00001), Point(0.0, 20.0))
+                    .copy(switchId = switch, startJointNumber = JointNumber(5))
+            ),
         )
         val changes = getCalculatedChanges(
             locationTrackIds = listOf(wibblyTrack.id),
@@ -1079,7 +1132,6 @@ class CalculatedChangesServiceIT @Autowired constructor(
         assertEquals(1, changes.directChanges.switchChanges.size)
         assertEquals(1, changes.directChanges.switchChanges.find { it.switchId == switch }?.changedJoints?.size)
     }
-
 
     data class TestData(
         val trackNumber: TrackLayoutTrackNumber,
@@ -1229,10 +1281,10 @@ class CalculatedChangesServiceIT @Autowired constructor(
 
         val publishedLocationTracksAndAlignments = locationTracksAndAlignments.map { (locationTrack, _) ->
             val id = locationTrack.id as IntId
-            val rowVersion = locationTrackDao.fetchDraftVersionOrThrow(id)
+            val rowVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
             val (edited, editedAlignment) = locationTrackService.getWithAlignment(rowVersion)
             if (edited.isDraft) {
-                val publicationResponse = locationTrackService.publish(ValidationVersion(id, rowVersion))
+                val publicationResponse = locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, rowVersion))
                 locationTrackService.getWithAlignment(publicationResponse.rowVersion)
             } else {
                 edited to editedAlignment
@@ -1240,10 +1292,10 @@ class CalculatedChangesServiceIT @Autowired constructor(
         }
         val publishedSwitches = switches.map { switch ->
             val id = switch.id as IntId
-            val rowVersion = switchDao.fetchDraftVersionOrThrow(id)
+            val rowVersion = switchDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
             val edited = switchDao.fetch(rowVersion)
             if (edited.isDraft) {
-                val publicationResponse = switchService.publish(ValidationVersion(id, rowVersion))
+                val publicationResponse = switchService.publish(LayoutBranch.main, ValidationVersion(id, rowVersion))
                 switchDao.fetch(publicationResponse.rowVersion)
             } else {
                 edited
@@ -1323,7 +1375,8 @@ class CalculatedChangesServiceIT @Autowired constructor(
             name = SwitchName("abc"),
         )
         switchLinkingService.saveSwitchLinking(
-            switchLinkingService.matchFittedSwitch(suggestedFitting, switch.id as IntId),
+            LayoutBranch.main,
+            switchLinkingService.matchFittedSwitch(LayoutBranch.main, suggestedFitting, switch.id as IntId),
             switch.id as IntId,
         )
         return switch
@@ -1376,11 +1429,13 @@ class CalculatedChangesServiceIT @Autowired constructor(
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>> = emptyList(),
     ): CalculatedChanges {
         val publicationVersions = ValidationVersions(
-            locationTracks = locationTrackDao.fetchPublicationVersions(locationTrackIds),
-            kmPosts = layoutKmPostDao.fetchPublicationVersions(kmPostIds),
-            referenceLines = referenceLineDao.fetchPublicationVersions(referenceLineIds),
-            switches = switchDao.fetchPublicationVersions(switchIds),
-            trackNumbers = layoutTrackNumberDao.fetchPublicationVersions(trackNumberIds),
+            branch = LayoutBranch.main,
+            locationTracks = locationTrackDao.fetchPublicationVersions(LayoutBranch.main, locationTrackIds),
+            kmPosts = layoutKmPostDao.fetchPublicationVersions(LayoutBranch.main, kmPostIds),
+            referenceLines = referenceLineDao.fetchPublicationVersions(LayoutBranch.main, referenceLineIds),
+            switches = switchDao.fetchPublicationVersions(LayoutBranch.main, switchIds),
+            trackNumbers = layoutTrackNumberDao.fetchPublicationVersions(LayoutBranch.main, trackNumberIds),
+            splits = listOf(),
         )
 
         return calculatedChangesService.getCalculatedChanges(publicationVersions)

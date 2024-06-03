@@ -28,7 +28,7 @@ class PublicationDao(
     val alignmentDao: LayoutAlignmentDao,
 ) : DaoBase(jdbcTemplateParam) {
 
-    fun fetchTrackNumberPublicationCandidates(): List<TrackNumberPublicationCandidate> {
+    fun fetchTrackNumberPublicationCandidates(branch: LayoutBranch): List<TrackNumberPublicationCandidate> {
         val sql = """
             select
               draft_track_number.row_id,
@@ -41,13 +41,12 @@ class PublicationDao(
                 official_track_number.state,
                 draft_track_number.state
               ) as operation
-            from layout.track_number_publication_view draft_track_number
-              left join layout.track_number_publication_view official_track_number 
+            from layout.track_number_in_layout_context('DRAFT', :design_id) draft_track_number
+              left join layout.track_number_in_layout_context('OFFICIAL', :design_id) official_track_number
                 on draft_track_number.official_id = official_track_number.official_id
-                  and 'OFFICIAL' = any(official_track_number.publication_states)
             where draft_track_number.draft = true
         """.trimIndent()
-        val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+        val candidates = jdbcTemplate.query(sql, mapOf("design_id" to branch.designId?.intValue)) { rs, _ ->
             val id = rs.getIntId<TrackLayoutTrackNumber>("official_id")
             TrackNumberPublicationCandidate(
                 id = id,
@@ -56,7 +55,7 @@ class PublicationDao(
                 draftChangeTime = rs.getInstant("change_time"),
                 operation = rs.getEnum("operation"),
                 userName = UserName.of(rs.getString("change_user")),
-                boundingBox = referenceLineDao.fetchVersionByTrackNumberId(PublicationState.DRAFT, id)
+                boundingBox = referenceLineDao.fetchVersionByTrackNumberId(branch.draft, id)
                     ?.let(referenceLineDao::fetch)?.boundingBox
             )
         }
@@ -64,7 +63,7 @@ class PublicationDao(
         return candidates
     }
 
-    fun fetchReferenceLinePublicationCandidates(): List<ReferenceLinePublicationCandidate> {
+    fun fetchReferenceLinePublicationCandidates(branch: LayoutBranch): List<ReferenceLinePublicationCandidate> {
         val sql = """
             select 
               draft_reference_line.row_id,
@@ -79,19 +78,17 @@ class PublicationDao(
                 draft_track_number.state
               ) as operation,
               postgis.st_astext(alignment_version.bounding_box) as bounding_box
-            from layout.reference_line_publication_view draft_reference_line
-              left join layout.track_number_publication_view draft_track_number
+            from layout.reference_line_in_layout_context('DRAFT', :design_id) draft_reference_line
+              left join layout.track_number_in_layout_context('DRAFT', :design_id) draft_track_number
                 on draft_track_number.official_id = draft_reference_line.track_number_id
-                  and 'DRAFT' = any(draft_track_number.publication_states)
-              left join layout.track_number_publication_view official_track_number
+              left join layout.track_number_in_layout_context('OFFICIAL', :design_id) official_track_number
                 on official_track_number.official_id = draft_reference_line.track_number_id
-                  and 'OFFICIAL' = any(official_track_number.publication_states)
               left join layout.alignment_version alignment_version
                 on draft_reference_line.alignment_id = alignment_version.id
                   and draft_reference_line.alignment_version = alignment_version.version
-            where draft_reference_line.draft = true
+            where draft_reference_line.draft
         """.trimIndent()
-        val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+        val candidates = jdbcTemplate.query(sql, mapOf("design_id" to branch.designId?.intValue)) { rs, _ ->
             ReferenceLinePublicationCandidate(
                 id = rs.getIntId("official_id"),
                 rowVersion = rs.getRowVersion("row_id", "row_version"),
@@ -107,7 +104,7 @@ class PublicationDao(
         return candidates
     }
 
-    fun fetchLocationTrackPublicationCandidates(): List<LocationTrackPublicationCandidate> {
+    fun fetchLocationTrackPublicationCandidates(branch: LayoutBranch): List<LocationTrackPublicationCandidate> {
         val sql = """
             with splits as (
                 select
@@ -140,10 +137,9 @@ class PublicationDao(
               ) as operation,
               postgis.st_astext(alignment_version.bounding_box) as bounding_box,
               splits.split_id
-            from layout.location_track_publication_view draft_location_track
-                left join layout.location_track_publication_view official_location_track
+            from layout.location_track_in_layout_context('DRAFT', :design_id) draft_location_track
+                left join layout.location_track_in_layout_context('OFFICIAL', :design_id) official_location_track
                     on official_location_track.official_id = draft_location_track.official_id
-                        and 'OFFICIAL' = any(official_location_track.publication_states)
                 left join layout.alignment_version alignment_version
                     on draft_location_track.alignment_id = alignment_version.id
                         and draft_location_track.alignment_version = alignment_version.version
@@ -151,9 +147,9 @@ class PublicationDao(
                     on splits.source_track_id = draft_location_track.official_id 
                         or draft_location_track.official_id = any(splits.target_track_ids)
                         or draft_location_track.official_id = any(splits.split_updated_duplicate_ids)
-            where draft_location_track.draft = true
+            where draft_location_track.draft
         """.trimIndent()
-        val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+        val candidates = jdbcTemplate.query(sql, mapOf("design_id" to branch.designId?.intValue)) { rs, _ ->
             LocationTrackPublicationCandidate(
                 id = rs.getIntId("official_id"),
                 rowVersion = rs.getRowVersion("row_id", "row_version"),
@@ -172,7 +168,7 @@ class PublicationDao(
         return candidates
     }
 
-    fun fetchSwitchPublicationCandidates(): List<SwitchPublicationCandidate> {
+    fun fetchSwitchPublicationCandidates(branch: LayoutBranch): List<SwitchPublicationCandidate> {
         val sql = """
             with splits as (
                 select
@@ -192,7 +188,7 @@ class PublicationDao(
               draft_switch.change_time,
               draft_switch.change_user,
               (select array_agg(sltn)
-                 from layout.switch_linked_track_numbers(coalesce(official_switch.row_id, draft_switch.row_id), :publication_state) sltn
+                 from layout.switch_linked_track_numbers(coalesce(official_switch.row_id, draft_switch.row_id), :publication_state::layout.publication_state, :design_id) sltn
               ) as track_numbers,
               layout.infer_operation_from_state_category_transition(
                 official_switch.state_category,
@@ -201,23 +197,23 @@ class PublicationDao(
               postgis.st_x(switch_joint_version.location) as point_x, 
               postgis.st_y(switch_joint_version.location) as point_y,
               splits.split_id
-            from layout.switch_publication_view draft_switch
-              left join layout.switch_publication_view official_switch
+            from layout.switch_in_layout_context('DRAFT', :design_id) draft_switch
+              left join layout.switch_in_layout_context('OFFICIAL', :design_id) official_switch
                 on official_switch.official_id = draft_switch.official_id
-                  and 'OFFICIAL' = any(official_switch.publication_states)
               left join common.switch_structure
                 on draft_switch.switch_structure_id = switch_structure.id
               left join layout.switch_joint_version 
                 on switch_joint_version.switch_id = coalesce(draft_switch.draft_id, draft_switch.official_id)
-                  and switch_joint_version.switch_version = coalesce(draft_switch.draft_version, draft_switch.official_id)
+                  and switch_joint_version.switch_version = coalesce(draft_switch.row_version, official_switch.row_version)
                   and switch_joint_version.number = switch_structure.presentation_joint_number
              left join splits 
                 on draft_switch.official_id = any(splits.split_relinked_switch_ids)
             where draft_switch.draft = true
         """.trimIndent()
         val candidates = jdbcTemplate.query(
-            sql, mapOf<String, Any>(
+            sql, mapOf(
                 "publication_state" to PublicationState.DRAFT.name,
+                "design_id" to branch.designId?.intValue,
             )
         ) { rs, _ ->
             SwitchPublicationCandidate(
@@ -237,7 +233,7 @@ class PublicationDao(
         return candidates
     }
 
-    fun fetchKmPostPublicationCandidates(): List<KmPostPublicationCandidate> {
+    fun fetchKmPostPublicationCandidates(branch: LayoutBranch): List<KmPostPublicationCandidate> {
         val sql = """
             select
               draft_km_post.row_id,
@@ -253,14 +249,13 @@ class PublicationDao(
               ) as operation,
               postgis.st_x(draft_km_post.location) as point_x, 
               postgis.st_y(draft_km_post.location) as point_y
-            from layout.km_post_publication_view draft_km_post
-              left join layout.km_post_publication_view official_km_post
+            from layout.km_post_in_layout_context('DRAFT', :design_id) draft_km_post
+              left join layout.km_post_in_layout_context('OFFICIAL', :design_id) official_km_post
                 on official_km_post.official_id = draft_km_post.official_id
-                  and 'OFFICIAL' = any(official_km_post.publication_states)
             where draft_km_post.draft = true
             order by km_number
         """.trimIndent()
-        val candidates = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+        val candidates = jdbcTemplate.query(sql, mapOf("design_id" to branch.designId?.intValue)) { rs, _ ->
             KmPostPublicationCandidate(
                 id = rs.getIntId("official_id"),
                 rowVersion = rs.getRowVersion("row_id", "row_version"),
@@ -300,6 +295,7 @@ class PublicationDao(
      * @param includeDeleted Filters location tracks, not switches
      */
     fun fetchLinkedLocationTracks(
+        layoutBranch: LayoutBranch,
         switchIds: List<IntId<TrackLayoutSwitch>>,
         locationTrackIdsInPublicationUnit: List<IntId<LocationTrack>>? = null,
         includeDeleted: Boolean = false,
@@ -315,26 +311,41 @@ class PublicationDao(
               lt.official_id,
               lt.row_id,
               lt.row_version,
-              array(select distinct v from unnest(
-                array_agg(s.switch_id) || array_agg(lt.topology_start_switch_id) || array_agg(lt.topology_end_switch_id)
-              ) as t(v) where v in (:switch_ids)) as switch_ids
-              from layout.location_track_publication_view lt
-                left join layout.segment_version s on s.alignment_id = lt.alignment_id
-                and s.alignment_version = lt.alignment_version
-              where case
-                when $draftTrackIncludedCondition then 'DRAFT' ELSE 'OFFICIAL' end = any(lt.publication_states)
-                and (:include_deleted or lt.state != 'DELETED')
-                and (
-                    lt.topology_start_switch_id in (:switch_ids) or
-                    lt.topology_end_switch_id in (:switch_ids) or
-                    s.switch_id in (:switch_ids)
-                )
+              array_agg(distinct switch_id) as switch_ids
+              from (select *
+                    from layout.location_track_in_layout_context('OFFICIAL', :design_id) lt
+                     where not ($draftTrackIncludedCondition)
+                    union all
+                    select *
+                    from layout.location_track_in_layout_context('DRAFT', :design_id) lt
+                     where ($draftTrackIncludedCondition)
+                    ) lt
+              join (
+                select location_track.id as row_id, sv_switch.switch_id
+                  from (
+                    select distinct alignment_id, alignment_version, switch_id
+                      from layout.segment_version
+                      where switch_id in (:switch_ids)
+                  ) sv_switch
+                    join layout.location_track using (alignment_id, alignment_version)
+                union all
+                select id, topology_start_switch_id
+                  from layout.location_track
+                  where topology_start_switch_id in (:switch_ids)
+                union all
+                select id, topology_end_switch_id
+                  from layout.location_track
+                  where topology_end_switch_id in (:switch_ids)
+              ) sid
+                using (row_id)
+              where (:include_deleted or lt.state != 'DELETED')
               group by
                 lt.official_id,
                 lt.row_id,
                 lt.row_version
         """.trimIndent()
         val params = mapOf(
+            "design_id" to layoutBranch.designId?.intValue,
             "switch_ids" to switchIds.map(IntId<TrackLayoutSwitch>::intValue),
             "location_track_ids" to locationTrackIdsInPublicationUnit?.map(IntId<*>::intValue),
             "include_deleted" to includeDeleted,

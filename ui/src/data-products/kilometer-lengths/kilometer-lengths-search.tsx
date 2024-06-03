@@ -134,7 +134,7 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                     }
                     errors={getVisibleErrorsByProp(
                         state.committedFields,
-                        state.validationErrors,
+                        state.validationIssues,
                         'endKm',
                     ).map((error) => t(`data-products.search.${error}`))}
                 />

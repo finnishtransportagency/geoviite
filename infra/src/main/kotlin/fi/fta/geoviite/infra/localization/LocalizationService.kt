@@ -35,7 +35,7 @@ fun localizationParams(params: Map<String, Any?>): LocalizationParams =
 
 fun localizationParams(vararg params: Pair<String, Any?>): LocalizationParams = localizationParams(mapOf(*params))
 
-data class Translation(val lang: String, val localization: String) {
+data class Translation(val lang: LocalizationLanguage, val localization: String) {
     private val jsonRoot = JsonMapper().readTree(localization)
 
     fun t(key: LocalizationKey) = t(key, LocalizationParams.empty)
@@ -58,9 +58,9 @@ data class Translation(val lang: String, val localization: String) {
 }
 
 class TranslationCache {
-    private val translations = ConcurrentHashMap<String, Translation>()
-    fun getOrLoadTranslation(lang: String): Translation = translations.getOrPut(lang) {
-        this::class.java.classLoader.getResource("i18n/translations.${lang}.json")
+    private val translations = ConcurrentHashMap<LocalizationLanguage, Translation>()
+    fun getOrLoadTranslation(lang: LocalizationLanguage): Translation = translations.getOrPut(lang) {
+        this::class.java.classLoader.getResource("i18n/translations.${lang.lowercase()}.json")
             .let { Translation(lang, it?.readText() ?: "") }
     }
 }
@@ -69,8 +69,8 @@ class TranslationCache {
 class LocalizationService(@Value("\${geoviite.i18n.override-path:}") val overridePath: String = "") {
     val translationCache = TranslationCache()
 
-    fun getLocalization(language: String): Translation = if (overridePath.isNotEmpty()) {
-        Translation(language, File("${overridePath}translations.${language}.json").readText())
+    fun getLocalization(language: LocalizationLanguage): Translation = if (overridePath.isNotEmpty()) {
+        Translation(language, File("${overridePath}translations.${language.lowercase()}.json").readText())
     } else {
         translationCache.getOrLoadTranslation(language)
     }

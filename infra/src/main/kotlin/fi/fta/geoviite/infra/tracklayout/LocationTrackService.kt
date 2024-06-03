@@ -6,9 +6,9 @@ import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.PublicationState
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.AddressPoint
@@ -19,6 +19,8 @@ import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.START_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.TopologyLinkFindingSwitch
+import fi.fta.geoviite.infra.localization.LocalizationLanguage
+import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
@@ -38,9 +40,6 @@ import java.time.Instant
 const val TRACK_SEARCH_AREA_SIZE = 2.0
 const val OPERATING_POINT_AROUND_SWITCH_SEARCH_AREA_SIZE = 1000.0
 
-const val BUFFER_TRANSLATION = "Puskin"
-const val OWNERSHIP_BOUNDARY_TRANSLATION = "Omistusraja"
-
 @Service
 class LocationTrackService(
     locationTrackDao: LocationTrackDao,
@@ -51,11 +50,12 @@ class LocationTrackService(
     private val switchLibraryService: SwitchLibraryService,
     private val splitDao: SplitDao,
     private val ratkoOperatingPointDao: RatkoOperatingPointDao,
+    private val localizationService: LocalizationService,
 ) : LayoutAssetService<LocationTrack, LocationTrackDao>(locationTrackDao) {
 
     @Transactional
-    fun insert(request: LocationTrackSaveRequest): DaoResponse<LocationTrack> {
-        logger.serviceCall("insert", "request" to request)
+    fun insert(branch: LayoutBranch, request: LocationTrackSaveRequest): DaoResponse<LocationTrack> {
+        logger.serviceCall("insert", "branch" to branch, "request" to request)
         val (alignment, alignmentVersion) = alignmentService.newEmpty()
         val locationTrack = LocationTrack(
             alignmentVersion = alignmentVersion,
@@ -75,15 +75,19 @@ class LocationTrackService(
             topologyStartSwitch = null,
             topologyEndSwitch = null,
             ownerId = request.ownerId,
-            contextData = LayoutContextData.newDraft(),
+            contextData = LayoutContextData.newDraft(branch),
         )
-        return saveDraftInternal(locationTrack)
+        return saveDraftInternal(branch, locationTrack)
     }
 
     @Transactional
-    fun update(id: IntId<LocationTrack>, request: LocationTrackSaveRequest): DaoResponse<LocationTrack> {
-        logger.serviceCall("update", "id" to id, "request" to request)
-        val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(DRAFT, id)
+    fun update(
+        branch: LayoutBranch,
+        id: IntId<LocationTrack>,
+        request: LocationTrackSaveRequest,
+    ): DaoResponse<LocationTrack> {
+        logger.serviceCall("update", "branch" to branch, "id" to id, "request" to request)
+        val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(branch.draft, id)
         val locationTrack = originalTrack.copy(
             name = request.name,
             descriptionBase = request.descriptionBase,
@@ -97,34 +101,40 @@ class LocationTrackService(
         )
 
         return if (locationTrack.state != LocationTrackState.DELETED) {
-            saveDraft(fetchNearbyTracksAndCalculateLocationTrackTopology(locationTrack, originalAlignment))
+            saveDraft(branch, fetchNearbyTracksAndCalculateLocationTrackTopology(branch.draft, locationTrack, originalAlignment))
         } else {
-            clearDuplicateReferences(id)
+            clearDuplicateReferences(branch, id)
             val segmentsWithoutSwitch = originalAlignment.segments.map(LayoutSegment::withoutSwitch)
             val newAlignment = originalAlignment.withSegments(segmentsWithoutSwitch)
-            saveDraft(fetchNearbyTracksAndCalculateLocationTrackTopology(locationTrack, newAlignment), newAlignment)
+            val newTrack = fetchNearbyTracksAndCalculateLocationTrackTopology(branch.draft, locationTrack, newAlignment)
+            saveDraft(branch, newTrack, newAlignment)
         }
     }
 
     @Transactional
-    fun updateState(id: IntId<LocationTrack>, state: LocationTrackState): DaoResponse<LocationTrack> {
-        logger.serviceCall("update", "id" to id, "state" to state)
-        val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(DRAFT, id)
+    fun updateState(
+        branch: LayoutBranch,
+        id: IntId<LocationTrack>,
+        state: LocationTrackState,
+    ): DaoResponse<LocationTrack> {
+        logger.serviceCall("update", "branch" to branch, "id" to id, "state" to state)
+        val (originalTrack, originalAlignment) = getWithAlignmentInternalOrThrow(branch.draft, id)
         val locationTrack = originalTrack.copy(state = state)
 
         return if (locationTrack.state != LocationTrackState.DELETED) {
-            saveDraft(locationTrack)
+            saveDraft(branch, locationTrack)
         } else {
-            clearDuplicateReferences(id)
+            clearDuplicateReferences(branch, id)
             val segmentsWithoutSwitch = originalAlignment.segments.map(LayoutSegment::withoutSwitch)
             val newAlignment = originalAlignment.withSegments(segmentsWithoutSwitch)
-            saveDraft(fetchNearbyTracksAndCalculateLocationTrackTopology(locationTrack, newAlignment), newAlignment)
+            val newTrack = fetchNearbyTracksAndCalculateLocationTrackTopology(branch.draft, locationTrack, newAlignment)
+            saveDraft(branch, newTrack, newAlignment)
         }
     }
 
     @Transactional
-    override fun saveDraft(draft: LocationTrack): DaoResponse<LocationTrack> =
-        super.saveDraft(draft.copy(alignmentVersion = updatedAlignmentVersion(draft)))
+    override fun saveDraft(branch: LayoutBranch, draftAsset: LocationTrack): DaoResponse<LocationTrack> =
+        super.saveDraft(branch, draftAsset.copy(alignmentVersion = updatedAlignmentVersion(draftAsset)))
 
     private fun updatedAlignmentVersion(track: LocationTrack): RowVersion<LayoutAlignment>? =
         // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
@@ -132,27 +142,38 @@ class LocationTrackService(
         else track.alignmentVersion
 
     @Transactional
-    fun saveDraft(draft: LocationTrack, alignment: LayoutAlignment): DaoResponse<LocationTrack> {
-        logger.serviceCall("save", "locationTrack" to draft, "alignment" to alignment)
+    fun saveDraft(
+        branch: LayoutBranch,
+        draftAsset: LocationTrack,
+        alignment: LayoutAlignment,
+    ): DaoResponse<LocationTrack> {
+        logger.serviceCall("save", "branch" to branch, "draftAsset" to draftAsset, "alignment" to alignment)
         val alignmentVersion =
             // If we're creating a new row or starting a draft, we duplicate the alignment to not edit any original
-            if (draft.dataType == TEMP || draft.isOfficial) {
+            if (draftAsset.dataType == TEMP || draftAsset.isOfficial) {
                 alignmentService.saveAsNew(alignment)
             }
             // Ensure that we update the correct one.
-            else if (draft.getAlignmentVersionOrThrow().id != alignment.id) {
-                alignmentService.save(alignment.copy(id = draft.getAlignmentVersionOrThrow().id, dataType = STORED))
+            else if (draftAsset.getAlignmentVersionOrThrow().id != alignment.id) {
+                alignmentService.save(
+                    alignment.copy(id = draftAsset.getAlignmentVersionOrThrow().id, dataType = STORED),
+                )
             } else {
                 alignmentService.save(alignment)
             }
-        return saveDraftInternal(draft.copy(alignmentVersion = alignmentVersion))
+        return saveDraftInternal(branch, draftAsset.copy(alignmentVersion = alignmentVersion))
     }
 
     @Transactional
-    fun updateExternalId(id: IntId<LocationTrack>, oid: Oid<LocationTrack>): DaoResponse<LocationTrack> {
-        logger.serviceCall("updateExternalIdForLocationTrack", "id" to id, "oid" to oid)
-        val original = dao.getOrThrow(DRAFT, id)
+    fun updateExternalId(
+        branch: LayoutBranch,
+        id: IntId<LocationTrack>,
+        oid: Oid<LocationTrack>,
+    ): DaoResponse<LocationTrack> {
+        logger.serviceCall("updateExternalIdForLocationTrack", "branch" to branch, "id" to id, "oid" to oid)
+        val original = dao.getOrThrow(branch.draft, id)
         return saveDraftInternal(
+            branch,
             original.copy(
                 externalId = oid,
                 alignmentVersion = updatedAlignmentVersion(original),
@@ -161,12 +182,12 @@ class LocationTrackService(
     }
 
     @Transactional
-    override fun publish(version: ValidationVersion<LocationTrack>): DaoResponse<LocationTrack> {
-        logger.serviceCall("publish", "version" to version)
-        val officialVersion = dao.fetchOfficialVersion(version.officialId)
+    override fun publish(branch: LayoutBranch, version: ValidationVersion<LocationTrack>): DaoResponse<LocationTrack> {
+        logger.serviceCall("publish", "branch" to branch, "version" to version)
+        val officialVersion = dao.fetchVersion(branch.official, version.officialId)
         val oldDraft = dao.fetch(version.validatedAssetVersion)
         val oldOfficial = officialVersion?.let(dao::fetch)
-        val publishedVersion = publishInternal(VersionPair(officialVersion, version.validatedAssetVersion))
+        val publishedVersion = publishInternal(branch, VersionPair(officialVersion, version.validatedAssetVersion))
         if (oldOfficial != null && oldDraft.alignmentVersion != oldOfficial.alignmentVersion) {
             // The alignment on the draft overrides the one on official -> delete the original, orphaned alignment
             oldOfficial.alignmentVersion?.id?.let(alignmentDao::delete)
@@ -175,53 +196,50 @@ class LocationTrackService(
     }
 
     @Transactional
-    override fun deleteDraft(id: IntId<LocationTrack>): DaoResponse<LocationTrack> {
-        val draft = dao.getOrThrow(DRAFT, id)
+    override fun deleteDraft(branch: LayoutBranch, id: IntId<LocationTrack>): DaoResponse<LocationTrack> {
+        logger.serviceCall("deleteDraft", "branch" to branch, "id" to id)
+        val draft = dao.getOrThrow(branch.draft, id)
         // If removal also breaks references, clear them out first
         if (draft.contextData.officialRowId == null) {
-            clearDuplicateReferences(id)
+            clearDuplicateReferences(branch, id)
         }
-        val deletedVersion = super.deleteDraft(id)
+        val deletedVersion = super.deleteDraft(branch, id)
         draft.alignmentVersion?.id?.let(alignmentDao::delete)
         return deletedVersion
     }
 
     @Transactional
-    fun fetchDuplicates(publicationState: PublicationState, id: IntId<LocationTrack>): List<LocationTrack> {
-        logger.serviceCall(
-            "fetchDuplicates",
-            "publicationState" to publicationState,
-            "locationTrackId" to id,
-        )
-        return dao.fetchDuplicateVersions(id, publicationState).map(dao::fetch)
+    fun fetchDuplicates(layoutContext: LayoutContext, id: IntId<LocationTrack>): List<LocationTrack> {
+        logger.serviceCall("fetchDuplicates", "layoutContext" to layoutContext, "locationTrackId" to id)
+        return dao.fetchDuplicateVersions(layoutContext, id).map(dao::fetch)
     }
 
     @Transactional
-    fun clearDuplicateReferences(id: IntId<LocationTrack>) = dao
-        .fetchDuplicateVersions(id, DRAFT, includeDeleted = true)
+    fun clearDuplicateReferences(branch: LayoutBranch, id: IntId<LocationTrack>) = dao
+        .fetchDuplicateVersions(branch.draft, id, includeDeleted = true)
         .map(dao::fetch)
-        .map(::asMainDraft)
-        .forEach { duplicate -> saveDraft(duplicate.copy(duplicateOf = null)) }
+        .map { dup -> asDraft(branch, dup) }
+        .forEach { duplicate -> saveDraft(branch, duplicate.copy(duplicateOf = null)) }
 
-    fun listNonLinked(): List<LocationTrack> {
-        logger.serviceCall("listNonLinked")
-        return dao.list(DRAFT, false).filter { a -> a.segmentCount == 0 }
+    fun listNonLinked(branch: LayoutBranch): List<LocationTrack> {
+        logger.serviceCall("listNonLinked", "branch" to branch)
+        return dao.list(branch.draft, false).filter { a -> a.segmentCount == 0 }
     }
 
-    fun list(publicationState: PublicationState, bbox: BoundingBox): List<LocationTrack> {
-        logger.serviceCall("list", "publicationState" to publicationState, "bbox" to bbox)
-        return dao.list(publicationState, false).filter { tn -> bbox.intersects(tn.boundingBox) }
+    fun list(layoutContext: LayoutContext, bbox: BoundingBox): List<LocationTrack> {
+        logger.serviceCall("list", "layoutContext" to layoutContext, "bbox" to bbox)
+        return dao.list(layoutContext, false).filter { tn -> bbox.intersects(tn.boundingBox) }
     }
 
     fun list(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         names: List<AlignmentName>,
     ): List<LocationTrack> {
         logger.serviceCall(
-            "list", "publicationState" to publicationState, "trackNumberId" to trackNumberId, "names" to names
+            "list", "layoutContext" to layoutContext, "trackNumberId" to trackNumberId, "names" to names
         )
-        return dao.list(publicationState, true, trackNumberId, names)
+        return dao.list(layoutContext, true, trackNumberId, names)
     }
 
     override fun idMatches(term: String, item: LocationTrack) =
@@ -230,67 +248,72 @@ class LocationTrackService(
     override fun contentMatches(term: String, item: LocationTrack) =
         item.exists && (item.name.contains(term, true) || item.descriptionBase.contains(term, true))
 
-    fun listNear(publicationState: PublicationState, bbox: BoundingBox): List<LocationTrack> {
-        logger.serviceCall("listNear", "publicationState" to publicationState, "bbox" to bbox)
-        return dao.listNear(publicationState, bbox).filter(LocationTrack::exists)
+    fun listNear(layoutContext: LayoutContext, bbox: BoundingBox): List<LocationTrack> {
+        logger.serviceCall("listNear", "layoutContext" to layoutContext, "bbox" to bbox)
+        return dao.listNear(layoutContext, bbox).filter(LocationTrack::exists)
     }
 
     @Transactional(readOnly = true)
     fun listWithAlignments(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         includeDeleted: Boolean = false,
         boundingBox: BoundingBox? = null,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
         logger.serviceCall(
             "listWithAlignments",
-            "publicationState" to publicationState,
+            "layoutContext" to layoutContext,
             "trackNumberId" to trackNumberId,
             "includeDeleted" to includeDeleted,
         )
         return dao
-            .list(publicationState, includeDeleted, trackNumberId)
+            .list(layoutContext, includeDeleted, trackNumberId)
             .let { list -> filterByBoundingBox(list, boundingBox) }
             .let(::associateWithAlignments)
     }
 
     @Transactional(readOnly = true)
     fun getManyWithAlignments(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         ids: List<IntId<LocationTrack>>,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
-        logger.serviceCall("getManyWithAlignments", "publicationState" to publicationState, "ids" to ids)
-        return dao.getMany(publicationState, ids).let(::associateWithAlignments)
+        logger.serviceCall("getManyWithAlignments", "layoutContext" to layoutContext, "ids" to ids)
+        return dao.getMany(layoutContext, ids).let(::associateWithAlignments)
     }
 
     @Transactional(readOnly = true)
     fun getWithAlignmentOrThrow(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         id: IntId<LocationTrack>,
     ): Pair<LocationTrack, LayoutAlignment> {
-        logger.serviceCall("getWithAlignment", "publicationState" to publicationState, "id" to id)
-        return getWithAlignmentInternalOrThrow(publicationState, id)
+        logger.serviceCall("getWithAlignment", "layoutContext" to layoutContext, "id" to id)
+        return getWithAlignmentInternalOrThrow(layoutContext, id)
     }
 
     @Transactional(readOnly = true)
-    fun getWithAlignment(publicationState: PublicationState, id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment>? {
-        logger.serviceCall("getWithAlignment", "publicationState" to publicationState, "id" to id)
-        return dao.fetchVersion(id, publicationState)?.let(::getWithAlignmentInternal)
+    fun getWithAlignment(
+        layoutContext: LayoutContext,
+        id: IntId<LocationTrack>,
+    ): Pair<LocationTrack, LayoutAlignment>? {
+        logger.serviceCall("getWithAlignment", "layoutContext" to layoutContext, "id" to id)
+        return dao.fetchVersion(layoutContext, id)?.let(::getWithAlignmentInternal)
     }
 
     @Transactional(readOnly = true)
     fun getTrackPoint(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         locationTrackId: IntId<LocationTrack>,
         address: TrackMeter,
     ): AddressPoint? {
         logger.serviceCall(
             "getTrackPoint",
-            "publicationState" to publicationState, "locationTrackId" to locationTrackId, "address" to address,
+            "layoutContext" to layoutContext,
+            "locationTrackId" to locationTrackId,
+            "address" to address,
         )
-        val locationTrackAndAlignment = getWithAlignment(publicationState, locationTrackId)
+        val locationTrackAndAlignment = getWithAlignment(layoutContext, locationTrackId)
         return locationTrackAndAlignment?.let { (locationTrack, alignment) ->
-            geocodingService.getTrackLocation(locationTrack, alignment, address, publicationState)
+            geocodingService.getTrackLocation(layoutContext, locationTrack, alignment, address)
         }
     }
 
@@ -311,26 +334,24 @@ class LocationTrackService(
 
     @Transactional(readOnly = true)
     fun listNearWithAlignments(
-        publicationState: PublicationState,
+        layoutContext: LayoutContext,
         bbox: BoundingBox,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
-        logger.serviceCall(
-            "listNearWithAlignments", "publicationState" to publicationState, "bbox" to bbox
-        )
-        return dao.listNear(publicationState, bbox).let(::associateWithAlignments)
+        logger.serviceCall("listNearWithAlignments", "layoutContext" to layoutContext, "bbox" to bbox)
+        return dao.listNear(layoutContext, bbox).let(::associateWithAlignments)
     }
 
     @Transactional(readOnly = true)
     fun getLocationTracksNear(
+        layoutContext: LayoutContext,
         location: IPoint,
-        publicationState: PublicationState,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
         logger.serviceCall("getLocationTracksNear", "location" to location)
         val searchArea = BoundingBox(
             Point(0.0, 0.0),
             Point(TRACK_SEARCH_AREA_SIZE, TRACK_SEARCH_AREA_SIZE),
         ).centerAt(location)
-        return listNearWithAlignments(publicationState, searchArea).filter { (_, alignment) ->
+        return listNearWithAlignments(layoutContext, searchArea).filter { (_, alignment) ->
             alignment.segments.any { segment ->
                 searchArea.intersects(segment.boundingBox) && segment.segmentPoints.any(searchArea::contains)
             }
@@ -339,19 +360,19 @@ class LocationTrackService(
 
     @Transactional(readOnly = true)
     fun getMetadataSections(
+        layoutContext: LayoutContext,
         locationTrackId: IntId<LocationTrack>,
-        publicationState: PublicationState,
         boundingBox: BoundingBox?,
     ): List<AlignmentPlanSection> {
         logger.serviceCall(
             "getSectionsByPlan",
+            "layoutContext" to layoutContext,
             "locationTrackId" to locationTrackId,
-            "publicationState" to publicationState,
             "boundingBox" to boundingBox
         )
-        val locationTrack = get(publicationState, locationTrackId)
+        val locationTrack = get(layoutContext, locationTrackId)
         val geocodingContext = locationTrack?.let {
-            geocodingService.getGeocodingContext(publicationState, locationTrack.trackNumberId)
+            geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId)
         }
 
         return if (geocodingContext != null && locationTrack.alignmentVersion != null) {
@@ -373,7 +394,7 @@ class LocationTrackService(
         else alignment.segments.lastOrNull()?.switchId as IntId?
 
     @Transactional(readOnly = true)
-    fun getFullDescription(publicationState: PublicationState, locationTrack: LocationTrack): FreeText {
+    fun getFullDescription(layoutContext: LayoutContext, locationTrack: LocationTrack, lang: LocalizationLanguage): FreeText {
         val alignmentVersion = locationTrack.alignmentVersion
         val (startSwitch, endSwitch) = alignmentVersion?.let {
             val alignment = alignmentDao.fetch(alignmentVersion)
@@ -383,16 +404,17 @@ class LocationTrackService(
         } ?: (null to null)
 
         fun getSwitchShortName(switchId: IntId<TrackLayoutSwitch>) =
-            switchDao.fetchVersion(switchId, publicationState)?.let(switchDao::fetch)?.shortName
+            switchDao.get(layoutContext, switchId)?.shortName
 
         val startSwitchName = startSwitch?.let(::getSwitchShortName)
         val endSwitchName = endSwitch?.let(::getSwitchShortName)
+        val translation = localizationService.getLocalization(lang)
 
         return when (locationTrack.descriptionSuffix) {
             DescriptionSuffixType.NONE -> locationTrack.descriptionBase
 
             DescriptionSuffixType.SWITCH_TO_BUFFER -> FreeText(
-                "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - $BUFFER_TRANSLATION"
+                "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.buffer")}"
             )
 
             DescriptionSuffixType.SWITCH_TO_SWITCH -> FreeText(
@@ -400,13 +422,17 @@ class LocationTrackService(
             )
 
             DescriptionSuffixType.SWITCH_TO_OWNERSHIP_BOUNDARY -> FreeText(
-                "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - $OWNERSHIP_BOUNDARY_TRANSLATION"
+                "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.ownership-boundary")}"
             )
         }
     }
 
-    private fun getWithAlignmentInternalOrThrow(publicationState: PublicationState, id: IntId<LocationTrack>) =
-        getWithAlignmentInternal(dao.fetchVersionOrThrow(id, publicationState))
+    private fun getWithAlignmentInternalOrThrow(
+        layoutContext: LayoutContext,
+        id: IntId<LocationTrack>,
+    ): Pair<LocationTrack, LayoutAlignment> {
+        return getWithAlignmentInternal(dao.fetchVersionOrThrow(layoutContext, id))
+    }
 
     private fun getWithAlignmentInternal(version: RowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> =
         locationTrackWithAlignment(dao, alignmentDao, version)
@@ -452,16 +478,16 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
-    fun getInfoboxExtras(publicationState: PublicationState, id: IntId<LocationTrack>): LocationTrackInfoboxExtras? {
-        val locationTrackAndAlignment = getWithAlignment(publicationState, id)
-        return locationTrackAndAlignment?.let { (locationTrack, alignment) ->
+    fun getInfoboxExtras(layoutContext: LayoutContext, id: IntId<LocationTrack>): LocationTrackInfoboxExtras? {
+        return getWithAlignment(layoutContext, id)?.let { (locationTrack, alignment) ->
             val start = alignment.start ?: return null
             val end = alignment.end ?: return null
-            val geocodingContext = geocodingService.getGeocodingContext(publicationState, locationTrack.trackNumberId) ?: return null
+            val geocodingContext = geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId)
+                ?: return null
 
-            val duplicateOf = getDuplicateTrackParent(locationTrack, publicationState)
+            val duplicateOf = getDuplicateTrackParent(layoutContext, locationTrack)
             val duplicates = fillTrackAddresses(
-                getLocationTrackDuplicates(locationTrack, alignment, publicationState),
+                getLocationTrackDuplicates(layoutContext, locationTrack, alignment),
                 geocodingContext
             )
             val sortedDuplicates = duplicates.sortedBy { duplicate ->
@@ -505,13 +531,14 @@ class LocationTrackService(
                     endAddress,
                     DuplicateEndPointType.END
                 )
-            
+
             val startSwitch = (alignment.segments.firstOrNull()?.switchId as IntId?
-                ?: locationTrack.topologyStartSwitch?.switchId)?.let { id -> fetchSwitchAtEndById(id, publicationState) }
+                ?: locationTrack.topologyStartSwitch?.switchId)?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
             val endSwitch = (alignment.segments.lastOrNull()?.switchId as IntId?
-                ?: locationTrack.topologyEndSwitch?.switchId)?.let { id -> fetchSwitchAtEndById(id, publicationState) }
-            
-            val partOfUnfinishedSplit = splitDao.locationTracksPartOfAnyUnfinishedSplit(listOf(id)).isNotEmpty()
+                ?: locationTrack.topologyEndSwitch?.switchId)?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
+            val partOfUnfinishedSplit = splitDao
+                .locationTracksPartOfAnyUnfinishedSplit(layoutContext.branch , listOf(id))
+                .isNotEmpty()
 
             LocationTrackInfoboxExtras(
                 duplicateOf,
@@ -526,32 +553,29 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
-    fun getRelinkableSwitchesCount(publicationState: PublicationState, id: IntId<LocationTrack>): Int? {
-        val locationTrack = get(publicationState, id)
-        return locationTrack?.alignmentVersion?.let { alignmentVersion ->
-            countRelinkableSwitches(locationTrack, alignmentVersion, alignmentDao.fetch(alignmentVersion))
-        }
-    }
+    fun getRelinkableSwitchesCount(layoutContext: LayoutContext, id: IntId<LocationTrack>): Int? =
+        getWithAlignment(layoutContext, id)
+            ?.let { (track, alignment) -> countRelinkableSwitches(layoutContext.branch, track, alignment) }
 
     private fun countRelinkableSwitches(
+        branch: LayoutBranch,
         locationTrack: LocationTrack,
-        alignmentVersion: RowVersion<LayoutAlignment>,
         alignment: LayoutAlignment,
     ): Int =
         (alignment.segments.mapNotNull { it.switchId } + listOfNotNull(
             locationTrack.topologyStartSwitch?.switchId,
             locationTrack.topologyEndSwitch?.switchId,
-        ) + switchDao.findSwitchesNearAlignment(alignmentVersion)).distinct().size
+        ) + switchDao.findSwitchesNearAlignment(branch, locationTrack.getAlignmentVersionOrThrow())).distinct().size
 
     @Transactional(readOnly = true)
     fun getLocationTrackDuplicates(
+        layoutContext: LayoutContext,
         track: LocationTrack,
         alignment: LayoutAlignment,
-        publicationState: PublicationState,
     ): List<LocationTrackDuplicate> {
-        val markedDuplicateVersions = dao.fetchDuplicateVersions(track.id as IntId, publicationState)
+        val markedDuplicateVersions = dao.fetchDuplicateVersions(layoutContext, track.id as IntId)
         val tracksLinkedThroughSwitch = switchDao
-            .findLocationTracksLinkedToSwitches(publicationState, track.switchIds)
+            .findLocationTracksLinkedToSwitches(layoutContext, track.switchIds)
             .map(LayoutSwitchDao.LocationTrackIdentifiers::rowVersion)
         val duplicateTracksAndAlignments = (markedDuplicateVersions + tracksLinkedThroughSwitch)
             .distinct()
@@ -561,24 +585,24 @@ class LocationTrackService(
     }
 
     private fun getDuplicateTrackParent(
+        layoutContext: LayoutContext,
         childTrack: LocationTrack,
-        publicationState: PublicationState,
     ): LocationTrackDuplicate? = childTrack.duplicateOf?.let { parentId ->
-        getWithAlignment(publicationState, parentId)?.let { (parentTrack, parentTrackAlignment) ->
+        getWithAlignment(layoutContext, parentId)?.let { (parentTrack, parentTrackAlignment) ->
             val childAlignment = alignmentDao.fetch(childTrack.getAlignmentVersionOrThrow())
             getDuplicateTrackParentStatus(parentTrack, parentTrackAlignment, childTrack, childAlignment)
         }
     }
 
-    private fun fetchSwitchAtEndById(id: IntId<TrackLayoutSwitch>, publicationState: PublicationState) =
-        switchDao.fetchVersion(id, publicationState)
-            ?.let(switchDao::fetch)?.let { switch -> LayoutSwitchIdAndName(id, switch.name) }
+    private fun fetchSwitchAtEndById(layoutContext: LayoutContext, id: IntId<TrackLayoutSwitch>): LayoutSwitchIdAndName? =
+        switchDao.get(layoutContext, id)?.let { switch -> LayoutSwitchIdAndName(id, switch.name) }
 
     fun fetchNearbyLocationTracksWithAlignments(
+        layoutContext: LayoutContext,
         targetPoint: LayoutPoint,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
         return dao
-            .fetchVersionsNear(DRAFT, boundingBoxAroundPoint(targetPoint, 1.0))
+            .fetchVersionsNear(layoutContext, boundingBoxAroundPoint(targetPoint, 1.0))
             .map { version -> getWithAlignmentInternal(version) }
             .filter { (track, alignment) ->
                 alignment.segments.isNotEmpty() && track.exists
@@ -587,33 +611,38 @@ class LocationTrackService(
 
     @Transactional
     fun fetchNearbyTracksAndCalculateLocationTrackTopology(
+        layoutContext: LayoutContext,
         track: LocationTrack,
         alignment: LayoutAlignment,
         startChanged: Boolean = false,
         endChanged: Boolean = false,
     ): LocationTrack {
         val nearbyTracksAroundStart = alignment.start
-            ?.let(::fetchNearbyLocationTracksWithAlignments)
+            ?.let { point -> fetchNearbyLocationTracksWithAlignments(layoutContext, point) }
             ?.filter { (nearbyLocationTrack, _) -> nearbyLocationTrack.id != track.id }
             ?: listOf()
 
         val nearbyTracksAroundEnd = alignment.end
-            ?.let(::fetchNearbyLocationTracksWithAlignments)
+            ?.let { point -> fetchNearbyLocationTracksWithAlignments(layoutContext, point) }
             ?.filter { (nearbyLocationTrack, _) -> nearbyLocationTrack.id != track.id }
             ?: listOf()
 
         return calculateLocationTrackTopology(
-            track, alignment, startChanged, endChanged, NearbyTracks(
+            track = track,
+            alignment = alignment,
+            startChanged = startChanged,
+            endChanged = endChanged,
+            nearbyTracks = NearbyTracks(
                 aroundStart = nearbyTracksAroundStart,
                 aroundEnd = nearbyTracksAroundEnd,
-            )
+            ),
         )
     }
 
     @Transactional(readOnly = true)
-    fun getLocationTrackEndpoints(bbox: BoundingBox, publicationState: PublicationState): List<LocationTrackEndpoint> {
-        logger.serviceCall("getLocationTrackEndpoints", "bbox" to bbox)
-        return getLocationTrackEndpoints(listWithAlignments(publicationState), bbox)
+    fun getLocationTrackEndpoints(layoutContext: LayoutContext, bbox: BoundingBox): List<LocationTrackEndpoint> {
+        logger.serviceCall("getLocationTrackEndpoints", "layoutContext" to layoutContext, "bbox" to bbox)
+        return getLocationTrackEndpoints(listWithAlignments(layoutContext), bbox)
     }
 
     fun getLocationTrackOwners(): List<LocationTrackOwner> {
@@ -623,18 +652,17 @@ class LocationTrackService(
 
     @Transactional(readOnly = true)
     fun getSplittingInitializationParameters(
+        layoutContext: LayoutContext,
         trackId: IntId<LocationTrack>,
-        publicationState: PublicationState,
     ): SplittingInitializationParameters? {
         logger.serviceCall(
             "getSplittingInitializationParameters",
+            "layoutContext" to layoutContext,
             "locationTrackId" to trackId,
-            "publicationState" to publicationState,
         )
-        return getWithAlignment(publicationState, trackId)?.let { (locationTrack, alignment) ->
-            val switches = getSwitchesForLocationTrack(trackId, publicationState)
-                .mapNotNull { switchDao.fetchVersion(it, publicationState) }
-                .map { switchDao.fetch(it) }
+        return getWithAlignment(layoutContext, trackId)?.let { (locationTrack, alignment) ->
+            val switches = getSwitchesForLocationTrack(layoutContext, trackId)
+                .mapNotNull { id -> switchDao.get(layoutContext, id) }
                 .mapNotNull { switch ->
                     switchLibraryService.getSwitchStructure(switch.switchStructureId).let { structure ->
                         val presentationJointLocation = switch.getJoint(structure.presentationJointNumber)?.location
@@ -647,7 +675,7 @@ class LocationTrackService(
                 }
                 .map { (switch, location) ->
                     val address = geocodingService
-                        .getGeocodingContext(publicationState, locationTrack.trackNumberId)
+                        .getGeocodingContext(layoutContext, locationTrack.trackNumberId)
                         ?.getAddressAndM(location)
                     val mAlongAlignment = alignment.getClosestPointM(location)?.first
                     SwitchOnLocationTrack(
@@ -660,10 +688,10 @@ class LocationTrackService(
                     )
                 }
 
-            val duplicateTracks = getLocationTrackDuplicates(locationTrack, alignment, publicationState)
+            val duplicateTracks = getLocationTrackDuplicates(layoutContext, locationTrack, alignment)
                 .mapNotNull { duplicate ->
-                    getWithAlignmentOrThrow(publicationState, duplicate.id).let { (dupe, alignment) ->
-                        geocodingService.getLocationTrackStartAndEnd(publicationState, dupe, alignment)
+                    getWithAlignmentOrThrow(layoutContext, duplicate.id).let { (dupe, alignment) ->
+                        geocodingService.getLocationTrackStartAndEnd(layoutContext, dupe, alignment)
                     }?.let { (start, end) ->
                         if (start != null && end != null) {
                             SplitDuplicateTrack(duplicate.id, duplicate.name, start, end, duplicate.duplicateStatus)
@@ -673,9 +701,7 @@ class LocationTrackService(
                     }
                 }
 
-            SplittingInitializationParameters(
-                trackId, switches, duplicateTracks
-            )
+            SplittingInitializationParameters(trackId, switches, duplicateTracks)
         }
     }
 
@@ -690,17 +716,17 @@ class LocationTrackService(
 
     @Transactional(readOnly = true)
     fun getSwitchesForLocationTrack(
+        layoutContext: LayoutContext,
         locationTrackId: IntId<LocationTrack>,
-        publicationState: PublicationState,
     ): List<IntId<TrackLayoutSwitch>> {
         logger.serviceCall(
             "getSwitchesForLocationTrack",
+            "layoutContext" to layoutContext,
             "locationTrackId" to locationTrackId,
-            "publicationState" to publicationState,
         )
-        return getWithAlignment(publicationState, locationTrackId)?.let { (track, alignment) ->
-            collectAllSwitches(track, alignment)
-        } ?: emptyList()
+        return getWithAlignment(layoutContext, locationTrackId)
+            ?.let { (track, alignment) -> collectAllSwitches(track, alignment) }
+            ?: emptyList()
     }
 
     @Transactional(readOnly = true)
@@ -708,7 +734,6 @@ class LocationTrackService(
         return tracks.map { track ->
             val alignment = track.alignmentVersion?.let(alignmentDao::fetch)
                 ?: error("All location tracks should have an alignment. Alignment was not found for track=${track.id}")
-
             track to alignment
         }
     }
