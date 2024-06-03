@@ -33,45 +33,45 @@ class E2ESelectionPanel(
             .map { E2EGeometryPlanAccordion(By.xpath("//div[@class='accordion' and parent::div[@class='geometry-plan-panel'] and h4/span[text() = '${it}']]")) }
     }
 
-    fun selectTrackNumber(name: String): E2ESelectionPanel = apply {
-        logger.info("Select trackNumber $name")
+    fun selectOrUnselectTrackNumber(name: String): E2ESelectionPanel = apply {
+        logger.info("Select trackNumber $name (or unselect if previously selected)")
         trackNumbersList.selectByName(name)
     }
 
-    fun selectKmPost(name: String): E2ESelectionPanel = apply {
-        logger.info("Select km-post $name")
+    fun selectOrUnselectKmPost(name: String): E2ESelectionPanel = apply {
+        logger.info("Select km-post $name (or unselect if previously selected)")
         kmPostsList.selectByName(name)
     }
 
-    fun selectReferenceLine(name: String): E2ESelectionPanel = apply {
-        logger.info("Select reference line $name")
+    fun selectOrUnselectReferenceLine(name: String): E2ESelectionPanel = apply {
+        logger.info("Select reference line $name (or unselect if previously selected)")
         referenceLinesList.selectByName(name)
     }
 
-    fun selectLocationTrack(name: String): E2ESelectionPanel = apply {
-        logger.info("Select location track $name")
+    fun selectOrUnselectLocationTrack(name: String): E2ESelectionPanel = apply {
+        logger.info("Select location track $name (or unselect if previously selected)")
         locationTracksList.selectByName(name)
     }
 
-    fun selectSwitch(name: String): E2ESelectionPanel = apply {
-        logger.info("Select switch $name")
+    fun selectOrUnselectSwitch(name: String): E2ESelectionPanel = apply {
+        logger.info("Select switch $name (or unselect if previously selected)")
         switchesList.selectByName(name)
     }
 
-    fun selectPlanAlignment(planName: String, name: String): E2ESelectionPanel = apply {
-        logger.info("Select plan $planName alignment $name")
+    fun selectOrUnselectPlanAlignment(planName: String, name: String): E2ESelectionPanel = apply {
+        logger.info("Select plan $planName alignment $name (or unselect if previously selected)")
 
         geometryPlanByName(planName).selectAlignment(name)
     }
 
-    fun selectPlanSwitch(planName: String, name: String): E2ESelectionPanel = apply {
-        logger.info("Select plan $planName switch $name")
+    fun selectOrUnselectPlanSwitch(planName: String, name: String): E2ESelectionPanel = apply {
+        logger.info("Select plan $planName switch $name (or unselect if previously selected)")
 
         geometryPlanByName(planName).selectSwitch(name)
     }
 
-    fun selectPlanKmPost(planName: String, name: String): E2ESelectionPanel = apply {
-        logger.info("Select plan $planName km post $name")
+    fun selectOrUnselectPlanKmPost(planName: String, name: String): E2ESelectionPanel = apply {
+        logger.info("Select plan $planName km post $name (or unselect if previously selected)")
 
         geometryPlanByName(planName).selectKmPost(name)
     }

@@ -114,7 +114,7 @@ class VerticalGeometryDiagramTestUI @Autowired constructor(
         )
         startGeoviite()
         val page = goToMap().switchToDraftMode().zoomToScale(E2ETrackLayoutPage.MapScale.M_500)
-        page.selectionPanel.selectLocationTrack("foo bar")
+        page.selectionPanel.selectOrUnselectLocationTrack("foo bar")
         page.toolPanel.locationTrackVerticalGeometry.toggleVerticalGeometryDiagram()
         page.verticalGeometryDiagram.waitForContent()
     }

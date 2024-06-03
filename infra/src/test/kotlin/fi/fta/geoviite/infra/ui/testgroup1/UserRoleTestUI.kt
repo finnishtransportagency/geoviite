@@ -112,6 +112,8 @@ fun assertMapPage(role: E2ERole, trackNumber: TrackNumber, designName: String) {
         -> {
             mapPage
                 .also { assertDraftAndDesignModeTabsVisible() }
+                // TODO: Design mode is checked before draft mode because for whatever reason design mode selections fail
+                // if draft mode checks go before them. Find out why
                 .switchToDesignMode()
                 .also { it.toolBar.workspaceDropdown().selectByName(designName) }
                 .also { assertTrackLayoutPageEditButtonsVisible(it, trackNumber) }
@@ -155,17 +157,17 @@ fun assertDraftAndDesignModeTabsInvisible() {
 }
 
 fun assertTrackLayoutPageEditButtonsInvisible(trackLayoutPage: E2ETrackLayoutPage, trackNumber: TrackNumber): Unit {
-    trackLayoutPage.selectionPanel.selectReferenceLine(trackNumber.toString())
+    trackLayoutPage.selectionPanel.selectOrUnselectReferenceLine(trackNumber.toString())
 
     waitUntilNotExist(byQaId("open-preview-view"))
     waitUntilNotExist(byQaId("tool-bar.new"))
     waitUntilNotExist(By.cssSelector(".infobox__edit-icon"))
 
-    trackLayoutPage.selectionPanel.selectReferenceLine(trackNumber.toString())
+    trackLayoutPage.selectionPanel.selectOrUnselectReferenceLine(trackNumber.toString())
 }
 
 fun assertTrackLayoutPageEditButtonsVisible(trackLayoutPage: E2ETrackLayoutPage, trackNumber: TrackNumber): Unit {
-    trackLayoutPage.selectionPanel.selectReferenceLine(trackNumber.toString())
+    trackLayoutPage.selectionPanel.selectOrUnselectReferenceLine(trackNumber.toString())
 
     waitUntilExists(byQaId("draft-mode-tab"))
     waitUntilExists(byQaId("design-mode-tab"))
@@ -173,7 +175,7 @@ fun assertTrackLayoutPageEditButtonsVisible(trackLayoutPage: E2ETrackLayoutPage,
     waitUntilExists(byQaId("tool-bar.new"))
     waitUntilExists(By.cssSelector(".infobox__edit-icon"))
 
-    trackLayoutPage.selectionPanel.selectReferenceLine(trackNumber.toString())
+    trackLayoutPage.selectionPanel.selectOrUnselectReferenceLine(trackNumber.toString())
 }
 
 fun assertInfraModelPage(role: E2ERole) {
