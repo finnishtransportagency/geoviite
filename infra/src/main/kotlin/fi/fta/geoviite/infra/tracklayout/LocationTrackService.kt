@@ -443,17 +443,6 @@ class LocationTrackService(
         return lines.map { line -> line to alignments.getValue(line.getAlignmentVersionOrThrow()) }
     }
 
-    fun sortDuplicatesByTrackAddress(publicationState: PublicationState, trackNumberId: IntId<TrackLayoutTrackNumber>, duplicates: List<LocationTrackDuplicate>): List<LocationTrackDuplicate> {
-        val geocodingContext = geocodingService.getGeocodingContext(publicationState, trackNumberId)
-            ?: throw Exception("Failed to create geocoding context for track number $trackNumberId")
-        return duplicates.sortedBy { duplicate ->
-            val address = duplicate.duplicateStatus.startSplitPoint?.let { start ->
-                geocodingContext.getAddress(start.location)
-            }
-            address?.first
-        }
-    }
-
     fun fillTrackAddress(splitPoint:SplitPoint, geocodingContext: GeocodingContext): SplitPoint {
         val address = geocodingContext.getAddress(splitPoint.location)?.first
         return when (splitPoint) {

@@ -66,7 +66,7 @@ import { BoundingBox, boundingBoxAroundPoints, multiplyBoundingBox, Point } from
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { validateLocationTrackSwitchRelinking } from 'linking/linking-api';
 import { SwitchRelinkingValidationResult } from 'linking/linking-model';
-import { ValidationErrorType } from 'utils/validation-utils';
+import { FieldValidationIssueType } from 'utils/validation-utils';
 import { expectDefined } from 'utils/type-utils';
 
 type LocationTrackSplittingInfoboxContainerProps = {
@@ -256,7 +256,7 @@ const createSplitComponent = (
     const descriptionBaseRef = React.createRef<HTMLInputElement>();
 
     const splitPoint = validatedSplit.split.splitPoint;
-    const okSwitch =
+    const splitPointExists =
         splitPoint.type == 'endpointSplitPoint' ||
         (splitPoint.type == 'switchSplitPoint' &&
             switches.find((s) => s.id === splitPoint.switchId)?.stateCategory !== 'NOT_EXISTING');
@@ -282,7 +282,7 @@ const createSplitComponent = (
                 nameIssues={nameIssues}
                 descriptionIssues={descriptionIssues}
                 switchIssues={switchIssues}
-                editingDisabled={splittingState.disabled || !switchExists || isPostingSplit}
+                editingDisabled={splittingState.disabled || !splitPointExists || isPostingSplit}
                 deletingDisabled={splittingState.disabled || isPostingSplit}
                 nameRef={nameRef}
                 descriptionBaseRef={descriptionBaseRef}
@@ -292,7 +292,7 @@ const createSplitComponent = (
                         ? findById(duplicateTracksInCurrentSplits, split.duplicateTrackId)
                         : undefined
                 }
-                underlyingAssetExists={okSwitch}
+                underlyingAssetExists={splitPointExists}
                 showArea={showArea}
                 onSplitTrackClicked={showSplitTrackOnMap}
                 onFocus={onFocus}
@@ -368,7 +368,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     ]);
     const anyMissingFields = allErrors.map((s) => s.reason).some(mandatoryFieldMissing);
     const anyOtherErrors = allErrors
-        .filter((e) => e.type == ValidationErrorType.ERROR)
+        .filter((e) => e.type == FieldValidationIssueType.ERROR)
         .map((s) => s.reason)
         .some(otherError);
     const isPostingSplit = splittingState.state === 'POSTING';

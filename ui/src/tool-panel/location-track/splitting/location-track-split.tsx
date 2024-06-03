@@ -245,7 +245,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             className={createClassName(
                                 styles['location-track-infobox__split-switch-error-msg'],
                                 styles['location-track-infobox__split-switch-error-msg--start'],
-                                startSwitchMatchingError.type == ValidationErrorType.ERROR &&
+                                startSwitchMatchingError.type == FieldValidationIssueType.ERROR &&
                                     styles['location-track-infobox__split-switch-error-msg--error'],
                             )}>
                             {t(

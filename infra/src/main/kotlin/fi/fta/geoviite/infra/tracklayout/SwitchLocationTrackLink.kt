@@ -173,16 +173,13 @@ fun collectSplitPoints(
         listOfNotNull(startSplitPoint),
         switchSplitPoints,
         listOfNotNull(endSplitPoint),
-    ).flatten().distinct()
+    ).flatten()
 
-    // Skip all but first/last joint of each switch
-    return allSplitPoints.filterIndexed { index, splitPoint ->
-        true // TODO: Testing if filtering is unnecessary
-//        val currentSwitchId = (splitPoint as? SwitchSplitPoint)?.switchId
-//        val prevSwitchSwitchId = (allSplitPoints.getOrNull(index - 1) as? SwitchSplitPoint)?.switchId
-//        val nextSwitchSwitchId = (allSplitPoints.getOrNull(index + 1) as? SwitchSplitPoint)?.switchId
-//        currentSwitchId==null || currentSwitchId!=prevSwitchSwitchId || currentSwitchId!=nextSwitchSwitchId
+    val uniqueSplitPoints = allSplitPoints.filterIndexed { index, splitPoint ->
+        val firstIndex = allSplitPoints.indexOfFirst { otherSplitPoint -> splitPoint.isSame(otherSplitPoint) }
+        firstIndex == index
     }
+    return uniqueSplitPoints
 }
 
 fun getSwitchSplitPoints(segment: LayoutSegment): List<SwitchSplitPoint> {
