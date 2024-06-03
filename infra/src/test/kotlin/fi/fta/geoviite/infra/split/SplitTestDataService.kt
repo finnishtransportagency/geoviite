@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
@@ -39,12 +40,32 @@ class SplitTestDataService @Autowired constructor(
     private val splitService: SplitService,
 ) : DBTestBase() {
 
+    fun clearSplits() {
+        val sql = """
+        truncate publication.split cascade;
+        truncate publication.split_version cascade;
+        truncate publication.split_relinked_switch cascade;
+        truncate publication.split_relinked_switch_version cascade;
+        truncate publication.split_target_location_track cascade;
+        truncate publication.split_target_location_track_version cascade;
+        truncate publication.split_updated_duplicate cascade;
+        truncate publication.split_updated_duplicate_version cascade;
+    """.trimIndent()
+        jdbc.execute(sql) { it.execute() }
+    }
+
     fun insertSplit(
         trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
     ): IntId<Split> {
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
-        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
+        val sourceTrack = mainDraftContext.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                state = LocationTrackState.DELETED,
+            ),
+            alignment,
+        )
         val targetTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
 
         return splitDao.saveSplit(
