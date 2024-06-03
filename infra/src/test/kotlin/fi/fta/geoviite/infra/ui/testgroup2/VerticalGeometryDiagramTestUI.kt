@@ -45,13 +45,12 @@ class VerticalGeometryDiagramTestUI @Autowired constructor(
 
     @BeforeEach
     fun cleanup() {
-        clearAllTestData()
+        testDBService.clearAllTables()
     }
 
     @Test
     fun `Vertical geometry diagram for location track loads`() {
-        val trackNumber = getUnusedTrackNumber()
-        val trackNumberId = insertOfficialTrackNumber(trackNumber)
+        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId, draft = true),

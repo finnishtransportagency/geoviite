@@ -126,6 +126,15 @@ enum class LocationTrackType {
     CHORD, // Kujaraide: Kujaraide on raide, joka ei ole sivu-, eikä pääraide.
 }
 
+sealed class PolyLineLayoutAsset<T : PolyLineLayoutAsset<T>>(
+    contextData: LayoutContextData<T>
+) : LayoutAsset<T>(contextData) {
+    @get:JsonIgnore abstract val alignmentVersion: RowVersion<LayoutAlignment>?
+
+    fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment> =
+        requireNotNull(alignmentVersion) { "${this::class.simpleName} has no an alignment: id=$id" }
+}
+
 data class ReferenceLine(
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val startAddress: TrackMeter,
@@ -135,17 +144,14 @@ data class ReferenceLine(
     val length: Double = 0.0,
     val segmentCount: Int = 0,
     @JsonIgnore override val contextData: LayoutContextData<ReferenceLine>,
-    @JsonIgnore val alignmentVersion: RowVersion<LayoutAlignment>? = null,
-) : LayoutAsset<ReferenceLine>(contextData) {
+    @JsonIgnore override val alignmentVersion: RowVersion<LayoutAlignment>? = null,
+) : PolyLineLayoutAsset<ReferenceLine>(contextData) {
 
     init {
         require(dataType == DataType.TEMP || alignmentVersion != null) {
             "ReferenceLine in DB must have an alignment"
         }
     }
-
-    fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment> =
-        requireNotNull(alignmentVersion) { "ReferenceLine has no an alignment: id=$id" }
 
     override fun toLog(): String = logFormat(
         "id" to id,
@@ -240,9 +246,9 @@ data class LocationTrack(
     val topologyEndSwitch: TopologyLocationTrackSwitch?,
     val ownerId: IntId<LocationTrackOwner>,
     @JsonIgnore override val contextData: LayoutContextData<LocationTrack>,
-    @JsonIgnore val alignmentVersion: RowVersion<LayoutAlignment>? = null,
+    @JsonIgnore override val alignmentVersion: RowVersion<LayoutAlignment>? = null,
     @JsonIgnore val segmentSwitchIds: List<IntId<TrackLayoutSwitch>> = listOf(),
-) : LayoutAsset<LocationTrack>(contextData) {
+) : PolyLineLayoutAsset<LocationTrack>(contextData) {
 
     @JsonIgnore
     val exists = !state.isRemoved()
@@ -272,9 +278,6 @@ data class LocationTrack(
                 "endJoint=${topologyEndSwitch?.jointNumber}"
         }
     }
-
-    fun getAlignmentVersionOrThrow(): RowVersion<LayoutAlignment> =
-        requireNotNull(alignmentVersion) { "LocationTrack has no alignment: version=$version" }
 
     override fun toLog(): String = logFormat(
         "id" to id,

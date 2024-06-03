@@ -28,17 +28,13 @@ class SplitDaoIT @Autowired constructor(
 
     @Test
     fun `should save split in pending state`() {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
-        val sourceTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = false) to alignment
-        )
 
-        val targetTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = true) to alignment
-        )
+        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
+        val targetTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
 
-        val relinkedSwitchId = insertUniqueSwitch().id
+        val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
         val split = splitDao.saveSplit(
             sourceTrack.rowVersion,
@@ -60,17 +56,13 @@ class SplitDaoIT @Autowired constructor(
 
     @Test
     fun `should update split with new state, errorCause, and publicationId`() {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
-        val sourceTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = false) to alignment
-        )
 
-        val targetTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = true) to alignment
-        )
+        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
+        val targetTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
 
-        val relinkedSwitchId = insertUniqueSwitch().id
+        val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
         val split = splitDao.saveSplit(
             sourceTrack.rowVersion,
@@ -93,22 +85,15 @@ class SplitDaoIT @Autowired constructor(
 
     @Test
     fun `should fetch unfinished splits only`() {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
-        val sourceTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = false) to alignment
-        )
 
-        val targetTrack1 = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = true) to alignment
-        )
+        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
+        val targetTrack1 = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
+        val targetTrack2 = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
 
-        val targetTrack2 = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = true) to alignment
-        )
-
-        val relinkedSwitchId1 = insertUniqueSwitch().id
-        val relinkedSwitchId2 = insertUniqueSwitch().id
+        val relinkedSwitchId1 = mainOfficialContext.createSwitch().id
+        val relinkedSwitchId2 = mainOfficialContext.createSwitch().id
 
         val doneSplit = splitDao.saveSplit(
             sourceTrack.rowVersion,
@@ -135,21 +120,14 @@ class SplitDaoIT @Autowired constructor(
 
     @Test
     fun `should delete split`() {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
-        val sourceTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = false) to alignment
-        )
 
-        val someDuplicateTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = true) to alignment
-        )
+        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
+        val someDuplicateTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
+        val targetTrack1 = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
 
-        val targetTrack1 = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = true) to alignment
-        )
-
-        val relinkedSwitchId = insertUniqueSwitch().id
+        val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
         val splitId = splitDao.saveSplit(
             sourceTrack.rowVersion,
@@ -167,17 +145,13 @@ class SplitDaoIT @Autowired constructor(
 
     @Test
     fun `Should fetch split header`() {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
-        val sourceTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = false) to alignment
-        )
 
-        val targetTrack1 = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = true) to alignment
-        )
+        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
+        val targetTrack1 = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
 
-        val relinkedSwitchId = insertUniqueSwitch().id
+        val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
         val splitId = splitDao.saveSplit(
             sourceTrack.rowVersion,
@@ -226,7 +200,7 @@ class SplitDaoIT @Autowired constructor(
                     splitId = splitId,
                     publicationId = publicationId,
                     bulkTransferState = newBulkTransferState,
-                    bulkTransferId = getUnusedBulkTransferId(),
+                    bulkTransferId = testDBService.getUnusedBulkTransferId(),
                 )
             }
             splitDao.updateSplit(splitId, bulkTransferState = newBulkTransferState)
@@ -238,28 +212,21 @@ class SplitDaoIT @Autowired constructor(
     fun `Split bulk transfer id can be updated`() {
         val splitId = createSplit()
 
-        val bulkTransferId = getUnusedBulkTransferId()
+        val bulkTransferId = testDBService.getUnusedBulkTransferId()
         splitDao.updateSplit(splitId, bulkTransferId = bulkTransferId)
 
         assertEquals(bulkTransferId, splitDao.getOrThrow(splitId).bulkTransferId)
     }
 
     private fun createSplit(): IntId<Split> {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
-        val sourceTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = false) to alignment
-        )
 
-        val someDuplicateTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = false) to alignment
-        )
+        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
+        val someDuplicateTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
+        val targetTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
 
-        val targetTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = true) to alignment
-        )
-
-        val relinkedSwitchId = insertUniqueSwitch().id
+        val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
         return splitDao.saveSplit(
             sourceTrack.rowVersion,

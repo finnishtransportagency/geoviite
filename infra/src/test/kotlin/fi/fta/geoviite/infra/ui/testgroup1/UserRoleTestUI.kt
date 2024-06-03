@@ -45,7 +45,7 @@ class UserRoleTestUI @Autowired constructor(
 ) : SeleniumTest() {
     @BeforeEach
     fun beforeEach() {
-        clearAllTestData()
+        testDBService.clearAllTables()
     }
 
     @Test

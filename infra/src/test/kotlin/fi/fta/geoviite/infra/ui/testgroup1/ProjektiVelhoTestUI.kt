@@ -3,7 +3,24 @@ package fi.fta.geoviite.infra.ui.testgroup1
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.projektivelho.*
+import fi.fta.geoviite.infra.projektivelho.FakeProjektiVelho
+import fi.fta.geoviite.infra.projektivelho.PVApiAssignment
+import fi.fta.geoviite.infra.projektivelho.PVApiDocumentMetadata
+import fi.fta.geoviite.infra.projektivelho.PVApiLatestVersion
+import fi.fta.geoviite.infra.projektivelho.PVApiProject
+import fi.fta.geoviite.infra.projektivelho.PVApiProjectGroup
+import fi.fta.geoviite.infra.projektivelho.PVApiProperties
+import fi.fta.geoviite.infra.projektivelho.PVAssignment
+import fi.fta.geoviite.infra.projektivelho.PVDao
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryCode
+import fi.fta.geoviite.infra.projektivelho.PVDocument
+import fi.fta.geoviite.infra.projektivelho.PVDocumentStatus
+import fi.fta.geoviite.infra.projektivelho.PVId
+import fi.fta.geoviite.infra.projektivelho.PVProject
+import fi.fta.geoviite.infra.projektivelho.PVProjectGroup
+import fi.fta.geoviite.infra.projektivelho.PVProjectName
+import fi.fta.geoviite.infra.projektivelho.materialDictionaries
+import fi.fta.geoviite.infra.projektivelho.projectDictionaries
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EProjektiVelhoListItem
@@ -33,8 +50,7 @@ class ProjektiVelhoTestUI @Autowired constructor(
 
     @BeforeEach
     fun clearVelhoTestData() {
-        clearAllTestData()
-        deleteFromTables("projektivelho", *velhoTables.toTypedArray())
+        testDBService.clearAllTables()
     }
 
     @Test

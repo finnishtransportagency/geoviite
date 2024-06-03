@@ -49,39 +49,8 @@ class SplitServiceIT @Autowired constructor(
     // This cleanup code can be removed after GVT-2484 has been implemented.
     @BeforeEach
     fun clear() {
-        deleteFromTables(
-            schema = "layout",
-            tables = arrayOf(
-                "alignment",
-                "alignment_version",
-                "km_post",
-                "km_post_version",
-                "location_track",
-                "location_track_version",
-                "reference_line",
-                "reference_line_version",
-                "switch",
-                "switch_version",
-                "switch_joint",
-                "switch_joint_version",
-                "track_number",
-                "track_number_version",
-                "segment_version",
-                "segment_geometry",
-            ),
-        )
-
-        deleteFromTables(
-            schema = "publication",
-            tables = arrayOf(
-                "split",
-                "split_version",
-                "split_relinked_switch",
-                "split_relinked_switch_version",
-                "split_target_location_track",
-                "split_Target_location_track_version",
-            ),
-        )
+        testDBService.clearPublicationTables()
+        testDBService.clearLayoutTables()
     }
 
     @Test
@@ -347,9 +316,9 @@ class SplitServiceIT @Autowired constructor(
 
     @Test
     fun `Duplicate tracks should be reassigned to most overlapping tracks if left unused`() {
-        val trackNumberId = insertOfficialTrackNumber()
-        insertReferenceLine(
-            referenceLine(trackNumberId = trackNumberId, draft = false),
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
+        mainOfficialContext.insert(
+            referenceLine(trackNumberId),
             alignment(segment(Point(-1000.0, 0.0), Point(1000.0, 0.0))),
         )
 
@@ -366,48 +335,41 @@ class SplitServiceIT @Autowired constructor(
             alignment
         ) = alignmentWithMultipleSwitches(switchStartPoints)
 
-        val sourceTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = false),
-            alignment,
-        )
+        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment)
 
         val duplicateIds = listOf(
-            insertLocationTrack(
+            mainOfficialContext.insert(
                 locationTrack(
                     name = "Used duplicate between first and second switch",
                     trackNumberId = trackNumberId,
                     duplicateOf = sourceTrack.id,
-                    draft = false,
                 ),
                 alignment(segment(Point(100.0, 0.0), Point(200.0, 0.0))),
             ),
 
-            insertLocationTrack(
+            mainOfficialContext.insert(
                 locationTrack(
                     name = "Unused dupe with full overlap",
                     trackNumberId = trackNumberId,
                     duplicateOf = sourceTrack.id,
-                    draft = false,
                 ),
                 alignment(segment(Point(250.0, 0.0), Point(275.0, 0.0))),
             ),
 
-            insertLocationTrack(
+            mainOfficialContext.insert(
                 locationTrack(
                     name = "Unused dupe with partial overlap of two new tracks",
                     trackNumberId = trackNumberId,
                     duplicateOf = sourceTrack.id,
-                    draft = false,
                 ),
                 alignment(segment(Point(275.0, 0.0), Point(350.0, 0.0))),
             ),
 
-            insertLocationTrack(
+            mainOfficialContext.insert(
                 locationTrack(
                     name = "Unused dupe with flipped partial overlap",
                     trackNumberId = trackNumberId,
                     duplicateOf = sourceTrack.id,
-                    draft = false,
                 ),
                 alignment(segment(Point(370.0, 0.0), Point(410.0, 0.0))),
             ),
@@ -476,23 +438,23 @@ class SplitServiceIT @Autowired constructor(
         requireNotNull(switchStructureDao.fetchSwitchStructures().find { s -> s.type.typeName == "YV60-300-1:9-O" })
 
     private fun insertSplitWithTwoTracks(): IntId<Split> {
-        val trackNumberId = insertOfficialTrackNumber()
-        insertReferenceLine(
-            referenceLine(trackNumberId = trackNumberId, draft = false),
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
+        mainOfficialContext.insert(
+            referenceLine(trackNumberId),
             alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
         )
 
-        val sourceTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = false),
+        val sourceTrack = mainOfficialContext.insert(
+            locationTrack(trackNumberId),
             alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
         )
 
-        val endTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = false),
+        val endTrack = mainOfficialContext.insert(
+            locationTrack(trackNumberId),
             alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
         )
 
-        val relinkedSwitchId = insertUniqueSwitch().id
+        val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
         return splitDao.saveSplit(
             sourceTrack.rowVersion,

@@ -56,7 +56,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
             jdbc.update(markEverythingComplete, mapOf<String, Unit>())
         }
 
-        trackNumberId = insertOfficialTrackNumber()
+        trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val locationTrackResponse = insertAndPublishLocationTrack()
         locationTrackId = locationTrackResponse.id
         val beforePublish = ratkoPushDao.getLatestPublicationMoment()

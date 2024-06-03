@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
-import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import org.junit.jupiter.api.BeforeEach
@@ -16,24 +15,23 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
 
     @BeforeEach
     fun goToMapPage() {
-        clearAllTestData()
+        testDBService.clearAllTables()
     }
 
     @Test
     fun `Narrow search results`() {
-        val tnId = insertDraftTrackNumber()
+        val tnId = mainDraftContext.createLayoutTrackNumber().id
         val ltNames = listOf(
             "test-lt A1" to "test-desc-1",
             "test-lt B2" to "test-desc-2",
             "test-lt B3" to "test-desc-3",
         )
         ltNames.forEach { (name, desc) ->
-            insertLocationTrack(
+            mainOfficialContext.insert(
                 locationTrackAndAlignment(
                     trackNumberId = tnId,
                     name = name,
                     description = desc,
-                    draft = false,
                 )
             )
         }
@@ -53,14 +51,14 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
 
     @Test
     fun `Search opens specific location track`() {
-        val trackNumber = getOrCreateTrackNumber(getUnusedTrackNumber())
-        val (track, alignment) = locationTrackAndAlignment(
-            trackNumberId = trackNumber.id as IntId,
-            name = "test-lt specific 001",
-            description = "specific track selection test track 001",
-            draft = false,
+        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
+        val (track, _) = mainOfficialContext.insertAndFetch(
+            locationTrackAndAlignment(
+                trackNumberId = trackNumberId,
+                name = "test-lt specific 001",
+                description = "specific track selection test track 001",
+            )
         )
-        insertLocationTrack(track, alignment)
 
         startGeoviite()
         val mapPage = goToMap()
@@ -69,7 +67,6 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
 
         val locationTrackGeneralInfoBox = mapPage.toolPanel.locationTrackGeneralInfo
         assertEquals(track.name.toString(), locationTrackGeneralInfoBox.name)
-        assertEquals(trackNumber.number.toString(), locationTrackGeneralInfoBox.trackNumber)
-
+        assertEquals(trackNumber.toString(), locationTrackGeneralInfoBox.trackNumber)
     }
 }

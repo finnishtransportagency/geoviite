@@ -5,10 +5,25 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.GeometryProfile
+import fi.fta.geoviite.infra.geometry.GeometryService
+import fi.fta.geoviite.infra.geometry.VICircularCurve
+import fi.fta.geoviite.infra.geometry.VIPoint
+import fi.fta.geoviite.infra.geometry.geometryAlignment
+import fi.fta.geoviite.infra.geometry.infraModelFile
+import fi.fta.geoviite.infra.geometry.line
+import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.ui.LocalHostWebClient
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.testdata.createGeometryKmPost
@@ -35,12 +50,12 @@ class VerticalGeometryElementListTestUI
 
     @BeforeEach
     fun cleanup() {
-        clearAllTestData()
+        testDBService.clearAllTables()
     }
 
     @Test
     fun `List plan vertical geometry`() {
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
         insertGoodPlan(trackNumber)
         insertMinimalPlan(trackNumber)
         startGeoviite()
@@ -60,8 +75,7 @@ class VerticalGeometryElementListTestUI
 
     @Test
     fun `List layout vertical geometry`() {
-        val trackNumber = getUnusedTrackNumber()
-        val trackNumberId = insertOfficialTrackNumber(trackNumber)
+        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         val goodPlan = insertGoodPlan(trackNumber)
         insertMinimalPlan(trackNumber)
 
@@ -83,8 +97,7 @@ class VerticalGeometryElementListTestUI
 
     @Test
     fun `List entire track vertical geometry`() {
-        val trackNumber = getUnusedTrackNumber()
-        val trackNumberId = insertOfficialTrackNumber(trackNumber)
+        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         val goodPlan = insertGoodPlan(trackNumber)
         insertMinimalPlan(trackNumber)
 

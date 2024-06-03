@@ -94,7 +94,7 @@ class RatkoClientIT @Autowired constructor(
             .insertSplit()
             .let(splitDao::getOrThrow)
 
-        val expectedBulkTransferId = getUnusedBulkTransferId()
+        val expectedBulkTransferId = testDBService.getUnusedBulkTransferId()
 
         fakeRatko.acceptsNewBulkTransferGivingItId(expectedBulkTransferId)
         val (receivedBulkTransferId, receivedBulkTransferState) = ratkoClient.startNewBulkTransfer(split)
@@ -109,7 +109,7 @@ class RatkoClientIT @Autowired constructor(
             .insertSplit()
             .let(splitDao::getOrThrow)
 
-        val expectedBulkTransferId = getUnusedBulkTransferId()
+        val expectedBulkTransferId = testDBService.getUnusedBulkTransferId()
 
         fakeRatko.acceptsNewBulkTransferGivingItId(expectedBulkTransferId)
         val (receivedBulkTransferId, _) = ratkoClient.startNewBulkTransfer(split)

@@ -37,13 +37,13 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
 
     @BeforeEach
     fun cleanup() {
-        deleteFromTables("layout", "track_number", "reference_line")
+        testDBService.clearLayoutTables()
     }
 
     @Test
     fun updatingExternalIdWorks() {
         val saveRequest = TrackNumberSaveRequest(
-            getUnusedTrackNumber(), FreeText("description"), LayoutState.IN_USE, TrackMeter(
+            testDBService.getUnusedTrackNumber(), FreeText("description"), LayoutState.IN_USE, TrackMeter(
                 KmNumber(5555), 5.5, 1
             )
         )
@@ -88,7 +88,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
     @Test
     fun `should return correct lengths for km posts`() {
         val trackNumber = trackNumberDao.fetch(
-            trackNumberDao.insert(trackNumber(getUnusedTrackNumber(), draft = false)).rowVersion
+            trackNumberDao.insert(trackNumber(testDBService.getUnusedTrackNumber(), draft = false)).rowVersion
         )
         referenceLineAndAlignment(
             trackNumberId = trackNumber.id as IntId, segments = listOf(
@@ -164,7 +164,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
     @Test
     fun `should ignore km posts without location when calculating lengths lengths between km posts`() {
         val trackNumber = trackNumberDao.fetch(
-            trackNumberDao.insert(trackNumber(getUnusedTrackNumber(), draft = false)).rowVersion
+            trackNumberDao.insert(trackNumber(testDBService.getUnusedTrackNumber(), draft = false)).rowVersion
         )
 
         referenceLineAndAlignment(
@@ -233,7 +233,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
 
     fun createTrackNumberAndReferenceLineAndAlignment(): Triple<TrackLayoutTrackNumber, ReferenceLine, LayoutAlignment> {
         val saveRequest = TrackNumberSaveRequest(
-            getUnusedTrackNumber(), FreeText(trackNumberDescription), LayoutState.IN_USE, TrackMeter(
+            testDBService.getUnusedTrackNumber(), FreeText(trackNumberDescription), LayoutState.IN_USE, TrackMeter(
                 KmNumber(5555), 5.5, 1
             )
         )

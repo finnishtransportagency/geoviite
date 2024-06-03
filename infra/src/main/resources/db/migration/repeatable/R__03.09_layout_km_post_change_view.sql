@@ -9,8 +9,8 @@ select
   km_post_version.state,
   km_post_version.version,
   km_number,
-      lag(km_post_version.state)
+  lag(km_post_version.state)
       over (partition by km_post_version.id order by km_post_version.version) as old_state
-from layout.km_post_version
-where draft = false
+  from layout.km_post_version
+  where layout_context_id = 'main_official'
 );

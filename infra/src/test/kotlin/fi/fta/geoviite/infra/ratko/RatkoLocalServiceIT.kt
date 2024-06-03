@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointParse
 import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
 import fi.fta.geoviite.infra.tracklayout.someOid
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -295,10 +296,16 @@ class RatkoLocalServiceIT @Autowired constructor(
         externalId: Oid<RatkoOperatingPoint> = someOid(),
         ratkoRouteNumberOid: Oid<RatkoRouteNumber>? = null,
     ): RatkoOperatingPointParse {
-
         val trackNumberExternalId: Oid<RatkoRouteNumber> = when {
             ratkoRouteNumberOid != null -> ratkoRouteNumberOid
-            else -> Oid(getOrCreateTrackNumber(getUnusedTrackNumber()).externalId!!.toString())
+            else -> someOid<RatkoRouteNumber>().also { oid ->
+                mainDraftContext.insert(
+                    trackNumber(
+                        testDBService.getUnusedTrackNumber(),
+                        externalId = Oid(oid.toString())
+                    ),
+                )
+            }
         }
 
         return RatkoOperatingPointParse(
@@ -312,4 +319,3 @@ class RatkoLocalServiceIT @Autowired constructor(
         )
     }
 }
-

@@ -11,7 +11,8 @@ select
   location_track_version.state,
   location_track_version.change_user,
   location_track_version.version,
-      lag(location_track_version.state) over (partition by location_track_version.id order by location_track_version.version) old_state
+  lag(location_track_version.state)
+      over (partition by location_track_version.id order by location_track_version.version) old_state
   from layout.location_track_version
-  where draft = false
+  where layout_context_id = 'main_official'
 );
