@@ -7,11 +7,13 @@ export type MenuOption = MenuSelectOption | MenuDividerOption;
 
 export type OptionBase = { disabled: boolean; qaId: string };
 
+type MenuClosingBehaviour = 'CLOSE_AFTER_SELECT' | 'CLOSE_MANUALLY';
+
 export type MenuSelectOption = {
     type: 'SELECT';
     name: string;
     onSelect: () => void;
-    closeAfterSelect: boolean;
+    closingBehaviour: MenuClosingBehaviour;
 } & OptionBase;
 
 export type MenuDividerOption = {
@@ -22,14 +24,14 @@ export const menuOption = (
     onSelect: () => void,
     name: string,
     qaId: string,
-    closeAfterSelect: boolean,
     disabled: boolean = false,
+    closingBehaviour: MenuClosingBehaviour = 'CLOSE_AFTER_SELECT',
 ): MenuSelectOption => ({
     type: 'SELECT',
     onSelect,
     name,
     disabled,
-    closeAfterSelect,
+    closingBehaviour,
     qaId,
 });
 
@@ -80,7 +82,7 @@ export const Menu = function ({
                                 onClick={() => {
                                     if (!i.disabled && i.type === 'SELECT') {
                                         i.onSelect();
-                                        if (i.closeAfterSelect && onClose) {
+                                        if (i.closingBehaviour === 'CLOSE_AFTER_SELECT') {
                                             onClose();
                                         }
                                     }

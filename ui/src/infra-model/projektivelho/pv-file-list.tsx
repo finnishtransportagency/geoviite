@@ -306,7 +306,6 @@ const PVFileListRow = ({
                 assignmentCount: itemCounts.assignment ?? '-',
             }),
             'pv-reject-or-restore-by-assignment',
-            true,
             !item.assignment?.oid,
         ),
         menuOption(
@@ -337,7 +336,6 @@ const PVFileListRow = ({
                 projectCount: itemCounts.project ?? '-',
             }),
             'pv-reject-or-restore-by-project',
-            true,
             !item.project?.oid,
         ),
         menuOption(
@@ -368,7 +366,6 @@ const PVFileListRow = ({
                 groupCount: itemCounts.projectGroup ?? '-',
             }),
             'pv-reject-or-restore-by-project-group',
-            true,
             !item.projectGroup?.oid,
         ),
     ];

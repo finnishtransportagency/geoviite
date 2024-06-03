@@ -26,7 +26,6 @@ const DataProductsMenu: React.FC = () => {
                   },
                   t('app-bar.data-products.element-list'),
                   'element-list-menu-link',
-                  true,
               )
             : undefined,
         userHasPrivilege(currentPrivileges, VIEW_GEOMETRY_FILE)
@@ -36,7 +35,6 @@ const DataProductsMenu: React.FC = () => {
                   },
                   t('app-bar.data-products.vertical-geometry'),
                   'vertical-geometry-menu-link',
-                  true,
               )
             : undefined,
         userHasPrivilege(currentPrivileges, VIEW_GEOMETRY)
@@ -46,7 +44,6 @@ const DataProductsMenu: React.FC = () => {
                   },
                   t('app-bar.data-products.km-lengths'),
                   'kilometer-length-menu-link',
-                  true,
               )
             : undefined,
     ].filter(filterNotEmpty);

@@ -238,25 +238,21 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             () => showAddDialog(NewMenuItems.trackNumber),
             t('tool-bar.new-track-number'),
             'tool-bar.new-track-number',
-            true,
         ),
         menuOption(
             () => showAddDialog(NewMenuItems.locationTrack),
             t('tool-bar.new-location-track'),
             'tool-bar.new-location-track',
-            true,
         ),
         menuOption(
             () => showAddDialog(NewMenuItems.switch),
             t('tool-bar.new-switch'),
             'tool-bar.new-switch',
-            true,
         ),
         menuOption(
             () => showAddDialog(NewMenuItems.kmPost),
             t('tool-bar.new-km-post'),
             'tool-bar.new-km-post',
-            true,
         ),
     ];
 

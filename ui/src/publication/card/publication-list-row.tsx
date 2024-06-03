@@ -89,7 +89,6 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
             },
             t('publication-card.show-split-info'),
             'show-split-info-link',
-            true,
         ),
         menuOption(
             () => {
@@ -108,7 +107,6 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
             },
             t('publication-card.mark-as-successful'),
             'mark-bulk-transfer-as-finished-link',
-            true,
             publication.split?.bulkTransferState === 'DONE',
         ),
     ];

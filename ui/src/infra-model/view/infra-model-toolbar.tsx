@@ -30,7 +30,6 @@ export const InfraModelToolbar: React.FC<InfraModelToolbarProps> = (
             },
             item.name,
             item.qaId,
-            true,
             item.disabled,
         ),
     );

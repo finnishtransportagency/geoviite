@@ -131,7 +131,6 @@ export const ButtonExamples: React.FC = () => {
                                                         () => console.log(`I'm doing something!`),
                                                         'Item 1',
                                                         'Item 1',
-                                                        true,
                                                     ),
                                                 ]}>
                                                 Button

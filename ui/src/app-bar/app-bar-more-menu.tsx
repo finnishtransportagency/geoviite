@@ -63,7 +63,6 @@ const AppBarMoreMenu: React.FC = () => {
             },
             t('app-bar.licenses'),
             'licenses',
-            true,
         ),
         ...createRoleSelectionOptions(),
         menuOption(
@@ -72,7 +71,6 @@ const AppBarMoreMenu: React.FC = () => {
             },
             t('app-bar.logout'),
             'logout',
-            true,
         ),
     ];
 

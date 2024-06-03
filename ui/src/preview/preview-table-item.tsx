@@ -88,7 +88,6 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
             amount: displayedTotalPublicationAssetAmount,
         }),
         'preview-move-all-shown-changes',
-        true,
     );
 
     const menuOptionMovePublicationGroupStage: MenuSelectOption = menuOption(
@@ -104,7 +103,6 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
             amount: publicationGroupAssetAmount,
         }),
         `preview-move-publication-group-${tableEntry.publicationGroup?.id ?? 'unknown'}`,
-        true,
     );
 
     const menuOptionRevertSingleChange: MenuSelectOption = menuOption(
@@ -115,7 +113,6 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
             ),
         t('publish.revert-change'),
         'preview-revert-change',
-        true,
     );
 
     const menuOptionRevertAllShownChanges: MenuSelectOption = menuOption(
@@ -129,7 +126,6 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
             amount: displayedTotalPublicationAssetAmount,
         }),
         'preview-revert-all-shown-changes',
-        true,
     );
 
     const menuOptionPublicationGroupRevert: MenuSelectOption = menuOption(
@@ -145,7 +141,6 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
             amount: publicationGroupAssetAmount,
         }),
         'preview-revert-publication-group',
-        true,
     );
 
     const menuOptionShowOnMap: MenuSelectOption = menuOption(
@@ -154,7 +149,6 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         },
         t('publish.show-on-map'),
         'preview-show-on-map',
-        true,
         !tableEntry.boundingBox,
     );
 
