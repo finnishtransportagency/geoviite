@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETextInput
 import fi.fta.geoviite.infra.ui.util.byQaId
+import org.joda.time.LocalDate
 import org.openqa.selenium.By
 
 class E2ELocationTrackEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
@@ -232,5 +233,35 @@ class E2ELayoutSwitchEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) 
                 By.xpath("following-sibling::div[contains(@class, 'dialog')]//button[contains(@class, 'button--primary')]")
             )
         }
+    }
+}
+
+class E2EWorkspaceEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
+
+    private val nameInput: E2ETextInput by lazy { childTextInput(byQaId("workspace-dialog-name")) }
+    private val dateInput: E2ETextInput by lazy { childTextInput(byQaId("workspace-dialog-date")) }
+
+    fun setName(name: String): E2EWorkspaceEditDialog = apply {
+        logger.info("Set name $name")
+
+        nameInput.replaceValue(name)
+    }
+
+    fun setDate(date: LocalDate): E2EWorkspaceEditDialog = apply {
+        logger.info("Set date $date")
+
+        dateInput.replaceValue(date.toString("dd.MM.yyyy"))
+    }
+
+    fun save() = waitUntilClosed {
+        logger.info("Save workspace changes")
+
+        clickButton(byQaId("workspace-dialog-save"))
+    }
+
+    fun cancel() = waitUntilClosed {
+        logger.info("Discard workspace changes")
+
+        clickSecondaryButton()
     }
 }

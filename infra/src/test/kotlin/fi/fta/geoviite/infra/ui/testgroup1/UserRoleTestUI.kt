@@ -1,18 +1,35 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
 import exists
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.tracklayout.DesignState
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignSaveRequest
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EAppBar
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ERole
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EInfraModelPage
+import fi.fta.geoviite.infra.ui.pagemodel.map.E2ETrackLayoutPage
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.HKI_TRACK_NUMBER_1
+import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenceLine
 import fi.fta.geoviite.infra.ui.util.assertZeroBrowserConsoleErrors
 import fi.fta.geoviite.infra.ui.util.assertZeroErrorToasts
 import fi.fta.geoviite.infra.ui.util.byQaId
+import fi.fta.geoviite.infra.util.FreeText
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.openqa.selenium.By
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import waitUntilExists
+import waitUntilNotExist
+import java.time.LocalDate
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -20,9 +37,28 @@ import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
-class UserRoleTestUI : SeleniumTest() {
+class UserRoleTestUI @Autowired constructor(
+    private val trackNumberDao: LayoutTrackNumberDao,
+    private val alignmentDao: LayoutAlignmentDao,
+    private val referenceLineDao: ReferenceLineDao,
+    private val layoutDesignDao: LayoutDesignDao,
+) : SeleniumTest() {
+    @BeforeEach
+    fun beforeEach() {
+        clearAllTestData()
+    }
+
     @Test
     fun `Page navigation test`() {
+        val trackNumber = trackNumber(HKI_TRACK_NUMBER_1, draft = false)
+        val trackNumberId = trackNumberDao.insert(trackNumber)
+        val referenceLineAndAlignment = westReferenceLine(trackNumberId.id)
+        val alignmentVersion = alignmentDao.insert(referenceLineAndAlignment.second)
+        referenceLineDao.insert(referenceLineAndAlignment.first.copy(alignmentVersion = alignmentVersion))
+
+        val designName = "test design"
+        layoutDesignDao.insert(LayoutDesignSaveRequest(FreeText(designName), LocalDate.now(), DesignState.ACTIVE))
+
         startGeoviite()
 
         E2ERole.entries.forEach { role ->
@@ -36,7 +72,7 @@ class UserRoleTestUI : SeleniumTest() {
             assertLicensePage()
 
             assertFrontPage()
-            assertMapPage(role)
+            assertMapPage(role, trackNumber.number, designName)
             assertInfraModelPage(role)
 
             assertElementListingPage(role)
@@ -68,28 +104,78 @@ fun assertPublicationLog(frontpage: E2EFrontPage) {
         .returnToFrontPage()
 }
 
-fun assertMapPage(role: E2ERole) {
+fun assertMapPage(role: E2ERole, trackNumber: TrackNumber, designName: String) {
     val mapPage = E2EAppBar().goToMap()
 
     when (role) {
         E2ERole.Operator,
         -> {
             mapPage
+                .also { assertDraftAndDesignModeTabsVisible() }
+                // TODO: Design mode is checked before draft mode because for whatever reason design mode selections fail
+                // if draft mode checks go before them. Find out why
+                .switchToDesignMode()
+                .also { it.toolBar.workspaceDropdown().selectByName(designName) }
+                .also { assertTrackLayoutPageEditButtonsVisible(it, trackNumber) }
                 .switchToDraftMode()
+                .also { assertTrackLayoutPageEditButtonsVisible(it, trackNumber) }
                 .goToPreview()
                 .waitForAllTableValidationsToComplete()
                 .goToTrackLayout()
                 .switchToOfficialMode()
         }
 
-        E2ERole.Team,
+        E2ERole.Team -> {
+            mapPage
+                .also { assertDraftAndDesignModeTabsVisible() }
+                .switchToDesignMode()
+                .also { it.toolBar.workspaceDropdown().selectByName(designName) }
+                .also { assertTrackLayoutPageEditButtonsInvisible(it, trackNumber) }
+                .switchToDraftMode()
+                .also { assertTrackLayoutPageEditButtonsInvisible(it, trackNumber) }
+        }
+
         E2ERole.Authority,
         E2ERole.Browser,
         E2ERole.Consultant,
         -> {
-            assertNull(mapPage.switchToDraftModeButton)
+            mapPage
+                .also { assertDraftAndDesignModeTabsInvisible() }
+                .also { assertTrackLayoutPageEditButtonsInvisible(it, trackNumber) }
         }
     }
+}
+
+fun assertDraftAndDesignModeTabsVisible() {
+    waitUntilExists(byQaId("draft-mode-tab"))
+    waitUntilExists(byQaId("design-mode-tab"))
+}
+
+fun assertDraftAndDesignModeTabsInvisible() {
+    waitUntilNotExist(byQaId("draft-mode-tab"))
+    waitUntilNotExist(byQaId("design-mode-tab"))
+}
+
+fun assertTrackLayoutPageEditButtonsInvisible(trackLayoutPage: E2ETrackLayoutPage, trackNumber: TrackNumber): Unit {
+    trackLayoutPage.selectionPanel.selectOrUnselectReferenceLine(trackNumber.toString())
+
+    waitUntilNotExist(byQaId("open-preview-view"))
+    waitUntilNotExist(byQaId("tool-bar.new"))
+    waitUntilNotExist(By.cssSelector(".infobox__edit-icon"))
+
+    trackLayoutPage.selectionPanel.selectOrUnselectReferenceLine(trackNumber.toString())
+}
+
+fun assertTrackLayoutPageEditButtonsVisible(trackLayoutPage: E2ETrackLayoutPage, trackNumber: TrackNumber): Unit {
+    trackLayoutPage.selectionPanel.selectOrUnselectReferenceLine(trackNumber.toString())
+
+    waitUntilExists(byQaId("draft-mode-tab"))
+    waitUntilExists(byQaId("design-mode-tab"))
+    waitUntilExists(byQaId("open-preview-view"))
+    waitUntilExists(byQaId("tool-bar.new"))
+    waitUntilExists(By.cssSelector(".infobox__edit-icon"))
+
+    trackLayoutPage.selectionPanel.selectOrUnselectReferenceLine(trackNumber.toString())
 }
 
 fun assertInfraModelPage(role: E2ERole) {
