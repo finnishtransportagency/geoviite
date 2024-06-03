@@ -66,28 +66,28 @@ export const Menu = function ({
             openTowards={opensTowards}
             offsetY={offsetY + 6}>
             <ol className={styles['menu__items']} {...props}>
-                {items.map((i, index) => {
-                    if (i.type === 'DIVIDER') {
+                {items.map((item, index) => {
+                    if (item.type === 'DIVIDER') {
                         return <div key={`${index}`} className={styles['menu__divider']} />;
                     } else {
                         return (
                             <li
                                 key={`${index}`}
-                                qa-id={i.qaId}
-                                title={`${i.name}`}
+                                qa-id={item.qaId}
+                                title={`${item.name}`}
                                 className={createClassName(
                                     styles['menu__item'],
-                                    i.disabled && styles['menu__item--disabled'],
+                                    item.disabled && styles['menu__item--disabled'],
                                 )}
                                 onClick={() => {
-                                    if (!i.disabled && i.type === 'SELECT') {
-                                        i.onSelect();
-                                        if (i.closingBehaviour === 'CLOSE_AFTER_SELECT') {
+                                    if (!item.disabled && item.type === 'SELECT') {
+                                        item.onSelect();
+                                        if (item.closingBehaviour === 'CLOSE_AFTER_SELECT') {
                                             onClose();
                                         }
                                     }
                                 }}>
-                                {i.name}
+                                {item.name}
                             </li>
                         );
                     }
