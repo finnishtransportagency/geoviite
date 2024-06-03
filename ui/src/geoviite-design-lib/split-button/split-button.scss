@@ -1,0 +1,18 @@
+.split-button {
+    display: inline-flex;
+
+    > :not(:last-child) {
+        margin-right: 0px;
+    }
+
+    > :first-child {
+        border-bottom-right-radius: 0px;
+        border-top-right-radius: 0px;
+    }
+
+    > :last-child {
+        border-bottom-left-radius: 0px;
+        border-top-left-radius: 0px;
+        border-left-width: 0px;
+    }
+}
