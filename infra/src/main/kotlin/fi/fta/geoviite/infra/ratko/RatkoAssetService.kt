@@ -4,7 +4,16 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.PublishedSwitch
-import fi.fta.geoviite.infra.ratko.model.*
+import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
+import fi.fta.geoviite.infra.ratko.model.RatkoNodeType
+import fi.fta.geoviite.infra.ratko.model.RatkoOid
+import fi.fta.geoviite.infra.ratko.model.RatkoPointStates
+import fi.fta.geoviite.infra.ratko.model.RatkoSwitchAsset
+import fi.fta.geoviite.infra.ratko.model.convertToRatkoAssetGeometries
+import fi.fta.geoviite.infra.ratko.model.convertToRatkoAssetLocations
+import fi.fta.geoviite.infra.ratko.model.convertToRatkoSwitch
+import fi.fta.geoviite.infra.ratko.model.mapGeometryTypeToNodeType
+import fi.fta.geoviite.infra.ratko.model.mapJointNumberToGeometryType
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -186,12 +195,21 @@ class RatkoAssetService @Autowired constructor(
             val changedSwitchLocations = generateSwitchLocations(jointChanges, switchStructure)
 
             val ratkoSwitchLocations =
-                (baseRatkoLocations + changedSwitchLocations).mapIndexed { index, ratkoAssetLocation ->
-                    ratkoAssetLocation.copy(priority = index + 1)
-                }
+                (baseRatkoLocations + changedSwitchLocations)
+                    .sortedBy (::sortJointAToTop)
+                    .mapIndexed { index, ratkoAssetLocation ->
+                        ratkoAssetLocation.copy(priority = index + 1)
+                    }
 
             ratkoClient.replaceAssetLocations(switchOid, ratkoSwitchLocations)
         }
+    }
+
+    private fun sortJointAToTop(location: RatkoAssetLocation):Int {
+        val containsJointA = location.nodecollection.nodes.any { node ->
+            node.nodeType == RatkoNodeType.JOINT_A
+        }
+        return if (containsJointA) -1 else 1
     }
 
     private fun updateSwitchProperties(
