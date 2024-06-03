@@ -1,20 +1,16 @@
 import * as React from 'react';
-import { Menu, menuValueOption } from 'vayla-design-lib/menu/menu';
+import { Menu, menuOption } from 'vayla-design-lib/menu/menu';
 import { Button } from 'vayla-design-lib/button/button';
 
 export const MenuExample: React.FC = () => {
     const items = [
-        menuValueOption('MENU1', 'Menu option 1', 'MENU1'),
-        menuValueOption('MENU2', 'Menu option 2', 'MENU2'),
-        menuValueOption('MENU3', 'Menu option 3', 'MENU3'),
+        menuOption(() => setChosenItem('MENU1'), 'Menu option 1', 'MENU1'),
+        menuOption(() => setChosenItem('MENU2'), 'Menu option 2', 'MENU2'),
+        menuOption(() => setChosenItem('MENU3'), 'Menu option 3', 'MENU3'),
     ];
 
     const [chosenItem, setChosenItem] = React.useState<string>('');
     const [showMenu, setShowMenu] = React.useState(false);
-
-    const handleItemChange = (item: string) => {
-        setChosenItem(item);
-    };
 
     const menuRef = React.useRef(null);
 
@@ -32,8 +28,8 @@ export const MenuExample: React.FC = () => {
                 <Menu
                     positionRef={menuRef}
                     items={items}
-                    onSelect={(item) => item && handleItemChange(item)}
                     onClickOutside={() => {}}
+                    onClose={() => setShowMenu(false)}
                 />
             )}
         </div>

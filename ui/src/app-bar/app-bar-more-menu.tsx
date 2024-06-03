@@ -5,9 +5,9 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import {
     Menu,
     MenuDividerOption,
-    menuDividerOption,
+    menuDivider,
     MenuSelectOption,
-    menuSelectOption,
+    menuOption,
 } from 'vayla-design-lib/menu/menu';
 import styles from 'app-bar/app-bar.scss';
 import { useTranslation } from 'react-i18next';
@@ -36,9 +36,8 @@ const AppBarMoreMenu: React.FC = () => {
             ? `${roleOptionTranslation}`
             : t(`user-roles.${role.code}`);
 
-        return menuSelectOption(
+        return menuOption(
             () => {
-                setShowMenu(false);
                 postDesiredRole(role.code).then((_roleCode) => {
                     purgePersistentState();
                     navigate('/');
@@ -53,27 +52,21 @@ const AppBarMoreMenu: React.FC = () => {
 
     const createRoleSelectionOptions = (): (MenuSelectOption | MenuDividerOption)[] => {
         return availableRoles.length > 1
-            ? [
-                  menuDividerOption(),
-                  ...availableRoles.map(createRoleSelectionOption),
-                  menuDividerOption(),
-              ]
+            ? [menuDivider(), ...availableRoles.map(createRoleSelectionOption), menuDivider()]
             : [];
     };
 
     const moreActions: (MenuSelectOption | MenuDividerOption)[] = [
-        menuSelectOption(
+        menuOption(
             () => {
-                setShowMenu(false);
                 navigate('licenses');
             },
             t('app-bar.licenses'),
             'licenses',
         ),
         ...createRoleSelectionOptions(),
-        menuSelectOption(
+        menuOption(
             () => {
-                setShowMenu(false);
                 setShowLogoutConfirmation(true);
             },
             t('app-bar.logout'),
@@ -100,6 +93,7 @@ const AppBarMoreMenu: React.FC = () => {
                     onClickOutside={() => setShowMenu(false)}
                     opensTowards={'LEFT'}
                     qa-id={'app-bar-more-menu'}
+                    onClose={() => setShowMenu(false)}
                 />
             )}
 

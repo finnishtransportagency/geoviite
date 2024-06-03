@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Dropdown, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown';
+import { Dropdown, DropdownSize, Item, dropdownOption } from 'vayla-design-lib/dropdown/dropdown';
 import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
 import {
     LayoutLocationTrack,
@@ -24,7 +24,7 @@ import { LocationTrackEditDialogContainer } from 'tool-panel/location-track/dial
 import { SwitchEditDialogContainer } from 'tool-panel/switch/dialog/switch-edit-dialog';
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { TrackNumberEditDialogContainer } from 'tool-panel/track-number/dialog/track-number-edit-dialog';
-import { Menu, MenuOption, menuValueOption } from 'vayla-design-lib/menu/menu';
+import { Menu, MenuOption, menuOption } from 'vayla-design-lib/menu/menu';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { MapLayerMenuChange, MapLayerMenuGroups, MapLayerName } from 'map/map-model';
 import { getTrackNumberReferenceLine } from 'track-layout/layout-reference-line-api';
@@ -76,7 +76,7 @@ function createLocationTrackOptionItem(
     locationTrack: LayoutLocationTrack,
     description: string,
 ): Item<LocationTrackItemValue> {
-    return menuValueOption(
+    return dropdownOption(
         {
             type: 'locationTrackSearchItem',
             locationTrack: locationTrack,
@@ -92,7 +92,7 @@ type SwitchItemValue = {
 };
 
 function createSwitchOptionItem(layoutSwitch: LayoutSwitch): Item<SwitchItemValue> {
-    return menuValueOption(
+    return dropdownOption(
         {
             type: 'switchSearchItem',
             layoutSwitch: layoutSwitch,
@@ -110,7 +110,7 @@ type TrackNumberItemValue = {
 function createTrackNumberOptionItem(
     layoutTrackNumber: LayoutTrackNumber,
 ): Item<TrackNumberItemValue> {
-    return menuValueOption(
+    return dropdownOption(
         {
             type: 'trackNumberSearchItem',
             trackNumber: layoutTrackNumber,
@@ -128,7 +128,7 @@ type OperatingPointItemValue = {
 function createOperatingPointOptionItem(
     operatingPoint: OperatingPoint,
 ): Item<OperatingPointItemValue> {
-    return menuValueOption(
+    return dropdownOption(
         {
             operatingPoint: operatingPoint,
             type: 'operatingPointSearchItem',
@@ -211,24 +211,28 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         'kmPost' = 4,
     }
 
-    const newMenuItems: MenuOption<NewMenuItems>[] = [
-        menuValueOption(
-            NewMenuItems.trackNumber,
+    const newMenuItems: MenuOption[] = [
+        menuOption(
+            () => showAddDialog(NewMenuItems.trackNumber),
             t('tool-bar.new-track-number'),
             'tool-bar.new-track-number',
         ),
-        menuValueOption(
-            NewMenuItems.locationTrack,
+        menuOption(
+            () => showAddDialog(NewMenuItems.locationTrack),
             t('tool-bar.new-location-track'),
             'tool-bar.new-location-track',
         ),
-        menuValueOption(NewMenuItems.switch, t('tool-bar.new-switch'), 'tool-bar.new-switch'),
-        menuValueOption(NewMenuItems.kmPost, t('tool-bar.new-km-post'), 'tool-bar.new-km-post'),
+        menuOption(
+            () => showAddDialog(NewMenuItems.switch),
+            t('tool-bar.new-switch'),
+            'tool-bar.new-switch',
+        ),
+        menuOption(
+            () => showAddDialog(NewMenuItems.kmPost),
+            t('tool-bar.new-km-post'),
+            'tool-bar.new-km-post',
+        ),
     ];
-
-    const handleNewMenuItemChange = (item: NewMenuItems) => {
-        showAddDialog(item);
-    };
 
     // Use debounced function to collect keystrokes before triggering a search
     const debouncedGetOptions = debounceAsync(getOptions, 250);
@@ -318,8 +322,6 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             default:
                 return exhaustiveMatchingGuard(dialog);
         }
-
-        setShowNewAssetMenu(false);
     }
 
     function switchToMainOfficial() {
@@ -473,8 +475,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 <Menu
                     positionRef={menuRef}
                     items={newMenuItems}
-                    onSelect={(item) => item && handleNewMenuItemChange(item)}
                     onClickOutside={() => setShowNewAssetMenu(false)}
+                    onClose={() => setShowNewAssetMenu(false)}
                 />
             )}
 

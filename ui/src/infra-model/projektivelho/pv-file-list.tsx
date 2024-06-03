@@ -27,7 +27,7 @@ import {
     sortPVTableColumns,
 } from 'infra-model/projektivelho/pv-file-list-utils';
 import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
-import { Menu, MenuSelectOption, menuSelectOption } from 'vayla-design-lib/menu/menu';
+import { Menu, MenuSelectOption, menuOption } from 'vayla-design-lib/menu/menu';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 import { PrivilegedLink } from 'user/privileged-link';
@@ -278,7 +278,7 @@ const PVFileListRow = ({
     const dialogTranslationPrefix = `confirm-dialog.${suggestedList ? 'reject' : 'restore'}`;
 
     const fileActions: MenuSelectOption[] = [
-        menuSelectOption(
+        menuOption(
             () => {
                 dialogParams.current = {
                     title: t(`${dialogTranslationPrefix}.by-assignment-title`),
@@ -301,7 +301,6 @@ const PVFileListRow = ({
                 };
 
                 setShowConfirmDialog(true);
-                setFileActionMenuVisible(false);
             },
             t(`${dialogTranslationPrefix}.by-assignment`, {
                 assignmentCount: itemCounts.assignment ?? '-',
@@ -309,7 +308,7 @@ const PVFileListRow = ({
             'pv-reject-or-restore-by-assignment',
             !item.assignment?.oid,
         ),
-        menuSelectOption(
+        menuOption(
             () => {
                 dialogParams.current = {
                     title: t(`${dialogTranslationPrefix}.by-project-title`),
@@ -332,7 +331,6 @@ const PVFileListRow = ({
                 };
 
                 setShowConfirmDialog(true);
-                setFileActionMenuVisible(false);
             },
             t(`${dialogTranslationPrefix}.by-project`, {
                 projectCount: itemCounts.project ?? '-',
@@ -340,7 +338,7 @@ const PVFileListRow = ({
             'pv-reject-or-restore-by-project',
             !item.project?.oid,
         ),
-        menuSelectOption(
+        menuOption(
             () => {
                 dialogParams.current = {
                     title: t(`${dialogTranslationPrefix}.by-project-group-title`),
@@ -363,7 +361,6 @@ const PVFileListRow = ({
                 };
 
                 setShowConfirmDialog(true);
-                setFileActionMenuVisible(false);
             },
             t(`${dialogTranslationPrefix}.by-project-group`, {
                 groupCount: itemCounts.projectGroup ?? '-',
@@ -470,6 +467,7 @@ const PVFileListRow = ({
                                 positionRef={actionMenuRef}
                                 items={fileActions}
                                 onClickOutside={() => setFileActionMenuVisible(false)}
+                                onClose={() => setFileActionMenuVisible(false)}
                             />
                         )}
                         {showConfirmDialog && confirmDialog()}

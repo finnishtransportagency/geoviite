@@ -3,7 +3,7 @@ import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './app-bar.scss';
-import { Menu, menuSelectOption } from 'vayla-design-lib/menu/menu';
+import { Menu, menuOption } from 'vayla-design-lib/menu/menu';
 import { createClassName } from 'vayla-design-lib/utils';
 import { filterNotEmpty } from 'utils/array-utils';
 import { VIEW_GEOMETRY_FILE, userHasPrivilege, VIEW_GEOMETRY } from 'user/user-model';
@@ -20,9 +20,8 @@ const DataProductsMenu: React.FC = () => {
 
     const dataProducts = [
         userHasPrivilege(currentPrivileges, VIEW_GEOMETRY_FILE)
-            ? menuSelectOption(
+            ? menuOption(
                   () => {
-                      setShowMenu(false);
                       navigate('data-products/element-list');
                   },
                   t('app-bar.data-products.element-list'),
@@ -30,9 +29,8 @@ const DataProductsMenu: React.FC = () => {
               )
             : undefined,
         userHasPrivilege(currentPrivileges, VIEW_GEOMETRY_FILE)
-            ? menuSelectOption(
+            ? menuOption(
                   () => {
-                      setShowMenu(false);
                       navigate('data-products/vertical-geometry');
                   },
                   t('app-bar.data-products.vertical-geometry'),
@@ -40,9 +38,8 @@ const DataProductsMenu: React.FC = () => {
               )
             : undefined,
         userHasPrivilege(currentPrivileges, VIEW_GEOMETRY)
-            ? menuSelectOption(
+            ? menuOption(
                   () => {
-                      setShowMenu(false);
                       navigate('data-products/kilometer-lengths');
                   },
                   t('app-bar.data-products.km-lengths'),
@@ -80,6 +77,7 @@ const DataProductsMenu: React.FC = () => {
                             className={styles['app-bar__data-products-menu']}
                             onClickOutside={() => setShowMenu(false)}
                             qa-id={'data-products-menu'}
+                            onClose={() => setShowMenu(false)}
                         />
                     )}
                 </div>

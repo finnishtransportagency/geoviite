@@ -4,18 +4,18 @@ import { Button, ButtonProps } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import styles from './split-button.scss';
 
-type SplitButtonProps<TMenuItem> = {
-    menuItems: MenuOption<TMenuItem>[];
+type SplitButtonProps = {
+    menuItems: MenuOption[];
     children?: React.ReactNode;
     qaId?: string;
 } & ButtonProps;
 
-export const SplitButton = function <TMenuItem>({
+export const SplitButton = function ({
     menuItems,
     children,
     qaId,
     ...buttonProps
-}: SplitButtonProps<TMenuItem>) {
+}: SplitButtonProps) {
     const ref = React.useRef<HTMLSpanElement>(null);
     const [menuOpen, setMenuOpen] = React.useState(false);
 
@@ -36,6 +36,7 @@ export const SplitButton = function <TMenuItem>({
                 <Menu
                     positionRef={ref}
                     onClickOutside={() => setMenuOpen(false)}
+                    onClose={() => setMenuOpen(false)}
                     items={menuItems}
                 />
             )}
