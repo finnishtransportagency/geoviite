@@ -96,10 +96,11 @@ class LocationTrackService(
                 transactionTemplate.execute { updateLocationTrackTransaction(branch, id, request) }
             )
         } catch (dataIntegrityException: DataIntegrityViolationException) {
-            enrichLocationTrackUpdateErrorOrRethrow(
-                dataIntegrityException,
-                request.name,
-            )
+            throw if (isSplitSourceReferenceError(dataIntegrityException)) {
+                SplitSourceLocationTrackUpdateException(request.name, dataIntegrityException)
+            } else {
+                dataIntegrityException
+            }
         }
     }
 
@@ -827,30 +828,18 @@ fun filterByBoundingBox(list: List<LocationTrack>, boundingBox: BoundingBox?): L
     if (boundingBox != null) list.filter { t -> boundingBox.intersects(t.boundingBox) }
     else list
 
-private fun enrichLocationTrackUpdateErrorOrRethrow(
-    exception: DataIntegrityViolationException,
-    alignmentName: AlignmentName,
-): Nothing {
-    val psqlException = exception.cause as? PSQLException ?: throw exception
-    val constraint = psqlException.serverErrorMessage?.constraint
-    val detail = psqlException.serverErrorMessage?.detail ?: throw exception
-
-    when (constraint) {
-        "split_source_location_track_fkey" ->
-            maybeThrowSplitSourceTrackUpdateException(detail, exception, alignmentName)
-    }
-
-    throw exception
-}
-
-private fun maybeThrowSplitSourceTrackUpdateException(
-    detail: String,
-    exception: DataIntegrityViolationException,
-    alignmentName: AlignmentName,
-) {
+fun isSplitSourceReferenceError(exception: DataIntegrityViolationException): Boolean {
+    val constraint = "split_source_location_track_fkey"
     val trackIsSplitSourceTrackError = "is still referenced from table \"split\""
 
-    if (detail.contains(trackIsSplitSourceTrackError)) {
-        throw SplitSourceLocationTrackUpdateException(alignmentName, exception)
-    }
+    return (exception.cause as? PSQLException)
+        ?.serverErrorMessage
+        .let { msg ->
+            when {
+                msg == null -> false
+                msg.constraint == constraint && msg.detail?.contains(trackIsSplitSourceTrackError) == true -> true
+
+                else -> false
+            }
+        }
 }
