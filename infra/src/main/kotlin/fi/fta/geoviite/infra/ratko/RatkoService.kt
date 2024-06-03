@@ -3,8 +3,6 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LocationTrackChange
@@ -14,6 +12,8 @@ import fi.fta.geoviite.infra.integration.RatkoOperation
 import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.SwitchChange
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.Operation
 import fi.fta.geoviite.infra.publication.PublicationDetails
@@ -257,7 +257,15 @@ class RatkoService @Autowired constructor(
                 latestPublicationMoment,
             )
 
-            ratkoAssetService.pushSwitchChangesToRatko(switchChanges, latestPublicationMoment)
+            val distinctJoints = switchChanges.map { switchChange ->
+                switchChange.copy(
+                    changedJoints = switchChange.changedJoints.distinctBy { changedJoint ->
+                        changedJoint.number
+                    }
+                )
+            }
+            ratkoAssetService.pushSwitchChangesToRatko(
+                 distinctJoints, latestPublicationMoment)
 
             try {
                 ratkoLocationTrackService.forceRedraw(
@@ -266,6 +274,8 @@ class RatkoService @Autowired constructor(
             } catch (_: Exception) {
                 logger.warn("Failed to push M values for location tracks $pushedLocationTrackOids")
             }
+
+            logger.info("Ratko push ready");
         }
     }
 
