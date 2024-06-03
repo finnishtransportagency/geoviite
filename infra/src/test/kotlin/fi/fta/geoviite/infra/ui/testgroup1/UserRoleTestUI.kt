@@ -2,7 +2,10 @@ package fi.fta.geoviite.infra.ui.testgroup1
 
 import exists
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.tracklayout.DesignState
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignSaveRequest
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.trackNumber
@@ -17,6 +20,7 @@ import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenc
 import fi.fta.geoviite.infra.ui.util.assertZeroBrowserConsoleErrors
 import fi.fta.geoviite.infra.ui.util.assertZeroErrorToasts
 import fi.fta.geoviite.infra.ui.util.byQaId
+import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.openqa.selenium.By
@@ -25,6 +29,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import waitUntilExists
 import waitUntilNotExist
+import java.time.LocalDate
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -36,6 +41,7 @@ class UserRoleTestUI @Autowired constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val alignmentDao: LayoutAlignmentDao,
     private val referenceLineDao: ReferenceLineDao,
+    private val layoutDesignDao: LayoutDesignDao,
 ) : SeleniumTest() {
     @BeforeEach
     fun beforeEach() {
@@ -50,6 +56,9 @@ class UserRoleTestUI @Autowired constructor(
         val alignmentVersion = alignmentDao.insert(referenceLineAndAlignment.second)
         referenceLineDao.insert(referenceLineAndAlignment.first.copy(alignmentVersion = alignmentVersion))
 
+        val designName = "test design"
+        layoutDesignDao.insert(LayoutDesignSaveRequest(FreeText(designName), LocalDate.now(), DesignState.ACTIVE))
+
         startGeoviite()
 
         E2ERole.entries.forEach { role ->
@@ -63,7 +72,7 @@ class UserRoleTestUI @Autowired constructor(
             assertLicensePage()
 
             assertFrontPage()
-            assertMapPage(role, trackNumber.number)
+            assertMapPage(role, trackNumber.number, designName)
             assertInfraModelPage(role)
 
             assertElementListingPage(role)
@@ -95,7 +104,7 @@ fun assertPublicationLog(frontpage: E2EFrontPage) {
         .returnToFrontPage()
 }
 
-fun assertMapPage(role: E2ERole, trackNumber: TrackNumber) {
+fun assertMapPage(role: E2ERole, trackNumber: TrackNumber, designName: String) {
     val mapPage = E2EAppBar().goToMap()
 
     when (role) {
@@ -103,25 +112,24 @@ fun assertMapPage(role: E2ERole, trackNumber: TrackNumber) {
         -> {
             mapPage
                 .also { assertDraftAndDesignModeTabsVisible() }
+                .switchToDesignMode()
+                .also { it.toolBar.workspaceDropdown().selectByName(designName) }
+                .also { assertTrackLayoutPageEditButtonsVisible(it, trackNumber) }
                 .switchToDraftMode()
                 .also { assertTrackLayoutPageEditButtonsVisible(it, trackNumber) }
                 .goToPreview()
                 .waitForAllTableValidationsToComplete()
                 .goToTrackLayout()
-                .switchToDesignMode()
-                .also { it.toolBar.createNewWorkspace("operator") }
-                // TODO: Uncomment when design mode works
-                //.also { assertTrackLayoutPageEditButtonsVisible(it, trackNumber) }
                 .switchToOfficialMode()
         }
 
         E2ERole.Team -> {
             mapPage
                 .also { assertDraftAndDesignModeTabsVisible() }
-                .switchToDraftMode()
-                .also { assertTrackLayoutPageEditButtonsInvisible(it, trackNumber) }
                 .switchToDesignMode()
-                .also { it.toolBar.workspaceDropdown().selectByName("operator") }
+                .also { it.toolBar.workspaceDropdown().selectByName(designName) }
+                .also { assertTrackLayoutPageEditButtonsInvisible(it, trackNumber) }
+                .switchToDraftMode()
                 .also { assertTrackLayoutPageEditButtonsInvisible(it, trackNumber) }
         }
 
