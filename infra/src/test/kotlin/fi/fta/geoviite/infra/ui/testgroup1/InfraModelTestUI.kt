@@ -5,7 +5,7 @@ import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EInfraModelPage
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration
@@ -29,9 +29,8 @@ class InfraModelTestUI @Autowired constructor(
     val TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH: String =
         "src/test/resources/inframodel/testfile_clothoid_and_parabola_2.xml"
 
-    @BeforeAll
+    @BeforeEach
     fun clearDb() {
-        initUser()
         testDBService.clearAllTables()
     }
 
