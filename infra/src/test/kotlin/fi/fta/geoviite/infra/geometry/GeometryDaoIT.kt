@@ -154,7 +154,7 @@ class GeometryDaoIT @Autowired constructor(
 
     @Test
     fun insertPlanWorks() {
-        val trackNumber = mainOfficialContext.insertAndFetchTrackNumber().number
+        val trackNumber = mainOfficialContext.createAndFetchLayoutTrackNumber().number
         val plan = plan(trackNumber, source = PlanSource.GEOMETRIAPALVELU)
         val fileContent = "<a></a>"
         val id = geometryDao.insertPlan(plan, InfraModelFile(plan.fileName, fileContent), null)
@@ -177,7 +177,7 @@ class GeometryDaoIT @Autowired constructor(
     @Test
     fun minimalElementInsertsWork() {
         val file = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem.xml")
-        val trackNumber = mainOfficialContext.insertAndFetchTrackNumber().number
+        val trackNumber = mainOfficialContext.createAndFetchLayoutTrackNumber().number
         val plan = plan(
             trackNumber = trackNumber,
             fileName = file.name,
@@ -194,7 +194,7 @@ class GeometryDaoIT @Autowired constructor(
     @Test
     fun getLinkingSummariesHappyCase() {
         val file = infraModelFile("${TEST_NAME_PREFIX}_file_min_elem.xml")
-        val (trackNumber, trackNumberId) = mainOfficialContext.getNewTrackNumberAndId()
+        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         val plan = plan(
             trackNumber = trackNumber,
             fileName = file.name,

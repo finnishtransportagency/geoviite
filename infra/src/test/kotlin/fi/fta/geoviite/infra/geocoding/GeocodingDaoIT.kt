@@ -43,14 +43,14 @@ class GeocodingDaoIT @Autowired constructor(
 
     @Test
     fun trackNumberWithoutReferenceLineHasNoContext() {
-        val id = mainOfficialContext.insertTrackNumber().id
+        val id = mainOfficialContext.createLayoutTrackNumber().id
         assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.draft, id))
         assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, id))
     }
 
     @Test
     fun trackNumberWithoutKmPostsHasAContext() {
-        val id = mainOfficialContext.insertTrackNumber().id
+        val id = mainOfficialContext.createLayoutTrackNumber().id
         val alignmentVersion = alignmentDao.insert(alignment())
         referenceLineDao.insert(referenceLine(id, alignmentVersion = alignmentVersion, draft = false))
         assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.draft, id))
@@ -59,7 +59,7 @@ class GeocodingDaoIT @Autowired constructor(
 
     @Test
     fun cacheKeysAreCalculatedCorrectly() {
-        val tnOfficialResponse = mainOfficialContext.insertTrackNumber()
+        val tnOfficialResponse = mainOfficialContext.createLayoutTrackNumber()
         val tnId = tnOfficialResponse.id
         val tnOfficialVersion = tnOfficialResponse.rowVersion
         val tnDraftVersion = trackNumberDao.insert(asMainDraft(trackNumberDao.fetch(tnOfficialVersion))).rowVersion
@@ -152,7 +152,7 @@ class GeocodingDaoIT @Autowired constructor(
 
     @Test
     fun cacheKeysAreCorrectlyFetchedByMoment() {
-        val tnOfficialResponse = mainOfficialContext.insertTrackNumber()
+        val tnOfficialResponse = mainOfficialContext.createLayoutTrackNumber()
         val tnId = tnOfficialResponse.id
         val tnOfficialVersion = tnOfficialResponse.rowVersion
         val alignmentVersion = alignmentDao.insert(alignment())

@@ -316,7 +316,7 @@ class SplitServiceIT @Autowired constructor(
 
     @Test
     fun `Duplicate tracks should be reassigned to most overlapping tracks if left unused`() {
-        val trackNumberId = mainOfficialContext.insertTrackNumber().id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         mainOfficialContext.insert(
             referenceLine(trackNumberId),
             alignment(segment(Point(-1000.0, 0.0), Point(1000.0, 0.0))),
@@ -438,7 +438,7 @@ class SplitServiceIT @Autowired constructor(
         requireNotNull(switchStructureDao.fetchSwitchStructures().find { s -> s.type.typeName == "YV60-300-1:9-O" })
 
     private fun insertSplitWithTwoTracks(): IntId<Split> {
-        val trackNumberId = mainOfficialContext.insertTrackNumber().id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         mainOfficialContext.insert(
             referenceLine(trackNumberId),
             alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
@@ -454,7 +454,7 @@ class SplitServiceIT @Autowired constructor(
             alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
         )
 
-        val relinkedSwitchId = mainOfficialContext.insertSwitch().id
+        val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
         return splitDao.saveSplit(
             sourceTrack.rowVersion,

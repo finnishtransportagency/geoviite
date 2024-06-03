@@ -41,7 +41,7 @@ class SplitTestUI @Autowired constructor(
         testDBService.clearAllTables()
 
         val trackNumber = TrackNumber("876")
-        val trackNumberId = mainOfficialContext.getOrCreateTrackNumber(trackNumber).id as IntId
+        val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(trackNumber).id as IntId
 
         val trackStartPoint = HelsinkiTestData.HKI_BASE_POINT + Point(x = 675.0, y = 410.0)
         val preSegments = splitTestDataService.createSegments(trackStartPoint, 3)

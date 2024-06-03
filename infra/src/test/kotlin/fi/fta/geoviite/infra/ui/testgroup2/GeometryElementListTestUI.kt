@@ -50,7 +50,7 @@ class GeometryElementListTestUI @Autowired constructor(
     @Test
     fun `List layout geometry`() {
         val trackNumber = TrackNumber("foo")
-        val trackNumberId = mainOfficialContext.getOrCreateTrackNumber(trackNumber).id as IntId
+        val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(trackNumber).id as IntId
         val planVersion = insertSomePlan(trackNumber)
         linkPlanToSomeLocationTrack(planVersion, trackNumberId)
 
@@ -102,7 +102,7 @@ class GeometryElementListTestUI @Autowired constructor(
 
     @Test
     fun `List whole network geometry`() {
-        val (trackNumber, trackNumberId) = mainOfficialContext.getNewTrackNumberAndId()
+        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         val planVersion = insertSomePlan(trackNumber)
         linkPlanToSomeLocationTrack(planVersion, trackNumberId)
         geometryService.makeElementListingCsv()

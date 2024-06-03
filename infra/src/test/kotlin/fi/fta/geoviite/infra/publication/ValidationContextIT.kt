@@ -61,10 +61,10 @@ class ValidationContextIT @Autowired constructor(
 
     @Test
     fun `ValidationContext returns correct versions for TrackNumber`() {
-        val (tn1Id, tn1OfficialVersion) = mainOfficialContext.insertTrackNumber()
+        val (tn1Id, tn1OfficialVersion) = mainOfficialContext.createLayoutTrackNumber()
         val trackNumber1 = trackNumberDao.fetch(tn1OfficialVersion)
         val (_, tn1DraftVersion) = mainDraftContext.insert(asMainDraft(trackNumber1))
-        val (tn2Id, tn2DraftVersion) = mainDraftContext.insertTrackNumber()
+        val (tn2Id, tn2DraftVersion) = mainDraftContext.createLayoutTrackNumber()
         val trackNumber2 = trackNumberDao.fetch(tn2DraftVersion)
         assertEquals(
             trackNumberDao.fetch(tn1OfficialVersion),
@@ -101,7 +101,7 @@ class ValidationContextIT @Autowired constructor(
 
     @Test
     fun `ValidationContext returns correct versions for LocationTrack`() {
-        val trackNumberId = mainDraftContext.insertTrackNumber().id
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val (lt1Id, lt1OfficialVersion) = mainOfficialContext.insert(locationTrackAndAlignment(trackNumberId))
         val (_, lt1DraftVersion) = locationTrackDao.insert(asMainDraft(locationTrackDao.fetch(lt1OfficialVersion)))
         val (lt2Id, lt2DraftVersion) = mainDraftContext.insert(locationTrackAndAlignment(trackNumberId))
@@ -160,7 +160,7 @@ class ValidationContextIT @Autowired constructor(
 
     @Test
     fun `ValidationContext returns correct versions for KM-Post`() {
-        val trackNumberId = mainDraftContext.insertTrackNumber().id
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val (kmp1Id, kmp1OfficialVersion) = mainOfficialContext.insert(kmPost(trackNumberId, KmNumber(1)))
         val (_, kmp1DraftVersion) = kmPostDao.insert(asMainDraft(kmPostDao.fetch(kmp1OfficialVersion)))
         val (kmp2Id, kmp2DraftVersion) = mainDraftContext.insert(kmPost(trackNumberId, KmNumber(2)))

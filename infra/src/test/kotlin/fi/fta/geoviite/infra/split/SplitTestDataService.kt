@@ -40,7 +40,7 @@ class SplitTestDataService @Autowired constructor(
 ) : DBTestBase() {
 
     fun insertSplit(
-        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.insertTrackNumber().id,
+        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
     ): IntId<Split> {
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
@@ -50,7 +50,7 @@ class SplitTestDataService @Autowired constructor(
         return splitDao.saveSplit(
             sourceLocationTrackVersion = sourceTrack.rowVersion,
             splitTargets = listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE)),
-            relinkedSwitches = listOf(mainOfficialContext.insertSwitch().id),
+            relinkedSwitches = listOf(mainOfficialContext.createSwitch().id),
             updatedDuplicates = emptyList(),
         )
     }
@@ -86,7 +86,7 @@ class SplitTestDataService @Autowired constructor(
     fun insertAsTrack(
         segments: List<LayoutSegment>,
         duplicateOf: IntId<LocationTrack>? = null,
-        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.insertTrackNumber().id,
+        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
     ): IntId<LocationTrack> {
         val alignment = alignment(segments)
         return mainOfficialContext.insert(
@@ -97,7 +97,7 @@ class SplitTestDataService @Autowired constructor(
 
     fun createAsMainTrack(
         segments: List<LayoutSegment>,
-        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.insertTrackNumber().id,
+        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
     ): DaoResponse<LocationTrack> {
         val alignment = alignment(segments)
         mainOfficialContext.insert(referenceLine(trackNumberId), alignment)

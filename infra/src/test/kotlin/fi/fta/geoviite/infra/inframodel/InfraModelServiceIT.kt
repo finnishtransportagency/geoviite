@@ -89,7 +89,7 @@ class InfraModelServiceIT @Autowired constructor(
             verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
             projectId = testDBService.insertProject().id,
             authorId = testDBService.insertAuthor().id,
-            trackNumber = mainDraftContext.insertAndFetchTrackNumber().number,
+            trackNumber = mainDraftContext.createAndFetchLayoutTrackNumber().number,
             createdDate = Instant.now().minusSeconds(Duration.ofDays(5L).toSeconds()),
             source = PlanSource.GEOMETRIAPALVELU,
         )
@@ -107,7 +107,7 @@ class InfraModelServiceIT @Autowired constructor(
             verticalCoordinateSystem = VerticalCoordinateSystem.N60,
             projectId = testDBService.insertProject().id,
             authorId = testDBService.insertAuthor().id,
-            trackNumber = mainDraftContext.insertAndFetchTrackNumber().number,
+            trackNumber = mainDraftContext.createAndFetchLayoutTrackNumber().number,
             createdDate = Instant.now(),
             source = PlanSource.PAIKANNUSPALVELU,
         )

@@ -77,7 +77,7 @@ class LinkingTestUI @Autowired constructor(
     @Test
     fun `Create a new location track and link geometry`() {
         val trackNumber = TrackNumber("foo")
-        val trackNumberId = mainOfficialContext.getOrCreateTrackNumber(trackNumber).id as IntId
+        val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(trackNumber).id as IntId
         createAndInsertCommonReferenceLine(trackNumberId)
         val geometryPlan = testGeometryPlanService.buildPlan(trackNumber).alignment(
             "geo-alignment-a", Point(50.0, 25.0),
@@ -116,7 +116,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Replace existing location track geometry with new geometry`() {
-        val (trackNumber, trackNumberId) = mainOfficialContext.getNewTrackNumberAndId()
+        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         createAndInsertCommonReferenceLine(trackNumberId)
         val originalLocationTrack = saveLocationTrackWithAlignment(
             locationTrack(
@@ -184,7 +184,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Edit location track end coordinate`() {
-        val trackNumberId = mainOfficialContext.insertTrackNumber().id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         createAndInsertCommonReferenceLine(trackNumberId)
         val originalLocationTrack = saveLocationTrackWithAlignment(
             locationTrack(
@@ -222,7 +222,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Edit location track start coordinate`() {
-        val trackNumberId = mainOfficialContext.insertTrackNumber().id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         createAndInsertCommonReferenceLine(trackNumberId)
         val originalLocationTrack = saveLocationTrackWithAlignment(
             locationTrack(
@@ -259,7 +259,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Link geometry KM-Post to nearest track layout KM-post`() {
-        val (trackNumber, trackNumberId) = mainOfficialContext.getNewTrackNumberAndId()
+        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         kmPostDao.insert(
             kmPost(
                 trackNumberId,
@@ -312,7 +312,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Link geometry KM-post to new KM-post`() {
-        val trackNumber = mainOfficialContext.insertAndFetchTrackNumber().number
+        val trackNumber = mainOfficialContext.createAndFetchLayoutTrackNumber().number
         val lastKmPostLocation = Point(34.0, 30.0)
 
         testGeometryPlanService
@@ -357,7 +357,7 @@ class LinkingTestUI @Autowired constructor(
     @Test
     fun `Link geometry switch to new location tracks and layout switch`() {
         val trackNumber = TrackNumber("foo tracknumber")
-        mainOfficialContext.getOrCreateTrackNumber(trackNumber)
+        mainOfficialContext.getOrCreateLayoutTrackNumber(trackNumber)
         val plan = testGeometryPlanService
             .buildPlan(trackNumber)
             .switch("switch to link", "YV54-200N-1:9-O", Point(5.0, 5.0))
@@ -431,7 +431,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Continue location track using geometry`() {
-        val (trackNumber, trackNumberId) = mainOfficialContext.getNewTrackNumberAndId()
+        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         createAndInsertCommonReferenceLine(trackNumberId)
         val plan = testGeometryPlanService
             .buildPlan(trackNumber)
@@ -501,7 +501,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Continue and replace location track using geometry`() {
-        val (trackNumber, trackNumberId) = mainOfficialContext.getNewTrackNumberAndId()
+        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         createAndInsertCommonReferenceLine(trackNumberId)
         val plan = testGeometryPlanService
             .buildPlan(trackNumber)
@@ -571,7 +571,7 @@ class LinkingTestUI @Autowired constructor(
     @Test
     fun `link track to a reference line`() {
         val trackNumber = TrackNumber("foo tracknumber")
-        val trackNumberId = mainOfficialContext.getOrCreateTrackNumber(trackNumber).id as IntId
+        val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(trackNumber).id as IntId
 
         val originalReferenceLine = referenceLine(
             trackNumber = trackNumberId,
@@ -630,7 +630,7 @@ class LinkingTestUI @Autowired constructor(
 
     @Test
     fun `Delete location track`() {
-        val trackNumberId = mainOfficialContext.insertTrackNumber().id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         createAndInsertCommonReferenceLine(trackNumberId)
 
         val originalLocationTrack = locationTrack(

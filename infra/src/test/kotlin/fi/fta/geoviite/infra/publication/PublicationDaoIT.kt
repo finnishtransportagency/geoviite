@@ -96,7 +96,7 @@ class PublicationDaoIT @Autowired constructor(
 
     @Test
     fun locationTrackPublicationCandidatesAreFound() {
-        val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.insertTrackNumber().id, draft = false))
+        val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = false))
         val (_, draft) = insertAndCheck(
             asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT"))
         )
@@ -123,7 +123,7 @@ class PublicationDaoIT @Autowired constructor(
 
     @Test
     fun createOperationIsInferredCorrectly() {
-        val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.insertTrackNumber().id, draft = true))
+        val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = true))
         val candidates = publicationDao.fetchLocationTrackPublicationCandidates(LayoutBranch.main)
         assertEquals(1, candidates.size)
         assertEquals(track.id, candidates.first().id)
@@ -132,7 +132,7 @@ class PublicationDaoIT @Autowired constructor(
 
     @Test
     fun modifyOperationIsInferredCorrectly() {
-        val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.insertTrackNumber().id, draft = false))
+        val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = false))
         val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
         publishAndCheck(version)
         locationTrackService.saveDraft(
@@ -149,7 +149,7 @@ class PublicationDaoIT @Autowired constructor(
 
     @Test
     fun deleteOperationIsInferredCorrectly() {
-        val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.insertTrackNumber().id, draft = false))
+        val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = false))
         val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
         publishAndCheck(version)
         locationTrackService.saveDraft(
@@ -165,7 +165,7 @@ class PublicationDaoIT @Autowired constructor(
 
     @Test
     fun restoreOperationIsInferredCorrectly() {
-        val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.insertTrackNumber().id, draft = false))
+        val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = false))
         val (version, draft) = insertAndCheck(
             asMainDraft(track).copy(
                 name = AlignmentName("${track.name} DRAFT"),
@@ -186,7 +186,7 @@ class PublicationDaoIT @Autowired constructor(
 
     @Test
     fun allCalculatedChangesAreRecorded() {
-        val trackNumberId = mainOfficialContext.insertTrackNumber().id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val locationTrackId = insertAndCheck(locationTrack(trackNumberId, draft = false)).first.id
         val switchId = insertAndCheck(switch(234, draft = false)).first.id
 
@@ -258,7 +258,7 @@ class PublicationDaoIT @Autowired constructor(
 
     @Test
     fun fetchOfficialSwitchTrackNumbers() {
-        val trackNumberId = mainOfficialContext.insertTrackNumber().id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val (_, switch) = insertAndCheck(switch(234, name = "Foo", draft = false))
         val switchId = switch.id as IntId
         insertAndCheck(
@@ -275,7 +275,7 @@ class PublicationDaoIT @Autowired constructor(
 
     @Test
     fun fetchDraftOnlySwitchTrackNumbers() {
-        val trackNumberId = mainOfficialContext.insertTrackNumber().id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val (_, switch) = insertAndCheck(switch(345, name = "Foo", draft = true))
         val switchId = switch.id as IntId
         insertAndCheck(
@@ -293,7 +293,7 @@ class PublicationDaoIT @Autowired constructor(
 
     @Test
     fun `fetchLinkedLocationTracks works on publication units`() {
-        val trackNumberId = mainOfficialContext.insertTrackNumber().id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val switchByAlignment = switchDao.insert(switch(1, draft = false)).id
         val switchByTopo = switchDao.insert(switch(2, draft = false)).id
         val dummyAlignment = alignmentDao.insert(alignment())

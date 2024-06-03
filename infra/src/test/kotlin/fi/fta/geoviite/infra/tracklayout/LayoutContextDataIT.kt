@@ -139,7 +139,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun draftAndOfficialKmPostsAreFoundWithEachOthersIds() {
-        val dbKmPost = insertAndVerify(kmPost(mainOfficialContext.insertTrackNumber().id, someKmNumber(), draft = false))
+        val dbKmPost = insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbKmPost)))
         assertNotEquals(dbKmPost, dbDraft)
 
@@ -204,7 +204,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun draftAndOfficialKmPostsHaveSameOfficialId() {
-        val dbKmPost = insertAndVerify(kmPost(mainOfficialContext.insertTrackNumber().id, someKmNumber(), draft = false))
+        val dbKmPost = insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbKmPost)))
 
         assertNotEquals(dbKmPost, dbDraft)
@@ -261,7 +261,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun draftKmPostsAreIncludedInDraftListingsOnly() {
-        val dbKmPost = insertAndVerify(kmPost(mainOfficialContext.insertTrackNumber().id, someKmNumber(), draft = false))
+        val dbKmPost = insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbKmPost)))
 
         val officials = kmPostService.list(MainLayoutContext.official)
@@ -309,7 +309,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun kmPostCanOnlyHaveOneDraft() {
-        val kmPost = insertAndVerify(kmPost(mainOfficialContext.insertTrackNumber().id, someKmNumber(), draft = false))
+        val kmPost = insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
 
         val draft1 = asMainDraft(kmPost)
         val draft2 = asMainDraft(kmPost)
@@ -339,7 +339,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun editStateOfOfficialIsReturnedCorrectly() {
-        val official = insertAndVerify(kmPost(mainOfficialContext.insertTrackNumber().id, someKmNumber(), draft = false))
+        val official = insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false))
         assertEquals(official.editState, EditState.UNEDITED)
         assertTrue(official.isOfficial)
         assertFalse(official.isDraft)
@@ -347,7 +347,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun editStateOfChangedDraftIsReturnedCorrectly() {
-        val edited = asMainDraft(insertAndVerify(kmPost(mainOfficialContext.insertTrackNumber().id, someKmNumber(), draft = false)))
+        val edited = asMainDraft(insertAndVerify(kmPost(mainOfficialContext.createLayoutTrackNumber().id, someKmNumber(), draft = false)))
         assertEquals(edited.editState, EditState.EDITED)
         assertFalse(edited.isOfficial)
         assertTrue(edited.isDraft)
@@ -355,14 +355,14 @@ class LayoutContextDataIT @Autowired constructor(
 
     private fun createReferenceLineAndAlignment(draft: Boolean): Pair<ReferenceLine, LayoutAlignment> =
         referenceLineAndAlignment(
-            mainOfficialContext.insertTrackNumber().id,
+            mainOfficialContext.createLayoutTrackNumber().id,
             segment(Point(10.0, 10.0), Point(11.0, 11.0)),
             draft = draft,
         )
 
     private fun createLocationTrackAndAlignment(draft: Boolean): Pair<LocationTrack, LayoutAlignment> =
         locationTrackAndAlignment(
-            mainOfficialContext.insertTrackNumber().id,
+            mainOfficialContext.createLayoutTrackNumber().id,
             segment(Point(10.0, 10.0), Point(11.0, 11.0)),
             draft = draft,
         )

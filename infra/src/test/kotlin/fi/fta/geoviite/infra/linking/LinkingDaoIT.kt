@@ -23,15 +23,15 @@ class LinkingDaoIT @Autowired constructor(
 
     @Test
     fun noSwitchBoundsAreFoundWhenNotLinkedToTracks() {
-        val switchId = mainDraftContext.insertSwitch().id
+        val switchId = mainDraftContext.createSwitch().id
         assertEquals(null, linkingDao.getSwitchBoundsFromTracks(MainLayoutContext.official, switchId))
         assertEquals(null, linkingDao.getSwitchBoundsFromTracks(MainLayoutContext.draft, switchId))
     }
 
     @Test
     fun switchBoundsAreFoundFromTracks() {
-        val tnId = mainDraftContext.insertTrackNumber().id
-        val switchId = mainDraftContext.insertSwitch().id
+        val tnId = mainDraftContext.createLayoutTrackNumber().id
+        val switchId = mainDraftContext.createSwitch().id
 
         val point1 = Point(10.0, 10.0)
         val point2 = Point(12.0, 10.0)

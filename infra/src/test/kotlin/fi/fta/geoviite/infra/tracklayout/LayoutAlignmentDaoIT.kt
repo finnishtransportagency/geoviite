@@ -96,7 +96,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
 
     @Test
     fun deletingOrphanedAlignmentsWorks() {
-        val trackNumberId = mainDraftContext.insertTrackNumber().id
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
 
         val alignmentOrphan = alignment(someSegment())
         val alignmentLocationTrack = alignment(someSegment())
@@ -257,7 +257,7 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         val points4 = arrayOf(Point(10.0, 13.0), Point(10.0, 14.0))
         val points5 = arrayOf(Point(10.0, 14.0), Point(10.0, 15.0))
 
-        val (trackNumber, trackNumberId) = mainOfficialContext.getNewTrackNumberAndId()
+        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         val planVersion = geometryDao.insertPlan(
             plan = plan(
                 trackNumber = trackNumber,

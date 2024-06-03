@@ -50,7 +50,7 @@ class VerticalGeometryDiagramTestUI @Autowired constructor(
 
     @Test
     fun `Vertical geometry diagram for location track loads`() {
-        val (trackNumber, trackNumberId) = mainOfficialContext.getNewTrackNumberAndId()
+        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId, draft = true),

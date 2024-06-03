@@ -126,7 +126,7 @@ enum class LocationTrackType {
     CHORD, // Kujaraide: Kujaraide on raide, joka ei ole sivu-, eikä pääraide.
 }
 
-sealed class LinearGeometryAsset<T : LinearGeometryAsset<T>>(
+sealed class PolyLineLayoutAsset<T : PolyLineLayoutAsset<T>>(
     contextData: LayoutContextData<T>
 ) : LayoutAsset<T>(contextData) {
     @get:JsonIgnore abstract val alignmentVersion: RowVersion<LayoutAlignment>?
@@ -145,7 +145,7 @@ data class ReferenceLine(
     val segmentCount: Int = 0,
     @JsonIgnore override val contextData: LayoutContextData<ReferenceLine>,
     @JsonIgnore override val alignmentVersion: RowVersion<LayoutAlignment>? = null,
-) : LinearGeometryAsset<ReferenceLine>(contextData) {
+) : PolyLineLayoutAsset<ReferenceLine>(contextData) {
 
     init {
         require(dataType == DataType.TEMP || alignmentVersion != null) {
@@ -248,7 +248,7 @@ data class LocationTrack(
     @JsonIgnore override val contextData: LayoutContextData<LocationTrack>,
     @JsonIgnore override val alignmentVersion: RowVersion<LayoutAlignment>? = null,
     @JsonIgnore val segmentSwitchIds: List<IntId<TrackLayoutSwitch>> = listOf(),
-) : LinearGeometryAsset<LocationTrack>(contextData) {
+) : PolyLineLayoutAsset<LocationTrack>(contextData) {
 
     @JsonIgnore
     val exists = !state.isRemoved()

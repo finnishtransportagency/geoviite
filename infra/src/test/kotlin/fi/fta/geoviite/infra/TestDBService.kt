@@ -27,9 +27,9 @@ import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
-import fi.fta.geoviite.infra.tracklayout.LinearGeometryAsset
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.PolyLineLayoutAsset
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
@@ -108,27 +108,19 @@ class TestDBService(
         clearGeometryTables()
     }
 
-    // TODO: GVT-2612 Do we actually ever need to clear version tables? They reference nothing after all.
     fun clearLayoutTables() {
         deleteFromTables(
             schema = "layout",
             tables = arrayOf(
                 "design",
-                "design_version",
                 "alignment",
-                "alignment_version",
                 "km_post",
-                "km_post_version",
                 "location_track",
-                "location_track_version",
                 "reference_line",
-                "reference_line_version",
                 "switch",
                 "switch_version",
                 "switch_joint",
-                "switch_joint_version",
                 "track_number",
-                "track_number_version",
                 "segment_version",
                 "segment_geometry",
             ),
@@ -144,12 +136,9 @@ class TestDBService(
                 "element",
                 "plan",
                 "plan_application",
-                "plan_application_version",
                 "plan_file",
                 "plan_project",
-                "plan_project_version",
                 "plan_author",
-                "plan_author_version",
                 "plan_version",
                 "switch",
                 "switch_joint",
@@ -183,9 +172,7 @@ class TestDBService(
                 "split",
                 "split_version",
                 "split_relinked_switch",
-                "split_relinked_switch_version",
                 "split_target_location_track",
-                "split_Target_location_track_version",
             ),
         )
     }
@@ -263,7 +250,7 @@ class TestDBService(
     final inline fun <reified T : LayoutAsset<T>> fetch(rowVersion: RowVersion<T>): T =
         getDao(T::class).fetch(rowVersion)
 
-    final inline fun <reified T : LinearGeometryAsset<T>> fetchWithAlignment(
+    final inline fun <reified T : PolyLineLayoutAsset<T>> fetchWithAlignment(
         rowVersion: RowVersion<T>,
     ): Pair<T, LayoutAlignment> =
         fetch(rowVersion).let { a -> a to alignmentDao.fetch(a.getAlignmentVersionOrThrow()) }
@@ -308,19 +295,19 @@ data class TestLayoutContext(
     inline fun <reified T : LayoutAsset<T>> fetch(id: IntId<T>): T? =
         getDao(T::class).let { dao -> dao.fetchVersion(context, id)?.let(dao::fetch) }
 
-    inline fun <reified T : LinearGeometryAsset<T>> fetchWithAlignment(id: IntId<T>): Pair<T, LayoutAlignment>? =
+    inline fun <reified T : PolyLineLayoutAsset<T>> fetchWithAlignment(id: IntId<T>): Pair<T, LayoutAlignment>? =
         fetch(id)?.let { a -> a to alignmentDao.fetch(a.getAlignmentVersionOrThrow()) }
 
     fun <T : LayoutAsset<T>> insert(asset: T): DaoResponse<T> = testService.getDao(asset)
         .insert(testService.updateContext(asset, context))
 
-    fun <T : LinearGeometryAsset<T>> insert(
-        assetAndAlignment: Pair<LinearGeometryAsset<T>, LayoutAlignment>
+    fun <T : PolyLineLayoutAsset<T>> insert(
+        assetAndAlignment: Pair<PolyLineLayoutAsset<T>, LayoutAlignment>
     ): DaoResponse<T> = insert(assetAndAlignment.first, assetAndAlignment.second)
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : LinearGeometryAsset<T>> insert(
-        asset: LinearGeometryAsset<T>,
+    fun <T : PolyLineLayoutAsset<T>> insert(
+        asset: PolyLineLayoutAsset<T>,
         alignment: LayoutAlignment,
     ): DaoResponse<T> = when (asset) {
         is LocationTrack -> insert(asset.copy(alignmentVersion = alignmentDao.insert(alignment)))
@@ -328,18 +315,18 @@ data class TestLayoutContext(
     } as DaoResponse<T>
 
     fun <T : LayoutAsset<T>> insertMany(vararg asset: T): List<DaoResponse<T>> = asset.map(::insert)
-    fun <T : LinearGeometryAsset<T>> insertMany(
-        vararg assets: Pair<LinearGeometryAsset<T>, LayoutAlignment>,
+    fun <T : PolyLineLayoutAsset<T>> insertMany(
+        vararg assets: Pair<PolyLineLayoutAsset<T>, LayoutAlignment>,
     ): List<DaoResponse<T>> = assets.map(::insert)
 
     fun <T : LayoutAsset<T>> insertAndFetch(asset: T): T = getDao(asset).fetch(insert(asset).rowVersion)
 
-    fun <T : LinearGeometryAsset<T>> insertAndFetch(
-        assetAndAlignment: Pair<LinearGeometryAsset<T>, LayoutAlignment>,
+    fun <T : PolyLineLayoutAsset<T>> insertAndFetch(
+        assetAndAlignment: Pair<PolyLineLayoutAsset<T>, LayoutAlignment>,
     ): Pair<T, LayoutAlignment> = insertAndFetch(assetAndAlignment.first, assetAndAlignment.second)
 
-    fun <T : LinearGeometryAsset<T>> insertAndFetch(
-        asset: LinearGeometryAsset<T>,
+    fun <T : PolyLineLayoutAsset<T>> insertAndFetch(
+        asset: PolyLineLayoutAsset<T>,
         alignment: LayoutAlignment,
     ): Pair<T, LayoutAlignment> = getDao(asset)
         .fetch(insert(asset, alignment).rowVersion)
@@ -347,33 +334,33 @@ data class TestLayoutContext(
 
     fun <T : LayoutAsset<T>> insertAndFetchMany(vararg asset: T): List<T> = asset.map(::insertAndFetch)
 
-    fun <T : LinearGeometryAsset<T>> insertAndFetchMany(
-        vararg assets: Pair<LinearGeometryAsset<T>, LayoutAlignment>,
+    fun <T : PolyLineLayoutAsset<T>> insertAndFetchMany(
+        vararg assets: Pair<PolyLineLayoutAsset<T>, LayoutAlignment>,
     ): List<Pair<T, LayoutAlignment>> = assets.map(::insertAndFetch)
 
-    fun insertAndFetchTrackNumber(): TrackLayoutTrackNumber =
-        insertTrackNumber().let { r -> trackNumberDao.fetch(r.rowVersion) }
-
-    fun getNewTrackNumberAndId(): Pair<TrackNumber, IntId<TrackLayoutTrackNumber>> =
-        insertAndFetchTrackNumber().let { tn -> tn.number to tn.id as IntId }
-
-    fun insertTrackNumber(): DaoResponse<TrackLayoutTrackNumber> =
+    fun createLayoutTrackNumber(): DaoResponse<TrackLayoutTrackNumber> =
         insert(trackNumber(testService.getUnusedTrackNumber()))
 
-    fun insertTrackNumberWithReferenceLine(
+    fun createAndFetchLayoutTrackNumber(): TrackLayoutTrackNumber =
+        createLayoutTrackNumber().let { r -> trackNumberDao.fetch(r.rowVersion) }
+
+    fun createLayoutTrackNumberAndReferenceLine(
         lineAlignment: LayoutAlignment = alignment()
-    ): DaoResponse<TrackLayoutTrackNumber> = insertTrackNumber()
+    ): DaoResponse<TrackLayoutTrackNumber> = createLayoutTrackNumber()
         .also { tnResponse -> insert(referenceLine(trackNumberId = tnResponse.id), lineAlignment) }
 
-    fun insertTrackNumbers(count: Int): List<DaoResponse<TrackLayoutTrackNumber>> =
-        (1..count).map { insertTrackNumber() }
+    fun createLayoutTrackNumbers(count: Int): List<DaoResponse<TrackLayoutTrackNumber>> =
+        (1..count).map { createLayoutTrackNumber() }
 
-    fun getOrCreateTrackNumber(trackNumber: TrackNumber): TrackLayoutTrackNumber {
+    fun getOrCreateLayoutTrackNumber(trackNumber: TrackNumber): TrackLayoutTrackNumber {
         val version = trackNumberDao.fetchVersions(context, true, trackNumber).firstOrNull()
             ?: insert(trackNumber(trackNumber)).rowVersion
         return version.let(trackNumberDao::fetch)
     }
 
-    fun insertSwitch(): DaoResponse<TrackLayoutSwitch> =
+    fun createTrackNumberAndId(): Pair<TrackNumber, IntId<TrackLayoutTrackNumber>> =
+        createAndFetchLayoutTrackNumber().let { tn -> tn.number to tn.id as IntId }
+
+    fun createSwitch(): DaoResponse<TrackLayoutSwitch> =
         insert(switch(name = testService.getUnusedSwitchName().toString()))
 }

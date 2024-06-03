@@ -96,7 +96,7 @@ class LinkingServiceIT @Autowired constructor(
         )
 
         val (locationTrack, alignment) = locationTrackAndAlignment(
-            mainOfficialContext.insertTrackNumber().id, segment1, segment2, segment3, draft = true
+            mainOfficialContext.createLayoutTrackNumber().id, segment1, segment2, segment3, draft = true
         )
         val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
         locationTrackService.publish(LayoutBranch.main, ValidationVersion(locationTrackId, locationTrackVersion))
@@ -155,7 +155,7 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun kmPostGeometryLinkingWorks() {
-        val trackNumberId = mainOfficialContext.insertTrackNumber().id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val kmPostId = mainOfficialContext.insert(kmPost(trackNumberId, someKmNumber())).id
         val officialKmPost = kmPostService.get(MainLayoutContext.official, kmPostId)
 
@@ -190,7 +190,7 @@ class LinkingServiceIT @Autowired constructor(
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
         val (locationTrack, alignment) = locationTrackAndAlignment(
-            trackNumberId = mainOfficialContext.insertTrackNumber().id,
+            trackNumberId = mainOfficialContext.createLayoutTrackNumber().id,
             state = LocationTrackState.DELETED,
             draft = true,
         )
@@ -227,7 +227,7 @@ class LinkingServiceIT @Autowired constructor(
 
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
-        val (locationTrack, alignment) = locationTrackAndAlignment(mainOfficialContext.insertTrackNumber().id, draft = true)
+        val (locationTrack, alignment) = locationTrackAndAlignment(mainOfficialContext.createLayoutTrackNumber().id, draft = true)
         val locationTrackResponse = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
             .let { (id, rowVersion) -> locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, rowVersion)) }
 
@@ -286,7 +286,7 @@ class LinkingServiceIT @Autowired constructor(
         )
 
         val (locationTrack, alignment) = locationTrackAndAlignment(
-            mainOfficialContext.insertTrackNumber().id, segment1, draft = true,
+            mainOfficialContext.createLayoutTrackNumber().id, segment1, draft = true,
         )
         val locationTrackResponse = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
             .let { (id, rowVersion) -> locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, rowVersion)) }

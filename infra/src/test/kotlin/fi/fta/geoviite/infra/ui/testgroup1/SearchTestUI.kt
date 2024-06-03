@@ -20,7 +20,7 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
 
     @Test
     fun `Narrow search results`() {
-        val tnId = mainDraftContext.insertTrackNumber().id
+        val tnId = mainDraftContext.createLayoutTrackNumber().id
         val ltNames = listOf(
             "test-lt A1" to "test-desc-1",
             "test-lt B2" to "test-desc-2",
@@ -51,7 +51,7 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
 
     @Test
     fun `Search opens specific location track`() {
-        val (trackNumber, trackNumberId) = mainOfficialContext.getNewTrackNumberAndId()
+        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         val (track, _) = mainOfficialContext.insertAndFetch(
             locationTrackAndAlignment(
                 trackNumberId = trackNumberId,

@@ -41,7 +41,7 @@ class LocationTrackDaoIT @Autowired constructor(
     fun locationTrackSaveAndLoadWorks() {
         val alignment = alignment()
         val alignmentVersion = alignmentDao.insert(alignment)
-        val locationTrack = locationTrack(mainOfficialContext.insertTrackNumber().id, alignment, draft = false).copy(
+        val locationTrack = locationTrack(mainOfficialContext.createLayoutTrackNumber().id, alignment, draft = false).copy(
             name = AlignmentName("ORIG"),
             descriptionBase = FreeText("Oridinal location track"),
             type = MAIN,
@@ -83,7 +83,7 @@ class LocationTrackDaoIT @Autowired constructor(
             jdbc.update(deleteSql, mapOf("external_id" to oid))
         }
 
-        val trackNumberId = mainOfficialContext.insertTrackNumber().id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val alignmentVersion1 = alignmentDao.insert(alignment())
         val locationTrack1 = locationTrack(
             trackNumberId = trackNumberId,
@@ -105,7 +105,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun locationTrackVersioningWorks() {
-        val trackNumberId = mainOfficialContext.insertTrackNumber().id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val tempAlignment = alignment(segment(Point(1.0, 1.0), Point(2.0, 2.0)))
         val alignmentVersion = alignmentDao.insert(tempAlignment)
         val tempTrack = locationTrack(
@@ -153,7 +153,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun listingLocationTrackVersionsWorks() {
-        val tnId = mainOfficialContext.insertTrackNumber().id
+        val tnId = mainOfficialContext.createLayoutTrackNumber().id
         val officialVersion = insertOfficialLocationTrack(tnId).rowVersion
         val undeletedDraftVersion = insertDraftLocationTrack(tnId).rowVersion
         val deleteStateDraftVersion = insertDraftLocationTrack(tnId, LocationTrackState.DELETED).rowVersion
@@ -179,7 +179,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun fetchOfficialVersionByMomentWorks() {
-        val tnId = mainOfficialContext.insertTrackNumber().id
+        val tnId = mainOfficialContext.createLayoutTrackNumber().id
         val beforeCreationTime = locationTrackDao.fetchChangeTime()
 
         Thread.sleep(1) // Ensure that they get different timestamps
@@ -197,7 +197,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun findingLocationTracksByTrackNumberWorksForOfficial() {
-        val tnId = mainOfficialContext.insertTrackNumber().id
+        val tnId = mainOfficialContext.createLayoutTrackNumber().id
         val officialTrackVersion1 = insertOfficialLocationTrack(tnId).rowVersion
         val officialTrackVersion2 = insertOfficialLocationTrack(tnId).rowVersion
         val draftTrackVersion = insertDraftLocationTrack(tnId).rowVersion
@@ -214,8 +214,8 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun findingLocationTracksByTrackNumberWorksForDraft() {
-        val tnId = mainOfficialContext.insertTrackNumber().id
-        val tnId2 = mainOfficialContext.insertTrackNumber().id
+        val tnId = mainOfficialContext.createLayoutTrackNumber().id
+        val tnId2 = mainOfficialContext.createLayoutTrackNumber().id
         val undeletedDraftVersion = insertDraftLocationTrack(tnId).rowVersion
         val deleteStateDraftVersion = insertDraftLocationTrack(tnId, LocationTrackState.DELETED).rowVersion
         val changeTrackNumberOriginal = insertOfficialLocationTrack(tnId).rowVersion
@@ -250,7 +250,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun `Fetching multiple official location tracks works`() {
-        val tnId = mainOfficialContext.insertTrackNumber().id
+        val tnId = mainOfficialContext.createLayoutTrackNumber().id
         val locationTrack1 = insertOfficialLocationTrack(tnId).rowVersion
         val locationTrack2 = insertOfficialLocationTrack(tnId).rowVersion
 
@@ -271,7 +271,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun `Fetching multiple draft location tracks works`() {
-        val tnId = mainOfficialContext.insertTrackNumber().id
+        val tnId = mainOfficialContext.createLayoutTrackNumber().id
         val locationTrack1 = insertDraftLocationTrack(tnId).rowVersion
         val locationTrack2 = insertDraftLocationTrack(tnId).rowVersion
 
@@ -286,7 +286,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun `Fetching missing location tracks only returns those that exist`() {
-        val tnId = mainOfficialContext.insertTrackNumber().id
+        val tnId = mainOfficialContext.createLayoutTrackNumber().id
         val locationTrack1 = insertOfficialLocationTrack(tnId).rowVersion
         val locationTrack2 = insertOfficialLocationTrack(tnId).rowVersion
         val draftOnly = insertDraftLocationTrack(tnId).rowVersion
@@ -302,7 +302,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun `different layout contexts work for objects initialized in official context`() {
-        val tnId = mainOfficialContext.insertTrackNumber().id
+        val tnId = mainOfficialContext.createLayoutTrackNumber().id
         val alignmentVersion = alignmentDao.insert(alignment())
         val officialVersion = locationTrackDao.insert(
             locationTrack(
@@ -372,7 +372,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun `different layout contexts work for objects initialized in design context`() {
-        val tnId = mainOfficialContext.insertTrackNumber().id
+        val tnId = mainOfficialContext.createLayoutTrackNumber().id
         val alignmentVersion = alignmentDao.insert(alignment())
         val bothDesign = layoutDesignDao.insert(layoutDesign("both"))
         val initialVersion =
@@ -428,7 +428,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun `different layout contexts work with only an official row`() {
-        val tnId = mainOfficialContext.insertTrackNumber().id
+        val tnId = mainOfficialContext.createLayoutTrackNumber().id
         val alignmentVersion = alignmentDao.insert(alignment())
         val someDesign = layoutDesignDao.insert(layoutDesign("some design"))
         locationTrackDao.insert(
@@ -451,7 +451,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun `different layout contexts work with only a draft row`() {
-        val tnId = mainOfficialContext.insertTrackNumber().id
+        val tnId = mainOfficialContext.createLayoutTrackNumber().id
         val alignmentVersion = alignmentDao.insert(alignment())
         val someDesign = layoutDesignDao.insert(layoutDesign("some design"))
         locationTrackDao.insert(
@@ -474,7 +474,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun `different layout contexts work with only a design-draft row`() {
-        val tnId = mainOfficialContext.insertTrackNumber().id
+        val tnId = mainOfficialContext.createLayoutTrackNumber().id
         val alignmentVersion = alignmentDao.insert(alignment())
         val someDesign = layoutDesignDao.insert(layoutDesign("some design"))
         locationTrackDao.insert(
@@ -497,7 +497,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
     @Test
     fun `different layout contexts work with only a main-official and design-official row`() {
-        val tnId = mainOfficialContext.insertTrackNumber().id
+        val tnId = mainOfficialContext.createLayoutTrackNumber().id
         val alignmentVersion = alignmentDao.insert(alignment())
         val someDesign = layoutDesignDao.insert(layoutDesign("some design"))
         val official = locationTrackDao.insert(

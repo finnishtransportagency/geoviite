@@ -164,7 +164,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         }
 
         val locationTrackId = mainDraftContext.insert(
-            locationTrackAndAlignment(trackNumberId = mainDraftContext.insertTrackNumber().id, segments = segments)
+            locationTrackAndAlignment(trackNumberId = mainDraftContext.createLayoutTrackNumber().id, segments = segments)
         ).id
 
         val insertedSwitch = mainOfficialContext.insertAndFetch(switch(665))
@@ -243,7 +243,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         }
 
         val locationTrackId = mainDraftContext.insert(
-            locationTrackAndAlignment(trackNumberId = mainDraftContext.insertTrackNumber().id, segments = segments)
+            locationTrackAndAlignment(trackNumberId = mainDraftContext.createLayoutTrackNumber().id, segments = segments)
         ).id
 
         val insertedSwitch = switchDao.fetch(switchDao.insert(switch(665, draft = false)).rowVersion)
@@ -922,7 +922,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun `validateRelinkingTrack relinks okay cases and gives validation errors about bad ones`() {
-        val trackNumberId = mainOfficialContext.insertTrackNumberWithReferenceLine(
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
             alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))),
         ).id
 
@@ -1011,7 +1011,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun `relinkTrack and validateRelinkingTrack find nearby switches`() {
-        val trackNumberId = mainOfficialContext.insertTrackNumberWithReferenceLine(
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
             alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))),
         ).id
 
@@ -1054,7 +1054,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun `validateRelinkingTrack relinks switches that don't end up linked to the original track as well`() {
-        val trackNumberId = mainOfficialContext.insertTrackNumberWithReferenceLine(
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
             alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))),
         ).id
 
@@ -1144,7 +1144,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun `re-linking switch cleans up previous references consistently`() {
-        val trackNumberId = mainOfficialContext.insertTrackNumberWithReferenceLine(
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
             alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))),
         ).id
         val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
@@ -1208,7 +1208,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun `re-linking switch cleans up topological connections`() {
-        val trackNumberId = mainOfficialContext.insertTrackNumberWithReferenceLine(
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
             alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))),
         ).id
         val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "RR54-4x1:9" }!!
@@ -1260,7 +1260,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun `mislinked track with wrong alignment link gets replaced with topology link`() {
-        val trackNumberId = mainOfficialContext.insertTrackNumberWithReferenceLine(
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
             alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))),
         ).id
         val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
@@ -1321,7 +1321,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun `relinking moves mislinked topo link to correct switch despite confuser branching track, and does not pointlessly update alignments or tracks`() {
-        val trackNumberId = mainOfficialContext.insertTrackNumberWithReferenceLine(
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
             alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))),
         ).id
         val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "YV60-300-1:9-O" }!!
@@ -1385,7 +1385,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun `relinking removes misplaced topological switch link`() {
-        val trackNumberId = mainOfficialContext.insertTrackNumberWithReferenceLine(
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
             alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0)))
         ).id
         val switchStructure = switchLibraryService.getSwitchStructures().find { it.type.typeName == "RR54-4x1:9" }!!
@@ -1446,7 +1446,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
     }
 
     private fun setupForLinkingTopoLinkToTrackOutsideSwitchJointBoundingBox(): Triple<IntId<LocationTrack>, IntId<LocationTrack>, IntId<TrackLayoutSwitch>> {
-        val trackNumberId = mainOfficialContext.insertTrackNumberWithReferenceLine(
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
             alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))),
         ).id
         // switch structure YV60_300_1_9_O's rightmost joints are at x-coords:
@@ -1560,7 +1560,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         layoutSegments: List<LayoutSegment>,
     ): Pair<LocationTrack, LayoutAlignment> {
         val (locationTrack, alignment) = locationTrackAndAlignment(
-            trackNumberId = mainDraftContext.insertTrackNumber().id,
+            trackNumberId = mainDraftContext.createLayoutTrackNumber().id,
             segments = layoutSegments,
             draft = true,
         )
@@ -1569,7 +1569,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
     }
 
     private fun setupJointLocationAccuracyTest(): SuggestedSwitchCreateParams {
-        val trackNumber = mainOfficialContext.insertAndFetchTrackNumber()
+        val trackNumber = mainOfficialContext.createAndFetchLayoutTrackNumber()
         val (switch, switchAlignments) = createSwitchAndAlignments(
             "fooSwitch",
             switchStructure,

@@ -75,7 +75,7 @@ class VerticalGeometryElementListTestUI
 
     @Test
     fun `List layout vertical geometry`() {
-        val (trackNumber, trackNumberId) = mainOfficialContext.getNewTrackNumberAndId()
+        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         val goodPlan = insertGoodPlan(trackNumber)
         insertMinimalPlan(trackNumber)
 
@@ -97,7 +97,7 @@ class VerticalGeometryElementListTestUI
 
     @Test
     fun `List entire track vertical geometry`() {
-        val (trackNumber, trackNumberId) = mainOfficialContext.getNewTrackNumberAndId()
+        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         val goodPlan = insertGoodPlan(trackNumber)
         insertMinimalPlan(trackNumber)
 
