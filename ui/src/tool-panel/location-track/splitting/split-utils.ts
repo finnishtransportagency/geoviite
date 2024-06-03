@@ -243,7 +243,10 @@ export const getOperation = (
     if (duplicateStatus === undefined) {
         // no duplicate -> new track
         return 'CREATE';
-    } else if (duplicateStatus.duplicateOfId != trackId) {
+    } else if (
+        duplicateStatus.duplicateOfId != undefined &&
+        duplicateStatus.duplicateOfId != trackId
+    ) {
         throw new Error(
             'Duplicate track is duplicate for some other track! This should be handled beforehand.',
         );
