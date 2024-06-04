@@ -204,7 +204,7 @@ enum class DuplicateMatch { FULL, PARTIAL, NONE }
 enum class DuplicateEndPointType { START, END }
 
 sealed class SplitPoint {
-    abstract val location:AlignmentPoint
+    abstract val location: AlignmentPoint
     abstract val address: TrackMeter?
 
     abstract fun isSame(other:SplitPoint):Boolean
