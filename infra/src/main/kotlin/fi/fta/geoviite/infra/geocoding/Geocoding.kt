@@ -251,14 +251,6 @@ data class GeocodingContext(
             !TrackMeter.isMetersValid(startMeters + length)
         }
 
-        private fun requireKmPostsSanity(kmPosts: List<TrackLayoutKmPost>) {
-            require(kmPosts.distinctBy { it.kmNumber }.size == kmPosts.size) {
-                "There are km posts with duplicate km number, ${
-                    kmPosts.groupingBy { it.kmNumber }.eachCount().filter { it.value > 1 }
-                }}"
-            }
-        }
-
         private fun createReferencePoints(
             startAddress: TrackMeter,
             kmPosts: List<TrackLayoutKmPost>,
