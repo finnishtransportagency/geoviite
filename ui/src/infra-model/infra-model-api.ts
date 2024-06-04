@@ -5,7 +5,7 @@ import {
     getNonNull,
     postFormNonNull,
     postFormNonNullAdt,
-    putFormNonNullAdt,
+    putFormNonNull,
     putNonNull,
     queryParams,
 } from 'api/api-fetch';
@@ -99,17 +99,13 @@ export async function updateGeometryPlan(
     overrideParameters?: OverrideInfraModelParameters,
 ): Promise<GeometryPlanId | undefined> {
     const formData = createFormData(undefined, extraParameters, overrideParameters);
-    const response = await putFormNonNullAdt<GeometryPlanId>(
-        `${INFRAMODEL_URI}/${planId}`,
-        formData,
+    return await putFormNonNull<GeometryPlanId>(`${INFRAMODEL_URI}/${planId}`, formData).then(
+        (r) => {
+            Snackbar.success('infra-model.edit.success');
+            updatePlanChangeTime();
+            return r;
+        },
     );
-
-    if (response.isOk()) {
-        Snackbar.success('infra-model.edit.success');
-        await updatePlanChangeTime();
-    }
-
-    return response.isOk() ? response.value : undefined;
 }
 export async function hidePlan(planId: GeometryPlanId): Promise<GeometryPlanId | undefined> {
     return putNonNull<boolean, GeometryPlanId>(`${INFRAMODEL_URI}/${planId}/hidden`, true).then(

@@ -163,11 +163,12 @@ export async function putNullableAdt<Input, Output>(
     return fetchNullableAdt<Input, Output>(path, 'PUT', body);
 }
 
-export async function putFormNonNullAdt<Output>(
+export async function putFormNonNull<Output>(
     path: string,
     data: FormData,
-): Promise<Result<Output, ApiErrorResponse | undefined>> {
-    return fetchFormNonNullAdt<Output>(path, 'PUT', data);
+    toastFailure: boolean = true,
+): Promise<Output> {
+    return fetchFormNonNull<Output>(path, 'PUT', data, toastFailure);
 }
 
 export async function deleteNullable<Output>(
