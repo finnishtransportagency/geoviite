@@ -90,7 +90,11 @@ export const saveInfraModelFile = async (
     overrideParameters?: OverrideInfraModelParameters,
 ): Promise<GeometryPlanId | undefined> => {
     const formData = createFormData(file, extraParameters, overrideParameters);
-    return await postFormNonNull<GeometryPlanId>(INFRAMODEL_URI, formData);
+    return await postFormNonNull<GeometryPlanId>(INFRAMODEL_URI, formData).then((r) => {
+        Snackbar.success('infra-model.upload.success');
+        updatePlanChangeTime();
+        return r;
+    });
 };
 
 export async function updateGeometryPlan(
