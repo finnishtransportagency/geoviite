@@ -3,6 +3,7 @@ import {
     ApiErrorResponse,
     getLocalizedIssue,
     getNonNull,
+    postFormNonNull,
     postFormNonNullAdt,
     putFormNonNullAdt,
     putNonNull,
@@ -89,16 +90,7 @@ export const saveInfraModelFile = async (
     overrideParameters?: OverrideInfraModelParameters,
 ): Promise<GeometryPlanId | undefined> => {
     const formData = createFormData(file, extraParameters, overrideParameters);
-    const response = await postFormNonNullAdt<GeometryPlanId>(INFRAMODEL_URI, formData);
-
-    if (response.isOk()) {
-        Snackbar.success('infra-model.upload.success');
-        await updatePlanChangeTime();
-
-        return response.value;
-    } else {
-        return undefined;
-    }
+    return await postFormNonNull<GeometryPlanId>(INFRAMODEL_URI, formData);
 };
 
 export async function updateGeometryPlan(

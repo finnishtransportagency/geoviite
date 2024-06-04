@@ -664,6 +664,10 @@ fun validateGeocodingContext(
             KmPostRejectedReason.INTERSECTS_AFTER_REFERENCE_LINE -> LayoutValidationIssue(
                 WARNING, "$VALIDATION_GEOCODING.km-post-outside-line-after", kmPostLocalizationParams
             )
+
+            KmPostRejectedReason.DUPLICATE -> LayoutValidationIssue(
+                ERROR, "$VALIDATION_GEOCODING.duplicate-km-posts", kmPostLocalizationParams
+            )
         }
     }
 
