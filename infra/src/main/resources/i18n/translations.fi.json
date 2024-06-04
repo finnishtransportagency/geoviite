@@ -41,6 +41,7 @@
                 "VerticalCoordinateSystem": "Korkeusjärjestelmän määritys on virheellinen",
                 "Code": "Kentän sisältö {{value}} on virheellinen",
                 "FreeText": "Tekstikentän sisältö {{value}} on virheellinen",
+                "FreeTextWithNewLines": "Tekstikentän sisältö {{value}} on virheellinen",
                 "ProjectName": "Projektin nimi {{value}} on virheellinen",
                 "CompanyName": "Yrityksen nimi {{value}} on virheellinen",
                 "MetaDataName": "Syötteen {{value}} muoto on virheellinen",
@@ -102,7 +103,7 @@
             },
             "transformation": {
                 "srid-missing": "Suunnitelmaa ei voida esittää kartalla, koska koordinaattijärjestelmää \"{{coordinateSystemName}}\" ei osata muuntaa kartan järjestelmään TM35FIN (EPSG:3067)",
-                "bounds-resolution-failed": "Suunnitelmaa ei voida esittää kartalla, koska sisältö ei ole koordinaattijärjestelmän \"{{coordinateSystemName}} ({{srid}}) rajoissa",
+                "bounds-resolution-failed": "Suunnitelmaa ei voida esittää kartalla, koska sisältö ei ole koordinaattijärjestelmän \"{{coordinateSystemName}} ({{srid}})\" rajoissa",
                 "bounds-outside-finland": "Suunnitelmaa ei voida esittää kartalla, koska koordinaatit ovat Suomen ulkopuolella (tulkittuna koordinaattijärjestelmässä \"{{coordinateSystemName}} ({{srid}}))",
                 "coordinate-transformation-failed": "Suunnitelmaa ei voida esittää kartalla, koska sen koordinaattien muunnos järjestelmästä \"{{coordinateSystemName}}\" ({{srid}}) kartan järjestelmään TM35FIN (EPSG:3067) epäonnistui",
                 "plan-transformation-failed": "Suunnitelman muuntaminen kartalla esitettävään muotoon epäonnistui"
@@ -1033,7 +1034,7 @@
             "title": "Haluatko varmasti tallentaa?",
             "sub-title": "Seuraavat kriittiset tiedot puuttuvat",
             "oid": "Projektin OID",
-            "trackNumberId": "Ratanumero",
+            "trackNumber": "Ratanumero",
             "planPhase": "Suunnitteluvaihe",
             "decisionPhase": "Vaiheen tarkennus",
             "measurementMethod": "Laatu",
@@ -1041,7 +1042,7 @@
             "coordinateSystemSrid": "Koordinaattijärjestelmä",
             "verticalCoordinateSystem": "Korkeusjärjestelmä",
             "error-message": "Tiedostossa on virheitä",
-            "createdDate": "Suunnitelman luontiaika puuttuu"
+            "createdDate": "Suunnitelman luontiaika"
         },
         "tabs": {
             "plans": "Suunnitelmat {{number}} kpl",
@@ -1131,17 +1132,17 @@
             "switch": {
                 "duplicate-name": "Vaihdenimeä {{switchName}} on käytetty useammalla eri vaihteella",
                 "type-unrecognized": "Vaihteen {{switchName}} tyyppi {{switchType}} on tuntematon",
-                "incorrect-joints": "Vaihteella {{switchName}} on määritelty pääosia jotka eivät kuulu vaihdetyyppiin: vaihteella ({{jointNumbers}}), tyypillä ({{structureJointNumbers}})",
-                "insufficient-joints": "Vaihteella {{switchName}} on määritelty vähemmän kuin kaksi pääosaa, joten sitä ei voi linkittää paikannuspohjaan",
+                "incorrect-joints": "Vaihteella {{switchName}} on määritelty vaihdepisteitä jotka eivät kuulu vaihdetyyppiin: vaihteella ({{jointNumbers}}), tyypillä ({{structureJointNumbers}})",
+                "insufficient-joints": "Vaihteella {{switchName}} on määritelty vähemmän kuin kaksi vaihdepistettä, joten sitä ei voi linkittää paikannuspohjaan",
                 "location-difference": "Vaihteen {{switchName}} suunnitellut päämitat eivät vastaa teoreettista",
-                "incorrect-joint-locations": "Vaihteen {{switchName}} pääosien sijainnit eivät vastaa laskennallisia",
-                "inaccurate-joint-locations": "Vaihteen {{switchName}} pääosien sijainnit epätarkkoja",
-                "no-structure-alignment": "Vaihteen {{switchName}} pääosat ({{jointNumbers}}) raiteella {{alignmentName}} eivät vastaa mitään vaihdetyypin linjaa",
-                "alignment-joint-mismatch": "Vaihteen {{switchName}} pääosat ({{jointNumber}}) raiteella {{alignmentName}} ovat eri sijainnissa kuin muilla raiteilla",
-                "alignment-joint-inaccurate": "Vaihteen {{switchName}} pääosat ({{jointNumber}}) raiteella {{alignmentName}} ovat sijainniltaan epätarkat suhteessa muihin raiteisiin"
+                "incorrect-joint-locations": "Vaihteen {{switchName}} vaihdepisteiden sijainnit eivät vastaa laskennallisia",
+                "inaccurate-joint-locations": "Vaihteen {{switchName}} vaihdepisteiden sijainnit ovat epätarkkoja",
+                "no-structure-alignment": "Vaihteen {{switchName}} vaihdepisteet ({{jointNumbers}}) raiteella {{alignmentName}} eivät vastaa mitään vaihdetyypin linjaa",
+                "alignment-joint-mismatch": "Vaihteen {{switchName}} vaihdepisteet ({{jointNumber}}) raiteella {{alignmentName}} ovat eri sijainnissa kuin muilla raiteilla",
+                "alignment-joint-inaccurate": "Vaihteen {{switchName}} vaihdepisteet ({{jointNumber}}) raiteella {{alignmentName}} ovat sijainniltaan epätarkat suhteessa muihin raiteisiin"
             },
             "km-post": {
-                "multiple-start-km-posts": "Tasakilometripiste {{value}} esiintyy suunnitelmassa useammin kuin kerran",
+                "duplicate-km-posts": "Suunnitelmassa on useita tasakilometripisteitä seuraaville ratakilometreille: {{value}}",
                 "sta-ahead-not-negative": "Suunnitelman ensimmäisen tasakilometripisteen staAhead-arvo on suurempi kuin 0.0"
             }
         }
@@ -1432,6 +1433,7 @@
                 "km-post-rejected": "Tasakilometripisteitä ({{kmNumber}}) ei voitu sijoittaa ratanumeron {{trackNumber}} pituusmittauslinjalle",
                 "km-post-outside-line-before": "Tasakilometripiste ({{kmNumber}}) sijaitsee ennen linjaa {{trackNumber}}",
                 "km-post-outside-line-after": "Tasakilometripiste ({{kmNumber}}) sijaitsee linjan {{trackNumber}} jälkeen",
+                "duplicate-km-posts": "Linjalla {{trackNumber}} on useita tasakilometripisteitä numerolla {{kmNumber}}",
                 "km-post-smaller-than-track-number-start": "Tasakilometripiste ({{kmNumber}}) on pienempi kuin ratanumeron {{trackNumber}} aloitusarvo",
                 "km-posts-invalid": "Ratanumeron {{trackNumber}} tasakilometripisteet ({{kmNumbers}}) ovat väärässä järjestyksessä",
                 "km-posts-far-from-line": "Ratanumeron {{trackNumber}} tasakilometripisteet ({{kmNumbers}}) sijaitsevat kaukana pituusmittauslinjasta",

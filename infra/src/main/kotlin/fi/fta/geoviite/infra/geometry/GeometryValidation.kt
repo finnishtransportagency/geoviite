@@ -69,8 +69,8 @@ data class SwitchDefinitionError(
     @JsonIgnore private val data: GeometryValidationIssueData,
     val switchName: SwitchName,
     val switchType: GeometrySwitchTypeName?,
-    val jointNumbers: List<JointNumber>?,
-    val structureJointNumbers: List<JointNumber>?,
+    val jointNumbers: String?,
+    val structureJointNumbers: String?,
     val alignmentName: AlignmentName?,
 ) : GeometryValidationIssue by data {
     constructor(
@@ -85,8 +85,8 @@ data class SwitchDefinitionError(
         data = GeometryValidationIssueData(VALIDATION_SWITCH, key, type),
         switchName = switchName,
         switchType = switchType,
-        jointNumbers = jointNumbers,
-        structureJointNumbers = structureJointNumbers,
+        jointNumbers = jointNumbers?.map { it.intValue }?.joinToString(", "),
+        structureJointNumbers = structureJointNumbers?.map { it.intValue }?.joinToString(", "),
         alignmentName = alignmentName,
     )
 }
@@ -289,10 +289,16 @@ fun validateKmPosts(kmPosts: List<GeometryKmPost>): List<GeometryValidationIssue
 private fun validateKmPostCollection(kmPosts: List<GeometryKmPost>): List<CollectionIssue> {
     val groupedKmPosts = kmPosts.filter { it.kmNumber != null }.sortedBy { it.kmNumber }
     val firstKmPost = groupedKmPosts.firstOrNull()
+    val duplicateKmPosts = groupedKmPosts.groupBy { it.kmNumber }.filter { it.value.size > 1 }.keys
 
     val generalErrors = listOfNotNull(
-        validate(groupedKmPosts.filter { kmPost -> kmPost.kmNumber == firstKmPost?.kmNumber }.size == 1) {
-            CollectionIssue("multiple-start-km-posts", VALIDATION_KM_POST, VALIDATION_ERROR, firstKmPost?.kmNumber?.toString())
+        validate(duplicateKmPosts.isEmpty()) {
+            CollectionIssue(
+                "duplicate-km-posts",
+                VALIDATION_KM_POST,
+                VALIDATION_ERROR,
+                duplicateKmPosts.map { it.toString() }.joinToString(", ")
+            )
         },
         validate(firstKmPost != null && firstKmPost.staAhead <= BigDecimal.ZERO) {
             CollectionIssue("sta-ahead-not-negative", VALIDATION_KM_POST, VALIDATION_ERROR, firstKmPost?.staAhead?.toString())

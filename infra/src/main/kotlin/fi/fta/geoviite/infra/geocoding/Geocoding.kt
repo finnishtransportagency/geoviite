@@ -132,6 +132,7 @@ enum class KmPostRejectedReason {
     IS_BEFORE_START_ADDRESS,
     INTERSECTS_BEFORE_REFERENCE_LINE,
     INTERSECTS_AFTER_REFERENCE_LINE,
+    DUPLICATE
 }
 
 data class GeocodingContext(
@@ -214,7 +215,6 @@ data class GeocodingContext(
             referenceLineGeometry: IAlignment,
             kmPosts: List<TrackLayoutKmPost>,
         ): GeocodingContextCreateResult {
-            requireKmPostsSanity(kmPosts)
             val (validatedKmPosts, invalidKmPosts) = validateKmPosts(kmPosts, startAddress)
 
             val (validReferencePoints, kmPostsOutsideGeometry) = createReferencePoints(
@@ -251,14 +251,6 @@ data class GeocodingContext(
             !TrackMeter.isMetersValid(startMeters + length)
         }
 
-        private fun requireKmPostsSanity(kmPosts: List<TrackLayoutKmPost>) {
-            require(kmPosts.distinctBy { it.kmNumber }.size == kmPosts.size) {
-                "There are km posts with duplicate km number, ${
-                    kmPosts.groupingBy { it.kmNumber }.eachCount().filter { it.value > 1 }
-                }}"
-            }
-        }
-
         private fun createReferencePoints(
             startAddress: TrackMeter,
             kmPosts: List<TrackLayoutKmPost>,
@@ -284,8 +276,16 @@ data class GeocodingContext(
                 TrackMeter(it.kmNumber, BigDecimal.ZERO) <= startAddress
             }
 
+            val duplicateKmPosts = kmPosts
+                .groupBy { it.kmNumber }
+                .filter { it.value.size > 1 }
+                .values
+                .flatten()
+
             val rejectedKmPosts =
-                withoutLocations.map { it to KmPostRejectedReason.NO_LOCATION } + invalidStartAddresses.map { it to KmPostRejectedReason.IS_BEFORE_START_ADDRESS }
+                withoutLocations.map { it to KmPostRejectedReason.NO_LOCATION } +
+                    invalidStartAddresses.map { it to KmPostRejectedReason.IS_BEFORE_START_ADDRESS } +
+                    duplicateKmPosts.map { it to KmPostRejectedReason.DUPLICATE }
 
             return validKmPosts to rejectedKmPosts.map { (kp, reason) -> KmPostWithRejectedReason(kp, reason) }
         }

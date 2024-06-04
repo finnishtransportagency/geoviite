@@ -3,8 +3,9 @@ import {
     ApiErrorResponse,
     getLocalizedIssue,
     getNonNull,
+    postFormNonNull,
     postFormNonNullAdt,
-    putFormNonNullAdt,
+    putFormNonNull,
     putNonNull,
     queryParams,
 } from 'api/api-fetch';
@@ -89,16 +90,11 @@ export const saveInfraModelFile = async (
     overrideParameters?: OverrideInfraModelParameters,
 ): Promise<GeometryPlanId | undefined> => {
     const formData = createFormData(file, extraParameters, overrideParameters);
-    const response = await postFormNonNullAdt<GeometryPlanId>(INFRAMODEL_URI, formData);
-
-    if (response.isOk()) {
+    return await postFormNonNull<GeometryPlanId>(INFRAMODEL_URI, formData).then((r) => {
         Snackbar.success('infra-model.upload.success');
-        await updatePlanChangeTime();
-
-        return response.value;
-    } else {
-        return undefined;
-    }
+        updatePlanChangeTime();
+        return r;
+    });
 };
 
 export async function updateGeometryPlan(
@@ -107,17 +103,13 @@ export async function updateGeometryPlan(
     overrideParameters?: OverrideInfraModelParameters,
 ): Promise<GeometryPlanId | undefined> {
     const formData = createFormData(undefined, extraParameters, overrideParameters);
-    const response = await putFormNonNullAdt<GeometryPlanId>(
-        `${INFRAMODEL_URI}/${planId}`,
-        formData,
+    return await putFormNonNull<GeometryPlanId>(`${INFRAMODEL_URI}/${planId}`, formData).then(
+        (r) => {
+            Snackbar.success('infra-model.edit.success');
+            updatePlanChangeTime();
+            return r;
+        },
     );
-
-    if (response.isOk()) {
-        Snackbar.success('infra-model.edit.success');
-        await updatePlanChangeTime();
-    }
-
-    return response.isOk() ? response.value : undefined;
 }
 export async function hidePlan(planId: GeometryPlanId): Promise<GeometryPlanId | undefined> {
     return putNonNull<boolean, GeometryPlanId>(`${INFRAMODEL_URI}/${planId}/hidden`, true).then(
