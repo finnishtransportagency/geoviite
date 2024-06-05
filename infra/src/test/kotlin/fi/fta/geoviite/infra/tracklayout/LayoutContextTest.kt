@@ -76,13 +76,13 @@ class LayoutContextTest {
         val context = DesignOfficialContextData(id, officialRowId, IntId(1), TEMP)
         assertEquals(EditState.UNEDITED, context.editState)
         assertTrue(context.isDesign)
-        assertFalse(context.isOfficial)
+        assertTrue(context.isOfficial)
         assertFalse(context.isDraft)
 
         val newContext = DesignOfficialContextData(id, null, IntId(1), TEMP)
         assertEquals(EditState.UNEDITED, newContext.editState)
         assertTrue(newContext.isDesign)
-        assertFalse(newContext.isOfficial)
+        assertTrue(newContext.isOfficial)
         assertFalse(newContext.isDraft)
     }
 

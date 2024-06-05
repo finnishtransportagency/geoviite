@@ -22,6 +22,7 @@ interface LayoutContextAware<T> {
     val id: DomainId<T>
     val dataType: DataType
     val editState: EditState
+    val branch: LayoutBranch
 
     @get:JsonIgnore
     val isDraft: Boolean get() = false
@@ -53,8 +54,10 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
     @get:JsonIgnore
     open val designRowId: DomainId<T>? get() = null
 
+    override val branch get() = designId?.let(LayoutBranch::design) ?: LayoutBranch.main
+
     @get:JsonIgnore
-    open val designId: DomainId<LayoutDesign>? get() = null
+    open val designId: IntId<LayoutDesign>? get() = null
 
     protected fun requireStored() = require(dataType == STORED) {
         "Only $STORED rows can transition to a different context: context=${this::class.simpleName} dataType=$dataType"
@@ -220,10 +223,6 @@ data class DesignDraftContextData<T>(
             dataType = STORED, // There will always be an existing row to update: the draft-row or the original official
         )
     }
-}
-
-fun <T : LayoutAsset<T>> asDraftInItemBranch(item: T): T = item.contextData.designId.let { designId ->
-    if (designId is IntId) asDesignDraft(item, designId) else asMainDraft(item)
 }
 
 fun <T : LayoutAsset<T>> asDraft(branch: LayoutBranch, item: T): T = when (branch) {
