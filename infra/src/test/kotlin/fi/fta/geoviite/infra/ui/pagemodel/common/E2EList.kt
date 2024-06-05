@@ -36,8 +36,6 @@ abstract class E2EList<T>(listBy: By, val itemsBy: By, val selectedItemBy: By?) 
 
     val items: List<T> get() = itemElements.map { it.second }
 
-    fun isSelectedByText(text: String) = selectedItemBy?.let { getElementIfExists(selectedItemBy)?.text?.contains(text) } ?: false
-
     protected abstract fun getItemContent(item: WebElement): T
 
     fun waitUntilItemMatches(check: (T) -> Boolean): E2EList<T> = apply {
