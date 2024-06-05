@@ -76,10 +76,10 @@ class SplitTestUI @Autowired constructor(
             .goToMap()
             .switchToDraftMode()
 
-        trackLayoutPage.selectionPanel.selectOrUnselectReferenceLine(trackNumber.toString())
+        trackLayoutPage.selectionPanel.selectReferenceLine(trackNumber.toString())
         trackLayoutPage.toolPanel.referenceLineLocation.zoomTo()
 
-        trackLayoutPage.selectionPanel.selectOrUnselectLocationTrack(sourceTrackName)
+        trackLayoutPage.selectionPanel.selectLocationTrack(sourceTrackName)
         val splittingInfobox = trackLayoutPage.toolPanel.locationTrackLocation.startSplitting()
         splittingInfobox.waitUntilTargetTrackInputExists(0)
 
@@ -127,7 +127,7 @@ class SplitTestUI @Autowired constructor(
             .waitForAllTableValidationsToComplete()
             .publish()
 
-        trackLayoutPageAfterPublishing.selectionPanel.selectOrUnselectLocationTrack(targetTrackNames[0])
+        trackLayoutPageAfterPublishing.selectionPanel.selectLocationTrack(targetTrackNames[0])
         assertFalse(
             getElementWhenExists(byQaId("start-splitting")).isEnabled,
             "splitting a target track again should not be possible before bulk transfer has completed"
@@ -142,7 +142,7 @@ class SplitTestUI @Autowired constructor(
             .close()
             .setNthSplitBulkTransferCompleted(1)
 
-        goToMap().selectionPanel.selectOrUnselectLocationTrack(targetTrackNames[1])
+        goToMap().selectionPanel.selectLocationTrack(targetTrackNames[1])
         assertTrue(
             getElementWhenExists(byQaId("start-splitting")).isEnabled,
             "splitting a target track again should be possible after setting the bulk transfer to be completed"

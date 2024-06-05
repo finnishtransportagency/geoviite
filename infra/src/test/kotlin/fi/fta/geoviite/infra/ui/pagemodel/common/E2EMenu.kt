@@ -6,7 +6,7 @@ import org.openqa.selenium.WebElement
 open class E2EMenu(
     menuBy: By = By.className("menu"),
     itemsBy: By = By.tagName("li"),
-) : E2EList<E2EMenuItem>(menuBy, itemsBy) {
+) : E2EList<E2EMenuItem>(menuBy, itemsBy, null) {
     override fun getItemContent(item: WebElement) = E2EMenuItem(item)
 
 }

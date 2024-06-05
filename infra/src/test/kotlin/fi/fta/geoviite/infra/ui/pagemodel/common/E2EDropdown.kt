@@ -15,7 +15,7 @@ private val CONTAINER_BY: By = By.className("dropdown__list-container")
 
 data class E2EDropdownListItem(val name: String, val qaId: String?)
 
-class E2EDropdownList : E2EList<E2EDropdownListItem>(CONTAINER_BY, By.className("dropdown__list-item")) {
+class E2EDropdownList : E2EList<E2EDropdownListItem>(CONTAINER_BY, By.className("dropdown__list-item"), selectedItemBy = null) {
     override fun getItemContent(item: WebElement): E2EDropdownListItem {
         return E2EDropdownListItem(item.text, item.getAttribute("qa-id"))
     }

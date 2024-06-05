@@ -5,8 +5,9 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETextInput
 import fi.fta.geoviite.infra.ui.util.byQaId
-import org.joda.time.LocalDate
+import fi.fta.geoviite.infra.ui.util.dateFormat
 import org.openqa.selenium.By
+import java.time.LocalDate
 
 class E2ELocationTrackEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
     enum class State {
@@ -250,7 +251,7 @@ class E2EWorkspaceEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
     fun setDate(date: LocalDate): E2EWorkspaceEditDialog = apply {
         logger.info("Set date $date")
 
-        dateInput.replaceValue(date.toString("dd.MM.yyyy"))
+        dateInput.replaceValue(date.format(dateFormat))
     }
 
     fun save() = waitUntilClosed {

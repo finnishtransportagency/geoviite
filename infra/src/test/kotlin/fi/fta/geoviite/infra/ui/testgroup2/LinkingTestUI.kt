@@ -89,7 +89,7 @@ class LinkingTestUI @Autowired constructor(
         val selectionPanel = trackLayoutPage.selectionPanel
         val toolPanel = trackLayoutPage.toolPanel
 
-        selectionPanel.selectOrUnselectPlanAlignment(LINKING_TEST_PLAN_NAME, "geo-alignment-a")
+        selectionPanel.selectPlanAlignment(LINKING_TEST_PLAN_NAME, "geo-alignment-a")
 
         val alignmentA = getGeometryAlignmentFromPlan("geo-alignment-a", geometryPlan)
 
@@ -136,11 +136,11 @@ class LinkingTestUI @Autowired constructor(
         val selectionPanel = trackLayoutPage.selectionPanel
         val toolPanel = trackLayoutPage.toolPanel
 
-        selectionPanel.selectOrUnselectLocationTrack("lt-A")
+        selectionPanel.selectLocationTrack("lt-A")
         toolPanel.locationTrackGeneralInfo.zoomTo()
         val locationTrackLengthBeforeLinking = toolPanel.locationTrackLocation.trueLengthDouble
 
-        selectionPanel.selectOrUnselectPlanAlignment(LINKING_TEST_PLAN_NAME, "replacement alignment")
+        selectionPanel.selectPlanAlignment(LINKING_TEST_PLAN_NAME, "replacement alignment")
 
         val linkingBox = toolPanel.geometryAlignmentLinking
         linkingBox.initiateLinking()
@@ -204,7 +204,7 @@ class LinkingTestUI @Autowired constructor(
         val selectionPanel = trackLayoutPage.selectionPanel
         val toolPanel = trackLayoutPage.toolPanel
 
-        selectionPanel.selectOrUnselectLocationTrack("lt-A")
+        selectionPanel.selectLocationTrack("lt-A")
         toolPanel.locationTrackGeneralInfo.zoomTo()
         val locationInfoBox = toolPanel.locationTrackLocation
         locationInfoBox.startLinking()
@@ -239,7 +239,7 @@ class LinkingTestUI @Autowired constructor(
         val trackLayoutPage = startGeoviiteAndGoToWork()
         val toolPanel = trackLayoutPage.toolPanel
 
-        trackLayoutPage.selectionPanel.selectOrUnselectLocationTrack("lt-A")
+        trackLayoutPage.selectionPanel.selectLocationTrack("lt-A")
         toolPanel.locationTrackGeneralInfo.zoomTo()
         val locationInfoBox = toolPanel.locationTrackLocation
         locationInfoBox.startLinking()
@@ -290,11 +290,12 @@ class LinkingTestUI @Autowired constructor(
         val selectionPanel = trackLayoutPage.selectionPanel
         val toolPanel = trackLayoutPage.toolPanel
 
-        selectionPanel.selectOrUnselectKmPost("0123")
+        selectionPanel.selectKmPost("0123")
+        selectionPanel.selectKmPost("0123")
         toolPanel.layoutKmPostGeneral.zoomTo()
         val layoutKmPostCoordinatesBeforeLinking = toolPanel.layoutKmPostLocation.coordinates
 
-        selectionPanel.selectOrUnselectPlanKmPost(LINKING_TEST_PLAN_NAME, "0123G")
+        selectionPanel.selectPlanKmPost(LINKING_TEST_PLAN_NAME, "0123G")
 
         val kmPostLinkingInfoBox = toolPanel.geometryKmPostLinking
         kmPostLinkingInfoBox.initiateLinking()
@@ -345,9 +346,9 @@ class LinkingTestUI @Autowired constructor(
 
         kmPostLinkingInfoBox.link()
         waitAndClearToast("linking-succeed-msg")
-        geometryPlan.selectKmPost("0126")
+        geometryPlan.unselectKmPost("0126")
 
-        selectionPanel.selectOrUnselectKmPost(newKmPostNumber)
+        selectionPanel.selectKmPost(newKmPostNumber)
         val layoutKmPost0003TLCoordinates = toolPanel.layoutKmPostLocation.coordinates
         assertEquals(
             pointToCoordinateString(lastKmPostLocation + DEFAULT_BASE_POINT), layoutKmPost0003TLCoordinates
@@ -456,7 +457,7 @@ class LinkingTestUI @Autowired constructor(
 
         val geometryAlignment = getGeometryAlignmentFromPlan("extending track", plan)
 
-        trackLayoutPage.selectionPanel.selectOrUnselectLocationTrack("lt-track to extend")
+        trackLayoutPage.selectionPanel.selectLocationTrack("lt-track to extend")
         val locationTrackLocationInfobox = toolPanel.locationTrackLocation
         val locationTrackLengthBeforeLinking = metersToDouble(locationTrackLocationInfobox.trueLength)
         val locationTrackStartBeforeLinking = locationTrackLocationInfobox.startCoordinates
@@ -464,7 +465,7 @@ class LinkingTestUI @Autowired constructor(
         toolPanel.locationTrackGeneralInfo.zoomTo()
         trackLayoutPage.zoomToScale(E2ETrackLayoutPage.MapScale.M_10)
 
-        trackLayoutPage.selectionPanel.selectOrUnselectPlanAlignment(LINKING_TEST_PLAN_NAME, "extending track")
+        trackLayoutPage.selectionPanel.selectPlanAlignment(LINKING_TEST_PLAN_NAME, "extending track")
         val alignmentLinkinInfobox = toolPanel.geometryAlignmentLinking
         alignmentLinkinInfobox.initiateLinking()
         alignmentLinkinInfobox.linkTo("lt-track to extend")
@@ -528,14 +529,14 @@ class LinkingTestUI @Autowired constructor(
         val geometryAlignmentStart = geometryAlignment.elements.first().start
         val geometryAlignmentEnd = geometryAlignment.elements.last().end
 
-        trackLayoutPage.selectionPanel.selectOrUnselectLocationTrack("lt-track to extend")
+        trackLayoutPage.selectionPanel.selectLocationTrack("lt-track to extend")
         val locationTrackLocationInfobox = toolPanel.locationTrackLocation
         val locationTrackLengthBeforeLinking = metersToDouble(locationTrackLocationInfobox.trueLength)
         val locationTrackEndBeforeLinking = locationTrackLocationInfobox.endCoordinates
         toolPanel.locationTrackGeneralInfo.zoomTo()
         trackLayoutPage.zoomToScale(E2ETrackLayoutPage.MapScale.M_10)
 
-        trackLayoutPage.selectionPanel.selectOrUnselectPlanAlignment(LINKING_TEST_PLAN_NAME, "extending track")
+        trackLayoutPage.selectionPanel.selectPlanAlignment(LINKING_TEST_PLAN_NAME, "extending track")
         val alignmentLinkinInfobox = toolPanel.geometryAlignmentLinking
         alignmentLinkinInfobox.initiateLinking()
         alignmentLinkinInfobox.linkTo("lt-track to extend")
@@ -592,7 +593,7 @@ class LinkingTestUI @Autowired constructor(
         val trackLayoutPage = startGeoviiteAndGoToWork()
         val toolPanel = trackLayoutPage.toolPanel
 
-        trackLayoutPage.selectionPanel.selectOrUnselectPlanAlignment(LINKING_TEST_PLAN_NAME, "replacement alignment")
+        trackLayoutPage.selectionPanel.selectPlanAlignment(LINKING_TEST_PLAN_NAME, "replacement alignment")
         val alignmentLinkingInfobox = toolPanel.geometryAlignmentLinking
         toolPanel.geometryAlignmentGeneral.zoomTo()
         alignmentLinkingInfobox.initiateLinking()
@@ -653,7 +654,7 @@ class LinkingTestUI @Autowired constructor(
 
         val trackLayoutPage = startGeoviiteAndGoToWork()
 
-        trackLayoutPage.selectionPanel.selectOrUnselectLocationTrack("lt-track to delete")
+        trackLayoutPage.selectionPanel.selectLocationTrack("lt-track to delete")
         trackLayoutPage.toolPanel.locationTrackGeneralInfo.zoomTo()
         trackLayoutPage.toolPanel.locationTrackGeneralInfo
             .edit()
@@ -698,7 +699,7 @@ class LinkingTestUI @Autowired constructor(
         )
         val trackLayoutPage = startGeoviiteAndGoToWork()
         trackLayoutPage.zoomToScale(E2ETrackLayoutPage.MapScale.M_100)
-        trackLayoutPage.selectionPanel.selectOrUnselectSwitch("switch to delete")
+        trackLayoutPage.selectionPanel.selectSwitch("switch to delete")
         trackLayoutPage.toolPanel.layoutSwitchGeneralInfo.zoomTo()
 
         trackLayoutPage.toolPanel.layoutSwitchGeneralInfo

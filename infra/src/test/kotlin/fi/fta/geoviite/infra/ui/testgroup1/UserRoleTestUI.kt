@@ -157,25 +157,21 @@ fun assertDraftAndDesignModeTabsInvisible() {
 }
 
 fun assertTrackLayoutPageEditButtonsInvisible(trackLayoutPage: E2ETrackLayoutPage, trackNumber: TrackNumber): Unit {
-    trackLayoutPage.selectionPanel.selectOrUnselectReferenceLine(trackNumber.toString())
+    trackLayoutPage.selectionPanel.selectReferenceLine(trackNumber.toString())
 
     waitUntilNotExist(byQaId("open-preview-view"))
     waitUntilNotExist(byQaId("tool-bar.new"))
     waitUntilNotExist(By.cssSelector(".infobox__edit-icon"))
-
-    trackLayoutPage.selectionPanel.selectOrUnselectReferenceLine(trackNumber.toString())
 }
 
 fun assertTrackLayoutPageEditButtonsVisible(trackLayoutPage: E2ETrackLayoutPage, trackNumber: TrackNumber): Unit {
-    trackLayoutPage.selectionPanel.selectOrUnselectReferenceLine(trackNumber.toString())
+    trackLayoutPage.selectionPanel.selectReferenceLine(trackNumber.toString())
 
     waitUntilExists(byQaId("draft-mode-tab"))
     waitUntilExists(byQaId("design-mode-tab"))
     waitUntilExists(byQaId("open-preview-view"))
     waitUntilExists(byQaId("tool-bar.new"))
     waitUntilExists(By.cssSelector(".infobox__edit-icon"))
-
-    trackLayoutPage.selectionPanel.selectOrUnselectReferenceLine(trackNumber.toString())
 }
 
 fun assertInfraModelPage(role: E2ERole) {
