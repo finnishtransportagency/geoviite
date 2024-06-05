@@ -54,6 +54,7 @@ import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_GEOMETRY_FILE, userHasPrivilege, VIEW_LAYOUT_DRAFT } from 'user/user-model';
 import { useCommonDataAppSelector } from 'store/hooks';
 import { ManualTrackNumberDialog } from 'infra-model/view/dialogs/manual-track-number-dialog';
+import { Icons } from 'vayla-design-lib/icon/Icon';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -423,6 +424,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                             }
                                             onAddClick={() => setShowNewTrackNumberDialog(true)}
                                             onAddClickTitle={t('im-form.set-manual-track-number')}
+                                            onAddClickIcon={Icons.Edit}
                                         />
                                     }
                                 />
