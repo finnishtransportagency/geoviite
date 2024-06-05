@@ -305,7 +305,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
     override fun deleteDraft(branch: LayoutBranch, id: IntId<T>): DaoResponse<T> = deleteDraftsInternal(branch, id)
         .let { r ->
             if (r.size > 1) {
-                error { "Multiple rows deleted with one ID: type=${table.name} id=$id" }
+                error("Multiple rows deleted with one ID: type=${table.name} id=$id")
             } else if (r.isEmpty()) {
                 throw DeletingFailureException("Trying to delete a non-existing draft object: type=${table.name} id=$id")
             } else {

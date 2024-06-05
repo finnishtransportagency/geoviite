@@ -235,9 +235,9 @@ fun <T : LayoutAsset<T>> asMainDraft(item: T): T = item.contextData.let { ctx ->
         is MainDraftContextData -> item
         is MainOfficialContextData -> item.withContext(ctx.asMainDraft())
         is DesignOfficialContextData -> item.withContext(ctx.asMainDraft())
-        is DesignDraftContextData -> error {
+        is DesignDraftContextData -> error(
             "Creating a main-draft from a design-draft is not supported (publish the design first): item=$item"
-        }
+        )
     }
 }
 
@@ -251,9 +251,9 @@ fun <T : LayoutAsset<T>> asMainOfficial(item: T): T =
         when (ctx) {
             is MainOfficialContextData -> item
             is MainDraftContextData -> item.withContext(ctx.asMainOfficial())
-            else -> error {
+            else -> error(
                 "Creating a main-official from a design is not supported (create a main-draft first): item=$item"
-            }
+            )
         }
     }
 
@@ -263,9 +263,9 @@ fun <T : LayoutAsset<T>> asDesignOfficial(item: T, designId: IntId<LayoutDesign>
     }
     when (ctx) {
         is DesignDraftContextData -> item.withContext(ctx.asDesignOfficial())
-        else -> error {
+        else -> error(
             "Creating a design-official from the main branch is not supported (create a design draft first): item=$item designId=$designId"
-        }
+        )
     }
 }
 
@@ -277,8 +277,8 @@ fun <T : LayoutAsset<T>> asDesignDraft(item: T, designId: IntId<LayoutDesign>): 
         is DesignDraftContextData -> item
         is MainOfficialContextData -> item.withContext(ctx.asDesignDraft(designId))
         is DesignOfficialContextData -> item.withContext(ctx.asDesignDraft())
-        is MainDraftContextData -> error {
+        is MainDraftContextData -> error(
             "Creating a design-draft from a main-draft is not supported (publish the draft first): item=$item designId=$designId"
-        }
+        )
     }
 }

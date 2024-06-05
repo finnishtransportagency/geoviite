@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.geocoding
 
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
@@ -176,5 +177,6 @@ class GeocodingService(
     fun getGeocodingContextCacheKey(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         moment: Instant,
-    ): GeocodingContextCacheKey? = geocodingDao.getLayoutGeocodingContextCacheKey(trackNumberId, moment)
+    ): GeocodingContextCacheKey? = geocodingDao.getLayoutGeocodingContextCacheKey(LayoutBranch.main, trackNumberId, moment)
+    // TODO: GVT-2616
 }

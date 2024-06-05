@@ -1,13 +1,18 @@
 package fi.fta.geoviite.infra
 
+import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.DataType.TEMP
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.switchNameLength
@@ -19,6 +24,8 @@ import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.project
 import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
+import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
+import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
@@ -29,6 +36,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
+import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.PolyLineLayoutAsset
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
@@ -36,12 +45,14 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.asDraft
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionTemplate
@@ -69,7 +80,7 @@ interface TestDB {
         TrackLayoutTrackNumber::class -> trackNumberDao
         ReferenceLine::class -> referenceLineDao
         TrackLayoutKmPost::class -> kmPostDao
-        else -> error { "Unsupported asset type: ${clazz.simpleName}" }
+        else -> error("Unsupported asset type: ${clazz.simpleName}")
     } as LayoutAssetDao<T>
 
     @Suppress("UNCHECKED_CAST")
@@ -95,9 +106,9 @@ class TestDBService(
     override val geometryDao: GeometryDao,
 ) : TestDB {
 
-    override val jdbc by lazy { jdbcTemplate ?: error { "JDBC not initialized" } }
+    override val jdbc by lazy { jdbcTemplate ?: error("JDBC not initialized") }
 
-    val transaction by lazy { transactionTemplate ?: error { "JDBC not initialized" } }
+    val transaction by lazy { transactionTemplate ?: error("JDBC not initialized") }
 
     fun clearAllTables() {
         clearRatkoTables()
@@ -286,6 +297,14 @@ class TestDBService(
     fun insertProject(): RowVersion<Project> = geometryDao.insertProject(project(getUnusedProjectName().toString()))
 
     fun insertAuthor(): RowVersion<Author> = geometryDao.insertAuthor(Author(getUnusedAuthorCompanyName()))
+
+    final inline fun <reified T : LayoutAsset<T>> update(
+        rowVersion: RowVersion<T>,
+        mutate: (T) -> T = { it },
+    ): DaoResponse<T> {
+        val dao = getDao(T::class)
+        return dao.update(mutate(dao.fetch(rowVersion)))
+    }
 }
 
 data class TestLayoutContext(
@@ -305,6 +324,13 @@ data class TestLayoutContext(
     fun <T : PolyLineLayoutAsset<T>> insert(
         assetAndAlignment: Pair<PolyLineLayoutAsset<T>, LayoutAlignment>
     ): DaoResponse<T> = insert(assetAndAlignment.first, assetAndAlignment.second)
+
+    inline fun <reified T : LayoutAsset<T>> copyFrom(rowVersion: RowVersion<T>): DaoResponse<T> {
+        val dao = getDao(T::class)
+        val original = dao.fetch(rowVersion)
+        // TODO: Dig out the official/design row ids. Can't use directly from context as on the actual officia/design, we should use the row id instead
+        return insert(original.withContext(createContextData(original.contextData.officialRowId, original.contextData.designRowId)))
+    }
 
     @Suppress("UNCHECKED_CAST")
     fun <T : PolyLineLayoutAsset<T>> insert(
@@ -364,4 +390,20 @@ data class TestLayoutContext(
 
     fun createSwitch(): DaoResponse<TrackLayoutSwitch> =
         insert(switch(name = testService.getUnusedSwitchName().toString()))
+
+    fun <T : LayoutAsset<T>> createContextData(
+        officialRowId: IntId<T>? = null,
+        designRowId: IntId<T>? = null,
+    ): LayoutContextData<T> = context.branch.let { branch ->
+        when (context.state) {
+            OFFICIAL -> when (branch) {
+                is MainBranch -> MainOfficialContextData(StringId(), TEMP)
+                is DesignBranch -> DesignOfficialContextData(StringId(), officialRowId, branch.designId, TEMP)
+            }
+            DRAFT -> when (branch) {
+                is MainBranch -> MainDraftContextData(StringId(), officialRowId, designRowId, TEMP)
+                is DesignBranch -> DesignDraftContextData(StringId(), designRowId, officialRowId, branch.designId, TEMP)
+            }
+        }
+    }
 }
