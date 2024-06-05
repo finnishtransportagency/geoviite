@@ -66,18 +66,20 @@ class LocationTrackDao(
         return versions
     }
 
-    fun findOfficialNameDuplicates(names: List<AlignmentName>): Map<AlignmentName, List<RowVersion<LocationTrack>>> {
+    fun findOfficialNameDuplicates(
+        layoutBranch: LayoutBranch,
+        names: List<AlignmentName>,
+    ): Map<AlignmentName, List<RowVersion<LocationTrack>>> {
         return if (names.isEmpty()) {
             emptyMap()
         } else {
             val sql = """
-                select id, version, name
-                from layout.location_track
+                select row_id as id, row_version as version, name
+                from layout.location_track_in_layout_context('OFFICIAL', :design_id)
                 where name in (:names)
-                  and draft = false
                   and state != 'DELETED'
             """.trimIndent()
-            val params = mapOf("names" to names)
+            val params = mapOf("names" to names, "design_id" to layoutBranch.designId?.intValue)
             val found = jdbcTemplate.query<Pair<AlignmentName, RowVersion<LocationTrack>>>(sql, params) { rs, _ ->
                 val version = rs.getRowVersion<LocationTrack>("id", "version")
                 val name = rs.getString("name").let(::AlignmentName)
@@ -330,7 +332,7 @@ class LocationTrackDao(
               owner_id = :owner_id
             where id = :id
             returning 
-              coalesce(official_row_id, id) as official_id,
+              coalesce(official_row_id, design_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()

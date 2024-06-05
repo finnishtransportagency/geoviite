@@ -80,6 +80,7 @@ open class Publication(
     open val publicationTime: Instant,
     open val publicationUser: UserName,
     open val message: String?,
+    open val layoutBranch: LayoutBranch,
 )
 
 data class PublishedItemListing<T>(
@@ -137,6 +138,7 @@ data class PublicationDetails(
     override val publicationTime: Instant,
     override val publicationUser: UserName,
     override val message: String?,
+    override val layoutBranch: LayoutBranch,
     val trackNumbers: List<PublishedTrackNumber>,
     val referenceLines: List<PublishedReferenceLine>,
     val locationTracks: List<PublishedLocationTrack>,
@@ -146,7 +148,7 @@ data class PublicationDetails(
     val ratkoPushTime: Instant?,
     val indirectChanges: PublishedIndirectChanges,
     val split: SplitHeader?,
-) : Publication(id, publicationTime, publicationUser, message) {
+) : Publication(id, publicationTime, publicationUser, message, layoutBranch) {
     val allPublishedTrackNumbers = trackNumbers + indirectChanges.trackNumbers
     val allPublishedLocationTracks = locationTracks + indirectChanges.locationTracks
     val allPublishedSwitches = switches + indirectChanges.switches

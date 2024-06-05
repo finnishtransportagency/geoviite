@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.linking.switches
 
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
@@ -55,6 +56,8 @@ import fi.fta.geoviite.infra.tracklayout.TRACK_SEARCH_AREA_SIZE
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
+import fi.fta.geoviite.infra.tracklayout.asDraft
+import fi.fta.geoviite.infra.tracklayout.asDraftInItemBranch
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.calculateLocationTrackTopology
 import fi.fta.geoviite.infra.tracklayout.clearLinksToSwitch
@@ -775,7 +778,7 @@ private fun withExistingLinksToSwitchCleared(
 
 // some validation logic depends on draftness state, so we need to pre-draft tracks for online validation
 private fun draft(tracks: List<Pair<LocationTrack, LayoutAlignment>>) =
-    tracks.map { (track, alignment) -> asMainDraft(track) to alignment }
+    tracks.map { (track, alignment) -> asDraftInItemBranch(track) to alignment }
 
 fun updateLocationTrackWithTopologyEndLinking(
     locationTrack: LocationTrack,

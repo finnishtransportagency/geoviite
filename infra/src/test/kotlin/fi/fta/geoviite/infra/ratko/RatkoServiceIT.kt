@@ -137,7 +137,7 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun startRatkoPublish() {
-        ratkoService.pushChangesToRatko()
+        ratkoService.pushChangesToRatko(LayoutBranch.main)
     }
 
     @Test
@@ -1216,7 +1216,7 @@ class RatkoServiceIT @Autowired constructor(
         splitTestDataService.forcefullyFinishAllCurrentlyUnfinishedSplits(LayoutBranch.main)
 
         val splitId = splitTestDataService.insertSplit()
-        val publicationId = publicationDao.createPublication("test: bulk transfer to in progress")
+        val publicationId = publicationDao.createPublication(LayoutBranch.main, "test: bulk transfer to in progress")
         splitDao.updateSplit(splitId = splitId, publicationId = publicationId)
 
         val someBulkTransferId = testDBService.getUnusedBulkTransferId()
@@ -1242,7 +1242,7 @@ class RatkoServiceIT @Autowired constructor(
         splitTestDataService.insertSplit().let { splitId ->
             splitDao.updateSplit(
                 splitId = splitId,
-                publicationId = publicationDao.createPublication("some in progress bulk transfer"),
+                publicationId = publicationDao.createPublication(LayoutBranch.main, "some in progress bulk transfer"),
                 bulkTransferState = BulkTransferState.IN_PROGRESS,
                 bulkTransferId = someBulkTransferId,
             ).id
@@ -1251,7 +1251,7 @@ class RatkoServiceIT @Autowired constructor(
         val pendingSplitId = splitTestDataService.insertSplit().let { splitId ->
             splitDao.updateSplit(
                 splitId = splitId,
-                publicationId = publicationDao.createPublication("pending bulk transfer"),
+                publicationId = publicationDao.createPublication(LayoutBranch.main, "pending bulk transfer"),
             ).id
         }
 
@@ -1270,7 +1270,7 @@ class RatkoServiceIT @Autowired constructor(
         val splitId = splitTestDataService.insertSplit().let { splitId ->
             splitDao.updateSplit(
                 splitId = splitId,
-                publicationId = publicationDao.createPublication("pending bulk transfer"),
+                publicationId = publicationDao.createPublication(LayoutBranch.main, "pending bulk transfer"),
             ).id
         }
 
@@ -1304,7 +1304,7 @@ class RatkoServiceIT @Autowired constructor(
             splitTestDataService.insertSplit().let { splitId ->
                 splitDao.updateSplit(
                     splitId = splitId,
-                    publicationId = publicationDao.createPublication("pending bulk transfer $index"),
+                    publicationId = publicationDao.createPublication(LayoutBranch.main, "pending bulk transfer $index"),
                 ).id
             }
         }
@@ -1335,7 +1335,7 @@ class RatkoServiceIT @Autowired constructor(
                     else ->
                         splitDao.updateSplit(
                             splitId = splitId,
-                            publicationId = publicationDao.createPublication("testing $bulkTransferState"),
+                            publicationId = publicationDao.createPublication(LayoutBranch.main, "testing $bulkTransferState"),
                             bulkTransferId = testDBService.getUnusedBulkTransferId(),
                             bulkTransferState = bulkTransferState,
                         )
@@ -1402,7 +1402,7 @@ class RatkoServiceIT @Autowired constructor(
         val versions = publicationService.getValidationVersions(LayoutBranch.main, ids)
         val calculatedChanges = publicationService.getCalculatedChanges(versions)
         publicationService.publishChanges(LayoutBranch.main, versions, calculatedChanges, "")
-        ratkoService.pushChangesToRatko()
+        ratkoService.pushChangesToRatko(LayoutBranch.main)
     }
 
     private data class EstablishedTrackNumber(

@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
@@ -69,6 +68,8 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
     fun fetchVersionOrThrow(layoutContext: LayoutContext, id: IntId<T>): RowVersion<T>
     fun fetchVersions(layoutContext: LayoutContext, ids: List<IntId<T>>): List<RowVersion<T>>
 
+    fun fetchOfficialRowVersionForPublishingInBranch(branch: LayoutBranch, version: RowVersion<T>): RowVersion<T>?
+
     fun fetchOfficialVersionAtMomentOrThrow(id: IntId<T>, moment: Instant): RowVersion<T>
     fun fetchOfficialVersionAtMoment(id: IntId<T>, moment: Instant): RowVersion<T>?
 
@@ -123,7 +124,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
           id as row_id,
           version as row_version
         from ${table.fullName}
-        where coalesce(official_row_id, id) in (:ids)
+        where coalesce(official_row_id, design_row_id, id) in (:ids)
           and draft and design_id is not distinct from :design_id
     """.trimIndent()
 
@@ -278,6 +279,26 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
             "moment" to Timestamp.from(moment),
         )
         return jdbcTemplate.queryOptional(officialVersionAtMomentSql, params, ::toRowVersion)
+    }
+
+    override fun fetchOfficialRowVersionForPublishingInBranch(
+        branch: LayoutBranch,
+        version: RowVersion<T>,
+    ): RowVersion<T>? {
+        val draft = fetch(version)
+        val designRowId = draft.contextData.designRowId
+        return if (branch.designId == null && draft.contextData.officialRowId == null && designRowId is IntId) {
+            queryDesignRowVersion(designRowId)
+        } else if (draft.isDesign && draft.contextData.officialRowId != null) {
+            if (designRowId is IntId) queryDesignRowVersion(designRowId) else null
+        }
+        else fetchVersion(branch.official, version.id)
+    }
+
+    private fun queryDesignRowVersion(designRowId: IntId<T>): RowVersion<T> = jdbcTemplate.queryOne(
+        "select id, version from ${table.fullName} where id = :designRowId", mapOf("designRowId" to designRowId.intValue)
+    ) { rs, _ ->
+        rs.getRowVersion("id", "version")
     }
 
     @Transactional

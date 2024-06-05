@@ -261,6 +261,9 @@ fun ResultSet.getPublicationState(draftFlagName: String): PublicationState =
 fun ResultSet.getPublicationStateOrNull(draftFlagName: String): PublicationState? =
     getBooleanOrNull(draftFlagName)?.let { draft -> if (draft) PublicationState.DRAFT else PublicationState.OFFICIAL }
 
+fun ResultSet.getLayoutBranch(designIdName: String): LayoutBranch =
+    getIntIdOrNull<LayoutDesign>(designIdName).let { id -> if (id == null) LayoutBranch.main else DesignBranch.of(id) }
+
 inline fun <reified T> verifyNotNull(column: String, nullableGet: (column: String) -> T?): T =
     requireNotNull(nullableGet(column)) { "Value was null: type=${T::class.simpleName} column=$column" }
 
@@ -305,7 +308,7 @@ fun <T> ResultSet.getLayoutContextData(
         MainDraftContextData(
             officialRowId = officialRowId,
             rowId = rowId,
-            designRowId = null,
+            designRowId = designRowId,
             dataType = DataType.STORED,
         )
     } else {

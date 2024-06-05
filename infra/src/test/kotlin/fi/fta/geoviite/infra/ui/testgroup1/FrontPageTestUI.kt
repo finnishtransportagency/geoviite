@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.integration.CalculatedChanges
@@ -59,14 +60,14 @@ class FrontPageTestUI @Autowired constructor(
         )
         referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = alignmentVersion, draft = false))
 
-        val successfulPublicationId = publicationDao.createPublication("successful")
+        val successfulPublicationId = publicationDao.createPublication(LayoutBranch.main, "successful")
         publicationDao.insertCalculatedChanges(successfulPublicationId, changesTouchingTrackNumber(trackNumberId))
 
         trackNumberDao.update(
             trackNumberDao.fetch(originalTrackNumberVersion).copy(number = TrackNumber("updated name"))
         )
 
-        val failingPublicationId = publicationDao.createPublication("failing test publication")
+        val failingPublicationId = publicationDao.createPublication(LayoutBranch.main, "failing test publication")
         publicationDao.insertCalculatedChanges(failingPublicationId, changesTouchingTrackNumber(trackNumberId))
 
         val failedRatkoPushId = ratkoPushDao.startPushing(listOf(failingPublicationId))

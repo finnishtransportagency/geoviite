@@ -272,15 +272,16 @@ class PublicationDao(
     }
 
     @Transactional
-    fun createPublication(message: String): IntId<Publication> {
+    fun createPublication(layoutBranch: LayoutBranch, message: String): IntId<Publication> {
         jdbcTemplate.setUser()
         val sql = """
-            insert into publication.publication(publication_user, publication_time, message)
-            values (current_setting('geoviite.edit_user'), now(), :message)
+            insert into publication.publication(publication_user, publication_time, message, design_id)
+            values (current_setting('geoviite.edit_user'), now(), :message, :design_id)
             returning id
         """.trimIndent()
-        val publicationId: IntId<Publication> =
-            jdbcTemplate.queryForObject(sql, mapOf<String, Any>("message" to message)) { rs, _ ->
+        val publicationId: IntId<Publication> = jdbcTemplate.queryForObject(
+            sql, mapOf("message" to message, "design_id" to layoutBranch.designId?.intValue)
+        ) { rs, _ ->
                 rs.getIntId("id")
             } ?: error("Failed to generate ID for new publication row")
 
@@ -364,16 +365,16 @@ class PublicationDao(
     }
 
     fun fetchOfficialDuplicateTrackVersions(
+        layoutBranch: LayoutBranch,
         ids: List<IntId<LocationTrack>>,
     ): Map<IntId<LocationTrack>, List<RowVersion<LocationTrack>>> {
         val sql = """
-            select id, version, duplicate_of_location_track_id
-            from layout.location_track
+            select row_id as id, row_version as version, duplicate_of_location_track_id
+            from layout.location_track_in_layout_context('OFFICIAL', :design_id)
             where duplicate_of_location_track_id in (:ids)
-              and draft = false
               and state != 'DELETED'
         """.trimIndent()
-        val params = mapOf("ids" to ids.map { id -> id.intValue })
+        val params = mapOf("ids" to ids.map { id -> id.intValue }, "design_id" to layoutBranch.designId?.intValue)
         val rows = jdbcTemplate.query(sql, params) { rs, _ ->
             val duplicateOfId = rs.getIntId<LocationTrack>("duplicate_of_location_track_id")
             val version = rs.getRowVersion<LocationTrack>("id", "version")
@@ -390,7 +391,8 @@ class PublicationDao(
               id,
               publication_user,
               publication_time,
-              message
+              message,
+              design_id
             from publication.publication
             where publication.id = :id
         """.trimIndent()
@@ -400,7 +402,8 @@ class PublicationDao(
                 id = rs.getIntId("id"),
                 publicationUser = rs.getString("publication_user").let(UserName::of),
                 publicationTime = rs.getInstant("publication_time"),
-                message = rs.getString("message")
+                message = rs.getString("message"),
+                layoutBranch = rs.getLayoutBranch("design_id"),
             )
         }).also { logger.daoAccess(FETCH, Publication::class, publicationId) }
     }
@@ -431,17 +434,19 @@ class PublicationDao(
     }
 
     //Inclusive from/start time, but exclusive to/end time
-    fun fetchPublicationsBetween(from: Instant?, to: Instant?): List<Publication> {
+    fun fetchPublicationsBetween(layoutBranch: LayoutBranch, from: Instant?, to: Instant?): List<Publication> {
         val sql = """
-            select id, publication_user, publication_time, message
+            select id, publication_user, publication_time, message, design_id
             from publication.publication
             where (:from <= publication_time or :from::timestamptz is null) and (publication_time < :to or :to::timestamptz is null)
+              and design_id is not distinct from :design_id
             order by id
         """.trimIndent()
 
         val params = mapOf(
             "from" to from?.let { Timestamp.from(it) },
             "to" to to?.let { Timestamp.from(it) },
+            "design_id" to layoutBranch.designId?.intValue,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -449,21 +454,24 @@ class PublicationDao(
                 id = rs.getIntId("id"),
                 publicationUser = rs.getString("publication_user").let(UserName::of),
                 publicationTime = rs.getInstant("publication_time"),
-                message = rs.getString("message")
+                message = rs.getString("message"),
+                layoutBranch = rs.getLayoutBranch("design_id"),
             )
         }.also { publications -> logger.daoAccess(FETCH, Publication::class, publications.map { it.id }) }
     }
 
     //Inclusive from/start time, but exclusive to/end time
-    fun fetchLatestPublications(count: Int): List<Publication> {
+    fun fetchLatestPublications(layoutBranch: LayoutBranch, count: Int): List<Publication> {
         val sql = """
-            select id, publication_user, publication_time, message
+            select id, publication_user, publication_time, message, design_id
             from publication.publication
+            where design_id is not distinct from :design_id
             order by id desc limit :count
         """.trimIndent()
 
         val params = mapOf(
-            "count" to count
+            "count" to count,
+            "design_id" to layoutBranch.designId?.intValue,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -471,26 +479,30 @@ class PublicationDao(
                 id = rs.getIntId("id"),
                 publicationUser = rs.getString("publication_user").let(UserName::of),
                 publicationTime = rs.getInstant("publication_time"),
-                message = rs.getString("message")
+                message = rs.getString("message"),
+                layoutBranch = rs.getLayoutBranch("design_id"),
             )
         }.also { publications -> logger.daoAccess(FETCH, Publication::class, publications.map { it.id }) }
     }
 
-    fun fetchPublicationTimes(): Map<Instant, IntId<Publication>> {
+    fun fetchPublicationTimes(layoutBranch: LayoutBranch): Map<Instant, IntId<Publication>> {
         val sql = """
             select id, publication_time
             from publication.publication
+            where design_id is not distinct from :design_id
         """.trimIndent()
 
-        return jdbcTemplate.query(sql) { rs, _ ->
+        return jdbcTemplate.query(sql, mapOf("design_id" to layoutBranch.designId?.intValue)) { rs, _ ->
             rs.getInstant("publication_time") to rs.getIntId<Publication>("id")
         }.toMap().also { logger.daoAccess(FETCH, Publication::class, it.keys) }
     }
 
     fun fetchPublicationTrackNumberChanges(
+        layoutBranch: LayoutBranch,
         publicationId: IntId<Publication>,
         comparisonTime: Instant,
     ): Map<IntId<TrackLayoutTrackNumber>, TrackNumberChanges> {
+        assertMainBranch(layoutBranch)
         val sql = """
             select
               tn.id as track_number_id,
@@ -545,13 +557,18 @@ class PublicationDao(
     fun fetchPublicationLocationTrackSwitchLinkChanges(
         publicationId: IntId<Publication>,
     ): Map<IntId<LocationTrack>, LocationTrackPublicationSwitchLinkChanges> =
-        fetchPublicationLocationTrackSwitchLinkChanges(publicationId, null, null)[publicationId] ?: mapOf()
+        fetchPublicationLocationTrackSwitchLinkChanges(publicationId, null, null, null)[publicationId] ?: mapOf()
 
     fun fetchPublicationLocationTrackSwitchLinkChanges(
         publicationId: IntId<Publication>?,
+        layoutBranch: LayoutBranch?,
         from: Instant?,
         to: Instant?,
     ): Map<IntId<Publication>, Map<IntId<LocationTrack>, LocationTrackPublicationSwitchLinkChanges>> {
+        require((layoutBranch != null) != (publicationId != null)) {
+            """"Must provide exactly one of layoutBranch or publicationId, but provided:
+                |layoutBranch=$layoutBranch, publicationId=$publicationId""".trimMargin()
+        }
         val sql = """
             select
               change_side,
@@ -597,6 +614,7 @@ class PublicationDao(
                 and (:publicationId::integer is null or :publicationId = publication.id)
                 and (:from::timestamptz is null or :from <= publication_time)
                 and (:to::timestamptz is null or :to >= publication_time)
+                and (case when :publicationId::integer is not null then :design_id is not distinct from publication.design_id end)
         """.trimIndent()
 
         data class ResultRow(
@@ -609,9 +627,12 @@ class PublicationDao(
         )
 
         return jdbcTemplate.query(
-            sql, mapOf("publicationId" to publicationId?.intValue,
+            sql, mapOf(
+                "publicationId" to publicationId?.intValue,
                 "from" to from?.let { Timestamp.from(it) },
-                "to" to to?.let { Timestamp.from(it) })
+                "to" to to?.let { Timestamp.from(it) },
+                "design_id" to layoutBranch?.designId?.intValue,
+            )
         ) { rs, _ ->
             ResultRow(
                 rs.getString("change_side"),
@@ -1406,7 +1427,9 @@ class PublicationDao(
         val sql = """
             with prev_pub 
               as (select max(publication_time) as prev_publication_time 
-              from publication.publication where id < :publication_id
+              from publication.publication
+              where id < :publication_id
+                and design_id is not distinct from (select design_id from publication.publication where id = :publication_id)
             )
             select
               prl.reference_line_id as id,

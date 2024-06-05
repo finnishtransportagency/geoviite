@@ -345,6 +345,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
         )
 
         val linkedLocationTracks = switchDao.findLocationTracksLinkedToSwitchAtMoment(
+            LayoutBranch.main,
             switchId,
             JointNumber(1),
             Instant.now(),
