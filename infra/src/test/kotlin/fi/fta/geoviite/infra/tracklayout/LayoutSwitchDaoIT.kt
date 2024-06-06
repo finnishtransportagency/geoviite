@@ -27,7 +27,7 @@ class LayoutSwitchDaoIT @Autowired constructor(
 
     @BeforeEach
     fun cleanup() {
-        deleteFromTables("layout", "switch_joint", "switch")
+        testDBService.clearLayoutTables()
     }
 
     @Test

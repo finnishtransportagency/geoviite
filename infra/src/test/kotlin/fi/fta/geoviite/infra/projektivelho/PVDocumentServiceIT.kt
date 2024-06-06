@@ -18,7 +18,7 @@ class PVDocumentServiceIT @Autowired constructor(
 
     @BeforeEach
     fun setup() {
-        deleteFromTables("projektivelho", *velhoTables.toTypedArray())
+        testDBService.clearProjektivelhoTables()
     }
 
     @Test

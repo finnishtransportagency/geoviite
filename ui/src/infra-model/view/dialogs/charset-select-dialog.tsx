@@ -5,14 +5,13 @@ import styles from '../form/infra-model-form.module.scss';
 import { useTranslation } from 'react-i18next';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Dialog } from 'geoviite-design-lib/dialog/dialog';
-import { Dropdown, Item } from 'vayla-design-lib/dropdown/dropdown';
-import { menuValueOption } from 'vayla-design-lib/menu/menu';
+import { Dropdown, Item, dropdownOption } from 'vayla-design-lib/dropdown/dropdown';
 
 const xmlEncodingOptions: Item<XmlCharset>[] = [
-    menuValueOption('ISO_8859_1' as const, 'ISO-8859-1', 'ISO-8859-1'),
-    menuValueOption('UTF_8' as const, 'UTF-8', 'UTF-8'),
-    menuValueOption('UTF_16' as const, 'UTF-16', 'UTF-16'),
-    menuValueOption('US_ASCII' as const, 'US ASCII', 'US ASCII'),
+    dropdownOption('ISO_8859_1' as const, 'ISO-8859-1', 'ISO-8859-1'),
+    dropdownOption('UTF_8' as const, 'UTF-8', 'UTF-8'),
+    dropdownOption('UTF_16' as const, 'UTF-16', 'UTF-16'),
+    dropdownOption('US_ASCII' as const, 'US ASCII', 'US ASCII'),
 ];
 
 export type CharsetSelectDialogProps = {

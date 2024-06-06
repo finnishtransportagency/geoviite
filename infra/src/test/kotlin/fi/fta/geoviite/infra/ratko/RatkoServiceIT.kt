@@ -144,7 +144,7 @@ class RatkoServiceIT @Autowired constructor(
     fun testChangeSet() {
         val referenceLineAlignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
         val locationTrackAlignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
-        val trackNumber = trackNumber(getUnusedTrackNumber(), draft = false)
+        val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = false)
         val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
         referenceLineDao.insert(
             referenceLine(
@@ -172,7 +172,7 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun pushNewTrackNumber() {
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
         val originalTrackNumberVersion = layoutTrackNumberDao.insert(
             trackNumber(trackNumber, description = "augh", externalId = null, draft = false)
         ).rowVersion
@@ -190,7 +190,7 @@ class RatkoServiceIT @Autowired constructor(
     @Test
     fun updateTrackNumber() {
         val originalTrackNumber = establishedTrackNumber()
-        val newTrackNumber = getUnusedTrackNumber()
+        val newTrackNumber = testDBService.getUnusedTrackNumber()
         trackNumberService.update(
             LayoutBranch.main,
             originalTrackNumber.id,
@@ -228,7 +228,7 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun pushAndDeleteLocationTrack() {
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
         val trackNumberId = layoutTrackNumberDao.insert(
             trackNumber(trackNumber, description = "augh", externalId = Oid("1.2.3.4.5"), draft = false)
         ).id
@@ -273,7 +273,7 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun modifyLocationTrackProperties() {
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
         val trackNumberId = layoutTrackNumberDao.insert(
             trackNumber(
                 trackNumber,
@@ -329,7 +329,7 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun lengthenLocationTrack() {
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
         val trackNumberId = layoutTrackNumberDao.insert(
             trackNumber(
                 trackNumber,
@@ -377,7 +377,7 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun shortenLocationTrack() {
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
         val trackNumberId = layoutTrackNumberDao.insert(
             trackNumber(
                 trackNumber,
@@ -424,7 +424,7 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun alterLocationTrackGeometry() {
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
         val trackNumberId = layoutTrackNumberDao.insert(
             trackNumber(
                 trackNumber,
@@ -487,7 +487,7 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun pushLocationTrackMetadata() {
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
         val trackNumberId = layoutTrackNumberDao.insert(
             trackNumber(
                 trackNumber,
@@ -548,13 +548,13 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun pushTwoTrackNumbers() {
-        val trackNumber1 = getUnusedTrackNumber()
+        val trackNumber1 = testDBService.getUnusedTrackNumber()
         val trackNumber1Version = trackNumberService.saveDraft(
             LayoutBranch.main,
             trackNumber(trackNumber1, externalId = null, draft = true)
         )
         insertSomeOfficialReferenceLineFor(trackNumber1Version.id)
-        val trackNumber2 = getUnusedTrackNumber()
+        val trackNumber2 = testDBService.getUnusedTrackNumber()
         val trackNumber2Version = trackNumberService.saveDraft(
             LayoutBranch.main,
             trackNumber(trackNumber2, externalId = null, draft = true)
@@ -571,7 +571,7 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun lengthenReferenceLine() {
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
         val originalTrackNumberVersion = layoutTrackNumberDao.insert(
             trackNumber(trackNumber, description = "augh", externalId = null, draft = false)
         ).rowVersion
@@ -598,7 +598,7 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun shortenReferenceLine() {
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
         val originalTrackNumberVersion = trackNumberService.saveDraft(
             LayoutBranch.main,
             trackNumber(trackNumber, description = "augh", externalId = null, draft = true)
@@ -644,7 +644,7 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun changeReferenceLineGeometry() {
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
         val originalTrackNumberVersion = trackNumberService.saveDraft(
             LayoutBranch.main,
             trackNumber(trackNumber, description = "augh", externalId = null, draft = true)
@@ -716,7 +716,7 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun removeKmPostBeforeSwitch() {
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
         val trackNumberId = layoutTrackNumberDao.insert(
             trackNumber(trackNumber, description = "augh", externalId = Oid("1.1.1.1.1"), draft = false)
         ).rowVersion.id
@@ -1031,7 +1031,7 @@ class RatkoServiceIT @Autowired constructor(
     @Test
     fun linkKmPost() {
         val trackNumber = layoutTrackNumberDao.insert(
-            trackNumber(getUnusedTrackNumber(), externalId = null, draft = false)
+            trackNumber(testDBService.getUnusedTrackNumber(), externalId = null, draft = false)
         )
         insertSomeOfficialReferenceLineFor(trackNumber.id)
         fakeRatko.acceptsNewRouteNumbersGivingThemOids(listOf("1.2.3.4.5"))
@@ -1128,7 +1128,7 @@ class RatkoServiceIT @Autowired constructor(
         val trackNumberId = trackNumberService.saveDraft(
             LayoutBranch.main,
             trackNumber(
-                getUnusedTrackNumber(),
+                testDBService.getUnusedTrackNumber(),
                 externalId = Oid("5.5.5.5.5"),
                 draft = true,
             )
@@ -1171,7 +1171,7 @@ class RatkoServiceIT @Autowired constructor(
         trackNumberService.saveDraft(
             LayoutBranch.main,
             trackNumber(
-                getUnusedTrackNumber(),
+                testDBService.getUnusedTrackNumber(),
                 externalId = Oid("5.5.5.5.5"),
                 draft = true
             )
@@ -1219,7 +1219,7 @@ class RatkoServiceIT @Autowired constructor(
         val publicationId = publicationDao.createPublication("test: bulk transfer to in progress")
         splitDao.updateSplit(splitId = splitId, publicationId = publicationId)
 
-        val someBulkTransferId = getUnusedBulkTransferId()
+        val someBulkTransferId = testDBService.getUnusedBulkTransferId()
         fakeRatko.acceptsNewBulkTransferGivingItId(someBulkTransferId)
 
         ratkoService.manageRatkoBulkTransfers(LayoutBranch.main)
@@ -1237,7 +1237,7 @@ class RatkoServiceIT @Autowired constructor(
 
     @Test
     fun `Bulk transfer should not be started when another bulk transfer is in progress`() {
-        val someBulkTransferId = getUnusedBulkTransferId()
+        val someBulkTransferId = testDBService.getUnusedBulkTransferId()
 
         splitTestDataService.insertSplit().let { splitId ->
             splitDao.updateSplit(
@@ -1274,7 +1274,7 @@ class RatkoServiceIT @Autowired constructor(
             ).id
         }
 
-        val bulkTransferIdThatWillFail = getUnusedBulkTransferId()
+        val bulkTransferIdThatWillFail = testDBService.getUnusedBulkTransferId()
         fakeRatko.acceptsNewBulkTransferGivingItId(bulkTransferIdThatWillFail)
         ratkoService.manageRatkoBulkTransfers(LayoutBranch.main)
 
@@ -1287,7 +1287,7 @@ class RatkoServiceIT @Autowired constructor(
             bulkTransferState = BulkTransferState.TEMPORARY_FAILURE,
         )
 
-        val retriedBulkTransferId = getUnusedBulkTransferId()
+        val retriedBulkTransferId = testDBService.getUnusedBulkTransferId()
         fakeRatko.acceptsNewBulkTransferGivingItId(retriedBulkTransferId)
         ratkoService.manageRatkoBulkTransfers(LayoutBranch.main)
 
@@ -1309,7 +1309,7 @@ class RatkoServiceIT @Autowired constructor(
             }
         }
 
-        val someBulkTransferId = getUnusedBulkTransferId()
+        val someBulkTransferId = testDBService.getUnusedBulkTransferId()
         fakeRatko.acceptsNewBulkTransferGivingItId(someBulkTransferId)
         ratkoService.manageRatkoBulkTransfers(LayoutBranch.main)
 
@@ -1336,7 +1336,7 @@ class RatkoServiceIT @Autowired constructor(
                         splitDao.updateSplit(
                             splitId = splitId,
                             publicationId = publicationDao.createPublication("testing $bulkTransferState"),
-                            bulkTransferId = getUnusedBulkTransferId(),
+                            bulkTransferId = testDBService.getUnusedBulkTransferId(),
                             bulkTransferState = bulkTransferState,
                         )
                 }
@@ -1416,7 +1416,7 @@ class RatkoServiceIT @Autowired constructor(
 
     private fun establishedTrackNumber(oidString: String = "1.1.1.1.1"): EstablishedTrackNumber {
         val oid = Oid<TrackLayoutTrackNumber>(oidString)
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
         val trackNumberDaoResponse = layoutTrackNumberDao.insert(
             trackNumber(trackNumber, externalId = oid, draft = false)
         )

@@ -15,7 +15,7 @@ import {
     InfraModelParametersProp,
     OverrideInfraModelParameters,
 } from 'infra-model/infra-model-slice';
-import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
+import { Dropdown, dropdownOption } from 'vayla-design-lib/dropdown/dropdown';
 import {
     compareNamed,
     CoordinateSystem as CoordinateSystemModel,
@@ -50,11 +50,11 @@ import FormgroupTextarea from 'infra-model/view/formgroup/formgroup-textarea';
 import { PVRedirectLink } from 'infra-model/projektivelho/pv-redirect-link';
 import { useLoader } from 'utils/react-utils';
 import i18next from 'i18next';
-import { menuValueOption } from 'vayla-design-lib/menu/menu';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_GEOMETRY_FILE, userHasPrivilege, VIEW_LAYOUT_DRAFT } from 'user/user-model';
 import { useCommonDataAppSelector } from 'store/hooks';
 import { ManualTrackNumberDialog } from 'infra-model/view/dialogs/manual-track-number-dialog';
+import { Icons } from 'vayla-design-lib/icon/Icon';
 
 type InframodelViewFormContainerProps = {
     changeTimes: ChangeTimes;
@@ -136,12 +136,12 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     const authors = useLoader(() => fetchAuthors(), [changeTimes.author]) || [];
 
     const planSourceOptions = [
-        menuValueOption(
+        dropdownOption(
             'GEOMETRIAPALVELU' as PlanSource,
             t('enum.plan-source.GEOMETRIAPALVELU'),
             'GEOMETRIAPALVELU',
         ),
-        menuValueOption(
+        dropdownOption(
             'PAIKANNUSPALVELU' as PlanSource,
             t('enum.plan-source.PAIKANNUSPALVELU'),
             'PAIKANNUSPALVELU',
@@ -363,7 +363,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                         wide
                                         value={geometryPlan.author?.id}
                                         options={authorsIncludingFromPlan().map((author) =>
-                                            menuValueOption(
+                                            dropdownOption(
                                                 author.id,
                                                 author.companyName,
                                                 `author-${author.id}`,
@@ -409,7 +409,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                                 trackNumberList
                                                     ? trackNumberList
                                                           .map((tn) =>
-                                                              menuValueOption(
+                                                              dropdownOption(
                                                                   tn,
                                                                   tn,
                                                                   `track-number-${tn}`,
@@ -424,6 +424,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                             }
                                             onAddClick={() => setShowNewTrackNumberDialog(true)}
                                             onAddClickTitle={t('im-form.set-manual-track-number')}
+                                            onAddClickIcon={Icons.Edit}
                                         />
                                     }
                                 />
@@ -459,7 +460,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
                                             sridList
                                                 ? sridList
                                                       .map((srid) =>
-                                                          menuValueOption(
+                                                          dropdownOption(
                                                               srid.srid,
                                                               `${srid.name} ${srid.srid}`,
                                                               srid.srid,

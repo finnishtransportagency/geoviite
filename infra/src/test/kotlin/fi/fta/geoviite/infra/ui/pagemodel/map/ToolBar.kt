@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdownListItem
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
+import org.joda.time.LocalDate
 import org.openqa.selenium.By
 import org.openqa.selenium.support.pagefactory.ByChained
 import waitUntilInvisible
@@ -60,12 +61,31 @@ class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.c
         clickChild(byQaId("current-mode-tab"))
     }
 
+    fun switchToDesign(): E2EToolBar = apply {
+        logger.info("Switch to design mode")
+        clickChild(byQaId("design-mode-tab"))
+    }
+
     fun createNewLocationTrack(): E2ELocationTrackEditDialog {
         logger.info("Create new location track")
 
         clickChild(byQaId("tool-bar.new"))
         clickWhenClickable(byQaId("tool-bar.new-location-track"))
         return E2ELocationTrackEditDialog()
+    }
+
+    fun workspaceDropdown() = E2EDropdown(byQaId("workspace-dropdown"))
+
+    fun createNewWorkspace(name: String, date: LocalDate = LocalDate.now()) {
+        logger.info("Create new workspace")
+
+        E2EDropdown(byQaId("workspace-dropdown")).new()
+        val newDialog = E2EWorkspaceEditDialog()
+
+        // Slight hack: Set date before name to make sure datepicker closes and doesn't block the save button
+        newDialog.setDate(date)
+        newDialog.setName(name)
+        newDialog.save()
     }
 }
 

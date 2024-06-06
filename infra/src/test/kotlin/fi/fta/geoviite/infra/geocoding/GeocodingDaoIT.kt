@@ -19,7 +19,6 @@ import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.referenceLine
-import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -44,14 +43,14 @@ class GeocodingDaoIT @Autowired constructor(
 
     @Test
     fun trackNumberWithoutReferenceLineHasNoContext() {
-        val id = trackNumberDao.insert(trackNumber(getUnusedTrackNumber(), draft = false)).id
+        val id = mainOfficialContext.createLayoutTrackNumber().id
         assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.draft, id))
         assertNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, id))
     }
 
     @Test
     fun trackNumberWithoutKmPostsHasAContext() {
-        val id = trackNumberDao.insert(trackNumber(getUnusedTrackNumber(), draft = false)).id
+        val id = mainOfficialContext.createLayoutTrackNumber().id
         val alignmentVersion = alignmentDao.insert(alignment())
         referenceLineDao.insert(referenceLine(id, alignmentVersion = alignmentVersion, draft = false))
         assertNotNull(geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.draft, id))
@@ -60,7 +59,7 @@ class GeocodingDaoIT @Autowired constructor(
 
     @Test
     fun cacheKeysAreCalculatedCorrectly() {
-        val tnOfficialResponse = trackNumberDao.insert(trackNumber(getUnusedTrackNumber(), draft = false))
+        val tnOfficialResponse = mainOfficialContext.createLayoutTrackNumber()
         val tnId = tnOfficialResponse.id
         val tnOfficialVersion = tnOfficialResponse.rowVersion
         val tnDraftVersion = trackNumberDao.insert(asMainDraft(trackNumberDao.fetch(tnOfficialVersion))).rowVersion
@@ -153,7 +152,7 @@ class GeocodingDaoIT @Autowired constructor(
 
     @Test
     fun cacheKeysAreCorrectlyFetchedByMoment() {
-        val tnOfficialResponse = trackNumberDao.insert(trackNumber(getUnusedTrackNumber(), draft = false))
+        val tnOfficialResponse = mainOfficialContext.createLayoutTrackNumber()
         val tnId = tnOfficialResponse.id
         val tnOfficialVersion = tnOfficialResponse.rowVersion
         val alignmentVersion = alignmentDao.insert(alignment())

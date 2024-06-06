@@ -50,7 +50,7 @@ class GeometryServiceIT @Autowired constructor(
         deletePlans()
 
         val file = testFile()
-        val plan = plan(getUnusedTrackNumber(), fileName = file.name)
+        val plan = plan(testDBService.getUnusedTrackNumber(), fileName = file.name)
         val polygon = someBoundingPolygon()
         val planId = geometryDao.insertPlan(plan, file, polygon).id
         val searchBbox = boundingBoxAroundPoints(polygon)
@@ -71,7 +71,7 @@ class GeometryServiceIT @Autowired constructor(
 
     @Test
     fun getLocationTrackHeightsCoversTrackStartsAndEnds() {
-        val trackNumber = trackNumber(getUnusedTrackNumber(), draft = true)
+        val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
         val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
         referenceLineService.saveDraft(
             LayoutBranch.main,
@@ -148,7 +148,7 @@ class GeometryServiceIT @Autowired constructor(
 
     @Test
     fun getLocationTrackHeightsReturnsBothOrdinaryTicksAndPlanBoundaries() {
-        val trackNumber = trackNumber(getUnusedTrackNumber(), draft = true)
+        val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
         val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
         referenceLineService.saveDraft(
             LayoutBranch.main,
@@ -211,7 +211,7 @@ class GeometryServiceIT @Autowired constructor(
 
     @Test
     fun getLocationTrackHeightsHandlesSegmentChangeAtRightBeforeKilometerStart() {
-        val trackNumber = trackNumber(getUnusedTrackNumber(), draft = true)
+        val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
         val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
         referenceLineService.saveDraft(
             LayoutBranch.main,
@@ -273,7 +273,7 @@ class GeometryServiceIT @Autowired constructor(
 
     @Test
     fun getLocationTrackHeightsHandlesKmShorterThanTickLength() {
-        val trackNumber = trackNumber(getUnusedTrackNumber(), draft = true)
+        val trackNumber = trackNumber(testDBService.getUnusedTrackNumber(), draft = true)
         val trackNumberId = layoutTrackNumberDao.insert(trackNumber).id
         referenceLineService.saveDraft(
             LayoutBranch.main,

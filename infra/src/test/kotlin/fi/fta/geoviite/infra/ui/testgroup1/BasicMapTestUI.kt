@@ -3,7 +3,17 @@ package fi.fta.geoviite.infra.ui.testgroup1
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.testFile
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
+import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.pagemodel.map.E2ELocationTrackEditDialog
@@ -20,7 +30,9 @@ import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westMainLoca
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenceLine
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westTrackLayoutKmPosts
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westTrackLayoutSwitch
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -45,7 +57,7 @@ class BasicMapTestUI @Autowired constructor(
 
     @BeforeEach
     fun createTestData() {
-        clearAllTestData()
+        testDBService.clearAllTables()
 
         // TODO: GVT-1945  Don't use shared test data - init the data in the test as is needed, so it's clear what is expected
         TRACK_NUMBER_WEST = trackNumber(HKI_TRACK_NUMBER_1, draft = false)
@@ -59,8 +71,8 @@ class BasicMapTestUI @Autowired constructor(
         val eastReferenceLine = eastReferenceLine(trackNumberEastId.id)
         val eastLocationTrack = eastLocationTrack(trackNumberEastId.id)
 
-        insertLocationTrack(WEST_LT)
-        insertLocationTrack(eastLocationTrack)
+        mainOfficialContext.insert(WEST_LT)
+        mainOfficialContext.insert(eastLocationTrack)
         insertReferenceLine(WEST_REFERENCE_LINE)
         insertReferenceLine(eastReferenceLine)
 
@@ -86,10 +98,10 @@ class BasicMapTestUI @Autowired constructor(
         val toolPanel = trackLayoutPage.toolPanel
         val locationTrackInfobox = toolPanel.locationTrackGeneralInfo
 
-        selectionPanel.selectReferenceLine(TRACK_NUMBER_WEST.number.toString())
+        selectionPanel.selectOrUnselectReferenceLine(TRACK_NUMBER_WEST.number.toString())
         toolPanel.referenceLineLocation.zoomTo()
 
-        selectionPanel.selectLocationTrack(locationTrackToBeEdited)
+        selectionPanel.selectOrUnselectLocationTrack(locationTrackToBeEdited)
         val editDialog = locationTrackInfobox.edit()
 
         editDialog
@@ -123,7 +135,7 @@ class BasicMapTestUI @Autowired constructor(
         assertEquals("Sijaintiraide R36240", changedAlignment.name)
 
         previewChangesPage.revertChange("Sijaintiraide R36240").goToTrackLayout()
-        selectionPanel.selectLocationTrack(locationTrackToBeEdited)
+        selectionPanel.selectOrUnselectLocationTrack(locationTrackToBeEdited)
 
         assertNotEquals("R36240", locationTrackInfobox.name)
         locationTrackInfobox.waitUntilDescriptionChanges("east location track description")
@@ -141,10 +153,10 @@ class BasicMapTestUI @Autowired constructor(
         val toolPanel = trackLayoutPage.toolPanel
         val locationTrackInfobox = toolPanel.locationTrackGeneralInfo
 
-        selectionPanel.selectReferenceLine(TRACK_NUMBER_WEST.number.toString())
+        selectionPanel.selectOrUnselectReferenceLine(TRACK_NUMBER_WEST.number.toString())
         toolPanel.referenceLineLocation.zoomTo()
 
-        selectionPanel.selectLocationTrack(locationTrackToBeEdited)
+        selectionPanel.selectOrUnselectLocationTrack(locationTrackToBeEdited)
         val editDialog = locationTrackInfobox.edit()
 
         editDialog

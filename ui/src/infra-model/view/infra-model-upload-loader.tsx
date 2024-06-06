@@ -49,8 +49,11 @@ export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ 
     const onSave: () => Promise<boolean> = async () => {
         if (file) {
             props.setLoading(true);
-            const response = await saveInfraModelFile(file, extraParams, overrideParams);
-            props.setLoading(false);
+            const response = await saveInfraModelFile(file, extraParams, overrideParams).finally(
+                () => {
+                    props.setLoading(false);
+                },
+            );
             return response != undefined;
         } else {
             return false;

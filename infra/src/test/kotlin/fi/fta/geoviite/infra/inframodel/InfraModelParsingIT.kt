@@ -6,15 +6,25 @@ import fi.fta.geoviite.infra.common.FeatureTypeCode
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geography.GeographyService
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.BiquadraticParabola
+import fi.fta.geoviite.infra.geometry.CantTransitionType
+import fi.fta.geoviite.infra.geometry.GeometryAlignment
+import fi.fta.geoviite.infra.geometry.GeometryCant
+import fi.fta.geoviite.infra.geometry.GeometryClothoid
+import fi.fta.geoviite.infra.geometry.GeometryCurve
+import fi.fta.geoviite.infra.geometry.GeometryKmPost
+import fi.fta.geoviite.infra.geometry.GeometryLine
+import fi.fta.geoviite.infra.geometry.GeometryProfile
+import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
 import org.springframework.beans.factory.annotation.Autowired
@@ -41,7 +51,7 @@ class InfraModelParsingIT @Autowired constructor(
     @Test
     fun decodeFile1() {
         // Insert a track number if it doesn't already exist
-        val trackNumber = getOrCreateTrackNumber(TrackNumber("001"))
+        val trackNumber = TrackNumber("001")
 
         val xmlString = classpathResourceToString(TESTFILE_SIMPLE)
         val infraModel = toInfraModel(toInfraModelFile(FileName("tstfile.xml"), xmlString))
@@ -436,10 +446,10 @@ class InfraModelParsingIT @Autowired constructor(
 
     private fun assertTrackNumbersMatch(
         infraModelAlignmentGroups: List<InfraModelAlignmentGroup>,
-        trackNumber: TrackLayoutTrackNumber?,
+        trackNumber: TrackNumber?,
     ) {
         assertNotNull(trackNumber)
-        assertEquals(TrackNumber(infraModelAlignmentGroups.first().name), trackNumber?.number)
+        assertEquals(TrackNumber(infraModelAlignmentGroups.first().name), trackNumber)
     }
 
     private fun assertAlignmentsMatch(

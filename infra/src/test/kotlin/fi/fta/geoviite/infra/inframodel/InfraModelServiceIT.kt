@@ -7,7 +7,11 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.MeasurementMethod
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.error.InframodelParsingException
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.PlanDecisionPhase
+import fi.fta.geoviite.infra.geometry.PlanPhase
+import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -83,9 +87,9 @@ class InfraModelServiceIT @Autowired constructor(
             encoding = null,
             coordinateSystemSrid = null,
             verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
-            projectId = geometryDao.insertProject(project(getUnusedProjectName().toString())).id,
-            authorId = geometryDao.insertAuthor(author(getUnusedAuthorCompanyName().toString())).id,
-            trackNumber = getOrCreateTrackNumber(getUnusedTrackNumber()).number,
+            projectId = testDBService.insertProject().id,
+            authorId = testDBService.insertAuthor().id,
+            trackNumber = mainDraftContext.createAndFetchLayoutTrackNumber().number,
             createdDate = Instant.now().minusSeconds(Duration.ofDays(5L).toSeconds()),
             source = PlanSource.GEOMETRIAPALVELU,
         )
@@ -101,9 +105,9 @@ class InfraModelServiceIT @Autowired constructor(
             encoding = null,
             coordinateSystemSrid = null,
             verticalCoordinateSystem = VerticalCoordinateSystem.N60,
-            projectId = geometryDao.insertProject(project(getUnusedProjectName().toString())).id,
-            authorId = geometryDao.insertAuthor(author(getUnusedAuthorCompanyName().toString())).id,
-            trackNumber = getOrCreateTrackNumber(getUnusedTrackNumber()).number,
+            projectId = testDBService.insertProject().id,
+            authorId = testDBService.insertAuthor().id,
+            trackNumber = mainDraftContext.createAndFetchLayoutTrackNumber().number,
             createdDate = Instant.now(),
             source = PlanSource.PAIKANNUSPALVELU,
         )

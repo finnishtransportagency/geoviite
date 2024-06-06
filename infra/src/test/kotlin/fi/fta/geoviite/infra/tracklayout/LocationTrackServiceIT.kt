@@ -9,10 +9,13 @@ import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.error.SplitSourceLocationTrackUpdateException
 import fi.fta.geoviite.infra.getSomeValue
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.split.SplitTestDataService
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -37,10 +40,13 @@ class LocationTrackServiceIT @Autowired constructor(
     private val switchService: LayoutSwitchService,
     private val switchDao: LayoutSwitchDao,
     private val referenceLineDao: ReferenceLineDao,
+    private val splitService: SplitService,
+    private val splitTestDataService: SplitTestDataService,
 ) : DBTestBase() {
 
     @BeforeEach
     fun setup() {
+        splitTestDataService.clearSplits()
         locationTrackDao.deleteDrafts(LayoutBranch.main)
         alignmentDao.deleteOrphanedAlignments()
         switchDao.deleteDrafts(LayoutBranch.main)
@@ -48,7 +54,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun creatingAndDeletingUnpublishedTrackWithAlignmentWorks() {
-        val (track, alignment) = locationTrackAndAlignment(insertDraftTrackNumber(), someSegment(), draft = true)
+        val (track, alignment) = locationTrackAndAlignment(mainDraftContext.createLayoutTrackNumber().id, someSegment(), draft = true)
         val (id, version) = locationTrackService.saveDraft(LayoutBranch.main, track, alignment)
         val (savedTrack, savedAlignment) = locationTrackService.getWithAlignment(version)
         assertTrue(alignmentExists(savedTrack.alignmentVersion!!.id))
@@ -60,7 +66,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun deletingOfficialLocationTrackThrowsException() {
-        val (track, alignment) = locationTrackAndAlignment(insertOfficialTrackNumber(), someSegment(), draft = true)
+        val (track, alignment) = locationTrackAndAlignment(mainOfficialContext.createLayoutTrackNumber().id, someSegment(), draft = true)
         val version = locationTrackService.saveDraft(LayoutBranch.main, track, alignment)
         publish(version.id)
         assertThrows<DeletingFailureException> { locationTrackService.deleteDraft(LayoutBranch.main, version.id) }
@@ -68,7 +74,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun nearbyLocationTracksAreFoundWithBbox() {
-        val trackNumberId = insertDraftTrackNumber()
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val (trackInside, alignmentInside) = locationTrackAndAlignment(
             trackNumberId,
             segment(
@@ -103,7 +109,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun locationTrackInsertAndUpdateWorks() {
-        val trackNumberId = insertDraftTrackNumber()
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
 
         val (response, insertedTrack) = createAndVerifyTrack(trackNumberId, 1)
         val (id, insertedTrackVersion) = response
@@ -190,7 +196,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun updatingExternalIdWorks() {
-        val trackNumberId = insertDraftTrackNumber()
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
 
         val insertRequest = saveRequest(trackNumberId, 2)
         val id = locationTrackService.insert(LayoutBranch.main, insertRequest).id
@@ -210,7 +216,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun returnsNullIfFetchingDraftOnlyLocationTrackUsingOfficialFetch() {
-        val trackNumber = insertOfficialTrackNumber()
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
         val draft = createAndVerifyTrack(trackNumber, 35)
 
         assertNull(locationTrackService.get(MainLayoutContext.official, draft.first.id))
@@ -218,7 +224,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun throwsIfFetchingOfficialVersionOfDraftOnlyLocationTrackUsingGetOrThrow() {
-        val trackNumber = insertOfficialTrackNumber()
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
         val draft = createAndVerifyTrack(trackNumber, 35)
 
         assertThrows<NoSuchEntityException> {
@@ -228,7 +234,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun updateTopologyFindsSwitchStartConnectionInTheMiddleOfAlignment() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val switchId = insertAndFetchDraft(switch(draft = true)).id as IntId
 
         val (_, _) = insertAndFetchDraft(
@@ -258,7 +264,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun updateTopologyFindsSwitchEndConnectionInTheMiddleOfAlignment() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val switchId = insertAndFetchDraft(switch(draft = true)).id as IntId
 
         val (_, _) = insertAndFetchDraft(
@@ -288,7 +294,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun updateTopologyDoesntFindSwitchConnectionForTrackCrossingOverSwitch() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val switchId = insertAndFetchDraft(switch(draft = true)).id as IntId
 
         val (_, _) = insertAndFetchDraft(
@@ -318,7 +324,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun updateTopologyDoesntFindSwitchConnectionForTrackFartherAway() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val switchId = insertAndFetchDraft(switch(draft = true)).id as IntId
 
         val (_, _) = insertAndFetchDraft(
@@ -348,7 +354,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun updateTopologyFindsSwitchConnectionFromOtherTopology() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val switchId1 = insertAndFetchDraft(switch(draft = true)).id as IntId
         val switchId2 = insertAndFetchDraft(switch(draft = true)).id as IntId
 
@@ -413,7 +419,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun updateTopologyDoesntLoseCurrentConnectionIfNothingIsFound() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val switchId1 = insertAndFetchDraft(switch(draft = true)).id as IntId
         val switchId2 = insertAndFetchDraft(switch(draft = true)).id as IntId
 
@@ -434,7 +440,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun updateTopologyFindsSwitchConnectionFromOtherTopologyEnd() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val switchId = insertAndFetchDraft(switch(draft = true)).id as IntId
 
         val (_, _) = insertAndFetchDraft(
@@ -460,7 +466,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun `getLocationTrackSwitches finds both topology and segment switches`() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val topologyStartSwitchId = insertAndFetchDraft(switch(draft = true)).id as IntId
         val topologyEndSwitchId = insertAndFetchDraft(switch(draft = true)).id as IntId
         val segmentSwitchId = insertAndFetchDraft(switch(draft = true)).id as IntId
@@ -491,12 +497,12 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun fetchDuplicatesIsVersioned() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val originalLocationTrackId = locationTrackService
             .insert(LayoutBranch.main, saveRequest(trackNumberId, 1)).id
         publish(originalLocationTrackId)
         val officialCopy = insertAndFetchDraft(
-            locationTrack(getUnusedTrackNumberId(), duplicateOf = originalLocationTrackId, draft = true),
+            locationTrack(mainDraftContext.createLayoutTrackNumber().id, duplicateOf = originalLocationTrackId, draft = true),
             alignment(),
         )
         publish(officialCopy.first.id as IntId<LocationTrack>)
@@ -519,7 +525,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun `Splitting initialization parameters are fetched properly`() {
-        val trackNumberId = getUnusedTrackNumberId()
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val rlAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(100.0, 0.0))))
         referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = rlAlignment, draft = false))
 
@@ -566,6 +572,36 @@ class LocationTrackServiceIT @Autowired constructor(
         assertEquals(50.0, splittingParams?.switches?.first()?.distance ?: 0.0, 0.01)
     }
 
+    @Test
+    fun `Trying to update a split source location track should throw`() {
+        val split = splitTestDataService
+            .insertSplit()
+            .let(splitService::getOrThrow)
+
+        val sourceLocationTrack = locationTrackService.getOrThrow(
+            MainLayoutContext.draft,
+            split.sourceLocationTrackId,
+        )
+
+        assertThrows<SplitSourceLocationTrackUpdateException> {
+            locationTrackService.update(
+                LayoutBranch.main,
+                split.sourceLocationTrackId,
+                LocationTrackSaveRequest(
+                    name = AlignmentName("Some other name"),
+                    descriptionBase = sourceLocationTrack.descriptionBase,
+                    descriptionSuffix = sourceLocationTrack.descriptionSuffix,
+                    type = sourceLocationTrack.type,
+                    state = sourceLocationTrack.state,
+                    trackNumberId = sourceLocationTrack.trackNumberId,
+                    duplicateOf = sourceLocationTrack.duplicateOf,
+                    topologicalConnectivity = sourceLocationTrack.topologicalConnectivity,
+                    ownerId = sourceLocationTrack.ownerId,
+                )
+            )
+        }
+    }
+
     private fun asLocationTrackDuplicate(locationTrack: LocationTrack): LocationTrackDuplicate = LocationTrackDuplicate(
         locationTrack.id as IntId,
         locationTrack.trackNumberId,
@@ -584,7 +620,7 @@ class LocationTrackServiceIT @Autowired constructor(
         .getWithAlignment(locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment).rowVersion)
 
     private fun createPublishedLocationTrack(seed: Int): Pair<DaoResponse<LocationTrack>, LocationTrack> {
-        val trackNumberId = insertOfficialTrackNumber()
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val (trackInsertResponse, _) = createAndVerifyTrack(trackNumberId, seed)
         return publishAndVerify(trackInsertResponse.id)
     }

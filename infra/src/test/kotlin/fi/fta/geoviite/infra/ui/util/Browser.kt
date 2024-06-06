@@ -25,7 +25,6 @@ import java.time.Instant
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 import java.util.logging.Level
-import kotlin.test.assertEquals
 
 private fun createChromeDriver(headless: Boolean): WebDriver {
     val options = ChromeOptions()

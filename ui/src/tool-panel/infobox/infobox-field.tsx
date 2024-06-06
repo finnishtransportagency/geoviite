@@ -56,7 +56,8 @@ const InfoboxField: React.FC<InfoboxFieldProps> = ({
                 <PrivilegeRequired privilege={EDIT_LAYOUT}>
                     <div
                         className={styles['infobox__edit-icon']}
-                        onClick={() => !iconDisabled && props.onEdit && props.onEdit()}>
+                        onClick={() => !iconDisabled && props.onEdit && props.onEdit()}
+                        qa-id={`${qaId}-edit`}>
                         <span title={iconTitle}>
                             <Icons.Edit size={IconSize.SMALL} color={iconColor} />
                         </span>

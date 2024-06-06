@@ -125,6 +125,14 @@ export async function postFormNonNullAdt<Output>(
     return fetchFormNonNullAdt<Output>(path, 'POST', data);
 }
 
+export const postFormNonNull = async <Output>(
+    path: string,
+    data: FormData,
+    toastFailure: boolean = true,
+): Promise<Output> => {
+    return fetchFormNonNull(path, 'POST', data, toastFailure);
+};
+
 export async function putNullable<Input, Output>(
     path: string,
     body: Input,
@@ -155,11 +163,12 @@ export async function putNullableAdt<Input, Output>(
     return fetchNullableAdt<Input, Output>(path, 'PUT', body);
 }
 
-export async function putFormNonNullAdt<Output>(
+export async function putFormNonNull<Output>(
     path: string,
     data: FormData,
-): Promise<Result<Output, ApiErrorResponse | undefined>> {
-    return fetchFormNonNullAdt<Output>(path, 'PUT', data);
+    toastFailure: boolean = true,
+): Promise<Output> {
+    return fetchFormNonNull<Output>(path, 'PUT', data, toastFailure);
 }
 
 export async function deleteNullable<Output>(
@@ -218,6 +227,21 @@ async function fetchNonNull<Input, Output>(
 
     return result.isOk() ? result.value : Promise.reject(result.error);
 }
+
+const fetchFormNonNull = async <Output>(
+    path: string,
+    method: HttpMethod,
+    data: FormData,
+    toastFailure: boolean = true,
+): Promise<Output> => {
+    const result = await fetchFormNonNullAdt<Output>(path, method, data);
+
+    if (result.isErr() && result.error && toastFailure) {
+        showHttpError(path, result.error);
+    }
+
+    return result.isOk() ? result.value : Promise.reject(result.error);
+};
 
 async function fetchNullableAdt<Input, Output>(
     path: string,

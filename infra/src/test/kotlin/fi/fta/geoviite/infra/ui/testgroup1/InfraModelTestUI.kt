@@ -5,7 +5,7 @@ import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EInfraModelPage
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration
@@ -16,7 +16,6 @@ import java.io.File
 import java.time.LocalDateTime
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
-
 
 @ActiveProfiles("dev", "test", "e2e")
 @EnableAutoConfiguration
@@ -30,10 +29,9 @@ class InfraModelTestUI @Autowired constructor(
     val TESTFILE_CLOTHOID_AND_PARABOLA_2_PATH: String =
         "src/test/resources/inframodel/testfile_clothoid_and_parabola_2.xml"
 
-    @BeforeAll
+    @BeforeEach
     fun clearDb() {
-        initUser()
-        clearAllTestData()
+        testDBService.clearAllTables()
     }
 
     fun startGeoviiteAndGoToWork(): E2EInfraModelPage {
@@ -107,7 +105,7 @@ class InfraModelTestUI @Autowired constructor(
         val infraModelPage = startGeoviiteAndGoToWork()
         val uploadForm = infraModelPage.upload(file.absolutePath)
 
-        //Projektin tiedot
+        // Projektin tiedot
         val projektinTiedot = uploadForm.metaFormGroup
 
         val projektinNimi = "E2E IM upload and edit project"
@@ -118,13 +116,13 @@ class InfraModelTestUI @Autowired constructor(
         projektinTiedot.selectNewAuthor(suunnitteluyritys)
         assertEquals(suunnitteluyritys, projektinTiedot.author)
 
-        //Sijaintitiedot
+        // Sijaintitiedot
         val sijaintitiedot = uploadForm.locationFormGroup
         val ratanumero = "123E2E"
         sijaintitiedot.selectManualTrackNumber(ratanumero)
         assertEquals(ratanumero, sijaintitiedot.trackNumber)
 
-        //Tilanne ja laatutiedot
+        // Tilanne ja laatutiedot
         val tilanneJaLaatutiedot = uploadForm.qualityFormGroup
         val suunnitteluvaihe = "Peruskorjaus"
         tilanneJaLaatutiedot.selectPlanPhase(suunnitteluvaihe)
@@ -139,7 +137,7 @@ class InfraModelTestUI @Autowired constructor(
         tilanneJaLaatutiedot.selectElevationMeasurementMethod(korkeusasema)
         assertEquals(korkeusasema, tilanneJaLaatutiedot.elevationMeasurementMethod)
 
-        //Loki- ja linkitysdata
+        // Loki- ja linkitysdata
         val lokiJaLinkitystiedotFormGroup = uploadForm.logFormGroup
         lokiJaLinkitystiedotFormGroup.setPlanTime("elokuu", "1999")
         assertEquals("01.08.1999", lokiJaLinkitystiedotFormGroup.planTime)
@@ -152,12 +150,11 @@ class InfraModelTestUI @Autowired constructor(
         val uploadedPlanRow = infraModelRowsAfterUpload.getRow(projectName = projektinNimi)
         assertNotNull(uploadedPlanRow)
         assertEquals("testfile_clothoid_and_parabola_2.xml", uploadedPlanRow.fileName)
-
     }
 
     @Test
     fun `Search and sort Infra Model files`() {
-        clearAllTestData()
+        testDBService.clearAllTables()
 
         val file1 = File(TESTFILE_SIMPLE_PATH)
         val file2 = File(TESTFILE_CLOTHOID_AND_PARABOLA_PATH)
@@ -176,7 +173,7 @@ class InfraModelTestUI @Autowired constructor(
 
         val table = infraModelPage.infraModelsList
 
-        //sorting
+        // sorting
         table.sortBy("Laadittu")
         var rows = table.rows
         assertThat(rows[0].planTime).isBefore(rows[1].planTime)
@@ -185,7 +182,7 @@ class InfraModelTestUI @Autowired constructor(
         rows = table.rows
         assertThat(rows[0].fileName).isLessThan(rows[1].fileName)
 
-        //searching
+        // searching
         val files: List<File> = listOf(file1, file2, file3)
         val randomIndex = (files.indices).random()
         val randomFile = files[randomIndex]
@@ -193,7 +190,5 @@ class InfraModelTestUI @Autowired constructor(
         infraModelPage.search(randomFile.name)
         rows = table.rows
         assertThat(rows.first().fileName).isEqualTo(randomFile.name)
-
-        clearAllTestData()
     }
 }

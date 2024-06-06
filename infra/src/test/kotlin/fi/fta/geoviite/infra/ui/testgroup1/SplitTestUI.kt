@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ui.testgroup1
 
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -37,10 +38,10 @@ class SplitTestUI @Autowired constructor(
 
     @Test
     fun `Split can be created and published`() {
-        clearAllTestData()
+        testDBService.clearAllTables()
 
         val trackNumber = TrackNumber("876")
-        val trackNumberId = insertOfficialTrackNumber(trackNumber)
+        val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(trackNumber).id as IntId
 
         val trackStartPoint = HelsinkiTestData.HKI_BASE_POINT + Point(x = 675.0, y = 410.0)
         val preSegments = splitTestDataService.createSegments(trackStartPoint, 3)
@@ -75,10 +76,10 @@ class SplitTestUI @Autowired constructor(
             .goToMap()
             .switchToDraftMode()
 
-        trackLayoutPage.selectionPanel.selectReferenceLine(trackNumber.toString())
+        trackLayoutPage.selectionPanel.selectOrUnselectReferenceLine(trackNumber.toString())
         trackLayoutPage.toolPanel.referenceLineLocation.zoomTo()
 
-        trackLayoutPage.selectionPanel.selectLocationTrack(sourceTrackName)
+        trackLayoutPage.selectionPanel.selectOrUnselectLocationTrack(sourceTrackName)
         val splittingInfobox = trackLayoutPage.toolPanel.locationTrackLocation.startSplitting()
         splittingInfobox.waitUntilTargetTrackInputExists(0)
 
@@ -126,7 +127,7 @@ class SplitTestUI @Autowired constructor(
             .waitForAllTableValidationsToComplete()
             .publish()
 
-        trackLayoutPageAfterPublishing.selectionPanel.selectLocationTrack(targetTrackNames[0])
+        trackLayoutPageAfterPublishing.selectionPanel.selectOrUnselectLocationTrack(targetTrackNames[0])
         assertFalse(
             getElementWhenExists(byQaId("start-splitting")).isEnabled,
             "splitting a target track again should not be possible before bulk transfer has completed"
@@ -141,7 +142,7 @@ class SplitTestUI @Autowired constructor(
             .close()
             .setNthSplitBulkTransferCompleted(1)
 
-        goToMap().selectionPanel.selectLocationTrack(targetTrackNames[1])
+        goToMap().selectionPanel.selectOrUnselectLocationTrack(targetTrackNames[1])
         assertTrue(
             getElementWhenExists(byQaId("start-splitting")).isEnabled,
             "splitting a target track again should be possible after setting the bulk transfer to be completed"

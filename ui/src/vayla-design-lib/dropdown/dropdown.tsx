@@ -1,12 +1,32 @@
 import * as React from 'react';
 import styles from './dropdown.scss';
 import { createClassName } from 'vayla-design-lib/utils';
-import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { IconColor, IconComponent, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
 import { useImmediateLoader } from 'utils/react-utils';
 import { first } from 'utils/array-utils';
 import { useTranslation } from 'react-i18next';
+import { OptionBase } from 'vayla-design-lib/menu/menu';
+
+export type DropdownOption<TValue> = {
+    type: 'VALUE';
+    name: string;
+    value: TValue;
+} & OptionBase;
+
+export const dropdownOption = <TValue,>(
+    value: TValue,
+    name: string,
+    qaId: string,
+    disabled: boolean = false,
+): DropdownOption<TValue> => ({
+    type: 'VALUE',
+    name,
+    value,
+    disabled,
+    qaId,
+});
 
 export enum DropdownSize {
     SMALL = 'dropdown--small',
@@ -45,6 +65,7 @@ export type DropdownProps<TItemValue> = {
     hasError?: boolean;
     onAddClick?: () => void;
     onAddClickTitle?: string;
+    onAddClickIcon?: IconComponent;
     wideList?: boolean;
     qaId?: string;
     inputRef?: React.RefObject<HTMLInputElement>;
@@ -422,7 +443,7 @@ export const Dropdown = function <TItemValue>({
                         <div className="dropdown__add-new-container">
                             <Button
                                 variant={ButtonVariant.GHOST}
-                                icon={Icons.Append}
+                                icon={props.onAddClickIcon ?? Icons.Append}
                                 wide
                                 onClick={props.onAddClick}>
                                 {props.onAddClickTitle ?? t('dropdown.add-new')}

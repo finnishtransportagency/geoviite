@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
@@ -14,6 +13,7 @@ import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
@@ -21,7 +21,6 @@ import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.segmentsFromSwitchStructure
-import fi.fta.geoviite.infra.tracklayout.splitSegment
 import fi.fta.geoviite.infra.tracklayout.switchFromDbStructure
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
@@ -41,22 +40,38 @@ class SplitTestDataService @Autowired constructor(
     private val splitService: SplitService,
 ) : DBTestBase() {
 
+    fun clearSplits() {
+        val sql = """
+        truncate publication.split cascade;
+        truncate publication.split_version cascade;
+        truncate publication.split_relinked_switch cascade;
+        truncate publication.split_relinked_switch_version cascade;
+        truncate publication.split_target_location_track cascade;
+        truncate publication.split_target_location_track_version cascade;
+        truncate publication.split_updated_duplicate cascade;
+        truncate publication.split_updated_duplicate_version cascade;
+    """.trimIndent()
+        jdbc.execute(sql) { it.execute() }
+    }
+
     fun insertSplit(
-        trackNumberId: IntId<TrackLayoutTrackNumber> = insertOfficialTrackNumber(),
+        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
     ): IntId<Split> {
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
-        val sourceTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = false) to alignment
-        )
 
-        val targetTrack = insertLocationTrack(
-            locationTrack(trackNumberId = trackNumberId, draft = true) to alignment
+        val sourceTrack = mainDraftContext.insert(
+            locationTrack(
+                trackNumberId = trackNumberId,
+                state = LocationTrackState.DELETED,
+            ),
+            alignment,
         )
+        val targetTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
 
         return splitDao.saveSplit(
             sourceLocationTrackVersion = sourceTrack.rowVersion,
             splitTargets = listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE)),
-            relinkedSwitches = listOf(insertUniqueSwitch().id),
+            relinkedSwitches = listOf(mainOfficialContext.createSwitch().id),
             updatedDuplicates = emptyList(),
         )
     }
@@ -66,12 +81,11 @@ class SplitTestDataService @Autowired constructor(
         structure: SwitchStructure = getYvStructure(),
         externalId: Oid<TrackLayoutSwitch>? = null,
     ): SwitchAndSegments {
-        val switchInsertResponse = insertSwitch(
+        val switchInsertResponse = mainOfficialContext.insert(
             switchFromDbStructure(
-                getUnusedSwitchName().toString(),
+                testDBService.getUnusedSwitchName().toString(),
                 startPoint,
                 structure,
-                draft = false,
                 externalId = externalId?.toString(),
             )
         )
@@ -93,27 +107,23 @@ class SplitTestDataService @Autowired constructor(
     fun insertAsTrack(
         segments: List<LayoutSegment>,
         duplicateOf: IntId<LocationTrack>? = null,
-        trackNumberId: IntId<TrackLayoutTrackNumber> = insertOfficialTrackNumber(),
+        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
     ): IntId<LocationTrack> {
         val alignment = alignment(segments)
-        return insertLocationTrack(
-            locationTrack(
-                trackNumberId = trackNumberId,
-                draft = false,
-                duplicateOf = duplicateOf
-            ),
+        return mainOfficialContext.insert(
+            locationTrack(trackNumberId = trackNumberId, duplicateOf = duplicateOf),
             alignment,
         ).id
     }
 
     fun createAsMainTrack(
         segments: List<LayoutSegment>,
-        trackNumberId: IntId<TrackLayoutTrackNumber> = insertOfficialTrackNumber(),
+        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
     ): DaoResponse<LocationTrack> {
         val alignment = alignment(segments)
-        insertReferenceLine(referenceLine(trackNumberId, draft = false), alignment)
+        mainOfficialContext.insert(referenceLine(trackNumberId), alignment)
 
-        return insertLocationTrack(locationTrack(trackNumberId, draft = false), alignment).also { r ->
+        return mainOfficialContext.insert(locationTrack(trackNumberId), alignment).also { r ->
             val (dbTrack, dbAlignment) = locationTrackService.getWithAlignment(r.rowVersion)
             assertEquals(trackNumberId, dbTrack.trackNumberId)
             assertEquals(segments.size, dbAlignment.segments.size)

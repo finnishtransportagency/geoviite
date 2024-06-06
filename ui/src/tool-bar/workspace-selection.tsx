@@ -13,9 +13,10 @@ import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-
 import { LayoutContext } from 'common/common-model';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { useTrackLayoutAppSelector } from 'store/hooks';
+import { useTrackLayoutAppSelector, useUserHasPrivilege } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
+import { EDIT_LAYOUT } from 'user/user-model';
 
 type WorkspaceSelectionContainerProps = {
     setSelectingWorkspace: (selectingWorkspace: boolean) => void;
@@ -78,13 +79,16 @@ export const WorkspaceSelection: React.FC<WorkspaceSelectionProps> = ({
         setSelectingWorkspace(true);
     };
 
+    const canAddDesigns = useUserHasPrivilege(EDIT_LAYOUT);
+    const onAddClick = () => setShowCreateWorkspaceDialog(true);
+
     return (
         <React.Fragment>
             <Dropdown
                 inputRef={selectWorkspaceDropdownRef}
                 placeholder={t('tool-bar.choose-workspace')}
                 openOverride={selectingWorkspace || undefined}
-                onAddClick={() => setShowCreateWorkspaceDialog(true)}
+                onAddClick={canAddDesigns ? onAddClick : undefined}
                 onChange={(designId) => {
                     setSelectingWorkspace(false);
                     onLayoutContextChange({
@@ -100,6 +104,7 @@ export const WorkspaceSelection: React.FC<WorkspaceSelectionProps> = ({
                     })) ?? []
                 }
                 value={layoutContext.designId}
+                qaId={'workspace-selection'}
             />
             <Button
                 variant={ButtonVariant.GHOST}

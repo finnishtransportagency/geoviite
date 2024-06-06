@@ -45,13 +45,12 @@ class VerticalGeometryDiagramTestUI @Autowired constructor(
 
     @BeforeEach
     fun cleanup() {
-        clearAllTestData()
+        testDBService.clearAllTables()
     }
 
     @Test
     fun `Vertical geometry diagram for location track loads`() {
-        val trackNumber = getUnusedTrackNumber()
-        val trackNumberId = insertOfficialTrackNumber(trackNumber)
+        val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId, draft = true),
@@ -114,7 +113,7 @@ class VerticalGeometryDiagramTestUI @Autowired constructor(
         )
         startGeoviite()
         val page = goToMap().switchToDraftMode().zoomToScale(E2ETrackLayoutPage.MapScale.M_500)
-        page.selectionPanel.selectLocationTrack("foo bar")
+        page.selectionPanel.selectOrUnselectLocationTrack("foo bar")
         page.toolPanel.locationTrackVerticalGeometry.toggleVerticalGeometryDiagram()
         page.verticalGeometryDiagram.waitForContent()
     }

@@ -1106,7 +1106,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
 
     @Test
     fun `switch change with joint linked to segment gap should still be reported as only one change`() {
-        val trackNumberId = insertDraftTrackNumber()
+        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
         val referenceLineId = referenceLineService.saveDraft(
             LayoutBranch.main,
             referenceLine(trackNumberId, draft = true),

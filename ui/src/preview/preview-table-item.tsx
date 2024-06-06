@@ -10,9 +10,9 @@ import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { ChangesBeingReverted, PreviewOperations } from 'preview/preview-view';
 import {
     Menu,
-    menuDividerOption,
+    menuDivider,
     MenuOption,
-    menuSelectOption,
+    menuOption,
     MenuSelectOption,
 } from 'vayla-design-lib/menu/menu';
 import { PreviewTableEntry } from 'preview/preview-table';
@@ -78,93 +78,86 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         name: tableEntry.name,
     };
 
-    const menuAction = (menuActionFunction: () => void) => (): void => {
-        menuActionFunction();
-        setActionMenuVisible(false);
-    };
-
-    const menuOptionMoveAllShownChanges: MenuSelectOption = menuSelectOption(
-        menuAction(() =>
+    const menuOptionMoveAllShownChanges: MenuSelectOption = menuOption(
+        () =>
             previewOperations.setPublicationStage.forAllShownChanges(
                 displayedPublicationStage,
                 moveTargetStage,
             ),
-        ),
         t('publish.move-all-shown-changes', {
             amount: displayedTotalPublicationAssetAmount,
         }),
         'preview-move-all-shown-changes',
     );
 
-    const menuOptionMovePublicationGroupStage: MenuSelectOption = menuSelectOption(
-        menuAction(() => {
+    const menuOptionMovePublicationGroupStage: MenuSelectOption = menuOption(
+        () => {
             if (tableEntry.publicationGroup) {
                 previewOperations.setPublicationStage.forPublicationGroup(
                     tableEntry.publicationGroup,
                     moveTargetStage,
                 );
             }
-        }),
+        },
         t('publish.move-publication-group', {
             amount: publicationGroupAssetAmount,
         }),
         `preview-move-publication-group-${tableEntry.publicationGroup?.id ?? 'unknown'}`,
     );
 
-    const menuOptionRevertSingleChange: MenuSelectOption = menuSelectOption(
-        menuAction(() =>
+    const menuOptionRevertSingleChange: MenuSelectOption = menuOption(
+        () =>
             previewOperations.revert.changesWithDependencies(
                 [tableEntry.publishCandidate],
                 tableEntryAsRevertRequestSource,
             ),
-        ),
         t('publish.revert-change'),
         'preview-revert-change',
     );
 
-    const menuOptionRevertAllShownChanges: MenuSelectOption = menuSelectOption(
-        menuAction(() => {
+    const menuOptionRevertAllShownChanges: MenuSelectOption = menuOption(
+        () => {
             previewOperations.revert.stageChanges(
                 displayedPublicationStage,
                 tableEntryAsRevertRequestSource,
             );
-        }),
+        },
         t('publish.revert-all-shown-changes', {
             amount: displayedTotalPublicationAssetAmount,
         }),
         'preview-revert-all-shown-changes',
     );
 
-    const menuOptionPublicationGroupRevert: MenuSelectOption = menuSelectOption(
-        menuAction(() => {
+    const menuOptionPublicationGroupRevert: MenuSelectOption = menuOption(
+        () => {
             if (tableEntry.publicationGroup) {
                 previewOperations.revert.publicationGroup(
                     tableEntry.publicationGroup,
                     tableEntryAsRevertRequestSource,
                 );
             }
-        }),
+        },
         t('publish.revert-publication-group', {
             amount: publicationGroupAssetAmount,
         }),
         'preview-revert-publication-group',
     );
 
-    const menuOptionShowOnMap: MenuSelectOption = menuSelectOption(
-        menuAction(() => {
+    const menuOptionShowOnMap: MenuSelectOption = menuOption(
+        () => {
             tableEntry.boundingBox && onShowOnMap(tableEntry.boundingBox);
-        }),
+        },
         t('publish.show-on-map'),
         'preview-show-on-map',
         !tableEntry.boundingBox,
     );
 
-    const menuOptions: MenuOption<never>[] = [
+    const menuOptions: MenuOption[] = [
         ...conditionalMenuOption(tableEntry.publicationGroup, menuOptionMovePublicationGroupStage),
         menuOptionMoveAllShownChanges,
-        menuDividerOption(),
+        menuDivider(),
         menuOptionShowOnMap,
-        menuDividerOption(),
+        menuDivider(),
         ...conditionalMenuOption(!tableEntry.publicationGroup, menuOptionRevertSingleChange),
         ...conditionalMenuOption(tableEntry.publicationGroup, menuOptionPublicationGroupRevert),
         menuOptionRevertAllShownChanges,
@@ -279,6 +272,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                     positionRef={actionMenuRef}
                     items={menuOptions}
                     onClickOutside={() => setActionMenuVisible(false)}
+                    onClose={() => setActionMenuVisible(false)}
                 />
             )}
         </React.Fragment>

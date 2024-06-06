@@ -22,9 +22,7 @@ import fi.fta.geoviite.infra.split.SplitTarget
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
-import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
-import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
@@ -33,7 +31,6 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someKmNumber
-import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -53,22 +50,20 @@ class LinkingServiceIT @Autowired constructor(
     private val geometryDao: GeometryDao,
     private val linkingService: LinkingService,
     private val locationTrackService: LocationTrackService,
-    private val trackNumberDao: LayoutTrackNumberDao,
-    private val kmPostDao: LayoutKmPostDao,
     private val kmPostService: LayoutKmPostService,
     private val splitDao: SplitDao,
 ) : DBTestBase() {
 
     @Test
     fun alignmentGeometryLinkingWorks() {
-        val trackNumber = getUnusedTrackNumber()
-
         val geometryStart = Point(377680.0, 6676160.0)
         // 6m of geometry to replace
         val geometrySegmentChange = geometryStart + Point(3.0, 3.5)
         val geometryEnd = geometrySegmentChange + Point(3.0, 2.5)
         val plan = plan(
-            trackNumber, Srid(3067), geometryAlignment(
+            trackNumber = testDBService.getUnusedTrackNumber(),
+            srid = Srid(3067),
+            geometryAlignment(
                 line(geometryStart, geometrySegmentChange),
                 line(geometrySegmentChange, geometryEnd),
             )
@@ -101,7 +96,7 @@ class LinkingServiceIT @Autowired constructor(
         )
 
         val (locationTrack, alignment) = locationTrackAndAlignment(
-            insertOfficialTrackNumber(), segment1, segment2, segment3, draft = true
+            mainOfficialContext.createLayoutTrackNumber().id, segment1, segment2, segment3, draft = true
         )
         val (locationTrackId, locationTrackVersion) = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
         locationTrackService.publish(LayoutBranch.main, ValidationVersion(locationTrackId, locationTrackVersion))
@@ -160,15 +155,14 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun kmPostGeometryLinkingWorks() {
-        val kmPost = kmPost(insertOfficialTrackNumber(), someKmNumber(), draft = false)
-        val kmPostId = kmPostDao.insert(kmPost).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
+        val kmPostId = mainOfficialContext.insert(kmPost(trackNumberId, someKmNumber())).id
         val officialKmPost = kmPostService.get(MainLayoutContext.official, kmPostId)
 
         assertMatches(officialKmPost!!, kmPostService.getOrThrow(MainLayoutContext.draft, kmPostId), contextMatch = false)
 
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
 
-        trackNumberDao.insert(trackNumber(trackNumber, draft = false))
         val plan = plan(trackNumber)
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null).id
 
@@ -191,12 +185,12 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun `Linking alignments throws if alignment is deleted`() {
-        val plan = plan(getUnusedTrackNumber(), LAYOUT_SRID)
+        val plan = plan(testDBService.getUnusedTrackNumber(), LAYOUT_SRID)
 
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
         val (locationTrack, alignment) = locationTrackAndAlignment(
-            trackNumberId = insertOfficialTrackNumber(),
+            trackNumberId = mainOfficialContext.createLayoutTrackNumber().id,
             state = LocationTrackState.DELETED,
             draft = true,
         )
@@ -228,12 +222,12 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun `Linking alignments throws if alignment has splits`() {
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
         val plan = plan(trackNumber, LAYOUT_SRID)
 
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
 
-        val (locationTrack, alignment) = locationTrackAndAlignment(insertOfficialTrackNumber(), draft = true)
+        val (locationTrack, alignment) = locationTrackAndAlignment(mainOfficialContext.createLayoutTrackNumber().id, draft = true)
         val locationTrackResponse = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
             .let { (id, rowVersion) -> locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, rowVersion)) }
 
@@ -265,7 +259,7 @@ class LinkingServiceIT @Autowired constructor(
 
     @Test
     fun `Linking alignments works if all alignment splits are finished`() {
-        val trackNumber = getUnusedTrackNumber()
+        val trackNumber = testDBService.getUnusedTrackNumber()
 
         val geometryStart = Point(377680.0, 6676160.0)
         // 6m of geometry to replace
@@ -292,7 +286,7 @@ class LinkingServiceIT @Autowired constructor(
         )
 
         val (locationTrack, alignment) = locationTrackAndAlignment(
-            insertOfficialTrackNumber(), segment1, draft = true,
+            mainOfficialContext.createLayoutTrackNumber().id, segment1, draft = true,
         )
         val locationTrackResponse = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
             .let { (id, rowVersion) -> locationTrackService.publish(LayoutBranch.main, ValidationVersion(id, rowVersion)) }
