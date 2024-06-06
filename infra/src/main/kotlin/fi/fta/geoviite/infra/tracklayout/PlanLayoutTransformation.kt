@@ -89,7 +89,9 @@ fun toTrackLayoutKmPosts(
                 state = getLayoutStateOrDefault(kmPost.state),
                 sourceId = kmPost.id,
                 trackNumberId = trackNumberId,
-                contextData = LayoutContextData.newDraft(LayoutBranch.main, deriveFromSourceId("KMP_", kmPost.id)),
+                // GVT-2616 Check that this change doesn't break anything: the id is no longer the same across transformations
+//                contextData = LayoutContextData.newDraft(LayoutBranch.main, deriveFromSourceId("KMP_", kmPost.id)),
+                contextData = LayoutContextData.newDraft(LayoutBranch.main),
             )
         } else null
     }
@@ -113,7 +115,9 @@ fun toTrackLayoutSwitch(switch: GeometrySwitch, toMapCoordinate: Transformation)
         trapPoint = null,
         ownerId = null,
         source = GeometrySource.PLAN,
-        contextData = LayoutContextData.newDraft(LayoutBranch.main, deriveFromSourceId("S_", switch.id)),
+        // GVT-2616 Check that this change doesn't break anything: the id is no longer the same across transformations
+//        contextData = LayoutContextData.newDraft(LayoutBranch.main, deriveFromSourceId("S_", switch.id)),
+        contextData = LayoutContextData.newDraft(LayoutBranch.main),
     )
 
 fun toTrackLayoutSwitches(

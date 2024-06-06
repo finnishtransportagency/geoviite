@@ -221,7 +221,7 @@ class GeocodingDao(
         return if (trackNumberVersion != null && referenceLineVersion != null) {
             val mainOrDesignOfficialIdsWithDraftKmPosts =
                 versions.kmPosts.map { v -> kmPostDao.fetch(v.validatedAssetVersion) }.flatMap { draft ->
-                    listOfNotNull(draft.contextData.designRowId as? IntId, draft.contextData.officialRowId as? IntId)
+                    listOfNotNull(draft.contextData.designRowId, draft.contextData.officialRowId)
                 }
             val officialKmPosts =
                 official?.kmPostVersions?.filter { v -> !mainOrDesignOfficialIdsWithDraftKmPosts.contains(v.id) }

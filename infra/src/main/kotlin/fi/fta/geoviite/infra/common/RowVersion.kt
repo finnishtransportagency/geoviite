@@ -6,6 +6,9 @@ import com.fasterxml.jackson.annotation.JsonCreator.Mode.DISABLED
 import com.fasterxml.jackson.annotation.JsonValue
 
 private const val VERSION_SEPARATOR = "v"
+
+
+// TODO: GVT-2629 Change ID type so it's different for asset official ID and the ID of the it's version in some branch
 data class RowVersion<T> @JsonCreator(mode = DISABLED) constructor(val id: IntId<T>, val version: Int) {
     private constructor(valuePair: Pair<IntId<T>, Int>) : this(valuePair.first, valuePair.second)
     @JsonCreator(mode = DELEGATING)

@@ -80,7 +80,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
             requireNotNull(officialId) { "Updating item that has no known official ID" }
             verifyObjectIsExisting(draft)
             val previousVersion = requireNotNull(draft.version) { "Updating item without rowVersion: $draftAsset" }
-            dao.update(draft).also { response -> verifyUpdateResponse(officialId, previousVersion, response) }
+            dao.update(draft).also { response -> verifyDraftUpdateResponse(officialId, previousVersion, response) }
         }
     }
 
@@ -93,28 +93,29 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     @Transactional
     open fun publish(branch: LayoutBranch, version: ValidationVersion<ObjectType>): DaoResponse<ObjectType> {
         logger.serviceCall("Publish", "branch" to branch, "version" to version)
-        val versions = VersionPair(
-            dao.fetchOfficialRowVersionForPublishingInBranch(branch, version.validatedAssetVersion),
-            version.validatedAssetVersion
-        )
-        return publishInternal(branch, versions)
+        return publishInternal(branch, version.validatedAssetVersion)
     }
 
-    protected fun publishInternal(branch: LayoutBranch, versions: VersionPair<ObjectType>): DaoResponse<ObjectType> {
-        val draftVersion = requireNotNull(versions.draft) { "No draft to publish: versions=$versions" }
-        val draft = dao.fetch(draftVersion)
-        require(draft.isDraft) { "Object to publish is not a draft: versions=$versions context=${draft.contextData}" }
+    protected fun publishInternal(branch: LayoutBranch, version: RowVersion<ObjectType>): DaoResponse<ObjectType> {
+        val draft = dao.fetch(version)
+        require(branch == draft.branch) { "Draft branch does not match the publishing operation: branch=$branch draft=$draft" }
+        require(draft.isDraft) { "Object to publish is not a draft: version=$version context=${draft.contextData}" }
         val published = asOfficial(branch, draft)
         require(!published.isDraft) { "Published object is still a draft: context=${published.contextData}" }
         verifyObjectIsExisting(published)
 
-        val publishResponse = dao.update(published)
-        verifyUpdateResponse(draft.id as IntId, versions.official ?: draftVersion, publishResponse)
-        if (versions.official != null && versions.draft.id != versions.official.id) {
-            // Draft data is saved on official id -> delete the draft row
-            dao.deleteDraft(branch, versions.draft.id)
+        val publicationResponse = dao.update(published).also { r ->
+            require(r.id == draft.id) { "Publication response ID doesn't match object: id=${draft.id} updated=$r" }
         }
-        return publishResponse
+        // If draft row-id changed, the data was updated to the official row -> delete the now-redundant draft row
+        if (version.id != publicationResponse.rowVersion.id) {
+            dao.deleteRow(version.id)
+        }
+        // If main-draft was published and it came from a design row that wasn't updated, then that row is redundant too
+        if (draft.branch == LayoutBranch.main && draft.contextData.designRowId != publicationResponse.rowVersion.id) {
+            draft.contextData.designRowId?.let(dao::deleteRow)
+        }
+        return publicationResponse
     }
 
     private fun verifyInsertResponse(officialId: IntId<ObjectType>?, response: DaoResponse<ObjectType>) {
@@ -128,7 +129,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         }
     }
 
-    private fun verifyUpdateResponse(
+    private fun verifyDraftUpdateResponse(
         id: IntId<ObjectType>,
         previousVersion: RowVersion<ObjectType>,
         response: DaoResponse<ObjectType>,

@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
@@ -233,8 +232,8 @@ fun trackNumber(
     draft: Boolean = false,
     externalId: Oid<TrackLayoutTrackNumber>? = someOid(),
     state: LayoutState = LayoutState.IN_USE,
-    id: DomainId<TrackLayoutTrackNumber> = StringId(),
-    draftOfId: DomainId<TrackLayoutTrackNumber>? = null,
+    id: IntId<TrackLayoutTrackNumber>? = null,
+    draftOfId: IntId<TrackLayoutTrackNumber>? = null,
     contextData: LayoutContextData<TrackLayoutTrackNumber> = createMainContext(id, draftOfId, draft),
 ) = TrackLayoutTrackNumber(
     number = number,
@@ -277,7 +276,7 @@ fun referenceLine(
     alignment: LayoutAlignment? = null,
     startAddress: TrackMeter = TrackMeter.ZERO,
     alignmentVersion: RowVersion<LayoutAlignment>? = null,
-    id: DomainId<ReferenceLine> = StringId(),
+    id: IntId<ReferenceLine>? = null,
     draft: Boolean = false,
     contextData: LayoutContextData<ReferenceLine> = createMainContext(id, null, draft)
 ) = ReferenceLine(
@@ -297,7 +296,7 @@ fun locationTrackAndAlignment(
     vararg segments: LayoutSegment,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
-    id: DomainId<LocationTrack> = StringId(),
+    id: IntId<LocationTrack>? = null,
     draft: Boolean,
 ): Pair<LocationTrack, LayoutAlignment> =
     locationTrackAndAlignment(
@@ -328,7 +327,7 @@ fun locationTrackAndAlignment(
     description = description,
     duplicateOf = duplicateOf,
     state = state,
-    id = id ?: StringId(),
+    id = id,
     draft = draft,
     externalId = externalId,
     topologyStartSwitch = topologyStartSwitch,
@@ -338,7 +337,7 @@ fun locationTrackAndAlignment(
 fun locationTrackAndAlignment(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     segments: List<LayoutSegment>,
-    id: DomainId<LocationTrack> = StringId(),
+    id: IntId<LocationTrack>? = null,
     draft: Boolean = false,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
@@ -368,7 +367,7 @@ fun locationTrackAndAlignment(
 fun locationTrack(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     alignment: LayoutAlignment? = null,
-    id: DomainId<LocationTrack> = StringId(),
+    id: IntId<LocationTrack>? = null,
     draft: Boolean = false,
     name: String = "T001 ${locationTrackNameCounter++}",
     description: String = "test-alignment 001",
@@ -485,7 +484,7 @@ fun locationTrackWithTwoSwitches(
     val (locationTrack, alignment) = locationTrackAndAlignment(
         trackNumberId = trackNumberId,
         segments = segments,
-        id = locationTrackId ?: StringId(),
+        id = locationTrackId,
         draft = draft,
     )
     return attachSwitches(
@@ -890,9 +889,9 @@ fun switch(
     name: String = "TV$seed",
     externalId: String? = null,
     stateCategory: LayoutStateCategory = getSomeValue(seed),
-    id: DomainId<TrackLayoutSwitch> = StringId(),
+    id: IntId<TrackLayoutSwitch>? = null,
     draft: Boolean = false,
-    draftOfId: DomainId<TrackLayoutSwitch>? = null,
+    draftOfId: IntId<TrackLayoutSwitch>? = null,
     ownerId: IntId<SwitchOwner>? = switchOwnerVayla().id,
     contextData: LayoutContextData<TrackLayoutSwitch> = createMainContext(id, draftOfId, draft),
 ) = TrackLayoutSwitch(
@@ -908,10 +907,10 @@ fun switch(
     contextData = contextData,
 )
 
-fun <T> createMainContext(id: DomainId<T>, draftOfId: DomainId<T>?, draft: Boolean): LayoutContextData<T> = if (draft) {
-    MainDraftContextData(id, draftOfId, null, DataType.TEMP)
+fun <T> createMainContext(id: IntId<T>?, draftOfId: IntId<T>?, draft: Boolean): LayoutContextData<T> = if (draft) {
+    MainDraftContextData(id, draftOfId, null)
 } else {
-    MainOfficialContextData(id, DataType.TEMP)
+    MainOfficialContextData(id)
 }
 
 fun joints(seed: Int = 1, count: Int = 5) = (1..count).map { jointSeed -> switchJoint(seed * 100 + jointSeed) }
@@ -934,7 +933,7 @@ fun kmPost(
     location: IPoint? = Point(1.0, 1.0),
     draft: Boolean = false,
     state: LayoutState = LayoutState.IN_USE,
-    contextData: LayoutContextData<TrackLayoutKmPost> = createMainContext(StringId(), null, draft),
+    contextData: LayoutContextData<TrackLayoutKmPost> = createMainContext(null, null, draft),
 ) = TrackLayoutKmPost(
     trackNumberId = trackNumberId,
     kmNumber = km,

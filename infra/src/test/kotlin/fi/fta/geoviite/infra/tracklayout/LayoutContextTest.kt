@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.DataType.STORED
 import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.StringId
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
@@ -15,28 +14,28 @@ class LayoutContextTest {
 
     @Test
     fun `Context ID is resolved correctly`() {
-        val rowId = StringId<TrackLayoutTrackNumber>()
-        val officialRowId = StringId<TrackLayoutTrackNumber>()
-        val designRowId = StringId<TrackLayoutTrackNumber>()
+        val rowId = IntId<TrackLayoutTrackNumber>(1)
+        val officialRowId = IntId<TrackLayoutTrackNumber>(2)
+        val designRowId = IntId<TrackLayoutTrackNumber>(3)
 
-        assertEquals(rowId, MainOfficialContextData(rowId, TEMP).id)
+        assertEquals(rowId, MainOfficialContextData(rowId).id)
 
-        assertEquals(officialRowId, MainDraftContextData(rowId, officialRowId, designRowId, TEMP).id)
-        assertEquals(designRowId, MainDraftContextData(rowId, null, designRowId, TEMP).id)
-        assertEquals(rowId, MainDraftContextData(rowId, null, null, TEMP).id)
+        assertEquals(officialRowId, MainDraftContextData(rowId, officialRowId, designRowId).id)
+        assertEquals(designRowId, MainDraftContextData(rowId, null, designRowId).id)
+        assertEquals(rowId, MainDraftContextData(rowId, null, null).id)
 
-        assertEquals(officialRowId, DesignOfficialContextData(rowId, officialRowId, IntId(1), TEMP).id)
-        assertEquals(rowId, DesignOfficialContextData(rowId, null, IntId(1), TEMP).id)
+        assertEquals(officialRowId, DesignOfficialContextData(rowId, officialRowId, IntId(10)).id)
+        assertEquals(rowId, DesignOfficialContextData(rowId, null, IntId(10)).id)
 
-        assertEquals(officialRowId, DesignDraftContextData(rowId, designRowId, officialRowId, IntId(1), TEMP).id)
-        assertEquals(designRowId, DesignDraftContextData(rowId, designRowId, null, IntId(1), TEMP).id)
-        assertEquals(rowId, DesignDraftContextData(rowId, null, null, IntId(1), TEMP).id)
+        assertEquals(officialRowId, DesignDraftContextData(rowId, designRowId, officialRowId, IntId(10)).id)
+        assertEquals(designRowId, DesignDraftContextData(rowId, designRowId, null, IntId(10)).id)
+        assertEquals(rowId, DesignDraftContextData(rowId, null, null, IntId(10)).id)
     }
 
     @Test
     fun `Official context calculated fields work as expected`() {
-        val id = StringId<TrackLayoutTrackNumber>()
-        val context = MainOfficialContextData(id, TEMP)
+        val id = IntId<TrackLayoutTrackNumber>(123)
+        val context = MainOfficialContextData(id)
         assertEquals(EditState.UNEDITED, context.editState)
         assertFalse(context.isDesign)
         assertTrue(context.isOfficial)
@@ -45,23 +44,23 @@ class LayoutContextTest {
 
     @Test
     fun `Draft context calculated fields work as expected`() {
-        val id = StringId<TrackLayoutTrackNumber>()
-        val officialRowId = StringId<TrackLayoutTrackNumber>()
-        val designRowId = StringId<TrackLayoutTrackNumber>()
+        val id = IntId<TrackLayoutTrackNumber>(1)
+        val officialRowId = IntId<TrackLayoutTrackNumber>(2)
+        val designRowId = IntId<TrackLayoutTrackNumber>(3)
 
-        val editedContext = MainDraftContextData(id, officialRowId, designRowId, TEMP)
+        val editedContext = MainDraftContextData(id, officialRowId, designRowId)
         assertEquals(EditState.EDITED, editedContext.editState)
         assertFalse(editedContext.isDesign)
         assertFalse(editedContext.isOfficial)
         assertTrue(editedContext.isDraft)
 
-        val newContext = MainDraftContextData(id, null, designRowId, TEMP)
+        val newContext = MainDraftContextData(id, null, designRowId)
         assertEquals(EditState.CREATED, newContext.editState)
         assertFalse(newContext.isDesign)
         assertFalse(newContext.isOfficial)
         assertTrue(newContext.isDraft)
 
-        val newContext2 = MainDraftContextData(id, null, null, TEMP)
+        val newContext2 = MainDraftContextData(id, null, null)
         assertEquals(EditState.CREATED, newContext2.editState)
         assertFalse(newContext2.isDesign)
         assertFalse(newContext2.isOfficial)
@@ -70,16 +69,16 @@ class LayoutContextTest {
 
     @Test
     fun `Official design context calculated fields work as expected`() {
-        val id = StringId<TrackLayoutTrackNumber>()
-        val officialRowId = StringId<TrackLayoutTrackNumber>()
+        val id = IntId<TrackLayoutTrackNumber>(1)
+        val officialRowId = IntId<TrackLayoutTrackNumber>(2)
 
-        val context = DesignOfficialContextData(id, officialRowId, IntId(1), TEMP)
+        val context = DesignOfficialContextData(id, officialRowId, IntId(10))
         assertEquals(EditState.UNEDITED, context.editState)
         assertTrue(context.isDesign)
         assertTrue(context.isOfficial)
         assertFalse(context.isDraft)
 
-        val newContext = DesignOfficialContextData(id, null, IntId(1), TEMP)
+        val newContext = DesignOfficialContextData(id, null, IntId(10))
         assertEquals(EditState.UNEDITED, newContext.editState)
         assertTrue(newContext.isDesign)
         assertTrue(newContext.isOfficial)
@@ -88,23 +87,23 @@ class LayoutContextTest {
 
     @Test
     fun `Draft design context calculated fields work as expected`() {
-        val id = StringId<TrackLayoutTrackNumber>()
-        val officialRowId = StringId<TrackLayoutTrackNumber>()
-        val designRowId = StringId<TrackLayoutTrackNumber>()
+        val id = IntId<TrackLayoutTrackNumber>(1)
+        val officialRowId = IntId<TrackLayoutTrackNumber>(2)
+        val designRowId = IntId<TrackLayoutTrackNumber>(3)
 
-        val context = DesignDraftContextData(id, designRowId, officialRowId, IntId(1), TEMP)
+        val context = DesignDraftContextData(id, designRowId, officialRowId, IntId(10))
         assertEquals(EditState.EDITED, context.editState)
         assertTrue(context.isDesign)
         assertFalse(context.isOfficial)
         assertTrue(context.isDraft)
 
-        val newContext = DesignDraftContextData(id, null, officialRowId, IntId(1), TEMP)
+        val newContext = DesignDraftContextData(id, null, officialRowId, IntId(10))
         assertEquals(EditState.CREATED, newContext.editState)
         assertTrue(newContext.isDesign)
         assertFalse(newContext.isOfficial)
         assertTrue(newContext.isDraft)
 
-        val newContext2 = DesignDraftContextData(id, null, null, IntId(1), TEMP)
+        val newContext2 = DesignDraftContextData(id, null, null, IntId(10))
         assertEquals(EditState.CREATED, newContext2.editState)
         assertTrue(newContext2.isDesign)
         assertFalse(newContext2.isOfficial)
@@ -113,9 +112,9 @@ class LayoutContextTest {
 
     @Test
     fun `Draft is correctly created from Official`() {
-        val id = StringId<TrackLayoutTrackNumber>()
+        val id = IntId<TrackLayoutTrackNumber>(123)
 
-        val official = MainOfficialContextData(id, STORED)
+        val official = MainOfficialContextData(id)
         val draft = official.asMainDraft()
 
         assertEquals(id, draft.id)
@@ -126,11 +125,11 @@ class LayoutContextTest {
 
     @Test
     fun `Official is correctly created from Edited Draft`() {
-        val id = StringId<TrackLayoutTrackNumber>()
-        val officialRowId = StringId<TrackLayoutTrackNumber>()
-        val designRowId = StringId<TrackLayoutTrackNumber>()
+        val id = IntId<TrackLayoutTrackNumber>(1)
+        val officialRowId = IntId<TrackLayoutTrackNumber>(2)
+        val designRowId = IntId<TrackLayoutTrackNumber>(3)
 
-        val draft = MainDraftContextData(id, officialRowId, designRowId, STORED)
+        val draft = MainDraftContextData(id, officialRowId, designRowId)
         val official = draft.asMainOfficial()
 
         assertEquals(officialRowId, official.id)
@@ -140,9 +139,9 @@ class LayoutContextTest {
 
     @Test
     fun `Official is correctly created from New Draft`() {
-        val id = StringId<TrackLayoutTrackNumber>()
+        val id = IntId<TrackLayoutTrackNumber>(123)
 
-        val draft = MainDraftContextData(id, null, null, STORED)
+        val draft = MainDraftContextData(id, null, null)
         val official = draft.asMainOfficial()
         assertEquals(id, official.id)
         assertEquals(id, official.rowId)
@@ -151,10 +150,10 @@ class LayoutContextTest {
 
     @Test
     fun `Design-Draft is correctly created from Official`() {
-        val id = StringId<TrackLayoutTrackNumber>()
+        val id = IntId<TrackLayoutTrackNumber>(321)
         val designId = IntId<LayoutDesign>(123)
 
-        val official = MainOfficialContextData(id, STORED)
+        val official = MainOfficialContextData(id)
         val designDraft = official.asDesignDraft(designId)
 
         assertEquals(id, designDraft.id)
@@ -167,10 +166,10 @@ class LayoutContextTest {
 
     @Test
     fun `Design-Draft is correctly created from new Design`() {
-        val id = StringId<TrackLayoutTrackNumber>()
+        val id = IntId<TrackLayoutTrackNumber>(1)
         val designId = IntId<LayoutDesign>(123)
 
-        val official = DesignOfficialContextData(id, null, designId, STORED)
+        val official = DesignOfficialContextData(id, null, designId)
         val designDraft = official.asDesignDraft()
 
         assertEquals(id, designDraft.id)
@@ -183,11 +182,11 @@ class LayoutContextTest {
 
     @Test
     fun `Design-Draft is correctly created from edited Design`() {
-        val id = StringId<TrackLayoutTrackNumber>()
-        val officialId = StringId<TrackLayoutTrackNumber>()
+        val id = IntId<TrackLayoutTrackNumber>(1)
+        val officialId = IntId<TrackLayoutTrackNumber>(2)
         val designId = IntId<LayoutDesign>(123)
 
-        val official = DesignOfficialContextData(id, officialId, designId, STORED)
+        val official = DesignOfficialContextData(id, officialId, designId)
         val designDraft = official.asDesignDraft()
 
         assertEquals(officialId, designDraft.id)
@@ -201,10 +200,10 @@ class LayoutContextTest {
 
     @Test
     fun `Design is correctly created from new Design-Draft`() {
-        val id = StringId<TrackLayoutTrackNumber>()
+        val id = IntId<TrackLayoutTrackNumber>(1)
         val designId = IntId<LayoutDesign>(123)
 
-        val designDraft = DesignDraftContextData(id, null, null, designId, STORED)
+        val designDraft = DesignDraftContextData(id, null, null, designId)
         val designOfficial = designDraft.asDesignOfficial()
 
         assertEquals(id, designOfficial.id)
@@ -216,12 +215,12 @@ class LayoutContextTest {
 
     @Test
     fun `Design is correctly created from edited Design-Draft`() {
-        val id = StringId<TrackLayoutTrackNumber>()
-        val designRowId = StringId<TrackLayoutTrackNumber>()
-        val officialRowId = StringId<TrackLayoutTrackNumber>()
+        val id = IntId<TrackLayoutTrackNumber>(1)
+        val designRowId = IntId<TrackLayoutTrackNumber>(2)
+        val officialRowId = IntId<TrackLayoutTrackNumber>(3)
         val designId = IntId<LayoutDesign>(123)
 
-        val designDraft = DesignDraftContextData(id, designRowId, officialRowId, designId, STORED)
+        val designDraft = DesignDraftContextData(id, designRowId, officialRowId, designId)
         val designOfficial = designDraft.asDesignOfficial()
 
         assertEquals(officialRowId, designOfficial.id)
@@ -233,10 +232,10 @@ class LayoutContextTest {
 
     @Test
     fun `Main Draft is correctly created from new Design-Official`() {
-        val id = StringId<TrackLayoutTrackNumber>()
+        val id = IntId<TrackLayoutTrackNumber>(1)
         val designId = IntId<LayoutDesign>(123)
 
-        val design = DesignOfficialContextData(id, null, designId, STORED)
+        val design = DesignOfficialContextData(id, null, designId)
         val draft = design.asMainDraft()
 
         assertEquals(id, draft.id)
@@ -248,11 +247,11 @@ class LayoutContextTest {
 
     @Test
     fun `Main Draft is correctly created from edited Design-Official`() {
-        val id = StringId<TrackLayoutTrackNumber>()
-        val officialId = StringId<TrackLayoutTrackNumber>()
+        val id = IntId<TrackLayoutTrackNumber>(1)
+        val officialId = IntId<TrackLayoutTrackNumber>(2)
         val designId = IntId<LayoutDesign>(123)
 
-        val design = DesignOfficialContextData(id, officialId, designId, STORED)
+        val design = DesignOfficialContextData(id, officialId, designId)
         val draft = design.asMainDraft()
 
         assertEquals(officialId, draft.id)

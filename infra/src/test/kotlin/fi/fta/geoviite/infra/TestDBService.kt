@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra
 
-import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -11,7 +10,6 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.switchNameLength
@@ -50,11 +48,13 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
+import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 import kotlin.reflect.KClass
+import kotlin.test.assertEquals
 
 interface TestDB {
     val jdbc: NamedParameterJdbcTemplate
@@ -289,7 +289,7 @@ class TestDBService(
 
     fun <T : LayoutAsset<T>> updateContext(original: T, context: LayoutContext): T = original
         .takeIf { o -> o.contextData.designId == context.branch.designId && o.isDraft == (context.state == DRAFT) }
-        ?: original.withContext(LayoutContextData.new(context, original.contextData.rowId))
+        ?: original.withContext(LayoutContextData.new(context))
 
     fun insertProject(): RowVersion<Project> = geometryDao.insertProject(project(getUnusedProjectName().toString()))
 
@@ -321,6 +321,17 @@ data class TestLayoutContext(
     fun <T : PolyLineLayoutAsset<T>> insert(
         assetAndAlignment: Pair<PolyLineLayoutAsset<T>, LayoutAlignment>
     ): DaoResponse<T> = insert(assetAndAlignment.first, assetAndAlignment.second)
+
+    inline fun <reified T : LayoutAsset<T>> assertContextVersionExists(id: IntId<T>) =
+        assertEquals(context, getAssetOriginContext(id))
+
+    inline fun <reified T : LayoutAsset<T>> assertContextVersionDoesntExist(id: IntId<T>) =
+        assertNotEquals(context, getAssetOriginContext(id))
+
+    inline fun <reified T : LayoutAsset<T>> getAssetOriginContext(id: IntId<T>): LayoutContext {
+        val assetInContext = getDao(T::class).getOrThrow(context, id)
+        return LayoutContext.of(assetInContext.branch, if(assetInContext.isDraft) DRAFT else OFFICIAL)
+    }
 
     /**
      * Copies the asset identified by [rowVersion] to the current context. Note, that this does not create linking
@@ -411,12 +422,12 @@ data class TestLayoutContext(
     ): LayoutContextData<T> = context.branch.let { branch ->
         when (context.state) {
             OFFICIAL -> when (branch) {
-                is MainBranch -> MainOfficialContextData(StringId(), TEMP)
-                is DesignBranch -> DesignOfficialContextData(StringId(), officialRowId, branch.designId, TEMP)
+                is MainBranch -> MainOfficialContextData(null)
+                is DesignBranch -> DesignOfficialContextData(null, officialRowId, branch.designId)
             }
             DRAFT -> when (branch) {
-                is MainBranch -> MainDraftContextData(StringId(), officialRowId, designRowId, TEMP)
-                is DesignBranch -> DesignDraftContextData(StringId(), designRowId, officialRowId, branch.designId, TEMP)
+                is MainBranch -> MainDraftContextData(null, officialRowId, designRowId)
+                is DesignBranch -> DesignDraftContextData(null, designRowId, officialRowId, branch.designId)
             }
         }
     }

@@ -307,6 +307,9 @@ class LocationTrackDao(
 
     @Transactional
     override fun update(updatedItem: LocationTrack): DaoResponse<LocationTrack> {
+        val rowId = requireNotNull(updatedItem.contextData.rowId) {
+            "Cannot update a row that doesn't have a DB ID: kmPost=$updatedItem"
+        }
         val sql = """
             update layout.location_track
             set
@@ -336,13 +339,13 @@ class LocationTrackDao(
               id as row_id,
               version as row_version
         """.trimIndent()
+        val alignmentVersion = updatedItem.getAlignmentVersionOrThrow()
         val params = mapOf(
-            "id" to toDbId(updatedItem.contextData.rowId).intValue,
+            "id" to rowId.intValue,
             "track_number_id" to updatedItem.trackNumberId.intValue,
             "external_id" to updatedItem.externalId,
-            "alignment_id" to (updatedItem.alignmentVersion?.id?.intValue
-                ?: throw IllegalStateException("LocationTrack in DB needs an alignment")),
-            "alignment_version" to updatedItem.alignmentVersion.version,
+            "alignment_id" to alignmentVersion.id.intValue,
+            "alignment_version" to alignmentVersion.version,
             "name" to updatedItem.name,
             "description_base" to updatedItem.descriptionBase,
             "description_suffix" to updatedItem.descriptionSuffix.name,

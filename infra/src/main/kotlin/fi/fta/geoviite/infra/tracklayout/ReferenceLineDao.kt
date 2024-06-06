@@ -152,6 +152,9 @@ class ReferenceLineDao(
 
     @Transactional
     override fun update(updatedItem: ReferenceLine): DaoResponse<ReferenceLine> {
+        val rowId = requireNotNull(updatedItem.contextData.rowId) {
+            "Cannot update a row that doesn't have a DB ID: kmPost=$updatedItem"
+        }
         val sql = """
             update layout.reference_line
             set
@@ -169,11 +172,12 @@ class ReferenceLineDao(
               id as row_id,
               version as row_version
         """.trimIndent()
+        val alignmentVersion = updatedItem.getAlignmentVersionOrThrow()
         val params = mapOf(
-            "id" to toDbId(updatedItem.contextData.rowId).intValue,
+            "id" to rowId.intValue,
             "track_number_id" to updatedItem.trackNumberId.intValue,
-            "alignment_id" to updatedItem.getAlignmentVersionOrThrow().id.intValue,
-            "alignment_version" to updatedItem.getAlignmentVersionOrThrow().version,
+            "alignment_id" to alignmentVersion.id.intValue,
+            "alignment_version" to alignmentVersion.version,
             "start_address" to updatedItem.startAddress.toString(),
             "draft" to updatedItem.isDraft,
             "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,

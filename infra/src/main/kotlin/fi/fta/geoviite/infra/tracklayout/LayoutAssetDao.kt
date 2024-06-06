@@ -35,16 +35,15 @@ import org.springframework.transaction.annotation.Transactional
 import java.sql.Timestamp
 import java.time.Instant
 
-data class VersionPair<T>(val official: RowVersion<T>?, val draft: RowVersion<T>?) {
-    fun getOfficialId() = official?.id ?: draft?.id
-}
-
 data class DaoResponse<T>(val id: IntId<T>, val rowVersion: RowVersion<T>)
 
 interface LayoutAssetWriter<T : LayoutAsset<T>> {
     fun insert(newItem: T): DaoResponse<T>
 
     fun update(updatedItem: T): DaoResponse<T>
+
+    // TODO: GVT-2629 Use RowId type here to avoid risk of deleting with wrong id
+    fun deleteRow(rowId: IntId<T>): DaoResponse<T>
 
     fun deleteDraft(branch: LayoutBranch, id: IntId<T>): DaoResponse<T>
 
@@ -67,8 +66,6 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
     fun fetchVersion(layoutContext: LayoutContext, id: IntId<T>): RowVersion<T>?
     fun fetchVersionOrThrow(layoutContext: LayoutContext, id: IntId<T>): RowVersion<T>
     fun fetchVersions(layoutContext: LayoutContext, ids: List<IntId<T>>): List<RowVersion<T>>
-
-    fun fetchOfficialRowVersionForPublishingInBranch(branch: LayoutBranch, version: RowVersion<T>): RowVersion<T>?
 
     fun fetchOfficialVersionAtMomentOrThrow(branch: LayoutBranch, id: IntId<T>, moment: Instant): RowVersion<T>
     fun fetchOfficialVersionAtMoment(branch: LayoutBranch, id: IntId<T>, moment: Instant): RowVersion<T>?
@@ -315,33 +312,33 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         return jdbcTemplate.queryOptional(officialVersionAtMomentSql, params, ::toRowVersion)
     }
 
-    override fun fetchOfficialRowVersionForPublishingInBranch(
-        branch: LayoutBranch,
-        version: RowVersion<T>,
-    ): RowVersion<T>? {
-        val draft = fetch(version)
-        val designRowId = draft.contextData.designRowId
-        return if (branch.designId == null && draft.contextData.officialRowId == null && designRowId is IntId) {
-            queryDesignRowVersion(designRowId)
-        } else if (draft.isDesign && draft.contextData.officialRowId != null) {
-            if (designRowId is IntId) queryDesignRowVersion(designRowId) else null
+    @Transactional
+    override fun deleteRow(rowId: IntId<T>): DaoResponse<T> {
+        val sql = """
+            delete from ${table.fullName}
+            where id = :row_id
+            returning 
+              coalesce(official_row_id, design_row_id, id) as official_id,
+              id as row_id,
+              version as row_version
+        """.trimIndent()
+        jdbcTemplate.setUser()
+        val params = mapOf("row_id" to rowId.intValue)
+        return jdbcTemplate.query<DaoResponse<T>>(sql, params) { rs, _ ->
+            rs.getDaoResponse("official_id", "row_id", "row_version")
+        }.single().also { deleted ->
+            require(deleted.rowVersion.id != deleted.id) { "Cannot delete the row with the official ID: $deleted" }
+            logger.daoAccess(DELETE, table.fullName, deleted)
         }
-        else fetchVersion(branch.official, version.id)
-    }
-
-    private fun queryDesignRowVersion(designRowId: IntId<T>): RowVersion<T> = jdbcTemplate.queryOne(
-        "select id, version from ${table.fullName} where id = :designRowId", mapOf("designRowId" to designRowId.intValue)
-    ) { rs, _ ->
-        rs.getRowVersion("id", "version")
     }
 
     @Transactional
     override fun deleteDraft(branch: LayoutBranch, id: IntId<T>): DaoResponse<T> = deleteDraftsInternal(branch, id)
         .let { r ->
             if (r.size > 1) {
-                error("Multiple rows deleted with one ID: type=${table.name} id=$id")
+                error("Multiple rows deleted with one ID: type=${table.name} branch=$branch id=$id")
             } else if (r.isEmpty()) {
-                throw DeletingFailureException("Trying to delete a non-existing draft object: type=${table.name} id=$id")
+                throw DeletingFailureException("Trying to delete a non-existing draft object: type=${table.name} branch=$branch id=$id")
             } else {
                 r.first()
             }
@@ -354,7 +351,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         val sql = """
             delete from ${table.fullName}
             where draft = true 
-              and (:id::int is null or :id = id or :id = official_row_id)
+              and (:id::int is null or :id = id or :id = design_row_id or :id = official_row_id)
               and design_id is not distinct from :design_id
             returning 
               coalesce(official_row_id, design_row_id, id) as official_id,
@@ -362,11 +359,8 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
               version as row_version
         """.trimIndent()
         jdbcTemplate.setUser()
-        return jdbcTemplate
-            .query<DaoResponse<T>>(
-                sql,
-                mapOf("id" to id?.intValue, "design_id" to branch.designId?.intValue)
-            ) { rs, _ ->
+        val params = mapOf("id" to id?.intValue, "design_id" to branch.designId?.intValue)
+        return jdbcTemplate.query<DaoResponse<T>>(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         }.also { deleted -> logger.daoAccess(DELETE, table.fullName, deleted) }
     }
@@ -390,12 +384,12 @@ fun <T : LayoutAsset<T>> verifyObjectIsExisting(item: T) = verifyObjectIsExistin
 
 fun <T : LayoutAsset<T>> verifyObjectIsExisting(contextData: LayoutContextData<T>) {
     require(contextData.dataType == DataType.STORED) { "Cannot update TEMP row: context=$contextData" }
-    require(contextData.rowId is IntId) { "DB row should have DB ID: context=$contextData" }
+    require(contextData.rowId != null) { "DB row should have DB ID: context=$contextData" }
 }
 
 fun <T : LayoutAsset<T>> verifyObjectIsNew(item: T) = verifyObjectIsNew(item.contextData)
 
 fun <T : LayoutAsset<T>> verifyObjectIsNew(contextData: LayoutContextData<T>) {
     require(contextData.dataType == DataType.TEMP) { "Cannot insert existing row as new: context=$contextData" }
-    require(contextData.rowId !is IntId) { "TEMP row should not have DB ID: context=$contextData" }
+    require(contextData.rowId == null) { "TEMP row should not have DB ID: context=$contextData" }
 }
