@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra
 
-import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
@@ -45,14 +44,12 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
-import fi.fta.geoviite.infra.tracklayout.asDraft
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionTemplate
@@ -325,11 +322,28 @@ data class TestLayoutContext(
         assetAndAlignment: Pair<PolyLineLayoutAsset<T>, LayoutAlignment>
     ): DaoResponse<T> = insert(assetAndAlignment.first, assetAndAlignment.second)
 
-    inline fun <reified T : LayoutAsset<T>> copyFrom(rowVersion: RowVersion<T>): DaoResponse<T> {
+    /**
+     * Copies the asset identified by [rowVersion] to the current context. Note, that this does not create linking
+     * to the original asset, so calling this for draft context on an official asset creates a new draft with same
+     * data, not a draft of the official. You can provide [officialRowId] and [designRowId] to link the new asset if
+     * desired.
+     */
+    @Suppress("UNCHECKED_CAST")
+    inline fun <reified T : LayoutAsset<T>> copyFrom(
+        rowVersion: RowVersion<T>,
+        officialRowId: IntId<T>? = null,
+        designRowId: IntId<T>? = null,
+    ): DaoResponse<T> {
         val dao = getDao(T::class)
         val original = dao.fetch(rowVersion)
-        // TODO: Dig out the official/design row ids. Can't use directly from context as on the actual officia/design, we should use the row id instead
-        return insert(original.withContext(createContextData(original.contextData.officialRowId, original.contextData.designRowId)))
+        val withNewContext = original.withContext(createContextData(officialRowId, designRowId))
+        return when (withNewContext) {
+            // Also copy alignment: the types won't play nice unless we use the final ones, so this duplicates
+            is LocationTrack -> insert(withNewContext, alignmentDao.fetch(withNewContext.getAlignmentVersionOrThrow()))
+            is ReferenceLine -> insert(withNewContext, alignmentDao.fetch(withNewContext.getAlignmentVersionOrThrow()))
+            is PolyLineLayoutAsset<*> -> error("Unhandled PolyLineAsset type: ${T::class.simpleName}")
+            else -> insert(withNewContext)
+        } as DaoResponse<T>
     }
 
     @Suppress("UNCHECKED_CAST")

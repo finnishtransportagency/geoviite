@@ -160,13 +160,13 @@ class GeocodingDaoIT @Autowired constructor(
     fun `Cache keys are correctly fetched by moment`() {
         // First off, the main official versions for starting context
         val (tnId, tnOfficialVersion) = mainOfficialContext.createLayoutTrackNumber()
-        val (_, rlOfficialVersion) = mainOfficialContext.insert(referenceLineAndAlignment(tnId))
-        val (_, kmp1OfficialVersion) = mainOfficialContext.insert(kmPost(tnId, KmNumber(1)))
+        val (rlId, rlOfficialVersion) = mainOfficialContext.insert(referenceLineAndAlignment(tnId))
+        val (kmp1Id, kmp1OfficialVersion) = mainOfficialContext.insert(kmPost(tnId, KmNumber(1)))
 
         // Add some draft changes as well. These shouldn't affect the results
-        mainDraftContext.copyFrom(tnOfficialVersion)
-        mainDraftContext.copyFrom(rlOfficialVersion)
-        mainDraftContext.copyFrom(kmp1OfficialVersion)
+        mainDraftContext.copyFrom(tnOfficialVersion, officialRowId = tnId)
+        mainDraftContext.copyFrom(rlOfficialVersion, officialRowId = rlId)
+        mainDraftContext.copyFrom(kmp1OfficialVersion, officialRowId = kmp1Id)
         mainDraftContext.insert(kmPost(tnId, KmNumber(10)))
 
         // Add some design changes
@@ -174,15 +174,16 @@ class GeocodingDaoIT @Autowired constructor(
         val officialDesignContext = testDBService.testContext(designBranch, OFFICIAL)
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
 
-        val tnDesignVersion = officialDesignContext.copyFrom(tnOfficialVersion).rowVersion
-        val rlDesignVersion = officialDesignContext.copyFrom(rlOfficialVersion).rowVersion
-        val kmp1DesignVersion = officialDesignContext.copyFrom(kmp1OfficialVersion).rowVersion
+        val tnDesignVersion = officialDesignContext.copyFrom(tnOfficialVersion, officialRowId = tnId).rowVersion
+        val rlDesignVersion = officialDesignContext.copyFrom(rlOfficialVersion, officialRowId = rlId).rowVersion
+        val kmp1DesignVersion = officialDesignContext.copyFrom(kmp1OfficialVersion, officialRowId = kmp1Id).rowVersion
         val kmp2DesignVersion = officialDesignContext.insert(kmPost(tnId, KmNumber(2))).rowVersion
 
         // Design-draft changes should not affect results either
-        designDraftContext.copyFrom(tnDesignVersion)
-        designDraftContext.copyFrom(rlDesignVersion)
-        designDraftContext.copyFrom(kmp1DesignVersion)
+        designDraftContext.copyFrom(tnDesignVersion, officialRowId = tnId, designRowId = tnDesignVersion.id)
+        designDraftContext.copyFrom(rlDesignVersion, officialRowId = rlId, designRowId = rlDesignVersion.id)
+        designDraftContext.copyFrom(kmp1DesignVersion, officialRowId = kmp1Id, designRowId = kmp1DesignVersion.id)
+        designDraftContext.copyFrom(kmp2DesignVersion, officialRowId = null, designRowId = kmp2DesignVersion.id)
         designDraftContext.insert(kmPost(tnId, KmNumber(11)))
 
         val originalTime = kmPostDao.fetchChangeTime()
@@ -211,15 +212,17 @@ class GeocodingDaoIT @Autowired constructor(
         // Update the official stuff
         val updatedTrackNumberVersion = testDBService.update(tnOfficialVersion).rowVersion
         val updatedReferenceLineVersion = testDBService.update(rlOfficialVersion).rowVersion
-        val updatedKmPostOneVersion = testDBService.update(kmp1OfficialVersion).rowVersion
-        val kmPostTwoVersion = mainOfficialContext.insert(kmPost(tnId, KmNumber(2))).rowVersion
+        val updatedKmPost1Version = testDBService.update(kmp1OfficialVersion).rowVersion
+        val kmPost2Version = mainOfficialContext.insert(kmPost(tnId, KmNumber(2))).rowVersion
         // Add a deleted post - should not appear in results
         mainOfficialContext.insert(kmPost(tnId, KmNumber(3), state = LayoutState.DELETED))
 
         // Update the design stuff
         val updatedDesignTrackNumberVersion = testDBService.update(tnDesignVersion).rowVersion
         val updatedDesignReferenceLineVersion = testDBService.update(rlDesignVersion).rowVersion
-        val updatedDesignKmPostOneVersion = testDBService.update(kmp1DesignVersion).rowVersion
+        // Also delete one kmpost in the design -> it should be removed from the key
+        testDBService.update(kmp1DesignVersion) { kmp -> kmp.copy(state = LayoutState.DELETED) }
+        val updatedDesignKmPost2Version = testDBService.update(kmp2DesignVersion).rowVersion
 
         val updatedTime = kmPostDao.fetchChangeTime()
 
@@ -228,7 +231,7 @@ class GeocodingDaoIT @Autowired constructor(
             LayoutGeocodingContextCacheKey(
                 trackNumberVersion = updatedTrackNumberVersion,
                 referenceLineVersion = updatedReferenceLineVersion,
-                kmPostVersions = listOf(updatedKmPostOneVersion, kmPostTwoVersion),
+                kmPostVersions = listOf(updatedKmPost1Version, kmPost2Version),
             ),
             updatedKey,
         )
@@ -238,7 +241,7 @@ class GeocodingDaoIT @Autowired constructor(
             LayoutGeocodingContextCacheKey(
                 trackNumberVersion = updatedDesignTrackNumberVersion,
                 referenceLineVersion = updatedDesignReferenceLineVersion,
-                kmPostVersions = listOf(updatedDesignKmPostOneVersion, kmp2DesignVersion),
+                kmPostVersions = listOf(updatedDesignKmPost2Version, kmPost2Version),
             ),
             updatedDesignKey,
         )
