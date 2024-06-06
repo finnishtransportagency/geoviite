@@ -70,14 +70,15 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
 
     fun fetchOfficialRowVersionForPublishingInBranch(branch: LayoutBranch, version: RowVersion<T>): RowVersion<T>?
 
-    fun fetchOfficialVersionAtMomentOrThrow(id: IntId<T>, moment: Instant): RowVersion<T>
-    fun fetchOfficialVersionAtMoment(id: IntId<T>, moment: Instant): RowVersion<T>?
+    fun fetchOfficialVersionAtMomentOrThrow(branch: LayoutBranch, id: IntId<T>, moment: Instant): RowVersion<T>
+    fun fetchOfficialVersionAtMoment(branch: LayoutBranch, id: IntId<T>, moment: Instant): RowVersion<T>?
 
     fun get(context: LayoutContext, id: IntId<T>): T? = fetchVersion(context, id)?.let(::fetch)
 
     fun getOrThrow(context: LayoutContext, id: IntId<T>): T = fetch(fetchVersionOrThrow(context, id))
 
-    fun getOfficialAtMoment(id: IntId<T>, moment: Instant): T? = fetchOfficialVersionAtMoment(id, moment)?.let(::fetch)
+    fun getOfficialAtMoment(branch: LayoutBranch, id: IntId<T>, moment: Instant): T? =
+        fetchOfficialVersionAtMoment(branch, id, moment)?.let(::fetch)
 
     fun getMany(context: LayoutContext, ids: List<IntId<T>>): List<T> = fetchVersions(context, ids).map(::fetch)
 
@@ -221,22 +222,27 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
     override fun fetchVersion(layoutContext: LayoutContext, id: IntId<T>): RowVersion<T>? {
         logger.daoAccess(AccessType.VERSION_FETCH, table.name, id)
         return jdbcTemplate.queryOptional(
-            singleLayoutContextVersionSql, mapOf(
+            singleLayoutContextVersionSql,
+            mapOf(
                 "id" to id.intValue,
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue
-            ), ::toRowVersion
+            ),
+            ::toRowVersion,
         )
     }
 
     override fun fetchVersionOrThrow(layoutContext: LayoutContext, id: IntId<T>): RowVersion<T> {
         logger.daoAccess(AccessType.VERSION_FETCH, table.name, id)
         return jdbcTemplate.queryOne(
-            singleLayoutContextVersionSql, mapOf(
+            singleLayoutContextVersionSql,
+            mapOf(
                 "id" to id.intValue,
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue
-            ), id.toString(), ::toRowVersion
+            ),
+            id.toString(),
+            ::toRowVersion,
         )
     }
 
@@ -246,35 +252,63 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
     ): List<RowVersion<T>> {
         logger.daoAccess(AccessType.VERSION_FETCH, table.name, ids)
         return if (ids.isEmpty()) emptyList() else jdbcTemplate.query(
-            multiLayoutContextVersionSql, mapOf(
+            multiLayoutContextVersionSql,
+            mapOf(
                 "ids" to ids.distinct().map { it.intValue },
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue
-            ), ::toRowVersion
+            ),
+            ::toRowVersion,
         )
     }
 
-    override fun fetchOfficialVersionAtMomentOrThrow(id: IntId<T>, moment: Instant): RowVersion<T> =
-        fetchOfficialVersionAtMoment(id, moment) ?: throw NoSuchEntityException(table.name, id)
+    override fun fetchOfficialVersionAtMomentOrThrow(
+        branch: LayoutBranch,
+        id: IntId<T>,
+        moment: Instant,
+    ): RowVersion<T> =
+        fetchOfficialVersionAtMoment(branch, id, moment) ?: throw NoSuchEntityException(table.name, id)
 
     //language=SQL
     private val officialVersionAtMomentSql = """
-        select
-          case when v.deleted then null else v.id end as id,
-          case when v.deleted then null else v.version end as version
-        from ${table.versionTable} v
-        where
-          v.id = :id
-          and v.change_time <= :moment
-          and not v.draft
-          and design_id is null
-        order by v.change_time desc
-        limit 1
+        with
+          main as (
+            select v.id, v.version, v.deleted, false as is_design
+              from ${table.versionTable} v
+              where
+                v.id = :id
+                and v.change_time <= :moment
+                and not v.draft
+                and design_id is null
+              order by v.change_time desc
+              limit 1
+          ),
+          design as (
+            select v.id, v.version, v.deleted, true as is_design
+              from ${table.versionTable} v
+              where
+                (v.official_row_id = :id or v.id = :id)
+                and v.change_time <= :moment
+                and not v.draft
+                and design_id = :design_id
+              order by v.change_time desc
+              limit 1
+          )
+        select id, version
+          from (select * from main union all select * from design) tmp
+          where deleted = false
+          order by (case when is_design then 0 else 1 end)
+          limit 1
     """.trimIndent()
 
-    override fun fetchOfficialVersionAtMoment(id: IntId<T>, moment: Instant): RowVersion<T>? {
+    override fun fetchOfficialVersionAtMoment(
+        branch: LayoutBranch,
+        id: IntId<T>,
+        moment: Instant,
+    ): RowVersion<T>? {
         logger.daoAccess(AccessType.VERSION_FETCH, LocationTrack::class, id)
         val params = mapOf(
+            "design_id" to branch.designId?.intValue,
             "id" to id.intValue,
             "moment" to Timestamp.from(moment),
         )

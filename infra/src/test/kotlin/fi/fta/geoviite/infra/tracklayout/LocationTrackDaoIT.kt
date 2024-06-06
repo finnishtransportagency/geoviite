@@ -190,9 +190,10 @@ class LocationTrackDaoIT @Autowired constructor(
         val updatedVersion = updateOfficial(firstVersion).rowVersion
         val updatedVersionTime = locationTrackDao.fetchChangeTime()
 
-        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(id, beforeCreationTime))
-        assertEquals(firstVersion, locationTrackDao.fetchOfficialVersionAtMoment(id, firstVersionTime))
-        assertEquals(updatedVersion, locationTrackDao.fetchOfficialVersionAtMoment(id, updatedVersionTime))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, id, beforeCreationTime))
+        assertEquals(firstVersion, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, id, firstVersionTime))
+        assertEquals(updatedVersion, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, id, updatedVersionTime))
+        // TODO: GVT-2616 test with design branches
     }
 
     @Test

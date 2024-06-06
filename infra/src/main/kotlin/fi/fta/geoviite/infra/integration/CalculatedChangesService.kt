@@ -6,6 +6,7 @@ import createTypedContext
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.NoSuchEntityException
@@ -227,24 +228,25 @@ class CalculatedChangesService(
     }
 
     fun getAllSwitchChangesByLocationTrackAtMoment(
+        layoutBranch: LayoutBranch,
         locationTrackId: IntId<LocationTrack>,
         moment: Instant,
     ): List<SwitchChange> {
-        val (locationTrack, alignment) = locationTrackService.getOfficialWithAlignmentAtMoment(locationTrackId, moment)
+        val (locationTrack, alignment) = locationTrackService.getOfficialWithAlignmentAtMoment(layoutBranch, locationTrackId, moment)
             ?: throw NoSuchEntityException(LocationTrack::class, locationTrackId)
 
         val trackNumberId = locationTrack.trackNumberId
-        val trackNumber = trackNumberService.getOfficialAtMoment(trackNumberId, moment)
+        val trackNumber = trackNumberService.getOfficialAtMoment(layoutBranch, trackNumberId, moment)
             ?: throw NoSuchEntityException(TrackLayoutTrackNumber::class, trackNumberId)
 
-        val currentGeocodingContext = geocodingService.getGeocodingContextAtMoment(trackNumberId, moment)
+        val currentGeocodingContext = geocodingService.getGeocodingContextAtMoment(layoutBranch, trackNumberId, moment)
 
         val switches = currentGeocodingContext?.let { context ->
             getSwitchJointChanges(
                 locationTrack = locationTrack,
                 alignment = alignment,
                 geocodingContext = context,
-                fetchSwitch = { switchId -> switchService.getOfficialAtMoment(switchId, moment) },
+                fetchSwitch = { switchId -> switchService.getOfficialAtMoment(layoutBranch, switchId, moment) },
                 fetchStructure = switchLibraryService::getSwitchStructure,
             )
         } ?: emptyList()

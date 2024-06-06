@@ -225,17 +225,19 @@ class RatkoService @Autowired constructor(
             val switchChanges = locationTrackChanges
                 .flatMap { locationTrackChange ->
                     getSwitchChangesByLocationTrack(
+                        layoutBranch = branch,
                         locationTrackId = locationTrackChange.locationTrackId,
                         filterByKmNumbers = locationTrackChange.changedKmNumbers,
-                        moment = latestPublicationMoment
+                        moment = latestPublicationMoment,
                     )
-                }.map { switchChange -> toFakePublishedSwitch(switchChange, latestPublicationMoment) }
+                }.map { switchChange -> toFakePublishedSwitch(branch, switchChange, latestPublicationMoment) }
 
             val publishedLocationTrackChanges = locationTrackChanges
                 .map { locationTrackChange ->
                     val locationTrack = locationTrackService.getOfficialAtMoment(
-                        locationTrackChange.locationTrackId,
-                        latestPublicationMoment
+                        branch = branch,
+                        id = locationTrackChange.locationTrackId,
+                        moment = latestPublicationMoment,
                     )
                     checkNotNull(locationTrack) {
                         "No location track exists with id ${locationTrackChange.locationTrackId} and timestamp $latestPublicationMoment"
@@ -249,7 +251,7 @@ class RatkoService @Autowired constructor(
                         name = locationTrack.name,
                         trackNumberId = locationTrack.trackNumberId,
                         operation = Operation.MODIFY,
-                        changedKmNumbers = locationTrackChange.changedKmNumbers
+                        changedKmNumbers = locationTrackChange.changedKmNumbers,
                     )
                 }
 
@@ -290,14 +292,15 @@ class RatkoService @Autowired constructor(
         val lastPublicationTime = publications.maxOf { it.publicationTime }
         try {
             val pushedRouteNumberOids = ratkoRouteNumberService.pushTrackNumberChangesToRatko(
+                layoutBranch,
                 publications.flatMap { it.allPublishedTrackNumbers },
-                lastPublicationTime
+                lastPublicationTime,
             )
 
             val pushedLocationTrackOids = ratkoLocationTrackService.pushLocationTrackChangesToRatko(
-                LayoutBranch.main,
+                layoutBranch,
                 publications.flatMap { it.allPublishedLocationTracks },
-                lastPublicationTime
+                lastPublicationTime,
             )
 
             pushSwitchChanges(
@@ -382,22 +385,23 @@ class RatkoService @Autowired constructor(
         val locationTrackSwitchChanges = publishedLocationTracks
             .flatMap { locationTrack ->
                 getSwitchChangesByLocationTrack(
+                    layoutBranch = layoutBranch,
                     locationTrackId = locationTrack.version.id,
                     filterByKmNumbers = locationTrack.changedKmNumbers,
                     moment = publicationTime
                 )
-            }.map { switchChange -> toFakePublishedSwitch(switchChange, publicationTime) }
+            }.map { switchChange -> toFakePublishedSwitch(layoutBranch, switchChange, publicationTime) }
 
         val switchChanges = publishedSwitches + locationTrackSwitchChanges
         ratkoAssetService.pushSwitchChangesToRatko(layoutBranch, switchChanges, publicationTime)
     }
 
-
     private fun getSwitchChangesByLocationTrack(
+        layoutBranch: LayoutBranch,
         locationTrackId: IntId<LocationTrack>,
         filterByKmNumbers: Collection<KmNumber>,
         moment: Instant,
-    ) = calculatedChangesService.getAllSwitchChangesByLocationTrackAtMoment(locationTrackId, moment)
+    ) = calculatedChangesService.getAllSwitchChangesByLocationTrackAtMoment(layoutBranch, locationTrackId, moment)
         .map { switchChanges ->
             switchChanges.copy(
                 changedJoints = switchChanges.changedJoints.filter { changedJoint ->
@@ -406,8 +410,12 @@ class RatkoService @Autowired constructor(
             )
         }.filter { it.changedJoints.isNotEmpty() }
 
-    private fun toFakePublishedSwitch(switchChange: SwitchChange, moment: Instant): PublishedSwitch {
-        val switch = switchService.getOfficialAtMoment(switchChange.switchId, moment)
+    private fun toFakePublishedSwitch(
+        layoutBranch: LayoutBranch,
+        switchChange: SwitchChange,
+        moment: Instant,
+    ): PublishedSwitch {
+        val switch = switchService.getOfficialAtMoment(layoutBranch, switchChange.switchId, moment)
         checkNotNull(switch) { "No switch exists with id ${switchChange.switchId} and timestamp $moment" }
 
         //Fake PublishedSwitch, Ratko integration is built around published items

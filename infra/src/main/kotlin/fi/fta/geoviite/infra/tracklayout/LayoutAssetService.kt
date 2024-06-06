@@ -34,9 +34,9 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         return dao.getMany(context, ids)
     }
 
-    fun getOfficialAtMoment(id: IntId<ObjectType>, moment: Instant): ObjectType? {
-        logger.serviceCall("get", "id" to id, "moment" to moment)
-        return dao.getOfficialAtMoment(id, moment)
+    fun getOfficialAtMoment(branch: LayoutBranch, id: IntId<ObjectType>, moment: Instant): ObjectType? {
+        logger.serviceCall("get", "branch" to branch, "id" to id, "moment" to moment)
+        return dao.getOfficialAtMoment(branch, id, moment)
     }
 
     fun getOrThrow(context: LayoutContext, id: IntId<ObjectType>): ObjectType {

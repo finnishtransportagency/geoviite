@@ -344,11 +344,12 @@ class LocationTrackService(
 
     @Transactional(readOnly = true)
     fun getOfficialWithAlignmentAtMoment(
+        branch: LayoutBranch,
         id: IntId<LocationTrack>,
         moment: Instant,
     ): Pair<LocationTrack, LayoutAlignment>? {
-        logger.serviceCall("getOfficialWithAlignmentAtMoment", "id" to id, "moment" to moment)
-        return dao.fetchOfficialVersionAtMoment(id, moment)?.let(::getWithAlignmentInternal)
+        logger.serviceCall("getOfficialWithAlignmentAtMoment", "branch" to branch, "id" to id, "moment" to moment)
+        return dao.fetchOfficialVersionAtMoment(branch, id, moment)?.let(::getWithAlignmentInternal)
     }
 
     @Transactional(readOnly = true)

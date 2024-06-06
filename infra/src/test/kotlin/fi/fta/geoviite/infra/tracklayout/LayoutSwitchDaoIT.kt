@@ -147,9 +147,10 @@ class LayoutSwitchDaoIT @Autowired constructor(
         val updatedVersion = updateOfficial(firstVersion).rowVersion
         val updatedVersionTime = switchDao.fetchChangeTime()
 
-        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(firstId, beforeCreationTime))
-        assertEquals(firstVersion, switchDao.fetchOfficialVersionAtMoment(firstId, firstVersionTime))
-        assertEquals(updatedVersion, switchDao.fetchOfficialVersionAtMoment(firstId, updatedVersionTime))
+        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, firstId, beforeCreationTime))
+        assertEquals(firstVersion, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, firstId, firstVersionTime))
+        assertEquals(updatedVersion, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, firstId, updatedVersionTime))
+        // TODO: GVT-2616 test with design branches
     }
 
     private fun insertOfficial(): DaoResponse<TrackLayoutSwitch> {

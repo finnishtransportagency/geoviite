@@ -156,8 +156,12 @@ class GeocodingService(
     ): GeocodingContextCreateResult? =
         geocodingCacheService.getGeocodingContextCreateResult(layoutContext, trackNumberId)
 
-    fun getGeocodingContextAtMoment(trackNumberId: IntId<TrackLayoutTrackNumber>, moment: Instant): GeocodingContext? =
-        geocodingCacheService.getGeocodingContextAtMoment(trackNumberId, moment)
+    fun getGeocodingContextAtMoment(
+        branch: LayoutBranch,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        moment: Instant,
+    ): GeocodingContext? =
+        geocodingCacheService.getGeocodingContextAtMoment(branch, trackNumberId, moment)
 
     fun getGeocodingContext(
         trackNumber: TrackNumber,
@@ -175,8 +179,8 @@ class GeocodingService(
     ): GeocodingContextCacheKey? = geocodingDao.getLayoutGeocodingContextCacheKey(trackNumberId, versions)
 
     fun getGeocodingContextCacheKey(
+        branch: LayoutBranch,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         moment: Instant,
-    ): GeocodingContextCacheKey? = geocodingDao.getLayoutGeocodingContextCacheKey(LayoutBranch.main, trackNumberId, moment)
-    // TODO: GVT-2616
+    ): GeocodingContextCacheKey? = geocodingDao.getLayoutGeocodingContextCacheKey(branch, trackNumberId, moment)
 }

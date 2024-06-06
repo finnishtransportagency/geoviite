@@ -91,7 +91,6 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.SortOrder
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
@@ -1456,6 +1455,7 @@ class PublicationServiceIT @Autowired constructor(
             localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(locationTrack.id as IntId<LocationTrack>),
             null,
+            LayoutBranch.main,
             latestPub.publicationTime,
             previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
@@ -1563,6 +1563,7 @@ class PublicationServiceIT @Autowired constructor(
             localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(locationTrack.id as IntId<LocationTrack>),
             null,
+            LayoutBranch.main,
             latestPub.publicationTime,
             previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
@@ -1893,6 +1894,7 @@ class PublicationServiceIT @Autowired constructor(
             localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(originalLocationTrack.id),
             publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(latestPub.id)[originalLocationTrack.id],
+            LayoutBranch.main,
             latestPub.publicationTime,
             previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
@@ -1946,6 +1948,7 @@ class PublicationServiceIT @Autowired constructor(
             localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(originalLocationTrack.id),
             publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(latestPub.id)[originalLocationTrack.id],
+            LayoutBranch.main,
             latestPub.publicationTime,
             latestPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),

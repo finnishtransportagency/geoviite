@@ -789,7 +789,7 @@ class PublicationService @Autowired constructor(
                 publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(publication.id),
                 previousPublication?.key ?: publication.publicationTime.minusMillis(1),
                 { trackNumberId: IntId<TrackLayoutTrackNumber>, timestamp: Instant ->
-                    getOrPutGeocodingContext(geocodingContextCache, trackNumberId, timestamp)
+                    getOrPutGeocodingContext(geocodingContextCache, publication.layoutBranch, trackNumberId, timestamp)
                 },
             )
         }
@@ -840,7 +840,7 @@ class PublicationService @Autowired constructor(
                 ConcurrentHashMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, Optional<GeocodingContext>>>()
             val trackNumbersCache = trackNumberDao.fetchTrackNumberNames()
             val getGeocodingContextOrNull = { trackNumberId: IntId<TrackLayoutTrackNumber>, timestamp: Instant ->
-                getOrPutGeocodingContext(geocodingContextCache, trackNumberId, timestamp)
+                getOrPutGeocodingContext(geocodingContextCache, layoutBranch, trackNumberId, timestamp)
             }
 
             publications.mapIndexed { index, publicationDetails ->
@@ -874,7 +874,12 @@ class PublicationService @Autowired constructor(
                     .fetchPublishedLocationTracks(id)
                     .let { changes -> (changes.indirectChanges + changes.directChanges).map { c -> c.version } }
                     .distinct()
-                    .mapNotNull { v -> createSplitTargetInPublication(v, publication.publicationTime, split) }
+                    .mapNotNull { v -> createSplitTargetInPublication(
+                        rowVersion = v,
+                        publicationBranch = publication.layoutBranch,
+                        publicationTime = publication.publicationTime,
+                        split = split,
+                    ) }
                     .sortedWith { a, b -> nullsFirstComparator(a.startAddress, b.startAddress) }
                 SplitInPublication(
                     id = publication.id,
@@ -888,12 +893,17 @@ class PublicationService @Autowired constructor(
 
     private fun createSplitTargetInPublication(
         rowVersion: RowVersion<LocationTrack>,
+        publicationBranch: LayoutBranch,
         publicationTime: Instant,
         split: Split,
     ): SplitTargetInPublication? {
         val (track, alignment) = locationTrackService.getWithAlignment(rowVersion)
         return split.getTargetLocationTrack(track.id as IntId)?.let { target ->
-            val ctx = geocodingService.getGeocodingContextAtMoment(track.trackNumberId, publicationTime)
+            val ctx = geocodingService.getGeocodingContextAtMoment(
+                publicationBranch,
+                track.trackNumberId,
+                publicationTime,
+            )
             return SplitTargetInPublication(
                 id = track.id,
                 name = track.name,
@@ -996,6 +1006,7 @@ class PublicationService @Autowired constructor(
         translation: Translation,
         locationTrackChanges: LocationTrackChanges,
         switchLinkChanges: LocationTrackPublicationSwitchLinkChanges?,
+        branch: LayoutBranch,
         publicationTime: Instant,
         previousPublicationTime: Instant,
         trackNumberCache: List<TrackNumberAndChangeTime>,
@@ -1074,7 +1085,7 @@ class PublicationService @Autowired constructor(
                 oldAndTime,
                 newAndTime,
                 { (duplicateOf, timestamp) ->
-                    duplicateOf?.let { locationTrackService.getOfficialAtMoment(it, timestamp)?.name }
+                    duplicateOf?.let { locationTrackService.getOfficialAtMoment(branch, it, timestamp)?.name }
                 },
                 PropKey("duplicate-of")
             ),
@@ -1329,13 +1340,12 @@ class PublicationService @Autowired constructor(
 
     private fun getOrPutGeocodingContext(
         caches: MutableMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, Optional<GeocodingContext>>>,
+        branch: LayoutBranch,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         timestamp: Instant,
     ) = caches.getOrPut(timestamp) { ConcurrentHashMap() }.getOrPut(trackNumberId) {
         Optional.ofNullable(
-            geocodingService.getGeocodingContextAtMoment(
-                trackNumberId, timestamp
-            )
+            geocodingService.getGeocodingContextAtMoment(branch, trackNumberId, timestamp)
         )
     }.orElse(null)
 
@@ -1447,6 +1457,7 @@ class PublicationService @Autowired constructor(
                         error("Location track changes not found: version=${lt.version}")
                     },
                     switchLinkChanges[lt.version.id],
+                    publication.layoutBranch,
                     publication.publicationTime,
                     previousComparisonTime,
                     trackNumberNamesCache,
@@ -1516,6 +1527,7 @@ class PublicationService @Autowired constructor(
                         error("Location track changes not found: version=${lt.version}")
                     },
                     switchLinkChanges[lt.version.id],
+                    publication.layoutBranch,
                     publication.publicationTime,
                     previousComparisonTime,
                     trackNumberNamesCache,

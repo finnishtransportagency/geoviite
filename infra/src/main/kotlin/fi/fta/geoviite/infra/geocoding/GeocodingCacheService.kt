@@ -129,11 +129,11 @@ class GeocodingCacheService(
 
     @Transactional(readOnly = true)
     fun getGeocodingContextAtMoment(
+        branch: LayoutBranch,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         moment: Instant,
     ): GeocodingContext? = geocodingDao
-        // TODO: GVT-2616
-        .getLayoutGeocodingContextCacheKey(LayoutBranch.main, trackNumberId, moment)
+        .getLayoutGeocodingContextCacheKey(branch, trackNumberId, moment)
         ?.let(geocodingCacheService::getGeocodingContext)
 
     @Transactional(readOnly = true)

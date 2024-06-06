@@ -129,9 +129,10 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
         val updatedVersion = updateOfficial(firstVersion).rowVersion
         val updatedVersionTime = trackNumberDao.fetchChangeTime()
 
-        assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(id, beforeCreationTime))
-        assertEquals(firstVersion, trackNumberDao.fetchOfficialVersionAtMoment(id, firstVersionTime))
-        assertEquals(updatedVersion, trackNumberDao.fetchOfficialVersionAtMoment(id, updatedVersionTime))
+        assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(LayoutBranch.main, id, beforeCreationTime))
+        assertEquals(firstVersion, trackNumberDao.fetchOfficialVersionAtMoment(LayoutBranch.main, id, firstVersionTime))
+        assertEquals(updatedVersion, trackNumberDao.fetchOfficialVersionAtMoment(LayoutBranch.main, id, updatedVersionTime))
+        // TODO: GVT-2616 test with design branches
     }
 
     private fun updateOfficial(

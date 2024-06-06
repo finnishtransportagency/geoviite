@@ -187,9 +187,11 @@ class LayoutKmPostDaoIT @Autowired constructor(
         val updatedVersion = updateOfficial(firstVersion).rowVersion
         val updatedVersionTime = kmPostDao.fetchChangeTime()
 
-        assertEquals(null, kmPostDao.fetchOfficialVersionAtMoment(firstVersion.id, beforeCreationTime))
-        assertEquals(firstVersion, kmPostDao.fetchOfficialVersionAtMoment(firstVersion.id, firstVersionTime))
-        assertEquals(updatedVersion, kmPostDao.fetchOfficialVersionAtMoment(firstVersion.id, updatedVersionTime))
+        assertEquals(null, kmPostDao.fetchOfficialVersionAtMoment(LayoutBranch.main, firstVersion.id, beforeCreationTime))
+        assertEquals(firstVersion, kmPostDao.fetchOfficialVersionAtMoment(LayoutBranch.main, firstVersion.id, firstVersionTime))
+        assertEquals(updatedVersion, kmPostDao.fetchOfficialVersionAtMoment(LayoutBranch.main, firstVersion.id, updatedVersionTime))
+
+        // TODO: GVT-2616 test with design branches
     }
 
     @Test
