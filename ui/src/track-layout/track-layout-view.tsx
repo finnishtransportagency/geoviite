@@ -63,7 +63,10 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                             </MapContext.Provider>
                         </div>
                         <div className={styles['track-layout__tool-panel']}>
-                            <ToolPanelContainer setHoveredOverItem={setHoveredOverPlanSection} />
+                            <ToolPanelContainer
+                                setHoveredOverItem={setHoveredOverPlanSection}
+                                selectingWorkspace={selectingWorkspace}
+                            />
                         </div>
                     </div>
 

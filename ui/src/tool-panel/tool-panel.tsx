@@ -68,6 +68,7 @@ type ToolPanelProps = {
     onInfoboxVisibilityChange: (visibilities: InfoboxVisibilities) => void;
     verticalGeometryDiagramVisible: boolean;
     onHoverOverPlanSection: (item: HighlightedAlignment | undefined) => void;
+    selectingWorkspace: boolean;
 };
 
 export type ToolPanelAsset = {
@@ -115,6 +116,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
     onInfoboxVisibilityChange,
     verticalGeometryDiagramVisible,
     onHoverOverPlanSection,
+    selectingWorkspace,
 }: ToolPanelProps) => {
     const [previousTabs, setPreviousTabs] = React.useState<ToolPanelTab[]>([]);
     const [tabs, setTabs] = React.useState<ToolPanelTab[]>([]);
@@ -495,7 +497,7 @@ const ToolPanel: React.FC<ToolPanelProps> = ({
             {anyTabSelected
                 ? tabs.find((t) => isSameAsset(t.asset, selectedAsset))?.element
                 : first(tabs)?.element}
-            <LocationTrackTaskListContainer />
+            <LocationTrackTaskListContainer selectingWorkspace={selectingWorkspace} />
         </div>
     );
 };

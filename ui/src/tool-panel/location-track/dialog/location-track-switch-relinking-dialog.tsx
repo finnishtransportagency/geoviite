@@ -102,6 +102,7 @@ export const LocationTrackSwitchRelinkingDialog: React.FC<
             showLocationTrackTaskList({
                 locationTrackId,
                 type: LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION,
+                designId: layoutContext.designId,
             });
         }
     };
