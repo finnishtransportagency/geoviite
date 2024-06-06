@@ -150,6 +150,10 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             return t('tool-panel.disabled.activity-disabled-in-official-mode');
         } else if (splittingState || extraInfo?.partOfUnfinishedSplit) {
             return t('tool-panel.location-track.splitting-blocks-geometry-changes');
+        } else if (locationTrack.state === 'DELETED') {
+            return t('tool-panel.location-track.cannot-shorten-deleted-track');
+        } else if (!startAndEndPoints?.start?.point || !startAndEndPoints?.end?.point) {
+            return t('tool-panel.location-track.no-geometry');
         } else {
             return undefined;
         }
@@ -204,6 +208,23 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                 .finally(() => setUpdatingLength(false));
         }
     };
+
+    const shorteningDisabled =
+        locationTrack.state === 'DELETED' ||
+        !isDraft ||
+        !!splittingState ||
+        extraInfo?.partOfUnfinishedSplit ||
+        !startAndEndPoints?.start?.point ||
+        !startAndEndPoints?.end?.point ||
+        startingSplitting;
+
+    const splittingDisabled =
+        locationTrack.state !== 'IN_USE' ||
+        !isDraft ||
+        locationTrackIsDraft ||
+        duplicatesOnOtherTrackNumbers ||
+        extraInfo?.partOfUnfinishedSplit ||
+        startingSplitting;
 
     return (
         startAndEndPoints &&
@@ -263,14 +284,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                             size={ButtonSize.SMALL}
                                             qa-id="modify-start-or-end"
                                             title={getModifyStartOrEndDisabledReasonTranslated()}
-                                            disabled={
-                                                layoutContext.publicationState !== 'DRAFT' ||
-                                                !!splittingState ||
-                                                extraInfo?.partOfUnfinishedSplit ||
-                                                !startAndEndPoints.start?.point ||
-                                                !startAndEndPoints.end?.point ||
-                                                startingSplitting
-                                            }
+                                            disabled={shorteningDisabled}
                                             onClick={() => {
                                                 getEndLinkPoints(
                                                     locationTrack.id,
@@ -342,14 +356,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                             <Button
                                                 variant={ButtonVariant.SECONDARY}
                                                 size={ButtonSize.SMALL}
-                                                disabled={
-                                                    locationTrack.state !== 'IN_USE' ||
-                                                    !isDraft ||
-                                                    locationTrackIsDraft ||
-                                                    duplicatesOnOtherTrackNumbers ||
-                                                    extraInfo?.partOfUnfinishedSplit ||
-                                                    startingSplitting
-                                                }
+                                                disabled={splittingDisabled}
                                                 isProcessing={startingSplitting}
                                                 title={getSplittingDisabledReasonsTranslated()}
                                                 onClick={startSplitting}
