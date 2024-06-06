@@ -98,10 +98,10 @@ class BasicMapTestUI @Autowired constructor(
         val toolPanel = trackLayoutPage.toolPanel
         val locationTrackInfobox = toolPanel.locationTrackGeneralInfo
 
-        selectionPanel.selectOrUnselectReferenceLine(TRACK_NUMBER_WEST.number.toString())
+        selectionPanel.selectReferenceLine(TRACK_NUMBER_WEST.number.toString())
         toolPanel.referenceLineLocation.zoomTo()
 
-        selectionPanel.selectOrUnselectLocationTrack(locationTrackToBeEdited)
+        selectionPanel.selectLocationTrack(locationTrackToBeEdited)
         val editDialog = locationTrackInfobox.edit()
 
         editDialog
@@ -135,7 +135,7 @@ class BasicMapTestUI @Autowired constructor(
         assertEquals("Sijaintiraide R36240", changedAlignment.name)
 
         previewChangesPage.revertChange("Sijaintiraide R36240").goToTrackLayout()
-        selectionPanel.selectOrUnselectLocationTrack(locationTrackToBeEdited)
+        selectionPanel.selectLocationTrack(locationTrackToBeEdited)
 
         assertNotEquals("R36240", locationTrackInfobox.name)
         locationTrackInfobox.waitUntilDescriptionChanges("east location track description")
@@ -153,10 +153,10 @@ class BasicMapTestUI @Autowired constructor(
         val toolPanel = trackLayoutPage.toolPanel
         val locationTrackInfobox = toolPanel.locationTrackGeneralInfo
 
-        selectionPanel.selectOrUnselectReferenceLine(TRACK_NUMBER_WEST.number.toString())
+        selectionPanel.selectReferenceLine(TRACK_NUMBER_WEST.number.toString())
         toolPanel.referenceLineLocation.zoomTo()
 
-        selectionPanel.selectOrUnselectLocationTrack(locationTrackToBeEdited)
+        selectionPanel.selectLocationTrack(locationTrackToBeEdited)
         val editDialog = locationTrackInfobox.edit()
 
         editDialog

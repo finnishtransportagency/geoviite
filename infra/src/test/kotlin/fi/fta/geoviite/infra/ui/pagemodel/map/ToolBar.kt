@@ -6,11 +6,11 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdownListItem
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
-import org.joda.time.LocalDate
 import org.openqa.selenium.By
 import org.openqa.selenium.support.pagefactory.ByChained
 import waitUntilInvisible
 import waitUntilVisible
+import java.time.LocalDate
 
 class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.className("tool-bar")) {
     private val searchDropdown: E2EDropdown by lazy {
