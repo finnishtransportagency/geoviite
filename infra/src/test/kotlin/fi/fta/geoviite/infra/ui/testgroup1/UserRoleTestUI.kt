@@ -117,6 +117,7 @@ fun assertMapPage(role: E2ERole, trackNumber: TrackNumber, designName: String) {
                 .switchToDesignMode()
                 .also { it.toolBar.workspaceDropdown().selectByName(designName) }
                 .also { assertTrackLayoutPageEditButtonsVisible(it, trackNumber) }
+                .also { assertEditDesignButtonsVisible() }
                 .switchToDraftMode()
                 .also { assertTrackLayoutPageEditButtonsVisible(it, trackNumber) }
                 .goToPreview()
@@ -131,6 +132,7 @@ fun assertMapPage(role: E2ERole, trackNumber: TrackNumber, designName: String) {
                 .switchToDesignMode()
                 .also { it.toolBar.workspaceDropdown().selectByName(designName) }
                 .also { assertTrackLayoutPageEditButtonsInvisible(it, trackNumber) }
+                .also { assertEditDesignButtonsInvisible() }
                 .switchToDraftMode()
                 .also { assertTrackLayoutPageEditButtonsInvisible(it, trackNumber) }
         }
@@ -142,6 +144,7 @@ fun assertMapPage(role: E2ERole, trackNumber: TrackNumber, designName: String) {
             mapPage
                 .also { assertDraftAndDesignModeTabsInvisible() }
                 .also { assertTrackLayoutPageEditButtonsInvisible(it, trackNumber) }
+                .also { assertEditDesignButtonsInvisible() }
         }
     }
 }
@@ -154,6 +157,16 @@ fun assertDraftAndDesignModeTabsVisible() {
 fun assertDraftAndDesignModeTabsInvisible() {
     waitUntilNotExist(byQaId("draft-mode-tab"))
     waitUntilNotExist(byQaId("design-mode-tab"))
+}
+
+fun assertEditDesignButtonsVisible() {
+    waitUntilExists(byQaId("workspace-edit-button"))
+    waitUntilExists(byQaId("workspace-delete-button"))
+}
+
+fun assertEditDesignButtonsInvisible() {
+    waitUntilNotExist(byQaId("workspace-edit-button"))
+    waitUntilNotExist(byQaId("workspace-delete-button"))
 }
 
 fun assertTrackLayoutPageEditButtonsInvisible(trackLayoutPage: E2ETrackLayoutPage, trackNumber: TrackNumber): Unit {
