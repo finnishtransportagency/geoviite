@@ -20,6 +20,7 @@ import { linkingReducers } from 'linking/linking-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import {
     LayoutContext,
+    LayoutDesignId,
     LayoutMode,
     officialMainLayoutContext,
     PublicationState,
@@ -179,6 +180,7 @@ export enum LocationTrackTaskListType {
 export type SwitchRelinkingValidationTaskList = {
     type: LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION;
     locationTrackId: LocationTrackId;
+    designId: LayoutDesignId | undefined;
 };
 
 export type TrackLayoutState = {
