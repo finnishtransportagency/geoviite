@@ -43,7 +43,7 @@ class E2EGeometryPlanAccordion(accordionBy: By, val selectedItemBy: By?) : E2EAc
         open().also { switchesAccordion.selectItem(switch) }
     }
 
-    private fun subAccordion(qaId: String, selectedItemBy: By?): E2EGeometryPlanItemAccordion {
+    private fun subAccordion(qaId: String, selectedItemBy: By): E2EGeometryPlanItemAccordion {
         return E2EGeometryPlanItemAccordion(viewBy, qaId, selectedItemBy)
     }
 }
@@ -51,7 +51,7 @@ class E2EGeometryPlanAccordion(accordionBy: By, val selectedItemBy: By?) : E2EAc
 private class E2EGeometryPlanItemAccordion(
     parentBy: By,
     qaId: String,
-    selectedItemBy: By?,
+    selectedItemBy: By,
 ) : E2EAccordion(ByChained(parentBy, byQaId(qaId))) {
 
     private val _items: E2ETextList by lazy {

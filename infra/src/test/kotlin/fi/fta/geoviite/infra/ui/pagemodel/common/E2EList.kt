@@ -13,7 +13,8 @@ data class E2ETextListItem(val text: String) {
     constructor(element: WebElement) : this(element.text)
 }
 
-class E2ETextList(listBy: By, itemsBy: By = byLiTag, selectedItemBy: By?) : E2EList<E2ETextListItem>(listBy, itemsBy, selectedItemBy) {
+class E2ETextList(listBy: By, itemsBy: By = byLiTag, selectedItemBy: By)
+    : E2EList<E2ETextListItem>(listBy, itemsBy, selectedItemBy) {
 
     fun selectByText(text: String): E2EList<E2ETextListItem> {
         logger.info("Select item that contains $text")
@@ -30,7 +31,7 @@ class E2ETextList(listBy: By, itemsBy: By = byLiTag, selectedItemBy: By?) : E2EL
     override fun getItemContent(item: WebElement) = E2ETextListItem(item)
 }
 
-abstract class E2EList<T>(listBy: By, val itemsBy: By, val selectedItemBy: By?) : E2EViewFragment(listBy) {
+abstract class E2EList<T>(listBy: By, val itemsBy: By, val selectedItemBy: By? = null) : E2EViewFragment(listBy) {
 
     private val itemElements: List<Pair<WebElement, T>> get() = childElements(itemsBy).map { it to getItemContent(it) }
 

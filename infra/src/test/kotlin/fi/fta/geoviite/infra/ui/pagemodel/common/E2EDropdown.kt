@@ -19,7 +19,7 @@ class E2EDropdownList :
     E2EList<E2EDropdownListItem>(
         CONTAINER_BY,
         By.className("dropdown__list-item"),
-        selectedItemBy = null, // TODO Add selectedItemBy when needed, as dropdowns can have selected items too
+        selectedItemBy = null, // Add selectedItemBy if ever needed, as dropdowns can have selected items too
         ) {
     override fun getItemContent(item: WebElement): E2EDropdownListItem {
         return E2EDropdownListItem(item.text, item.getAttribute("qa-id"))

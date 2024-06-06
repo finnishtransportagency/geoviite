@@ -7,7 +7,7 @@ abstract class E2ETable<T>(
     tableBy: By = By.tagName("table"),
     rowsBy: By = By.tagName("tr"),
     protected open val headersBy: By = By.tagName("th"),
-) : E2EList<T>(tableBy, rowsBy, null) {
+) : E2EList<T>(tableBy, rowsBy) {
 
     init {
         waitUntilReady()
