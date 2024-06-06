@@ -23,6 +23,7 @@ import { useTrackLayoutAppSelector } from 'store/hooks';
 import { useAppNavigate } from 'common/navigate';
 import { defaultPublicationSearch } from 'publication/publication-utils';
 import { DOWNLOAD_PUBLICATION } from 'user/user-model';
+import { Spinner } from 'vayla-design-lib/spinner/spinner';
 
 let fetchId = 0;
 
@@ -178,6 +179,7 @@ const PublicationLog: React.FC = () => {
                             truncated: truncated ? '+' : '',
                         })}
                     </span>
+                    {isLoading && <Spinner inline={true} />}
                 </div>
                 <PublicationTable
                     isLoading={isLoading}

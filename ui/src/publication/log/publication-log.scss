@@ -41,5 +41,10 @@
 
     &__count-header {
         margin-bottom: 12px;
+        display: inline-flex;
+
+        > .spinner {
+            margin-left: 6px;
+        }
     }
 }
