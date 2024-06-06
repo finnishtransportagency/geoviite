@@ -42,7 +42,6 @@ interface LayoutAssetWriter<T : LayoutAsset<T>> {
 
     fun update(updatedItem: T): DaoResponse<T>
 
-    // TODO: GVT-2629 Use RowId type here to avoid risk of deleting with wrong id
     fun deleteRow(rowId: IntId<T>): DaoResponse<T>
 
     fun deleteDraft(branch: LayoutBranch, id: IntId<T>): DaoResponse<T>
