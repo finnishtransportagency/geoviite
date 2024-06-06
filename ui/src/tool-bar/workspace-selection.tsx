@@ -17,6 +17,7 @@ import { useTrackLayoutAppSelector, useUserHasPrivilege } from 'store/hooks';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 import { EDIT_LAYOUT } from 'user/user-model';
+import { PrivilegeRequired } from 'user/privilege-required';
 
 type WorkspaceSelectionContainerProps = {
     setSelectingWorkspace: (selectingWorkspace: boolean) => void;
@@ -106,18 +107,22 @@ export const WorkspaceSelection: React.FC<WorkspaceSelectionProps> = ({
                 value={layoutContext.designId}
                 qaId={'workspace-selection'}
             />
-            <Button
-                variant={ButtonVariant.GHOST}
-                icon={Icons.Edit}
-                disabled={!layoutContext.designId}
-                onClick={() => setShowEditWorkspaceDialog(true)}
-            />
-            <Button
-                variant={ButtonVariant.GHOST}
-                icon={Icons.Delete}
-                disabled={!layoutContext.designId}
-                onClick={() => setShowDeleteWorkspaceDialog(true)}
-            />
+            <PrivilegeRequired privilege={EDIT_LAYOUT}>
+                <Button
+                    variant={ButtonVariant.GHOST}
+                    icon={Icons.Edit}
+                    disabled={!layoutContext.designId}
+                    onClick={() => setShowEditWorkspaceDialog(true)}
+                    qa-id={'workspace-edit-button'}
+                />
+                <Button
+                    variant={ButtonVariant.GHOST}
+                    icon={Icons.Delete}
+                    disabled={!layoutContext.designId}
+                    onClick={() => setShowDeleteWorkspaceDialog(true)}
+                    qa-id={'workspace-delete-button'}
+                />
+            </PrivilegeRequired>
             {showCreateWorkspaceDialog && (
                 <WorkspaceDialog
                     onCancel={() => {
