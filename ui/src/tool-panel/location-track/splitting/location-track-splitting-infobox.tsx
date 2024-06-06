@@ -185,6 +185,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
         delegates.showLocationTrackTaskList({
             type: LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION,
             locationTrackId: locationTrack,
+            designId: layoutContext.designId,
         });
     };
 
