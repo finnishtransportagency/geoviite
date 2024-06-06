@@ -707,7 +707,7 @@
                 }
             },
             "splitting-blocks-geometry-changes": "Raiteen geometriaa ei voi muokata koska sen jakaminen on kesken",
-            "cannot-shorten-deleted-track": "Postettua raidetta ei voi lyhentää",
+            "cannot-shorten-deleted-track": "Poistettua raidetta ei voi lyhentää",
             "unsupported-state-for-splitting": "Vain \"Käytössä\"-tilaisen raiteen voi jakaa",
             "no-geometry": "Raiteella ei ole geometriaa"
         },
