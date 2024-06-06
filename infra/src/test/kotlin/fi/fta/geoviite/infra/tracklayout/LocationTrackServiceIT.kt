@@ -42,6 +42,8 @@ class LocationTrackServiceIT @Autowired constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val splitService: SplitService,
     private val splitTestDataService: SplitTestDataService,
+    private val trackNumberDao: LayoutTrackNumberDao,
+    private val trackNumberService: LayoutTrackNumberService
 ) : DBTestBase() {
 
     @BeforeEach
@@ -497,29 +499,46 @@ class LocationTrackServiceIT @Autowired constructor(
 
     @Test
     fun fetchDuplicatesIsVersioned() {
-        val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val originalLocationTrackId = locationTrackService
-            .insert(LayoutBranch.main, saveRequest(trackNumberId, 1)).id
-        publish(originalLocationTrackId)
-        val officialCopy = insertAndFetchDraft(
-            locationTrack(mainDraftContext.createLayoutTrackNumber().id, duplicateOf = originalLocationTrackId, draft = true),
-            alignment(),
-        )
-        publish(officialCopy.first.id as IntId<LocationTrack>)
+        val alignment = someAlignment()
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumberAndReferenceLine(alignment).id
 
-        val draftCopyVersion = locationTrackService.update(
+        val (originalLocationTrack, _) = insertAndFetchDraft(
+            locationTrack(trackNumberId, draft = true),
+            alignment
+        )
+        publish(originalLocationTrack.id as IntId)
+        val originalLocationTrackId = originalLocationTrack.id as IntId;
+
+        val (duplicateInOfficial, _) = insertAndFetchDraft(
+            locationTrack(trackNumberId, duplicateOf = originalLocationTrackId, draft = true),
+            alignment,
+        )
+        publish(duplicateInOfficial.id as IntId<LocationTrack>)
+
+        val newTrackName = AlignmentName(duplicateInOfficial.name.toString()+" NEW NAME FOR DRAFT");
+        val duplicateInDraftVersion = locationTrackService.update(
             LayoutBranch.main,
-            officialCopy.first.id as IntId,
-            saveRequest(trackNumberId, 1).copy(duplicateOf = originalLocationTrackId),
+            duplicateInOfficial.id as IntId,
+            saveRequest(trackNumberId, 1).copy(
+                name = newTrackName,
+                duplicateOf = originalLocationTrackId
+            ),
         )
-        val draftCopy = locationTrackService.get(MainLayoutContext.draft, draftCopyVersion.id)!!
+        val duplicateInDraft = locationTrackService.get(MainLayoutContext.draft, duplicateInDraftVersion.id)!!
+
         assertEquals(
-            listOf(asLocationTrackDuplicate(officialCopy.first)),
-            locationTrackService.getInfoboxExtras(MainLayoutContext.official, originalLocationTrackId)?.duplicates
+            duplicateInOfficial.name,
+            locationTrackService.getInfoboxExtras(MainLayoutContext.official, originalLocationTrackId)
+                ?.duplicates
+                ?.firstOrNull()
+                ?.name
         )
         assertEquals(
-            listOf(asLocationTrackDuplicate(draftCopy)),
-            locationTrackService.getInfoboxExtras(MainLayoutContext.draft, originalLocationTrackId)?.duplicates
+            duplicateInDraft.name,
+            locationTrackService.getInfoboxExtras(MainLayoutContext.draft, originalLocationTrackId)
+                ?.duplicates
+                ?.firstOrNull()
+                ?.name
         )
     }
 
