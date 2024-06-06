@@ -275,8 +275,8 @@ fun referenceLine(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     alignment: LayoutAlignment? = null,
     startAddress: TrackMeter = TrackMeter.ZERO,
-    alignmentVersion: RowVersion<LayoutAlignment>? = null,
     id: IntId<ReferenceLine>? = null,
+    alignmentVersion: RowVersion<LayoutAlignment>? = if (id != null) someRowVersion() else null,
     draft: Boolean = false,
     contextData: LayoutContextData<ReferenceLine> = createMainContext(id, null, draft)
 ) = ReferenceLine(
@@ -374,7 +374,7 @@ fun locationTrack(
     type: LocationTrackType = LocationTrackType.SIDE,
     state: LocationTrackState = LocationTrackState.IN_USE,
     externalId: Oid<LocationTrack>? = someOid(),
-    alignmentVersion: RowVersion<LayoutAlignment>? = null,
+    alignmentVersion: RowVersion<LayoutAlignment>? = if (id != null) someRowVersion() else null,
     topologicalConnectivity: TopologicalConnectivityType = TopologicalConnectivityType.NONE,
     topologyStartSwitch: TopologyLocationTrackSwitch? = null,
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
@@ -1032,3 +1032,5 @@ fun layoutDesign(
 ) = LayoutDesignSaveRequest(
     FreeText(name), estimatedCompletion, designState
 )
+
+fun <T> someRowVersion() = RowVersion(IntId<T>(1), 1)
