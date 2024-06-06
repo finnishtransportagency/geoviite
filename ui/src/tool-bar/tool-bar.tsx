@@ -455,12 +455,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 {layoutContext.publicationState == 'DRAFT' && (
                     <PrivilegeRequired privilege={EDIT_LAYOUT}>
                         <Button
-                            disabled={
-                                selectingWorkspace ||
-                                !!splittingState ||
-                                linkingState?.state === 'allSet' ||
-                                linkingState?.state === 'setup'
-                            }
+                            disabled={selectingWorkspace || !!splittingState || !!linkingState}
                             variant={ButtonVariant.PRIMARY}
                             title={modeNavigationButtonsDisabledReason()}
                             qa-id="open-preview-view"
