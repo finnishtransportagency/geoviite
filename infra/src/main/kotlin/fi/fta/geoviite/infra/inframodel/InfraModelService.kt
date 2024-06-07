@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.inframodel
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.codeDictionary.CodeDictionaryService
 import fi.fta.geoviite.infra.codeDictionary.FeatureType
 import fi.fta.geoviite.infra.common.IntId
@@ -20,17 +21,13 @@ import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
 import fi.fta.geoviite.infra.geometry.getBoundingPolygonPointsFromAlignments
 import fi.fta.geoviite.infra.geometry.validate
 import fi.fta.geoviite.infra.localization.localizationParams
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.normalizeLinebreaksToUnixFormat
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
 
@@ -45,7 +42,7 @@ fun noFileValidationResponse(overrideParameters: OverrideParameters?) = Validati
     source = overrideParameters?.source ?: PlanSource.GEOMETRIAPALVELU,
 )
 
-@Service
+@GeoviiteService
 class InfraModelService @Autowired constructor(
     private val geometryService: GeometryService,
     private val layoutCache: PlanLayoutCache,
@@ -56,7 +53,6 @@ class InfraModelService @Autowired constructor(
     private val trackNumberService: LayoutTrackNumberService,
     private val coordinateTransformationService: CoordinateTransformationService,
 ) {
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @Transactional
     fun saveInfraModel(file: MultipartFile, overrides: OverrideParameters?, extraInfo: ExtraInfoParameters?) =
@@ -68,13 +64,6 @@ class InfraModelService @Autowired constructor(
         overrides: OverrideParameters?,
         extraInfo: ExtraInfoParameters?,
     ): RowVersion<GeometryPlan> {
-        logger.serviceCall(
-            "saveInfraModel",
-            "file" to file,
-            "overrides" to overrides,
-            "extraInfo" to extraInfo,
-        )
-
         val geometryPlan = cleanMissingFeatureTypeCodes(parseInfraModel(file, overrides, extraInfo))
         val transformedBoundingBox = geometryPlan.units.coordinateSystemSrid
             ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
@@ -90,12 +79,6 @@ class InfraModelService @Autowired constructor(
         overrides: OverrideParameters? = null,
         extraInfo: ExtraInfoParameters? = null,
     ): GeometryPlan {
-        logger.serviceCall(
-            "parseInfraModel",
-            "file" to file,
-            "overrides" to overrides,
-            "extraInfo" to extraInfo,
-        )
         val switchStructuresByType = switchLibraryService.getSwitchStructures().associateBy { it.type }
 
         val parsed = parseInfraModelFile(
@@ -112,11 +95,6 @@ class InfraModelService @Autowired constructor(
         multipartFile: MultipartFile,
         overrideParameters: OverrideParameters?,
     ): ValidationResponse {
-        logger.serviceCall(
-            "validateInfraModelFile",
-            "file.originalFilename" to multipartFile.originalFilename,
-            "overrideParameters" to overrideParameters,
-        )
         return tryParsing(overrideParameters?.source) {
             val imFile = toInfraModelFile(multipartFile, overrideParameters?.encoding?.charset)
             validateInternal(imFile, overrideParameters)
@@ -127,11 +105,6 @@ class InfraModelService @Autowired constructor(
         file: InfraModelFile,
         overrideParameters: OverrideParameters?
     ): ValidationResponse {
-        logger.serviceCall(
-            "validateInfraModelFile",
-            "file" to file,
-            "overrideParameters" to overrideParameters,
-        )
         return tryParsing(overrideParameters?.source) { validateInternal(file, overrideParameters) }
     }
 
@@ -154,12 +127,6 @@ class InfraModelService @Autowired constructor(
         planId: IntId<GeometryPlan>,
         overrideParameters: OverrideParameters?,
     ): ValidationResponse {
-        logger.serviceCall(
-            "validateGeometryPlan",
-            "planId" to planId,
-            "overrideParameters" to overrideParameters,
-        )
-
         val geometryPlan = geometryService.getGeometryPlan(planId)
         val planWithParameters = overrideGeometryPlanWithParameters(geometryPlan, overrideParameters)
         return validateAndTransformToLayoutPlan(planWithParameters)
@@ -181,13 +148,6 @@ class InfraModelService @Autowired constructor(
         overrideParameters: OverrideParameters?,
         extraInfoParameters: ExtraInfoParameters?,
     ): RowVersion<GeometryPlan> {
-        logger.serviceCall(
-            "updateInfraModel",
-            "planId" to planId,
-            "overrideParameters" to overrideParameters,
-            "extraInfoParameters" to extraInfoParameters,
-        )
-
         val geometryPlan = geometryService.getGeometryPlan(planId)
         val overriddenPlan = overrideGeometryPlanWithParameters(geometryPlan, overrideParameters, extraInfoParameters)
 

@@ -1,9 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.map.AlignmentHeader
 import fi.fta.geoviite.infra.map.AlignmentPolyLine
 import fi.fta.geoviite.infra.map.MapAlignmentType
@@ -15,9 +15,6 @@ import fi.fta.geoviite.infra.map.toAlignmentPolyLine
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.combineContinuous
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 enum class AlignmentFetchType {
@@ -37,15 +34,13 @@ data class MapAlignmentEndPoints(
     val end: List<AlignmentPoint>,
 )
 
-@Service
+@GeoviiteService
 class MapAlignmentService(
     private val trackNumberService: LayoutTrackNumberService,
     private val locationTrackService: LocationTrackService,
     private val referenceLineService: ReferenceLineService,
     private val alignmentDao: LayoutAlignmentDao,
 ) {
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-
     @Transactional(readOnly = true)
     fun getAlignmentPolyLines(
         layoutContext: LayoutContext,
@@ -53,13 +48,6 @@ class MapAlignmentService(
         resolution: Int,
         type: AlignmentFetchType,
     ): List<AlignmentPolyLine<*>> {
-        logger.serviceCall(
-            "getAlignmentPolyLines",
-            "layoutContext" to layoutContext,
-            "bbox" to bbox,
-            "resolution" to resolution,
-            "type" to type,
-        )
         val referenceLines =
             if (type == AlignmentFetchType.LOCATION_TRACKS) listOf()
             else getReferenceLinePolyLines(layoutContext, bbox, resolution)
@@ -87,9 +75,6 @@ class MapAlignmentService(
         bbox: BoundingBox,
         type: AlignmentFetchType,
     ): List<MapAlignmentHighlight<*>> {
-        logger.serviceCall( "getSectionsWithoutLinking",
-            "layoutContext" to layoutContext, "bbox" to bbox, "type" to type
-        )
         val referenceLines =
             if (type == AlignmentFetchType.LOCATION_TRACKS) listOf()
             else getReferenceLineMissingLinkings(layoutContext, bbox)
@@ -103,7 +88,6 @@ class MapAlignmentService(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
     ): List<MapAlignmentHighlight<LocationTrack>> {
-        logger.serviceCall("getSectionsWithoutProfile", "layoutContext" to layoutContext, "bbox" to bbox)
         return alignmentDao
             .fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(layoutContext, bbox)
             .filter { !it.hasProfile }
@@ -148,25 +132,21 @@ class MapAlignmentService(
     }
 
     fun getLocationTrackSegmentMValues(layoutContext: LayoutContext, id: IntId<LocationTrack>): List<Double> {
-        logger.serviceCall("getLocationTrackSegmentMValues", "layoutContext" to layoutContext, "id" to id)
         val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(layoutContext, id)
         return getSegmentBorderMValues(alignment)
     }
 
     fun getReferenceLineSegmentMValues(layoutContext: LayoutContext, id: IntId<ReferenceLine>): List<Double> {
-        logger.serviceCall("getReferenceLineSegmentMValues", "layoutContext" to layoutContext, "id" to id)
         val (_, alignment) = referenceLineService.getWithAlignmentOrThrow(layoutContext, id)
         return getSegmentBorderMValues(alignment)
     }
 
     fun getLocationTrackEnds(layoutContext: LayoutContext, id: IntId<LocationTrack>): MapAlignmentEndPoints {
-        logger.serviceCall("getLocationTrackEnds", "layoutContext" to layoutContext, "id" to id)
         val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(layoutContext, id)
         return getEndPoints(alignment)
     }
 
     fun getReferenceLineEnds(layoutContext: LayoutContext, id: IntId<ReferenceLine>): MapAlignmentEndPoints {
-        logger.serviceCall("getReferenceLineEnds", "layoutContext" to layoutContext, "id" to id)
         val (_, alignment) = referenceLineService.getWithAlignmentOrThrow(layoutContext, id)
         return getEndPoints(alignment)
     }

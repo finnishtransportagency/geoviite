@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.geometry
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.geography.boundingPolygonPointsByConvexHull
 import fi.fta.geoviite.infra.math.Point
@@ -15,10 +16,9 @@ import fi.fta.geoviite.infra.ui.testgroup2.DEFAULT_BASE_POINT
 import fi.fta.geoviite.infra.ui.testgroup2.LINKING_TEST_PLAN_NAME
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Profile
-import org.springframework.stereotype.Service
 
 @Profile("test")
-@Service
+@GeoviiteService
 class TestGeometryPlanService @Autowired constructor(
     val switchStructureDao: SwitchStructureDao,
     val geometryDao: GeometryDao,

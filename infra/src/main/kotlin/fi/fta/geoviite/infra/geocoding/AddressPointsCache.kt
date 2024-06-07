@@ -2,18 +2,15 @@ package fi.fta.geoviite.infra.geocoding
 
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
 data class AddressPointCacheKey(
@@ -29,14 +26,13 @@ data class AddressPointCalculationData(
 
 const val ADDRESS_POINT_CACHE_SIZE = 2000L
 
-@Component
+@GeoviiteService
 class AddressPointsCache(
     val alignmentDao: LayoutAlignmentDao,
     val locationTrackDao: LocationTrackDao,
     val geocodingDao: GeocodingDao,
     val geocodingCacheService: GeocodingCacheService,
 ) {
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val cache: Cache<AddressPointCacheKey, AlignmentAddresses?> =
         Caffeine.newBuilder().maximumSize(ADDRESS_POINT_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
 
@@ -61,7 +57,6 @@ class AddressPointsCache(
      * prefer GeocodingService's getAddressPoints method instead
      **/
     fun getAddressPoints(cacheKey: AddressPointCacheKey): AlignmentAddresses? {
-        logger.serviceCall("getAddressPoints", "cacheKey" to cacheKey)
         return getAddressPointCalculationData(cacheKey)?.let(::getAddressPoints)
     }
 

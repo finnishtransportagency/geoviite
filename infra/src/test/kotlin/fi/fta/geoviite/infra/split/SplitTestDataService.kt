@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.split
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
@@ -23,7 +24,6 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.segmentsFromSwitchStructure
 import fi.fta.geoviite.infra.tracklayout.switchFromDbStructure
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Service
 import kotlin.test.assertEquals
 
 data class SwitchAndSegments(
@@ -32,7 +32,7 @@ data class SwitchAndSegments(
     val turningSwitchSegments: List<LayoutSegment>,
 )
 
-@Service
+@GeoviiteService
 class SplitTestDataService @Autowired constructor(
     private val switchStructureDao: SwitchStructureDao,
     private val locationTrackService: LocationTrackService,

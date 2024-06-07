@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.error
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -9,11 +10,10 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DataAccessException
-import org.springframework.stereotype.Service
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
 
-@Service
+@GeoviiteService
 class TransactionTestService {
     @Transactional
     fun <T> run(operation: () -> T): T = operation()

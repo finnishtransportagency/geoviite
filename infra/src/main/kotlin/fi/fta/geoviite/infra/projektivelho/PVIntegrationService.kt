@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.projektivelho
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.FeatureTypeCode
 import fi.fta.geoviite.infra.common.Oid
@@ -8,7 +9,6 @@ import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.inframodel.*
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LockDao
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.projektivelho.PVDocumentStatus.*
 import fi.fta.geoviite.infra.projektivelho.PVFetchStatus.*
 import fi.fta.geoviite.infra.util.FileName
@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.scheduling.annotation.Scheduled
-import org.springframework.stereotype.Service
 import withUser
 import java.time.Duration
 import java.time.Instant
@@ -26,7 +25,7 @@ import java.time.Instant
 val PROJEKTIVELHO_INTEGRATION_USERNAME = UserName.of("PROJEKTIVELHO_IMPORT")
 val PREFETCH_TIME_RANGE = Duration.ofDays(365)
 
-@Service
+@GeoviiteService
 @ConditionalOnBean(PVClientConfiguration::class)
 class PVIntegrationService @Autowired constructor(
     private val pvClient: PVClient,
@@ -78,7 +77,6 @@ class PVIntegrationService @Autowired constructor(
         ?.takeIf { status -> status.state == PVApiSearchState.valmis }
 
     fun updateDictionaries() {
-        logger.serviceCall("updateDictionaries")
         val dict = pvClient.fetchDictionaries()
         dict.forEach { (type, entries) ->
             pvDao.upsertDictionary(type, entries)

@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ratko
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
@@ -14,7 +15,6 @@ import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.SwitchChange
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.assertMainBranch
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.Operation
 import fi.fta.geoviite.infra.publication.PublicationDetails
 import fi.fta.geoviite.infra.publication.PublicationService
@@ -36,7 +36,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.scheduling.annotation.Scheduled
-import org.springframework.stereotype.Service
 import withUser
 import java.time.Duration
 import java.time.Instant
@@ -57,7 +56,7 @@ class RatkoLocationTrackPushException(exception: RatkoPushException, val locatio
 class RatkoTrackNumberPushException(exception: RatkoPushException, val trackNumber: TrackLayoutTrackNumber) :
     RatkoPushException(exception.type, exception.operation, exception.responseBody, exception)
 
-@Service
+@GeoviiteService
 @ConditionalOnBean(RatkoClientConfiguration::class)
 class RatkoService @Autowired constructor(
     private val ratkoClient: RatkoClient,
@@ -81,7 +80,6 @@ class RatkoService @Autowired constructor(
     @Scheduled(cron = "0 * * * * *")
     fun scheduledRatkoPush() {
         withUser(ratkoSchedulerUserName) {
-            logger.serviceCall("scheduledRatkoPush")
             // Don't retry failed on auto-push
             pushChangesToRatko(retryFailed = false)
         }
@@ -103,7 +101,6 @@ class RatkoService @Autowired constructor(
 
     fun pushChangesToRatko(retryFailed: Boolean = true) {
         lockDao.runWithLock(DatabaseLock.RATKO, databaseLockDuration) {
-            logger.serviceCall("pushChangesToRatko")
 
             // Kill off any pushes that have been stuck for too long, as it's likely failed and state is hanging in DB
             ratkoPushDao.finishStuckPushes()
@@ -132,8 +129,6 @@ class RatkoService @Autowired constructor(
     }
 
     fun manageRatkoBulkTransfers(branch: LayoutBranch) {
-        logger.serviceCall("manageRatkoBulkTransfers", "branch" to branch)
-
         assertMainBranch(branch)
 
         splitService
@@ -156,12 +151,6 @@ class RatkoService @Autowired constructor(
     }
 
     fun pollBulkTransferStateUpdate(branch: LayoutBranch, split: Split): Split {
-        logger.serviceCall(
-            "pollBulkTransferStateUpdate",
-            "branch" to branch,
-            "split" to split,
-        )
-
         if (split.bulkTransferState != BulkTransferState.IN_PROGRESS) {
             logger.info(
                 "Skipping bulk transfer state poll: split is not in progress (current state=${split.bulkTransferState})"
@@ -188,12 +177,6 @@ class RatkoService @Autowired constructor(
     }
 
     fun beginNewBulkTransfer(branch: LayoutBranch, split: Split) {
-        logger.serviceCall(
-            "beginBulkTransfer",
-            "branch" to branch,
-            "split" to split,
-        )
-
         ratkoClient.startNewBulkTransfer(split).let { (bulkTransferId, bulkTransferState) ->
             splitService.updateSplit(
                 splitId = split.id,
@@ -207,8 +190,6 @@ class RatkoService @Autowired constructor(
         assertMainBranch(branch)
 
         lockDao.runWithLock(DatabaseLock.RATKO, databaseLockDuration) {
-            logger.serviceCall("pushLocationTracksToRatko")
-
             val previousPush = ratkoPushDao.fetchPreviousPush()
             check(previousPush.status == RatkoPushStatus.SUCCESSFUL) {
                 "Push all publications before pushing location track point manually"
