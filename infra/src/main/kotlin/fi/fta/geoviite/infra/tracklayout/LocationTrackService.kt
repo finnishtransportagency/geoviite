@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.SplitSourceLocationTrackUpdateException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
+import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
@@ -468,11 +469,84 @@ class LocationTrackService(
         return lines.map { line -> line to alignments.getValue(line.getAlignmentVersionOrThrow()) }
     }
 
+    fun fillTrackAddress(splitPoint:SplitPoint, geocodingContext: GeocodingContext): SplitPoint {
+        val address = geocodingContext.getAddress(splitPoint.location)?.first
+        return when (splitPoint) {
+            is SwitchSplitPoint -> splitPoint.copy( address = address)
+            is EndpointSplitPoint -> splitPoint.copy( address = address)
+        }
+    }
+
+    fun fillTrackAddresses(duplicates: List<LocationTrackDuplicate>, geocodingContext:GeocodingContext) : List<LocationTrackDuplicate> {
+        return duplicates.map { duplicate ->
+            duplicate.copy(
+                duplicateStatus = duplicate.duplicateStatus.copy(
+                    startSplitPoint = duplicate.duplicateStatus.startSplitPoint?.let { splitPoint ->
+                        fillTrackAddress(splitPoint, geocodingContext)
+                        },
+                    endSplitPoint = duplicate.duplicateStatus.endSplitPoint?.let { splitPoint ->
+                        fillTrackAddress(splitPoint, geocodingContext)
+                    }
+                )
+            )
+        }
+    }
+
     @Transactional(readOnly = true)
     fun getInfoboxExtras(layoutContext: LayoutContext, id: IntId<LocationTrack>): LocationTrackInfoboxExtras? {
         return getWithAlignment(layoutContext, id)?.let { (locationTrack, alignment) ->
+            val start = alignment.start ?: return null
+            val end = alignment.end ?: return null
+            val geocodingContext = geocodingService.getGeocodingContext(layoutContext, locationTrack.trackNumberId)
+                ?: return null
+
             val duplicateOf = getDuplicateTrackParent(layoutContext, locationTrack)
-            val sortedDuplicates = getLocationTrackDuplicates(layoutContext, locationTrack, alignment)
+            val duplicates = fillTrackAddresses(
+                getLocationTrackDuplicates(layoutContext, locationTrack, alignment),
+                geocodingContext
+            )
+            val sortedDuplicates = duplicates.sortedBy { duplicate ->
+                duplicate.duplicateStatus.startSplitPoint?.address
+            }
+
+            val startAddress = geocodingContext?.getAddress(start)?.first
+            val startSwitchId = alignment.segments.firstOrNull()?.switchId as IntId?
+                ?: locationTrack.topologyStartSwitch?.switchId
+            val startSwitchSplitPoint = startSwitchId?.let { switchId ->
+                    SwitchSplitPoint(
+                        start,
+                        startAddress,
+                        switchId,
+                        JointNumber(0)
+                    )
+            }
+            val startSplitPoint = startSwitchSplitPoint
+                ?: EndpointSplitPoint(
+                    start,
+                    startAddress,
+                    DuplicateEndPointType.START
+                )
+
+            val endAddress = geocodingContext?.getAddress(end)?.first
+            val endSwitchId = alignment.segments.lastOrNull()?.switchId as IntId?
+                ?: locationTrack.topologyEndSwitch?.switchId
+            val endSwitchSplitPoint = endSwitchId?.let { switchId ->
+                alignment.end?.let { end ->
+                    SwitchSplitPoint(
+                        end,
+                        endAddress,
+                        switchId,
+                        JointNumber(0)
+                    )
+                }
+            }
+            val endSplitPoint = endSwitchSplitPoint
+                ?: EndpointSplitPoint(
+                    end,
+                    endAddress,
+                    DuplicateEndPointType.END
+                )
+
             val startSwitch = (alignment.segments.firstOrNull()?.switchId as IntId?
                 ?: locationTrack.topologyStartSwitch?.switchId)?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
             val endSwitch = (alignment.segments.lastOrNull()?.switchId as IntId?
@@ -487,6 +561,8 @@ class LocationTrackService(
                 startSwitch,
                 endSwitch,
                 partOfUnfinishedSplit,
+                startSplitPoint,
+                endSplitPoint
             )
         }
     }
@@ -520,7 +596,7 @@ class LocationTrackService(
             .distinct()
             .map(::getWithAlignmentInternal)
             .filter { (duplicateTrack, _) -> duplicateTrack.id != track.id && duplicateTrack.id != track.duplicateOf }
-        return getLocationTrackDuplicatesByJoint(track, alignment, duplicateTracksAndAlignments)
+        return getLocationTrackDuplicatesBySplitPoints(track, alignment, duplicateTracksAndAlignments)
     }
 
     private fun getDuplicateTrackParent(

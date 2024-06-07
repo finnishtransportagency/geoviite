@@ -15,6 +15,7 @@ import {
     draftLayoutContext,
     LayoutAssetChangeInfo,
     LayoutContext,
+    Oid,
     TimeStamp,
     TrackMeter,
 } from 'common/common-model';
@@ -83,6 +84,14 @@ export type SplitDuplicate = {
     start: AddressPoint;
     end: AddressPoint;
     status: DuplicateStatus;
+};
+
+export type LocationTrackDuplicate = {
+    id: LocationTrackId;
+    trackNumberId: LayoutTrackNumberId;
+    name: string;
+    externalId: Oid;
+    duplicateStatus: DuplicateStatus;
 };
 
 export type SplitInitializationParameters = {

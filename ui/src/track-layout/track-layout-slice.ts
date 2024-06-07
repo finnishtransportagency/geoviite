@@ -25,13 +25,17 @@ import {
     officialMainLayoutContext,
     PublicationState,
 } from 'common/common-model';
-import { GeometryPlanLayout, LocationTrackId } from 'track-layout/track-layout-model';
+import {
+    GeometryPlanLayout,
+    LocationTrackId,
+    SwitchSplitPoint,
+} from 'track-layout/track-layout-model';
 import { Point } from 'model/geometry';
 import { first } from 'utils/array-utils';
 import {
     PublicationCandidate,
-    PublicationStage,
     PublicationCandidateReference,
+    PublicationStage,
 } from 'publication/publication-model';
 import { ToolPanelAsset } from 'tool-panel/tool-panel';
 import { exhaustiveMatchingGuard, ifDefined } from 'utils/type-utils';
@@ -302,11 +306,27 @@ const trackLayoutSlice = createSlice({
         onSelect: function (state: TrackLayoutState, action: PayloadAction<OnSelectOptions>): void {
             const firstSwitchId = ifDefined(action.payload.switches, first);
             if (state.splittingState && firstSwitchId) {
-                if (state.splittingState.state === 'SETUP') {
-                    splitReducers.addSplit(state, {
-                        ...action,
-                        payload: firstSwitchId,
-                    });
+                const allowedSwitch = state.splittingState.trackSwitches.find(
+                    (sw) => sw.switchId == firstSwitchId,
+                );
+
+                if (allowedSwitch) {
+                    const switchSplitPoint = SwitchSplitPoint(
+                        allowedSwitch.switchId,
+                        allowedSwitch.name,
+                        {
+                            x: allowedSwitch.location?.x || 0,
+                            y: allowedSwitch.location?.y || 0,
+                            m: 0,
+                        },
+                        allowedSwitch.address,
+                    );
+                    if (state.splittingState.state === 'SETUP') {
+                        splitReducers.addSplit(state, {
+                            ...action,
+                            payload: switchSplitPoint,
+                        });
+                    }
                 }
                 return;
             }

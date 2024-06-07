@@ -10,14 +10,12 @@ import { DescriptionSuffixDropdown } from 'tool-panel/location-track/description
 import {
     AddressPoint,
     LayoutLocationTrack,
-    LayoutSwitchId,
-    LocationTrackDuplicate,
     LocationTrackId,
+    SplitPoint,
 } from 'track-layout/track-layout-model';
 import {
     FirstSplitTargetCandidate,
     SplitTargetCandidate,
-    SwitchOnLocationTrack,
 } from 'tool-panel/location-track/split-store';
 import {
     calculateBoundingBoxToShowAroundLocation,
@@ -26,12 +24,13 @@ import {
 import NavigableTrackMeter from 'geoviite-design-lib/track-meter/navigable-track-meter';
 import { isEqualIgnoreCase } from 'utils/string-utils';
 import {
-    END_SWITCH_NOT_MATCHING_ERROR,
+    END_SPLIT_POINT_NOT_MATCHING_ERROR,
     getOperation,
-    START_SWITCH_NOT_MATCHING_ERROR,
+    START_SPLIT_POINT_NOT_MATCHING_ERROR,
 } from './split-utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { BoundingBox, Point } from 'model/geometry';
+import { SplitDuplicate } from 'track-layout/layout-location-track-api';
 
 type CommonProps = {
     addressPoint: AddressPoint | undefined;
@@ -40,14 +39,14 @@ type CommonProps = {
 };
 
 type EndpointProps = CommonProps & {
-    splitSwitch: SwitchOnLocationTrack | undefined;
-    onSwitchClick: () => void;
+    splitPoint: SplitPoint | undefined;
+    onSplitPointClick: () => void;
 };
 
 type SplitProps = CommonProps & {
     locationTrackId: LocationTrackId;
     split: SplitTargetCandidate | FirstSplitTargetCandidate;
-    onRemove?: (switchId: LayoutSwitchId) => void;
+    onRemove?: (splitPoint: SplitPoint) => void;
     updateSplit: (updateSplit: SplitTargetCandidate | FirstSplitTargetCandidate) => void;
     duplicateTrackId: LocationTrackId | undefined;
     nameIssues: FieldValidationIssue<SplitTargetCandidate>[];
@@ -56,7 +55,7 @@ type SplitProps = CommonProps & {
     nameRef: React.RefObject<HTMLInputElement>;
     descriptionBaseRef: React.RefObject<HTMLInputElement>;
     deletingDisabled: boolean;
-    allDuplicateLocationTracks: LocationTrackDuplicate[];
+    allDuplicateLocationTracks: SplitDuplicate[];
     duplicateLocationTrack: LayoutLocationTrack | undefined;
     underlyingAssetExists: boolean;
     showArea: (bbox: BoundingBox) => void;
@@ -65,7 +64,7 @@ type SplitProps = CommonProps & {
     onBlur: () => void;
     onHighlight: () => void;
     onReleaseHighlight: () => void;
-    onHighlightSwitch: () => void;
+    onHighlightSplitPoint: () => void;
     onReleaseSwitchHighlight: () => void;
 };
 
@@ -74,12 +73,11 @@ export function getShowSwitchOnMapBoundingBox(location: Point): BoundingBox {
 }
 
 export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({
-    splitSwitch,
+    splitPoint,
     addressPoint,
     editingDisabled,
-    onSwitchClick,
+    onSplitPointClick,
 }) => {
-    const { t } = useTranslation();
     return (
         <div
             className={createClassName(
@@ -93,14 +91,14 @@ export const LocationTrackSplittingEndpoint: React.FC<EndpointProps> = ({
                         editingDisabled &&
                             styles['location-track-infobox__split-item-ball--disabled'],
                     )}
-                    onClick={onSwitchClick}
+                    onClick={onSplitPointClick}
                 />
             </div>
             <div className={styles['location-track-infobox__split-switch-row']}>
                 <span
                     className={styles['location-track-infobox__split-switch-name']}
-                    onClick={onSwitchClick}>
-                    {splitSwitch?.name || t('tool-panel.location-track.splitting.endpoint')}
+                    onClick={onSplitPointClick}>
+                    {splitPoint?.name}
                 </span>
                 <span className={styles['location-track-infobox__split-switch-row-fill']}></span>
                 <span className={styles['location-track-infobox__split-track-address']}>
@@ -143,20 +141,19 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
     onBlur,
     onHighlight,
     onReleaseHighlight,
-    onHighlightSwitch,
+    onHighlightSplitPoint,
     onReleaseSwitchHighlight,
 }) => {
     const { t } = useTranslation();
-    const switchId = split.type === 'SPLIT' ? split.switch.switchId : undefined;
     const [nameCommitted, setNameCommitted] = React.useState(split.name !== '');
     const [descriptionCommitted, setDescriptionCommitted] = React.useState(
         split.descriptionBase !== '',
     );
     const startSwitchMatchingError = switchIssues.find(
-        (error) => error.reason == START_SWITCH_NOT_MATCHING_ERROR,
+        (error) => error.reason == START_SPLIT_POINT_NOT_MATCHING_ERROR,
     );
     const endSwitchMatchingError = switchIssues.find(
-        (error) => error.reason == END_SWITCH_NOT_MATCHING_ERROR,
+        (error) => error.reason == END_SPLIT_POINT_NOT_MATCHING_ERROR,
     );
 
     // TODO: Adding any kind of dependency array causes infinite re-render loops, find out why
@@ -210,13 +207,12 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                 <div>
                     <div
                         className={styles['location-track-infobox__split-switch-row']}
-                        onMouseEnter={onHighlightSwitch}
+                        onMouseEnter={onHighlightSplitPoint}
                         onMouseLeave={onReleaseSwitchHighlight}>
                         <span
                             className={styles['location-track-infobox__split-switch-name']}
                             onClick={() => addressPoint && showSwitchOnMap(addressPoint.point)}>
-                            {split.switch?.name ||
-                                t('tool-panel.location-track.splitting.endpoint')}
+                            {split.splitPoint.name}
                         </span>
                         <span
                             className={
@@ -237,7 +233,7 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                     : styles['location-track-infobox__split-close-button--enabled'],
                             )}
                             onClick={() =>
-                                onRemove && !deletingDisabled && switchId && onRemove(switchId)
+                                onRemove && !deletingDisabled && onRemove(split.splitPoint)
                             }>
                             {onRemove && (
                                 <Icons.Clear size={IconSize.SMALL} color={IconColor.INHERIT} />
@@ -249,6 +245,8 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                             className={createClassName(
                                 styles['location-track-infobox__split-switch-error-msg'],
                                 styles['location-track-infobox__split-switch-error-msg--start'],
+                                startSwitchMatchingError.type == FieldValidationIssueType.ERROR &&
+                                    styles['location-track-infobox__split-switch-error-msg--error'],
                             )}>
                             {t(
                                 `tool-panel.location-track.splitting.validation.${startSwitchMatchingError.reason}`,
@@ -278,11 +276,11 @@ export const LocationTrackSplit: React.FC<SplitProps> = ({
                                     ...split,
                                     name: e.target.value,
                                     duplicateTrackId: duplicate?.id,
-                                    duplicateStatus: duplicate?.duplicateStatus,
+                                    duplicateStatus: duplicate?.status,
                                     operation: getOperation(
                                         locationTrackId,
-                                        split.switch?.switchId,
-                                        duplicate?.duplicateStatus,
+                                        split.splitPoint,
+                                        duplicate?.status,
                                     ),
                                     hasAutogeneratedName: false,
                                 });

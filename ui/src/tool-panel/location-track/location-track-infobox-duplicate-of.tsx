@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
+    LayoutLocationTrack,
     LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackDuplicate,
@@ -14,6 +15,7 @@ import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 export type LocationTrackInfoboxDuplicateOfProps = {
     layoutContext: LayoutContext;
     changeTime: TimeStamp;
+    targetLocationTrack: LayoutLocationTrack;
     existingDuplicate: LocationTrackDuplicate | undefined;
     duplicatesOfLocationTrack: LocationTrackDuplicate[] | undefined;
     currentTrackNumberId: LayoutTrackNumberId | undefined;
@@ -44,11 +46,13 @@ const LocationTrackDuplicateTrackNumberWarning: React.FC<
 };
 
 export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDuplicateOfProps> = ({
+    targetLocationTrack,
     existingDuplicate,
     duplicatesOfLocationTrack,
     currentTrackNumberId,
     layoutContext,
 }: LocationTrackInfoboxDuplicateOfProps) => {
+    const { t } = useTranslation();
     const trackNumbers = useTrackNumbers(layoutContext);
     return existingDuplicate ? (
         <React.Fragment>
@@ -74,6 +78,20 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
                         locationTrackId={duplicate.id}
                         locationTrackName={duplicate.name}
                     />
+                    {duplicate.duplicateStatus.duplicateOfId == undefined && (
+                        <span
+                            className={
+                                styles[
+                                    'location-track-infobox-duplicate-of__partial-duplicate-info'
+                                ]
+                            }
+                            title={t('tool-panel.location-track.implicit-duplicate-tooltip', {
+                                trackName: duplicate.name,
+                                otherTrackName: targetLocationTrack.name,
+                            })}>
+                            <Icons.Info size={IconSize.SMALL} />
+                        </span>
+                    )}
                     &nbsp;
                     {currentTrackNumberId !== duplicate.trackNumberId && (
                         <LocationTrackDuplicateTrackNumberWarning

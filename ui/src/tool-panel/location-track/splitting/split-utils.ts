@@ -1,10 +1,10 @@
 import {
-    AddressPoint,
     DuplicateStatus,
     LayoutLocationTrack,
     LayoutSwitch,
-    LayoutSwitchId,
     LocationTrackId,
+    SplitPoint,
+    splitPointsAreSame,
 } from 'track-layout/track-layout-model';
 import {
     FirstSplitTargetCandidate,
@@ -13,7 +13,6 @@ import {
     SplitRequestTargetDuplicate,
     SplitTargetCandidate,
     SplitTargetOperation,
-    SwitchOnLocationTrack,
 } from 'tool-panel/location-track/split-store';
 import { findById } from 'utils/array-utils';
 import { FieldValidationIssue, FieldValidationIssueType } from 'utils/validation-utils';
@@ -24,8 +23,8 @@ import {
 import { isEqualIgnoreCase } from 'utils/string-utils';
 import { SwitchRelinkingValidationResult } from 'linking/linking-model';
 
-export const START_SWITCH_NOT_MATCHING_ERROR = 'switch-not-matching-start-switch';
-export const END_SWITCH_NOT_MATCHING_ERROR = 'switch-not-matching-end-switch';
+export const START_SPLIT_POINT_NOT_MATCHING_ERROR = 'split-point-not-matching-start';
+export const END_SPLIT_POINT_NOT_MATCHING_ERROR = 'split-point-not-matching-end';
 
 export type ValidatedSplit = {
     split: SplitTargetCandidate | FirstSplitTargetCandidate;
@@ -49,8 +48,10 @@ export const splitRequest = (
 ): SplitRequest => ({
     sourceTrackId,
     targetTracks: [firstSplit, ...splits].map((s) => {
-        const dupe = s.duplicateTrackId ? findById(allDuplicates, s.duplicateTrackId) : undefined;
-        return splitToRequestTarget(s, dupe);
+        const duplicate = s.duplicateTrackId
+            ? findById(allDuplicates, s.duplicateTrackId)
+            : undefined;
+        return splitToRequestTarget(s, duplicate);
     }),
 });
 
@@ -70,7 +71,8 @@ const splitToRequestTarget = (
         descriptionBase: (duplicate ? duplicate.descriptionBase : split.descriptionBase) ?? '',
         descriptionSuffix: (duplicate ? duplicate.descriptionSuffix : split.suffixMode) ?? 'NONE',
         duplicateTrack: duplicateTrack,
-        startAtSwitchId: split.type === 'SPLIT' ? split?.switch.switchId : undefined,
+        startAtSwitchId:
+            split.splitPoint.type == 'switchSplitPoint' ? split.splitPoint.switchId : undefined,
     };
 };
 
@@ -80,7 +82,7 @@ export const validateSplit = (
     allSplitNames: string[],
     conflictingTrackNames: string[],
     switches: LayoutSwitch[],
-    lastSwitch: LayoutSwitch | undefined,
+    lastSplitPoint: SplitPoint,
 ): ValidatedSplit => ({
     split: split,
     nameIssues: validateSplitName(split.name, allSplitNames, conflictingTrackNames),
@@ -88,10 +90,8 @@ export const validateSplit = (
     switchIssues: validateSplitSwitch(
         split,
         nextSplit,
-        switches
-            .filter((layoutSwitch) => layoutSwitch.stateCategory !== 'NOT_EXISTING')
-            .map((layoutSwitch) => layoutSwitch.id),
-        lastSwitch,
+        switches.filter((layoutSwitch) => layoutSwitch.stateCategory !== 'NOT_EXISTING'),
+        lastSplitPoint,
     ),
 });
 
@@ -137,43 +137,61 @@ const validateSplitDescription = (
 export const validateSplitSwitch = (
     split: SplitTargetCandidate | FirstSplitTargetCandidate,
     nextSplit: SplitTargetCandidate | FirstSplitTargetCandidate | undefined,
-    switchIds: LayoutSwitchId[],
-    lastSwitch: LayoutSwitch | undefined,
+    switches: LayoutSwitch[],
+    lastSplitPoint: SplitPoint,
 ): FieldValidationIssue<SplitTargetCandidate>[] => {
     const errors: FieldValidationIssue<SplitTargetCandidate>[] = [];
-    const switchExists = split.switch !== undefined && switchIds.includes(split.switch.switchId);
-    if (split.type === 'SPLIT' && !switchExists) {
+
+    if (
+        !switches.some(
+            (sw) =>
+                split.splitPoint.type == 'switchSplitPoint' && sw.id == split.splitPoint.switchId,
+        )
+    ) {
         errors.push({
-            field: 'switch',
+            field: 'splitPoint',
             reason: 'switch-not-found',
             type: FieldValidationIssueType.ERROR,
         });
     }
-    const switchIdAtDuplicateStart = split.duplicateStatus?.startSwitchId;
-    if (switchIdAtDuplicateStart && split.switch?.switchId !== switchIdAtDuplicateStart) {
+    if (
+        split.duplicateStatus?.startSplitPoint &&
+        !splitPointsAreSame(split.splitPoint, split.duplicateStatus?.startSplitPoint)
+    ) {
         const type =
             split.operation == 'TRANSFER'
                 ? FieldValidationIssueType.ERROR
                 : FieldValidationIssueType.WARNING;
         errors.push({
-            field: 'switch',
-            reason: START_SWITCH_NOT_MATCHING_ERROR,
+            field: 'splitPoint',
+            reason: START_SPLIT_POINT_NOT_MATCHING_ERROR,
             type: type,
-            params: { selectedSwitchName: split.switch?.name, trackName: split.name },
+            params: {
+                expectedSplitPoint: split.duplicateStatus?.startSplitPoint.name,
+                selectedSplitPoint: split.splitPoint.name,
+                trackName: split.name,
+            },
         });
     }
-    const switchIdAtDuplicateEnd = split.duplicateStatus?.endSwitchId;
-    const nextSwitch = nextSplit?.switch || lastSwitch;
-    if (switchIdAtDuplicateEnd && nextSplit?.switch?.switchId !== switchIdAtDuplicateEnd) {
+
+    const nextSplitPoint = nextSplit ? nextSplit.splitPoint : lastSplitPoint;
+    if (
+        split.duplicateStatus?.endSplitPoint &&
+        !splitPointsAreSame(nextSplitPoint, split.duplicateStatus?.endSplitPoint)
+    ) {
         const type =
             split.operation == 'TRANSFER'
                 ? FieldValidationIssueType.ERROR
                 : FieldValidationIssueType.WARNING;
         errors.push({
-            field: 'switch',
-            reason: END_SWITCH_NOT_MATCHING_ERROR,
+            field: 'splitPoint',
+            reason: END_SPLIT_POINT_NOT_MATCHING_ERROR,
             type: type,
-            params: { selectedSwitchName: nextSwitch?.name, trackName: split.name },
+            params: {
+                expectedSplitPoint: split.duplicateStatus?.endSplitPoint.name,
+                selectedSplitPoint: nextSplitPoint.name,
+                trackName: split.name,
+            },
         });
     }
     return errors;
@@ -202,37 +220,20 @@ export const findRefToFirstErroredField = (
             predicate,
         ),
     );
-    const minIndex = [invalidNameIndex, invalidDescriptionBaseIndex]
+    const invalidSwitchBaseIndex = splitComponents.findIndex((s) =>
+        hasErrors(
+            s.splitAndValidation.switchIssues.map((err) => err.reason),
+            predicate,
+        ),
+    );
+    const minIndex = [invalidNameIndex, invalidDescriptionBaseIndex, invalidSwitchBaseIndex]
         .filter((i) => i >= 0)
         .sort()[0];
 
     if (minIndex === undefined) return undefined;
-    else if (minIndex === invalidNameIndex) return splitComponents[minIndex]?.nameRef;
+    else if (minIndex === invalidNameIndex || minIndex == invalidSwitchBaseIndex)
+        return splitComponents[minIndex]?.nameRef;
     else return splitComponents[minIndex]?.descriptionBaseRef;
-};
-
-export const getSplitAddressPoint = (
-    allowedSwitches: SwitchOnLocationTrack[],
-    originLocationTrackStart: AddressPoint,
-    split: SplitTargetCandidate | FirstSplitTargetCandidate,
-): AddressPoint | undefined => {
-    if (split.type === 'SPLIT') {
-        const switchAtSplit = allowedSwitches.find((s) => s.switchId === split.switch.switchId);
-
-        if (!switchAtSplit?.location || !switchAtSplit?.address) {
-            return undefined;
-        } else {
-            return {
-                point: { ...switchAtSplit.location, m: -1 },
-                address: switchAtSplit.address,
-            };
-        }
-    } else {
-        return {
-            point: originLocationTrackStart.point,
-            address: originLocationTrackStart.address,
-        };
-    }
 };
 
 export const hasUnrelinkableSwitches = (
@@ -244,17 +245,29 @@ export const hasUnrelinkableSwitches = (
 
 export const getOperation = (
     trackId: LocationTrackId,
-    switchId: LayoutSwitchId | undefined,
+    _splitPoint: SplitPoint,
     duplicateStatus: DuplicateStatus | undefined,
 ): SplitTargetOperation => {
-    switch (duplicateStatus?.match) {
-        case 'FULL':
-            return 'OVERWRITE';
-        case 'PARTIAL':
-            return switchId !== undefined && duplicateStatus?.startSwitchId === switchId
-                ? 'TRANSFER'
-                : 'OVERWRITE';
-        default:
-            return duplicateStatus?.duplicateOfId === trackId ? 'OVERWRITE' : 'CREATE';
+    if (duplicateStatus === undefined) {
+        // no duplicate -> new track
+        return 'CREATE';
+    } else if (
+        duplicateStatus.duplicateOfId != undefined &&
+        duplicateStatus.duplicateOfId != trackId
+    ) {
+        throw new Error(
+            'Duplicate track is duplicate for some other track! This should be handled beforehand.',
+        );
+    } else {
+        switch (duplicateStatus?.match) {
+            case 'FULL':
+                return 'OVERWRITE';
+            case 'PARTIAL':
+                return 'TRANSFER';
+            default:
+                throw new Error(
+                    'Duplicate track does not share any geometry with target track! This should be handled beforehand.',
+                );
+        }
     }
 };
