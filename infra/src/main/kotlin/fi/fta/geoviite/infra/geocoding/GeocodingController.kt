@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.geocoding
 
+import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT
 import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
@@ -9,29 +10,24 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackMeter
-import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.toResponse
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
 
-@RestController
+@GeoviiteController
 @RequestMapping("/geocoding")
 class GeocodingController(
     private val geocodingService: GeocodingService,
     private val locationTrackService: LocationTrackService,
 ) {
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/address/{trackNumberId}")
@@ -42,12 +38,6 @@ class GeocodingController(
         @RequestParam("coordinate") coordinate: Point,
     ): ResponseEntity<TrackMeter> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        logger.apiCall(
-            "getTrackAddress",
-            "layoutContext" to layoutContext,
-            "trackNumberId" to trackNumberId,
-            "coordinate" to coordinate,
-        )
         return toResponse(geocodingService.getAddressIfWithin(layoutContext, trackNumberId, coordinate))
     }
 
@@ -60,12 +50,6 @@ class GeocodingController(
         @RequestParam("address") address: TrackMeter,
     ): ResponseEntity<AddressPoint> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        logger.apiCall(
-            "getTrackPoint",
-            "layoutContext" to layoutContext,
-            "locationTrackId" to locationTrackId,
-            "address" to address,
-        )
         return toResponse(locationTrackService.getTrackPoint(layoutContext, locationTrackId, address))
     }
 
@@ -77,11 +61,6 @@ class GeocodingController(
         @PathVariable("alignmentId") locationTrackId: IntId<LocationTrack>,
     ): ResponseEntity<AlignmentAddresses> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        logger.apiCall(
-            "getAlignmentAddressPoints",
-            "layoutContext" to layoutContext,
-            "locationTrackId" to locationTrackId,
-        )
         return toResponse(geocodingService.getAddressPoints(layoutContext, locationTrackId))
     }
 }

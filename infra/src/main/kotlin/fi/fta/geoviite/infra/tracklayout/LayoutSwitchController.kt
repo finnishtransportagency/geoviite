@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
 import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
@@ -10,14 +11,11 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
-import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.util.toResponse
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -28,15 +26,13 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
 
-@RestController
+@GeoviiteController
 @RequestMapping("/track-layout/switches")
 class LayoutSwitchController(
     private val switchService: LayoutSwitchService,
     private val publicationService: PublicationService,
 ) {
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{${LAYOUT_BRANCH}}/{$PUBLICATION_STATE}")
@@ -54,18 +50,6 @@ class LayoutSwitchController(
         @RequestParam("includeDeleted") includeDeleted: Boolean = false,
     ): List<TrackLayoutSwitch> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        logger.apiCall(
-            "getTrackLayoutSwitches",
-            "layoutContext" to layoutContext,
-            "bbox" to bbox,
-            "namePart" to namePart,
-            "exactName" to exactName,
-            "offset" to offset,
-            "limit" to limit,
-            "comparisonPoint" to comparisonPoint,
-            "switchType" to switchType,
-            "includeDeleted" to includeDeleted,
-        )
         val filter = switchFilter(namePart, exactName, switchType, bbox, includeSwitchesWithNoJoints)
         val switches = switchService.listWithStructure(layoutContext, includeDeleted).filter(filter)
         return pageSwitches(switches, offset ?: 0, limit, comparisonPoint).items
@@ -79,7 +63,6 @@ class LayoutSwitchController(
         @PathVariable("id") id: IntId<TrackLayoutSwitch>,
     ): ResponseEntity<TrackLayoutSwitch> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        logger.apiCall("getTrackLayoutSwitch", "layoutContext" to layoutContext, "id" to id)
         return toResponse(switchService.get(layoutContext, id))
     }
 
@@ -91,7 +74,6 @@ class LayoutSwitchController(
         @RequestParam("ids", required = true) ids: List<IntId<TrackLayoutSwitch>>,
     ): List<TrackLayoutSwitch> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        logger.apiCall("getTrackLayoutSwitches", "layoutContext" to layoutContext, "ids" to ids)
         return switchService.getMany(layoutContext, ids)
     }
 
@@ -103,7 +85,6 @@ class LayoutSwitchController(
         @PathVariable("id") id: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        logger.apiCall("getSwitchJointConnections", "layoutContext" to layoutContext, "switchId" to id)
         return switchService.getSwitchJointConnections(layoutContext, id)
     }
 
@@ -116,7 +97,6 @@ class LayoutSwitchController(
         @RequestParam("bbox") bbox: BoundingBox?,
     ): List<ValidatedAsset<TrackLayoutSwitch>> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        logger.apiCall("validateSwitches", "layoutContext" to layoutContext, "ids" to ids, "bbox" to bbox)
         val switches = if (ids != null) {
             switchService.getMany(layoutContext, ids)
         } else {
@@ -134,7 +114,6 @@ class LayoutSwitchController(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestBody request: TrackLayoutSwitchSaveRequest,
     ): IntId<TrackLayoutSwitch> {
-        logger.apiCall("insertTrackLayoutSwitch", "branch" to branch, "request" to request)
         return switchService.insertSwitch(branch, request)
     }
 
@@ -145,7 +124,6 @@ class LayoutSwitchController(
         @PathVariable("id") switchId: IntId<TrackLayoutSwitch>,
         @RequestBody switch: TrackLayoutSwitchSaveRequest,
     ): IntId<TrackLayoutSwitch> {
-        logger.apiCall("updateSwitch", "branch" to branch, "switchId" to switchId, "switch" to switch)
         return switchService.updateSwitch(branch, switchId, switch)
     }
 
@@ -155,7 +133,6 @@ class LayoutSwitchController(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable("id") switchId: IntId<TrackLayoutSwitch>,
     ): IntId<TrackLayoutSwitch> {
-        logger.apiCall("deleteDraftSwitch", "branch" to branch, "switchId" to switchId)
         return switchService.deleteDraft(branch, switchId).id
     }
 
@@ -167,7 +144,6 @@ class LayoutSwitchController(
         @PathVariable("id") switchId: IntId<TrackLayoutSwitch>,
     ): ResponseEntity<LayoutAssetChangeInfo> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        logger.apiCall("getSwitchChangeInfo", "layoutContext" to layoutContext, "id" to switchId)
         return toResponse(switchService.getLayoutAssetChangeInfo(layoutContext, switchId))
     }
 }

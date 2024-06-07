@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.hello
 
 import com.fasterxml.jackson.annotation.JsonCreator
+import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.error.InputValidationException
 import fi.fta.geoviite.infra.error.ServerException
 import org.springframework.web.bind.annotation.*
@@ -20,7 +21,7 @@ data class ErrorTestBody @JsonCreator constructor(val name: String, val value: I
 
 data class ErrorTestResponse(val message: String = "Request success")
 
-@RestController
+@GeoviiteController
 class ErrorTestController {
 
     @GetMapping("/error-test-path/{variable}")

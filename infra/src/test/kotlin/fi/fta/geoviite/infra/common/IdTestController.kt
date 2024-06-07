@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.common
 
+import fi.fta.geoviite.infra.aspects.GeoviiteController
 import org.springframework.web.bind.annotation.*
 
 data class IdTestObject(
@@ -26,7 +27,7 @@ data class SridTestObject(
     val id: Srid,
 )
 
-@RestController
+@GeoviiteController
 class IdTestController {
 
     @GetMapping("/id-test-path/{id}")

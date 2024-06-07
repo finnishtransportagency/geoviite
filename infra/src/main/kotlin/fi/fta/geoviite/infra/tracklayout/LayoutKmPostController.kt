@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
 import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
@@ -10,14 +11,11 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
-import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.util.toResponse
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -28,16 +26,13 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
 
-@RestController
+@GeoviiteController
 @RequestMapping("/track-layout/km-posts")
 class LayoutKmPostController(
     private val kmPostService: LayoutKmPostService,
     private val publicationService: PublicationService,
 ) {
-
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}")
@@ -47,7 +42,6 @@ class LayoutKmPostController(
         @PathVariable("id") id: IntId<TrackLayoutKmPost>,
     ): ResponseEntity<TrackLayoutKmPost> {
         val context = LayoutContext.of(branch, publicationState)
-        logger.apiCall("getKmPost", "context" to context, "id" to id)
         return toResponse(kmPostService.get(context, id))
     }
 
@@ -59,7 +53,6 @@ class LayoutKmPostController(
         @RequestParam("ids", required = true) ids: List<IntId<TrackLayoutKmPost>>,
     ): List<TrackLayoutKmPost> {
         val context = LayoutContext.of(branch, publicationState)
-        logger.apiCall("getKmPost", "context" to context, "ids" to ids)
         return kmPostService.getMany(context, ids)
     }
 
@@ -71,7 +64,6 @@ class LayoutKmPostController(
         @PathVariable("trackNumberId") id: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmPost> {
         val context = LayoutContext.of(branch, publicationState)
-        logger.apiCall("getKmPostsOnTrackNumber", "context" to context, "id" to id)
         return kmPostService.list(context, id)
     }
 
@@ -84,7 +76,6 @@ class LayoutKmPostController(
         @RequestParam("step") step: Int,
     ): List<TrackLayoutKmPost> {
         val context = LayoutContext.of(branch, publicationState)
-        logger.apiCall("findKmPosts", "context" to context, "bbox" to bbox, "step" to step)
         return kmPostService.list(context, bbox, step)
     }
 
@@ -99,14 +90,6 @@ class LayoutKmPostController(
         @RequestParam("limit") limit: Int,
     ): List<TrackLayoutKmPost> {
         val context = LayoutContext.of(branch, publicationState)
-        logger.apiCall(
-            "getNearbyKmPostsOnTrack",
-            "context" to context,
-            "trackNumberId" to trackNumberId,
-            "location" to location,
-            "offset" to offset,
-            "limit" to limit
-        )
         return kmPostService.listNearbyOnTrackPaged(
             layoutContext = context,
             location = location,
@@ -126,13 +109,6 @@ class LayoutKmPostController(
         @RequestParam("includeDeleted") includeDeleted: Boolean,
     ): ResponseEntity<TrackLayoutKmPost> {
         val context = LayoutContext.of(branch, publicationState)
-        logger.apiCall(
-            "getKmPostOnTrack",
-            "context" to context,
-            "trackNumberId" to trackNumberId,
-            "kmNumber" to kmNumber,
-            "includeDeleted" to includeDeleted,
-        )
         return kmPostService.getByKmNumber(context, trackNumberId, kmNumber, includeDeleted).let(::toResponse)
     }
 
@@ -144,7 +120,6 @@ class LayoutKmPostController(
         @PathVariable("id") id: IntId<TrackLayoutKmPost>,
     ): ResponseEntity<ValidatedAsset<TrackLayoutKmPost>> {
         val context = LayoutContext.of(branch, publicationState)
-        logger.apiCall("validateKmPost", "context" to context, "id" to id)
         return publicationService.validateKmPosts(context, listOf(id)).firstOrNull().let(::toResponse)
     }
 
@@ -154,7 +129,6 @@ class LayoutKmPostController(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestBody request: TrackLayoutKmPostSaveRequest,
     ): IntId<TrackLayoutKmPost> {
-        logger.apiCall("insertTrackLayoutKmPost", "branch" to branch, "request" to request)
         return kmPostService.insertKmPost(branch, request)
     }
 
@@ -165,7 +139,6 @@ class LayoutKmPostController(
         @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
         @RequestBody request: TrackLayoutKmPostSaveRequest,
     ): IntId<TrackLayoutKmPost> {
-        logger.apiCall("updateKmPost", "branch" to branch, "kmPostId" to kmPostId, "request" to request)
         return kmPostService.updateKmPost(branch, kmPostId, request)
     }
 
@@ -175,7 +148,6 @@ class LayoutKmPostController(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
     ): IntId<TrackLayoutKmPost> {
-        logger.apiCall("deleteDraftKmPost", "branch" to branch, "kmPostId" to kmPostId)
         return kmPostService.deleteDraft(branch, kmPostId).id
     }
 
@@ -187,7 +159,6 @@ class LayoutKmPostController(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
     ): ResponseEntity<LayoutAssetChangeInfo> {
         val context = LayoutContext.of(branch, publicationState)
-        logger.apiCall("getKmPostChangeInfo", "id" to kmPostId, "context" to context)
         return toResponse(kmPostService.getLayoutAssetChangeInfo(context, kmPostId))
     }
 
@@ -199,7 +170,6 @@ class LayoutKmPostController(
         @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
     ): ResponseEntity<Double> {
         val context = LayoutContext.of(branch, publicationState)
-        logger.apiCall("getKmLength", "context" to context, "id" to kmPostId)
         return toResponse(kmPostService.getSingleKmPostLength(context, kmPostId))
     }
 }

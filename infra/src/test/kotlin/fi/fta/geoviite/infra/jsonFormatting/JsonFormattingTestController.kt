@@ -1,12 +1,12 @@
 package fi.fta.geoviite.infra.jsonFormatting
 
+import fi.fta.geoviite.infra.aspects.GeoviiteController
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RestController
 import java.time.Instant
 
-@RestController
+@GeoviiteController
 class JsonFormattingTestController @Autowired constructor() {
 
     @GetMapping("/json-test-path/to-millis/{instant}")

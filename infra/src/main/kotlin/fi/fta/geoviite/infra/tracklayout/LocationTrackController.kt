@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT
@@ -17,14 +18,11 @@ import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
-import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.toResponse
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -35,9 +33,8 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
 
-@RestController
+@GeoviiteController
 @RequestMapping("/track-layout")
 class LocationTrackController(
     private val locationTrackService: LocationTrackService,
@@ -46,7 +43,6 @@ class LocationTrackController(
     private val publicationService: PublicationService,
     private val switchLinkingService: SwitchLinkingService,
 ) {
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}", params = ["bbox"])
@@ -56,7 +52,6 @@ class LocationTrackController(
         @RequestParam("bbox") bbox: BoundingBox,
     ): List<LocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        logger.apiCall("getLocationTracksNear", "context" to context, "bbox" to bbox)
         return locationTrackService.listNear(context, bbox)
     }
 
@@ -69,7 +64,6 @@ class LocationTrackController(
         @RequestParam("limit", required = true) limit: Int,
     ): List<LocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        logger.apiCall("searchLocationTracks", "context" to context, "searchTerm" to searchTerm, "limit" to limit)
         return searchService.searchAllLocationTracks(context, searchTerm, limit)
     }
 
@@ -81,7 +75,6 @@ class LocationTrackController(
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<LocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        logger.apiCall("getLocationTrack", "context" to context, "id" to id)
         return toResponse(locationTrackService.get(context, id))
     }
 
@@ -93,7 +86,6 @@ class LocationTrackController(
         @RequestParam("ids", required = true) ids: List<IntId<LocationTrack>>,
     ): List<LocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        logger.apiCall("getLocationTracks", "context" to context, "ids" to ids)
         return locationTrackService.getMany(context, ids)
     }
 
@@ -105,7 +97,6 @@ class LocationTrackController(
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<AlignmentStartAndEndWithId<*>> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        logger.apiCall("getLocationTrackStartAndEnd", "context" to context, "id" to id)
         val locationTrackAndAlignment = locationTrackService.getWithAlignment(context, id)
         return toResponse(locationTrackAndAlignment?.let { (locationTrack, alignment) ->
             geocodingService.getLocationTrackStartAndEnd(context, locationTrack, alignment)
@@ -121,7 +112,6 @@ class LocationTrackController(
         @RequestParam("ids") ids: List<IntId<LocationTrack>>,
     ): List<AlignmentStartAndEndWithId<*>> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        logger.apiCall("getLocationTrackStartAndEnd", "context" to context, "ids" to ids)
         return ids.mapNotNull { id ->
             locationTrackService.getWithAlignment(context, id)?.let { (locationTrack, alignment) ->
                 geocodingService.getLocationTrackStartAndEnd(context, locationTrack, alignment)
@@ -138,7 +128,6 @@ class LocationTrackController(
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<LocationTrackInfoboxExtras> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        logger.apiCall("getLocationTrackInfoboxExtras", "context" to context, "id" to id)
         return toResponse(locationTrackService.getInfoboxExtras(context, id))
     }
 
@@ -150,7 +139,6 @@ class LocationTrackController(
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<Int> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        logger.apiCall("getRelinkableSwitchesCount", "context" to context, "id" to id)
         return toResponse(locationTrackService.getRelinkableSwitchesCount(context, id))
     }
 
@@ -163,7 +151,6 @@ class LocationTrackController(
         @RequestParam("lang") lang: LocalizationLanguage,
     ): List<LocationTrackDescription> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        logger.apiCall("getDescription", "context" to context, "ids" to ids)
         return ids.mapNotNull { id ->
             id.let { locationTrackService.get(context, it) }?.let { lt ->
                 LocationTrackDescription(id, locationTrackService.getFullDescription(context, lt, lang))
@@ -179,7 +166,6 @@ class LocationTrackController(
         @RequestParam("bbox") bbox: BoundingBox,
     ): List<LocationTrackEndpoint> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        logger.apiCall("getLocationTrackAlignmentEndpoints", "context" to context, "bbox" to bbox)
         return locationTrackService.getLocationTrackEndpoints(context, bbox)
     }
 
@@ -191,7 +177,6 @@ class LocationTrackController(
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<ValidatedAsset<LocationTrack>> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        logger.apiCall("validateLocationTrack", "context" to context, "id" to id)
         return publicationService.validateLocationTracks(context, listOf(id)).firstOrNull().let(::toResponse)
     }
 
@@ -203,7 +188,6 @@ class LocationTrackController(
         @PathVariable("id") id: IntId<LocationTrack>,
     ): List<SwitchValidationWithSuggestedSwitch> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        logger.apiCall("validateLocationTrackSwitches", "context" to context, "id" to id)
         val switchSuggestions = switchLinkingService.getTrackSwitchSuggestions(context, id)
         val switchValidation = publicationService.validateSwitches(context, switchSuggestions.map { (id, _) -> id })
         return switchValidation.map { validatedAsset ->
@@ -221,7 +205,6 @@ class LocationTrackController(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @RequestBody request: LocationTrackSaveRequest,
     ): IntId<LocationTrack> {
-        logger.apiCall("insertLocationTrack", "layoutBranch" to layoutBranch, "request" to request)
         return locationTrackService.insert(layoutBranch, request).id
     }
 
@@ -232,12 +215,6 @@ class LocationTrackController(
         @PathVariable("id") locationTrackId: IntId<LocationTrack>,
         @RequestBody request: LocationTrackSaveRequest,
     ): IntId<LocationTrack> {
-        logger.apiCall(
-            "updateLocationTrack",
-            "layoutBranch" to layoutBranch,
-            "locationTrackId" to locationTrackId,
-            "request" to request,
-        )
         return locationTrackService.update(layoutBranch, locationTrackId, request).id
     }
 
@@ -247,7 +224,6 @@ class LocationTrackController(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): IntId<LocationTrack> {
-        logger.apiCall("deleteLocationTrack", "layoutBranch" to layoutBranch, "id" to id)
         return locationTrackService.deleteDraft(layoutBranch, id).id
     }
 
@@ -256,7 +232,6 @@ class LocationTrackController(
     fun getNonLinkedLocationTracks(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
     ): List<LocationTrack> {
-        logger.apiCall("getNonLinkedLocationTracks", "layoutBranch" to layoutBranch)
         return locationTrackService.listNonLinked(layoutBranch)
     }
 
@@ -268,7 +243,6 @@ class LocationTrackController(
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<LayoutAssetChangeInfo> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        logger.apiCall("getLocationTrackChangeInfo", "context" to context, "id" to id)
         return toResponse(locationTrackService.getLayoutAssetChangeInfo(context, id))
     }
 
@@ -281,9 +255,6 @@ class LocationTrackController(
         @RequestParam("bbox") boundingBox: BoundingBox? = null,
     ): List<AlignmentPlanSection> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        logger.apiCall(
-            "getTrackSectionsByPlan", "context" to context, "id" to id, "bbox" to boundingBox
-        )
         return locationTrackService.getMetadataSections(context, id, boundingBox)
     }
 
@@ -296,19 +267,12 @@ class LocationTrackController(
         @RequestParam("locationTrackNames") names: List<AlignmentName>,
     ): List<LocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        logger.apiCall(
-            "getTrackNumberTracksByName",
-            "context" to context,
-            "trackNumberId" to trackNumberId,
-            "names" to names,
-        )
         return locationTrackService.list(context, trackNumberId, names)
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)
     @GetMapping("/location-track-owners")
     fun getLocationTrackOwners(): List<LocationTrackOwner> {
-        logger.apiCall("getLocationTrackOwners")
         return locationTrackService.getLocationTrackOwners()
     }
 
@@ -320,7 +284,6 @@ class LocationTrackController(
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<SplittingInitializationParameters> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        logger.apiCall("getSplittingInitializationParameters", "context" to context, "id" to id)
         return toResponse(locationTrackService.getSplittingInitializationParameters(context, id))
     }
 }
