@@ -306,7 +306,6 @@ export const createGeometrySwitchFeatures = (
     isHighlighted: (switchItem: LayoutSwitch) => boolean,
     showLargeSymbols: boolean,
     showLabels: boolean,
-    disabled: boolean,
     switchStructures: SwitchStructure[],
 ) => {
     const switchLinkedStatus = status
@@ -327,7 +326,7 @@ export const createGeometrySwitchFeatures = (
         isSwitchLinked,
         showLargeSymbols,
         showLabels,
-        disabled,
+        false,
         planLayout.id,
         switchStructures,
     );
