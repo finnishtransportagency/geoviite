@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
@@ -178,22 +179,59 @@ class LocationTrackDaoIT @Autowired constructor(
     }
 
     @Test
-    fun fetchOfficialVersionByMomentWorks() {
+    fun `Finding LocationTrack versions by moment works across designs and main branch`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+
         val tnId = mainOfficialContext.createLayoutTrackNumber().id
         val beforeCreationTime = locationTrackDao.fetchChangeTime()
 
         Thread.sleep(1) // Ensure that they get different timestamps
-        val (id, firstVersion) = insertOfficialLocationTrack(tnId)
-        val firstVersionTime = locationTrackDao.fetchChangeTime()
+        val (track1Id, track1MainV1) = mainOfficialContext.insert(locationTrackAndAlignment(tnId))
+        val (track2Id, track2DesignV1) = designOfficialContext.insert(locationTrackAndAlignment(tnId))
+        val (track3Id, track3DesignV1) = designOfficialContext.insert(locationTrackAndAlignment(tnId))
+        val v1Time = locationTrackDao.fetchChangeTime()
 
         Thread.sleep(1) // Ensure that they get different timestamps
-        val updatedVersion = updateOfficial(firstVersion).rowVersion
-        val updatedVersionTime = locationTrackDao.fetchChangeTime()
+        val track1MainV2 = testDBService.update(track1MainV1).rowVersion
+        val track1DesignV2 = designOfficialContext.copyFrom(track1MainV1, officialRowId = track1MainV1.id).rowVersion
+        val track2DesignV2 = testDBService.update(track2DesignV1).rowVersion
+        locationTrackDao.deleteRow(track3DesignV1.id)
+        val v2Time = locationTrackDao.fetchChangeTime()
 
-        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, id, beforeCreationTime))
-        assertEquals(firstVersion, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, id, firstVersionTime))
-        assertEquals(updatedVersion, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, id, updatedVersionTime))
-        // TODO: GVT-2616 test with design branches
+        Thread.sleep(1) // Ensure that they get different timestamps
+        locationTrackDao.deleteRow(track1DesignV2.id)
+        // Fake publish: update the design as a main-official
+        val track2MainV3 = mainOfficialContext.moveFrom(track2DesignV2).rowVersion
+        val v3Time = locationTrackDao.fetchChangeTime()
+
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track1Id, beforeCreationTime))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track2Id, beforeCreationTime))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track3Id, beforeCreationTime))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(designBranch, track1Id, beforeCreationTime))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(designBranch, track2Id, beforeCreationTime))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(designBranch, track3Id, beforeCreationTime))
+
+        assertEquals(track1MainV1, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track1Id, v1Time))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track2Id, v1Time))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track3Id, v1Time))
+        assertEquals(track1MainV1, locationTrackDao.fetchOfficialVersionAtMoment(designBranch, track1Id, v1Time))
+        assertEquals(track2DesignV1, locationTrackDao.fetchOfficialVersionAtMoment(designBranch, track2Id, v1Time))
+        assertEquals(track3DesignV1, locationTrackDao.fetchOfficialVersionAtMoment(designBranch, track3Id, v1Time))
+
+        assertEquals(track1MainV2, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track1Id, v2Time))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track2Id, v2Time))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track3Id, v2Time))
+        assertEquals(track1DesignV2, locationTrackDao.fetchOfficialVersionAtMoment(designBranch, track1Id, v2Time))
+        assertEquals(track2DesignV2, locationTrackDao.fetchOfficialVersionAtMoment(designBranch, track2Id, v2Time))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(designBranch, track3Id, v2Time))
+
+        assertEquals(track1MainV2, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track1Id, v3Time))
+        assertEquals(track2MainV3, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track2Id, v3Time))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track3Id, v3Time))
+        assertEquals(track1MainV2, locationTrackDao.fetchOfficialVersionAtMoment(designBranch, track1Id, v3Time))
+        assertEquals(track2MainV3, locationTrackDao.fetchOfficialVersionAtMoment(designBranch, track2Id, v3Time))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(designBranch, track3Id, v3Time))
     }
 
     @Test
@@ -349,7 +387,7 @@ class LocationTrackDaoIT @Autowired constructor(
         assertEquals(setOf("draft"), contextTracks(MainLayoutContext.draft))
         assertEquals(
             setOf("design-official both"),
-            contextTracks(DesignLayoutContext.of(bothDesign, PublicationState.OFFICIAL))
+            contextTracks(DesignLayoutContext.of(bothDesign, OFFICIAL))
         )
         assertEquals(
             setOf("design-draft both"),
@@ -403,7 +441,7 @@ class LocationTrackDaoIT @Autowired constructor(
 
         assertEquals(
             setOf("design-official"),
-            contextTracks(DesignLayoutContext.of(bothDesign, PublicationState.OFFICIAL))
+            contextTracks(DesignLayoutContext.of(bothDesign, OFFICIAL))
         )
         assertEquals(
             setOf("design-draft"),
@@ -415,7 +453,7 @@ class LocationTrackDaoIT @Autowired constructor(
         )
         assertEquals(
             setOf<String>(),
-            contextTracks(MainLayoutContext.of(PublicationState.OFFICIAL))
+            contextTracks(MainLayoutContext.of(OFFICIAL))
         )
         assertChangeInfo(
             initialVersion,
@@ -444,9 +482,9 @@ class LocationTrackDaoIT @Autowired constructor(
         fun contextTracks(layoutContext: LayoutContext) =
             getTrackNameSetByLayoutContextAndTrackNumber(layoutContext, tnId)
 
-        assertEquals(setOf("official"), contextTracks(DesignLayoutContext.of(someDesign, PublicationState.OFFICIAL)))
+        assertEquals(setOf("official"), contextTracks(DesignLayoutContext.of(someDesign, OFFICIAL)))
         assertEquals(setOf("official"), contextTracks(DesignLayoutContext.of(someDesign, PublicationState.DRAFT)))
-        assertEquals(setOf("official"), contextTracks(MainLayoutContext.of(PublicationState.OFFICIAL)))
+        assertEquals(setOf("official"), contextTracks(MainLayoutContext.of(OFFICIAL)))
         assertEquals(setOf("official"), contextTracks(MainLayoutContext.of(PublicationState.DRAFT)))
     }
 
@@ -467,9 +505,9 @@ class LocationTrackDaoIT @Autowired constructor(
         fun contextTracks(layoutContext: LayoutContext) =
             getTrackNameSetByLayoutContextAndTrackNumber(layoutContext, tnId)
 
-        assertEquals(setOf<String>(), contextTracks(DesignLayoutContext.of(someDesign, PublicationState.OFFICIAL)))
+        assertEquals(setOf<String>(), contextTracks(DesignLayoutContext.of(someDesign, OFFICIAL)))
         assertEquals(setOf<String>(), contextTracks(DesignLayoutContext.of(someDesign, PublicationState.DRAFT)))
-        assertEquals(setOf<String>(), contextTracks(MainLayoutContext.of(PublicationState.OFFICIAL)))
+        assertEquals(setOf<String>(), contextTracks(MainLayoutContext.of(OFFICIAL)))
         assertEquals(setOf("draft"), contextTracks(MainLayoutContext.of(PublicationState.DRAFT)))
     }
 
@@ -490,9 +528,9 @@ class LocationTrackDaoIT @Autowired constructor(
         fun contextTracks(layoutContext: LayoutContext) =
             getTrackNameSetByLayoutContextAndTrackNumber(layoutContext, tnId)
 
-        assertEquals(setOf<String>(), contextTracks(DesignLayoutContext.of(someDesign, PublicationState.OFFICIAL)))
+        assertEquals(setOf<String>(), contextTracks(DesignLayoutContext.of(someDesign, OFFICIAL)))
         assertEquals(setOf("design-draft"), contextTracks(DesignLayoutContext.of(someDesign, PublicationState.DRAFT)))
-        assertEquals(setOf<String>(), contextTracks(MainLayoutContext.of(PublicationState.OFFICIAL)))
+        assertEquals(setOf<String>(), contextTracks(MainLayoutContext.of(OFFICIAL)))
         assertEquals(setOf<String>(), contextTracks(MainLayoutContext.of(PublicationState.DRAFT)))
     }
 
@@ -523,13 +561,13 @@ class LocationTrackDaoIT @Autowired constructor(
 
         assertEquals(
             setOf("design-official"),
-            contextTracks(DesignLayoutContext.of(someDesign, PublicationState.OFFICIAL))
+            contextTracks(DesignLayoutContext.of(someDesign, OFFICIAL))
         )
         assertEquals(
             setOf("design-official"),
             contextTracks(DesignLayoutContext.of(someDesign, PublicationState.DRAFT))
         )
-        assertEquals(setOf("official"), contextTracks(MainLayoutContext.of(PublicationState.OFFICIAL)))
+        assertEquals(setOf("official"), contextTracks(MainLayoutContext.of(OFFICIAL)))
         assertEquals(setOf("official"), contextTracks(MainLayoutContext.of(PublicationState.DRAFT)))
         assertChangeInfo(
             official,

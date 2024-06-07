@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
+import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.getSomeNullableValue
@@ -1034,3 +1035,13 @@ fun layoutDesign(
 )
 
 fun <T> someRowVersion() = RowVersion(IntId<T>(1), 1)
+
+fun geocodingContextCacheKey(
+    trackNumberVersion: RowVersion<TrackLayoutTrackNumber>,
+    referenceLineVersion: RowVersion<ReferenceLine>,
+    vararg kmPostVersions: RowVersion<TrackLayoutKmPost>,
+) = LayoutGeocodingContextCacheKey(
+    trackNumberVersion = trackNumberVersion,
+    referenceLineVersion = referenceLineVersion,
+    kmPostVersions = kmPostVersions.toList().sortedBy { rv -> rv.id.intValue },
+)

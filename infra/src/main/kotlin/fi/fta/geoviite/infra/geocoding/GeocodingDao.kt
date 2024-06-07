@@ -88,85 +88,53 @@ class GeocodingDao(
         //language=SQL
         val sql = """
             with 
-              tn_main as (
-                select id, version, deleted, design_id
+              tn_versions as (
+                select distinct on (id) id, version, deleted, design_id is not null as is_design
                 from layout.track_number_version
-                where id = :tn_id
+                where (id = :tn_id or official_row_id = :tn_id)
                   and draft = false
-                  and design_id is null
-                  and change_time <= :moment
-                order by version desc
-                limit 1
-              ),
-              tn_design as (
-                select id, version, deleted, design_id
-                from layout.track_number_version
-                where coalesce(official_row_id, id) = :tn_id
-                  and draft = false
-                  and design_id = :design_id
-                  and change_time <= :moment
-                order by version desc
-                limit 1
-              ),
-              tn as (
-                select id, version
-                from (select * from tn_main union all select * from tn_design) tmp
-                where deleted = false
-                order by case when design_id is not null then 0 else 1 end
-                limit 1
-              ),
-              rl_main as (
-                select id, version, deleted, design_id
-                from layout.reference_line_version
-                where track_number_id = :tn_id
-                  and draft = false
-                  and design_id is null
-                  and change_time <= :moment
-                order by version desc
-                limit 1
-              ),
-              rl_design as (
-                select id, version, deleted, design_id
-                from layout.reference_line_version
-                where track_number_id = :tn_id
-                  and draft = false
-                  and design_id = :design_id
-                  and change_time <= :moment
-                order by version desc
-                limit 1
-              ),
-              rl as (
-                select id, version, design_id
-                from (select * from rl_main union all select * from rl_design) tmp
-                where deleted = false
-                order by case when design_id is not null then 0 else 1 end
-                limit 1
-              ),
-              kmp_main as (
-                select distinct on (id)
-                  id, version, state, deleted, design_id, id as official_id
-                from layout.km_post_version
-                where track_number_id = :tn_id
-                  and draft = false
-                  and design_id is null
+                  and (design_id is null or design_id = :design_id)
                   and change_time <= :moment
                 order by id, version desc
               ),
-              kmp_design as (
+              tn as (
+                select id, version
+                from tn_versions
+                where deleted = false
+                order by case when is_design then 0 else 1 end
+                limit 1
+              ),
+              rl_versions as (
+                select distinct on (id) id, version, deleted, design_id is not null as is_design
+                from layout.reference_line_version
+                where track_number_id = :tn_id
+                  and draft = false
+                  and (design_id is null or design_id = :design_id)
+                  and change_time <= :moment
+                order by id, version desc
+              ),
+              rl as (
+                select id, version
+                from rl_versions
+                where deleted = false
+                order by case when is_design then 0 else 1 end
+                limit 1
+              ),
+              kmp_versions as (
                 select distinct on (id)
-                  id, version, state, deleted, design_id, coalesce(official_row_id, id) as official_id
+                  id, version, state, deleted, design_id is not null as is_design, coalesce(official_row_id, id) as official_id
                 from layout.km_post_version
                 where track_number_id = :tn_id
                   and draft = false
-                  and design_id = :design_id
+                  and (design_id is null or design_id = :design_id)
                   and change_time <= :moment
                 order by id, version desc
               ),
               kmp as (
                 select distinct on (official_id) id, version, state
-                from (select * from kmp_main union all select * from kmp_design) tmp
+                from kmp_versions
                 where deleted = false
-                order by official_id, case when design_id is not null then 0 else 1 end
+                order by official_id, case when is_design then 0 else 1 end
               )
             select
               tn.id as tn_row_id,
@@ -187,12 +155,14 @@ class GeocodingDao(
             "moment" to Timestamp.from(moment),
             "design_id" to branch.designId?.intValue,
         )
+        println(params)
         return jdbcTemplate.queryOptional(sql, params) { rs, _ -> toGeocodingContextCacheKey(rs) }
     }
 
     private fun toGeocodingContextCacheKey(rs: ResultSet): LayoutGeocodingContextCacheKey? {
         val tnVersion = rs.getRowVersionOrNull<TrackLayoutTrackNumber>("tn_row_id", "tn_row_version")
         val rlVersion = rs.getRowVersionOrNull<ReferenceLine>("rl_row_id", "rl_row_version")
+        println(rlVersion)
         return if (tnVersion == null || rlVersion == null) {
             null
         } else LayoutGeocodingContextCacheKey(

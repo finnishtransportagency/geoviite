@@ -268,33 +268,21 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
     //language=SQL
     private val officialVersionAtMomentSql = """
         with
-          main as (
-            select v.id, v.version, v.deleted, false as is_design
-              from ${table.versionTable} v
-              where
-                v.id = :id
-                and v.change_time <= :moment
-                and not v.draft
-                and design_id is null
-              order by v.change_time desc
-              limit 1
-          ),
-          design as (
-            select v.id, v.version, v.deleted, true as is_design
+          versions as (
+            select distinct on (v.id) id, v.version, v.deleted, design_id is not null as is_design
               from ${table.versionTable} v
               where
                 (v.official_row_id = :id or v.id = :id)
                 and v.change_time <= :moment
                 and not v.draft
-                and design_id = :design_id
-              order by v.change_time desc
-              limit 1
+                and (design_id is null or design_id = :design_id)
+              order by v.id, v.change_time desc
           )
         select id, version
-          from (select * from main union all select * from design) tmp
-          where deleted = false
-          order by (case when is_design then 0 else 1 end)
-          limit 1
+        from versions
+        where deleted = false
+        order by (case when is_design then 0 else 1 end)
+        limit 1
     """.trimIndent()
 
     override fun fetchOfficialVersionAtMoment(
@@ -316,6 +304,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         val sql = """
             delete from ${table.fullName}
             where id = :row_id
+              and (draft = true or design_id is not null) -- Don't allow deleting main-official rows
             returning 
               coalesce(official_row_id, design_row_id, id) as official_id,
               id as row_id,
@@ -325,9 +314,12 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         val params = mapOf("row_id" to rowId.intValue)
         return jdbcTemplate.query<DaoResponse<T>>(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
-        }.single().also { deleted ->
-            require(deleted.rowVersion.id != deleted.id) { "Cannot delete the row with the official ID: $deleted" }
+        }.singleOrNull().let { deleted ->
+            if (deleted == null) error(
+                "No rows were deleted (did you try to delete a main-official row?): type=${table.name} id=$rowId"
+            )
             logger.daoAccess(DELETE, table.fullName, deleted)
+            deleted
         }
     }
 

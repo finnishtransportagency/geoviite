@@ -20,6 +20,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asDraft
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import fi.fta.geoviite.infra.tracklayout.geocodingContextCacheKey
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.referenceLine
@@ -158,99 +159,114 @@ class GeocodingDaoIT @Autowired constructor(
 
     @Test
     fun `Cache keys are correctly fetched by moment`() {
-        // First off, the main official versions for starting context
-        val (tnId, tnOfficialVersion) = mainOfficialContext.createLayoutTrackNumber()
-        val (rlId, rlOfficialVersion) = mainOfficialContext.insert(referenceLineAndAlignment(tnId))
-        val (kmp1Id, kmp1OfficialVersion) = mainOfficialContext.insert(kmPost(tnId, KmNumber(1)))
-
-        // Add some draft changes as well. These shouldn't affect the results
-        mainDraftContext.copyFrom(tnOfficialVersion, officialRowId = tnId)
-        mainDraftContext.copyFrom(rlOfficialVersion, officialRowId = rlId)
-        mainDraftContext.copyFrom(kmp1OfficialVersion, officialRowId = kmp1Id)
-        mainDraftContext.insert(kmPost(tnId, KmNumber(10)))
-
-        // Add some design changes
         val designBranch = LayoutBranch.design(designDao.insert(layoutDesign()))
         val officialDesignContext = testDBService.testContext(designBranch, OFFICIAL)
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
 
-        val tnDesignVersion = officialDesignContext.copyFrom(tnOfficialVersion, officialRowId = tnId).rowVersion
-        val rlDesignVersion = officialDesignContext.copyFrom(rlOfficialVersion, officialRowId = rlId).rowVersion
-        val kmp1DesignVersion = officialDesignContext.copyFrom(kmp1OfficialVersion, officialRowId = kmp1Id).rowVersion
-        val kmp2DesignVersion = officialDesignContext.insert(kmPost(tnId, KmNumber(2))).rowVersion
+        // --- Version 1
+
+        // First off, the main official versions for starting context
+        val (tnId, tnMainV1) = mainOfficialContext.createLayoutTrackNumber()
+        val (rlId, rlMainV1) = mainOfficialContext.insert(referenceLineAndAlignment(tnId))
+        val (kmp1Id, kmp1MainV1) = mainOfficialContext.insert(kmPost(tnId, KmNumber(1)))
+        val (kmp2Id, kmp2MainV1) = mainOfficialContext.insert(kmPost(tnId, KmNumber(2)))
+
+        // Add some draft changes as well. These shouldn't affect the results
+        mainDraftContext.copyFrom(tnMainV1, officialRowId = tnId)
+        mainDraftContext.copyFrom(rlMainV1, officialRowId = rlId)
+        mainDraftContext.copyFrom(kmp1MainV1, officialRowId = kmp1Id)
+        mainDraftContext.insert(kmPost(tnId, KmNumber(10)))
+
+        // Add some design changes
+        val tnDesignV1 = officialDesignContext.copyFrom(tnMainV1, officialRowId = tnId).rowVersion
+        val rlDesignV1 = officialDesignContext.copyFrom(rlMainV1, officialRowId = rlId).rowVersion
+        val kmp1DesignV1 = officialDesignContext.copyFrom(kmp1MainV1, officialRowId = kmp1Id).rowVersion
+        val kmp3DesignV1 = officialDesignContext.insert(kmPost(tnId, KmNumber(3))).rowVersion
 
         // Design-draft changes should not affect results either
-        designDraftContext.copyFrom(tnDesignVersion, officialRowId = tnId, designRowId = tnDesignVersion.id)
-        designDraftContext.copyFrom(rlDesignVersion, officialRowId = rlId, designRowId = rlDesignVersion.id)
-        designDraftContext.copyFrom(kmp1DesignVersion, officialRowId = kmp1Id, designRowId = kmp1DesignVersion.id)
-        designDraftContext.copyFrom(kmp2DesignVersion, officialRowId = null, designRowId = kmp2DesignVersion.id)
+        designDraftContext.copyFrom(tnDesignV1, officialRowId = tnId, designRowId = tnDesignV1.id)
+        designDraftContext.copyFrom(kmp3DesignV1, officialRowId = null, designRowId = kmp3DesignV1.id)
         designDraftContext.insert(kmPost(tnId, KmNumber(11)))
 
-        val originalTime = kmPostDao.fetchChangeTime()
+        val version1Time = kmPostDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that later objects get a new changetime so that moment-fetch makes sense
 
-        val originalKey = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId)!!
+        val mainKeyV1 = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId)!!
         assertEquals(
-            LayoutGeocodingContextCacheKey(
-                trackNumberVersion = tnOfficialVersion,
-                referenceLineVersion = rlOfficialVersion,
-                kmPostVersions = listOf(kmp1OfficialVersion),
-            ),
-            originalKey,
+            geocodingContextCacheKey(tnMainV1, rlMainV1, kmp1MainV1, kmp2MainV1),
+            mainKeyV1,
         )
 
-        val originalDesignKey = geocodingDao.getLayoutGeocodingContextCacheKey(LayoutContext.of(designBranch, OFFICIAL), tnId)!!
+        val designKeyV1 = geocodingDao.getLayoutGeocodingContextCacheKey(LayoutContext.of(designBranch, OFFICIAL), tnId)!!
         assertEquals(
-            LayoutGeocodingContextCacheKey(
-                trackNumberVersion = tnDesignVersion,
-                referenceLineVersion = rlDesignVersion,
-                kmPostVersions = listOf(kmp1DesignVersion, kmp2DesignVersion),
-            ),
-            originalDesignKey,
+            geocodingContextCacheKey(tnDesignV1, rlDesignV1, kmp1DesignV1, kmp2MainV1, kmp3DesignV1),
+            designKeyV1,
         )
+
+        // --- Version 2
 
         // Update the official stuff
-        val updatedTrackNumberVersion = testDBService.update(tnOfficialVersion).rowVersion
-        val updatedReferenceLineVersion = testDBService.update(rlOfficialVersion).rowVersion
-        val updatedKmPost1Version = testDBService.update(kmp1OfficialVersion).rowVersion
-        val kmPost2Version = mainOfficialContext.insert(kmPost(tnId, KmNumber(2))).rowVersion
+        val tnMainV2 = testDBService.update(tnMainV1).rowVersion
+        val rlMainV2 = testDBService.update(rlMainV1).rowVersion
+        val kmp1MainV2 = testDBService.update(kmp1MainV1).rowVersion
+        val kmp4MainV2 = mainOfficialContext.insert(kmPost(tnId, KmNumber(4))).rowVersion
         // Add a deleted post - should not appear in results
-        mainOfficialContext.insert(kmPost(tnId, KmNumber(3), state = LayoutState.DELETED))
+        mainOfficialContext.insert(kmPost(tnId, KmNumber(5), state = LayoutState.DELETED))
 
         // Update the design stuff
-        val updatedDesignTrackNumberVersion = testDBService.update(tnDesignVersion).rowVersion
-        val updatedDesignReferenceLineVersion = testDBService.update(rlDesignVersion).rowVersion
+        val tnDesignV2 = testDBService.update(tnDesignV1).rowVersion
+        val rlDesignV2 = testDBService.update(rlDesignV1).rowVersion
         // Also delete one kmpost in the design -> it should be removed from the key
-        testDBService.update(kmp1DesignVersion) { kmp -> kmp.copy(state = LayoutState.DELETED) }
-        val updatedDesignKmPost2Version = testDBService.update(kmp2DesignVersion).rowVersion
+        testDBService.update(kmp1DesignV1) { kmp -> kmp.copy(state = LayoutState.DELETED) }
+        val kmp3DesignV2 = testDBService.update(kmp3DesignV1).rowVersion
 
-        val updatedTime = kmPostDao.fetchChangeTime()
+        val version2Time = kmPostDao.fetchChangeTime()
+        Thread.sleep(1) // Ensure that later objects get a new changetime so that moment-fetch makes sense
 
-        val updatedKey = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId)!!
+        val mainKeyV2 = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId)!!
         assertEquals(
-            LayoutGeocodingContextCacheKey(
-                trackNumberVersion = updatedTrackNumberVersion,
-                referenceLineVersion = updatedReferenceLineVersion,
-                kmPostVersions = listOf(updatedKmPost1Version, kmPost2Version),
-            ),
-            updatedKey,
+            geocodingContextCacheKey(tnMainV2, rlMainV2, kmp1MainV2, kmp2MainV1, kmp4MainV2),
+            mainKeyV2,
         )
 
-        val updatedDesignKey = geocodingDao.getLayoutGeocodingContextCacheKey(LayoutContext.of(designBranch, OFFICIAL), tnId)!!
+        val designKeyV2 = geocodingDao.getLayoutGeocodingContextCacheKey(LayoutContext.of(designBranch, OFFICIAL), tnId)!!
         assertEquals(
-            LayoutGeocodingContextCacheKey(
-                trackNumberVersion = updatedDesignTrackNumberVersion,
-                referenceLineVersion = updatedDesignReferenceLineVersion,
-                kmPostVersions = listOf(updatedDesignKmPost2Version, kmPost2Version),
-            ),
-            updatedDesignKey,
+            geocodingContextCacheKey(tnDesignV2, rlDesignV2, kmp2MainV1, kmp3DesignV2, kmp4MainV2),
+            designKeyV2,
+        )
+
+        // --- Version 3
+
+        // Transition one design-only km-post to main
+        val kmp3MainV3 = mainOfficialContext.moveFrom(kmp3DesignV2).rowVersion
+        // Mark kmp2 deleted
+        testDBService.update(kmp2MainV1) { kmp -> kmp.copy(state = LayoutState.DELETED) }.rowVersion
+        // Delete some design-rows (should result in using main ones)
+        kmPostDao.deleteRow(kmp1DesignV1.id)
+        referenceLineDao.deleteRow(rlDesignV2.id)
+
+        val version3Time = kmPostDao.fetchChangeTime()
+        Thread.sleep(1) // Ensure that later objects get a new changetime so that moment-fetch makes sense
+
+        val mainKeyV3 = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId)!!
+        assertEquals(
+            geocodingContextCacheKey(tnMainV2, rlMainV2, kmp1MainV2, kmp3MainV3, kmp4MainV2),
+            mainKeyV3,
+        )
+        val designKeyV3 = geocodingDao.getLayoutGeocodingContextCacheKey(LayoutContext.of(designBranch, OFFICIAL), tnId)!!
+        assertEquals(
+            geocodingContextCacheKey(tnDesignV2, rlMainV2, kmp1MainV2, kmp3MainV3, kmp4MainV2),
+            designKeyV3,
         )
 
         // Verify fetching each key with time
-        assertEquals(originalKey, geocodingDao.getLayoutGeocodingContextCacheKey(LayoutBranch.main, tnId, originalTime))
-        assertEquals(originalDesignKey, geocodingDao.getLayoutGeocodingContextCacheKey(designBranch, tnId, originalTime))
-        assertEquals(updatedKey, geocodingDao.getLayoutGeocodingContextCacheKey(LayoutBranch.main, tnId, updatedTime))
-        assertEquals(updatedDesignKey, geocodingDao.getLayoutGeocodingContextCacheKey(designBranch, tnId, updatedTime))
+        assertEquals(mainKeyV1, geocodingDao.getLayoutGeocodingContextCacheKey(LayoutBranch.main, tnId, version1Time))
+        assertEquals(designKeyV1, geocodingDao.getLayoutGeocodingContextCacheKey(designBranch, tnId, version1Time))
+        assertEquals(mainKeyV2, geocodingDao.getLayoutGeocodingContextCacheKey(LayoutBranch.main, tnId, version2Time))
+        assertEquals(designKeyV2, geocodingDao.getLayoutGeocodingContextCacheKey(designBranch, tnId, version2Time))
+        assertEquals(mainKeyV3, geocodingDao.getLayoutGeocodingContextCacheKey(LayoutBranch.main, tnId, version3Time))
+        println("Fetch: ($designBranch, $tnId, $version3Time)")
+        assertEquals(designKeyV3, geocodingDao.getLayoutGeocodingContextCacheKey(designBranch, tnId, version3Time))
     }
 
     private fun createDraftReferenceLine(officialVersion: RowVersion<ReferenceLine>): RowVersion<ReferenceLine> {
