@@ -72,7 +72,7 @@ const splitToRequestTarget = (
         descriptionSuffix: (duplicate ? duplicate.descriptionSuffix : split.suffixMode) ?? 'NONE',
         duplicateTrack: duplicateTrack,
         startAtSwitchId:
-            split.splitPoint.type == 'switchSplitPoint' ? split.splitPoint.switchId : undefined,
+            split.splitPoint.type === 'SWITCH_SPLIT_POINT' ? split.splitPoint.switchId : undefined,
     };
 };
 
@@ -145,7 +145,8 @@ export const validateSplitSwitch = (
     if (
         !switches.some(
             (sw) =>
-                split.splitPoint.type == 'switchSplitPoint' && sw.id == split.splitPoint.switchId,
+                split.splitPoint.type === 'SWITCH_SPLIT_POINT' &&
+                sw.id === split.splitPoint.switchId,
         )
     ) {
         errors.push({
@@ -159,7 +160,7 @@ export const validateSplitSwitch = (
         !splitPointsAreSame(split.splitPoint, split.duplicateStatus?.startSplitPoint)
     ) {
         const type =
-            split.operation == 'TRANSFER'
+            split.operation === 'TRANSFER'
                 ? FieldValidationIssueType.ERROR
                 : FieldValidationIssueType.WARNING;
         errors.push({
@@ -180,7 +181,7 @@ export const validateSplitSwitch = (
         !splitPointsAreSame(nextSplitPoint, split.duplicateStatus?.endSplitPoint)
     ) {
         const type =
-            split.operation == 'TRANSFER'
+            split.operation === 'TRANSFER'
                 ? FieldValidationIssueType.ERROR
                 : FieldValidationIssueType.WARNING;
         errors.push({
@@ -231,7 +232,7 @@ export const findRefToFirstErroredField = (
         .sort()[0];
 
     if (minIndex === undefined) return undefined;
-    else if (minIndex === invalidNameIndex || minIndex == invalidSwitchBaseIndex)
+    else if (minIndex === invalidNameIndex || minIndex === invalidSwitchBaseIndex)
         return splitComponents[minIndex]?.nameRef;
     else return splitComponents[minIndex]?.descriptionBaseRef;
 };
@@ -245,7 +246,6 @@ export const hasUnrelinkableSwitches = (
 
 export const getOperation = (
     trackId: LocationTrackId,
-    _splitPoint: SplitPoint,
     duplicateStatus: DuplicateStatus | undefined,
 ): SplitTargetOperation => {
     if (duplicateStatus === undefined) {

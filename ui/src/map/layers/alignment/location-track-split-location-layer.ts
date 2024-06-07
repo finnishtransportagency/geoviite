@@ -52,7 +52,7 @@ export const createLocationTrackSplitLocationLayer = (
         ? getSwitches(
               splittingState.splits
                   .map((split) =>
-                      split.splitPoint.type == 'switchSplitPoint'
+                      split.splitPoint.type === 'SWITCH_SPLIT_POINT'
                           ? split.splitPoint.switchId
                           : undefined,
                   )
@@ -73,7 +73,8 @@ export const createLocationTrackSplitLocationLayer = (
                 const isDeletedSwitch =
                     switches.find(
                         (sw) =>
-                            splitPoint.type == 'switchSplitPoint' && sw.id === splitPoint.switchId,
+                            splitPoint.type === 'SWITCH_SPLIT_POINT' &&
+                            sw.id === splitPoint.switchId,
                     )?.stateCategory === 'NOT_EXISTING';
 
                 const feature = new Feature({

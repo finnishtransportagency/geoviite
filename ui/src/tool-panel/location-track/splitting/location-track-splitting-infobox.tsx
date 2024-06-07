@@ -227,9 +227,9 @@ export function getSplitPointName(
     endPointTerm: string,
 ): string | undefined {
     switch (splitPoint.type) {
-        case 'endpointSplitPoint':
+        case 'ENDPOINT_SPLIT_POINT':
             return endPointTerm;
-        case 'switchSplitPoint':
+        case 'SWITCH_SPLIT_POINT':
             return getSwitchName(splitPoint.switchId);
     }
 }
@@ -257,8 +257,8 @@ const createSplitComponent = (
 
     const splitPoint = validatedSplit.split.splitPoint;
     const splitPointExists =
-        splitPoint.type == 'endpointSplitPoint' ||
-        (splitPoint.type == 'switchSplitPoint' &&
+        splitPoint.type === 'ENDPOINT_SPLIT_POINT' ||
+        (splitPoint.type === 'SWITCH_SPLIT_POINT' &&
             switches.find((s) => s.id === splitPoint.switchId)?.stateCategory !== 'NOT_EXISTING');
     const { split, nameIssues, descriptionIssues, switchIssues } = validatedSplit;
 
@@ -368,7 +368,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     ]);
     const anyMissingFields = allErrors.map((s) => s.reason).some(mandatoryFieldMissing);
     const anyOtherErrors = allErrors
-        .filter((e) => e.type == FieldValidationIssueType.ERROR)
+        .filter((e) => e.type === FieldValidationIssueType.ERROR)
         .map((s) => s.reason)
         .some(otherError);
     const isPostingSplit = splittingState.state === 'POSTING';

@@ -512,40 +512,18 @@ class LocationTrackService(
             val startAddress = geocodingContext?.getAddress(start)?.first
             val startSwitchId = alignment.segments.firstOrNull()?.switchId as IntId?
                 ?: locationTrack.topologyStartSwitch?.switchId
-            val startSwitchSplitPoint = startSwitchId?.let { switchId ->
-                    SwitchSplitPoint(
-                        start,
-                        startAddress,
-                        switchId,
-                        JointNumber(0)
-                    )
-            }
-            val startSplitPoint = startSwitchSplitPoint
-                ?: EndpointSplitPoint(
-                    start,
-                    startAddress,
-                    DuplicateEndPointType.START
-                )
+            val startSplitPoint = if (startSwitchId!=null)
+                    SwitchSplitPoint( start, startAddress, startSwitchId, JointNumber(0))
+                else
+                    EndpointSplitPoint( start, startAddress, DuplicateEndPointType.START)
 
             val endAddress = geocodingContext?.getAddress(end)?.first
             val endSwitchId = alignment.segments.lastOrNull()?.switchId as IntId?
                 ?: locationTrack.topologyEndSwitch?.switchId
-            val endSwitchSplitPoint = endSwitchId?.let { switchId ->
-                alignment.end?.let { end ->
-                    SwitchSplitPoint(
-                        end,
-                        endAddress,
-                        switchId,
-                        JointNumber(0)
-                    )
-                }
-            }
-            val endSplitPoint = endSwitchSplitPoint
-                ?: EndpointSplitPoint(
-                    end,
-                    endAddress,
-                    DuplicateEndPointType.END
-                )
+            val endSplitPoint = if (endSwitchId!=null)
+                    SwitchSplitPoint(end, endAddress, endSwitchId, JointNumber(0))
+                else
+                    EndpointSplitPoint(end, endAddress, DuplicateEndPointType.END)
 
             val startSwitch = (alignment.segments.firstOrNull()?.switchId as IntId?
                 ?: locationTrack.topologyStartSwitch?.switchId)?.let { id -> fetchSwitchAtEndById(layoutContext, id) }

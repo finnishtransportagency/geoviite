@@ -222,7 +222,7 @@ data class SwitchSplitPoint(
     val switchId: IntId<TrackLayoutSwitch>,
     val jointNumber: JointNumber,
 ): SplitPoint() {
-    val type = "switchSplitPoint"
+    val type = "SWITCH_SPLIT_POINT"
     override fun isSame(other:SplitPoint):Boolean {
         return other is SwitchSplitPoint && switchId==other.switchId && jointNumber==other.jointNumber
     }
@@ -233,7 +233,7 @@ data class EndpointSplitPoint(
     override val address: TrackMeter?,
     val endPointType: DuplicateEndPointType
 ): SplitPoint() {
-    val type = "endpointSplitPoint"
+    val type = "ENDPOINT_SPLIT_POINT"
     override fun isSame(other:SplitPoint):Boolean {
         return other is EndpointSplitPoint
             && endPointType==other.endPointType

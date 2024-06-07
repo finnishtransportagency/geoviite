@@ -148,13 +148,13 @@ export type SplitPointBase = {
 };
 
 export type SwitchSplitPoint = SplitPointBase & {
-    type: 'switchSplitPoint';
+    type: 'SWITCH_SPLIT_POINT';
     switchId: LayoutSwitchId;
     name: string;
 };
 
 export type EndpointSplitPoint = SplitPointBase & {
-    type: 'endpointSplitPoint';
+    type: 'ENDPOINT_SPLIT_POINT';
     endpointType: EndpointType;
     name: string;
 };
@@ -163,11 +163,11 @@ export type SplitPoint = SwitchSplitPoint | EndpointSplitPoint;
 
 export function splitPointsAreSame(point1: SplitPoint, point2: SplitPoint): boolean {
     switch (point1.type) {
-        case 'switchSplitPoint':
-            return point2.type == 'switchSplitPoint' && point2.switchId == point1.switchId;
-        case 'endpointSplitPoint':
+        case 'SWITCH_SPLIT_POINT':
+            return point2.type == 'SWITCH_SPLIT_POINT' && point2.switchId == point1.switchId;
+        case 'ENDPOINT_SPLIT_POINT':
             return (
-                point2.type == 'endpointSplitPoint' && point2.endpointType == point1.endpointType
+                point2.type == 'ENDPOINT_SPLIT_POINT' && point2.endpointType == point1.endpointType
             );
     }
 }
@@ -179,7 +179,7 @@ export function SwitchSplitPoint(
     address: TrackMeter = { kmNumber: '0000', meters: 0 },
 ): SwitchSplitPoint {
     return {
-        type: 'switchSplitPoint',
+        type: 'SWITCH_SPLIT_POINT',
         switchId: switchId,
         name: name,
         location: location,
