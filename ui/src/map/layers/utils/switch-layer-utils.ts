@@ -141,20 +141,28 @@ export function getSwitchRenderer(
         },
         [
             (_, coord, ctx, { pixelRatio }) => {
-                ctx.fillStyle = disabled
-                    ? styles.switchJointDisabled
-                    : isGeometrySwitch
-                      ? linked
-                          ? styles.linkedSwitchJoint
-                          : styles.unlinkedSwitchJoint
-                      : styles.switchJoint;
-                ctx.strokeStyle = isGeometrySwitch
-                    ? linked
+                let fillStyle;
+                if (disabled) {
+                    fillStyle = styles.switchJointDisabled;
+                } else if (isGeometrySwitch) {
+                    fillStyle = linked ? styles.linkedSwitchJoint : styles.unlinkedSwitchJoint;
+                } else {
+                    fillStyle = styles.switchJoint;
+                }
+
+                let strokeStyle;
+                if (isGeometrySwitch) {
+                    strokeStyle = linked
                         ? styles.linkedSwitchJointBorder
-                        : styles.unlinkedSwitchJointBorder
-                    : valid
-                      ? styles.switchJointBorder
-                      : styles.errorBright;
+                        : styles.unlinkedSwitchJointBorder;
+                } else if (!valid) {
+                    strokeStyle = styles.errorBright;
+                } else {
+                    strokeStyle = styles.switchJointBorder;
+                }
+
+                ctx.fillStyle = fillStyle;
+                ctx.strokeStyle = strokeStyle;
                 ctx.lineWidth = (valid ? 1 : 3) * pixelRatio;
 
                 const [x, y] = expectCoordinate(coord);
