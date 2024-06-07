@@ -596,6 +596,7 @@
             "track-number": "Ratanumero",
             "duplicate-of": "Duplikaatti raiteelle",
             "implicit-duplicate-tooltip": "Raidetta \"{{trackName}}\" ei ole merkattu raiteen \"{{otherTrackName}}\" duplikaatiksi, mutta raiteilla on päällekkäistä geometriaa",
+            "non-overlapping-duplicate-tooltip": "Raide \"{{trackName}}\" on merkattu raiteen \"{{otherTrackName}}\" duplikaatiksi, mutta raiteilla ei ole päällekkäistä geometriaa",
             "has-duplicates": "Duplikaattiraiteet",
             "not-a-duplicate": "Ei duplikaatti",
             "change-info-heading": "Lokitiedot",
