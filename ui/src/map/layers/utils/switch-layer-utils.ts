@@ -127,6 +127,7 @@ export function getSwitchRenderer(
     showLabel: boolean,
     linked: boolean,
     valid: boolean,
+    disabled: boolean,
 ): RenderFunction {
     const fontSize = large ? TEXT_FONT_LARGE : TEXT_FONT_SMALL;
     const circleRadius = large ? CIRCLE_RADIUS_LARGE : CIRCLE_RADIUS_SMALL;
@@ -140,11 +141,13 @@ export function getSwitchRenderer(
         },
         [
             (_, coord, ctx, { pixelRatio }) => {
-                ctx.fillStyle = isGeometrySwitch
-                    ? linked
-                        ? styles.linkedSwitchJoint
-                        : styles.unlinkedSwitchJoint
-                    : styles.switchJoint;
+                ctx.fillStyle = disabled
+                    ? styles.switchJointDisabled
+                    : isGeometrySwitch
+                      ? linked
+                          ? styles.linkedSwitchJoint
+                          : styles.unlinkedSwitchJoint
+                      : styles.switchJoint;
                 ctx.strokeStyle = isGeometrySwitch
                     ? linked
                         ? styles.linkedSwitchJointBorder
@@ -190,6 +193,7 @@ export function getJointRenderer(
     joint: LayoutSwitchJoint,
     mainJoint: boolean,
     valid: boolean = true,
+    disabled: boolean = false,
 ): RenderFunction {
     const fontSize = TEXT_FONT_SMALL;
     const showErrorStyle = !valid && mainJoint;
@@ -203,7 +207,11 @@ export function getJointRenderer(
         },
         [
             (_, coord, ctx, { pixelRatio }) => {
-                ctx.fillStyle = mainJoint ? styles.switchMainJoint : styles.switchJoint;
+                ctx.fillStyle = disabled
+                    ? styles.switchJointDisabled
+                    : mainJoint
+                      ? styles.switchMainJoint
+                      : styles.switchJoint;
                 ctx.strokeStyle = showErrorStyle
                     ? styles.errorBright
                     : mainJoint
@@ -290,6 +298,7 @@ export const createGeometrySwitchFeatures = (
     isHighlighted: (switchItem: LayoutSwitch) => boolean,
     showLargeSymbols: boolean,
     showLabels: boolean,
+    disabled: boolean,
     switchStructures: SwitchStructure[],
 ) => {
     const switchLinkedStatus = status
@@ -310,6 +319,7 @@ export const createGeometrySwitchFeatures = (
         isSwitchLinked,
         showLargeSymbols,
         showLabels,
+        disabled,
         planLayout.id,
         switchStructures,
     );
@@ -319,6 +329,7 @@ export const createLayoutSwitchFeatures = (
     resolution: number,
     selection: Selection,
     switches: LayoutSwitch[],
+    disabled: boolean,
     switchStructures: SwitchStructure[],
     validationResult: ValidatedSwitch[],
 ) => {
@@ -339,6 +350,7 @@ export const createLayoutSwitchFeatures = (
         () => false,
         largeSymbols,
         showLabels,
+        disabled,
         undefined,
         switchStructures,
         validationResult,
@@ -352,6 +364,7 @@ function createSwitchFeatures(
     isLinked: (switchItem: LayoutSwitch) => boolean,
     showLargeSymbols: boolean,
     showLabels: boolean,
+    disabled: boolean,
     planId?: GeometryPlanId,
     switchStructures?: SwitchStructure[],
     validationResult?: ValidatedSwitch[],
@@ -374,6 +387,7 @@ function createSwitchFeatures(
                 linked,
                 showLargeSymbols,
                 showLabels,
+                disabled,
                 planId,
                 presentationJointNumber,
                 validationResult?.find((sw) => sw.id === layoutSwitch.id),
@@ -388,6 +402,7 @@ function createSwitchFeature(
     linked: boolean,
     largeSymbol: boolean,
     showLabel: boolean,
+    disabled: boolean,
     planId?: GeometryPlanId,
     presentationJointNumber?: string | undefined,
     validationResult?: ValidatedSwitch | undefined,
@@ -407,7 +422,14 @@ function createSwitchFeature(
     switchFeature.setStyle(
         selected || highlighted
             ? getSelectedSwitchStyle(layoutSwitch, linked, valid)
-            : getUnselectedSwitchStyle(layoutSwitch, largeSymbol, showLabel, linked, valid),
+            : getUnselectedSwitchStyle(
+                  layoutSwitch,
+                  largeSymbol,
+                  showLabel,
+                  linked,
+                  valid,
+                  disabled,
+              ),
     );
 
     setSwitchFeatureProperty(switchFeature, { switch: layoutSwitch, planId: planId });
@@ -424,6 +446,8 @@ function createSwitchFeature(
                           joint,
                           // Again, use presentation joint as main joint if found, otherwise use first one
                           presentationJoint ? joint.number === presentationJointNumber : index == 0,
+                          true,
+                          disabled,
                       ),
                   );
 
@@ -436,6 +460,7 @@ function createSwitchFeature(
                                   ? joint.number === presentationJointNumber
                                   : index == 0,
                               false,
+                              disabled,
                           ),
                       );
                   }
@@ -453,10 +478,11 @@ function getUnselectedSwitchStyle(
     textLabel: boolean,
     linked: boolean,
     valid: boolean,
+    disabled: boolean,
 ): Style {
     return new Style({
         zIndex: 0,
-        renderer: getSwitchRenderer(layoutSwitch, large, textLabel, linked, valid),
+        renderer: getSwitchRenderer(layoutSwitch, large, textLabel, linked, valid, disabled),
     });
 }
 
@@ -475,10 +501,11 @@ function getSwitchJointStyle(
     joint: LayoutSwitchJoint,
     mainJoint: boolean,
     valid: boolean = true,
+    disabled: boolean = false,
 ): Style {
     return new Style({
         zIndex: mainJoint ? 3 : 2,
-        renderer: getJointRenderer(joint, mainJoint, valid),
+        renderer: getJointRenderer(joint, mainJoint, valid, disabled),
     });
 }
 

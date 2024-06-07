@@ -40,6 +40,7 @@
 
     alignmentLine: rgba(vayla-design.$color-black-default, 0.8);
     selectedAlignmentLine: geoviite-design.$color-geoviite-blue;
+    selectedAlignmentLineDisabled: geoviite-design.$color-geoviite-map-red;
 
     alignmentRedHighlight: rgba(geoviite-design.$color-geoviite-map-red, 0.2);
     alignmentBlueHighlight: rgba(geoviite-design.$color-geoviite-map-blue, 0.2);
@@ -98,6 +99,7 @@
     unlinkedSwitchLabel: vayla-design.$color-red-lighter;
 
     switchJoint: geoviite-design.$color-geoviite-cadmium;
+    switchJointDisabled: vayla-design.$color-white-darker;
     switchJointBorder: rgba(vayla-design.$color-black-default, 0.5);
     switchJointTextColor: vayla-design.$color-black-default;
 
@@ -115,6 +117,7 @@
 :export {
     splitPointCircleColor: vayla-design.$color-blue-default;
     splitPointDeletedCircleColor: vayla-design.$color-red-default;
+    splitPointDisabledCircleColor: geoviite-design.$color-geoviite-map-red;
 }
 
 //Measure tooltip styling

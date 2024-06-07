@@ -114,7 +114,7 @@ async function getDuplicateSplitSectionData(
     mapTiles: MapTile[],
     resolution: number,
 ): Promise<DuplicateSplitSectionData> {
-    if (resolution <= HIGHLIGHTS_SHOW && splittingState) {
+    if (resolution <= HIGHLIGHTS_SHOW && splittingState && !splittingState.disabled) {
         const linkedDuplicates = getValidDuplicateIds(splittingState);
         const alignments = await getLocationTrackMapAlignmentsByTiles(
             changeTimes,

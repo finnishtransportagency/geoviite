@@ -80,6 +80,7 @@ export function createGeometrySwitchLayer(
                 isHighlighted,
                 showLargeSymbols,
                 showLabels,
+                false,
                 switchStructures,
             ),
         );
