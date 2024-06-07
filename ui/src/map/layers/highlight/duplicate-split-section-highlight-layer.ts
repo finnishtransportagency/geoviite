@@ -32,9 +32,9 @@ function createFeatures(
             const overlappingStartPoint = duplicate?.status.startSplitPoint?.location;
             const overlappingEndPoint = duplicate?.status.endSplitPoint?.location;
             if (
-                duplicate != undefined &&
-                overlappingStartPoint != undefined &&
-                overlappingEndPoint != undefined
+                duplicate !== undefined &&
+                overlappingStartPoint !== undefined &&
+                overlappingEndPoint !== undefined
             ) {
                 const pointCollections = [
                     {
@@ -94,9 +94,9 @@ function getValidDuplicateIds(splittingState: SplittingState): LocationTrackId[]
                 nextSplit !== undefined ? nextSplit.splitPoint : splittingState.endSplitPoint;
             if (
                 split.duplicateTrackId &&
-                split.duplicateStatus?.startSplitPoint != undefined &&
+                split.duplicateStatus?.startSplitPoint !== undefined &&
                 splitPointsAreSame(startSplitPoint, split.duplicateStatus?.startSplitPoint) &&
-                split.duplicateStatus?.endSplitPoint != undefined &&
+                split.duplicateStatus?.endSplitPoint !== undefined &&
                 splitPointsAreSame(endSplitPoint, split.duplicateStatus?.endSplitPoint)
             ) {
                 return split.duplicateTrackId;
