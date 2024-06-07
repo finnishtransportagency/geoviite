@@ -4,14 +4,22 @@ import { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import { Link } from 'vayla-design-lib/link/link';
 
+export const LocationTrackSplittingErrorNotice: React.FC<{
+    msg: string;
+}> = ({ msg }) => {
+    return (
+        <InfoboxContentSpread>
+            <MessageBox type={'ERROR'}>{msg}</MessageBox>
+        </InfoboxContentSpread>
+    );
+};
+
 export const LocationTrackSplittingDraftExistsErrorNotice: React.FC = () => {
     const { t } = useTranslation();
     return (
-        <InfoboxContentSpread>
-            <MessageBox type={'ERROR'}>
-                {t('tool-panel.location-track.splitting.validation.track-draft-exists')}
-            </MessageBox>
-        </InfoboxContentSpread>
+        <LocationTrackSplittingErrorNotice
+            msg={t('tool-panel.location-track.splitting.validation.track-draft-exists')}
+        />
     );
 };
 

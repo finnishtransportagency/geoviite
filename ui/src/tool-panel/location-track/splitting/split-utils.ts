@@ -252,8 +252,8 @@ export const getOperation = (
         // no duplicate -> new track
         return 'CREATE';
     } else if (
-        duplicateStatus.duplicateOfId != undefined &&
-        duplicateStatus.duplicateOfId != trackId
+        duplicateStatus.duplicateOfId !== undefined &&
+        duplicateStatus.duplicateOfId !== trackId
     ) {
         throw new Error(
             'Duplicate track is duplicate for some other track! This should be handled beforehand.',
@@ -264,10 +264,14 @@ export const getOperation = (
                 return 'OVERWRITE';
             case 'PARTIAL':
                 return 'TRANSFER';
-            default:
-                throw new Error(
-                    'Duplicate track does not share any geometry with target track! This should be handled beforehand.',
-                );
+            case 'NONE':
+                if (duplicateStatus.duplicateOfId === trackId) {
+                    return 'OVERWRITE';
+                } else {
+                    throw new Error(
+                        'Implicit duplicate track does not share any geometry with target track! This should be handled beforehand.',
+                    );
+                }
         }
     }
 };

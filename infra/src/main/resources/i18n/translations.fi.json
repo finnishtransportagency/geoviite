@@ -679,6 +679,7 @@
                 "exit": "Lopeta jakaminen",
                 "validation": {
                     "duplicates-on-different-track-number": "Raiteen jakamista ei voi suorittaa, koska osa tämän raiteen duplikaattiraiteista sijaitsee eri ratanumerolla.",
+                    "unused-non-overlapping-duplicates-exist": "Raiteen jakamista ei voi suorittaa, koska duplikaattiraiteilla {{duplicateNames}} ei ole päällekkäistä geometriaa pilkottavan raiteen kanssa.",
                     "track-draft-exists": "Muokattua sijaintiraidetta ei voi jakaa. Julkaise tai kumoa muutokset.",
                     "conflicts-with-split": "Tunnus on jo käytössä toisella katkaisukohdalla",
                     "conflicts-with-track": "Tunnus on jo käytössä toisella raiteella",
