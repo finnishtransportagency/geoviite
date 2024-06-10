@@ -47,7 +47,6 @@ private val parameterNameDiscoverer = DefaultParameterNameDiscoverer()
 fun reflectedLogBefore(
     joinPoint: JoinPoint,
     loggerMethod: (
-        className: String,
         methodName: String,
         params: List<Pair<String, *>>,
     ) -> Unit,
@@ -62,7 +61,6 @@ fun reflectedLogWithReturnValue(
     joinPoint: JoinPoint,
     returnValue: Any?,
     loggerMethodWithReturnValue: (
-        className: String,
         methodName: String,
         params: List<Pair<String, *>>,
         returnValue: Any?,
@@ -78,20 +76,19 @@ fun reflectedLogWithReturnValue(
 private fun logInternal(
     joinPoint: JoinPoint,
     returnValue: Any? = null,
-    loggerMethod: ((String, String, List<Pair<String, *>>) -> Unit)? = null,
-    loggerMethodWithReturnValue: ((String, String, List<Pair<String, *>>, Any?) -> Unit)? = null,
+    loggerMethod: ((String, List<Pair<String, *>>) -> Unit)? = null,
+    loggerMethodWithReturnValue: ((String, List<Pair<String, *>>, Any?) -> Unit)? = null,
 ) {
     val method = (joinPoint.signature as MethodSignature).method
 
     if (method.isAnnotationPresent(DisableLogging::class.java)) {
         return
     } else {
-        val className = joinPoint.target.javaClass.simpleName
         val methodName = joinPoint.signature.name
         val loggedParams = reflectParams(joinPoint)
 
-        loggerMethod?.invoke(className, methodName, loggedParams)
-        loggerMethodWithReturnValue?.invoke(className, methodName, loggedParams, returnValue)
+        loggerMethod?.invoke(methodName, loggedParams)
+        loggerMethodWithReturnValue?.invoke(methodName, loggedParams, returnValue)
     }
 }
 

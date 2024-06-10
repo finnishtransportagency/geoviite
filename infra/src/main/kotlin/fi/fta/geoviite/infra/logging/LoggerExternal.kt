@@ -74,10 +74,9 @@ fun Logger.daoAccess(accessType: AccessType, objectType: String, ids: List<Any>)
     }
 }
 
-fun Logger.daoAccess(className: String, method: String, params: List<Pair<String, *>>, returnValue: Any?) {
+fun Logger.daoAccess(method: String, params: List<Pair<String, *>>, returnValue: Any?) {
     info(
-        "class={} method={} params={} returnValue={}",
-        className,
+        "method={} params={} returnValue={}",
         method,
         paramsToLog(params),
         returnValueToLog(returnValue),
@@ -88,16 +87,16 @@ fun Logger.apiCall(method: String, vararg params: Pair<String, *>) {
     if (isInfoEnabled) info("method=$method params=${paramsToLog(*params)}")
 }
 
-fun Logger.apiCall(className: String, method: String, params: List<Pair<String, *>>) {
-    if (isInfoEnabled) info("class=$className method=$method params=${paramsToLog(params)}")
-}
-
 fun Logger.serviceCall(method: String, vararg params: Pair<String, *>) {
     if (isDebugEnabled) debug("method={} params={}", method, paramsToLog(*params))
 }
 
-fun Logger.serviceCall(className: String, method: String, params: List<Pair<String, *>>) {
-    if (isDebugEnabled) debug("class={} method={} params={}", className, method, paramsToLog(params))
+fun Logger.apiCall(method: String, params: List<Pair<String, *>>) {
+    if (isInfoEnabled) info("method={} params={}", method, paramsToLog(params))
+}
+
+fun Logger.serviceCall(method: String, params: List<Pair<String, *>>) {
+    if (isDebugEnabled) debug("method={} params={}", method, paramsToLog(params))
 }
 
 fun paramsToLog(vararg params: Pair<String, *>): List<String> =

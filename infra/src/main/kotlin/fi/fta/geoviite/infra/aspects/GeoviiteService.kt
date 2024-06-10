@@ -8,6 +8,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
+import java.util.concurrent.ConcurrentHashMap
 
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
@@ -17,10 +18,15 @@ annotation class GeoviiteService
 @Aspect
 @Component
 class GeoviiteServiceAspect {
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
+    private val loggerCache = ConcurrentHashMap<Class<*>, Logger>()
 
     @Before("within(@GeoviiteService *)")
     fun logBefore(joinPoint: JoinPoint) {
+        val targetClass = joinPoint.target::class.java
+        val logger = loggerCache.computeIfAbsent(targetClass) { classRef ->
+            LoggerFactory.getLogger(classRef)
+        }
+
         if (logger.isDebugEnabled) {
             reflectedLogBefore(joinPoint, logger::serviceCall)
         }
