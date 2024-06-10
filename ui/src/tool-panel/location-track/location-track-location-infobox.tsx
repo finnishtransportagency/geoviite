@@ -23,6 +23,7 @@ import {
     LayoutLocationTrack,
     LayoutSwitchId,
     LayoutTrackNumber,
+    SwitchSplitPoint,
 } from 'track-layout/track-layout-model';
 import {
     LocationTrackInfoboxVisibilities,
@@ -48,6 +49,9 @@ import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
 import { getSplitPointName } from 'tool-panel/location-track/splitting/location-track-splitting-infobox';
+import { SplitButton } from 'geoviite-design-lib/split-button/split-button';
+import { menuOption } from 'vayla-design-lib/menu/menu';
+import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 
 type LocationTrackLocationInfoboxContainerProps = {
     locationTrack: LayoutLocationTrack;
@@ -174,7 +178,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         );
     }, [linkingState]);
 
-    const startSplitting = () => {
+    const startSplitting = (prefilled: boolean) => {
         setStartingSplitting(true);
         getSplittingInitializationParameters(draftLayoutContext(layoutContext), locationTrack.id)
             .then((splitInitializationParameters) => {
@@ -224,6 +228,14 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                         };
                     });
 
+                    const prefilledSplits = prefilled
+                        ? duplicates
+                              .flatMap((d) => [d.status.startSplitPoint, d.status.endSplitPoint])
+                              .filter(filterNotEmpty)
+                              .filter((sp) => sp?.type === 'SWITCH_SPLIT_POINT')
+                              .filter(filterUniqueById((sp: SwitchSplitPoint) => sp.switchId))
+                        : [];
+
                     onStartSplitting({
                         locationTrack: locationTrack,
                         trackSwitches: splitInitializationParameters?.switches || [],
@@ -239,6 +251,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             ...extraInfo.endSplitPoint,
                             name: endSplitPointName,
                         },
+                        prefilledSplitPoints: prefilledSplits,
                     });
                 }
             })
@@ -409,36 +422,18 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                         )}
                                     <InfoboxButtons>
                                         {!linkingState && !splittingState && (
-                                            <Button
+                                            <SplitButton
                                                 variant={ButtonVariant.SECONDARY}
                                                 size={ButtonSize.SMALL}
                                                 disabled={splittingDisabled}
                                                 isProcessing={startingSplitting}
                                                 title={getSplittingDisabledReasonsTranslated()}
-                                                onClick={startSplitting}
-                                                qa-id="start-splitting">
-                                                {t('tool-panel.location-track.start-splitting')}
-                                            </Button>
-                                            /* TODO: Uncomment once splitting with prefilled data is implemented
-                                            <SplitButton
-                                                variant={ButtonVariant.SECONDARY}
-                                                size={ButtonSize.SMALL}
-                                                disabled={
-                                                    locationTrack.state !== 'IN_USE' ||
-                                                    !isDraft ||
-                                                    locationTrackIsDraft ||
-                                                    duplicatesOnOtherTrackNumbers ||
-                                                    extraInfo?.partOfUnfinishedSplit ||
-                                                    startingSplitting
-                                                }
-                                                isProcessing={startingSplitting}
-                                                title={getSplittingDisabledReasonsTranslated()}
-                                                onClick={startSplitting}
-                                                qaId={'start-splitting'}
+                                                onClick={() => startSplitting(false)}
+                                                qa-id="start-splitting"
                                                 menuItems={[
-                                                    menuSelectOption(
+                                                    menuOption(
                                                         () => {
-                                                            startSplitting();
+                                                            startSplitting(true);
                                                         },
                                                         t(
                                                             'tool-panel.location-track.start-splitting-prefilled',
@@ -447,7 +442,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                     ),
                                                 ]}>
                                                 {t('tool-panel.location-track.start-splitting')}
-                                            </SplitButton>*/
+                                            </SplitButton>
                                         )}
                                     </InfoboxButtons>
                                 </PrivilegeRequired>
