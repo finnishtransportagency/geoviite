@@ -33,6 +33,7 @@ import java.time.Instant
 sealed interface GeocodingContextCacheKey
 
 data class LayoutGeocodingContextCacheKey(
+    val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val trackNumberVersion: RowVersion<TrackLayoutTrackNumber>,
     val referenceLineVersion: RowVersion<ReferenceLine>,
     val kmPostVersions: List<RowVersion<TrackLayoutKmPost>>,

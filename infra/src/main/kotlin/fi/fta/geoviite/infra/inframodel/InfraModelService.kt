@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.codeDictionary.CodeDictionaryService
 import fi.fta.geoviite.infra.codeDictionary.FeatureType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.GeographyService
@@ -12,16 +11,17 @@ import fi.fta.geoviite.infra.geometry.Author
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryService
+import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
 import fi.fta.geoviite.infra.geometry.PlanLayoutCache
 import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.TransformationError
-import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
 import fi.fta.geoviite.infra.geometry.getBoundingPolygonPointsFromAlignments
 import fi.fta.geoviite.infra.geometry.validate
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
@@ -67,7 +67,7 @@ class InfraModelService @Autowired constructor(
         file: InfraModelFile,
         overrides: OverrideParameters?,
         extraInfo: ExtraInfoParameters?,
-    ): RowVersion<GeometryPlan> {
+    ): DaoResponse<GeometryPlan> {
         logger.serviceCall(
             "saveInfraModel",
             "file" to file,
@@ -180,7 +180,7 @@ class InfraModelService @Autowired constructor(
         planId: IntId<GeometryPlan>,
         overrideParameters: OverrideParameters?,
         extraInfoParameters: ExtraInfoParameters?,
-    ): RowVersion<GeometryPlan> {
+    ): DaoResponse<GeometryPlan> {
         logger.serviceCall(
             "updateInfraModel",
             "planId" to planId,

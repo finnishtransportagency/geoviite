@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.TableRowId
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
@@ -42,7 +43,7 @@ interface LayoutAssetWriter<T : LayoutAsset<T>> {
 
     fun update(updatedItem: T): DaoResponse<T>
 
-    fun deleteRow(rowId: IntId<T>): DaoResponse<T>
+    fun deleteRow(rowId: TableRowId<T>): DaoResponse<T>
 
     fun deleteDraft(branch: LayoutBranch, id: IntId<T>): DaoResponse<T>
 
@@ -300,7 +301,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
     }
 
     @Transactional
-    override fun deleteRow(rowId: IntId<T>): DaoResponse<T> {
+    override fun deleteRow(rowId: TableRowId<T>): DaoResponse<T> {
         val sql = """
             delete from ${table.fullName}
             where id = :row_id

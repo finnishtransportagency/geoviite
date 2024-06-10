@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.TableRowId
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geography.parse2DPolygon
@@ -69,6 +70,10 @@ fun <T> ResultSet.getIndexedIdOrNull(parent: String, index: String): IndexedId<T
         null
     }
 }
+
+fun <T> ResultSet.getTableRowId(name: String): TableRowId<T> = verifyNotNull(name, ::getTableRowIdOrNull)
+
+fun <T> ResultSet.getTableRowIdOrNull(name: String): TableRowId<T>? = getIntOrNull(name)?.let(::TableRowId)
 
 fun <T> ResultSet.getIntId(name: String): IntId<T> = verifyNotNull(name, ::getIntIdOrNull)
 
@@ -145,6 +150,9 @@ fun ResultSet.getIntListOrNullFromString(name: String): List<Int>? = getString(n
 
 fun <T> ResultSet.getIntIdArray(name: String): List<IntId<T>> = getListOrNull<Int>(name)?.map(::IntId) ?: emptyList()
 
+fun <T> ResultSet.getTableRowIdArray(name: String): List<TableRowId<T>> =
+    getListOrNull<Int>(name)?.map(::TableRowId) ?: emptyList()
+
 fun ResultSet.getIntArray(name: String): List<Int> = verifyNotNull(name, ::getIntArrayOrNull)
 
 fun ResultSet.getIntArrayOrNull(name: String): List<Int>? = getListOrNull(name)
@@ -196,10 +204,10 @@ fun <T> ResultSet.getDaoResponse(officialIdName: String, versionIdName: String, 
 )
 
 fun <T> ResultSet.getRowVersion(idName: String, versionName: String): RowVersion<T> =
-    RowVersion(getIntId(idName), getIntNonNull(versionName))
+    RowVersion(getTableRowId(idName), getIntNonNull(versionName))
 
 fun <T> ResultSet.getRowVersionOrNull(idName: String, versionName: String): RowVersion<T>? {
-    val rowId = getIntIdOrNull<T>(idName)
+    val rowId = getTableRowIdOrNull<T>(idName)
     val version = getIntOrNull(versionName)
     return if (rowId != null && version != null) RowVersion(rowId, version) else null
 }
@@ -302,9 +310,9 @@ fun <T> ResultSet.getLayoutContextData(
     draftFlagName: String,
 ): LayoutContextData<T> {
     val designId = getIntIdOrNull<LayoutDesign>(designIdName)
-    val designRowId = getIntIdOrNull<T>(designRowIdName)
-    val officialRowId = getIntIdOrNull<T>(officialRowIdName)
-    val rowId = getIntId<T>(rowIdName)
+    val designRowId = getTableRowIdOrNull<T>(designRowIdName)
+    val officialRowId = getTableRowIdOrNull<T>(officialRowIdName)
+    val rowId = getTableRowId<T>(rowIdName)
     val isDraft = getBoolean(draftFlagName)
     return if (designId != null) {
         if (isDraft) {

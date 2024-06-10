@@ -28,6 +28,7 @@ import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.ElementListingFile
 import fi.fta.geoviite.infra.tracklayout.ElementListingFileDao
 import fi.fta.geoviite.infra.tracklayout.IAlignment
@@ -164,7 +165,7 @@ class GeometryService @Autowired constructor(
 
     fun createProject(project: Project): IntId<Project> {
         logger.serviceCall("createProject", "project" to project)
-        return geometryDao.insertProject(project).id
+        return geometryDao.insertProject(project)
     }
 
     fun getAuthors(): List<Author> {
@@ -175,7 +176,7 @@ class GeometryService @Autowired constructor(
     fun createAuthor(author: Author): Author {
         logger.serviceCall("createAuthor", "author" to author)
         val authorId = geometryDao.insertAuthor(author)
-        return geometryDao.getAuthor(authorId.id)
+        return geometryDao.getAuthor(authorId)
     }
 
     fun getSwitch(switchId: IntId<GeometrySwitch>): GeometrySwitch {
@@ -767,7 +768,7 @@ class GeometryService @Autowired constructor(
     }
 
     @Transactional
-    fun setPlanHidden(planId: IntId<GeometryPlan>, hidden: Boolean): RowVersion<GeometryPlan> {
+    fun setPlanHidden(planId: IntId<GeometryPlan>, hidden: Boolean): DaoResponse<GeometryPlan> {
         logger.serviceCall("setPlanHidden", "planId" to planId, "hidden" to hidden)
         if (hidden && !geometryDao.getPlanLinking(planId).isEmpty) {
             throw DeletingFailureException(

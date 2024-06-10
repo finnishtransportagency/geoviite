@@ -334,11 +334,12 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         )
         jdbcTemplate.setUser()
         return getOne<PVDocument, IntId<PVDocumentRejection>>(
-            documentRowVersion.id,
+            documentRowVersion,
             jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId("id") },
         ).also { id -> logger.daoAccess(INSERT, PVDocumentRejection::class, id) }
     }
 
+    // TODO: GVT-2629 Only used in test
     fun getRejection(documentRowVersion: RowVersion<PVDocument>): PVDocumentRejection {
         logger.daoAccess(FETCH, PVDocumentRejection::class)
         val sql = """
@@ -352,7 +353,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         )
         jdbcTemplate.setUser()
         return getOne<PVDocument, PVDocumentRejection>(
-            documentRowVersion.id,
+            documentRowVersion,
             jdbcTemplate.query(sql, params) { rs, _ ->
                 PVDocumentRejection(
                     id = rs.getIntId("id"),

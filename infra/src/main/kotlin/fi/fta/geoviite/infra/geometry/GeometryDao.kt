@@ -20,6 +20,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.toAngle
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.*
@@ -54,19 +55,21 @@ class GeometryDao @Autowired constructor(
         plan: GeometryPlan,
         file: InfraModelFile,
         boundingBoxInLayoutCoordinates: List<Point>?,
-    ): RowVersion<GeometryPlan> {
+    ): DaoResponse<GeometryPlan> {
         jdbcTemplate.setUser()
 
-        val projectId: IntId<Project> = if (plan.project.id is IntId) plan.project.id
-        else findProject(plan.project.name)?.id as IntId? ?: insertProjectInternal(plan.project).id
+        val projectId: IntId<Project> = plan.project.id as? IntId
+            ?: findProject(plan.project.name)?.id as IntId?
+            ?: insertProjectInternal(plan.project)
 
         val authorId: IntId<Author>? = plan.author?.let { author: Author ->
-            if (author.id is IntId) author.id
-            else findAuthor(author.companyName)?.id as IntId? ?: insertAuthorInternal(author).id
+            author.id as? IntId
+                ?: findAuthor(author.companyName)?.id as IntId?
+                ?: insertAuthorInternal(author)
         }
-        val applicationId: IntId<Application> = if (plan.application.id is IntId) plan.application.id
-        else findApplication(plan.application.name, plan.application.version)?.id as IntId?
-            ?: insertApplicationInternal(plan.application).id
+        val applicationId: IntId<Application> = plan.application.id as? IntId
+            ?: findApplication(plan.application.name, plan.application.version)?.id as IntId?
+            ?: insertApplicationInternal(plan.application)
 
         val sql = """
             insert into geometry.plan(
@@ -145,16 +148,16 @@ class GeometryDao @Autowired constructor(
             "hidden" to plan.isHidden,
         )
 
-        val planId: RowVersion<GeometryPlan> =
-            jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
-                ?: throw IllegalStateException("Failed to get generated ID for new plan")
-        insertPlanFile(planId.id, file)
-        val switchDatabaseIds = insertSwitches(planId.id, plan.switches)
-        insertAlignments(planId.id, plan.alignments, switchDatabaseIds)
-        insertKmPosts(getKmPostParams(planId.id, plan.kmPosts))
+        val response: DaoResponse<GeometryPlan> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getDaoResponse("id", "id", "version")
+        } ?: error("Failed to get generated ID/version for new plan")
+        insertPlanFile(response.id, file)
+        val switchDatabaseIds = insertSwitches(response.id, plan.switches)
+        insertAlignments(response.id, plan.alignments, switchDatabaseIds)
+        insertKmPosts(getKmPostParams(response.id, plan.kmPosts))
 
-        logger.daoAccess(INSERT, GeometryPlan::class, planId)
-        return planId
+        logger.daoAccess(INSERT, GeometryPlan::class, response.id)
+        return response
     }
 
     private fun insertPlanFile(planId: IntId<GeometryPlan>, file: InfraModelFile): IntId<InfraModelFile> {
@@ -259,7 +262,7 @@ class GeometryDao @Autowired constructor(
     }
 
     @Transactional
-    fun setPlanHidden(id: IntId<GeometryPlan>, hidden: Boolean): RowVersion<GeometryPlan> {
+    fun setPlanHidden(id: IntId<GeometryPlan>, hidden: Boolean): DaoResponse<GeometryPlan> {
         //language=SQL
         val sql = """
             update geometry.plan
@@ -273,13 +276,13 @@ class GeometryDao @Autowired constructor(
         )
 
         jdbcTemplate.setUser()
-        return jdbcTemplate.queryOne<RowVersion<GeometryPlan>>(sql, params) { rs, _ ->
-            rs.getRowVersion("id", "version")
+        return jdbcTemplate.queryOne<DaoResponse<GeometryPlan>>(sql, params) { rs, _ ->
+            rs.getDaoResponse("id", "id", "version")
         }.also { v -> logger.daoAccess(UPDATE, GeometryPlan::class, id) }
     }
 
     @Transactional
-    fun updatePlan(planId: IntId<GeometryPlan>, geometryPlan: GeometryPlan): RowVersion<GeometryPlan> {
+    fun updatePlan(planId: IntId<GeometryPlan>, geometryPlan: GeometryPlan): DaoResponse<GeometryPlan> {
         jdbcTemplate.setUser()
         val sql = """
             update geometry.plan
@@ -325,41 +328,42 @@ class GeometryDao @Autowired constructor(
         )
 
         return getOne(planId, jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getRowVersion<GeometryPlan>("id", "version")
+            rs.getDaoResponse<GeometryPlan>("id", "id", "version")
         }).also {
             logger.daoAccess(UPDATE, GeometryPlan::class, planId)
         }
     }
 
     @Transactional
-    fun insertProject(project: Project): RowVersion<Project> {
+    fun insertProject(project: Project): IntId<Project> {
         jdbcTemplate.setUser()
         return insertProjectInternal(project)
     }
 
-    private fun insertProjectInternal(project: Project): RowVersion<Project> {
+    private fun insertProjectInternal(project: Project): IntId<Project> {
         val sql = """
             insert into geometry.plan_project(name, description) 
             values (:name, :description) 
-            returning id, version
+            returning id
         """.trimIndent()
         val params = mapOf(
-            "name" to project.name, "description" to project.description
+            "name" to project.name,
+            "description" to project.description,
         )
-        val projectVersion: RowVersion<Project> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            rs.getRowVersion("id", "version")
+        val projectId: IntId<Project> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getIntId("id")
         } ?: throw IllegalStateException("Failed to get generated ID for new project")
-        logger.daoAccess(INSERT, Project::class, projectVersion)
-        return projectVersion
+        logger.daoAccess(INSERT, Project::class, projectId)
+        return projectId
     }
 
     @Transactional
-    fun insertAuthor(author: Author): RowVersion<Author> {
+    fun insertAuthor(author: Author): IntId<Author> {
         jdbcTemplate.setUser()
         return insertAuthorInternal(author)
     }
 
-    private fun insertAuthorInternal(author: Author): RowVersion<Author> {
+    private fun insertAuthorInternal(author: Author): IntId<Author> {
         val sql = """
             insert into geometry.plan_author(company_name)
             values (:company_name)
@@ -367,20 +371,20 @@ class GeometryDao @Autowired constructor(
         """.trimIndent()
 
         val params = mapOf("company_name" to author.companyName)
-        val authorVersion: RowVersion<Author> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            rs.getRowVersion("id", "version")
+        val authorId: IntId<Author> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getIntId("id")
         } ?: throw IllegalStateException("Failed to get generated ID for new author")
-        logger.daoAccess(INSERT, Author::class, authorVersion)
-        return authorVersion
+        logger.daoAccess(INSERT, Author::class, authorId)
+        return authorId
     }
 
     @Transactional
-    fun insertApplication(application: Application): RowVersion<Application> {
+    fun insertApplication(application: Application): IntId<Application> {
         jdbcTemplate.setUser()
         return insertApplicationInternal(application)
     }
 
-    private fun insertApplicationInternal(application: Application): RowVersion<Application> {
+    private fun insertApplicationInternal(application: Application): IntId<Application> {
         val sql = """
             insert into geometry.plan_application(name, manufacturer, application_version)
             values (:name, :manufacturer, :application_version) 
@@ -391,8 +395,8 @@ class GeometryDao @Autowired constructor(
             "manufacturer" to application.manufacturer,
             "application_version" to application.version,
         )
-        val appId: RowVersion<Application> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            rs.getRowVersion("id", "version")
+        val appId: IntId<Application> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getIntId("id")
         } ?: throw IllegalStateException("Failed to get generated ID for new application")
         logger.daoAccess(INSERT, Application::class, appId)
         return appId
@@ -506,7 +510,7 @@ class GeometryDao @Autowired constructor(
         switchDatabaseIds: Map<DomainId<GeometrySwitch>, IntId<GeometrySwitch>>,
     ) {
         val idToAlignment: List<Pair<IntId<GeometryAlignment>, GeometryAlignment>> = alignments.map { alignment ->
-            insertAlignment(planId, alignment).id to alignment
+            insertAlignment(planId, alignment) to alignment
         }
 
         val elementParams = idToAlignment.flatMap { (alignmentId, alignment) ->
@@ -581,7 +585,7 @@ class GeometryDao @Autowired constructor(
     private fun insertAlignment(
         planId: IntId<GeometryPlan>,
         alignment: GeometryAlignment,
-    ): RowVersion<GeometryAlignment> {
+    ): IntId<GeometryAlignment> {
         val sql = """ 
             insert into geometry.alignment(
               plan_id,
@@ -622,9 +626,8 @@ class GeometryDao @Autowired constructor(
             "cant_rotation_point" to alignment.cant?.rotationPoint?.name,
             "feature_type_code" to alignment.featureTypeCode
         )
-        return jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            RowVersion(rs.getIntId("id"), 1)//rs.getRowVersion("id", "version")
-        } ?: throw IllegalStateException("Failed to get generated ID for new alignment")
+        return jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getIntId("id") }
+            ?: error("Failed to get generated ID for new alignment")
     }
 
     fun preloadHeaderCache() {
@@ -730,9 +733,8 @@ class GeometryDao @Autowired constructor(
             "plan_id" to rowVersion.id.intValue,
             "plan_version" to rowVersion.version,
         )
-        return getOne(rowVersion.id, jdbcTemplate.query(sql, params) { rs, _ -> getPlanHeader(rs) }).also { header ->
-            logger.daoAccess(FETCH, GeometryPlanHeader::class, header.version)
-        }
+        return getOne(rowVersion, jdbcTemplate.query(sql, params) { rs, _ -> getPlanHeader(rs) })
+            .also { header -> logger.daoAccess(FETCH, GeometryPlanHeader::class, header.version) }
     }
 
     private fun getPlanHeader(rs: ResultSet): GeometryPlanHeader {
@@ -903,8 +905,9 @@ class GeometryDao @Autowired constructor(
                 linearUnit = rs.getEnum("linear_unit"),
             )
             val authorId = rs.getIntIdOrNull<Author>("author_id")
+            val id: IntId<GeometryPlan> = rs.getIntId("id")
             val geometryPlan = GeometryPlan(
-                id = rs.getIntId("id"),
+                id = id,
                 source = rs.getEnum<PlanSource>("source"),
                 project = getProject(rs.getIntId("plan_project_id")),
                 author = authorId?.let { id ->
@@ -920,9 +923,9 @@ class GeometryDao @Autowired constructor(
                 units = units,
                 trackNumber = rs.getTrackNumberOrNull("track_number"),
                 trackNumberDescription = PlanElementName(rs.getString("track_number_description")),
-                alignments = fetchAlignments(units, planVersion.id),
-                switches = fetchSwitches(planId = planVersion.id, switchId = null),
-                kmPosts = fetchKmPosts(planVersion.id),
+                alignments = fetchAlignments(units, id),
+                switches = fetchSwitches(planId = id, switchId = null),
+                kmPosts = fetchKmPosts(id),
                 fileName = rs.getFileName("file_name"),
                 pvDocumentId = rs.getIntIdOrNull("projektivelho_document_id"),
                 planPhase = rs.getEnumOrNull<PlanPhase>("plan_phase"),
@@ -935,7 +938,7 @@ class GeometryDao @Autowired constructor(
                 isHidden = rs.getBoolean("hidden"),
             )
             geometryPlan
-        }.firstOrNull() ?: throw NoSuchEntityException(GeometryPlan::class, planVersion.id)
+        }.firstOrNull() ?: throw NoSuchEntityException(GeometryPlan::class, planVersion)
         logger.daoAccess(FETCH, GeometryPlan::class, planVersion)
         return plan
     }
