@@ -155,14 +155,12 @@ class GeocodingDao(
             "moment" to Timestamp.from(moment),
             "design_id" to branch.designId?.intValue,
         )
-        println(params)
         return jdbcTemplate.queryOptional(sql, params) { rs, _ -> toGeocodingContextCacheKey(rs) }
     }
 
     private fun toGeocodingContextCacheKey(rs: ResultSet): LayoutGeocodingContextCacheKey? {
         val tnVersion = rs.getRowVersionOrNull<TrackLayoutTrackNumber>("tn_row_id", "tn_row_version")
         val rlVersion = rs.getRowVersionOrNull<ReferenceLine>("rl_row_id", "rl_row_version")
-        println(rlVersion)
         return if (tnVersion == null || rlVersion == null) {
             null
         } else LayoutGeocodingContextCacheKey(
