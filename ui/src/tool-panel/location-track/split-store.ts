@@ -140,23 +140,20 @@ const prefillSplits = (
     prefilledSplitPoints
         .map((splitPoint) => {
             const sw = findSwitchForSplitPoint(switchesOnTrack, splitPoint);
-            return sw?.location !== undefined && sw?.distance !== undefined
-                ? ([splitPoint, sw.location, sw.distance, sw.name] as const)
+            return sw?.location !== undefined &&
+                sw?.distance !== undefined &&
+                sw?.address !== undefined &&
+                splitPoint.type === 'SWITCH_SPLIT_POINT'
+                ? ([splitPoint, sw.location, sw.distance, sw.address] as const)
                 : undefined;
         })
         .filter(filterNotEmpty)
-        .filter(
-            ([splitPoint, location, distance]) =>
-                splitPoint.type === 'SWITCH_SPLIT_POINT' &&
-                distance !== undefined &&
-                location !== undefined,
-        )
-        .map(([splitPoint, location, distance, switchName]) =>
+        .map(([splitPoint, location, distance, address]) =>
             tryCreateSplitTargetCandidateFromSplitPoint(
                 duplicateTracks,
                 originTrackId,
                 false,
-                switchName,
+                address,
                 location,
                 distance,
                 splitPoint,
@@ -392,7 +389,7 @@ function tryCreateSplitTargetCandidateFromSplitPoint(
     duplicateTracks: SplitDuplicate[],
     originLocationTrackId: LocationTrackId,
     focusNameAfterCreate: boolean,
-    switchName: string,
+    address: TrackMeter,
     switchLocation: Point,
     switchDistance: number,
     splitPoint: SplitPoint,
@@ -403,7 +400,7 @@ function tryCreateSplitTargetCandidateFromSplitPoint(
     return {
         id: getNextSplitId(),
         type: 'SPLIT',
-        splitPoint: { ...splitPoint, name: switchName },
+        splitPoint: { ...splitPoint, address },
         name,
         duplicateTrackId: duplicateAt?.id,
         duplicateStatus: duplicateAt?.status,
@@ -432,13 +429,14 @@ function addSplitToState(
             splitPoint.type === 'SWITCH_SPLIT_POINT' &&
             !isAlreadySplit(state.splittingState.splits, splitPoint) &&
             switchForSplitPoint?.distance !== undefined &&
-            switchForSplitPoint?.location !== undefined
+            switchForSplitPoint?.location !== undefined &&
+            switchForSplitPoint?.address !== undefined
         ) {
             const newSplit = tryCreateSplitTargetCandidateFromSplitPoint(
                 state.splittingState.duplicateTracks,
                 state.splittingState.originLocationTrack.id,
                 focusNameAfterCreate,
-                switchForSplitPoint.name,
+                switchForSplitPoint.address,
                 switchForSplitPoint.location,
                 switchForSplitPoint.distance,
                 splitPoint,

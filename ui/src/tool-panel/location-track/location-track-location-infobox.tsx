@@ -227,12 +227,26 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             },
                         };
                     });
+                    const startSwitchId =
+                        extraInfo.startSplitPoint.type === 'SWITCH_SPLIT_POINT'
+                            ? extraInfo.startSplitPoint.switchId
+                            : undefined;
+                    const endSwitchId =
+                        extraInfo.endSplitPoint.type === 'SWITCH_SPLIT_POINT'
+                            ? extraInfo.endSplitPoint.switchId
+                            : undefined;
 
                     const prefilledSplits = prefilled
-                        ? duplicates
+                        ? duplicatesWithNames
                               .flatMap((d) => [d.status.startSplitPoint, d.status.endSplitPoint])
                               .filter(filterNotEmpty)
-                              .filter((sp) => sp?.type === 'SWITCH_SPLIT_POINT')
+                              .filter(
+                                  (sp) =>
+                                      sp.type === 'SWITCH_SPLIT_POINT' &&
+                                      sp.switchId &&
+                                      sp.switchId !== startSwitchId &&
+                                      sp.switchId !== endSwitchId,
+                              )
                               .filter(filterUniqueById((sp: SwitchSplitPoint) => sp.switchId))
                         : [];
 
