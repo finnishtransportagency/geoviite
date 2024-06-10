@@ -184,33 +184,33 @@ class LocationTrackDaoIT @Autowired constructor(
         val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
 
         val tnId = mainOfficialContext.createLayoutTrackNumber().id
-        val beforeCreationTime = locationTrackDao.fetchChangeTime()
-
+        val v0Time = locationTrackDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
+
         val (track1Id, track1MainV1) = mainOfficialContext.insert(locationTrackAndAlignment(tnId))
         val (track2Id, track2DesignV1) = designOfficialContext.insert(locationTrackAndAlignment(tnId))
         val (track3Id, track3DesignV1) = designOfficialContext.insert(locationTrackAndAlignment(tnId))
         val v1Time = locationTrackDao.fetchChangeTime()
-
         Thread.sleep(1) // Ensure that they get different timestamps
+
         val track1MainV2 = testDBService.update(track1MainV1).rowVersion
         val track1DesignV2 = designOfficialContext.copyFrom(track1MainV1, officialRowId = track1MainV1.id).rowVersion
         val track2DesignV2 = testDBService.update(track2DesignV1).rowVersion
         locationTrackDao.deleteRow(track3DesignV1.id)
         val v2Time = locationTrackDao.fetchChangeTime()
-
         Thread.sleep(1) // Ensure that they get different timestamps
+
         locationTrackDao.deleteRow(track1DesignV2.id)
         // Fake publish: update the design as a main-official
         val track2MainV3 = mainOfficialContext.moveFrom(track2DesignV2).rowVersion
         val v3Time = locationTrackDao.fetchChangeTime()
 
-        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track1Id, beforeCreationTime))
-        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track2Id, beforeCreationTime))
-        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track3Id, beforeCreationTime))
-        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(designBranch, track1Id, beforeCreationTime))
-        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(designBranch, track2Id, beforeCreationTime))
-        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(designBranch, track3Id, beforeCreationTime))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track1Id, v0Time))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track2Id, v0Time))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track3Id, v0Time))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(designBranch, track1Id, v0Time))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(designBranch, track2Id, v0Time))
+        assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(designBranch, track3Id, v0Time))
 
         assertEquals(track1MainV1, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track1Id, v1Time))
         assertEquals(null, locationTrackDao.fetchOfficialVersionAtMoment(LayoutBranch.main, track2Id, v1Time))

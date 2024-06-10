@@ -175,23 +175,59 @@ class LayoutKmPostDaoIT @Autowired constructor(
     }
 
     @Test
-    fun fetchOfficialVersionByMomentWorks() {
+    fun `Finding KM-Post versions by moment works across designs and main branch`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+
         val tnId = mainOfficialContext.createLayoutTrackNumber().id
-        val beforeCreationTime = kmPostDao.fetchChangeTime()
-
+        val v0Time = kmPostDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
-        val firstVersion = insertOfficial(tnId, 1).rowVersion
-        val firstVersionTime = kmPostDao.fetchChangeTime()
 
+        val (kmPost1Id, kmPost1MainV1) = mainOfficialContext.insert(kmPost(tnId, KmNumber(1)))
+        val (kmPost2Id, kmPost2DesignV1) = designOfficialContext.insert(kmPost(tnId, KmNumber(2)))
+        val (kmPost3Id, kmPost3DesignV1) = designOfficialContext.insert(kmPost(tnId, KmNumber(3)))
+        val v1Time = kmPostDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
-        val updatedVersion = updateOfficial(firstVersion).rowVersion
-        val updatedVersionTime = kmPostDao.fetchChangeTime()
 
-        assertEquals(null, kmPostDao.fetchOfficialVersionAtMoment(LayoutBranch.main, firstVersion.id, beforeCreationTime))
-        assertEquals(firstVersion, kmPostDao.fetchOfficialVersionAtMoment(LayoutBranch.main, firstVersion.id, firstVersionTime))
-        assertEquals(updatedVersion, kmPostDao.fetchOfficialVersionAtMoment(LayoutBranch.main, firstVersion.id, updatedVersionTime))
+        val kmPost1MainV2 = testDBService.update(kmPost1MainV1).rowVersion
+        val kmPost1DesignV2 = designOfficialContext.copyFrom(kmPost1MainV1, officialRowId = kmPost1MainV1.id).rowVersion
+        val kmPost2DesignV2 = testDBService.update(kmPost2DesignV1).rowVersion
+        kmPostDao.deleteRow(kmPost3DesignV1.id)
+        val v2Time = kmPostDao.fetchChangeTime()
+        Thread.sleep(1) // Ensure that they get different timestamps
 
-        // TODO: GVT-2616 test with design branches
+        kmPostDao.deleteRow(kmPost1DesignV2.id)
+        // Fake publish: update the design as a main-official
+        val kmPost2MainV3 = mainOfficialContext.moveFrom(kmPost2DesignV2).rowVersion
+        val v3Time = kmPostDao.fetchChangeTime()
+
+        assertEquals(null, kmPostDao.fetchOfficialVersionAtMoment(LayoutBranch.main, kmPost1Id, v0Time))
+        assertEquals(null, kmPostDao.fetchOfficialVersionAtMoment(LayoutBranch.main, kmPost2Id, v0Time))
+        assertEquals(null, kmPostDao.fetchOfficialVersionAtMoment(LayoutBranch.main, kmPost3Id, v0Time))
+        assertEquals(null, kmPostDao.fetchOfficialVersionAtMoment(designBranch, kmPost1Id, v0Time))
+        assertEquals(null, kmPostDao.fetchOfficialVersionAtMoment(designBranch, kmPost2Id, v0Time))
+        assertEquals(null, kmPostDao.fetchOfficialVersionAtMoment(designBranch, kmPost3Id, v0Time))
+
+        assertEquals(kmPost1MainV1, kmPostDao.fetchOfficialVersionAtMoment(LayoutBranch.main, kmPost1Id, v1Time))
+        assertEquals(null, kmPostDao.fetchOfficialVersionAtMoment(LayoutBranch.main, kmPost2Id, v1Time))
+        assertEquals(null, kmPostDao.fetchOfficialVersionAtMoment(LayoutBranch.main, kmPost3Id, v1Time))
+        assertEquals(kmPost1MainV1, kmPostDao.fetchOfficialVersionAtMoment(designBranch, kmPost1Id, v1Time))
+        assertEquals(kmPost2DesignV1, kmPostDao.fetchOfficialVersionAtMoment(designBranch, kmPost2Id, v1Time))
+        assertEquals(kmPost3DesignV1, kmPostDao.fetchOfficialVersionAtMoment(designBranch, kmPost3Id, v1Time))
+
+        assertEquals(kmPost1MainV2, kmPostDao.fetchOfficialVersionAtMoment(LayoutBranch.main, kmPost1Id, v2Time))
+        assertEquals(null, kmPostDao.fetchOfficialVersionAtMoment(LayoutBranch.main, kmPost2Id, v2Time))
+        assertEquals(null, kmPostDao.fetchOfficialVersionAtMoment(LayoutBranch.main, kmPost3Id, v2Time))
+        assertEquals(kmPost1DesignV2, kmPostDao.fetchOfficialVersionAtMoment(designBranch, kmPost1Id, v2Time))
+        assertEquals(kmPost2DesignV2, kmPostDao.fetchOfficialVersionAtMoment(designBranch, kmPost2Id, v2Time))
+        assertEquals(null, kmPostDao.fetchOfficialVersionAtMoment(designBranch, kmPost3Id, v2Time))
+
+        assertEquals(kmPost1MainV2, kmPostDao.fetchOfficialVersionAtMoment(LayoutBranch.main, kmPost1Id, v3Time))
+        assertEquals(kmPost2MainV3, kmPostDao.fetchOfficialVersionAtMoment(LayoutBranch.main, kmPost2Id, v3Time))
+        assertEquals(null, kmPostDao.fetchOfficialVersionAtMoment(LayoutBranch.main, kmPost3Id, v3Time))
+        assertEquals(kmPost1MainV2, kmPostDao.fetchOfficialVersionAtMoment(designBranch, kmPost1Id, v3Time))
+        assertEquals(kmPost2MainV3, kmPostDao.fetchOfficialVersionAtMoment(designBranch, kmPost2Id, v3Time))
+        assertEquals(null, kmPostDao.fetchOfficialVersionAtMoment(designBranch, kmPost3Id, v3Time))
     }
 
     @Test

@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.geocoding
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
@@ -169,7 +168,7 @@ class GeocodingDaoIT @Autowired constructor(
         val (tnId, tnMainV1) = mainOfficialContext.createLayoutTrackNumber()
         val (rlId, rlMainV1) = mainOfficialContext.insert(referenceLineAndAlignment(tnId))
         val (kmp1Id, kmp1MainV1) = mainOfficialContext.insert(kmPost(tnId, KmNumber(1)))
-        val (kmp2Id, kmp2MainV1) = mainOfficialContext.insert(kmPost(tnId, KmNumber(2)))
+        val (_, kmp2MainV1) = mainOfficialContext.insert(kmPost(tnId, KmNumber(2)))
 
         // Add some draft changes as well. These shouldn't affect the results
         mainDraftContext.copyFrom(tnMainV1, officialRowId = tnId)
@@ -188,20 +187,16 @@ class GeocodingDaoIT @Autowired constructor(
         designDraftContext.copyFrom(kmp3DesignV1, officialRowId = null, designRowId = kmp3DesignV1.id)
         designDraftContext.insert(kmPost(tnId, KmNumber(11)))
 
-        val version1Time = kmPostDao.fetchChangeTime()
+        val version1Time = testDBService.layoutChangeTime()
         Thread.sleep(1) // Ensure that later objects get a new changetime so that moment-fetch makes sense
 
-        val mainKeyV1 = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId)!!
-        assertEquals(
-            geocodingContextCacheKey(tnMainV1, rlMainV1, kmp1MainV1, kmp2MainV1),
-            mainKeyV1,
-        )
+        val mainKeyV1 = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId).also { key ->
+            assertEquals(geocodingContextCacheKey(tnMainV1, rlMainV1, kmp1MainV1, kmp2MainV1), key)
+        }
 
-        val designKeyV1 = geocodingDao.getLayoutGeocodingContextCacheKey(LayoutContext.of(designBranch, OFFICIAL), tnId)!!
-        assertEquals(
-            geocodingContextCacheKey(tnDesignV1, rlDesignV1, kmp1DesignV1, kmp2MainV1, kmp3DesignV1),
-            designKeyV1,
-        )
+        val designKeyV1 = geocodingDao.getLayoutGeocodingContextCacheKey(designBranch.official, tnId).also { key ->
+            assertEquals(geocodingContextCacheKey(tnDesignV1, rlDesignV1, kmp1DesignV1, kmp2MainV1, kmp3DesignV1), key)
+        }
 
         // --- Version 2
 
@@ -220,20 +215,16 @@ class GeocodingDaoIT @Autowired constructor(
         testDBService.update(kmp1DesignV1) { kmp -> kmp.copy(state = LayoutState.DELETED) }
         val kmp3DesignV2 = testDBService.update(kmp3DesignV1).rowVersion
 
-        val version2Time = kmPostDao.fetchChangeTime()
+        val version2Time = testDBService.layoutChangeTime()
         Thread.sleep(1) // Ensure that later objects get a new changetime so that moment-fetch makes sense
 
-        val mainKeyV2 = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId)!!
-        assertEquals(
-            geocodingContextCacheKey(tnMainV2, rlMainV2, kmp1MainV2, kmp2MainV1, kmp4MainV2),
-            mainKeyV2,
-        )
+        val mainKeyV2 = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId).also { key ->
+            assertEquals(geocodingContextCacheKey(tnMainV2, rlMainV2, kmp1MainV2, kmp2MainV1, kmp4MainV2), key)
+        }
 
-        val designKeyV2 = geocodingDao.getLayoutGeocodingContextCacheKey(LayoutContext.of(designBranch, OFFICIAL), tnId)!!
-        assertEquals(
-            geocodingContextCacheKey(tnDesignV2, rlDesignV2, kmp2MainV1, kmp3DesignV2, kmp4MainV2),
-            designKeyV2,
-        )
+        val designKeyV2 = geocodingDao.getLayoutGeocodingContextCacheKey(designBranch.official, tnId).also { key ->
+            assertEquals(geocodingContextCacheKey(tnDesignV2, rlDesignV2, kmp2MainV1, kmp3DesignV2, kmp4MainV2), key)
+        }
 
         // --- Version 3
 
@@ -242,22 +233,17 @@ class GeocodingDaoIT @Autowired constructor(
         // Mark kmp2 deleted
         testDBService.update(kmp2MainV1) { kmp -> kmp.copy(state = LayoutState.DELETED) }.rowVersion
         // Delete some design-rows (should result in using main ones)
-        kmPostDao.deleteRow(kmp1DesignV1.id)
         referenceLineDao.deleteRow(rlDesignV2.id)
+        kmPostDao.deleteRow(kmp1DesignV1.id)
 
-        val version3Time = kmPostDao.fetchChangeTime()
-        Thread.sleep(1) // Ensure that later objects get a new changetime so that moment-fetch makes sense
+        val version3Time = testDBService.layoutChangeTime()
 
-        val mainKeyV3 = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId)!!
-        assertEquals(
-            geocodingContextCacheKey(tnMainV2, rlMainV2, kmp1MainV2, kmp3MainV3, kmp4MainV2),
-            mainKeyV3,
-        )
-        val designKeyV3 = geocodingDao.getLayoutGeocodingContextCacheKey(LayoutContext.of(designBranch, OFFICIAL), tnId)!!
-        assertEquals(
-            geocodingContextCacheKey(tnDesignV2, rlMainV2, kmp1MainV2, kmp3MainV3, kmp4MainV2),
-            designKeyV3,
-        )
+        val mainKeyV3 = geocodingDao.getLayoutGeocodingContextCacheKey(MainLayoutContext.official, tnId).also { key ->
+            assertEquals(geocodingContextCacheKey(tnMainV2, rlMainV2, kmp1MainV2, kmp3MainV3, kmp4MainV2), key)
+        }
+        val designKeyV3 = geocodingDao.getLayoutGeocodingContextCacheKey(designBranch.official, tnId).also { key ->
+            assertEquals(geocodingContextCacheKey(tnDesignV2, rlMainV2, kmp1MainV2, kmp3MainV3, kmp4MainV2), key)
+        }
 
         // Verify fetching each key with time
         assertEquals(mainKeyV1, geocodingDao.getLayoutGeocodingContextCacheKey(LayoutBranch.main, tnId, version1Time))
@@ -265,7 +251,6 @@ class GeocodingDaoIT @Autowired constructor(
         assertEquals(mainKeyV2, geocodingDao.getLayoutGeocodingContextCacheKey(LayoutBranch.main, tnId, version2Time))
         assertEquals(designKeyV2, geocodingDao.getLayoutGeocodingContextCacheKey(designBranch, tnId, version2Time))
         assertEquals(mainKeyV3, geocodingDao.getLayoutGeocodingContextCacheKey(LayoutBranch.main, tnId, version3Time))
-        println("Fetch: ($designBranch, $tnId, $version3Time)")
         assertEquals(designKeyV3, geocodingDao.getLayoutGeocodingContextCacheKey(designBranch, tnId, version3Time))
     }
 

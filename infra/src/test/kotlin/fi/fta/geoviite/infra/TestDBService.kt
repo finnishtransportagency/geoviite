@@ -32,6 +32,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -311,6 +312,14 @@ class TestDBService(
     fun createLayoutDesign(): IntId<LayoutDesign> = layoutDesignDao.insert(layoutDesign())
 
     fun createDesignBranch(): DesignBranch = LayoutBranch.design(createLayoutDesign())
+
+    fun layoutChangeTime(): Instant = listOf(
+        trackNumberDao.fetchChangeTime(),
+        referenceLineDao.fetchChangeTime(),
+        locationTrackDao.fetchChangeTime(),
+        switchDao.fetchChangeTime(),
+        kmPostDao.fetchChangeTime(),
+    ).max()
 }
 
 data class TestLayoutContext(
@@ -439,8 +448,14 @@ data class TestLayoutContext(
     fun createTrackNumberAndId(): Pair<TrackNumber, IntId<TrackLayoutTrackNumber>> =
         createAndFetchLayoutTrackNumber().let { tn -> tn.number to tn.id as IntId }
 
-    fun createSwitch(): DaoResponse<TrackLayoutSwitch> =
-        insert(switch(name = testService.getUnusedSwitchName().toString()))
+    fun createSwitch(
+        stateCategory: LayoutStateCategory = LayoutStateCategory.EXISTING,
+    ): DaoResponse<TrackLayoutSwitch> = insert(
+        switch(
+            name = testService.getUnusedSwitchName().toString(),
+            stateCategory = stateCategory,
+        )
+    )
 
     fun <T : LayoutAsset<T>> createContextData(
         rowId: IntId<T>? = null,
