@@ -1,14 +1,27 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.integration.*
+import fi.fta.geoviite.infra.integration.RatkoAssetType
+import fi.fta.geoviite.infra.integration.RatkoOperation
+import fi.fta.geoviite.infra.integration.RatkoPush
+import fi.fta.geoviite.infra.integration.RatkoPushError
+import fi.fta.geoviite.infra.integration.RatkoPushErrorType
+import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.util.DaoBase
+import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getInstant
+import fi.fta.geoviite.infra.util.getInstantOrNull
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getIntIdOrNull
+import fi.fta.geoviite.infra.util.queryOne
+import fi.fta.geoviite.infra.util.queryOptional
+import fi.fta.geoviite.infra.util.setUser
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -205,7 +218,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                 assetId = trackNumberId
                     ?: locationTrackId
                     ?: switchId
-                    ?: error { "Encountered Ratko push error without asset! id: $errorId" },
+                    ?: error("Encountered Ratko push error without asset! id: $errorId"),
                 assetType = trackNumberId?.let { RatkoAssetType.TRACK_NUMBER }
                     ?: locationTrackId?.let { RatkoAssetType.LOCATION_TRACK }
                     ?: switchId.let { RatkoAssetType.SWITCH },

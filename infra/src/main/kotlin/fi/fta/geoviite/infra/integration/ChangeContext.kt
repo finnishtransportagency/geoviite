@@ -52,13 +52,14 @@ inline fun <reified T : LayoutAsset<T>> createTypedContext(
 )
 
 inline fun <reified T : LayoutAsset<T>> createTypedContext(
+    branch: LayoutBranch,
     dao: LayoutAssetDao<T>,
     before: Instant,
     after: Instant,
 ): TypedChangeContext<T> = createTypedContext(
     dao,
-    { id -> dao.fetchOfficialVersionAtMoment(id, before) },
-    { id -> dao.fetchOfficialVersionAtMoment(id, after) },
+    { id -> dao.fetchOfficialVersionAtMoment(branch, id, before) },
+    { id -> dao.fetchOfficialVersionAtMoment(branch, id, after) },
 )
 
 inline fun <reified T : LayoutAsset<T>> createTypedContext(

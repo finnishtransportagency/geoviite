@@ -91,7 +91,6 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.SortOrder
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
@@ -293,7 +292,6 @@ class PublicationServiceIT @Autowired constructor(
         val draftCalculatedChanges = getCalculatedChangesInRequest(versions)
         val publication = testPublish(LayoutBranch.main, versions, draftCalculatedChanges)
         val publicationDetails = publicationService.getPublicationDetails(publication.publicationId!!)
-        println(publicationDetails)
         assertEquals(1, publicationDetails.trackNumbers.size)
         assertEquals(1, publicationDetails.referenceLines.size)
         assertEquals(Operation.CREATE, publicationDetails.trackNumbers[0].operation)
@@ -394,24 +392,14 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun publishingLocationTrackChangesWorks() {
-        val alignmentVersion = alignmentDao.insert(alignment(segment(Point(1.0, 1.0), Point(2.0, 2.0))))
-        val referenceAlignment = alignment(segment(Point(0.0, 0.0), Point(4.0, 4.0)))
-        val track = locationTrack(
-            trackNumberId = mainOfficialContext.createLayoutTrackNumber().id,
-            alignment = alignmentDao.fetch(alignmentVersion),
-            name = "test 01",
-            alignmentVersion = alignmentVersion,
-            draft = false,
-        )
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
+            lineAlignment = alignment(segment(Point(0.0, 0.0), Point(4.0, 4.0))),
+        ).id
 
-        val (newDraftId, newDraftVersion) = referenceLineService.saveDraft(
-            LayoutBranch.main,
-            referenceLine(track.trackNumberId, draft = true),
-            referenceAlignment,
-        )
-        referenceLineService.publish(LayoutBranch.main, ValidationVersion(newDraftId, newDraftVersion))
-
-        val officialId = locationTrackDao.insert(track).id
+        val officialId = mainOfficialContext.insert(
+            locationTrack(trackNumberId = trackNumberId, name = "test 01"),
+            alignment(segment(Point(1.0, 1.0), Point(2.0, 2.0))),
+        ).id
 
         val (tmpTrack, tmpAlignment) = locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, officialId)
         locationTrackService.saveDraft(
@@ -1236,6 +1224,7 @@ class PublicationServiceIT @Autowired constructor(
     private fun publishAndVerify(layoutBranch: LayoutBranch, request: PublicationRequestIds): PublicationResult {
         val versions = publicationService.getValidationVersions(layoutBranch, request)
         verifyVersions(request, versions)
+        verifyVersionsAreDrafts(layoutBranch, versions)
         val draftCalculatedChanges = getCalculatedChangesInRequest(versions)
         val publicationResult = testPublish(layoutBranch, versions, draftCalculatedChanges)
         val publicationDetails = publicationService.getPublicationDetails(publicationResult.publicationId!!)
@@ -1258,6 +1247,14 @@ class PublicationServiceIT @Autowired constructor(
 
         assertEqualsCalculatedChanges(draftCalculatedChanges, publicationDetails)
         return publicationResult
+    }
+
+    private fun verifyVersionsAreDrafts(branch: LayoutBranch, versions: ValidationVersions) {
+        verifyVersionsAreDrafts(branch, trackNumberDao, versions.trackNumbers)
+        verifyVersionsAreDrafts(branch, referenceLineDao, versions.referenceLines)
+        verifyVersionsAreDrafts(branch, locationTrackDao, versions.locationTracks)
+        verifyVersionsAreDrafts(branch, switchDao, versions.switches)
+        verifyVersionsAreDrafts(branch, kmPostDao, versions.kmPosts)
     }
 
     @Test
@@ -1456,6 +1453,7 @@ class PublicationServiceIT @Autowired constructor(
             localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(locationTrack.id as IntId<LocationTrack>),
             null,
+            LayoutBranch.main,
             latestPub.publicationTime,
             previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
@@ -1563,6 +1561,7 @@ class PublicationServiceIT @Autowired constructor(
             localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(locationTrack.id as IntId<LocationTrack>),
             null,
+            LayoutBranch.main,
             latestPub.publicationTime,
             previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
@@ -1893,6 +1892,7 @@ class PublicationServiceIT @Autowired constructor(
             localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(originalLocationTrack.id),
             publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(latestPub.id)[originalLocationTrack.id],
+            LayoutBranch.main,
             latestPub.publicationTime,
             previousPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
@@ -1946,6 +1946,7 @@ class PublicationServiceIT @Autowired constructor(
             localizationService.getLocalization(LocalizationLanguage.FI),
             changes.getValue(originalLocationTrack.id),
             publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(latestPub.id)[originalLocationTrack.id],
+            LayoutBranch.main,
             latestPub.publicationTime,
             latestPub.publicationTime,
             trackNumberDao.fetchTrackNumberNames(),
@@ -3005,38 +3006,41 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `create in design and publish in main`() {
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
-        val testDraftContext = testDBService.testContext(testBranch, PublicationState.DRAFT)
-        val trackNumber = testDraftContext.insert(trackNumber()).id
+        val designDraftContext = testDBService.testContext(testBranch, PublicationState.DRAFT)
+        val trackNumber = designDraftContext.insert(trackNumber()).id
         val alignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
-        val referenceLine = testDraftContext.insert(referenceLine(trackNumber, alignmentVersion = alignment)).id
-        val locationTrack = testDraftContext.insert(locationTrack(trackNumber, alignmentVersion = alignment)).id
-        val kmPost = testDraftContext.insert(kmPost(trackNumber, KmNumber(1), Point(1.0, 1.0))).id
-        val switch = testDraftContext.insert(switch(123)).id
+        val referenceLine = designDraftContext.insert(referenceLine(trackNumber, alignmentVersion = alignment)).id
+        val locationTrack = designDraftContext.insert(locationTrack(trackNumber, alignmentVersion = alignment)).id
+        val kmPost = designDraftContext.insert(kmPost(trackNumber, KmNumber(1), Point(1.0, 1.0))).id
+        val switch = designDraftContext.insert(switch(123)).id
 
         publishAndVerify(
-            testBranch, publicationRequest(
+            testBranch,
+            publicationRequest(
                 trackNumbers = listOf(trackNumber),
                 referenceLines = listOf(referenceLine),
                 kmPosts = listOf(kmPost),
                 locationTracks = listOf(locationTrack),
                 switches = listOf(switch),
-            )
+            ),
         )
-        val testOfficialContext = testDBService.testContext(testBranch, PublicationState.OFFICIAL)
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(trackNumber)!!))
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(referenceLine)!!))
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(locationTrack)!!))
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(kmPost)!!))
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(switch)!!))
+
+        val designOfficialContext = testDBService.testContext(testBranch, PublicationState.OFFICIAL)
+        mainDraftContext.insert(asMainDraft(designOfficialContext.fetch(trackNumber)!!))
+        mainDraftContext.insert(asMainDraft(designOfficialContext.fetch(referenceLine)!!))
+        mainDraftContext.insert(asMainDraft(designOfficialContext.fetch(locationTrack)!!))
+        mainDraftContext.insert(asMainDraft(designOfficialContext.fetch(kmPost)!!))
+        mainDraftContext.insert(asMainDraft(designOfficialContext.fetch(switch)!!))
 
         publishAndVerify(
-            LayoutBranch.main, publicationRequest(
+            LayoutBranch.main,
+            publicationRequest(
                 trackNumbers = listOf(trackNumber),
                 referenceLines = listOf(referenceLine),
                 kmPosts = listOf(kmPost),
                 locationTracks = listOf(locationTrack),
                 switches = listOf(switch),
-            )
+            ),
         )
     }
 
@@ -3052,13 +3056,14 @@ class PublicationServiceIT @Autowired constructor(
         val switch = testDraftContext.insert(switch(123)).id
 
         publishAndVerify(
-            testBranch, publicationRequest(
+            testBranch,
+            publicationRequest(
                 trackNumbers = listOf(trackNumber),
                 referenceLines = listOf(referenceLine),
                 kmPosts = listOf(kmPost),
                 locationTracks = listOf(locationTrack),
                 switches = listOf(switch),
-            )
+            ),
         )
 
         val testOfficialContext = testDBService.testContext(testBranch, PublicationState.OFFICIAL)
@@ -3068,13 +3073,14 @@ class PublicationServiceIT @Autowired constructor(
         testDraftContext.insert(asDesignDraft(testOfficialContext.fetch(kmPost)!!, testBranch.designId))
         testDraftContext.insert(asDesignDraft(testOfficialContext.fetch(switch)!!, testBranch.designId))
         publishAndVerify(
-            testBranch, publicationRequest(
+            testBranch,
+            publicationRequest(
                 trackNumbers = listOf(trackNumber),
                 referenceLines = listOf(referenceLine),
                 kmPosts = listOf(kmPost),
                 locationTracks = listOf(locationTrack),
                 switches = listOf(switch),
-            )
+            ),
         )
 
         mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(trackNumber)!!))
@@ -3084,16 +3090,16 @@ class PublicationServiceIT @Autowired constructor(
         mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(switch)!!))
 
         publishAndVerify(
-            LayoutBranch.main, publicationRequest(
+            LayoutBranch.main,
+            publicationRequest(
                 trackNumbers = listOf(trackNumber),
                 referenceLines = listOf(referenceLine),
                 kmPosts = listOf(kmPost),
                 locationTracks = listOf(locationTrack),
                 switches = listOf(switch),
-            )
+            ),
         )
     }
-
 
     @Test
     fun `create in main and alter in design once before updating main`() {
@@ -3829,6 +3835,17 @@ private fun <T : LayoutAsset<T>> verifyVersions(ids: List<IntId<T>>, versions: L
     ids.forEach { id -> assertTrue(versions.any { v -> v.officialId == id }) }
 }
 
+private fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> verifyVersionsAreDrafts(
+    branch: LayoutBranch,
+    dao: S,
+    versions: List<ValidationVersion<T>>,
+) {
+    versions.map { v -> v.validatedAssetVersion }.map(dao::fetch).forEach { asset ->
+        assertTrue(asset.isDraft)
+        assertEquals(branch, asset.branch)
+    }
+}
+
 private fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> verifyPublishingWorks(
     dao: S,
     service: LayoutAssetService<T, S>,
@@ -3871,7 +3888,6 @@ fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> publishAndCheck(
             rowId = rowVersion.id,
             officialRowId = draft.contextData.officialRowId,
             designRowId = null,
-            dataType = DataType.STORED,
         ),
         draft.contextData,
     )
@@ -3885,7 +3901,7 @@ fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> publishAndCheck(
     assertFalse(publishedItem.isDraft)
     assertEquals(id, publishedVersion.id)
     assertEquals(
-        MainOfficialContextData(rowId = publishedVersion.id, dataType = DataType.STORED),
+        MainOfficialContextData(rowId = publishedVersion.id),
         publishedItem.contextData,
     )
 

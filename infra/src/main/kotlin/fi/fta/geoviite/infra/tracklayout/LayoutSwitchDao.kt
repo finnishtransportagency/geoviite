@@ -199,6 +199,9 @@ class LayoutSwitchDao(
 
     @Transactional
     override fun update(updatedItem: TrackLayoutSwitch): DaoResponse<TrackLayoutSwitch> {
+        val rowId = requireNotNull(updatedItem.contextData.rowId) {
+            "Cannot update a row that doesn't have a DB ID: kmPost=$updatedItem"
+        }
         val sql = """
             update layout.switch
             set
@@ -220,7 +223,7 @@ class LayoutSwitchDao(
               version as row_version
         """.trimIndent()
         val params = mapOf(
-            "id" to toDbId(updatedItem.contextData.rowId).intValue,
+            "id" to rowId.intValue,
             "external_id" to updatedItem.externalId,
             "geometry_switch_id" to updatedItem.sourceId?.let(::toDbId)?.intValue,
             "name" to updatedItem.name,

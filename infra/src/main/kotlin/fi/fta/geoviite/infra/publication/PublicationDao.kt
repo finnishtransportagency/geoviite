@@ -786,6 +786,7 @@ class PublicationDao(
         val newAlignmentVersion: RowVersion<LayoutAlignment>,
         val oldAlignmentVersion: RowVersion<LayoutAlignment>?,
         val trackNumberId: IntId<TrackLayoutTrackNumber>,
+        val branch: LayoutBranch,
         val publicationTime: Instant,
     )
 
@@ -803,6 +804,7 @@ class PublicationDao(
         val sql = """
             select
               publication_id,
+              publication.design_id,
               location_track_id,
               new_ltv.alignment_id as new_alignment_id,
               new_ltv.alignment_version as new_alignment_version,
@@ -824,6 +826,7 @@ class PublicationDao(
         val params = mapOf("publication_id" to publicationId?.intValue, "max_count" to maxCount)
         return jdbcTemplate.query(sql, params) { rs, _ ->
             UnprocessedGeometryChange(
+                branch = rs.getLayoutBranch("design_id"),
                 publicationId = rs.getIntId("publication_id"),
                 locationTrackId = rs.getIntId("location_track_id"),
                 newAlignmentVersion = rs.getRowVersion("new_alignment_id", "new_alignment_version"),

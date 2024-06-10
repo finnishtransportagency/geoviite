@@ -121,14 +121,9 @@ class ReferenceLineService(
     @Transactional
     override fun publish(branch: LayoutBranch, version: ValidationVersion<ReferenceLine>): DaoResponse<ReferenceLine> {
         logger.serviceCall("publish", "branch" to branch, "version" to version)
-        val officialVersion = dao.fetchOfficialRowVersionForPublishingInBranch(branch, version.validatedAssetVersion)
-        val oldDraft = dao.fetch(version.validatedAssetVersion)
-        val oldOfficial = officialVersion?.let(dao::fetch)
-        val publishedVersion = publishInternal(branch, VersionPair(officialVersion, version.validatedAssetVersion))
-        if (oldOfficial != null && oldDraft.alignmentVersion != oldOfficial.alignmentVersion) {
-            // The alignment on the draft overrides the one on official -> delete the original, orphaned alignment
-            oldOfficial.alignmentVersion?.id?.let(alignmentDao::delete)
-        }
+        val publishedVersion = publishInternal(branch, version.validatedAssetVersion)
+        // Some of the versions may get deleted in publication -> delete any alignments they left behind
+        alignmentDao.deleteOrphanedAlignments()
         return publishedVersion
     }
 

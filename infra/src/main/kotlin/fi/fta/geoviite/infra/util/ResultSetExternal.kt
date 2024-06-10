@@ -1,6 +1,22 @@
 package fi.fta.geoviite.infra.util
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.DesignBranch
+import fi.fta.geoviite.infra.common.DesignLayoutContext
+import fi.fta.geoviite.infra.common.FeatureTypeCode
+import fi.fta.geoviite.infra.common.IndexedId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geography.parse2DPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -10,7 +26,13 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
 import fi.fta.geoviite.infra.projektivelho.PVId
 import fi.fta.geoviite.infra.projektivelho.PVProjectName
 import fi.fta.geoviite.infra.publication.Change
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
+import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
+import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
+import fi.fta.geoviite.infra.tracklayout.LayoutContextData
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
+import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
+import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import java.sql.ResultSet
 import java.time.Instant
 import java.time.LocalDate
@@ -97,7 +119,7 @@ fun ResultSet.getPointOrNull(nameX: String, nameY: String): Point? {
 }
 
 inline fun <reified T : Enum<T>> ResultSet.getEnum(name: String): T {
-    return getEnumOrNull<T>(name) ?: throw IllegalStateException("Enum value does not exist in result set")
+    return getEnumOrNull<T>(name) ?: error("Enum value does not exist in result set")
 }
 
 inline fun <reified T : Enum<T>> ResultSet.getEnumOrNull(name: String): T? {
@@ -177,14 +199,14 @@ fun <T> ResultSet.getRowVersion(idName: String, versionName: String): RowVersion
     RowVersion(getIntId(idName), getIntNonNull(versionName))
 
 fun <T> ResultSet.getRowVersionOrNull(idName: String, versionName: String): RowVersion<T>? {
-    val intId = getIntIdOrNull<T>(idName)
+    val rowId = getIntIdOrNull<T>(idName)
     val version = getIntOrNull(versionName)
-    return if (intId != null && version != null) RowVersion(intId, version) else null
+    return if (rowId != null && version != null) RowVersion(rowId, version) else null
 }
 
-fun ResultSet.getIntNonNull(name: String) = getIntOrNull(name) ?: throw IllegalStateException("$name can't be null")
+fun ResultSet.getIntNonNull(name: String) = getIntOrNull(name) ?: error("$name can't be null")
 
-fun ResultSet.getCode(name: String): Code = getCodeOrNull(name) ?: throw IllegalStateException("StringCode was null")
+fun ResultSet.getCode(name: String): Code = getCodeOrNull(name) ?: error("StringCode was null")
 
 fun ResultSet.getCodeOrNull(name: String): Code? = getString(name)?.let(::Code)
 
@@ -291,7 +313,6 @@ fun <T> ResultSet.getLayoutContextData(
                 rowId = rowId,
                 designId = designId,
                 designRowId = designRowId,
-                dataType = DataType.STORED,
             )
         } else {
             require(designRowId == null) {
@@ -301,7 +322,6 @@ fun <T> ResultSet.getLayoutContextData(
                 officialRowId = officialRowId,
                 rowId = rowId,
                 designId = designId,
-                dataType = DataType.STORED,
             )
         }
     } else if (isDraft) {
@@ -309,12 +329,11 @@ fun <T> ResultSet.getLayoutContextData(
             officialRowId = officialRowId,
             rowId = rowId,
             designRowId = designRowId,
-            dataType = DataType.STORED,
         )
     } else {
         require(officialRowId == null) {
             "For official rows, official row ref should be null: officialRow=$officialRowId rowId=$rowId draft=$isDraft"
         }
-        MainOfficialContextData(rowId, DataType.STORED)
+        MainOfficialContextData(rowId)
     }
 }

@@ -209,14 +209,9 @@ class LocationTrackService(
     @Transactional
     override fun publish(branch: LayoutBranch, version: ValidationVersion<LocationTrack>): DaoResponse<LocationTrack> {
         logger.serviceCall("publish", "branch" to branch, "version" to version)
-        val officialVersion = dao.fetchOfficialRowVersionForPublishingInBranch(branch, version.validatedAssetVersion)
-        val oldDraft = dao.fetch(version.validatedAssetVersion)
-        val oldOfficial = officialVersion?.let(dao::fetch)
-        val publishedVersion = publishInternal(branch, VersionPair(officialVersion, version.validatedAssetVersion))
-        if (oldOfficial != null && oldDraft.alignmentVersion != oldOfficial.alignmentVersion) {
-            // The alignment on the draft overrides the one on official -> delete the original, orphaned alignment
-            oldOfficial.alignmentVersion?.id?.let(alignmentDao::delete)
-        }
+        val publishedVersion = publishInternal(branch, version.validatedAssetVersion)
+        // Some of the versions may get deleted in publication -> delete any alignments they left behind
+        alignmentDao.deleteOrphanedAlignments()
         return publishedVersion
     }
 
@@ -344,11 +339,12 @@ class LocationTrackService(
 
     @Transactional(readOnly = true)
     fun getOfficialWithAlignmentAtMoment(
+        branch: LayoutBranch,
         id: IntId<LocationTrack>,
         moment: Instant,
     ): Pair<LocationTrack, LayoutAlignment>? {
-        logger.serviceCall("getOfficialWithAlignmentAtMoment", "id" to id, "moment" to moment)
-        return dao.fetchOfficialVersionAtMoment(id, moment)?.let(::getWithAlignmentInternal)
+        logger.serviceCall("getOfficialWithAlignmentAtMoment", "branch" to branch, "id" to id, "moment" to moment)
+        return dao.fetchOfficialVersionAtMoment(branch, id, moment)?.let(::getWithAlignmentInternal)
     }
 
     @Transactional(readOnly = true)

@@ -10,7 +10,6 @@ import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.ValidationVersion
-import fi.fta.geoviite.infra.util.DbTable.LAYOUT_KM_POST
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getDaoResponse
 import fi.fta.geoviite.infra.util.getEnum
@@ -265,6 +264,9 @@ class LayoutKmPostDao(
         val trackNumberId = toDbId(requireNotNull(updatedItem.trackNumberId) {
             "KM post not linked to TrackNumber: kmPost=$updatedItem"
         })
+        val rowId = requireNotNull(updatedItem.contextData.rowId) {
+            "Cannot update a row that doesn't have a DB ID: kmPost=$updatedItem"
+        }
         val sql = """
             update layout.km_post 
             set
@@ -286,7 +288,7 @@ class LayoutKmPostDao(
               version as row_version
         """.trimIndent()
         val params = mapOf(
-            "km_post_id" to toDbId(updatedItem.contextData.rowId).intValue,
+            "km_post_id" to rowId.intValue,
             "track_number_id" to trackNumberId.intValue,
             "geometry_km_post_id" to updatedItem.sourceId?.let(::toDbId)?.intValue,
             "km_number" to updatedItem.kmNumber.toString(),
