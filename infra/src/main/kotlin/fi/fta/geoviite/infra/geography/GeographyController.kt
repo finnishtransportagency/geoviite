@@ -7,8 +7,7 @@ import fi.fta.geoviite.infra.math.Point
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 
-@GeoviiteController
-@RequestMapping("/geography")
+@GeoviiteController("/geography")
 class GeographyController(
     private val geographyService: GeographyService,
     private val coordinateTransformationService: CoordinateTransformationService,

@@ -31,11 +31,9 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 
-@GeoviiteController
-@RequestMapping("/track-layout")
+@GeoviiteController("/track-layout")
 class LocationTrackController(
     private val locationTrackService: LocationTrackService,
     private val searchService: LayoutSearchService,

@@ -4,10 +4,8 @@ import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestMapping
 
-@GeoviiteController
-@RequestMapping("/switch-library")
+@GeoviiteController("/switch-library")
 class SwitchLibraryController(private val switchLibraryService: SwitchLibraryService) {
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)

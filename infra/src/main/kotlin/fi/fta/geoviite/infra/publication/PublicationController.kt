@@ -28,7 +28,6 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import java.time.Duration
 import java.time.Instant
@@ -36,8 +35,7 @@ import java.time.ZoneId
 
 val publicationMaxDuration: Duration = Duration.ofMinutes(15)
 
-@GeoviiteController
-@RequestMapping("/publications")
+@GeoviiteController("/publications")
 class PublicationController @Autowired constructor(
     private val lockDao: LockDao,
     private val publicationService: PublicationService,

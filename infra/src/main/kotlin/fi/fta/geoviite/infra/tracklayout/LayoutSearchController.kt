@@ -13,7 +13,6 @@ import fi.fta.geoviite.infra.util.FreeText
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 
 data class TrackLayoutSearchResult(
@@ -23,8 +22,7 @@ data class TrackLayoutSearchResult(
     val operatingPoints: List<RatkoOperatingPoint>,
 )
 
-@GeoviiteController
-@RequestMapping("/track-layout/search")
+@GeoviiteController("/track-layout/search")
 class LayoutSearchController(
     private val searchService: LayoutSearchService,
 ) {

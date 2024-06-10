@@ -15,11 +15,9 @@ import fi.fta.geoviite.infra.tracklayout.AlignmentFetchType.ALL
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 
-@GeoviiteController
-@RequestMapping("/track-layout/map")
+@GeoviiteController("/track-layout/map")
 class MapAlignmentController(private val mapAlignmentService: MapAlignmentService) {
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)

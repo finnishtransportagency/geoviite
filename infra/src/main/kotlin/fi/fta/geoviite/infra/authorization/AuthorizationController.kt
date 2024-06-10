@@ -15,8 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
 
-@GeoviiteController
-@RequestMapping("/authorization")
+@GeoviiteController("/authorization")
 class AuthorizationController @Autowired constructor(private val signer: CookieSigner) {
 
     @PreAuthorize(AUTH_BASIC)

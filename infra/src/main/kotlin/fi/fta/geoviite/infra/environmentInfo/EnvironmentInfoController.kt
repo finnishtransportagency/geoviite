@@ -5,10 +5,8 @@ import fi.fta.geoviite.infra.authorization.AUTH_BASIC
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestMapping
 
-@GeoviiteController
-@RequestMapping("/environment")
+@GeoviiteController("/environment")
 class EnvironmentInfoController @Autowired constructor(val info: EnvironmentInfo) {
 
     @PreAuthorize(AUTH_BASIC)

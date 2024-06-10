@@ -29,14 +29,12 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-@GeoviiteController
-@RequestMapping("/track-layout/track-numbers")
+@GeoviiteController("/track-layout/track-numbers")
 class LayoutTrackNumberController(
     private val trackNumberService: LayoutTrackNumberService,
     private val publicationService: PublicationService,

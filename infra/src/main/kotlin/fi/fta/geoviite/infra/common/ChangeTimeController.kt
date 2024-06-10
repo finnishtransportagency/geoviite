@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.tracklayout.*
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestMapping
 import java.time.Instant
 
 data class CollectedChangeTimes(
@@ -32,8 +31,7 @@ data class CollectedChangeTimes(
     val layoutDesign: Instant,
 )
 
-@GeoviiteController
-@RequestMapping("/change-times")
+@GeoviiteController("/change-times")
 class ChangeTimeController(
     private val geometryService: GeometryService,
     private val switchService: LayoutSwitchService,

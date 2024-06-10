@@ -16,8 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 
-@GeoviiteController
-@RequestMapping("/inframodel")
+@GeoviiteController("/inframodel")
 class InfraModelController @Autowired constructor(
     private val infraModelService: InfraModelService,
     private val geometryService: GeometryService,

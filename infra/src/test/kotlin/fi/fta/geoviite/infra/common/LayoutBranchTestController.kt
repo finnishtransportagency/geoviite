@@ -17,8 +17,7 @@ data class LayoutBranchTestObject(val branch: LayoutBranch) {
 
 const val LAYOUT_TEST_URL = "/layout-branch-test"
 
-@GeoviiteController
-@RequestMapping(LAYOUT_TEST_URL)
+@GeoviiteController(LAYOUT_TEST_URL)
 class LayoutBranchTestController {
 
     @GetMapping("/{branch}")

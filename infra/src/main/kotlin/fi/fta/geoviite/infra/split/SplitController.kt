@@ -14,10 +14,8 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
 
-@GeoviiteController
-@RequestMapping("/location-track-split")
+@GeoviiteController("/location-track-split")
 class SplitController(
     private val splitService: SplitService,
 ) {
