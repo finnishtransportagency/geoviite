@@ -159,7 +159,6 @@ const prefillSplits = (
                 splitPoint,
             ),
         )
-        .filter(filterNotEmpty)
         .sort((a, b) => a.distance - b.distance);
 
 export const splitReducers = {
@@ -393,7 +392,7 @@ function splitPointToSplitTargetCandidate(
     switchLocation: Point,
     switchDistance: number,
     splitPoint: SplitPoint,
-): SplitTargetCandidate | undefined {
+): SplitTargetCandidate {
     const duplicateAt = findDuplicateStartingAt(duplicateTracks, splitPoint);
     const name = duplicateAt?.name || '';
 
