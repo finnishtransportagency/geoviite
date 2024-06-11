@@ -121,6 +121,34 @@ export function getSelectedSwitchLabelRenderer(
     );
 }
 
+function getSwitchRendererStrokeStyle(
+    isGeometrySwitch: boolean,
+    linked: boolean,
+    valid: boolean,
+): string {
+    if (isGeometrySwitch) {
+        return linked ? styles.linkedSwitchJointBorder : styles.unlinkedSwitchJointBorder;
+    } else if (!valid) {
+        return styles.errorBright;
+    } else {
+        return styles.switchJointBorder;
+    }
+}
+
+function getSwitchRendererFillStyle(
+    disabled: boolean,
+    isGeometrySwitch: boolean,
+    linked: boolean,
+): string {
+    if (disabled) {
+        return styles.switchJointDisabled;
+    } else if (isGeometrySwitch) {
+        return linked ? styles.linkedSwitchJoint : styles.unlinkedSwitchJoint;
+    } else {
+        return styles.switchJoint;
+    }
+}
+
 export function getSwitchRenderer(
     layoutSwitch: LayoutSwitch,
     large: boolean,
@@ -141,28 +169,8 @@ export function getSwitchRenderer(
         },
         [
             (_, coord, ctx, { pixelRatio }) => {
-                let fillStyle;
-                if (disabled) {
-                    fillStyle = styles.switchJointDisabled;
-                } else if (isGeometrySwitch) {
-                    fillStyle = linked ? styles.linkedSwitchJoint : styles.unlinkedSwitchJoint;
-                } else {
-                    fillStyle = styles.switchJoint;
-                }
-
-                let strokeStyle;
-                if (isGeometrySwitch) {
-                    strokeStyle = linked
-                        ? styles.linkedSwitchJointBorder
-                        : styles.unlinkedSwitchJointBorder;
-                } else if (!valid) {
-                    strokeStyle = styles.errorBright;
-                } else {
-                    strokeStyle = styles.switchJointBorder;
-                }
-
-                ctx.fillStyle = fillStyle;
-                ctx.strokeStyle = strokeStyle;
+                ctx.fillStyle = getSwitchRendererFillStyle(disabled, isGeometrySwitch, linked);
+                ctx.strokeStyle = getSwitchRendererStrokeStyle(isGeometrySwitch, linked, valid);
                 ctx.lineWidth = (valid ? 1 : 3) * pixelRatio;
 
                 const [x, y] = expectCoordinate(coord);
@@ -197,6 +205,26 @@ export function getSwitchRenderer(
     );
 }
 
+function getSwitchJointFillStyle(disabled: boolean, mainJoint: boolean): string {
+    if (disabled) {
+        return styles.switchJointDisabled;
+    } else if (mainJoint) {
+        return styles.switchMainJoint;
+    } else {
+        return styles.switchJoint;
+    }
+}
+
+function getSwitchJointStrokeStyle(showErrorStyle: boolean, mainJoint: boolean): string {
+    if (showErrorStyle) {
+        return styles.errorBright;
+    } else if (mainJoint) {
+        return styles.switchMainJointBorder;
+    } else {
+        return styles.switchJointBorder;
+    }
+}
+
 export function getJointRenderer(
     joint: LayoutSwitchJoint,
     mainJoint: boolean,
@@ -215,16 +243,8 @@ export function getJointRenderer(
         },
         [
             (_, coord, ctx, { pixelRatio }) => {
-                ctx.fillStyle = disabled
-                    ? styles.switchJointDisabled
-                    : mainJoint
-                      ? styles.switchMainJoint
-                      : styles.switchJoint;
-                ctx.strokeStyle = showErrorStyle
-                    ? styles.errorBright
-                    : mainJoint
-                      ? styles.switchMainJointBorder
-                      : styles.switchJointBorder;
+                ctx.fillStyle = getSwitchJointFillStyle(disabled, mainJoint);
+                ctx.strokeStyle = getSwitchJointStrokeStyle(showErrorStyle, mainJoint);
 
                 const [x, y] = expectCoordinate(coord);
                 drawCircle(ctx, x, y, circleRadius * pixelRatio);
