@@ -7,10 +7,12 @@ import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.DbTable
+import fi.fta.geoviite.infra.util.getDaoResponse
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getInstantOrNull
 import fi.fta.geoviite.infra.util.getIntId
@@ -230,7 +232,7 @@ class SplitDao(
         bulkTransferId: IntId<BulkTransfer>? = null,
         publicationId: IntId<Publication>? = null,
         sourceTrackVersion: RowVersion<LocationTrack>? = null,
-    ): RowVersion<Split> {
+    ): DaoResponse<Split> {
         val sql = """
             update publication.split
             set 
@@ -254,7 +256,7 @@ class SplitDao(
 
         jdbcTemplate.setUser()
         return getOne(splitId, jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getRowVersion<Split>("id", "version")
+            rs.getDaoResponse<Split>("id", "id", "version")
         }).also { logger.daoAccess(AccessType.UPDATE, Split::class, splitId) }
     }
 

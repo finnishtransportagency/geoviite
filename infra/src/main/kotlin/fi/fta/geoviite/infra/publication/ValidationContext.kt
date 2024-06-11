@@ -415,9 +415,12 @@ private fun <T : LayoutAsset<T>> preloadOfficialVersions(
     versionCache: RowVersionCache<T>,
 ) = cacheOfficialVersions(dao.fetchVersions(branch.official, ids), versionCache)
 
-private fun <T : LayoutAsset<T>> cacheOfficialVersions(versions: List<RowVersion<T>>, cache: RowVersionCache<T>) {
-    cache.putAll(versions.filterNot { (id) -> cache.contains(id) }.associateBy { v -> v.id })
-}
+private fun <T : LayoutAsset<T>> cacheOfficialVersions(versions: List<RowVersion<T>>, cache: RowVersionCache<T>) =
+    versions
+        .map { v -> IntId<T>(v.id.intValue) to v }
+        .filterNot { (id, _) -> cache.contains(id) }
+        .associate { it }
+        .let(cache::putAll)
 
 private fun <T : LayoutAsset<T>, Field> mapIdsByField(
     fields: List<Field>,

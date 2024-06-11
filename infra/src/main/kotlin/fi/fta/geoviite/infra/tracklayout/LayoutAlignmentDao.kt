@@ -67,7 +67,7 @@ class LayoutAlignmentDao(
             "id" to alignmentVersion.id.intValue,
             "version" to alignmentVersion.version,
         )
-        return getOne(alignmentVersion.id, jdbcTemplate.query(sql, params) { rs, _ ->
+        return getOne(alignmentVersion, jdbcTemplate.query(sql, params) { rs, _ ->
             LayoutAlignment(
                 dataType = DataType.STORED,
                 id = rs.getIntId("id"),
@@ -99,10 +99,11 @@ class LayoutAlignmentDao(
           order by sv.alignment_id, sv.segment_index
         """.trimIndent()
 
-        data class AlignmentData(val version: RowVersion<LayoutAlignment>)
+        data class AlignmentData(val id: IntId<LayoutAlignment>, val version: RowVersion<LayoutAlignment>)
 
         val dataTriple = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             val alignmentData = AlignmentData(
+                id = rs.getIntId("alignment_id"),
                 version = rs.getRowVersion("alignment_id", "alignment_version"),
             )
             val segmentData = SegmentData(
@@ -121,7 +122,7 @@ class LayoutAlignmentDao(
         val groupedByAlignment = dataTriple.groupBy({ (a, _, _) -> a }, { (_, s, gId) -> s to gId })
         val alignments = groupedByAlignment.entries.parallelStream().map { (alignmentData, segmentDatas) ->
             alignmentData.version to LayoutAlignment(
-                id = alignmentData.version.id,
+                id = alignmentData.id,
                 segments = createSegments(segmentDatas),
             )
         }.collect(Collectors.toList()).associate { it }
@@ -159,8 +160,7 @@ class LayoutAlignmentDao(
 
     @Transactional
     fun update(alignment: LayoutAlignment): RowVersion<LayoutAlignment> {
-        val alignmentId =
-            if (alignment.id is IntId) alignment.id else throw IllegalArgumentException("Cannot update an alignment that isn't in DB already")
+        val alignmentId = alignment.id as? IntId ?: error("Cannot update an alignment that isn't in DB already")
         val sql = """
             update layout.alignment 
             set 

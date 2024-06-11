@@ -166,7 +166,7 @@ class LayoutKmPostDao(
             "id" to version.id.intValue,
             "version" to version.version,
         )
-        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutKmPost(rs) }).also {
+        return getOne(version, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutKmPost(rs) }).also {
             logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, version)
         }
     }
@@ -247,14 +247,14 @@ class LayoutKmPostDao(
             "srid" to LAYOUT_SRID.code,
             "state" to newItem.state.name,
             "draft" to newItem.contextData.isDraft,
-            "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
-            "design_row_id" to newItem.contextData.designRowId?.let(::toDbId)?.intValue,
-            "design_id" to newItem.contextData.designId?.let(::toDbId)?.intValue,
+            "official_row_id" to newItem.contextData.officialRowId?.intValue,
+            "design_row_id" to newItem.contextData.designRowId?.intValue,
+            "design_id" to newItem.contextData.designId?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
-        } ?: throw IllegalStateException("Failed to generate ID for new km-post")
+        } ?: error("Failed to generate ID for new km-post")
         logger.daoAccess(AccessType.INSERT, TrackLayoutKmPost::class, response)
         return response
     }
@@ -298,14 +298,14 @@ class LayoutKmPostDao(
             "srid" to LAYOUT_SRID.code,
             "state" to updatedItem.state.name,
             "draft" to updatedItem.isDraft,
-            "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
-            "design_row_id" to updatedItem.contextData.designRowId?.let(::toDbId)?.intValue,
-            "design_id" to updatedItem.contextData.designId?.let(::toDbId)?.intValue,
+            "official_row_id" to updatedItem.contextData.officialRowId?.intValue,
+            "design_row_id" to updatedItem.contextData.designRowId?.intValue,
+            "design_id" to updatedItem.contextData.designId?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
-        } ?: throw IllegalStateException("Failed to generate ID for new row version of updated km-post")
+        } ?: error("Failed to generate ID for new row version of updated km-post")
         logger.daoAccess(AccessType.UPDATE, TrackLayoutKmPost::class, response)
         return response
     }

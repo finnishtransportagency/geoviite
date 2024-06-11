@@ -104,6 +104,7 @@ data class PublishedReferenceLine(
 )
 
 data class PublishedLocationTrack(
+    val id: IntId<LocationTrack>,
     val version: RowVersion<LocationTrack>,
     val name: AlignmentName,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,

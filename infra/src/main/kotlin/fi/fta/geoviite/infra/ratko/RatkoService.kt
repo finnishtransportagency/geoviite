@@ -245,6 +245,7 @@ class RatkoService @Autowired constructor(
 
                     //Fake PublishedLocationTrack, Ratko integration is built around published items
                     PublishedLocationTrack(
+                        id = locationTrack.id as IntId,
                         version = checkNotNull(locationTrack.version) {
                             "Location track missing version, id=${locationTrackChange.locationTrackId}"
                         },
@@ -386,7 +387,7 @@ class RatkoService @Autowired constructor(
             .flatMap { locationTrack ->
                 getSwitchChangesByLocationTrack(
                     layoutBranch = layoutBranch,
-                    locationTrackId = locationTrack.version.id,
+                    locationTrackId = locationTrack.id,
                     filterByKmNumbers = locationTrack.changedKmNumbers,
                     moment = publicationTime
                 )

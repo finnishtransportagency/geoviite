@@ -16,7 +16,6 @@ import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.getTrackMeter
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
-import fi.fta.geoviite.infra.util.toDbId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -58,7 +57,7 @@ class ReferenceLineDao(
             "id" to version.id.intValue,
             "version" to version.version,
         )
-        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getReferenceLine(rs) }).also { rl ->
+        return getOne(version, jdbcTemplate.query(sql, params) { rs, _ -> getReferenceLine(rs) }).also { rl ->
             logger.daoAccess(AccessType.FETCH, ReferenceLine::class, rl.id)
         }
     }
@@ -130,22 +129,22 @@ class ReferenceLineDao(
               id as row_id,
               version as row_version
         """.trimIndent()
+        val alignmentVersion = newItem.getAlignmentVersionOrThrow()
         val params = mapOf(
             "track_number_id" to newItem.trackNumberId.intValue,
-            "alignment_id" to (newItem.alignmentVersion?.id?.intValue
-                ?: throw IllegalStateException("ReferenceLine in DB needs an alignment")),
-            "alignment_version" to newItem.alignmentVersion.version,
+            "alignment_id" to alignmentVersion.id.intValue,
+            "alignment_version" to alignmentVersion.version,
             "start_address" to newItem.startAddress.toString(),
             "draft" to newItem.isDraft,
-            "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
-            "design_row_id" to newItem.contextData.designRowId?.let(::toDbId)?.intValue,
-            "design_id" to newItem.contextData.designId?.let(::toDbId)?.intValue,
+            "official_row_id" to newItem.contextData.officialRowId?.intValue,
+            "design_row_id" to newItem.contextData.designRowId?.intValue,
+            "design_id" to newItem.contextData.designId?.intValue,
         )
 
         jdbcTemplate.setUser()
         val version: DaoResponse<ReferenceLine> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
-        } ?: throw IllegalStateException("Failed to generate ID for new Location Track")
+        } ?: error("Failed to generate ID for new Reference Line")
         logger.daoAccess(AccessType.INSERT, ReferenceLine::class, version)
         return version
     }
@@ -180,14 +179,14 @@ class ReferenceLineDao(
             "alignment_version" to alignmentVersion.version,
             "start_address" to updatedItem.startAddress.toString(),
             "draft" to updatedItem.isDraft,
-            "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
-            "design_row_id" to updatedItem.contextData.designRowId?.let(::toDbId)?.intValue,
-            "design_id" to updatedItem.contextData.designId?.let(::toDbId)?.intValue,
+            "official_row_id" to updatedItem.contextData.officialRowId?.intValue,
+            "design_row_id" to updatedItem.contextData.designRowId?.intValue,
+            "design_id" to updatedItem.contextData.designId?.intValue,
         )
         jdbcTemplate.setUser()
         val result: DaoResponse<ReferenceLine> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
-        } ?: throw IllegalStateException("Failed to get new version for Reference Line")
+        } ?: error("Failed to get new version for updated Reference Line")
         logger.daoAccess(AccessType.UPDATE, ReferenceLine::class, result)
         return result
     }

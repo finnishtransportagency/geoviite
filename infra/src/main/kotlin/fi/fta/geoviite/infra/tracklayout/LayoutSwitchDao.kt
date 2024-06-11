@@ -14,6 +14,7 @@ import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.AccessType.UPDATE
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBooleanOrNull
@@ -185,13 +186,13 @@ class LayoutSwitchDao(
                 "trap_point" to newItem.trapPoint,
                 "owner_id" to newItem.ownerId?.intValue,
                 "draft" to newItem.isDraft,
-                "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
-                "design_row_id" to newItem.contextData.designRowId?.let(::toDbId)?.intValue,
-                "design_id" to newItem.contextData.designId?.let(::toDbId)?.intValue,
+                "official_row_id" to newItem.contextData.officialRowId?.intValue,
+                "design_row_id" to newItem.contextData.designRowId?.intValue,
+                "design_id" to newItem.contextData.designId?.intValue,
                 "source" to newItem.source.name
             )
         ) { rs, _ -> rs.getDaoResponse("official_id", "row_id", "row_version") }
-            ?: throw IllegalStateException("Failed to generate ID for new switch")
+            ?: error("Failed to generate ID for new switch")
         if (newItem.joints.isNotEmpty()) upsertJoints(response.rowVersion, newItem.joints)
         logger.daoAccess(INSERT, TrackLayoutSwitch::class, response)
         return response
@@ -231,15 +232,15 @@ class LayoutSwitchDao(
             "state_category" to updatedItem.stateCategory.name,
             "trap_point" to updatedItem.trapPoint,
             "draft" to updatedItem.isDraft,
-            "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
-            "design_row_id" to updatedItem.contextData.designRowId?.let(::toDbId)?.intValue,
-            "design_id" to updatedItem.contextData.designId?.let(::toDbId)?.intValue,
+            "official_row_id" to updatedItem.contextData.officialRowId?.intValue,
+            "design_row_id" to updatedItem.contextData.designRowId?.intValue,
+            "design_id" to updatedItem.contextData.designId?.intValue,
             "owner_id" to updatedItem.ownerId?.intValue
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutSwitch> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
-        } ?: throw IllegalStateException("Failed to get new version for Track Layout Switch")
+        } ?: error("Failed to get new version for Track Layout Switch")
 
         upsertJoints(response.rowVersion, updatedItem.joints)
 
@@ -333,7 +334,7 @@ class LayoutSwitchDao(
             "id" to version.id.intValue,
             "version" to version.version,
         )
-        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutSwitch(rs) }).also {
+        return getOne(version, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutSwitch(rs) }).also {
             logger.daoAccess(FETCH, TrackLayoutSwitch::class, version)
         }
     }
@@ -507,7 +508,7 @@ class LayoutSwitchDao(
     fun findOfficialNameDuplicates(
         layoutBranch: LayoutBranch,
         names: List<SwitchName>,
-    ): Map<SwitchName, List<RowVersion<TrackLayoutSwitch>>> {
+    ): Map<SwitchName, List<ValidationVersion<TrackLayoutSwitch>>> {
         return if (names.isEmpty()) {
             emptyMap()
         } else {
@@ -518,10 +519,11 @@ class LayoutSwitchDao(
                   and state_category != 'NOT_EXISTING'
             """.trimIndent()
             val params = mapOf("names" to names, "design_id" to layoutBranch.designId?.intValue)
-            val found = jdbcTemplate.query<Pair<SwitchName, RowVersion<TrackLayoutSwitch>>>(sql, params) { rs, _ ->
+            val found = jdbcTemplate.query<Pair<SwitchName, ValidationVersion<TrackLayoutSwitch>>>(sql, params) { rs, _ ->
+                val id = rs.getIntId<TrackLayoutSwitch>("id")
                 val version = rs.getRowVersion<TrackLayoutSwitch>("id", "version")
                 val name = rs.getString("name").let(::SwitchName)
-                name to version
+                name to ValidationVersion(id, version)
             }
             // Ensure that the result contains all asked-for names, even if there are no matches
             names.associateWith { n -> found.filter { (name, _) -> name == n }.map { (_, v) -> v } }.also { dups ->

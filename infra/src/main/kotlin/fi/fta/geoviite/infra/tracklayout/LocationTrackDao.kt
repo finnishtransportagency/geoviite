@@ -25,7 +25,6 @@ import fi.fta.geoviite.infra.util.getOidOrNull
 import fi.fta.geoviite.infra.util.getOne
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.setUser
-import fi.fta.geoviite.infra.util.toDbId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -137,7 +136,7 @@ class LocationTrackDao(
             "id" to version.id.intValue,
             "version" to version.version,
         )
-        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLocationTrack(rs) }).also {
+        return getOne(version, jdbcTemplate.query(sql, params) { rs, _ -> getLocationTrack(rs) }).also {
             logger.daoAccess(AccessType.FETCH, LocationTrack::class, version)
         }
     }
@@ -285,9 +284,9 @@ class LocationTrackDao(
             "type" to newItem.type.name,
             "state" to newItem.state.name,
             "draft" to newItem.isDraft,
-            "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
-            "design_row_id" to newItem.contextData.designRowId?.let(::toDbId)?.intValue,
-            "design_id" to newItem.contextData.designId?.let(::toDbId)?.intValue,
+            "official_row_id" to newItem.contextData.officialRowId?.intValue,
+            "design_row_id" to newItem.contextData.designRowId?.intValue,
+            "design_id" to newItem.contextData.designId?.intValue,
             "duplicate_of_location_track_id" to newItem.duplicateOf?.intValue,
             "topological_connectivity" to newItem.topologicalConnectivity.name,
             "topology_start_switch_id" to newItem.topologyStartSwitch?.switchId?.intValue,
@@ -352,9 +351,9 @@ class LocationTrackDao(
             "type" to updatedItem.type.name,
             "state" to updatedItem.state.name,
             "draft" to updatedItem.isDraft,
-            "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
-            "design_row_id" to updatedItem.contextData.designRowId?.let(::toDbId)?.intValue,
-            "design_id" to updatedItem.contextData.designId?.let(::toDbId)?.intValue,
+            "official_row_id" to updatedItem.contextData.officialRowId?.intValue,
+            "design_row_id" to updatedItem.contextData.designRowId?.intValue,
+            "design_id" to updatedItem.contextData.designId?.intValue,
             "duplicate_of_location_track_id" to updatedItem.duplicateOf?.intValue,
             "topological_connectivity" to updatedItem.topologicalConnectivity.name,
             "topology_start_switch_id" to updatedItem.topologyStartSwitch?.switchId?.intValue,

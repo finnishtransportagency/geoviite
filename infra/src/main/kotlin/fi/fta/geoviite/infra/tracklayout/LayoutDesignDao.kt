@@ -6,11 +6,11 @@ import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.DbTable
+import fi.fta.geoviite.infra.util.getDaoResponse
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getFreeText
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getLocalDate
-import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
@@ -75,10 +75,9 @@ class LayoutDesignDao(
             where id = :id
             returning id, version
         """.trimIndent()
-        val response = jdbcTemplate.queryForObject(
-            sql, params
-        ) { rs, _ -> rs.getRowVersion<LayoutDesign>("id", "version") }
-            ?: throw IllegalStateException("Failed to generate ID for new row version of updated layout design")
+        val response = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getDaoResponse<LayoutDesign>("id", "id", "version")
+        } ?: error("Failed to generate ID for new row version of updated layout design")
         logger.daoAccess(AccessType.UPDATE, LayoutDesign::class, response)
         return response.id
     }
@@ -91,14 +90,14 @@ class LayoutDesignDao(
             values (:name, :estimated_completion, :design_state::layout.design_state)
             returning id, version
         """.trimIndent()
-        val response = jdbcTemplate.queryForObject(
-            sql, mapOf(
-                "name" to design.name,
-                "estimated_completion" to design.estimatedCompletion,
-                "design_state" to design.designState.name,
-            )
-        ) { rs, _ -> rs.getRowVersion<LayoutDesign>("id", "version") }
-            ?: throw IllegalStateException("Failed to generate ID for new layout design")
+        val params = mapOf(
+            "name" to design.name,
+            "estimated_completion" to design.estimatedCompletion,
+            "design_state" to design.designState.name,
+        )
+        val response = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+            rs.getDaoResponse<LayoutDesign>("id", "id", "version")
+        } ?: error("Failed to generate ID for new layout design")
         logger.daoAccess(AccessType.INSERT, LayoutDesign::class, response)
         return response.id
     }

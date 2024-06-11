@@ -110,7 +110,7 @@ class SplitService(
         validatedSplitVersions: List<ValidationVersion<Split>>,
         locationTracks: Collection<DaoResponse<LocationTrack>>,
         publicationId: IntId<Publication>,
-    ): List<RowVersion<Split>> {
+    ): List<DaoResponse<Split>> {
         logger.serviceCall("publishSplit", "locationTracks" to locationTracks, "publicationId" to publicationId)
         return validatedSplitVersions.map { splitVersion ->
             val split = splitDao.getOrThrow(splitVersion.officialId)
@@ -123,7 +123,7 @@ class SplitService(
                 sourceTrackVersion = track.rowVersion,
             ).also { updatedVersion ->
                 // Sanity-check the version for conflicting update, though this should not be possible
-                if (updatedVersion.version != splitVersion.validatedAssetVersion.version + 1) {
+                if (updatedVersion.rowVersion != splitVersion.validatedAssetVersion.next()) {
                     throw PublicationFailureException(
                         message = "Split version has changed between validation and publication: split=${split.id}",
                         localizedMessageKey = "split-version-changed",
@@ -348,9 +348,8 @@ class SplitService(
         splitId: IntId<Split>,
         bulkTransferState: BulkTransferState,
         bulkTransferId: IntId<BulkTransfer>? = null
-    ): RowVersion<Split> {
+    ): DaoResponse<Split> {
         logger.serviceCall("updateSplit", "splitId" to splitId)
-
         return splitDao.getOrThrow(splitId).let { split ->
             splitDao.updateSplit(
                 splitId = split.id,

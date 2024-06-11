@@ -19,7 +19,6 @@ import fi.fta.geoviite.infra.util.getOne
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.getTrackNumber
 import fi.fta.geoviite.infra.util.setUser
-import fi.fta.geoviite.infra.util.toDbId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -97,7 +96,7 @@ class LayoutTrackNumberDao(
             "id" to version.id.intValue,
             "version" to version.version,
         )
-        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutTrackNumber(rs) }).also {
+        return getOne(version, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutTrackNumber(rs) }).also {
             logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, version)
         }
     }
@@ -172,14 +171,14 @@ class LayoutTrackNumberDao(
             "description" to newItem.description,
             "state" to newItem.state.name,
             "draft" to newItem.isDraft,
-            "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
-            "design_row_id" to newItem.contextData.designRowId?.let(::toDbId)?.intValue,
-            "design_id" to newItem.contextData.designId?.let(::toDbId)?.intValue,
+            "official_row_id" to newItem.contextData.officialRowId?.intValue,
+            "design_row_id" to newItem.contextData.designRowId?.intValue,
+            "design_id" to newItem.contextData.designId?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
-        } ?: throw IllegalStateException("Failed to generate ID for new TrackNumber")
+        } ?: error("Failed to generate ID for new TrackNumber")
         logger.daoAccess(AccessType.INSERT, TrackLayoutTrackNumber::class, response)
         return response
     }
@@ -213,9 +212,9 @@ class LayoutTrackNumberDao(
             "description" to updatedItem.description,
             "state" to updatedItem.state.name,
             "draft" to updatedItem.isDraft,
-            "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
-            "design_row_id" to updatedItem.contextData.designRowId?.let(::toDbId)?.intValue,
-            "design_id" to updatedItem.contextData.designId?.let(::toDbId)?.intValue,
+            "official_row_id" to updatedItem.contextData.officialRowId?.intValue,
+            "design_row_id" to updatedItem.contextData.designRowId?.intValue,
+            "design_id" to updatedItem.contextData.designId?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
