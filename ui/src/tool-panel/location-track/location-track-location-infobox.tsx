@@ -102,6 +102,7 @@ const isSplittablePoint = (
     trackEndSwitchId: LayoutSwitchId | undefined,
 ) =>
     sp.type === 'SWITCH_SPLIT_POINT' &&
+    sp.switchId !== undefined &&
     sp.switchId !== trackStartSwitchId &&
     sp.switchId !== trackEndSwitchId;
 
