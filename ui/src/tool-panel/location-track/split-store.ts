@@ -9,6 +9,7 @@ import {
     OperatingPoint,
     SplitPoint,
     splitPointsAreSame,
+    SwitchSplitPoint,
 } from 'track-layout/track-layout-model';
 import { TrackLayoutState } from 'track-layout/track-layout-slice';
 import { draftLayoutContext, TrackMeter, TrackNumber } from 'common/common-model';
@@ -146,15 +147,23 @@ const prefillSplits = (
                 sw?.distance !== undefined &&
                 sw?.address !== undefined &&
                 splitPoint.type === 'SWITCH_SPLIT_POINT'
-                ? ([splitPoint, sw.location, sw.distance, sw.address] as const)
+                ? ([
+                      SwitchSplitPoint(
+                          sw.switchId,
+                          splitPoint.name,
+                          { ...sw.location, m: 0 },
+                          sw.address,
+                      ),
+                      sw.location,
+                      sw.distance,
+                  ] as const)
                 : undefined;
         })
         .filter(filterNotEmpty)
-        .map(([splitPoint, location, distance, address]) =>
+        .map(([splitPoint, location, distance]) =>
             splitPointToSplitTargetCandidate(
                 duplicateTracks,
                 originTrackId,
-                address,
                 location,
                 distance,
                 splitPoint,
@@ -391,7 +400,6 @@ const isAlreadySplit = (existingSplits: SplitTargetCandidate[], splitPoint: Spli
 function splitPointToSplitTargetCandidate(
     duplicateTracks: SplitDuplicate[],
     originLocationTrackId: LocationTrackId,
-    address: TrackMeter,
     switchLocation: Point,
     switchDistance: number,
     splitPoint: SplitPoint,
@@ -403,7 +411,7 @@ function splitPointToSplitTargetCandidate(
     return {
         id: getNextSplitId(),
         type: 'SPLIT',
-        splitPoint: { ...splitPoint, address },
+        splitPoint: splitPoint,
         name,
         duplicateTrackId: duplicateAt?.id,
         duplicateStatus: duplicateAt?.status,
@@ -438,7 +446,6 @@ function addSplitToState(
             const newSplit = splitPointToSplitTargetCandidate(
                 state.splittingState.duplicateTracks,
                 state.splittingState.originLocationTrack.id,
-                switchForSplitPoint.address,
                 switchForSplitPoint.location,
                 switchForSplitPoint.distance,
                 splitPoint,
