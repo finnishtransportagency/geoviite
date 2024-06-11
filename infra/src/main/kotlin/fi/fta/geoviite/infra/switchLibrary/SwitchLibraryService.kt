@@ -90,19 +90,19 @@ class SwitchLibraryService(
     }
 
     @Transactional
-    fun updateSwitchStructures(switchStructuresToUpdate: List<SwitchStructure>) {
-        logger.serviceCall("upsertSwitchStructures", "switchStructures" to switchStructuresToUpdate)
+    fun replaceExistingSwitchStructures(newSwitchStructures: List<SwitchStructure>) {
+        logger.serviceCall("replaceExistingSwitchStructures", "newSwitchStructures" to newSwitchStructures)
 
         val existingSwitchStructures = getSwitchStructures()
         existingSwitchStructures.forEach { existingSwitchStructure ->
-            val existsInNewSet = switchStructuresToUpdate.any { switchStructureToUpdate ->
-                switchStructureToUpdate.type==existingSwitchStructure.type
+            val existsInNewSet = newSwitchStructures.any { newSwitchStructure ->
+                newSwitchStructure.type==existingSwitchStructure.type
             }
             if (!existsInNewSet) {
                 switchStructureDao.delete(existingSwitchStructure.id as IntId)
             }
         }
 
-        switchStructuresToUpdate.forEach { switchStructure -> upsertSwitchStructure(switchStructure) }
+        newSwitchStructures.forEach { switchStructure -> upsertSwitchStructure(switchStructure) }
     }
 }

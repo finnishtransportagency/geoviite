@@ -294,7 +294,7 @@ class R__10_01__update_all_switch_structures : BaseJavaMigration() {
             val switchStructureDao = SwitchStructureDao(jdbcTemplate)
             val switchOwnerDao = SwitchOwnerDao(jdbcTemplate)
             val switchLibraryService = SwitchLibraryService(switchStructureDao, switchOwnerDao)
-            switchLibraryService.updateSwitchStructures(switchStructures)
+            switchLibraryService.replaceExistingSwitchStructures(switchStructures)
         }
     }
 

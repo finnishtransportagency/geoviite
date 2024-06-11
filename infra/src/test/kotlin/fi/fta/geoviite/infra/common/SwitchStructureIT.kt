@@ -2,7 +2,15 @@ package fi.fta.geoviite.infra.common
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.switchLibrary.*
+import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchElement
+import fi.fta.geoviite.infra.switchLibrary.SwitchElementCurve
+import fi.fta.geoviite.infra.switchLibrary.SwitchElementLine
+import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
+import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.switchLibrary.data.RR54_2x1_9
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300A_1_9_O
 import org.junit.jupiter.api.Test
@@ -88,7 +96,7 @@ class SwitchStructureIT @Autowired constructor(
     }
 
     @Test
-    fun updateSwitchStructureShouldWork() {
+    fun `Update switch structure should work as described`() {
         val seq = System.currentTimeMillis()
         val originalSwitchType = SwitchType("YV60-$seq-1:9")
         val originalSwitchStructure = YV60_300A_1_9_O().copy(
@@ -177,7 +185,7 @@ class SwitchStructureIT @Autowired constructor(
     }
 
     @Test
-    fun `Updating switch structures should add new ones`() {
+    fun `Replacing switch structures should add new ones`() {
         val existingSwitchStructuresBeforeUpdate = switchLibraryService.getSwitchStructures()
 
         val seq = System.currentTimeMillis()
@@ -186,7 +194,7 @@ class SwitchStructureIT @Autowired constructor(
             type = newSwitchType
         )
 
-        switchLibraryService.updateSwitchStructures(
+        switchLibraryService.replaceExistingSwitchStructures(
             existingSwitchStructuresBeforeUpdate + newSwitchStructure
         )
 
@@ -196,7 +204,7 @@ class SwitchStructureIT @Autowired constructor(
     }
 
     @Test
-    fun `Updating switch structures should delete not-defined structures`() {
+    fun `Replacing switch structures should delete not-defined structures`() {
         val existingSwitchStructuresBeforeUpdate = switchLibraryService.getSwitchStructures()
 
         val seq = System.currentTimeMillis()
@@ -205,12 +213,12 @@ class SwitchStructureIT @Autowired constructor(
             type = newSwitchType
         )
 
-        switchLibraryService.updateSwitchStructures(
+        switchLibraryService.replaceExistingSwitchStructures(
             existingSwitchStructuresBeforeUpdate + newSwitchStructure
         )
         val existingSwitchStructuresAfterFirstUpdate = switchLibraryService.getSwitchStructures()
 
-        switchLibraryService.updateSwitchStructures(
+        switchLibraryService.replaceExistingSwitchStructures(
             existingSwitchStructuresBeforeUpdate
         )
         val existingSwitchStructuresAfterSecondUpdate = switchLibraryService.getSwitchStructures()
