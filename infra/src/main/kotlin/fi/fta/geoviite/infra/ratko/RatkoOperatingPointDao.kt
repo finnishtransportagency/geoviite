@@ -139,7 +139,7 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
             from layout.operating_point
               where name ilike concat('%', :searchTerm, '%')
               or abbreviation ilike concat('%', :searchTerm, '%')
-              or external_id ilike concat('%', :searchTerm, '%')
+              or external_id = :searchTerm
             order by name
             limit :resultLimit
         """.trimIndent()
