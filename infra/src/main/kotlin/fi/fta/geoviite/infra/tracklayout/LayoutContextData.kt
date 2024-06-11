@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.logging.Loggable
 
@@ -20,6 +19,7 @@ enum class EditState { UNEDITED, EDITED, CREATED }
 
 interface LayoutContextAware<T> {
     val id: DomainId<T>
+    val version: LayoutRowVersion<T>?
     val dataType: DataType
     val editState: EditState
     val branch: LayoutBranch
@@ -36,8 +36,6 @@ interface LayoutContextAware<T> {
 
 sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) :
     LayoutContextAware<T> by contextData, Loggable {
-    abstract val version: RowVersion<T>?
-
     @get:JsonIgnore
     abstract val contextData: LayoutContextData<T>
 
@@ -46,13 +44,14 @@ sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) 
 
 sealed class LayoutContextData<T> : LayoutContextAware<T> {
 
-    @get:JsonIgnore abstract val rowId: IntId<T>?
+    @get:JsonIgnore abstract
+    val rowId: LayoutRowId<T>?
 
     @get:JsonIgnore
-    open val officialRowId: IntId<T>? get() = null
+    open val officialRowId: LayoutRowId<T>? get() = null
 
     @get:JsonIgnore
-    open val designRowId: IntId<T>? get() = null
+    open val designRowId: LayoutRowId<T>? get() = null
 
     final override val id: DomainId<T> by lazy {
         (officialRowId ?: designRowId ?: rowId)
@@ -80,14 +79,14 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
 
         fun <T : LayoutAsset<T>> newDraft(branch: LayoutBranch): LayoutContextData<T> =
             when (branch) {
-                is MainBranch -> MainDraftContextData(null, null, null)
-                is DesignBranch -> DesignDraftContextData(null, null, null, branch.designId)
+                is MainBranch -> MainDraftContextData(null, null, null, null)
+                is DesignBranch -> DesignDraftContextData(null, null, null, null, branch.designId)
             }
 
         fun <T : LayoutAsset<T>> newOfficial(branch: LayoutBranch): LayoutContextData<T> =
             when (branch) {
-                is MainBranch -> MainOfficialContextData(null)
-                is DesignBranch -> DesignOfficialContextData(null, null, branch.designId)
+                is MainBranch -> MainOfficialContextData(null, null)
+                is DesignBranch -> DesignOfficialContextData(null, null, null, branch.designId)
             }
     }
 }
@@ -99,7 +98,8 @@ sealed class DesignContextData<T> : LayoutContextData<T>() {
 }
 
 data class MainOfficialContextData<T>(
-    override val rowId: IntId<T>?,
+    override val rowId: LayoutRowId<T>?,
+    override val version: LayoutRowVersion<T>?,
 ) : MainContextData<T>() {
     override val editState: EditState get() = EditState.UNEDITED
     override val isOfficial: Boolean get() = true
@@ -108,6 +108,7 @@ data class MainOfficialContextData<T>(
         requireStored()
         return MainDraftContextData(
             rowId = null,
+            version = null,
             officialRowId = rowId,
             designRowId = null,
         )
@@ -117,6 +118,7 @@ data class MainOfficialContextData<T>(
         requireStored()
         return DesignDraftContextData(
             rowId = null,
+            version = null,
             officialRowId = rowId,
             designRowId = null,
             designId = designId,
@@ -125,9 +127,10 @@ data class MainOfficialContextData<T>(
 }
 
 data class MainDraftContextData<T>(
-    override val rowId: IntId<T>?,
-    override val officialRowId: IntId<T>?,
-    override val designRowId: IntId<T>?,
+    override val rowId: LayoutRowId<T>?,
+    override val version: LayoutRowVersion<T>?,
+    override val officialRowId: LayoutRowId<T>?,
+    override val designRowId: LayoutRowId<T>?,
 ) : MainContextData<T>() {
     override val editState: EditState get() = if (officialRowId != null) EditState.EDITED else EditState.CREATED
     override val isDraft: Boolean get() = true
@@ -140,13 +143,15 @@ data class MainDraftContextData<T>(
         requireStored()
         return MainOfficialContextData(
             rowId = (officialRowId ?: designRowId ?: rowId), // At publish, we update the first known row for the asset
+            version = null, // Version depends on the updated row, so we don't know it here
         )
     }
 }
 
 data class DesignOfficialContextData<T>(
-    override val rowId: IntId<T>?,
-    override val officialRowId: IntId<T>?,
+    override val rowId: LayoutRowId<T>?,
+    override val version: LayoutRowVersion<T>?,
+    override val officialRowId: LayoutRowId<T>?,
     override val designId: IntId<LayoutDesign>,
 ) : DesignContextData<T>() {
     override val editState: EditState get() = EditState.UNEDITED
@@ -161,6 +166,7 @@ data class DesignOfficialContextData<T>(
         requireStored()
         return MainDraftContextData(
             rowId = null,
+            version = null,
             officialRowId = officialRowId,
             designRowId = rowId,
         )
@@ -170,6 +176,7 @@ data class DesignOfficialContextData<T>(
         requireStored()
         return DesignDraftContextData(
             rowId = null,
+            version = null,
             officialRowId = officialRowId,
             designRowId = rowId,
             designId = designId,
@@ -178,9 +185,10 @@ data class DesignOfficialContextData<T>(
 }
 
 data class DesignDraftContextData<T>(
-    override val rowId: IntId<T>?,
-    override val designRowId: IntId<T>?,
-    override val officialRowId: IntId<T>?,
+    override val rowId: LayoutRowId<T>?,
+    override val version: LayoutRowVersion<T>?,
+    override val designRowId: LayoutRowId<T>?,
+    override val officialRowId: LayoutRowId<T>?,
     override val designId: IntId<LayoutDesign>,
 ) : DesignContextData<T>() {
     override val editState: EditState get() = if (designRowId != null) EditState.EDITED else EditState.CREATED
@@ -195,6 +203,7 @@ data class DesignDraftContextData<T>(
         requireStored()
         return DesignOfficialContextData(
             rowId = designRowId ?: rowId, // The publishing should update either the official or the draft row
+            version = null, // Version depends on the updated row, so we don't know it here
             officialRowId = officialRowId,
             designId = designId,
         )

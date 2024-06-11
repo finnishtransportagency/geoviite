@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.map.MapAlignmentType
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -33,14 +34,14 @@ import java.time.Instant
 sealed interface GeocodingContextCacheKey
 
 data class LayoutGeocodingContextCacheKey(
-    val trackNumberVersion: RowVersion<TrackLayoutTrackNumber>,
-    val referenceLineVersion: RowVersion<ReferenceLine>,
-    val kmPostVersions: List<RowVersion<TrackLayoutKmPost>>,
+    val trackNumberVersion: LayoutRowVersion<TrackLayoutTrackNumber>,
+    val referenceLineVersion: LayoutRowVersion<ReferenceLine>,
+    val kmPostVersions: List<LayoutRowVersion<TrackLayoutKmPost>>,
 ) : GeocodingContextCacheKey {
     init {
         kmPostVersions.forEachIndexed { index, version ->
             kmPostVersions.getOrNull(index + 1)?.also { next ->
-                require(next.id.intValue > version.id.intValue) {
+                require(next.rowId.intValue > version.rowId.intValue) {
                     "Cache key km-posts must be in order: " +
                             "index=$index " +
                             "trackNumberVersion=$trackNumberVersion " +

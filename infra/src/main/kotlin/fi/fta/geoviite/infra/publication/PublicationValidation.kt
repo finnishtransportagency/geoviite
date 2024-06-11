@@ -873,9 +873,9 @@ private fun collectTopologyEndLinks(
 }.filter { (_, ends) -> ends.isNotEmpty() }
 
 fun <T> combineVersions(
-    officials: List<RowVersion<T>>,
+    officials: List<LayoutRowVersion<T>>,
     validations: List<ValidationVersion<T>>,
-): Collection<RowVersion<T>> {
+): Collection<LayoutRowVersion<T>> {
     val officialVersions = officials.filterNot { official -> validations.any { v -> v.officialId == official.id } }
     val validationVersions = validations.map { it.validatedAssetVersion }
     return (officialVersions + validationVersions).distinct()

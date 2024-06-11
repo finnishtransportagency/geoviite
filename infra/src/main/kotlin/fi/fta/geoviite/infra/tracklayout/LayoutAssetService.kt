@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.FreeText
@@ -96,7 +95,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         return publishInternal(branch, version.validatedAssetVersion)
     }
 
-    protected fun publishInternal(branch: LayoutBranch, version: RowVersion<ObjectType>): DaoResponse<ObjectType> {
+    protected fun publishInternal(branch: LayoutBranch, version: LayoutRowVersion<ObjectType>): DaoResponse<ObjectType> {
         val draft = dao.fetch(version)
         require(branch == draft.branch) { "Draft branch does not match the publishing operation: branch=$branch draft=$draft" }
         require(draft.isDraft) { "Object to publish is not a draft: version=$version context=${draft.contextData}" }
@@ -108,11 +107,11 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
             require(r.id == draft.id) { "Publication response ID doesn't match object: id=${draft.id} updated=$r" }
         }
         // If draft row-id changed, the data was updated to the official row -> delete the now-redundant draft row
-        if (version.id != publicationResponse.rowVersion.id) {
-            dao.deleteRow(version.id)
+        if (version.rowId != publicationResponse.rowVersion.rowId) {
+            dao.deleteRow(version.rowId)
         }
         // If main-draft was published and it came from a design row that wasn't updated, then that row is redundant too
-        if (draft.branch == LayoutBranch.main && draft.contextData.designRowId != publicationResponse.rowVersion.id) {
+        if (draft.branch == LayoutBranch.main && draft.contextData.designRowId != publicationResponse.rowVersion.rowId) {
             draft.contextData.designRowId?.let(dao::deleteRow)
         }
         return publicationResponse
@@ -121,7 +120,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     private fun verifyInsertResponse(officialId: IntId<ObjectType>?, response: DaoResponse<ObjectType>) {
         if (officialId != null) require(response.id == officialId) {
             "Insert response ID doesn't match object: officialId=$officialId updated=$response"
-        } else require(response.id == response.rowVersion.id) {
+        } else require(response.id.intValue == response.rowVersion.rowId.intValue) {
             "Inserted new object refers to another official row: inserted=$response"
         }
         require(response.rowVersion.version == 1) {
@@ -131,14 +130,14 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
 
     private fun verifyDraftUpdateResponse(
         id: IntId<ObjectType>,
-        previousVersion: RowVersion<ObjectType>,
+        previousVersion: LayoutRowVersion<ObjectType>,
         response: DaoResponse<ObjectType>,
     ) {
         require(response.id == id) {
             "Update response ID doesn't match object: id=$id updated=$response"
         }
-        require(response.rowVersion.id == previousVersion.id) {
-            "Updated the wrong row (draft vs official): id=$id previous=$previousVersion updated=$response"
+        require(response.rowVersion.rowId == previousVersion.rowId) {
+            "Updated the wrong row (wrong context): id=$id previous=$previousVersion updated=$response"
         }
         if (response.rowVersion.version != previousVersion.version + 1) {
             // We could do optimistic locking here by throwing

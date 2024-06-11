@@ -3,9 +3,6 @@ package fi.fta.geoviite.infra.publication
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
-import fi.fta.geoviite.infra.geometry.GeometryAlignment
-import fi.fta.geoviite.infra.geometry.GeometryKmPost
-import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.SwitchJointChange
@@ -90,21 +87,23 @@ data class PublishedItemListing<T>(
 
 data class PublishedTrackNumber(
     val id: IntId<TrackLayoutTrackNumber>,
-    val version: RowVersion<TrackLayoutTrackNumber>,
+    val version: LayoutRowVersion<TrackLayoutTrackNumber>,
     val number: TrackNumber,
     val operation: Operation,
     val changedKmNumbers: Set<KmNumber>,
 )
 
 data class PublishedReferenceLine(
-    val version: RowVersion<ReferenceLine>,
+    val id: IntId<ReferenceLine>,
+    val version: LayoutRowVersion<ReferenceLine>,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val operation: Operation,
     val changedKmNumbers: Set<KmNumber>,
 )
 
 data class PublishedLocationTrack(
-    val version: RowVersion<LocationTrack>,
+    val id: IntId<LocationTrack>,
+    val version: LayoutRowVersion<LocationTrack>,
     val name: AlignmentName,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val operation: Operation,
@@ -112,7 +111,8 @@ data class PublishedLocationTrack(
 )
 
 data class PublishedSwitch(
-    val version: RowVersion<TrackLayoutSwitch>,
+    val id: IntId<TrackLayoutSwitch>,
+    val version: LayoutRowVersion<TrackLayoutSwitch>,
     val trackNumberIds: Set<IntId<TrackLayoutTrackNumber>>,
     val name: SwitchName,
     val operation: Operation,
@@ -120,7 +120,8 @@ data class PublishedSwitch(
 )
 
 data class PublishedKmPost(
-    val version: RowVersion<TrackLayoutKmPost>,
+    val id: IntId<PublishedKmPost>,
+    val version: LayoutRowVersion<TrackLayoutKmPost>,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val kmNumber: KmNumber,
     val operation: Operation,
@@ -190,7 +191,7 @@ data class PublicationCandidates(
 
     fun getValidationVersions(
         branch: LayoutBranch,
-        splitVersions: List<ValidationVersion<Split>>,
+        splitVersions: List<RowVersion<Split>>,
     ) = ValidationVersions(
         branch = branch,
         trackNumbers = trackNumbers.map(TrackNumberPublicationCandidate::getPublicationVersion),
@@ -227,12 +228,12 @@ data class ValidationVersions(
     val referenceLines: List<ValidationVersion<ReferenceLine>>,
     val switches: List<ValidationVersion<TrackLayoutSwitch>>,
     val kmPosts: List<ValidationVersion<TrackLayoutKmPost>>,
-    val splits: List<ValidationVersion<Split>>,
+    val splits: List<RowVersion<Split>>,
 ) {
     fun containsLocationTrack(id: IntId<LocationTrack>) = locationTracks.any { it.officialId == id }
     fun containsKmPost(id: IntId<TrackLayoutKmPost>) = kmPosts.any { it.officialId == id }
     fun containsSwitch(id: IntId<TrackLayoutSwitch>) = switches.any { it.officialId == id }
-    fun containsSplit(id: IntId<Split>): Boolean = splits.any { it.officialId == id }
+    fun containsSplit(id: IntId<Split>): Boolean = splits.any { it.id == id }
 
     fun findTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.find { it.officialId == id }
     fun findLocationTrack(id: IntId<LocationTrack>) = locationTracks.find { it.officialId == id }
@@ -243,14 +244,15 @@ data class ValidationVersions(
     fun getLocationTrackIds() = locationTracks.map { v -> v.officialId }
     fun getSwitchIds() = switches.map { v -> v.officialId }
     fun getKmPostIds() = kmPosts.map { v -> v.officialId }
-    fun getSplitIds() = splits.map { v -> v.officialId }
+    fun getSplitIds() = splits.map { v -> v.id }
 }
 
 data class PublicationGroup(
     val id: IntId<Split>,
 )
 
-data class ValidationVersion<T>(val officialId: IntId<T>, val validatedAssetVersion: RowVersion<T>)
+// TODO: GVT-2629 Rename validatedAssetVersion -> rowVersion
+data class ValidationVersion<T>(val officialId: IntId<T>, val validatedAssetVersion: LayoutRowVersion<T>)
 
 data class PublicationRequestIds(
     val trackNumbers: List<IntId<TrackLayoutTrackNumber>>,
@@ -298,7 +300,7 @@ data class LayoutValidationIssue(
 interface PublicationCandidate<T> {
     val type: DraftChangeType
     val id: IntId<T>
-    val rowVersion: RowVersion<T>
+    val rowVersion: LayoutRowVersion<T>
     val draftChangeTime: Instant
     val userName: UserName
     val issues: List<LayoutValidationIssue>
@@ -310,7 +312,7 @@ interface PublicationCandidate<T> {
 
 data class TrackNumberPublicationCandidate(
     override val id: IntId<TrackLayoutTrackNumber>,
-    override val rowVersion: RowVersion<TrackLayoutTrackNumber>,
+    override val rowVersion: LayoutRowVersion<TrackLayoutTrackNumber>,
     val number: TrackNumber,
     override val draftChangeTime: Instant,
     override val userName: UserName,
@@ -324,7 +326,7 @@ data class TrackNumberPublicationCandidate(
 
 data class ReferenceLinePublicationCandidate(
     override val id: IntId<ReferenceLine>,
-    override val rowVersion: RowVersion<ReferenceLine>,
+    override val rowVersion: LayoutRowVersion<ReferenceLine>,
     val name: TrackNumber,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     override val draftChangeTime: Instant,
@@ -339,7 +341,7 @@ data class ReferenceLinePublicationCandidate(
 
 data class LocationTrackPublicationCandidate(
     override val id: IntId<LocationTrack>,
-    override val rowVersion: RowVersion<LocationTrack>,
+    override val rowVersion: LayoutRowVersion<LocationTrack>,
     val name: AlignmentName,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     override val draftChangeTime: Instant,
@@ -355,7 +357,7 @@ data class LocationTrackPublicationCandidate(
 
 data class SwitchPublicationCandidate(
     override val id: IntId<TrackLayoutSwitch>,
-    override val rowVersion: RowVersion<TrackLayoutSwitch>,
+    override val rowVersion: LayoutRowVersion<TrackLayoutSwitch>,
     val name: SwitchName,
     val trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
     override val draftChangeTime: Instant,
@@ -370,7 +372,7 @@ data class SwitchPublicationCandidate(
 
 data class KmPostPublicationCandidate(
     override val id: IntId<TrackLayoutKmPost>,
-    override val rowVersion: RowVersion<TrackLayoutKmPost>,
+    override val rowVersion: LayoutRowVersion<TrackLayoutKmPost>,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val kmNumber: KmNumber,
     override val draftChangeTime: Instant,
@@ -383,16 +385,10 @@ data class KmPostPublicationCandidate(
     override val type = DraftChangeType.KM_POST
 }
 
-data class RemovedTrackNumberReferenceIds(
-    val kmPostIds: List<IntId<GeometryKmPost>>,
-    val alignmentIds: List<IntId<GeometryAlignment>>,
-    val planIds: List<IntId<GeometryPlan>>,
-)
-
 data class SwitchLocationTrack(
     val name: AlignmentName,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
-    val oldVersion: RowVersion<LocationTrack>,
+    val oldVersion: LayoutRowVersion<LocationTrack>,
 )
 
 data class Change<T>(
@@ -458,11 +454,6 @@ data class KmPostChanges(
     val kmNumber: Change<KmNumber>,
     val state: Change<LayoutState>,
     val location: Change<Point>,
-)
-
-fun <T : LayoutAsset<T>> toValidationVersion(layoutAsset: T): ValidationVersion<T> = ValidationVersion(
-    officialId = layoutAsset.id as IntId,
-    validatedAssetVersion = layoutAsset.version as RowVersion<T>,
 )
 
 data class SwitchChangeIds(val name: String, val externalId: Oid<TrackLayoutSwitch>?)

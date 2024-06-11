@@ -408,7 +408,7 @@ class PublicationService @Autowired constructor(
         logger.serviceCall("revertPublicationCandidates", "toDelete" to toDelete)
 
         splitService.fetchPublicationVersions(branch, toDelete.locationTracks, toDelete.switches)
-            .forEach { split -> splitService.deleteSplit(split.officialId) }
+            .forEach { split -> splitService.deleteSplit(split.id) }
 
         val locationTrackCount = toDelete.locationTracks.map { id -> locationTrackService.deleteDraft(branch, id) }.size
         val referenceLineCount = toDelete.referenceLines.map { id -> referenceLineService.deleteDraft(branch, id) }.size
@@ -892,7 +892,7 @@ class PublicationService @Autowired constructor(
     }
 
     private fun createSplitTargetInPublication(
-        rowVersion: RowVersion<LocationTrack>,
+        rowVersion: LayoutRowVersion<LocationTrack>,
         publicationBranch: LayoutBranch,
         publicationTime: Instant,
         split: Split,
@@ -1270,7 +1270,9 @@ class PublicationService @Autowired constructor(
         val relatedJoints = changes.joints.filterNot { it.removed }.distinctBy { it.trackNumberId }
 
         val oldLinkedLocationTracks = changes.locationTracks.associate { lt ->
-            lt.oldVersion.id to locationTrackService.getWithAlignment(lt.oldVersion)
+            locationTrackService.getWithAlignment(lt.oldVersion).let { (track, alignment) ->
+                track.id as IntId to (track to alignment)
+            }
         }
         val jointLocationChanges = relatedJoints.flatMap { joint ->
             val oldLocation = oldLinkedLocationTracks[joint.locationTrackId]?.let { (track, alignment) ->
@@ -1314,8 +1316,8 @@ class PublicationService @Autowired constructor(
             list
         }.sortedBy { it.propKey.key }
 
-        val oldLinkedTrackNames = oldLinkedLocationTracks.values.mapNotNull { it.first.name.toString() }.sorted()
-        val newLinkedTrackNames = changes.locationTracks.map { it.name.toString() }.sorted()
+        val oldLinkedTrackNames = oldLinkedLocationTracks.values.mapNotNull { it.first.name }.sorted()
+        val newLinkedTrackNames = changes.locationTracks.map { it.name }.sorted()
 
         return listOfNotNull(
             compareChangeValues(changes.name, { it }, PropKey("switch")),
@@ -1392,8 +1394,11 @@ class PublicationService @Autowired constructor(
         trackNumberNamesCache: List<TrackNumberAndChangeTime> = trackNumberDao.fetchTrackNumberNames(),
     ): List<PublicationTableItem> {
         val publicationLocationTrackChanges = publicationDao.fetchPublicationLocationTrackChanges(publication.id)
-        val publicationTrackNumberChanges =
-            publicationDao.fetchPublicationTrackNumberChanges(publication.layoutBranch, publication.id, previousComparisonTime)
+        val publicationTrackNumberChanges = publicationDao.fetchPublicationTrackNumberChanges(
+            publication.layoutBranch,
+            publication.id,
+            previousComparisonTime,
+        )
         val publicationKmPostChanges = publicationDao.fetchPublicationKmPostChanges(publication.id)
         val publicationReferenceLineChanges = publicationDao.fetchPublicationReferenceLineChanges(publication.id)
         val publicationSwitchChanges = publicationDao.fetchPublicationSwitchChanges(publication.id)
@@ -1407,7 +1412,7 @@ class PublicationService @Autowired constructor(
                 publication = publication,
                 propChanges = diffTrackNumber(
                     translation,
-                    publicationTrackNumberChanges.getOrElse(tn.version.id) {
+                    publicationTrackNumberChanges.getOrElse(tn.id) {
                         error("Track number changes not found: version=${tn.version}")
                     },
                     publication.publicationTime,
@@ -1430,7 +1435,7 @@ class PublicationService @Autowired constructor(
                 publication = publication,
                 propChanges = diffReferenceLine(
                     translation,
-                    publicationReferenceLineChanges.getOrElse(rl.version.id) {
+                    publicationReferenceLineChanges.getOrElse(rl.id) {
                         error("Reference line changes not found: version=${rl.version}")
                     },
                     publication.publicationTime,

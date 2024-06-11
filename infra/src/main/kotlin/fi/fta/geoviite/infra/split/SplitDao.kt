@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.publication.Publication
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.DaoBase
@@ -16,6 +17,7 @@ import fi.fta.geoviite.infra.util.getInstantOrNull
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdArray
 import fi.fta.geoviite.infra.util.getIntIdOrNull
+import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getOne
 import fi.fta.geoviite.infra.util.getOptional
 import fi.fta.geoviite.infra.util.getRowVersion
@@ -29,7 +31,7 @@ private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>) = Sp
     id = rs.getIntId("id"),
     rowVersion = rs.getRowVersion("id", "version"),
     sourceLocationTrackId = rs.getIntId("source_location_track_official_id"),
-    sourceLocationTrackVersion = rs.getRowVersion(
+    sourceLocationTrackVersion = rs.getLayoutRowVersion(
         "source_location_track_row_id",
         "source_location_track_row_version",
     ),
@@ -50,7 +52,7 @@ class SplitDao(
 
     @Transactional
     fun saveSplit(
-        sourceLocationTrackVersion: RowVersion<LocationTrack>,
+        sourceLocationTrackVersion: LayoutRowVersion<LocationTrack>,
         splitTargets: Collection<SplitTarget>,
         relinkedSwitches: Collection<IntId<TrackLayoutSwitch>>,
         updatedDuplicates: Collection<IntId<LocationTrack>>,
@@ -75,7 +77,7 @@ class SplitDao(
 
         jdbcTemplate.setUser()
         val params = mapOf(
-            "source_location_track_row_id" to sourceLocationTrackVersion.id.intValue,
+            "source_location_track_row_id" to sourceLocationTrackVersion.rowId.intValue,
             "source_location_track_row_version" to sourceLocationTrackVersion.version,
         )
         val splitId = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
@@ -229,7 +231,7 @@ class SplitDao(
         bulkTransferState: BulkTransferState? = null,
         bulkTransferId: IntId<BulkTransfer>? = null,
         publicationId: IntId<Publication>? = null,
-        sourceTrackVersion: RowVersion<LocationTrack>? = null,
+        sourceTrackVersion: LayoutRowVersion<LocationTrack>? = null,
     ): RowVersion<Split> {
         val sql = """
             update publication.split
@@ -248,7 +250,7 @@ class SplitDao(
             "bulk_transfer_id" to bulkTransferId?.intValue,
             "publication_id" to publicationId?.intValue,
             "split_id" to splitId.intValue,
-            "source_track_row_id" to sourceTrackVersion?.id?.intValue,
+            "source_track_row_id" to sourceTrackVersion?.rowId?.intValue,
             "source_track_row_version" to sourceTrackVersion?.version,
         )
 

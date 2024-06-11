@@ -348,7 +348,7 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
-    fun getWithAlignment(version: RowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
+    fun getWithAlignment(version: LayoutRowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
         logger.serviceCall("getWithAlignment", "version" to version)
         return getWithAlignmentInternal(version)
     }
@@ -455,7 +455,7 @@ class LocationTrackService(
         return getWithAlignmentInternal(dao.fetchVersionOrThrow(layoutContext, id))
     }
 
-    private fun getWithAlignmentInternal(version: RowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> =
+    private fun getWithAlignmentInternal(version: LayoutRowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> =
         locationTrackWithAlignment(dao, alignmentDao, version)
 
     private fun associateWithAlignments(lines: List<LocationTrack>): List<Pair<LocationTrack, LayoutAlignment>> {
@@ -815,7 +815,7 @@ fun getLocationTrackEndpoints(
 fun locationTrackWithAlignment(
     locationTrackDao: LocationTrackDao,
     alignmentDao: LayoutAlignmentDao,
-    rowVersion: RowVersion<LocationTrack>,
+    rowVersion: LayoutRowVersion<LocationTrack>,
 ) = locationTrackDao.fetch(rowVersion).let { track ->
     track to alignmentDao.fetch(track.getAlignmentVersionOrThrow())
 }
