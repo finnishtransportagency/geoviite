@@ -149,7 +149,7 @@ const prefillSplits = (
         })
         .filter(filterNotEmpty)
         .map(([splitPoint, location, distance, address]) =>
-            tryCreateSplitTargetCandidateFromSplitPoint(
+            splitPointToSplitTargetCandidate(
                 duplicateTracks,
                 originTrackId,
                 false,
@@ -385,7 +385,7 @@ const findSwitchForSplitPoint = (
 const isAlreadySplit = (existingSplits: SplitTargetCandidate[], splitPoint: SplitPoint) =>
     existingSplits.some((split) => splitPointsAreSame(splitPoint, split.splitPoint));
 
-function tryCreateSplitTargetCandidateFromSplitPoint(
+function splitPointToSplitTargetCandidate(
     duplicateTracks: SplitDuplicate[],
     originLocationTrackId: LocationTrackId,
     focusNameAfterCreate: boolean,
@@ -432,7 +432,7 @@ function addSplitToState(
             switchForSplitPoint?.location !== undefined &&
             switchForSplitPoint?.address !== undefined
         ) {
-            const newSplit = tryCreateSplitTargetCandidateFromSplitPoint(
+            const newSplit = splitPointToSplitTargetCandidate(
                 state.splittingState.duplicateTracks,
                 state.splittingState.originLocationTrack.id,
                 focusNameAfterCreate,
