@@ -23,6 +23,7 @@ import {
     LayoutLocationTrack,
     LayoutSwitchId,
     LayoutTrackNumber,
+    SplitPoint,
     SwitchSplitPoint,
 } from 'track-layout/track-layout-model';
 import {
@@ -94,6 +95,15 @@ type LocationTrackLocationInfoboxProps = LocationTrackLocationInfoboxContainerPr
     onStartSplitting: (splitStartParams: SplitStart) => void;
     showLayers: (layers: MapLayerName[]) => void;
 };
+
+const isSplittablePoint = (
+    sp: SplitPoint,
+    trackStartSwitchId: LayoutSwitchId | undefined,
+    trackEndSwitchId: LayoutSwitchId | undefined,
+) =>
+    sp.type === 'SWITCH_SPLIT_POINT' &&
+    sp.switchId !== trackStartSwitchId &&
+    sp.switchId !== trackEndSwitchId;
 
 export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfoboxProps> = ({
     locationTrack,
@@ -236,18 +246,20 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             ? extraInfo.endSplitPoint.switchId
                             : undefined;
 
+                    const filterUniqueSwitchSplitPoint = filterUniqueById(
+                        (sp: SwitchSplitPoint) => sp.switchId,
+                    );
+
                     const prefilledSplits = prefilled
                         ? duplicatesWithNames
                               .flatMap((d) => [d.status.startSplitPoint, d.status.endSplitPoint])
-                              .filter(filterNotEmpty)
-                              .filter(
-                                  (sp) =>
-                                      sp.type === 'SWITCH_SPLIT_POINT' &&
-                                      sp.switchId &&
-                                      sp.switchId !== startSwitchId &&
-                                      sp.switchId !== endSwitchId,
+                              .map((sp) =>
+                                  sp && isSplittablePoint(sp, startSwitchId, endSwitchId)
+                                      ? sp
+                                      : undefined,
                               )
-                              .filter(filterUniqueById((sp: SwitchSplitPoint) => sp.switchId))
+                              .filter(filterNotEmpty)
+                              .filter(filterUniqueSwitchSplitPoint)
                         : [];
 
                     onStartSplitting({
