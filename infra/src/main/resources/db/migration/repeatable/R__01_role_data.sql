@@ -14,17 +14,17 @@ select *
 create temp table new_privilege on commit drop as
 with temp(code, name, description) as (
     values
-      ('view-basic', 'Perustietojen luku', 'Oikeus autentikoitua Geoviitteeseen ja lukea käyttäjä- ja ympäristötietoja'),
-      ('view-layout', 'Paikannuspohjan luku', 'Oikeus tarkastella virallista paikannuspohjaa'),
-      ('view-layout-draft', 'Paikannuspohjaluonnoksen luku', 'Oikeus tarkastella paikannuspohjaa luonnostilassa'),
-      ('edit-layout', 'Paikannuspohjan muokkaus', 'Oikeus muokata Geoviitteen paikannuspohjaa'),
-      ('view-geometry', 'Raidegeometrioiden luku', 'Oikeus listata ja tarkastella raidegeometrioita'),
-      ('edit-geometry-file', 'Raidegeometrioiden muokkaus', 'Oikeus luoda, poistaa ja piilottaa inframalleja ja muokata niihin liittyvää metatietoa'),
-      ('download-geometry', 'Inframallien lataus', 'Oikeus ladata Geoviitteestä InfraModel-tiedostoja'),
-      ('view-pv-documents', 'Projektivelhoaineistojen luku', 'Oikeus listata ja tarkastella ProjektiVelhosta ladattuja aineistoja'),
-      ('view-geometry-file', 'Geometriatiedostojen luku', 'Oikeus listata ja tarkastella Geoviitteen InfraModel-tiedostoja'),
-      ('view-publication', 'Julkaisujen luku', 'Oikeus listata ja tarkastella julkaisuja'),
-      ('download-publication', 'Julkaisujen lataus', 'Oikeus ladata julkaisuja')
+      ('view-basic', 'privilege.view-basic', 'privilege.description.view-basic'),
+      ('view-layout', 'privilege.view-layout', 'privilege.description.view-layout'),
+      ('view-layout-draft', 'privilege.view-layout-draft', 'privilege.description.view-layout-draft'),
+      ('edit-layout', 'privilege.edit-layout', 'privilege.description.edit-layout'),
+      ('view-geometry', 'privilege.view-geometry', 'privilege.description.view-geometry'),
+      ('edit-geometry-file', 'privilege.edit-geometry-file', 'privilege.description.edit-geometry-file'),
+      ('download-geometry', 'privilege.download-geometry', 'privilege.description.download-geometry'),
+      ('view-pv-documents', 'privilege.view-pv-documents', 'privilege.description.view-pv-documents'),
+      ('view-geometry-file', 'privilege.view-geometry-file', 'privilege.description.view-geometry-file'),
+      ('view-publication', 'privilege.view-publication', 'privilege.description.view-publication'),
+      ('download-publication', 'privilege.download-publication', 'privilege.description.download-publication')
 )
 select *
   from temp;
