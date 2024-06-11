@@ -100,11 +100,14 @@ const isSplittablePoint = (
     sp: SplitPoint,
     trackStartSwitchId: LayoutSwitchId | undefined,
     trackEndSwitchId: LayoutSwitchId | undefined,
-) =>
-    sp.type === 'SWITCH_SPLIT_POINT' &&
-    sp.switchId !== undefined &&
-    sp.switchId !== trackStartSwitchId &&
-    sp.switchId !== trackEndSwitchId;
+): boolean => {
+    return (
+        sp.type === 'SWITCH_SPLIT_POINT' &&
+        sp.switchId !== undefined &&
+        sp.switchId !== trackStartSwitchId &&
+        sp.switchId !== trackEndSwitchId
+    );
+};
 
 export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfoboxProps> = ({
     locationTrack,
@@ -189,7 +192,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         );
     }, [linkingState]);
 
-    const startSplitting = (prefilled: boolean) => {
+    const startSplitting = (prefillBehaviour: 'PREFILL' | 'NO_PREFILL') => {
         setStartingSplitting(true);
         getSplittingInitializationParameters(draftLayoutContext(layoutContext), locationTrack.id)
             .then((splitInitializationParameters) => {
@@ -251,17 +254,21 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                         (sp: SwitchSplitPoint) => sp.switchId,
                     );
 
-                    const prefilledSplits = prefilled
-                        ? duplicatesWithNames
-                              .flatMap((d) => [d.status.startSplitPoint, d.status.endSplitPoint])
-                              .map((sp) =>
-                                  sp && isSplittablePoint(sp, startSwitchId, endSwitchId)
-                                      ? sp
-                                      : undefined,
-                              )
-                              .filter(filterNotEmpty)
-                              .filter(filterUniqueSwitchSplitPoint)
-                        : [];
+                    const prefilledSplits =
+                        prefillBehaviour === 'PREFILL'
+                            ? duplicatesWithNames
+                                  .flatMap((d) => [
+                                      d.status.startSplitPoint,
+                                      d.status.endSplitPoint,
+                                  ])
+                                  .map((sp) =>
+                                      sp && isSplittablePoint(sp, startSwitchId, endSwitchId)
+                                          ? sp
+                                          : undefined,
+                                  )
+                                  .filter(filterNotEmpty)
+                                  .filter(filterUniqueSwitchSplitPoint)
+                            : [];
 
                     onStartSplitting({
                         locationTrack: locationTrack,
@@ -455,12 +462,12 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                 disabled={splittingDisabled}
                                                 isProcessing={startingSplitting}
                                                 title={getSplittingDisabledReasonsTranslated()}
-                                                onClick={() => startSplitting(false)}
+                                                onClick={() => startSplitting('NO_PREFILL')}
                                                 qa-id="start-splitting"
                                                 menuItems={[
                                                     menuOption(
                                                         () => {
-                                                            startSplitting(true);
+                                                            startSplitting('PREFILL');
                                                         },
                                                         t(
                                                             'tool-panel.location-track.start-splitting-prefilled',

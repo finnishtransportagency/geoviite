@@ -440,8 +440,7 @@ function addSplitToState(
             splitPoint.type === 'SWITCH_SPLIT_POINT' &&
             !isAlreadySplit(state.splittingState.splits, splitPoint) &&
             switchForSplitPoint?.distance !== undefined &&
-            switchForSplitPoint?.location !== undefined &&
-            switchForSplitPoint?.address !== undefined
+            switchForSplitPoint?.location !== undefined
         ) {
             const newSplit = splitPointToSplitTargetCandidate(
                 state.splittingState.duplicateTracks,
