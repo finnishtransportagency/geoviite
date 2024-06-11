@@ -4,10 +4,18 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.inframodel.angleBetween
-import fi.fta.geoviite.infra.math.*
+import fi.fta.geoviite.infra.math.Angle
+import fi.fta.geoviite.infra.math.AngularUnit
+import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Rads
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
+import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.math.rotateAroundPoint
 import fi.fta.geoviite.infra.util.formatForException
 import kotlin.math.abs
 
@@ -265,6 +273,24 @@ data class SwitchStructure(
 
     fun getJointLocation(jointNumber: JointNumber): Point {
         return getJoint(jointNumber).location
+    }
+
+    fun stripUniqueIdentifiers(): SwitchStructure {
+        var i = 0;
+        return copy(
+            id = IntId(i++),
+            alignments = alignments.map { a ->
+                a.copy(
+                    id = IntId(i++),
+                    elements = a.elements.map { e ->
+                        when (e) {
+                            is SwitchElementLine -> e.copy(id= IntId(i++))
+                            is SwitchElementCurve -> e.copy(id= IntId(i++))
+                        }
+                    }
+                )
+            }
+        )
     }
 }
 

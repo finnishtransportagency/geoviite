@@ -38,6 +38,7 @@ enum class LayoutAssetTable(val dbTable: DbTable, layoutContextFunction: String)
 }
 
 enum class DbTable(schema: String, table: String, sortColumns: List<String> = listOf("id")) {
+    COMMON_SWITCH_STRUCTURE("common", "switch_structure"),
 
     LAYOUT_ALIGNMENT("layout", "alignment"),
     LAYOUT_LOCATION_TRACK("layout", "location_track"),
