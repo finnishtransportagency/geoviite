@@ -23,6 +23,8 @@ import {
     LayoutLocationTrack,
     LayoutSwitchId,
     LayoutTrackNumber,
+    SplitPoint,
+    SwitchSplitPoint,
 } from 'track-layout/track-layout-model';
 import {
     LocationTrackInfoboxVisibilities,
@@ -48,6 +50,9 @@ import * as Snackbar from 'geoviite-design-lib/snackbar/snackbar';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
 import { getSplitPointName } from 'tool-panel/location-track/splitting/location-track-splitting-infobox';
+import { SplitButton } from 'geoviite-design-lib/split-button/split-button';
+import { menuOption } from 'vayla-design-lib/menu/menu';
+import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 
 type LocationTrackLocationInfoboxContainerProps = {
     locationTrack: LayoutLocationTrack;
@@ -89,6 +94,19 @@ type LocationTrackLocationInfoboxProps = LocationTrackLocationInfoboxContainerPr
     onEndLocationTrackGeometryChange: () => void;
     onStartSplitting: (splitStartParams: SplitStart) => void;
     showLayers: (layers: MapLayerName[]) => void;
+};
+
+const isSplittablePoint = (
+    sp: SplitPoint,
+    trackStartSwitchId: LayoutSwitchId | undefined,
+    trackEndSwitchId: LayoutSwitchId | undefined,
+): boolean => {
+    return (
+        sp.type === 'SWITCH_SPLIT_POINT' &&
+        sp.switchId !== undefined &&
+        sp.switchId !== trackStartSwitchId &&
+        sp.switchId !== trackEndSwitchId
+    );
 };
 
 export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfoboxProps> = ({
@@ -174,7 +192,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         );
     }, [linkingState]);
 
-    const startSplitting = () => {
+    const startSplitting = (prefillBehaviour: 'PREFILL' | 'NO_PREFILL') => {
         setStartingSplitting(true);
         getSplittingInitializationParameters(draftLayoutContext(layoutContext), locationTrack.id)
             .then((splitInitializationParameters) => {
@@ -223,6 +241,34 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             },
                         };
                     });
+                    const startSwitchId =
+                        extraInfo.startSplitPoint.type === 'SWITCH_SPLIT_POINT'
+                            ? extraInfo.startSplitPoint.switchId
+                            : undefined;
+                    const endSwitchId =
+                        extraInfo.endSplitPoint.type === 'SWITCH_SPLIT_POINT'
+                            ? extraInfo.endSplitPoint.switchId
+                            : undefined;
+
+                    const filterUniqueSwitchSplitPoint = filterUniqueById(
+                        (sp: SwitchSplitPoint) => sp.switchId,
+                    );
+
+                    const prefilledSplits =
+                        prefillBehaviour === 'PREFILL'
+                            ? duplicatesWithNames
+                                  .flatMap((d) => [
+                                      d.status.startSplitPoint,
+                                      d.status.endSplitPoint,
+                                  ])
+                                  .map((sp) =>
+                                      sp && isSplittablePoint(sp, startSwitchId, endSwitchId)
+                                          ? sp
+                                          : undefined,
+                                  )
+                                  .filter(filterNotEmpty)
+                                  .filter(filterUniqueSwitchSplitPoint)
+                            : [];
 
                     onStartSplitting({
                         locationTrack: locationTrack,
@@ -239,6 +285,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             ...extraInfo.endSplitPoint,
                             name: endSplitPointName,
                         },
+                        prefilledSplitPoints: prefilledSplits,
                     });
                 }
             })
@@ -409,36 +456,18 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                         )}
                                     <InfoboxButtons>
                                         {!linkingState && !splittingState && (
-                                            <Button
+                                            <SplitButton
                                                 variant={ButtonVariant.SECONDARY}
                                                 size={ButtonSize.SMALL}
                                                 disabled={splittingDisabled}
                                                 isProcessing={startingSplitting}
                                                 title={getSplittingDisabledReasonsTranslated()}
-                                                onClick={startSplitting}
-                                                qa-id="start-splitting">
-                                                {t('tool-panel.location-track.start-splitting')}
-                                            </Button>
-                                            /* TODO: Uncomment once splitting with prefilled data is implemented
-                                            <SplitButton
-                                                variant={ButtonVariant.SECONDARY}
-                                                size={ButtonSize.SMALL}
-                                                disabled={
-                                                    locationTrack.state !== 'IN_USE' ||
-                                                    !isDraft ||
-                                                    locationTrackIsDraft ||
-                                                    duplicatesOnOtherTrackNumbers ||
-                                                    extraInfo?.partOfUnfinishedSplit ||
-                                                    startingSplitting
-                                                }
-                                                isProcessing={startingSplitting}
-                                                title={getSplittingDisabledReasonsTranslated()}
-                                                onClick={startSplitting}
-                                                qaId={'start-splitting'}
+                                                onClick={() => startSplitting('NO_PREFILL')}
+                                                qa-id="start-splitting"
                                                 menuItems={[
-                                                    menuSelectOption(
+                                                    menuOption(
                                                         () => {
-                                                            startSplitting();
+                                                            startSplitting('PREFILL');
                                                         },
                                                         t(
                                                             'tool-panel.location-track.start-splitting-prefilled',
@@ -447,7 +476,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                                                     ),
                                                 ]}>
                                                 {t('tool-panel.location-track.start-splitting')}
-                                            </SplitButton>*/
+                                            </SplitButton>
                                         )}
                                     </InfoboxButtons>
                                 </PrivilegeRequired>
