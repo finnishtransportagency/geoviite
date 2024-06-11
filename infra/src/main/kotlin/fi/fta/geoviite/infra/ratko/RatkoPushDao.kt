@@ -1,22 +1,23 @@
 package fi.fta.geoviite.infra.ratko
 
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.integration.*
-import fi.fta.geoviite.infra.logging.AccessType
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.*
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+
+    private val logger: Logger = LoggerFactory.getLogger(RatkoPushDao::class.java)
 
     @Transactional
     fun startPushing(layoutPublicationIds: List<IntId<Publication>>): IntId<RatkoPush> {
@@ -33,7 +34,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
 
         updatePushContent(ratkoPushId, publicationIds = layoutPublicationIds)
 
-        return ratkoPushId.also { logger.daoAccess(AccessType.INSERT, "${RatkoPush::class}.id", ratkoPushId) }
+        return ratkoPushId
     }
 
     @Transactional
@@ -53,7 +54,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
 
         jdbcTemplate.setUser()
         jdbcTemplate.query(sql) { rs, _ -> rs.getIntId<RatkoPush>("id") }.also { updatedPushes ->
-            logger.daoAccess(AccessType.UPDATE, RatkoPush::class, updatedPushes)
+            logger.info("Updated pushes: $updatedPushes")
         }
     }
 
@@ -74,7 +75,6 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
 
         jdbcTemplate.setUser()
         check(jdbcTemplate.update(sql, params) == 1)
-        logger.daoAccess(AccessType.UPDATE, RatkoPush::class, pushId)
     }
 
     fun fetchPreviousPush(): RatkoPush {
@@ -96,9 +96,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                 endTime = rs.getInstantOrNull("end_time"),
                 status = rs.getEnum("status"),
             )
-        }.first().also {
-            logger.daoAccess(AccessType.FETCH, RatkoPush::class, it.id)
-        }
+        }.first()
     }
 
     private fun updatePushContent(
@@ -122,8 +120,6 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         }.toTypedArray()
 
         check(jdbcTemplate.batchUpdate(sql, params).isNotEmpty())
-
-        logger.daoAccess(AccessType.UPSERT, RatkoPush::class, pushId, publicationIds)
     }
 
     @Transactional
@@ -169,7 +165,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
 
         return jdbcTemplate.queryOne<IntId<RatkoPushError<T>>>(sql, params, ratkoPushId.toString()) { rs, _ ->
             rs.getIntId("id")
-        }.also { errorId -> logger.daoAccess(AccessType.INSERT, RatkoPushError::class, errorId) }
+        }
     }
 
     fun getLatestRatkoPushErrorFor(publicationId: IntId<Publication>): RatkoPushError<*>? {
@@ -210,7 +206,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                     ?: locationTrackId?.let { RatkoAssetType.LOCATION_TRACK }
                     ?: switchId.let { RatkoAssetType.SWITCH },
             )
-        }?.also { pushError -> logger.daoAccess(AccessType.FETCH, RatkoPushError::class, pushError) }
+        }
     }
 
     fun getLatestPushedPublicationMoment(): Instant {
@@ -226,7 +222,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
 
         return jdbcTemplate.queryOne(sql) { rs, _ ->
             rs.getInstant("latest_publication_time")
-        }.also { logger.daoAccess(AccessType.FETCH, "${Publication::class}.publicationTime") }
+        }
     }
 
     fun getLatestPublicationMoment(): Instant {
@@ -236,7 +232,6 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             from publication.publication
         """.trimIndent()
         return jdbcTemplate.queryOne(sql) { rs, _ -> rs.getInstant("latest_publication_time") }
-            .also { logger.daoAccess(AccessType.FETCH, "${Publication::class}.publicationTime") }
     }
 
     fun getRatkoPushChangeTime(): Instant {
@@ -251,7 +246,6 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             from integrations.ratko_push
         """.trimIndent()
         return jdbcTemplate.queryOne(sql) { rs, _ -> rs.getInstant("latest_ratko_push_time") }
-            .also { logger.daoAccess(AccessType.FETCH, "${RatkoPush::class.simpleName}.changeTime") }
     }
 
     fun getRatkoStatus(publicationId: IntId<Publication>): List<RatkoPush> {
@@ -274,6 +268,6 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                 endTime = rs.getInstantOrNull("end_time"),
                 status = rs.getEnum("status"),
             )
-        }.onEach { push -> logger.daoAccess(AccessType.FETCH, RatkoPush::class, push.id) }
+        }
     }
 }

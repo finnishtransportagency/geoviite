@@ -1,15 +1,12 @@
 package fi.fta.geoviite.infra.util
 
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import fi.fta.geoviite.infra.logging.AccessType.VERSION_FETCH
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.FetchType.MULTI
 import fi.fta.geoviite.infra.util.FetchType.SINGLE
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.sql.ResultSet
 import java.time.Instant
@@ -79,9 +76,8 @@ enum class DbTable(schema: String, table: String, sortColumns: List<String> = li
     val rowVersionsSql = "select id, version from $fullName order by $orderBy"
 }
 
+@GeoviiteDao
 open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
-
-    protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     /**
      * The template from DI is nullable so that we can configure to run without DB when needed (i.e. unit tests)
@@ -92,12 +88,10 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
     }
 
     protected fun <T> fetchRowVersion(id: IntId<T>, table: DbTable): RowVersion<T> {
-        logger.daoAccess(VERSION_FETCH, "fetchRowVersion", "id" to id, "table" to table.fullName)
         return queryRowVersion(table.singleRowVersionSql, id)
     }
 
     protected fun <T> fetchManyRowVersions(ids: List<IntId<T>>, table: DbTable): List<RowVersion<T>> {
-        logger.daoAccess(VERSION_FETCH, "fetchManyRowVersions", "id" to ids, "table" to table.fullName)
         return if (ids.isEmpty()) {
             emptyList()
         } else {
@@ -106,7 +100,6 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
     }
 
     protected fun <T> fetchRowVersions(table: DbTable): List<RowVersion<T>> {
-        logger.daoAccess(VERSION_FETCH, "fetchRowVersions", "table" to table.fullName)
         return jdbcTemplate.query(table.rowVersionsSql, mapOf<String, Any>(), ::toRowVersion)
     }
 

@@ -1,9 +1,8 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.logging.AccessType
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getEnum
@@ -15,12 +14,10 @@ import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
-@Component
-@Transactional(readOnly = true)
+@GeoviiteDao(readOnly = true)
 class LayoutDesignDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
 ) : DaoBase(jdbcTemplateParam) {
@@ -79,7 +76,7 @@ class LayoutDesignDao(
             sql, params
         ) { rs, _ -> rs.getRowVersion<LayoutDesign>("id", "version") }
             ?: throw IllegalStateException("Failed to generate ID for new row version of updated layout design")
-        logger.daoAccess(AccessType.UPDATE, LayoutDesign::class, response)
+
         return response.id
     }
 
@@ -99,7 +96,7 @@ class LayoutDesignDao(
             )
         ) { rs, _ -> rs.getRowVersion<LayoutDesign>("id", "version") }
             ?: throw IllegalStateException("Failed to generate ID for new layout design")
-        logger.daoAccess(AccessType.INSERT, LayoutDesign::class, response)
+
         return response.id
     }
 

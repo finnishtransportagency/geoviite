@@ -1,11 +1,10 @@
 package fi.fta.geoviite.infra.split
 
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import fi.fta.geoviite.infra.logging.AccessType
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
@@ -21,7 +20,6 @@ import fi.fta.geoviite.infra.util.getOptional
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.setUser
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 
@@ -42,8 +40,7 @@ private fun toSplit(rs: ResultSet, targetLocationTracks: List<SplitTarget>) = Sp
     updatedDuplicates = rs.getIntIdArray("updated_duplicate_ids"),
 )
 
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class SplitDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
 ) : DaoBase(jdbcTemplateParam) {
@@ -81,8 +78,6 @@ class SplitDao(
         val splitId = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getIntId<Split>("id")
         } ?: error("Failed to save split for location track: version=$sourceLocationTrackVersion")
-
-        logger.daoAccess(AccessType.INSERT, Split::class, splitId)
 
         saveSplitTargets(splitId, splitTargets)
         saveRelinkedSwitches(splitId, relinkedSwitches)
@@ -128,9 +123,7 @@ class SplitDao(
         val sql = "delete from publication.split where id = :id"
 
         jdbcTemplate.setUser()
-        jdbcTemplate.update(sql, mapOf("id" to splitId.intValue)).also {
-            logger.daoAccess(AccessType.DELETE, Split::class, splitId)
-        }
+        jdbcTemplate.update(sql, mapOf("id" to splitId.intValue))
     }
 
     private fun saveSplitTargets(splitId: IntId<Split>, splitTargets: Collection<SplitTarget>) {
@@ -194,7 +187,7 @@ class SplitDao(
         return getOptional(
             splitId,
             jdbcTemplate.query(sql, mapOf("id" to splitId.intValue)) { rs, _ -> toSplit(rs, getSplitTargets(splitId)) },
-        ).also { logger.daoAccess(AccessType.FETCH, Split::class, splitId) }
+        )
     }
 
     fun getSplitHeader(splitId: IntId<Split>): SplitHeader {
@@ -218,9 +211,7 @@ class SplitDao(
                 bulkTransferState = rs.getEnum("bulk_transfer_state"),
                 publicationId = rs.getIntIdOrNull("publication_id"),
             )
-        }).also {
-            logger.daoAccess(AccessType.FETCH, SplitHeader::class, splitId)
-        }
+        })
     }
 
     @Transactional
@@ -255,7 +246,7 @@ class SplitDao(
         jdbcTemplate.setUser()
         return getOne(splitId, jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion<Split>("id", "version")
-        }).also { logger.daoAccess(AccessType.UPDATE, Split::class, splitId) }
+        })
     }
 
     private fun getSplitTargets(splitId: IntId<Split>): List<SplitTarget> {
@@ -307,8 +298,6 @@ class SplitDao(
         return jdbcTemplate.query(sql, mapOf("design_id" to branch.designId?.intValue)) { rs, _ ->
             val splitId = rs.getIntId<Split>("id")
             toSplit(rs, getSplitTargets(splitId))
-        }.also { ids ->
-            logger.daoAccess(AccessType.FETCH, SplitTarget::class, ids.map { it.id })
         }
     }
 
@@ -319,7 +308,6 @@ class SplitDao(
         val params = mapOf("publication_id" to publicationId.intValue)
 
         return getOptional(publicationId, jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<Split>("id") })
-            .also { _ -> logger.daoAccess(AccessType.FETCH, Split::class, "publicationId" to publicationId) }
     }
 
     fun locationTracksPartOfAnyUnfinishedSplit(branch: LayoutBranch, locationTrackIds: Collection<IntId<LocationTrack>>) =

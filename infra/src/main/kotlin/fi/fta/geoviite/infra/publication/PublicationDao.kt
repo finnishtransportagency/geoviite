@@ -1,13 +1,12 @@
 package fi.fta.geoviite.infra.publication
 
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_PUBLISHED_LOCATION_TRACKS
 import fi.fta.geoviite.infra.configuration.CACHE_PUBLISHED_SWITCHES
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.*
-import fi.fta.geoviite.infra.logging.AccessType.*
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
@@ -15,13 +14,11 @@ import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.*
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.Timestamp
 import java.time.Instant
 
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class PublicationDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     val referenceLineDao: ReferenceLineDao,
@@ -59,7 +56,7 @@ class PublicationDao(
                     ?.let(referenceLineDao::fetch)?.boundingBox
             )
         }
-        logger.daoAccess(FETCH, TrackNumberPublicationCandidate::class, candidates.map(TrackNumberPublicationCandidate::id))
+
         return candidates
     }
 
@@ -100,7 +97,7 @@ class PublicationDao(
                 boundingBox = rs.getBboxOrNull("bounding_box"),
             )
         }
-        logger.daoAccess(FETCH, ReferenceLinePublicationCandidate::class, candidates.map(ReferenceLinePublicationCandidate::id))
+
         return candidates
     }
 
@@ -163,7 +160,7 @@ class PublicationDao(
                 publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup),
             )
         }
-        logger.daoAccess(FETCH, LocationTrackPublicationCandidate::class, candidates.map(LocationTrackPublicationCandidate::id))
+
         requireUniqueIds(candidates)
         return candidates
     }
@@ -228,7 +225,7 @@ class PublicationDao(
                 publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup)
             )
         }
-        logger.daoAccess(FETCH, SwitchPublicationCandidate::class, candidates.map(SwitchPublicationCandidate::id))
+
         requireUniqueIds(candidates)
         return candidates
     }
@@ -267,7 +264,7 @@ class PublicationDao(
                 location = rs.getPointOrNull("point_x", "point_y"),
             )
         }
-        logger.daoAccess(FETCH, KmPostPublicationCandidate::class, candidates.map(KmPostPublicationCandidate::id))
+
         return candidates
     }
 
@@ -284,7 +281,6 @@ class PublicationDao(
                 rs.getIntId("id")
             } ?: error("Failed to generate ID for new publication row")
 
-        logger.daoAccess(INSERT, Publication::class, publicationId)
         return publicationId
     }
 
@@ -359,7 +355,7 @@ class PublicationDao(
         }.forEach { (trackVersion, switchIdList) ->
             switchIdList.forEach { id -> result[id] = result.getOrElse(id, ::setOf) + trackVersion }
         }
-        logger.daoAccess(FETCH, "switch_track_link", result)
+
         return result
     }
 
@@ -381,7 +377,7 @@ class PublicationDao(
         }
         return ids.associateWith { id ->
             rows.filter { (duplicateOfId, _) -> duplicateOfId == id }.map { (_, rv) -> rv }
-        }.also { logger.daoAccess(FETCH, "Duplicate track versions", ids) }
+        }
     }
 
     fun getPublication(publicationId: IntId<Publication>): Publication {
@@ -402,7 +398,7 @@ class PublicationDao(
                 publicationTime = rs.getInstant("publication_time"),
                 message = rs.getString("message")
             )
-        }).also { logger.daoAccess(FETCH, Publication::class, publicationId) }
+        })
     }
 
     @Transactional
@@ -426,8 +422,6 @@ class PublicationDao(
         saveSwitchChanges(
             publicationId, changes.directChanges.switchChanges, changes.indirectChanges.switchChanges
         )
-
-        logger.daoAccess(INSERT, CalculatedChanges::class, publicationId)
     }
 
     //Inclusive from/start time, but exclusive to/end time
@@ -451,7 +445,7 @@ class PublicationDao(
                 publicationTime = rs.getInstant("publication_time"),
                 message = rs.getString("message")
             )
-        }.also { publications -> logger.daoAccess(FETCH, Publication::class, publications.map { it.id }) }
+        }
     }
 
     //Inclusive from/start time, but exclusive to/end time
@@ -473,7 +467,7 @@ class PublicationDao(
                 publicationTime = rs.getInstant("publication_time"),
                 message = rs.getString("message")
             )
-        }.also { publications -> logger.daoAccess(FETCH, Publication::class, publications.map { it.id }) }
+        }
     }
 
     fun fetchPublicationTimes(): Map<Instant, IntId<Publication>> {
@@ -484,7 +478,7 @@ class PublicationDao(
 
         return jdbcTemplate.query(sql) { rs, _ ->
             rs.getInstant("publication_time") to rs.getIntId<Publication>("id")
-        }.toMap().also { logger.daoAccess(FETCH, Publication::class, it.keys) }
+        }.toMap()
     }
 
     fun fetchPublicationTrackNumberChanges(
@@ -539,7 +533,7 @@ class PublicationDao(
                 startAddress = rs.getChange("start_address", rs::getTrackMeterOrNull),
                 endPoint = rs.getChangePoint("end_x", "end_y"),
             )
-        }.toMap().also { logger.daoAccess(FETCH, TrackNumberChanges::class, publicationId) }
+        }.toMap()
     }
 
     fun fetchPublicationLocationTrackSwitchLinkChanges(
@@ -733,7 +727,7 @@ class PublicationDao(
                   else fetchGeometryChangeSummaries(publicationId, rs.getIntId("location_track_id")),
                 owner = rs.getChange("owner_id", rs::getIntIdOrNull),
             )
-        }.toMap().also { logger.daoAccess(FETCH, LocationTrackChanges::class, publicationId) }
+        }.toMap()
     }
 
     fun fetchGeometryChangeSummaries(
@@ -900,7 +894,7 @@ class PublicationDao(
                 state = rs.getChange("state", { rs.getEnumOrNull<LayoutState>(it) }),
                 location = rs.getChangePoint("point_x", "point_y"),
             )
-        }.toMap().also { logger.daoAccess(FETCH, KmPostChanges::class, publicationId) }
+        }.toMap()
     }
 
     fun fetchPublicationReferenceLineChanges(publicationId: IntId<Publication>): Map<IntId<ReferenceLine>, ReferenceLineChanges> {
@@ -963,7 +957,7 @@ class PublicationDao(
                 endPoint = rs.getChangePoint("end_x", "end_y"),
                 alignmentVersion = rs.getChangeRowVersion("alignment_id", "alignment_version"),
             )
-        }.toMap().also { logger.daoAccess(FETCH, ReferenceLineChanges::class, publicationId) }
+        }.toMap()
     }
 
     data class PublicationSwitchJoint(
@@ -1121,7 +1115,7 @@ class PublicationDao(
                 joints = joints,
                 locationTracks = lts,
             )
-        }.toMap().also { logger.daoAccess(FETCH, SwitchChanges::class, publicationId) }
+        }.toMap()
     }
 
     fun fetchChangeTime(): Instant {
@@ -1397,7 +1391,6 @@ class PublicationDao(
                 changedKmNumbers = rs.getStringArrayOrNull("changed_km")?.map(::KmNumber)?.toSet() ?: emptySet()
             )
         }.let { locationTrackRows ->
-            logger.daoAccess(FETCH, PublishedLocationTrack::class, locationTrackRows.map { it.second.version })
             partitionDirectIndirectChanges(locationTrackRows)
         }
     }
@@ -1441,8 +1434,6 @@ class PublicationDao(
                 operation = rs.getEnumOrNull<Operation>("operation") ?: Operation.MODIFY,
                 changedKmNumbers = rs.getStringArray("changed_km").map(::KmNumber).toSet()
             )
-        }.also { referenceLines ->
-            logger.daoAccess(FETCH, PublishedReferenceLine::class, referenceLines.map { it.version })
         }
     }
 
@@ -1467,7 +1458,7 @@ class PublicationDao(
                 kmNumber = rs.getKmNumber("km_number"),
                 operation = rs.getEnum("operation")
             )
-        }.also { kmPosts -> logger.daoAccess(FETCH, PublishedKmPost::class, kmPosts.map { it.version }) }
+        }
     }
 
     @Transactional(readOnly = true)
@@ -1502,7 +1493,6 @@ class PublicationDao(
                 changedJoints = publishedSwitchJoints.filter { it.first == rs.getIntId<TrackLayoutSwitch>("id") }
                     .flatMap { it.second })
         }.let { switchRows ->
-            logger.daoAccess(FETCH, PublishedSwitch::class, switchRows.map { it.second.version })
             partitionDirectIndirectChanges(switchRows)
         }
     }
@@ -1574,7 +1564,6 @@ class PublicationDao(
                 changedKmNumbers = rs.getStringArray("changed_km").map(::KmNumber).toSet()
             )
         }.let { trackNumberRows ->
-            logger.daoAccess(FETCH, PublishedTrackNumber::class, trackNumberRows.map { it.second.version })
             partitionDirectIndirectChanges(trackNumberRows)
         }
     }

@@ -1,13 +1,12 @@
 package fi.fta.geoviite.infra.ratko
 
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPoint
 import fi.fta.geoviite.infra.ratko.model.RatkoOperatingPointParse
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.util.*
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 import java.time.Instant
@@ -24,8 +23,7 @@ fun toRatkoOperatingPoint(rs: ResultSet): RatkoOperatingPoint {
     )
 }
 
-@Service
-@Component
+@GeoviiteDao
 class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
     @Transactional
     fun updateOperatingPoints(newPoints: List<RatkoOperatingPointParse>) {

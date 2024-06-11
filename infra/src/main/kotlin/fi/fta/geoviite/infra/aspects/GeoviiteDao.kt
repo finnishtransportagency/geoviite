@@ -6,13 +6,18 @@ import org.aspectj.lang.annotation.AfterReturning
 import org.aspectj.lang.annotation.Aspect
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.core.annotation.AliasFor
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 import java.util.concurrent.ConcurrentHashMap
 
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 @Component
-annotation class GeoviiteDao
+@Transactional
+annotation class GeoviiteDao(
+    @get: AliasFor(annotation = Transactional::class) val readOnly: Boolean = false,
+)
 
 @Aspect
 @Component

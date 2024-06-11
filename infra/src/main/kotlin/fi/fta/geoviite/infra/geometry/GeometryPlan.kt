@@ -114,7 +114,9 @@ data class GeometryPlanArea(
     val id: DomainId<GeometryPlan>,
     val fileName: FileName,
     val polygon: List<Point>,
-)
+) : Loggable {
+    override fun toLog(): String = logFormat("id" to id, "fileName" to fileName)
+}
 
 data class GeometryPlanUnits(
     val id: IntId<GeometryPlan>,

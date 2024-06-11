@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.geometry
 
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.CACHE_GEOMETRY_PLAN
@@ -14,8 +15,6 @@ import fi.fta.geoviite.infra.geometry.GeometryElementType.*
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.InfraModelFileWithSource
 import fi.fta.geoviite.infra.inframodel.PlanElementName
-import fi.fta.geoviite.infra.logging.AccessType.*
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
@@ -27,7 +26,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 import java.sql.Timestamp
@@ -39,8 +37,7 @@ enum class VerticalIntersectionType {
 
 const val PLAN_HEADER_CACHE_SIZE = 10000L
 
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class GeometryDao @Autowired constructor(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boolean,
@@ -153,7 +150,6 @@ class GeometryDao @Autowired constructor(
         insertAlignments(planId.id, plan.alignments, switchDatabaseIds)
         insertKmPosts(getKmPostParams(planId.id, plan.kmPosts))
 
-        logger.daoAccess(INSERT, GeometryPlan::class, planId)
         return planId
     }
 
@@ -175,7 +171,6 @@ class GeometryDao @Autowired constructor(
             "Backend hash calculation should match the automatic DB-generated: file=${file.name} db=$hash backend=${file.hash}"
         }
 
-        logger.daoAccess(INSERT, InfraModelFile::class, fileId)
         return fileId
     }
 
@@ -212,8 +207,6 @@ class GeometryDao @Autowired constructor(
 
         return jdbcTemplate.queryOptional<RowVersion<GeometryPlan>>(sql, params) { rs, _ ->
             rs.getRowVersion("id", "version")
-        }?.also {
-            logger.daoAccess(FETCH, GeometryPlan::class, it)
         }
     }
 
@@ -255,7 +248,7 @@ class GeometryDao @Autowired constructor(
                 rs.getIntIdArray("switch_ids"),
                 rs.getIntIdArray("km_post_ids"),
             )
-        }.also { logger.daoAccess(FETCH, GeometryPlanLinkedItems::class, planIds) }
+        }
     }
 
     @Transactional
@@ -275,7 +268,7 @@ class GeometryDao @Autowired constructor(
         jdbcTemplate.setUser()
         return jdbcTemplate.queryOne<RowVersion<GeometryPlan>>(sql, params) { rs, _ ->
             rs.getRowVersion("id", "version")
-        }.also { v -> logger.daoAccess(UPDATE, GeometryPlan::class, id) }
+        }
     }
 
     @Transactional
@@ -326,9 +319,7 @@ class GeometryDao @Autowired constructor(
 
         return getOne(planId, jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion<GeometryPlan>("id", "version")
-        }).also {
-            logger.daoAccess(UPDATE, GeometryPlan::class, planId)
-        }
+        })
     }
 
     @Transactional
@@ -349,7 +340,7 @@ class GeometryDao @Autowired constructor(
         val projectVersion: RowVersion<Project> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getRowVersion("id", "version")
         } ?: throw IllegalStateException("Failed to get generated ID for new project")
-        logger.daoAccess(INSERT, Project::class, projectVersion)
+
         return projectVersion
     }
 
@@ -370,7 +361,7 @@ class GeometryDao @Autowired constructor(
         val authorVersion: RowVersion<Author> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getRowVersion("id", "version")
         } ?: throw IllegalStateException("Failed to get generated ID for new author")
-        logger.daoAccess(INSERT, Author::class, authorVersion)
+
         return authorVersion
     }
 
@@ -394,7 +385,7 @@ class GeometryDao @Autowired constructor(
         val appId: RowVersion<Application> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getRowVersion("id", "version")
         } ?: throw IllegalStateException("Failed to get generated ID for new application")
-        logger.daoAccess(INSERT, Application::class, appId)
+
         return appId
     }
 
@@ -416,7 +407,6 @@ class GeometryDao @Autowired constructor(
             )
         }.firstOrNull()
 
-        application?.also { logger.daoAccess(FETCH, Application::class, it.id) }
         return application
     }
 
@@ -441,7 +431,6 @@ class GeometryDao @Autowired constructor(
                 version = MetaDataName(rs.getString("application_version")),
             )
         }.firstOrNull() ?: throw NoSuchEntityException(Project::class, applicationId)
-        logger.daoAccess(FETCH, Application::class, application.id)
 
         return application
     }
@@ -670,7 +659,7 @@ class GeometryDao @Autowired constructor(
         """.trimIndent()
         val headers = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getPlanHeader(rs) }
             .associateBy(GeometryPlanHeader::version)
-        logger.daoAccess(FETCH, GeometryPlanHeader::class, headers.keys)
+
         headerCache.putAll(headers)
     }
 
@@ -730,9 +719,7 @@ class GeometryDao @Autowired constructor(
             "plan_id" to rowVersion.id.intValue,
             "plan_version" to rowVersion.version,
         )
-        return getOne(rowVersion.id, jdbcTemplate.query(sql, params) { rs, _ -> getPlanHeader(rs) }).also { header ->
-            logger.daoAccess(FETCH, GeometryPlanHeader::class, header.version)
-        }
+        return getOne(rowVersion.id, jdbcTemplate.query(sql, params) { rs, _ -> getPlanHeader(rs) })
     }
 
     private fun getPlanHeader(rs: ResultSet): GeometryPlanHeader {
@@ -852,7 +839,7 @@ class GeometryDao @Autowired constructor(
             )
             area
         }.filterNotNull()
-        logger.daoAccess(FETCH, GeometryPlanArea::class, result.map { a -> a.id })
+
         return result
     }
 
@@ -936,7 +923,7 @@ class GeometryDao @Autowired constructor(
             )
             geometryPlan
         }.firstOrNull() ?: throw NoSuchEntityException(GeometryPlan::class, planVersion.id)
-        logger.daoAccess(FETCH, GeometryPlan::class, planVersion)
+
         return plan
     }
 
@@ -955,7 +942,7 @@ class GeometryDao @Autowired constructor(
                 description = rs.getFreeTextOrNull("description"),
             )
         }.firstOrNull() ?: throw NoSuchEntityException(Project::class, projectId)
-        logger.daoAccess(FETCH, Project::class, project.id)
+
         return project
     }
 
@@ -976,7 +963,6 @@ class GeometryDao @Autowired constructor(
             )
         }.firstOrNull()
 
-        project?.also { logger.daoAccess(FETCH, Project::class, it.id) }
         return project
     }
 
@@ -996,7 +982,6 @@ class GeometryDao @Autowired constructor(
             )
         }
 
-        logger.daoAccess(FETCH, Project::class)
         return projects
     }
 
@@ -1021,7 +1006,6 @@ class GeometryDao @Autowired constructor(
             )
         }.firstOrNull()
 
-        author?.also { logger.daoAccess(FETCH, Author::class, it.id) }
         return author
     }
 
@@ -1041,7 +1025,7 @@ class GeometryDao @Autowired constructor(
                 companyName = CompanyName(rs.getString("company_name")),
             )
         }.firstOrNull() ?: throw NoSuchEntityException(Project::class, authorId)
-        logger.daoAccess(FETCH, Author::class, author.id)
+
         return author
     }
 
@@ -1059,7 +1043,6 @@ class GeometryDao @Autowired constructor(
             )
         }
 
-        logger.daoAccess(FETCH, Author::class, authors.map { it.id })
         return authors
     }
 
@@ -1178,7 +1161,7 @@ class GeometryDao @Autowired constructor(
             where switch.id = :switch_id
         """.trimIndent()
         val params = mapOf("switch_id" to id.intValue)
-        logger.daoAccess(FETCH, GeometrySwitch::class, params)
+
         return jdbcTemplate.queryOne(sql, params, id.toString()) { rs, _ -> rs.getSridOrNull("srid") }
     }
 
@@ -1238,7 +1221,7 @@ class GeometryDao @Autowired constructor(
         val alignmentId = IntId<GeometryAlignment>(geometryElementId.parentId)
         val planUnits = fetchPlanUnits(alignmentId)
         val element = fetchElements(alignmentId, planUnits.units, geometryElementId).firstOrNull()
-        logger.daoAccess(FETCH, GeometryElement::class, geometryElementId)
+
         return element ?: throw NoSuchEntityException(GeometryElement::class, geometryElementId)
     }
 

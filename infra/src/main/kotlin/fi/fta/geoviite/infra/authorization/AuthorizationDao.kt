@@ -2,20 +2,16 @@ package fi.fta.geoviite.infra.authorization
 
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.configuration.staticDataCacheDuration
-import fi.fta.geoviite.infra.logging.AccessType.FETCH
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.*
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.util.*
 
 const val AUTHORIZATION_ROLE_CACHE_SIZE = 100L
 
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class AuthorizationDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") val cacheEnabled: Boolean,
@@ -93,7 +89,7 @@ class AuthorizationDao(
                 privileges = fetchRolePrivilegesInternal(code),
             )
         }
-        logger.daoAccess(FETCH, Role::class, listOfNotNull(roleCode, userGroup))
+
         return Optional.ofNullable(role)
     }
 
@@ -108,7 +104,7 @@ class AuthorizationDao(
         val privileges = jdbcTemplate.query(sql, params) { rs, _ ->
             Privilege(code = rs.getCode("code"))
         }
-        logger.daoAccess(FETCH, Privilege::class, privileges.map { p -> p.code })
+
         return privileges
     }
 }

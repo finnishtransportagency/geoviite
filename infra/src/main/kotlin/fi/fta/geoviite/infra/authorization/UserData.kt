@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
+import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.util.*
 import org.springframework.security.core.GrantedAuthority
 
@@ -16,11 +17,19 @@ data class UserDetails(
     val organization: AuthName?,
 )
 
-data class Role(val code: Code, val privileges: List<Privilege>)
 
-data class Privilege(val code: Code) : GrantedAuthority {
+data class Role(val code: Code, val privileges: List<Privilege>) : Loggable {
+    override fun toLog() = code.toString()
+}
+
+data class Privilege(val code: Code) : GrantedAuthority, Loggable {
+
     @JsonIgnore
     override fun getAuthority(): String = code.toString()
+
+    override fun toLog(): String {
+        return code.toString()
+    }
 }
 
 val userNameLength = 3..300

@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.geography
 
-import fi.fta.geoviite.infra.logging.AccessType
-import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
@@ -10,11 +9,8 @@ import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.queryOne
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class HeightTriangleDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     fun fetchTriangles(boundingPolygon: List<Point>): List<HeightTriangle> {
@@ -56,12 +52,11 @@ class HeightTriangleDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBas
                 corner3Diff = rs.getDouble("corner3_difference")
             )
         }
-        logger.daoAccess(AccessType.FETCH, HeightTriangle::class)
+
         return triangles
     }
 
     fun fetchTriangulationNetworkBounds(): BoundingBox {
-        logger.daoAccess(AccessType.FETCH, BoundingBox::class)
         //language=SQL
         val sql = """
             select postgis.st_astext(postgis.st_extent(polygon_transformed)) bounds

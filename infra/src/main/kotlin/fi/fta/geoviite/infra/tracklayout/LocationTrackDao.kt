@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -7,8 +8,6 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.CACHE_COMMON_LOCATION_TRACK_OWNER
 import fi.fta.geoviite.infra.geometry.MetaDataName
-import fi.fta.geoviite.infra.logging.AccessType
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.LayoutAssetTable
@@ -29,14 +28,12 @@ import fi.fta.geoviite.infra.util.toDbId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 
 const val LOCATIONTRACK_CACHE_SIZE = 10000L
 
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class LocationTrackDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
@@ -62,7 +59,7 @@ class LocationTrackDao(
         val versions = jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getRowVersion<LocationTrack>("row_id", "row_version")
         }
-        logger.daoAccess(AccessType.FETCH, LocationTrack::class, id)
+
         return versions
     }
 
@@ -135,9 +132,7 @@ class LocationTrackDao(
             "id" to version.id.intValue,
             "version" to version.version,
         )
-        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLocationTrack(rs) }).also {
-            logger.daoAccess(AccessType.FETCH, LocationTrack::class, version)
-        }
+        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLocationTrack(rs) })
     }
 
     override fun preloadCache() {
@@ -183,7 +178,7 @@ class LocationTrackDao(
         val tracks = jdbcTemplate
             .query(sql, mapOf<String, Any>()) { rs, _ -> getLocationTrack(rs) }
             .associateBy(LocationTrack::version)
-        logger.daoAccess(AccessType.FETCH, LocationTrack::class, tracks.keys)
+
         cache.putAll(tracks)
     }
 
@@ -299,7 +294,7 @@ class LocationTrackDao(
         val response: DaoResponse<LocationTrack> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to generate ID for new Location Track")
-        logger.daoAccess(AccessType.INSERT, LocationTrack::class, response)
+
         return response
     }
 
@@ -362,7 +357,7 @@ class LocationTrackDao(
         val response: DaoResponse<LocationTrack> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to get new version for Location Track")
-        logger.daoAccess(AccessType.UPDATE, LocationTrack::class, response)
+
         return response
     }
 
@@ -455,7 +450,7 @@ class LocationTrackDao(
                 name = MetaDataName(rs.getString("name")),
             )
         }
-        logger.daoAccess(AccessType.FETCH, LocationTrackOwner::class, locationTrackOwners.map { it.id })
+
         return locationTrackOwners
     }
 
@@ -481,8 +476,6 @@ class LocationTrackDao(
             )
         ) { rs, _ ->
             rs.getRowVersion<LocationTrack>("id", "version")
-        }.also { ids ->
-            logger.daoAccess(AccessType.VERSION_FETCH, "fetchOnlyDraftVersions", ids)
         }
     }
 

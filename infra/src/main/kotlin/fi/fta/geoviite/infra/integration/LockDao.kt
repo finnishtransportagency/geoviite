@@ -1,9 +1,11 @@
 package fi.fta.geoviite.infra.integration
 
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.util.DaoBase
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
 import java.time.Duration
 
 enum class DatabaseLock {
@@ -20,16 +22,21 @@ enum class DatabaseLock {
  * Note, this DAO is intentionally non-transactional as running with the lock should not
  * require an encompassing transaction.
  */
-@Component
+@GeoviiteDao
 class LockDao @Autowired constructor(
     jdbcTemplateParam: NamedParameterJdbcTemplate?
 ) : DaoBase(jdbcTemplateParam) {
 
+    val logger: Logger = LoggerFactory.getLogger(LockDao::class.java)
+
     fun <R> runWithLock(lockName: DatabaseLock, maxLockDuration: Duration, fn: () -> R): R? {
         val lock = obtainLock(lockName, maxLockDuration)
 
-        if (lock == null) logger.info("Failed to obtain lock: name=$lockName")
-        else logger.info("Obtained lock: name=$lockName maxDuration=$maxLockDuration")
+        if (lock == null) {
+            logger.info("Failed to obtain lock: name=$lockName")
+        } else {
+            logger.info("Obtained lock: name=$lockName maxDuration=$maxLockDuration")
+        }
 
         return lock?.let {
             try {

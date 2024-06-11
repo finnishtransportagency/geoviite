@@ -1,10 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.logging.AccessType
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getDaoResponse
 import fi.fta.geoviite.infra.util.getEnum
@@ -21,14 +20,12 @@ import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 
 const val TRACK_NUMBER_CACHE_SIZE = 1000L
 
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class LayoutTrackNumberDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
@@ -96,9 +93,7 @@ class LayoutTrackNumberDao(
             "id" to version.id.intValue,
             "version" to version.version,
         )
-        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutTrackNumber(rs) }).also {
-            logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, version)
-        }
+        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutTrackNumber(rs) })
     }
 
     override fun preloadCache() {
@@ -122,7 +117,7 @@ class LayoutTrackNumberDao(
         """.trimIndent()
         val trackNumbers = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutTrackNumber(rs) }
             .associateBy(TrackLayoutTrackNumber::version)
-        logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, trackNumbers.keys)
+
         cache.putAll(trackNumbers)
     }
 
@@ -179,7 +174,7 @@ class LayoutTrackNumberDao(
         val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to generate ID for new TrackNumber")
-        logger.daoAccess(AccessType.INSERT, TrackLayoutTrackNumber::class, response)
+
         return response
     }
 
@@ -217,7 +212,7 @@ class LayoutTrackNumberDao(
         val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to get new version for Track Layout TrackNumber")
-        logger.daoAccess(AccessType.UPDATE, TrackLayoutTrackNumber::class, response)
+
         return response
     }
 
@@ -235,7 +230,7 @@ class LayoutTrackNumberDao(
                 rs.getTrackNumber("number"),
                 rs.getInstant("change_time"),
             )
-        }.also { logger.daoAccess(AccessType.FETCH, "track_number_version") }
+        }
     }
 
     fun findOfficialNumberDuplicates(
