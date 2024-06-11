@@ -265,7 +265,7 @@ class RatkoLocalServiceIT @Autowired constructor(
     }
 
     @Test
-    fun `Operating points can be found by their oid`() {
+    fun `Operating points can be found by their exact oid`() {
         listOf(
             createTestOperatingPoint(
                 name = "AAA",
@@ -286,6 +286,25 @@ class RatkoLocalServiceIT @Autowired constructor(
                     .let { result ->
                         assertEquals(1, result.size)
                         assertEquals(testOperatingPoint.name, result[0].name)
+                    }
+            }
+    }
+
+    @Test
+    fun `Operating points cannot be found by partial oid`() {
+        listOf(
+            createTestOperatingPoint(
+                name = "AAA",
+                abbreviation = "unused",
+                externalId = someOid(),
+            ),
+        )
+            .also(operatingPointDao::updateOperatingPoints)
+            .forEach { testOperatingPoint ->
+                ratkoLocalService
+                    .searchOperatingPoints(FreeText(testOperatingPoint.externalId.toString().substring(0, 4)))
+                    .let { result ->
+                        assertEquals(0, result.size)
                     }
             }
     }

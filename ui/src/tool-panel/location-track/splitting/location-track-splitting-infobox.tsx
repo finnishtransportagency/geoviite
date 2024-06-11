@@ -48,6 +48,7 @@ import { ChangeTimes } from 'common/common-slice';
 import {
     LocationTrackSplittingDraftExistsErrorNotice,
     LocationTrackSplittingDuplicateTrackNotPublishedErrorNotice,
+    LocationTrackSplittingErrorNotice,
     LocationTrackSplittingGuideNotice,
     NoticeWithNavigationLink,
 } from 'tool-panel/location-track/splitting/location-track-split-notices';
@@ -85,7 +86,7 @@ type LocationTrackSplittingInfoboxProps = {
     updateSplit: (updatedSplit: SplitTargetCandidate | FirstSplitTargetCandidate) => void;
     returnToSplitting: () => void;
     startPostingSplit: () => void;
-    markSplitOld: (splitPoint: SplitPoint) => void;
+    unfocusSplit: (splitPoint: SplitPoint) => void;
     onShowTaskList: (locationTrackId: LocationTrackId) => void;
     switchRelinkingErrors: SwitchRelinkingValidationResult[];
     switchRelinkingLoaderState: LoaderStatus;
@@ -209,7 +210,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
                 sourceEnd={startAndEnd.end}
                 returnToSplitting={delegates.returnToSplitting}
                 startPostingSplit={delegates.startPostingSplit}
-                markSplitOld={delegates.markSplitOld}
+                unfocusSplit={delegates.unfocusSplit}
                 onShowTaskList={onShowTaskList}
                 switchRelinkingErrors={switchRelinkingErrors || []}
                 switchRelinkingLoaderState={switchRelinkingLoaderState}
@@ -323,7 +324,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     sourceEnd,
     returnToSplitting,
     startPostingSplit,
-    markSplitOld,
+    unfocusSplit,
     onShowTaskList,
     switchRelinkingErrors,
     switchRelinkingLoaderState,
@@ -373,10 +374,21 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         .map((s) => s.reason)
         .some(otherError);
     const isPostingSplit = splittingState.state === 'POSTING';
-
     const firstChangedDuplicateInSplits = duplicateTracksInCurrentSplits.find(
         (dupe) => dupe.editState !== 'UNEDITED',
     );
+    const unusedNonOverlappingDuplicates = splittingState.duplicateTracks.filter(
+        (duplicateTrack) => {
+            const duplicateTrackIsUsedInSplit = allSplits.some(
+                (split) => split.duplicateTrackId === duplicateTrack.id,
+            );
+            return duplicateTrack.status.match == 'NONE' && !duplicateTrackIsUsedInSplit;
+        },
+    );
+    const unusedNonOverlappingDuplicateNames = unusedNonOverlappingDuplicates.map(
+        (duplicate) => duplicate.name,
+    );
+    const anyNonOverlappingDuplicates = unusedNonOverlappingDuplicates.length > 0;
 
     const postSplit = () => {
         startPostingSplit();
@@ -410,10 +422,12 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         findRefToFirstErroredField(splitComponents, predicate)?.current?.focus();
 
     React.useEffect(() => {
-        const newSplitComponent = splitComponents.find((s) => s.splitAndValidation.split.new);
-        if (newSplitComponent) {
-            newSplitComponent.nameRef.current?.focus();
-            markSplitOld(newSplitComponent.splitAndValidation.split.splitPoint);
+        const splitComponentToFocus = splitComponents.find(
+            (s) => s.splitAndValidation.split.focusBehaviour === 'FOCUS',
+        );
+        if (splitComponentToFocus) {
+            splitComponentToFocus.nameRef.current?.focus();
+            unfocusSplit(splitComponentToFocus.splitAndValidation.split.splitPoint);
         }
     });
 
@@ -464,6 +478,16 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                     {splittingState.disabled && locationTrack.editState !== 'UNEDITED' && (
                         <LocationTrackSplittingDraftExistsErrorNotice />
                     )}
+                    {anyNonOverlappingDuplicates && (
+                        <LocationTrackSplittingErrorNotice
+                            msg={t(
+                                'tool-panel.location-track.splitting.validation.unused-non-overlapping-duplicates-exist',
+                                {
+                                    duplicateNames: unusedNonOverlappingDuplicateNames.join(', '),
+                                },
+                            )}
+                        />
+                    )}
                     <LocationTrackSplitRelinkingNotice
                         splittingState={splittingState}
                         onClickRelink={() => setConfirmOpenTaskListAndExit(true)}
@@ -511,6 +535,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
                             isProcessing={isPostingSplit}
                             disabled={
                                 splittingState.disabled ||
+                                anyNonOverlappingDuplicates ||
                                 anyMissingFields ||
                                 anyOtherErrors ||
                                 !!firstChangedDuplicateInSplits ||

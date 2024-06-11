@@ -11,6 +11,7 @@ import styles from './location-track-infobox.scss';
 import { LayoutContext, TimeStamp } from 'common/common-model';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { createClassName } from 'vayla-design-lib/utils';
 
 export type LocationTrackInfoboxDuplicateOfProps = {
     layoutContext: LayoutContext;
@@ -30,18 +31,37 @@ type LocationTrackDuplicateTrackNumberWarningProps = {
     differingTrackNumberName: string;
 };
 
+const LocationTrackDuplicateInfoIcon: React.FC<{
+    msg: string;
+    type: 'INFO' | 'ERROR';
+}> = ({ msg, type = 'INFO' }) => {
+    return (
+        <span
+            title={msg}
+            className={createClassName(
+                styles['location-track-infobox-duplicate-of__icon'],
+                type === 'ERROR' && styles['location-track-infobox-duplicate-of__icon--error'],
+            )}>
+            {type === 'ERROR' ? (
+                <Icons.StatusError color={IconColor.INHERIT} size={IconSize.SMALL} />
+            ) : (
+                <Icons.Info color={IconColor.INHERIT} size={IconSize.SMALL} />
+            )}
+        </span>
+    );
+};
+
 const LocationTrackDuplicateTrackNumberWarning: React.FC<
     LocationTrackDuplicateTrackNumberWarningProps
 > = ({ differingTrackNumberName }) => {
     const { t } = useTranslation();
     return (
-        <span
-            title={t('tool-panel.location-track.duplicate-on-different-track-number', {
+        <LocationTrackDuplicateInfoIcon
+            msg={t('tool-panel.location-track.duplicate-on-different-track-number', {
                 trackNumber: differingTrackNumberName,
             })}
-            className={styles['location-track-infobox-duplicate-of__on-different-track']}>
-            <Icons.StatusError color={IconColor.INHERIT} size={IconSize.SMALL} />
-        </span>
+            type={'ERROR'}
+        />
     );
 };
 
@@ -78,29 +98,37 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
                         locationTrackId={duplicate.id}
                         locationTrackName={duplicate.name}
                     />
-                    {duplicate.duplicateStatus.duplicateOfId == undefined && (
-                        <span
-                            className={
-                                styles[
-                                    'location-track-infobox-duplicate-of__partial-duplicate-info'
-                                ]
-                            }
-                            title={t('tool-panel.location-track.implicit-duplicate-tooltip', {
-                                trackName: duplicate.name,
-                                otherTrackName: targetLocationTrack.name,
-                            })}>
-                            <Icons.Info size={IconSize.SMALL} />
-                        </span>
-                    )}
-                    &nbsp;
-                    {currentTrackNumberId !== duplicate.trackNumberId && (
-                        <LocationTrackDuplicateTrackNumberWarning
-                            differingTrackNumberName={getTrackNumberName(
-                                trackNumbers,
-                                duplicate.trackNumberId,
-                            )}
-                        />
-                    )}
+                    <span className={styles['location-track-infobox-duplicate-of__info-icons']}>
+                        {duplicate.duplicateStatus.duplicateOfId == undefined && (
+                            <LocationTrackDuplicateInfoIcon
+                                msg={t('tool-panel.location-track.implicit-duplicate-tooltip', {
+                                    trackName: duplicate.name,
+                                    otherTrackName: targetLocationTrack.name,
+                                })}
+                                type={'INFO'}
+                            />
+                        )}
+                        {currentTrackNumberId !== duplicate.trackNumberId && (
+                            <LocationTrackDuplicateTrackNumberWarning
+                                differingTrackNumberName={getTrackNumberName(
+                                    trackNumbers,
+                                    duplicate.trackNumberId,
+                                )}
+                            />
+                        )}
+                        {duplicate.duplicateStatus.match === 'NONE' && (
+                            <LocationTrackDuplicateInfoIcon
+                                msg={t(
+                                    'tool-panel.location-track.non-overlapping-duplicate-tooltip',
+                                    {
+                                        trackName: duplicate.name,
+                                        otherTrackName: targetLocationTrack.name,
+                                    },
+                                )}
+                                type={'ERROR'}
+                            />
+                        )}
+                    </span>
                 </li>
             ))}
         </ul>
