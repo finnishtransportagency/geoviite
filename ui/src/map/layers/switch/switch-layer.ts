@@ -43,6 +43,7 @@ type SwitchLayerData = {
     switches: LayoutSwitch[];
     structures: SwitchStructure[];
     validationResult: ValidatedSwitch[];
+    disabled: boolean;
 };
 
 const layerName: MapLayerName = 'switch-layer';
@@ -104,6 +105,7 @@ export function createSwitchLayer(
         switches,
         structures,
         validationResult,
+        disabled: splittingState?.disabled ?? false,
     }));
 
     function updateShownSwitches(switchIds: LayoutSwitchId[]) {
@@ -120,6 +122,7 @@ export function createSwitchLayer(
             resolution,
             selection,
             data.switches,
+            data.disabled,
             data.structures,
             data.validationResult,
         );
@@ -142,7 +145,9 @@ export function createSwitchLayer(
         name: layerName,
         layer: layer,
         searchItems: (hitArea: Rectangle, options: SearchItemsOptions) => ({
-            switches: findMatchingSwitches(hitArea, source, options).map((d) => d.switch.id),
+            switches: !splittingState?.disabled
+                ? findMatchingSwitches(hitArea, source, options).map((d) => d.switch.id)
+                : [],
         }),
         onRemove: () => updateShownSwitches([]),
     };

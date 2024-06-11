@@ -21,6 +21,16 @@ const splitPointStyle = new Style({
     }),
     zIndex: 2,
 });
+
+const splitPointDisabledStyle = new Style({
+    image: new Circle({
+        radius: 8,
+        fill: new Fill({ color: mapStyles.splitPointDisabledCircleColor }),
+        stroke: new Stroke({ color: mapStyles.alignmentBadgeWhite, width: 2 }),
+    }),
+    zIndex: 2,
+});
+
 const splitPointFocusedStyle = new Style({
     image: new Circle({
         radius: 10,
@@ -86,7 +96,9 @@ export const createLocationTrackSplitLocationLayer = (
                     splitPointsAreSame(splittingState.highlightedSplitPoint, splitPoint);
 
                 const getSelectedStyle = () => {
-                    if (isDeletedSwitch) {
+                    if (splittingState?.disabled) {
+                        return splitPointDisabledStyle;
+                    } if (isDeletedSwitch) {
                         return deletedSplitPointStyle;
                     } else if (isHighlighted) {
                         return splitPointFocusedStyle;
