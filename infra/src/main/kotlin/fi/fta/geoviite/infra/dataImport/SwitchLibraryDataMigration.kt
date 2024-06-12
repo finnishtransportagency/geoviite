@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.dataImport
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwnerDao
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -116,7 +115,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.SingleConnectionDataSource
-import java.security.MessageDigest
 
 val switchStructures: List<SwitchStructure> by lazy {
     listOf(
@@ -298,12 +296,5 @@ class R__10_01__update_all_switch_structures : BaseJavaMigration() {
         }
     }
 
-    @OptIn(ExperimentalStdlibApi::class)
-    override fun getChecksum(): Int {
-        val objectMapper = ObjectMapper()
-        val json = objectMapper.writeValueAsString(switchStructures.map { it.stripUniqueIdentifiers() })
-        val md = MessageDigest.getInstance("MD5")
-        val digest = md.digest(json.toByteArray())
-        return digest.toHexString().hashCode()
-    }
+    override fun getChecksum(): Int = switchStructures.map { s -> s.stripUniqueIdentifiers() }.hashCode()
 }

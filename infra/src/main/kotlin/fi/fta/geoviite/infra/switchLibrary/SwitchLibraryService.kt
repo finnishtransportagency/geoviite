@@ -71,10 +71,6 @@ class SwitchLibraryService(
     private fun getOrThrow(id: IntId<SwitchStructure>) =
         structuresById[id] ?: throw NoSuchEntityException(SwitchStructure::class, id)
 
-    fun areSame(s1: SwitchStructure, s2:SwitchStructure):Boolean {
-        return s1.stripUniqueIdentifiers() == s2.stripUniqueIdentifiers()
-    }
-
     @Transactional
     fun upsertSwitchStructure(switchStructure: SwitchStructure) {
         logger.serviceCall("upsertSwitchStructure", "switchStructure" to switchStructure)
@@ -83,7 +79,7 @@ class SwitchLibraryService(
             switchStructureDao.insertSwitchStructure(switchStructure)
         } else {
             val switchStructureWithExistingId = switchStructure.copy(id =existingSwitchStructure.id)
-            if (!areSame(existingSwitchStructure, switchStructureWithExistingId)) {
+            if (!existingSwitchStructure.isSame(switchStructureWithExistingId)) {
                 switchStructureDao.updateSwitchStructure(switchStructureWithExistingId)
             }
         }

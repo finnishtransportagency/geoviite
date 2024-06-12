@@ -292,6 +292,10 @@ data class SwitchStructure(
             }
         )
     }
+
+    fun isSame(other:SwitchStructure):Boolean {
+        return stripUniqueIdentifiers() == other.stripUniqueIdentifiers()
+    }
 }
 
 /**

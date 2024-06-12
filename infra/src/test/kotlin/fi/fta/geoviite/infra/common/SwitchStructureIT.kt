@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.common
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.dataImport.switchStructures
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchElement
@@ -258,4 +259,51 @@ class SwitchStructureIT @Autowired constructor(
             assertEquals(e1.radius, e2.radius)
         }
     }
+
+    @Test
+    fun `Should produce different hashcode when switch structures are modified`() {
+        val firstSet = switchStructures
+        val modifiedSet = firstSet.mapIndexed { index, struct ->
+            if (index>0)
+                struct
+            else
+                struct.copy(
+                    alignments = struct.alignments.mapIndexed{index, alignment ->
+                        if (index==0)
+                            alignment.copy(
+                                elements = alignment.elements.mapIndexed{index, element ->
+                                    if (index==0)
+                                        SwitchElementLine(
+                                            id = element.id,
+                                            start = element.start + 10.0,
+                                            end = element.end)
+                                    else
+                                        element
+                                }
+                            )
+                        else
+                            alignment
+                    }
+                )
+        }
+
+        assertNotEquals(
+            firstSet.map { s -> s.stripUniqueIdentifiers() }.hashCode(),
+            modifiedSet.map { s -> s.stripUniqueIdentifiers() }.hashCode()
+        )
+    }
+
+    @Test
+    fun `Should produce same hashcode when switch structures are not modified`() {
+        val firstSet = switchStructures
+        val similarSet = firstSet.map {struct ->
+            struct.copy()
+        }
+
+        assertEquals(
+            firstSet.map { s -> s.stripUniqueIdentifiers() }.hashCode(),
+            similarSet.map { s -> s.stripUniqueIdentifiers() }.hashCode()
+        )
+    }
+
 }
