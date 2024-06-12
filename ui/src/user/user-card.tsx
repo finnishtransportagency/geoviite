@@ -59,8 +59,10 @@ export const UserCard: React.FC<UserCardProps> = ({ user }: UserCardProps) => {
                                 </h3>
                                 <span>
                                     {user.role.privileges.map((priv, index) => (
-                                        <span key={priv.name} title={t(priv.description)}>
-                                            {t(priv.name)}
+                                        <span
+                                            key={priv.code}
+                                            title={t(`privilege.description.${priv.code}`)}>
+                                            {t(`privilege.${priv.code}`)}
                                             {index < user.role.privileges.length - 1 && ', '}
                                         </span>
                                     ))}
