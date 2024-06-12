@@ -35,7 +35,7 @@ class SwitchLibraryService(
 
     fun getSwitchStructureByType(type: SwitchType):SwitchStructure? {
         logger.serviceCall("getSwitchStructureByType","type" to type)
-        return getSwitchStructures().find { switchStructure -> switchStructure.type==type }
+        return getSwitchStructures().find { switchStructure -> switchStructure.type == type }
     }
 
     fun getSwitchStructure(id: IntId<SwitchStructure>): SwitchStructure {
@@ -75,7 +75,7 @@ class SwitchLibraryService(
     fun upsertSwitchStructure(switchStructure: SwitchStructure) {
         logger.serviceCall("upsertSwitchStructure", "switchStructure" to switchStructure)
         val existingSwitchStructure = getSwitchStructureByType(switchStructure.type)
-        if (existingSwitchStructure==null) {
+        if (existingSwitchStructure == null) {
             switchStructureDao.insertSwitchStructure(switchStructure)
         } else {
             val switchStructureWithExistingId = switchStructure.copy(id =existingSwitchStructure.id)
@@ -92,7 +92,7 @@ class SwitchLibraryService(
         val existingSwitchStructures = getSwitchStructures()
         existingSwitchStructures.forEach { existingSwitchStructure ->
             val existsInNewSet = newSwitchStructures.any { newSwitchStructure ->
-                newSwitchStructure.type==existingSwitchStructure.type
+                newSwitchStructure.type == existingSwitchStructure.type
             }
             if (!existsInNewSet) {
                 switchStructureDao.delete(existingSwitchStructure.id as IntId)
