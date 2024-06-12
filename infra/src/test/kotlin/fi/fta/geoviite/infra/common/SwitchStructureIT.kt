@@ -1,18 +1,31 @@
 package fi.fta.geoviite.infra.common
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.dataImport.switchStructures
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.switchLibrary.*
+import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchElement
+import fi.fta.geoviite.infra.switchLibrary.SwitchElementCurve
+import fi.fta.geoviite.infra.switchLibrary.SwitchElementLine
+import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
+import fi.fta.geoviite.infra.switchLibrary.SwitchType
+import fi.fta.geoviite.infra.switchLibrary.data.RR54_2x1_9
+import fi.fta.geoviite.infra.switchLibrary.data.YV60_300A_1_9_O
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
 class SwitchStructureIT @Autowired constructor(
-    val switchStructureDao: SwitchStructureDao
+    val switchStructureDao: SwitchStructureDao,
+    val switchLibraryService: SwitchLibraryService
 ): DBTestBase() {
 
     @Test
@@ -71,6 +84,7 @@ class SwitchStructureIT @Autowired constructor(
             )
         )
 
+
         val version = switchStructureDao.insertSwitchStructure(
             switchStructure
         )
@@ -80,6 +94,139 @@ class SwitchStructureIT @Autowired constructor(
             switchStructure,
             loadedSwitchStructure
         )
+    }
+
+    @Test
+    fun `Update switch structure should work as described`() {
+        val seq = System.currentTimeMillis()
+        val originalSwitchType = SwitchType("YV60-$seq-1:9")
+        val originalSwitchStructure = YV60_300A_1_9_O().copy(
+            type = originalSwitchType
+        )
+        val originalVersionId = switchStructureDao.insertSwitchStructure(
+            originalSwitchStructure
+        )
+        val originalLoadedSwitchStructure = switchStructureDao.fetchSwitchStructure(originalVersionId)
+
+        val updatedSwitchType = SwitchType("RR54-$seq-1:9")
+        val updatedSwitchStructure = RR54_2x1_9().copy(
+            type = updatedSwitchType,
+            id = originalLoadedSwitchStructure.id
+        )
+        val updatedVersionId = switchStructureDao.updateSwitchStructure(
+            updatedSwitchStructure
+        )
+        val updatedLoadedSwitchStructure = switchStructureDao.fetchSwitchStructure(updatedVersionId)
+
+        assertEquals(originalLoadedSwitchStructure.id, updatedLoadedSwitchStructure.id)
+        switchStructuresEqual(
+            updatedSwitchStructure,
+            updatedLoadedSwitchStructure
+        )
+    }
+
+    @Test
+    fun `Upsert should update modified switch structure`() {
+        val seq = System.currentTimeMillis()
+        val switchType = SwitchType("YV60-$seq-1:9")
+        val switchStructure = YV60_300A_1_9_O().copy(
+            type = switchType
+        )
+        val versionId = switchStructureDao.insertSwitchStructure(
+            switchStructure
+        )
+
+        val modifiedSwitchStructure = YV60_300A_1_9_O().let { struct ->
+            struct.copy(
+                type = switchType,
+                alignments = struct.alignments.mapIndexed{index, alignment ->
+                    if (index==0)
+                        alignment.copy(
+                            elements = alignment.elements.mapIndexed{index, element ->
+                                if (index==0)
+                                    SwitchElementLine(
+                                        id = element.id,
+                                        start = element.start + 10.0,
+                                        end = element.end)
+                                else
+                                    element
+                            }
+                        )
+                    else
+                        alignment
+                }
+            )
+        }
+
+        val versionBeforeUpsert = switchStructureDao.fetchSwitchStructureVersion(versionId.id)
+        switchLibraryService.upsertSwitchStructure(modifiedSwitchStructure)
+        val versionAfterUpsert = switchStructureDao.fetchSwitchStructureVersion(versionId.id)
+        assertNotEquals(versionBeforeUpsert.version, versionAfterUpsert.version)
+    }
+
+    @Test
+    fun `Upsert should not update unmodified switch structure`() {
+        val seq = System.currentTimeMillis()
+        val switchType = SwitchType("YV60-$seq-1:9")
+        val switchStructure = YV60_300A_1_9_O().copy(
+            type = switchType
+        )
+        val versionId = switchStructureDao.insertSwitchStructure(
+            switchStructure
+        )
+
+        val similarSwitchStructure = YV60_300A_1_9_O().copy(
+            type = switchType
+        )
+
+        val versionBeforeUpsert = switchStructureDao.fetchSwitchStructureVersion(versionId.id)
+        switchLibraryService.upsertSwitchStructure(similarSwitchStructure)
+        val versionAfterUpsert = switchStructureDao.fetchSwitchStructureVersion(versionId.id)
+        assertEquals(versionBeforeUpsert.version, versionAfterUpsert.version)
+    }
+
+    @Test
+    fun `Replacing switch structures should add new ones`() {
+        val existingSwitchStructuresBeforeUpdate = switchLibraryService.getSwitchStructures()
+
+        val seq = System.currentTimeMillis()
+        val newSwitchType = SwitchType("YV60-$seq-1:9")
+        val newSwitchStructure = YV60_300A_1_9_O().copy(
+            type = newSwitchType
+        )
+
+        switchLibraryService.replaceExistingSwitchStructures(
+            existingSwitchStructuresBeforeUpdate + newSwitchStructure
+        )
+
+        val existingSwitchStructuresAfterUpdate = switchLibraryService.getSwitchStructures()
+        assert(existingSwitchStructuresBeforeUpdate.none { s -> s.type==newSwitchType })
+        assert(existingSwitchStructuresAfterUpdate.any { s -> s.type==newSwitchType })
+    }
+
+    @Test
+    fun `Replacing switch structures should delete not-defined structures`() {
+        val existingSwitchStructuresBeforeUpdate = switchLibraryService.getSwitchStructures()
+
+        val seq = System.currentTimeMillis()
+        val newSwitchType = SwitchType("YV60-$seq-1:9")
+        val newSwitchStructure = YV60_300A_1_9_O().copy(
+            type = newSwitchType
+        )
+
+        switchLibraryService.replaceExistingSwitchStructures(
+            existingSwitchStructuresBeforeUpdate + newSwitchStructure
+        )
+        val existingSwitchStructuresAfterFirstUpdate = switchLibraryService.getSwitchStructures()
+
+        switchLibraryService.replaceExistingSwitchStructures(
+            existingSwitchStructuresBeforeUpdate
+        )
+        val existingSwitchStructuresAfterSecondUpdate = switchLibraryService.getSwitchStructures()
+
+        assert(existingSwitchStructuresBeforeUpdate.none { s -> s.type==newSwitchType })
+        assert(existingSwitchStructuresAfterFirstUpdate.any { s -> s.type==newSwitchType })
+        assert(existingSwitchStructuresAfterSecondUpdate.none { s -> s.type==newSwitchType })
     }
 
     fun switchStructuresEqual(s1: SwitchStructure, s2: SwitchStructure) {
@@ -112,4 +259,51 @@ class SwitchStructureIT @Autowired constructor(
             assertEquals(e1.radius, e2.radius)
         }
     }
+
+    @Test
+    fun `Should produce different hashcode when switch structures are modified`() {
+        val firstSet = switchStructures
+        val modifiedSet = firstSet.mapIndexed { index, struct ->
+            if (index>0)
+                struct
+            else
+                struct.copy(
+                    alignments = struct.alignments.mapIndexed{index, alignment ->
+                        if (index==0)
+                            alignment.copy(
+                                elements = alignment.elements.mapIndexed{index, element ->
+                                    if (index==0)
+                                        SwitchElementLine(
+                                            id = element.id,
+                                            start = element.start + 10.0,
+                                            end = element.end)
+                                    else
+                                        element
+                                }
+                            )
+                        else
+                            alignment
+                    }
+                )
+        }
+
+        assertNotEquals(
+            firstSet.map { s -> s.stripUniqueIdentifiers() }.hashCode(),
+            modifiedSet.map { s -> s.stripUniqueIdentifiers() }.hashCode()
+        )
+    }
+
+    @Test
+    fun `Should produce same hashcode when switch structures are not modified`() {
+        val firstSet = switchStructures
+        val similarSet = firstSet.map {struct ->
+            struct.copy()
+        }
+
+        assertEquals(
+            firstSet.map { s -> s.stripUniqueIdentifiers() }.hashCode(),
+            similarSet.map { s -> s.stripUniqueIdentifiers() }.hashCode()
+        )
+    }
+
 }

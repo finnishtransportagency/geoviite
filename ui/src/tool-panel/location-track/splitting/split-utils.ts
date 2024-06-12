@@ -272,6 +272,10 @@ export const getOperation = (
                         'Implicit duplicate track does not share any geometry with target track! This should be handled beforehand.',
                     );
                 }
+            default:
+                throw new Error(
+                    'Duplicate track does not share any geometry with target track! This should be handled beforehand.',
+                );
         }
     }
 };

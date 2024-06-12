@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.logging.serviceCall
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 class SwitchLibraryService(
@@ -30,6 +31,11 @@ class SwitchLibraryService(
     fun getSwitchStructuresById(): Map<IntId<SwitchStructure>, SwitchStructure> {
         logger.serviceCall("getSwitchStructuresById")
         return structuresById
+    }
+
+    fun getSwitchStructureByType(type: SwitchType):SwitchStructure? {
+        logger.serviceCall("getSwitchStructureByType","type" to type)
+        return getSwitchStructures().find { switchStructure -> switchStructure.type == type }
     }
 
     fun getSwitchStructure(id: IntId<SwitchStructure>): SwitchStructure {
@@ -64,4 +70,35 @@ class SwitchLibraryService(
 
     private fun getOrThrow(id: IntId<SwitchStructure>) =
         structuresById[id] ?: throw NoSuchEntityException(SwitchStructure::class, id)
+
+    @Transactional
+    fun upsertSwitchStructure(switchStructure: SwitchStructure) {
+        logger.serviceCall("upsertSwitchStructure", "switchStructure" to switchStructure)
+        val existingSwitchStructure = getSwitchStructureByType(switchStructure.type)
+        if (existingSwitchStructure == null) {
+            switchStructureDao.insertSwitchStructure(switchStructure)
+        } else {
+            val switchStructureWithExistingId = switchStructure.copy(id =existingSwitchStructure.id)
+            if (!existingSwitchStructure.isSame(switchStructureWithExistingId)) {
+                switchStructureDao.updateSwitchStructure(switchStructureWithExistingId)
+            }
+        }
+    }
+
+    @Transactional
+    fun replaceExistingSwitchStructures(newSwitchStructures: List<SwitchStructure>) {
+        logger.serviceCall("replaceExistingSwitchStructures", "newSwitchStructures" to newSwitchStructures)
+
+        val existingSwitchStructures = getSwitchStructures()
+        existingSwitchStructures.forEach { existingSwitchStructure ->
+            val existsInNewSet = newSwitchStructures.any { newSwitchStructure ->
+                newSwitchStructure.type == existingSwitchStructure.type
+            }
+            if (!existsInNewSet) {
+                switchStructureDao.delete(existingSwitchStructure.id as IntId)
+            }
+        }
+
+        newSwitchStructures.forEach { switchStructure -> upsertSwitchStructure(switchStructure) }
+    }
 }

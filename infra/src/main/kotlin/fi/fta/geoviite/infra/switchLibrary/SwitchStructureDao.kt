@@ -8,7 +8,18 @@ import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.util.DaoBase
+import fi.fta.geoviite.infra.util.DbTable
+import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getIndexedId
+import fi.fta.geoviite.infra.util.getIntArray
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getJointNumber
+import fi.fta.geoviite.infra.util.getOne
+import fi.fta.geoviite.infra.util.getPoint
+import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.queryOne
+import fi.fta.geoviite.infra.util.setUser
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -17,6 +28,8 @@ import org.springframework.transaction.annotation.Transactional
 @Transactional(readOnly = true)
 @Component
 class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+
+    fun fetchSwitchStructureVersion(id: IntId<SwitchStructure>) = fetchRowVersion(id, DbTable.COMMON_SWITCH_STRUCTURE)
 
     @Cacheable(CACHE_COMMON_SWITCH_STRUCTURE, sync = true)
     fun fetchSwitchStructures(): List<SwitchStructure> {
@@ -170,9 +183,39 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
                 ?: throw IllegalStateException("Failed to generate ID for new Location Track")
         insertJoints(version, switchStructure.joints)
-        insertAlignment(version, switchStructure.alignments)
+        insertAlignments(version, switchStructure.alignments)
 
         logger.daoAccess(AccessType.INSERT, SwitchStructure::class, version)
+        return version
+    }
+
+    @Transactional
+    fun updateSwitchStructure(switchStructure: SwitchStructure): RowVersion<SwitchStructure> {
+        val sql = """
+            update common.switch_structure
+            set
+                type = :type,
+                presentation_joint_number = :presentation_joint_number
+            where
+                id = :id
+            returning id, version
+        """.trimIndent()
+
+        val params = mapOf(
+            "id" to (switchStructure.id as IntId).intValue,
+            "type" to switchStructure.type.typeName,
+            "presentation_joint_number" to switchStructure.presentationJointNumber.intValue
+        )
+
+        jdbcTemplate.setUser()
+        val version: RowVersion<SwitchStructure> =
+            jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
+                ?: throw IllegalStateException("Failed to generate ID for new Location Track")
+        deleteJoints(version.id)
+        deleteAlignments(version.id)
+        insertJoints(version, switchStructure.joints)
+        insertAlignments(version, switchStructure.alignments)
+        logger.daoAccess(AccessType.UPDATE, SwitchStructure::class, version)
         return version
     }
 
@@ -196,8 +239,24 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         }.associate { it }
     }
 
+
     private fun insertJoints(switchStructureId: RowVersion<SwitchStructure>, joints: List<SwitchJoint>) {
         joints.forEach { joint -> insertJoint(switchStructureId, joint) }
+    }
+
+    private fun deleteJoints(
+        switchStructureId: IntId<SwitchStructure>,
+    ) {
+        val sql = """
+            delete from common.switch_joint
+            where switch_structure_id=:switch_structure_id
+        """.trimIndent()
+
+        val params = mapOf(
+            "switch_structure_id" to switchStructureId.intValue,
+        )
+
+        jdbcTemplate.update(sql, params)
     }
 
     private fun insertJoint(
@@ -235,8 +294,35 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         jdbcTemplate.update(sql, params)
     }
 
-    private fun insertAlignment(switchStructureId: RowVersion<SwitchStructure>, alignments: List<SwitchAlignment>) {
+    private fun insertAlignments(switchStructureId: RowVersion<SwitchStructure>, alignments: List<SwitchAlignment>) {
         alignments.forEach { alignment -> insertAlignment(switchStructureId, alignment) }
+    }
+
+    private fun deleteAlignments(
+        switchStructureId: IntId<SwitchStructure>,
+    ) {
+        val deleteElementsSql = """
+            delete from common.switch_element
+            where alignment_id in (
+                select 
+                    id
+                from
+                    common.switch_alignment
+                where switch_structure_id=:switch_structure_id
+            )
+        """.trimIndent()
+
+        val deleteAlignmentsSql = """
+            delete from common.switch_alignment
+            where switch_structure_id=:switch_structure_id
+        """.trimIndent()
+
+        val params = mapOf(
+            "switch_structure_id" to switchStructureId.intValue,
+        )
+
+        jdbcTemplate.update(deleteElementsSql, params)
+        jdbcTemplate.update(deleteAlignmentsSql, params)
     }
 
     private fun insertAlignment(
@@ -323,4 +409,20 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
 
         jdbcTemplate.update(sql, params)
     }
+
+    @Transactional
+    fun delete(id: IntId<SwitchStructure>): IntId<SwitchStructure> {
+        jdbcTemplate.setUser()
+        deleteJoints(id)
+        deleteAlignments(id)
+
+        val sql = "delete from common.switch_structure where id = :id returning id"
+        val params = mapOf("id" to id.intValue)
+        val deletedRowId = getOne(id, jdbcTemplate.query(sql, params) { rs, _ ->
+            rs.getIntId<SwitchStructure>("id")
+        })
+        logger.daoAccess(AccessType.DELETE, SwitchStructure::class, deletedRowId)
+        return deletedRowId
+    }
+
 }
