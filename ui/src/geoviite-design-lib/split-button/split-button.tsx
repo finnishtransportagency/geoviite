@@ -5,15 +5,15 @@ import { Icons } from 'vayla-design-lib/icon/Icon';
 import styles from './split-button.scss';
 
 type SplitButtonProps = {
-    menuItems: MenuOption[];
-    children?: React.ReactNode;
-    qaId?: string;
+    'menuItems': MenuOption[];
+    'children'?: React.ReactNode;
+    'qa-id'?: string;
 } & ButtonProps;
 
 export const SplitButton = function ({
     menuItems,
     children,
-    qaId,
+    'qa-id': qaId,
     ...buttonProps
 }: SplitButtonProps) {
     const ref = React.useRef<HTMLSpanElement>(null);
@@ -21,7 +21,7 @@ export const SplitButton = function ({
 
     return (
         <span className={styles['split-button']} ref={ref}>
-            <Button {...buttonProps} qa-id={qaId}>
+            <Button {...buttonProps} qa-id={qaId} {...buttonProps}>
                 {children}
             </Button>
             <Button
