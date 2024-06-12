@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getIntArrayOrNull
+import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getLayoutRowIdArray
 import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
 import fi.fta.geoviite.infra.util.getOptional
@@ -55,6 +56,7 @@ class GeocodingDao(
         //language=SQL
         val sql = """
             select
+              tn.official_id as tn_official_id,
               tn.row_id as tn_row_id,
               tn.row_version as tn_row_version,
               rl.row_id as rl_row_id,
@@ -71,7 +73,7 @@ class GeocodingDao(
                 kmp on kmp.track_number_id = tn.official_id
                 and kmp.state = 'IN_USE'
             where (:tn_id::int is null or :tn_id = tn.official_id)
-            group by tn.row_id, tn.row_version, rl.row_id, rl.row_version
+            group by tn.official_id, tn.row_id, tn.row_version, rl.row_id, rl.row_version
         """.trimIndent()
         val params = mapOf(
             "tn_id" to trackNumberId?.intValue,
@@ -90,7 +92,8 @@ class GeocodingDao(
         val sql = """
             with 
               tn_versions as (
-                select distinct on (id) id, version, deleted, design_id is not null as is_design
+                select distinct on (id) 
+                  id, version, deleted, design_id is not null as is_design, coalesce(official_row_id, id) as official_id
                 from layout.track_number_version
                 where (id = :tn_id or official_row_id = :tn_id)
                   and draft = false
@@ -99,14 +102,15 @@ class GeocodingDao(
                 order by id, version desc
               ),
               tn as (
-                select id, version
+                select official_id, id, version
                 from tn_versions
                 where deleted = false
                 order by case when is_design then 0 else 1 end
                 limit 1
               ),
               rl_versions as (
-                select distinct on (id) id, version, deleted, design_id is not null as is_design
+                select distinct on (id)
+                  id, version, deleted, design_id is not null as is_design
                 from layout.reference_line_version
                 where track_number_id = :tn_id
                   and draft = false
@@ -138,6 +142,7 @@ class GeocodingDao(
                 order by official_id, case when is_design then 0 else 1 end
               )
             select
+              tn.official_id as tn_official_id,
               tn.id as tn_row_id,
               tn.version as tn_row_version,
               rl.id as rl_row_id,
@@ -149,7 +154,7 @@ class GeocodingDao(
             from tn
               left join rl on true 
               left join kmp on true
-            group by tn.id, tn.version, rl.id, rl.version
+            group by tn.official_id, tn.id, tn.version, rl.id, rl.version
         """.trimIndent()
         val params = mapOf(
             "tn_id" to trackNumberId.intValue,
@@ -165,6 +170,7 @@ class GeocodingDao(
         return if (tnVersion == null || rlVersion == null) {
             null
         } else LayoutGeocodingContextCacheKey(
+            trackNumberId = rs.getIntId("tn_official_id"),
             trackNumberVersion = tnVersion,
             referenceLineVersion = rlVersion,
             kmPostVersions = toRowVersions(
@@ -200,7 +206,7 @@ class GeocodingDao(
                 draft.trackNumberId == trackNumberId && draft.state == LayoutState.IN_USE
             }.map { v -> v.validatedAssetVersion }
             val kmPostVersions = (officialKmPosts + draftKmPosts).sortedBy { p -> p.rowId.intValue }
-            LayoutGeocodingContextCacheKey(trackNumberVersion, referenceLineVersion, kmPostVersions)
+            LayoutGeocodingContextCacheKey(trackNumberId, trackNumberVersion, referenceLineVersion, kmPostVersions)
         } else null
     }
 

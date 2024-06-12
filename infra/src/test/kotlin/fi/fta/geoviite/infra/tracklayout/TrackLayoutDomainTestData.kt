@@ -909,9 +909,17 @@ fun switch(
 )
 
 fun <T> createMainContext(id: IntId<T>?, draftOfId: IntId<T>?, draft: Boolean): LayoutContextData<T> = if (draft) {
-    MainDraftContextData(id, draftOfId, null)
+    MainDraftContextData(
+        rowId = id?.intValue?.let(::LayoutRowId),
+        version = null,
+        officialRowId = draftOfId?.intValue?.let(::LayoutRowId),
+        designRowId = null,
+    )
 } else {
-    MainOfficialContextData(id)
+    MainOfficialContextData(
+        rowId = id?.intValue?.let(::LayoutRowId),
+        version = null,
+    )
 }
 
 fun joints(seed: Int = 1, count: Int = 5) = (1..count).map { jointSeed -> switchJoint(seed * 100 + jointSeed) }
@@ -1037,11 +1045,13 @@ fun layoutDesign(
 fun <T> someRowVersion() = RowVersion(IntId<T>(1), 1)
 
 fun geocodingContextCacheKey(
-    trackNumberVersion: RowVersion<TrackLayoutTrackNumber>,
-    referenceLineVersion: RowVersion<ReferenceLine>,
-    vararg kmPostVersions: RowVersion<TrackLayoutKmPost>,
+    trackNumberId: IntId<TrackLayoutTrackNumber>,
+    trackNumberVersion: LayoutRowVersion<TrackLayoutTrackNumber>,
+    referenceLineVersion: LayoutRowVersion<ReferenceLine>,
+    vararg kmPostVersions: LayoutRowVersion<TrackLayoutKmPost>,
 ) = LayoutGeocodingContextCacheKey(
+    trackNumberId = trackNumberId,
     trackNumberVersion = trackNumberVersion,
     referenceLineVersion = referenceLineVersion,
-    kmPostVersions = kmPostVersions.toList().sortedBy { rv -> rv.id.intValue },
+    kmPostVersions = kmPostVersions.toList().sortedBy { rv -> rv.rowId.intValue },
 )

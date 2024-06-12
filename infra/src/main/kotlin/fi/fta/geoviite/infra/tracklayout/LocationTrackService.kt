@@ -348,6 +348,12 @@ class LocationTrackService(
     }
 
     @Transactional(readOnly = true)
+    fun getWithAlignment(version: DaoResponse<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
+        logger.serviceCall("getWithAlignment", "version" to version)
+        return getWithAlignmentInternal(version.rowVersion)
+    }
+
+    @Transactional(readOnly = true)
     fun getWithAlignment(version: LayoutRowVersion<LocationTrack>): Pair<LocationTrack, LayoutAlignment> {
         logger.serviceCall("getWithAlignment", "version" to version)
         return getWithAlignmentInternal(version)

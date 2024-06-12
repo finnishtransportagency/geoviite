@@ -223,9 +223,10 @@ class ReferenceLineDao(
     override fun fetchVersions(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
-    ): List<LayoutRowVersion<ReferenceLine>> {
+    ): List<DaoResponse<ReferenceLine>> {
         val sql = """
             select
+              rl.official_id,
               rl.row_id,
               rl.row_version
             from layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl
@@ -240,7 +241,7 @@ class ReferenceLineDao(
             "include_deleted" to includeDeleted,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getLayoutRowVersion("row_id", "row_version")
+            rs.getDaoResponse("official_id", "row_id", "row_version")
         }
     }
 

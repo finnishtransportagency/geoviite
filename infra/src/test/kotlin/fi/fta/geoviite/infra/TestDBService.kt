@@ -32,6 +32,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutRowId
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -54,6 +56,7 @@ import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionTemplate
@@ -262,11 +265,11 @@ class TestDBService(
         }
     }
 
-    final inline fun <reified T : LayoutAsset<T>> fetch(rowVersion: RowVersion<T>): T =
+    final inline fun <reified T : LayoutAsset<T>> fetch(rowVersion: LayoutRowVersion<T>): T =
         getDao(T::class).fetch(rowVersion)
 
     final inline fun <reified T : PolyLineLayoutAsset<T>> fetchWithAlignment(
-        rowVersion: RowVersion<T>,
+        rowVersion: LayoutRowVersion<T>,
     ): Pair<T, LayoutAlignment> =
         fetch(rowVersion).let { a -> a to alignmentDao.fetch(a.getAlignmentVersionOrThrow()) }
 
@@ -302,7 +305,7 @@ class TestDBService(
     fun insertAuthor(): RowVersion<Author> = geometryDao.insertAuthor(Author(getUnusedAuthorCompanyName()))
 
     final inline fun <reified T : LayoutAsset<T>> update(
-        rowVersion: RowVersion<T>,
+        rowVersion: LayoutRowVersion<T>,
         mutate: (T) -> T = { it },
     ): DaoResponse<T> {
         val dao = getDao(T::class)
@@ -320,6 +323,25 @@ class TestDBService(
         switchDao.fetchChangeTime(),
         kmPostDao.fetchChangeTime(),
     ).max()
+
+    /**
+     * This function can be used to create a draft-version of an official asset, creating the appropriate backwards
+     * linking as necessary. Optionally, a target branch can be given to create the draft in a different branch
+     * (main-official -> design-draft or design-official -> main-draft). If not given, the current branch is used.
+     */
+    final inline fun <reified S : LayoutAsset<S>> createDraft(
+        officialVersion: LayoutRowVersion<S>,
+        targetBranch: LayoutBranch? = null,
+    ): DaoResponse<S> {
+        val original = fetch(officialVersion)
+        assertTrue(original.isOfficial)
+        val targetContext = testContext(targetBranch ?: original.branch, DRAFT)
+        return targetContext.copyFrom(
+            officialVersion,
+            officialRowId = if (!original.isDesign) original.contextData.rowId else original.contextData.officialRowId,
+            designRowId = if (original.isDesign) original.contextData.rowId else null,
+        )
+    }
 }
 
 data class TestLayoutContext(
@@ -359,9 +381,9 @@ data class TestLayoutContext(
      */
     @Suppress("UNCHECKED_CAST")
     inline fun <reified T : LayoutAsset<T>> copyFrom(
-        rowVersion: RowVersion<T>,
-        officialRowId: IntId<T>? = null,
-        designRowId: IntId<T>? = null,
+        rowVersion: LayoutRowVersion<T>,
+        officialRowId: LayoutRowId<T>? = null,
+        designRowId: LayoutRowId<T>? = null,
     ): DaoResponse<T> {
         val dao = getDao(T::class)
         val original = dao.fetch(rowVersion)
@@ -379,7 +401,7 @@ data class TestLayoutContext(
      * Moves the asset identified by [rowVersion] to the current context, maintaining the row itself.
      * Links to official/design row are kept where possible, noting the rules of which contexts actually have them.
      */
-    inline fun <reified T : LayoutAsset<T>> moveFrom(rowVersion: RowVersion<T>): DaoResponse<T> {
+    inline fun <reified T : LayoutAsset<T>> moveFrom(rowVersion: LayoutRowVersion<T>): DaoResponse<T> {
         val dao = getDao(T::class)
         val original = dao.fetch(rowVersion)
         val withNewContext = original.withContext(original.contextData.let { origCtx ->
@@ -440,9 +462,9 @@ data class TestLayoutContext(
         (1..count).map { createLayoutTrackNumber() }
 
     fun getOrCreateLayoutTrackNumber(trackNumber: TrackNumber): TrackLayoutTrackNumber {
-        val version = trackNumberDao.fetchVersions(context, true, trackNumber).firstOrNull()
-            ?: insert(trackNumber(trackNumber)).rowVersion
-        return version.let(trackNumberDao::fetch)
+        val response = trackNumberDao.fetchVersions(context, true, trackNumber).firstOrNull()
+            ?: insert(trackNumber(trackNumber))
+        return response.let { r -> trackNumberDao.fetch(r.rowVersion) }
     }
 
     fun createTrackNumberAndId(): Pair<TrackNumber, IntId<TrackLayoutTrackNumber>> =
@@ -458,23 +480,23 @@ data class TestLayoutContext(
     )
 
     fun <T : LayoutAsset<T>> createContextData(
-        rowId: IntId<T>? = null,
-        officialRowId: IntId<T>? = null,
-        designRowId: IntId<T>? = null,
+        rowId: LayoutRowId<T>? = null,
+        officialRowId: LayoutRowId<T>? = null,
+        designRowId: LayoutRowId<T>? = null,
     ): LayoutContextData<T> = context.branch.let { branch ->
         when (context.state) {
             OFFICIAL -> when (branch) {
-                is MainBranch -> MainOfficialContextData(rowId).also {
+                is MainBranch -> MainOfficialContextData(rowId, version = null).also {
                     require(officialRowId == null) { "Can't set official row reference on official row itself" }
                     require(designRowId == null) { "Can't set design row reference on main-official row" }
                 }
-                is DesignBranch -> DesignOfficialContextData(rowId, officialRowId, branch.designId).also {
+                is DesignBranch -> DesignOfficialContextData(rowId, version = null, officialRowId, branch.designId).also {
                     require(designRowId == null) { "Can't set design row reference on official design itself" }
                 }
             }
             DRAFT -> when (branch) {
-                is MainBranch -> MainDraftContextData(rowId, officialRowId, designRowId)
-                is DesignBranch -> DesignDraftContextData(rowId, designRowId, officialRowId, branch.designId)
+                is MainBranch -> MainDraftContextData(rowId, version = null, officialRowId, designRowId)
+                is DesignBranch -> DesignDraftContextData(rowId, version = null, designRowId, officialRowId, branch.designId)
             }
         }
     }

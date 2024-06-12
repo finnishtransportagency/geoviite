@@ -51,7 +51,7 @@ class RatkoLocationTrackService @Autowired constructor(
         publishedLocationTracks: Collection<PublishedLocationTrack>,
         publicationTime: Instant,
     ): List<Oid<LocationTrack>> {
-        return publishedLocationTracks.groupBy { it.version.id }.map { (_, locationTracks) ->
+        return publishedLocationTracks.groupBy { it.id }.map { (_, locationTracks) ->
             val newestVersion = locationTracks.maxBy { it.version.version }.version
             locationTrackDao.fetch(newestVersion) to locationTracks.flatMap { it.changedKmNumbers }.toSet()
         }.sortedWith(

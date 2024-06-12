@@ -1413,7 +1413,7 @@ class PublicationService @Autowired constructor(
                 propChanges = diffTrackNumber(
                     translation,
                     publicationTrackNumberChanges.getOrElse(tn.id) {
-                        error("Track number changes not found: version=${tn.version}")
+                        error("Track number changes not found: id=${tn.id} version=${tn.version}")
                     },
                     publication.publicationTime,
                     previousComparisonTime,
@@ -1436,7 +1436,7 @@ class PublicationService @Autowired constructor(
                 propChanges = diffReferenceLine(
                     translation,
                     publicationReferenceLineChanges.getOrElse(rl.id) {
-                        error("Reference line changes not found: version=${rl.version}")
+                        error("Reference line changes not found: id=${rl.id} version=${rl.version}")
                     },
                     publication.publicationTime,
                     previousComparisonTime,
@@ -1458,10 +1458,10 @@ class PublicationService @Autowired constructor(
                 publication = publication,
                 propChanges = diffLocationTrack(
                     translation,
-                    publicationLocationTrackChanges.getOrElse(lt.version.id) {
-                        error("Location track changes not found: version=${lt.version}")
+                    publicationLocationTrackChanges.getOrElse(lt.id) {
+                        error("Location track changes not found: id=${lt.id} version=${lt.version}")
                     },
-                    switchLinkChanges[lt.version.id],
+                    switchLinkChanges[lt.id],
                     publication.layoutBranch,
                     publication.publicationTime,
                     previousComparisonTime,
@@ -1482,8 +1482,8 @@ class PublicationService @Autowired constructor(
                 publication = publication,
                 propChanges = diffSwitch(
                     translation,
-                    publicationSwitchChanges.getOrElse(s.version.id) {
-                        error("Switch changes not found: version=${s.version}")
+                    publicationSwitchChanges.getOrElse(s.id) {
+                        error("Switch changes not found: id=${s.id} version=${s.version}")
                     },
                     publication.publicationTime,
                     previousComparisonTime,
@@ -1505,8 +1505,8 @@ class PublicationService @Autowired constructor(
                 publication = publication,
                 propChanges = diffKmPost(
                     translation,
-                    publicationKmPostChanges.getOrElse(kp.version.id) {
-                        error("KM Post changes not found: version=${kp.version}")
+                    publicationKmPostChanges.getOrElse(kp.id) {
+                        error("KM Post changes not found: id=${kp.id} version=${kp.version}")
                     },
                     publication.publicationTime,
                     previousComparisonTime,
@@ -1528,10 +1528,10 @@ class PublicationService @Autowired constructor(
                 publication = publication,
                 propChanges = diffLocationTrack(
                     translation,
-                    publicationLocationTrackChanges.getOrElse(lt.version.id) {
-                        error("Location track changes not found: version=${lt.version}")
+                    publicationLocationTrackChanges.getOrElse(lt.id) {
+                        error("Location track changes not found: id=${lt.id} version=${lt.version}")
                     },
-                    switchLinkChanges[lt.version.id],
+                    switchLinkChanges[lt.id],
                     publication.layoutBranch,
                     publication.publicationTime,
                     previousComparisonTime,
@@ -1552,8 +1552,8 @@ class PublicationService @Autowired constructor(
                 publication = publication,
                 propChanges = diffSwitch(
                     translation,
-                    publicationSwitchChanges.getOrElse(s.version.id) {
-                        error("Switch changes not found: version=${s.version}")
+                    publicationSwitchChanges.getOrElse(s.id) {
+                        error("Switch changes not found: id=${s.id} version=${s.version}")
                     },
                     publication.publicationTime,
                     previousComparisonTime,

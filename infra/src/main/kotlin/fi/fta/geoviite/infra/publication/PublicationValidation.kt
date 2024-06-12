@@ -1,8 +1,18 @@
 package fi.fta.geoviite.infra.publication
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.ClientException
-import fi.fta.geoviite.infra.geocoding.*
+import fi.fta.geoviite.infra.geocoding.AddressPoint
+import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
+import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
+import fi.fta.geoviite.infra.geocoding.GeocodingReferencePoint
+import fi.fta.geoviite.infra.geocoding.KmPostRejectedReason
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.IntersectType.WITHIN
@@ -14,7 +24,19 @@ import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.WARNING
 import fi.fta.geoviite.infra.switchLibrary.SwitchConnectivityType
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.switchConnectivityType
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
+import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
 import kotlin.math.PI
@@ -861,22 +883,24 @@ private fun collectTopologyEndLinks(
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     switch: TrackLayoutSwitch,
 ): List<Pair<LocationTrack, List<TopologyEndLink>>> = locationTracks.map { (track, alignment) ->
-    track to listOfNotNull(track.topologyStartSwitch?.let { topologySwitch ->
-        if (topologySwitch.switchId == switch.id) alignment.start?.let { p ->
-            TopologyEndLink(topologySwitch, p)
+    track to listOfNotNull(
+        track.topologyStartSwitch
+            ?.takeIf { topologySwitch -> topologySwitch.switchId == switch.id }
+            ?.let { topologySwitch -> alignment.start?.let { p -> TopologyEndLink(topologySwitch, p) } },
+        track.topologyEndSwitch
+            ?.takeIf { topologySwitch -> topologySwitch.switchId == switch.id }
+            ?.let { topologySwitch -> alignment.end?.let { p -> TopologyEndLink(topologySwitch, p) }
         }
-        else null
-    }, track.topologyEndSwitch?.let { topologySwitch ->
-        if (topologySwitch.switchId == switch.id) alignment.end?.let { p -> TopologyEndLink(topologySwitch, p) }
-        else null
-    })
+    )
 }.filter { (_, ends) -> ends.isNotEmpty() }
 
 fun <T> combineVersions(
-    officials: List<LayoutRowVersion<T>>,
+    officials: List<DaoResponse<T>>,
     validations: List<ValidationVersion<T>>,
 ): Collection<LayoutRowVersion<T>> {
-    val officialVersions = officials.filterNot { official -> validations.any { v -> v.officialId == official.id } }
+    val officialVersions = officials
+        .filterNot { official -> validations.any { v -> v.officialId == official.id } }
+        .map { official -> official.rowVersion }
     val validationVersions = validations.map { it.validatedAssetVersion }
     return (officialVersions + validationVersions).distinct()
 }

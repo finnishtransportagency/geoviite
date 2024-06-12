@@ -135,7 +135,7 @@ class GeocodingService(
     fun getGeocodingContexts(layoutContext: LayoutContext): Map<IntId<TrackLayoutTrackNumber>, GeocodingContext?> =
         geocodingDao
             .listLayoutGeocodingContextCacheKeys(layoutContext)
-            .associate { key -> key.trackNumberVersion.id to geocodingCacheService.getGeocodingContext(key) }
+            .associate { key -> key.trackNumberId to geocodingCacheService.getGeocodingContext(key) }
 
     fun getGeocodingContext(
         layoutContext: LayoutContext,

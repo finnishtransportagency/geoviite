@@ -24,7 +24,7 @@ data class LayoutRowVersion<T> @JsonCreator(mode = DISABLED) constructor(
     init { require(version > 0) { "Version numbers start at 1: version=$version" } }
 
     @JsonValue
-    override fun toString(): String = "$rowId$VERSION_SEPARATOR$version"
+    override fun toString(): String = "${rowId.intValue}$VERSION_SEPARATOR$version"
 
     fun next() = LayoutRowVersion(rowId, version + 1)
     fun previous() = if (version > 1) LayoutRowVersion(rowId, version - 1) else null

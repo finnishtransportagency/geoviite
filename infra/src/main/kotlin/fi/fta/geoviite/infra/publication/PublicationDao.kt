@@ -1401,30 +1401,32 @@ class PublicationDao(
     }
 
     @Cacheable(CACHE_PUBLISHED_LOCATION_TRACKS, sync = true)
-    fun fetchPublishedLocationTracks(
-        publicationId: IntId<Publication>,
-    ): PublishedItemListing<PublishedLocationTrack> {
+    fun fetchPublishedLocationTracks(publicationId: IntId<Publication>): PublishedItemListing<PublishedLocationTrack> {
         val sql = """
             select
-              plt.location_track_id as id,
-              location_track_version as version,
-              name,
-              track_number_id,
-              layout.infer_operation_from_location_track_state_transition(lt.old_state, lt.state) as operation,
+              coalesce(ltv.official_row_id, ltv.design_row_id, ltv.id) as official_id,
+              ltv.id as row_id,
+              ltv.version as row_version,
+              ltv.name,
+              ltv.track_number_id,
+              layout.infer_operation_from_location_track_state_transition(ltc.old_state, ltc.state) as operation,
               direct_change,
               array_remove(array_agg(pltk.km_number), null) as changed_km
             from publication.location_track plt
-              inner join layout.location_track_change_view lt
-                on lt.id = plt.location_track_id and lt.version = plt.location_track_version
+              inner join layout.location_track_version ltv
+                on plt.location_track_id = ltv.id and plt.location_track_version = ltv.version
+              inner join layout.location_track_change_view ltc
+                on ltc.id = plt.location_track_id and ltc.version = plt.location_track_version
               left join publication.location_track_km pltk
                 on pltk.location_track_id = plt.location_track_id and pltk.publication_id = plt.publication_id
             where plt.publication_id = :publication_id
-            group by plt.location_track_id, location_track_version, name, track_number_id, operation, direct_change;
+            group by ltv.id, ltv.version, operation, direct_change;
         """.trimIndent()
 
         return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
             rs.getBoolean("direct_change") to PublishedLocationTrack(
-                version = rs.getLayoutRowVersion("id", "version"),
+                id = rs.getIntId("official_id"),
+                version = rs.getLayoutRowVersion("row_id", "row_version"),
                 name = AlignmentName(rs.getString("name")),
                 trackNumberId = rs.getIntId("track_number_id"),
                 operation = rs.getEnum("operation"),
@@ -1445,8 +1447,9 @@ class PublicationDao(
                 and design_id is not distinct from (select design_id from publication.publication where id = :publication_id)
             )
             select
-              prl.reference_line_id as id,
-              reference_line_version as version,
+              coalesce(rl.official_row_id, rl.design_row_id, rl.id) as official_id,
+              rl.id as row_id,
+              rl.version as row_version,
               rl.track_number_id,
               layout.infer_operation_from_state_transition(
                   tn_old.state,
@@ -1454,11 +1457,11 @@ class PublicationDao(
                 ) as operation,
               array_remove(array_agg(ptnk.km_number), null) as changed_km
               from publication.reference_line prl
+                inner join layout.reference_line_version rl
+                          on rl.id = prl.reference_line_id and rl.version = prl.reference_line_version
                 left join prev_pub on true
                 left join publication.publication p
                           on p.id = prl.publication_id
-                inner join layout.reference_line_version rl
-                          on rl.id = prl.reference_line_id and rl.version = prl.reference_line_version
                 left join publication.track_number ptn
                           on ptn.track_number_id = rl.track_number_id and ptn.publication_id = prl.publication_id
                 left join layout.track_number_change_view tn
@@ -1468,11 +1471,12 @@ class PublicationDao(
                 left join publication.track_number_km ptnk
                           on ptnk.track_number_id = ptn.track_number_id and ptnk.publication_id = ptn.publication_id
               where prl.publication_id = :publication_id
-              group by prl.reference_line_id, reference_line_version, rl.track_number_id, operation;
+              group by rl.id, rl.version, operation;
         """.trimIndent()
         return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
             PublishedReferenceLine(
-                version = rs.getLayoutRowVersion("id", "version"),
+                id = rs.getIntId("official_id"),
+                version = rs.getLayoutRowVersion("row_id", "row_version"),
                 trackNumberId = rs.getIntId("track_number_id"),
                 operation = rs.getEnumOrNull<Operation>("operation") ?: Operation.MODIFY,
                 changedKmNumbers = rs.getStringArray("changed_km").map(::KmNumber).toSet()
@@ -1485,20 +1489,24 @@ class PublicationDao(
     fun fetchPublishedKmPosts(publicationId: IntId<Publication>): List<PublishedKmPost> {
         val sql = """
             select
-              pkp.km_post_id as id,
-              km_post_version as version,
-              layout.infer_operation_from_state_transition(old_state, state) as operation,
-              km_number,
-              track_number_id
+              coalesce(kmp.official_row_id, kmp.design_row_id, kmp.id) as official_id,
+              kmp.id as row_id,
+              kmp.version as row_version,
+              layout.infer_operation_from_state_transition(kpc.old_state, kpc.state) as operation,
+              kmp.km_number,
+              kmp.track_number_id
             from publication.km_post pkp
-              inner join layout.km_post_change_view kp
-                on kp.id = pkp.km_post_id and kp.version = pkp.km_post_version
+              inner join layout.km_post_version kmp 
+                on pkp.km_post_id = kmp.id and pkp.km_post_version = kmp.version
+              inner join layout.km_post_change_view kpc
+                on kpc.id = pkp.km_post_id and kpc.version = pkp.km_post_version
             where publication_id = :publication_id
         """.trimIndent()
 
         return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
             PublishedKmPost(
-                version = rs.getLayoutRowVersion("id", "version"),
+                id = rs.getIntId("official_id"),
+                version = rs.getLayoutRowVersion("row_id", "row_version"),
                 trackNumberId = rs.getIntId("track_number_id"),
                 kmNumber = rs.getKmNumber("km_number"),
                 operation = rs.getEnum("operation")
@@ -1511,34 +1519,39 @@ class PublicationDao(
     fun fetchPublishedSwitches(publicationId: IntId<Publication>): PublishedItemListing<PublishedSwitch> {
         val sql = """
             select
-              ps.switch_id as id,
-              switch_version as version,
-              switch.name,
-              layout.infer_operation_from_state_category_transition(old_state_category, state_category) as operation,
+              coalesce(sv.official_row_id, sv.design_row_id, sv.id) as official_id,
+              sv.id as row_id,
+              sv.version as row_version,
+              sv.name,
+              layout.infer_operation_from_state_category_transition(sc.old_state_category, sc.state_category) as operation,
               direct_change,
               array_remove(array_agg(distinct lt.track_number_id), null) as track_number_ids
             from publication.switch ps
-              inner join layout.switch_change_view switch
-                on switch.id = ps.switch_id and switch.version = ps.switch_version
+              inner join layout.switch_version sv
+                on ps.switch_id = sv.id and ps.switch_version = sv.version
+              inner join layout.switch_change_view sc
+                on sc.id = ps.switch_id and sc.version = ps.switch_version
               left join publication.switch_location_tracks slt 
                 on slt.switch_id = ps.switch_id and slt.publication_id = ps.publication_id
               left join layout.location_track_version lt 
                 on lt.id = slt.location_track_id and lt.version = slt.location_track_version
             where ps.publication_id = :publication_id
-            group by ps.switch_id, ps.switch_version, switch.name, operation, direct_change
+            group by sv.id, sv.version, ps.switch_id, ps.switch_version, sc.name, operation, direct_change
         """.trimIndent()
 
         val publishedSwitchJoints = publishedSwitchJoints(publicationId)
 
         return jdbcTemplate.query(sql, mapOf("publication_id" to publicationId.intValue)) { rs, _ ->
             rs.getBoolean("direct_change") to PublishedSwitch(
-                version = rs.getLayoutRowVersion("id", "version"),
+                id = rs.getIntId("official_id"),
+                version = rs.getLayoutRowVersion("row_id", "row_version"),
                 name = SwitchName(rs.getString("name")),
                 trackNumberIds = rs.getIntIdArray<TrackLayoutTrackNumber>("track_number_ids").toSet(),
                 operation = rs.getEnum("operation"),
                 changedJoints = publishedSwitchJoints
-                    .filter { it.first == rs.getIntId<TrackLayoutSwitch>("id") }
-                    .flatMap { it.second })
+                    .filter { it.first == rs.getIntId<TrackLayoutSwitch>("official_id") }
+                    .flatMap { it.second },
+            )
         }.let { switchRows ->
             logger.daoAccess(FETCH, PublishedSwitch::class, switchRows.map { it.second.version })
             partitionDirectIndirectChanges(switchRows)

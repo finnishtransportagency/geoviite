@@ -11,7 +11,6 @@ import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType.MAIN
@@ -50,12 +49,12 @@ class LocationTrackDaoIT @Autowired constructor(
             alignmentVersion = alignmentVersion,
         )
 
-        val (id, version) = locationTrackDao.insert(locationTrack)
-        assertEquals(version, locationTrackDao.fetchVersion(MainLayoutContext.official, id))
-        assertEquals(version, locationTrackDao.fetchVersion(MainLayoutContext.draft, id))
-        val fromDb = locationTrackDao.fetch(version)
+        val inserted = locationTrackDao.insert(locationTrack)
+        assertEquals(inserted.rowVersion, locationTrackDao.fetchVersion(MainLayoutContext.official, inserted.id))
+        assertEquals(inserted.rowVersion, locationTrackDao.fetchVersion(MainLayoutContext.draft, inserted.id))
+        val fromDb = locationTrackDao.fetch(inserted.rowVersion)
         assertMatches(locationTrack, fromDb, contextMatch = false)
-        assertEquals(id, fromDb.id)
+        assertEquals(inserted.id, fromDb.id)
 
         val updatedTrack = fromDb.copy(
             name = AlignmentName("UPD"),
@@ -65,13 +64,13 @@ class LocationTrackDaoIT @Autowired constructor(
             topologicalConnectivity = TopologicalConnectivityType.END
         )
         val (updatedId, updatedVersion) = locationTrackDao.update(updatedTrack)
-        assertEquals(id, updatedId)
-        assertEquals(version.id, updatedVersion.id)
-        assertEquals(updatedVersion, locationTrackDao.fetchVersion(MainLayoutContext.official, version.id))
-        assertEquals(updatedVersion, locationTrackDao.fetchVersion(MainLayoutContext.draft, version.id))
+        assertEquals(inserted.id, updatedId)
+        assertEquals(inserted.rowVersion.rowId, updatedVersion.rowId)
+        assertEquals(updatedVersion, locationTrackDao.fetchVersion(MainLayoutContext.official, inserted.id))
+        assertEquals(updatedVersion, locationTrackDao.fetchVersion(MainLayoutContext.draft, inserted.id))
         val updatedFromDb = locationTrackDao.fetch(updatedVersion)
         assertMatches(updatedTrack, updatedFromDb, contextMatch = false)
-        assertEquals(id, updatedFromDb.id)
+        assertEquals(inserted.id, updatedFromDb.id)
     }
 
     @Test
@@ -155,27 +154,27 @@ class LocationTrackDaoIT @Autowired constructor(
     @Test
     fun listingLocationTrackVersionsWorks() {
         val tnId = mainOfficialContext.createLayoutTrackNumber().id
-        val officialVersion = insertOfficialLocationTrack(tnId).rowVersion
-        val undeletedDraftVersion = insertDraftLocationTrack(tnId).rowVersion
-        val deleteStateDraftVersion = insertDraftLocationTrack(tnId, LocationTrackState.DELETED).rowVersion
-        val (deletedDraftId, deletedDraftVersion) = insertDraftLocationTrack(tnId)
+        val officialVersion = insertOfficialLocationTrack(tnId)
+        val undeletedDraftVersion = insertDraftLocationTrack(tnId)
+        val deleteStateDraftVersion = insertDraftLocationTrack(tnId, LocationTrackState.DELETED)
+        val deletedDraftId = insertDraftLocationTrack(tnId).id
         locationTrackDao.deleteDraft(LayoutBranch.main, deletedDraftId)
 
         val official = locationTrackDao.fetchVersions(MainLayoutContext.official, false)
         assertContains(official, officialVersion)
         assertFalse(official.contains(undeletedDraftVersion))
         assertFalse(official.contains(deleteStateDraftVersion))
-        assertFalse(official.contains(deletedDraftVersion))
+        assertFalse(official.any { r -> r.id == deletedDraftId })
 
         val draftWithoutDeleted = locationTrackDao.fetchVersions(MainLayoutContext.draft, false)
         assertContains(draftWithoutDeleted, undeletedDraftVersion)
         assertFalse(draftWithoutDeleted.contains(deleteStateDraftVersion))
-        assertFalse(draftWithoutDeleted.contains(deletedDraftVersion))
+        assertFalse(draftWithoutDeleted.any { r -> r.id == deletedDraftId })
 
         val draftWithDeleted = locationTrackDao.fetchVersions(MainLayoutContext.draft, true)
         assertContains(draftWithDeleted, undeletedDraftVersion)
         assertContains(draftWithDeleted, deleteStateDraftVersion)
-        assertFalse(draftWithDeleted.contains(deletedDraftVersion))
+        assertFalse(draftWithDeleted.any { r -> r.id == deletedDraftId })
     }
 
     @Test
@@ -194,13 +193,13 @@ class LocationTrackDaoIT @Autowired constructor(
         Thread.sleep(1) // Ensure that they get different timestamps
 
         val track1MainV2 = testDBService.update(track1MainV1).rowVersion
-        val track1DesignV2 = designOfficialContext.copyFrom(track1MainV1, officialRowId = track1MainV1.id).rowVersion
+        val track1DesignV2 = designOfficialContext.copyFrom(track1MainV1, officialRowId = track1MainV1.rowId).rowVersion
         val track2DesignV2 = testDBService.update(track2DesignV1).rowVersion
-        locationTrackDao.deleteRow(track3DesignV1.id)
+        locationTrackDao.deleteRow(track3DesignV1.rowId)
         val v2Time = locationTrackDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
 
-        locationTrackDao.deleteRow(track1DesignV2.id)
+        locationTrackDao.deleteRow(track1DesignV2.rowId)
         // Fake publish: update the design as a main-official
         val track2MainV3 = mainOfficialContext.moveFrom(track2DesignV2).rowVersion
         val v3Time = locationTrackDao.fetchChangeTime()
@@ -290,8 +289,8 @@ class LocationTrackDaoIT @Autowired constructor(
     @Test
     fun `Fetching multiple official location tracks works`() {
         val tnId = mainOfficialContext.createLayoutTrackNumber().id
-        val locationTrack1 = insertOfficialLocationTrack(tnId).rowVersion
-        val locationTrack2 = insertOfficialLocationTrack(tnId).rowVersion
+        val locationTrack1 = insertOfficialLocationTrack(tnId)
+        val locationTrack2 = insertOfficialLocationTrack(tnId)
 
         val expected = locationTrackDao.fetchVersions(
             MainLayoutContext.official,
@@ -311,8 +310,8 @@ class LocationTrackDaoIT @Autowired constructor(
     @Test
     fun `Fetching multiple draft location tracks works`() {
         val tnId = mainOfficialContext.createLayoutTrackNumber().id
-        val locationTrack1 = insertDraftLocationTrack(tnId).rowVersion
-        val locationTrack2 = insertDraftLocationTrack(tnId).rowVersion
+        val locationTrack1 = insertDraftLocationTrack(tnId)
+        val locationTrack2 = insertDraftLocationTrack(tnId)
 
         val expected = locationTrackDao.fetchVersions(
             MainLayoutContext.draft,
@@ -326,9 +325,9 @@ class LocationTrackDaoIT @Autowired constructor(
     @Test
     fun `Fetching missing location tracks only returns those that exist`() {
         val tnId = mainOfficialContext.createLayoutTrackNumber().id
-        val locationTrack1 = insertOfficialLocationTrack(tnId).rowVersion
-        val locationTrack2 = insertOfficialLocationTrack(tnId).rowVersion
-        val draftOnly = insertDraftLocationTrack(tnId).rowVersion
+        val locationTrack1 = insertOfficialLocationTrack(tnId)
+        val locationTrack2 = insertOfficialLocationTrack(tnId)
+        val draftOnly = insertDraftLocationTrack(tnId)
         val entirelyMissing = IntId<LocationTrack>(0)
 
         val res = locationTrackDao.fetchVersions(
@@ -350,8 +349,8 @@ class LocationTrackDaoIT @Autowired constructor(
                 draft = false,
                 alignmentVersion = alignmentVersion
             )
-        ).rowVersion
-        val official = locationTrackDao.fetch(officialVersion)
+        )
+        val official = locationTrackDao.fetch(officialVersion.rowVersion)
         locationTrackDao.insert(asMainDraft(official.copy(name = AlignmentName("draft"))))
         val bothDesign = layoutDesignDao.insert(layoutDesign("both"))
         val bothDesignInitialDesignDraftFromOfficial = locationTrackDao.insert(
@@ -400,7 +399,7 @@ class LocationTrackDaoIT @Autowired constructor(
         )
 
         assertChangeInfo(
-            officialVersion,
+            officialVersion.rowVersion,
             bothDesignDesignDraftVersion,
             locationTrackDao.fetchLayoutAssetChangeInfo(
                 DesignLayoutContext.of(bothDesign, PublicationState.DRAFT),
@@ -422,17 +421,17 @@ class LocationTrackDaoIT @Autowired constructor(
                     contextData = LayoutContextData.newDraft(DesignBranch.of(bothDesign)),
                     alignmentVersion = alignmentVersion
                 )
-            ).rowVersion
+            )
         val bothDesignNowOfficial = locationTrackDao.update(
             asDesignOfficial(
-                locationTrackDao.fetch(initialVersion),
-                bothDesign
+                locationTrackDao.fetch(initialVersion.rowVersion),
+                bothDesign,
             )
         ).rowVersion
         val lastDesignDraftVersion = locationTrackDao.insert(
             asDesignDraft(
                 locationTrackDao.fetch(bothDesignNowOfficial).copy(name = AlignmentName("design-draft")),
-                bothDesign
+                bothDesign,
             )
         ).rowVersion
 
@@ -456,11 +455,11 @@ class LocationTrackDaoIT @Autowired constructor(
             contextTracks(MainLayoutContext.of(OFFICIAL))
         )
         assertChangeInfo(
-            initialVersion,
+            initialVersion.rowVersion,
             lastDesignDraftVersion,
             locationTrackDao.fetchLayoutAssetChangeInfo(
                 DesignLayoutContext.of(bothDesign, PublicationState.DRAFT),
-                initialVersion.id
+                initialVersion.id,
             )!!
         )
     }
@@ -538,7 +537,7 @@ class LocationTrackDaoIT @Autowired constructor(
     fun `different layout contexts work with only a main-official and design-official row`() {
         val tnId = mainOfficialContext.createLayoutTrackNumber().id
         val alignmentVersion = alignmentDao.insert(alignment())
-        val someDesign = layoutDesignDao.insert(layoutDesign("some design"))
+        val someDesignId = layoutDesignDao.insert(layoutDesign("some design"))
         val official = locationTrackDao.insert(
             locationTrack(
                 tnId,
@@ -546,42 +545,43 @@ class LocationTrackDaoIT @Autowired constructor(
                 draft = false,
                 alignmentVersion = alignmentVersion
             )
-        ).rowVersion
+        )
         val designDraftVersion = locationTrackDao.insert(
             asDesignDraft(
                 locationTrackDao
-                    .fetch(official)
-                    .copy(name = AlignmentName("design-official")), someDesign
+                    .fetch(official.rowVersion)
+                    .copy(name = AlignmentName("design-official")),
+                someDesignId,
             )
         ).rowVersion
-        locationTrackDao.update(asDesignOfficial(locationTrackDao.fetch(designDraftVersion), someDesign))
+        locationTrackDao.update(asDesignOfficial(locationTrackDao.fetch(designDraftVersion), someDesignId))
 
         fun contextTracks(layoutContext: LayoutContext) =
             getTrackNameSetByLayoutContextAndTrackNumber(layoutContext, tnId)
 
         assertEquals(
             setOf("design-official"),
-            contextTracks(DesignLayoutContext.of(someDesign, OFFICIAL))
+            contextTracks(DesignLayoutContext.of(someDesignId, OFFICIAL))
         )
         assertEquals(
             setOf("design-official"),
-            contextTracks(DesignLayoutContext.of(someDesign, PublicationState.DRAFT))
+            contextTracks(DesignLayoutContext.of(someDesignId, PublicationState.DRAFT))
         )
         assertEquals(setOf("official"), contextTracks(MainLayoutContext.of(OFFICIAL)))
         assertEquals(setOf("official"), contextTracks(MainLayoutContext.of(PublicationState.DRAFT)))
         assertChangeInfo(
-            official,
+            official.rowVersion,
             designDraftVersion,
             locationTrackDao.fetchLayoutAssetChangeInfo(
-                DesignLayoutContext.of(someDesign, PublicationState.DRAFT),
+                DesignLayoutContext.of(someDesignId, PublicationState.DRAFT),
                 official.id
             )!!
         )
     }
 
     private fun assertChangeInfo(
-        originalVersion: RowVersion<LocationTrack>,
-        contextVersion: RowVersion<LocationTrack>?,
+        originalVersion: LayoutRowVersion<LocationTrack>,
+        contextVersion: LayoutRowVersion<LocationTrack>?,
         changeInfo: LayoutAssetChangeInfo,
     ) {
         val originalVersionCreationTime = getChangeTime(originalVersion)
@@ -590,9 +590,9 @@ class LocationTrackDaoIT @Autowired constructor(
         assertEquals(contextVersionChangeTime, changeInfo.changed, "changed time")
     }
 
-    private fun getChangeTime(version: RowVersion<LocationTrack>) = jdbc.queryOne(
+    private fun getChangeTime(version: LayoutRowVersion<LocationTrack>) = jdbc.queryOne(
         "select change_time from layout.location_track_version where id = :id and version = :version",
-        mapOf("id" to version.id.intValue, "version" to version.version)
+        mapOf("id" to version.rowId.intValue, "version" to version.version)
     ) { rs, _ -> rs.getInstant("change_time") }
 
     private fun getTrackNameSetByLayoutContextAndTrackNumber(
@@ -627,7 +627,7 @@ class LocationTrackDaoIT @Autowired constructor(
     }
 
     private fun createDraftWithNewTrackNumber(
-        trackVersion: RowVersion<LocationTrack>,
+        trackVersion: LayoutRowVersion<LocationTrack>,
         newTrackNumber: IntId<TrackLayoutTrackNumber>,
     ): DaoResponse<LocationTrack> {
         val track = locationTrackDao.fetch(trackVersion)
@@ -639,11 +639,5 @@ class LocationTrackDaoIT @Autowired constructor(
                 trackNumberId = newTrackNumber,
             )
         )
-    }
-
-    private fun updateOfficial(originalVersion: RowVersion<LocationTrack>): DaoResponse<LocationTrack> {
-        val original = locationTrackDao.fetch(originalVersion)
-        assertFalse(original.isDraft)
-        return locationTrackDao.update(original.copy(descriptionBase = original.descriptionBase + "_update"))
     }
 }

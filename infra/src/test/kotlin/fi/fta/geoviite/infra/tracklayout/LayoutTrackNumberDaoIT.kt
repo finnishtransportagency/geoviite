@@ -81,7 +81,7 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(draftVersion2, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
 
-        trackNumberDao.deleteDraft(LayoutBranch.main, insertVersion.id).rowVersion
+        trackNumberDao.deleteDraft(LayoutBranch.main, id).rowVersion
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
 
@@ -93,29 +93,29 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
 
     @Test
     fun listingTrackNumberVersionsWorks() {
-        val officialVersion = mainOfficialContext.createLayoutTrackNumber().rowVersion
-        val undeletedDraftVersion = mainDraftContext.createLayoutTrackNumber().rowVersion
+        val officialVersion = mainOfficialContext.createLayoutTrackNumber()
+        val undeletedDraftVersion = mainDraftContext.createLayoutTrackNumber()
         val deleteStateDraftVersion = mainDraftContext.insert(
             trackNumber(number = testDBService.getUnusedTrackNumber(), state = DELETED),
-        ).rowVersion
-        val (_, deletedDraftVersion) = mainDraftContext.createLayoutTrackNumber()
-            .also { (id, _) -> trackNumberDao.deleteDraft(LayoutBranch.main, id) }
+        )
+        val deletedDraftId = mainDraftContext.createLayoutTrackNumber().id
+        trackNumberDao.deleteDraft(LayoutBranch.main, deletedDraftId)
 
         val official = trackNumberDao.fetchVersions(MainLayoutContext.official, false)
         assertContains(official, officialVersion)
         assertFalse(official.contains(undeletedDraftVersion))
         assertFalse(official.contains(deleteStateDraftVersion))
-        assertFalse(official.contains(deletedDraftVersion))
+        assertFalse(official.any { r -> r.id == deletedDraftId})
 
         val draftWithoutDeleted = trackNumberDao.fetchVersions(MainLayoutContext.draft, false)
         assertContains(draftWithoutDeleted, undeletedDraftVersion)
         assertFalse(draftWithoutDeleted.contains(deleteStateDraftVersion))
-        assertFalse(draftWithoutDeleted.contains(deletedDraftVersion))
+        assertFalse(draftWithoutDeleted.any { r -> r.id == deletedDraftId})
 
         val draftWithDeleted = trackNumberDao.fetchVersions(MainLayoutContext.draft, true)
         assertContains(draftWithDeleted, undeletedDraftVersion)
         assertContains(draftWithDeleted, deleteStateDraftVersion)
-        assertFalse(draftWithDeleted.contains(deletedDraftVersion))
+        assertFalse(draftWithDeleted.any { r -> r.id == deletedDraftId})
     }
 
     @Test
@@ -132,14 +132,14 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
         val v1Time = trackNumberDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
 
-        val tn1MainV2 = testDBService.update(tn1MainV1).rowVersion
-        val tn1DesignV2 = designOfficialContext.copyFrom(tn1MainV1, officialRowId = tn1MainV1.id).rowVersion
+        val tn1MainV2 = testDBService.update(tn1MainV1)
+        val tn1DesignV2 = designOfficialContext.copyFrom(tn1MainV1, officialRowId = tn1MainV1.rowId)
         val tn2DesignV2 = testDBService.update(tn2DesignV1).rowVersion
-        trackNumberDao.deleteRow(tn3DesignV1.id)
+        trackNumberDao.deleteRow(tn3DesignV1.rowId)
         val v2Time = trackNumberDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
 
-        trackNumberDao.deleteRow(tn1DesignV2.id)
+        trackNumberDao.deleteRow(tn1DesignV2.rowVersion.rowId)
         // Fake publish: update the design as a main-official
         val tn2MainV3 = mainOfficialContext.moveFrom(tn2DesignV2).rowVersion
         val v3Time = trackNumberDao.fetchChangeTime()

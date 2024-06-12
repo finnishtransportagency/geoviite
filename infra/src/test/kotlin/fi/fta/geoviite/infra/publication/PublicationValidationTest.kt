@@ -1,13 +1,52 @@
 package fi.fta.geoviite.infra.publication
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
-import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.*
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutRowId
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.FUTURE_EXISTING
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.NOT_EXISTING
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.SegmentPoint
+import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
+import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.kmPost
+import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.offsetAlignment
+import fi.fta.geoviite.infra.tracklayout.rawPoints
+import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.someSegment
+import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.switchAndMatchingAlignments
+import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
+import fi.fta.geoviite.infra.tracklayout.to3DMPoints
+import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.junit.jupiter.api.Test
 import kotlin.math.PI
@@ -239,7 +278,7 @@ class PublicationValidationTest {
         assertSegmentSwitchError(
             true,
             editSegment(segmentSwitch) { segment ->
-                segment.copy(switchId = segmentSwitch.switch?.contextData?.rowId!!)
+                segment.copy(switchId = IntId(segmentSwitch.switch?.contextData?.rowId!!.intValue))
             },
             "$VALIDATION_LOCATION_TRACK.switch.not-official",
         )
@@ -575,22 +614,22 @@ class PublicationValidationTest {
 
     @Test
     fun `Combine versions overrides official version with validation version`() {
-        val officialVersions: List<RowVersion<PublicationValidationTest>> = listOf(
-            RowVersion(IntId(1), 2),
-            RowVersion(IntId(2), 3),
-            RowVersion(IntId(3), 4),
+        val officialVersions: List<DaoResponse<PublicationValidationTest>> = listOf(
+            DaoResponse(IntId(1), LayoutRowVersion(LayoutRowId(1), 2)),
+            DaoResponse(IntId(2), LayoutRowVersion(LayoutRowId(2), 3)),
+            DaoResponse(IntId(3), LayoutRowVersion(LayoutRowId(3), 4)),
         )
         val validationVersions: List<ValidationVersion<PublicationValidationTest>> = listOf(
-            ValidationVersion(IntId(2), RowVersion(IntId(16), 1)),
-            ValidationVersion(IntId(4), RowVersion(IntId(17), 1)),
+            ValidationVersion(IntId(2), LayoutRowVersion(LayoutRowId(16), 1)),
+            ValidationVersion(IntId(4), LayoutRowVersion(LayoutRowId(17), 1)),
         )
         assertEquals(
             listOf(
-                RowVersion(IntId(1), 2),
+                LayoutRowVersion(LayoutRowId(1), 2),
                 // Official version for row 2 gets replace by draft 16_1
-                RowVersion(IntId(3), 4),
-                RowVersion(IntId(16), 1),
-                RowVersion(IntId(17), 1),
+                LayoutRowVersion(LayoutRowId(3), 4),
+                LayoutRowVersion(LayoutRowId(16), 1),
+                LayoutRowVersion(LayoutRowId(17), 1),
             ),
             combineVersions(officialVersions, validationVersions),
         )

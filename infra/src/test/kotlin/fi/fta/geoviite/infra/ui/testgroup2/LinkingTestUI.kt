@@ -4,8 +4,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.common.PublicationState
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
@@ -16,8 +14,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
-import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
@@ -63,6 +61,7 @@ class LinkingTestUI @Autowired constructor(
     private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
+    private val locationTrackService: LocationTrackService,
 ) : SeleniumTest() {
     @BeforeEach
     fun setup() {
@@ -118,13 +117,12 @@ class LinkingTestUI @Autowired constructor(
     fun `Replace existing location track geometry with new geometry`() {
         val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         createAndInsertCommonReferenceLine(trackNumberId)
-        val originalLocationTrack = saveLocationTrackWithAlignment(
+        val originalLocationTrack = mainOfficialContext.insert(
             locationTrack(
                 name = "A",
                 trackNumber = trackNumberId,
                 basePoint = DEFAULT_BASE_POINT - Point(10.0, 10.0),
                 incrementPoints = listOf(Point(10.0, 20.0), Point(10.0, 15.0), Point(40.0, 47.0)),
-                draft = false,
             )
         )
 
@@ -152,7 +150,7 @@ class LinkingTestUI @Autowired constructor(
         val geometryTrackEndPoint = geometryAlignment.elements.last().end
 
         val (locationTrackStartPoint, locationTrackEndPoint) = alignmentDao.fetch(
-            locationTrackDao.fetch(originalLocationTrack).alignmentVersion!!
+            locationTrackDao.fetch(originalLocationTrack.rowVersion).getAlignmentVersionOrThrow()
         ).let { alignment -> alignment.start!! to alignment.end!! }
 
         trackLayoutPage.clickAtCoordinates(geometryTrackStartPoint)
@@ -186,7 +184,7 @@ class LinkingTestUI @Autowired constructor(
     fun `Edit location track end coordinate`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         createAndInsertCommonReferenceLine(trackNumberId)
-        val originalLocationTrack = saveLocationTrackWithAlignment(
+        val originalLocationTrack = mainOfficialContext.insert(
             locationTrack(
                 name = "A",
                 trackNumber = trackNumberId,
@@ -194,11 +192,9 @@ class LinkingTestUI @Autowired constructor(
                 incrementPoints = listOf(
                     Point(1.0, 2.0), Point(1.0, 1.5), Point(4.0, 4.7)
                 ),
-                draft = false,
             )
         )
-        val locationTrackAlignment =
-            alignmentDao.fetch(locationTrackDao.fetch(originalLocationTrack).alignmentVersion!!)
+        val (_, originalAlignment) = locationTrackService.getWithAlignment(originalLocationTrack.rowVersion)
 
         val trackLayoutPage = startGeoviiteAndGoToWork()
         val selectionPanel = trackLayoutPage.selectionPanel
@@ -209,14 +205,14 @@ class LinkingTestUI @Autowired constructor(
         val locationInfoBox = toolPanel.locationTrackLocation
         locationInfoBox.startLinking()
 
-        val newEndPoint = locationTrackAlignment.segments.last().alignmentStart
+        val newEndPoint = originalAlignment.segments.last().alignmentStart
 
-        trackLayoutPage.clickAtCoordinates(locationTrackAlignment.segments.last().alignmentEnd)
+        trackLayoutPage.clickAtCoordinates(originalAlignment.segments.last().alignmentEnd)
         trackLayoutPage.clickAtCoordinates(newEndPoint)
 
         locationInfoBox.save()
 
-        locationInfoBox.waitForStartCoordinatesChange(pointToCoordinateString(locationTrackAlignment.start!!))
+        locationInfoBox.waitForStartCoordinatesChange(pointToCoordinateString(originalAlignment.start!!))
         locationInfoBox.waitForEndCoordinatesChange(pointToCoordinateString(newEndPoint))
     }
 
@@ -224,17 +220,15 @@ class LinkingTestUI @Autowired constructor(
     fun `Edit location track start coordinate`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         createAndInsertCommonReferenceLine(trackNumberId)
-        val originalLocationTrack = saveLocationTrackWithAlignment(
+        val originalLocationTrack = mainOfficialContext.insert(
             locationTrack(
                 name = "A",
                 trackNumber = trackNumberId,
                 basePoint = DEFAULT_BASE_POINT - Point(1.0, 1.0),
                 incrementPoints = (1..10).map { Point(2.0, 3.0) },
-                draft = false,
             ),
         )
-        val locationTrackAlignment =
-            alignmentDao.fetch(locationTrackDao.fetch(originalLocationTrack).alignmentVersion!!)
+        val (_, locationTrackAlignment) = locationTrackService.getWithAlignment(originalLocationTrack.rowVersion)
 
         val trackLayoutPage = startGeoviiteAndGoToWork()
         val toolPanel = trackLayoutPage.toolPanel
@@ -439,17 +433,15 @@ class LinkingTestUI @Autowired constructor(
             .alignment("unrelated track", Point(0.0, 10.0), Point(10.0, 3.0), Point(10.0, 1.0))
             .save()
 
-        val originalLocationTrack = saveLocationTrackWithAlignment(
+        val originalLocationTrack = mainOfficialContext.insert(
             locationTrack(
                 name = "track to extend",
                 trackNumber = trackNumberId,
                 basePoint = DEFAULT_BASE_POINT + Point(12.0, 12.0),
                 incrementPoints = (1..10).map { Point(1.0, 1.0) },
-                draft = false,
             )
         )
-        val originalLocationTrackAlignment =
-            alignmentDao.fetch(locationTrackDao.fetch(originalLocationTrack).alignmentVersion!!)
+        val (_, originalAlignment) = locationTrackService.getWithAlignment(originalLocationTrack.rowVersion)
 
         val trackLayoutPage = startGeoviiteAndGoToWork()
         val toolPanel = trackLayoutPage.toolPanel
@@ -470,7 +462,7 @@ class LinkingTestUI @Autowired constructor(
         alignmentLinkinInfobox.linkTo("lt-track to extend")
         alignmentLinkinInfobox.lock()
 
-        trackLayoutPage.clickAtCoordinates(originalLocationTrackAlignment.start!!)
+        trackLayoutPage.clickAtCoordinates(originalAlignment.start!!)
         trackLayoutPage.clickAtCoordinates(geometryAlignment.elements.last().end)
         trackLayoutPage.clickAtCoordinates(geometryAlignment.elements.first().start)
 
@@ -480,13 +472,13 @@ class LinkingTestUI @Autowired constructor(
         val lengthAfterLinking = metersToDouble(locationTrackLocationInfobox.trueLength)
 
         Assertions.assertThat(locationTrackLengthBeforeLinking).isLessThan(lengthAfterLinking)
-        val editedLocationTrack = getLocationTrackAndAlignment(PublicationState.DRAFT, originalLocationTrack.id)
+        val editedLocationTrack = locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, originalLocationTrack.id)
 
         // Check that there's a new segment between GT-end and old LT-start
         assertTrue(
             hasSegmentBetweenPoints(
                 start = geometryAlignment.elements.last().end,
-                end = originalLocationTrackAlignment.segments.first().segmentStart.toPoint(),
+                end = originalAlignment.segments.first().segmentStart.toPoint(),
                 layoutAlignment = editedLocationTrack.second,
             )
         )
@@ -509,17 +501,15 @@ class LinkingTestUI @Autowired constructor(
             .alignment("unrelated track", Point(0.0, 10.0), Point(10.0, 3.0), Point(10.0, 1.0))
             .save()
 
-        val originalLocationTrack = saveLocationTrackWithAlignment(
+        val originalLocationTrack = mainOfficialContext.insert(
             locationTrack(
                 name = "track to extend",
                 trackNumber = trackNumberId,
                 basePoint = DEFAULT_BASE_POINT + Point(12.0, 12.0),
                 incrementPoints = (1..10).map { Point(1.0, 1.0) },
-                draft = false,
             )
         )
-        val originalLocationTrackAlignment =
-            alignmentDao.fetch(locationTrackDao.fetch(originalLocationTrack).alignmentVersion!!)
+        val (_, originalAlignment) = locationTrackService.getWithAlignment(originalLocationTrack.rowVersion)
 
         val trackLayoutPage = startGeoviiteAndGoToWork()
         val toolPanel = trackLayoutPage.toolPanel
@@ -543,12 +533,12 @@ class LinkingTestUI @Autowired constructor(
 
         trackLayoutPage.clickAtCoordinates(geometryAlignmentStart)
         trackLayoutPage.clickAtCoordinates(geometryAlignmentEnd)
-        trackLayoutPage.clickAtCoordinates(originalLocationTrackAlignment.segments.first().alignmentStart)
-        trackLayoutPage.clickAtCoordinates(originalLocationTrackAlignment.segments.first().alignmentEnd)
+        trackLayoutPage.clickAtCoordinates(originalAlignment.segments.first().alignmentStart)
+        trackLayoutPage.clickAtCoordinates(originalAlignment.segments.first().alignmentEnd)
         alignmentLinkinInfobox.link()
         waitAndClearToast("linking-succeeded-and-previous-unlinked")
 
-        val locationTrackAfterLinking = getLocationTrackAndAlignment(PublicationState.DRAFT, originalLocationTrack.id)
+        val locationTrackAfterLinking = locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, originalLocationTrack.id)
 
         toolPanel.selectToolPanelTab("lt-track to extend")
         val lengthAfterLinking = metersToDouble(locationTrackLocationInfobox.trueLength)
@@ -562,7 +552,7 @@ class LinkingTestUI @Autowired constructor(
         assertTrue(
             hasSegmentBetweenPoints(
                 start = geometryAlignmentEnd,
-                end = originalLocationTrackAlignment.segments.first().segmentEnd.toPoint(),
+                end = originalAlignment.segments.first().segmentEnd.toPoint(),
                 layoutAlignment = locationTrackAfterLinking.second,
             )
         )
@@ -638,16 +628,14 @@ class LinkingTestUI @Autowired constructor(
             trackNumber = trackNumberId,
             basePoint = DEFAULT_BASE_POINT + Point(12.0, 12.0),
             incrementPoints = (1..10).map { Point(1.0, 1.0) },
-            draft = false,
         )
-        saveLocationTrackWithAlignment(originalLocationTrack)
-        saveLocationTrackWithAlignment(
+        mainOfficialContext.insert(originalLocationTrack)
+        mainOfficialContext.insert(
             locationTrack(
                 name = "unrelated track",
                 trackNumber = trackNumberId,
                 basePoint = DEFAULT_BASE_POINT + Point(18.0, 6.0),
                 incrementPoints = (1..10).map { Point(1.0, -1.0) },
-                draft = false,
             )
         )
 
@@ -776,26 +764,5 @@ class LinkingTestUI @Autowired constructor(
 
     private fun hasSegmentBetweenPoints(start: Point, end: Point, layoutAlignment: LayoutAlignment): Boolean {
         return layoutAlignment.segments.any { segment -> segment.includes(start) && segment.includes(end) }
-    }
-
-    fun getLocationTrackAndAlignment(
-        publicationState: PublicationState,
-        id: IntId<LocationTrack>,
-    ): Pair<LocationTrack, LayoutAlignment> {
-        val locationTrack = locationTrackDao.getOrThrow(MainLayoutContext.of(publicationState), id)
-        val alignment = alignmentDao.fetch(locationTrack.getAlignmentVersionOrThrow())
-        return locationTrack to alignment
-    }
-
-    private fun saveLocationTrackWithAlignment(
-        locationTrackAndAlignment: Pair<LocationTrack, LayoutAlignment>,
-    ): RowVersion<LocationTrack> {
-        return locationTrackDao.insert(
-            locationTrackAndAlignment.first.copy(
-                alignmentVersion = alignmentDao.insert(
-                    locationTrackAndAlignment.second
-                )
-            )
-        ).rowVersion
     }
 }

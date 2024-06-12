@@ -10,7 +10,6 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -49,6 +48,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAssetService
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
@@ -2771,10 +2771,12 @@ class PublicationServiceIT @Autowired constructor(
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
-        val referenceLineVersion = mainOfficialContext.insert(referenceLine(trackNumberId), alignment).rowVersion
+        val referenceLine = mainOfficialContext.insert(referenceLine(trackNumberId), alignment)
         val locationTrackResponse =  mainDraftContext.insert(locationTrack(trackNumberId), alignment)
 
-        referenceLineDao.fetch(referenceLineVersion).also { d -> referenceLineService.saveDraft(LayoutBranch.main, d) }
+        referenceLineDao.fetch(referenceLine.rowVersion).also { d ->
+            referenceLineService.saveDraft(LayoutBranch.main, d)
+        }
 
         saveSplit(locationTrackResponse.rowVersion).also { splitId ->
             val split = splitDao.getOrThrow(splitId)
@@ -2783,7 +2785,7 @@ class PublicationServiceIT @Autowired constructor(
 
         val validation = publicationService.validatePublicationCandidates(
             publicationService.collectPublicationCandidates(LayoutBranch.main),
-            publicationRequestIds(referenceLines = listOf(referenceLineVersion.id))
+            publicationRequestIds(referenceLines = listOf(referenceLine.id))
         )
 
         val errors = validation.validatedAsPublicationUnit.referenceLines.flatMap { it.issues }
@@ -3257,7 +3259,7 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     private fun saveSplit(
-        sourceTrackVersion: RowVersion<LocationTrack>,
+        sourceTrackVersion: LayoutRowVersion<LocationTrack>,
         targetTracks: List<Pair<IntId<LocationTrack>, IntRange>> = listOf(),
         switches: List<IntId<TrackLayoutSwitch>> = listOf(),
     ): IntId<Split> {
@@ -3769,7 +3771,7 @@ private fun assertEqualsCalculatedChanges(
         publishedLocationTracks: List<PublishedLocationTrack>,
     ) {
         calculatedLocationTracks.forEach { calculatedTrack ->
-            val locationTrack = publishedLocationTracks.find { it.version.id == calculatedTrack.locationTrackId }
+            val locationTrack = publishedLocationTracks.find { it.id == calculatedTrack.locationTrackId }
             assertNotNull(locationTrack)
             assertEquals(locationTrack.changedKmNumbers, calculatedTrack.changedKmNumbers)
         }
@@ -3780,25 +3782,25 @@ private fun assertEqualsCalculatedChanges(
         publishedTrackNumbers: List<PublishedTrackNumber>,
     ) {
         calculatedTrackNumbers.forEach { calculatedTrackNumber ->
-            val trackNumber = publishedTrackNumbers.find { it.version.id == calculatedTrackNumber.trackNumberId }
+            val trackNumber = publishedTrackNumbers.find { it.id == calculatedTrackNumber.trackNumberId }
             assertNotNull(trackNumber)
             assertEquals(trackNumber.changedKmNumbers, calculatedTrackNumber.changedKmNumbers)
         }
     }
 
     calculatedChanges.directChanges.kmPostChanges.forEach { calculatedKmPostId ->
-        assertTrue(publicationDetails.kmPosts.any { it.version.id == calculatedKmPostId })
+        assertTrue(publicationDetails.kmPosts.any { it.id == calculatedKmPostId })
     }
 
     calculatedChanges.directChanges.referenceLineChanges.forEach { calculatedReferenceLineId ->
-        assertTrue(publicationDetails.referenceLines.any { it.version.id == calculatedReferenceLineId })
+        assertTrue(publicationDetails.referenceLines.any { it.id == calculatedReferenceLineId })
     }
 
     trackNumberEquals(calculatedChanges.directChanges.trackNumberChanges, publicationDetails.trackNumbers)
     locationTrackEquals(calculatedChanges.directChanges.locationTrackChanges, publicationDetails.locationTracks)
 
     calculatedChanges.directChanges.switchChanges.forEach { calculatedSwitch ->
-        val switch = publicationDetails.switches.find { it.version.id == calculatedSwitch.switchId }
+        val switch = publicationDetails.switches.find { it.id == calculatedSwitch.switchId }
         assertNotNull(switch)
         assertEquals(switch.changedJoints, calculatedSwitch.changedJoints)
     }
@@ -3815,7 +3817,7 @@ private fun assertEqualsCalculatedChanges(
 
     calculatedChanges.indirectChanges.switchChanges.forEach { calculatedSwitch ->
         val switch = publicationDetails.indirectChanges.switches.find { s ->
-            s.version.id == calculatedSwitch.switchId
+            s.id == calculatedSwitch.switchId
         }
         assertNotNull(switch)
         assertEquals(switch.changedJoints, calculatedSwitch.changedJoints)
@@ -3858,23 +3860,23 @@ private fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> verifyPublishingWorks(
 
     val officialVersion1 = publishAndCheck(draftVersion1, dao, service).first
     assertEquals(officialId, officialVersion1.id)
-    assertEquals(2, officialVersion1.version)
+    assertEquals(2, officialVersion1.rowVersion.version)
 
-    val (draftOfficialId2, draftVersion2) = service.saveDraft(LayoutBranch.main, mutate(dao.fetch(officialVersion1)))
-    assertEquals(officialId, draftOfficialId2)
+    val draftVersion2 = service.saveDraft(LayoutBranch.main, mutate(dao.fetch(officialVersion1.rowVersion)))
+    assertEquals(officialId, draftVersion2.id)
     assertNotEquals(officialId, draftVersion2.id)
-    assertEquals(1, draftVersion2.version)
+    assertEquals(1, draftVersion2.rowVersion.version)
 
-    val officialVersion2 = publishAndCheck(draftVersion2, dao, service).first
+    val officialVersion2 = publishAndCheck(draftVersion2.rowVersion, dao, service).first
     assertEquals(officialId, officialVersion2.id)
-    assertEquals(3, officialVersion2.version)
+    assertEquals(3, officialVersion2.rowVersion.version)
 }
 
 fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> publishAndCheck(
-    rowVersion: RowVersion<T>,
+    rowVersion: LayoutRowVersion<T>,
     dao: S,
     service: LayoutAssetService<T, S>,
-): Pair<RowVersion<T>, T> {
+): Pair<DaoResponse<T>, T> {
     val draft = dao.fetch(rowVersion)
     val id = draft.id
 
@@ -3885,27 +3887,29 @@ fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> publishAndCheck(
     assertEquals(DataType.STORED, draft.dataType)
     assertEquals(
         MainDraftContextData(
-            rowId = rowVersion.id,
+            rowId = rowVersion.rowId,
+            version = rowVersion,
             officialRowId = draft.contextData.officialRowId,
             designRowId = null,
         ),
         draft.contextData,
     )
 
-    val (publishedId, publishedVersion) = service.publish(LayoutBranch.main, ValidationVersion(id, rowVersion))
-    assertEquals(id, publishedId)
-    assertEquals(publishedVersion, dao.fetchVersionOrThrow(MainLayoutContext.official, id))
-    assertEquals(publishedVersion, dao.fetchVersion(MainLayoutContext.draft, id))
+    val published = service.publish(LayoutBranch.main, ValidationVersion(id, rowVersion))
+    assertEquals(id, published.id)
+    assertEquals(published.rowVersion, dao.fetchVersionOrThrow(MainLayoutContext.official, id))
+    assertEquals(published.rowVersion, dao.fetchVersion(MainLayoutContext.draft, id))
 
-    val publishedItem = dao.fetch(publishedVersion)
+    val publishedItem = dao.fetch(published.rowVersion)
     assertFalse(publishedItem.isDraft)
-    assertEquals(id, publishedVersion.id)
+    assertEquals(id, published.id)
+    assertEquals(id.intValue, published.rowVersion.rowId.intValue)
     assertEquals(
-        MainOfficialContextData(rowId = publishedVersion.id),
+        MainOfficialContextData(published.rowVersion.rowId, published.rowVersion),
         publishedItem.contextData,
     )
 
-    return publishedVersion to publishedItem
+    return published to publishedItem
 }
 
 fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> verifyPublished(
@@ -3923,7 +3927,6 @@ fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> verifyPublished(
 ) {
     val currentOfficialVersion = dao.fetchVersionOrThrow(layoutBranch.official, validationVersion.officialId)
     val currentDraftVersion = dao.fetchVersionOrThrow(layoutBranch.draft, validationVersion.officialId)
-    assertEquals(currentDraftVersion.id, currentOfficialVersion.id)
     assertEquals(currentOfficialVersion, currentDraftVersion)
     val draft = dao.fetch(validationVersion.validatedAssetVersion)
     assertTrue(draft.isDraft)

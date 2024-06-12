@@ -120,7 +120,7 @@ data class PublishedSwitch(
 )
 
 data class PublishedKmPost(
-    val id: IntId<PublishedKmPost>,
+    val id: IntId<TrackLayoutKmPost>,
     val version: LayoutRowVersion<TrackLayoutKmPost>,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val kmNumber: KmNumber,
