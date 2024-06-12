@@ -21,7 +21,7 @@ export const SplitButton = function ({
 
     return (
         <span className={styles['split-button']} ref={ref}>
-            <Button {...buttonProps} qa-id={qaId} {...buttonProps}>
+            <Button {...buttonProps} qa-id={qaId}>
                 {children}
             </Button>
             <Button
