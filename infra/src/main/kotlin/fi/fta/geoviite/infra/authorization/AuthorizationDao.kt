@@ -78,7 +78,7 @@ class AuthorizationDao(
 
         //language=SQL
         val sql = """
-            select code, name from common.role 
+            select code from common.role 
             where (:role_code::varchar is null or code = :role_code) 
               and (:user_group::varchar is null or user_group = :user_group)
         """.trimIndent()
@@ -90,7 +90,6 @@ class AuthorizationDao(
             val code: Code = rs.getCode("code")
             Role(
                 code = code,
-                name = AuthName.of(rs.getString("name")),
                 privileges = fetchRolePrivilegesInternal(code),
             )
         }
@@ -100,18 +99,14 @@ class AuthorizationDao(
 
     private fun fetchRolePrivilegesInternal(code: Code): List<Privilege> {
         val sql = """
-            select privilege.code, privilege.name, privilege.description
+            select privilege.code
             from common.role_privilege rp
               left join common.privilege on privilege.code = rp.privilege_code
             where rp.role_code = :role_code
         """.trimIndent()
         val params = mapOf("role_code" to code)
         val privileges = jdbcTemplate.query(sql, params) { rs, _ ->
-            Privilege(
-                code = rs.getCode("code"),
-                name = AuthName.of(rs.getString("name")),
-                description = rs.getFreeText("description"),
-            )
+            Privilege(code = rs.getCode("code"))
         }
         logger.daoAccess(FETCH, Privilege::class, privileges.map { p -> p.code })
         return privileges

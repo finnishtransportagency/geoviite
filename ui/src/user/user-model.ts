@@ -42,14 +42,11 @@ export type UserDetails = {
 
 export type Role = {
     code: RoleCode;
-    name: string;
     privileges: Privilege[];
 };
 
 export type Privilege = {
     code: PrivilegeCode;
-    name: string;
-    description: string;
 };
 
 export const userHasPrivilege = (privileges: PrivilegeCode[], privilege: PrivilegeCode) =>
