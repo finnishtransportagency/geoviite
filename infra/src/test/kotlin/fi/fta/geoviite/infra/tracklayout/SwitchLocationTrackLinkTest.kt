@@ -297,20 +297,6 @@ fun partialMatch(
     endSplitPoint = SwitchSplitPoint(endPoint, null, IntId(endSwitch.first), JointNumber(endSwitch.second))
 )
 
-//fun fullMatch(
-//    startSplitPoint: Pair<Int, Int>,
-//    endSwitch: Pair<Int, Int>,
-//    from: Int = 0,
-//    startPoint: AlignmentPoint = emptyPoint(),
-//    endPoint: AlignmentPoint = emptyPoint(),
-//) = from to DuplicateStatus(
-//    DuplicateMatch.FULL,
-//    null,
-//    startSplitPoint = SwitchSplitPoint(startPoint, null, IntId(startSwitch.first), JointNumber(startSwitch.second)),
-//    endSplitPoint = SwitchSplitPoint(endPoint, null, IntId(endSwitch.first), JointNumber(endSwitch.second))
-//)
-
-
 fun fullMatch(
     startSwitch: Pair<Int, Int>,
     endSwitch: Pair<Int, Int>,
