@@ -74,6 +74,15 @@ fun Logger.daoAccess(accessType: AccessType, objectType: String, ids: List<Any>)
     }
 }
 
+fun Logger.daoAccess(method: String, params: List<Pair<String, *>>, returnValue: Any?) {
+    info(
+        "method={} params={} returnValue={}",
+        method,
+        paramsToLog(params),
+        returnValueToLog(returnValue),
+    )
+}
+
 fun Logger.apiCall(method: String, vararg params: Pair<String, *>) {
     if (isInfoEnabled) info("method=$method params=${paramsToLog(*params)}")
 }
@@ -82,12 +91,31 @@ fun Logger.serviceCall(method: String, vararg params: Pair<String, *>) {
     if (isDebugEnabled) debug("method={} params={}", method, paramsToLog(*params))
 }
 
+fun Logger.apiCall(method: String, params: List<Pair<String, *>>) {
+    if (isInfoEnabled) info("method={} params={}", method, paramsToLog(params))
+}
+
+fun Logger.serviceCall(method: String, params: List<Pair<String, *>>) {
+    if (isDebugEnabled) debug("method={} params={}", method, paramsToLog(params))
+}
+
 fun paramsToLog(vararg params: Pair<String, *>): List<String> =
     params.map { p ->
         "${p.first}=${p.second?.let { obj ->
             formatForLog(if (obj is Loggable) obj.toLog() else obj.toString(), 1000)
         }}"
     }
+
+fun paramsToLog(params: List<Pair<String, *>>): List<String> =
+    params.map { p ->
+        "${p.first}=${p.second?.let { obj ->
+            formatForLog(if (obj is Loggable) obj.toLog() else obj.toString(), 1000)
+        }}"
+    }
+
+fun returnValueToLog(returnValue: Any?): String {
+    return formatForLog(if (returnValue is Loggable) returnValue.toLog() else returnValue.toString(), 1000)
+}
 
 fun Logger.integrationCall(method: String, vararg params: Pair<String, *>) {
     info("method=$method params=${paramsToLog(*params)}")
