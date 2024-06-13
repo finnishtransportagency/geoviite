@@ -3860,15 +3860,20 @@ private fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> verifyPublishingWorks(
 
     val officialVersion1 = publishAndCheck(draftVersion1, dao, service).first
     assertEquals(officialId, officialVersion1.id)
+    // First row remains and is updated as official
+    assertEquals(draftVersion1.rowId, officialVersion1.rowVersion.rowId)
     assertEquals(2, officialVersion1.rowVersion.version)
 
     val draftVersion2 = service.saveDraft(LayoutBranch.main, mutate(dao.fetch(officialVersion1.rowVersion)))
     assertEquals(officialId, draftVersion2.id)
-    assertNotEquals(officialId, draftVersion2.id)
+    // Second draft must be a separate row to not touch the official
+    assertNotEquals(officialVersion1.rowVersion.rowId, draftVersion2.rowVersion.rowId)
     assertEquals(1, draftVersion2.rowVersion.version)
 
     val officialVersion2 = publishAndCheck(draftVersion2.rowVersion, dao, service).first
     assertEquals(officialId, officialVersion2.id)
+    // Second publish should update the original row again
+    assertEquals(officialVersion1.rowVersion.rowId, officialVersion2.rowVersion.rowId)
     assertEquals(3, officialVersion2.rowVersion.version)
 }
 

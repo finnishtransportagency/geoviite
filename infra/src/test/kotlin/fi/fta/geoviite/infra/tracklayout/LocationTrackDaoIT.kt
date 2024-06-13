@@ -236,9 +236,9 @@ class LocationTrackDaoIT @Autowired constructor(
     @Test
     fun findingLocationTracksByTrackNumberWorksForOfficial() {
         val tnId = mainOfficialContext.createLayoutTrackNumber().id
-        val officialTrackVersion1 = insertOfficialLocationTrack(tnId).rowVersion
-        val officialTrackVersion2 = insertOfficialLocationTrack(tnId).rowVersion
-        val draftTrackVersion = insertDraftLocationTrack(tnId).rowVersion
+        val officialTrackVersion1 = insertOfficialLocationTrack(tnId)
+        val officialTrackVersion2 = insertOfficialLocationTrack(tnId)
+        val draftTrackVersion = insertDraftLocationTrack(tnId)
 
         assertEquals(
             listOf(officialTrackVersion1, officialTrackVersion2).toSet(),
@@ -254,10 +254,10 @@ class LocationTrackDaoIT @Autowired constructor(
     fun findingLocationTracksByTrackNumberWorksForDraft() {
         val tnId = mainOfficialContext.createLayoutTrackNumber().id
         val tnId2 = mainOfficialContext.createLayoutTrackNumber().id
-        val undeletedDraftVersion = insertDraftLocationTrack(tnId).rowVersion
-        val deleteStateDraftVersion = insertDraftLocationTrack(tnId, LocationTrackState.DELETED).rowVersion
-        val changeTrackNumberOriginal = insertOfficialLocationTrack(tnId).rowVersion
-        val changeTrackNumberChanged = createDraftWithNewTrackNumber(changeTrackNumberOriginal, tnId2).rowVersion
+        val undeletedDraftVersion = insertDraftLocationTrack(tnId)
+        val deleteStateDraftVersion = insertDraftLocationTrack(tnId, LocationTrackState.DELETED)
+        val changeTrackNumberOriginal = insertOfficialLocationTrack(tnId)
+        val changeTrackNumberChanged = createDraftWithNewTrackNumber(changeTrackNumberOriginal.rowVersion, tnId2)
         val deletedDraftId = insertDraftLocationTrack(tnId).id
         locationTrackDao.deleteDraft(LayoutBranch.main, deletedDraftId)
 

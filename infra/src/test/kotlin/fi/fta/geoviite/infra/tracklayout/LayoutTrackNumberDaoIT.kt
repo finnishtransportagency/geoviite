@@ -132,14 +132,14 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
         val v1Time = trackNumberDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
 
-        val tn1MainV2 = testDBService.update(tn1MainV1)
-        val tn1DesignV2 = designOfficialContext.copyFrom(tn1MainV1, officialRowId = tn1MainV1.rowId)
+        val tn1MainV2 = testDBService.update(tn1MainV1).rowVersion
+        val tn1DesignV2 = designOfficialContext.copyFrom(tn1MainV1, officialRowId = tn1MainV1.rowId).rowVersion
         val tn2DesignV2 = testDBService.update(tn2DesignV1).rowVersion
         trackNumberDao.deleteRow(tn3DesignV1.rowId)
         val v2Time = trackNumberDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
 
-        trackNumberDao.deleteRow(tn1DesignV2.rowVersion.rowId)
+        trackNumberDao.deleteRow(tn1DesignV2.rowId)
         // Fake publish: update the design as a main-official
         val tn2MainV3 = mainOfficialContext.moveFrom(tn2DesignV2).rowVersion
         val v3Time = trackNumberDao.fetchChangeTime()

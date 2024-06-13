@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import daoResponseToValidationVersion
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
@@ -11,7 +10,6 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import fi.fta.geoviite.infra.tracklayout.LayoutState.NOT_IN_USE
@@ -146,15 +144,13 @@ class LayoutKmPostDaoIT @Autowired constructor(
             listOf(postOneOfficial.id, postThreeOnlyDraft.id),
         )[trackNumberId]!!
 
-        assertEquals(validationVersions(postOneOfficial, postTwoOfficial, postFourOnlyOfficial), versionsEmpty.toSet())
-        assertEquals(validationVersions(postOneDraft, postTwoOfficial, postFourOnlyOfficial), versionsOnlyOne.toSet())
+        assertEquals(setOf(postOneOfficial, postTwoOfficial, postFourOnlyOfficial), versionsEmpty.toSet())
+        assertEquals(setOf(postOneDraft, postTwoOfficial, postFourOnlyOfficial), versionsOnlyOne.toSet())
         assertEquals(
-            validationVersions(postOneDraft, postTwoOfficial, postThreeOnlyDraft, postFourOnlyOfficial),
+            setOf(postOneDraft, postTwoOfficial, postThreeOnlyDraft, postFourOnlyOfficial),
             versionsOneAndThree.toSet(),
         )
     }
-    private fun <T> validationVersions(vararg daoResponses: DaoResponse<T>): Set<ValidationVersion<T>> =
-        setOf(*daoResponses.map(::daoResponseToValidationVersion).toTypedArray())
 
     @Test
     fun listingKmPostVersionsWorks() {
@@ -241,9 +237,9 @@ class LayoutKmPostDaoIT @Autowired constructor(
     @Test
     fun findingKmPostsByTrackNumberWorksForOfficial() {
         val tnId = mainOfficialContext.createLayoutTrackNumber().id
-        val officialTrackVersion1 = insertOfficial(tnId, 1).rowVersion
-        val officialTrackVersion2 = insertOfficial(tnId, 2).rowVersion
-        val draftTrackVersion = insertDraft(tnId, 3).rowVersion
+        val officialTrackVersion1 = insertOfficial(tnId, 1)
+        val officialTrackVersion2 = insertOfficial(tnId, 2)
+        val draftTrackVersion = insertDraft(tnId, 3)
 
         assertEquals(
             listOf(officialTrackVersion1, officialTrackVersion2).toSet(),
@@ -256,14 +252,16 @@ class LayoutKmPostDaoIT @Autowired constructor(
     }
 
     @Test
-    fun findingKmPostsByTrackNumberWorksForDraft() {
+    fun `Finding KM-Post by TrackNumber works for drafts`() {
         val tnId = mainOfficialContext.createLayoutTrackNumber().id
         val tnId2 = mainOfficialContext.createLayoutTrackNumber().id
-        val undeletedDraftVersion = insertDraft(tnId, 1).rowVersion
-        val deleteStateDraftVersion = insertDraft(tnId, 2, DELETED).rowVersion
-        val changeTrackNumberOriginal = insertOfficial(tnId, 3).rowVersion
-        val changeTrackNumberChanged = createDraftWithNewTrackNumber(changeTrackNumberOriginal, tnId2).rowVersion
-        val deletedDraftId = insertDraft(tnId, 4).id
+        val undeletedDraftVersion = mainDraftContext.insert(kmPost(tnId, KmNumber(1)))
+        val deleteStateDraftVersion = mainDraftContext.insert(kmPost(tnId, KmNumber(2), state = DELETED))
+        val changeTrackNumberOriginal = mainOfficialContext.insert(kmPost(tnId, KmNumber(3)))
+        val changeTrackNumberChanged = testDBService.createDraft(changeTrackNumberOriginal.rowVersion) { kmp ->
+            kmp.copy(trackNumberId = tnId2)
+        }
+        val deletedDraftId = mainDraftContext.insert(kmPost(tnId, KmNumber(4))).id
         kmPostDao.deleteDraft(LayoutBranch.main, deletedDraftId)
 
         assertEquals(
@@ -295,15 +293,6 @@ class LayoutKmPostDaoIT @Autowired constructor(
         state: LayoutState = IN_USE,
     ): DaoResponse<TrackLayoutKmPost> {
         return kmPostDao.insert(kmPost(tnId, KmNumber(kmNumber), state = state, draft = true))
-    }
-
-    private fun createDraftWithNewTrackNumber(
-        trackVersion: LayoutRowVersion<TrackLayoutKmPost>,
-        newTrackNumber: IntId<TrackLayoutTrackNumber>,
-    ): DaoResponse<TrackLayoutKmPost> {
-        val track = kmPostDao.fetch(trackVersion)
-        assertFalse(track.isDraft)
-        return kmPostDao.insert(asMainDraft(track).copy(trackNumberId = newTrackNumber))
     }
 
     fun insertAndVerify(post: TrackLayoutKmPost) {

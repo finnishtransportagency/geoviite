@@ -332,6 +332,7 @@ class TestDBService(
     final inline fun <reified S : LayoutAsset<S>> createDraft(
         officialVersion: LayoutRowVersion<S>,
         targetBranch: LayoutBranch? = null,
+        mutate: (S) -> S = { it },
     ): DaoResponse<S> {
         val original = fetch(officialVersion)
         assertTrue(original.isOfficial)
@@ -340,6 +341,7 @@ class TestDBService(
             officialVersion,
             officialRowId = if (!original.isDesign) original.contextData.rowId else original.contextData.officialRowId,
             designRowId = if (original.isDesign) original.contextData.rowId else null,
+            mutate = mutate,
         )
     }
 }
@@ -378,15 +380,19 @@ data class TestLayoutContext(
      * to the original asset, so calling this for draft context on an official asset creates a new draft with same
      * data, not a draft of the official. You can provide [officialRowId] and [designRowId] to link the new asset if
      * desired.
+     * <p>
+     * If desired, you can also mutate the asset before moving it to the new context by providing a [mutate] function.
+     * </p>
      */
     @Suppress("UNCHECKED_CAST")
     inline fun <reified T : LayoutAsset<T>> copyFrom(
         rowVersion: LayoutRowVersion<T>,
         officialRowId: LayoutRowId<T>? = null,
         designRowId: LayoutRowId<T>? = null,
+        mutate: (T) -> T = { it },
     ): DaoResponse<T> {
         val dao = getDao(T::class)
-        val original = dao.fetch(rowVersion)
+        val original = mutate(dao.fetch(rowVersion))
         val withNewContext = original.withContext(createContextData(null, officialRowId, designRowId))
         return when (withNewContext) {
             // Also copy alignment: the types won't play nice unless we use the final ones, so this duplicates
@@ -400,10 +406,16 @@ data class TestLayoutContext(
     /**
      * Moves the asset identified by [rowVersion] to the current context, maintaining the row itself.
      * Links to official/design row are kept where possible, noting the rules of which contexts actually have them.
+     * <p>
+     * If desired, you can also mutate the asset before moving it to the new context by providing a [mutate] function.
+     * </p>
      */
-    inline fun <reified T : LayoutAsset<T>> moveFrom(rowVersion: LayoutRowVersion<T>): DaoResponse<T> {
+    inline fun <reified T : LayoutAsset<T>> moveFrom(
+        rowVersion: LayoutRowVersion<T>,
+        mutate: (T) -> T = { it },
+    ): DaoResponse<T> {
         val dao = getDao(T::class)
-        val original = dao.fetch(rowVersion)
+        val original = mutate(dao.fetch(rowVersion))
         val withNewContext = original.withContext(original.contextData.let { origCtx ->
             createContextData(
                 rowId = origCtx.rowId,
