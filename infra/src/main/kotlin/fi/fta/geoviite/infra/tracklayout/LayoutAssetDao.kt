@@ -55,7 +55,6 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
     fun fetchChangeTime(): Instant
     fun fetchLayoutAssetChangeInfo(layoutContext: LayoutContext, id: IntId<T>): LayoutAssetChangeInfo?
 
-    fun fetchAllVersions(): List<LayoutRowVersion<T>>
     fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean): List<DaoResponse<T>>
 
     fun fetchPublicationVersions(branch: LayoutBranch): List<ValidationVersion<T>>
@@ -210,10 +209,6 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         }.firstOrNull()
     }
 
-    // TODO: GVT-2629 Implement this properly & separate enum/sql stuff
-    override fun fetchAllVersions(): List<LayoutRowVersion<T>> = fetchRowVersions<T>(table.dbTable)
-        .map { LayoutRowVersion(LayoutRowId(it.id.intValue), it.version)}
-
     private val singleLayoutContextVersionSql = fetchContextVersionSql(table, SINGLE)
     private val multiLayoutContextVersionSql = fetchContextVersionSql(table, MULTI)
 
@@ -360,7 +355,6 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
             rs.getDaoResponse("official_id", "row_id", "row_version")
         }.also { deleted -> logger.daoAccess(DELETE, table.fullName, deleted) }
     }
-
 }
 
 private fun fetchContextVersionSql(table: LayoutAssetTable, fetchType: FetchType) =

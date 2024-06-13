@@ -18,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
 import kotlin.test.assertContains
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -95,7 +96,7 @@ class LayoutSwitchDaoIT @Autowired constructor(
 
         val deletedId = switchDao.deleteDraft(LayoutBranch.main, insertedId)
         assertEquals(insertedId, deletedId.id)
-        assertFalse(switchDao.fetchAllVersions().any { id -> id == insertedId })
+        assertNull(switchDao.fetchVersion(MainLayoutContext.draft, insertedId))
 
         // Verify that we can still fetch the deleted row with version
         assertEquals(insertedSwitch, switchDao.fetch(insertedVersion))
@@ -113,7 +114,7 @@ class LayoutSwitchDaoIT @Autowired constructor(
 
     @Test
     fun listingSwitchVersionsWorks() {
-        val officialVersion= mainOfficialContext.createSwitch()
+        val officialVersion = mainOfficialContext.createSwitch()
         val undeletedDraft = mainDraftContext.createSwitch(LayoutStateCategory.EXISTING)
         val deleteStateDraft = mainDraftContext.createSwitch(LayoutStateCategory.NOT_EXISTING)
         val deletedDraft = mainDraftContext.createSwitch(LayoutStateCategory.EXISTING)
