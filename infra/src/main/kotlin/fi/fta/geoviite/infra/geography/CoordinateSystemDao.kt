@@ -1,20 +1,16 @@
 package fi.fta.geoviite.infra.geography
 
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.configuration.CACHE_COORDINATE_SYSTEMS
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import fi.fta.geoviite.infra.logging.AccessType.FETCH
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getSrid
 import fi.fta.geoviite.infra.util.getStringListFromString
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class CoordinateSystemDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     @Cacheable(CACHE_COORDINATE_SYSTEMS, sync = true)
@@ -33,7 +29,7 @@ class CoordinateSystemDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoB
                 aliases = rs.getStringListFromString("aliases_str").map(::CoordinateSystemName),
             )
         }
-        logger.daoAccess(FETCH, CoordinateSystem::class, systems.map { r -> r.srid })
+
         return systems
     }
 
@@ -58,7 +54,7 @@ class CoordinateSystemDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoB
                     .map(::CoordinateSystemName),
             )
         }.firstOrNull() ?: throw NoSuchEntityException(CoordinateSystem::class, srid.toString())
-        logger.daoAccess(FETCH, CoordinateSystem::class, srid)
+
         return system
     }
 }

@@ -1,12 +1,10 @@
 package fi.fta.geoviite.infra.switchLibrary
 
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.CACHE_COMMON_SWITCH_STRUCTURE
-import fi.fta.geoviite.infra.logging.AccessType
-import fi.fta.geoviite.infra.logging.AccessType.FETCH
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.DbTable
@@ -22,11 +20,9 @@ import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.setUser
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     fun fetchSwitchStructureVersion(id: IntId<SwitchStructure>) = fetchRowVersion(id, DbTable.COMMON_SWITCH_STRUCTURE)
@@ -51,7 +47,6 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             )
             switchType
         }
-        logger.daoAccess(FETCH, SwitchStructure::class, switchStructures.map { it.id })
         return switchStructures
     }
 
@@ -80,7 +75,7 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
             )
             switchType
         }
-        logger.daoAccess(FETCH, SwitchStructure::class, version)
+
         return switchStructure
     }
 
@@ -185,7 +180,6 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         insertJoints(version, switchStructure.joints)
         insertAlignments(version, switchStructure.alignments)
 
-        logger.daoAccess(AccessType.INSERT, SwitchStructure::class, version)
         return version
     }
 

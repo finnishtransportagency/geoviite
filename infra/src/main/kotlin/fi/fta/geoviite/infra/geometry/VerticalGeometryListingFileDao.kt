@@ -1,18 +1,18 @@
 package fi.fta.geoviite.infra.geometry
 
-import fi.fta.geoviite.infra.logging.AccessType
-import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
+import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.util.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
-data class VerticalGeometryListingFile(val name: FileName, val content: String)
+data class VerticalGeometryListingFile(val name: FileName, val content: String) : Loggable {
+    override fun toLog(): String = logFormat("name" to name)
+}
 
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class VerticalGeometryListingFileDao @Autowired constructor(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
 ) : DaoBase(jdbcTemplateParam) {
@@ -43,9 +43,7 @@ class VerticalGeometryListingFileDao @Autowired constructor(
             "content" to file.content,
         )
         jdbcTemplate.setUser()
-        jdbcTemplate.update(sql, params).also {
-            logger.daoAccess(AccessType.UPSERT, VerticalGeometryListingFile::class, file.name)
-        }
+        jdbcTemplate.update(sql, params)
     }
 
     fun getVerticalGeometryListingFile(): VerticalGeometryListingFile? {
@@ -59,7 +57,6 @@ class VerticalGeometryListingFileDao @Autowired constructor(
             content = rs.getString("content"),
         ) }
             .firstOrNull()
-            .also { file -> logger.daoAccess(AccessType.FETCH, VerticalGeometryListingFile::class, "${file?.name}") }
     }
 
     fun getLastFileListingTime(): Instant {
@@ -69,6 +66,5 @@ class VerticalGeometryListingFileDao @Autowired constructor(
         """.trimIndent()
 
         return jdbcTemplate.queryOne(sql) { rs , _ -> rs.getInstantOrNull("change_time") ?: Instant.EPOCH }
-            .also { logger.daoAccess(AccessType.FETCH, "${VerticalGeometryListingFile::class.simpleName}.changeTime") }
     }
 }

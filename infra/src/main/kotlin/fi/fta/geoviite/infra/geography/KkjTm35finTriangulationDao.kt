@@ -3,16 +3,14 @@ package fi.fta.geoviite.infra.geography
 import com.github.davidmoten.rtree2.RTree
 import com.github.davidmoten.rtree2.geometry.Geometries
 import com.github.davidmoten.rtree2.geometry.Rectangle
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.configuration.CACHE_KKJ_TM35FIN_TRIANGULATION_NETWORK
-import fi.fta.geoviite.infra.logging.AccessType
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_CRS
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getPoint
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
 
 enum class TriangulationDirection(val direction: String) {
     KKJ_TO_TM35FIN("KKJ_TO_TM35FIN"),
@@ -53,11 +51,10 @@ val TM35FIN_TO_KKJ_SQL = """
   where kkj_etrs_triangulation_network.direction = 'TM35FIN_TO_KKJ'
 """.trimIndent()
 
-@Component
+@GeoviiteDao
 class KkjTm35finTriangulationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
     @Cacheable(CACHE_KKJ_TM35FIN_TRIANGULATION_NETWORK, sync = true)
     fun fetchTriangulationNetwork(direction: TriangulationDirection): RTree<KkjTm35finTriangle, Rectangle> {
-        logger.daoAccess(AccessType.FETCH, HeightTriangle::class)
         val sql = when (direction) {
             TriangulationDirection.KKJ_TO_TM35FIN -> KKJ_TO_TM35FIN_SQL
             TriangulationDirection.TM35FIN_TO_KKJ -> TM35FIN_TO_KKJ_SQL

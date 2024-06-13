@@ -1,14 +1,11 @@
 package fi.fta.geoviite.infra.projektivelho
 
+import fi.fta.geoviite.infra.aspects.DoNotWriteToLog
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
-import fi.fta.geoviite.infra.logging.AccessType.FETCH
-import fi.fta.geoviite.infra.logging.AccessType.INSERT
-import fi.fta.geoviite.infra.logging.AccessType.UPDATE
-import fi.fta.geoviite.infra.logging.AccessType.UPSERT
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.DOCUMENT_TYPE
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.MATERIAL_CATEGORY
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.MATERIAL_GROUP
@@ -35,7 +32,6 @@ import fi.fta.geoviite.infra.util.getPVProjectName
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.setUser
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.Timestamp
 import java.time.Instant
@@ -45,8 +41,7 @@ data class PVDocumentCounts(
     val rejected: Int,
 )
 
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
     @Transactional
     fun insertDocumentMetadata(
@@ -127,7 +122,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         val selectParams = mapOf("oid" to oid)
         return jdbcTemplate.query(selectSql, selectParams) { rs, _ ->
             rs.getRowVersion<PVDocument>("id", "version")
-        }.single().also { id -> logger.daoAccess(UPSERT, PVApiDocumentMetadata::class, id) }
+        }.single()
     }
 
     @Transactional
@@ -154,7 +149,6 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         )
         jdbcTemplate.setUser()
         jdbcTemplate.update(sql, params)
-        logger.daoAccess(UPSERT, PVProject::class, project.oid)
     }
 
     @Transactional
@@ -181,7 +175,6 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         )
         jdbcTemplate.setUser()
         jdbcTemplate.update(sql, params)
-        logger.daoAccess(UPSERT, PVProjectGroup::class, projectGroup.oid)
     }
 
     @Transactional
@@ -206,13 +199,16 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             "created_at" to Timestamp.from(assignment.createdAt),
             "modified" to Timestamp.from(assignment.modified),
         )
-        logger.daoAccess(UPSERT, PVAssignment::class, assignment.oid)
+
         jdbcTemplate.setUser()
         jdbcTemplate.update(sql, params)
     }
 
     @Transactional
-    fun insertDocumentContent(content: String, documentId: IntId<PVDocument>) {
+    fun insertDocumentContent(
+        @DoNotWriteToLog content: String,
+        documentId: IntId<PVDocument>
+    ) {
         val sql = """
             insert into projektivelho.document_content(
                 content,
@@ -228,7 +224,6 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             "content" to content,
         )
         jdbcTemplate.update(sql, params)
-        logger.daoAccess(INSERT, "fi.fta.geoviite.infra.projektivelho.PVDocument.content", documentId)
     }
 
     @Transactional
@@ -253,7 +248,6 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getIntId<PVSearch>("id")
         }.single()
-            .also { id -> logger.daoAccess(INSERT, PVSearch::class, id) }
     }
 
     @Transactional
@@ -268,7 +262,6 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         return jdbcTemplate.query(sql, mapOf<String, Any>("status" to status.name, "id" to id.intValue)) { rs, _ ->
             rs.getIntId<PVSearch>("id")
         }.single()
-            .also { updatedId -> logger.daoAccess(UPDATE, PVSearch::class, updatedId) }
     }
 
     fun fetchLatestDocument(): Pair<Oid<PVDocument>, Instant>? {
@@ -281,7 +274,6 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         return jdbcTemplate.query(sql, emptyMap<String, Any>()) { rs, _ ->
             rs.getOid<PVDocument>("oid") to rs.getInstant("document_change_time")
         }.firstOrNull()
-            .also { v -> logger.daoAccess(FETCH, "${PVDocument::class.simpleName}.changeTime", v ?: "null") }
     }
 
     fun fetchLatestActiveSearch(): PVSearch? {
@@ -301,7 +293,6 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
                 rs.getInstant("valid_until")
             )
         }.firstOrNull()
-            .also { search -> logger.daoAccess(FETCH, PVSearch::class, search?.id ?: "null") }
     }
 
     @Transactional
@@ -317,7 +308,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         jdbcTemplate.setUser()
         return jdbcTemplate.query<IntId<PVDocument>>(sql, params) { rs, _ ->
             rs.getIntId("id")
-        }.also { _ -> logger.daoAccess(UPDATE, PVDocument::class, ids) }
+        }
     }
 
     @Transactional
@@ -336,11 +327,10 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         return getOne<PVDocument, IntId<PVDocumentRejection>>(
             documentRowVersion.id,
             jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId("id") },
-        ).also { id -> logger.daoAccess(INSERT, PVDocumentRejection::class, id) }
+        )
     }
 
     fun getRejection(documentRowVersion: RowVersion<PVDocument>): PVDocumentRejection {
-        logger.daoAccess(FETCH, PVDocumentRejection::class)
         val sql = """
             select id, document_id, document_version, reason 
             from projektivelho.document_rejection
@@ -434,8 +424,6 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
                     status = rs.getEnum("status"),
                 ),
             )
-        }.also { results ->
-            logger.daoAccess(FETCH, PVDocument::class, results.map { r -> r.document.id })
         }
     }
 
@@ -457,7 +445,6 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
     fun fetchDocumentChangeTime(): Instant = fetchLatestChangeTime(DbTable.PROJEKTIVELHO_DOCUMENT)
 
     fun getFileContent(id: IntId<PVDocument>): InfraModelFile? {
-        logger.daoAccess(FETCH, InfraModelFile::class, id)
         val sql = """
             select 
               document.filename,
@@ -490,7 +477,6 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             )
         }.toTypedArray()
         jdbcTemplate.setUser()
-        logger.daoAccess(UPSERT, PVDictionaryEntry::class, entries.map(PVDictionaryEntry::code))
         jdbcTemplate.batchUpdate(sql, params)
     }
 
@@ -498,7 +484,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         val sql = "select code, name from ${tableName(type)}"
         return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             rs.getPVDictionaryCode("code") to rs.getPVDictionaryName("name")
-        }.associate { it }.also { _ -> logger.daoAccess(FETCH, PVDictionaryType::class, type) }
+        }.associate { it }
     }
 
     private fun tableName(type: PVDictionaryType) = "projektivelho.${

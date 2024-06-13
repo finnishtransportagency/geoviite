@@ -2,19 +2,16 @@ package fi.fta.geoviite.infra.tracklayout
 
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import fi.fta.geoviite.infra.logging.AccessType
-import fi.fta.geoviite.infra.logging.AccessType.DELETE
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.FetchType
@@ -30,6 +27,8 @@ import fi.fta.geoviite.infra.util.idOrIdsEqualSqlFragment
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
@@ -86,13 +85,14 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
 
 interface ILayoutAssetDao<T : LayoutAsset<T>> : LayoutAssetReader<T>, LayoutAssetWriter<T>
 
-@Transactional(readOnly = true)
+@GeoviiteDao(readOnly = true)
 abstract class LayoutAssetDao<T : LayoutAsset<T>>(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     val table: LayoutAssetTable,
     val cacheEnabled: Boolean,
     cacheSize: Long,
 ) : DaoBase(jdbcTemplateParam), ILayoutAssetDao<T> {
+    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     protected val cache: Cache<RowVersion<T>, T> =
         Caffeine.newBuilder().maximumSize(cacheSize).expireAfterAccess(layoutCacheDuration).build()
@@ -218,7 +218,6 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
     private val multiLayoutContextVersionSql = fetchContextVersionSql(table, MULTI)
 
     override fun fetchVersion(layoutContext: LayoutContext, id: IntId<T>): RowVersion<T>? {
-        logger.daoAccess(AccessType.VERSION_FETCH, table.name, id)
         return jdbcTemplate.queryOptional(
             singleLayoutContextVersionSql, mapOf(
                 "id" to id.intValue,
@@ -229,7 +228,6 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
     }
 
     override fun fetchVersionOrThrow(layoutContext: LayoutContext, id: IntId<T>): RowVersion<T> {
-        logger.daoAccess(AccessType.VERSION_FETCH, table.name, id)
         return jdbcTemplate.queryOne(
             singleLayoutContextVersionSql, mapOf(
                 "id" to id.intValue,
@@ -243,7 +241,6 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         layoutContext: LayoutContext,
         ids: List<IntId<T>>,
     ): List<RowVersion<T>> {
-        logger.daoAccess(AccessType.VERSION_FETCH, table.name, ids)
         return if (ids.isEmpty()) emptyList() else jdbcTemplate.query(
             multiLayoutContextVersionSql, mapOf(
                 "ids" to ids.distinct().map { it.intValue },
@@ -272,7 +269,6 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
     """.trimIndent()
 
     override fun fetchOfficialVersionAtMoment(id: IntId<T>, moment: Instant): RowVersion<T>? {
-        logger.daoAccess(AccessType.VERSION_FETCH, LocationTrack::class, id)
         val params = mapOf(
             "id" to id.intValue,
             "moment" to Timestamp.from(moment),
@@ -313,7 +309,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
                 mapOf("id" to id?.intValue, "design_id" to branch.designId?.intValue)
             ) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
-        }.also { deleted -> logger.daoAccess(DELETE, table.fullName, deleted) }
+        }
     }
 }
 

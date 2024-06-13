@@ -2,18 +2,16 @@ package fi.fta.geoviite.infra.tracklayout
 
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.geography.*
 import fi.fta.geoviite.infra.geometry.*
-import fi.fta.geoviite.infra.logging.AccessType
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
@@ -31,8 +29,7 @@ data class MapSegmentProfileInfo<T>(
     val hasProfile: Boolean,
 )
 
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class LayoutAlignmentDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") val cacheEnabled: Boolean,
@@ -73,9 +70,7 @@ class LayoutAlignmentDao(
                 id = rs.getIntId("id"),
                 segments = fetchSegments(alignmentVersion),
             )
-        }).also { alignment ->
-            logger.daoAccess(AccessType.FETCH, LayoutAlignment::class, alignment.id)
-        }
+        })
     }
 
     fun preloadAlignmentCache() {
@@ -153,7 +148,7 @@ class LayoutAlignmentDao(
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
                 ?: throw IllegalStateException("Failed to generate ID for new Track Layout Alignment")
         upsertSegments(id, alignment.segments)
-        logger.daoAccess(AccessType.INSERT, LayoutAlignment::class, id)
+
         return id
     }
 
@@ -180,7 +175,7 @@ class LayoutAlignmentDao(
         val result: RowVersion<LayoutAlignment> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getRowVersion("id", "version")
         } ?: throw IllegalStateException("Failed to get new version for Track Layout Alignment")
-        logger.daoAccess(AccessType.UPDATE, LayoutAlignment::class, result.id)
+
         upsertSegments(result, alignment.segments)
         return result
     }
@@ -193,7 +188,7 @@ class LayoutAlignmentDao(
         val deletedRowId = getOne(id, jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getIntId<LayoutAlignment>("id")
         })
-        logger.daoAccess(AccessType.DELETE, LayoutAlignment::class, deletedRowId)
+
         return deletedRowId
     }
 
@@ -210,7 +205,7 @@ class LayoutAlignmentDao(
         val deletedAlignments = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
             rs.getIntId<LayoutAlignment>("id")
         }
-        logger.daoAccess(AccessType.DELETE, LayoutAlignment::class, deletedAlignments)
+
         return deletedAlignments
     }
 
@@ -441,7 +436,7 @@ class LayoutAlignmentDao(
                 id = StringId("${alignmentVersion.id.intValue}_${fromSegment}_${toSegment}")
             )
         }
-        logger.daoAccess(AccessType.UPDATE, SegmentGeometryAndMetadata::class, alignmentVersion)
+
         return result
     }
 

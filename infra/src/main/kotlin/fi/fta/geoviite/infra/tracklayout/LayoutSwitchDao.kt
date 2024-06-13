@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -8,10 +9,6 @@ import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
-import fi.fta.geoviite.infra.logging.AccessType.FETCH
-import fi.fta.geoviite.infra.logging.AccessType.INSERT
-import fi.fta.geoviite.infra.logging.AccessType.UPDATE
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.LayoutAssetTable
@@ -33,7 +30,6 @@ import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 import java.sql.Timestamp
@@ -42,8 +38,7 @@ import java.time.Instant
 const val SWITCH_CACHE_SIZE = 10000L
 
 @Suppress("SameParameterValue")
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class LayoutSwitchDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
@@ -192,7 +187,7 @@ class LayoutSwitchDao(
         ) { rs, _ -> rs.getDaoResponse("official_id", "row_id", "row_version") }
             ?: throw IllegalStateException("Failed to generate ID for new switch")
         if (newItem.joints.isNotEmpty()) upsertJoints(response.rowVersion, newItem.joints)
-        logger.daoAccess(INSERT, TrackLayoutSwitch::class, response)
+
         return response
     }
 
@@ -239,7 +234,6 @@ class LayoutSwitchDao(
 
         upsertJoints(response.rowVersion, updatedItem.joints)
 
-        logger.daoAccess(UPDATE, TrackLayoutSwitch::class, response)
         return response
     }
 
@@ -329,9 +323,7 @@ class LayoutSwitchDao(
             "id" to version.id.intValue,
             "version" to version.version,
         )
-        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutSwitch(rs) }).also {
-            logger.daoAccess(FETCH, TrackLayoutSwitch::class, version)
-        }
+        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutSwitch(rs) })
     }
 
     override fun preloadCache() {
@@ -364,7 +356,7 @@ class LayoutSwitchDao(
         val switches = jdbcTemplate
             .query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutSwitch(rs) }
             .associateBy(TrackLayoutSwitch::version)
-        logger.daoAccess(FETCH, TrackLayoutSwitch::class, switches.keys)
+
         cache.putAll(switches)
     }
 
@@ -453,9 +445,7 @@ class LayoutSwitchDao(
                 rowVersion = rs.getRowVersion("row_id", "row_version"),
                 externalId = rs.getOidOrNull("external_id"),
             )
-        }.also { logger.daoAccess(FETCH, "LocationTracks linked to switch",
-            switchIds,
-        ) }
+        }
     }
 
     fun findLocationTracksLinkedToSwitchAtMoment(
@@ -495,7 +485,7 @@ class LayoutSwitchDao(
                 rowVersion = rs.getRowVersion("id", "version"),
                 externalId = rs.getOidOrNull("external_id"),
             )
-        }.also { logger.daoAccess(FETCH, "LocationTracks linked to switch at moment", switchId) }
+        }
     }
 
     fun findOfficialNameDuplicates(names: List<SwitchName>): Map<SwitchName, List<RowVersion<TrackLayoutSwitch>>> {
@@ -516,9 +506,7 @@ class LayoutSwitchDao(
                 name to version
             }
             // Ensure that the result contains all asked-for names, even if there are no matches
-            names.associateWith { n -> found.filter { (name, _) -> name == n }.map { (_, v) -> v } }.also { dups ->
-                logger.daoAccess(FETCH, "Switch name duplicates", dups.keys)
-            }
+            names.associateWith { n -> found.filter { (name, _) -> name == n }.map { (_, v) -> v } }
         }
     }
 
@@ -549,6 +537,6 @@ class LayoutSwitchDao(
             )
         ) { rs, _ ->
             rs.getIntId<TrackLayoutSwitch>("switch_id")
-        }.also { results -> logger.daoAccess(FETCH, "Switches near alignment", results)}
+        }
     }
 }

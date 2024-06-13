@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.linking
 
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
@@ -12,8 +13,6 @@ import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.geometry.GeometrySwitchLinkStatus
-import fi.fta.geoviite.infra.logging.AccessType
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
@@ -28,8 +27,6 @@ import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.getSrid
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 
 /**
  * MissingLayoutSwitchLinking contains info about a situation where:
@@ -52,18 +49,10 @@ data class MissingLayoutSwitchLinkingRowData(
     val locationTrackId: RowVersion<LocationTrack>,
 )
 
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     fun fetchPlanLinkStatus(layoutContext: LayoutContext, planId: IntId<GeometryPlan>): GeometryPlanLinkStatus {
-        logger.daoAccess(
-            AccessType.FETCH,
-            GeometryPlanLinkStatus::class,
-            "layoutContext" to layoutContext,
-            "planId" to planId,
-        )
-
         return GeometryPlanLinkStatus(
             planId,
             fetchAlignmentLinkStatus(layoutContext, planId = planId),
@@ -205,10 +194,6 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         bbox: BoundingBox,
         geometrySwitchId: IntId<GeometrySwitch>? = null,
     ): List<MissingLayoutSwitchLinking> {
-        logger.daoAccess(
-            AccessType.FETCH, MissingLayoutSwitchLinking::class,
-            "bbox" to bbox, "geometrySwitchId" to geometrySwitchId
-        )
         val sql = """
             select
               location_track.row_id as location_track_id,

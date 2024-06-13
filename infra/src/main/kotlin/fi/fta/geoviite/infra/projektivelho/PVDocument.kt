@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.LocalizationKey
@@ -52,11 +53,15 @@ data class PVDocument(
     val group: PVDictionaryName,
     val modified: Instant,
     val status: PVDocumentStatus,
-)
+) : Loggable {
+    override fun toLog() = id.toString()
+}
 
 data class PVDocumentHeader(
     val project: PVProject?,
     val projectGroup: PVProjectGroup?,
     val assignment: PVAssignment?,
     val document: PVDocument,
-)
+) : Loggable {
+    override fun toLog() = document.id.toString()
+}

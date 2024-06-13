@@ -4,13 +4,16 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.util.assertSanitized
 
 data class CoordinateSystem(
     val srid: Srid,
     val name: CoordinateSystemName,
     val aliases: List<CoordinateSystemName>,
-)
+) : Loggable {
+    override fun toLog() = srid.toString()
+}
 
 val csNameLength = 1..100
 val csNameRegex = Regex("^[A-ZÄÖÅa-zäöå0-9 _\\-/(),]+\$")

@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.util.*
 import org.slf4j.LoggerFactory
 import java.time.Duration
@@ -101,7 +102,9 @@ data class PVApiProjectGroup(
     @JsonProperty("oid") val oid: Oid<PVProjectGroup>,
     @JsonProperty("luotu") val createdAt: Instant,
     @JsonProperty("muokattu") val modified: Instant?,
-)
+) : Loggable {
+    override fun toLog() = oid.toString()
+}
 
 data class PVApiProject(
     @JsonProperty("ominaisuudet") val properties: PVApiProperties,
@@ -109,7 +112,9 @@ data class PVApiProject(
     @JsonProperty("projektijoukko") val projectGroupOid: Oid<PVProjectGroup>?,
     @JsonProperty("luotu") val createdAt: Instant,
     @JsonProperty("muokattu") val modified: Instant?,
-)
+) : Loggable {
+    override fun toLog() = oid.toString()
+}
 
 data class PVApiAssignment(
     @JsonProperty("ominaisuudet") val properties: PVApiProperties,
@@ -117,7 +122,9 @@ data class PVApiAssignment(
     @JsonProperty("projekti") val projectOid: Oid<PVProject>,
     @JsonProperty("luotu") val createdAt: Instant,
     @JsonProperty("muokattu") val modified: Instant?,
-)
+) : Loggable {
+    override fun toLog() = oid.toString()
+}
 
 data class PVSearch(
     val id: IntId<PVSearch>,

@@ -192,6 +192,7 @@ data class SwitchStructure(
     val joints: List<SwitchJoint>,
     val alignments: List<SwitchAlignment>,
 ) {
+
     // These props are published into JSON from API
     @Suppress("unused")
     val hand = type.parts.hand

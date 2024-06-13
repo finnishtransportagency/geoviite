@@ -1,10 +1,9 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.logging.AccessType
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBboxOrNull
@@ -19,14 +18,12 @@ import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 
 const val REFERENCE_LINE_CACHE_SIZE = 1000L
 
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class ReferenceLineDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
@@ -58,9 +55,7 @@ class ReferenceLineDao(
             "id" to version.id.intValue,
             "version" to version.version,
         )
-        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getReferenceLine(rs) }).also { rl ->
-            logger.daoAccess(AccessType.FETCH, ReferenceLine::class, rl.id)
-        }
+        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getReferenceLine(rs) })
     }
 
     override fun preloadCache() {
@@ -86,7 +81,7 @@ class ReferenceLineDao(
         val referenceLines = jdbcTemplate
             .query(sql, mapOf<String, Any>()) { rs, _ -> getReferenceLine(rs) }
             .associateBy(ReferenceLine::version)
-        logger.daoAccess(AccessType.FETCH, ReferenceLine::class, referenceLines.keys)
+
         cache.putAll(referenceLines)
     }
 
@@ -146,7 +141,7 @@ class ReferenceLineDao(
         val version: DaoResponse<ReferenceLine> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to generate ID for new Location Track")
-        logger.daoAccess(AccessType.INSERT, ReferenceLine::class, version)
+
         return version
     }
 
@@ -184,7 +179,7 @@ class ReferenceLineDao(
         val result: DaoResponse<ReferenceLine> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to get new version for Reference Line")
-        logger.daoAccess(AccessType.UPDATE, ReferenceLine::class, result)
+
         return result
     }
 

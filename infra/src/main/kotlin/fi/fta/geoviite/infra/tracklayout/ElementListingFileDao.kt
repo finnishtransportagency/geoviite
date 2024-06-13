@@ -1,18 +1,18 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.logging.AccessType
-import fi.fta.geoviite.infra.logging.daoAccess
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
+import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.util.*
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
-data class ElementListingFile(val name: FileName, val content: String)
+data class ElementListingFile(val name: FileName, val content: String) : Loggable {
+    override fun toLog() = name.toString()
+}
 
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class ElementListingFileDao @Autowired constructor(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
 ) : DaoBase(jdbcTemplateParam) {
@@ -43,9 +43,7 @@ class ElementListingFileDao @Autowired constructor(
             "content" to file.content,
         )
         jdbcTemplate.setUser()
-        jdbcTemplate.update(sql, params).also {
-            logger.daoAccess(AccessType.UPSERT, ElementListingFile::class, file.name)
-        }
+        jdbcTemplate.update(sql, params)
     }
 
     fun getElementListingFile(): ElementListingFile? {
@@ -59,7 +57,6 @@ class ElementListingFileDao @Autowired constructor(
             content = rs.getString("content"),
         ) }
             .firstOrNull()
-            .also { file -> logger.daoAccess(AccessType.FETCH, ElementListingFile::class, "${file?.name}") }
     }
 
     fun getLastFileListingTime(): Instant {
@@ -68,7 +65,6 @@ class ElementListingFileDao @Autowired constructor(
             from layout.element_listing_file
         """.trimIndent()
         return jdbcTemplate.query(sql, mapOf<String,Any>()) { rs, _ -> rs.getInstantOrNull("change_time") }
-            .also { logger.daoAccess(AccessType.FETCH, "${ElementListingFile::class.simpleName}.changeTime") }
             .firstOrNull() ?: Instant.EPOCH
     }
 }

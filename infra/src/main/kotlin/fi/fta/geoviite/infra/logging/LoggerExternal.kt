@@ -1,7 +1,5 @@
 package fi.fta.geoviite.infra.logging
 
-import fi.fta.geoviite.infra.logging.AccessType.FETCH
-import fi.fta.geoviite.infra.logging.AccessType.VERSION_FETCH
 import fi.fta.geoviite.infra.util.formatForLog
 import fi.fta.geoviite.infra.util.resetCollected
 import jakarta.servlet.http.HttpServletRequest
@@ -11,7 +9,8 @@ import org.springframework.web.reactive.function.client.ClientRequest
 import org.springframework.web.reactive.function.client.ClientResponse
 import java.time.Duration
 import java.time.Instant
-import kotlin.reflect.KClass
+import kotlin.reflect.full.memberProperties
+import kotlin.reflect.jvm.isAccessible
 
 fun Logger.apiRequest(req: HttpServletRequest, requestIp: String) {
     if (isDebugEnabled) debug("Request: {}:{} ip={}", req.method, req.requestURL, requestIp)
@@ -52,35 +51,21 @@ private fun responseParams(
     ).joinToString(" ")
 }
 
-enum class AccessType { VERSION_FETCH, FETCH, INSERT, UPDATE, UPSERT, DELETE }
-
-fun Logger.daoAccess(accessType: AccessType, objectType: KClass<*>, vararg ids: Any) {
-    daoAccess(accessType, objectType, ids.toList())
-}
-
-fun Logger.daoAccess(accessType: AccessType, objectType: KClass<*>, ids: List<Any>) {
-    daoAccess(accessType, objectType.simpleName ?: objectType.toString(), ids)
-}
-
-fun Logger.daoAccess(accessType: AccessType, objectType: String, vararg ids: Any) {
-    daoAccess(accessType, objectType, ids.toList())
-}
-
-fun Logger.daoAccess(accessType: AccessType, objectType: String, ids: List<Any>) {
-    if (accessType == VERSION_FETCH || accessType == FETCH) {
-        if (isDebugEnabled) debug("accessType={} objectType={} ids={}", accessType, objectType, ids)
-    } else {
-        if (isInfoEnabled) info("accessType=$accessType objectType=$objectType ids=$ids")
-    }
-}
 
 fun Logger.daoAccess(method: String, params: List<Pair<String, *>>, returnValue: Any?) {
-    info(
-        "method={} params={} returnValue={}",
-        method,
-        paramsToLog(params),
-        returnValueToLog(returnValue),
-    )
+    val debugLevelMethodPrefixes = arrayOf("fetch", "get", "list")
+    if (!isDebugEnabled && debugLevelMethodPrefixes.any { prefix -> method.startsWith(prefix) }) {
+        return
+    }
+
+    if (isInfoEnabled) {
+        info(
+            "method={} params={} returnValue={}",
+            method,
+            paramsToLog(params),
+            returnValueToLog(returnValue),
+        )
+    }
 }
 
 fun Logger.apiCall(method: String, params: List<Pair<String, *>>) {
@@ -91,26 +76,54 @@ fun Logger.serviceCall(method: String, params: List<Pair<String, *>>) {
     if (isDebugEnabled) debug("method={} params={}", method, paramsToLog(params))
 }
 
-fun paramsToLog(vararg params: Pair<String, *>): List<String> =
-    params.map { p ->
-        "${p.first}=${p.second?.let { obj ->
-            formatForLog(if (obj is Loggable) obj.toLog() else obj.toString(), 1000)
-        }}"
-    }
+fun paramsToLog(vararg params: Pair<String, *>): List<String> = paramsToLog(params.toList())
 
-fun paramsToLog(params: List<Pair<String, *>>): List<String> =
-    params.map { p ->
+fun paramsToLog(params: List<Pair<String, *>>): List<String> {
+    return params.map { p ->
         "${p.first}=${p.second?.let { obj ->
-            formatForLog(if (obj is Loggable) obj.toLog() else obj.toString(), 1000)
+            formatForLog(obj.toLogFormat(), 1000)
         }}"
     }
+}
 
 fun returnValueToLog(returnValue: Any?): String {
-    return formatForLog(if (returnValue is Loggable) returnValue.toLog() else returnValue.toString(), 1000)
+    return formatForLog(returnValue.toLogFormat(), 1000)
+}
+
+fun Any?.toLogFormat(preferOnlyId: Boolean = false): String {
+    if (preferOnlyId && this != null) {
+        this.javaClass.kotlin.memberProperties
+            .find { property -> property.name == "id" || property.name == "rowVersion" }
+            ?.let { idProperty ->
+                return idProperty.get(this).toString()
+            }
+    }
+
+    return when (this) {
+        is Loggable -> this.toLog()
+
+        is List<*> -> this.joinToString(", ", "[", "]") { value ->
+            value.toLogFormat(preferOnlyId = true)
+        }
+
+        is Array<*> -> this.joinToString(", ", "[", "]") {
+            it.toLogFormat(preferOnlyId = true)
+        }
+
+        is Set<*> -> this.joinToString(", ", "{", "}") { value ->
+            value.toLogFormat(preferOnlyId = true)
+        }
+
+        is Map<*, *> -> this.entries.joinToString(", ", "{", "}") { (key, value) ->
+            "${key.toLogFormat()}=${value.toLogFormat(preferOnlyId = true)}"
+        }
+
+        else -> this.toString()
+    }
 }
 
 fun Logger.integrationCall(method: String, vararg params: Pair<String, *>) {
-    info("method=$method params=${paramsToLog(*params)}")
+    info("method=$method params=${paramsToLog(params.toList())}")
 }
 
 fun Logger.integrationCall(request: ClientRequest) {

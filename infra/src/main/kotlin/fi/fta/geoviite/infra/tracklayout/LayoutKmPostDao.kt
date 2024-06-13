@@ -1,16 +1,14 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geography.create2DPolygonString
-import fi.fta.geoviite.infra.logging.AccessType
-import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.ValidationVersion
-import fi.fta.geoviite.infra.util.DbTable.LAYOUT_KM_POST
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getDaoResponse
 import fi.fta.geoviite.infra.util.getEnum
@@ -26,14 +24,12 @@ import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 
 const val KM_POST_CACHE_SIZE = 10000L
 
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class LayoutKmPostDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
@@ -167,9 +163,7 @@ class LayoutKmPostDao(
             "id" to version.id.intValue,
             "version" to version.version,
         )
-        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutKmPost(rs) }).also {
-            logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, version)
-        }
+        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutKmPost(rs) })
     }
 
     override fun preloadCache() {
@@ -192,7 +186,7 @@ class LayoutKmPostDao(
         val posts = jdbcTemplate
             .query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutKmPost(rs) }
             .associateBy(TrackLayoutKmPost::version)
-        logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, posts.keys)
+
         cache.putAll(posts)
     }
 
@@ -256,7 +250,7 @@ class LayoutKmPostDao(
         val response: DaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to generate ID for new km-post")
-        logger.daoAccess(AccessType.INSERT, TrackLayoutKmPost::class, response)
+
         return response
     }
 
@@ -304,7 +298,7 @@ class LayoutKmPostDao(
         val response: DaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to generate ID for new row version of updated km-post")
-        logger.daoAccess(AccessType.UPDATE, TrackLayoutKmPost::class, response)
+
         return response
     }
 
@@ -330,8 +324,6 @@ class LayoutKmPostDao(
             )
         ) { rs, _ ->
             rs.getRowVersion<TrackLayoutKmPost>("id", "version")
-        }.also { ids ->
-            logger.daoAccess(AccessType.VERSION_FETCH, "fetchOnlyDraftVersions", ids)
         }
     }
 

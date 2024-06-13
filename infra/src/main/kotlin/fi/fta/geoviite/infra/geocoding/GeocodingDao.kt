@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.geocoding
 
+import fi.fta.geoviite.infra.aspects.GeoviiteDao
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
@@ -20,14 +21,11 @@ import fi.fta.geoviite.infra.util.getRowVersionOrNull
 import fi.fta.geoviite.infra.util.queryNotNull
 import fi.fta.geoviite.infra.util.queryOptional
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
 
-@Transactional(readOnly = true)
-@Component
+@GeoviiteDao(readOnly = true)
 class GeocodingDao(
     val trackNumberDao: LayoutTrackNumberDao,
     val kmPostDao: LayoutKmPostDao,
