@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.DataType.STORED
 import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.IntId
@@ -7,13 +8,11 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.ValidationVersion
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
-@Service
+@GeoviiteService
 class ReferenceLineService(
     dao: ReferenceLineDao,
     private val alignmentService: LayoutAlignmentService,
@@ -27,11 +26,6 @@ class ReferenceLineService(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         startAddress: TrackMeter,
     ): DaoResponse<ReferenceLine> {
-        logger.serviceCall("insertTrackNumberReferenceLine",
-            "branch" to branch,
-            "trackNumberId" to trackNumberId,
-            "startAddress" to startAddress,
-        )
         return saveDraftInternal(
             branch,
             ReferenceLine(
@@ -50,12 +44,6 @@ class ReferenceLineService(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         startAddress: TrackMeter,
     ): DaoResponse<ReferenceLine>? {
-        logger.serviceCall("updateTrackNumberStart",
-            "branch" to branch,
-            "trackNumberId" to trackNumberId,
-             "startAddress" to startAddress,
-        )
-
         val originalVersion = dao.fetchVersionByTrackNumberId(branch.draft, trackNumberId)
             ?: throw IllegalStateException("Track number should have a reference line")
         val original = dao.fetch(originalVersion)
@@ -82,7 +70,6 @@ class ReferenceLineService(
         draftAsset: ReferenceLine,
         alignment: LayoutAlignment,
     ): DaoResponse<ReferenceLine> {
-        logger.serviceCall("save", "branch" to branch, "draftAsset" to draftAsset, "alignment" to alignment)
         return saveDraftInternal(branch, draftAsset, alignment)
     }
 
@@ -120,7 +107,6 @@ class ReferenceLineService(
 
     @Transactional
     override fun publish(branch: LayoutBranch, version: ValidationVersion<ReferenceLine>): DaoResponse<ReferenceLine> {
-        logger.serviceCall("publish", "branch" to branch, "version" to version)
         val officialVersion = dao.fetchVersion(branch.official, version.officialId)
         val oldDraft = dao.fetch(version.validatedAssetVersion)
         val oldOfficial = officialVersion?.let(dao::fetch)
@@ -145,7 +131,6 @@ class ReferenceLineService(
         branch: LayoutBranch,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): DaoResponse<ReferenceLine>? {
-        logger.serviceCall("deleteDraftByTrackNumberId", "branch" to branch, "trackNumberId" to trackNumberId)
         val referenceLine = requireNotNull(referenceLineDao.getByTrackNumber(branch.draft, trackNumberId)) {
             "Found Track Number without Reference Line $trackNumberId"
         }
@@ -153,11 +138,6 @@ class ReferenceLineService(
     }
 
     fun getByTrackNumber(layoutContext: LayoutContext, trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? {
-        logger.serviceCall(
-            "getByTrackNumber",
-             "layoutContext" to layoutContext,
-            "trackNumberId" to trackNumberId,
-        )
         return dao.getByTrackNumber(layoutContext, trackNumberId)
     }
 
@@ -166,11 +146,6 @@ class ReferenceLineService(
         layoutContext: LayoutContext,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): Pair<ReferenceLine,LayoutAlignment>? {
-        logger.serviceCall(
-            "getByTrackNumberWithAlignment",
-            "layoutContext" to layoutContext,
-            "trackNumberId" to trackNumberId,
-        )
         return dao.fetchVersionByTrackNumberId(layoutContext, trackNumberId)?.let(::getWithAlignmentInternal)
     }
 
@@ -179,19 +154,16 @@ class ReferenceLineService(
         layoutContext: LayoutContext,
         id: IntId<ReferenceLine>,
     ): Pair<ReferenceLine, LayoutAlignment> {
-        logger.serviceCall("getWithAlignment", "layoutContext" to layoutContext, "id" to id)
         return getWithAlignmentInternalOrThrow(layoutContext, id)
     }
 
     @Transactional(readOnly = true)
     fun getWithAlignment(layoutContext: LayoutContext, id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment>? {
-        logger.serviceCall("getWithAlignment", "layoutContext" to layoutContext, "id" to id)
         return getWithAlignmentInternal(layoutContext, id)
     }
 
     @Transactional(readOnly = true)
     fun getWithAlignment(version: RowVersion<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
-        logger.serviceCall("getWithAlignment", "version" to version)
         return getWithAlignmentInternal(version)
     }
 
@@ -200,7 +172,6 @@ class ReferenceLineService(
         layoutContext: LayoutContext,
         ids: List<IntId<ReferenceLine>>,
     ): List<Pair<ReferenceLine, LayoutAlignment>> {
-        logger.serviceCall("getManyWithAlignments", "layoutContext" to layoutContext, "ids" to ids)
         return dao.getMany(layoutContext, ids).let(::associateWithAlignments)
     }
 
@@ -210,11 +181,6 @@ class ReferenceLineService(
         includeDeleted: Boolean = false,
         boundingBox: BoundingBox? = null,
     ): List<Pair<ReferenceLine, LayoutAlignment>> {
-        logger.serviceCall(
-            "listWithAlignments",
-            "layoutContext" to layoutContext,
-            "includeDeleted" to includeDeleted,
-        )
         return dao
             .list(layoutContext, includeDeleted)
             .let { list -> filterByBoundingBox(list, boundingBox) }
@@ -245,12 +211,10 @@ class ReferenceLineService(
     }
 
     fun listNonLinked(branch: LayoutBranch): List<ReferenceLine> {
-        logger.serviceCall("listNonLinked", "branch" to branch)
         return dao.fetchVersionsNonLinked(branch.draft).map(dao::fetch)
     }
 
     fun listNear(layoutContext: LayoutContext, bbox: BoundingBox): List<ReferenceLine> {
-        logger.serviceCall("listNear", "layoutContext" to layoutContext, "bbox" to bbox)
         return dao.fetchVersionsNear(layoutContext, bbox).map(dao::fetch)
     }
 }

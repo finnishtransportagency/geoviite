@@ -1,11 +1,11 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.FreeText
 import org.slf4j.Logger
@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
+@GeoviiteService
 abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType : ILayoutAssetDao<ObjectType>>(
     protected open val dao: DaoType,
 ) {
@@ -20,37 +21,30 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     protected open val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun list(context: LayoutContext, includeDeleted: Boolean = false): List<ObjectType> {
-        logger.serviceCall("list", "context" to context, "includeDeleted" to includeDeleted)
         return dao.list(context, includeDeleted)
     }
 
     fun get(context: LayoutContext, id: IntId<ObjectType>): ObjectType? {
-        logger.serviceCall("get", "context" to context, "id" to id)
         return dao.get(context, id)
     }
 
     fun getMany(context: LayoutContext, ids: List<IntId<ObjectType>>): List<ObjectType> {
-        logger.serviceCall("getMany", "context" to context, "ids" to ids)
         return dao.getMany(context, ids)
     }
 
     fun getOfficialAtMoment(id: IntId<ObjectType>, moment: Instant): ObjectType? {
-        logger.serviceCall("get", "id" to id, "moment" to moment)
         return dao.getOfficialAtMoment(id, moment)
     }
 
     fun getOrThrow(context: LayoutContext, id: IntId<ObjectType>): ObjectType {
-        logger.serviceCall("get", "context" to context, "id" to id)
         return dao.getOrThrow(context, id)
     }
 
     fun getChangeTime(): Instant {
-        logger.serviceCall("getChangeTime")
         return dao.fetchChangeTime()
     }
 
     fun getLayoutAssetChangeInfo(context: LayoutContext, id: IntId<ObjectType>): LayoutAssetChangeInfo? {
-        logger.serviceCall("getLayoutAssetChangeInfo", "context" to context, "id" to id)
         return dao.fetchLayoutAssetChangeInfo(context, id)
     }
 
@@ -65,7 +59,6 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
 
     @Transactional
     open fun saveDraft(branch: LayoutBranch, draftAsset: ObjectType): DaoResponse<ObjectType> {
-        logger.serviceCall("saveDraft", "branch" to branch, "draftAsset" to draftAsset)
         return saveDraftInternal(branch, draftAsset)
     }
 
@@ -86,13 +79,11 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
 
     @Transactional
     open fun deleteDraft(branch: LayoutBranch, id: IntId<ObjectType>): DaoResponse<ObjectType> {
-        logger.serviceCall("deleteDraft", "branch" to branch, "id" to id)
         return dao.deleteDraft(branch, id)
     }
 
     @Transactional
     open fun publish(branch: LayoutBranch, version: ValidationVersion<ObjectType>): DaoResponse<ObjectType> {
-        logger.serviceCall("Publish", "branch" to branch, "version" to version)
         val versions = VersionPair(dao.fetchVersion(branch.official, version.officialId), version.validatedAssetVersion)
         return publishInternal(branch, versions)
     }

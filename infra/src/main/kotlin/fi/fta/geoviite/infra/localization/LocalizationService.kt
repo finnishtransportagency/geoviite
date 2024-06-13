@@ -3,9 +3,9 @@ package fi.fta.geoviite.infra.localization
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonValue
 import com.fasterxml.jackson.databind.json.JsonMapper
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.stereotype.Service
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
@@ -65,7 +65,7 @@ class TranslationCache {
     }
 }
 
-@Service
+@GeoviiteService
 class LocalizationService(@Value("\${geoviite.i18n.override-path:}") val overridePath: String = "") {
     val translationCache = TranslationCache()
 

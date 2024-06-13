@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.linking.switches
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -20,7 +21,6 @@ import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
 import fi.fta.geoviite.infra.linking.SuggestedSwitchCreateParams
 import fi.fta.geoviite.infra.linking.SuggestedSwitchCreateParamsAlignmentMapping
 import fi.fta.geoviite.infra.linking.SuggestedSwitchJointMatchType
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
@@ -51,10 +51,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.stream.Collectors
 import kotlin.math.max
@@ -67,7 +64,7 @@ const val TOLERANCE_JOINT_LOCATION_NEW_POINT = 0.01
  * Tools for finding a fit for a switch: The positioning of the switch's joints, based on the geometry of the tracks
  * around it.
  */
-@Service
+@GeoviiteService
 class SwitchFittingService @Autowired constructor(
     private val locationTrackService: LocationTrackService,
     private val locationTrackDao: LocationTrackDao,
@@ -76,11 +73,9 @@ class SwitchFittingService @Autowired constructor(
     private val switchLibraryService: SwitchLibraryService,
     private val coordinateTransformationService: CoordinateTransformationService,
 ) {
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @Transactional(readOnly = true)
     fun getFitsInArea(branch: LayoutBranch, bbox: BoundingBox): List<FittedSwitch> {
-        logger.serviceCall("getFitsInArea", "bbox" to bbox)
         val missing = linkingDao.getMissingLayoutSwitchLinkings(bbox)
         return missing.mapNotNull { missingLayoutSwitchLinking ->
             // Transform joints to layout space and calculate missing joints
@@ -130,8 +125,6 @@ class SwitchFittingService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getFitAtEndpoint(branch: LayoutBranch, createParams: SuggestedSwitchCreateParams): FittedSwitch? {
-        logger.serviceCall("getFitAtEndpoint", "createParams" to createParams)
-
         val switchStructure =
             createParams.switchStructureId?.let(switchLibraryService::getSwitchStructure) ?: return null
         val locationTracks = createParams.alignmentMappings

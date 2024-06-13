@@ -8,7 +8,7 @@ import org.springframework.core.DefaultParameterNameDiscoverer
  * Annotate a function which should not be automatically logged at all.
  * Example:
  *
- * @GeoviiteController
+ * @GeoviiteController("/some-base-path")
  * class SomeController {
  *    @GetMapping("/some-path")
  *    @DisableLogging

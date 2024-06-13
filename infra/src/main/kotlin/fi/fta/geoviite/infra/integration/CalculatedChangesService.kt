@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.integration
 import ChangeContext
 import LazyMap
 import createTypedContext
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
@@ -36,7 +37,6 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import org.springframework.stereotype.Service
 import java.time.Instant
 
 data class TrackNumberChange(
@@ -139,7 +139,7 @@ data class CalculatedChanges(
     }
 }
 
-@Service
+@GeoviiteService
 class CalculatedChangesService(
     val addressChangesService: AddressChangesService,
     val locationTrackDao: LocationTrackDao,

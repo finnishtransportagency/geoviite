@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ratko
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -9,7 +10,6 @@ import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.PublishedLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoLocationTrack
 import fi.fta.geoviite.infra.ratko.model.RatkoMetadataAsset
@@ -26,14 +26,11 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import org.springframework.stereotype.Service
 import java.time.Instant
 
-@Service
+@GeoviiteService
 @ConditionalOnBean(RatkoClientConfiguration::class)
 class RatkoLocationTrackService @Autowired constructor(
     private val ratkoClient: RatkoClient,
@@ -43,8 +40,6 @@ class RatkoLocationTrackService @Autowired constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val geocodingService: GeocodingService,
 ) {
-
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun pushLocationTrackChangesToRatko(
         branch: LayoutBranch,
@@ -115,12 +110,6 @@ class RatkoLocationTrackService @Autowired constructor(
     }
 
     private fun createLocationTrack(branch: LayoutBranch, layoutLocationTrack: LocationTrack, moment: Instant) {
-        logger.serviceCall(
-            "createRatkoLocationTrack",
-            "layoutLocationTrack" to layoutLocationTrack,
-            "moment" to moment,
-        )
-
         val (addresses, jointPoints) = getLocationTrackPoints(layoutLocationTrack, moment)
 
         val ratkoNodes = convertToRatkoNodeCollection(addresses)
@@ -167,13 +156,6 @@ class RatkoLocationTrackService @Autowired constructor(
         moment: Instant,
         changedKmNumbers: Set<KmNumber>? = null,
     ) {
-        logger.serviceCall(
-            "updateRatkoLocationTrackMetadata",
-            "layoutLocationTrack" to layoutLocationTrack,
-            "trackNumberOid" to trackNumberOid,
-            "moment" to moment,
-            "changedKmNumbers" to changedKmNumbers,
-        )
         requireNotNull(layoutLocationTrack.externalId) {
             "Cannot update location track metadata without location track oid, id=${layoutLocationTrack.id}"
         }
@@ -253,13 +235,6 @@ class RatkoLocationTrackService @Autowired constructor(
         existingRatkoLocationTrack: RatkoLocationTrack,
         moment: Instant,
     ) {
-        logger.serviceCall(
-            "deleteLocationTrack",
-            "layoutLocationTrack" to layoutLocationTrack,
-            "existingRatkoLocationTrack" to existingRatkoLocationTrack,
-            "moment" to moment
-        )
-
         requireNotNull(layoutLocationTrack.externalId) {
             "Cannot delete location track without oid, id=${layoutLocationTrack.id}"
         }
@@ -284,14 +259,6 @@ class RatkoLocationTrackService @Autowired constructor(
         changedKmNumbers: Set<KmNumber>,
         moment: Instant,
     ) {
-        logger.serviceCall(
-            "updateRatkoLocationTrack",
-            "layoutLocationTrack" to layoutLocationTrack,
-            "existingRatkoLocationTrack" to existingRatkoLocationTrack,
-            "changedKmNumbers" to changedKmNumbers,
-            "moment" to moment
-        )
-
         requireNotNull(layoutLocationTrack.externalId) {
             "Cannot update location track without oid, id=${layoutLocationTrack.id}"
         }

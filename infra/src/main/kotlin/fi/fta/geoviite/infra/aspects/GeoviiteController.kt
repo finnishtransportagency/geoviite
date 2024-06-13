@@ -6,14 +6,19 @@ import org.aspectj.lang.annotation.Aspect
 import org.aspectj.lang.annotation.Before
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.core.annotation.AliasFor
 import org.springframework.stereotype.Component
+import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.util.concurrent.ConcurrentHashMap
 
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 @RestController
-annotation class GeoviiteController
+@RequestMapping
+annotation class GeoviiteController(
+    @get: AliasFor(annotation = RequestMapping::class) val path: String,
+)
 
 @Aspect
 @Component

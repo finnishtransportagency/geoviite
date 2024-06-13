@@ -1,14 +1,14 @@
 package fi.fta.geoviite.infra.authorization
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.util.Code
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 const val LDAP_GROUP_GEOVIITE_PREFIX = "geoviite_"
 const val DESIRED_ROLE_COOKIE_NAME = "desiredRole"
 
-@Service
+@GeoviiteService
 class AuthorizationService @Autowired constructor(private val authorizationDao: AuthorizationDao) {
 
     val defaultRoleCodeOrder by lazy {

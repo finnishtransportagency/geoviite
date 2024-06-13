@@ -1,27 +1,26 @@
 package fi.fta.geoviite.infra.authorization
 
-import org.springframework.beans.factory.annotation.Autowired
+import fi.fta.geoviite.infra.aspects.GeoviiteController
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RestController
 
 const val OK = "OK"
 
-@RestController
-class AuthorizationTestController @Autowired constructor() {
+@GeoviiteController("/test-auth")
+class AuthorizationTestController {
 
-    @GetMapping("/test-auth/public")
+    @GetMapping("/public")
     fun testPublic() = OK
 
     @PreAuthorize(AUTH_BASIC)
-    @GetMapping("/test-auth/read")
+    @GetMapping("/read")
     fun testRead() = OK
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
-    @GetMapping("/test-auth/write")
+    @GetMapping("/write")
     fun testWrite() = OK
 
     @PreAuthorize("hasAuthority('there-is-no-such-privilege')")
-    @GetMapping("/test-auth/fail")
+    @GetMapping("/fail")
     fun testFail() = OK
 }

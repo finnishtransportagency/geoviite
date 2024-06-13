@@ -1,39 +1,32 @@
 package fi.fta.geoviite.infra.ratko
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.PublishedTrackNumber
 import fi.fta.geoviite.infra.ratko.model.*
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import org.springframework.stereotype.Service
 import java.time.Instant
 
-@Service
+@GeoviiteService
 @ConditionalOnBean(RatkoClientConfiguration::class)
 class RatkoRouteNumberService @Autowired constructor(
     private val ratkoClient: RatkoClient,
     private val trackNumberDao: LayoutTrackNumberDao,
     private val geocodingService: GeocodingService,
 ) {
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun pushTrackNumberChangesToRatko(
         publishedTrackNumbers: Collection<PublishedTrackNumber>,
         publicationTime: Instant,
     ): List<Oid<TrackLayoutTrackNumber>> {
-        logger.serviceCall("pushTrackNumberChangesToRatko",
-            "publishedTrackNumbers" to publishedTrackNumbers, "publicationTime" to publicationTime
-        )
         return publishedTrackNumbers
             .groupBy { it.version.id }
             .map { (_, trackNumbers) ->
@@ -71,7 +64,6 @@ class RatkoRouteNumberService @Autowired constructor(
     }
 
     private fun deleteRouteNumber(trackNumber: TrackLayoutTrackNumber, existingRatkoRouteNumber: RatkoRouteNumber) {
-        logger.serviceCall("deleteRouteNumber", "trackNumber" to trackNumber, "existing" to existingRatkoRouteNumber)
         requireNotNull(trackNumber.externalId) { "Cannot delete route number without oid, id=${trackNumber.id}" }
 
         val deletedEndsPoints = existingRatkoRouteNumber.nodecollection?.let(::toNodeCollectionMarkingEndpointsNotInUse)
@@ -88,13 +80,6 @@ class RatkoRouteNumberService @Autowired constructor(
         moment: Instant,
         changedKmNumbers: Set<KmNumber>,
     ) {
-        logger.serviceCall(
-            "updateRatkoRouteNumber",
-            "trackNumber" to trackNumber,
-            "existingRatkoRouteNumber" to existingRatkoRouteNumber,
-            "moment" to moment,
-            "changedKmNumbers" to changedKmNumbers
-        )
         require(trackNumber.id is IntId) { "Only layout route numbers can be updated, id=${trackNumber.id}" }
         requireNotNull(trackNumber.externalId) { "Cannot update route number without oid, id=${trackNumber.id}" }
 
@@ -140,11 +125,6 @@ class RatkoRouteNumberService @Autowired constructor(
     }
 
     private fun createRouteNumber(trackNumber: TrackLayoutTrackNumber, moment: Instant) {
-        logger.serviceCall(
-            "createRouteNumber",
-            "trackNumber" to trackNumber,
-            "moment" to moment,
-        )
         require(trackNumber.id is IntId) { "Only layout route numbers can be updated, id=${trackNumber.id}" }
 
         val addresses = geocodingService.getGeocodingContextAtMoment(trackNumber.id, moment)?.referenceLineAddresses

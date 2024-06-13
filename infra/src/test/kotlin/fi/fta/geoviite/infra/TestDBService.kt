@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
@@ -43,7 +44,6 @@ import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 import kotlin.reflect.KClass
@@ -82,7 +82,7 @@ interface TestDB {
     } as LayoutAssetDao<T>
 }
 
-@Service
+@GeoviiteService
 class TestDBService(
     private val jdbcTemplate: NamedParameterJdbcTemplate?,
     private val transactionTemplate: TransactionTemplate?,

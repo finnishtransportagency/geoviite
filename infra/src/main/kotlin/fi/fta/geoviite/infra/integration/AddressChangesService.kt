@@ -1,12 +1,12 @@
 package fi.fta.geoviite.infra.integration
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import org.springframework.stereotype.Service
 
 fun addressPointsAreEqual(point1: AddressPoint?, point2: AddressPoint?): Boolean =
     if (point1 == null && point2 == null) true
@@ -70,7 +70,7 @@ data class AddressChanges(
     fun isChanged() = changedKmNumbers.isNotEmpty() || startPointChanged || endPointChanged
 }
 
-@Service
+@GeoviiteService
 class AddressChangesService(val geocodingService: GeocodingService) {
 
     fun getAddressChanges(

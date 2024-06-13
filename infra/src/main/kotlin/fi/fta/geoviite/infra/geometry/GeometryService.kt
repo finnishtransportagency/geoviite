@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.geometry
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
@@ -25,7 +26,6 @@ import fi.fta.geoviite.infra.integration.DatabaseLock.VERTICAL_GEOMETRY_LIST_GEN
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.ElementListingFile
@@ -45,11 +45,8 @@ import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsLastComparator
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.scheduling.annotation.Scheduled
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import withUser
 import java.math.BigDecimal
@@ -64,7 +61,7 @@ val unknownSwitchName = SwitchName("-")
 val elementListingGenerationUser = UserName.of("ELEMENT_LIST_GEN")
 val verticalGeometryListingGenerationUser = UserName.of("VERT_GEOM_LIST_GEN")
 
-@Service
+@GeoviiteService
 class GeometryService @Autowired constructor(
     private val geometryDao: GeometryDao,
     private val trackNumberService: LayoutTrackNumberService,
@@ -80,8 +77,6 @@ class GeometryService @Autowired constructor(
     private val lockDao: LockDao,
     private val localizationService: LocalizationService,
 ) {
-
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     private fun runElementListGeneration(op: () -> Unit) =
         runWithLock(elementListingGenerationUser, ELEMENT_LIST_GEN, Duration.ofHours(1L)) {
@@ -99,7 +94,6 @@ class GeometryService @Autowired constructor(
         withUser(userName) { lockDao.runWithLock(lock, timeout) { op() } }
 
     fun getGeometryPlanAreas(boundingBox: BoundingBox): List<GeometryPlanArea> {
-        logger.serviceCall("getGeometryPlanAreas", "bbox" to boundingBox)
         return geometryDao.fetchPlanAreas(boundingBox)
     }
 
@@ -108,83 +102,66 @@ class GeometryService @Autowired constructor(
         bbox: BoundingBox? = null,
         filter: ((GeometryPlanHeader) -> Boolean)? = null,
     ): List<GeometryPlanHeader> {
-        logger.serviceCall(
-            "getPlanHeaders", "sources" to sources, "bbox" to bbox, "filtered" to (filter != null)
-        )
         return geometryDao
             .fetchPlanHeaders(sources = sources, bbox = bbox)
             .let { all -> filter?.let(all::filter) ?: all }
     }
 
     fun getPlanHeader(planId: IntId<GeometryPlan>): GeometryPlanHeader {
-        logger.serviceCall("getPlanHeader", "planId" to planId)
         return geometryDao.getPlanHeader(planId)
     }
 
     fun getManyPlanHeaders(planIds: List<IntId<GeometryPlan>>): List<GeometryPlanHeader> {
-        logger.serviceCall("getManyPlanHeaders", "planIds" to planIds)
         return geometryDao.getPlanHeaders(planIds)
     }
 
     fun getGeometryElement(geometryElementId: IndexedId<GeometryElement>): GeometryElement {
-        logger.serviceCall("getGeometryElement", "geometryElementId" to geometryElementId)
         return geometryDao.fetchElement(geometryElementId)
     }
 
     @Transactional(readOnly = true)
     fun getGeometryPlan(planId: IntId<GeometryPlan>): GeometryPlan {
-        logger.serviceCall("getGeometryPlan", "planId" to planId)
         return geometryDao.fetchPlan(geometryDao.fetchPlanVersion(planId))
     }
 
     fun getGeometryPlanChangeTime(): Instant {
-        logger.serviceCall("getGeometryPlanChangeTime")
         return geometryDao.fetchPlanChangeTime()
     }
 
     fun getProjects(): List<Project> {
-        logger.serviceCall("getProjects")
         return geometryDao.fetchProjects()
     }
 
     fun getProjectChangeTime(): Instant {
-        logger.serviceCall("getProjectChangeTime")
         return geometryDao.fetchProjectChangeTime()
     }
 
     fun getAuthorChangeTime(): Instant {
-        logger.serviceCall("getAuthorChangeTime")
         return geometryDao.fetchAuthorChangeTime()
     }
 
     fun getProject(id: IntId<Project>): Project {
-        logger.serviceCall("getProject", "id" to id)
         return geometryDao.getProject(id)
     }
 
     fun createProject(project: Project): IntId<Project> {
-        logger.serviceCall("createProject", "project" to project)
         return geometryDao.insertProject(project).id
     }
 
     fun getAuthors(): List<Author> {
-        logger.serviceCall("getAuthors")
         return geometryDao.fetchAuthors()
     }
 
     fun createAuthor(author: Author): Author {
-        logger.serviceCall("createAuthor", "author" to author)
         val authorId = geometryDao.insertAuthor(author)
         return geometryDao.getAuthor(authorId.id)
     }
 
     fun getSwitch(switchId: IntId<GeometrySwitch>): GeometrySwitch {
-        logger.serviceCall("getSwitch", "switchId" to switchId)
         return geometryDao.getSwitch(switchId)
     }
 
     fun getSwitchLayout(switchId: IntId<GeometrySwitch>): TrackLayoutSwitch? {
-        logger.serviceCall("getSwitchLayout", "switchId" to switchId)
         val switch = getSwitch(switchId)
         val srid = geometryDao.getSwitchSrid(switchId)
             ?: throw IllegalStateException("Coordinate system not found for geometry switch $switchId!")
@@ -193,18 +170,14 @@ class GeometryService @Autowired constructor(
     }
 
     fun getKmPost(kmPostId: IntId<GeometryKmPost>): GeometryKmPost {
-        logger.serviceCall("getKmPost", "kmPostId" to kmPostId)
         return geometryDao.getKmPost(kmPostId)
     }
 
     fun getKmPostSrid(id: IntId<GeometryKmPost>): Srid? {
-        logger.serviceCall("getKmPostSrid", "id" to id)
         return geometryDao.getKmPostSrid(id)
     }
 
     fun getPlanFile(planId: IntId<GeometryPlan>): InfraModelFile {
-        logger.serviceCall("getPlanFile", "planId" to planId)
-
         val fileAndSource = geometryDao.getPlanFile(planId)
         return if (fileAndSource.source == PAIKANNUSPALVELU) {
             InfraModelFile(
@@ -219,13 +192,11 @@ class GeometryService @Autowired constructor(
         else originalFileName
 
     fun getLinkingSummaries(planIds: List<IntId<GeometryPlan>>): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
-        logger.serviceCall("getLinkingSummaries", "planIds" to planIds)
         return geometryDao.getLinkingSummaries(planIds)
     }
 
     @Transactional(readOnly = true)
     fun fetchDuplicateGeometryPlanHeader(newFile: InfraModelFile, source: PlanSource): GeometryPlanHeader? {
-        logger.serviceCall("fetchDuplicateGeometryPlanHeader", "newFile" to newFile, "source" to source)
         return geometryDao.fetchDuplicateGeometryPlanVersion(newFile, source)?.let(geometryDao::getPlanHeader)
     }
 
@@ -237,11 +208,6 @@ class GeometryService @Autowired constructor(
         planId: IntId<GeometryPlan>,
         elementTypes: List<GeometryElementType>,
     ): List<ElementListing> {
-        logger.serviceCall(
-            "getElementListing",
-            "planId" to planId,
-            "elementTypes" to elementTypes,
-        )
         val planVersion = geometryDao.fetchPlanVersion(planId)
         val plan = geometryDao.fetchPlan(planVersion)
         val geocodingContext = plan.trackNumber
@@ -261,7 +227,6 @@ class GeometryService @Autowired constructor(
         elementTypes: List<GeometryElementType>,
         lang: LocalizationLanguage,
     ): ElementListingFile {
-        logger.serviceCall("getElementListingCsv", "planId" to planId, "elementTypes" to elementTypes, "lang" to lang)
         val plan = getPlanHeader(planId)
         val elementListing = getElementListing(planId, elementTypes)
         val translation = localizationService.getLocalization(lang)
@@ -280,7 +245,6 @@ class GeometryService @Autowired constructor(
         trackNumber: TrackNumber?,
         geocodingContext: GeocodingContext?,
     ): List<ElementListing> {
-        logger.serviceCall("getElementListing", "locationTrack" to locationTrack, "alignment" to alignment)
         return toElementListing(
             geocodingContext,
             coordinateTransformationService::getLayoutTransformation,
@@ -302,14 +266,6 @@ class GeometryService @Autowired constructor(
         startAddress: TrackMeter?,
         endAddress: TrackMeter?,
     ): List<ElementListing> {
-        logger.serviceCall(
-            "getElementListing",
-            "layoutContext" to layoutContext,
-            "trackId" to trackId,
-            "elementTypes" to elementTypes,
-            "startAddress" to startAddress,
-            "endAddress" to endAddress,
-        )
         val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(layoutContext, trackId)
         val trackNumber = trackNumberService.get(layoutContext, track.trackNumberId)?.number
         return toElementListing(
@@ -334,15 +290,6 @@ class GeometryService @Autowired constructor(
         endAddress: TrackMeter?,
         lang: LocalizationLanguage,
     ): ElementListingFile {
-        logger.serviceCall(
-            "getElementListing",
-            "layoutContext" to layoutContext,
-            "trackId" to trackId,
-            "elementTypes" to elementTypes,
-            "startAddress" to startAddress,
-            "endAddress" to endAddress,
-            "lang" to lang
-        )
         val track = locationTrackService.getOrThrow(layoutContext, trackId)
         val elementListing = getElementListing(layoutContext, trackId, elementTypes, startAddress, endAddress)
         val translation = localizationService.getLocalization(lang)
@@ -353,7 +300,6 @@ class GeometryService @Autowired constructor(
     @Scheduled(cron = "\${geoviite.rail-network-export.schedule}")
     @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
     fun makeElementListingCsv() = runElementListGeneration {
-        logger.serviceCall("makeElementListingCsv")
         val translation = localizationService.getLocalization(LocalizationLanguage.FI)
         val geocodingContexts = geocodingService.getGeocodingContexts(MainLayoutContext.official)
         val trackNumbers = trackNumberService.mapById(MainLayoutContext.official)
@@ -384,7 +330,6 @@ class GeometryService @Autowired constructor(
     fun getElementListingCsv() = elementListingFileDao.getElementListingFile()
 
     fun getVerticalGeometryListing(planId: IntId<GeometryPlan>): List<VerticalGeometryListing> {
-        logger.serviceCall("getVerticalGeometryListing", "planId" to planId)
         val planHeader = getPlanHeader(planId)
         val alignments = geometryDao.fetchAlignments(planHeader.units, planId)
         val geocodingContext = getLayoutGeocodingContextForPlanTrackNumber(planHeader.trackNumber)
@@ -395,7 +340,6 @@ class GeometryService @Autowired constructor(
     }
 
     fun getVerticalGeometryListingCsv(planId: IntId<GeometryPlan>, lang: LocalizationLanguage): Pair<FileName, ByteArray> {
-        logger.serviceCall("getVerticalGeometryListingCsv", "planId" to planId)
         val plan = getPlanHeader(planId)
         val verticalGeometryListing = getVerticalGeometryListing(planId)
         val translation = localizationService.getLocalization(lang)
@@ -411,12 +355,6 @@ class GeometryService @Autowired constructor(
         startAddress: TrackMeter? = null,
         endAddress: TrackMeter? = null,
     ): List<VerticalGeometryListing> {
-        logger.serviceCall(
-            "getVerticalGeometryListing",
-            "locationTrackId" to locationTrackId,
-            "startAddress" to startAddress,
-            "endAddress" to endAddress
-        )
         val (track, alignment) = locationTrackService.getWithAlignmentOrThrow(layoutContext, locationTrackId)
         val geocodingContext = geocodingService.getGeocodingContext(layoutContext, track.trackNumberId)
         return toVerticalGeometryListing(
@@ -436,12 +374,6 @@ class GeometryService @Autowired constructor(
         endAddress: TrackMeter?,
         lang: LocalizationLanguage,
     ): Pair<FileName, ByteArray> {
-        logger.serviceCall(
-            "getVerticalGeometryListingCsv",
-            "trackId" to locationTrackId,
-            "startAddress" to startAddress,
-            "endAddress" to endAddress,
-        )
         val locationTrack = locationTrackService.getOrThrow(MainLayoutContext.official, locationTrackId)
         val verticalGeometryListing = getVerticalGeometryListing(MainLayoutContext.official, locationTrackId, startAddress, endAddress)
         val translation = localizationService.getLocalization(lang)
@@ -456,7 +388,6 @@ class GeometryService @Autowired constructor(
     @Scheduled(cron = "\${geoviite.rail-network-export.vertical-geometry-schedule}")
     @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
     fun makeEntireVerticalGeometryListingCsv() = runVerticalGeometryListGeneration {
-        logger.serviceCall("makeEntireVerticalGeometryListingCsv")
         val geocodingContexts = geocodingService.getGeocodingContexts(MainLayoutContext.official)
         val verticalGeometryListingWithTrackNumbers =
             locationTrackService.list(MainLayoutContext.official, includeDeleted = false).sortedWith(
@@ -768,7 +699,6 @@ class GeometryService @Autowired constructor(
 
     @Transactional
     fun setPlanHidden(planId: IntId<GeometryPlan>, hidden: Boolean): RowVersion<GeometryPlan> {
-        logger.serviceCall("setPlanHidden", "planId" to planId, "hidden" to hidden)
         if (hidden && !geometryDao.getPlanLinking(planId).isEmpty) {
             throw DeletingFailureException(
                 message = "Cannot hide geometry plan that is linked to layout",
@@ -780,7 +710,6 @@ class GeometryService @Autowired constructor(
     }
 
     fun getPlanLinkedItems(planId: IntId<GeometryPlan>): GeometryPlanLinkedItems {
-        logger.serviceCall("getPlanLinkedItems", "planId" to planId)
         return geometryDao.getPlanLinking(planId)
     }
 

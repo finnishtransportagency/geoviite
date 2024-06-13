@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.publication
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.*
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
@@ -15,7 +16,6 @@ import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.roundTo1Decimal
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
@@ -38,7 +38,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.dao.DataIntegrityViolationException
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
@@ -46,7 +45,7 @@ import java.time.ZoneId
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
-@Service
+@GeoviiteService
 class PublicationService @Autowired constructor(
     private val publicationDao: PublicationDao,
     private val geocodingService: GeocodingService,
@@ -93,7 +92,6 @@ class PublicationService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun collectPublicationCandidates(branch: LayoutBranch): PublicationCandidates {
-        logger.serviceCall("collectPublicationCandidates", "branch" to branch)
         return PublicationCandidates(
             branch = branch,
             trackNumbers = publicationDao.fetchTrackNumberPublicationCandidates(branch),
@@ -109,11 +107,6 @@ class PublicationService @Autowired constructor(
         candidates: PublicationCandidates,
         request: PublicationRequestIds,
     ): ValidatedPublicationCandidates {
-        logger.serviceCall(
-            "validatePublicationCandidates",
-            "candidates" to candidates,
-            "request" to request,
-        )
         return ValidatedPublicationCandidates(
             validatedAsPublicationUnit = validateAsPublicationUnit(
                 candidates = candidates.filter(request),
@@ -131,12 +124,6 @@ class PublicationService @Autowired constructor(
         layoutContext: LayoutContext,
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
     ): List<ValidatedAsset<TrackLayoutTrackNumber>> {
-        logger.serviceCall(
-            "validateTrackNumbersAndReferenceLines",
-            "trackNumberIds" to trackNumberIds,
-            "layoutContext" to layoutContext,
-        )
-
         if (trackNumberIds.isEmpty()) return emptyList()
 
         // Switches don't affect tracknumber validity, so they are ignored
@@ -172,11 +159,6 @@ class PublicationService @Autowired constructor(
         layoutContext: LayoutContext,
         trackIds: List<IntId<LocationTrack>>,
     ): List<ValidatedAsset<LocationTrack>> {
-        logger.serviceCall(
-            "validateLocationTrack",
-            "locationTrackId" to trackIds,
-            "layoutContext" to layoutContext,
-        )
         if (trackIds.isEmpty()) return emptyList()
 
         val validationContext = when (layoutContext.state) {
@@ -209,7 +191,6 @@ class PublicationService @Autowired constructor(
         layoutContext: LayoutContext,
         switchIds: List<IntId<TrackLayoutSwitch>>,
     ): List<ValidatedAsset<TrackLayoutSwitch>> {
-        logger.serviceCall("validateSwitches", "switchIds" to switchIds, "layoutContext" to layoutContext)
         if (switchIds.isEmpty()) return emptyList()
 
         // Only tracks and switches affect switch validation, so we can ignore the other types in the publication unit
@@ -236,7 +217,6 @@ class PublicationService @Autowired constructor(
         layoutContext: LayoutContext,
         kmPostIds: List<IntId<TrackLayoutKmPost>>,
     ): List<ValidatedAsset<TrackLayoutKmPost>> {
-        logger.serviceCall("validateKmPost", "layoutContext" to layoutContext, "kmPostIds" to kmPostIds)
         if (kmPostIds.isEmpty()) return emptyList()
 
         // We can ignore switches and locationtracks, as they don't affect km-post validity
@@ -289,7 +269,6 @@ class PublicationService @Autowired constructor(
     )
 
     fun getChangeTime(): Instant {
-        logger.serviceCall("getChangeTime")
         return publicationDao.fetchChangeTime()
     }
 
@@ -340,7 +319,6 @@ class PublicationService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun validatePublicationRequest(versions: ValidationVersions) {
-        logger.serviceCall("validatePublicationRequest", "versions" to versions)
         val validationContext = createValidationContext(versions).also { ctx -> ctx.preloadByPublicationSet() }
         splitService.validateSplit(versions, validationContext, allowMultipleSplits = false).also(::assertNoSplitErrors)
 
@@ -363,8 +341,6 @@ class PublicationService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getRevertRequestDependencies(branch: LayoutBranch, requestIds: PublicationRequestIds): PublicationRequestIds {
-        logger.serviceCall("getRevertRequestDependencies", "requestIds" to requestIds)
-
         val referenceLineTrackNumberIds = referenceLineService
             .getMany(branch.draft, requestIds.referenceLines)
             .map { rlId -> rlId.trackNumberId }
@@ -405,8 +381,6 @@ class PublicationService @Autowired constructor(
 
     @Transactional
     fun revertPublicationCandidates(branch: LayoutBranch, toDelete: PublicationRequestIds): PublicationResult {
-        logger.serviceCall("revertPublicationCandidates", "toDelete" to toDelete)
-
         splitService.fetchPublicationVersions(branch, toDelete.locationTracks, toDelete.switches)
             .forEach { split -> splitService.deleteSplit(split.officialId) }
 
@@ -432,8 +406,6 @@ class PublicationService @Autowired constructor(
      * each ID is fetched from ratko and becomes an object there -> we want to store it, even if the rest fail
      */
     fun updateExternalId(branch: LayoutBranch, request: PublicationRequestIds) {
-        logger.serviceCall("updateExternalId", "branch" to branch, "request" to request)
-
         val draftContext = LayoutContext.of(LayoutBranch.main, DRAFT)
         try {
             request.locationTracks
@@ -456,7 +428,6 @@ class PublicationService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getValidationVersions(branch: LayoutBranch, request: PublicationRequestIds): ValidationVersions {
-        logger.serviceCall("getValidationVersions", "branch" to branch, "request" to request)
         return ValidationVersions(
             branch = branch,
             trackNumbers = trackNumberDao.fetchPublicationVersions(branch, request.trackNumbers),
@@ -524,14 +495,6 @@ class PublicationService @Autowired constructor(
         calculatedChanges: CalculatedChanges,
         message: String,
     ): PublicationResult {
-        logger.serviceCall(
-            "publishChanges",
-            "branch" to branch,
-            "versions" to versions,
-            "calculatedChanges" to calculatedChanges,
-            "message" to message,
-        )
-
         try {
             return requireNotNull(
                 transactionTemplate.execute { publishChangesTransaction(branch, versions, calculatedChanges, message) }
@@ -737,8 +700,6 @@ class PublicationService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getPublicationDetails(id: IntId<Publication>): PublicationDetails {
-        logger.serviceCall("getPublicationDetails", "id" to id)
-
         val publication = publicationDao.getPublication(id)
         val ratkoStatus = ratkoPushDao.getRatkoStatus(id).sortedByDescending { it.endTime }.firstOrNull()
 
@@ -775,7 +736,6 @@ class PublicationService @Autowired constructor(
         id: IntId<Publication>,
         translation: Translation,
     ): List<PublicationTableItem> {
-        logger.serviceCall("getPublicationDetailsAsTableItems", "id" to id)
         val geocodingContextCache =
             ConcurrentHashMap<Instant, MutableMap<IntId<TrackLayoutTrackNumber>, Optional<GeocodingContext>>>()
         return getPublicationDetails(id).let { publication ->
@@ -796,19 +756,16 @@ class PublicationService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun fetchPublications(from: Instant? = null, to: Instant? = null): List<Publication> {
-        logger.serviceCall("fetchPublications", "from" to from, "to" to to)
         return publicationDao.fetchPublicationsBetween(from, to)
     }
 
     @Transactional(readOnly = true)
     fun fetchPublicationDetailsBetweenInstants(from: Instant? = null, to: Instant? = null): List<PublicationDetails> {
-        logger.serviceCall("fetchPublicationDetailsBetweenInstants", "from" to from, "to" to to)
         return publicationDao.fetchPublicationsBetween(from, to).map { getPublicationDetails(it.id) }
     }
 
     @Transactional(readOnly = true)
     fun fetchLatestPublicationDetails(count: Int): List<PublicationDetails> {
-        logger.serviceCall("fetchLatestPublicationDetails", "count" to count)
         return publicationDao.fetchLatestPublications(count).map { getPublicationDetails(it.id) }
     }
 
@@ -820,14 +777,6 @@ class PublicationService @Autowired constructor(
         order: SortOrder? = null,
         translation: Translation,
     ): List<PublicationTableItem> {
-        logger.serviceCall(
-            "fetchPublicationDetails",
-            "from" to from,
-            "to" to to,
-            "sortBy" to sortBy,
-            "order" to order,
-        )
-
         val switchLinkChanges = publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(null, from, to)
 
         return fetchPublicationDetailsBetweenInstants(from, to).sortedBy { it.publicationTime }.let { publications ->
@@ -860,7 +809,6 @@ class PublicationService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getSplitInPublication(id: IntId<Publication>): SplitInPublication? {
-        logger.serviceCall("getPublicationLocationTrackInfo", "id" to id)
         return publicationDao.getPublication(id).let { publication ->
             splitService.getSplitIdByPublicationId(id)?.let { splitId ->
                 val split = splitService.getOrThrow(splitId)
@@ -902,7 +850,6 @@ class PublicationService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getSplitInPublicationCsv(id: IntId<Publication>, lang: LocalizationLanguage): Pair<String, AlignmentName?> {
-        logger.serviceCall("getSplitInPublicationCsv", "id" to id)
         return getSplitInPublication(id).let { splitInPublication ->
             val data = splitInPublication?.targetLocationTracks?.map { lt -> splitInPublication.locationTrack to lt }
                 ?: emptyList()
@@ -921,15 +868,6 @@ class PublicationService @Autowired constructor(
         timeZone: ZoneId? = null,
         translation: Translation,
     ): String {
-        logger.serviceCall(
-            "fetchPublicationsAsCsv",
-            "from" to from,
-            "to" to to,
-            "sortBy" to sortBy,
-            "order" to order,
-            "timeZone" to timeZone,
-        )
-
         val orderedPublishedItems = fetchPublicationDetails(
             from = from,
             to = to,

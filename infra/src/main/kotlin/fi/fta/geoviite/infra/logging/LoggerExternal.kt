@@ -83,14 +83,6 @@ fun Logger.daoAccess(method: String, params: List<Pair<String, *>>, returnValue:
     )
 }
 
-fun Logger.apiCall(method: String, vararg params: Pair<String, *>) {
-    if (isInfoEnabled) info("method=$method params=${paramsToLog(*params)}")
-}
-
-fun Logger.serviceCall(method: String, vararg params: Pair<String, *>) {
-    if (isDebugEnabled) debug("method={} params={}", method, paramsToLog(*params))
-}
-
 fun Logger.apiCall(method: String, params: List<Pair<String, *>>) {
     if (isInfoEnabled) info("method={} params={}", method, paramsToLog(params))
 }
