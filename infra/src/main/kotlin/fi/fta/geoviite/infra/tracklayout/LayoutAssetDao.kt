@@ -27,6 +27,7 @@ import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.idOrIdsEqualSqlFragment
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
+import fi.fta.geoviite.infra.util.requireOne
 import fi.fta.geoviite.infra.util.setUser
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.annotation.Propagation
@@ -384,3 +385,6 @@ fun <T : LayoutAsset<T>> verifyObjectIsNew(contextData: LayoutContextData<T>) {
     require(contextData.dataType == DataType.TEMP) { "Cannot insert existing row as new: context=$contextData" }
     require(contextData.rowId == null) { "TEMP row should not have DB ID: context=$contextData" }
 }
+
+inline fun <reified T, reified S> getOne(rowVersion: LayoutRowVersion<T>, result: List<S>) =
+    requireOne(T::class, rowVersion, result)

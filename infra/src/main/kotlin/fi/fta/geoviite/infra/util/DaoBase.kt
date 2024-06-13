@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.logging.AccessType.VERSION_FETCH
 import fi.fta.geoviite.infra.logging.daoAccess
-import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.util.FetchType.MULTI
 import fi.fta.geoviite.infra.util.FetchType.SINGLE
 import org.slf4j.Logger
@@ -134,9 +133,6 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
 
 inline fun <reified T, reified S> getOne(id: DomainId<T>, result: List<S>) =
     requireOne(T::class, id, result)
-
-inline fun <reified T, reified S> getOne(rowVersion: LayoutRowVersion<T>, result: List<S>) =
-    requireOne(T::class, rowVersion, result)
 
 inline fun <reified T, reified S> getOne(rowVersion: RowVersion<T>, result: List<S>) =
     requireOne(T::class, rowVersion, result)
