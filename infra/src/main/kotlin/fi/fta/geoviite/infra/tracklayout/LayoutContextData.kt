@@ -44,8 +44,8 @@ sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) 
 
 sealed class LayoutContextData<T> : LayoutContextAware<T> {
 
-    @get:JsonIgnore abstract
-    val rowId: LayoutRowId<T>?
+    @get:JsonIgnore
+    abstract val rowId: LayoutRowId<T>?
 
     @get:JsonIgnore
     open val officialRowId: LayoutRowId<T>? get() = null

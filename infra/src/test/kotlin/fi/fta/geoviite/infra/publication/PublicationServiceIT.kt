@@ -3120,44 +3120,48 @@ class PublicationServiceIT @Autowired constructor(
             asDesignDraft(
                 mainOfficialContext
                     .fetch(trackNumber)!!
-                    .copy(number = TrackNumber("edited")), testBranch.designId
+                    .copy(number = TrackNumber("edited")),
+                testBranch.designId,
             )
         )
         testDraftContext.insert(
             asDesignDraft(
                 mainOfficialContext
                     .fetch(referenceLine)!!
-                    .copy(startAddress = TrackMeter("0001+0123")), testBranch.designId
+                    .copy(startAddress = TrackMeter("0001+0123")),
+                testBranch.designId,
             )
         )
         testDraftContext.insert(
             asDesignDraft(
                 mainOfficialContext
                     .fetch(locationTrack)!!
-                    .copy(name = AlignmentName("edited")), testBranch.designId
+                    .copy(name = AlignmentName("edited")),
+                testBranch.designId,
             )
         )
         testDraftContext.insert(
             asDesignDraft(
                 mainOfficialContext.fetch(kmPost)!!.copy(kmNumber = KmNumber(123)),
-                testBranch.designId
+                testBranch.designId,
             )
         )
         testDraftContext.insert(
             asDesignDraft(
                 mainOfficialContext.fetch(switch)!!.copy(name = SwitchName("edited")),
-                testBranch.designId
+                testBranch.designId,
             )
         )
 
         publishAndVerify(
-            testBranch, publicationRequest(
+            testBranch,
+            publicationRequest(
                 trackNumbers = listOf(trackNumber),
                 referenceLines = listOf(referenceLine),
                 kmPosts = listOf(kmPost),
                 locationTracks = listOf(locationTrack),
                 switches = listOf(switch),
-            )
+            ),
         )
         mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(trackNumber)!!))
         mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(referenceLine)!!))
@@ -3166,13 +3170,14 @@ class PublicationServiceIT @Autowired constructor(
         mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(switch)!!))
 
         publishAndVerify(
-            LayoutBranch.main, publicationRequest(
+            LayoutBranch.main,
+            publicationRequest(
                 trackNumbers = listOf(trackNumber),
                 referenceLines = listOf(referenceLine),
                 kmPosts = listOf(kmPost),
                 locationTracks = listOf(locationTrack),
                 switches = listOf(switch),
-            )
+            ),
         )
 
         assertEquals("edited", mainOfficialContext.fetch(trackNumber)!!.number.toString())
@@ -3243,7 +3248,6 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
     }
-
 
     private fun validateLocationTracks(vararg locationTracks: IntId<LocationTrack>): List<LayoutValidationIssue> =
         validateLocationTracks(locationTracks.toList())

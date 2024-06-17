@@ -173,7 +173,7 @@ class GeocodingDao(
             trackNumberId = rs.getIntId("tn_official_id"),
             trackNumberVersion = tnVersion,
             referenceLineVersion = rlVersion,
-            kmPostVersions = toRowVersions(
+            kmPostVersions = toLayoutRowVersions(
                 ids = rs.getLayoutRowIdArray("kmp_row_ids"),
                 versions = rs.getIntArrayOrNull("kmp_row_versions") ?: listOf(),
             ),
@@ -210,7 +210,7 @@ class GeocodingDao(
         } else null
     }
 
-    private fun <T> toRowVersions(ids: List<LayoutRowId<T>>, versions: List<Int>) = ids
+    private fun <T> toLayoutRowVersions(ids: List<LayoutRowId<T>>, versions: List<Int>) = ids
         .also { check(it.size == versions.size) { "Unmatched row-versions: ids=$ids versions=$versions" } }
         .mapIndexed { index, id -> LayoutRowVersion(id, versions[index]) }
 }
