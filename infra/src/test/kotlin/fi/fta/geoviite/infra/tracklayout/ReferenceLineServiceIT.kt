@@ -98,7 +98,7 @@ class ReferenceLineServiceIT @Autowired constructor(
         val editResponse = referenceLineService
             .updateTrackNumberReferenceLine(LayoutBranch.main, trackNumberId, TrackMeter(3, 5))
         assertEquals(publishResponse.id, editResponse?.id)
-        assertNotEquals(publishResponse.rowVersion.id, editResponse?.rowVersion?.id)
+        assertNotEquals(publishResponse.rowVersion.rowId, editResponse?.rowVersion?.rowId)
 
         val editedDraft = getAndVerifyDraft(publishResponse.id)
         assertEquals(TrackMeter(3, 5), editedDraft.startAddress)
@@ -108,7 +108,7 @@ class ReferenceLineServiceIT @Autowired constructor(
         val editResponse2 = referenceLineService
             .updateTrackNumberReferenceLine(LayoutBranch.main, trackNumberId, TrackMeter(8, 9))
         assertEquals(publishResponse.id, editResponse2?.id)
-        assertNotEquals(publishResponse.rowVersion.id, editResponse2?.rowVersion?.id)
+        assertNotEquals(publishResponse.rowVersion.rowId, editResponse2?.rowVersion?.rowId)
 
         val editedDraft2 = referenceLineService.get(MainLayoutContext.draft, publishResponse.id)!!
         assertEquals(TrackMeter(8, 9), editedDraft2.startAddress)
@@ -128,7 +128,7 @@ class ReferenceLineServiceIT @Autowired constructor(
             LayoutBranch.main, published.copy(startAddress = TrackMeter(1, 1)),
         )
         assertEquals(publishResponse.id, editedVersion.id)
-        assertNotEquals(publishResponse.rowVersion.id, editedVersion.rowVersion.id)
+        assertNotEquals(publishResponse.rowVersion.rowId, editedVersion.rowVersion.rowId)
 
         val editedDraft = getAndVerifyDraft(publishResponse.id)
         assertEquals(TrackMeter(1, 1), editedDraft.startAddress)
@@ -140,7 +140,7 @@ class ReferenceLineServiceIT @Autowired constructor(
             editedDraft.copy(startAddress = TrackMeter(2, 2)),
         )
         assertEquals(publishResponse.id, editedVersion2.id)
-        assertNotEquals(publishResponse.rowVersion.id, editedVersion2.rowVersion.id)
+        assertNotEquals(publishResponse.rowVersion.rowId, editedVersion2.rowVersion.rowId)
 
         val editedDraft2 = getAndVerifyDraft(publishResponse.id)
         assertEquals(TrackMeter(2, 2), editedDraft2.startAddress)
@@ -159,7 +159,7 @@ class ReferenceLineServiceIT @Autowired constructor(
         val alignmentTmp = alignment(segment(2, 10.0, 20.0, 10.0, 20.0))
         val editedVersion = referenceLineService.saveDraft(LayoutBranch.main, published, alignmentTmp)
         assertEquals(publishResponse.id, editedVersion.id)
-        assertNotEquals(publishResponse.rowVersion.id, editedVersion.rowVersion.id)
+        assertNotEquals(publishResponse.rowVersion.rowId, editedVersion.rowVersion.rowId)
 
         val (editedDraft, editedAlignment) = getAndVerifyDraftWithAlignment(publishResponse.id)
         assertEquals(
@@ -173,7 +173,7 @@ class ReferenceLineServiceIT @Autowired constructor(
         val alignmentTmp2 = alignment(segment(4, 10.0, 20.0, 10.0, 20.0))
         val editedVersion2 = referenceLineService.saveDraft(LayoutBranch.main, editedDraft, alignmentTmp2)
         assertEquals(publishResponse.id, editedVersion2.id)
-        assertNotEquals(publishResponse.rowVersion.id, editedVersion2.rowVersion.id)
+        assertNotEquals(publishResponse.rowVersion.rowId, editedVersion2.rowVersion.rowId)
 
         val (editedDraft2, editedAlignment2) = getAndVerifyDraftWithAlignment(publishResponse.id)
         assertEquals(

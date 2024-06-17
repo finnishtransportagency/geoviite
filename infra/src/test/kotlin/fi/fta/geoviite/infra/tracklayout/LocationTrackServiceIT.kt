@@ -117,9 +117,10 @@ class LocationTrackServiceIT @Autowired constructor(
 
         val updateRequest = saveRequest(trackNumberId, 2)
             .copy(topologicalConnectivity = TopologicalConnectivityType.NONE)
-        val updatedTrackVersion = locationTrackService.update(LayoutBranch.main, id, updateRequest).rowVersion
+        val updatedTrackVersion = locationTrackService.update(LayoutBranch.main, id, updateRequest)
         assertEquals(id, updatedTrackVersion.id)
-        assertNotEquals(insertedTrackVersion.version, updatedTrackVersion.version)
+        assertEquals(insertedTrackVersion.rowId, updatedTrackVersion.rowVersion.rowId)
+        assertNotEquals(insertedTrackVersion.version, updatedTrackVersion.rowVersion.version)
         val updatedTrack = locationTrackService.get(MainLayoutContext.draft, id)!!
         assertMatches(updateRequest, updatedTrack)
         assertEquals(insertedTrack.alignmentVersion, updatedTrack.alignmentVersion)
@@ -139,7 +140,7 @@ class LocationTrackServiceIT @Autowired constructor(
             published.copy(name = AlignmentName("EDITED1")),
         )
         assertEquals(publicationResponse.id, editedVersion.id)
-        assertNotEquals(publicationResponse.rowVersion.id, editedVersion.rowVersion.id)
+        assertNotEquals(publicationResponse.rowVersion.rowId, editedVersion.rowVersion.rowId)
 
         val editedDraft = getAndVerifyDraft(publicationResponse.id)
         assertEquals(AlignmentName("EDITED1"), editedDraft.name)
@@ -151,7 +152,7 @@ class LocationTrackServiceIT @Autowired constructor(
             editedDraft.copy(name = AlignmentName("EDITED2")),
         )
         assertEquals(publicationResponse.id, editedVersion2.id)
-        assertNotEquals(publicationResponse.rowVersion.id, editedVersion2.rowVersion.id)
+        assertNotEquals(publicationResponse.rowVersion.rowId, editedVersion2.rowVersion.rowId)
 
         val editedDraft2 = getAndVerifyDraft(publicationResponse.id)
         assertEquals(AlignmentName("EDITED2"), editedDraft2.name)
@@ -167,7 +168,7 @@ class LocationTrackServiceIT @Autowired constructor(
         val alignmentTmp = alignment(segment(2, 10.0, 20.0, 10.0, 20.0))
         val editedVersion = locationTrackService.saveDraft(LayoutBranch.main, published, alignmentTmp)
         assertEquals(publicationResponse.id, editedVersion.id)
-        assertNotEquals(publicationResponse.rowVersion.id, editedVersion.rowVersion.id)
+        assertNotEquals(publicationResponse.rowVersion.rowId, editedVersion.rowVersion.rowId)
 
         val (editedDraft, editedAlignment) = getAndVerifyDraftWithAlignment(publicationResponse.id)
         assertEquals(
@@ -181,7 +182,7 @@ class LocationTrackServiceIT @Autowired constructor(
         val alignmentTmp2 = alignment(segment(4, 10.0, 20.0, 10.0, 20.0))
         val editedVersion2 = locationTrackService.saveDraft(LayoutBranch.main, editedDraft, alignmentTmp2)
         assertEquals(publicationResponse.id, editedVersion2.id)
-        assertNotEquals(publicationResponse.rowVersion.id, editedVersion2.rowVersion.id)
+        assertNotEquals(publicationResponse.rowVersion.rowId, editedVersion2.rowVersion.rowId)
 
         val (editedDraft2, editedAlignment2) = getAndVerifyDraftWithAlignment(publicationResponse.id)
         assertEquals(

@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -185,7 +184,7 @@ class ReferenceLineService(
     }
 
     @Transactional(readOnly = true)
-    fun getWithAlignment(version: RowVersion<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
+    fun getWithAlignment(version: LayoutRowVersion<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
         logger.serviceCall("getWithAlignment", "version" to version)
         return getWithAlignmentInternal(version)
     }
@@ -230,7 +229,7 @@ class ReferenceLineService(
         return dao.fetchVersion(layoutContext, id)?.let { v -> getWithAlignmentInternal(v) }
     }
 
-    private fun getWithAlignmentInternal(version: RowVersion<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> =
+    private fun getWithAlignmentInternal(version: LayoutRowVersion<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> =
         referenceLineWithAlignment(dao, alignmentDao, version)
 
     private fun associateWithAlignments(lines: List<ReferenceLine>): List<Pair<ReferenceLine, LayoutAlignment>> {
@@ -253,7 +252,7 @@ class ReferenceLineService(
 fun referenceLineWithAlignment(
     referenceLineDao: ReferenceLineDao,
     alignmentDao: LayoutAlignmentDao,
-    rowVersion: RowVersion<ReferenceLine>,
+    rowVersion: LayoutRowVersion<ReferenceLine>,
 ) = referenceLineDao.fetch(rowVersion).let { track ->
     track to alignmentDao.fetch(track.getAlignmentVersionOrThrow())
 }

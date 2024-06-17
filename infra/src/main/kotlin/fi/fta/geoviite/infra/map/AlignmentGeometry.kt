@@ -3,10 +3,16 @@ package fi.fta.geoviite.infra.map
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.IAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import kotlin.math.roundToInt
 
 enum class MapAlignmentSource {
@@ -21,7 +27,7 @@ enum class MapAlignmentType {
 
 data class AlignmentHeader<T, U>(
     val id: DomainId<T>,
-    val version: RowVersion<T>?,
+    val version: LayoutRowVersion<T>?,
     val trackNumberId: DomainId<TrackLayoutTrackNumber>?,
     val duplicateOf: IntId<LocationTrack>?,
 

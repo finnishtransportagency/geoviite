@@ -13,10 +13,7 @@ fun assertMatches(expected: TrackLayoutTrackNumber, actual: TrackLayoutTrackNumb
     if (contextMatch) {
         assertEquals(expected, actual)
     } else {
-        val unified = actual.copy(
-            contextData = expected.contextData,
-            version = expected.version,
-        )
+        val unified = actual.copy(contextData = expected.contextData)
         assertEquals(expected, unified)
     }
 }
@@ -29,10 +26,7 @@ fun assertMatches(expected: ReferenceLine, actual: ReferenceLine, contextMatch: 
     if (contextMatch) {
         assertEquals(expectedWithSameFloats, actual)
     } else {
-        val unified = actual.copy(
-            contextData = expected.contextData,
-            version = expected.version,
-        )
+        val unified = actual.copy(contextData = expected.contextData)
         assertEquals(expectedWithSameFloats, unified)
     }
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
@@ -46,10 +40,7 @@ fun assertMatches(expected: LocationTrack, actual: LocationTrack, contextMatch: 
     if (contextMatch) {
         assertEquals(expectedWithSameFloats, actual)
     } else {
-        val unified = actual.copy(
-            contextData = expected.contextData,
-            version = expected.version,
-        )
+        val unified = actual.copy(contextData = expected.contextData)
         assertEquals(expectedWithSameFloats, unified)
     }
     assertEquals(expected.length, actual.length, LENGTH_DELTA)
@@ -107,7 +98,6 @@ fun assertMatches(expected: TrackLayoutKmPost, actual: TrackLayoutKmPost, contex
         val unified = actual.copy(
             contextData = expected.contextData,
             sourceId = expected.sourceId,
-            version = expected.version,
         )
         assertEquals(expected, unified)
         assertEquals(expected.sourceId != null, actual.sourceId != null)
@@ -123,10 +113,7 @@ fun assertMatches(expected: TrackLayoutSwitch, actual: TrackLayoutSwitch, contex
     if (contextMatch) {
         assertEquals(expectedWithSameFloats, actual)
     } else {
-        val unified = actual.copy(
-            contextData = expected.contextData,
-            version = expected.version,
-        )
+        val unified = actual.copy(contextData = expected.contextData)
         assertEquals(expectedWithSameFloats, unified)
     }
     assertEquals(expected.switchStructureId, actual.switchStructureId)

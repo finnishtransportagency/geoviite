@@ -4,12 +4,10 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.geography.create2DPolygonString
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getDaoResponse
 import fi.fta.geoviite.infra.util.getEnum
@@ -17,9 +15,9 @@ import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getKmNumber
 import fi.fta.geoviite.infra.util.getLayoutContextData
+import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getOne
 import fi.fta.geoviite.infra.util.getPointOrNull
-import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
@@ -46,16 +44,17 @@ class LayoutKmPostDao(
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         bbox: BoundingBox? = null,
-    ): List<TrackLayoutKmPost> = fetchVersions(layoutContext, includeDeleted, trackNumberId, bbox).map(::fetch)
+    ): List<TrackLayoutKmPost> = fetchVersions(layoutContext, includeDeleted, trackNumberId, bbox)
+        .map { r -> fetch(r.rowVersion) }
 
     fun fetchVersions(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         bbox: BoundingBox? = null,
-    ): List<RowVersion<TrackLayoutKmPost>> {
+    ): List<DaoResponse<TrackLayoutKmPost>> {
         val sql = """
-            select km_post.row_id, km_post.row_version 
+            select km_post.official_id, km_post.row_id, km_post.row_version 
             from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id) km_post
             where (:include_deleted = true or km_post.state != 'DELETED')
               and (:track_number_id::int is null or track_number_id = :track_number_id)
@@ -76,7 +75,7 @@ class LayoutKmPostDao(
                 "map_srid" to LAYOUT_SRID.code,
             ),
         ) { rs, _ ->
-            rs.getRowVersion("row_id", "row_version")
+            rs.getDaoResponse("official_id", "row_id", "row_version")
         }
     }
 
@@ -84,7 +83,7 @@ class LayoutKmPostDao(
         branch: LayoutBranch,
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         kmPostIdsToPublish: List<IntId<TrackLayoutKmPost>>,
-    ): Map<IntId<TrackLayoutTrackNumber>, List<ValidationVersion<TrackLayoutKmPost>>> {
+    ): Map<IntId<TrackLayoutTrackNumber>, List<DaoResponse<TrackLayoutKmPost>>> {
         if (trackNumberIds.isEmpty()) return emptyMap()
         val sql = """
             select km_post.track_number_id, km_post.official_id, km_post.row_id, km_post.row_version
@@ -108,9 +107,8 @@ class LayoutKmPostDao(
         )
         val versions = jdbcTemplate.query(sql, params) { rs, _ ->
             val trackNumberId = rs.getIntId<TrackLayoutTrackNumber>("track_number_id")
-            val officialId = rs.getIntId<TrackLayoutKmPost>("official_id")
-            val rowVersion = rs.getRowVersion<TrackLayoutKmPost>("row_id", "row_version")
-            trackNumberId to ValidationVersion(officialId, rowVersion)
+            val version = rs.getDaoResponse<TrackLayoutKmPost>("official_id", "row_id", "row_version")
+            trackNumberId to version
         }
         return trackNumberIds.associateWith { trackNumberId ->
             versions.filter { (tnId, _) -> tnId == trackNumberId }.map { (_, kmPostVersions) -> kmPostVersions }
@@ -122,7 +120,7 @@ class LayoutKmPostDao(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         kmNumber: KmNumber,
         includeDeleted: Boolean,
-    ): RowVersion<TrackLayoutKmPost>? {
+    ): LayoutRowVersion<TrackLayoutKmPost>? {
         val sql = """
             select km_post.row_id, km_post.row_version 
             from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id) km_post
@@ -138,12 +136,12 @@ class LayoutKmPostDao(
             "include_deleted" to includeDeleted,
         )
         val result = jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getRowVersion<TrackLayoutKmPost>("row_id", "row_version")
+            rs.getLayoutRowVersion<TrackLayoutKmPost>("row_id", "row_version")
         }
         return result.firstOrNull()
     }
 
-    override fun fetchInternal(version: RowVersion<TrackLayoutKmPost>): TrackLayoutKmPost {
+    override fun fetchInternal(version: LayoutRowVersion<TrackLayoutKmPost>): TrackLayoutKmPost {
         val sql = """
             select 
               id as row_id,
@@ -163,10 +161,10 @@ class LayoutKmPostDao(
               and deleted = false
         """.trimIndent()
         val params = mapOf(
-            "id" to version.id.intValue,
+            "id" to version.rowId.intValue,
             "version" to version.version,
         )
-        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutKmPost(rs) }).also {
+        return getOne(version, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutKmPost(rs) }).also {
             logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, version)
         }
     }
@@ -201,8 +199,14 @@ class LayoutKmPostDao(
         location = rs.getPointOrNull("point_x", "point_y"),
         state = rs.getEnum("state"),
         sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
-        version = rs.getRowVersion("row_id", "row_version"),
-        contextData = rs.getLayoutContextData("official_row_id", "design_row_id", "design_id", "row_id", "draft"),
+        contextData = rs.getLayoutContextData(
+            "official_row_id",
+            "design_row_id",
+            "design_id",
+            "row_id",
+            "row_version",
+            "draft",
+        ),
     )
 
     @Transactional
@@ -247,9 +251,9 @@ class LayoutKmPostDao(
             "srid" to LAYOUT_SRID.code,
             "state" to newItem.state.name,
             "draft" to newItem.contextData.isDraft,
-            "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
-            "design_row_id" to newItem.contextData.designRowId?.let(::toDbId)?.intValue,
-            "design_id" to newItem.contextData.designId?.let(::toDbId)?.intValue,
+            "official_row_id" to newItem.contextData.officialRowId?.intValue,
+            "design_row_id" to newItem.contextData.designRowId?.intValue,
+            "design_id" to newItem.contextData.designId?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
@@ -298,9 +302,9 @@ class LayoutKmPostDao(
             "srid" to LAYOUT_SRID.code,
             "state" to updatedItem.state.name,
             "draft" to updatedItem.isDraft,
-            "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
-            "design_row_id" to updatedItem.contextData.designRowId?.let(::toDbId)?.intValue,
-            "design_id" to updatedItem.contextData.designId?.let(::toDbId)?.intValue,
+            "official_row_id" to updatedItem.contextData.officialRowId?.intValue,
+            "design_row_id" to updatedItem.contextData.designRowId?.intValue,
+            "design_id" to updatedItem.contextData.designId?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
@@ -314,7 +318,7 @@ class LayoutKmPostDao(
         branch: LayoutBranch,
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
-    ): List<RowVersion<TrackLayoutKmPost>> {
+    ): List<LayoutRowVersion<TrackLayoutKmPost>> {
         val sql = """
             select id, version
             from layout.km_post
@@ -331,7 +335,7 @@ class LayoutKmPostDao(
                 "design_id" to branch.designId?.intValue
             )
         ) { rs, _ ->
-            rs.getRowVersion<TrackLayoutKmPost>("id", "version")
+            rs.getLayoutRowVersion<TrackLayoutKmPost>("id", "version")
         }.also { ids ->
             logger.daoAccess(AccessType.VERSION_FETCH, "fetchOnlyDraftVersions", ids)
         }
@@ -342,7 +346,7 @@ class LayoutKmPostDao(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         kmNumber: KmNumber,
         state: LayoutState,
-    ): RowVersion<TrackLayoutKmPost>? {
+    ): LayoutRowVersion<TrackLayoutKmPost>? {
         val sql = """
             select row_id, row_version
             from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id)
@@ -361,6 +365,6 @@ class LayoutKmPostDao(
                 "design_id" to layoutContext.branch.designId?.intValue,
                 "km_number" to kmNumber.toString()
             )
-        ) { rs, _ -> rs.getRowVersion("row_id", "row_version") }
+        ) { rs, _ -> rs.getLayoutRowVersion("row_id", "row_version") }
     }
 }

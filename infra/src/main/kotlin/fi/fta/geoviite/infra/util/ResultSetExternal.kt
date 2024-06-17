@@ -31,6 +31,8 @@ import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
+import fi.fta.geoviite.infra.tracklayout.LayoutRowId
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import java.sql.ResultSet
@@ -69,6 +71,9 @@ fun <T> ResultSet.getIndexedIdOrNull(parent: String, index: String): IndexedId<T
         null
     }
 }
+fun <T> ResultSet.getLayoutRowId(name: String): LayoutRowId<T> = verifyNotNull(name, ::getLayoutRowIdOrNull)
+
+fun <T> ResultSet.getLayoutRowIdOrNull(name: String): LayoutRowId<T>? = getIntOrNull(name)?.let(::LayoutRowId)
 
 fun <T> ResultSet.getIntId(name: String): IntId<T> = verifyNotNull(name, ::getIntIdOrNull)
 
@@ -145,6 +150,9 @@ fun ResultSet.getIntListOrNullFromString(name: String): List<Int>? = getString(n
 
 fun <T> ResultSet.getIntIdArray(name: String): List<IntId<T>> = getListOrNull<Int>(name)?.map(::IntId) ?: emptyList()
 
+fun <T> ResultSet.getLayoutRowIdArray(name: String): List<LayoutRowId<T>> =
+    getListOrNull<Int>(name)?.map(::LayoutRowId) ?: emptyList()
+
 fun ResultSet.getIntArray(name: String): List<Int> = verifyNotNull(name, ::getIntArrayOrNull)
 
 fun ResultSet.getIntArrayOrNull(name: String): List<Int>? = getListOrNull(name)
@@ -192,7 +200,7 @@ inline fun <reified T> ResultSet.getNullableListOrNull(name: String): List<T?>? 
 
 fun <T> ResultSet.getDaoResponse(officialIdName: String, versionIdName: String, versionName: String) = DaoResponse<T>(
     id = getIntId(officialIdName),
-    rowVersion = getRowVersion(versionIdName, versionName),
+    rowVersion = getLayoutRowVersion(versionIdName, versionName),
 )
 
 fun <T> ResultSet.getRowVersion(idName: String, versionName: String): RowVersion<T> =
@@ -202,6 +210,15 @@ fun <T> ResultSet.getRowVersionOrNull(idName: String, versionName: String): RowV
     val rowId = getIntIdOrNull<T>(idName)
     val version = getIntOrNull(versionName)
     return if (rowId != null && version != null) RowVersion(rowId, version) else null
+}
+
+fun <T> ResultSet.getLayoutRowVersion(rowIdName: String, versionName: String): LayoutRowVersion<T> =
+    LayoutRowVersion(getLayoutRowId(rowIdName), getIntNonNull(versionName))
+
+fun <T> ResultSet.getLayoutRowVersionOrNull(rowIdName: String, versionName: String): LayoutRowVersion<T>? {
+    val rowId = getLayoutRowIdOrNull<T>(rowIdName)
+    val version = getIntOrNull(versionName)
+    return if (rowId != null && version != null) LayoutRowVersion(rowId, version) else null
 }
 
 fun ResultSet.getIntNonNull(name: String) = getIntOrNull(name) ?: error("$name can't be null")
@@ -299,18 +316,21 @@ fun <T> ResultSet.getLayoutContextData(
     designRowIdName: String,
     designIdName: String,
     rowIdName: String,
+    rowVersionName: String,
     draftFlagName: String,
 ): LayoutContextData<T> {
     val designId = getIntIdOrNull<LayoutDesign>(designIdName)
-    val designRowId = getIntIdOrNull<T>(designRowIdName)
-    val officialRowId = getIntIdOrNull<T>(officialRowIdName)
-    val rowId = getIntId<T>(rowIdName)
+    val designRowId = getLayoutRowIdOrNull<T>(designRowIdName)
+    val officialRowId = getLayoutRowIdOrNull<T>(officialRowIdName)
+    val rowId = getLayoutRowId<T>(rowIdName)
+    val rowVersion = LayoutRowVersion(rowId, getInt(rowVersionName))
     val isDraft = getBoolean(draftFlagName)
     return if (designId != null) {
         if (isDraft) {
             DesignDraftContextData(
                 officialRowId = officialRowId,
                 rowId = rowId,
+                version = rowVersion,
                 designId = designId,
                 designRowId = designRowId,
             )
@@ -321,6 +341,7 @@ fun <T> ResultSet.getLayoutContextData(
             DesignOfficialContextData(
                 officialRowId = officialRowId,
                 rowId = rowId,
+                version = rowVersion,
                 designId = designId,
             )
         }
@@ -328,12 +349,16 @@ fun <T> ResultSet.getLayoutContextData(
         MainDraftContextData(
             officialRowId = officialRowId,
             rowId = rowId,
+            version = rowVersion,
             designRowId = designRowId,
         )
     } else {
         require(officialRowId == null) {
             "For official rows, official row ref should be null: officialRow=$officialRowId rowId=$rowId draft=$isDraft"
         }
-        MainOfficialContextData(rowId)
+        MainOfficialContextData(
+            rowId = rowId,
+            version = rowVersion,
+        )
     }
 }

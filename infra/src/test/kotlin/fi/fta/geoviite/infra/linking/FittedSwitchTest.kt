@@ -165,7 +165,7 @@ class FittedSwitchTest {
             translation = translation,
             rotation = rotation,
         )
-        val locationTrack = locationTrack(IntId(0), alignmentContainingSwitchSegments, trackId, draft = false)
+        val locationTrack = locationTrack(IntId(0), alignment = alignmentContainingSwitchSegments, trackId, draft = false)
         val presentationJointLocation = alignmentContainingSwitchSegments.segments[1].alignmentPoints.first()
 
         val missingLocationTrackEndpoint = LocationTrackEndpoint(

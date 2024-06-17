@@ -35,6 +35,7 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryCode
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
 import fi.fta.geoviite.infra.projektivelho.PVId
 import fi.fta.geoviite.infra.projektivelho.PVTargetCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.util.Code
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
@@ -104,6 +105,7 @@ class WebConfig : WebMvcConfigurer {
 
         logger.info("Registering version converters")
         registry.addStringConstructorConverter { RowVersion<Any>(it) }
+        registry.addStringConstructorConverter { LayoutRowVersion<Any>(it) }
 
         logger.info("Registering geography converters")
         registry.addStringConstructorConverter(::BoundingBox)

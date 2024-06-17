@@ -44,7 +44,7 @@ class RatkoAssetService @Autowired constructor(
         publicationTime: Instant,
     ) {
         publishedSwitches
-            .groupBy { it.version.id }
+            .groupBy { it.id }
             .map { (_, switches) ->
                 val newestVersion = switches.maxBy { it.version.version }.version
                 switchDao.fetch(newestVersion) to switches

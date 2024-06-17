@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryAlignmentLinkStatus
@@ -17,6 +16,7 @@ import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.DaoBase
@@ -24,8 +24,8 @@ import fi.fta.geoviite.infra.util.getIndexedId
 import fi.fta.geoviite.infra.util.getIntArray
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdArray
+import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.getPoint
-import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.getSrid
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -42,14 +42,14 @@ data class MissingLayoutSwitchLinking(
     val planSrid: Srid,
     val planId: IntId<GeometryPlan>,
     val geometrySwitchId: IntId<GeometrySwitch>,
-    val locationTrackIds: List<RowVersion<LocationTrack>>,
+    val locationTrackIds: List<LayoutRowVersion<LocationTrack>>,
 )
 
 data class MissingLayoutSwitchLinkingRowData(
     val planSrid: Srid,
     val planId: IntId<GeometryPlan>,
     val geometrySwitchId: IntId<GeometrySwitch>,
-    val locationTrackId: RowVersion<LocationTrack>,
+    val locationTrackId: LayoutRowVersion<LocationTrack>,
 )
 
 @Transactional(readOnly = true)
@@ -273,7 +273,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                     planId = rs.getIntId("plan_id"),
                     planSrid = rs.getSrid("srid"),
                     geometrySwitchId = rs.getIntId("geometry_switch_id"),
-                    locationTrackId = rs.getRowVersion("location_track_id", "location_track_version"),
+                    locationTrackId = rs.getLayoutRowVersion("location_track_id", "location_track_version"),
                 )
             }
             .groupBy { it.geometrySwitchId }

@@ -18,7 +18,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getInstantOrNull
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -60,9 +60,9 @@ internal class RatkoPushDaoIT @Autowired constructor(
         val locationTrackResponse = insertAndPublishLocationTrack()
         locationTrackId = locationTrackResponse.id
         val beforePublish = ratkoPushDao.getLatestPublicationMoment()
-        publicationId = createPublication(locationTracks = listOf(locationTrackResponse.rowVersion.id))
+        publicationId = createPublication(locationTracks = listOf(locationTrackResponse.id))
         publicationMoment = publicationDao.getPublication(publicationId).publicationTime
-        Assertions.assertTrue(publicationMoment > beforePublish)
+        assertTrue(publicationMoment > beforePublish)
         assertEquals(publicationMoment, ratkoPushDao.getLatestPublicationMoment())
     }
 
@@ -128,13 +128,13 @@ internal class RatkoPushDaoIT @Autowired constructor(
     @Test
     fun shouldReturnPublishableAlignments() {
         val lastPush = ratkoPushDao.getLatestPushedPublicationMoment()
-        Assertions.assertTrue(lastPush < publicationMoment)
+        assertTrue(lastPush < publicationMoment)
 
         val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, lastPush, null)
         val (publishedLocationTracks, _) = publicationDao.fetchPublishedLocationTracks(publications[1].id)
 
         assertEquals(publicationId, publications[1].id)
-        assertEquals(locationTrackId, publishedLocationTracks[0].version.id)
+        assertEquals(locationTrackId, publishedLocationTracks[0].id)
     }
 
     @Test
@@ -154,25 +154,25 @@ internal class RatkoPushDaoIT @Autowired constructor(
         ratkoPushDao.updatePushStatus(ratkoPublicationId, status = RatkoPushStatus.FAILED)
 
         val latestPushedPublish = ratkoPushDao.getLatestPushedPublicationMoment()
-        Assertions.assertTrue(latestPushedPublish < publicationMoment)
+        assertTrue(latestPushedPublish < publicationMoment)
         val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, latestPushedPublish, null)
         val (publishedLocationTracks, _) = publicationDao.fetchPublishedLocationTracks(publications[1].id)
 
         assertEquals(2, publications.size)
         assertEquals(publicationId, publications[1].id)
-        assertEquals(locationTrackId, publishedLocationTracks[0].version.id)
+        assertEquals(locationTrackId, publishedLocationTracks[0].id)
     }
 
     @Test
     fun shouldReturnMultipleUnpublishedLayoutPublishes() {
         val locationTrack2Response = insertAndPublishLocationTrack()
         val publicationId2 = createPublication(
-            locationTracks = listOf(locationTrack2Response.rowVersion.id),
+            locationTracks = listOf(locationTrack2Response.id),
             message = "Test",
         )
 
         val latestPushedMoment = ratkoPushDao.getLatestPushedPublicationMoment()
-        Assertions.assertTrue(latestPushedMoment < publicationMoment)
+        assertTrue(latestPushedMoment < publicationMoment)
         val publications = publicationDao.fetchPublicationsBetween(LayoutBranch.main, latestPushedMoment, null)
 
         val fetchedLayoutPublish = publications.find { it.id == publicationId }
@@ -187,8 +187,8 @@ internal class RatkoPushDaoIT @Autowired constructor(
         assertEquals(1, publishLocationTracks.size)
         assertEquals(1, publish2LocationTracks.size)
 
-        assertEquals(locationTrackId, publishLocationTracks[0].version.id)
-        assertEquals(locationTrack2Response.id, publish2LocationTracks[0].version.id)
+        assertEquals(locationTrackId, publishLocationTracks[0].id)
+        assertEquals(locationTrack2Response.id, publish2LocationTracks[0].id)
     }
 
     @Test

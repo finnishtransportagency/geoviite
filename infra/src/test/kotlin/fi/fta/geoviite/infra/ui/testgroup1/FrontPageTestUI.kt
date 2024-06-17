@@ -51,10 +51,10 @@ class FrontPageTestUI @Autowired constructor(
 
     @Test
     fun `Retry failed publication`() {
-        val originalTrackNumberVersion = trackNumberDao.insert(
+        val originalTrackNumber = trackNumberDao.insert(
             trackNumber(TrackNumber("original name"), externalId = Oid("1.2.3.4.5"), draft = false)
-        ).rowVersion
-        val trackNumberId = originalTrackNumberVersion.id
+        )
+        val trackNumberId = originalTrackNumber.id
         val alignmentVersion = alignmentDao.insert(
             alignment(segment(toSegmentPoints(Point(0.0, 0.0), Point(10.0, 0.0))))
         )
@@ -63,9 +63,10 @@ class FrontPageTestUI @Autowired constructor(
         val successfulPublicationId = publicationDao.createPublication(LayoutBranch.main, "successful")
         publicationDao.insertCalculatedChanges(successfulPublicationId, changesTouchingTrackNumber(trackNumberId))
 
-        trackNumberDao.update(
-            trackNumberDao.fetch(originalTrackNumberVersion).copy(number = TrackNumber("updated name"))
-        )
+        trackNumberDao
+            .fetch(originalTrackNumber.rowVersion)
+            .copy(number = TrackNumber("updated name"))
+            .let(trackNumberDao::update)
 
         val failingPublicationId = publicationDao.createPublication(LayoutBranch.main, "failing test publication")
         publicationDao.insertCalculatedChanges(failingPublicationId, changesTouchingTrackNumber(trackNumberId))

@@ -47,7 +47,7 @@ class RatkoRouteNumberService @Autowired constructor(
         // TODO: Design branches not yet supported. We need to ensure that design tracknumbers have own OIDs -> could we rely on tracknumber.branch instead of arg?
         assertMainBranch(branch)
         return publishedTrackNumbers
-            .groupBy { it.version.id }
+            .groupBy { it.id }
             .map { (_, trackNumbers) ->
                 val newestVersion = trackNumbers.maxBy { it.version.version }.version
                 trackNumberDao.fetch(newestVersion) to trackNumbers.flatMap { it.changedKmNumbers }.toSet()

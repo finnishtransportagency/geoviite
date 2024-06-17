@@ -3,10 +3,11 @@ package fi.fta.geoviite.infra.geocoding
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutRowId
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -15,9 +16,10 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getIntArrayOrNull
-import fi.fta.geoviite.infra.util.getIntIdArray
+import fi.fta.geoviite.infra.util.getIntId
+import fi.fta.geoviite.infra.util.getLayoutRowIdArray
+import fi.fta.geoviite.infra.util.getLayoutRowVersionOrNull
 import fi.fta.geoviite.infra.util.getOptional
-import fi.fta.geoviite.infra.util.getRowVersionOrNull
 import fi.fta.geoviite.infra.util.queryNotNull
 import fi.fta.geoviite.infra.util.queryOptional
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
@@ -54,6 +56,7 @@ class GeocodingDao(
         //language=SQL
         val sql = """
             select
+              tn.official_id as tn_official_id,
               tn.row_id as tn_row_id,
               tn.row_version as tn_row_version,
               rl.row_id as rl_row_id,
@@ -70,7 +73,7 @@ class GeocodingDao(
                 kmp on kmp.track_number_id = tn.official_id
                 and kmp.state = 'IN_USE'
             where (:tn_id::int is null or :tn_id = tn.official_id)
-            group by tn.row_id, tn.row_version, rl.row_id, rl.row_version
+            group by tn.official_id, tn.row_id, tn.row_version, rl.row_id, rl.row_version
         """.trimIndent()
         val params = mapOf(
             "tn_id" to trackNumberId?.intValue,
@@ -89,7 +92,8 @@ class GeocodingDao(
         val sql = """
             with 
               tn_versions as (
-                select distinct on (id) id, version, deleted, design_id is not null as is_design
+                select distinct on (id) 
+                  id, version, deleted, design_id is not null as is_design, coalesce(official_row_id, id) as official_id
                 from layout.track_number_version
                 where (id = :tn_id or official_row_id = :tn_id)
                   and draft = false
@@ -98,14 +102,15 @@ class GeocodingDao(
                 order by id, version desc
               ),
               tn as (
-                select id, version
+                select official_id, id, version
                 from tn_versions
                 where deleted = false
                 order by case when is_design then 0 else 1 end
                 limit 1
               ),
               rl_versions as (
-                select distinct on (id) id, version, deleted, design_id is not null as is_design
+                select distinct on (id)
+                  id, version, deleted, design_id is not null as is_design
                 from layout.reference_line_version
                 where track_number_id = :tn_id
                   and draft = false
@@ -137,6 +142,7 @@ class GeocodingDao(
                 order by official_id, case when is_design then 0 else 1 end
               )
             select
+              tn.official_id as tn_official_id,
               tn.id as tn_row_id,
               tn.version as tn_row_version,
               rl.id as rl_row_id,
@@ -148,7 +154,7 @@ class GeocodingDao(
             from tn
               left join rl on true 
               left join kmp on true
-            group by tn.id, tn.version, rl.id, rl.version
+            group by tn.official_id, tn.id, tn.version, rl.id, rl.version
         """.trimIndent()
         val params = mapOf(
             "tn_id" to trackNumberId.intValue,
@@ -159,15 +165,16 @@ class GeocodingDao(
     }
 
     private fun toGeocodingContextCacheKey(rs: ResultSet): LayoutGeocodingContextCacheKey? {
-        val tnVersion = rs.getRowVersionOrNull<TrackLayoutTrackNumber>("tn_row_id", "tn_row_version")
-        val rlVersion = rs.getRowVersionOrNull<ReferenceLine>("rl_row_id", "rl_row_version")
+        val tnVersion = rs.getLayoutRowVersionOrNull<TrackLayoutTrackNumber>("tn_row_id", "tn_row_version")
+        val rlVersion = rs.getLayoutRowVersionOrNull<ReferenceLine>("rl_row_id", "rl_row_version")
         return if (tnVersion == null || rlVersion == null) {
             null
         } else LayoutGeocodingContextCacheKey(
+            trackNumberId = rs.getIntId("tn_official_id"),
             trackNumberVersion = tnVersion,
             referenceLineVersion = rlVersion,
-            kmPostVersions = toRowVersions(
-                ids = rs.getIntIdArray("kmp_row_ids"),
+            kmPostVersions = toLayoutRowVersions(
+                ids = rs.getLayoutRowIdArray("kmp_row_ids"),
                 versions = rs.getIntArrayOrNull("kmp_row_versions") ?: listOf(),
             ),
         )
@@ -187,23 +194,23 @@ class GeocodingDao(
             ?.validatedAssetVersion
             ?: official?.referenceLineVersion
         return if (trackNumberVersion != null && referenceLineVersion != null) {
-            val mainOrDesignOfficialIdsWithDraftKmPosts =
-                versions.kmPosts.map { v -> kmPostDao.fetch(v.validatedAssetVersion) }.flatMap { draft ->
-                    listOfNotNull(draft.contextData.designRowId, draft.contextData.officialRowId)
-                }
-            val officialKmPosts =
-                official?.kmPostVersions?.filter { v -> !mainOrDesignOfficialIdsWithDraftKmPosts.contains(v.id) }
-                    ?: listOf()
+            val mainOrDesignOfficialRowIdsWithDraftKmPosts = versions.kmPosts
+                .map { v -> kmPostDao.fetch(v.validatedAssetVersion) }
+                .flatMap { draft -> listOfNotNull(draft.contextData.designRowId, draft.contextData.officialRowId) }
+            val officialKmPosts = official
+                ?.kmPostVersions
+                ?.filter { v -> !mainOrDesignOfficialRowIdsWithDraftKmPosts.contains(v.rowId) }
+                ?: listOf()
             val draftKmPosts = versions.kmPosts.filter { draftPost ->
                 val draft = kmPostDao.fetch(draftPost.validatedAssetVersion)
                 draft.trackNumberId == trackNumberId && draft.state == LayoutState.IN_USE
             }.map { v -> v.validatedAssetVersion }
-            val kmPostVersions = (officialKmPosts + draftKmPosts).sortedBy { p -> p.id.intValue }
-            LayoutGeocodingContextCacheKey(trackNumberVersion, referenceLineVersion, kmPostVersions)
+            val kmPostVersions = (officialKmPosts + draftKmPosts).sortedBy { p -> p.rowId.intValue }
+            LayoutGeocodingContextCacheKey(trackNumberId, trackNumberVersion, referenceLineVersion, kmPostVersions)
         } else null
     }
 
-    private fun <T> toRowVersions(ids: List<IntId<T>>, versions: List<Int>) = ids
+    private fun <T> toLayoutRowVersions(ids: List<LayoutRowId<T>>, versions: List<Int>) = ids
         .also { check(it.size == versions.size) { "Unmatched row-versions: ids=$ids versions=$versions" } }
-        .mapIndexed { index, id -> RowVersion(id, versions[index]) }
+        .mapIndexed { index, id -> LayoutRowVersion(id, versions[index]) }
 }
