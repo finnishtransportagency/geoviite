@@ -50,16 +50,18 @@ class AuthorizationController @Autowired constructor(private val signer: CookieS
 
     @PreAuthorize(AUTH_BASIC)
     @GetMapping("/cf-cookies")
-    fun getCloudFrontCookies(@RequestParam("redirect") redirectPath: String?): ResponseEntity<CloudFrontCookies> {
+    fun getCloudFrontCookies(@RequestParam("redirect") redirectPath: String = ""): ResponseEntity<CloudFrontCookies> {
         logger.apiCall("getCloudFrontCookies", "redirectPath" to redirectPath)
 
         val cloudFrontCookies = signer.createSignedCustomCookies()
         val httpHeaders = HttpHeaders()
 
+        val trimmedRedirectPath = redirectPath.trimStart('/')
+
         httpHeaders.add("Set-Cookie", cloudFrontCookies.policy)
         httpHeaders.add("Set-Cookie", cloudFrontCookies.signature)
         httpHeaders.add("Set-Cookie", cloudFrontCookies.keyPairId)
-        httpHeaders.add("Location", "https://${cloudFrontCookies.domain}/${redirectPath ?: ""}")
+        httpHeaders.add("Location", "https://${cloudFrontCookies.domain}/$trimmedRedirectPath")
 
         return ResponseEntity
             .status(HttpStatus.FOUND)
