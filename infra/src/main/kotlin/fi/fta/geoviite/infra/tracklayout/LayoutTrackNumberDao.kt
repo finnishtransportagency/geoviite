@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -15,10 +15,8 @@ import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getOidOrNull
 import fi.fta.geoviite.infra.util.getOne
-import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.getTrackNumber
 import fi.fta.geoviite.infra.util.setUser
-import fi.fta.geoviite.infra.util.toDbId
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
@@ -43,15 +41,15 @@ class LayoutTrackNumberDao(
         fetchVersions(layoutContext, includeDeleted, null)
 
     fun list(layoutContext: LayoutContext, trackNumber: TrackNumber): List<TrackLayoutTrackNumber> =
-        fetchVersions(layoutContext, false, trackNumber).map(::fetch)
+        fetchVersions(layoutContext, false, trackNumber).map { r -> fetch(r.rowVersion) }
 
     fun fetchVersions(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
         number: TrackNumber?,
-    ): List<RowVersion<TrackLayoutTrackNumber>> {
+    ): List<DaoResponse<TrackLayoutTrackNumber>> {
         val sql = """
-            select row_id, row_version
+            select official_id, row_id, row_version
             from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id)
             where (:number::varchar is null or :number = number)
               and (:include_deleted = true or state != 'DELETED')
@@ -64,11 +62,11 @@ class LayoutTrackNumberDao(
             "number" to number,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getRowVersion("row_id", "row_version")
+            rs.getDaoResponse("official_id", "row_id", "row_version")
         }
     }
 
-    override fun fetchInternal(version: RowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber {
+    override fun fetchInternal(version: LayoutRowVersion<TrackLayoutTrackNumber>): TrackLayoutTrackNumber {
         val sql = """
             -- Draft vs Official reference line might duplicate the row, but results will be the same. Just pick one.
             select distinct on (tn.id, tn.version)
@@ -82,21 +80,21 @@ class LayoutTrackNumberDao(
               tn.number,
               tn.description,
               tn.state,
-              coalesce(rl.official_row_id, rl.id) reference_line_id
+              coalesce(rl.official_row_id, rl.design_row_id, rl.id) reference_line_id
             from layout.track_number_version tn
               -- TrackNumber reference line identity should never change, so we can join version 1
               left join layout.reference_line_version rl on 
-                rl.track_number_id = coalesce(tn.official_row_id, tn.id) and rl.version = 1
+                rl.track_number_id = coalesce(tn.official_row_id, tn.design_row_id, tn.id) and rl.version = 1
             where tn.id = :id
               and tn.version = :version
               and tn.deleted = false
             order by tn.id, tn.version, rl.id
         """.trimIndent()
         val params = mapOf(
-            "id" to version.id.intValue,
+            "id" to version.rowId.intValue,
             "version" to version.version,
         )
-        return getOne(version.id, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutTrackNumber(rs) }).also {
+        return getOne(version, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutTrackNumber(rs) }).also {
             logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, version)
         }
     }
@@ -131,10 +129,16 @@ class LayoutTrackNumberDao(
         description = rs.getFreeText("description"),
         state = rs.getEnum("state"),
         externalId = rs.getOidOrNull("external_id"),
-        version = rs.getRowVersion("row_id", "row_version"),
         // TODO: GVT-2442 This should be non-null but we have a lot of tests that produce broken data
         referenceLineId = rs.getIntIdOrNull("reference_line_id"),
-        contextData = rs.getLayoutContextData("official_row_id", "design_row_id", "design_id", "row_id", "draft"),
+        contextData = rs.getLayoutContextData(
+            "official_row_id",
+            "design_row_id",
+            "design_id",
+            "row_id",
+            "row_version",
+            "draft",
+        ),
     )
 
     @Transactional
@@ -171,9 +175,9 @@ class LayoutTrackNumberDao(
             "description" to newItem.description,
             "state" to newItem.state.name,
             "draft" to newItem.isDraft,
-            "official_row_id" to newItem.contextData.officialRowId?.let(::toDbId)?.intValue,
-            "design_row_id" to newItem.contextData.designRowId?.let(::toDbId)?.intValue,
-            "design_id" to newItem.contextData.designId?.let(::toDbId)?.intValue,
+            "official_row_id" to newItem.contextData.officialRowId?.intValue,
+            "design_row_id" to newItem.contextData.designRowId?.intValue,
+            "design_id" to newItem.contextData.designId?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
@@ -185,6 +189,9 @@ class LayoutTrackNumberDao(
 
     @Transactional
     override fun update(updatedItem: TrackLayoutTrackNumber): DaoResponse<TrackLayoutTrackNumber> {
+        val rowId = requireNotNull(updatedItem.contextData.rowId) {
+            "Cannot update a row that doesn't have a DB ID: kmPost=$updatedItem"
+        }
         val sql = """
             update layout.track_number
             set
@@ -198,20 +205,20 @@ class LayoutTrackNumberDao(
               design_id = :design_id
             where id = :id
             returning 
-              coalesce(official_row_id, id) as official_id,
+              coalesce(official_row_id, design_row_id, id) as official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
         val params = mapOf(
-            "id" to toDbId(updatedItem.contextData.rowId).intValue,
+            "id" to rowId.intValue,
             "external_id" to updatedItem.externalId,
             "number" to updatedItem.number,
             "description" to updatedItem.description,
             "state" to updatedItem.state.name,
             "draft" to updatedItem.isDraft,
-            "official_row_id" to updatedItem.contextData.officialRowId?.let(::toDbId)?.intValue,
-            "design_row_id" to updatedItem.contextData.designRowId?.let(::toDbId)?.intValue,
-            "design_id" to updatedItem.contextData.designId?.let(::toDbId)?.intValue,
+            "official_row_id" to updatedItem.contextData.officialRowId?.intValue,
+            "design_row_id" to updatedItem.contextData.designRowId?.intValue,
+            "design_id" to updatedItem.contextData.designId?.intValue,
         )
         jdbcTemplate.setUser()
         val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
@@ -239,22 +246,23 @@ class LayoutTrackNumberDao(
     }
 
     fun findOfficialNumberDuplicates(
+        layoutBranch: LayoutBranch,
         numbers: List<TrackNumber>,
-    ): Map<TrackNumber, List<RowVersion<TrackLayoutTrackNumber>>> {
+    ): Map<TrackNumber, List<DaoResponse<TrackLayoutTrackNumber>>> {
         return if (numbers.isEmpty()) {
             emptyMap()
         } else {
             val sql = """
-                select id, version, number
-                from layout.track_number
+                select official_id, row_id, row_version, number
+                from layout.track_number_in_layout_context('OFFICIAL', :design_id)
                 where number in (:numbers)
                   and draft = false
                   and state != 'DELETED'
             """.trimIndent()
-            val params = mapOf("numbers" to numbers)
+            val params = mapOf("numbers" to numbers, "design_id" to layoutBranch.designId?.intValue)
             val found =
-                jdbcTemplate.query<Pair<TrackNumber, RowVersion<TrackLayoutTrackNumber>>>(sql, params) { rs, _ ->
-                    val version = rs.getRowVersion<TrackLayoutTrackNumber>("id", "version")
+                jdbcTemplate.query<Pair<TrackNumber, DaoResponse<TrackLayoutTrackNumber>>>(sql, params) { rs, _ ->
+                    val version = rs.getDaoResponse<TrackLayoutTrackNumber>("official_id", "row_id", "row_version")
                     val name = rs.getString("number").let(::TrackNumber)
                     name to version
                 }

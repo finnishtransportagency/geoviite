@@ -125,7 +125,7 @@ fun locationTrack(
     basePoint: Point,
     incrementPoints: List<Point>,
     description: String = "$name location track description",
-    draft: Boolean,
+    draft: Boolean = false,
 ): Pair<LocationTrack, LayoutAlignment> {
     val alignment = alignmentFromPointIncrementList(basePoint, incrementPoints)
     val track = locationTrack(

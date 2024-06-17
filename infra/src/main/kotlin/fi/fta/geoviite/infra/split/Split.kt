@@ -4,9 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
+import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
@@ -43,7 +44,7 @@ data class Split(
     val id: IntId<Split>,
     val rowVersion: RowVersion<Split>,
     val sourceLocationTrackId: IntId<LocationTrack>,
-    val sourceLocationTrackVersion: RowVersion<LocationTrack>,
+    val sourceLocationTrackVersion: LayoutRowVersion<LocationTrack>,
     val bulkTransferState: BulkTransferState,
     val bulkTransferId: IntId<BulkTransfer>?,
     val publicationId: IntId<Publication>?,

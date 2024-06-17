@@ -45,7 +45,7 @@ class ReferenceLineDaoIT @Autowired constructor(
         )
         val (updatedId, updatedVersion) = referenceLineDao.update(updatedLine)
         assertEquals(id, updatedId)
-        assertEquals(updatedVersion.id, version.id)
+        assertEquals(updatedVersion.rowId, version.rowId)
         assertEquals(updatedVersion, referenceLineDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(updatedVersion, referenceLineDao.fetchVersion(MainLayoutContext.draft, id))
         val updatedFromDb = referenceLineDao.fetch(updatedVersion)

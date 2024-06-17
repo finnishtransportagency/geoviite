@@ -46,7 +46,7 @@ class RatkoLocationTrackService @Autowired constructor(
         publishedLocationTracks: Collection<PublishedLocationTrack>,
         publicationTime: Instant,
     ): List<Oid<LocationTrack>> {
-        return publishedLocationTracks.groupBy { it.version.id }.map { (_, locationTracks) ->
+        return publishedLocationTracks.groupBy { it.id }.map { (_, locationTracks) ->
             val newestVersion = locationTracks.maxBy { it.version.version }.version
             locationTrackDao.fetch(newestVersion) to locationTracks.flatMap { it.changedKmNumbers }.toSet()
         }.sortedWith(
@@ -85,10 +85,11 @@ class RatkoLocationTrackService @Autowired constructor(
     }
 
     private fun getTrackNumberOid(
+        branch: LayoutBranch,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         moment: Instant,
     ): Oid<TrackLayoutTrackNumber> {
-        return trackNumberDao.fetchOfficialVersionAtMomentOrThrow(trackNumberId, moment)
+        return trackNumberDao.fetchOfficialVersionAtMomentOrThrow(branch, trackNumberId, moment)
             .let { version -> trackNumberDao.fetch(version) }
             .let { layoutTrackNumber ->
                 checkNotNull(layoutTrackNumber.externalId) {
@@ -97,10 +98,13 @@ class RatkoLocationTrackService @Autowired constructor(
             }
     }
 
-    private fun getExternalId(locationTrackId: IntId<LocationTrack>, moment: Instant): Oid<LocationTrack>? {
-        return locationTrackDao.fetchOfficialVersionAtMomentOrThrow(locationTrackId, moment).let { version ->
-            locationTrackDao.fetch(version).externalId
-        }
+    private fun getExternalId(
+        branch: LayoutBranch,
+        locationTrackId: IntId<LocationTrack>,
+        moment: Instant,
+    ): Oid<LocationTrack>? {
+        return locationTrackDao.fetchOfficialVersionAtMomentOrThrow(branch, locationTrackId, moment)
+            .let { version -> locationTrackDao.fetch(version).externalId }
     }
 
     fun forceRedraw(locationTrackOids: Set<RatkoOid<RatkoLocationTrack>>) {
@@ -110,13 +114,13 @@ class RatkoLocationTrackService @Autowired constructor(
     }
 
     private fun createLocationTrack(branch: LayoutBranch, layoutLocationTrack: LocationTrack, moment: Instant) {
-        val (addresses, jointPoints) = getLocationTrackPoints(layoutLocationTrack, moment)
+        val (addresses, jointPoints) = getLocationTrackPoints(branch, layoutLocationTrack, moment)
 
         val ratkoNodes = convertToRatkoNodeCollection(addresses)
-        val trackNumberOid = getTrackNumberOid(layoutLocationTrack.trackNumberId, moment)
+        val trackNumberOid = getTrackNumberOid(branch, layoutLocationTrack.trackNumberId, moment)
 
         val duplicateOfOidLocationTrack = layoutLocationTrack.duplicateOf?.let { duplicateId ->
-            getExternalId(duplicateId, moment)
+            getExternalId(branch, duplicateId, moment)
         }
 
         val ratkoLocationTrack = convertToRatkoLocationTrack(locationTrack = layoutLocationTrack,
@@ -139,7 +143,7 @@ class RatkoLocationTrackService @Autowired constructor(
         createLocationTrackPoints(locationTrackOid, midPoints)
         val layoutLocationTrackWithOid = layoutLocationTrack.copy(externalId = Oid(locationTrackOid.id))
         val allPoints = listOf(addresses.startPoint) + midPoints + listOf(addresses.endPoint)
-        createLocationTrackMetadata(layoutLocationTrackWithOid, allPoints, trackNumberOid, moment)
+        createLocationTrackMetadata(branch, layoutLocationTrackWithOid, allPoints, trackNumberOid, moment)
     }
 
     private fun createLocationTrackPoints(
@@ -150,6 +154,7 @@ class RatkoLocationTrackService @Autowired constructor(
     }
 
     private fun createLocationTrackMetadata(
+        branch: LayoutBranch,
         layoutLocationTrack: LocationTrack,
         alignmentPoints: List<AddressPoint>,
         trackNumberOid: Oid<TrackLayoutTrackNumber>,
@@ -160,7 +165,7 @@ class RatkoLocationTrackService @Autowired constructor(
             "Cannot update location track metadata without location track oid, id=${layoutLocationTrack.id}"
         }
 
-        val geocodingContext = geocodingService.getGeocodingContextAtMoment(layoutLocationTrack.trackNumberId, moment)
+        val geocodingContext = geocodingService.getGeocodingContextAtMoment(branch, layoutLocationTrack.trackNumberId, moment)
 
         alignmentDao.fetchMetadata(layoutLocationTrack.getAlignmentVersionOrThrow())
             .fold(mutableListOf<LayoutSegmentMetadata>()) { acc, metadata ->
@@ -264,9 +269,9 @@ class RatkoLocationTrackService @Autowired constructor(
         }
 
         val locationTrackOid = RatkoOid<RatkoLocationTrack>(layoutLocationTrack.externalId)
-        val trackNumberOid = getTrackNumberOid(layoutLocationTrack.trackNumberId, moment)
+        val trackNumberOid = getTrackNumberOid(branch, layoutLocationTrack.trackNumberId, moment)
 
-        val (addresses, jointPoints) = getLocationTrackPoints(layoutLocationTrack, moment)
+        val (addresses, jointPoints) = getLocationTrackPoints(branch, layoutLocationTrack, moment)
         val existingStartNode = existingRatkoLocationTrack.nodecollection?.getStartNode()
         val existingEndNode = existingRatkoLocationTrack.nodecollection?.getEndNode()
 
@@ -301,6 +306,7 @@ class RatkoLocationTrackService @Autowired constructor(
         )
 
         createLocationTrackMetadata(
+            branch = branch,
             layoutLocationTrack = layoutLocationTrack,
             alignmentPoints = listOf(addresses.startPoint) + changedMidPoints + listOf(addresses.endPoint),
             trackNumberOid = trackNumberOid,
@@ -331,9 +337,9 @@ class RatkoLocationTrackService @Autowired constructor(
         moment: Instant,
         changedNodeCollection: RatkoNodes? = null,
     ) {
-        val trackNumberOid = getTrackNumberOid(layoutLocationTrack.trackNumberId, moment)
+        val trackNumberOid = getTrackNumberOid(branch, layoutLocationTrack.trackNumberId, moment)
         val duplicateOfOidLocationTrack = layoutLocationTrack.duplicateOf?.let { duplicateId ->
-            getExternalId(duplicateId, moment)
+            getExternalId(branch, duplicateId, moment)
         }
 
         val ratkoLocationTrack = convertToRatkoLocationTrack(locationTrack = layoutLocationTrack,
@@ -348,10 +354,12 @@ class RatkoLocationTrackService @Autowired constructor(
     }
 
     private fun getLocationTrackPoints(
+        branch: LayoutBranch,
         locationTrack: LocationTrack,
         moment: Instant,
     ): Pair<AlignmentAddresses, List<AddressPoint>> {
         val geocodingContext = geocodingService.getGeocodingContextCacheKey(
+            branch,
             locationTrack.trackNumberId,
             moment,
         )?.let(geocodingService::getGeocodingContext)

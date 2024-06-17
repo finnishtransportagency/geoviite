@@ -867,8 +867,8 @@ class AddressChangesServiceIT @Autowired constructor(
     )
 
     fun getTrackAtMoment(locationTrackId: IntId<LocationTrack>, moment: Instant) =
-        locationTrackService.getOfficialAtMoment(locationTrackId, moment)
+        locationTrackService.getOfficialAtMoment(LayoutBranch.main, locationTrackId, moment)
 
     fun getContextKeyAtMoment(trackNumberId: IntId<TrackLayoutTrackNumber>, moment: Instant) =
-        geocodingService.getGeocodingContextCacheKey(trackNumberId, moment)
+        geocodingService.getGeocodingContextCacheKey(LayoutBranch.main, trackNumberId, moment)
 }

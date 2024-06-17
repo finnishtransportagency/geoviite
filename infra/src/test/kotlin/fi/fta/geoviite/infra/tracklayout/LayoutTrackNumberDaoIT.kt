@@ -5,11 +5,12 @@ import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import fi.fta.geoviite.infra.util.FreeText
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -18,7 +19,6 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
 import kotlin.test.assertContains
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -81,7 +81,7 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(draftVersion2, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
 
-        trackNumberDao.deleteDraft(LayoutBranch.main, insertVersion.id).rowVersion
+        trackNumberDao.deleteDraft(LayoutBranch.main, id).rowVersion
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
 
@@ -93,52 +93,83 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
 
     @Test
     fun listingTrackNumberVersionsWorks() {
-        val officialVersion = mainOfficialContext.createLayoutTrackNumber().rowVersion
-        val undeletedDraftVersion = mainDraftContext.createLayoutTrackNumber().rowVersion
+        val officialVersion = mainOfficialContext.createLayoutTrackNumber()
+        val undeletedDraftVersion = mainDraftContext.createLayoutTrackNumber()
         val deleteStateDraftVersion = mainDraftContext.insert(
             trackNumber(number = testDBService.getUnusedTrackNumber(), state = DELETED),
-        ).rowVersion
-        val (_, deletedDraftVersion) = mainDraftContext.createLayoutTrackNumber()
-            .also { (id, _) -> trackNumberDao.deleteDraft(LayoutBranch.main, id) }
+        )
+        val deletedDraftId = mainDraftContext.createLayoutTrackNumber().id
+        trackNumberDao.deleteDraft(LayoutBranch.main, deletedDraftId)
 
         val official = trackNumberDao.fetchVersions(MainLayoutContext.official, false)
         assertContains(official, officialVersion)
         assertFalse(official.contains(undeletedDraftVersion))
         assertFalse(official.contains(deleteStateDraftVersion))
-        assertFalse(official.contains(deletedDraftVersion))
+        assertFalse(official.any { r -> r.id == deletedDraftId})
 
         val draftWithoutDeleted = trackNumberDao.fetchVersions(MainLayoutContext.draft, false)
         assertContains(draftWithoutDeleted, undeletedDraftVersion)
         assertFalse(draftWithoutDeleted.contains(deleteStateDraftVersion))
-        assertFalse(draftWithoutDeleted.contains(deletedDraftVersion))
+        assertFalse(draftWithoutDeleted.any { r -> r.id == deletedDraftId})
 
         val draftWithDeleted = trackNumberDao.fetchVersions(MainLayoutContext.draft, true)
         assertContains(draftWithDeleted, undeletedDraftVersion)
         assertContains(draftWithDeleted, deleteStateDraftVersion)
-        assertFalse(draftWithDeleted.contains(deletedDraftVersion))
+        assertFalse(draftWithDeleted.any { r -> r.id == deletedDraftId})
     }
 
     @Test
-    fun fetchOfficialVersionByMomentWorks() {
-        val beforeCreationTime = trackNumberDao.fetchChangeTime()
+    fun `Finding Switch versions by moment works across designs and main branch`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+
+        val v0Time = trackNumberDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
-        val (id, firstVersion) = mainOfficialContext.createLayoutTrackNumber()
-        val firstVersionTime = trackNumberDao.fetchChangeTime()
 
+        val (tn1Id, tn1MainV1) = mainOfficialContext.createLayoutTrackNumber()
+        val (tn2Id, tn2DesignV1) = designOfficialContext.createLayoutTrackNumber()
+        val (tn3Id, tn3DesignV1) = designOfficialContext.createLayoutTrackNumber()
+        val v1Time = trackNumberDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
-        val updatedVersion = updateOfficial(firstVersion).rowVersion
-        val updatedVersionTime = trackNumberDao.fetchChangeTime()
 
-        assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(id, beforeCreationTime))
-        assertEquals(firstVersion, trackNumberDao.fetchOfficialVersionAtMoment(id, firstVersionTime))
-        assertEquals(updatedVersion, trackNumberDao.fetchOfficialVersionAtMoment(id, updatedVersionTime))
-    }
+        val tn1MainV2 = testDBService.update(tn1MainV1).rowVersion
+        val tn1DesignV2 = designOfficialContext.copyFrom(tn1MainV1, officialRowId = tn1MainV1.rowId).rowVersion
+        val tn2DesignV2 = testDBService.update(tn2DesignV1).rowVersion
+        trackNumberDao.deleteRow(tn3DesignV1.rowId)
+        val v2Time = trackNumberDao.fetchChangeTime()
+        Thread.sleep(1) // Ensure that they get different timestamps
 
-    private fun updateOfficial(
-        originalVersion: RowVersion<TrackLayoutTrackNumber>,
-    ): DaoResponse<TrackLayoutTrackNumber> {
-        val original = trackNumberDao.fetch(originalVersion)
-        assertFalse(original.isDraft)
-        return trackNumberDao.update(original.copy(description = original.description + "_update"))
+        trackNumberDao.deleteRow(tn1DesignV2.rowId)
+        // Fake publish: update the design as a main-official
+        val tn2MainV3 = mainOfficialContext.moveFrom(tn2DesignV2).rowVersion
+        val v3Time = trackNumberDao.fetchChangeTime()
+
+        assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(LayoutBranch.main, tn1Id, v0Time))
+        assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(LayoutBranch.main, tn2Id, v0Time))
+        assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(LayoutBranch.main, tn3Id, v0Time))
+        assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(designBranch, tn1Id, v0Time))
+        assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(designBranch, tn2Id, v0Time))
+        assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(designBranch, tn3Id, v0Time))
+
+        assertEquals(tn1MainV1, trackNumberDao.fetchOfficialVersionAtMoment(LayoutBranch.main, tn1Id, v1Time))
+        assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(LayoutBranch.main, tn2Id, v1Time))
+        assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(LayoutBranch.main, tn3Id, v1Time))
+        assertEquals(tn1MainV1, trackNumberDao.fetchOfficialVersionAtMoment(designBranch, tn1Id, v1Time))
+        assertEquals(tn2DesignV1, trackNumberDao.fetchOfficialVersionAtMoment(designBranch, tn2Id, v1Time))
+        assertEquals(tn3DesignV1, trackNumberDao.fetchOfficialVersionAtMoment(designBranch, tn3Id, v1Time))
+
+        assertEquals(tn1MainV2, trackNumberDao.fetchOfficialVersionAtMoment(LayoutBranch.main, tn1Id, v2Time))
+        assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(LayoutBranch.main, tn2Id, v2Time))
+        assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(LayoutBranch.main, tn3Id, v2Time))
+        assertEquals(tn1DesignV2, trackNumberDao.fetchOfficialVersionAtMoment(designBranch, tn1Id, v2Time))
+        assertEquals(tn2DesignV2, trackNumberDao.fetchOfficialVersionAtMoment(designBranch, tn2Id, v2Time))
+        assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(designBranch, tn3Id, v2Time))
+
+        assertEquals(tn1MainV2, trackNumberDao.fetchOfficialVersionAtMoment(LayoutBranch.main, tn1Id, v3Time))
+        assertEquals(tn2MainV3, trackNumberDao.fetchOfficialVersionAtMoment(LayoutBranch.main, tn2Id, v3Time))
+        assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(LayoutBranch.main, tn3Id, v3Time))
+        assertEquals(tn1MainV2, trackNumberDao.fetchOfficialVersionAtMoment(designBranch, tn1Id, v3Time))
+        assertEquals(tn2MainV3, trackNumberDao.fetchOfficialVersionAtMoment(designBranch, tn2Id, v3Time))
+        assertEquals(null, trackNumberDao.fetchOfficialVersionAtMoment(designBranch, tn3Id, v3Time))
     }
 }

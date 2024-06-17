@@ -6,7 +6,6 @@ import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.ValidationVersion
@@ -107,14 +106,9 @@ class ReferenceLineService(
 
     @Transactional
     override fun publish(branch: LayoutBranch, version: ValidationVersion<ReferenceLine>): DaoResponse<ReferenceLine> {
-        val officialVersion = dao.fetchVersion(branch.official, version.officialId)
-        val oldDraft = dao.fetch(version.validatedAssetVersion)
-        val oldOfficial = officialVersion?.let(dao::fetch)
-        val publishedVersion = publishInternal(branch, VersionPair(officialVersion, version.validatedAssetVersion))
-        if (oldOfficial != null && oldDraft.alignmentVersion != oldOfficial.alignmentVersion) {
-            // The alignment on the draft overrides the one on official -> delete the original, orphaned alignment
-            oldOfficial.alignmentVersion?.id?.let(alignmentDao::delete)
-        }
+        val publishedVersion = publishInternal(branch, version.validatedAssetVersion)
+        // Some of the versions may get deleted in publication -> delete any alignments they left behind
+        alignmentDao.deleteOrphanedAlignments()
         return publishedVersion
     }
 
@@ -163,7 +157,7 @@ class ReferenceLineService(
     }
 
     @Transactional(readOnly = true)
-    fun getWithAlignment(version: RowVersion<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
+    fun getWithAlignment(version: LayoutRowVersion<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> {
         return getWithAlignmentInternal(version)
     }
 
@@ -201,7 +195,7 @@ class ReferenceLineService(
         return dao.fetchVersion(layoutContext, id)?.let { v -> getWithAlignmentInternal(v) }
     }
 
-    private fun getWithAlignmentInternal(version: RowVersion<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> =
+    private fun getWithAlignmentInternal(version: LayoutRowVersion<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment> =
         referenceLineWithAlignment(dao, alignmentDao, version)
 
     private fun associateWithAlignments(lines: List<ReferenceLine>): List<Pair<ReferenceLine, LayoutAlignment>> {
@@ -222,7 +216,7 @@ class ReferenceLineService(
 fun referenceLineWithAlignment(
     referenceLineDao: ReferenceLineDao,
     alignmentDao: LayoutAlignmentDao,
-    rowVersion: RowVersion<ReferenceLine>,
+    rowVersion: LayoutRowVersion<ReferenceLine>,
 ) = referenceLineDao.fetch(rowVersion).let { track ->
     track to alignmentDao.fetch(track.getAlignmentVersionOrThrow())
 }

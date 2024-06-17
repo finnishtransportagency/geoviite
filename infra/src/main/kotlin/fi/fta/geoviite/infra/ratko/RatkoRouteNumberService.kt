@@ -3,11 +3,17 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.publication.PublishedTrackNumber
-import fi.fta.geoviite.infra.ratko.model.*
+import fi.fta.geoviite.infra.ratko.model.RatkoNodes
+import fi.fta.geoviite.infra.ratko.model.RatkoOid
+import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumber
+import fi.fta.geoviite.infra.ratko.model.convertToRatkoNodeCollection
+import fi.fta.geoviite.infra.ratko.model.convertToRatkoRouteNumber
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
@@ -24,11 +30,14 @@ class RatkoRouteNumberService @Autowired constructor(
 ) {
 
     fun pushTrackNumberChangesToRatko(
+        branch: LayoutBranch,
         publishedTrackNumbers: Collection<PublishedTrackNumber>,
         publicationTime: Instant,
     ): List<Oid<TrackLayoutTrackNumber>> {
+        // TODO: Design branches not yet supported. We need to ensure that design tracknumbers have own OIDs -> could we rely on tracknumber.branch instead of arg?
+        assertMainBranch(branch)
         return publishedTrackNumbers
-            .groupBy { it.version.id }
+            .groupBy { it.id }
             .map { (_, trackNumbers) ->
                 val newestVersion = trackNumbers.maxBy { it.version.version }.version
                 trackNumberDao.fetch(newestVersion) to trackNumbers.flatMap { it.changedKmNumbers }.toSet()
@@ -43,13 +52,14 @@ class RatkoRouteNumberService @Autowired constructor(
                             deleteRouteNumber(trackNumber, existingRouteNumber)
                         } else {
                             updateRouteNumber(
+                                branch = branch,
                                 existingRatkoRouteNumber = existingRouteNumber,
                                 trackNumber = trackNumber,
                                 moment = publicationTime,
                                 changedKmNumbers = changedKmNumbers
                             )
                         }
-                    } ?: createRouteNumber(trackNumber, publicationTime)
+                    } ?: createRouteNumber(branch, trackNumber, publicationTime)
                 } catch (ex: RatkoPushException) {
                     throw RatkoTrackNumberPushException(ex, trackNumber)
                 }
@@ -75,6 +85,7 @@ class RatkoRouteNumberService @Autowired constructor(
     }
 
     private fun updateRouteNumber(
+        branch: LayoutBranch,
         trackNumber: TrackLayoutTrackNumber,
         existingRatkoRouteNumber: RatkoRouteNumber,
         moment: Instant,
@@ -83,7 +94,7 @@ class RatkoRouteNumberService @Autowired constructor(
         require(trackNumber.id is IntId) { "Only layout route numbers can be updated, id=${trackNumber.id}" }
         requireNotNull(trackNumber.externalId) { "Cannot update route number without oid, id=${trackNumber.id}" }
 
-        val addresses = geocodingService.getGeocodingContextAtMoment(trackNumber.id, moment)?.referenceLineAddresses
+        val addresses = geocodingService.getGeocodingContextAtMoment(branch, trackNumber.id, moment)?.referenceLineAddresses
         checkNotNull(addresses) { "Cannot calculate addresses for track number, id=${trackNumber.id}" }
 
         val existingStartNode = existingRatkoRouteNumber.nodecollection?.getStartNode()
@@ -124,10 +135,10 @@ class RatkoRouteNumberService @Autowired constructor(
         ratkoClient.updateRouteNumberPoints(routeNumberOid, points)
     }
 
-    private fun createRouteNumber(trackNumber: TrackLayoutTrackNumber, moment: Instant) {
+    private fun createRouteNumber(branch: LayoutBranch, trackNumber: TrackLayoutTrackNumber, moment: Instant) {
         require(trackNumber.id is IntId) { "Only layout route numbers can be updated, id=${trackNumber.id}" }
 
-        val addresses = geocodingService.getGeocodingContextAtMoment(trackNumber.id, moment)?.referenceLineAddresses
+        val addresses = geocodingService.getGeocodingContextAtMoment(branch, trackNumber.id, moment)?.referenceLineAddresses
         checkNotNull(addresses) { "Cannot calculate addresses for track number, id=${trackNumber.id}" }
 
         val ratkoNodes = convertToRatkoNodeCollection(addresses)

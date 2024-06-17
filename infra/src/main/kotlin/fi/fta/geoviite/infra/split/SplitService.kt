@@ -18,7 +18,6 @@ import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.ValidationContext
-import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.publication.validationError
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -95,17 +94,17 @@ class SplitService(
         branch: LayoutBranch,
         locationTracks: List<IntId<LocationTrack>>,
         switches: List<IntId<TrackLayoutSwitch>>,
-    ): List<ValidationVersion<Split>> = findUnpublishedSplits(branch, locationTracks, switches)
-        .map { split -> ValidationVersion(split.id, split.rowVersion) }
+    ): List<RowVersion<Split>> = findUnpublishedSplits(branch, locationTracks, switches)
+        .map { split -> split.rowVersion }
 
     @Transactional
     fun publishSplit(
-        validatedSplitVersions: List<ValidationVersion<Split>>,
+        validatedSplitVersions: List<RowVersion<Split>>,
         locationTracks: Collection<DaoResponse<LocationTrack>>,
         publicationId: IntId<Publication>,
     ): List<RowVersion<Split>> {
         return validatedSplitVersions.map { splitVersion ->
-            val split = splitDao.getOrThrow(splitVersion.officialId)
+            val split = splitDao.getOrThrow(splitVersion.id)
             val track = requireNotNull(locationTracks.find { t -> t.id == split.sourceLocationTrackId }) {
                 "Source track must be part of the same publication as the split: split=$split"
             }
@@ -115,7 +114,7 @@ class SplitService(
                 sourceTrackVersion = track.rowVersion,
             ).also { updatedVersion ->
                 // Sanity-check the version for conflicting update, though this should not be possible
-                if (updatedVersion.version != splitVersion.validatedAssetVersion.version + 1) {
+                if (updatedVersion != splitVersion.next()) {
                     throw PublicationFailureException(
                         message = "Split version has changed between validation and publication: split=${split.id}",
                         localizedMessageKey = "split-version-changed",

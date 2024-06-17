@@ -35,7 +35,7 @@ class RatkoController(
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/push")
     fun pushChangesToRatko(): HttpStatus {
-        ratkoService.pushChangesToRatko()
+        ratkoService.pushChangesToRatko(LayoutBranch.main)
 
         return HttpStatus.NO_CONTENT
     }
@@ -74,5 +74,4 @@ class RatkoController(
     fun getOperatingPoints(@RequestParam bbox: BoundingBox): List<RatkoOperatingPoint> {
         return ratkoLocalService.getOperatingPoints(bbox)
     }
-
 }

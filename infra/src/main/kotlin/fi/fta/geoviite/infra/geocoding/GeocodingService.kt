@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.geocoding
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackMeter
@@ -89,7 +90,7 @@ class GeocodingService(
     fun getGeocodingContexts(layoutContext: LayoutContext): Map<IntId<TrackLayoutTrackNumber>, GeocodingContext?> =
         geocodingDao
             .listLayoutGeocodingContextCacheKeys(layoutContext)
-            .associate { key -> key.trackNumberVersion.id to geocodingCacheService.getGeocodingContext(key) }
+            .associate { key -> key.trackNumberId to geocodingCacheService.getGeocodingContext(key) }
 
     fun getGeocodingContext(
         layoutContext: LayoutContext,
@@ -110,8 +111,12 @@ class GeocodingService(
     ): GeocodingContextCreateResult? =
         geocodingCacheService.getGeocodingContextCreateResult(layoutContext, trackNumberId)
 
-    fun getGeocodingContextAtMoment(trackNumberId: IntId<TrackLayoutTrackNumber>, moment: Instant): GeocodingContext? =
-        geocodingCacheService.getGeocodingContextAtMoment(trackNumberId, moment)
+    fun getGeocodingContextAtMoment(
+        branch: LayoutBranch,
+        trackNumberId: IntId<TrackLayoutTrackNumber>,
+        moment: Instant,
+    ): GeocodingContext? =
+        geocodingCacheService.getGeocodingContextAtMoment(branch, trackNumberId, moment)
 
     fun getGeocodingContext(
         trackNumber: TrackNumber,
@@ -129,7 +134,8 @@ class GeocodingService(
     ): GeocodingContextCacheKey? = geocodingDao.getLayoutGeocodingContextCacheKey(trackNumberId, versions)
 
     fun getGeocodingContextCacheKey(
+        branch: LayoutBranch,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         moment: Instant,
-    ): GeocodingContextCacheKey? = geocodingDao.getLayoutGeocodingContextCacheKey(trackNumberId, moment)
+    ): GeocodingContextCacheKey? = geocodingDao.getLayoutGeocodingContextCacheKey(branch, trackNumberId, moment)
 }
