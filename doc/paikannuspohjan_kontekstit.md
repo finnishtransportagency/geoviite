@@ -79,6 +79,37 @@ kontekstit huomioiden. Huomattavaa on, että ensimmäisenä syntynyt olio (tieto
 viralliseen paikannuspohjaan, mutta muokattaessa muutokset tehdään kopioon, josta data kopioidaan alkuperäiselle
 julkaisussa. Tämä varmistaa että virallinen ID säilyy muita viittaajia varten kaikissa ketjuissa.
 
+
+### Käsitteiden viitteet ja kontekstin esitys tietokannassa
+Alla oleva taulukko kuvaa eri kontekstien esitystavat tietokannan sarakkeissa, sekä virallisen ID:n määräytymisen.
+
+| Konteksti                 | Virallinen ID                                | draft | design_id | official_row_id | design_row_id |
+|---------------------------|----------------------------------------------|-------|-----------|-----------------|---------------|
+| Virallinen paikannuspohja | id                                           | false | null      | null            | null          |
+| Luonnos paikannuspohja    | coalesce(official_row_id, id)                | true  | null      | X / null        | X / null      |
+| Julkaistu suunnitelma     | coalesce(official_row_id, id)                | false | X         | X / null        | null          |
+| Luonnos suunnitelma       | coalesce(official_row_id, design_row_id, id) | false | X         | X / null        | X / null      |
+
+#### Virallinen paikannuspohja
+- Virallinen käsite ei voi koskaan viitata muihin konteksteihin, eikä siihen voi liittyä suunnitelmaa
+ 
+#### Luonnos paikannuspohja
+- Jos official_row_id on määritelty, kyseessä on luonnosmuutos, muutoin kyseessä on uusi luonnos
+- Jos design_row_id on määritelty, draft on luotu toteuttamalla se suunnitelmasta
+  - Julkaisun yhteydessä sekä suunnitelmarivi että luonnosrivi poistuu, sillä kyse on suunnitelman valmistumisesta
+
+#### Julkaistu suunnitelma
+- Jos official_row_id on määritelty, kyseessä on muutossuunnitelma. Muutoin kyseessä on uuden olion suunnitelma.
+ 
+#### Luonnos suunnitelma
+- Jos design_row_id on määritelty, kyseessä on luonnosmuutos olemassaolevaan suunnitelmaan, muutoin kyseessä on uusi luonnos
+- Jos official_row_id on määritelty, kyseessä on suunniteltu muutos viralliseen paikannuspohjaan, muutoin kyseessä on uuden käsitteen suunnitelma
+- Huom. kaikki yhdistelmät official_row_id:n ja design_row_id:n kanssa ovat mahdollisia:
+  - Uusi luonnossuunnitelma uudelle raiteelle: ei kumpaakaan määritelty
+  - Uusi luonnossuunnitelma olemassaolevalle raiteelle: vain official_row_id määritelty
+  - Muokattu luonnossuunnitelma uudelle raiteelle: vain design_row_id määritelty
+  - Muokattu luonnossuunitelma olemassaolevalle raiteelle: molemmat määritelty
+
 ### Kaavioiden merkinnät
 
 ```mermaid
