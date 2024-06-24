@@ -14,9 +14,34 @@ import org.locationtech.jts.geom.GeometryFactory
 import org.locationtech.jts.geom.Polygon
 import org.locationtech.jts.geom.PrecisionModel
 import kotlin.concurrent.getOrSet
+import kotlin.math.round
+
+val ETRS89_SRID = Srid(4258)
+val FINNISH_GK_LONGITUDE_RANGE = 19..31
+val FIN_GK19_SRID = Srid(3873)
 
 fun transformNonKKJCoordinate(sourceSrid: Srid, targetSrid: Srid, point: IPoint): Point {
     return Transformation.nonTriangulableTransform(sourceSrid, targetSrid).transform(point)
+}
+
+
+fun getFinnishGKCoordinateProjectionByLongitude(longitude:Double): Srid {
+    val nearestLongitude = round(longitude).toInt()
+    if (!FINNISH_GK_LONGITUDE_RANGE.contains(nearestLongitude))
+        throw IllegalArgumentException("Cannot get Finnish GK coordinate projection by longitude $nearestLongitude")
+    val longitudeRelativeToGk19 = nearestLongitude - 19
+    return Srid(FIN_GK19_SRID.code + longitudeRelativeToGk19)
+}
+
+fun transformToGKCoordinate(sourceSrid: Srid, point: IPoint): GeometryPoint {
+    val etrs89Coord = transformNonKKJCoordinate(sourceSrid, ETRS89_SRID, point)
+    val gkSrid = getFinnishGKCoordinateProjectionByLongitude(etrs89Coord.x)
+    val gkPoint = transformNonKKJCoordinate(ETRS89_SRID, gkSrid, etrs89Coord)
+    return GeometryPoint(
+        gkPoint.x,
+        gkPoint.y,
+        gkSrid
+    )
 }
 
 fun calculateDistance(points: List<IPoint>, srid: Srid): Double = calculateDistance(points, crs(srid))
