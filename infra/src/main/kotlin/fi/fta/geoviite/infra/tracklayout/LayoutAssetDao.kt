@@ -24,7 +24,7 @@ import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.getInstantOrNull
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
-import fi.fta.geoviite.infra.util.idOrIdsEqualSqlFragment
+import fi.fta.geoviite.infra.util.idOrIdsSqlFragment
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.requireOne
@@ -361,16 +361,12 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
 private fun fetchContextVersionSql(table: LayoutAssetTable, fetchType: FetchType) =
     //language=SQL
     """
-        select distinct official_id, row_id, row_version
-          from (
-            select coalesce(official_row_id, design_row_id, id) as official_id
-              from ${table.fullName}
-              where id ${idOrIdsEqualSqlFragment(fetchType)}
-          ) lookup cross join lateral (
-            select row_id, row_version
-              from ${table.fullLayoutContextFunction}(:publication_state::layout.publication_state, :design_id::int, official_id)
-          ) ilc
-          """.trimIndent()
+        select official_id, row_id, row_version
+          from ${idOrIdsSqlFragment(fetchType)} official_ids (id)
+            cross join lateral ${table.fullLayoutContextFunction}(:publication_state::layout.publication_state,
+                                                                  :design_id::int,
+                                                                  id) ilc;
+    """.trimIndent()
 
 fun <T : LayoutAsset<T>> verifyObjectIsExisting(item: T) = verifyObjectIsExisting(item.contextData)
 
