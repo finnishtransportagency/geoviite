@@ -1,8 +1,9 @@
 package fi.fta.geoviite.infra.ratko
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.integration.SwitchJointChange
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.PublishedSwitch
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
 import fi.fta.geoviite.infra.ratko.model.RatkoNodeType
@@ -20,14 +21,11 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import org.springframework.stereotype.Service
 import java.time.Instant
 
-@Service
+@GeoviiteService
 @ConditionalOnBean(RatkoClientConfiguration::class)
 class RatkoAssetService @Autowired constructor(
     private val ratkoClient: RatkoClient,
@@ -35,11 +33,13 @@ class RatkoAssetService @Autowired constructor(
     private val switchDao: LayoutSwitchDao,
 ) {
 
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-
-    fun pushSwitchChangesToRatko(publishedSwitches: Collection<PublishedSwitch>, publicationTime: Instant) {
+    fun pushSwitchChangesToRatko(
+        layoutBranch: LayoutBranch,
+        publishedSwitches: Collection<PublishedSwitch>,
+        publicationTime: Instant,
+    ) {
         publishedSwitches
-            .groupBy { it.version.id }
+            .groupBy { it.id }
             .map { (_, switches) ->
                 val newestVersion = switches.maxBy { it.version.version }.version
                 switchDao.fetch(newestVersion) to switches
@@ -57,6 +57,7 @@ class RatkoAssetService @Autowired constructor(
                         .let { oid -> ratkoClient.getSwitchAsset(RatkoOid<RatkoSwitchAsset>(oid)) }
                         ?.also { existingRatkoSwitch ->
                             updateSwitch(
+                                layoutBranch = layoutBranch,
                                 layoutSwitch = layoutSwitch,
                                 existingRatkoSwitch = existingRatkoSwitch,
                                 jointChanges = changedJoints,
@@ -71,19 +72,12 @@ class RatkoAssetService @Autowired constructor(
     }
 
     private fun updateSwitch(
+        layoutBranch: LayoutBranch,
         layoutSwitch: TrackLayoutSwitch,
         existingRatkoSwitch: RatkoSwitchAsset,
         jointChanges: List<SwitchJointChange>,
         moment: Instant,
     ) {
-        logger.serviceCall(
-            "updateRatkoSwitch",
-            "layoutSwitch" to layoutSwitch,
-            "existingRatkoSwitch" to existingRatkoSwitch,
-            "jointChanges" to jointChanges,
-            "moment" to moment
-        )
-
         require(layoutSwitch.id is IntId) { "Cannot push draft switches to Ratko, $layoutSwitch" }
         requireNotNull(layoutSwitch.externalId) { "Cannot update switch without oid, id=${layoutSwitch.id}" }
         val switchOid = RatkoOid<RatkoSwitchAsset>(layoutSwitch.externalId)
@@ -107,6 +101,7 @@ class RatkoAssetService @Autowired constructor(
         val baseRatkoLocations =
             if (includeBaseLocations && existingLocations.isNotEmpty())
                 getBaseRatkoSwitchLocations(
+                    layoutBranch = layoutBranch,
                     switchId = layoutSwitch.id,
                     existingRatkoLocations = existingLocations,
                     jointChanges = jointChanges,
@@ -136,6 +131,7 @@ class RatkoAssetService @Autowired constructor(
     }
 
     private fun getBaseRatkoSwitchLocations(
+        layoutBranch: LayoutBranch,
         switchId: IntId<TrackLayoutSwitch>,
         existingRatkoLocations: List<RatkoAssetLocation>,
         jointChanges: Collection<SwitchJointChange>,
@@ -143,6 +139,7 @@ class RatkoAssetService @Autowired constructor(
         moment: Instant,
     ): List<RatkoAssetLocation> {
         val linkedLocationTracks = switchDao.findLocationTracksLinkedToSwitchAtMoment(
+            layoutBranch = layoutBranch,
             switchId = switchId,
             topologyJointNumber = switchStructure.presentationJointNumber,
             moment = moment
@@ -226,11 +223,6 @@ class RatkoAssetService @Autowired constructor(
     }
 
     private fun createSwitch(layoutSwitch: TrackLayoutSwitch, jointChanges: List<SwitchJointChange>) {
-        logger.serviceCall(
-            "createRatkoSwitch",
-            "layoutSwitch" to layoutSwitch,
-            "jointChanges" to jointChanges
-        )
         val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
         val switchOwner = layoutSwitch.ownerId?.let { switchLibraryService.getSwitchOwner(layoutSwitch.ownerId) }
 

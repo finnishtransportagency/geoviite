@@ -1,12 +1,13 @@
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.publication.ValidationVersion
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
@@ -31,7 +32,7 @@ class ChangeContext(
     val geocodingKeysBefore: LazyMap<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
     val geocodingKeysAfter: LazyMap<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
 
-    val getTrackNumberTracksBefore: (trackNumberId: IntId<TrackLayoutTrackNumber>) -> List<RowVersion<LocationTrack>>,
+    val getTrackNumberTracksBefore: (trackNumberId: IntId<TrackLayoutTrackNumber>) -> List<DaoResponse<LocationTrack>>,
 ) {
 
     fun getGeocodingContextBefore(id: IntId<TrackLayoutTrackNumber>) =
@@ -52,26 +53,27 @@ inline fun <reified T : LayoutAsset<T>> createTypedContext(
 )
 
 inline fun <reified T : LayoutAsset<T>> createTypedContext(
+    branch: LayoutBranch,
     dao: LayoutAssetDao<T>,
     before: Instant,
     after: Instant,
 ): TypedChangeContext<T> = createTypedContext(
     dao,
-    { id -> dao.fetchOfficialVersionAtMoment(id, before) },
-    { id -> dao.fetchOfficialVersionAtMoment(id, after) },
+    { id -> dao.fetchOfficialVersionAtMoment(branch, id, before) },
+    { id -> dao.fetchOfficialVersionAtMoment(branch, id, after) },
 )
 
 inline fun <reified T : LayoutAsset<T>> createTypedContext(
     dao: LayoutAssetDao<T>,
-    noinline getBeforeVersion: (id: IntId<T>) -> RowVersion<T>?,
-    noinline getAfterVersion: (id: IntId<T>) -> RowVersion<T>?,
+    noinline getBeforeVersion: (id: IntId<T>) -> LayoutRowVersion<T>?,
+    noinline getAfterVersion: (id: IntId<T>) -> LayoutRowVersion<T>?,
 ) = TypedChangeContext(T::class, dao, LazyMap(getBeforeVersion), LazyMap(getAfterVersion))
 
 class TypedChangeContext<T : LayoutAsset<T>>(
     private val klass: KClass<T>,
     private val dao: LayoutAssetDao<T>,
-    private val beforeVersions: LazyMap<IntId<T>, RowVersion<T>?>,
-    private val afterVersions: LazyMap<IntId<T>, RowVersion<T>?>,
+    private val beforeVersions: LazyMap<IntId<T>, LayoutRowVersion<T>?>,
+    private val afterVersions: LazyMap<IntId<T>, LayoutRowVersion<T>?>,
 ) {
     fun beforeVersion(id: IntId<T>) = beforeVersions[id]
     fun afterVersion(id: IntId<T>) = afterVersions[id] ?: throw NoSuchEntityException(klass, id)

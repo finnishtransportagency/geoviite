@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.common
 
+import fi.fta.geoviite.infra.aspects.GeoviiteController
 import org.springframework.web.bind.annotation.*
 
 data class IdTestObject(
@@ -26,25 +27,27 @@ data class SridTestObject(
     val id: Srid,
 )
 
-@RestController
+const val ID_TEST_URL = "/id-test"
+
+@GeoviiteController(ID_TEST_URL)
 class IdTestController {
 
-    @GetMapping("/id-test-path/{id}")
+    @GetMapping("/{id}")
     fun requestWithIdPath(@PathVariable("id") id: DomainId<IdTestObject>): IdTestObject {
         return IdTestObject(id)
     }
 
-    @GetMapping("/id-test-path/string/{id}")
+    @GetMapping("/string/{id}")
     fun requestWithIdPath(@PathVariable("id") id: StringId<IdTestObject>): StringIdTestObject {
         return StringIdTestObject(id)
     }
 
-    @GetMapping("/id-test-path/int/{id}")
+    @GetMapping("/int/{id}")
     fun requestWithIdPath(@PathVariable("id") id: IntId<IdTestObject>): IntIdTestObject {
         return IntIdTestObject(id)
     }
 
-    @GetMapping("/id-test-path/indexed/{id}")
+    @GetMapping("/indexed/{id}")
     fun requestWithIdPath(@PathVariable("id") id: IndexedId<IdTestObject>): IndexedIdTestObject {
         return IndexedIdTestObject(id)
     }
@@ -89,7 +92,7 @@ class IdTestController {
         return body
     }
 
-    @GetMapping("/oid-test-path/{id}")
+    @GetMapping("/oid/{id}")
     fun requestWithOidPath(@PathVariable("id") id: Oid<OidTestObject>): OidTestObject {
         return OidTestObject(id)
     }
@@ -104,7 +107,7 @@ class IdTestController {
         return body
     }
 
-    @GetMapping("/srid-test-path/{id}")
+    @GetMapping("/srid/{id}")
     fun requestWithSridPath(@PathVariable("id") id: Srid): SridTestObject {
         return SridTestObject(id)
     }

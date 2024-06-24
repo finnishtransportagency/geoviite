@@ -5,9 +5,19 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.linking.switches.fitSwitch
 import fi.fta.geoviite.infra.linking.switches.inferSwitchTransformation
-import fi.fta.geoviite.infra.math.*
+import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.assertApproximatelyEquals
+import fi.fta.geoviite.infra.math.degreesToRads
+import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.math.rotateAroundOrigin
 import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.locationTrack
+import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import org.junit.jupiter.api.Test
 import kotlin.math.absoluteValue
 import kotlin.test.assertEquals
@@ -17,7 +27,7 @@ class FittedSwitchTest {
     private val switchStructure = switchStructureYV60_300_1_9()
     private val switchAlignment_1_5_2 = switchStructure.alignments.find { alignment ->
         alignment.jointNumbers.contains(JointNumber(5))
-    } ?: error { "Invalid switch structure" }
+    } ?: error("Invalid switch structure")
 
     private fun transformPoint(
         point: IPoint,
@@ -155,7 +165,7 @@ class FittedSwitchTest {
             translation = translation,
             rotation = rotation,
         )
-        val locationTrack = locationTrack(IntId(0), alignmentContainingSwitchSegments, trackId, draft = false)
+        val locationTrack = locationTrack(IntId(0), alignment = alignmentContainingSwitchSegments, trackId, draft = false)
         val presentationJointLocation = alignmentContainingSwitchSegments.segments[1].alignmentPoints.first()
 
         val missingLocationTrackEndpoint = LocationTrackEndpoint(

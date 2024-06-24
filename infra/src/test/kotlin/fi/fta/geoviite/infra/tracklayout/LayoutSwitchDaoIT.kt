@@ -4,7 +4,7 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
@@ -18,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
 import kotlin.test.assertContains
+import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -60,26 +61,26 @@ class LayoutSwitchDaoIT @Autowired constructor(
         val (insertId, insertVersion) = switchDao.insert(tempSwitch)
         val inserted = switchDao.fetch(insertVersion)
         assertMatches(tempSwitch, inserted)
-        assertEquals(insertVersion, switchDao.fetchVersion(MainLayoutContext.official, insertVersion.id))
-        assertEquals(insertVersion, switchDao.fetchVersion(MainLayoutContext.draft, insertVersion.id))
+        assertEquals(insertVersion, switchDao.fetchVersion(MainLayoutContext.official, insertId))
+        assertEquals(insertVersion, switchDao.fetchVersion(MainLayoutContext.draft, insertId))
 
         val tempDraft1 = asMainDraft(inserted).copy(name = SwitchName("TST002"))
         val draftVersion1 = switchDao.insert(tempDraft1).rowVersion
         val draft1 = switchDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1)
-        assertEquals(insertVersion, switchDao.fetchVersion(MainLayoutContext.official, insertVersion.id))
-        assertEquals(draftVersion1, switchDao.fetchVersion(MainLayoutContext.draft, insertVersion.id))
+        assertEquals(insertVersion, switchDao.fetchVersion(MainLayoutContext.official, insertId))
+        assertEquals(draftVersion1, switchDao.fetchVersion(MainLayoutContext.draft, insertId))
 
         val tempDraft2 = draft1.copy(joints = joints(5, 4))
         val draftVersion2 = switchDao.update(tempDraft2).rowVersion
         val draft2 = switchDao.fetch(draftVersion2)
         assertMatches(tempDraft2, draft2)
-        assertEquals(insertVersion, switchDao.fetchVersion(MainLayoutContext.official, insertVersion.id))
-        assertEquals(draftVersion2, switchDao.fetchVersion(MainLayoutContext.draft, insertVersion.id))
+        assertEquals(insertVersion, switchDao.fetchVersion(MainLayoutContext.official, insertId))
+        assertEquals(draftVersion2, switchDao.fetchVersion(MainLayoutContext.draft, insertId))
 
         switchDao.deleteDraft(LayoutBranch.main, insertId)
-        assertEquals(insertVersion, switchDao.fetchVersion(MainLayoutContext.official, insertVersion.id))
-        assertEquals(insertVersion, switchDao.fetchVersion(MainLayoutContext.draft, insertVersion.id))
+        assertEquals(insertVersion, switchDao.fetchVersion(MainLayoutContext.official, insertId))
+        assertEquals(insertVersion, switchDao.fetchVersion(MainLayoutContext.draft, insertId))
 
         assertEquals(inserted, switchDao.fetch(insertVersion))
         assertEquals(draft1, switchDao.fetch(draftVersion1))
@@ -95,7 +96,7 @@ class LayoutSwitchDaoIT @Autowired constructor(
 
         val deletedId = switchDao.deleteDraft(LayoutBranch.main, insertedId)
         assertEquals(insertedId, deletedId.id)
-        assertFalse(switchDao.fetchAllVersions().any { id -> id == insertedId })
+        assertNull(switchDao.fetchVersion(MainLayoutContext.draft, insertedId))
 
         // Verify that we can still fetch the deleted row with version
         assertEquals(insertedSwitch, switchDao.fetch(insertedVersion))
@@ -113,56 +114,81 @@ class LayoutSwitchDaoIT @Autowired constructor(
 
     @Test
     fun listingSwitchVersionsWorks() {
-        val officialVersion = insertOfficial().rowVersion
-        val undeletedDraftVersion = insertDraft().rowVersion
-        val deleteStateDraftVersion = insertDraft(LayoutStateCategory.NOT_EXISTING).rowVersion
-        val deletedDraftVersion = insertDraft().rowVersion
-        assertEquals(deletedDraftVersion, switchDao.deleteDraft(LayoutBranch.main, deletedDraftVersion.id).rowVersion)
+        val officialVersion = mainOfficialContext.createSwitch()
+        val undeletedDraft = mainDraftContext.createSwitch(LayoutStateCategory.EXISTING)
+        val deleteStateDraft = mainDraftContext.createSwitch(LayoutStateCategory.NOT_EXISTING)
+        val deletedDraft = mainDraftContext.createSwitch(LayoutStateCategory.EXISTING)
+        assertEquals(deletedDraft, switchDao.deleteDraft(LayoutBranch.main, deletedDraft.id))
 
         val official = switchDao.fetchVersions(MainLayoutContext.official, false)
         assertContains(official, officialVersion)
-        assertFalse(official.contains(undeletedDraftVersion))
-        assertFalse(official.contains(deleteStateDraftVersion))
-        assertFalse(official.contains(deletedDraftVersion))
+        assertFalse(official.contains(undeletedDraft))
+        assertFalse(official.contains(deleteStateDraft))
+        assertFalse(official.contains(deletedDraft))
 
         val draftWithoutDeleted = switchDao.fetchVersions(MainLayoutContext.draft, false)
-        assertContains(draftWithoutDeleted, undeletedDraftVersion)
-        assertFalse(draftWithoutDeleted.contains(deleteStateDraftVersion))
-        assertFalse(draftWithoutDeleted.contains(deletedDraftVersion))
+        assertContains(draftWithoutDeleted, undeletedDraft)
+        assertFalse(draftWithoutDeleted.contains(deleteStateDraft))
+        assertFalse(draftWithoutDeleted.any { r -> r.id == deletedDraft.id})
 
         val draftWithDeleted = switchDao.fetchVersions(MainLayoutContext.draft, true)
-        assertContains(draftWithDeleted, undeletedDraftVersion)
-        assertContains(draftWithDeleted, deleteStateDraftVersion)
-        assertFalse(draftWithDeleted.contains(deletedDraftVersion))
+        assertContains(draftWithDeleted, undeletedDraft)
+        assertContains(draftWithDeleted, deleteStateDraft)
+        assertFalse(draftWithDeleted.contains(deletedDraft))
     }
 
     @Test
-    fun fetchOfficialVersionByMomentWorks() {
-        val beforeCreationTime = switchDao.fetchChangeTime()
+    fun `Finding Switch versions by moment works across designs and main branch`() {
+        val designBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(designBranch, OFFICIAL)
+
+        val v0Time = switchDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
-        val (firstId, firstVersion) = insertOfficial()
-        val firstVersionTime = switchDao.fetchChangeTime()
 
+        val (switch1Id, switch1MainV1) = mainOfficialContext.createSwitch()
+        val (switch2Id, switch2DesignV1) = designOfficialContext.createSwitch()
+        val (switch3Id, switch3DesignV1) = designOfficialContext.createSwitch()
+        val v1Time = switchDao.fetchChangeTime()
         Thread.sleep(1) // Ensure that they get different timestamps
-        val updatedVersion = updateOfficial(firstVersion).rowVersion
-        val updatedVersionTime = switchDao.fetchChangeTime()
 
-        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(firstId, beforeCreationTime))
-        assertEquals(firstVersion, switchDao.fetchOfficialVersionAtMoment(firstId, firstVersionTime))
-        assertEquals(updatedVersion, switchDao.fetchOfficialVersionAtMoment(firstId, updatedVersionTime))
-    }
+        val switch1MainV2 = testDBService.update(switch1MainV1).rowVersion
+        val switch1DesignV2 = designOfficialContext.copyFrom(switch1MainV1, officialRowId = switch1MainV1.rowId).rowVersion
+        val switch2DesignV2 = testDBService.update(switch2DesignV1).rowVersion
+        switchDao.deleteRow(switch3DesignV1.rowId)
+        val v2Time = switchDao.fetchChangeTime()
+        Thread.sleep(1) // Ensure that they get different timestamps
 
-    private fun insertOfficial(): DaoResponse<TrackLayoutSwitch> {
-        return switchDao.insert(switch(456, draft = false))
-    }
+        switchDao.deleteRow(switch1DesignV2.rowId)
+        // Fake publish: update the design as a main-official
+        val switch2MainV3 = mainOfficialContext.moveFrom(switch2DesignV2).rowVersion
+        val v3Time = switchDao.fetchChangeTime()
 
-    private fun insertDraft(state: LayoutStateCategory = LayoutStateCategory.EXISTING): DaoResponse<TrackLayoutSwitch> {
-        return switchDao.insert(switch(654, stateCategory = state, draft = true))
-    }
+        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch1Id, v0Time))
+        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch2Id, v0Time))
+        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch3Id, v0Time))
+        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(designBranch, switch1Id, v0Time))
+        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(designBranch, switch2Id, v0Time))
+        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(designBranch, switch3Id, v0Time))
 
-    private fun updateOfficial(originalVersion: RowVersion<TrackLayoutSwitch>): DaoResponse<TrackLayoutSwitch> {
-        val original = switchDao.fetch(originalVersion)
-        assertFalse(original.isDraft)
-        return switchDao.update(original.copy(name = SwitchName("${original.name}U")))
+        assertEquals(switch1MainV1, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch1Id, v1Time))
+        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch2Id, v1Time))
+        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch3Id, v1Time))
+        assertEquals(switch1MainV1, switchDao.fetchOfficialVersionAtMoment(designBranch, switch1Id, v1Time))
+        assertEquals(switch2DesignV1, switchDao.fetchOfficialVersionAtMoment(designBranch, switch2Id, v1Time))
+        assertEquals(switch3DesignV1, switchDao.fetchOfficialVersionAtMoment(designBranch, switch3Id, v1Time))
+
+        assertEquals(switch1MainV2, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch1Id, v2Time))
+        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch2Id, v2Time))
+        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch3Id, v2Time))
+        assertEquals(switch1DesignV2, switchDao.fetchOfficialVersionAtMoment(designBranch, switch1Id, v2Time))
+        assertEquals(switch2DesignV2, switchDao.fetchOfficialVersionAtMoment(designBranch, switch2Id, v2Time))
+        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(designBranch, switch3Id, v2Time))
+
+        assertEquals(switch1MainV2, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch1Id, v3Time))
+        assertEquals(switch2MainV3, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch2Id, v3Time))
+        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch3Id, v3Time))
+        assertEquals(switch1MainV2, switchDao.fetchOfficialVersionAtMoment(designBranch, switch1Id, v3Time))
+        assertEquals(switch2MainV3, switchDao.fetchOfficialVersionAtMoment(designBranch, switch2Id, v3Time))
+        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(designBranch, switch3Id, v3Time))
     }
 }

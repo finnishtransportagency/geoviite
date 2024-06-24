@@ -1,12 +1,12 @@
 package fi.fta.geoviite.infra.geometry
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
-import org.springframework.stereotype.Service
 import java.util.stream.Collectors
 
-@Service
+@GeoviiteService
 class PlanLayoutService(
     private val planLayoutCache: PlanLayoutCache,
     private val geometryDao: GeometryDao,

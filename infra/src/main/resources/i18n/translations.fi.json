@@ -1807,5 +1807,31 @@
     },
     "dropdown": {
         "add-new": "Lisää uusi"
+    },
+    "privilege": {
+        "view-basic": "Geoviitteen käyttö",
+        "view-layout": "Paikannuspohjan tarkastelu",
+        "view-layout-draft": "Paikannuspohjan luonnoksen tarkastelu",
+        "edit-layout": "Paikannuspohjan muokkaus",
+        "view-geometry": "Raidegeometrioiden tarkastelu",
+        "edit-geometry-file": "Raidegeometrioiden muokkaus",
+        "download-geometry": "InfraModel-tiedostojen lataus",
+        "view-pv-documents": "ProjektiVelhon aineistojen tarkastelu",
+        "view-geometry-file": "InfraModel-tiedostojen tarkastelu",
+        "view-publication": "Julkaisujen selaus",
+        "download-publication": "Julkaisulokin lataus",
+        "description": {
+            "view-basic": "Oikeus autentikoitua Geoviitteeseen ja lukea käyttäjä- ja ympäristötietoja",
+            "view-layout": "Oikeus tarkastella virallista paikannuspohjaa",
+            "view-layout-draft": "Oikeus tarkastella paikannuspohjaluonnosta",
+            "edit-layout": "Oikeus muokata Geoviitteen paikannuspohjaa",
+            "view-geometry": "Oikeus listata ja tarkastella raidegeometrioita",
+            "edit-geometry-file": "Oikeus luoda, poistaa ja piilottaa inframalleja ja muokata niihin liittyvää metatietoa",
+            "download-geometry": "Oikeus ladata Geoviitteestä InfraModel-tiedostoja",
+            "view-pv-documents": "Oikeus listata ja tarkastella ProjektiVelhosta ladattuja aineistoja",
+            "view-geometry-file": "Oikeus listata ja tarkastella Geoviitteen InfraModel-tiedostoja",
+            "view-publication": "Oikeus listata ja tarkastella julkaisuja",
+            "download-publication": "Oikeus ladata julkaisuja"
+        }
     }
 }

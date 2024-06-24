@@ -1,25 +1,20 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DataType.TEMP
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
-@Service
+@GeoviiteService
 class LayoutAlignmentService(
     private val dao: LayoutAlignmentDao,
 ) {
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-
     fun update(alignment: LayoutAlignment) = dao.update(alignment)
 
     fun saveAsNew(alignment: LayoutAlignment): RowVersion<LayoutAlignment> = save(asNew(alignment))
@@ -47,12 +42,6 @@ class LayoutAlignmentService(
         boundingBox: BoundingBox?,
         context: GeocodingContext,
     ): List<AlignmentPlanSection> {
-        logger.serviceCall(
-            "getGeometryMetadataSections",
-            "alignmentVersion" to alignmentVersion,
-            "externalId" to externalId,
-            "boundingBox" to boundingBox
-        )
         val sections = dao.fetchSegmentGeometriesAndPlanMetadata(alignmentVersion, externalId, boundingBox)
         val alignment = dao.fetch(alignmentVersion)
         return sections.mapNotNull { section ->

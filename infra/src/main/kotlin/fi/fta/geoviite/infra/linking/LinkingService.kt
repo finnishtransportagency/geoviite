@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.linking
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
@@ -12,7 +13,6 @@ import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
 import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.geometry.PlanLayoutService
 import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
@@ -28,10 +28,7 @@ import fi.fta.geoviite.infra.tracklayout.PlanLayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 fun isAlignmentConnected(
@@ -44,7 +41,7 @@ fun isAlignmentConnected(
     return comparePoint?.let { p -> calculateDistance(LAYOUT_SRID, p, location) <= distanceTolerance } ?: false
 }
 
-@Service
+@GeoviiteService
 class LinkingService @Autowired constructor(
     private val geometryService: GeometryService,
     private val planLayoutService: PlanLayoutService,
@@ -55,7 +52,6 @@ class LinkingService @Autowired constructor(
     private val coordinateTransformationService: CoordinateTransformationService,
     private val splitService: SplitService,
 ) {
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun getSuggestedAlignments(
         branch: LayoutBranch,
@@ -79,13 +75,6 @@ class LinkingService @Autowired constructor(
         verifyPlanNotHidden(parameters.geometryPlanId)
 
         val referenceLineId = parameters.layoutInterval.alignmentId
-        logger.serviceCall(
-            "saveReferenceLineLinking",
-            "branch" to branch,
-            "geometryAlignmentId" to parameters.geometryInterval.alignmentId,
-            "referenceLineId" to referenceLineId,
-        )
-
         val (referenceLine, alignment) = referenceLineService.getWithAlignmentOrThrow(branch.draft, referenceLineId)
 
         val newAlignment = linkGeometry(alignment, parameters)
@@ -103,13 +92,6 @@ class LinkingService @Autowired constructor(
         verifyLocationTrackNotDeleted(locationTrack)
         verifyPlanNotHidden(parameters.geometryPlanId)
         verifyAllSplitsDone(branch, parameters.layoutInterval.alignmentId)
-
-        logger.serviceCall(
-            "saveLocationTrackLinking",
-            "branch" to branch,
-            "geometryAlignmentId" to parameters.geometryInterval.alignmentId,
-            "locationTrackId" to locationTrackId,
-        )
 
         val newAlignment = linkGeometry(alignment, parameters)
         val newLocationTrack = updateTopology(branch, locationTrack, alignment, newAlignment)
@@ -164,13 +146,6 @@ class LinkingService @Autowired constructor(
         val referenceLineId = parameters.layoutAlignmentId
         val geometryInterval = parameters.geometryInterval
 
-        logger.serviceCall(
-            "saveReferenceLineLinking",
-            "branch" to branch,
-            "geometryAlignmentId" to parameters.geometryInterval.alignmentId,
-            "referenceLineId" to referenceLineId,
-        )
-
         val (referenceLine, layoutAlignment) = referenceLineService.getWithAlignmentOrThrow(branch.draft, referenceLineId)
         val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
 
@@ -188,13 +163,6 @@ class LinkingService @Autowired constructor(
 
         val locationTrackId = parameters.layoutAlignmentId
         val geometryInterval = parameters.geometryInterval
-
-        logger.serviceCall(
-            "saveLocationTrackLinking",
-            "branch" to branch,
-            "geometryAlignmentId" to parameters.geometryInterval.alignmentId,
-            "locationTrackId" to locationTrackId,
-        )
 
         val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(branch.draft, locationTrackId)
         val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
@@ -223,13 +191,6 @@ class LinkingService @Autowired constructor(
         referenceLineId: IntId<ReferenceLine>,
         mRange: Range<Double>,
     ): IntId<ReferenceLine> {
-        logger.serviceCall(
-            "updateReferenceLineGeometry",
-            "branch" to branch,
-            "referenceLineId" to referenceLineId,
-            "mRange" to mRange,
-        )
-
         val (referenceLine, alignment) = referenceLineService.getWithAlignmentOrThrow(branch.draft, referenceLineId)
         val updatedAlignment = cutLayoutGeometry(alignment, mRange)
 
@@ -242,13 +203,6 @@ class LinkingService @Autowired constructor(
         locationTrackId: IntId<LocationTrack>,
         mRange: Range<Double>,
     ): IntId<LocationTrack> {
-        logger.serviceCall(
-            "updateLocationTrackGeometry",
-            "branch" to branch,
-            "locationTrackId" to locationTrackId,
-            "mRange" to mRange,
-        )
-
         verifyAllSplitsDone(branch, locationTrackId)
         val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(branch.draft, locationTrackId)
         val updatedAlignment = cutLayoutGeometry(alignment, mRange)
@@ -258,11 +212,6 @@ class LinkingService @Autowired constructor(
     }
 
     fun getGeometryPlanLinkStatus(layoutContext: LayoutContext, planId: IntId<GeometryPlan>): GeometryPlanLinkStatus {
-        logger.serviceCall(
-            "getGeometryPlanLinkStatus",
-            "layoutContext" to layoutContext,
-            "planId" to planId,
-        )
         return linkingDao.fetchPlanLinkStatus(layoutContext, planId)
     }
 
@@ -270,11 +219,6 @@ class LinkingService @Autowired constructor(
         layoutContext: LayoutContext,
         planIds: List<IntId<GeometryPlan>>,
     ): List<GeometryPlanLinkStatus> {
-        logger.serviceCall(
-            "getGeometryPlanLinkStatuses",
-            "planIds" to planIds,
-            "layoutContext" to layoutContext,
-        )
         return planIds.map { planId -> linkingDao.fetchPlanLinkStatus(layoutContext, planId) }
     }
 

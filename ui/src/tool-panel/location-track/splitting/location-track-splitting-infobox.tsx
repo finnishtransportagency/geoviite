@@ -86,7 +86,7 @@ type LocationTrackSplittingInfoboxProps = {
     updateSplit: (updatedSplit: SplitTargetCandidate | FirstSplitTargetCandidate) => void;
     returnToSplitting: () => void;
     startPostingSplit: () => void;
-    markSplitOld: (splitPoint: SplitPoint) => void;
+    unfocusSplit: (splitPoint: SplitPoint) => void;
     onShowTaskList: (locationTrackId: LocationTrackId) => void;
     switchRelinkingErrors: SwitchRelinkingValidationResult[];
     switchRelinkingLoaderState: LoaderStatus;
@@ -210,7 +210,7 @@ export const LocationTrackSplittingInfoboxContainer: React.FC<
                 sourceEnd={startAndEnd.end}
                 returnToSplitting={delegates.returnToSplitting}
                 startPostingSplit={delegates.startPostingSplit}
-                markSplitOld={delegates.markSplitOld}
+                unfocusSplit={delegates.unfocusSplit}
                 onShowTaskList={onShowTaskList}
                 switchRelinkingErrors={switchRelinkingErrors || []}
                 switchRelinkingLoaderState={switchRelinkingLoaderState}
@@ -324,7 +324,7 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
     sourceEnd,
     returnToSplitting,
     startPostingSplit,
-    markSplitOld,
+    unfocusSplit,
     onShowTaskList,
     switchRelinkingErrors,
     switchRelinkingLoaderState,
@@ -422,10 +422,12 @@ export const LocationTrackSplittingInfobox: React.FC<LocationTrackSplittingInfob
         findRefToFirstErroredField(splitComponents, predicate)?.current?.focus();
 
     React.useEffect(() => {
-        const newSplitComponent = splitComponents.find((s) => s.splitAndValidation.split.new);
-        if (newSplitComponent) {
-            newSplitComponent.nameRef.current?.focus();
-            markSplitOld(newSplitComponent.splitAndValidation.split.splitPoint);
+        const splitComponentToFocus = splitComponents.find(
+            (s) => s.splitAndValidation.split.focusBehaviour === 'FOCUS',
+        );
+        if (splitComponentToFocus) {
+            splitComponentToFocus.nameRef.current?.focus();
+            unfocusSplit(splitComponentToFocus.splitAndValidation.split.splitPoint);
         }
     });
 

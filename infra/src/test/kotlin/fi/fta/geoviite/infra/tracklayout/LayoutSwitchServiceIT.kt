@@ -293,7 +293,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
         val result = switchDao.findLocationTracksLinkedToSwitch(MainLayoutContext.draft, switch.id as IntId)
         assertEquals(
             listOf(withStartLink, withEndLink, withSegmentLink),
-            result.sortedBy { ids -> ids.rowVersion.id.intValue },
+            result.sortedBy { ids -> ids.rowVersion.rowId.intValue },
         )
     }
 
@@ -345,6 +345,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
         )
 
         val linkedLocationTracks = switchDao.findLocationTracksLinkedToSwitchAtMoment(
+            LayoutBranch.main,
             switchId,
             JointNumber(1),
             Instant.now(),

@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ratko
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.configuration.CACHE_RATKO_HEALTH_STATUS
@@ -7,7 +8,6 @@ import fi.fta.geoviite.infra.integration.RatkoAssetType.LOCATION_TRACK
 import fi.fta.geoviite.infra.integration.RatkoAssetType.SWITCH
 import fi.fta.geoviite.infra.integration.RatkoAssetType.TRACK_NUMBER
 import fi.fta.geoviite.infra.integration.RatkoPushErrorWithAsset
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.ratko.RatkoClient.RatkoStatus
@@ -19,12 +19,10 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FreeText
-import fi.fta.geoviite.infra.util.logger
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
-import org.springframework.stereotype.Service
 
-@Service
+@GeoviiteService
 class RatkoLocalService @Autowired constructor(
     private val ratkoClient: RatkoClient?,
     private val ratkoPushDao: RatkoPushDao,
@@ -33,14 +31,13 @@ class RatkoLocalService @Autowired constructor(
     private val locationTrackService: LocationTrackService,
     private val switchService: LayoutSwitchService,
 ) {
+
     @Cacheable(CACHE_RATKO_HEALTH_STATUS, sync = true)
     fun getRatkoOnlineStatus(): RatkoStatus {
-        logger.serviceCall("getRatkoOnlineStatus")
         return ratkoClient?.getRatkoOnlineStatus() ?: RatkoStatus(false)
     }
 
     fun getRatkoPushError(publicationId: IntId<Publication>): RatkoPushErrorWithAsset? {
-        logger.serviceCall("getRatkoPushError", "publicationId" to publicationId)
         return ratkoPushDao.getLatestRatkoPushErrorFor(publicationId)?.let { ratkoError ->
             val asset = when (ratkoError.assetType) {
                 TRACK_NUMBER -> trackNumberService.get(MainLayoutContext.official, ratkoError.assetId as IntId<TrackLayoutTrackNumber>)
@@ -65,11 +62,6 @@ class RatkoLocalService @Autowired constructor(
     }
 
     fun searchOperatingPoints(searchTerm: FreeText, resultLimit: Int = 10): List<RatkoOperatingPoint> {
-        logger.serviceCall(
-            "searchOperatingPoints",
-            "searchTerm" to searchTerm,
-            "resultLimit" to resultLimit,
-        )
         return ratkoOperatingPointDao.searchOperatingPoints(searchTerm, resultLimit)
     }
 }

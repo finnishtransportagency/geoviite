@@ -1,6 +1,22 @@
 package fi.fta.geoviite.infra.util
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.DesignBranch
+import fi.fta.geoviite.infra.common.DesignLayoutContext
+import fi.fta.geoviite.infra.common.FeatureTypeCode
+import fi.fta.geoviite.infra.common.IndexedId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geography.parse2DPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -10,7 +26,15 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
 import fi.fta.geoviite.infra.projektivelho.PVId
 import fi.fta.geoviite.infra.projektivelho.PVProjectName
 import fi.fta.geoviite.infra.publication.Change
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
+import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
+import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
+import fi.fta.geoviite.infra.tracklayout.LayoutContextData
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
+import fi.fta.geoviite.infra.tracklayout.LayoutRowId
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
+import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import java.sql.ResultSet
 import java.time.Instant
 import java.time.LocalDate
@@ -47,6 +71,9 @@ fun <T> ResultSet.getIndexedIdOrNull(parent: String, index: String): IndexedId<T
         null
     }
 }
+fun <T> ResultSet.getLayoutRowId(name: String): LayoutRowId<T> = verifyNotNull(name, ::getLayoutRowIdOrNull)
+
+fun <T> ResultSet.getLayoutRowIdOrNull(name: String): LayoutRowId<T>? = getIntOrNull(name)?.let(::LayoutRowId)
 
 fun <T> ResultSet.getIntId(name: String): IntId<T> = verifyNotNull(name, ::getIntIdOrNull)
 
@@ -97,7 +124,7 @@ fun ResultSet.getPointOrNull(nameX: String, nameY: String): Point? {
 }
 
 inline fun <reified T : Enum<T>> ResultSet.getEnum(name: String): T {
-    return getEnumOrNull<T>(name) ?: throw IllegalStateException("Enum value does not exist in result set")
+    return getEnumOrNull<T>(name) ?: error("Enum value does not exist in result set")
 }
 
 inline fun <reified T : Enum<T>> ResultSet.getEnumOrNull(name: String): T? {
@@ -122,6 +149,9 @@ fun ResultSet.getIntListFromString(name: String): List<Int> = verifyNotNull(name
 fun ResultSet.getIntListOrNullFromString(name: String): List<Int>? = getString(name)?.split(",")?.map { s -> s.toInt() }
 
 fun <T> ResultSet.getIntIdArray(name: String): List<IntId<T>> = getListOrNull<Int>(name)?.map(::IntId) ?: emptyList()
+
+fun <T> ResultSet.getLayoutRowIdArray(name: String): List<LayoutRowId<T>> =
+    getListOrNull<Int>(name)?.map(::LayoutRowId) ?: emptyList()
 
 fun ResultSet.getIntArray(name: String): List<Int> = verifyNotNull(name, ::getIntArrayOrNull)
 
@@ -170,21 +200,30 @@ inline fun <reified T> ResultSet.getNullableListOrNull(name: String): List<T?>? 
 
 fun <T> ResultSet.getDaoResponse(officialIdName: String, versionIdName: String, versionName: String) = DaoResponse<T>(
     id = getIntId(officialIdName),
-    rowVersion = getRowVersion(versionIdName, versionName),
+    rowVersion = getLayoutRowVersion(versionIdName, versionName),
 )
 
 fun <T> ResultSet.getRowVersion(idName: String, versionName: String): RowVersion<T> =
     RowVersion(getIntId(idName), getIntNonNull(versionName))
 
 fun <T> ResultSet.getRowVersionOrNull(idName: String, versionName: String): RowVersion<T>? {
-    val intId = getIntIdOrNull<T>(idName)
+    val rowId = getIntIdOrNull<T>(idName)
     val version = getIntOrNull(versionName)
-    return if (intId != null && version != null) RowVersion(intId, version) else null
+    return if (rowId != null && version != null) RowVersion(rowId, version) else null
 }
 
-fun ResultSet.getIntNonNull(name: String) = getIntOrNull(name) ?: throw IllegalStateException("$name can't be null")
+fun <T> ResultSet.getLayoutRowVersion(rowIdName: String, versionName: String): LayoutRowVersion<T> =
+    LayoutRowVersion(getLayoutRowId(rowIdName), getIntNonNull(versionName))
 
-fun ResultSet.getCode(name: String): Code = getCodeOrNull(name) ?: throw IllegalStateException("StringCode was null")
+fun <T> ResultSet.getLayoutRowVersionOrNull(rowIdName: String, versionName: String): LayoutRowVersion<T>? {
+    val rowId = getLayoutRowIdOrNull<T>(rowIdName)
+    val version = getIntOrNull(versionName)
+    return if (rowId != null && version != null) LayoutRowVersion(rowId, version) else null
+}
+
+fun ResultSet.getIntNonNull(name: String) = getIntOrNull(name) ?: error("$name can't be null")
+
+fun ResultSet.getCode(name: String): Code = getCodeOrNull(name) ?: error("StringCode was null")
 
 fun ResultSet.getCodeOrNull(name: String): Code? = getString(name)?.let(::Code)
 
@@ -261,6 +300,9 @@ fun ResultSet.getPublicationState(draftFlagName: String): PublicationState =
 fun ResultSet.getPublicationStateOrNull(draftFlagName: String): PublicationState? =
     getBooleanOrNull(draftFlagName)?.let { draft -> if (draft) PublicationState.DRAFT else PublicationState.OFFICIAL }
 
+fun ResultSet.getLayoutBranch(designIdName: String): LayoutBranch =
+    getIntIdOrNull<LayoutDesign>(designIdName).let { id -> if (id == null) LayoutBranch.main else DesignBranch.of(id) }
+
 inline fun <reified T> verifyNotNull(column: String, nullableGet: (column: String) -> T?): T =
     requireNotNull(nullableGet(column)) { "Value was null: type=${T::class.simpleName} column=$column" }
 
@@ -274,21 +316,23 @@ fun <T> ResultSet.getLayoutContextData(
     designRowIdName: String,
     designIdName: String,
     rowIdName: String,
+    rowVersionName: String,
     draftFlagName: String,
 ): LayoutContextData<T> {
     val designId = getIntIdOrNull<LayoutDesign>(designIdName)
-    val designRowId = getIntIdOrNull<T>(designRowIdName)
-    val officialRowId = getIntIdOrNull<T>(officialRowIdName)
-    val rowId = getIntId<T>(rowIdName)
+    val designRowId = getLayoutRowIdOrNull<T>(designRowIdName)
+    val officialRowId = getLayoutRowIdOrNull<T>(officialRowIdName)
+    val rowId = getLayoutRowId<T>(rowIdName)
+    val rowVersion = LayoutRowVersion(rowId, getInt(rowVersionName))
     val isDraft = getBoolean(draftFlagName)
     return if (designId != null) {
         if (isDraft) {
             DesignDraftContextData(
                 officialRowId = officialRowId,
                 rowId = rowId,
+                version = rowVersion,
                 designId = designId,
                 designRowId = designRowId,
-                dataType = DataType.STORED,
             )
         } else {
             require(designRowId == null) {
@@ -297,21 +341,24 @@ fun <T> ResultSet.getLayoutContextData(
             DesignOfficialContextData(
                 officialRowId = officialRowId,
                 rowId = rowId,
+                version = rowVersion,
                 designId = designId,
-                dataType = DataType.STORED,
             )
         }
     } else if (isDraft) {
         MainDraftContextData(
             officialRowId = officialRowId,
             rowId = rowId,
-            designRowId = null,
-            dataType = DataType.STORED,
+            version = rowVersion,
+            designRowId = designRowId,
         )
     } else {
         require(officialRowId == null) {
             "For official rows, official row ref should be null: officialRow=$officialRowId rowId=$rowId draft=$isDraft"
         }
-        MainOfficialContextData(rowId, DataType.STORED)
+        MainOfficialContextData(
+            rowId = rowId,
+            version = rowVersion,
+        )
     }
 }

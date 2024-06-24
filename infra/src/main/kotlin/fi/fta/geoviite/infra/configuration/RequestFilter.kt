@@ -89,7 +89,6 @@ class RequestFilter @Autowired constructor(
             details = UserDetails(UserName.of("HEALTH_CHECK"), null, null, null),
             role = Role(
                 code = Code("health-check"),
-                name = AuthName.of("Service Health Check"),
                 privileges = listOf(),
             ),
             availableRoles = listOf()

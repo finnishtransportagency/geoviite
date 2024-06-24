@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.publication
 
-import daoResponseToValidationVersion
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TEST_USER
 import fi.fta.geoviite.infra.authorization.UserName
@@ -12,7 +11,6 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.integration.CalculatedChanges
@@ -23,8 +21,10 @@ import fi.fta.geoviite.infra.integration.SwitchChange
 import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.integration.TrackNumberChange
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -134,7 +134,7 @@ class PublicationDaoIT @Autowired constructor(
     fun modifyOperationIsInferredCorrectly() {
         val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = false))
         val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
-        publishAndCheck(version)
+        publishAndCheck(version.rowVersion)
         locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrackService.getOrThrow(MainLayoutContext.official, draft.id as IntId).let { lt ->
@@ -151,7 +151,7 @@ class PublicationDaoIT @Autowired constructor(
     fun deleteOperationIsInferredCorrectly() {
         val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = false))
         val (version, draft) = insertAndCheck(asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT")))
-        publishAndCheck(version)
+        publishAndCheck(version.rowVersion)
         locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrackService.getOrThrow(MainLayoutContext.official, draft.id as IntId)
@@ -172,7 +172,7 @@ class PublicationDaoIT @Autowired constructor(
                 state = LocationTrackState.DELETED,
             )
         )
-        publishAndCheck(version)
+        publishAndCheck(version.rowVersion)
         locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrackService.getOrThrow(MainLayoutContext.official, draft.id as IntId)
@@ -227,32 +227,32 @@ class PublicationDaoIT @Autowired constructor(
             ),
             indirectChanges = IndirectChanges(emptyList(), emptyList(), emptyList()),
         )
-        val publicationId = publicationDao.createPublication("")
+        val publicationId = publicationDao.createPublication(LayoutBranch.main, "")
         publicationDao.insertCalculatedChanges(publicationId, changes)
 
         val publishedTrackNumbers = publicationDao.fetchPublishedTrackNumbers(publicationId)
         val publishedLocationTracks = publicationDao.fetchPublishedLocationTracks(publicationId)
         val publishedSwitches = publicationDao.fetchPublishedSwitches(publicationId)
-        assertTrue(publishedTrackNumbers.directChanges.all { it.version.id == trackNumberId })
+        assertTrue(publishedTrackNumbers.directChanges.all { it.id == trackNumberId })
         assertEquals(
             changes.directChanges.trackNumberChanges.flatMap { it.changedKmNumbers }.sorted(),
             publishedTrackNumbers.directChanges.flatMap { it.changedKmNumbers }.sorted(),
         )
 
-        assertTrue(publishedLocationTracks.directChanges.all { it.version.id == locationTrackId })
+        assertTrue(publishedLocationTracks.directChanges.all { it.id == locationTrackId })
         assertEquals(
             changes.directChanges.locationTrackChanges.flatMap { it.changedKmNumbers }.sorted(),
             publishedLocationTracks.directChanges.flatMap { it.changedKmNumbers }.sorted(),
         )
 
-        assertTrue(publishedSwitches.directChanges.all { it.version.id == switchId })
+        assertTrue(publishedSwitches.directChanges.all { it.id == switchId })
         assertEquals(listOf(switchJointChange), publishedSwitches.directChanges.flatMap { it.changedJoints })
     }
 
     @Test
     fun `Publication message is stored and fetched correctly`() {
         val message = "Test"
-        val publicationId = publicationDao.createPublication(message)
+        val publicationId = publicationDao.createPublication(LayoutBranch.main, message)
         assertEquals(message, publicationDao.getPublication(publicationId).message)
     }
 
@@ -346,14 +346,11 @@ class PublicationDaoIT @Autowired constructor(
             )
         )
         assertEquals(
-            setOf(
-                daoResponseToValidationVersion(officialLinkedAlignment),
-                daoResponseToValidationVersion(draftLinkedAlignment),
-            ),
+            setOf(officialLinkedAlignment, draftLinkedAlignment),
             publicationDao.fetchLinkedLocationTracks(LayoutBranch.main, listOf(switchByAlignment))[switchByAlignment],
         )
         assertEquals(
-            setOf(daoResponseToValidationVersion(officialLinkedAlignment)),
+            setOf(officialLinkedAlignment),
             publicationDao.fetchLinkedLocationTracks(
                 LayoutBranch.main,
                 listOf(switchByAlignment),
@@ -361,10 +358,7 @@ class PublicationDaoIT @Autowired constructor(
             )[switchByAlignment]
         )
         assertEquals(
-            setOf(
-                daoResponseToValidationVersion(officialLinkedAlignment),
-                daoResponseToValidationVersion(draftLinkedAlignment),
-            ),
+            setOf(officialLinkedAlignment, draftLinkedAlignment),
             publicationDao.fetchLinkedLocationTracks(
                 LayoutBranch.main,
                 listOf(switchByAlignment),
@@ -372,18 +366,15 @@ class PublicationDaoIT @Autowired constructor(
             )[switchByAlignment],
         )
         assertEquals(
-            setOf(
-                daoResponseToValidationVersion(officialLinkedTopo),
-                daoResponseToValidationVersion(draftLinkedTopo),
-            ),
+            setOf(officialLinkedTopo, draftLinkedTopo),
             publicationDao.fetchLinkedLocationTracks(LayoutBranch.main, listOf(switchByTopo))[switchByTopo],
         )
         assertEquals(
-            setOf(daoResponseToValidationVersion(officialLinkedTopo)),
+            setOf(officialLinkedTopo),
             publicationDao.fetchLinkedLocationTracks(LayoutBranch.main, listOf(switchByTopo), listOf())[switchByTopo]
         )
         assertEquals(
-            setOf(daoResponseToValidationVersion(officialLinkedTopo), daoResponseToValidationVersion(draftLinkedTopo)),
+            setOf(officialLinkedTopo, draftLinkedTopo),
             publicationDao.fetchLinkedLocationTracks(
                 LayoutBranch.main,
                 listOf(switchByTopo),
@@ -394,55 +385,55 @@ class PublicationDaoIT @Autowired constructor(
 
     private fun insertAndCheck(
         trackNumber: TrackLayoutTrackNumber,
-    ): Pair<RowVersion<TrackLayoutTrackNumber>, TrackLayoutTrackNumber> {
-        val (officialId, rowVersion) = trackNumberDao.insert(trackNumber)
-        val fromDb = trackNumberDao.fetch(rowVersion)
-        assertEquals(officialId, fromDb.id)
+    ): Pair<DaoResponse<TrackLayoutTrackNumber>, TrackLayoutTrackNumber> {
+        val official = trackNumberDao.insert(trackNumber)
+        val fromDb = trackNumberDao.fetch(official.rowVersion)
+        assertEquals(official.id, fromDb.id)
         assertMatches(trackNumber, fromDb, contextMatch = false)
         assertEquals(DataType.TEMP, trackNumber.dataType)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertTrue { fromDb.id is IntId }
-        return rowVersion to fromDb
+        return official to fromDb
     }
 
-    private fun insertAndCheck(switch: TrackLayoutSwitch): Pair<RowVersion<TrackLayoutSwitch>, TrackLayoutSwitch> {
-        val (officialId, rowVersion) = switchDao.insert(switch)
-        val fromDb = switchDao.fetch(rowVersion)
-        assertEquals(officialId, fromDb.id)
+    private fun insertAndCheck(switch: TrackLayoutSwitch): Pair<DaoResponse<TrackLayoutSwitch>, TrackLayoutSwitch> {
+        val official = switchDao.insert(switch)
+        val fromDb = switchDao.fetch(official.rowVersion)
+        assertEquals(official.id, fromDb.id)
         assertMatches(switch, fromDb, contextMatch = false)
         assertEquals(DataType.TEMP, switch.dataType)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertTrue(fromDb.id is IntId)
-        return rowVersion to fromDb
+        return official to fromDb
     }
 
-    private fun insertAndCheck(referenceLine: ReferenceLine): Pair<RowVersion<ReferenceLine>, ReferenceLine> {
+    private fun insertAndCheck(referenceLine: ReferenceLine): Pair<DaoResponse<ReferenceLine>, ReferenceLine> {
         val dbAlignmentVersion = alignmentDao.insert(alignment())
         val lineWithAlignment = referenceLine.copy(alignmentVersion = dbAlignmentVersion)
-        val (officialId, rowVersion) = referenceLineDao.insert(lineWithAlignment)
-        val fromDb = referenceLineDao.fetch(rowVersion)
-        assertEquals(officialId, fromDb.id)
+        val official = referenceLineDao.insert(lineWithAlignment)
+        val fromDb = referenceLineDao.fetch(official.rowVersion)
+        assertEquals(official.id, fromDb.id)
         assertMatches(lineWithAlignment, fromDb, contextMatch = false)
         assertEquals(DataType.TEMP, referenceLine.dataType)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertTrue(fromDb.id is IntId)
-        return rowVersion to fromDb
+        return official to fromDb
     }
 
-    private fun insertAndCheck(locationTrack: LocationTrack): Pair<RowVersion<LocationTrack>, LocationTrack> {
+    private fun insertAndCheck(locationTrack: LocationTrack): Pair<DaoResponse<LocationTrack>, LocationTrack> {
         val dbAlignmentVersion = alignmentDao.insert(alignment())
         val trackWithAlignment = locationTrack.copy(alignmentVersion = dbAlignmentVersion)
-        val (officialId, rowVersion) = locationTrackDao.insert(trackWithAlignment)
-        val fromDb = locationTrackDao.fetch(rowVersion)
-        assertEquals(officialId, fromDb.id)
+        val official = locationTrackDao.insert(trackWithAlignment)
+        val fromDb = locationTrackDao.fetch(official.rowVersion)
+        assertEquals(official.id, fromDb.id)
         assertMatches(trackWithAlignment, fromDb, contextMatch = false)
         assertEquals(DataType.TEMP, locationTrack.dataType)
         assertEquals(DataType.STORED, fromDb.dataType)
         assertTrue(fromDb.id is IntId)
-        return rowVersion to fromDb
+        return official to fromDb
     }
 
-    private fun publishAndCheck(rowVersion: RowVersion<LocationTrack>) {
+    private fun publishAndCheck(rowVersion: LayoutRowVersion<LocationTrack>) {
         publishAndCheck(rowVersion, locationTrackDao, locationTrackService)
     }
 }

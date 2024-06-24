@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.geometry
 
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
@@ -11,7 +12,6 @@ import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.HeightTriangle
 import fi.fta.geoviite.infra.geography.HeightTriangleDao
 import fi.fta.geoviite.infra.geography.Transformation
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -20,7 +20,6 @@ import fi.fta.geoviite.infra.tracklayout.toTrackLayout
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.stereotype.Service
 
 const val INFRAMODEL_TRANSFORMATION_KEY_PARENT = "error.infra-model.transformation"
 
@@ -36,7 +35,7 @@ data class TransformationError(
 
 const val GEOMETRY_PLAN_CACHE_SIZE = 100L
 
-@Service
+@GeoviiteService
 class PlanLayoutCache(
     private val geometryDao: GeometryDao,
     private val heightTriangleDao: HeightTriangleDao,
@@ -66,11 +65,6 @@ class PlanLayoutCache(
         includeGeometryData: Boolean = true,
         pointListStepLength: Int = 1,
     ): () -> Pair<GeometryPlanLayout?, TransformationError?> {
-        logger.serviceCall(
-            "getPlanLayout",
-            "rowVersion" to planVersion,
-            "includeGeometryData" to includeGeometryData,
-        )
         val geometryPlan = geometryDao.fetchPlan(planVersion)
         return prepareTransformToLayoutPlan(planVersion, geometryPlan, includeGeometryData, pointListStepLength)
     }

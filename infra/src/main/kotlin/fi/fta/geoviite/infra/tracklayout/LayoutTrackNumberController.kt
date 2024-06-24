@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.AUTH_DOWNLOAD_GEOMETRY
 import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
@@ -14,15 +15,12 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
-import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.publication.getCsvResponseEntity
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.toResponse
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -31,22 +29,17 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-@RestController
-@RequestMapping("/track-layout/track-numbers")
+@GeoviiteController("/track-layout/track-numbers")
 class LayoutTrackNumberController(
     private val trackNumberService: LayoutTrackNumberService,
     private val publicationService: PublicationService,
     private val localizationService: LocalizationService,
 ) {
-
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}")
@@ -56,7 +49,6 @@ class LayoutTrackNumberController(
         @RequestParam("includeDeleted", defaultValue = "false") includeDeleted: Boolean,
     ): List<TrackLayoutTrackNumber> {
         val context = LayoutContext.of(branch, publicationState)
-        logger.apiCall("getTrackNumbers", "context" to context)
         return trackNumberService.list(context, includeDeleted)
     }
 
@@ -68,7 +60,6 @@ class LayoutTrackNumberController(
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
     ): ResponseEntity<TrackLayoutTrackNumber> {
         val context = LayoutContext.of(branch, publicationState)
-        logger.apiCall("getTrackNumber", "context" to context, "id" to id)
         return toResponse(trackNumberService.get(context, id))
     }
 
@@ -80,7 +71,6 @@ class LayoutTrackNumberController(
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
     ): ResponseEntity<ValidatedAsset<TrackLayoutTrackNumber>> {
         val context = LayoutContext.of(branch, publicationState)
-        logger.apiCall("validateTrackNumberAndReferenceLine", "context" to context, "id" to id)
         return publicationService
             .validateTrackNumbersAndReferenceLines(context, listOf(id))
             .firstOrNull()
@@ -93,7 +83,6 @@ class LayoutTrackNumberController(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestBody saveRequest: TrackNumberSaveRequest,
     ): IntId<TrackLayoutTrackNumber> {
-        logger.apiCall("insertTrackNumber", "branch" to branch, "request" to saveRequest)
         return trackNumberService.insert(branch, saveRequest)
     }
 
@@ -104,7 +93,6 @@ class LayoutTrackNumberController(
         @PathVariable id: IntId<TrackLayoutTrackNumber>,
         @RequestBody saveRequest: TrackNumberSaveRequest,
     ): IntId<TrackLayoutTrackNumber> {
-        logger.apiCall("updateTrackNumber", "branch" to branch, "id" to id, "request" to saveRequest)
         return trackNumberService.update(branch, id, saveRequest)
     }
 
@@ -114,7 +102,6 @@ class LayoutTrackNumberController(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
     ): IntId<TrackLayoutTrackNumber> {
-        logger.apiCall("deleteDraftTrackNumber", "branch" to branch, "id" to id)
         return trackNumberService.deleteDraftAndReferenceLine(branch, id)
     }
 
@@ -127,7 +114,6 @@ class LayoutTrackNumberController(
         @RequestParam("bbox") boundingBox: BoundingBox? = null,
     ): List<AlignmentPlanSection> {
         val context = LayoutContext.of(branch, publicationState)
-        logger.apiCall("getTrackSectionsByPlan", "context" to context, "id" to id, "bbox" to boundingBox)
         return trackNumberService.getMetadataSections(context, id, boundingBox)
     }
 
@@ -139,7 +125,6 @@ class LayoutTrackNumberController(
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmLengthDetails> {
         val context = LayoutContext.of(branch, publicationState)
-        logger.apiCall("getTrackNumberKmLengths", "context" to context, "id" to id)
         return trackNumberService.getKmLengths(context, id) ?: emptyList()
     }
 
@@ -154,14 +139,6 @@ class LayoutTrackNumberController(
         @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
         val context = LayoutContext.of(branch, publicationState)
-        logger.apiCall(
-            "getTrackNumberKmLengthsAsCsv",
-            "context" to context,
-            "id" to id,
-            "startKmNumber" to startKmNumber,
-            "endKmNumber" to endKmNumber,
-            "lang" to lang
-        )
 
         val csv = trackNumberService.getKmLengthsAsCsv(
             layoutContext = context,
@@ -185,11 +162,6 @@ class LayoutTrackNumberController(
         @RequestParam(name = "lang", defaultValue = "fi") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        logger.apiCall(
-            "getEntireRailNetworkTrackNumberKmLengthsAsCsv",
-            "layoutContext" to layoutContext,
-            "lang" to lang,
-        )
 
         val csv = trackNumberService.getAllKmLengthsAsCsv(
             layoutContext = layoutContext,
@@ -215,7 +187,6 @@ class LayoutTrackNumberController(
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
     ): ResponseEntity<LayoutAssetChangeInfo> {
         val context = LayoutContext.of(branch, publicationState)
-        logger.apiCall("getTrackNumberChangeInfo", "context" to context, "id" to id)
         return toResponse(trackNumberService.getLayoutAssetChangeInfo(context, id))
     }
 }

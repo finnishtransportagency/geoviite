@@ -50,6 +50,7 @@ class PublicationGeometryChangeRemarksUpdateService(
 
     private fun processOne(unprocessedChange: PublicationDao.UnprocessedGeometryChange) {
         val geocodingContext = geocodingService.getGeocodingContextAtMoment(
+            unprocessedChange.branch,
             unprocessedChange.trackNumberId,
             unprocessedChange.publicationTime,
         )

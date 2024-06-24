@@ -1,8 +1,12 @@
 package fi.fta.geoviite.infra
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.MainBranch
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
@@ -19,16 +23,25 @@ import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.project
 import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
+import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
+import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
+import fi.fta.geoviite.infra.tracklayout.LayoutDesign
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutRowId
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
+import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.PolyLineLayoutAsset
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
@@ -36,17 +49,20 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
+import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.setUser
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 import kotlin.reflect.KClass
+import kotlin.test.assertEquals
 
 interface TestDB {
     val jdbc: NamedParameterJdbcTemplate
@@ -69,7 +85,7 @@ interface TestDB {
         TrackLayoutTrackNumber::class -> trackNumberDao
         ReferenceLine::class -> referenceLineDao
         TrackLayoutKmPost::class -> kmPostDao
-        else -> error { "Unsupported asset type: ${clazz.simpleName}" }
+        else -> error("Unsupported asset type: ${clazz.simpleName}")
     } as LayoutAssetDao<T>
 
     @Suppress("UNCHECKED_CAST")
@@ -82,7 +98,7 @@ interface TestDB {
     } as LayoutAssetDao<T>
 }
 
-@Service
+@GeoviiteService
 class TestDBService(
     private val jdbcTemplate: NamedParameterJdbcTemplate?,
     private val transactionTemplate: TransactionTemplate?,
@@ -93,11 +109,12 @@ class TestDBService(
     override val kmPostDao: LayoutKmPostDao,
     override val alignmentDao: LayoutAlignmentDao,
     override val geometryDao: GeometryDao,
+    private val layoutDesignDao: LayoutDesignDao,
 ) : TestDB {
 
-    override val jdbc by lazy { jdbcTemplate ?: error { "JDBC not initialized" } }
+    override val jdbc by lazy { jdbcTemplate ?: error("JDBC not initialized") }
 
-    val transaction by lazy { transactionTemplate ?: error { "JDBC not initialized" } }
+    val transaction by lazy { transactionTemplate ?: error("JDBC not initialized") }
 
     fun clearAllTables() {
         clearRatkoTables()
@@ -248,11 +265,11 @@ class TestDBService(
         }
     }
 
-    final inline fun <reified T : LayoutAsset<T>> fetch(rowVersion: RowVersion<T>): T =
+    final inline fun <reified T : LayoutAsset<T>> fetch(rowVersion: LayoutRowVersion<T>): T =
         getDao(T::class).fetch(rowVersion)
 
     final inline fun <reified T : PolyLineLayoutAsset<T>> fetchWithAlignment(
-        rowVersion: RowVersion<T>,
+        rowVersion: LayoutRowVersion<T>,
     ): Pair<T, LayoutAlignment> =
         fetch(rowVersion).let { a -> a to alignmentDao.fetch(a.getAlignmentVersionOrThrow()) }
 
@@ -281,11 +298,52 @@ class TestDBService(
 
     fun <T : LayoutAsset<T>> updateContext(original: T, context: LayoutContext): T = original
         .takeIf { o -> o.contextData.designId == context.branch.designId && o.isDraft == (context.state == DRAFT) }
-        ?: original.withContext(LayoutContextData.new(context, original.contextData.rowId))
+        ?: original.withContext(LayoutContextData.new(context))
 
     fun insertProject(): RowVersion<Project> = geometryDao.insertProject(project(getUnusedProjectName().toString()))
 
     fun insertAuthor(): RowVersion<Author> = geometryDao.insertAuthor(Author(getUnusedAuthorCompanyName()))
+
+    final inline fun <reified T : LayoutAsset<T>> update(
+        rowVersion: LayoutRowVersion<T>,
+        mutate: (T) -> T = { it },
+    ): DaoResponse<T> {
+        val dao = getDao(T::class)
+        return dao.update(mutate(dao.fetch(rowVersion)))
+    }
+
+    fun createLayoutDesign(): IntId<LayoutDesign> = layoutDesignDao.insert(layoutDesign())
+
+    fun createDesignBranch(): DesignBranch = LayoutBranch.design(createLayoutDesign())
+
+    fun layoutChangeTime(): Instant = listOf(
+        trackNumberDao.fetchChangeTime(),
+        referenceLineDao.fetchChangeTime(),
+        locationTrackDao.fetchChangeTime(),
+        switchDao.fetchChangeTime(),
+        kmPostDao.fetchChangeTime(),
+    ).max()
+
+    /**
+     * This function can be used to create a draft-version of an official asset, creating the appropriate backwards
+     * linking as necessary. Optionally, a target branch can be given to create the draft in a different branch
+     * (main-official -> design-draft or design-official -> main-draft). If not given, the current branch is used.
+     */
+    final inline fun <reified S : LayoutAsset<S>> createDraft(
+        officialVersion: LayoutRowVersion<S>,
+        targetBranch: LayoutBranch? = null,
+        mutate: (S) -> S = { it },
+    ): DaoResponse<S> {
+        val original = fetch(officialVersion)
+        assertTrue(original.isOfficial)
+        val targetContext = testContext(targetBranch ?: original.branch, DRAFT)
+        return targetContext.copyFrom(
+            officialVersion,
+            officialRowId = if (!original.isDesign) original.contextData.rowId else original.contextData.officialRowId,
+            designRowId = if (original.isDesign) original.contextData.rowId else null,
+            mutate = mutate,
+        )
+    }
 }
 
 data class TestLayoutContext(
@@ -305,6 +363,68 @@ data class TestLayoutContext(
     fun <T : PolyLineLayoutAsset<T>> insert(
         assetAndAlignment: Pair<PolyLineLayoutAsset<T>, LayoutAlignment>
     ): DaoResponse<T> = insert(assetAndAlignment.first, assetAndAlignment.second)
+
+    inline fun <reified T : LayoutAsset<T>> assertContextVersionExists(id: IntId<T>) =
+        assertEquals(context, getAssetOriginContext(id))
+
+    inline fun <reified T : LayoutAsset<T>> assertContextVersionDoesntExist(id: IntId<T>) =
+        assertNotEquals(context, getAssetOriginContext(id))
+
+    inline fun <reified T : LayoutAsset<T>> getAssetOriginContext(id: IntId<T>): LayoutContext {
+        val assetInContext = getDao(T::class).getOrThrow(context, id)
+        return LayoutContext.of(assetInContext.branch, if(assetInContext.isDraft) DRAFT else OFFICIAL)
+    }
+
+    /**
+     * Copies the asset identified by [rowVersion] to the current context. Note, that this does not create linking
+     * to the original asset, so calling this for draft context on an official asset creates a new draft with same
+     * data, not a draft of the official. You can provide [officialRowId] and [designRowId] to link the new asset if
+     * desired.
+     * <p>
+     * If desired, you can also mutate the asset before moving it to the new context by providing a [mutate] function.
+     * </p>
+     */
+    @Suppress("UNCHECKED_CAST")
+    inline fun <reified T : LayoutAsset<T>> copyFrom(
+        rowVersion: LayoutRowVersion<T>,
+        officialRowId: LayoutRowId<T>? = null,
+        designRowId: LayoutRowId<T>? = null,
+        mutate: (T) -> T = { it },
+    ): DaoResponse<T> {
+        val dao = getDao(T::class)
+        val original = mutate(dao.fetch(rowVersion))
+        val withNewContext = original.withContext(createContextData(null, officialRowId, designRowId))
+        return when (withNewContext) {
+            // Also copy alignment: the types won't play nice unless we use the final ones, so this duplicates
+            is LocationTrack -> insert(withNewContext, alignmentDao.fetch(withNewContext.getAlignmentVersionOrThrow()))
+            is ReferenceLine -> insert(withNewContext, alignmentDao.fetch(withNewContext.getAlignmentVersionOrThrow()))
+            is PolyLineLayoutAsset<*> -> error("Unhandled PolyLineAsset type: ${T::class.simpleName}")
+            else -> insert(withNewContext)
+        } as DaoResponse<T>
+    }
+
+    /**
+     * Moves the asset identified by [rowVersion] to the current context, maintaining the row itself.
+     * Links to official/design row are kept where possible, noting the rules of which contexts actually have them.
+     * <p>
+     * If desired, you can also mutate the asset before moving it to the new context by providing a [mutate] function.
+     * </p>
+     */
+    inline fun <reified T : LayoutAsset<T>> moveFrom(
+        rowVersion: LayoutRowVersion<T>,
+        mutate: (T) -> T = { it },
+    ): DaoResponse<T> {
+        val dao = getDao(T::class)
+        val original = mutate(dao.fetch(rowVersion))
+        val withNewContext = original.withContext(original.contextData.let { origCtx ->
+            createContextData(
+                rowId = origCtx.rowId,
+                officialRowId = origCtx.officialRowId.takeIf { context !is MainLayoutContext },
+                designRowId = origCtx.designRowId.takeIf { context.state == DRAFT },
+            )
+        })
+        return dao.update(withNewContext)
+    }
 
     @Suppress("UNCHECKED_CAST")
     fun <T : PolyLineLayoutAsset<T>> insert(
@@ -354,14 +474,42 @@ data class TestLayoutContext(
         (1..count).map { createLayoutTrackNumber() }
 
     fun getOrCreateLayoutTrackNumber(trackNumber: TrackNumber): TrackLayoutTrackNumber {
-        val version = trackNumberDao.fetchVersions(context, true, trackNumber).firstOrNull()
-            ?: insert(trackNumber(trackNumber)).rowVersion
-        return version.let(trackNumberDao::fetch)
+        val response = trackNumberDao.fetchVersions(context, true, trackNumber).firstOrNull()
+            ?: insert(trackNumber(trackNumber))
+        return response.let { r -> trackNumberDao.fetch(r.rowVersion) }
     }
 
     fun createTrackNumberAndId(): Pair<TrackNumber, IntId<TrackLayoutTrackNumber>> =
         createAndFetchLayoutTrackNumber().let { tn -> tn.number to tn.id as IntId }
 
-    fun createSwitch(): DaoResponse<TrackLayoutSwitch> =
-        insert(switch(name = testService.getUnusedSwitchName().toString()))
+    fun createSwitch(
+        stateCategory: LayoutStateCategory = LayoutStateCategory.EXISTING,
+    ): DaoResponse<TrackLayoutSwitch> = insert(
+        switch(
+            name = testService.getUnusedSwitchName().toString(),
+            stateCategory = stateCategory,
+        )
+    )
+
+    fun <T : LayoutAsset<T>> createContextData(
+        rowId: LayoutRowId<T>? = null,
+        officialRowId: LayoutRowId<T>? = null,
+        designRowId: LayoutRowId<T>? = null,
+    ): LayoutContextData<T> = context.branch.let { branch ->
+        when (context.state) {
+            OFFICIAL -> when (branch) {
+                is MainBranch -> MainOfficialContextData(rowId, version = null).also {
+                    require(officialRowId == null) { "Can't set official row reference on official row itself" }
+                    require(designRowId == null) { "Can't set design row reference on main-official row" }
+                }
+                is DesignBranch -> DesignOfficialContextData(rowId, version = null, officialRowId, branch.designId).also {
+                    require(designRowId == null) { "Can't set design row reference on official design itself" }
+                }
+            }
+            DRAFT -> when (branch) {
+                is MainBranch -> MainDraftContextData(rowId, version = null, officialRowId, designRowId)
+                is DesignBranch -> DesignDraftContextData(rowId, version = null, designRowId, officialRowId, branch.designId)
+            }
+        }
+    }
 }

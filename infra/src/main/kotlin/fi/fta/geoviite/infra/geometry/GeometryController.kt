@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.geometry
 
+import fi.fta.geoviite.infra.aspects.GeoviiteController
 import fi.fta.geoviite.infra.authorization.AUTH_DOWNLOAD_GEOMETRY
 import fi.fta.geoviite.infra.authorization.AUTH_EDIT_GEOMETRY_FILE
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE
@@ -17,7 +18,6 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEnd
 import fi.fta.geoviite.infra.geometry.GeometryPlanSortField.ID
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
-import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -26,12 +26,9 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.KnownFileSuffix.CSV
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.SortOrder.ASCENDING
-import fi.fta.geoviite.infra.util.logger
 import fi.fta.geoviite.infra.util.pageAndRest
 import fi.fta.geoviite.infra.util.toFileDownloadResponse
 import fi.fta.geoviite.infra.util.toResponse
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
@@ -40,17 +37,13 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
 
-@RestController
-@RequestMapping("/geometry")
+@GeoviiteController("/geometry")
 class GeometryController @Autowired constructor(
     private val geometryService: GeometryService,
     private val planLayoutService: PlanLayoutService,
 ) {
-    private val log: Logger = LoggerFactory.getLogger(this::class.java)
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY_FILE)
     @GetMapping("/plan-headers")
@@ -65,7 +58,6 @@ class GeometryController @Autowired constructor(
         @RequestParam("sortOrder") sortOrder: SortOrder?,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): GeometryPlanHeadersSearchResult {
-        log.apiCall("getPlanHeaders", "sources" to sources)
         val filter = geometryService.getFilter(freeText, trackNumbers ?: listOf())
         val headers = geometryService.getPlanHeaders(sources, bbox, filter)
         val comparator = geometryService.getComparator(sortField ?: ID, sortOrder ?: ASCENDING, lang)
@@ -79,7 +71,6 @@ class GeometryController @Autowired constructor(
     @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @GetMapping("/plan-headers/{planId}")
     fun getPlanHeader(@PathVariable("planId") planId: IntId<GeometryPlan>): GeometryPlanHeader {
-        log.apiCall("getPlanHeader", "planId" to planId)
         return geometryService.getPlanHeader(planId)
     }
 
@@ -88,14 +79,12 @@ class GeometryController @Autowired constructor(
     fun getPlanHeaders(
         @RequestParam("planIds", required = true) planIds: List<IntId<GeometryPlan>>,
     ): List<GeometryPlanHeader> {
-        log.apiCall("getPlanHeaders", "planIds" to planIds)
         return geometryService.getManyPlanHeaders(planIds)
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @GetMapping("/plans/areas")
     fun getGeometryPlanAreas(@RequestParam("bbox") bbox: BoundingBox): List<GeometryPlanArea> {
-        log.apiCall("getGeometryPlanAreas", "bbox" to bbox)
         return geometryService.getGeometryPlanAreas(bbox)
     }
 
@@ -105,11 +94,6 @@ class GeometryController @Autowired constructor(
         @PathVariable("geometryPlanId") geometryPlanId: IntId<GeometryPlan>,
         @RequestParam("includeGeometryData") includeGeometryData: Boolean = true,
     ): GeometryPlanLayout? {
-        log.apiCall(
-            "getTrackLayoutPlan",
-            "planId" to geometryPlanId,
-            "includeGeometryData" to includeGeometryData,
-        )
         return planLayoutService.getLayoutPlan(geometryPlanId, includeGeometryData).first
     }
 
@@ -119,18 +103,12 @@ class GeometryController @Autowired constructor(
         @RequestParam("planIds") planIds: List<IntId<GeometryPlan>>,
         @RequestParam("includeGeometryData") includeGeometryData: Boolean = true,
     ): ResponseEntity<List<GeometryPlanLayout>> {
-        log.apiCall(
-            "getTrackLayoutPlans",
-            "planIds" to planIds,
-            "includeGeometryData" to includeGeometryData,
-        )
         return toResponse(planLayoutService.getManyLayoutPlans(planIds, includeGeometryData).mapNotNull { it.first })
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @GetMapping("/switches/{switchId}")
     fun getGeometrySwitch(@PathVariable("switchId") switchId: IntId<GeometrySwitch>): GeometrySwitch {
-        log.apiCall("getGeometrySwitch", "switchId" to switchId)
         return geometryService.getSwitch(switchId)
     }
 
@@ -139,56 +117,48 @@ class GeometryController @Autowired constructor(
     fun getGeometrySwitchLayout(
         @PathVariable("switchId") switchId: IntId<GeometrySwitch>,
     ): ResponseEntity<TrackLayoutSwitch> {
-        log.apiCall("getGeometrySwitchLayout", "switchId" to switchId)
         return toResponse(geometryService.getSwitchLayout(switchId))
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @GetMapping("/plans/{id}")
     fun getGeometryPlan(@PathVariable("id") planId: IntId<GeometryPlan>): GeometryPlan {
-        log.apiCall("getGeometryPlan", "planId" to planId)
         return geometryService.getGeometryPlan(planId)
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @GetMapping("/plans/elements/{id}")
     fun getGeometryElement(@PathVariable("id") geometryElementId: IndexedId<GeometryElement>): GeometryElement {
-        log.apiCall("getGeometryElement", "geometryElementId" to geometryElementId)
         return geometryService.getGeometryElement(geometryElementId)
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @GetMapping("/projects")
     fun getProjects(): List<Project> {
-        log.apiCall("getProjects")
         return geometryService.getProjects()
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @GetMapping("/projects/{id}")
     fun getProject(@PathVariable("id") projectId: IntId<Project>): Project {
-        log.apiCall("getProject")
         return geometryService.getProject(projectId)
     }
 
     @PreAuthorize(AUTH_EDIT_GEOMETRY_FILE)
     @PostMapping("/projects")
     fun createProject(@RequestBody project: Project): IntId<Project> {
-        log.apiCall("createProject", "project" to project)
         return geometryService.createProject(project)
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @GetMapping("/authors")
     fun getAuthors(): List<Author> {
-        log.apiCall("getAuthors")
         return geometryService.getAuthors()
     }
 
     @PreAuthorize(AUTH_EDIT_GEOMETRY_FILE)
     @PostMapping("/authors")
     fun createAuthor(@RequestBody author: Author): Author {
-        log.apiCall("createAuthor", "author" to author)
         return geometryService.createAuthor(author)
     }
 
@@ -197,7 +167,6 @@ class GeometryController @Autowired constructor(
     fun getLinkingSummaries(
         @RequestBody planIds: List<IntId<GeometryPlan>>,
     ): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
-        log.apiCall("getLinkingSummaries", "planIds" to planIds)
         return geometryService.getLinkingSummaries(planIds)
     }
 
@@ -207,7 +176,6 @@ class GeometryController @Autowired constructor(
         @PathVariable("id") id: IntId<GeometryPlan>,
         @RequestParam("elementTypes") elementTypes: List<GeometryElementType>,
     ): List<ElementListing> {
-        log.apiCall("getPlanElementList", "id" to id, "elementTypes" to elementTypes)
         return geometryService.getElementListing(id, elementTypes)
     }
 
@@ -218,7 +186,6 @@ class GeometryController @Autowired constructor(
         @RequestParam("elementTypes") elementTypes: List<GeometryElementType>,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
-        log.apiCall("getPlanElementList", "id" to id, "elementTypes" to elementTypes, "lang" to lang)
         val (filename, content) = geometryService.getElementListingCsv(id, elementTypes, lang)
         return toFileDownloadResponse(filename.withSuffix(CSV), content.toByteArray(Charsets.UTF_8))
     }
@@ -234,14 +201,6 @@ class GeometryController @Autowired constructor(
         @RequestParam("endAddress") endAddress: TrackMeter? = null,
     ): List<ElementListing> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        log.apiCall(
-            "getPlanElementList",
-            "layoutContext" to layoutContext,
-            "id" to id,
-            "elementTypes" to elementTypes,
-            "startAddress" to startAddress,
-            "endAddress" to endAddress,
-        )
         return geometryService.getElementListing(layoutContext, id, elementTypes, startAddress, endAddress)
     }
 
@@ -257,15 +216,6 @@ class GeometryController @Autowired constructor(
         @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        log.apiCall(
-            "getPlanElementListCsv",
-            "layoutContext" to layoutContext,
-            "id" to id,
-            "elementTypes" to elementTypes,
-            "startAddress" to startAddress,
-            "endAddress" to endAddress,
-            "lang" to lang,
-        )
         val (filename, content) = geometryService.getElementListingCsv(
             layoutContext = layoutContext,
             trackId = id,
@@ -280,7 +230,6 @@ class GeometryController @Autowired constructor(
     @PreAuthorize(AUTH_DOWNLOAD_GEOMETRY)
     @GetMapping("/rail-network/element-listing/file")
     fun getEntireNetworkElementListingCSV(): ResponseEntity<ByteArray> {
-        log.apiCall("getPlanElementListCsv")
         val elementListingFile = geometryService.getElementListingCsv()
         return elementListingFile?.let {
             toFileDownloadResponse(
@@ -294,7 +243,6 @@ class GeometryController @Autowired constructor(
     fun getPlanVerticalGeometryListing(
         @PathVariable("id") id: IntId<GeometryPlan>,
     ): List<VerticalGeometryListing> {
-        log.apiCall("getPlanVerticalGeometryListing", "id" to id)
         return geometryService.getVerticalGeometryListing(id)
     }
 
@@ -304,7 +252,6 @@ class GeometryController @Autowired constructor(
         @PathVariable("id") id: IntId<GeometryPlan>,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
-        log.apiCall("getPlanVerticalGeometryListingCsv", "id" to id)
         val (filename, content) = geometryService.getVerticalGeometryListingCsv(id, lang)
         return toFileDownloadResponse(filename.withSuffix(CSV), content)
     }
@@ -319,13 +266,6 @@ class GeometryController @Autowired constructor(
         @RequestParam("endAddress") endAddress: TrackMeter? = null,
     ): List<VerticalGeometryListing> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        log.apiCall(
-            "getTrackVerticalGeometryListing",
-            "layoutContext" to layoutContext,
-            "id" to id,
-            "startAddress" to startAddress,
-            "endAddress" to endAddress,
-        )
         return geometryService.getVerticalGeometryListing(
             layoutContext = layoutContext,
             locationTrackId = id,
@@ -342,12 +282,6 @@ class GeometryController @Autowired constructor(
         @RequestParam("endAddress") endAddress: TrackMeter? = null,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
-        log.apiCall(
-            "getTrackVerticalGeometryListingCsv",
-            "id" to id,
-            "startAddress" to startAddress,
-            "endAddress" to endAddress,
-        )
         val (filename, content) = geometryService.getVerticalGeometryListingCsv(id, startAddress, endAddress, lang)
         return toFileDownloadResponse(filename.withSuffix(CSV), content)
     }
@@ -355,7 +289,6 @@ class GeometryController @Autowired constructor(
     @PreAuthorize(AUTH_DOWNLOAD_GEOMETRY)
     @GetMapping("/rail-network/vertical-geometry/file")
     fun getEntireNetworkVerticalGeometryListingCSV(): ResponseEntity<ByteArray> {
-        log.apiCall("getEntireNetworkVerticalGeometryListingCSV")
         val verticalGeometryListingFile = geometryService.getEntireVerticalGeometryListingCsv()
         return verticalGeometryListingFile?.let {
             toFileDownloadResponse(
@@ -371,7 +304,6 @@ class GeometryController @Autowired constructor(
         @PathVariable("planId") planId: IntId<GeometryPlan>,
         @PathVariable("planAlignmentId") planAlignmentId: IntId<GeometryAlignment>,
     ): ResponseEntity<AlignmentStartAndEnd> {
-        logger.apiCall("getPlanAlignmentStartAndEnd", "planId" to planId, "planAlignmentId" to planAlignmentId)
         return toResponse(geometryService.getPlanAlignmentStartAndEnd(planId, planAlignmentId))
     }
 
@@ -384,14 +316,6 @@ class GeometryController @Autowired constructor(
         @RequestParam("endDistance") endDistance: Double,
         @RequestParam("tickLength") tickLength: Int,
     ): List<KmHeights> {
-        logger.apiCall(
-            "getPlanAlignmentHeights",
-            "planId" to planId,
-            "planAlignmentId" to planAlignmentId,
-            "startDistance" to startDistance,
-            "endDistance" to endDistance,
-            "tickLength" to tickLength,
-        )
         return geometryService.getPlanAlignmentHeights(planId, planAlignmentId, startDistance, endDistance, tickLength)
             ?: emptyList()
     }
@@ -404,7 +328,6 @@ class GeometryController @Autowired constructor(
         @PathVariable("id") id: IntId<LocationTrack>,
     ): List<PlanLinkingSummaryItem>? {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        logger.apiCall("getLocationTrackLinkingSummary", "layoutContext" to layoutContext, "id" to id)
         return geometryService.getLocationTrackGeometryLinkingSummary(layoutContext, id)
     }
 
@@ -419,14 +342,6 @@ class GeometryController @Autowired constructor(
         @RequestParam("tickLength") tickLength: Int,
     ): List<KmHeights>? {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        logger.apiCall(
-            "getLayoutAlignmentHeights",
-            "layoutContext" to layoutContext,
-            "id" to id,
-            "startDistance" to startDistance,
-            "endDistance" to endDistance,
-            "tickLength" to tickLength,
-        )
         return geometryService.getLocationTrackHeights(
             layoutContext = layoutContext,
             locationTrackId = id,

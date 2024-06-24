@@ -57,7 +57,16 @@ export const UserCard: React.FC<UserCardProps> = ({ user }: UserCardProps) => {
                                 <h3 className={styles['user-card__permissions-title']}>
                                     {t('user-card.permissions')}
                                 </h3>
-                                <span>{user.role.privileges.map((p) => p.name).join(', ')}</span>
+                                <span>
+                                    {user.role.privileges.map((priv, index) => (
+                                        <span
+                                            key={priv.code}
+                                            title={t(`privilege.description.${priv.code}`)}>
+                                            {t(`privilege.${priv.code}`)}
+                                            {index < user.role.privileges.length - 1 && ', '}
+                                        </span>
+                                    ))}
+                                </span>
                             </section>
                         </React.Fragment>
                     )}

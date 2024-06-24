@@ -1,30 +1,30 @@
 -- As a repeatable migration, this will be re-run whenever the file changes. It must be idempotent.
 create temp table new_role on commit drop as
-with temp(code, name, user_group) as (
+with temp(code, user_group) as (
     values
-      ('operator', 'Operaattori', 'geoviite_operaattori'),
-      ('browser', 'Selaaja', 'geoviite_selaaja'), -- Deprecated: remove when users are updated in AD to "authority"
-      ('authority', 'Virastokäyttäjä', 'geoviite_virasto'),
-      ('consultant', 'Konsultti', 'geoviite_konsultti'),
-      ('team', 'Kehitystiimi', 'geoviite_tiimi')
+      ('operator', 'geoviite_operaattori'),
+      ('browser', 'geoviite_selaaja'), -- Deprecated: remove when users are updated in AD to "authority"
+      ('authority', 'geoviite_virasto'),
+      ('consultant', 'geoviite_konsultti'),
+      ('team', 'geoviite_tiimi')
 )
 select *
   from temp;
 
 create temp table new_privilege on commit drop as
-with temp(code, name, description) as (
+with temp(code) as (
     values
-      ('view-basic', 'Perustietojen luku', 'Oikeus autentikoitua Geoviitteeseen ja lukea käyttäjä- ja ympäristötietoja'),
-      ('view-layout', 'Paikannuspohjan luku', 'Oikeus tarkastella virallista paikannuspohjaa'),
-      ('view-layout-draft', 'Paikannuspohjaluonnoksen luku', 'Oikeus tarkastella paikannuspohjaa luonnostilassa'),
-      ('edit-layout', 'Paikannuspohjan muokkaus', 'Oikeus muokata Geoviitteen paikannuspohjaa'),
-      ('view-geometry', 'Raidegeometrioiden luku', 'Oikeus listata ja tarkastella raidegeometrioita'),
-      ('edit-geometry-file', 'Raidegeometrioiden muokkaus', 'Oikeus luoda, poistaa ja piilottaa inframalleja ja muokata niihin liittyvää metatietoa'),
-      ('download-geometry', 'Inframallien lataus', 'Oikeus ladata Geoviitteestä InfraModel-tiedostoja'),
-      ('view-pv-documents', 'Projektivelhoaineistojen luku', 'Oikeus listata ja tarkastella ProjektiVelhosta ladattuja aineistoja'),
-      ('view-geometry-file', 'Geometriatiedostojen luku', 'Oikeus listata ja tarkastella Geoviitteen InfraModel-tiedostoja'),
-      ('view-publication', 'Julkaisujen luku', 'Oikeus listata ja tarkastella julkaisuja'),
-      ('download-publication', 'Julkaisujen lataus', 'Oikeus ladata julkaisuja')
+      ('view-basic'),
+      ('view-layout'),
+      ('view-layout-draft'),
+      ('edit-layout'),
+      ('view-geometry'),
+      ('edit-geometry-file'),
+      ('download-geometry'),
+      ('view-pv-documents'),
+      ('view-geometry-file'),
+      ('view-publication'),
+      ('download-publication')
 )
 select *
   from temp;
@@ -96,21 +96,21 @@ delete
   where not exists(select from new_role where new_role.code = role.code);
 
 -- Upsert using 'except' to avoid updating rows that are already identical
-insert into common.role(code, name, user_group)
+insert into common.role(code, user_group)
 select *
   from new_role
 except
-select code, name, user_group
+select code, user_group
   from common.role
-on conflict (code) do update set name = excluded.name, user_group = excluded.user_group;
+on conflict (code) do update set user_group = excluded.user_group;
 
-insert into common.privilege(code, name, description)
+insert into common.privilege(code)
 select *
   from new_privilege
 except
-select code, name, description
+select code
   from common.privilege
-on conflict (code) do update set name = excluded.name, description = excluded.description;
+on conflict (code) do nothing;
 
 insert into common.role_privilege(role_code, privilege_code)
 select *

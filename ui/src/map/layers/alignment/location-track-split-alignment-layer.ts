@@ -24,6 +24,13 @@ const splittingLocationTrackStyle = new Style({
     }),
     zIndex: 2,
 });
+const splittingLocationTrackDisabledStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.selectedAlignmentLineDisabled,
+        width: 3,
+    }),
+    zIndex: 2,
+});
 
 const splittingLocationTrackFocusedStyle = new Style({
     stroke: new Stroke({
@@ -32,13 +39,31 @@ const splittingLocationTrackFocusedStyle = new Style({
     }),
     zIndex: 2,
 });
+const splittingLocationTrackDisabledFocusedStyle = new Style({
+    stroke: new Stroke({
+        color: mapStyles.selectedAlignmentLineDisabled,
+        width: 6,
+    }),
+    zIndex: 2,
+});
 
 const layerName: MapLayerName = 'location-track-split-alignment-layer';
+
+const alignmentStyle = (enabled: boolean, focused: boolean) => {
+    if (focused) {
+        return enabled
+            ? splittingLocationTrackFocusedStyle
+            : splittingLocationTrackDisabledFocusedStyle;
+    } else {
+        return enabled ? splittingLocationTrackStyle : splittingLocationTrackDisabledStyle;
+    }
+};
 
 function splitToParts(
     alignment: AlignmentDataHolder,
     splits: SplitTarget[],
     focusedSplits: SplitTargetId[],
+    splittingEnabled: boolean,
 ): Feature<LineString | OlPoint>[] {
     const endOfAlignment = expectDefined(last(alignment.points)).m;
     return splits.flatMap((split, index, allSplits) => {
@@ -60,7 +85,7 @@ function splitToParts(
         return createAlignmentFeature(
             alignmentPart,
             false,
-            splitIsFocused ? splittingLocationTrackFocusedStyle : splittingLocationTrackStyle,
+            alignmentStyle(splittingEnabled, splitIsFocused),
         );
     });
 }
@@ -74,6 +99,7 @@ export function createLocationTrackSplitAlignmentLayer(
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
+    const splittingEnabled = splittingState ? !splittingState.disabled : false;
 
     const alignmentPromise: Promise<AlignmentDataHolder[]> =
         splittingState != undefined
@@ -91,12 +117,13 @@ export function createLocationTrackSplitAlignmentLayer(
             return [];
         }
 
-        createAlignmentFeature(splitTrack, false, splittingLocationTrackFocusedStyle);
+        createAlignmentFeature(splitTrack, false, alignmentStyle(splittingEnabled, true));
 
         return splitToParts(
             splitTrack,
             [splittingState.firstSplit, ...splittingState.splits],
             [splittingState.focusedSplit, splittingState.highlightedSplit].filter(filterNotEmpty),
+            splittingEnabled,
         );
     };
 

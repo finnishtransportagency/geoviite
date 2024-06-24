@@ -16,9 +16,9 @@ data class UserDetails(
     val organization: AuthName?,
 )
 
-data class Role(val code: Code, val name: AuthName, val privileges: List<Privilege>)
+data class Role(val code: Code, val privileges: List<Privilege>)
 
-data class Privilege(val code: Code, val name: AuthName, val description: FreeText) : GrantedAuthority {
+data class Privilege(val code: Code) : GrantedAuthority {
     @JsonIgnore
     override fun getAuthority(): String = code.toString()
 }

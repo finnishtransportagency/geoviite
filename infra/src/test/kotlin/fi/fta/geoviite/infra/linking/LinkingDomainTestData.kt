@@ -1,6 +1,5 @@
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.publication.PublicationRequestIds
 import fi.fta.geoviite.infra.publication.PublicationResult
 import fi.fta.geoviite.infra.publication.PublicationService
@@ -28,19 +27,19 @@ fun publicationRequest(
 )
 
 fun validationVersions(
-    trackNumbers: List<Pair<IntId<TrackLayoutTrackNumber>, RowVersion<TrackLayoutTrackNumber>>> = listOf(),
-    referenceLines: List<Pair<IntId<ReferenceLine>, RowVersion<ReferenceLine>>> = listOf(),
-    kmPosts: List<Pair<IntId<TrackLayoutKmPost>, RowVersion<TrackLayoutKmPost>>> = listOf(),
-    locationTracks: List<Pair<IntId<LocationTrack>, RowVersion<LocationTrack>>> = listOf(),
-    switches: List<Pair<IntId<TrackLayoutSwitch>, RowVersion<TrackLayoutSwitch>>> = listOf(),
+    trackNumbers: List<DaoResponse<TrackLayoutTrackNumber>> = listOf(),
+    referenceLines: List<DaoResponse<ReferenceLine>> = listOf(),
+    kmPosts: List<DaoResponse<TrackLayoutKmPost>> = listOf(),
+    locationTracks: List<DaoResponse<LocationTrack>> = listOf(),
+    switches: List<DaoResponse<TrackLayoutSwitch>> = listOf(),
     branch: LayoutBranch = LayoutBranch.main,
 ) = ValidationVersions(
     branch = branch,
-    trackNumbers = trackNumbers.map { (id,version) -> ValidationVersion(id, version) },
-    referenceLines = referenceLines.map { (id,version) -> ValidationVersion(id, version) },
-    kmPosts = kmPosts.map { (id,version) -> ValidationVersion(id, version) },
-    locationTracks = locationTracks.map { (id,version) -> ValidationVersion(id, version) },
-    switches = switches.map { (id,version) -> ValidationVersion(id, version) },
+    trackNumbers = trackNumbers.map { (id, version) -> ValidationVersion(id, version) },
+    referenceLines = referenceLines.map { (id, version) -> ValidationVersion(id, version) },
+    kmPosts = kmPosts.map { (id, version) -> ValidationVersion(id, version) },
+    locationTracks = locationTracks.map { (id, version) -> ValidationVersion(id, version) },
+    switches = switches.map { (id, version) -> ValidationVersion(id, version) },
     splits = listOf(),
 )
 

@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.common
 
+import fi.fta.geoviite.infra.aspects.GeoviiteController
 import org.springframework.web.bind.annotation.*
 
 data class MainBranchTestObject(val branch: MainBranch) {
@@ -16,8 +17,7 @@ data class LayoutBranchTestObject(val branch: LayoutBranch) {
 
 const val LAYOUT_TEST_URL = "/layout-branch-test"
 
-@RestController
-@RequestMapping(LAYOUT_TEST_URL)
+@GeoviiteController(LAYOUT_TEST_URL)
 class LayoutBranchTestController {
 
     @GetMapping("/{branch}")

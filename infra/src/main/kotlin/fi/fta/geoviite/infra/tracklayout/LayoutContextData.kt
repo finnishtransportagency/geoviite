@@ -12,7 +12,6 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.logging.Loggable
 
@@ -20,8 +19,10 @@ enum class EditState { UNEDITED, EDITED, CREATED }
 
 interface LayoutContextAware<T> {
     val id: DomainId<T>
+    val version: LayoutRowVersion<T>?
     val dataType: DataType
     val editState: EditState
+    val branch: LayoutBranch
 
     @get:JsonIgnore
     val isDraft: Boolean get() = false
@@ -35,8 +36,6 @@ interface LayoutContextAware<T> {
 
 sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) :
     LayoutContextAware<T> by contextData, Loggable {
-    abstract val version: RowVersion<T>?
-
     @get:JsonIgnore
     abstract val contextData: LayoutContextData<T>
 
@@ -45,38 +44,49 @@ sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) 
 
 sealed class LayoutContextData<T> : LayoutContextAware<T> {
 
-    @get:JsonIgnore abstract val rowId: DomainId<T>
+    @get:JsonIgnore
+    abstract val rowId: LayoutRowId<T>?
 
     @get:JsonIgnore
-    open val officialRowId: DomainId<T>? get() = null
+    open val officialRowId: LayoutRowId<T>? get() = null
 
     @get:JsonIgnore
-    open val designRowId: DomainId<T>? get() = null
+    open val designRowId: LayoutRowId<T>? get() = null
+
+    final override val id: DomainId<T> by lazy {
+        (officialRowId ?: designRowId ?: rowId)
+            ?.let { rowId -> IntId(rowId.intValue) }
+            ?: StringId()
+    }
+
+    final override val dataType get() = if (rowId == null) TEMP else STORED
+
+    override val branch get() = designId?.let(LayoutBranch::design) ?: LayoutBranch.main
 
     @get:JsonIgnore
-    open val designId: DomainId<LayoutDesign>? get() = null
+    open val designId: IntId<LayoutDesign>? get() = null
 
     protected fun requireStored() = require(dataType == STORED) {
         "Only $STORED rows can transition to a different context: context=${this::class.simpleName} dataType=$dataType"
     }
 
     companion object {
-        fun <T : LayoutAsset<T>> new(context: LayoutContext, id: DomainId<T> = StringId()): LayoutContextData<T> =
+        fun <T : LayoutAsset<T>> new(context: LayoutContext): LayoutContextData<T> =
             when (context.state) {
-                DRAFT -> newDraft(context.branch, id)
-                OFFICIAL -> newOfficial(context.branch, id)
+                DRAFT -> newDraft(context.branch)
+                OFFICIAL -> newOfficial(context.branch)
             }
 
-        fun <T : LayoutAsset<T>> newDraft(branch: LayoutBranch, id: DomainId<T> = StringId()): LayoutContextData<T> =
+        fun <T : LayoutAsset<T>> newDraft(branch: LayoutBranch): LayoutContextData<T> =
             when (branch) {
-                is MainBranch -> MainDraftContextData(id, null, null, TEMP)
-                is DesignBranch -> DesignDraftContextData(id, null, null, branch.designId, TEMP)
+                is MainBranch -> MainDraftContextData(null, null, null, null)
+                is DesignBranch -> DesignDraftContextData(null, null, null, null, branch.designId)
             }
 
-        fun <T : LayoutAsset<T>> newOfficial(branch: LayoutBranch, id: DomainId<T> = StringId()): LayoutContextData<T> =
+        fun <T : LayoutAsset<T>> newOfficial(branch: LayoutBranch): LayoutContextData<T> =
             when (branch) {
-                is MainBranch -> MainOfficialContextData(id, TEMP)
-                is DesignBranch -> DesignOfficialContextData(id, null, branch.designId, TEMP)
+                is MainBranch -> MainOfficialContextData(null, null)
+                is DesignBranch -> DesignOfficialContextData(null, null, null, branch.designId)
             }
     }
 }
@@ -88,135 +98,114 @@ sealed class DesignContextData<T> : LayoutContextData<T>() {
 }
 
 data class MainOfficialContextData<T>(
-    override val rowId: DomainId<T>,
-    override val dataType: DataType,
+    override val rowId: LayoutRowId<T>?,
+    override val version: LayoutRowVersion<T>?,
 ) : MainContextData<T>() {
-    override val id: DomainId<T> = rowId
     override val editState: EditState get() = EditState.UNEDITED
     override val isOfficial: Boolean get() = true
 
     fun asMainDraft(): MainDraftContextData<T> {
         requireStored()
         return MainDraftContextData(
-            rowId = StringId(),
+            rowId = null,
+            version = null,
             officialRowId = rowId,
             designRowId = null,
-            dataType = TEMP,
         )
     }
 
     fun asDesignDraft(designId: IntId<LayoutDesign>): DesignDraftContextData<T> {
         requireStored()
         return DesignDraftContextData(
-            rowId = StringId(),
+            rowId = null,
+            version = null,
             officialRowId = rowId,
             designRowId = null,
             designId = designId,
-            dataType = TEMP,
         )
     }
 }
 
 data class MainDraftContextData<T>(
-    override val rowId: DomainId<T>,
-    override val officialRowId: DomainId<T>?,
-    override val designRowId: DomainId<T>?,
-    override val dataType: DataType,
+    override val rowId: LayoutRowId<T>?,
+    override val version: LayoutRowVersion<T>?,
+    override val officialRowId: LayoutRowId<T>?,
+    override val designRowId: LayoutRowId<T>?,
 ) : MainContextData<T>() {
-    override val id: DomainId<T> get() = officialRowId ?: designRowId ?: rowId
     override val editState: EditState get() = if (officialRowId != null) EditState.EDITED else EditState.CREATED
     override val isDraft: Boolean get() = true
 
     init {
-        require(rowId != officialRowId) {
-            "Draft row should not refer to itself as official: contextData=$this"
-        }
-        require(rowId != designRowId) {
-            "Draft row should not refer to itself as design: contextData=$this"
-        }
-        require(designRowId == null || designRowId != officialRowId) {
-            "Draft row should not refer to the same row as official and design: contextData=$this"
-        }
+        requireUniqueRowIds(this)
     }
 
     fun asMainOfficial(): MainOfficialContextData<T> {
         requireStored()
         return MainOfficialContextData(
-            rowId = id, // The official ID points to the row that needs to be written over
-            dataType = STORED, // There will always be an existing row to update: the draft-row or the original official
+            rowId = (officialRowId ?: designRowId ?: rowId), // At publish, we update the first known row for the asset
+            version = null, // Version depends on the updated row, so we don't know it here
         )
     }
 }
 
 data class DesignOfficialContextData<T>(
-    override val rowId: DomainId<T>,
-    override val officialRowId: DomainId<T>?,
+    override val rowId: LayoutRowId<T>?,
+    override val version: LayoutRowVersion<T>?,
+    override val officialRowId: LayoutRowId<T>?,
     override val designId: IntId<LayoutDesign>,
-    override val dataType: DataType,
 ) : DesignContextData<T>() {
-    override val id: DomainId<T> get() = officialRowId ?: rowId
     override val editState: EditState get() = EditState.UNEDITED
+    override val isOfficial: Boolean get() = true
     override val isDesign: Boolean get() = true
 
     init {
-        require(rowId != officialRowId) {
-            "Design row should not refer to itself as official: contextData=$this"
-        }
+        requireUniqueRowIds(this)
     }
 
     fun asMainDraft(): MainDraftContextData<T> {
         requireStored()
         return MainDraftContextData(
-            rowId = StringId(),
+            rowId = null,
+            version = null,
             officialRowId = officialRowId,
             designRowId = rowId,
-            dataType = TEMP,
         )
     }
 
     fun asDesignDraft(): DesignDraftContextData<T> {
         requireStored()
         return DesignDraftContextData(
-            rowId = StringId(),
+            rowId = null,
+            version = null,
             officialRowId = officialRowId,
             designRowId = rowId,
             designId = designId,
-            dataType = TEMP,
         )
     }
 }
 
 data class DesignDraftContextData<T>(
-    override val rowId: DomainId<T>,
-    override val designRowId: DomainId<T>?,
-    override val officialRowId: DomainId<T>?,
+    override val rowId: LayoutRowId<T>?,
+    override val version: LayoutRowVersion<T>?,
+    override val designRowId: LayoutRowId<T>?,
+    override val officialRowId: LayoutRowId<T>?,
     override val designId: IntId<LayoutDesign>,
-    override val dataType: DataType,
 ) : DesignContextData<T>() {
-    override val id: DomainId<T> get() = officialRowId ?: designRowId ?: rowId
     override val editState: EditState get() = if (designRowId != null) EditState.EDITED else EditState.CREATED
     override val isDraft: Boolean get() = true
     override val isDesign: Boolean get() = true
 
     init {
-        require(rowId != officialRowId) {
-            "DesignDraft row should not refer to itself as official: contextData=$this"
-        }
-        require(rowId != designRowId) {
-            "DesignDraft row should not refer to itself as design: contextData=$this"
-        }
-        require(designRowId == null || designRowId != officialRowId) {
-            "DesignDraft row should not refer to the same row as official and design: contextData=$this"
-        }
+        requireUniqueRowIds(this)
     }
 
     fun asDesignOfficial(): DesignOfficialContextData<T> {
         requireStored()
         return DesignOfficialContextData(
             rowId = designRowId ?: rowId, // The publishing should update either the official or the draft row
+            version = null, // Version depends on the updated row, so we don't know it here
             officialRowId = officialRowId,
             designId = designId,
-            dataType = STORED, // There will always be an existing row to update: the draft-row or the original official
         )
     }
 }
@@ -231,9 +220,9 @@ fun <T : LayoutAsset<T>> asMainDraft(item: T): T = item.contextData.let { ctx ->
         is MainDraftContextData -> item
         is MainOfficialContextData -> item.withContext(ctx.asMainDraft())
         is DesignOfficialContextData -> item.withContext(ctx.asMainDraft())
-        is DesignDraftContextData -> error {
+        is DesignDraftContextData -> error(
             "Creating a main-draft from a design-draft is not supported (publish the design first): item=$item"
-        }
+        )
     }
 }
 
@@ -247,9 +236,9 @@ fun <T : LayoutAsset<T>> asMainOfficial(item: T): T =
         when (ctx) {
             is MainOfficialContextData -> item
             is MainDraftContextData -> item.withContext(ctx.asMainOfficial())
-            else -> error {
+            else -> error(
                 "Creating a main-official from a design is not supported (create a main-draft first): item=$item"
-            }
+            )
         }
     }
 
@@ -259,9 +248,9 @@ fun <T : LayoutAsset<T>> asDesignOfficial(item: T, designId: IntId<LayoutDesign>
     }
     when (ctx) {
         is DesignDraftContextData -> item.withContext(ctx.asDesignOfficial())
-        else -> error {
+        else -> error(
             "Creating a design-official from the main branch is not supported (create a design draft first): item=$item designId=$designId"
-        }
+        )
     }
 }
 
@@ -273,8 +262,24 @@ fun <T : LayoutAsset<T>> asDesignDraft(item: T, designId: IntId<LayoutDesign>): 
         is DesignDraftContextData -> item
         is MainOfficialContextData -> item.withContext(ctx.asDesignDraft(designId))
         is DesignOfficialContextData -> item.withContext(ctx.asDesignDraft())
-        is MainDraftContextData -> error {
+        is MainDraftContextData -> error(
             "Creating a design-draft from a main-draft is not supported (publish the draft first): item=$item designId=$designId"
+        )
+    }
+}
+
+private fun requireUniqueRowIds(contextData: LayoutContextData<*>) {
+    contextData.rowId?.let { r ->
+        require(r != contextData.officialRowId) {
+            "Draft row should not refer to itself as official: contextData=$contextData"
+        }
+        require(r != contextData.designRowId) {
+            "Draft row should not refer to itself as design: contextData=$contextData"
+        }
+    }
+    contextData.designRowId?.let { dr ->
+        require(dr != contextData.officialRowId) {
+            "Draft row should not refer to the same row as official and design: contextData=$contextData"
         }
     }
 }

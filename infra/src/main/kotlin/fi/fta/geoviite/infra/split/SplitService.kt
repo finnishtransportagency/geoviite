@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.split
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -14,11 +15,9 @@ import fi.fta.geoviite.infra.linking.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.localizationParams
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.ValidationContext
-import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.publication.validationError
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -39,14 +38,11 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.produceIf
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 
-@Service
+@GeoviiteService
 class SplitService(
     private val splitDao: SplitDao,
     private val kmPostDao: LayoutKmPostDao,
@@ -59,11 +55,7 @@ class SplitService(
     private val switchService: LayoutSwitchService,
     private val alignmentDao: LayoutAlignmentDao,
 ) {
-
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-
     fun getChangeTime(): Instant {
-        logger.serviceCall("getChangeTime")
         return splitDao.fetchChangeTime()
     }
 
@@ -102,18 +94,17 @@ class SplitService(
         branch: LayoutBranch,
         locationTracks: List<IntId<LocationTrack>>,
         switches: List<IntId<TrackLayoutSwitch>>,
-    ): List<ValidationVersion<Split>> = findUnpublishedSplits(branch, locationTracks, switches)
-        .map { split -> ValidationVersion(split.id, split.rowVersion) }
+    ): List<RowVersion<Split>> = findUnpublishedSplits(branch, locationTracks, switches)
+        .map { split -> split.rowVersion }
 
     @Transactional
     fun publishSplit(
-        validatedSplitVersions: List<ValidationVersion<Split>>,
+        validatedSplitVersions: List<RowVersion<Split>>,
         locationTracks: Collection<DaoResponse<LocationTrack>>,
         publicationId: IntId<Publication>,
     ): List<RowVersion<Split>> {
-        logger.serviceCall("publishSplit", "locationTracks" to locationTracks, "publicationId" to publicationId)
         return validatedSplitVersions.map { splitVersion ->
-            val split = splitDao.getOrThrow(splitVersion.officialId)
+            val split = splitDao.getOrThrow(splitVersion.id)
             val track = requireNotNull(locationTracks.find { t -> t.id == split.sourceLocationTrackId }) {
                 "Source track must be part of the same publication as the split: split=$split"
             }
@@ -123,7 +114,7 @@ class SplitService(
                 sourceTrackVersion = track.rowVersion,
             ).also { updatedVersion ->
                 // Sanity-check the version for conflicting update, though this should not be possible
-                if (updatedVersion.version != splitVersion.validatedAssetVersion.version + 1) {
+                if (updatedVersion != splitVersion.next()) {
                     throw PublicationFailureException(
                         message = "Split version has changed between validation and publication: split=${split.id}",
                         localizedMessageKey = "split-version-changed",
@@ -136,7 +127,6 @@ class SplitService(
 
     @Transactional
     fun deleteSplit(splitId: IntId<Split>) {
-        logger.serviceCall("deleteSplit", "splitId" to splitId)
         splitDao.deleteSplit(splitId)
     }
 
@@ -191,17 +181,14 @@ class SplitService(
     }
 
     fun getSplitIdByPublicationId(publicationId: IntId<Publication>): IntId<Split>? {
-        logger.serviceCall("getSplitIdByPublicationId", "publicationId" to publicationId)
         return splitDao.fetchSplitIdByPublication(publicationId)
     }
 
     fun get(splitId: IntId<Split>): Split? {
-        logger.serviceCall("get", "splitId" to splitId)
         return splitDao.get(splitId)
     }
 
     fun getOrThrow(splitId: IntId<Split>): Split {
-        logger.serviceCall("getOrThrow", "splitId" to splitId)
         return splitDao.getOrThrow(splitId)
     }
 
@@ -349,8 +336,6 @@ class SplitService(
         bulkTransferState: BulkTransferState,
         bulkTransferId: IntId<BulkTransfer>? = null
     ): RowVersion<Split> {
-        logger.serviceCall("updateSplit", "splitId" to splitId)
-
         return splitDao.getOrThrow(splitId).let { split ->
             splitDao.updateSplit(
                 splitId = split.id,

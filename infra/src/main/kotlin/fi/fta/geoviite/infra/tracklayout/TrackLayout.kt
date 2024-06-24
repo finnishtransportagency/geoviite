@@ -98,7 +98,6 @@ data class TrackLayoutTrackNumber(
     val state: LayoutState,
     val externalId: Oid<TrackLayoutTrackNumber>?,
     @JsonIgnore override val contextData: LayoutContextData<TrackLayoutTrackNumber>,
-    override val version: RowVersion<TrackLayoutTrackNumber>? = null,
     @JsonIgnore val referenceLineId: IntId<ReferenceLine>? = null,
 ) : LayoutAsset<TrackLayoutTrackNumber>(contextData) {
     @JsonIgnore
@@ -140,7 +139,6 @@ data class ReferenceLine(
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val startAddress: TrackMeter,
     val sourceId: IntId<GeometryAlignment>?,
-    override val version: RowVersion<ReferenceLine>? = null,
     val boundingBox: BoundingBox? = null,
     val length: Double = 0.0,
     val segmentCount: Int = 0,
@@ -271,7 +269,6 @@ data class LocationTrack(
     val externalId: Oid<LocationTrack>?,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val sourceId: IntId<GeometryAlignment>?,
-    override val version: RowVersion<LocationTrack>? = null,
     val boundingBox: BoundingBox?,
     val length: Double,
     val segmentCount: Int,
@@ -338,7 +335,6 @@ data class TrackLayoutSwitch(
     val ownerId: IntId<SwitchOwner>?,
     val source: GeometrySource,
     @JsonIgnore override val contextData: LayoutContextData<TrackLayoutSwitch>,
-    override val version: RowVersion<TrackLayoutSwitch>? = null,
 ) : LayoutAsset<TrackLayoutSwitch>(contextData) {
     @JsonIgnore
     val exists = !stateCategory.isRemoved()
@@ -384,7 +380,6 @@ data class TrackLayoutKmPost(
     val trackNumberId: IntId<TrackLayoutTrackNumber>?,
     val sourceId: DomainId<GeometryKmPost>?,
     @JsonIgnore override val contextData: LayoutContextData<TrackLayoutKmPost>,
-    override val version: RowVersion<TrackLayoutKmPost>? = null,
 ) : LayoutAsset<TrackLayoutKmPost>(contextData) {
     @JsonIgnore
     val exists = !state.isRemoved()

@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.linking.switches
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
@@ -25,7 +26,6 @@ import fi.fta.geoviite.infra.linking.TrackEnd
 import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResult
 import fi.fta.geoviite.infra.linking.TrackSwitchRelinkingResultType
 import fi.fta.geoviite.infra.localization.localizationParams
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
@@ -55,14 +55,11 @@ import fi.fta.geoviite.infra.tracklayout.TRACK_SEARCH_AREA_SIZE
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
-import fi.fta.geoviite.infra.tracklayout.asMainDraft
+import fi.fta.geoviite.infra.tracklayout.asDraft
 import fi.fta.geoviite.infra.tracklayout.calculateLocationTrackTopology
 import fi.fta.geoviite.infra.tracklayout.clearLinksToSwitch
 import fi.fta.geoviite.infra.tracklayout.collectAllSwitches
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 private val temporarySwitchId: IntId<TrackLayoutSwitch> = IntId(-1)
@@ -70,7 +67,7 @@ private val temporarySwitchId: IntId<TrackLayoutSwitch> = IntId(-1)
 private const val TOLERANCE_JOINT_LOCATION_SAME_POINT = 0.001
 private const val MAX_SWITCH_JOINT_OVERLAP_CORRECTION_AMOUNT_METERS = 5.0
 
-@Service
+@GeoviiteService
 class SwitchLinkingService @Autowired constructor(
     private val switchService: LayoutSwitchService,
     private val locationTrackService: LocationTrackService,
@@ -82,7 +79,6 @@ class SwitchLinkingService @Autowired constructor(
     private val geocodingService: GeocodingService,
     private val switchFittingService: SwitchFittingService,
 ) {
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     @Transactional(readOnly = true)
     fun getSuggestedSwitches(branch: LayoutBranch, bbox: BoundingBox): List<SuggestedSwitch> {
@@ -94,7 +90,6 @@ class SwitchLinkingService @Autowired constructor(
         branch: LayoutBranch,
         points: List<Pair<IPoint, IntId<TrackLayoutSwitch>>>,
     ): List<SuggestedSwitch?> {
-        logger.serviceCall("getSuggestedSwitches", "points" to points)
         return getSuggestedSwitchesWithRelevantTracks(branch, points).map { it?.first }
     }
 
@@ -139,8 +134,6 @@ class SwitchLinkingService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getSuggestedSwitch(branch: LayoutBranch, createParams: SuggestedSwitchCreateParams): SuggestedSwitch? {
-        logger.serviceCall("getSuggestedSwitch", "branch" to branch, "createParams" to createParams)
-
         return switchFittingService
             .getFitAtEndpoint(branch, createParams)
             ?.let { fit -> matchFittedSwitch(branch, fit) }
@@ -152,8 +145,6 @@ class SwitchLinkingService @Autowired constructor(
         suggestedSwitch: SuggestedSwitch,
         switchId: IntId<TrackLayoutSwitch>,
     ): DaoResponse<TrackLayoutSwitch> {
-        logger.serviceCall("saveSwitchLinking", "switchLinkingParameters" to suggestedSwitch)
-
         suggestedSwitch.geometrySwitchId?.let(::verifyPlanNotHidden)
         val originalTracks = suggestedSwitch.trackLinks.keys.associateWith { id ->
             locationTrackService.getWithAlignmentOrThrow(branch.draft, id)
@@ -340,12 +331,6 @@ class SwitchLinkingService @Autowired constructor(
         layoutContext: LayoutContext,
         track: LocationTrack,
     ): List<Pair<IntId<TrackLayoutSwitch>, SuggestedSwitch?>> {
-        logger.serviceCall(
-            "getTrackSwitchSuggestions",
-            "layoutContext" to layoutContext,
-            "track" to track,
-        )
-
         val alignment = track.getAlignmentVersionOrThrow().let(alignmentDao::fetch)
 
         val switchIds = collectAllSwitches(track, alignment)
@@ -775,7 +760,7 @@ private fun withExistingLinksToSwitchCleared(
 
 // some validation logic depends on draftness state, so we need to pre-draft tracks for online validation
 private fun draft(tracks: List<Pair<LocationTrack, LayoutAlignment>>) =
-    tracks.map { (track, alignment) -> asMainDraft(track) to alignment }
+    tracks.map { (track, alignment) -> asDraft(track.branch, track) to alignment }
 
 fun updateLocationTrackWithTopologyEndLinking(
     locationTrack: LocationTrack,

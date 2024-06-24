@@ -1,23 +1,19 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.logging.serviceCall
 import fi.fta.geoviite.infra.ratko.RatkoLocalService
 import fi.fta.geoviite.infra.util.FreeText
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Service
 
-@Service
+@GeoviiteService
 class LayoutSearchService @Autowired constructor(
     private val switchService: LayoutSwitchService,
     private val locationTrackService: LocationTrackService,
     private val trackNumberService: LayoutTrackNumberService,
     private val ratkoLocalService: RatkoLocalService,
 ) {
-    private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     fun searchAssets(
         layoutContext: LayoutContext,
@@ -25,14 +21,6 @@ class LayoutSearchService @Autowired constructor(
         limitPerResultType: Int,
         locationTrackSearchScope: IntId<LocationTrack>?,
     ): TrackLayoutSearchResult {
-        logger.serviceCall(
-            "searchAssets",
-            "layoutContext" to layoutContext,
-            "searchTerm" to searchTerm,
-            "limitPerResultType" to limitPerResultType,
-            "locationTrackSearchScope" to locationTrackSearchScope,
-        )
-
         return if (locationTrackSearchScope != null) {
             searchByLocationTrackSearchScope(layoutContext, locationTrackSearchScope, searchTerm, limitPerResultType)
         } else {
@@ -41,13 +29,6 @@ class LayoutSearchService @Autowired constructor(
     }
 
     fun searchAllLocationTracks(layoutContext: LayoutContext, searchTerm: FreeText, limit: Int): List<LocationTrack> {
-        logger.serviceCall(
-            "searchAllLocationTracks",
-            "layoutContext" to layoutContext,
-            "searchTerm" to searchTerm,
-            "limit" to limit,
-        )
-
         return locationTrackService.list(layoutContext, true)
             .let { list -> locationTrackService.filterBySearchTerm(list, searchTerm) }
             .sortedBy(LocationTrack::name)
@@ -59,13 +40,6 @@ class LayoutSearchService @Autowired constructor(
         searchTerm: FreeText,
         limit: Int,
     ): List<TrackLayoutSwitch> {
-        logger.serviceCall(
-            "searchAllLayoutSwitches",
-            "layoutContext" to layoutContext,
-            "searchTerm" to searchTerm,
-            "limit" to limit,
-        )
-
         return switchService.list(layoutContext, true)
             .let { list -> switchService.filterBySearchTerm(list, searchTerm) }
             .sortedBy(TrackLayoutSwitch::name)
@@ -73,13 +47,6 @@ class LayoutSearchService @Autowired constructor(
     }
 
     fun searchAllTrackNumbers(layoutContext: LayoutContext, searchTerm: FreeText, limit: Int): List<TrackLayoutTrackNumber> {
-        logger.serviceCall(
-            "searchAllTrackNumbers",
-            "layoutContext" to layoutContext,
-            "searchTerm" to searchTerm,
-            "limit" to limit,
-        )
-
         return trackNumberService.list(layoutContext, true)
             .let { list -> trackNumberService.filterBySearchTerm(list, searchTerm) }
             .sortedBy(TrackLayoutTrackNumber::number)

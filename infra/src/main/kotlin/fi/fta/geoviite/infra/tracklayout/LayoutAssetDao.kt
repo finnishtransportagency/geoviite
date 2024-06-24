@@ -6,9 +6,7 @@ import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
-import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.configuration.layoutCacheDuration
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
@@ -25,10 +23,11 @@ import fi.fta.geoviite.infra.util.getDaoResponse
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.getInstantOrNull
 import fi.fta.geoviite.infra.util.getIntId
-import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.idOrIdsEqualSqlFragment
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
+import fi.fta.geoviite.infra.util.requireOne
 import fi.fta.geoviite.infra.util.setUser
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.annotation.Propagation
@@ -36,16 +35,14 @@ import org.springframework.transaction.annotation.Transactional
 import java.sql.Timestamp
 import java.time.Instant
 
-data class VersionPair<T>(val official: RowVersion<T>?, val draft: RowVersion<T>?) {
-    fun getOfficialId() = official?.id ?: draft?.id
-}
-
-data class DaoResponse<T>(val id: IntId<T>, val rowVersion: RowVersion<T>)
+data class DaoResponse<T>(val id: IntId<T>, val rowVersion: LayoutRowVersion<T>)
 
 interface LayoutAssetWriter<T : LayoutAsset<T>> {
     fun insert(newItem: T): DaoResponse<T>
 
     fun update(updatedItem: T): DaoResponse<T>
+
+    fun deleteRow(rowId: LayoutRowId<T>): DaoResponse<T>
 
     fun deleteDraft(branch: LayoutBranch, id: IntId<T>): DaoResponse<T>
 
@@ -54,34 +51,35 @@ interface LayoutAssetWriter<T : LayoutAsset<T>> {
 
 @Transactional(readOnly = true)
 interface LayoutAssetReader<T : LayoutAsset<T>> {
-    fun fetch(version: RowVersion<T>): T
+    fun fetch(version: LayoutRowVersion<T>): T
 
     fun fetchChangeTime(): Instant
     fun fetchLayoutAssetChangeInfo(layoutContext: LayoutContext, id: IntId<T>): LayoutAssetChangeInfo?
 
-    fun fetchAllVersions(): List<RowVersion<T>>
-    fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean): List<RowVersion<T>>
+    fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean): List<DaoResponse<T>>
 
     fun fetchPublicationVersions(branch: LayoutBranch): List<ValidationVersion<T>>
     fun fetchPublicationVersions(branch: LayoutBranch, ids: List<IntId<T>>): List<ValidationVersion<T>>
 
-    fun fetchVersion(layoutContext: LayoutContext, id: IntId<T>): RowVersion<T>?
-    fun fetchVersionOrThrow(layoutContext: LayoutContext, id: IntId<T>): RowVersion<T>
-    fun fetchVersions(layoutContext: LayoutContext, ids: List<IntId<T>>): List<RowVersion<T>>
+    fun fetchVersion(layoutContext: LayoutContext, id: IntId<T>): LayoutRowVersion<T>?
+    fun fetchVersionOrThrow(layoutContext: LayoutContext, id: IntId<T>): LayoutRowVersion<T>
+    fun fetchVersions(layoutContext: LayoutContext, ids: List<IntId<T>>): List<DaoResponse<T>>
 
-    fun fetchOfficialVersionAtMomentOrThrow(id: IntId<T>, moment: Instant): RowVersion<T>
-    fun fetchOfficialVersionAtMoment(id: IntId<T>, moment: Instant): RowVersion<T>?
+    fun fetchOfficialVersionAtMomentOrThrow(branch: LayoutBranch, id: IntId<T>, moment: Instant): LayoutRowVersion<T>
+    fun fetchOfficialVersionAtMoment(branch: LayoutBranch, id: IntId<T>, moment: Instant): LayoutRowVersion<T>?
 
     fun get(context: LayoutContext, id: IntId<T>): T? = fetchVersion(context, id)?.let(::fetch)
 
     fun getOrThrow(context: LayoutContext, id: IntId<T>): T = fetch(fetchVersionOrThrow(context, id))
 
-    fun getOfficialAtMoment(id: IntId<T>, moment: Instant): T? = fetchOfficialVersionAtMoment(id, moment)?.let(::fetch)
+    fun getOfficialAtMoment(branch: LayoutBranch, id: IntId<T>, moment: Instant): T? =
+        fetchOfficialVersionAtMoment(branch, id, moment)?.let(::fetch)
 
-    fun getMany(context: LayoutContext, ids: List<IntId<T>>): List<T> = fetchVersions(context, ids).map(::fetch)
+    fun getMany(context: LayoutContext, ids: List<IntId<T>>): List<T> =
+        fetchVersions(context, ids).map { r -> fetch(r.rowVersion) }
 
     fun list(context: LayoutContext, includeDeleted: Boolean): List<T> =
-        fetchVersions(context, includeDeleted).map(::fetch)
+        fetchVersions(context, includeDeleted).map { r -> fetch(r.rowVersion) }
 }
 
 interface ILayoutAssetDao<T : LayoutAsset<T>> : LayoutAssetReader<T>, LayoutAssetWriter<T>
@@ -94,17 +92,17 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
     cacheSize: Long,
 ) : DaoBase(jdbcTemplateParam), ILayoutAssetDao<T> {
 
-    protected val cache: Cache<RowVersion<T>, T> =
+    protected val cache: Cache<LayoutRowVersion<T>, T> =
         Caffeine.newBuilder().maximumSize(cacheSize).expireAfterAccess(layoutCacheDuration).build()
 
     @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
-    override fun fetch(version: RowVersion<T>): T = if (cacheEnabled) {
+    override fun fetch(version: LayoutRowVersion<T>): T = if (cacheEnabled) {
         cache.get(version, ::fetchInternal)
     } else {
         fetchInternal(version)
     }
 
-    protected abstract fun fetchInternal(version: RowVersion<T>): T
+    protected abstract fun fetchInternal(version: LayoutRowVersion<T>): T
 
     abstract fun preloadCache()
 
@@ -123,7 +121,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
           id as row_id,
           version as row_version
         from ${table.fullName}
-        where coalesce(official_row_id, id) in (:ids)
+        where coalesce(official_row_id, design_row_id, id) in (:ids)
           and draft and design_id is not distinct from :design_id
     """.trimIndent()
 
@@ -134,7 +132,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         ) { rs, _ ->
             ValidationVersion(
                 rs.getIntId("official_id"),
-                rs.getRowVersion("row_id", "row_version"),
+                rs.getLayoutRowVersion("row_id", "row_version"),
             )
         }
     }
@@ -152,7 +150,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         return jdbcTemplate.query<ValidationVersion<T>>(publicationVersionsSql, params) { rs, _ ->
             ValidationVersion(
                 rs.getIntId("official_id"),
-                rs.getRowVersion("row_id", "row_version"),
+                rs.getLayoutRowVersion("row_id", "row_version"),
             )
         }.also { found ->
             distinctIds.forEach { id ->
@@ -212,81 +210,127 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         }.firstOrNull()
     }
 
-    override fun fetchAllVersions(): List<RowVersion<T>> = fetchRowVersions(table.dbTable)
-
     private val singleLayoutContextVersionSql = fetchContextVersionSql(table, SINGLE)
     private val multiLayoutContextVersionSql = fetchContextVersionSql(table, MULTI)
 
-    override fun fetchVersion(layoutContext: LayoutContext, id: IntId<T>): RowVersion<T>? {
+    override fun fetchVersion(layoutContext: LayoutContext, id: IntId<T>): LayoutRowVersion<T>? {
         logger.daoAccess(AccessType.VERSION_FETCH, table.name, id)
-        return jdbcTemplate.queryOptional(
-            singleLayoutContextVersionSql, mapOf(
-                "id" to id.intValue,
-                "publication_state" to layoutContext.state.name,
-                "design_id" to layoutContext.branch.designId?.intValue
-            ), ::toRowVersion
+        val params = mapOf(
+            "id" to id.intValue,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue
         )
+        return jdbcTemplate.queryOptional(singleLayoutContextVersionSql, params) { rs, _ ->
+            rs.getLayoutRowVersion("row_id", "row_version")
+        }
     }
 
-    override fun fetchVersionOrThrow(layoutContext: LayoutContext, id: IntId<T>): RowVersion<T> {
+    override fun fetchVersionOrThrow(layoutContext: LayoutContext, id: IntId<T>): LayoutRowVersion<T> {
         logger.daoAccess(AccessType.VERSION_FETCH, table.name, id)
-        return jdbcTemplate.queryOne(
-            singleLayoutContextVersionSql, mapOf(
-                "id" to id.intValue,
-                "publication_state" to layoutContext.state.name,
-                "design_id" to layoutContext.branch.designId?.intValue
-            ), id.toString(), ::toRowVersion
+        val params = mapOf(
+            "id" to id.intValue,
+            "publication_state" to layoutContext.state.name,
+            "design_id" to layoutContext.branch.designId?.intValue
         )
+        return jdbcTemplate.queryOne(singleLayoutContextVersionSql, params, id.toString()) { rs, _ ->
+            rs.getLayoutRowVersion("row_id", "row_version")
+        }
     }
 
     override fun fetchVersions(
         layoutContext: LayoutContext,
         ids: List<IntId<T>>,
-    ): List<RowVersion<T>> {
+    ): List<DaoResponse<T>> {
         logger.daoAccess(AccessType.VERSION_FETCH, table.name, ids)
-        return if (ids.isEmpty()) emptyList() else jdbcTemplate.query(
-            multiLayoutContextVersionSql, mapOf(
+        return if (ids.isEmpty()) {
+            emptyList()
+        } else {
+            val params = mapOf(
                 "ids" to ids.distinct().map { it.intValue },
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue
-            ), ::toRowVersion
-        )
+            )
+            jdbcTemplate.query(multiLayoutContextVersionSql, params) { rs, _ -> DaoResponse(
+                rs.getIntId("official_id"),
+                rs.getLayoutRowVersion("row_id", "row_version"),
+            )}
+        }
     }
 
-    override fun fetchOfficialVersionAtMomentOrThrow(id: IntId<T>, moment: Instant): RowVersion<T> =
-        fetchOfficialVersionAtMoment(id, moment) ?: throw NoSuchEntityException(table.name, id)
+    override fun fetchOfficialVersionAtMomentOrThrow(
+        branch: LayoutBranch,
+        id: IntId<T>,
+        moment: Instant,
+    ): LayoutRowVersion<T> =
+        fetchOfficialVersionAtMoment(branch, id, moment) ?: throw NoSuchEntityException(table.name, id)
 
     //language=SQL
     private val officialVersionAtMomentSql = """
-        select
-          case when v.deleted then null else v.id end as id,
-          case when v.deleted then null else v.version end as version
-        from ${table.versionTable} v
-        where
-          v.id = :id
-          and v.change_time <= :moment
-          and not v.draft
-          and design_id is null
-        order by v.change_time desc
+        with
+          versions as (
+            select distinct on (v.id) id, v.version, v.deleted, design_id is not null as is_design
+              from ${table.versionTable} v
+              where
+                (v.official_row_id = :id or v.id = :id)
+                and v.change_time <= :moment
+                and not v.draft
+                and (design_id is null or design_id = :design_id)
+              order by v.id, v.change_time desc
+          )
+        select id, version
+        from versions
+        where deleted = false
+        order by (case when is_design then 0 else 1 end)
         limit 1
     """.trimIndent()
 
-    override fun fetchOfficialVersionAtMoment(id: IntId<T>, moment: Instant): RowVersion<T>? {
+    override fun fetchOfficialVersionAtMoment(
+        branch: LayoutBranch,
+        id: IntId<T>,
+        moment: Instant,
+    ): LayoutRowVersion<T>? {
         logger.daoAccess(AccessType.VERSION_FETCH, LocationTrack::class, id)
         val params = mapOf(
+            "design_id" to branch.designId?.intValue,
             "id" to id.intValue,
             "moment" to Timestamp.from(moment),
         )
-        return jdbcTemplate.queryOptional(officialVersionAtMomentSql, params, ::toRowVersion)
+        return jdbcTemplate.queryOptional(officialVersionAtMomentSql, params) { rs, _ ->
+            rs.getLayoutRowVersion("id", "version")
+        }
+    }
+
+    @Transactional
+    override fun deleteRow(rowId: LayoutRowId<T>): DaoResponse<T> {
+        val sql = """
+            delete from ${table.fullName}
+            where id = :row_id
+              and (draft = true or design_id is not null) -- Don't allow deleting main-official rows
+            returning 
+              coalesce(official_row_id, design_row_id, id) as official_id,
+              id as row_id,
+              version as row_version
+        """.trimIndent()
+        jdbcTemplate.setUser()
+        val params = mapOf("row_id" to rowId.intValue)
+        return jdbcTemplate.query<DaoResponse<T>>(sql, params) { rs, _ ->
+            rs.getDaoResponse("official_id", "row_id", "row_version")
+        }.singleOrNull().let { deleted ->
+            if (deleted == null) error(
+                "No rows were deleted (did you try to delete a main-official row?): type=${table.name} id=$rowId"
+            )
+            logger.daoAccess(DELETE, table.fullName, deleted)
+            deleted
+        }
     }
 
     @Transactional
     override fun deleteDraft(branch: LayoutBranch, id: IntId<T>): DaoResponse<T> = deleteDraftsInternal(branch, id)
         .let { r ->
             if (r.size > 1) {
-                error { "Multiple rows deleted with one ID: type=${table.name} id=$id" }
+                error("Multiple rows deleted with one ID: type=${table.name} branch=$branch id=$id")
             } else if (r.isEmpty()) {
-                throw DeletingFailureException("Trying to delete a non-existing draft object: type=${table.name} id=$id")
+                throw DeletingFailureException("Trying to delete a non-existing draft object: type=${table.name} branch=$branch id=$id")
             } else {
                 r.first()
             }
@@ -299,7 +343,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         val sql = """
             delete from ${table.fullName}
             where draft = true 
-              and (:id::int is null or :id = id or :id = official_row_id)
+              and (:id::int is null or :id = id or :id = design_row_id or :id = official_row_id)
               and design_id is not distinct from :design_id
             returning 
               coalesce(official_row_id, design_row_id, id) as official_id,
@@ -307,11 +351,8 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
               version as row_version
         """.trimIndent()
         jdbcTemplate.setUser()
-        return jdbcTemplate
-            .query<DaoResponse<T>>(
-                sql,
-                mapOf("id" to id?.intValue, "design_id" to branch.designId?.intValue)
-            ) { rs, _ ->
+        val params = mapOf("id" to id?.intValue, "design_id" to branch.designId?.intValue)
+        return jdbcTemplate.query<DaoResponse<T>>(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         }.also { deleted -> logger.daoAccess(DELETE, table.fullName, deleted) }
     }
@@ -320,13 +361,13 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
 private fun fetchContextVersionSql(table: LayoutAssetTable, fetchType: FetchType) =
     //language=SQL
     """
-        select distinct id, version
+        select distinct official_id, row_id, row_version
           from (
             select coalesce(official_row_id, design_row_id, id) as official_id
               from ${table.fullName}
               where id ${idOrIdsEqualSqlFragment(fetchType)}
           ) lookup cross join lateral (
-            select row_id as id, row_version as version
+            select row_id, row_version
               from ${table.fullLayoutContextFunction}(:publication_state::layout.publication_state, :design_id::int, official_id)
           ) ilc
           """.trimIndent()
@@ -335,12 +376,15 @@ fun <T : LayoutAsset<T>> verifyObjectIsExisting(item: T) = verifyObjectIsExistin
 
 fun <T : LayoutAsset<T>> verifyObjectIsExisting(contextData: LayoutContextData<T>) {
     require(contextData.dataType == DataType.STORED) { "Cannot update TEMP row: context=$contextData" }
-    require(contextData.rowId is IntId) { "DB row should have DB ID: context=$contextData" }
+    require(contextData.rowId != null) { "DB row should have DB ID: context=$contextData" }
 }
 
 fun <T : LayoutAsset<T>> verifyObjectIsNew(item: T) = verifyObjectIsNew(item.contextData)
 
 fun <T : LayoutAsset<T>> verifyObjectIsNew(contextData: LayoutContextData<T>) {
     require(contextData.dataType == DataType.TEMP) { "Cannot insert existing row as new: context=$contextData" }
-    require(contextData.rowId !is IntId) { "TEMP row should not have DB ID: context=$contextData" }
+    require(contextData.rowId == null) { "TEMP row should not have DB ID: context=$contextData" }
 }
+
+inline fun <reified T, reified S> getOne(rowVersion: LayoutRowVersion<T>, result: List<S>) =
+    requireOne(T::class, rowVersion, result)
