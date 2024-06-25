@@ -1,10 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.DomainId
-import fi.fta.geoviite.infra.common.IntId
-import fi.fta.geoviite.infra.geometry.PlanPhase
 import fi.fta.geoviite.infra.util.FreeText
-import java.time.Instant
 import java.time.LocalDate
 
 enum class DesignState {

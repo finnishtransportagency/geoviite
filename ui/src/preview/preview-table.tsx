@@ -69,6 +69,7 @@ type PreviewTableProps = {
     previewOperations: PreviewOperations;
     validationInProgress: boolean;
     isRowValidating: (tableEntry: PreviewTableEntry) => boolean;
+    canRevertChanges: boolean;
 };
 
 const PreviewTable: React.FC<PreviewTableProps> = ({
@@ -83,6 +84,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     onShowOnMap,
     validationInProgress,
     isRowValidating,
+    canRevertChanges,
 }) => {
     const { t } = useTranslation();
     const trackNumbers =
@@ -211,6 +213,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                                         displayedTotalPublicationAssetAmount
                                     }
                                     isValidating={isRowValidating}
+                                    canRevertChanges={canRevertChanges}
                                 />
                             }
                         </React.Fragment>

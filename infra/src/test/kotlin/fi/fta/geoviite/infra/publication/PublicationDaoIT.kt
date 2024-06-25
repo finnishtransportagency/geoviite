@@ -72,11 +72,11 @@ class PublicationDaoIT @Autowired constructor(
 
     @Test
     fun noPublicationCandidatesFoundWithoutDrafts() {
-        assertTrue(publicationDao.fetchTrackNumberPublicationCandidates(LayoutBranch.main).isEmpty())
-        assertTrue(publicationDao.fetchReferenceLinePublicationCandidates(LayoutBranch.main).isEmpty())
-        assertTrue(publicationDao.fetchLocationTrackPublicationCandidates(LayoutBranch.main).isEmpty())
-        assertTrue(publicationDao.fetchSwitchPublicationCandidates(LayoutBranch.main).isEmpty())
-        assertTrue(publicationDao.fetchKmPostPublicationCandidates(LayoutBranch.main).isEmpty())
+        assertTrue(publicationDao.fetchTrackNumberPublicationCandidates(PublicationInMain).isEmpty())
+        assertTrue(publicationDao.fetchReferenceLinePublicationCandidates(PublicationInMain).isEmpty())
+        assertTrue(publicationDao.fetchLocationTrackPublicationCandidates(PublicationInMain).isEmpty())
+        assertTrue(publicationDao.fetchSwitchPublicationCandidates(PublicationInMain).isEmpty())
+        assertTrue(publicationDao.fetchKmPostPublicationCandidates(PublicationInMain).isEmpty())
     }
 
     @Test
@@ -86,7 +86,7 @@ class PublicationDaoIT @Autowired constructor(
         val (_, draft) = insertAndCheck(
             asMainDraft(line).copy(startAddress = TrackMeter("0123", 658.321, 3))
         )
-        val candidates = publicationDao.fetchReferenceLinePublicationCandidates(LayoutBranch.main)
+        val candidates = publicationDao.fetchReferenceLinePublicationCandidates(PublicationInMain)
         assertEquals(1, candidates.size)
         assertEquals(line.id, candidates.first().id)
         assertEquals(draft.trackNumberId, candidates.first().trackNumberId)
@@ -100,7 +100,7 @@ class PublicationDaoIT @Autowired constructor(
         val (_, draft) = insertAndCheck(
             asMainDraft(track).copy(name = AlignmentName("${track.name} DRAFT"))
         )
-        val candidates = publicationDao.fetchLocationTrackPublicationCandidates(LayoutBranch.main)
+        val candidates = publicationDao.fetchLocationTrackPublicationCandidates(PublicationInMain)
         assertEquals(1, candidates.size)
         assertEquals(track.id, candidates.first().id)
         assertEquals(draft.name, candidates.first().name)
@@ -113,7 +113,7 @@ class PublicationDaoIT @Autowired constructor(
     fun switchPublicationCandidatesAreFound() {
         val (_, switch) = insertAndCheck(switch(987, draft = false))
         val (_, draft) = insertAndCheck(asMainDraft(switch).copy(name = SwitchName("${switch.name} DRAFT")))
-        val candidates = publicationDao.fetchSwitchPublicationCandidates(LayoutBranch.main)
+        val candidates = publicationDao.fetchSwitchPublicationCandidates(PublicationInMain)
         assertEquals(1, candidates.size)
         assertEquals(switch.id, candidates.first().id)
         assertEquals(draft.name, candidates.first().name)
@@ -124,7 +124,7 @@ class PublicationDaoIT @Autowired constructor(
     @Test
     fun createOperationIsInferredCorrectly() {
         val (_, track) = insertAndCheck(locationTrack(mainOfficialContext.createLayoutTrackNumber().id, draft = true))
-        val candidates = publicationDao.fetchLocationTrackPublicationCandidates(LayoutBranch.main)
+        val candidates = publicationDao.fetchLocationTrackPublicationCandidates(PublicationInMain)
         assertEquals(1, candidates.size)
         assertEquals(track.id, candidates.first().id)
         assertEquals(Operation.CREATE, candidates.first().operation)
@@ -141,7 +141,7 @@ class PublicationDaoIT @Autowired constructor(
                 lt.copy(name = AlignmentName("${lt.name} TEST"))
             },
         )
-        val candidates = publicationDao.fetchLocationTrackPublicationCandidates(LayoutBranch.main)
+        val candidates = publicationDao.fetchLocationTrackPublicationCandidates(PublicationInMain)
         assertEquals(1, candidates.size)
         assertEquals(track.id, candidates.first().id)
         assertEquals(Operation.MODIFY, candidates.first().operation)
@@ -157,7 +157,7 @@ class PublicationDaoIT @Autowired constructor(
             locationTrackService.getOrThrow(MainLayoutContext.official, draft.id as IntId)
                 .copy(state = LocationTrackState.DELETED),
         )
-        val candidates = publicationDao.fetchLocationTrackPublicationCandidates(LayoutBranch.main)
+        val candidates = publicationDao.fetchLocationTrackPublicationCandidates(PublicationInMain)
         assertEquals(1, candidates.size)
         assertEquals(track.id, candidates.first().id)
         assertEquals(Operation.DELETE, candidates.first().operation)
@@ -178,7 +178,7 @@ class PublicationDaoIT @Autowired constructor(
             locationTrackService.getOrThrow(MainLayoutContext.official, draft.id as IntId)
                 .copy(state = LocationTrackState.IN_USE),
         )
-        val candidates = publicationDao.fetchLocationTrackPublicationCandidates(LayoutBranch.main)
+        val candidates = publicationDao.fetchLocationTrackPublicationCandidates(PublicationInMain)
         assertEquals(1, candidates.size)
         assertEquals(track.id, candidates.first().id)
         assertEquals(Operation.RESTORE, candidates.first().operation)
@@ -268,7 +268,7 @@ class PublicationDaoIT @Autowired constructor(
         )
         insertAndCheck(asMainDraft(switch.copy(name = SwitchName("FooEdited"))))
 
-        val publicationCandidates = publicationDao.fetchSwitchPublicationCandidates(LayoutBranch.main)
+        val publicationCandidates = publicationDao.fetchSwitchPublicationCandidates(PublicationInMain)
         val editedCandidate = publicationCandidates.first { s -> s.name == SwitchName("FooEdited") }
         assertEquals(editedCandidate.trackNumberIds, listOf(trackNumberId))
     }
@@ -286,7 +286,7 @@ class PublicationDaoIT @Autowired constructor(
                 )
             )
         )
-        val publicationCandidates = publicationDao.fetchSwitchPublicationCandidates(LayoutBranch.main)
+        val publicationCandidates = publicationDao.fetchSwitchPublicationCandidates(PublicationInMain)
         val editedCandidate = publicationCandidates.first { s -> s.name == SwitchName("Foo") }
         assertEquals(editedCandidate.trackNumberIds, listOf(trackNumberId))
     }

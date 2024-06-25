@@ -66,6 +66,7 @@ export type BasePublicationCandidate = {
     validated: boolean;
     pendingValidation: boolean;
     stage: PublicationStage;
+    designRowReferrer: DesignRowReferrer;
 };
 
 export type PublicationCandidate =
@@ -352,3 +353,5 @@ export type SplitTargetInPublication = {
     endAddress: TrackMeter;
     operation: SplitTargetOperation;
 };
+
+export type DesignRowReferrer = 'MAIN_DRAFT' | 'DESIGN_DRAFT' | 'NONE';

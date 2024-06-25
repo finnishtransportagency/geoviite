@@ -5,7 +5,7 @@ import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.FreeText
 import org.slf4j.Logger
@@ -108,6 +108,55 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         }
         return publicationResponse
     }
+
+    protected inner class VersionsForMerging(
+        val branchOfficialVersion: LayoutRowVersion<ObjectType>,
+        val mainOfficialVersion: LayoutRowVersion<ObjectType>?,
+        val mainDraftVersion: LayoutRowVersion<ObjectType>?,
+    )
+
+    protected fun fetchAndCheckVersionsForMerging(
+        fromBranch: LayoutBranch,
+        id: IntId<ObjectType>,
+    ): Pair<VersionsForMerging, ObjectType> {
+        val branchOfficialVersion = dao.fetchVersion(fromBranch.official, id)
+        require(branchOfficialVersion != null) {
+            "Object must exist to merge to main branch: fromBranch=$fromBranch id=$id"
+        }
+
+        val mainOfficialVersion = dao.fetchVersion(MainLayoutContext.official, id)
+        val mainDraftVersion = dao.fetchVersion(MainLayoutContext.draft, id)
+
+        val branchObject = dao.fetch(branchOfficialVersion)
+        require(branchObject.branch == fromBranch) {
+            "Object must have branch-official version to merge to main: fromBranch=$fromBranch id=$id"
+        }
+        require(dao.fetchVersion(fromBranch.draft, id) == branchOfficialVersion) {
+            "Object must not have branch-draft version when merging to main: fromBranch=$fromBranch id=$id"
+        }
+        return VersionsForMerging(branchOfficialVersion, mainOfficialVersion, mainDraftVersion) to branchObject
+    }
+
+    fun mergeToMainBranch(fromBranch: LayoutBranch, id: IntId<ObjectType>): DaoResponse<ObjectType> =
+        fetchAndCheckVersionsForMerging(fromBranch, id).let { (versions, branchObject) ->
+            mergeToMainBranchInternal(versions, branchObject)
+        }
+
+    protected fun mergeToMainBranchInternal(
+        versions: VersionsForMerging,
+        objectFromBranch: ObjectType,
+    ): DaoResponse<ObjectType> =
+        if (versions.mainDraftVersion == null || versions.mainDraftVersion == versions.mainOfficialVersion) {
+            dao.insert(asMainDraft(objectFromBranch))
+        } else {
+            val newContext = MainDraftContextData(
+                rowId = versions.mainDraftVersion.rowId,
+                version = null,
+                officialRowId = objectFromBranch.contextData.officialRowId,
+                designRowId = versions.branchOfficialVersion.rowId,
+            )
+            dao.update(objectFromBranch.withContext(newContext))
+        }
 
     private fun verifyInsertResponse(officialId: IntId<ObjectType>?, response: DaoResponse<ObjectType>) {
         if (officialId != null) require(response.id == officialId) {

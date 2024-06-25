@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.authorization.AUTH_VIEW_PUBLICATION
 import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
@@ -44,9 +45,12 @@ class PublicationController @Autowired constructor(
 ) {
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
-    @GetMapping("/{$LAYOUT_BRANCH}/candidates")
-    fun getPublicationCandidates(@PathVariable(LAYOUT_BRANCH) branch: LayoutBranch): PublicationCandidates {
-        return publicationService.collectPublicationCandidates(branch)
+    @GetMapping("/{$LAYOUT_BRANCH}/{from_state}/candidates")
+    fun getPublicationCandidates(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable("from_state") fromState: PublicationState,
+    ): PublicationCandidates {
+        return publicationService.collectPublicationCandidates(LayoutContextTransition.of(branch, fromState))
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
@@ -56,8 +60,7 @@ class PublicationController @Autowired constructor(
         @RequestBody request: PublicationRequestIds,
     ): ValidatedPublicationCandidates {
         return publicationService.validatePublicationCandidates(
-            publicationService.collectPublicationCandidates(branch),
-            request,
+            publicationService.collectPublicationCandidates(LayoutContextTransition.publicationIn(branch)), request
         )
     }
 
@@ -109,6 +112,15 @@ class PublicationController @Autowired constructor(
             message = "Could not reserve publication lock",
             localizedMessageKey = "lock-obtain-failed",
         )
+    }
+
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
+    @PostMapping("/merge-to-main/{$LAYOUT_BRANCH}")
+    fun mergeChangesToMain(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @RequestBody request: PublicationRequestIds,
+    ): PublicationResult {
+        return publicationService.mergeChangesToMain(branch, request)
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
@@ -223,4 +235,5 @@ class PublicationController @Autowired constructor(
             .getSplitInPublicationCsv(id, lang)
             .let { (csv, ltName) -> getCsvResponseEntity(csv, FileName("Raiteen jakaminen $ltName.csv")) }
     }
+
 }

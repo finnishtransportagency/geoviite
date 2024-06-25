@@ -7,6 +7,7 @@ create function layout.location_track_in_layout_context(publication_state_in lay
           (
             row_id                             integer,
             official_id                        integer,
+            design_id                          integer,
             draft_id                           integer,
             row_version                        integer,
             alignment_id                       integer,
@@ -38,6 +39,7 @@ $$
 select
   row.id as row_id,
   coalesce(official_row_id, design_row_id, row.id) as official_id,
+  design_id,
   case when row.draft then row.id end as draft_id,
   row.version as row_version,
   row.alignment_id,

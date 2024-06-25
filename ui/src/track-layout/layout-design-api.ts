@@ -19,6 +19,9 @@ export type LayoutDesign = {
 export const getLayoutDesigns = async (changeTime: TimeStamp) =>
     designCache.get(changeTime, '', () => getNonNull<LayoutDesign[]>(`${baseUri}/`));
 
+export const getLayoutDesign = async (changeTime: TimeStamp, id: LayoutDesignId) =>
+    getLayoutDesigns(changeTime).then((designs) => designs.find((design) => design.id === id));
+
 export const updateLayoutDesign = async (
     layoutDesignId: string,
     saveRequest: LayoutDesignSaveRequest,
