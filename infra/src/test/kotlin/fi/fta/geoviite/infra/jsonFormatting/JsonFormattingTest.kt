@@ -13,7 +13,7 @@ import org.springframework.test.web.servlet.MockMvc
 import java.time.Instant
 import kotlin.test.assertEquals
 
-@ActiveProfiles("dev", "test", "nodb")
+@ActiveProfiles("dev", "test", "nodb", "backend")
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
 class JsonFormattingTest @Autowired constructor(

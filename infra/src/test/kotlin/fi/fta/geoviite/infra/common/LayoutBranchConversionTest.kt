@@ -11,7 +11,7 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import kotlin.test.assertEquals
 
-@ActiveProfiles("dev", "test", "nodb")
+@ActiveProfiles("dev", "test", "nodb", "backend")
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = false)
 class LayoutBranchConversionTest @Autowired constructor(
