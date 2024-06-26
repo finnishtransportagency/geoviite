@@ -1,5 +1,6 @@
-package fi.fta.geoviite.infra.aspects
+package fi.fta.geoviite.api.aspects
 
+import fi.fta.geoviite.infra.aspects.reflectedLogBefore
 import fi.fta.geoviite.infra.logging.apiCall
 import org.aspectj.lang.JoinPoint
 import org.aspectj.lang.annotation.Aspect
@@ -13,21 +14,21 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import java.util.concurrent.ConcurrentHashMap
 
-@Profile("backend")
+@Profile("integration-api")
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 @RestController
 @RequestMapping
-annotation class GeoviiteController(
+annotation class GeoviiteIntegrationApiController(
     @get: AliasFor(annotation = RequestMapping::class) val path: String,
 )
 
 @Aspect
 @Component
-class GeoviiteControllerAspect {
+class GeoviiteIntegrationApiControllerAspect {
     private val loggerCache = ConcurrentHashMap<Class<*>, Logger>()
 
-    @Before("within(@GeoviiteController *)")
+    @Before("within(@GeoviiteIntegrationApiController *)")
     fun logBefore(joinPoint: JoinPoint) {
         val targetClass = joinPoint.target::class.java
         val logger = loggerCache.computeIfAbsent(targetClass) { classRef ->
