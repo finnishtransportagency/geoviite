@@ -13,7 +13,7 @@ export type LayoutDesignSaveRequest = {
     designState: 'ACTIVE' | 'DELETED' | 'COMPLETED';
 };
 export type LayoutDesign = {
-    id: string;
+    id: LayoutDesignId;
 } & LayoutDesignSaveRequest;
 
 export const getLayoutDesigns = async (changeTime: TimeStamp) =>
