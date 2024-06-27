@@ -15,7 +15,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import kotlin.text.Charsets.UTF_8
 
-@ActiveProfiles("dev", "test")
+@ActiveProfiles("dev", "test", "backend")
 @SpringBootTest
 @AutoConfigureMockMvc
 class CodeDictionaryControllerIT @Autowired constructor(
