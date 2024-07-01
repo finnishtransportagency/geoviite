@@ -28,7 +28,7 @@ fun transformNonKKJCoordinate(sourceSrid: Srid, targetSrid: Srid, point: IPoint)
 fun getFinnishGKCoordinateProjectionByLongitude(longitude:Double): Srid {
     val nearestLongitude = round(longitude).toInt()
     if (!FINNISH_GK_LONGITUDE_RANGE.contains(nearestLongitude))
-        throw IllegalArgumentException("Cannot get Finnish GK coordinate projection by longitude $nearestLongitude")
+        throw IllegalArgumentException("There is no Finnish GK coordinate projection for longitude $nearestLongitude")
     val longitudeRelativeToGk19 = nearestLongitude - 19
     return Srid(FIN_GK19_SRID.code + longitudeRelativeToGk19)
 }
