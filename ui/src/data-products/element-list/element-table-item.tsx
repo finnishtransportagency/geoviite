@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { formatTrackMeter } from 'utils/geography-utils';
 import { Precision, roundToPrecision } from 'utils/rounding';
-import { Srid, TrackMeter } from 'common/common-model';
+import { Srid, TimeStamp, TrackMeter } from 'common/common-model';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import { PlanNameLink } from 'geoviite-design-lib/geometry-plan/plan-name-link';
 import { GeometryPlanId } from 'geometry/geometry-model';
@@ -11,6 +11,7 @@ import type { TFunction } from 'i18next';
 import { findCoordinateSystem } from 'data-products/data-products-utils';
 import { useLoader } from 'utils/react-utils';
 import { getSridList } from 'common/common-api';
+import { formatDateShort } from 'utils/date-utils';
 
 export type ElementTableItemProps = {
     trackNumber: string | undefined;
@@ -37,6 +38,7 @@ export type ElementTableItemProps = {
     showLocationTrackName: boolean;
     connectedSwitchName: string | undefined;
     isPartial: boolean;
+    planTime?: TimeStamp;
 };
 
 const remarks = (
@@ -78,6 +80,7 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
     showLocationTrackName,
     connectedSwitchName,
     isPartial,
+    planTime,
 }) => {
     const { t } = useTranslation();
     const coordinateSystems = useLoader(getSridList, []);
@@ -140,6 +143,7 @@ export const ElementTableItem: React.FC<ElementTableItemProps> = ({
                     <PlanNameLink planId={planId} planName={plan} />
                 </td>
                 <td>{source}</td>
+                <td>{planTime && formatDateShort(planTime)}</td>
                 <td>{remarks(t, connectedSwitchName, isPartial).join(', ')}</td>
             </tr>
         </React.Fragment>

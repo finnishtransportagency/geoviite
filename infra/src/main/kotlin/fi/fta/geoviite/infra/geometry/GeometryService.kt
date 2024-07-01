@@ -78,10 +78,10 @@ class GeometryService @Autowired constructor(
     private val localizationService: LocalizationService,
 ) {
 
-    private fun runElementListGeneration(op: () -> Unit) =
+    private fun runElementListGeneration(force:Boolean, op: () -> Unit) =
         runWithLock(elementListingGenerationUser, ELEMENT_LIST_GEN, Duration.ofHours(1L)) {
             val lastFileUpdate = elementListingFileDao.getLastFileListingTime()
-            if (Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) { op() }
+            if (force || Duration.between(lastFileUpdate, Instant.now()) > Duration.ofHours(12L)) { op() }
         }
 
     private fun runVerticalGeometryListGeneration(op: () -> Unit) =
@@ -299,7 +299,9 @@ class GeometryService @Autowired constructor(
 
     @Scheduled(cron = "\${geoviite.rail-network-export.schedule}")
     @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
-    fun makeElementListingCsv() = runElementListGeneration {
+    fun makeElementListingCsv() = makeElementListingCsv(false)
+
+    fun makeElementListingCsv(force: Boolean) = runElementListGeneration (force) {
         val translation = localizationService.getLocalization(LocalizationLanguage.FI)
         val geocodingContexts = geocodingService.getGeocodingContexts(MainLayoutContext.official)
         val trackNumbers = trackNumberService.mapById(MainLayoutContext.official)

@@ -229,7 +229,10 @@ class GeometryController @Autowired constructor(
 
     @PreAuthorize(AUTH_DOWNLOAD_GEOMETRY)
     @GetMapping("/rail-network/element-listing/file")
-    fun getEntireNetworkElementListingCSV(): ResponseEntity<ByteArray> {
+    fun getEntireNetworkElementListingCSV(refresh:Boolean = false): ResponseEntity<ByteArray> {
+        if (refresh) {
+            geometryService.makeElementListingCsv(force = true)
+        }
         val elementListingFile = geometryService.getElementListingCsv()
         return elementListingFile?.let {
             toFileDownloadResponse(
