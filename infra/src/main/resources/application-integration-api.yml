@@ -1,0 +1,15 @@
+geoviite:
+  scheduling:
+    enabled: false
+  cache:
+    enabled: true
+    preload: true
+  data:
+    import: false
+  jwt:
+    validation:
+      enabled: false
+  ratko:
+    enabled: false
+  projektivelho:
+    enabled: false
