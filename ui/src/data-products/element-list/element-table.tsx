@@ -74,6 +74,10 @@ const ElementTable = ({ elements, showLocationTrackName, isLoading }: ElementTab
         withClassName(numericHeading('angle-end'), styles['data-product-table__header--angle']),
         withClassName(nonNumericHeading('plan'), styles['data-product-table__header--plan']),
         withClassName(nonNumericHeading('source'), styles['data-product-table__header--source']),
+        withClassName(
+            nonNumericHeading('plan-time'),
+            styles['data-product-table__header--plan-time'],
+        ),
         withClassName(nonNumericHeading('remarks'), styles['data-product-table__header--remarks']),
     ];
 
@@ -144,6 +148,7 @@ const ElementTable = ({ elements, showLocationTrackName, isLoading }: ElementTab
                                     showLocationTrackName={showLocationTrackName}
                                     connectedSwitchName={item.connectedSwitchName}
                                     isPartial={item.isPartial}
+                                    planTime={item.planTime}
                                 />
                             </React.Fragment>
                         ))}

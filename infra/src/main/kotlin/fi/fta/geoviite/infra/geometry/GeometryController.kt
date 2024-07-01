@@ -238,6 +238,12 @@ class GeometryController @Autowired constructor(
         } ?: ResponseEntity(HttpStatus.NO_CONTENT)
     }
 
+    @PreAuthorize(AUTH_DOWNLOAD_GEOMETRY)
+    @GetMapping("/rail-network/element-listing/file/generate")
+    fun generateEntireNetworkElementListingCSV() {
+        geometryService.makeElementListingCsv(force = true)
+    }
+
     @PreAuthorize(AUTH_VIEW_GEOMETRY_FILE)
     @GetMapping("/plans/{id}/vertical-geometry")
     fun getPlanVerticalGeometryListing(
