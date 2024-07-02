@@ -274,11 +274,12 @@ export async function getSuggestedSwitchByPoint(
 }
 
 export async function linkSwitch(
+    layoutBranch: LayoutDesignId | undefined,
     params: SuggestedSwitch,
     switchId: LayoutSwitchId,
 ): Promise<LayoutSwitchId> {
     const result = await postNonNull<SuggestedSwitch, LayoutSwitchId>(
-        linkingUri(undefined, 'switches', 'geometry', switchId),
+        linkingUri(layoutBranch, 'switches', 'geometry', switchId),
         params,
     );
 
@@ -326,10 +327,11 @@ export async function validateLocationTrackSwitchRelinking(
 }
 
 export async function relinkTrackSwitches(
+    layoutBranch: LayoutDesignId | undefined,
     id: LocationTrackId,
 ): Promise<TrackSwitchRelinkingResult[]> {
     const rv = await postNonNull<null, TrackSwitchRelinkingResult[]>(
-        linkingUri(undefined, 'location-tracks', 'relink-switches', id),
+        linkingUri(layoutBranch, 'location-tracks', 'relink-switches', id),
         null,
     );
     await Promise.all([updateSwitchChangeTime(), updateLocationTrackChangeTime()]);

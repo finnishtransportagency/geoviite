@@ -155,7 +155,11 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
         if (linkingState?.suggestedSwitch && linkingState.layoutSwitchId) {
             setLinkingCallInProgress(true);
             try {
-                await linkSwitch(linkingState.suggestedSwitch, linkingState.layoutSwitchId);
+                await linkSwitch(
+                    layoutContext.designId,
+                    linkingState.suggestedSwitch,
+                    linkingState.layoutSwitchId,
+                );
                 SnackBar.success('tool-panel.switch.geometry.linking-succeed-msg');
                 onStopLinking();
             } finally {

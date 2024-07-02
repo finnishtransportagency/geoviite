@@ -211,6 +211,15 @@ class ReferenceLineService(
     fun listNear(layoutContext: LayoutContext, bbox: BoundingBox): List<ReferenceLine> {
         return dao.fetchVersionsNear(layoutContext, bbox).map(dao::fetch)
     }
+
+    override fun mergeToMainBranch(fromBranch: LayoutBranch, id: IntId<ReferenceLine>): DaoResponse<ReferenceLine> {
+        val (versions, line) = fetchAndCheckVersionsForMerging(fromBranch, id)
+        return mergeToMainBranchInternal(
+            versions, if (line.alignmentVersion == null) line else {
+                line.copy(alignmentVersion = alignmentService.saveAsNew(alignmentDao.fetch(line.alignmentVersion)))
+            }
+        )
+    }
 }
 
 fun referenceLineWithAlignment(

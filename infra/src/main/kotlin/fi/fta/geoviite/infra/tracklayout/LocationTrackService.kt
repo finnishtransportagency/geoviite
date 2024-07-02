@@ -678,6 +678,15 @@ class LocationTrackService(
             track to alignment
         }
     }
+
+    override fun mergeToMainBranch(fromBranch: LayoutBranch, id: IntId<LocationTrack>): DaoResponse<LocationTrack> {
+        val (versions, track) = fetchAndCheckVersionsForMerging(fromBranch, id)
+        return mergeToMainBranchInternal(
+            versions, if (track.alignmentVersion == null) track else {
+                track.copy(alignmentVersion = alignmentService.saveAsNew(alignmentDao.fetch(track.alignmentVersion)))
+            }
+        )
+    }
 }
 
 fun collectAllSwitches(locationTrack: LocationTrack, alignment: LayoutAlignment): List<IntId<TrackLayoutSwitch>> {

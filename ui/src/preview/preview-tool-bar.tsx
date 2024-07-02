@@ -6,17 +6,17 @@ import { LayoutDesignId } from 'common/common-model';
 import { Radio } from 'vayla-design-lib/radio/radio';
 import styles from './preview-view.scss';
 
-type DesignPublicationMode = 'PUBLISH_CHANGES' | 'DESIGN_TO_DRAFT';
+export type DesignPublicationMode = 'PUBLISH_CHANGES' | 'MERGE_TO_MAIN';
 
 export type PreviewToolBarParams = {
     onClosePreview: () => void;
     designId: LayoutDesignId | undefined;
+    designPublicationMode: DesignPublicationMode;
+    onChangeDesignPublicationMode: (mode: DesignPublicationMode) => void;
 };
 
 export const PreviewToolBar: React.FC<PreviewToolBarParams> = (props: PreviewToolBarParams) => {
     const { t } = useTranslation();
-    const [designPublicationMode, setDesignPublicationMode] =
-        React.useState<DesignPublicationMode>('PUBLISH_CHANGES');
 
     const showingDesignProject = !!props.designId;
     const className = createClassName(
@@ -33,13 +33,13 @@ export const PreviewToolBar: React.FC<PreviewToolBarParams> = (props: PreviewToo
                 {showingDesignProject && (
                     <span className={styles['preview-tool-bar__radio-buttons']}>
                         <Radio
-                            checked={designPublicationMode === 'PUBLISH_CHANGES'}
-                            onChange={() => setDesignPublicationMode('PUBLISH_CHANGES')}>
+                            checked={props.designPublicationMode === 'PUBLISH_CHANGES'}
+                            onChange={() => props.onChangeDesignPublicationMode('PUBLISH_CHANGES')}>
                             {t('preview-toolbar.publish-changes')}
                         </Radio>
                         <Radio
-                            checked={designPublicationMode === 'DESIGN_TO_DRAFT'}
-                            onChange={() => setDesignPublicationMode('DESIGN_TO_DRAFT')}>
+                            checked={props.designPublicationMode === 'MERGE_TO_MAIN'}
+                            onChange={() => props.onChangeDesignPublicationMode('MERGE_TO_MAIN')}>
                             {t('preview-toolbar.design-to-draft')}
                         </Radio>
                     </span>

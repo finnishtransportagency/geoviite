@@ -24,6 +24,11 @@ fun idOrIdsEqualSqlFragment(fetchType: FetchType) = when (fetchType) {
     SINGLE -> "= :id"
 }
 
+fun idOrIdsSqlFragment(fetchType: FetchType) = when (fetchType) {
+    MULTI -> "unnest (array[:ids])"
+    SINGLE -> "(values (:id))"
+}
+
 enum class LayoutAssetTable(val dbTable: DbTable, layoutContextFunction: String) {
     LAYOUT_ASSET_TRACK_NUMBER(DbTable.LAYOUT_TRACK_NUMBER, "track_number_in_layout_context"),
     LAYOUT_ASSET_REFERENCE_LINE(DbTable.LAYOUT_REFERENCE_LINE, "reference_line_in_layout_context"),

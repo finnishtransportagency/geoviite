@@ -67,7 +67,8 @@ const planVerticalGeometryCache = asyncCache<
     PlanVerticalGeometryKey,
     VerticalGeometryItem[] | undefined
 >;
-type LocationTrackVerticalGeometryKey = `${LocationTrackId}_${PublicationState}_${LayoutDesignId}`;
+type LocationTrackVerticalGeometryKey =
+    `${LocationTrackId}_${PublicationState}_${LayoutDesignId | 'undefined'}`;
 const locationTrackVerticalGeometryCache = asyncCache<
     LocationTrackVerticalGeometryKey,
     VerticalGeometryItem[] | undefined
@@ -427,7 +428,7 @@ export async function getLocationTrackHeights(
 }
 
 const locationTrackLinkingSummaryCache = asyncCache<
-    `${LocationTrackId}_${PublicationState}_${LayoutDesignId}`,
+    `${LocationTrackId}_${PublicationState}_${LayoutDesignId | 'undefined'}`,
     PlanLinkingSummaryItem[]
 >();
 

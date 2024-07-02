@@ -125,9 +125,9 @@ export function useTwoPartEffectWithStatus<TEntity>(
 ): LoaderStatus {
     const [loaderStatus, setLoaderStatus] = React.useState<LoaderStatus>(LoaderStatus.Initialized);
 
-    let cancelled = false;
     useEffect(() => {
         const promise = loadFunc();
+        let cancelled = false;
 
         if (promise) {
             setLoaderStatus(LoaderStatus.Loading);

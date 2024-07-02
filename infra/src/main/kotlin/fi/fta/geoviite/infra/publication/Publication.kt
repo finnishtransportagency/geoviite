@@ -305,6 +305,7 @@ interface PublicationCandidate<T> {
     val userName: UserName
     val issues: List<LayoutValidationIssue>
     val operation: Operation?
+    val designRowReferrer: DesignRowReferrer
     val publicationGroup: PublicationGroup?
 
     fun getPublicationVersion() = ValidationVersion(id, rowVersion)
@@ -318,6 +319,7 @@ data class TrackNumberPublicationCandidate(
     override val userName: UserName,
     override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation,
+    override val designRowReferrer: DesignRowReferrer,
     override val publicationGroup: PublicationGroup? = null,
     val boundingBox: BoundingBox?,
 ) : PublicationCandidate<TrackLayoutTrackNumber> {
@@ -333,6 +335,7 @@ data class ReferenceLinePublicationCandidate(
     override val userName: UserName,
     override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation?,
+    override val designRowReferrer: DesignRowReferrer,
     override val publicationGroup: PublicationGroup? = null,
     val boundingBox: BoundingBox?,
 ) : PublicationCandidate<ReferenceLine> {
@@ -349,6 +352,7 @@ data class LocationTrackPublicationCandidate(
     override val userName: UserName,
     override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation,
+    override val designRowReferrer: DesignRowReferrer,
     override val publicationGroup: PublicationGroup? = null,
     val boundingBox: BoundingBox?,
 ) : PublicationCandidate<LocationTrack> {
@@ -364,6 +368,7 @@ data class SwitchPublicationCandidate(
     override val userName: UserName,
     override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation,
+    override val designRowReferrer: DesignRowReferrer,
     override val publicationGroup: PublicationGroup? = null,
     val location: Point?,
 ) : PublicationCandidate<TrackLayoutSwitch> {
@@ -379,6 +384,7 @@ data class KmPostPublicationCandidate(
     override val userName: UserName,
     override val issues: List<LayoutValidationIssue> = listOf(),
     override val operation: Operation,
+    override val designRowReferrer: DesignRowReferrer,
     override val publicationGroup: PublicationGroup? = null,
     val location: Point?,
 ) : PublicationCandidate<TrackLayoutKmPost> {
@@ -478,3 +484,48 @@ data class SplitTargetInPublication(
     val endAddress: TrackMeter?,
     val operation: SplitTargetOperation,
 )
+
+enum class DesignRowReferrer {
+    MAIN_DRAFT, DESIGN_DRAFT, NONE,
+}
+
+sealed class LayoutContextTransition {
+
+    companion object {
+        fun of(branch: LayoutBranch, fromState: PublicationState): LayoutContextTransition {
+            assert(branch is DesignBranch || fromState == PublicationState.DRAFT) {
+                "Can't transition layout context from main-official"
+            }
+            return if (branch is DesignBranch) {
+                if (fromState == PublicationState.DRAFT) PublicationInDesign(branch) else MergeFromDesign(branch)
+            } else PublicationInMain
+        }
+        fun publicationIn(layoutBranch: LayoutBranch): LayoutContextTransition =
+            if (layoutBranch is DesignBranch) PublicationInDesign(layoutBranch) else PublicationInMain
+    }
+
+    abstract val candidateBranch: LayoutBranch
+    abstract val baseBranch: LayoutBranch
+    abstract val candidatePublicationState: PublicationState
+    abstract val basePublicationState: PublicationState
+
+    val candidateContext get() = LayoutContext.of(candidateBranch, candidatePublicationState)
+    val baseContext get() = LayoutContext.of(baseBranch, basePublicationState)
+}
+data object PublicationInMain : LayoutContextTransition() {
+    override val candidateBranch = MainBranch.instance
+    override val baseBranch = MainBranch.instance
+    override val candidatePublicationState = PublicationState.DRAFT
+    override val basePublicationState = PublicationState.OFFICIAL
+}
+data class PublicationInDesign(private val branch: DesignBranch): LayoutContextTransition() {
+    override val candidateBranch = branch
+    override val baseBranch = branch
+    override val candidatePublicationState = PublicationState.DRAFT
+    override val basePublicationState = PublicationState.OFFICIAL
+}
+data class MergeFromDesign(override val candidateBranch: DesignBranch): LayoutContextTransition() {
+    override val baseBranch = MainBranch.instance
+    override val candidatePublicationState = PublicationState.OFFICIAL
+    override val basePublicationState = PublicationState.DRAFT
+}

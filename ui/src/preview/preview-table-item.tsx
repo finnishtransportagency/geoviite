@@ -34,6 +34,7 @@ export type PreviewTableItemProps = {
     displayedTotalPublicationAssetAmount: number;
     onShowOnMap: (bbox: BoundingBox) => void;
     isValidating: (item: PreviewTableEntry) => boolean;
+    canRevertChanges: boolean;
 };
 
 export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
@@ -45,6 +46,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     displayedTotalPublicationAssetAmount,
     onShowOnMap,
     isValidating,
+    canRevertChanges,
 }) => {
     const { t } = useTranslation();
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
@@ -158,9 +160,19 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
         menuDivider(),
         menuOptionShowOnMap,
         menuDivider(),
-        ...conditionalMenuOption(!tableEntry.publicationGroup, menuOptionRevertSingleChange),
-        ...conditionalMenuOption(tableEntry.publicationGroup, menuOptionPublicationGroupRevert),
-        menuOptionRevertAllShownChanges,
+        ...(canRevertChanges
+            ? [
+                  ...conditionalMenuOption(
+                      !tableEntry.publicationGroup,
+                      menuOptionRevertSingleChange,
+                  ),
+                  ...conditionalMenuOption(
+                      tableEntry.publicationGroup,
+                      menuOptionPublicationGroupRevert,
+                  ),
+                  menuOptionRevertAllShownChanges,
+              ]
+            : []),
     ];
 
     return (

@@ -7,6 +7,7 @@ create function layout.track_number_in_layout_context(publication_state_in layou
           (
             row_id      integer,
             official_id integer,
+            design_id   integer,
             draft_id    integer,
             row_version integer,
             external_id varchar(50),
@@ -24,6 +25,7 @@ $$
 select
   row.id as row_id,
   coalesce(row.official_row_id, row.design_row_id, row.id) as official_id,
+  design_id,
   case when row.draft then row.id end as draft_id,
   row.version as row_version,
   row.external_id,

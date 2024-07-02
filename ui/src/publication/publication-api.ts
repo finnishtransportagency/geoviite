@@ -31,13 +31,17 @@ import { PublicationDetailsTableSortField } from 'publication/table/publication-
 import { SortDirection } from 'utils/table-utils';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { createPublicationCandidateReference } from 'publication/publication-utils';
-import { LayoutDesignId } from 'common/common-model';
+import { LayoutDesignId, PublicationState } from 'common/common-model';
 import { toBranchName } from 'track-layout/track-layout-api';
 
 const PUBLICATION_URL = `${API_URI}/publications`;
 
 function publicationUri(designId: LayoutDesignId | undefined): string {
     return `${PUBLICATION_URL}/${toBranchName(designId).toLowerCase()}`;
+}
+
+function mergeToMainUri(designId: LayoutDesignId | undefined): string {
+    return `${PUBLICATION_URL}/merge-to-main/${toBranchName(designId).toLowerCase()}`;
 }
 
 export type PublicationCandidatesResponse = {
@@ -160,24 +164,34 @@ const toValidatedPublicationCandidates = (
     };
 };
 
-export const getPublicationCandidates = (): Promise<PublicationCandidate[]> =>
-    getNonNull<PublicationCandidatesResponse>(`${publicationUri(undefined)}/candidates`).then(
-        toPublicationCandidates,
-    );
+export const getPublicationCandidates = (
+    layoutBranch: LayoutDesignId | undefined,
+    fromState: PublicationState,
+): Promise<PublicationCandidate[]> =>
+    getNonNull<PublicationCandidatesResponse>(
+        `${publicationUri(layoutBranch)}/${fromState}/candidates`,
+    ).then(toPublicationCandidates);
 
-export const validatePublicationCandidates = (candidates: PublicationCandidateReference[]) =>
+export const validatePublicationCandidates = (
+    layoutBranch: LayoutDesignId | undefined,
+    candidates: PublicationCandidateReference[],
+) =>
     postNonNull<PublicationRequestIds, ValidatedPublicationCandidatesResponse>(
-        `${publicationUri(undefined)}/validate`,
+        `${publicationUri(layoutBranch)}/validate`,
         toPublicationRequestIds(candidates),
     ).then(toValidatedPublicationCandidates);
 
-export const revertPublicationCandidates = (candidates: PublicationCandidateReference[]) =>
+export const revertPublicationCandidates = (
+    layoutBranch: LayoutDesignId | undefined,
+    candidates: PublicationCandidateReference[],
+) =>
     deleteNonNullAdt<PublicationRequestIds, PublicationResult>(
-        `${publicationUri(undefined)}/candidates`,
+        `${publicationUri(layoutBranch)}/candidates`,
         toPublicationRequestIds(candidates),
     );
 
 export const publishPublicationCandidates = (
+    layoutBranch: LayoutDesignId | undefined,
     candidates: PublicationCandidateReference[],
     message: string,
 ) => {
@@ -187,7 +201,19 @@ export const publishPublicationCandidates = (
     };
 
     return postNonNull<PublicationRequest, PublicationResult>(
-        `${publicationUri(undefined)}`,
+        `${publicationUri(layoutBranch)}`,
+        request,
+    );
+};
+
+export const mergeCandidatesToMain = (
+    layoutBranch: LayoutDesignId | undefined,
+    candidates: PublicationCandidateReference[],
+) => {
+    const request = toPublicationRequestIds(candidates);
+
+    return postNonNull<PublicationRequestIds, PublicationResult>(
+        `${mergeToMainUri(layoutBranch)}`,
         request,
     );
 };
@@ -248,9 +274,12 @@ export const getPublicationsCsvUri = (
     return `${PUBLICATION_URL}/csv${params}`;
 };
 
-export const getCalculatedChanges = (candidates: PublicationCandidateReference[]) =>
+export const getCalculatedChanges = (
+    layoutBranch: LayoutDesignId | undefined,
+    candidates: PublicationCandidateReference[],
+) =>
     postNonNull<PublicationRequestIds, CalculatedChanges>(
-        `${publicationUri(undefined)}/calculated-changes`,
+        `${publicationUri(layoutBranch)}/calculated-changes`,
         toPublicationRequestIds(candidates),
     );
 

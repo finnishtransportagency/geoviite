@@ -91,14 +91,14 @@ class PublicationService @Autowired constructor(
         ).map { (key, fn) -> CsvEntry(translation.t(key), fn) }
 
     @Transactional(readOnly = true)
-    fun collectPublicationCandidates(branch: LayoutBranch): PublicationCandidates {
+    fun collectPublicationCandidates(transition: LayoutContextTransition): PublicationCandidates {
         return PublicationCandidates(
-            branch = branch,
-            trackNumbers = publicationDao.fetchTrackNumberPublicationCandidates(branch),
-            locationTracks = publicationDao.fetchLocationTrackPublicationCandidates(branch),
-            referenceLines = publicationDao.fetchReferenceLinePublicationCandidates(branch),
-            switches = publicationDao.fetchSwitchPublicationCandidates(branch),
-            kmPosts = publicationDao.fetchKmPostPublicationCandidates(branch),
+            branch = transition.baseBranch,
+            trackNumbers = publicationDao.fetchTrackNumberPublicationCandidates(transition),
+            locationTracks = publicationDao.fetchLocationTrackPublicationCandidates(transition),
+            referenceLines = publicationDao.fetchReferenceLinePublicationCandidates(transition),
+            switches = publicationDao.fetchSwitchPublicationCandidates(transition),
+            kmPosts = publicationDao.fetchKmPostPublicationCandidates(transition),
         )
     }
 
@@ -502,6 +502,24 @@ class PublicationService @Autowired constructor(
         } catch (exception: DataIntegrityViolationException) {
             enrichDuplicateNameExceptionOrRethrow(branch, exception)
         }
+    }
+
+    @Transactional
+    fun mergeChangesToMain(fromBranch: LayoutBranch, request: PublicationRequestIds): PublicationResult {
+        request.trackNumbers.forEach { id -> trackNumberService.mergeToMainBranch(fromBranch, id) }
+        request.referenceLines.forEach { id -> referenceLineService.mergeToMainBranch(fromBranch, id) }
+        request.locationTracks.forEach { id -> locationTrackService.mergeToMainBranch(fromBranch, id) }
+        request.switches.forEach { id -> switchService.mergeToMainBranch(fromBranch, id) }
+        request.kmPosts.forEach { id -> kmPostService.mergeToMainBranch(fromBranch, id) }
+
+        return PublicationResult(
+            publicationId = null,
+            trackNumbers = request.trackNumbers.size,
+            referenceLines = request.referenceLines.size,
+            locationTracks = request.locationTracks.size,
+            switches = request.switches.size,
+            kmPosts = request.kmPosts.size,
+        )
     }
 
     private fun publishChangesTransaction(

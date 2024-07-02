@@ -1206,6 +1206,7 @@
     "preview-view": {
         "unstaged-changes-title": "Muutokset ({{amount}} kpl)",
         "staged-changes-title": "Julkaistavat muutokset ({{amount}} kpl)",
+        "merging-to-main-changes-title": "Valitut muutokset ({{amount}} kpl)",
         "show-only-mine": "Näytä vain omat muutokset ({{amount}} kpl)",
         "map-crop": "Rajaa kartalta",
         "track-address-changes": "Rataosoitemuutokset",
@@ -1213,7 +1214,8 @@
         "disabled-message": "(Rataosoitemuutoksia ei voi laskea)",
         "location-tracks": "Sijaintiraiteet",
         "switches": "Vaihteet",
-        "no-calculated-changes-text": "Ei rataosoitemuutoksia"
+        "no-calculated-changes-text": "Ei rataosoitemuutoksia",
+        "design-has-design-drafts-error": "Suunnitelmaan liittyy hyväksymättömiä muutoksia. Vain hyväksytyt muutokset voi siirtää luonnostilaan.  Voit käydä hyväksymässä suunnitelman muutokset <actionLink>täällä</actionLink>."
     },
     "preview-table": {
         "change-target": "Muutoskohde",
@@ -1246,6 +1248,13 @@
         "publish-confirm": {
             "title": "Julkaise muutokset",
             "description": "Syötä vielä muutoksia kuvaava selite. Julkaisun jälkeen Geoviite lähettää muutokset automaattisesti Ratkoon.",
+            "cancel": "Peruuta",
+            "message": "Selite",
+            "confirm": "Julkaise muutokset ({{candidates}} kpl)"
+        },
+        "merge-to-main-confirm": {
+            "title": "Siirrä muutokset luonnostilaan",
+            "description": "Haluatko siirtää suunnitelman {{design}} tehdyt muutokset ({{candidateCount}} kpl) luonnostilaan?",
             "cancel": "Peruuta",
             "message": "Selite",
             "confirm": "Julkaise muutokset ({{candidates}} kpl)"

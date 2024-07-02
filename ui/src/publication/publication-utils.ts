@@ -7,6 +7,7 @@ import {
     PublicationCandidateReference,
     DraftChangeType,
     PublicationCandidateId,
+    CalculatedChanges,
 } from 'publication/publication-model';
 import { currentDay } from 'utils/date-utils';
 import { candidateIdAndTypeMatches } from 'preview/preview-view-filters';
@@ -114,4 +115,27 @@ export const addValidationState = (
               }
             : candidate;
     });
+};
+
+// TODO GVT-2421: Only needed while we don't do real validation
+export const pretendValidated = (candidate: PublicationCandidate): PublicationCandidate => ({
+    ...candidate,
+    validated: true,
+    pendingValidation: false,
+    issues: [],
+});
+
+export const noCalculatedChanges: CalculatedChanges = {
+    directChanges: {
+        kmPostChanges: [],
+        locationTrackChanges: [],
+        switchChanges: [],
+        referenceLineChanges: [],
+        trackNumberChanges: [],
+    },
+    indirectChanges: {
+        locationTrackChanges: [],
+        switchChanges: [],
+        trackNumberChanges: [],
+    },
 };

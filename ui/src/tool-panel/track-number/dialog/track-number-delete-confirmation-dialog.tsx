@@ -28,20 +28,20 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
     const { t } = useTranslation();
 
     const deleteDraftLocationTrack = () => {
-        revertPublicationCandidates(changesBeingReverted.changeIncludingDependencies).then(
-            (result) => {
-                result
-                    .map(() => {
-                        Snackbar.success('tool-panel.track-number.delete-dialog.delete-succeeded');
-                        onSave &&
-                            onSave(brand(changesBeingReverted.requestedRevertChange.source.id));
-                        onClose();
-                    })
-                    .mapErr(() => {
-                        Snackbar.error('tool-panel.track-number.delete-dialog.delete-failed');
-                    });
-            },
-        );
+        revertPublicationCandidates(
+            layoutContext.designId,
+            changesBeingReverted.changeIncludingDependencies,
+        ).then((result) => {
+            result
+                .map(() => {
+                    Snackbar.success('tool-panel.track-number.delete-dialog.delete-succeeded');
+                    onSave && onSave(brand(changesBeingReverted.requestedRevertChange.source.id));
+                    onClose();
+                })
+                .mapErr(() => {
+                    Snackbar.error('tool-panel.track-number.delete-dialog.delete-failed');
+                });
+        });
     };
 
     return (
