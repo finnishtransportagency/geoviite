@@ -17,7 +17,7 @@ export type AngularUnit = 'RADIANS' | 'GRADS';
 
 export type DataType = 'STORED' | 'TEMP';
 
-export type LayoutDesignId = string;
+export type LayoutDesignId = Brand<string, 'LayoutDesignId'>;
 export type PublicationState = 'OFFICIAL' | 'DRAFT';
 export type LayoutContext = {
     publicationState: PublicationState;

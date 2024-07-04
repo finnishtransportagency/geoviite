@@ -17,6 +17,7 @@ import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant
 
@@ -28,25 +29,27 @@ class PublicationDao(
     val alignmentDao: LayoutAlignmentDao,
 ) : DaoBase(jdbcTemplateParam) {
 
-    fun fetchTrackNumberPublicationCandidates(branch: LayoutBranch): List<TrackNumberPublicationCandidate> {
+    fun fetchTrackNumberPublicationCandidates(transition: LayoutContextTransition): List<TrackNumberPublicationCandidate> {
         val sql = """
             select
-              draft_track_number.row_id,
-              draft_track_number.row_version,
-              draft_track_number.official_id,
-              draft_track_number.number,
-              draft_track_number.change_time,
-              draft_track_number.change_user,
+              candidate_track_number.row_id,
+              candidate_track_number.row_version,
+              candidate_track_number.official_id,
+              candidate_track_number.number,
+              candidate_track_number.change_time,
+              candidate_track_number.change_user,
               layout.infer_operation_from_state_transition(
-                official_track_number.state,
-                draft_track_number.state
-              ) as operation
-            from layout.track_number_in_layout_context('DRAFT', :design_id) draft_track_number
-              left join layout.track_number_in_layout_context('OFFICIAL', :design_id) official_track_number
-                on draft_track_number.official_id = official_track_number.official_id
-            where draft_track_number.draft = true
+                (select state from layout.track_number_in_layout_context('OFFICIAL', :base_design_id, official_id)),
+                candidate_track_number.state
+              ) as operation,
+              ${designRowReferrerSqlFragment("candidate_track_number", "track_number")}
+            from (select *
+                  from layout.track_number_in_layout_context(:candidate_state::layout.publication_state,
+                                                             :candidate_design_id::int)
+                  where draft = (:candidate_state = 'DRAFT')
+                    and design_id is not distinct from :candidate_design_id) candidate_track_number
         """.trimIndent()
-        val candidates = jdbcTemplate.query(sql, mapOf("design_id" to branch.designId?.intValue)) { rs, _ ->
+        val candidates = jdbcTemplate.query(sql, publicationCandidateSqlArguments(transition)) { rs, _ ->
             val id = rs.getIntId<TrackLayoutTrackNumber>("official_id")
             TrackNumberPublicationCandidate(
                 id = id,
@@ -54,8 +57,9 @@ class PublicationDao(
                 number = rs.getTrackNumber("number"),
                 draftChangeTime = rs.getInstant("change_time"),
                 operation = rs.getEnum("operation"),
+                designRowReferrer = getDesignRowReferrer(rs),
                 userName = UserName.of(rs.getString("change_user")),
-                boundingBox = referenceLineDao.fetchVersionByTrackNumberId(branch.draft, id)
+                boundingBox = referenceLineDao.fetchVersionByTrackNumberId(transition.baseContext, id)
                     ?.let(referenceLineDao::fetch)?.boundingBox
             )
         }
@@ -63,32 +67,41 @@ class PublicationDao(
         return candidates
     }
 
-    fun fetchReferenceLinePublicationCandidates(branch: LayoutBranch): List<ReferenceLinePublicationCandidate> {
+    fun fetchReferenceLinePublicationCandidates(transition: LayoutContextTransition): List<ReferenceLinePublicationCandidate> {
         val sql = """
             select 
-              draft_reference_line.row_id,
-              draft_reference_line.row_version,
-              draft_reference_line.official_id,
-              draft_reference_line.track_number_id,
-              draft_reference_line.change_time,
-              draft_reference_line.change_user,
-              draft_track_number.number as name,
+              candidate_reference_line.row_id,
+              candidate_reference_line.row_version,
+              candidate_reference_line.official_id,
+              candidate_reference_line.track_number_id,
+              candidate_reference_line.change_time,
+              candidate_reference_line.change_user,
+              candidate_track_number.number as name,
               layout.infer_operation_from_state_transition(
-                official_track_number.state,
-                draft_track_number.state
+                (select state
+                 from layout.track_number_in_layout_context('OFFICIAL', :base_design_id, track_number_id)),
+                candidate_track_number.state
               ) as operation,
+              ${designRowReferrerSqlFragment("candidate_reference_line", "reference_line")},
               postgis.st_astext(alignment_version.bounding_box) as bounding_box
-            from layout.reference_line_in_layout_context('DRAFT', :design_id) draft_reference_line
-              left join layout.track_number_in_layout_context('DRAFT', :design_id) draft_track_number
-                on draft_track_number.official_id = draft_reference_line.track_number_id
-              left join layout.track_number_in_layout_context('OFFICIAL', :design_id) official_track_number
-                on official_track_number.official_id = draft_reference_line.track_number_id
+            from layout.reference_line_in_layout_context('DRAFT', :candidate_design_id) candidate_reference_line
+              left join lateral
+                (select *
+                 from layout.track_number_in_layout_context(:candidate_state::layout.publication_state,
+                                                            :candidate_design_id::int,
+                                                            candidate_reference_line.track_number_id))
+                   candidate_track_number on (true)
+              left join lateral
+                layout.track_number_in_layout_context('OFFICIAL',
+                                                      :base_design_id,
+                                                      track_number_id) base_track_number on (true)
               left join layout.alignment_version alignment_version
-                on draft_reference_line.alignment_id = alignment_version.id
-                  and draft_reference_line.alignment_version = alignment_version.version
-            where draft_reference_line.draft
+                on candidate_reference_line.alignment_id = alignment_version.id
+                  and candidate_reference_line.alignment_version = alignment_version.version
+            where candidate_reference_line.draft = (:candidate_state = 'DRAFT')
+              and candidate_reference_line.design_id is not distinct from :candidate_design_id
         """.trimIndent()
-        val candidates = jdbcTemplate.query(sql, mapOf("design_id" to branch.designId?.intValue)) { rs, _ ->
+        val candidates = jdbcTemplate.query(sql, publicationCandidateSqlArguments(transition)) { rs, _ ->
             ReferenceLinePublicationCandidate(
                 id = rs.getIntId("official_id"),
                 rowVersion = rs.getLayoutRowVersion("row_id", "row_version"),
@@ -97,6 +110,7 @@ class PublicationDao(
                 draftChangeTime = rs.getInstant("change_time"),
                 userName = UserName.of(rs.getString("change_user")),
                 operation = rs.getEnum<Operation>("operation"),
+                designRowReferrer = getDesignRowReferrer(rs),
                 boundingBox = rs.getBboxOrNull("bounding_box"),
             )
         }
@@ -104,7 +118,7 @@ class PublicationDao(
         return candidates
     }
 
-    fun fetchLocationTrackPublicationCandidates(branch: LayoutBranch): List<LocationTrackPublicationCandidate> {
+    fun fetchLocationTrackPublicationCandidates(transition: LayoutContextTransition): List<LocationTrackPublicationCandidate> {
         val sql = """
             with splits as (
                 select
@@ -123,33 +137,38 @@ class PublicationDao(
                 group by split.id, source.official_row_id, source.id
             )
             select 
-              draft_location_track.row_id,
-              draft_location_track.row_version,
-              draft_location_track.official_id,
-              draft_location_track.name,
-              draft_location_track.track_number_id,
-              draft_location_track.change_time,
-              draft_location_track.duplicate_of_location_track_id,
-              draft_location_track.change_user,
+              candidate_location_track.row_id,
+              candidate_location_track.row_version,
+              candidate_location_track.official_id,
+              candidate_location_track.name,
+              candidate_location_track.track_number_id,
+              candidate_location_track.change_time,
+              candidate_location_track.duplicate_of_location_track_id,
+              candidate_location_track.change_user,
               layout.infer_operation_from_location_track_state_transition(
-                official_location_track.state,
-                draft_location_track.state
+                (select state
+                 from layout.location_track_in_layout_context('OFFICIAL',
+                                                              :base_design_id,
+                                                              candidate_location_track.official_id)),
+                candidate_location_track.state
               ) as operation,
+              ${designRowReferrerSqlFragment("candidate_location_track", "location_track")},
               postgis.st_astext(alignment_version.bounding_box) as bounding_box,
               splits.split_id
-            from layout.location_track_in_layout_context('DRAFT', :design_id) draft_location_track
-                left join layout.location_track_in_layout_context('OFFICIAL', :design_id) official_location_track
-                    on official_location_track.official_id = draft_location_track.official_id
+            from (select *
+                  from layout.location_track_in_layout_context(:candidate_state::layout.publication_state,
+                                                               :candidate_design_id)
+                  where draft = (:candidate_state = 'DRAFT')
+                    and design_id is not distinct from :candidate_design_id) candidate_location_track
                 left join layout.alignment_version alignment_version
-                    on draft_location_track.alignment_id = alignment_version.id
-                        and draft_location_track.alignment_version = alignment_version.version
+                    on candidate_location_track.alignment_id = alignment_version.id
+                        and candidate_location_track.alignment_version = alignment_version.version
                 left join splits 
-                    on splits.source_track_id = draft_location_track.official_id 
-                        or draft_location_track.official_id = any(splits.target_track_ids)
-                        or draft_location_track.official_id = any(splits.split_updated_duplicate_ids)
-            where draft_location_track.draft
+                    on splits.source_track_id = candidate_location_track.official_id
+                        or candidate_location_track.official_id = any(splits.target_track_ids)
+                        or candidate_location_track.official_id = any(splits.split_updated_duplicate_ids)
         """.trimIndent()
-        val candidates = jdbcTemplate.query(sql, mapOf("design_id" to branch.designId?.intValue)) { rs, _ ->
+        val candidates = jdbcTemplate.query(sql, publicationCandidateSqlArguments(transition)) { rs, _ ->
             LocationTrackPublicationCandidate(
                 id = rs.getIntId("official_id"),
                 rowVersion = rs.getLayoutRowVersion("row_id", "row_version"),
@@ -159,6 +178,7 @@ class PublicationDao(
                 duplicateOf = rs.getIntIdOrNull("duplicate_of_location_track_id"),
                 userName = UserName.of(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
+                designRowReferrer = getDesignRowReferrer(rs),
                 boundingBox = rs.getBboxOrNull("bounding_box"),
                 publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup),
             )
@@ -168,7 +188,7 @@ class PublicationDao(
         return candidates
     }
 
-    fun fetchSwitchPublicationCandidates(branch: LayoutBranch): List<SwitchPublicationCandidate> {
+    fun fetchSwitchPublicationCandidates(transition: LayoutContextTransition): List<SwitchPublicationCandidate> {
         val sql = """
             with splits as (
                 select
@@ -181,41 +201,41 @@ class PublicationDao(
                 group by split.id
             )
             select 
-              draft_switch.row_id,
-              draft_switch.row_version,
-              draft_switch.official_id,
-              draft_switch.name,
-              draft_switch.change_time,
-              draft_switch.change_user,
+              candidate_switch.row_id,
+              candidate_switch.row_version,
+              candidate_switch.official_id,
+              candidate_switch.name,
+              candidate_switch.change_time,
+              candidate_switch.change_user,
               (select array_agg(sltn)
-                 from layout.switch_linked_track_numbers(coalesce(official_switch.row_id, draft_switch.row_id), :publication_state::layout.publication_state, :design_id) sltn
+                 from layout.switch_linked_track_numbers(coalesce(base_switch.row_id, candidate_switch.row_id),
+                                                         :candidate_state::layout.publication_state,
+                                                         :candidate_design_id) sltn
               ) as track_numbers,
               layout.infer_operation_from_state_category_transition(
-                official_switch.state_category,
-                draft_switch.state_category
+                base_switch.state_category,
+                candidate_switch.state_category
               ) as operation,
+              ${designRowReferrerSqlFragment("candidate_switch", "switch")},
               postgis.st_x(switch_joint_version.location) as point_x, 
               postgis.st_y(switch_joint_version.location) as point_y,
               splits.split_id
-            from layout.switch_in_layout_context('DRAFT', :design_id) draft_switch
-              left join layout.switch_in_layout_context('OFFICIAL', :design_id) official_switch
-                on official_switch.official_id = draft_switch.official_id
-              left join common.switch_structure
-                on draft_switch.switch_structure_id = switch_structure.id
-              left join layout.switch_joint_version 
-                on switch_joint_version.switch_id = coalesce(draft_switch.draft_id, draft_switch.official_id)
-                  and switch_joint_version.switch_version = coalesce(draft_switch.row_version, official_switch.row_version)
+            from (select *
+                  from layout.switch_in_layout_context(:candidate_state::layout.publication_state,
+                                                       :candidate_design_id)
+                  where draft = (:candidate_state = 'DRAFT')
+                    and design_id is not distinct from :candidate_design_id) candidate_switch
+              left join lateral
+                layout.switch_in_layout_context('OFFICIAL', :base_design_id, candidate_switch.official_id) base_switch
+                  on (true)
+              left join common.switch_structure on candidate_switch.switch_structure_id = switch_structure.id
+              left join layout.switch_joint_version
+                on switch_joint_version.switch_id = candidate_switch.row_id
+                  and switch_joint_version.switch_version = candidate_switch.row_version
                   and switch_joint_version.number = switch_structure.presentation_joint_number
-             left join splits 
-                on draft_switch.official_id = any(splits.split_relinked_switch_ids)
-            where draft_switch.draft = true
+             left join splits on candidate_switch.official_id = any(splits.split_relinked_switch_ids)
         """.trimIndent()
-        val candidates = jdbcTemplate.query(
-            sql, mapOf(
-                "publication_state" to PublicationState.DRAFT.name,
-                "design_id" to branch.designId?.intValue,
-            )
-        ) { rs, _ ->
+        val candidates = jdbcTemplate.query(sql, publicationCandidateSqlArguments(transition)) { rs, _ ->
             SwitchPublicationCandidate(
                 id = rs.getIntId("official_id"),
                 rowVersion = rs.getLayoutRowVersion("row_id", "row_version"),
@@ -223,6 +243,7 @@ class PublicationDao(
                 draftChangeTime = rs.getInstant("change_time"),
                 userName = UserName.of(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
+                designRowReferrer = getDesignRowReferrer(rs),
                 trackNumberIds = rs.getIntIdArray("track_numbers"),
                 location = rs.getPointOrNull("point_x", "point_y"),
                 publicationGroup = rs.getIntIdOrNull<Split>("split_id")?.let(::PublicationGroup)
@@ -233,29 +254,31 @@ class PublicationDao(
         return candidates
     }
 
-    fun fetchKmPostPublicationCandidates(branch: LayoutBranch): List<KmPostPublicationCandidate> {
+    fun fetchKmPostPublicationCandidates(transition: LayoutContextTransition): List<KmPostPublicationCandidate> {
         val sql = """
             select
-              draft_km_post.row_id,
-              draft_km_post.row_version,
-              draft_km_post.official_id,
-              draft_km_post.track_number_id,
-              draft_km_post.km_number,
-              draft_km_post.change_time,
-              draft_km_post.change_user,
+              candidate_km_post.row_id,
+              candidate_km_post.row_version,
+              candidate_km_post.official_id,
+              candidate_km_post.track_number_id,
+              candidate_km_post.km_number,
+              candidate_km_post.change_time,
+              candidate_km_post.change_user,
               layout.infer_operation_from_state_transition(
-                official_km_post.state,
-                draft_km_post.state
+                (select state from layout.km_post_in_layout_context('OFFICIAL', :base_design_id, official_id)),
+                candidate_km_post.state
               ) as operation,
-              postgis.st_x(draft_km_post.location) as point_x, 
-              postgis.st_y(draft_km_post.location) as point_y
-            from layout.km_post_in_layout_context('DRAFT', :design_id) draft_km_post
-              left join layout.km_post_in_layout_context('OFFICIAL', :design_id) official_km_post
-                on official_km_post.official_id = draft_km_post.official_id
-            where draft_km_post.draft = true
+              ${designRowReferrerSqlFragment("candidate_km_post", "km_post")},
+              postgis.st_x(candidate_km_post.location) as point_x,
+              postgis.st_y(candidate_km_post.location) as point_y
+            from (select *
+                  from layout.km_post_in_layout_context(:candidate_state::layout.publication_state,
+                                                        :candidate_design_id)
+                  where draft = (:candidate_state = 'DRAFT')
+                    and design_id is not distinct from :candidate_design_id) candidate_km_post
             order by km_number
         """.trimIndent()
-        val candidates = jdbcTemplate.query(sql, mapOf("design_id" to branch.designId?.intValue)) { rs, _ ->
+        val candidates = jdbcTemplate.query(sql, publicationCandidateSqlArguments(transition)) { rs, _ ->
             KmPostPublicationCandidate(
                 id = rs.getIntId("official_id"),
                 rowVersion = rs.getLayoutRowVersion("row_id", "row_version"),
@@ -264,6 +287,7 @@ class PublicationDao(
                 draftChangeTime = rs.getInstant("change_time"),
                 userName = UserName.of(rs.getString("change_user")),
                 operation = rs.getEnum("operation"),
+                designRowReferrer = getDesignRowReferrer(rs),
                 location = rs.getPointOrNull("point_x", "point_y"),
             )
         }
@@ -1650,4 +1674,27 @@ private fun <T> filterNonUniqueIds(candidates: List<PublicationCandidate<T>>): M
         .groupingBy { candidate -> candidate.id }
         .eachCount()
         .filter { candidateAmount -> candidateAmount.value > 1 }
+}
+
+private fun publicationCandidateSqlArguments(transition: LayoutContextTransition): Map<String, Any?> = mapOf(
+    "candidate_design_id" to transition.candidateBranch.designId?.intValue,
+    "candidate_state" to transition.candidatePublicationState.name,
+    "base_design_id" to transition.baseBranch.designId?.intValue,
+)
+
+private fun designRowReferrerSqlFragment(candidateName: String, assetTableName: String) = """
+        case when $candidateName.design_id is not null and not $candidateName.draft
+          then (select design_referer.design_id is not null from layout.$assetTableName design_referer
+                where design_referer.design_row_id = $candidateName.row_id) end as design_row_referrer_is_design_draft 
+    """.trimIndent()
+
+private fun getDesignRowReferrer(resultSet: ResultSet): DesignRowReferrer {
+    val referrerBool = resultSet.getBooleanOrNull("design_row_referrer_is_design_draft")
+    return if (referrerBool == null) {
+        DesignRowReferrer.NONE
+    } else if (referrerBool) {
+        DesignRowReferrer.DESIGN_DRAFT
+    } else {
+        DesignRowReferrer.MAIN_DRAFT
+    }
 }

@@ -74,7 +74,7 @@ export const LocationTrackSwitchRelinkingDialog: React.FC<
 
     const startRelinking = async () => {
         setIsRelinking(true);
-        const relinkingResult = await relinkTrackSwitches(locationTrackId);
+        const relinkingResult = await relinkTrackSwitches(layoutContext.designId, locationTrackId);
         closeDialog();
         const validation = await getSwitchesValidation(
             draftLayoutContext(layoutContext),
