@@ -1,10 +1,12 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
-import { useLoader } from 'utils/react-utils';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import {
+    getLayoutDesign,
     getLayoutDesigns,
     insertLayoutDesign,
+    LayoutDesignSaveRequest,
     updateLayoutDesign,
 } from 'track-layout/layout-design-api';
 import { getChangeTimes, updateLayoutDesignChangeTime } from 'common/change-time-api';
@@ -66,11 +68,24 @@ export const WorkspaceSelection: React.FC<WorkspaceSelectionProps> = ({
         if (selectingWorkspace) selectWorkspaceDropdownRef?.current?.focus();
     }, [selectingWorkspace]);
 
-    const designs = useLoader(
+    const [designs, _] = useLoaderWithStatus(
         () => getLayoutDesigns(getChangeTimes().layoutDesign),
         [getChangeTimes().layoutDesign],
     );
-    const currentDesign = designs?.find((d) => d.id === layoutContext.designId);
+    const [currentDesign, designLoadStatus] = useLoaderWithStatus(
+        () =>
+            layoutContext.designId &&
+            getLayoutDesign(getChangeTimes().layoutDesign, layoutContext.designId),
+        [getChangeTimes().layoutDesign, layoutContext.designId],
+    );
+
+    const selectedDesignDoesNotExist =
+        designLoadStatus === LoaderStatus.Ready && currentDesign == undefined;
+    if (selectedDesignDoesNotExist && !selectingWorkspace) {
+        setSelectingWorkspace(true);
+    }
+
+    const canAddDesigns = useUserHasPrivilege(EDIT_LAYOUT);
 
     const unselectDesign = () => {
         onLayoutContextChange({
@@ -80,8 +95,15 @@ export const WorkspaceSelection: React.FC<WorkspaceSelectionProps> = ({
         setSelectingWorkspace(true);
     };
 
-    const canAddDesigns = useUserHasPrivilege(EDIT_LAYOUT);
     const onAddClick = () => setShowCreateWorkspaceDialog(true);
+
+    async function handleInsertLayoutDesign(request: LayoutDesignSaveRequest) {
+        const designId = await insertLayoutDesign(request);
+        await updateLayoutDesignChangeTime();
+        onLayoutContextChange({ publicationState: 'DRAFT', designId: designId });
+        setShowCreateWorkspaceDialog(false);
+        setSelectingWorkspace(false);
+    }
 
     return (
         <React.Fragment>
@@ -129,17 +151,7 @@ export const WorkspaceSelection: React.FC<WorkspaceSelectionProps> = ({
                         setShowCreateWorkspaceDialog(false);
                         setSelectingWorkspace(false);
                     }}
-                    onSave={(_, request) => {
-                        insertLayoutDesign(request)
-                            .then((id) => {
-                                setSelectingWorkspace(false);
-                                onLayoutContextChange({ publicationState: 'DRAFT', designId: id });
-                            })
-                            .finally(() => {
-                                updateLayoutDesignChangeTime();
-                                setShowCreateWorkspaceDialog(false);
-                            });
-                    }}
+                    onSave={(_, request) => handleInsertLayoutDesign(request)}
                 />
             )}
 

@@ -19,6 +19,7 @@ export const ToolBarContainer: React.FC<ToolBarContainerProps> = ({
     return (
         <ToolBar
             layoutContext={trackLayoutState.layoutContext}
+            lastSelectedDesignId={trackLayoutState.lastSelectedDesignId}
             showArea={delegates.showArea}
             onSelect={delegates.onSelect}
             onUnselect={delegates.onUnselect}

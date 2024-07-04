@@ -190,6 +190,7 @@ export type SwitchRelinkingValidationTaskList = {
 export type TrackLayoutState = {
     layoutContext: LayoutContext;
     layoutMode: LayoutMode;
+    lastSelectedDesignId: LayoutDesignId | undefined;
     map: Map;
     selection: Selection;
     stagedPublicationCandidateReferences: PublicationCandidateReference[];
@@ -206,6 +207,7 @@ export type TrackLayoutState = {
 export const initialTrackLayoutState: TrackLayoutState = {
     layoutContext: officialMainLayoutContext(),
     layoutMode: 'DEFAULT',
+    lastSelectedDesignId: undefined,
     map: initialMapState,
     selection: initialSelectionState,
     stagedPublicationCandidateReferences: [],
@@ -480,6 +482,9 @@ const trackLayoutSlice = createSlice({
                 publicationState: layoutContext.publicationState,
                 designId: layoutContext.designId,
             };
+            if (layoutContext.designId !== undefined) {
+                state.lastSelectedDesignId = layoutContext.designId;
+            }
             if (layoutContext.publicationState === 'OFFICIAL') linkingReducers.stopLinking(state);
         },
         onLayoutModeChange: (

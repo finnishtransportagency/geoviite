@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
-import { Dropdown, DropdownSize, Item, dropdownOption } from 'vayla-design-lib/dropdown/dropdown';
+import { Dropdown, dropdownOption, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown';
 import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
 import {
     LayoutLocationTrack,
@@ -40,7 +40,7 @@ import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT, VIEW_LAYOUT_DRAFT } from 'user/user-model';
-import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { draftLayoutContext, LayoutContext, LayoutDesignId } from 'common/common-model';
 import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
 import { createClassName } from 'vayla-design-lib/utils';
 import { EnvRestricted } from 'environment/env-restricted';
@@ -57,6 +57,7 @@ export type ToolbarParams = {
     onOpenPreview: () => void;
     showArea: (area: BoundingBox) => void;
     layoutContext: LayoutContext;
+    lastSelectedDesignId: LayoutDesignId | undefined;
     onStopLinking: () => void;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
     mapLayerMenuGroups: MapLayerMenuGroups;
@@ -182,6 +183,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     onOpenPreview,
     showArea,
     layoutContext,
+    lastSelectedDesignId,
     onStopLinking,
     splittingState,
     linkingState,
@@ -338,6 +340,18 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         setSelectingWorkspace(false);
     };
 
+    function switchToDesign() {
+        if (lastSelectedDesignId !== undefined) {
+            onLayoutContextChange({
+                publicationState: 'DRAFT',
+                designId: lastSelectedDesignId,
+            });
+            setSelectingWorkspace(false);
+        } else {
+            setSelectingWorkspace(true);
+        }
+    }
+
     function openPreviewAndStopLinking() {
         onOpenPreview();
         onStopLinking();
@@ -407,7 +421,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                 className={styles['tool-bar__tab-header']}
                                 qaId={'design-mode-tab'}
                                 selected={!!layoutContext.designId || selectingWorkspace}
-                                onClick={() => setSelectingWorkspace(true)}>
+                                onClick={switchToDesign}>
                                 {t('tool-bar.design-mode')}
                             </TabHeader>
                         </PrivilegeRequired>
