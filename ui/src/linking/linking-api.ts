@@ -19,8 +19,8 @@ import {
     LinkingGeometryWithAlignmentParameters,
     LinkingGeometryWithEmptyAlignmentParameters,
     LocationTrackEndpoint,
-    SuggestedSwitchCreateParams,
     SuggestedSwitch,
+    SuggestedSwitchCreateParams,
     SwitchRelinkingValidationResult,
     TrackSwitchRelinkingResult,
 } from 'linking/linking-model';
@@ -32,7 +32,7 @@ import {
     updateReferenceLineChangeTime,
     updateSwitchChangeTime,
 } from 'common/change-time-api';
-import { LayoutContext, LayoutDesignId, Range } from 'common/common-model';
+import { LayoutBranch, LayoutContext, PublicationState, Range } from 'common/common-model';
 import { asyncCache } from 'cache/cache';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
 import { MapTile } from 'map/map-model';
@@ -45,10 +45,13 @@ import { contextInUri, toBranchName } from 'track-layout/track-layout-api';
 
 const LINKING_URI = `${API_URI}/linking`;
 
-const geometryElementsLinkedStatusCache = asyncCache<GeometryPlanId, GeometryPlanLinkStatus>();
-const suggestedSwitchesCache = asyncCache<string, SuggestedSwitch[]>();
+const geometryElementsLinkedStatusCache = asyncCache<
+    `${PublicationState}_${LayoutBranch}_${GeometryPlanId}`,
+    GeometryPlanLinkStatus
+>();
+const suggestedSwitchesCache = asyncCache<`${LayoutBranch}_${string}`, SuggestedSwitch[]>();
 const relinkingSwitchValidationCache = asyncCache<
-    LocationTrackId,
+    `${LayoutBranch}_${LocationTrackId}`,
     SwitchRelinkingValidationResult[]
 >();
 
@@ -67,17 +70,18 @@ function planLinkingUri(layoutContext: LayoutContext, id?: string): string {
 }
 
 function linkingUri(
-    designId: LayoutDesignId | undefined,
+    layoutBranch: LayoutBranch,
     dataType: LinkingDataType,
     linkingType: LinkingType,
     id?: string,
 ): string {
-    const base = `${LINKING_URI}/${toBranchName(designId).toLowerCase()}/${dataType}`;
+    const base = `${LINKING_URI}/${toBranchName(layoutBranch).toLowerCase()}/${dataType}`;
     const idSection = id ? `/${id}` : '';
     return `${base}/${idSection}/${linkingType}`;
 }
 
 export const getSuggestedContinuousLocationTracks = async (
+    layoutBranch: LayoutBranch,
     locationTrackId: LocationTrackId,
     locationTrackEndPoint: LocationTrackEndpoint,
     bbox: BoundingBox,
@@ -88,15 +92,16 @@ export const getSuggestedContinuousLocationTracks = async (
         locationTrackPointUpdateType: locationTrackEndPoint.updateType,
         bbox: bboxString(bbox),
     });
-    const uri = linkingUri(undefined, 'location-tracks', 'suggested');
+    const uri = linkingUri(layoutBranch, 'location-tracks', 'suggested');
     return getNonNull<LayoutLocationTrack[]>(`${uri}${params}`);
 };
 
 export const linkGeometryWithReferenceLine = async (
+    layoutBranch: LayoutBranch,
     parameters: LinkingGeometryWithAlignmentParameters,
 ): Promise<ReferenceLineId> => {
     const response = await postNonNull<LinkingGeometryWithAlignmentParameters, ReferenceLineId>(
-        linkingUri(undefined, 'reference-lines', 'geometry'),
+        linkingUri(layoutBranch, 'reference-lines', 'geometry'),
         parameters,
     );
 
@@ -106,10 +111,11 @@ export const linkGeometryWithReferenceLine = async (
 };
 
 export const linkGeometryWithLocationTrack = async (
+    layoutBranch: LayoutBranch,
     parameters: LinkingGeometryWithAlignmentParameters,
 ): Promise<LocationTrackId> => {
     const response = await postNonNull<LinkingGeometryWithAlignmentParameters, LocationTrackId>(
-        linkingUri(undefined, 'location-tracks', 'geometry'),
+        linkingUri(layoutBranch, 'location-tracks', 'geometry'),
         parameters,
     );
 
@@ -119,12 +125,13 @@ export const linkGeometryWithLocationTrack = async (
 };
 
 export const linkGeometryWithEmptyReferenceLine = async (
+    layoutBranch: LayoutBranch,
     parameters: LinkingGeometryWithEmptyAlignmentParameters,
 ): Promise<ReferenceLineId> => {
     const response = await postNonNull<
         LinkingGeometryWithEmptyAlignmentParameters,
         ReferenceLineId
-    >(linkingUri(undefined, 'reference-lines', 'empty-geometry'), parameters);
+    >(linkingUri(layoutBranch, 'reference-lines', 'empty-geometry'), parameters);
 
     await updateReferenceLineChangeTime();
 
@@ -132,12 +139,13 @@ export const linkGeometryWithEmptyReferenceLine = async (
 };
 
 export const linkGeometryWithEmptyLocationTrack = async (
+    layoutBranch: LayoutBranch,
     parameters: LinkingGeometryWithEmptyAlignmentParameters,
 ): Promise<LocationTrackId> => {
     const response = await postNonNull<
         LinkingGeometryWithEmptyAlignmentParameters,
         LocationTrackId
-    >(linkingUri(undefined, 'location-tracks', 'empty-geometry'), parameters);
+    >(linkingUri(layoutBranch, 'location-tracks', 'empty-geometry'), parameters);
 
     await updateLocationTrackChangeTime();
 
@@ -145,11 +153,12 @@ export const linkGeometryWithEmptyLocationTrack = async (
 };
 
 export async function updateReferenceLineGeometry(
+    layoutBranch: LayoutBranch,
     id: ReferenceLineId,
     mRange: Range<number>,
 ): Promise<ReferenceLineId | undefined> {
     const result = await putNonNull<Range<number>, ReferenceLineId>(
-        linkingUri(undefined, 'reference-lines', 'geometry', id),
+        linkingUri(layoutBranch, 'reference-lines', 'geometry', id),
         mRange,
     );
     await updateReferenceLineChangeTime();
@@ -157,11 +166,12 @@ export async function updateReferenceLineGeometry(
 }
 
 export async function updateLocationTrackGeometry(
+    layoutBranch: LayoutBranch,
     id: LocationTrackId,
     mRange: Range<number>,
 ): Promise<LocationTrackId | undefined> {
     const result = await putNonNull<Range<number>, LocationTrackId>(
-        linkingUri(undefined, 'location-tracks', 'geometry', id),
+        linkingUri(layoutBranch, 'location-tracks', 'geometry', id),
         mRange,
     );
     await updateLocationTrackChangeTime();
@@ -191,7 +201,7 @@ export async function getPlanLinkStatus(
 
     return geometryElementsLinkedStatusCache.get(
         maxChangeTime,
-        `${layoutContext.publicationState}_${layoutContext.designId}_${planId}`,
+        `${layoutContext.publicationState}_${layoutContext.branch}_${planId}`,
         () => getNonNull(`${planLinkingUri(layoutContext, planId)}/status`),
     );
 }
@@ -212,7 +222,7 @@ export async function getPlanLinkStatuses(
         .getMany(
             maxChangeTime,
             planIds,
-            (planId) => `${layoutContext.publicationState}_${layoutContext.designId}_${planId}`,
+            (planId) => `${layoutContext.publicationState}_${layoutContext.branch}_${planId}`,
             (planIds) =>
                 getNonNull<GeometryPlanLinkStatus[]>(
                     `${planLinkingUri(layoutContext, undefined)}/status?ids=${planIds}`,
@@ -224,8 +234,11 @@ export async function getPlanLinkStatuses(
         .then((tracks) => tracks.filter(filterNotEmpty));
 }
 
-export async function getSuggestedSwitchesByTile(mapTile: MapTile): Promise<SuggestedSwitch[]> {
-    const key = mapTile.id;
+export async function getSuggestedSwitchesByTile(
+    layoutBranch: LayoutBranch,
+    mapTile: MapTile,
+): Promise<SuggestedSwitch[]> {
+    const key = `${layoutBranch}_${mapTile.id}` as const;
     const params = queryParams({
         bbox: bboxString(mapTile.area),
     });
@@ -237,7 +250,7 @@ export async function getSuggestedSwitchesByTile(mapTile: MapTile): Promise<Sugg
                     getChangeTimes().layoutSwitch,
                 ),
                 key,
-                () => getNonNull(`${linkingUri(undefined, 'switches', 'suggested')}${params}`),
+                () => getNonNull(`${linkingUri(layoutBranch, 'switches', 'suggested')}${params}`),
             )
             // IDs are needed to separate different suggested switches from each other.
             // If suggested switch is generated from geometry switch, geom switch id
@@ -255,6 +268,7 @@ export async function getSuggestedSwitchesByTile(mapTile: MapTile): Promise<Sugg
 }
 
 export async function getSuggestedSwitchByPoint(
+    layoutBranch: LayoutBranch,
     point: Point,
     switchId: LayoutSwitchId,
 ): Promise<SuggestedSwitch[]> {
@@ -262,7 +276,7 @@ export async function getSuggestedSwitchByPoint(
         location: pointString(point),
         switchId,
     });
-    const uri = linkingUri(undefined, 'switches', 'suggested');
+    const uri = linkingUri(layoutBranch, 'switches', 'suggested');
     return getNullable<SuggestedSwitch[]>(`${uri}${params}`).then((suggestedSwitches) => {
         return (suggestedSwitches || []).map((suggestedSwitch) => {
             return {
@@ -274,7 +288,7 @@ export async function getSuggestedSwitchByPoint(
 }
 
 export async function linkSwitch(
-    layoutBranch: LayoutDesignId | undefined,
+    layoutBranch: LayoutBranch,
     params: SuggestedSwitch,
     switchId: LayoutSwitchId,
 ): Promise<LayoutSwitchId> {
@@ -290,10 +304,11 @@ export async function linkSwitch(
 }
 
 export async function createSuggestedSwitch(
+    layoutBranch: LayoutBranch,
     params: SuggestedSwitchCreateParams,
 ): Promise<SuggestedSwitch | undefined> {
     return postNonNull<SuggestedSwitchCreateParams, SuggestedSwitch[]>(
-        linkingUri(undefined, 'switches', 'suggested'),
+        linkingUri(layoutBranch, 'switches', 'suggested'),
         params,
     ).then((switches) => {
         const s = first(switches);
@@ -301,9 +316,12 @@ export async function createSuggestedSwitch(
     });
 }
 
-export async function linkKmPost(params: KmPostLinkingParameters): Promise<LayoutKmPostId> {
+export async function linkKmPost(
+    layoutBranch: LayoutBranch,
+    params: KmPostLinkingParameters,
+): Promise<LayoutKmPostId> {
     const result = await postNonNull<typeof params, LayoutKmPostId>(
-        linkingUri(undefined, 'km-posts', 'geometry'),
+        linkingUri(layoutBranch, 'km-posts', 'geometry'),
         params,
     );
 
@@ -314,20 +332,21 @@ export async function linkKmPost(params: KmPostLinkingParameters): Promise<Layou
 }
 
 export async function validateLocationTrackSwitchRelinking(
+    layoutBranch: LayoutBranch,
     locationTrackId: LocationTrackId,
 ): Promise<SwitchRelinkingValidationResult[]> {
     return relinkingSwitchValidationCache.get(
         getMaxTimestamp(getChangeTimes().layoutSwitch, getChangeTimes().layoutLocationTrack),
-        locationTrackId,
+        `${layoutBranch}_${locationTrackId}`,
         () =>
             getNonNull<SwitchRelinkingValidationResult[]>(
-                linkingUri(undefined, 'location-tracks', 'validate-relinking', locationTrackId),
+                linkingUri(layoutBranch, 'location-tracks', 'validate-relinking', locationTrackId),
             ),
     );
 }
 
 export async function relinkTrackSwitches(
-    layoutBranch: LayoutDesignId | undefined,
+    layoutBranch: LayoutBranch,
     id: LocationTrackId,
 ): Promise<TrackSwitchRelinkingResult[]> {
     const rv = await postNonNull<null, TrackSwitchRelinkingResult[]>(

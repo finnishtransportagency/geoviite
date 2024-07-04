@@ -43,7 +43,7 @@ export async function getTrackNumbers(
     changeTime: TimeStamp = getChangeTimes().layoutTrackNumber,
     includeDeleted = false,
 ): Promise<LayoutTrackNumber[]> {
-    const cacheKey = `${includeDeleted}_${layoutContext.publicationState}_${layoutContext.designId}`;
+    const cacheKey = `${includeDeleted}_${layoutContext.publicationState}_${layoutContext.branch}`;
     return trackNumbersCache.get(changeTime, cacheKey, () =>
         getNonNull<LayoutTrackNumber[]>(
             layoutUri('track-numbers', layoutContext) + queryParams({ includeDeleted }),

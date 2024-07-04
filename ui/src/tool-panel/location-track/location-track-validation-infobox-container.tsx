@@ -34,12 +34,7 @@ export const LocationTrackValidationInfoboxContainer: React.FC<
 
     const [validation, validationLoaderStatus] = useLoaderWithStatus(
         () => getLocationTrackValidation(layoutContext, id),
-        [
-            id,
-            layoutContext.publicationState,
-            layoutContext.designId,
-            changeTimes.layoutLocationTrack,
-        ],
+        [id, layoutContext.publicationState, layoutContext.branch, changeTimes.layoutLocationTrack],
     );
 
     const errors = validation?.errors.filter((err) => err.type === 'ERROR') || [];

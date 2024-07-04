@@ -48,18 +48,20 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({
     React.useEffect(() => {
         const linkingState = store.linkingState;
         if (linkingState?.type == LinkingType.PlacingSwitch && linkingState.location) {
-            getSuggestedSwitchByPoint(linkingState.location, linkingState.layoutSwitch.id).then(
-                (suggestedSwitches) => {
-                    delegates.stopLinking();
+            getSuggestedSwitchByPoint(
+                store.layoutContext.branch,
+                linkingState.location,
+                linkingState.layoutSwitch.id,
+            ).then((suggestedSwitches) => {
+                delegates.stopLinking();
 
-                    const suggestedSwitch = first(suggestedSwitches);
-                    if (suggestedSwitch) {
-                        startSwitchLinking(suggestedSwitch, linkingState.layoutSwitch);
-                    } else {
-                        delegates.hideLayers(['switch-linking-layer']);
-                    }
-                },
-            );
+                const suggestedSwitch = first(suggestedSwitches);
+                if (suggestedSwitch) {
+                    startSwitchLinking(suggestedSwitch, linkingState.layoutSwitch);
+                } else {
+                    delegates.hideLayers(['switch-linking-layer']);
+                }
+            });
         }
     }, [store.linkingState]);
 

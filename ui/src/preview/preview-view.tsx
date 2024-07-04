@@ -54,8 +54,8 @@ import {
 import {
     draftLayoutContext,
     draftMainLayoutContext,
+    LayoutBranch,
     LayoutContext,
-    LayoutDesignId,
     officialLayoutContext,
 } from 'common/common-model';
 import { debounceAsync } from 'utils/async-utils';
@@ -108,12 +108,12 @@ export type ChangesBeingReverted = {
 export type MapDisplayTransitionSide = 'BASE_CONTEXT' | 'WITH_CHANGES';
 
 const validateDebounced = debounceAsync(
-    (layoutBranch: LayoutDesignId | undefined, candidates: PublicationCandidateReference[]) =>
+    (layoutBranch: LayoutBranch, candidates: PublicationCandidateReference[]) =>
         validatePublicationCandidates(layoutBranch, candidates),
     1000,
 );
 const getCalculatedChangesDebounced = debounceAsync(
-    (layoutBranch: LayoutDesignId | undefined, candidates: PublicationCandidateReference[]) =>
+    (layoutBranch: LayoutBranch, candidates: PublicationCandidateReference[]) =>
         getCalculatedChanges(layoutBranch, candidates),
     1000,
 );
@@ -143,7 +143,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     };
 
     const canRevertChanges =
-        props.layoutContext.designId === undefined || designPublicationMode === 'PUBLISH_CHANGES';
+        props.layoutContext.branch === 'MAIN' || designPublicationMode === 'PUBLISH_CHANGES';
 
     const [mapDisplayTransitionSide, setMapDisplayTransitionSide] =
         React.useState<MapDisplayTransitionSide>('WITH_CHANGES');
@@ -151,19 +151,18 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const hasDesignDraftsInDesign =
         useLoader(
             () =>
-                props.layoutContext.designId === undefined ||
-                designPublicationMode === 'PUBLISH_CHANGES'
+                props.layoutContext.branch === 'MAIN' || designPublicationMode === 'PUBLISH_CHANGES'
                     ? Promise.resolve(false)
-                    : getPublicationCandidates(props.layoutContext.designId, 'DRAFT').then(
+                    : getPublicationCandidates(props.layoutContext.branch, 'DRAFT').then(
                           (candidates) => candidates.length > 0,
                       ),
-            [props.changeTimes, props.layoutContext.designId, designPublicationMode],
+            [props.changeTimes, props.layoutContext.branch, designPublicationMode],
         ) ?? false;
 
     useTwoPartEffectWithStatus(
         () =>
             getPublicationCandidates(
-                props.layoutContext.designId,
+                props.layoutContext.branch,
                 designPublicationMode === 'PUBLISH_CHANGES' ? 'DRAFT' : 'OFFICIAL',
             ),
         (candidates) => {
@@ -185,7 +184,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
             setShowPreview(true);
         },
-        [props.changeTimes, props.layoutContext.designId, designPublicationMode],
+        [props.changeTimes, props.layoutContext.branch, designPublicationMode],
     );
 
     const validatedPublicationCandidates =
@@ -201,7 +200,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             setShowValidationStatusSpinner(true);
 
             return validateDebounced(
-                props.layoutContext.designId,
+                props.layoutContext.branch,
                 props.stagedPublicationCandidateReferences,
             ).finally(() => setShowValidationStatusSpinner(false));
         }, [props.stagedPublicationCandidateReferences, publicationCandidates]) ??
@@ -212,7 +211,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             designPublicationMode === 'MERGE_TO_MAIN'
                 ? Promise.resolve(noCalculatedChanges)
                 : getCalculatedChangesDebounced(
-                      props.layoutContext.designId,
+                      props.layoutContext.branch,
                       props.stagedPublicationCandidateReferences,
                   ),
         [props.stagedPublicationCandidateReferences],
@@ -249,7 +248,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         }
 
         revertPublicationCandidates(
-            props.layoutContext.designId,
+            props.layoutContext.branch,
             changesBeingReverted.changeIncludingDependencies,
         )
             .then((r) => {
@@ -331,15 +330,17 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         publishCandidates: PublicationCandidate[],
         revertRequestSource: RevertRequestSource,
     ) => {
-        getRevertRequestDependencies(publishCandidates).then((changeIncludingDependencies) => {
-            setChangesBeingReverted({
-                requestedRevertChange: {
-                    type: RevertRequestType.CHANGES_WITH_DEPENDENCIES,
-                    source: revertRequestSource,
-                },
-                changeIncludingDependencies,
-            });
-        });
+        getRevertRequestDependencies(props.layoutContext.branch, publishCandidates).then(
+            (changeIncludingDependencies) => {
+                setChangesBeingReverted({
+                    requestedRevertChange: {
+                        type: RevertRequestType.CHANGES_WITH_DEPENDENCIES,
+                        source: revertRequestSource,
+                    },
+                    changeIncludingDependencies,
+                });
+            },
+        );
     };
 
     const revertStageChanges = (
@@ -408,7 +409,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
             <div className={styles['preview-view']} qa-id="preview-content">
                 <PreviewToolBar
                     onClosePreview={props.onClosePreview}
-                    designId={props.layoutContext.designId}
+                    layoutBranch={props.layoutContext.branch}
                     designPublicationMode={designPublicationMode}
                     onChangeDesignPublicationMode={onChangeDesignPublicationMode}
                 />

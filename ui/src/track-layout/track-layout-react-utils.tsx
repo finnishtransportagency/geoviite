@@ -71,7 +71,7 @@ export function useTrackNumberReferenceLine(
             trackNumberId
                 ? getTrackNumberReferenceLine(trackNumberId, layoutContext, changeTime)
                 : undefined,
-        [trackNumberId, layoutContext.designId, layoutContext.publicationState, changeTime],
+        [trackNumberId, layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -82,7 +82,7 @@ export function useReferenceLine(
 ): LayoutReferenceLine | undefined {
     return useOptionalLoader(
         () => (id ? getReferenceLine(id, layoutContext) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
+        [id, layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -94,12 +94,7 @@ export function useReferenceLines(
     return (
         useLoader(
             () => (ids ? getReferenceLines(ids, layoutContext) : undefined),
-            [
-                JSON.stringify(ids),
-                layoutContext.publicationState,
-                layoutContext.designId,
-                changeTime,
-            ],
+            [JSON.stringify(ids), layoutContext.publicationState, layoutContext.branch, changeTime],
         ) || []
     );
 }
@@ -111,7 +106,7 @@ export function useLocationTrack(
 ): LayoutLocationTrack | undefined {
     return useOptionalLoader(
         () => (id ? getLocationTrack(id, layoutContext) : undefined),
-        [id, layoutContext.publicationState, layoutContext.designId, changeTime],
+        [id, layoutContext.publicationState, layoutContext.branch, changeTime],
     );
 }
 
@@ -123,12 +118,7 @@ export function useLocationTracks(
     return (
         useLoader(
             () => (ids ? getLocationTracks(ids, layoutContext) : undefined),
-            [
-                JSON.stringify(ids),
-                layoutContext.designId,
-                layoutContext.publicationState,
-                changeTime,
-            ],
+            [JSON.stringify(ids), layoutContext.branch, layoutContext.publicationState, changeTime],
         ) || []
     );
 }
@@ -140,7 +130,7 @@ export function useSwitch(
 ): LayoutSwitch | undefined {
     return useOptionalLoader(
         () => (id ? getSwitch(id, layoutContext) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
+        [id, layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -152,12 +142,7 @@ export function useSwitches(
     return (
         useLoader(
             () => (ids ? getSwitches(ids, layoutContext) : undefined),
-            [
-                JSON.stringify(ids),
-                layoutContext.designId,
-                layoutContext.publicationState,
-                changeTime,
-            ],
+            [JSON.stringify(ids), layoutContext.branch, layoutContext.publicationState, changeTime],
         ) || []
     );
 }
@@ -173,7 +158,7 @@ export function useTrackNumber(
 ): LayoutTrackNumber | undefined {
     return useLoader(
         () => (id ? getTrackNumberById(id, layoutContext, changeTime) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
+        [id, layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -184,7 +169,7 @@ export function useTrackNumberWithStatus(
 ): [LayoutTrackNumber | undefined, LoaderStatus] {
     return useLoaderWithStatus(
         () => (id ? getTrackNumberById(id, layoutContext, changeTime) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
+        [id, layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -194,7 +179,7 @@ export function useTrackNumbers(
 ): LayoutTrackNumber[] | undefined {
     return useLoader(
         () => getTrackNumbers(layoutContext, changeTime),
-        [layoutContext.designId, layoutContext.publicationState, changeTime],
+        [layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -204,7 +189,7 @@ export function useTrackNumbersIncludingDeleted(
 ): LayoutTrackNumber[] | undefined {
     return useLoader(
         () => getTrackNumbers(layoutContext, changeTime, true),
-        [layoutContext.designId, layoutContext.publicationState, changeTime],
+        [layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -215,7 +200,7 @@ export function useReferenceLineStartAndEnd(
 ): AlignmentStartAndEnd | undefined {
     return useLoader(
         () => (id ? getReferenceLineStartAndEnd(id, layoutContext) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
+        [id, layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -231,7 +216,7 @@ export function useLocationTrackStartAndEnd(
     );
     return useLoaderWithStatus(
         () => (id ? getLocationTrackStartAndEnd(id, layoutContext, changeTime) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
+        [id, layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -245,7 +230,7 @@ export function useLocationTrackInfoboxExtras(
             id === undefined
                 ? undefined
                 : getLocationTrackInfoboxExtras(id, layoutContext, changeTimes),
-        [id, layoutContext.designId, layoutContext.publicationState, changeTimes],
+        [id, layoutContext.branch, layoutContext.publicationState, changeTimes],
     );
 }
 export function useConflictingTracks(
@@ -270,7 +255,7 @@ export function useConflictingTracks(
             trackNumberId,
             namesString,
             trackIdsString,
-            layoutContext.designId,
+            layoutContext.branch,
             layoutContext.publicationState,
         ],
     );
@@ -286,7 +271,7 @@ export function useTrackNumberChangeTimes(
 ): LayoutAssetChangeInfo | undefined {
     return useOptionalLoader(
         () => (id ? getTrackNumberChangeTimes(id, layoutContext) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState],
+        [id, layoutContext.branch, layoutContext.publicationState],
     );
 }
 
@@ -296,7 +281,7 @@ export function useReferenceLineChangeTimes(
 ): LayoutAssetChangeInfo | undefined {
     return useOptionalLoader(
         () => (id ? getReferenceLineChangeTimes(id, layoutContext) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState],
+        [id, layoutContext.branch, layoutContext.publicationState],
     );
 }
 
@@ -306,7 +291,7 @@ export function useLocationTrackChangeTimes(
 ): LayoutAssetChangeInfo | undefined {
     return useOptionalLoader(
         () => (id ? getLocationTrackChangeTimes(id, layoutContext) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState],
+        [id, layoutContext.branch, layoutContext.publicationState],
     );
 }
 
@@ -316,7 +301,7 @@ export function useSwitchChangeTimes(
 ): LayoutAssetChangeInfo | undefined {
     return useOptionalLoader(
         () => (id ? getSwitchChangeTimes(id, layoutContext) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState],
+        [id, layoutContext.branch, layoutContext.publicationState],
     );
 }
 
@@ -326,7 +311,7 @@ export function useKmPostChangeTimes(
 ): LayoutAssetChangeInfo | undefined {
     return useOptionalLoader(
         () => (id ? getKmPostChangeInfo(id, layoutContext) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState],
+        [id, layoutContext.branch, layoutContext.publicationState],
     );
 }
 
@@ -341,7 +326,7 @@ export function useKmPost(
 ): LayoutKmPost | undefined {
     return useOptionalLoader(
         () => (id ? getKmPost(id, layoutContext, changeTime) : undefined),
-        [id, layoutContext.designId, layoutContext.publicationState, changeTime],
+        [id, layoutContext.branch, layoutContext.publicationState, changeTime],
     );
 }
 
@@ -353,12 +338,7 @@ export function useKmPosts(
     return (
         useLoader(
             () => (ids ? getKmPosts(ids, layoutContext, changeTime) : undefined),
-            [
-                JSON.stringify(ids),
-                layoutContext.designId,
-                layoutContext.publicationState,
-                changeTime,
-            ],
+            [JSON.stringify(ids), layoutContext.branch, layoutContext.publicationState, changeTime],
         ) || []
     );
 }

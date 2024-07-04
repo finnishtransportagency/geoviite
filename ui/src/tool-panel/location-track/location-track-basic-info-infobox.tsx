@@ -109,7 +109,7 @@ export const LocationTrackBasicInfoInfobox: React.FC<LocationTrackBasicInfoInfob
             ),
         [
             locationTrack?.id,
-            layoutContext.designId,
+            layoutContext.branch,
             layoutContext.publicationState,
             changeTimes.layoutLocationTrack,
         ],

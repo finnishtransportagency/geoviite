@@ -34,7 +34,7 @@ const switchValidationCache = asyncCache<string, ValidatedSwitch>();
 const tiledSwitchValidationCache = asyncCache<string, ValidatedSwitch[]>();
 
 const cacheKey = (id: LayoutSwitchId, layoutContext: LayoutContext) =>
-    `${id}_${layoutContext.publicationState}_${layoutContext.designId}`;
+    `${id}_${layoutContext.publicationState}_${layoutContext.branch}`;
 
 export async function getSwitchesByBoundingBox(
     bbox: BoundingBox,
@@ -55,7 +55,7 @@ export async function getSwitchesByTile(
     mapTile: MapTile,
     layoutContext: LayoutContext,
 ): Promise<LayoutSwitch[]> {
-    const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.designId}`;
+    const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.branch}`;
     return switchGroupsCache.get(changeTime, tileKey, () =>
         getSwitchesByBoundingBox(mapTile.area, layoutContext),
     );

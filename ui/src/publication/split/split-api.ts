@@ -1,17 +1,17 @@
 import { SplitRequest } from 'tool-panel/location-track/split-store';
 import { API_URI, getNullable, postNonNull, putNonNull } from 'api/api-fetch';
 import { Split } from 'publication/publication-model';
-import { LayoutDesignId } from 'common/common-model';
+import { LayoutBranch } from 'common/common-model';
 import { toBranchName } from 'track-layout/track-layout-api';
 
 const SPLIT_URI = `${API_URI}/location-track-split`;
 
 export const postSplitLocationTrack = async (
     request: SplitRequest,
-    designId: LayoutDesignId | undefined,
+    branch: LayoutBranch,
 ): Promise<string> => {
     return postNonNull<SplitRequest, string>(
-        `${SPLIT_URI}/${toBranchName(designId).toLowerCase()}`,
+        `${SPLIT_URI}/${toBranchName(branch).toLowerCase()}`,
         request,
     );
 };

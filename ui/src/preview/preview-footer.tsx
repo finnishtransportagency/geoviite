@@ -95,7 +95,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
         setPublishing(true);
         publishWith(
             publishPublicationCandidates(
-                props.layoutContext.designId,
+                props.layoutContext.branch,
                 props.stagedPublicationCandidates,
                 message,
             ),
@@ -103,10 +103,10 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
     };
 
     const mergeToMain = () => {
+        const branch = props.layoutContext.branch;
+        if (branch === 'MAIN') return;
         setPublishing(true);
-        publishWith(
-            mergeCandidatesToMain(props.layoutContext.designId, props.stagedPublicationCandidates),
-        );
+        publishWith(mergeCandidatesToMain(branch, props.stagedPublicationCandidates));
     };
 
     const candidateCount = props.stagedPublicationCandidates.length;
@@ -147,9 +147,9 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                         publish={publish}
                     />
                 ) : (
-                    props.layoutContext.designId && (
+                    props.layoutContext.branch !== 'MAIN' && (
                         <PreviewMergeToMainConfirmationDialog
-                            designId={props.layoutContext.designId}
+                            designId={props.layoutContext.branch}
                             isPublishing={isPublishing}
                             onCancel={() => setPublishConfirmVisible(false)}
                             candidateCount={candidateCount}

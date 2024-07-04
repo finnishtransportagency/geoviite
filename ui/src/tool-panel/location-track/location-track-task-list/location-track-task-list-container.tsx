@@ -62,11 +62,11 @@ export const LocationTrackTaskListContainer: React.FC<{ selectingWorkspace: bool
     React.useEffect(() => {
         if (
             locationTrackList &&
-            (locationTrackList.designId !== layoutContext.designId || selectingWorkspace)
+            (locationTrackList.branch !== layoutContext.branch || selectingWorkspace)
         ) {
             delegates.hideLocationTrackTaskList();
         }
-    }, [layoutContext.designId, selectingWorkspace]);
+    }, [layoutContext.branch, selectingWorkspace]);
 
     return createPortal(
         locationTrackList?.type == LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION ? (
@@ -102,7 +102,10 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
     );
 
     const [switchesAndErrors, switchesLoadingStatus] = useLoaderWithStatus(async () => {
-        const relinkingResults = await validateLocationTrackSwitchRelinking(locationTrackId);
+        const relinkingResults = await validateLocationTrackSwitchRelinking(
+            layoutContext.branch,
+            locationTrackId,
+        );
         const switchIds = relinkingResults
             .filter((r) => r.validationIssues.length > 0 || r.successfulSuggestion == null)
             .map((s) => s.id);

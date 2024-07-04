@@ -530,6 +530,7 @@ const MapView: React.FC<MapViewProps> = ({
                             mapTiles,
                             resolution,
                             existingOlLayer as VectorLayer<Feature<OlPoint>>,
+                            layoutContext,
                             selection,
                             linkingState as LinkingSwitch | undefined,
                             (loading) => onLayerLoading(layerName, loading),

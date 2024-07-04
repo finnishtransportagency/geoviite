@@ -85,7 +85,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                 : [];
         }, [
             layoutContext.publicationState,
-            layoutContext.designId,
+            layoutContext.branch,
             geometryKmPost.trackNumberId,
             geometryKmPost.location,
             layoutKmPost,
@@ -103,7 +103,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
 
         try {
             if (linkingState && geometryKmPost && geometryKmPost.sourceId && layoutKmPost) {
-                await linkKmPost({
+                await linkKmPost(layoutContext.branch, {
                     geometryPlanId: planId,
                     geometryKmPostId: geometryKmPost.sourceId,
                     layoutKmPostId: layoutKmPost.id,

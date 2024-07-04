@@ -129,7 +129,8 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
         .map((s) => ({ ...s, qaId: s.value }));
 
     const confirmNewDraftDelete = () => {
-        inEditTrackNumber && onRequestDeleteTrackNumber(inEditTrackNumber, setDeletingDraft);
+        inEditTrackNumber &&
+            onRequestDeleteTrackNumber(layoutContext.branch, inEditTrackNumber, setDeletingDraft);
     };
 
     const saveOrConfirm = () => {

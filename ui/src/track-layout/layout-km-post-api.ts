@@ -34,7 +34,7 @@ const kmPostForLinkingCache = asyncCache<string, LayoutKmPost[]>();
 const kmPostCache = asyncCache<string, LayoutKmPost | undefined>();
 
 const cacheKey = (id: LayoutKmPostId, layoutContext: LayoutContext) =>
-    `${id}_${layoutContext.publicationState}_${layoutContext.designId}`;
+    `${id}_${layoutContext.publicationState}_${layoutContext.branch}`;
 
 export async function getKmPost(
     id: LayoutKmPostId,
@@ -93,7 +93,7 @@ export async function getKmPostsByTile(
     });
     return kmPostListCache.get(
         changeTime,
-        `${layoutContext.publicationState}_${layoutContext.designId}_${JSON.stringify(params)}`,
+        `${layoutContext.publicationState}_${layoutContext.branch}_${JSON.stringify(params)}`,
         () => getNonNull(`${layoutUri('km-posts', layoutContext)}${params}`),
     );
 }
