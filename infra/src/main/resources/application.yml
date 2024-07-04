@@ -23,6 +23,7 @@ spring:
       connection-timeout: 10000
       leak-detection-threshold: 60000
       validation-timeout: 5000
+      connection-init-sql: "set jit=off;"
   jdbc:
     template:
       query-timeout: 15
