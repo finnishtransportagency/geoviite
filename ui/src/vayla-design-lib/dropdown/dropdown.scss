@@ -148,15 +148,23 @@ $dropdown-border-error: 2px;
 
 .dropdown__list-container {
     @include typography.typography-body;
+    display: flex;
+    flex-direction: column;
+    background: colors.$color-white-default;
+}
+
+.dropdown__list-container--modal {
     @include shadows.shadow-8dp;
     position: absolute;
     z-index: layers.$layer-popup;
-    display: flex;
-    flex-direction: column;
     margin-top: 2px;
     max-height: 270px;
     border-radius: 4px;
     background: colors.$color-white-default;
+}
+
+.dropdown__list-container--inline {
+    zoom: 1;
 }
 
 .dropdown--wide-list {
