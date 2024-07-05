@@ -406,7 +406,7 @@ class PublicationService @Autowired constructor(
      * each ID is fetched from ratko and becomes an object there -> we want to store it, even if the rest fail
      */
     fun updateExternalId(branch: LayoutBranch, request: PublicationRequestIds) {
-        val draftContext = LayoutContext.of(LayoutBranch.main, DRAFT)
+        val draftContext = branch.draft
         try {
             request.locationTracks
                 .filter { trackId -> locationTrackService.getOrThrow(draftContext, trackId).externalId == null }

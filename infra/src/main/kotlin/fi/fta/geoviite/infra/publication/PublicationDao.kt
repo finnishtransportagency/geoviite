@@ -1354,6 +1354,7 @@ class PublicationDao(
 
         jdbcTemplate.batchUpdate(
             """
+                with publication as (select * from publication.publication where id = :publication_id)
                 insert into publication.switch_location_tracks (
                   publication_id,
                   switch_id,
@@ -1362,16 +1363,18 @@ class PublicationDao(
                   is_topology_switch
                 )
                 select distinct :publication_id, :switch_id, location_track.id, location_track.version, false
-                from layout.location_track
+                from publication, layout.location_track
                  inner join layout.segment_version on segment_version.alignment_id = location_track.alignment_id
                    and location_track.alignment_version = segment_version.alignment_version
                 where segment_version.switch_id = :switch_id 
                   and not location_track.draft
+                  and location_track.design_id is not distinct from publication.design_id
                 union all
                 select distinct :publication_id, :switch_id, location_track.id, location_track.version, true
-                from layout.location_track
+                from publication, layout.location_track
                 where not location_track.draft 
                   and (location_track.topology_start_switch_id = :switch_id or location_track.topology_end_switch_id = :switch_id)
+                  and location_track.design_id is not distinct from publication.design_id
             """.trimIndent(), (directChanges + indirectChanges).map { s ->
                 mapOf(
                     "publication_id" to publicationId.intValue, "switch_id" to s.switchId.intValue

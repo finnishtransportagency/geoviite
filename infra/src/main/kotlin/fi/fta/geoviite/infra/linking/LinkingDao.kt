@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
@@ -202,6 +203,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
     }
 
     fun getMissingLayoutSwitchLinkings(
+        layoutBranch: LayoutBranch,
         bbox: BoundingBox,
         geometrySwitchId: IntId<GeometrySwitch>? = null,
     ): List<MissingLayoutSwitchLinking> {
@@ -217,7 +219,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
               plan.srid,
               plan.id as plan_id
             from layout.segment_version
-            inner join layout.location_track_in_layout_context('DRAFT', null) location_track
+            inner join layout.location_track_in_layout_context('DRAFT', :design_id::int) location_track
               on location_track.alignment_id = segment_version.alignment_id
                 and location_track.alignment_version = segment_version.alignment_version
                 and location_track.state != 'DELETED'
@@ -263,6 +265,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         """.trimIndent()
 
         val params = mapOf(
+            "design_id" to layoutBranch.designId?.intValue,
             "geometry_switch_id" to geometrySwitchId,
             "layout_srid" to LAYOUT_SRID.code,
             "x_min" to bbox.min.x,

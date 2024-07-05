@@ -1,0 +1,1 @@
+alter table publication.switch_location_tracks drop constraint publication_switch_location_tracks_location_track_fk;

@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
@@ -3028,12 +3029,11 @@ class PublicationServiceIT @Autowired constructor(
             ),
         )
 
-        val designOfficialContext = testDBService.testContext(testBranch, OFFICIAL)
-        mainDraftContext.insert(asMainDraft(designOfficialContext.fetch(trackNumber)!!))
-        mainDraftContext.insert(asMainDraft(designOfficialContext.fetch(referenceLine)!!))
-        mainDraftContext.insert(asMainDraft(designOfficialContext.fetch(locationTrack)!!))
-        mainDraftContext.insert(asMainDraft(designOfficialContext.fetch(kmPost)!!))
-        mainDraftContext.insert(asMainDraft(designOfficialContext.fetch(switch)!!))
+        trackNumberService.mergeToMainBranch(testBranch, trackNumber)
+        referenceLineService.mergeToMainBranch(testBranch, referenceLine)
+        locationTrackService.mergeToMainBranch(testBranch, locationTrack)
+        kmPostService.mergeToMainBranch(testBranch, kmPost)
+        switchService.mergeToMainBranch(testBranch, switch)
 
         publishAndVerify(
             LayoutBranch.main,
@@ -3046,7 +3046,6 @@ class PublicationServiceIT @Autowired constructor(
             ),
         )
     }
-
     @Test
     fun `create in design and update once in design before publishing in main`() {
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
@@ -3086,11 +3085,11 @@ class PublicationServiceIT @Autowired constructor(
             ),
         )
 
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(trackNumber)!!))
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(referenceLine)!!))
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(locationTrack)!!))
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(kmPost)!!))
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(switch)!!))
+        trackNumberService.mergeToMainBranch(testBranch, trackNumber)
+        referenceLineService.mergeToMainBranch(testBranch, referenceLine)
+        locationTrackService.mergeToMainBranch(testBranch, locationTrack)
+        kmPostService.mergeToMainBranch(testBranch, kmPost)
+        switchService.mergeToMainBranch(testBranch, switch)
 
         publishAndVerify(
             LayoutBranch.main,
@@ -3164,11 +3163,11 @@ class PublicationServiceIT @Autowired constructor(
                 switches = listOf(switch),
             ),
         )
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(trackNumber)!!))
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(referenceLine)!!))
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(locationTrack)!!))
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(kmPost)!!))
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(switch)!!))
+        trackNumberService.mergeToMainBranch(testBranch, trackNumber)
+        referenceLineService.mergeToMainBranch(testBranch, referenceLine)
+        locationTrackService.mergeToMainBranch(testBranch, locationTrack)
+        kmPostService.mergeToMainBranch(testBranch, kmPost)
+        switchService.mergeToMainBranch(testBranch, switch)
 
         publishAndVerify(
             LayoutBranch.main,
@@ -3233,11 +3232,11 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
 
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(trackNumber)!!))
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(referenceLine)!!))
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(locationTrack)!!))
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(kmPost)!!))
-        mainDraftContext.insert(asMainDraft(testOfficialContext.fetch(switch)!!))
+        trackNumberService.mergeToMainBranch(testBranch, trackNumber)
+        referenceLineService.mergeToMainBranch(testBranch, referenceLine)
+        locationTrackService.mergeToMainBranch(testBranch, locationTrack)
+        kmPostService.mergeToMainBranch(testBranch, kmPost)
+        switchService.mergeToMainBranch(testBranch, switch)
 
         publishAndVerify(
             LayoutBranch.main, publicationRequest(
@@ -3248,6 +3247,85 @@ class PublicationServiceIT @Autowired constructor(
                 switches = listOf(switch),
             )
         )
+    }
+
+    @Test
+    fun `create linked switch in design and publish`() {
+        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        mainOfficialContext.insert(
+            referenceLine(
+                trackNumber,
+                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
+            )
+        )
+        val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
+        val testDraftContext = testDBService.testContext(testBranch, DRAFT)
+
+        val switch = testDraftContext.insert(switch()).id
+
+        val locationTrack = testDraftContext.insert(
+            locationTrackAndAlignment(
+                trackNumber,
+                segment(Point(0.0, 0.0), Point(10.0, 10.0)).copy(startJointNumber = JointNumber(1), switchId = switch)
+            )
+        ).id
+
+        publishAndVerify(
+            testBranch, publicationRequest(
+                locationTracks = listOf(locationTrack),
+                switches = listOf(switch),
+            )
+        )
+
+        locationTrackService.mergeToMainBranch(testBranch, locationTrack)
+        switchService.mergeToMainBranch(testBranch, switch)
+
+        publishAndVerify(
+            MainBranch.instance, publicationRequest(
+                locationTracks = listOf(locationTrack),
+                switches = listOf(switch),
+            )
+        )
+    }
+
+    @Test
+    fun `edit location track linking switch in design and publish`() {
+        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        mainOfficialContext.insert(
+            referenceLine(
+                trackNumber,
+                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
+            )
+        )
+        val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
+        val testDraftContext = testDBService.testContext(testBranch, DRAFT)
+
+        val switch = mainOfficialContext.insert(switch()).id
+
+        val locationTrack = mainOfficialContext.insert(
+            locationTrackAndAlignment(
+                trackNumber,
+                segment(Point(0.0, 0.0), Point(10.0, 10.0)).copy(startJointNumber = JointNumber(1), switchId = switch)
+            )
+        ).id
+
+        val editedAlignmentVersion = alignmentDao.insert(
+            alignment(
+                segment(Point(0.0, 0.0), Point(10.0, 10.0)).copy(
+                    endJointNumber = JointNumber(1),
+                    switchId = switch
+                )
+            )
+        )
+        testDraftContext.insert(
+            asDesignDraft(mainOfficialContext
+                .fetch(locationTrack)!!
+                .copy(alignmentVersion = editedAlignmentVersion), testBranch.designId)
+        )
+
+        publishAndVerify(testBranch, publicationRequest(locationTracks = listOf(locationTrack)))
+        locationTrackService.mergeToMainBranch(testBranch, locationTrack)
+        publishAndVerify(MainBranch.instance, publicationRequest(locationTracks = listOf(locationTrack)))
     }
 
     private fun validateLocationTracks(vararg locationTracks: IntId<LocationTrack>): List<LayoutValidationIssue> =
