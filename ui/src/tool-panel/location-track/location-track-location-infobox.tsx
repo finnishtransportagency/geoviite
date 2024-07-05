@@ -300,7 +300,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             state.layoutAlignment.type === 'LOCATION_TRACK'
         ) {
             setUpdatingLength(true);
-            updateLocationTrackGeometry(state.layoutAlignment.id, {
+            updateLocationTrackGeometry(layoutContext.branch, state.layoutAlignment.id, {
                 min: state.layoutAlignmentInterval.start.m,
                 max: state.layoutAlignmentInterval.end.m,
             })

@@ -131,7 +131,7 @@ export const SwitchSuggestionCreatorDialog: React.FC<SwitchSuggestionCreatorProp
             .filter(filterNotEmpty);
 
         if (hasEnoughDataToTrySwitchSuggestion(switchStructureId, alignmentMappings)) {
-            return createSuggestedSwitch({
+            return createSuggestedSwitch(layoutContext.branch, {
                 locationTrackEndpoint: locationTrackEndpoint,
                 switchStructureId: switchStructureId,
                 alignmentMappings: alignmentMappings,

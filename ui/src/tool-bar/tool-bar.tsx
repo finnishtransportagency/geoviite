@@ -325,7 +325,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     }
 
     function switchToMainOfficial() {
-        onLayoutContextChange({ publicationState: 'OFFICIAL', designId: undefined });
+        onLayoutContextChange({ publicationState: 'OFFICIAL', branch: 'MAIN' });
         setShowNewAssetMenu(false);
         setSelectingWorkspace(false);
     }
@@ -333,7 +333,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const switchToMainDraft = () => {
         onLayoutContextChange({
             publicationState: 'DRAFT',
-            designId: undefined,
+            branch: 'MAIN',
         });
         setSelectingWorkspace(false);
     };
@@ -369,8 +369,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
 
     const className = createClassName(
         'tool-bar',
-        !layoutContext.designId && `tool-bar--${layoutContext.publicationState.toLowerCase()}`,
-        (layoutContext.designId || selectingWorkspace) && `tool-bar--design`,
+        !layoutContext.branch && `tool-bar--${layoutContext.publicationState.toLowerCase()}`,
+        (layoutContext.branch || selectingWorkspace) && `tool-bar--design`,
     );
 
     return (
@@ -381,7 +381,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         className={styles['tool-bar__tab-header']}
                         qaId="current-mode-tab"
                         selected={
-                            !layoutContext.designId &&
+                            layoutContext.branch === 'MAIN' &&
                             !selectingWorkspace &&
                             layoutContext.publicationState === 'OFFICIAL'
                         }
@@ -393,7 +393,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                             className={styles['tool-bar__tab-header']}
                             qaId={'draft-mode-tab'}
                             selected={
-                                !layoutContext.designId &&
+                                layoutContext.branch === 'MAIN' &&
                                 !selectingWorkspace &&
                                 layoutContext.publicationState === 'DRAFT'
                             }
@@ -406,7 +406,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                             <TabHeader
                                 className={styles['tool-bar__tab-header']}
                                 qaId={'design-mode-tab'}
-                                selected={!!layoutContext.designId || selectingWorkspace}
+                                selected={layoutContext.branch !== 'MAIN' || selectingWorkspace}
                                 onClick={() => setSelectingWorkspace(true)}>
                                 {t('tool-bar.design-mode')}
                             </TabHeader>
@@ -446,7 +446,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         </div>
                     </PrivilegeRequired>
                 )}
-                {(layoutContext.designId || selectingWorkspace) && (
+                {(layoutContext.branch !== 'MAIN' || selectingWorkspace) && (
                     <WorkspaceSelectionContainer
                         selectingWorkspace={selectingWorkspace}
                         setSelectingWorkspace={setSelectingWorkspace}

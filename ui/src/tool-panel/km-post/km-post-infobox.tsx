@@ -59,7 +59,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     const [confirmingDraftDelete, setConfirmingDraftDelete] = React.useState(false);
     const updatedKmPost = useLoader(
         () => getKmPost(kmPost.id, layoutContext),
-        [kmPost.id, kmPostChangeTime, layoutContext.publicationState, layoutContext.designId],
+        [kmPost.id, kmPostChangeTime, layoutContext.publicationState, layoutContext.branch],
     );
 
     const [kmPostLength, kmPostLengthLoading] = useLoaderWithStatus(
@@ -67,7 +67,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
         [
             kmPost.id,
             kmPost.state,
-            layoutContext.designId,
+            layoutContext.branch,
             layoutContext.publicationState,
             changeTimes.layoutKmPost,
             changeTimes.layoutReferenceLine,

@@ -146,7 +146,7 @@ function geocodingUri(layoutContext: LayoutContext): string {
 }
 
 function cacheKey(id: ReferenceLineId | LocationTrackId, layoutContext: LayoutContext) {
-    return `${id}_${layoutContext.publicationState}_${layoutContext.designId}`;
+    return `${id}_${layoutContext.publicationState}_${layoutContext.branch}`;
 }
 
 export async function getMapAlignmentsByTiles(
@@ -312,7 +312,7 @@ function getLocationTrackSectionsWithoutProfileByTile(
     layoutContext: LayoutContext,
     mapTile: MapTile,
 ): Promise<AlignmentHighlight[]> {
-    const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.designId}`;
+    const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.branch}`;
     const params = queryParams({ bbox: bboxString(mapTile.area) });
     return sectionsWithoutProfileCache.get(changeTime, tileKey, () =>
         getNonNull(`${mapUri(layoutContext)}/location-track/without-profile${params}`),
@@ -340,7 +340,7 @@ async function getAlignmentSectionsWithoutLinkingByTile(
     type: AlignmentFetchType,
     mapTile: MapTile,
 ): Promise<AlignmentHighlight[]> {
-    const tileKey = `${mapTile.id}_${type}_${layoutContext.publicationState}_${layoutContext.designId}`;
+    const tileKey = `${mapTile.id}_${type}_${layoutContext.publicationState}_${layoutContext.branch}`;
     const params = queryParams({ bbox: bboxString(mapTile.area), type: type });
     return sectionsWithoutLinkingCache.get(changeTime, tileKey, () =>
         getNonNull(`${mapUri(layoutContext)}/alignment/without-linking${params}`),
@@ -480,7 +480,7 @@ async function getPolyLines(
     layoutContext: LayoutContext,
     fetchType: AlignmentFetchType,
 ): Promise<AlignmentPolyLine[]> {
-    const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.designId}_${fetchType}`;
+    const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.branch}_${fetchType}`;
     const params = queryParams({
         resolution: toMapAlignmentResolution(mapTile.resolution),
         bbox: bboxString(mapTile.area),
@@ -497,7 +497,7 @@ async function getLocationTrackPolyline(
     changeTime: TimeStamp,
     layoutContext: LayoutContext,
 ): Promise<AlignmentPolyLine | undefined> {
-    const tileKey = `${locationTrackId}_${mapTile.id}_${layoutContext.publicationState}_${layoutContext.designId}`;
+    const tileKey = `${locationTrackId}_${mapTile.id}_${layoutContext.publicationState}_${layoutContext.branch}`;
     const params = queryParams({
         resolution: toMapAlignmentResolution(mapTile.resolution),
         bbox: bboxString(mapTile.area),

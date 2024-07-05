@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
 import { createClassName } from 'vayla-design-lib/utils';
-import { LayoutDesignId } from 'common/common-model';
+import { LayoutBranch } from 'common/common-model';
 import { Radio } from 'vayla-design-lib/radio/radio';
 import styles from './preview-view.scss';
 
@@ -10,7 +10,7 @@ export type DesignPublicationMode = 'PUBLISH_CHANGES' | 'MERGE_TO_MAIN';
 
 export type PreviewToolBarParams = {
     onClosePreview: () => void;
-    designId: LayoutDesignId | undefined;
+    layoutBranch: LayoutBranch;
     designPublicationMode: DesignPublicationMode;
     onChangeDesignPublicationMode: (mode: DesignPublicationMode) => void;
 };
@@ -18,7 +18,7 @@ export type PreviewToolBarParams = {
 export const PreviewToolBar: React.FC<PreviewToolBarParams> = (props: PreviewToolBarParams) => {
     const { t } = useTranslation();
 
-    const showingDesignProject = !!props.designId;
+    const showingDesignProject = props.layoutBranch !== 'MAIN';
     const className = createClassName(
         'preview-tool-bar',
         showingDesignProject ? 'preview-tool-bar__design' : 'preview-tool-bar__draft',
