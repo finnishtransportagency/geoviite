@@ -1,6 +1,11 @@
 import * as React from 'react';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
+import {
+    Button,
+    ButtonIconPosition,
+    ButtonSize,
+    ButtonVariant,
+} from 'vayla-design-lib/button/button';
 import { Dropdown, dropdownOption, DropdownSize, Item } from 'vayla-design-lib/dropdown/dropdown';
 import { getLocationTrackDescriptions } from 'track-layout/layout-location-track-api';
 import {
@@ -48,7 +53,13 @@ import {
     calculateBoundingBoxToShowAroundLocation,
     MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
 } from 'map/map-utils';
-import { WorkspaceSelectionContainer } from 'tool-bar/workspace-selection';
+import { WorkspaceSelectionContainer2 } from 'tool-bar/workspace-selection';
+import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
+import { getLayoutDesign, updateLayoutDesign } from 'track-layout/layout-design-api';
+import { getChangeTimes, updateLayoutDesignChangeTime } from 'common/change-time-api';
+import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
+import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
@@ -197,7 +208,11 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const [showAddSwitchDialog, setShowAddSwitchDialog] = React.useState(false);
     const [showAddLocationTrackDialog, setShowAddLocationTrackDialog] = React.useState(false);
     const [showAddKmPostDialog, setShowAddKmPostDialog] = React.useState(false);
+    const [showEditWorkspaceDialog, setShowEditWorkspaceDialog] = React.useState(false);
+    const [showDeleteWorkspaceDialog, setShowDeleteWorkspaceDialog] = React.useState(false);
+    const [designIdSelectorOpened, setDesignIdSelectorOpened] = React.useState(true);
     const menuRef = React.useRef(null);
+    const designIdSelectorRef = React.useRef(null);
 
     const disableNewAssetMenu =
         layoutContext.publicationState !== 'DRAFT' ||
@@ -205,6 +220,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
         linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment ||
         !!splittingState;
+
+    const showDesignIdSelector = designIdSelectorOpened || selectingWorkspace;
 
     enum NewMenuItems {
         'trackNumber' = 1,
@@ -244,6 +261,20 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             debouncedGetOptions(layoutContext, searchTerm, splittingState?.originLocationTrack?.id),
         [layoutContext, splittingState],
     );
+
+    const designId = layoutContext.designId || lastSelectedDesignId;
+    const [currentDesign, designLoadStatus] = useLoaderWithStatus(
+        () => designId && getLayoutDesign(getChangeTimes().layoutDesign, designId),
+        [getChangeTimes().layoutDesign, designId],
+    );
+
+    React.useEffect(() => {
+        const selectedDesignDoesNotExist =
+            designLoadStatus === LoaderStatus.Ready && currentDesign == undefined;
+        if (selectedDesignDoesNotExist && !selectingWorkspace) {
+            setSelectingWorkspace(true);
+        }
+    });
 
     function onItemSelected(item: SearchItemValue | undefined) {
         if (!item) {
@@ -387,6 +418,14 @@ export const ToolBar: React.FC<ToolbarParams> = ({
         (layoutContext.designId || selectingWorkspace) && `tool-bar--design`,
     );
 
+    const unselectDesign = () => {
+        onLayoutContextChange({
+            publicationState: layoutContext.publicationState,
+            designId: undefined,
+        });
+        setSelectingWorkspace(true);
+    };
+
     return (
         <div className={className}>
             <div className={styles['tool-bar__left-section']}>
@@ -417,33 +456,78 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     </PrivilegeRequired>
                     <EnvRestricted restrictTo={'test'}>
                         <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
-                            <TabHeader
-                                className={styles['tool-bar__tab-header']}
-                                qaId={'design-mode-tab'}
-                                selected={!!layoutContext.designId || selectingWorkspace}
-                                onClick={switchToDesign}>
-                                {t('tool-bar.design-mode')}
-                            </TabHeader>
+                            <div className={styles['tool-bar__design-mode-tab']}>
+                                <TabHeader
+                                    className={styles['tool-bar__tab-header']}
+                                    qaId={'design-mode-tab'}
+                                    selected={!!layoutContext.designId || selectingWorkspace}
+                                    onClick={switchToDesign}>
+                                    <div className={styles['tool-bar__design-tab-content']}>
+                                        {t('tool-bar.design-mode')}
+                                        <span>{currentDesign && `:`}</span>
+                                        <div className={styles['tool-bar__design-tab-actions']}>
+                                            <Button
+                                                variant={ButtonVariant.GHOST}
+                                                size={ButtonSize.SMALL}
+                                                icon={Icons.Down}
+                                                iconPosition={ButtonIconPosition.END}
+                                                inheritTypography={true}
+                                                onClick={(e) => {
+                                                    e.stopPropagation(); // otherwise modal gets outside-click
+                                                    setDesignIdSelectorOpened(
+                                                        !designIdSelectorOpened,
+                                                    );
+                                                }}>
+                                                {currentDesign && currentDesign.name}
+                                            </Button>
+                                            {layoutContext.designId && currentDesign && (
+                                                <React.Fragment>
+                                                    <Button
+                                                        variant={ButtonVariant.GHOST}
+                                                        size={ButtonSize.SMALL}
+                                                        icon={Icons.Edit}
+                                                        onClick={() =>
+                                                            setShowEditWorkspaceDialog(true)
+                                                        }
+                                                    />
+                                                    <Button
+                                                        variant={ButtonVariant.GHOST}
+                                                        size={ButtonSize.SMALL}
+                                                        icon={Icons.Delete}
+                                                        onClick={() =>
+                                                            setShowDeleteWorkspaceDialog(true)
+                                                        }
+                                                    />
+                                                </React.Fragment>
+                                            )}
+                                        </div>
+                                    </div>
+                                </TabHeader>
+
+                                {showDesignIdSelector && (
+                                    <div
+                                        className={styles['tool-bar__design-id-selector-container']}
+                                        ref={designIdSelectorRef}>
+                                        <CloseableModal
+                                            positionRef={designIdSelectorRef}
+                                            onClickOutside={() => setDesignIdSelectorOpened(false)}
+                                            className={styles['tool-bar__design-id-selector-popup']}
+                                            offsetX={0}
+                                            offsetY={0}>
+                                            <WorkspaceSelectionContainer2
+                                                selectingWorkspace={selectingWorkspace}
+                                                setSelectingWorkspace={setSelectingWorkspace}
+                                                onLayoutContextChange={() =>
+                                                    setDesignIdSelectorOpened(false)
+                                                }
+                                            />
+                                        </CloseableModal>
+                                    </div>
+                                )}
+                            </div>
                         </PrivilegeRequired>
                     </EnvRestricted>
                 </span>
-                <Dropdown
-                    placeholder={
-                        splittingState
-                            ? t('tool-bar.search-from-track', {
-                                  track: splittingState.originLocationTrack.name,
-                              })
-                            : t('tool-bar.search-from-whole-network')
-                    }
-                    disabled={selectingWorkspace}
-                    options={memoizedDebouncedGetOptions}
-                    searchable
-                    onChange={onItemSelected}
-                    size={DropdownSize.STRETCH}
-                    wideList
-                    wide
-                    qa-id="search-box"
-                />
             </div>
             <div className={styles['tool-bar__right-section']}>
                 {layoutContext.publicationState === 'DRAFT' && (
@@ -460,12 +544,14 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         </div>
                     </PrivilegeRequired>
                 )}
-                {(layoutContext.designId || selectingWorkspace) && (
-                    <WorkspaceSelectionContainer
-                        selectingWorkspace={selectingWorkspace}
-                        setSelectingWorkspace={setSelectingWorkspace}
-                    />
-                )}
+
+                {/*{(layoutContext.designId || selectingWorkspace) && (*/}
+                {/*    <WorkspaceSelectionContainer*/}
+                {/*        selectingWorkspace={selectingWorkspace}*/}
+                {/*        setSelectingWorkspace={setSelectingWorkspace}*/}
+                {/*        onLayoutContextChange={() => {}}*/}
+                {/*    />*/}
+                {/*)}*/}
                 {layoutContext.publicationState == 'DRAFT' && (
                     <PrivilegeRequired privilege={EDIT_LAYOUT}>
                         <Button
@@ -478,6 +564,25 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         </Button>
                     </PrivilegeRequired>
                 )}
+                <div className={styles['tool-bar__search-container']}>
+                    <Dropdown
+                        placeholder={
+                            splittingState
+                                ? t('tool-bar.search-from-track', {
+                                      track: splittingState.originLocationTrack.name,
+                                  })
+                                : t('tool-bar.search-from-whole-network')
+                        }
+                        disabled={selectingWorkspace}
+                        options={memoizedDebouncedGetOptions}
+                        searchable
+                        onChange={onItemSelected}
+                        size={DropdownSize.STRETCH}
+                        wideList
+                        wide
+                        qa-id="search-box"
+                    />
+                </div>
             </div>
 
             {showNewAssetMenu && (
@@ -513,6 +618,32 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 <KmPostEditDialogContainer
                     onClose={() => setShowAddKmPostDialog(false)}
                     onSave={handleKmPostSave}
+                />
+            )}
+
+            {showEditWorkspaceDialog && (
+                <WorkspaceDialog
+                    existingDesign={currentDesign}
+                    onCancel={() => {
+                        setShowEditWorkspaceDialog(false);
+                        setSelectingWorkspace(false);
+                    }}
+                    onSave={(_, request) => {
+                        if (currentDesign) {
+                            updateLayoutDesign(currentDesign.id, request).finally(() => {
+                                updateLayoutDesignChangeTime();
+                                setShowEditWorkspaceDialog(false);
+                            });
+                        }
+                    }}
+                />
+            )}
+
+            {showDeleteWorkspaceDialog && currentDesign && (
+                <WorkspaceDeleteConfirmDialog
+                    closeDialog={() => setShowDeleteWorkspaceDialog(false)}
+                    currentDesign={currentDesign}
+                    onDesignDeleted={unselectDesign}
                 />
             )}
         </div>

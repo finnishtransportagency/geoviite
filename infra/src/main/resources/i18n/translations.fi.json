@@ -1649,7 +1649,8 @@
         "new-km-post": "Uusi tasakilometripiste",
         "splitting-in-progress": "Raiteen jakaminen on kesken",
         "linking-in-progress": "Linkitys on kesken",
-        "choose-workspace": "Valitse työtila"
+        "choose-workspace": "Valitse työtila",
+        "search-design": "Hae suunnitelma"
     },
     "user-card": {
         "my-details": "Omat tiedot",

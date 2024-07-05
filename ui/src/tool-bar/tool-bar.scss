@@ -31,12 +31,32 @@
     }
 
     &__tabs {
-        width: 330px;
-        height: 100%;
+        //width: 330px;
+        height: 100%; // TODO: selvitä tämä
+        display: flex;
+    }
+
+    &__design-mode-tab {
+        zoom: 1;
+    }
+
+    &__design-id-selector-container {
+        zoom: 1;
+    }
+
+    &__design-id-selector-popup {
+        @include vayla-design.shadow-8dp;
+        z-index: 100;
+        background-color: vayla-design.$color-white-default;
     }
 
     &__left-section .dropdown {
         width: 330px;
+    }
+
+    &__search-container {
+        width: 300px;
+        margin-left: 16px;
     }
 
     &__middle-section {
@@ -56,9 +76,24 @@
     &__tab-header {
         height: 100%;
         padding: 12px 8px;
+        max-width: none;
 
         &:not(:last-child) {
             margin-right: 10px;
         }
+    }
+
+    &__design-tab-content {
+        display: flex;
+        align-items: center;
+    }
+
+    &__design-tab-actions {
+        display: flex;
+        align-items: center;
+    }
+
+    &__design-tab-icon {
+        zoom: 1;
     }
 }

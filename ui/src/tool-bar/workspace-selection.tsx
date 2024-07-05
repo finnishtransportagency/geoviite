@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
+import { Dropdown, DropdownPopupMode } from 'vayla-design-lib/dropdown/dropdown';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import {
     getLayoutDesign,
@@ -24,6 +24,7 @@ import { PrivilegeRequired } from 'user/privilege-required';
 type WorkspaceSelectionContainerProps = {
     setSelectingWorkspace: (selectingWorkspace: boolean) => void;
     selectingWorkspace: boolean;
+    onLayoutContextChange: (layoutContext: LayoutContext) => void;
 };
 
 export const WorkspaceSelectionContainer: React.FC<WorkspaceSelectionContainerProps> = ({
@@ -37,6 +38,29 @@ export const WorkspaceSelectionContainer: React.FC<WorkspaceSelectionContainerPr
         <WorkspaceSelection
             layoutContext={trackLayoutState.layoutContext}
             onLayoutContextChange={delegates.onLayoutContextChange}
+            selectingWorkspace={selectingWorkspace}
+            setSelectingWorkspace={setSelectingWorkspace}
+        />
+    );
+};
+
+export const WorkspaceSelectionContainer2: React.FC<WorkspaceSelectionContainerProps> = ({
+    setSelectingWorkspace,
+    selectingWorkspace,
+    onLayoutContextChange,
+}) => {
+    const trackLayoutState = useTrackLayoutAppSelector((state) => state);
+    const delegates = React.useMemo(() => createDelegates(trackLayoutActionCreators), []);
+
+    function handleLayoutContextChange(layoutContext: LayoutContext) {
+        delegates.onLayoutContextChange(layoutContext);
+        onLayoutContextChange(layoutContext);
+    }
+
+    return (
+        <WorkspaceSelection2
+            layoutContext={trackLayoutState.layoutContext}
+            onLayoutContextChange={handleLayoutContextChange}
             selectingWorkspace={selectingWorkspace}
             setSelectingWorkspace={setSelectingWorkspace}
         />
@@ -79,11 +103,13 @@ export const WorkspaceSelection: React.FC<WorkspaceSelectionProps> = ({
         [getChangeTimes().layoutDesign, layoutContext.designId],
     );
 
-    const selectedDesignDoesNotExist =
-        designLoadStatus === LoaderStatus.Ready && currentDesign == undefined;
-    if (selectedDesignDoesNotExist && !selectingWorkspace) {
-        setSelectingWorkspace(true);
-    }
+    React.useEffect(() => {
+        const selectedDesignDoesNotExist =
+            designLoadStatus === LoaderStatus.Ready && currentDesign == undefined;
+        if (selectedDesignDoesNotExist && !selectingWorkspace) {
+            setSelectingWorkspace(true);
+        }
+    });
 
     const canAddDesigns = useUserHasPrivilege(EDIT_LAYOUT);
 
@@ -178,6 +204,92 @@ export const WorkspaceSelection: React.FC<WorkspaceSelectionProps> = ({
                     closeDialog={() => setShowDeleteWorkspaceDialog(false)}
                     currentDesign={currentDesign}
                     onDesignDeleted={unselectDesign}
+                />
+            )}
+        </React.Fragment>
+    );
+};
+
+export const WorkspaceSelection2: React.FC<WorkspaceSelectionProps> = ({
+    layoutContext,
+    onLayoutContextChange,
+    selectingWorkspace,
+    setSelectingWorkspace,
+}) => {
+    const { t } = useTranslation();
+    const [showCreateWorkspaceDialog, setShowCreateWorkspaceDialog] = React.useState(false);
+    const selectWorkspaceDropdownRef = React.useRef<HTMLInputElement>(null);
+
+    React.useEffect(() => {
+        selectWorkspaceDropdownRef?.current?.focus();
+    });
+
+    const [designs, _] = useLoaderWithStatus(
+        () => getLayoutDesigns(getChangeTimes().layoutDesign),
+        [getChangeTimes().layoutDesign],
+    );
+    const [currentDesign, designLoadStatus] = useLoaderWithStatus(
+        () =>
+            layoutContext.designId &&
+            getLayoutDesign(getChangeTimes().layoutDesign, layoutContext.designId),
+        [getChangeTimes().layoutDesign, layoutContext.designId],
+    );
+
+    React.useEffect(() => {
+        const selectedDesignDoesNotExist =
+            designLoadStatus === LoaderStatus.Ready && currentDesign == undefined;
+        if (selectedDesignDoesNotExist && !selectingWorkspace) {
+            setSelectingWorkspace(true);
+        }
+    });
+
+    const canAddDesigns = useUserHasPrivilege(EDIT_LAYOUT);
+
+    const onAddClick = () => setShowCreateWorkspaceDialog(true);
+
+    async function handleInsertLayoutDesign(request: LayoutDesignSaveRequest) {
+        const designId = await insertLayoutDesign(request);
+        await updateLayoutDesignChangeTime();
+        onLayoutContextChange({ publicationState: 'DRAFT', designId: designId });
+        setShowCreateWorkspaceDialog(false);
+        setSelectingWorkspace(false);
+    }
+
+    return (
+        <React.Fragment>
+            <Dropdown
+                inputRef={selectWorkspaceDropdownRef}
+                placeholder={t('tool-bar.search-design')}
+                displaySelectedName={false}
+                openOverride={true}
+                popupMode={DropdownPopupMode.Inline}
+                onAddClick={canAddDesigns ? onAddClick : undefined}
+                onChange={(designId) => {
+                    setSelectingWorkspace(false);
+                    onLayoutContextChange({
+                        publicationState: 'DRAFT',
+                        designId: designId,
+                    });
+                }}
+                options={
+                    designs?.map((design) => ({
+                        value: design.id,
+                        name: design.name,
+                        qaId: `workspace-${design.id}`,
+                    })) ?? []
+                }
+                value={layoutContext.designId}
+                qaId={'workspace-selection'}
+                customIcon={Icons.Search}
+            />
+
+            {showCreateWorkspaceDialog && (
+                <WorkspaceDialog
+                    onCancel={() => {
+                        setShowCreateWorkspaceDialog(false);
+                        setSelectingWorkspace(false);
+                    }}
+                    onSave={(_, request) => handleInsertLayoutDesign(request)}
                 />
             )}
         </React.Fragment>
