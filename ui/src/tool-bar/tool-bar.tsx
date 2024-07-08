@@ -438,7 +438,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     </PrivilegeRequired>
                     <EnvRestricted restrictTo={'test'}>
                         <PrivilegeRequired privilege={VIEW_LAYOUT_DRAFT}>
-                            <div className={styles['tool-bar__design-mode-tab']}>
+                            <div>
                                 <TabHeader
                                     className={styles['tool-bar__tab-header']}
                                     qaId={'design-mode-tab'}
@@ -490,9 +490,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                 </TabHeader>
 
                                 {showDesignIdSelector && (
-                                    <div
-                                        className={styles['tool-bar__design-id-selector-container']}
-                                        ref={designIdSelectorRef}>
+                                    <div ref={designIdSelectorRef}>
                                         <CloseableModal
                                             positionRef={designIdSelectorRef}
                                             onClickOutside={() => setDesignIdSelectorOpened(false)}
@@ -527,12 +525,6 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         </div>
                     </PrivilegeRequired>
                 )}
-                {/*{(layoutContext.branch !== 'MAIN' || selectingWorkspace) && (*/}
-                {/*    <WorkspaceSelectionContainer*/}
-                {/*        selectingWorkspace={selectingWorkspace}*/}
-                {/*        setSelectingWorkspace={setSelectingWorkspace}*/}
-                {/*    />*/}
-                {/*)}*/}
                 {layoutContext.publicationState == 'DRAFT' && (
                     <PrivilegeRequired privilege={EDIT_LAYOUT}>
                         <Button
