@@ -249,7 +249,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                     inner join geometry.element e
                       on e.alignment_id = s.geometry_alignment_id 
                         and e.element_index = s.geometry_element_index
-                  left join layout.switch_in_layout_context('DRAFT', null) switch 
+                  left join layout.switch_in_layout_context('DRAFT', :design_id::int) switch
                     on switch.official_id = s.switch_id
                   where
                     postgis.st_intersects(
