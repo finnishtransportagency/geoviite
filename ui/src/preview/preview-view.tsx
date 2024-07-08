@@ -60,6 +60,7 @@ import {
 } from 'common/common-model';
 import { debounceAsync } from 'utils/async-utils';
 import { DesignDraftsExistError } from 'preview/preview-view-design-drafts-exist-error';
+import { createClassName } from 'vayla-design-lib/utils';
 
 export type PreviewProps = {
     layoutContext: LayoutContext;
@@ -133,6 +134,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
     const [designPublicationMode, setDesignPublicationMode] =
         React.useState<DesignPublicationMode>('PUBLISH_CHANGES');
+
+    const showCalculatedChanges = props.layoutContext.branch == 'MAIN';
 
     const onChangeDesignPublicationMode = (newMode: DesignPublicationMode) => {
         setDesignPublicationMode(newMode);
@@ -208,12 +211,12 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
     const calculatedChanges = useLoader(
         () =>
-            designPublicationMode === 'MERGE_TO_MAIN'
-                ? Promise.resolve(noCalculatedChanges)
-                : getCalculatedChangesDebounced(
+            showCalculatedChanges
+                ? getCalculatedChangesDebounced(
                       props.layoutContext.branch,
                       props.stagedPublicationCandidateReferences,
-                  ),
+                  )
+                : Promise.resolve(noCalculatedChanges),
         [props.stagedPublicationCandidateReferences],
     );
 
@@ -413,7 +416,12 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                     designPublicationMode={designPublicationMode}
                     onChangeDesignPublicationMode={onChangeDesignPublicationMode}
                 />
-                <div className={styles['preview-view__changes']}>
+                <div
+                    className={createClassName(
+                        styles['preview-view__changes'],
+                        !showCalculatedChanges &&
+                            styles['preview-view__changes--no-calculated-changes'],
+                    )}>
                     {(showPreview && (
                         <>
                             <section
@@ -496,12 +504,14 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                 />
                             </section>
                             <div className={styles['preview-section']}>
-                                {calculatedChanges && designPublicationMode !== 'MERGE_TO_MAIN' && (
-                                    <CalculatedChangesView
-                                        layoutContext={props.layoutContext}
-                                        calculatedChanges={calculatedChanges}
-                                    />
-                                )}
+                                {showCalculatedChanges &&
+                                    calculatedChanges &&
+                                    designPublicationMode !== 'MERGE_TO_MAIN' && (
+                                        <CalculatedChangesView
+                                            layoutContext={props.layoutContext}
+                                            calculatedChanges={calculatedChanges}
+                                        />
+                                    )}
                                 {!calculatedChanges && <Spinner />}
                             </div>
                         </>

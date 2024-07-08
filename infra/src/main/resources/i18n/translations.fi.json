@@ -1215,7 +1215,7 @@
         "location-tracks": "Sijaintiraiteet",
         "switches": "Vaihteet",
         "no-calculated-changes-text": "Ei rataosoitemuutoksia",
-        "design-has-design-drafts-error": "Suunnitelmaan liittyy hyväksymättömiä muutoksia. Vain hyväksytyt muutokset voi siirtää luonnostilaan.  Voit käydä hyväksymässä suunnitelman muutokset <actionLink>täällä</actionLink>."
+        "design-has-design-drafts-error": "Suunnitelmaan liittyy julkaisemattomia muutoksia. Vain julkaistut muutokset voi siirtää luonnostilaan.  Voit käydä julkaisemassa suunnitelman muutokset <actionLink>täällä</actionLink>."
     },
     "preview-table": {
         "change-target": "Muutoskohde",
@@ -1241,8 +1241,8 @@
         "title-design": "Suunnitelmatilan esikatselu",
         "return-to-draft": "Palaa luonnostilaan",
         "return-to-design": "Palaa suunnitelmatilaan",
-        "publish-changes": "Muutosten hyväksyntä",
-        "design-to-draft": "Muutosten siirto luonnostilaan"
+        "publish-changes": "Julkaisu",
+        "design-to-draft": "Siirto luonnostilaan"
     },
     "publish": {
         "publish-confirm": {
