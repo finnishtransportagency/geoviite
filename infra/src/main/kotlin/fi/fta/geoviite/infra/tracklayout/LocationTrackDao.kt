@@ -417,21 +417,31 @@ class LocationTrackDao(
 
     fun fetchVersionsNear(context: LayoutContext, bbox: BoundingBox): List<LayoutRowVersion<LocationTrack>> {
         val sql = """
-            select
-              distinct lt.row_id, lt.row_version
-            from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
-            inner join layout.segment_version s on lt.alignment_id = s.alignment_id 
-              and lt.alignment_version = s.alignment_version
-            inner join layout.segment_geometry sg on s.geometry_id = sg.id
-              and postgis.st_intersects(
-                postgis.st_makeenvelope (
-                  :x_min, :y_min,
-                  :x_max, :y_max,
-                  :layout_srid
-                ),
-                sg.bounding_box
-              )
-            where lt.state != 'DELETED'
+            select distinct lt.row_id, lt.row_version
+              from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) lt
+                join (
+                select id as alignment_id, version as alignment_version
+                  from layout.alignment
+                  where postgis.st_intersects(
+                      postgis.st_makeenvelope(
+                          :x_min, :y_min,
+                          :x_max, :y_max,
+                          :layout_srid
+                        ),
+                      alignment.bounding_box
+                    )
+              ) alignment using (alignment_id, alignment_version)
+                join layout.segment_version using (alignment_id, alignment_version)
+                join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+              where postgis.st_intersects(
+                  postgis.st_makeenvelope(
+                      :x_min, :y_min,
+                      :x_max, :y_max,
+                      :layout_srid
+                    ),
+                  segment_geometry.bounding_box
+                )
+                and lt.state != 'DELETED'
         """.trimIndent()
 
         val params = mapOf(
