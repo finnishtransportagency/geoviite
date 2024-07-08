@@ -231,7 +231,8 @@ $button-animation-size-small: 12px;
     padding: 8px 12px;
 
     .button__icon-and-animation {
-        margin-bottom: -2px; // adjust vertical position
+        display: flex;
+        align-items: center;
         width: auto;
     }
 
@@ -250,6 +251,8 @@ $button-animation-size-small: 12px;
 .button__icon {
     // button__icon contains an icon
     transition: all transitions.$transitions-speed-fast;
+    display: flex;
+    align-items: center;
 }
 
 .button--has-animation:not(.button--has-icon) {
