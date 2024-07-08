@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { LayoutDesign, updateLayoutDesign } from 'track-layout/layout-design-api';
@@ -49,7 +49,14 @@ export const WorkspaceDeleteConfirmDialog: React.FC<WorkspaceDeleteConfirmDialog
                 </div>
             }>
             <p>{t('workspace-dialog.delete-confirm.guide')}</p>
-            <p>{t('workspace-dialog.delete-confirm.confirm')}</p>
+            <p>
+                <Trans
+                    t={t}
+                    i18nKey={'workspace-dialog.delete-confirm.confirm'}
+                    values={{ name: currentDesign.name }}
+                    components={{ strong: <i /> }}
+                />
+            </p>
         </Dialog>
     );
 };
