@@ -286,7 +286,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
     const getDuplicateTrackOptions = React.useCallback(
         (searchTerm: string) =>
             findDuplicateTrackOptions(layoutContextDraft, props.locationTrack?.id, searchTerm),
-        [layoutContextDraft.designId, props.locationTrack?.id],
+        [layoutContextDraft.branch, props.locationTrack?.id],
     );
 
     function onDuplicateTrackSelected(duplicateTrack: LocationTrackItemValue | undefined) {

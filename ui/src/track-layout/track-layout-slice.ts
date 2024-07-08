@@ -19,8 +19,8 @@ import {
 import { linkingReducers } from 'linking/linking-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import {
+    LayoutBranch,
     LayoutContext,
-    LayoutDesignId,
     LayoutMode,
     officialMainLayoutContext,
     PublicationState,
@@ -184,7 +184,7 @@ export enum LocationTrackTaskListType {
 export type SwitchRelinkingValidationTaskList = {
     type: LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION;
     locationTrackId: LocationTrackId;
-    designId: LayoutDesignId | undefined;
+    branch: LayoutBranch;
 };
 
 export type TrackLayoutState = {
@@ -470,7 +470,7 @@ const trackLayoutSlice = createSlice({
         ): void => {
             state.layoutContext = {
                 publicationState: publicationState,
-                designId: state.layoutContext.designId,
+                branch: state.layoutContext.branch,
             };
             if (publicationState === 'OFFICIAL') linkingReducers.stopLinking(state);
         },
@@ -480,7 +480,7 @@ const trackLayoutSlice = createSlice({
         ): void => {
             state.layoutContext = {
                 publicationState: layoutContext.publicationState,
-                designId: layoutContext.designId,
+                branch: layoutContext.branch,
             };
             if (layoutContext.designId !== undefined) {
                 state.lastSelectedDesignId = layoutContext.designId;

@@ -54,7 +54,7 @@ export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxPro
         idAndType.id,
         idAndType.type,
         layoutContext.publicationState,
-        layoutContext.designId,
+        layoutContext.branch,
         changeTime,
     ]);
     const errors = validation?.errors.filter((err) => err.type === 'ERROR') || [];

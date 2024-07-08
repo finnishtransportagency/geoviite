@@ -125,7 +125,7 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
             state.layoutAlignment.type === 'REFERENCE_LINE'
         ) {
             setUpdatingLength(true);
-            updateReferenceLineGeometry(state.layoutAlignment.id, {
+            updateReferenceLineGeometry(layoutContext.branch, state.layoutAlignment.id, {
                 min: state.layoutAlignmentInterval.start.m,
                 max: state.layoutAlignmentInterval.end.m,
             })
@@ -147,7 +147,8 @@ const TrackNumberInfobox: React.FC<TrackNumberInfoboxProps> = ({
         onUnselect,
     );
 
-    const onRequestDelete = () => onRequestDeleteTrackNumber(trackNumber, setDeleting);
+    const onRequestDelete = () =>
+        onRequestDeleteTrackNumber(layoutContext.branch, trackNumber, setDeleting);
 
     return (
         <React.Fragment>

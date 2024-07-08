@@ -93,10 +93,11 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
                 area: boundingBox,
                 resolution: 0,
             };
-            return getSuggestedSwitchesByTile(fakeMapTile).then((suggestedSwitches) =>
-                suggestedSwitches.find(
-                    (suggestedSwitch) => suggestedSwitch.geometrySwitchId == geometrySwitchId,
-                ),
+            return getSuggestedSwitchesByTile(layoutContext.branch, fakeMapTile).then(
+                (suggestedSwitches) =>
+                    suggestedSwitches.find(
+                        (suggestedSwitch) => suggestedSwitch.geometrySwitchId == geometrySwitchId,
+                    ),
             );
         }
         return undefined;
@@ -156,7 +157,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
             setLinkingCallInProgress(true);
             try {
                 await linkSwitch(
-                    layoutContext.designId,
+                    layoutContext.branch,
                     linkingState.suggestedSwitch,
                     linkingState.layoutSwitchId,
                 );

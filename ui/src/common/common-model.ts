@@ -18,10 +18,13 @@ export type AngularUnit = 'RADIANS' | 'GRADS';
 export type DataType = 'STORED' | 'TEMP';
 
 export type LayoutDesignId = Brand<string, 'LayoutDesignId'>;
+export type MainLayoutBranchId = 'MAIN';
+export type LayoutBranch = MainLayoutBranchId | LayoutDesignId;
+
 export type PublicationState = 'OFFICIAL' | 'DRAFT';
 export type LayoutContext = {
     publicationState: PublicationState;
-    designId: LayoutDesignId | undefined;
+    branch: LayoutBranch;
 };
 
 export const officialLayoutContext = (layoutContext: LayoutContext): LayoutContext =>
@@ -29,7 +32,7 @@ export const officialLayoutContext = (layoutContext: LayoutContext): LayoutConte
         ? layoutContext
         : {
               publicationState: 'OFFICIAL',
-              designId: layoutContext.designId,
+              branch: layoutContext.branch,
           };
 
 export const draftLayoutContext = (layoutContext: LayoutContext): LayoutContext =>
@@ -37,16 +40,16 @@ export const draftLayoutContext = (layoutContext: LayoutContext): LayoutContext 
         ? layoutContext
         : {
               publicationState: 'DRAFT',
-              designId: layoutContext.designId,
+              branch: layoutContext.branch,
           };
 
 const officialMainContext: LayoutContext = Object.freeze({
     publicationState: 'OFFICIAL',
-    designId: undefined,
+    branch: 'MAIN',
 });
 const draftMainContext: LayoutContext = Object.freeze({
     publicationState: 'DRAFT',
-    designId: undefined,
+    branch: 'MAIN',
 });
 
 export const officialMainLayoutContext = (): LayoutContext => officialMainContext;

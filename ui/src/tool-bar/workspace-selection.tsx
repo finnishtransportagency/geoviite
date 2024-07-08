@@ -116,7 +116,7 @@ export const WorkspaceSelection: React.FC<WorkspaceSelectionProps> = ({
     const unselectDesign = () => {
         onLayoutContextChange({
             publicationState: layoutContext.publicationState,
-            designId: undefined,
+            branch: 'MAIN',
         });
         setSelectingWorkspace(true);
     };
@@ -142,7 +142,7 @@ export const WorkspaceSelection: React.FC<WorkspaceSelectionProps> = ({
                     setSelectingWorkspace(false);
                     onLayoutContextChange({
                         publicationState: 'DRAFT',
-                        designId: designId,
+                        branch: designId ?? 'MAIN',
                     });
                 }}
                 options={
@@ -152,21 +152,21 @@ export const WorkspaceSelection: React.FC<WorkspaceSelectionProps> = ({
                         qaId: `workspace-${design.id}`,
                     })) ?? []
                 }
-                value={layoutContext.designId}
+                value={layoutContext.branch}
                 qaId={'workspace-selection'}
             />
             <PrivilegeRequired privilege={EDIT_LAYOUT}>
                 <Button
                     variant={ButtonVariant.GHOST}
                     icon={Icons.Edit}
-                    disabled={!layoutContext.designId}
+                    disabled={layoutContext.branch === 'MAIN'}
                     onClick={() => setShowEditWorkspaceDialog(true)}
                     qa-id={'workspace-edit-button'}
                 />
                 <Button
                     variant={ButtonVariant.GHOST}
                     icon={Icons.Delete}
-                    disabled={!layoutContext.designId}
+                    disabled={layoutContext.branch === 'MAIN'}
                     onClick={() => setShowDeleteWorkspaceDialog(true)}
                     qa-id={'workspace-delete-button'}
                 />

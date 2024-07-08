@@ -29,7 +29,7 @@ const TrackNumberDeleteConfirmationDialog: React.FC<TrackNumberDeleteConfirmatio
 
     const deleteDraftLocationTrack = () => {
         revertPublicationCandidates(
-            layoutContext.designId,
+            layoutContext.branch,
             changesBeingReverted.changeIncludingDependencies,
         ).then((result) => {
             result

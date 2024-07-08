@@ -103,7 +103,7 @@ export type SplitInitializationParameters = {
 };
 
 const cacheKey = (id: LocationTrackId, layoutContext: LayoutContext) =>
-    `${id}_${layoutContext.publicationState}_${layoutContext.designId}`;
+    `${id}_${layoutContext.publicationState}_${layoutContext.branch}`;
 
 export async function getLocationTrack(
     id: LocationTrackId,

@@ -21,6 +21,7 @@ import { filterNotEmpty, first } from 'utils/array-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import { LayoutContext } from 'common/common-model';
 
 function createSwitchFeatures(
     suggestedSwitch: SuggestedSwitch,
@@ -57,6 +58,7 @@ export function createSwitchLinkingLayer(
     mapTiles: MapTile[],
     resolution: number,
     existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
+    layoutContext: LayoutContext,
     selection: Selection,
     linkingState: LinkingSwitch | undefined,
     onLoadingData: (loading: boolean) => void,
@@ -68,7 +70,7 @@ export function createSwitchLinkingLayer(
     const getSuggestedSwitchesPromises =
         resolution <= SUGGESTED_SWITCH_SHOW && linkingState
             ? []
-            : mapTiles.map((tile) => getSuggestedSwitchesByTile(tile));
+            : mapTiles.map((tile) => getSuggestedSwitchesByTile(layoutContext.branch, tile));
 
     const dataPromise: Promise<SuggestedSwitch[]> = Promise.all(getSuggestedSwitchesPromises).then(
         (suggestedSwitches) =>

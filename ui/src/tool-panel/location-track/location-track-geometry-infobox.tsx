@@ -47,7 +47,7 @@ export const LocationTrackGeometryInfobox: React.FC<LocationTrackGeometryInfobox
                 useBoundingBox ? viewport.area : undefined,
             ),
         1000,
-        [locationTrackId, layoutContext.publicationState, layoutContext.designId, viewportDep],
+        [locationTrackId, layoutContext.publicationState, layoutContext.branch, viewportDep],
     );
     const onHighlightSection: OnHighlightSection = (section) =>
         onHighlightItem(

@@ -39,8 +39,8 @@ import { getChangeTimes } from 'common/change-time-api';
 import {
     ElevationMeasurementMethod,
     KmNumber,
+    LayoutBranch,
     LayoutContext,
-    LayoutDesignId,
     officialMainLayoutContext,
     PublicationState,
     TimeStamp,
@@ -67,8 +67,7 @@ const planVerticalGeometryCache = asyncCache<
     PlanVerticalGeometryKey,
     VerticalGeometryItem[] | undefined
 >;
-type LocationTrackVerticalGeometryKey =
-    `${LocationTrackId}_${PublicationState}_${LayoutDesignId | 'undefined'}`;
+type LocationTrackVerticalGeometryKey = `${LocationTrackId}_${PublicationState}_${LayoutBranch}`;
 const locationTrackVerticalGeometryCache = asyncCache<
     LocationTrackVerticalGeometryKey,
     VerticalGeometryItem[] | undefined
@@ -192,7 +191,7 @@ export async function getLocationTrackVerticalGeometry(
         ? fetch()
         : locationTrackVerticalGeometryCache.get(
               changeTime,
-              `${id}_${layoutContext.publicationState}_${layoutContext.designId}`,
+              `${id}_${layoutContext.publicationState}_${layoutContext.branch}`,
               fetch,
           );
 }
@@ -428,7 +427,7 @@ export async function getLocationTrackHeights(
 }
 
 const locationTrackLinkingSummaryCache = asyncCache<
-    `${LocationTrackId}_${PublicationState}_${LayoutDesignId | 'undefined'}`,
+    `${LocationTrackId}_${PublicationState}_${LayoutBranch}`,
     PlanLinkingSummaryItem[]
 >();
 
@@ -439,7 +438,7 @@ export async function getLocationTrackLinkingSummary(
 ): Promise<PlanLinkingSummaryItem[]> {
     return locationTrackLinkingSummaryCache.get(
         changeTime,
-        `${locationTrackId}_${layoutContext.publicationState}_${layoutContext.designId}`,
+        `${locationTrackId}_${layoutContext.publicationState}_${layoutContext.branch}`,
         () =>
             getNonNull(
                 `${geometryLayoutPath(layoutContext)}/location-tracks/${locationTrackId}/linking-summary`,

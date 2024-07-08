@@ -52,7 +52,7 @@ export const TrackNumberGeometryInfobox: React.FC<TrackNumberGeometryInfoboxProp
         [
             trackNumberId,
             layoutContext.publicationState,
-            layoutContext.designId,
+            layoutContext.branch,
             viewportDep,
             changeTime,
         ],

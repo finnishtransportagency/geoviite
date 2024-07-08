@@ -153,19 +153,14 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     const switchStructures = useLoader(() => getSwitchStructures(), []);
     const layoutSwitch = useLoader(
         () => getSwitch(switchId, layoutContext),
-        [
-            switchId,
-            changeTimes.layoutSwitch,
-            layoutContext.designId,
-            layoutContext.publicationState,
-        ],
+        [switchId, changeTimes.layoutSwitch, layoutContext.branch, layoutContext.publicationState],
     );
     const structure = switchStructures?.find(
         (structure) => structure.id === layoutSwitch?.switchStructureId,
     );
     const switchJointConnections = useLoader(
         () => getSwitchJointConnections(layoutContext, switchId),
-        [layoutContext.designId, layoutContext.publicationState, layoutSwitch],
+        [layoutContext.branch, layoutContext.publicationState, layoutSwitch],
     );
     const switchChangeTimes = useSwitchChangeTimes(layoutSwitch?.id, layoutContext);
 
@@ -173,12 +168,7 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
         return switchJointConnections
             ? getSwitchJointTrackMeters(switchJointConnections, layoutContext, changeTimes)
             : undefined;
-    }, [
-        switchJointConnections,
-        layoutContext.designId,
-        layoutContext.publicationState,
-        changeTimes,
-    ]);
+    }, [switchJointConnections, layoutContext.branch, layoutContext.publicationState, changeTimes]);
 
     const SwitchImage = structure && makeSwitchImage(structure.baseType, structure.hand);
     const switchLocation =

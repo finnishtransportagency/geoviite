@@ -5,8 +5,10 @@ import fi.fta.geoviite.infra.geography.boundingPolygonPointsByConvexHull
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geography.crs
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
+import fi.fta.geoviite.infra.geography.transformToGKCoordinate
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
 
 class GeographyTest {
@@ -44,6 +46,44 @@ class GeographyTest {
 
         val transformed3857 = transformNonKKJCoordinate(Srid(3067), Srid(3857), point3067)
         assertApproximatelyEquals(point3857, transformed3857, 0.01)
+    }
+
+    @Test
+    fun tm35finToGKWorksInEast() {
+        val pointTM35FINInJoensuu = Point(642482.58, 6943848.538)
+        // Expected result coordinates are converted using:
+        // https://kartta.paikkatietoikkuna.fi converter tool, TM35FIN -> GK30
+        val pointGK30 = Point(30488465.8931, 6943581.3836)
+
+        val transformedPoint = transformToGKCoordinate(Srid(3067), pointTM35FINInJoensuu)
+        assertEquals(transformedPoint.srid, Srid(3884))
+        assertApproximatelyEquals(transformedPoint, pointGK30, 0.01)
+    }
+
+    @Test
+    fun tm35finToGKWorksInWest() {
+        val pointTM35FINInPori = Point(204562.392, 6845986.967)
+        // Expected result coordinates are converted using:
+        // https://kartta.paikkatietoikkuna.fi converter tool, TM35FIN -> GK21
+        val pointGK21 = Point(21522350.1588, 6836123.7529)
+
+        val transformedPoint = transformToGKCoordinate(Srid(3067), pointTM35FINInPori)
+        assertEquals(transformedPoint.srid, Srid(3875))
+        assertApproximatelyEquals(transformedPoint, pointGK21, 0.01)
+    }
+
+    @Test
+    fun outOfGKBoundsTransformationThrowsException() {
+        val pointTM35FINInTooFarEast = Point(735000.0, 6983000.0)
+        val pointTM35FINInTooFarWest = Point(1000.0, 6765000.0)
+
+        assertThrows<IllegalArgumentException> {
+            transformToGKCoordinate(Srid(3067), pointTM35FINInTooFarEast)
+        }
+
+        assertThrows<IllegalArgumentException> {
+            transformToGKCoordinate(Srid(3067), pointTM35FINInTooFarWest)
+        }
     }
 
     @Test
