@@ -552,7 +552,7 @@ class PublicationDao(
                 on old_tn.id = track_number.track_number_id 
                   and ((track_number.direct_change = true and old_tn.version = track_number_version - 1) 
                     or (track_number.direct_change = false and old_tn.version = track_number_version)) 
-                  and old_tn.draft = false
+                  and old_tn.draft = false and old_tn.design_id is null
               left join layout.reference_line_at(:comparison_time) old_rl on old_rl.id = rl.id and old_rl.draft = false
               left join layout.alignment_version old_av on old_av.id = old_rl.alignment_id and old_av.version = old_rl.alignment_version
               left join layout.segment_version old_sv_first on old_av.id = old_sv_first.alignment_id and old_av.version = old_sv_first.alignment_version and old_sv_first.segment_index = 0
@@ -739,6 +739,7 @@ class PublicationDao(
                               or (old_ltv.version = ltv.version
                               and location_track.direct_change = false))
                             and old_ltv.draft = false
+                            and old_ltv.design_id is null
                 left join layout.alignment_version old_av
                           on old_ltv.alignment_id = old_av.id and old_ltv.alignment_version = old_av.version
                 left join layout.segment_version old_sv_first
@@ -937,6 +938,7 @@ class PublicationDao(
                       on old_km_post_version.id = km_post_version.id 
                         and old_km_post_version.version = km_post_version.version - 1 
                         and old_km_post_version.draft = false
+                        and old_km_post_version.design_id is null
             where publication_id = :publication_id
         """.trimIndent()
 
@@ -991,6 +993,7 @@ class PublicationDao(
                           on old_rlv.id = rlv.id
                             and old_rlv.version = rlv.version - 1 
                             and old_rlv.draft = false
+                            and old_rlv.design_id is null
                 left join layout.alignment_version old_av
                           on old_rlv.alignment_id = old_av.id
                             and old_rlv.alignment_version = old_av.version

@@ -42,6 +42,7 @@ import fi.fta.geoviite.infra.split.validateSplitContent
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType
+import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
@@ -1643,6 +1644,35 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     @Test
+    fun `simple km post change in design is reported`() {
+        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val kmPost = mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1))).id
+        val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
+        kmPostService.saveDraft(testBranch, mainOfficialContext.fetch(kmPost)!!.copy(kmNumber = KmNumber(2)))
+        publish(publicationService, testBranch, kmPosts = listOf(kmPost))
+        kmPostService.mergeToMainBranch(testBranch, kmPost)
+        publish(publicationService, kmPosts = listOf(kmPost))
+        val diff = getLatestPublicationDiffForKmPost(kmPost)
+        assertEquals(1, diff.size)
+        assertEquals("km-post", diff[0].propKey.key.toString())
+        assertEquals(KmNumber(1), diff[0].value.oldValue)
+        assertEquals(KmNumber(2), diff[0].value.newValue)
+    }
+
+    private fun getLatestPublicationDiffForKmPost(id: IntId<TrackLayoutKmPost>): List<PublicationChange<out Comparable<Nothing>?>> {
+        val latestPubs = publicationService.fetchLatestPublicationDetails(LayoutBranch.main, 2)
+        val latestPub = latestPubs.first()
+        val changes = publicationDao.fetchPublicationKmPostChanges(latestPub.id)
+        return publicationService.diffKmPost(
+            localizationService.getLocalization(LocalizationLanguage.FI),
+            changes.getValue(id),
+            latestPub.publicationTime,
+            latestPub.publicationTime.minusMillis(1),
+            trackNumberDao.fetchTrackNumberNames(),
+        ) { _, _ -> null }
+    }
+
+    @Test
     fun `Changing specific KM Post field returns only that field`() {
         val saveReq = TrackLayoutKmPostSaveRequest(
             KmNumber(0),
@@ -1875,6 +1905,144 @@ class PublicationServiceIT @Autowired constructor(
                 null,
             ),
         )
+        publish(
+            publicationService,
+            locationTracks = listOf(originalLocationTrack.id),
+            switches = listOf(
+                switchDeleted.id,
+                switchMerelyRenamed.id,
+                originalSwitchReplacedWithNewSameName.id,
+                newSwitchReplacingOldWithSameName.id,
+            ),
+        )
+        val latestPubs = publicationService.fetchLatestPublicationDetails(LayoutBranch.main, 2)
+        val latestPub = latestPubs[0]
+        val previousPub = latestPubs[1]
+        val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
+
+        val diff = publicationService.diffLocationTrack(
+            localizationService.getLocalization(LocalizationLanguage.FI),
+            changes.getValue(originalLocationTrack.id),
+            publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(latestPub.id)[originalLocationTrack.id],
+            LayoutBranch.main,
+            latestPub.publicationTime,
+            previousPub.publicationTime,
+            trackNumberDao.fetchTrackNumberNames(),
+            setOf(),
+        ) { _, _ -> null }
+        assertEquals(1, diff.size)
+        assertEquals("linked-switches", diff[0].propKey.key.toString())
+        assertEquals(
+            """
+                Vaihteiden sw-deleted, sw-replaced-with-new-same-name (1.1.1.1.8), sw-unlinked-from-alignment,
+                sw-unlinked-from-topology linkitys purettu. Vaihteet sw-added-to-alignment, sw-added-to-topo-end,
+                sw-added-to-topo-start, sw-replaced-with-new-same-name (1.1.1.1.9) linkitetty.
+            """.trimIndent().replace("\n", " "),
+            diff[0].remark,
+        )
+    }
+
+    @Test
+    fun `Location track switch link changes made in design are reported`() {
+        val switchUnlinkedFromTopology = switchDao.insert(
+            switch(name = "sw-unlinked-from-topology", externalId = "1.1.1.1.1", draft = false)
+        )
+        val switchUnlinkedFromAlignment = switchDao.insert(
+            switch(name = "sw-unlinked-from-alignment", externalId = "1.1.1.1.2", draft = false)
+        )
+        val switchAddedToTopologyStart = switchDao.insert(
+            switch(name = "sw-added-to-topo-start", externalId = "1.1.1.1.3", draft = false)
+        )
+        val switchAddedToTopologyEnd = switchDao.insert(
+            switch(name = "sw-added-to-topo-end", externalId = "1.1.1.1.4", draft = false)
+        )
+        val switchAddedToAlignment = switchDao.insert(
+            switch(name = "sw-added-to-alignment", externalId = "1.1.1.1.5", draft = false)
+        )
+        val switchDeleted = switchDao.insert(
+            switch(name = "sw-deleted", externalId = "1.1.1.1.6", draft = false)
+        )
+        val switchMerelyRenamed = switchDao.insert(
+            switch(name = "sw-merely-renamed", externalId = "1.1.1.1.7", draft = false)
+        )
+        val originalSwitchReplacedWithNewSameName = switchDao.insert(
+            switch(name = "sw-replaced-with-new-same-name", externalId = "1.1.1.1.8", draft = false)
+        )
+
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
+
+        val originalLocationTrack = locationTrackService.saveDraft(
+            LayoutBranch.main,
+            locationTrack(
+                trackNumberId,
+                topologyStartSwitch = TopologyLocationTrackSwitch(switchUnlinkedFromTopology.id, JointNumber(1)),
+                draft = true,
+            ),
+            alignmentWithSwitchLinks(
+                switchUnlinkedFromAlignment.id,
+                switchDeleted.id,
+                switchMerelyRenamed.id,
+                originalSwitchReplacedWithNewSameName.id
+            ),
+        )
+        publish(publicationService,  locationTracks = listOf(originalLocationTrack.id))
+
+        val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
+
+        switchService.saveDraft(
+            testBranch,
+            switchDao.fetch(switchDeleted.rowVersion).copy(stateCategory = LayoutStateCategory.NOT_EXISTING)
+        )
+        switchService.saveDraft(
+            testBranch,
+            switchDao
+                .fetch(originalSwitchReplacedWithNewSameName.rowVersion)
+                .copy(stateCategory = LayoutStateCategory.NOT_EXISTING)
+        )
+        switchService.saveDraft(
+            testBranch,
+            switchDao.fetch(switchMerelyRenamed.rowVersion).copy(name = SwitchName("sw-with-new-name"))
+        )
+        val newSwitchReplacingOldWithSameName = testDBService.testContext(testBranch, DRAFT).insert(
+            switch(
+                name = "sw-replaced-with-new-same-name",
+                externalId = "1.1.1.1.9",
+            )
+        )
+
+        locationTrackService.saveDraft(
+            testBranch,
+            locationTrackDao
+                .getOrThrow(MainLayoutContext.official, originalLocationTrack.id)
+                .copy(
+                    topologyStartSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyStart.id, JointNumber(1)),
+                    topologyEndSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyEnd.id, JointNumber(1))
+                ),
+            alignmentWithSwitchLinks(
+                switchAddedToAlignment.id,
+                switchMerelyRenamed.id,
+                newSwitchReplacingOldWithSameName.id,
+                null,
+            ),
+        )
+        publish(
+            publicationService,
+            testBranch,
+            locationTracks = listOf(originalLocationTrack.id),
+            switches = listOf(
+                switchDeleted.id,
+                switchMerelyRenamed.id,
+                originalSwitchReplacedWithNewSameName.id,
+                newSwitchReplacingOldWithSameName.id,
+            ),
+        )
+        locationTrackService.mergeToMainBranch(testBranch, originalLocationTrack.id)
+        listOf(
+            switchDeleted.id,
+            switchMerelyRenamed.id,
+            originalSwitchReplacedWithNewSameName.id,
+            newSwitchReplacingOldWithSameName.id
+        ).forEach { id -> switchService.mergeToMainBranch(testBranch, id) }
         publish(
             publicationService,
             locationTracks = listOf(originalLocationTrack.id),
@@ -2164,6 +2332,80 @@ class PublicationServiceIT @Autowired constructor(
         )
         locationTrackService.saveDraft(LayoutBranch.main, locationTrackDao.fetch(locationTrack.rowVersion), updatedAlignment)
 
+        publish(publicationService, switches = listOf(switch.id), locationTracks = listOf(locationTrack.id))
+
+        val latestPubs = publicationService.fetchLatestPublicationDetails(LayoutBranch.main, 2)
+        val latestPub = latestPubs.first()
+        val previousPub = latestPubs.last()
+        val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
+
+        val diff = publicationService.diffSwitch(
+            localizationService.getLocalization(LocalizationLanguage.FI),
+            changes.getValue(switch.id),
+            latestPub.publicationTime,
+            previousPub.publicationTime,
+            Operation.MODIFY,
+            trackNumberDao.fetchTrackNumberNames()
+        ) { _, _ -> null }
+        assertEquals(2, diff.size)
+        assertEquals(
+            listOf("switch-joint-location", "switch-track-address").sorted(),
+            diff.map { it.propKey.key.toString() }.sorted()
+        )
+        val jointLocationDiff = diff.find { it.propKey.key.toString() == "switch-joint-location" }!!
+        assertEquals("4.000 E, 0.000 N", jointLocationDiff.value.oldValue)
+        assertEquals("4.100 E, 0.000 N", jointLocationDiff.value.newValue)
+        val trackAddressDiff = diff.find { it.propKey.key.toString() == "switch-track-address" }!!
+        assertEquals("0000+0004.100", trackAddressDiff.value.newValue)
+    }
+
+    @Test
+    fun `switch diff consistently uses segment point for joint location with edit made in design`() {
+        val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(TrackNumber("1234")).id as IntId
+        referenceLineDao.insert(
+            referenceLine(
+                trackNumberId,
+                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(11.0, 0.0)))),
+                draft = false,
+            )
+        )
+        val switch = switchDao.insert(
+            switch(
+                seed = 123,
+                joints = listOf(
+                    TrackLayoutSwitchJoint(JointNumber(1), Point(4.2, 0.1), null)
+                ),
+                draft = false,
+            )
+        )
+        val originalAlignment = alignment(
+            segment(Point(0.0, 0.0), Point(4.0, 0.0)),
+            segment(Point(4.0, 0.0), Point(10.0, 0.0)).copy(
+                switchId = switch.id,
+                startJointNumber = JointNumber(1),
+            ),
+        )
+        val locationTrack = locationTrackDao.insert(
+            locationTrack(trackNumberId, alignmentVersion = alignmentDao.insert(originalAlignment), draft = false)
+        )
+
+        val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
+
+        switchService.saveDraft(
+            testBranch,
+            switchDao.fetch(switch.rowVersion).copy(
+                joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(4.1, 0.2), null)),
+            ),
+        )
+        val updatedAlignment = alignment(
+            segment(Point(0.1, 0.0), Point(4.1, 0.0)),
+            segment(Point(4.1, 0.0), Point(10.1, 0.0)).copy(switchId = switch.id, startJointNumber = JointNumber(1))
+        )
+        locationTrackService.saveDraft(testBranch, locationTrackDao.fetch(locationTrack.rowVersion), updatedAlignment)
+
+        publish(publicationService, testBranch, switches = listOf(switch.id), locationTracks = listOf(locationTrack.id))
+        locationTrackService.mergeToMainBranch(testBranch, locationTrack.id)
+        switchService.mergeToMainBranch(testBranch, switch.id)
         publish(publicationService, switches = listOf(switch.id), locationTracks = listOf(locationTrack.id))
 
         val latestPubs = publicationService.fetchLatestPublicationDetails(LayoutBranch.main, 2)

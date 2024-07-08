@@ -45,12 +45,17 @@ fun validationVersions(
 
 fun publish(
     publicationService: PublicationService,
+    branch: LayoutBranch = LayoutBranch.main,
     trackNumbers: List<IntId<TrackLayoutTrackNumber>> = listOf(),
     kmPosts: List<IntId<TrackLayoutKmPost>> = listOf(),
     switches: List<IntId<TrackLayoutSwitch>> = listOf(),
     referenceLines: List<IntId<ReferenceLine>> = listOf(),
     locationTracks: List<IntId<LocationTrack>> = listOf(),
-) = publish(publicationService, publicationRequest(trackNumbers, kmPosts, switches, referenceLines, locationTracks))
+) = publish(
+    publicationService,
+    publicationRequest(trackNumbers, kmPosts, switches, referenceLines, locationTracks),
+    branch
+)
 
 fun publish(
     publicationService: PublicationService,
