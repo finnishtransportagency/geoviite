@@ -34,12 +34,9 @@ type SwitchRelinkingValidationTaskListProps = {
     onShowSwitch: (layoutSwitch: LayoutSwitch, point?: Point) => void;
     onClose: () => void;
     selectedSwitches: LayoutSwitchId[];
-    selectingWorkspace: boolean;
 };
 
-export const LocationTrackTaskListContainer: React.FC<{ selectingWorkspace: boolean }> = ({
-    selectingWorkspace,
-}) => {
+export const LocationTrackTaskListContainer: React.FC = () => {
     const delegates = createDelegates(TrackLayoutActions);
     const locationTrackList = useTrackLayoutAppSelector((state) => state.locationTrackTaskList);
     const layoutContext = useTrackLayoutAppSelector((state) => state.layoutContext);
@@ -60,13 +57,10 @@ export const LocationTrackTaskListContainer: React.FC<{ selectingWorkspace: bool
     };
 
     React.useEffect(() => {
-        if (
-            locationTrackList &&
-            (locationTrackList.branch !== layoutContext.branch || selectingWorkspace)
-        ) {
+        if (locationTrackList && locationTrackList.branch !== layoutContext.branch) {
             delegates.hideLocationTrackTaskList();
         }
-    }, [layoutContext.branch, selectingWorkspace]);
+    }, [layoutContext.branch]);
 
     return createPortal(
         locationTrackList?.type == LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION ? (
@@ -76,7 +70,6 @@ export const LocationTrackTaskListContainer: React.FC<{ selectingWorkspace: bool
                 onClose={onClose}
                 onShowSwitch={onShowSwitch}
                 selectedSwitches={selectedSwitches}
-                selectingWorkspace={selectingWorkspace}
             />
         ) : (
             <React.Fragment />

@@ -46,8 +46,7 @@
 
     &__design-id-selector-popup {
         @include vayla-design.shadow-8dp;
-        z-index: 100;
-        background-color: vayla-design.$color-white-default;
+        z-index: vayla-design.$layer-popup;
     }
 
     &__left-section .dropdown {
@@ -86,6 +85,14 @@
     &__design-tab-content {
         display: flex;
         align-items: center;
+    }
+
+    &__design-name {
+        display: inline-block;
+        max-width: 12em;
+        text-overflow: ellipsis;
+        overflow-x: hidden;
+        vertical-align: bottom;
     }
 
     &__design-tab-actions {

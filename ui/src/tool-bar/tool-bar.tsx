@@ -45,7 +45,12 @@ import { SplittingState } from 'tool-panel/location-track/split-store';
 import { LinkingState, LinkingType } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT, VIEW_LAYOUT_DRAFT } from 'user/user-model';
-import { draftLayoutContext, LayoutContext, LayoutDesignId } from 'common/common-model';
+import {
+    draftLayoutContext,
+    LayoutContext,
+    LayoutContextMode,
+    LayoutDesignId,
+} from 'common/common-model';
 import { TabHeader } from 'geoviite-design-lib/tab-header/tab-header';
 import { createClassName } from 'vayla-design-lib/utils';
 import { EnvRestricted } from 'environment/env-restricted';
@@ -53,7 +58,7 @@ import {
     calculateBoundingBoxToShowAroundLocation,
     MAP_POINT_OPERATING_POINT_BBOX_OFFSET,
 } from 'map/map-utils';
-import { WorkspaceSelectionContainer2 } from 'tool-bar/workspace-selection';
+import { DesignSelectionContainer } from 'tool-bar/workspace-selection';
 import { CloseableModal } from 'vayla-design-lib/closeable-modal/closeable-modal';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { getLayoutDesign, updateLayoutDesign } from 'track-layout/layout-design-api';
@@ -64,19 +69,19 @@ import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
-    onLayoutContextChange: (context: LayoutContext) => void;
     onOpenPreview: () => void;
     showArea: (area: BoundingBox) => void;
     layoutContext: LayoutContext;
-    lastSelectedDesignId: LayoutDesignId | undefined;
     onStopLinking: () => void;
     onMapLayerChange: (change: MapLayerMenuChange) => void;
     mapLayerMenuGroups: MapLayerMenuGroups;
     visibleLayers: MapLayerName[];
     splittingState: SplittingState | undefined;
     linkingState: LinkingState | undefined;
-    selectingWorkspace: boolean;
-    setSelectingWorkspace: (selecting: boolean) => void;
+    layoutContextMode: LayoutContextMode;
+    onLayoutContextModeChange: (value: LayoutContextMode) => void;
+    designId: LayoutDesignId | undefined;
+    onDesignIdChange: (value: LayoutDesignId | undefined) => void;
 };
 
 type LocationTrackItemValue = {
@@ -190,16 +195,16 @@ async function getOptions(
 export const ToolBar: React.FC<ToolbarParams> = ({
     onSelect,
     onUnselect,
-    onLayoutContextChange,
     onOpenPreview,
     showArea,
     layoutContext,
-    lastSelectedDesignId,
     onStopLinking,
     splittingState,
     linkingState,
-    selectingWorkspace,
-    setSelectingWorkspace,
+    layoutContextMode,
+    onLayoutContextModeChange,
+    designId,
+    onDesignIdChange,
 }: ToolbarParams) => {
     const { t } = useTranslation();
 
@@ -210,18 +215,34 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const [showAddKmPostDialog, setShowAddKmPostDialog] = React.useState(false);
     const [showEditWorkspaceDialog, setShowEditWorkspaceDialog] = React.useState(false);
     const [showDeleteWorkspaceDialog, setShowDeleteWorkspaceDialog] = React.useState(false);
-    const [designIdSelectorOpened, setDesignIdSelectorOpened] = React.useState(true);
+    const [designIdSelectorOpened, setDesignIdSelectorOpened] = React.useState(false);
     const menuRef = React.useRef(null);
     const designIdSelectorRef = React.useRef(null);
 
+    const [currentDesign, designLoadStatus] = useLoaderWithStatus(
+        () => designId && getLayoutDesign(getChangeTimes().layoutDesign, designId),
+        [getChangeTimes().layoutDesign, designId],
+    );
+    const currentDesignExists =
+        designLoadStatus === LoaderStatus.Ready && currentDesign !== undefined;
+
     const disableNewAssetMenu =
         layoutContext.publicationState !== 'DRAFT' ||
-        selectingWorkspace ||
+        (layoutContextMode === 'DESIGN' && !currentDesignExists) ||
         linkingState?.type === LinkingType.LinkingGeometryWithAlignment ||
         linkingState?.type === LinkingType.LinkingGeometryWithEmptyAlignment ||
         !!splittingState;
 
-    const showDesignIdSelector = designIdSelectorOpened || selectingWorkspace;
+    const showDesignIdSelector =
+        designIdSelectorOpened ||
+        (layoutContextMode === 'DESIGN' &&
+            !currentDesign &&
+            designLoadStatus === LoaderStatus.Ready);
+
+    const canEnterPreview =
+        layoutContext.publicationState === 'DRAFT' && !splittingState && !linkingState;
+
+    const canSearch = layoutContextMode !== 'DESIGN' || currentDesignExists;
 
     enum NewMenuItems {
         'trackNumber' = 1,
@@ -261,20 +282,6 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             debouncedGetOptions(layoutContext, searchTerm, splittingState?.originLocationTrack?.id),
         [layoutContext, splittingState],
     );
-
-    const designId = layoutContext.designId || lastSelectedDesignId;
-    const [currentDesign, designLoadStatus] = useLoaderWithStatus(
-        () => designId && getLayoutDesign(getChangeTimes().layoutDesign, designId),
-        [getChangeTimes().layoutDesign, designId],
-    );
-
-    React.useEffect(() => {
-        const selectedDesignDoesNotExist =
-            designLoadStatus === LoaderStatus.Ready && currentDesign == undefined;
-        if (selectedDesignDoesNotExist && !selectingWorkspace) {
-            setSelectingWorkspace(true);
-        }
-    });
 
     function onItemSelected(item: SearchItemValue | undefined) {
         if (!item) {
@@ -358,29 +365,15 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     }
 
     function switchToMainOfficial() {
-        onLayoutContextChange({ publicationState: 'OFFICIAL', branch: 'MAIN' });
-        setShowNewAssetMenu(false);
-        setSelectingWorkspace(false);
+        onLayoutContextModeChange('MAIN-OFFICIAL');
     }
 
     const switchToMainDraft = () => {
-        onLayoutContextChange({
-            publicationState: 'DRAFT',
-            branch: 'MAIN',
-        });
-        setSelectingWorkspace(false);
+        onLayoutContextModeChange('MAIN-DRAFT');
     };
 
     function switchToDesign() {
-        if (lastSelectedDesignId !== undefined) {
-            onLayoutContextChange({
-                publicationState: 'DRAFT',
-                designId: lastSelectedDesignId,
-            });
-            setSelectingWorkspace(false);
-        } else {
-            setSelectingWorkspace(true);
-        }
+        onLayoutContextModeChange('DESIGN');
     }
 
     function openPreviewAndStopLinking() {
@@ -414,16 +407,13 @@ export const ToolBar: React.FC<ToolbarParams> = ({
 
     const className = createClassName(
         'tool-bar',
-        !layoutContext.branch && `tool-bar--${layoutContext.publicationState.toLowerCase()}`,
-        (layoutContext.branch || selectingWorkspace) && `tool-bar--design`,
+        layoutContextMode === 'MAIN-OFFICIAL' && 'tool-bar--official',
+        layoutContextMode === 'MAIN-DRAFT' && 'tool-bar--draft',
+        layoutContextMode === 'DESIGN' && 'tool-bar--design',
     );
 
     const unselectDesign = () => {
-        onLayoutContextChange({
-            publicationState: layoutContext.publicationState,
-            designId: undefined,
-        });
-        setSelectingWorkspace(true);
+        onDesignIdChange(undefined);
     };
 
     return (
@@ -433,11 +423,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     <TabHeader
                         className={styles['tool-bar__tab-header']}
                         qaId="current-mode-tab"
-                        selected={
-                            layoutContext.branch === 'MAIN' &&
-                            !selectingWorkspace &&
-                            layoutContext.publicationState === 'OFFICIAL'
-                        }
+                        selected={layoutContextMode === 'MAIN-OFFICIAL'}
                         onClick={() => switchToMainOfficial()}>
                         {t('tool-bar.current-mode')}
                     </TabHeader>
@@ -445,11 +431,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         <TabHeader
                             className={styles['tool-bar__tab-header']}
                             qaId={'draft-mode-tab'}
-                            selected={
-                                layoutContext.branch === 'MAIN' &&
-                                !selectingWorkspace &&
-                                layoutContext.publicationState === 'DRAFT'
-                            }
+                            selected={layoutContextMode === 'MAIN-DRAFT'}
                             onClick={() => switchToMainDraft()}>
                             {t('tool-bar.draft-mode')}
                         </TabHeader>
@@ -460,7 +442,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                 <TabHeader
                                     className={styles['tool-bar__tab-header']}
                                     qaId={'design-mode-tab'}
-                                    selected={!!layoutContext.designId || selectingWorkspace}
+                                    selected={layoutContextMode === 'DESIGN'}
                                     onClick={switchToDesign}>
                                     <div className={styles['tool-bar__design-tab-content']}>
                                         {t('tool-bar.design-mode')}
@@ -472,15 +454,18 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                                 icon={Icons.Down}
                                                 iconPosition={ButtonIconPosition.END}
                                                 inheritTypography={true}
-                                                onClick={(e) => {
-                                                    e.stopPropagation(); // otherwise modal gets outside-click
+                                                onClick={(_e) => {
+                                                    _e.stopPropagation(); // otherwise modal gets outside-click
+                                                    switchToDesign();
                                                     setDesignIdSelectorOpened(
                                                         !designIdSelectorOpened,
                                                     );
                                                 }}>
-                                                {currentDesign && currentDesign.name}
+                                                <span className={styles['tool-bar__design-name']}>
+                                                    {currentDesign && currentDesign.name}
+                                                </span>
                                             </Button>
-                                            {layoutContext.designId && currentDesign && (
+                                            {layoutContextMode === 'DESIGN' && currentDesign && (
                                                 <React.Fragment>
                                                     <Button
                                                         variant={ButtonVariant.GHOST}
@@ -514,10 +499,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                             className={styles['tool-bar__design-id-selector-popup']}
                                             offsetX={0}
                                             offsetY={0}>
-                                            <WorkspaceSelectionContainer2
-                                                selectingWorkspace={selectingWorkspace}
-                                                setSelectingWorkspace={setSelectingWorkspace}
-                                                onLayoutContextChange={() =>
+                                            <DesignSelectionContainer
+                                                onDesignIdChange={() =>
                                                     setDesignIdSelectorOpened(false)
                                                 }
                                             />
@@ -553,7 +536,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 {layoutContext.publicationState == 'DRAFT' && (
                     <PrivilegeRequired privilege={EDIT_LAYOUT}>
                         <Button
-                            disabled={selectingWorkspace || !!splittingState || !!linkingState}
+                            disabled={!canEnterPreview}
                             variant={ButtonVariant.PRIMARY}
                             title={modeNavigationButtonsDisabledReason()}
                             qa-id="open-preview-view"
@@ -571,7 +554,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                   })
                                 : t('tool-bar.search-from-whole-network')
                         }
-                        disabled={selectingWorkspace}
+                        disabled={!canSearch}
                         options={memoizedDebouncedGetOptions}
                         searchable
                         onChange={onItemSelected}
@@ -622,10 +605,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             {showEditWorkspaceDialog && (
                 <WorkspaceDialog
                     existingDesign={currentDesign}
-                    onCancel={() => {
-                        setShowEditWorkspaceDialog(false);
-                        setSelectingWorkspace(false);
-                    }}
+                    onCancel={() => setShowEditWorkspaceDialog(false)}
                     onSave={(_, request) => {
                         if (currentDesign) {
                             updateLayoutDesign(currentDesign.id, request).finally(() => {

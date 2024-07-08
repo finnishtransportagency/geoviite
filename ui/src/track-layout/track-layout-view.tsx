@@ -18,10 +18,12 @@ import {
 
 export type TrackLayoutViewProps = {
     showVerticalGeometryDiagram: boolean;
+    enabled: boolean;
 };
 
 export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
     showVerticalGeometryDiagram,
+    enabled,
 }) => {
     const className = createClassName(
         styles['track-layout'],
@@ -30,19 +32,15 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
 
     const [hoveredOverPlanSection, setHoveredOverPlanSection] =
         React.useState<HighlightedAlignment>();
-    const [selectingWorkspace, setSelectingWorkspace] = React.useState(false);
 
     return (
         <div className={className} qa-id="track-layout-content">
-            <ToolBarContainer
-                setSelectingWorkspace={setSelectingWorkspace}
-                selectingWorkspace={selectingWorkspace}
-            />
+            <ToolBarContainer />
 
             <div className={'track-layout__progress-indicator-wrapper'}>
                 <ProgressIndicatorWrapper
                     indicator={ProgressIndicatorType.Area}
-                    inProgress={selectingWorkspace}
+                    inProgress={!enabled}
                     inline={false}>
                     <div className={styles['track-layout__main-view']}>
                         <div className={styles['track-layout__navi']}>
@@ -63,10 +61,7 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                             </MapContext.Provider>
                         </div>
                         <div className={styles['track-layout__tool-panel']}>
-                            <ToolPanelContainer
-                                setHoveredOverItem={setHoveredOverPlanSection}
-                                selectingWorkspace={selectingWorkspace}
-                            />
+                            <ToolPanelContainer setHoveredOverItem={setHoveredOverPlanSection} />
                         </div>
                     </div>
 
