@@ -527,10 +527,7 @@ const MapView: React.FC<MapViewProps> = ({
                         );
                     case 'switch-linking-layer':
                         return createSwitchLinkingLayer(
-                            mapTiles,
-                            resolution,
                             existingOlLayer as VectorLayer<Feature<OlPoint>>,
-                            layoutContext,
                             selection,
                             linkingState as LinkingSwitch | undefined,
                             (loading) => onLayerLoading(layerName, loading),

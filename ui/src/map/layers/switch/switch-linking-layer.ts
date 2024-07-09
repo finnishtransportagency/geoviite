@@ -1,10 +1,9 @@
 import Feature from 'ol/Feature';
 import { Style } from 'ol/style';
 import { Point as OlPoint } from 'ol/geom';
-import { MapLayerName, MapTile } from 'map/map-model';
+import { MapLayerName } from 'map/map-model';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
 import { LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
-import { getSuggestedSwitchesByTile } from 'linking/linking-api';
 import {
     createLayer,
     findMatchingEntities,
@@ -16,12 +15,9 @@ import {
     getLinkingJointRenderer,
     suggestedSwitchHasMatchOnJoint,
 } from 'map/layers/utils/switch-layer-utils';
-import { SUGGESTED_SWITCH_SHOW } from 'map/layers/utils/layer-visibility-limits';
-import { filterNotEmpty, first } from 'utils/array-utils';
 import { Rectangle } from 'model/geometry';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
-import { LayoutContext } from 'common/common-model';
 
 function createSwitchFeatures(
     suggestedSwitch: SuggestedSwitch,
@@ -55,10 +51,7 @@ function createSwitchFeatures(
 const layerName: MapLayerName = 'switch-linking-layer';
 
 export function createSwitchLinkingLayer(
-    mapTiles: MapTile[],
-    resolution: number,
     existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
-    layoutContext: LayoutContext,
     selection: Selection,
     linkingState: LinkingSwitch | undefined,
     onLoadingData: (loading: boolean) => void,
@@ -67,17 +60,8 @@ export function createSwitchLinkingLayer(
 
     const selectedSwitches = selection.selectedItems.suggestedSwitches;
 
-    const getSuggestedSwitchesPromises =
-        resolution <= SUGGESTED_SWITCH_SHOW && linkingState
-            ? []
-            : mapTiles.map((tile) => getSuggestedSwitchesByTile(layoutContext.branch, tile));
-
-    const dataPromise: Promise<SuggestedSwitch[]> = Promise.all(getSuggestedSwitchesPromises).then(
-        (suggestedSwitches) =>
-            [
-                ...suggestedSwitches.flat(),
-                first(selectedSwitches), // add selected suggested switch into collection
-            ].filter(filterNotEmpty),
+    const dataPromise = Promise.resolve(
+        linkingState?.suggestedSwitch ? [linkingState.suggestedSwitch] : [],
     );
 
     const createFeatures = (suggestedSwitches: SuggestedSwitch[]) =>
