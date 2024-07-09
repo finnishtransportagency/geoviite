@@ -252,6 +252,9 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                   where
                     postgis.st_intersects(
                       postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                      alignment.bounding_box
+                    ) and postgis.st_intersects(
+                      postgis.st_makeenvelope (:x_min, :y_min, :x_max, :y_max, :layout_srid),
                       sg.bounding_box
                     )
                     and e.switch_id is not null
