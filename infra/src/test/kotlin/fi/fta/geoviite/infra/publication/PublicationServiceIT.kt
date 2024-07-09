@@ -10,8 +10,8 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
+import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -42,7 +42,6 @@ import fi.fta.geoviite.infra.split.validateSplitContent
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType
-import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
@@ -3998,6 +3997,52 @@ class PublicationServiceIT @Autowired constructor(
 
         // Split should be found and not be deleted even after reverting the draft change to the modified switch.
         assertNotNull(splitDao.get(splitId))
+    }
+
+    @Test
+    fun `track number created in design is reported as created`() {
+        val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
+        val trackNumber = testDBService.testContext(testBranch, DRAFT).insert(trackNumber()).id
+        publish(publicationService, testBranch, trackNumbers = listOf(trackNumber))
+        trackNumberService.mergeToMainBranch(testBranch, trackNumber)
+        publish(publicationService, trackNumbers = listOf(trackNumber))
+        val latestPub = publicationService.fetchLatestPublicationDetails(LayoutBranch.main, 1)
+        assertEquals(Operation.CREATE, latestPub[0].trackNumbers[0].operation)
+    }
+
+    @Test
+    fun `location track created in design is reported as created`() {
+        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
+        val locationTrack = testDBService.testContext(testBranch, DRAFT).insert(locationTrack(trackNumber), alignment()).id
+        publish(publicationService, testBranch, locationTracks = listOf(locationTrack))
+        locationTrackService.mergeToMainBranch(testBranch, locationTrack)
+        publish(publicationService, locationTracks = listOf(locationTrack))
+        val latestPub = publicationService.fetchLatestPublicationDetails(LayoutBranch.main, 1)
+        assertEquals(Operation.CREATE, latestPub[0].locationTracks[0].operation)
+    }
+
+    @Test
+    fun `switch created in design is reported as created`() {
+        val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
+        val switch = testDBService.testContext(testBranch, DRAFT).insert(switch()).id
+        publish(publicationService, testBranch, switches = listOf(switch))
+        switchService.mergeToMainBranch(testBranch, switch)
+        publish(publicationService, switches = listOf(switch))
+        val latestPub = publicationService.fetchLatestPublicationDetails(LayoutBranch.main, 1)
+        assertEquals(Operation.CREATE, latestPub[0].switches[0].operation)
+    }
+
+    @Test
+    fun `km post created in design is reported as created`() {
+        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
+        val kmPost = testDBService.testContext(testBranch, DRAFT).insert(kmPost(trackNumber, KmNumber(2))).id
+        publish(publicationService, testBranch, kmPosts = listOf(kmPost))
+        kmPostService.mergeToMainBranch(testBranch, kmPost)
+        publish(publicationService, kmPosts = listOf(kmPost))
+        val latestPub = publicationService.fetchLatestPublicationDetails(LayoutBranch.main, 1)
+        assertEquals(Operation.CREATE, latestPub[0].kmPosts[0].operation)
     }
 
     data class PublicationGroupTestData(
