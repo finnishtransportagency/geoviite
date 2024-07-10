@@ -419,28 +419,27 @@ class LocationTrackDao(
         val sql = """
             select row_id, row_version
               from (
-                select coalesce(official_row_id, design_row_id, id) as official_id
+                select coalesce(official_row_id, design_row_id, id) as official_id, id as row_id, version as row_version
                   from layout.location_track
-                  where exists(
-                      select *
-                        from layout.segment_version
-                          join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
-                        where segment_version.alignment_id = location_track.alignment_id
-                          and segment_version.alignment_version = location_track.alignment_version
-                          and postgis.st_intersects(
-                            postgis.st_makeenvelope(
-                                :x_min, :y_min,
-                                :x_max, :y_max,
-                                :layout_srid
-                              ),
-                            segment_geometry.bounding_box
-                          ))
+                    join (
+                    select distinct alignment_id, alignment_version
+                      from layout.segment_version
+                        join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+                      where postgis.st_intersects(
+                          postgis.st_makeenvelope(
+                              :x_min, :y_min,
+                              :x_max, :y_max,
+                              :layout_srid
+                            ),
+                          segment_geometry.bounding_box
+                        )
+                  ) in_box using (alignment_id, alignment_version)
               ) location_track
-                cross join lateral (
+                join lateral (
                 select *
                   from layout.location_track_in_layout_context(:publication_state::layout.publication_state,
                                                                :design_id, location_track.official_id)
-                  where state != 'DELETED') in_layout_context;
+                  where state != 'DELETED') in_layout_context using (row_id, row_version);
         """.trimIndent()
 
         val params = mapOf(

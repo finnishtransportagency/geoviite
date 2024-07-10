@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType.MAIN
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType.SIDE
 import fi.fta.geoviite.infra.util.FreeText
@@ -576,6 +577,59 @@ class LocationTrackDaoIT @Autowired constructor(
                 DesignLayoutContext.of(someDesignId, PublicationState.DRAFT),
                 official.id
             )!!
+        )
+    }
+
+    @Test
+    fun `fetchVersionsNear() returns only the correct context's version when multiple are visible`() {
+        testDBService.clearLayoutTables()
+        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val officialTrackVersion = mainOfficialContext.insert(
+            locationTrack(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        ).rowVersion
+        val draftTrackVersion = mainDraftContext.insert(
+            asMainDraft(locationTrackDao.fetch(officialTrackVersion)),
+            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        ).rowVersion
+        assertEquals(
+            listOf(draftTrackVersion),
+            locationTrackDao.fetchVersionsNear(MainLayoutContext.draft, boundingBoxAroundPoint(Point(0.0, 0.0), 1.0))
+        )
+        assertEquals(
+            listOf(officialTrackVersion),
+            locationTrackDao.fetchVersionsNear(MainLayoutContext.official, boundingBoxAroundPoint(Point(0.0, 0.0), 1.0))
+        )
+    }
+
+    @Test
+    fun `fetchVersionsNear() returns only the correct context's version when track is moved`() {
+        testDBService.clearLayoutTables()
+        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        val officialTrackVersion = mainOfficialContext.insert(
+            locationTrack(trackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
+        ).rowVersion
+        val draftTrackVersion = mainDraftContext.insert(
+            asMainDraft(locationTrackDao.fetch(officialTrackVersion)),
+            alignment(segment(Point(0.0, 10.0), Point(10.0, 10.0)))
+        ).rowVersion
+        assertEquals(
+            listOf<LayoutRowVersion<LocationTrack>>(),
+            locationTrackDao
+                .fetchVersionsNear(MainLayoutContext.official, boundingBoxAroundPoint(Point(0.0, 10.0), 1.0))
+        )
+        assertEquals(
+            listOf(draftTrackVersion),
+            locationTrackDao
+                .fetchVersionsNear(MainLayoutContext.draft, boundingBoxAroundPoint(Point(0.0, 10.0), 1.0))
+        )
+        assertEquals(
+            listOf(officialTrackVersion),
+            locationTrackDao
+                .fetchVersionsNear(MainLayoutContext.official, boundingBoxAroundPoint(Point(0.0, 0.0), 1.0))
+        )
+        assertEquals(
+            listOf<LayoutRowVersion<LocationTrack>>(),
+            locationTrackDao.fetchVersionsNear(MainLayoutContext.draft, boundingBoxAroundPoint(Point(0.0, 0.0), 1.0))
         )
     }
 
