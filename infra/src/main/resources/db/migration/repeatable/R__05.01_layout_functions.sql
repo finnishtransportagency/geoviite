@@ -44,20 +44,12 @@ create or replace function layout.switch_linked_track_numbers(switch_id_in integ
   returns setof integer as
 $$
 select distinct track_number_id
-  from (
-    (
-      select track_number_id
-        from layout.segment_version
-          inner join layout.location_track_in_layout_context(publication_state, design_id) location_track
-                     using (alignment_id, alignment_version)
-        where switch_id_in = segment_version.switch_id
-    )
-    union all
-    (
-      select track_number_id
-        from layout.location_track_in_layout_context(publication_state, design_id) location_track
-        where (switch_id_in = location_track.topology_start_switch_id
-           or switch_id_in = location_track.topology_end_switch_id)
-    )
-  ) tns
+from layout.location_track_in_layout_context(publication_state, design_id) location_track
+where switch_id_in = location_track.topology_start_switch_id
+  or switch_id_in = location_track.topology_end_switch_id
+  or exists (select *
+             from layout.segment_version
+             where segment_version.switch_id = switch_id_in
+               and segment_version.alignment_id = location_track.alignment_id
+               and segment_version.alignment_version = location_track.alignment_version);
 $$ language sql stable;
