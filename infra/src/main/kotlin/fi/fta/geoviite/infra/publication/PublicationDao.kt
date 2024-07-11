@@ -208,7 +208,7 @@ class PublicationDao(
               candidate_switch.change_time,
               candidate_switch.change_user,
               (select array_agg(sltn)
-                 from layout.switch_linked_track_numbers(coalesce(base_switch.row_id, candidate_switch.row_id),
+                 from layout.switch_linked_track_numbers(candidate_switch.official_id,
                                                          :candidate_state::layout.publication_state,
                                                          :candidate_design_id) sltn
               ) as track_numbers,
