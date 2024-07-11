@@ -76,7 +76,7 @@ class SwitchFittingService @Autowired constructor(
 
     @Transactional(readOnly = true)
     fun getFitsInArea(branch: LayoutBranch, bbox: BoundingBox): List<FittedSwitch> {
-        val missing = linkingDao.getMissingLayoutSwitchLinkings(bbox)
+        val missing = linkingDao.getMissingLayoutSwitchLinkings(branch, bbox)
         return missing.mapNotNull { missingLayoutSwitchLinking ->
             // Transform joints to layout space and calculate missing joints
             val geomSwitch = geometryDao.getSwitch(missingLayoutSwitchLinking.geometrySwitchId)
