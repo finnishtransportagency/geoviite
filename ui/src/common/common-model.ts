@@ -1,7 +1,7 @@
 import { Point } from 'model/geometry';
 import {
-    LayoutKmPostId,
     AlignmentPoint,
+    LayoutKmPostId,
     LayoutSwitchId,
     LayoutTrackNumberId,
     LocationTrackId,
@@ -26,6 +26,8 @@ export type LayoutContext = {
     publicationState: PublicationState;
     branch: LayoutBranch;
 };
+
+export type LayoutContextMode = 'MAIN-OFFICIAL' | 'MAIN-DRAFT' | 'DESIGN';
 
 export const officialLayoutContext = (layoutContext: LayoutContext): LayoutContext =>
     layoutContext.publicationState === 'OFFICIAL'
@@ -54,6 +56,13 @@ const draftMainContext: LayoutContext = Object.freeze({
 
 export const officialMainLayoutContext = (): LayoutContext => officialMainContext;
 export const draftMainLayoutContext = (): LayoutContext => draftMainContext;
+
+export function draftDesignLayoutContext(designId: LayoutDesignId): LayoutContext {
+    return {
+        publicationState: 'DRAFT',
+        branch: designId,
+    };
+}
 
 export type LayoutMode = 'DEFAULT' | 'PREVIEW';
 

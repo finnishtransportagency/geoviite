@@ -11,13 +11,9 @@ import { first } from 'utils/array-utils';
 
 type ToolPanelContainerProps = {
     setHoveredOverItem: (item: HighlightedAlignment | undefined) => void;
-    selectingWorkspace: boolean;
 };
 
-const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({
-    setHoveredOverItem,
-    selectingWorkspace,
-}) => {
+const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverItem }) => {
     const store = useTrackLayoutAppSelector((state) => state);
 
     const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
@@ -88,7 +84,6 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({
             viewport={store.map.viewport}
             verticalGeometryDiagramVisible={store.map.verticalGeometryDiagramState.visible}
             onHoverOverPlanSection={setHoveredOverItem}
-            selectingWorkspace={selectingWorkspace}
         />
     );
 };

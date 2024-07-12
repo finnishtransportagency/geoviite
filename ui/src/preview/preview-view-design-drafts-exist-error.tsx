@@ -18,7 +18,7 @@ export const DesignDraftsExistError: React.FC<DesignDraftsExistErrorProps> = ({
         />
     );
     return (
-        <div style={{ marginTop: '5px' }}>
+        <div>
             <MessageBox type="ERROR">
                 <Trans
                     t={t}
