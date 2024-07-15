@@ -99,11 +99,11 @@ val kmPostLocations = (0..5).map { i ->
 }
 
 val kmPosts = listOf(
-    kmPost(trackNumberId = null, km = startAddress.kmNumber, location = kmPostLocations[0], draft = false),
-    kmPost(trackNumberId = null, km = KmNumber(3), location = kmPostLocations[1], draft = false),
-    kmPost(trackNumberId = null, km = KmNumber(4), location = kmPostLocations[2], draft = false),
-    kmPost(trackNumberId = null, km = KmNumber(5, "A"), location = kmPostLocations[3], draft = false),
-    kmPost(trackNumberId = null, km = KmNumber(5, "B"), location = kmPostLocations[4], draft = false),
+    kmPost(trackNumberId = null, km = startAddress.kmNumber, roughLayoutLocation = kmPostLocations[0], draft = false),
+    kmPost(trackNumberId = null, km = KmNumber(3), roughLayoutLocation = kmPostLocations[1], draft = false),
+    kmPost(trackNumberId = null, km = KmNumber(4), roughLayoutLocation = kmPostLocations[2], draft = false),
+    kmPost(trackNumberId = null, km = KmNumber(5, "A"), roughLayoutLocation = kmPostLocations[3], draft = false),
+    kmPost(trackNumberId = null, km = KmNumber(5, "B"), roughLayoutLocation = kmPostLocations[4], draft = false),
 )
 val context = GeocodingContext(
     trackNumber,

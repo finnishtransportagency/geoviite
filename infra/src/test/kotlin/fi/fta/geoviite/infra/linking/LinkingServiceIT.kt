@@ -20,6 +20,7 @@ import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitTarget
 import fi.fta.geoviite.infra.split.SplitTargetOperation
+import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
@@ -63,10 +64,10 @@ class LinkingServiceIT @Autowired constructor(
         val plan = plan(
             trackNumber = testDBService.getUnusedTrackNumber(),
             srid = Srid(3067),
-            geometryAlignment(
+            alignments = listOf(geometryAlignment(
                 line(geometryStart, geometrySegmentChange),
                 line(geometrySegmentChange, geometryEnd),
-            )
+            ))
         )
 
         val geometryPlanId = geometryDao.insertPlan(plan, testFile(), null)
@@ -169,6 +170,7 @@ class LinkingServiceIT @Autowired constructor(
         val fetchedPlan = geometryService.getGeometryPlan(geometryPlanId)
 
         val geometryKmPostId = fetchedPlan.kmPosts[1].id as IntId
+        val geometryKmPost = geometryDao.fetchKmPosts(kmPostId = geometryKmPostId)[0]
 
         val kmPostLinkingParameters = KmPostLinkingParameters(geometryPlanId, geometryKmPostId, kmPostId)
 
@@ -181,6 +183,10 @@ class LinkingServiceIT @Autowired constructor(
         assertNotEquals(officialKmPost, draftKmPost)
 
         assertEquals(geometryKmPostId, draftKmPost.sourceId)
+        assertEquals(true, draftKmPost.gkLocationConfirmed)
+        assertEquals(KmPostGkLocationSource.FROM_GEOMETRY, draftKmPost.gkLocationSource)
+        assertEquals(geometryKmPost.location, draftKmPost.gkLocation?.toPoint())
+        assertEquals(fetchedPlan.units.coordinateSystemSrid, draftKmPost.gkLocation?.srid)
     }
 
     @Test

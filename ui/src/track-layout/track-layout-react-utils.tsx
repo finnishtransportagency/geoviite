@@ -49,13 +49,13 @@ import {
 import { getKmPost, getKmPostChangeInfo, getKmPosts } from 'track-layout/layout-km-post-api';
 import { PVDocumentHeader, PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { getPVDocument } from 'infra-model/infra-model-api';
-import { updateAllChangeTimes } from 'common/change-time-api';
-import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import {
+    updateAllChangeTimes,
     updateKmPostChangeTime,
-    updateSwitchChangeTime,
     updateLocationTrackChangeTime,
+    updateSwitchChangeTime,
 } from 'common/change-time-api';
+import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { deduplicate } from 'utils/array-utils';
 import { validateLocationTrackName } from 'tool-panel/location-track/dialog/location-track-validation';
 import { getMaxTimestamp } from 'utils/date-utils';
@@ -315,8 +315,15 @@ export function useKmPostChangeTimes(
     );
 }
 
-export function useCoordinateSystem(srid: Srid): CoordinateSystem | undefined {
-    return useLoader(() => getCoordinateSystem(srid), [srid]);
+export function useCoordinateSystem(srid: Srid | undefined): CoordinateSystem | undefined {
+    return useLoader(() => (srid === undefined ? undefined : getCoordinateSystem(srid)), [srid]);
+}
+
+export function useCoordinateSystems(srids: Srid[]): CoordinateSystem[] | undefined {
+    return useLoader(
+        () => Promise.all(srids.map((srid) => getCoordinateSystem(srid))),
+        [srids.join('_')],
+    );
 }
 
 export function useKmPost(

@@ -4,20 +4,24 @@ import { LayoutKmPost } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { useTranslation } from 'react-i18next';
-import { formatToTM35FINString } from 'utils/geography-utils';
+import { formatToGkFinString, formatToTM35FINString } from 'utils/geography-utils';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { draftLayoutContext, LayoutContext, TimeStamp } from 'common/common-model';
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
 import { Icons } from 'vayla-design-lib/icon/Icon';
-import { getKmPost, getSingleKmPostKmLength } from 'track-layout/layout-km-post-api';
+import { getKmPost, getKmPostInfoboxExtras } from 'track-layout/layout-km-post-api';
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
 import { AssetValidationInfoboxContainer } from 'tool-panel/asset-validation-infobox-container';
-import { KmPostInfoboxVisibilities } from 'track-layout/track-layout-slice';
+import {
+    KmPostInfoboxVisibilities,
+    trackLayoutActionCreators as TrackLayoutActions,
+} from 'track-layout/track-layout-slice';
 import {
     refereshKmPostSelection,
+    useCoordinateSystem,
     useKmPostChangeTimes,
 } from 'track-layout/track-layout-react-utils';
 import { formatDateShort } from 'utils/date-utils';
@@ -26,6 +30,9 @@ import { OnSelectOptions, OptionalUnselectableItemCollections } from 'selection/
 import LayoutState from 'geoviite-design-lib/layout-state/layout-state';
 import { roundToPrecision } from 'utils/rounding';
 import { ChangeTimes } from 'common/common-slice';
+import { Link } from 'vayla-design-lib/link/link';
+import { createDelegates } from 'store/store-utils';
+import { getGeometryPlan } from 'geometry/geometry-api';
 
 type KmPostInfoboxProps = {
     layoutContext: LayoutContext;
@@ -62,8 +69,8 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
         [kmPost.id, kmPostChangeTime, layoutContext.publicationState, layoutContext.branch],
     );
 
-    const [kmPostLength, kmPostLengthLoading] = useLoaderWithStatus(
-        async () => getSingleKmPostKmLength(layoutContext, kmPost.id),
+    const [infoboxExtras, infoboxExtrasLoading] = useLoaderWithStatus(
+        async () => getKmPostInfoboxExtras(layoutContext, kmPost.id),
         [
             kmPost.id,
             kmPost.state,
@@ -73,6 +80,17 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
             changeTimes.layoutReferenceLine,
         ],
     );
+    const geometryPlan = useLoader(
+        () =>
+            infoboxExtras?.sourceGeometryPlanId === undefined
+                ? undefined
+                : getGeometryPlan(infoboxExtras.sourceGeometryPlanId),
+        [infoboxExtras?.sourceGeometryPlanId],
+    );
+
+    const gkCoordinateSystem = useCoordinateSystem(kmPost.gkLocation?.srid);
+
+    const delegates = React.useMemo(() => createDelegates(TrackLayoutActions), []);
 
     function openEditDialog() {
         setShowEditDialog(true);
@@ -95,11 +113,21 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
     );
 
     const kmPostLengthText =
-        kmPostLength == undefined
+        infoboxExtras?.kmLength === undefined
             ? t('tool-panel.km-post.layout.no-kilometer-length')
-            : kmPostLength < 0
+            : infoboxExtras.kmLength < 0
               ? t('tool-panel.km-post.layout.negative-kilometer-length')
-              : `${roundToPrecision(kmPostLength, 3)} m`;
+              : `${roundToPrecision(infoboxExtras.kmLength, 3)} m`;
+
+    const InfoboxFieldWithEditLink: React.FC<
+        Omit<React.ComponentProps<typeof InfoboxField>, 'onEdit' | 'iconDisabled'>
+    > = (props) => (
+        <InfoboxField
+            {...props}
+            onEdit={openEditDialog}
+            iconDisabled={layoutContext.publicationState === 'OFFICIAL'}
+        />
+    );
 
     return (
         <React.Fragment>
@@ -109,12 +137,10 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                 contentVisible={visibilities.basic}
                 onContentVisibilityChange={() => visibilityChange('basic')}>
                 <InfoboxContent>
-                    <InfoboxField
+                    <InfoboxFieldWithEditLink
                         qaId="km-post-km-number"
                         label={t('tool-panel.km-post.layout.km-post')}
                         value={updatedKmPost?.kmNumber}
-                        onEdit={openEditDialog}
-                        iconDisabled={layoutContext.publicationState === 'OFFICIAL'}
                     />
                     <InfoboxField
                         label={t('tool-panel.km-post.layout.track-number')}
@@ -125,14 +151,14 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                             />
                         }
                     />
-                    <InfoboxField
+                    <InfoboxFieldWithEditLink
                         label={t('tool-panel.km-post.layout.state')}
                         value={<LayoutState state={kmPost.state} />}
                     />
                     <InfoboxField
                         label={t('tool-panel.km-post.layout.kilometer-length')}
                         value={
-                            kmPostLengthLoading === LoaderStatus.Ready ? (
+                            infoboxExtrasLoading === LoaderStatus.Ready ? (
                                 kmPostLengthText
                             ) : (
                                 <Spinner />
@@ -143,9 +169,11 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                         <Button
                             size={ButtonSize.SMALL}
                             title={
-                                !kmPost.location ? t('tool-panel.km-post.layout.no-location') : ''
+                                !kmPost.layoutLocation
+                                    ? t('tool-panel.km-post.layout.no-location')
+                                    : ''
                             }
-                            disabled={!kmPost.location}
+                            disabled={!kmPost.layoutLocation}
                             variant={ButtonVariant.SECONDARY}
                             qa-id="zoom-to-km-post"
                             onClick={onShowOnMap}>
@@ -160,12 +188,74 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                 contentVisible={visibilities.location}
                 onContentVisibilityChange={() => visibilityChange('location')}>
                 <InfoboxContent>
+                    <InfoboxFieldWithEditLink
+                        qaId="km-post-gk-coordinate-system"
+                        label={t('tool-panel.km-post.layout.gk-coordinates.coordinate-system')}
+                        value={`${gkCoordinateSystem?.name} ${gkCoordinateSystem?.srid}`}
+                    />
+                    <InfoboxFieldWithEditLink
+                        qaId="km-post-gk-coordinates"
+                        label={
+                            gkCoordinateSystem === undefined
+                                ? ''
+                                : t('tool-panel.km-post.layout.gk-coordinates.location', {
+                                      coordinateSystemName: gkCoordinateSystem?.name,
+                                  })
+                        }
+                        value={
+                            updatedKmPost?.gkLocation
+                                ? formatToGkFinString(updatedKmPost.gkLocation)
+                                : '-'
+                        }
+                    />
+                    <InfoboxFieldWithEditLink
+                        qaId="km-post-gk-coordinates-confirmed"
+                        label={t(`tool-panel.km-post.layout.gk-coordinates.confirmed-title`)}
+                        value={t(
+                            `tool-panel.km-post.layout.gk-coordinates.${updatedKmPost?.gkLocationConfirmed ? '' : 'not-'}confirmed`,
+                        )}
+                    />
+                    <InfoboxField
+                        qaId="km-post-gk-coordinates-source"
+                        label={t('tool-panel.km-post.layout.gk-coordinates.source')}
+                        value={
+                            updatedKmPost?.gkLocationSource === 'FROM_GEOMETRY' ? (
+                                <span>
+                                    {t(
+                                        'tool-panel.km-post.layout.gk-coordinates.source-from-geometry',
+                                    )}{' '}
+                                    <Link
+                                        onClick={() => {
+                                            if (infoboxExtras?.sourceGeometryPlanId) {
+                                                delegates.onSelect({
+                                                    geometryPlans: [
+                                                        infoboxExtras.sourceGeometryPlanId,
+                                                    ],
+                                                });
+                                                delegates.setToolPanelTab({
+                                                    id: infoboxExtras.sourceGeometryPlanId,
+                                                    type: 'GEOMETRY_PLAN',
+                                                });
+                                            }
+                                        }}>
+                                        {geometryPlan?.fileName}
+                                    </Link>
+                                </span>
+                            ) : updatedKmPost?.gkLocationSource === 'FROM_LAYOUT' ? (
+                                t('tool-panel.km-post.layout.gk-coordinates.source-from-layout')
+                            ) : updatedKmPost?.gkLocationSource === 'MANUAL' ? (
+                                t('tool-panel.km-post.layout.gk-coordinates.source-manual')
+                            ) : (
+                                ''
+                            )
+                        }
+                    />
                     <InfoboxField
                         qaId="km-post-coordinates"
                         label={t('tool-panel.km-post.layout.coordinates')}
                         value={
-                            updatedKmPost?.location
-                                ? formatToTM35FINString(updatedKmPost.location)
+                            updatedKmPost?.layoutLocation
+                                ? formatToTM35FINString(updatedKmPost.layoutLocation)
                                 : '-'
                         }
                     />

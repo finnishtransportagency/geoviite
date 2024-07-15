@@ -442,7 +442,18 @@
                 "state": "Tila",
                 "kilometer-length": "Ratakilometrin pituus",
                 "location-title": "Tasakilometripisteen sijaintitiedot",
-                "coordinates": "Koordinaatit (TM35FIN)",
+                "coordinates": "Sijainti paikannuspohjassa (TM35FIN)",
+                "gk-coordinates": {
+                    "coordinate-system": "Koordinaatisto",
+                    "location": "Sijainti ({{coordinateSystemName}})",
+                    "confirmed-title": "Sijainti vahvistettu",
+                    "confirmed": "Vahvistettu",
+                    "not-confirmed": "Ei vahvistettu",
+                    "source": "Sijainnin lähde",
+                    "source-from-geometry": "Linkitetty suunnitelmasta",
+                    "source-from-layout": "Konvertoitu paikannuspohjasta",
+                    "source-manual": "Asetettu suoraan"
+                },
                 "change-info-heading": "Lokitiedot",
                 "no-kilometer-length": "Pituutta ei voida laskea",
                 "negative-kilometer-length": "Virheellinen sijainti",
@@ -1689,6 +1700,9 @@
         "mandatory-fields-missing": "Pakollisia kenttiä puuttuu",
         "save-in-progress": "Tallennetaan",
         "km-post-regexp": "Tunnuksessa tulee olla 4 numeroa, tai 4 numeroa ja enintään 2 kirjainta (esim. 1234 tai 1234AA)",
+        "gk-coordinate-parse": "GK-sijainnin koordinaatin tulee olla luku",
+        "gk-coordinate-saveable-as-float": "GK-sijainnin koordinaattia ei pystytä tallentamaan tällä tarkkuudella",
+        "gk-coordinate-in-finland": "Syötetty sijainti ei ole Suomen GK-koordinaatistojen määrittämällä alueella",
         "invalid-km-post-number": "Virheellinen tasakilometripistetunnus",
         "km-number-already-in-use": "Ratanumerolla ei voi olla kahta tasakilometripistettä samalla tunnuksella. Tunnus on jo käytössä valitulla ratanumerolla.",
         "insert-succeeded": "Uusi tasakilometripiste lisätty rekisteriin",
@@ -1697,7 +1711,20 @@
         "modify-failed": "Tasakilometripisteen muokkaus epäonnistui",
         "delete-successfully": "Tasakilometripiste poistettu",
         "cant-open-deleted": "Tietoja ei voitu avata, koska tasakilometripiste on poistettu",
-        "move-to-edit": "Siirry muokkaamaan tasakilometripistettä {{number}}."
+        "move-to-edit": "Siirry muokkaamaan tasakilometripistettä {{number}}.",
+        "gk-location": {
+            "title": "Sijaintitiedot",
+            "location-field": "Sijainti",
+            "coordinate-system-field": "Koordinaatisto",
+            "confirmed-field": "Sijainti vahvistettu",
+            "confirmed": "Vahvistettu",
+            "not-confirmed": "Ei vahvistettu",
+            "source": "Sijainnin lähde",
+            "source-from-geometry": "Linkitetty geometriasta",
+            "source-from-layout": "Konvertoitu paikannuspohjasta",
+            "source-manual": "Asetettu suoraan",
+            "location-in-layout": "Sijainti paikannuspohjassa (TM35FIN)"
+        }
     },
     "km-post-delete-dialog": {
         "title": "Tasakilometripisteen poistaminen paikannuspohjasta",

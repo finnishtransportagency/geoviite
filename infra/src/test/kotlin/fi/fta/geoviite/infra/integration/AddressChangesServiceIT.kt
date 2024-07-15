@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.geocoding.AlignmentAddresses
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingDao
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
@@ -262,7 +263,7 @@ class AddressChangesServiceIT @Autowired constructor(
         val trackNumberId = initialLocationTrack.trackNumberId
         val initialChangeMoment = locationTrackDao.fetchChangeTime()
 
-        moveKmPostAndUpdate(setupData.kmPosts[0]) { point -> point + 0.5 }
+        moveKmPostGkLocationAndUpdate(setupData.kmPosts[0]) { point -> point + 0.5 }
         val updateMoment = layoutKmPostDao.fetchChangeTime()
 
         val changes = addressChangesService.getAddressChanges(
@@ -680,7 +681,7 @@ class AddressChangesServiceIT @Autowired constructor(
                 kmPost(
                     trackNumberId = trackNumber.id as IntId,
                     km = KmNumber(1),
-                    location = refPoint + 5.0,
+                    roughLayoutLocation = refPoint + 5.0,
                     draft = false,
                 )
             ).rowVersion
@@ -690,7 +691,7 @@ class AddressChangesServiceIT @Autowired constructor(
                 kmPost(
                     trackNumberId = trackNumber.id as IntId,
                     km = KmNumber(2),
-                    location = refPoint + 10.0,
+                    roughLayoutLocation = refPoint + 10.0,
                     draft = false,
                 )
             ).rowVersion
@@ -774,13 +775,15 @@ class AddressChangesServiceIT @Autowired constructor(
         referenceLineService.publish(LayoutBranch.main, ValidationVersion(version.id, version.rowVersion))
     }
 
-    fun moveKmPostAndUpdate(
+    fun moveKmPostGkLocationAndUpdate(
         kmPost: TrackLayoutKmPost,
         moveFunc: (point: IPoint) -> Point,
     ): TrackLayoutKmPost {
         return layoutKmPostDao.fetch(
             layoutKmPostDao.update(
-                kmPost.copy(location = moveFunc(kmPost.location!!))
+                kmPost.copy(
+                    gkLocation = GeometryPoint(moveFunc(kmPost.gkLocation!!), kmPost.gkLocation!!.srid)
+                )
             ).rowVersion
         )
     }

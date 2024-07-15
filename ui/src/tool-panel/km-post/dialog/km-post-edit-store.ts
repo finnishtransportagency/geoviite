@@ -1,31 +1,43 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { KmPostSaveRequest } from 'linking/linking-model';
-import { LayoutKmPost, LayoutTrackNumberId } from 'track-layout/track-layout-model';
+import { KmPostEditFields, KmPostSaveRequest, KmPostSimpleFields } from 'linking/linking-model';
 import {
-    isPropEditFieldCommitted,
-    PropEdit,
+    GkLocationSource,
+    LayoutKmPost,
+    LayoutTrackNumberId,
+} from 'track-layout/track-layout-model';
+import {
     FieldValidationIssue,
     FieldValidationIssueType,
+    isPropEditFieldCommitted,
+    PropEdit,
 } from 'utils/validation-utils';
 import { isNilOrBlank } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
+import { GeometryPoint } from 'model/geometry';
+import { Srid } from 'common/common-model';
 
 export type KmPostEditState = {
     isNewKmPost: boolean;
     existingKmPost?: LayoutKmPost;
     trackNumberKmPost?: LayoutKmPost;
-    kmPost: KmPostSaveRequest;
+    geometryKmPostLocation?: GeometryPoint;
+    kmPost: KmPostEditFields;
     isSaving: boolean;
-    validationIssues: FieldValidationIssue<KmPostSaveRequest>[];
-    committedFields: (keyof KmPostSaveRequest)[];
+    validationIssues: FieldValidationIssue<KmPostEditFields>[];
+    committedFields: (keyof KmPostEditFields)[];
     allFieldsCommitted: boolean;
 };
 
 export const initialKmPostEditState: KmPostEditState = {
     isNewKmPost: false,
     existingKmPost: undefined,
+    geometryKmPostLocation: undefined,
     kmPost: {
         kmNumber: '',
+        gkLocationX: '',
+        gkLocationY: '',
+        gkSrid: undefined,
+        gkLocationConfirmed: undefined,
     },
     isSaving: false,
     validationIssues: [],
@@ -33,18 +45,29 @@ export const initialKmPostEditState: KmPostEditState = {
     allFieldsCommitted: false,
 };
 
-function newLinkingKmPost(trackNumberId: LayoutTrackNumberId | undefined): KmPostSaveRequest {
+function newLinkingKmPost(
+    trackNumberId: LayoutTrackNumberId | undefined,
+    geometryKmPostLocation: GeometryPoint | undefined,
+): KmPostEditFields {
     return {
         kmNumber: '',
         state: undefined,
         trackNumberId: trackNumberId,
+        gkLocationX: '',
+        gkLocationY: '',
+        gkSrid: undefined,
+        gkLocationConfirmed: geometryKmPostLocation !== undefined ? true : undefined,
     };
 }
 
-function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmPostSaveRequest>[] {
-    let errors = [
+function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmPostEditFields>[] {
+    let errors: {
+        field: keyof KmPostEditFields;
+        reason: string;
+        type: FieldValidationIssueType;
+    }[] = [
         ...['kmNumber', 'state', 'trackNumberId']
-            .map((prop: keyof KmPostSaveRequest) => {
+            .map((prop: 'kmNumber' | 'state' | 'trackNumberId') => {
                 if (isNilOrBlank(state.kmPost[prop])) {
                     return {
                         field: prop,
@@ -66,10 +89,22 @@ function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmP
         errors = [...errors, ...getErrorForKmPostExistsOnTrack()];
     }
 
+    if (state.kmPost.gkLocationX !== '' || state.kmPost.gkLocationY !== '') {
+        if (!isValidGkCoordinate(state.kmPost.gkLocationX)) {
+            errors = [...errors, ...getGkCoordinateDoesNotParseError('gkLocationX')];
+        } else if (!isFaithfullySaveableAsFloat(state.kmPost.gkLocationX)) {
+            errors = [...errors, ...getGkCoordinateIsNotFaithfullySaveableError('gkLocationX')];
+        }
+        if (!isValidGkCoordinate(state.kmPost.gkLocationY)) {
+            errors = [...errors, ...getGkCoordinateDoesNotParseError('gkLocationY')];
+        } else if (!isFaithfullySaveableAsFloat(state.kmPost.gkLocationY)) {
+            errors = [...errors, ...getGkCoordinateIsNotFaithfullySaveableError('gkLocationY')];
+        }
+    }
     return errors;
 }
 
-function getKmNumberDoesntMatchRegExpError(): FieldValidationIssue<KmPostSaveRequest>[] {
+function getKmNumberDoesntMatchRegExpError(): FieldValidationIssue<KmPostEditFields>[] {
     return [
         {
             field: 'kmNumber',
@@ -79,15 +114,39 @@ function getKmNumberDoesntMatchRegExpError(): FieldValidationIssue<KmPostSaveReq
     ];
 }
 
-function getErrorForKmPostExistsOnTrack(): FieldValidationIssue<KmPostSaveRequest>[] {
+function getErrorForKmPostExistsOnTrack(): FieldValidationIssue<KmPostEditFields>[] {
     return [
-        ...['kmNumber'].map((prop: keyof KmPostSaveRequest) => {
+        ...['kmNumber'].map((prop: keyof KmPostEditFields) => {
             return {
                 field: prop,
                 reason: 'km-number-already-in-use',
                 type: FieldValidationIssueType.ERROR,
             };
         }),
+    ];
+}
+
+function getGkCoordinateDoesNotParseError(
+    field: keyof KmPostEditFields,
+): FieldValidationIssue<KmPostEditFields>[] {
+    return [
+        {
+            field,
+            reason: 'gk-coordinate-parse',
+            type: FieldValidationIssueType.ERROR,
+        },
+    ];
+}
+
+function getGkCoordinateIsNotFaithfullySaveableError(
+    field: keyof KmPostEditFields,
+): FieldValidationIssue<KmPostEditFields>[] {
+    return [
+        {
+            field,
+            reason: 'gk-coordinate-saveable-as-float',
+            type: FieldValidationIssueType.ERROR,
+        },
     ];
 }
 
@@ -98,10 +157,16 @@ const kmPostEditSlice = createSlice({
         init: (): KmPostEditState => initialKmPostEditState,
         initWithNewKmPost: (
             state: KmPostEditState,
-            { payload: trackNumberId }: PayloadAction<LayoutTrackNumberId | undefined>,
+            {
+                payload,
+            }: PayloadAction<{
+                trackNumberId: LayoutTrackNumberId | undefined;
+                geometryKmPostLocation: GeometryPoint | undefined;
+            }>,
         ): void => {
             state.isNewKmPost = true;
-            state.kmPost = newLinkingKmPost(trackNumberId);
+            state.geometryKmPostLocation = payload.geometryKmPostLocation;
+            state.kmPost = newLinkingKmPost(payload.trackNumberId, payload.geometryKmPostLocation);
             state.validationIssues = validateLinkingKmPost(state);
         },
         onKmPostLoaded: (
@@ -109,12 +174,17 @@ const kmPostEditSlice = createSlice({
             { payload: existingKmPost }: PayloadAction<LayoutKmPost>,
         ): void => {
             state.existingKmPost = existingKmPost;
-            state.kmPost = existingKmPost;
+            state.kmPost = {
+                ...existingKmPost,
+                ...(existingKmPost.gkLocation === undefined
+                    ? { gkLocationX: '', gkLocationY: '', gkSrid: undefined }
+                    : saveGkPointToEditingGkPoint(existingKmPost.gkLocation)),
+            };
             state.validationIssues = validateLinkingKmPost(state);
         },
-        onUpdateProp: function <TKey extends keyof KmPostSaveRequest>(
+        onUpdateProp: function <TKey extends keyof KmPostEditFields>(
             state: KmPostEditState,
-            { payload: propEdit }: PayloadAction<PropEdit<KmPostSaveRequest, TKey>>,
+            { payload: propEdit }: PayloadAction<PropEdit<KmPostEditFields, TKey>>,
         ) {
             if (state.kmPost) {
                 state.kmPost[propEdit.key] = propEdit.value;
@@ -125,7 +195,8 @@ const kmPostEditSlice = createSlice({
                         propEdit,
                         state.committedFields,
                         state.validationIssues,
-                    )
+                    ) &&
+                    !state.committedFields.includes(propEdit.key)
                 ) {
                     // Valid value entered for a field, mark that field as committed
                     state.committedFields = [...state.committedFields, propEdit.key];
@@ -138,7 +209,7 @@ const kmPostEditSlice = createSlice({
         onEndSaving: (state: KmPostEditState): void => {
             state.isSaving = false;
         },
-        onCommitField: function <TKey extends keyof KmPostSaveRequest>(
+        onCommitField: function <TKey extends keyof KmPostEditFields>(
             state: KmPostEditState,
             { payload: key }: PayloadAction<TKey>,
         ) {
@@ -161,7 +232,7 @@ const kmPostEditSlice = createSlice({
 });
 
 export function canSaveKmPost(state: KmPostEditState): boolean {
-    return !!(state.kmPost && !state.validationIssues.length && !state.isSaving);
+    return state.kmPost && !state.validationIssues.length && !state.isSaving;
 }
 
 export function isValidKmNumber(kmNumber: string): boolean {
@@ -171,6 +242,84 @@ export function isValidKmNumber(kmNumber: string): boolean {
         return /^\d{4}[A-Z]{1,2}$/.test(kmNumber);
     }
     return false;
+}
+
+export function isValidGkCoordinate(coordinate: string): boolean {
+    return /^[0-9]*\.?[0-9]*$/.test(coordinate);
+}
+
+function withoutLeadingZeroes(number: string): string {
+    return /^0*(.*)/.exec(number)?.[1] ?? '';
+}
+
+function withoutTrailingDecimalZeroes(number: string): string {
+    return number.match(/\./)
+        ? number.substring(0, number.length - (/([0.]*)$/.exec(number)?.[1]?.length ?? 0))
+        : number;
+}
+
+function withoutInsignificantZeroes(number: string): string {
+    return withoutLeadingZeroes(withoutTrailingDecimalZeroes(number));
+}
+
+export function isFaithfullySaveableAsFloat(number: string): boolean {
+    return (
+        /^[0.]*$/.test(number) ||
+        parseFloat(number).toString() === withoutInsignificantZeroes(number)
+    );
+}
+
+export function editingGkPointToSavePoint(state: KmPostEditState): GeometryPoint | undefined {
+    return state.kmPost.gkSrid === undefined
+        ? undefined
+        : {
+              x: parseFloat(state.kmPost.gkLocationX),
+              y: parseFloat(state.kmPost.gkLocationY),
+              srid: state.kmPost.gkSrid,
+          };
+}
+export function saveGkPointToEditingGkPoint(point: GeometryPoint): {
+    gkLocationX: string;
+    gkLocationY: string;
+    gkSrid: Srid;
+} {
+    return { gkLocationX: point.x.toString(), gkLocationY: point.y.toString(), gkSrid: point.srid };
+}
+
+export function kmPostGkPointDiffersFromOriginal(
+    editing: Pick<KmPostEditFields, 'gkLocationX' | 'gkLocationY'>,
+    original: GeometryPoint,
+) {
+    const originalAsEditing = saveGkPointToEditingGkPoint(original);
+    return (
+        originalAsEditing.gkLocationX !== editing.gkLocationX ||
+        originalAsEditing.gkLocationY !== editing.gkLocationY
+    );
+}
+
+export function gkLocationIsEdited(state: KmPostEditState): boolean {
+    return state.existingKmPost?.gkLocation === undefined
+        ? state.kmPost.gkLocationX !== '' || state.kmPost.gkLocationY !== ''
+        : kmPostGkPointDiffersFromOriginal(state.kmPost, state.existingKmPost.gkLocation);
+}
+
+export function gkLocationSource(state: KmPostEditState): GkLocationSource | undefined {
+    return gkLocationIsEdited(state) ? 'MANUAL' : state.existingKmPost?.gkLocationSource;
+}
+
+export function kmPostSaveRequest(state: KmPostEditState): KmPostSaveRequest {
+    const {
+        gkLocationX: _delete,
+        gkLocationY: _delete2,
+        gkSrid: _delete3,
+        ...simpleFields
+    } = state.kmPost;
+    const typedSimpleFields: KmPostSimpleFields = { ...simpleFields };
+    return {
+        ...typedSimpleFields,
+        gkLocation: editingGkPointToSavePoint(state),
+        gkLocationSource: gkLocationSource(state),
+    };
 }
 
 export const reducer = kmPostEditSlice.reducer;

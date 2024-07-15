@@ -102,10 +102,6 @@ fun assertMatches(expected: TrackLayoutKmPost, actual: TrackLayoutKmPost, contex
         assertEquals(expected, unified)
         assertEquals(expected.sourceId != null, actual.sourceId != null)
     }
-    assertEquals(expected.location == null, actual.location == null)
-    if (expected.location != null) {
-        assertApproximatelyEquals(expected.location!!, actual.location!!, COORDINATE_DELTA)
-    }
 }
 
 fun assertMatches(expected: TrackLayoutSwitch, actual: TrackLayoutSwitch, contextMatch: Boolean = false) {

@@ -257,7 +257,7 @@ data class GeocodingContext(
             referenceLineGeometry: IAlignment,
         ): Pair<List<GeocodingReferencePoint>, List<KmPostWithRejectedReason>> {
             val kpReferencePoints = kmPosts.mapNotNull { post ->
-                post.location?.let { location -> toReferencePoint(location, post.kmNumber, referenceLineGeometry) }
+                post.layoutLocation?.let { location -> toReferencePoint(location, post.kmNumber, referenceLineGeometry) }
             }
 
             val firstPoint = GeocodingReferencePoint(startAddress.kmNumber, startAddress.meters, 0.0, 0.0, WITHIN)
@@ -270,7 +270,7 @@ data class GeocodingContext(
             kmPosts: List<TrackLayoutKmPost>,
             startAddress: TrackMeter,
         ): Pair<List<TrackLayoutKmPost>, List<KmPostWithRejectedReason>> {
-            val (withoutLocations, withLocations) = kmPosts.partition { it.location == null }
+            val (withoutLocations, withLocations) = kmPosts.partition { it.layoutLocation == null }
 
             val (invalidStartAddresses, validKmPosts) = withLocations.partition {
                 TrackMeter(it.kmNumber, BigDecimal.ZERO) <= startAddress

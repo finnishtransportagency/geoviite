@@ -20,6 +20,8 @@ val ETRS89_SRID = Srid(4258)
 val FINNISH_GK_LONGITUDE_RANGE = 19..31
 val FIN_GK19_SRID = Srid(3873)
 
+fun isGkFinSrid(srid: Srid) = srid.code in 3873..3885
+
 fun transformNonKKJCoordinate(sourceSrid: Srid, targetSrid: Srid, point: IPoint): Point {
     return Transformation.nonTriangulableTransform(sourceSrid, targetSrid).transform(point)
 }
@@ -34,9 +36,12 @@ fun getFinnishGKCoordinateProjectionByLongitude(longitude:Double): Srid {
 }
 
 fun transformToGKCoordinate(sourceSrid: Srid, point: IPoint): GeometryPoint {
+    if (isGkFinSrid(sourceSrid)) {
+        return GeometryPoint(point, sourceSrid)
+    }
     val etrs89Coord = transformNonKKJCoordinate(sourceSrid, ETRS89_SRID, point)
     val gkSrid = getFinnishGKCoordinateProjectionByLongitude(etrs89Coord.x)
-    val gkPoint = transformNonKKJCoordinate(ETRS89_SRID, gkSrid, etrs89Coord)
+    val gkPoint = transformNonKKJCoordinate(sourceSrid, gkSrid, point)
     return GeometryPoint(
         gkPoint.x,
         gkPoint.y,

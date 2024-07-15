@@ -9,12 +9,17 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
+import fi.fta.geoviite.infra.geography.ETRS89_SRID
+import fi.fta.geoviite.infra.geography.GeometryPoint
+import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
+import fi.fta.geoviite.infra.geography.transformToGKCoordinate
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.getSomeNullableValue
@@ -46,6 +51,7 @@ import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.util.FreeText
 import java.time.LocalDate
 import kotlin.math.ceil
+import kotlin.math.round
 import kotlin.random.Random
 import kotlin.random.Random.Default.nextInt
 
@@ -937,18 +943,28 @@ fun switchJoint(number: Int, location: Point) = TrackLayoutSwitchJoint(
 fun kmPost(
     trackNumberId: IntId<TrackLayoutTrackNumber>?,
     km: KmNumber,
-    location: IPoint? = Point(1.0, 1.0),
+    roughLayoutLocation: Point? = Point(1.0, 1.0),
+    gkLocation: GeometryPoint? = null,
     draft: Boolean = false,
     state: LayoutState = LayoutState.IN_USE,
+    gkLocationConfirmed: Boolean = false,
+    gkLocationSource: KmPostGkLocationSource? = null,
     contextData: LayoutContextData<TrackLayoutKmPost> = createMainContext(null, null, draft),
-) = TrackLayoutKmPost(
-    trackNumberId = trackNumberId,
-    kmNumber = km,
-    location = location?.toPoint(),
-    state = state,
-    sourceId = null,
-    contextData = contextData,
-)
+): TrackLayoutKmPost {
+
+    return TrackLayoutKmPost(
+        trackNumberId = trackNumberId,
+        kmNumber = km,
+        state = state,
+        sourceId = null,
+        contextData = contextData,
+        gkLocation = if (gkLocation == null && roughLayoutLocation != null) {
+            transformToGKCoordinate(LAYOUT_SRID, roughLayoutLocation)
+        } else gkLocation,
+        gkLocationConfirmed = gkLocationConfirmed,
+        gkLocationSource = gkLocationSource,
+    )
+}
 
 fun segmentPoint(x: Double, y: Double, m: Double = 1.0) = SegmentPoint(x, y, null, m, null)
 fun alignmentPoint(x: Double, y: Double, m: Double = 1.0) = AlignmentPoint(x, y, null, m, null)

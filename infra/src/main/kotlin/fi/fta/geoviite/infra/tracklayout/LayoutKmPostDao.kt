@@ -11,6 +11,8 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getDaoResponse
 import fi.fta.geoviite.infra.util.getEnum
+import fi.fta.geoviite.infra.util.getEnumOrNull
+import fi.fta.geoviite.infra.util.getGeometryPointOrNull
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getKmNumber
@@ -58,7 +60,7 @@ class LayoutKmPostDao(
             where (:include_deleted = true or km_post.state != 'DELETED')
               and (:track_number_id::int is null or track_number_id = :track_number_id)
               and (:polygon_wkt::varchar is null or postgis.st_intersects(
-                km_post.location,
+                km_post.layout_location,
                 postgis.st_polygonfromtext(:polygon_wkt::varchar, :map_srid)
               ))
             order by km_post.track_number_id, km_post.km_number
@@ -152,7 +154,11 @@ class LayoutKmPostDao(
               track_number_id,
               geometry_km_post_id,
               km_number,
-              postgis.st_x(location) as point_x, postgis.st_y(location) as point_y,
+              postgis.st_x(layout_location) as layout_point_x, postgis.st_y(layout_location) as layout_point_y,
+              postgis.st_x(gk_location) as gk_point_x, postgis.st_y(gk_location) as gk_point_y,
+              postgis.st_srid(gk_location) as gk_srid,
+              gk_location_source,
+              gk_location_confirmed,
               state
             from layout.km_post_version
             where id = :id 
@@ -180,7 +186,11 @@ class LayoutKmPostDao(
               track_number_id,
               geometry_km_post_id,
               km_number,
-              postgis.st_x(location) as point_x, postgis.st_y(location) as point_y,
+              postgis.st_x(layout_location) as layout_point_x, postgis.st_y(layout_location) as layout_point_y,
+              postgis.st_x(gk_location) as gk_point_x, postgis.st_y(gk_location) as gk_point_y,
+              postgis.st_srid(gk_location) as gk_srid,
+              gk_location_source,
+              gk_location_confirmed,
               state
             from layout.km_post
         """.trimIndent()
@@ -195,9 +205,12 @@ class LayoutKmPostDao(
     private fun getLayoutKmPost(rs: ResultSet): TrackLayoutKmPost = TrackLayoutKmPost(
         trackNumberId = rs.getIntId("track_number_id"),
         kmNumber = rs.getKmNumber("km_number"),
-        location = rs.getPointOrNull("point_x", "point_y"),
+        gkLocation = rs.getGeometryPointOrNull("gk_point_x", "gk_point_y", "gk_srid"),
+        gkLocationSource = rs.getEnumOrNull<KmPostGkLocationSource>("gk_location_source"),
+        gkLocationConfirmed = rs.getBoolean("gk_location_confirmed"),
         state = rs.getEnum("state"),
         sourceId = rs.getIntIdOrNull("geometry_km_post_id"),
+
         contextData = rs.getLayoutContextData(
             "official_row_id",
             "design_row_id",
@@ -218,7 +231,10 @@ class LayoutKmPostDao(
               track_number_id, 
               geometry_km_post_id, 
               km_number, 
-              location, 
+              layout_location,
+              gk_location,
+              gk_location_confirmed,
+              gk_location_source,
               state,
               draft,
               official_row_id,
@@ -229,7 +245,10 @@ class LayoutKmPostDao(
               :track_number_id, 
               :geometry_km_post_id, 
               :km_number,
-              postgis.st_setsrid(postgis.st_point(:point_x, :point_y), :srid), 
+              postgis.st_point(:layout_x, :layout_y, :layout_srid),
+              postgis.st_point(:gk_x, :gk_y, :gk_srid),
+              :gk_location_confirmed,
+              :gk_location_source::layout.gk_location_source,
               :state::layout.state,
               :draft,
               :official_row_id,
@@ -245,9 +264,14 @@ class LayoutKmPostDao(
             "track_number_id" to trackNumberId.intValue,
             "geometry_km_post_id" to newItem.sourceId?.let(::toDbId)?.intValue,
             "km_number" to newItem.kmNumber.toString(),
-            "point_x" to newItem.location?.x,
-            "point_y" to newItem.location?.y,
-            "srid" to LAYOUT_SRID.code,
+            "layout_x" to newItem.layoutLocation?.x,
+            "layout_y" to newItem.layoutLocation?.y,
+            "layout_srid" to LAYOUT_SRID.code,
+            "gk_x" to newItem.gkLocation?.x,
+            "gk_y" to newItem.gkLocation?.y,
+            "gk_srid" to newItem.gkLocation?.srid?.code,
+            "gk_location_confirmed" to newItem.gkLocationConfirmed,
+            "gk_location_source" to newItem.gkLocationSource?.name,
             "state" to newItem.state.name,
             "draft" to newItem.contextData.isDraft,
             "official_row_id" to newItem.contextData.officialRowId?.intValue,
@@ -276,9 +300,10 @@ class LayoutKmPostDao(
               track_number_id = :track_number_id, 
               geometry_km_post_id = :geometry_km_post_id, 
               km_number = :km_number, 
-              location = case 
-                when :hasLocation then postgis.st_setsrid(postgis.st_point(:point_x, :point_y), :srid) 
-              end,
+              layout_location = postgis.st_point(:layout_x, :layout_y, :layout_srid),
+              gk_location = postgis.st_point(:gk_x, :gk_y, :gk_srid),
+              gk_location_confirmed = :gk_location_confirmed,
+              gk_location_source = :gk_location_source::layout.gk_location_source,
               state = :state::layout.state,
               draft = :draft,
               official_row_id = :official_row_id,
@@ -295,10 +320,14 @@ class LayoutKmPostDao(
             "track_number_id" to trackNumberId.intValue,
             "geometry_km_post_id" to updatedItem.sourceId?.let(::toDbId)?.intValue,
             "km_number" to updatedItem.kmNumber.toString(),
-            "hasLocation" to (updatedItem.location != null),
-            "point_x" to updatedItem.location?.x,
-            "point_y" to updatedItem.location?.y,
-            "srid" to LAYOUT_SRID.code,
+            "layout_x" to updatedItem.layoutLocation?.x,
+            "layout_y" to updatedItem.layoutLocation?.y,
+            "layout_srid" to LAYOUT_SRID.code,
+            "gk_x" to updatedItem.gkLocation?.x,
+            "gk_y" to updatedItem.gkLocation?.y,
+            "gk_srid" to updatedItem.gkLocation?.srid?.code,
+            "gk_location_confirmed" to updatedItem.gkLocationConfirmed,
+            "gk_location_source" to updatedItem.gkLocationSource?.name,
             "state" to updatedItem.state.name,
             "draft" to updatedItem.isDraft,
             "official_row_id" to updatedItem.contextData.officialRowId?.intValue,
@@ -351,7 +380,7 @@ class LayoutKmPostDao(
             from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id)
             where track_number_id = :track_number_id
               and state = :state::layout.state
-              and location is not null
+              and layout_location is not null
               and km_number > :km_number
             order by km_number asc
             limit 1

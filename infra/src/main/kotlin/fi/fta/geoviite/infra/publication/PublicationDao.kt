@@ -269,8 +269,8 @@ class PublicationDao(
                 candidate_km_post.state
               ) as operation,
               ${designRowReferrerSqlFragment("candidate_km_post", "km_post")},
-              postgis.st_x(candidate_km_post.location) as point_x,
-              postgis.st_y(candidate_km_post.location) as point_y
+              postgis.st_x(candidate_km_post.layout_location) as point_x,
+              postgis.st_y(candidate_km_post.layout_location) as point_y
             from (select *
                   from layout.km_post_in_layout_context(:candidate_state::layout.publication_state,
                                                         :candidate_design_id)
@@ -926,10 +926,10 @@ class PublicationDao(
               old_km_post_version.track_number_id as old_track_number_id,
               km_post_version.state,
               old_km_post_version.state as old_state,
-              postgis.st_x(km_post_version.location) as point_x, 
-              postgis.st_y(km_post_version.location) as point_y,
-              postgis.st_x(old_km_post_version.location) as old_point_x,
-              postgis.st_y(old_km_post_version.location) as old_point_y
+              postgis.st_x(km_post_version.layout_location) as point_x,
+              postgis.st_y(km_post_version.layout_location) as point_y,
+              postgis.st_x(old_km_post_version.layout_location) as old_point_x,
+              postgis.st_y(old_km_post_version.layout_location) as old_point_y
             from publication.km_post
               left join layout.km_post_version km_post_version
                       on km_post.km_post_id = km_post_version.id 

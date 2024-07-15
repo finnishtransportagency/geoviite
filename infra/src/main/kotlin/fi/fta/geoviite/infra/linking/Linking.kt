@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometryPlan
@@ -153,6 +154,9 @@ data class TrackLayoutKmPostSaveRequest(
     val kmNumber: KmNumber,
     val state: LayoutState,
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
+    val gkLocationConfirmed: Boolean,
+    val gkLocationSource: KmPostGkLocationSource?,
+    val gkLocation: GeometryPoint?,
 )
 
 data class LocationTrackEndpoint(
