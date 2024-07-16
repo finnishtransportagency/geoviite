@@ -433,7 +433,7 @@ private fun getChangedAlignmentRanges(old: LayoutAlignment, new: LayoutAlignment
         old.segments.map { segment -> newIndexByGeometryId.containsKey(segment.geometry.id) },
     )
     return changedOldSegmentIndexRanges.map { oldSegmentIndexRange ->
-        old.segments.subList(oldSegmentIndexRange.start, oldSegmentIndexRange.endInclusive)
+        old.segments.subList(oldSegmentIndexRange.start, oldSegmentIndexRange.endInclusive + 1)
     }
 }
 

@@ -726,7 +726,7 @@ fun validateAddressPoints(
     val maxRanges = 5
     fun describeAsAddressRanges(indices: List<ClosedRange<Int>>): String =
         indices.take(maxRanges).joinToString(", ") { range ->
-            "${allAddresses[range.start].formatDropDecimals()}..${allAddresses[range.endInclusive - 1].formatDropDecimals()}"
+            "${allAddresses[range.start].formatDropDecimals()}..${allAddresses[range.endInclusive].formatDropDecimals()}"
         }.let { if (indices.size > maxRanges) "$it..." else it }
 
     val discontinuousDirectionRanges = describeAsAddressRanges(discontinuousDirectionRangeIndices(allCoordinates))
