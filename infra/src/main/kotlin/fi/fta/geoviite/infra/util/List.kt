@@ -22,5 +22,5 @@ fun rangesOfConsecutiveIndicesOf(
         .zipWithNext()
         .mapIndexedNotNull { i, (a, b) -> if (a != b) i else null }
         .chunked(2)
-        .map { c -> c[0]..c[1] + offsetRangeEndsBy }
+        .map { c -> c[0] until c[1] + offsetRangeEndsBy }
         .toList()
