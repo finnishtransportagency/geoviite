@@ -112,17 +112,21 @@ fun assertMapPage(role: E2ERole, trackNumber: TrackNumber, designName: String) {
         -> {
             mapPage
                 .also { assertDraftAndDesignModeTabsVisible() }
-                // TODO: Design mode is checked before draft mode because for whatever reason design mode selections fail
-                // if draft mode checks go before them. Find out why
-                .switchToDesignMode()
-                .also { it.toolBar.workspaceDropdown().selectByName(designName) }
-                .also { assertTrackLayoutPageEditButtonsVisible(it, trackNumber) }
-                .also { assertEditDesignButtonsVisible() }
+
                 .switchToDraftMode()
-                .also { assertTrackLayoutPageEditButtonsVisible(it, trackNumber) }
+                .also { page -> assertTrackLayoutPageEditButtonsVisible(page, trackNumber) }
                 .goToPreview()
                 .waitForAllTableValidationsToComplete()
                 .goToTrackLayout()
+
+                .switchToDesignMode()
+                .also { page ->
+                    page.addDesign()
+                    assertEditDesignButtonsVisible()
+                    assertTrackLayoutPageEditButtonsVisible(page, trackNumber)
+                    page.removeActiveDesign()
+                }
+
                 .switchToOfficialMode()
         }
 
@@ -169,7 +173,7 @@ fun assertEditDesignButtonsInvisible() {
     waitUntilNotExist(byQaId("workspace-delete-button"))
 }
 
-fun assertTrackLayoutPageEditButtonsInvisible(trackLayoutPage: E2ETrackLayoutPage, trackNumber: TrackNumber): Unit {
+fun assertTrackLayoutPageEditButtonsInvisible(trackLayoutPage: E2ETrackLayoutPage, trackNumber: TrackNumber) {
     trackLayoutPage.selectionPanel.selectReferenceLine(trackNumber.toString())
 
     waitUntilNotExist(byQaId("open-preview-view"))
@@ -177,7 +181,7 @@ fun assertTrackLayoutPageEditButtonsInvisible(trackLayoutPage: E2ETrackLayoutPag
     waitUntilNotExist(By.cssSelector(".infobox__edit-icon"))
 }
 
-fun assertTrackLayoutPageEditButtonsVisible(trackLayoutPage: E2ETrackLayoutPage, trackNumber: TrackNumber): Unit {
+fun assertTrackLayoutPageEditButtonsVisible(trackLayoutPage: E2ETrackLayoutPage, trackNumber: TrackNumber) {
     trackLayoutPage.selectionPanel.selectReferenceLine(trackNumber.toString())
 
     waitUntilExists(byQaId("draft-mode-tab"))

@@ -23,8 +23,8 @@ export const TabHeader: React.FC<TabHeaderProps> = ({
         className,
     );
     return (
-        <button className={tabClassName} onClick={onClick} qa-id={qaId}>
+        <a className={tabClassName} onClick={onClick} qa-id={qaId}>
             {children}
-        </button>
+        </a>
     );
 };

@@ -42,7 +42,7 @@ open class E2EDialog(val dialogBy: By = DIALOG_BY) : E2EViewFragment(dialogBy) {
 }
 
 class E2EDialogWithTextField(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
-    fun inputValue(value: String, textFieldIdx: Int = 0): E2EDialog = apply {
+    fun inputValue(value: String, textFieldIdx: Int = 0): E2EDialogWithTextField = apply {
         logger.info("Input field $textFieldIdx with value $value")
 
         childTextInput(
@@ -53,11 +53,15 @@ class E2EDialogWithTextField(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
         ).replaceValue(value)
     }
 
-    fun inputValues(values: List<String>): E2EDialog = apply {
+    fun inputValues(values: List<String>): E2EDialogWithTextField = apply {
         logger.info("Input values $values")
 
         values.forEachIndexed { index, value ->
             inputValue(value, index)
         }
+    }
+
+    fun selectInput(by: By): E2EDialogWithTextField = apply {
+        clickChild(by)
     }
 }

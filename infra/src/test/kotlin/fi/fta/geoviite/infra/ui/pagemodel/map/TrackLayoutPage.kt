@@ -2,16 +2,26 @@ package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import browser
 import clickElementAtPoint
+import exists
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialogWithTextField
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
+import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
+import getElement
 import getElementIfExists
+import getElementWhenExists
 import javaScriptExecutor
 import org.openqa.selenium.By
 import org.openqa.selenium.interactions.Actions
+import org.xmlunit.diff.ElementSelectors.byXPath
 import tryWait
+import waitUntilExists
 import waitUntilNotExist
+import java.time.Instant
 import kotlin.math.roundToInt
 
 class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
@@ -135,6 +145,32 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         }
 
         finishLoading()
+    }
+
+    fun addDesign(designName: String = "design-${Instant.now()}") {
+        val workspaceSelectionDropdownQaId = byQaId("workspace-selection")
+
+        if (!exists(workspaceSelectionDropdownQaId)) {
+            clickChild(byQaId("workspace-selection-dropdown-toggle"))
+        }
+
+        waitUntilExists(workspaceSelectionDropdownQaId)
+        E2EDropdown(workspaceSelectionDropdownQaId).new()
+
+        E2EDialogWithTextField()
+            .inputValues(listOf(designName))
+            .selectInput(byQaId("workspace-dialog-date"))
+            .also {
+                getElementWhenExists(
+                    By.xpath("//*[contains(@class, 'react-datepicker__day--001')]")
+                ).click()
+            }
+            .clickPrimaryButton()
+    }
+
+    fun removeActiveDesign() {
+        clickChild(byQaId("workspace-delete-button"))
+        E2EDialog().clickPrimaryWarningButton()
     }
 
     private fun zoomOut(oldResolution: Double) {
