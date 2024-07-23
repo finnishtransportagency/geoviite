@@ -14,7 +14,7 @@ import java.time.LocalDate
 
 class E2EToolBar(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.className("tool-bar")) {
     private val searchDropdown: E2EDropdown by lazy {
-        childDropdown(By.cssSelector(".tool-bar__left-section .dropdown"))
+        childDropdown(By.cssSelector(".tool-bar__right-section .dropdown"))
     }
 
     val mapLayerMenu: E2EMapLayerPanel by lazy {

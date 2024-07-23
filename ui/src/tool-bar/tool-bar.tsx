@@ -455,36 +455,47 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                                 iconPosition={ButtonIconPosition.END}
                                                 inheritTypography={true}
                                                 onClick={(_e) => {
-                                                    _e.stopPropagation(); // otherwise modal gets outside-click
+                                                    _e.stopPropagation(); // otherwise layout selection gets the click
                                                     switchToDesign();
                                                     setDesignIdSelectorOpened(
                                                         !designIdSelectorOpened,
                                                     );
-                                                }}>
-                                                <span className={styles['tool-bar__design-name']}>
-                                                    {currentDesign && currentDesign.name}
-                                                </span>
+                                                }}
+                                                qa-id={'workspace-selection-dropdown-toggle'}>
+                                                {currentDesign && (
+                                                    <span
+                                                        className={styles['tool-bar__design-name']}>
+                                                        {currentDesign.name}
+                                                    </span>
+                                                )}
                                             </Button>
-                                            {layoutContextMode === 'DESIGN' && currentDesign && (
-                                                <React.Fragment>
-                                                    <Button
-                                                        variant={ButtonVariant.GHOST}
-                                                        size={ButtonSize.SMALL}
-                                                        icon={Icons.Edit}
-                                                        onClick={() =>
-                                                            setShowEditWorkspaceDialog(true)
-                                                        }
-                                                    />
-                                                    <Button
-                                                        variant={ButtonVariant.GHOST}
-                                                        size={ButtonSize.SMALL}
-                                                        icon={Icons.Delete}
-                                                        onClick={() =>
-                                                            setShowDeleteWorkspaceDialog(true)
-                                                        }
-                                                    />
-                                                </React.Fragment>
-                                            )}
+                                            <PrivilegeRequired privilege={EDIT_LAYOUT}>
+                                                {layoutContextMode === 'DESIGN' &&
+                                                    currentDesign && (
+                                                        <React.Fragment>
+                                                            <Button
+                                                                variant={ButtonVariant.GHOST}
+                                                                size={ButtonSize.SMALL}
+                                                                icon={Icons.Edit}
+                                                                onClick={() =>
+                                                                    setShowEditWorkspaceDialog(true)
+                                                                }
+                                                                qa-id={'workspace-edit-button'}
+                                                            />
+                                                            <Button
+                                                                variant={ButtonVariant.GHOST}
+                                                                size={ButtonSize.SMALL}
+                                                                icon={Icons.Delete}
+                                                                onClick={() =>
+                                                                    setShowDeleteWorkspaceDialog(
+                                                                        true,
+                                                                    )
+                                                                }
+                                                                qa-id={'workspace-delete-button'}
+                                                            />
+                                                        </React.Fragment>
+                                                    )}
+                                            </PrivilegeRequired>
                                         </div>
                                     </div>
                                 </TabHeader>
