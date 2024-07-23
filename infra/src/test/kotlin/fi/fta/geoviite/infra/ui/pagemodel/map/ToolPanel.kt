@@ -10,7 +10,7 @@ class E2EToolPanel(parentView: E2EViewFragment) : E2EViewFragment(parentView, By
     fun selectToolPanelTab(tabName: String) {
         logger.info("Select tab $tabName")
 
-        clickChild(By.xpath("//div[@qa-id='tool-panel-tabs']/button[text() = '$tabName']"))
+        clickChild(By.xpath("//div[@qa-id='tool-panel-tabs']/a[text() = '$tabName']"))
     }
 
     val layoutKmPostGeneral: E2ELayoutKmPostGeneralInfoBox by lazy {

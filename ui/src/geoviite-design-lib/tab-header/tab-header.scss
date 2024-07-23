@@ -2,7 +2,7 @@
 
 .tab-header {
     @include vayla-design.typography-caption;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     padding: 6px 8px 6px 8px;
     border-top: 0;
