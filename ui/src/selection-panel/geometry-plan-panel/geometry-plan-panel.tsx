@@ -126,6 +126,31 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
         });
     }, [planLayout, visiblePlans]);
 
+    // Triggers the loading of a previously opened plan after a refresh. Otherwise, the plan's data would not be
+    // displayed and the user would have to click twice to open the plan again.
+    React.useEffect(() => {
+        if (isPlanOpen) {
+            loadPlan();
+        }
+    }, []);
+
+    const loadPlan = () => {
+        setOpeningAccordion(true);
+        loadPlanLayout()
+            .then((planLayout) => {
+                if (planLayout) {
+                    togglePlanOpen({
+                        isKmPostsOpen: isKmPostsOpen,
+                        isSwitchesOpen: isSwitchesOpen,
+                        isAlignmentsOpen: isAlignmentsOpen,
+                        id: planLayout.id,
+                        isOpen: true,
+                    });
+                }
+            })
+            .finally(() => setOpeningAccordion(false));
+    };
+
     const onPlanToggle = () => {
         if (planLayout) {
             togglePlanOpen({
@@ -136,20 +161,7 @@ export const GeometryPlanPanel: React.FC<GeometryPlanProps> = ({
                 isOpen: !isPlanOpen,
             });
         } else {
-            setOpeningAccordion(true);
-            loadPlanLayout()
-                .then((planLayout) => {
-                    if (planLayout) {
-                        togglePlanOpen({
-                            isKmPostsOpen: isKmPostsOpen,
-                            isSwitchesOpen: isSwitchesOpen,
-                            isAlignmentsOpen: isAlignmentsOpen,
-                            id: planLayout.id,
-                            isOpen: true,
-                        });
-                    }
-                })
-                .finally(() => setOpeningAccordion(false));
+            loadPlan();
         }
     };
 
