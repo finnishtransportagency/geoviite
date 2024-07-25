@@ -3,7 +3,7 @@ import { PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { useNavigate } from 'react-router-dom';
 import { PublicationId } from 'publication/publication-model';
 
-const appPath = {
+export const appPath = {
     'frontpage': '/',
     'publication-search': '/publications',
     'publication-view': (id: PublicationId) => `/publications/${id}`,
