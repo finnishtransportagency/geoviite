@@ -2,55 +2,16 @@
 
 ## Johdanto
 
-Geoviitteen koodikanta hyödyntää ohjelmoituja sekä automaattisesti suoritettavia testejä. Näitä käytetään varmistamaan,
-että aiempi toiminnallisuus säilyy muuttumattomana tehtäessä muutoksia Geoviitteen koodikantaan. Automaattinen
-testaus lisää luottamusta, että ohjelmisto toimii oletetulla tavalla myös muutosten tekemisen jälkeen. Automaattisia
-testejä voi suorittaa lokaalisti kehittäjän omalla työkoneella. Niitä suoritetaan myös automatisoidusti GitHubissa
-tehtäessä pull-requesteja sekä AWS-ympäristössä ennen dev-ympäristön ohjelmiston päivittämistä uuteen versioon
-pull-requestin mergeämisen jälkeen.
-
-Geoviitteen koodikanta sisältää tällä hetkellä pääasiassa kolmea eri testityyppiä:
+Geoviitteen koodikanta sisältää pääosin kolmea eri testityyppiä:
 
 * Yksikkötestejä (Unit),
 * Integraatiotestejä (Integration),
-* E2E-testejä (End-to-End),
-
-jotka kuvataan tarkemmin myöhemmin tässä dokumentissa. Geoviitteen koodikannassa on myös valmius
-käyttöliittymäkoodin yksikkö- sekä komponenttitesteille, mutta niiden kattavuus ei toistaiseksi ole kovin laaja.
-
-Geoviitteen koodikanta **ei toistaiseksi hyödynnä** esimerkiksi:
-
-* Rajapintatestausta (API tests, HTTP rajapintojen URL- ja argumenttimuutokset),
-* Migraatiotestausta (Migration tests, SQL-muutokset),
-* Suoritusympäristön testausta (Environment tests, AWS CDK -muutokset).
-
-## Automaattisten testien perusperiaatteita
-
-Automaattisten testien tavoitteena on yleisesti testata jotain osaa ohjelmiston toiminnallisuudesta. Tämä osa voi olla
-pieni (esim. yhden funktion testaaminen yhdellä parametrilla) taikka laaja (eli esimerkiksi kokonais ominaisuusketjun
-testaus imitoiden tiettyä käyttäjän tekemää operaatioketjua käyttöliittymän kautta).
+* E2E-testejä (End-to-End).
 
 Lähtökohtaisesti testejä on pyritty rajaamaan suhteellisen pieniksi, sillä testattavan tilanteen tulkinta on
 yksinkertaisempaa, kun testattava ominaisuusmäärä on rajatumpi. Vastaavasti jos koodikantaan tehdyt muutokset
 aiheuttavat testin epäonnistumisen muutosten jälkeen, on usein yksiselitteisempää huomata ongelma jos vain yksi testi
 epäonnistuu verrattuna vaikkapa moneen kymmeneen.
-
-Testien tulisi alustaa kaikki tarvitsemansa data tai tila testin alussa, jotta ylimääräisiä riippuvuuksia testien
-välille ei synny ja testattavan tilan tulkinta on helpompaa. Geoviitteen koodikanta kuitenkin sisältää eritasoisia
-testidatan luontiin tarkoitettuja funktioita, jotka helpottavat testikoodin kirjoittajaa muodostamaan haluamansa
-tilanteen sekä usein auttavat myös testitilanteen tulkinnassa. Tavoitteena olisi, että mitä yksinkertaisempi tilanne,
-sitä yksinkertaisempia datanalustusfunktioita hyödynnetään. Jos taas testattava tilanne on monimutkaisempi, käytetään
-laajemman testattavan tilan muodostavia funktioita. Näitä voi myös muodostaa lisää tarpeiden mukaisesti.
-
-Testidatan alustuksen tavoitteena olisi välttää käyttämästä liian suuren tilanteen alustusta yksinkertaisen tilanteen
-testaamista varten: testikoodin pitäisi alustaa minimaalinen määrä dataa, jotta testi on mahdollista suorittaa.
-Minimaalisen tilan muodostamisella pyritään välttämään riippuvuussuhteiden muodostumista testien välillä. Jos
-esimerkiksi parikymmentä testiä hyödyntäisi samaa testidataa, ja yksi testi tarvitsisikin hieman laajemman tilan, niin
-tämän pienen tilamuutoksen tekeminen testidataan aiheuttaisi myös lisätilan päätymisen kaikkiin muihinkin testeihin,
-jotka hyödyntäisivät samaa testidataa. Tämä taas saattaa aiheuttaa testibugeja tai muutosedellytyksiä muihinkin
-testeihin, jotka hyödyntäisivät tätä testidatajoukkoa. Esimerkiksi jokin toinen samaa testidataa hyödyntävä testi ei
-välttämättä menisi enää ilman muutoksia läpi, tai se testaisi väärää tilannetta eli se aiheuttaisi esimerkiksi vääriä
-positiivisia tai vääriä negatiivisia testituloksia (tyypin I ja II virheitä, hylkäämis- ja hyväksymisvirheitä).
 
 Rakenteellisena tavoitteena yksinkertaisia (yksikkötestejä) olisi määrällisesti eniten, hieman monimutkaisempia testejä
 (integraatiotestejä) vähemmän, ja monimutkaisia, laajoja testejä (E2E-testejä) olisi vähiten. On usein helpompaa tulkita
@@ -59,16 +20,21 @@ tietty pieni asia sattuikin epäonnistumaan tietyn E2E-testin suorituksen aikana
 
 ## Testikoodista
 
-Kotlin-koodin testit hyödyntävät Jupiter-kirjastoa.
+Kotlin-koodin testit hyödyntävät Jupiter-kirjastoa. Lähellä Geoviitteen tiedostohierarkiaa olevan intron voi lukea
+esimerkiksi
+osoitteesta [https://www.jetbrains.com/guide/java/tutorials/working-with-gradle/tour-of-a-gradle-project/](https://www.jetbrains.com/guide/java/tutorials/working-with-gradle/tour-of-a-gradle-project/)
 
-Testiluokat sisältävät annotointeja riippuen hieman minkätyyppistä ympäristöä ne tarvitsevat. Jokainen testiluokka
-kuitenkin annotoidaan `@SpringBootTest`:llä niiden tunnistamista varten, sekä usein testiluokille määritellään myös
+Testiluokat saattavat sisältää annotointeja riippuen hieman minkätyyppistä ympäristöä ne tarvitsevat. Esimerkiksi
+integraatio- sekä E2E-testit hyödyntävät `@SpringBootTest`-annotaatiota, sekä usein testiluokille määritellään myös
 Springin ympäristöön liittyviä konfiguraatioannotointeja, kuten esimerkiksi `@ActiveProfiles("dev", "test")`.
 
-Jokainen testiluokan sisältämä testifunktio annotoidaan `@Test`:llä, jotta kirjastot tunnistavat testifunktiot.
-Testiluokat saattavat kuitenkin myös sisältää datan alustukseen, tilanteiden tarkistukseen tai vastaavaan muuhun
-testeihin liittyvään toiminnallisuuteen liittyviä funktioita, jotka eivät sisällä `@Test`-annotaatiota, sillä ne eivät
-ole varsinaisia testejä, joita tulisi automaattisesti suorittaa.
+Jokainen testiluokan sisältämä testifunktio annotoidaan Jupiter-kirjastosta löytyvällä `@Test`-annotaatiolla, jotta
+muutkin kirjastot tunnistavat testifunktiot. Testiluokat saattavat kuitenkin myös sisältää datan alustukseen,
+tilanteiden tarkistukseen tai vastaavaan muuhun testeihin liittyvään toiminnallisuuteen liittyviä funktioita, jotka
+eivät sisällä `@Test`-annotaatiota, sillä ne eivät ole varsinaisia testejä, joita tulisi automaattisesti suorittaa.
+
+Testikooditiedostojen päätteet (*Test, *IT, *UI) merkkaavat testitiedoston tyypin. Näitä päätteitä käytetään myös
+tietyntyyppisten testien suorittamiseen Gradlen kautta.
 
 Kotlin tukee testifunktioiden nimeämistä välilyöntejä hyödyntäen, joka olisi suositeltu tapa:
 
@@ -91,8 +57,8 @@ Yksikkötestien kirjoittaminen helpottuu, kun varsinainen testattava logiikka on
 kuvattuna puhtaat funktiot ovat sellaisia, joiden arvo perustuu pelkästään funktiolle annettuihin argumentteihin ja joka
 palauttaa tismalleen identtisen arvon samoilla argumenteilla, riippumatta ohjelmiston muusta tilasta.
 
-Koska yksikkötestit täytyy olla mahdollista suorittaa nopeasti yhdessä prosessissa (säikeessä), ne eivät
-voi esimerkiksi ottaa tietokantaan yhteyksiä. Yksikkötestejä hyödynnetään toistaiseksi lähinnä Kotlin-koodin puolella.
+Koska yksikkötestit täytyy olla mahdollista suorittaa nopeasti yhdessä prosessissa, ne eivät
+voi esimerkiksi ottaa tietokantaan yhteyksiä.
 
 ## Yksikkötestien sijainti ja nimitys
 
@@ -128,18 +94,19 @@ infra/src/test/kotlin/fi/fta/geoviite/infra/geometry/ElementListingTest.kt
 
 # Integraatiotestit (integration tests)
 
-Integraatiotestit voivat hyödyntää useampaa kuin yhtä prosessia (säiettä). Tämä tarkoittaa, että ne voivat hyödyntää
-esimerkiksi tietokantaa taikka ulkopuolisia palveluita. Geoviitteen integraatiotestit tarkoittavat käytännössä kuitenkin
-oikeaa tietokantaprosessia hyödyntäviä testejä. Geoviitteen integraatiotestit eivät siis lähtökohtaisesti käytä
-valepalveluja (mock service), kuten valetietokantaa, lukuunottamatta ulkoisiin integraatioihin (esim. Ratko,
-ProjektiVelho) muodostettuja integraatiotestejä. Geoviitteen integraatiotestien aikana ei siis kutsuta esimerkiksi
-kolmannen osapuolen rajapintoja.
+Lyhyesti integraatiotestit voivat hyödyntää useampaa kuin yhtä prosessia. Geoviitteen mielessä tämä tarkoittaa, että ne
+tyypillisesti hyödyntävät tietokantaa (sekä Springin kontekstia). Geoviitteen integraatiotestit eivät lähtökohtaisesti
+käytä valepalveluja (mock service), kuten valetietokantaa, lukuunottamatta ulkoisiin integraatioihin (esim. Ratko,
+ProjektiVelho) muodostettuja integraatiotestejä. Pyrkimyksenä voisi kuitenkin pitää oikeiden ulkoisten palveluiden
+hyödyntämistä mock-palveluiden sijaan, kunhan palvelut ovat Geoviitteen kehittäjien hallittavissa. Esimerkiksi
+Ratko sekä ProjektiVelho ovat Geoviitteestä (ainakin pääosin) riippumattomissa, ja voivat myös muuttua Geoviitteestä
+riippumattomasti, jolloin Geoviitteen integraatiotestit olisivat virheherkempiä, minkä vuoksi mock-palveluita on
+näiden ulkoisten rajapintojen osalta päätetty kuitenkin hyödyntää.
 
-Geoviitteen integraatiotestit ovat lähtökohtaisesti muodostettu DAO (data access object) sekä palvelu (Service)
-tasoille.
-DAO-testejä ei voida toteuttaa yksikkötesteinä, sillä ne hyödyntävät tietokantaa. Vastaavasti palvelut hyödyntävät
-tyypillisesti logiikassaan tietokannan dataa oman DAO:nsa taikka jonkin toisen palvelun kautta, joten palveluidenkaan
-testejä ei lähtökohtaisesti voida toteuttaa yksikkötesteinä.
+Geoviitteen integraatiotestit on lähtökohtaisesti muodostettu DAO (data access object) sekä palvelu (Service)
+tasoille. DAO-testejä ei voida toteuttaa yksikkötesteinä, sillä ne hyödyntävät tietokantaa. Vastaavasti palvelut
+hyödyntävät tyypillisesti logiikassaan tietokannan dataa oman DAO:nsa taikka jonkin toisen palvelun kautta, joten
+palveluidenkaan testejä ei lähtökohtaisesti voida toteuttaa yksikkötesteinä.
 
 Esimerkkinä integraatiotestistä voidaan pitää esimerkiksi tietyn tietorakenteen hakemista oikein tietokannasta DAO:n
 avulla.
@@ -167,16 +134,19 @@ jossa kannattaa huomioida jälleen polun alussa ero "main|test"-kansion välill�
 # E2E-testit (End-to-End tests)
 
 E2E-testeillä tarkoitetaan Geoviitteen koodikannassa jonkin käyttöliittymällä asti olevan toiminnallisuuden testaamista,
-lyhyesti sanottuna Geoviitteen E2E-testit ovat siis käyttöliittymätestejä. Koska E2E-testit tekevät automatisoidusti
-käyttöliittymällä toimintoja, ja käyttöliittymä kutsuu Geoviitteen Kotlin-backendiä, joka taas hyödyntää tietokantaa,
-E2E-testit testaavat varsin laajaa osaa toiminnallisuudesta, testatessaan kuitenkin jotain rajattua toiminnallisuutta
-käyttöliittymän näkökulmasta.
+lyhyesti sanottuna Geoviitteen E2E-testit ovat siis käyttöliittymätestejä. Geoviitteen E2E-testit edellyttävät
+tietokannan, Spring-backendin suorittamista sekä menetelmää UI-koodibundlen palvelimista testiselaimelle (Webpack).
+Koska E2E-testit tekevät automatisoidusti käyttöliittymällä toimintoja, ja käyttöliittymä kutsuu Geoviitteen
+Kotlin-backendiä, joka taas hyödyntää tietokantaa, E2E-testit testaavat varsin laajaa osaa toiminnallisuudesta. Siispä
+ne ovat hitaampia ja raskaampia suorittaa verrattuna yksikkö- tai integraatiotesteihin. Ne kuitenkin testaavat jotain
+rajattua toiminnallisuutta käyttöliittymän näkökulmasta.
 
 E2E-testit on toteuttu Geoviitteessä Kotlin-koodin puolella, sillä tällä tavoin halutun tilanteen datan alustus on
 yksinkertaisempaa. E2E-testit voivat siis hyödyntää esimerkiksi samoja alkutilanteen tai -datan alustusfunktioita, kuin
-Kotlin-koodin yksikkö- sekä integraatiotestit.
+Kotlin-koodin yksikkö- sekä integraatiotestit. Ne voivat lisäksi hyödyntää myös Service- sekä suoraan Dao-luokista
+löytyvää toiminnallisuutta.
 
-Geoviitteen E2E-testit on toteutettu toistaiseksi Selenium-selainautomatisointikirjastoa hyödyntäen. E2E-testi koostuu
+Geoviitteen E2E-testit on toteutettu Selenium-selainautomatisointikirjastoa hyödyntäen. E2E-testi koostuu
 siis datan alustuksesta, selaimen komentamisesta testattavien asioiden tekemiseen Geoviitteen käyttöliittymän kautta,
 ja lopuksi tilanteen oikeellisuuden varmistuksesta.
 
@@ -212,4 +182,19 @@ ei ole vastinparitiedostoa varsinaisen logiikkakoodin puolella verrattuna yksikk
 
 # Testidatan alustusperiaatteita
 
-_Odottaa GVT-2612 valmistumista_
+Testien tulisi alustaa kaikki tarvitsemansa data tai tila testin alussa, jotta ylimääräisiä riippuvuuksia testien
+välille ei synny ja testattavan tilan tulkinta on helpompaa. Geoviitteen koodikanta kuitenkin sisältää eritasoisia
+testidatan luontiin tarkoitettuja funktioita, jotka helpottavat testikoodin kirjoittajaa muodostamaan haluamansa
+tilanteen sekä usein auttavat myös testitilanteen tulkinnassa. Tavoitteena olisi, että mitä yksinkertaisempi tilanne,
+sitä yksinkertaisempia datanalustusfunktioita hyödynnetään. Jos taas testattava tilanne on monimutkaisempi, käytetään
+laajemman testattavan tilan muodostavia funktioita. Näitä voi myös muodostaa lisää tarpeiden mukaisesti.
+
+Testidatan alustuksen tavoitteena olisi välttää käyttämästä liian suuren tilanteen alustusta yksinkertaisen tilanteen
+testaamista varten: testikoodin pitäisi alustaa minimaalinen määrä dataa, jotta testi on mahdollista suorittaa.
+Minimaalisen tilan muodostamisella pyritään välttämään riippuvuussuhteiden muodostumista testien välillä. Jos
+esimerkiksi parikymmentä testiä hyödyntäisi samaa testidataa, ja yksi testi tarvitsisikin hieman laajemman tilan, niin
+tämän pienen tilamuutoksen tekeminen testidataan aiheuttaisi myös lisätilan päätymisen kaikkiin muihinkin testeihin,
+jotka hyödyntäisivät samaa testidataa. Tämä taas saattaa aiheuttaa testibugeja tai muutosedellytyksiä muihinkin
+testeihin, jotka hyödyntäisivät tätä testidatajoukkoa. Esimerkiksi jokin toinen samaa testidataa hyödyntävä testi ei
+välttämättä menisi enää ilman muutoksia läpi, tai se testaisi väärää tilannetta eli se aiheuttaisi esimerkiksi vääriä
+positiivisia tai vääriä negatiivisia testituloksia (tyypin I ja II virheitä, hylkäämis- ja hyväksymisvirheitä).
