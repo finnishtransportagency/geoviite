@@ -12,13 +12,19 @@
         margin-bottom: 20px;
     }
 
+    &__radio-layout label {
+        white-space: nowrap;
+    }
+
     &__header-container {
         padding-left: 32px;
     }
 }
 
 .data-product__search-legend {
+    min-width: 250px;
     max-width: 800px;
+    margin-right: 16px;
 }
 
 .data-products__search {
@@ -35,6 +41,14 @@
     &--combined-field > :not(:last-child) {
         margin-right: 16px;
     }
+}
+
+.element-list__geometry-checkbox label {
+    white-space: nowrap;
+}
+
+.element-list__geometry-checkbox > .label-text {
+    line-height: 24px;
 }
 
 .element-list__geometry-checkbox > :not(:last-child) {

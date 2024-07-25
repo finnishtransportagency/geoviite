@@ -44,6 +44,7 @@ $dropdown-border-error: 2px;
 .dropdown--wide {
     display: block;
     width: auto;
+    min-width: 165px;
 }
 
 .dropdown--stretch {
