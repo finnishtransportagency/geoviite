@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap
 @RestController
 @RequestMapping
 annotation class GeoviiteIntegrationApiController(
-    @get: AliasFor(annotation = RequestMapping::class) val path: String,
+    @get: AliasFor(annotation = RequestMapping::class) val path: Array<String>,
 )
 
 @Aspect
