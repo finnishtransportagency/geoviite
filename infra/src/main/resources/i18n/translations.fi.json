@@ -1,4 +1,24 @@
 {
+    "integration-api": {
+        "error": {
+            "features-not-found": "Annetun (alku)pisteen parametreilla ei löytynyt tietoja.",
+            "missing-x-coordinate": "Pyyntö ei sisältänyt x-koordinaattia.",
+            "missing-y-coordinate": "Pyyntö ei sisältänyt y-koordinaattia.",
+            "bad-request": "Pyyntötyyppiä ei pystytty määrittämään.",
+            "unsupported-request-type": "Pyyntötyyppiä ei tueta.",
+            "request-could-not-be-deserialized": "Pyynnön rakenne oli virheellinen.",
+            "list-of-json-requests-could-not-be-deserialized": "JSON-pyyntölistan rakenne oli virheellinen.",
+            "invalid-json": "JSON-pyynnön rakenne oli virheellinen.",
+            "search-radius-undefined": "Pyyntö sisälsi hakusääteen ilman arvoa (sade=null).",
+            "search-radius-under-range": "Pyyntö sisälsi pienemmän hakusäteen kuin sallittu minimiarvo (1.0).",
+            "search-radius-over-range": "Pyyntö sisälsi suuremman hakusäteen kuin sallittu maksimiarvo (1000.0).",
+            "address-geocoding-failed": "Rataosoitteen geokoodaus epäonnistui.",
+            "invalid-track-number-name": "Pyyntö sisälsi virheellisen ratanumero-asetuksen.",
+            "invalid-location-track-name": "Pyyntö sisälsi virheellisen sijaintiraide-asetuksen.",
+            "invalid-location-track-type": "Pyyntö sisälsi virheellisen sijaintiraide_tyyppi-asetuksen. Sallitut arvot ovat pääraide, sivuraide, kujaraide, turvaraide.",
+            "invalid-response-settings": "Pyyntö sisälsi virheellisen palautusarvo-asetuksen. Sallitut arvot ovat (1, 5, 10)."
+        }
+    },
     "error": {
         "integration-not-configured": {
             "RATKO": "Ratko-integraatio ei ole käytössä tässä ympäristössä",
