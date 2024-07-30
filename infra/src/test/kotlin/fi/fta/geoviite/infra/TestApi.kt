@@ -16,7 +16,7 @@ import kotlin.test.assertTrue
 class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
 
     fun doGet(url: String, expectedStatus: HttpStatus): String {
-        return doGet(MockMvcRequestBuilders.get(url), expectedStatus);
+        return doGet(MockMvcRequestBuilders.get(url), expectedStatus)
     }
 
     fun doGet(requestBuilder: RequestBuilder, expectedStatus: HttpStatus): String {
@@ -27,9 +27,27 @@ class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
             .andReturn().response.getContentAsString(Charsets.UTF_8)
     }
 
+    fun doGetWithParams(url: String, params: Map<String, String>, expectedStatus: HttpStatus): String {
+        val request = MockMvcRequestBuilders.get(url)
+        params.forEach { (key, value) -> request.param(key, value) }
+
+        return doGet(request, expectedStatus)
+    }
+
     fun doPost(url: String, body: Any?, expectedStatus: HttpStatus): String {
         val bodyString = body?.let { b -> mapper.writeValueAsString(b) }
         return doPostWithString(url, bodyString, expectedStatus)
+    }
+
+    fun doPostWithParams(url: String, params: Map<String, String>, expectedStatus: HttpStatus): String {
+        val request = MockMvcRequestBuilders.post(url)
+        params.forEach { (key, value) -> request.param(key, value) }
+
+        return mockMvc
+            .perform(request)
+            .andExpect(status().isEqualTo(expectedStatus.value()))
+            .andExpect(content().contentType(APPLICATION_JSON))
+            .andReturn().response.getContentAsString(Charsets.UTF_8)
     }
 
     fun doPostWithString(url: String, body: String?, expectedStatus: HttpStatus): String {
