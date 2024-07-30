@@ -379,6 +379,7 @@ class CoordinateToTrackAddressIT @Autowired constructor(
         assertEquals(identifiers[1], featureCollection.features[1].properties?.get("tunniste"), "key=tunniste")
     }
 
+
     @Test
     fun `Basic request should default to return data with responseSettings 1 and 10`() {
         val geocodableTrack = insertGeocodableTrack(

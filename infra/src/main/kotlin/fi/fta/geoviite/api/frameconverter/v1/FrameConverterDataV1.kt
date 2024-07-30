@@ -84,7 +84,6 @@ data class GeoJsonFeatureErrorResponsePropertiesV1(
 ) : GeoJsonProperties()
 
 sealed class FrameConverterRequestV1
-
 /**
  * @property identifier User provided request identifier which is also included in the response feature(s).
  * @property x User provided x coordinate in ETRS-TM35FIN (EPSG:3067)
