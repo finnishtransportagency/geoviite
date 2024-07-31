@@ -20,7 +20,7 @@ data class GeoJsonFeatureErrorResponsePropertiesV1(
     @JsonProperty("virheet") val errors: String,
 ) : GeoJsonProperties
 
-interface FrameConverterRequestV1
+sealed class FrameConverterRequestV1
 
 data class CoordinateToTrackMeterRequestV1(
     @JsonProperty("tunniste") val id: String? = null,
@@ -39,7 +39,7 @@ data class CoordinateToTrackMeterRequestV1(
     // 5: Response contains location track's track address in geometry
     // 10: Result contains location track address and location track's information
     @JsonProperty("palautusarvot") val responseSettings: Set<Int> = setOf(1, 10), // TODO Should this be an enum?
-) : FrameConverterRequestV1
+) : FrameConverterRequestV1()
 
 data class CoordinateToTrackMeterResponsePropertiesV1(
     // Same as request if supplied by the user.

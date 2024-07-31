@@ -42,7 +42,7 @@ class FrameConverterServiceV1 @Autowired constructor(
     fun coordinateToTrackAddress(
         layoutContext: LayoutContext,
         request: CoordinateToTrackMeterRequestV1,
-    ): GeoJsonFeature { // TODO This should actually return a LIST of features
+    ): List<GeoJsonFeature> {
 //        val searchPoint = Point(386247.0, 6677722.0)
 //        val searchPoint = Point(386277.0, 6677683.573)
 //        val searchPoint = Point(428339.0, 7210151.0)
@@ -140,7 +140,7 @@ class FrameConverterServiceV1 @Autowired constructor(
                 null
             }
 
-        return CoordinateToTrackMeterResponseV1(
+        val response = CoordinateToTrackMeterResponseV1(
             geometry = featureGeometry,
             properties = CoordinateToTrackMeterResponsePropertiesV1(
                 id = request.id,
@@ -148,6 +148,8 @@ class FrameConverterServiceV1 @Autowired constructor(
                 conversionDetails = conversionDetails,
             )
         )
+
+        return listOf(response) // TODO Does this sometimes actually return multiple values?
     }
 }
 
