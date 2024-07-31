@@ -1,4 +1,9 @@
 {
+    "integration-api": {
+        "error": {
+            "features-not-found": "Annetun (alku)pisteen parametreilla ei löytynyt tietoja."
+        }
+    },
     "error": {
         "integration-not-configured": {
             "RATKO": "Ratko-integraatio ei ole käytössä tässä ympäristössä",

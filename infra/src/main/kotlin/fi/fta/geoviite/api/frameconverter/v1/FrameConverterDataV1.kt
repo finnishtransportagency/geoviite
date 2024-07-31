@@ -7,23 +7,32 @@ import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonProperties
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.util.FreeText
+
+typealias FrameConverterResponseSettings = Set<Int>
 
 data class GeoJsonFeatureErrorResponseV1(
     override val geometry: GeoJsonGeometry = GeoJsonGeometryPoint.empty(),
     override val properties: GeoJsonFeatureErrorResponsePropertiesV1,
-) : GeoJsonFeature()
+) : GeoJsonFeature() {
+    constructor(identifier: String?, errorMessages: String) : this(
+        properties = GeoJsonFeatureErrorResponsePropertiesV1(
+            identifier = identifier,
+            errors = errorMessages,
+        )
+    )
+}
 
 data class GeoJsonFeatureErrorResponsePropertiesV1(
     // TODO Multiple errors in a single string? Are multiple errors even returned?
-    @JsonProperty("virheet") val errors: String,
+    @JsonProperty("tunniste") val identifier: String? = null,
+    @JsonProperty("virheet") val errors: String = "",
 ) : GeoJsonProperties
 
 sealed class FrameConverterRequestV1
 
 data class CoordinateToTrackMeterRequestV1(
-    @JsonProperty("tunniste") val id: String? = null,
+    @JsonProperty("tunniste") val identifier: String? = null,
 
     val x: Double? = null, // x coordinate in ETRS-TM35FIN (EPSG:3067)
     val y: Double? = null, // y coordinate in ETRS-TM35FIN (EPSG:3067)
@@ -31,14 +40,15 @@ data class CoordinateToTrackMeterRequestV1(
     // TODO Clamp to 1-1000 meters
     // TODO Use a radius instead of bbox
     @JsonProperty("sade") val searchRadius: Double = 100.0, // Search radius
-    @JsonProperty("ratanumero") val trackNumber: TrackNumber? = null, // Filter results by track number
-    @JsonProperty("sijaintiraide") val alignmentName: AlignmentName? = null, // Filter results by location track name (0 or 1)
+    @JsonProperty("ratanumero") val trackNumberName: String? = null, // Filter results by track number
+    @JsonProperty("sijaintiraide") val locationTrackName: String? = null, // Filter results by location track name (0 or 1)
+    @JsonProperty("sijaintiraide_tyyppi") val locationTrackType: String? = null,
 
     // Response settings:
     // 1: Response contains location track's track address in properties
     // 5: Response contains location track's track address in geometry
     // 10: Result contains location track address and location track's information
-    @JsonProperty("palautusarvot") val responseSettings: Set<Int> = setOf(1, 10), // TODO Should this be an enum?
+    @JsonProperty("palautusarvot") val responseSettings: FrameConverterResponseSettings = setOf(1, 10), // TODO Enum?
 ) : FrameConverterRequestV1()
 
 data class CoordinateToTrackMeterResponsePropertiesV1(
