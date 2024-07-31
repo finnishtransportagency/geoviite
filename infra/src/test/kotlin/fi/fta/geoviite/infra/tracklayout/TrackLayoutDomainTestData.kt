@@ -603,16 +603,16 @@ fun attachSwitchToIndex(
     return alignment.copy(segments = alignment.segments.mapIndexed { index, segment ->
         when (index) {
             segmentIndex -> segment.copy(
-                switchId = switch.id,
+                switchId = switch.id as IntId,
                 startJointNumber = JointNumber(1),
             )
 
             segmentIndex + 1 -> segment.copy(
-                switchId = switch.id,
+                switchId = switch.id as IntId,
             )
 
             segmentIndex + 2 -> segment.copy(
-                switchId = switch.id,
+                switchId = switch.id as IntId,
                 endJointNumber = JointNumber(2),
             )
 
@@ -658,7 +658,7 @@ fun segment(
     vararg points: IPoint,
     startM: Double = 0.0,
     source: GeometrySource = PLAN,
-    sourceId: DomainId<GeometryElement>? = null,
+    sourceId: GeometryElement? = null,
     switchId: IntId<TrackLayoutSwitch>? = null,
     startJointNumber: JointNumber? = null,
     endJointNumber: JointNumber? = null,
@@ -678,21 +678,21 @@ fun segment(
     vararg points: Point3DZ,
     start: Double = 0.0,
     source: GeometrySource = PLAN,
-    sourceId: DomainId<GeometryElement>? = null,
+    sourceId: GeometryElement? = null,
 ) = segment(toSegmentPoints(to3DMPoints(points.asList(), start)), start, source, sourceId)
 
 fun segment(
     vararg points: IPoint3DM,
     start: Double = points.first().m,
     source: GeometrySource = PLAN,
-    sourceId: DomainId<GeometryElement>? = null,
+    sourceId: GeometryElement? = null,
 ) = segment(toSegmentPoints(points.asList()), start, source, sourceId)
 
 fun segment(
     points: List<SegmentPoint>,
     startM: Double = 0.0,
     source: GeometrySource = PLAN,
-    sourceId: DomainId<GeometryElement>? = null,
+    sourceId: GeometryElement? = null,
     sourceStart: Double? = null,
     resolution: Int = 1,
     switchId: IntId<TrackLayoutSwitch>? = null,
@@ -704,7 +704,7 @@ fun segment(
         resolution = resolution,
     ),
     startM = startM,
-    sourceId = sourceId,
+    sourceId = sourceId?.id as IndexedId?,
     sourceStart = sourceStart,
     switchId = switchId,
     startJointNumber = startJointNumber,

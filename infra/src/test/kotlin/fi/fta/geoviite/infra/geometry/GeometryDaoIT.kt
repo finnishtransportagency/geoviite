@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.geometry
 import assertPlansMatch
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.authorization.UserName
+import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.ProjectName
@@ -210,7 +211,7 @@ class GeometryDaoIT @Autowired constructor(
         val element = geometryDao.fetchPlan(planVersion).alignments[0].elements[0]
         val track = locationTrackAndAlignment(
             trackNumberId,
-            segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(sourceId = element.id),
+            segment(Point(0.0, 0.0), Point(1.0, 1.0)).copy(sourceId = element.id as IndexedId),
             draft = true,
         )
         val trackVersion = locationTrackService.saveDraft(LayoutBranch.main, track.first, track.second)

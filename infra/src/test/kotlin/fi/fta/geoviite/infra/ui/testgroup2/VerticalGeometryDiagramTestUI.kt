@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ui.testgroup2
 
+import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LinearUnit
@@ -106,7 +107,7 @@ class VerticalGeometryDiagramTestUI @Autowired constructor(
             locationTrack(trackNumberId = trackNumberId, name = "foo bar", draft = true),
             alignment(
                 segment(DEFAULT_BASE_POINT + Point(0.0, 0.0), DEFAULT_BASE_POINT + Point(1000.0, 0.0)).copy(
-                    sourceId = plan.alignments[0].elements[0].id,
+                    sourceId = plan.alignments[0].elements[0].id as IndexedId,
                     sourceStart = 0.0,
                 )
             ),
