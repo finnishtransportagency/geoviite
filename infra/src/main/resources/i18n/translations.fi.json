@@ -1,7 +1,13 @@
 {
     "integration-api": {
         "error": {
-            "features-not-found": "Annetun (alku)pisteen parametreilla ei löytynyt tietoja."
+            "features-not-found": "Annetun (alku)pisteen parametreilla ei löytynyt tietoja.",
+            "missing-x-coordinate": "Pyyntö ei sisältänyt x-koordinaattia.",
+            "missing-y-coordinate": "Pyyntö ei sisältänyt y-koordinaattia.",
+            "bad-request": "Pyynnön rakenne oli virheellinen.",
+            "unsupported-request-type": "Pyyntötyyppiä ei tueta.",
+            "json-request-was-not-wrapped-in-an-array": "JSON-pyyntö ei sisältänyt pyyntöjä taulukossa (array).",
+            "invalid-json": "JSON-pyynnön rakenne oli virheellinen."
         }
     },
     "error": {

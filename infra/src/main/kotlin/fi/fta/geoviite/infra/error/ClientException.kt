@@ -178,3 +178,20 @@ class IntegrationNotConfiguredException(type: Integration) : ClientException(
     cause = null,
     localizedMessageKey = "error.integration-not-configured.$type",
 )
+
+class IntegrationApiException(
+    message: String,
+    cause: Throwable? = null,
+    localizedMessageKey: String = "generic",
+    localizationParams: LocalizationParams = LocalizationParams.empty,
+) : ClientException(
+    BAD_REQUEST,
+    "Invalid request: $message",
+    cause,
+    "$LOCALIZATION_KEY_BASE.$localizedMessageKey",
+    localizationParams,
+) {
+    companion object {
+        const val LOCALIZATION_KEY_BASE = "integration-api.error"
+    }
+}

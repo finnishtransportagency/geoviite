@@ -38,23 +38,36 @@ class FrameConverterServiceV1 @Autowired constructor(
     private val trackNumberService: LayoutTrackNumberService,
     private val geocodingService: GeocodingService,
     private val locationTrackService: LocationTrackService,
-    private val localizationService: LocalizationService,
+    localizationService: LocalizationService,
 ) {
+    val translation = localizationService.getLocalization(LocalizationLanguage.FI)
 
     fun createNoFeaturesFoundError(identifier: String?) = GeoJsonFeatureErrorResponseV1(
         identifier = identifier,
-        errorMessages = localizationService
-            .getLocalization(LocalizationLanguage.FI)
-            .t("integration-api.error.features-not-found")
+        errorMessages = translation.t("integration-api.error.features-not-found")
+    )
+
+    fun createMissingXCoordinateError(identifier: String?) = GeoJsonFeatureErrorResponseV1(
+        identifier = identifier,
+        errorMessages = translation.t("integration-api.error.missing-x-coordinate")
+    )
+
+    fun createMissingYCoordinateError(identifier: String?) = GeoJsonFeatureErrorResponseV1(
+        identifier = identifier,
+        errorMessages = translation.t("integration-api.error.missing-y-coordinate")
     )
 
     fun coordinateToTrackAddress(
         layoutContext: LayoutContext,
         request: CoordinateToTrackMeterRequestV1,
     ): List<GeoJsonFeature> {
+        if (request.x == null) {
+            return listOf(createMissingXCoordinateError(request.identifier))
+        }
 
-        requireNotNull(request.x)
-        requireNotNull(request.y)
+        if (request.y == null) {
+            return listOf(createMissingYCoordinateError(request.identifier))
+        }
 
         val searchPoint = Point(request.x, request.y)
         val nearbyLocationTracks = locationTrackService.listNearWithAlignments(
@@ -182,9 +195,7 @@ class FrameConverterServiceV1 @Autowired constructor(
     }
 
     private fun translateLocationTrackType(locationTrack: LocationTrack): String {
-        return localizationService
-            .getLocalization(LocalizationLanguage.FI)
-            .t("enum.location-track-type.${locationTrack.type}")
+        return translation.t("enum.location-track-type.${locationTrack.type}")
     }
 }
 

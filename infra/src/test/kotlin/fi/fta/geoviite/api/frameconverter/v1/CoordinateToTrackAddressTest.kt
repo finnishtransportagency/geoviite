@@ -26,6 +26,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.test.web.servlet.MockMvc
 import java.util.UUID
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 const val API_URL = "/frame-converter/v1"
 const val COORDINATE_TO_TRACK_ADDRESS_URL = "$API_URL/todo-url" // TODO What's the correct URL?
@@ -70,17 +71,82 @@ class CoordinateToTrackAddressTest @Autowired constructor(
     }
 
     @Test
-    fun `Invalid single request should result in HTTP 400`() {
+    fun `Completely invalid request should result in a generic error`() {
         testApi.doGet(COORDINATE_TO_TRACK_ADDRESS_URL, HttpStatus.BAD_REQUEST)
         testApi.doPost(COORDINATE_TO_TRACK_ADDRESS_URL, null, HttpStatus.BAD_REQUEST)
     }
 
     @Test
-    fun `Invalid request with JSON should result in HTTP 400`() {
+    fun `Partially valid request should result in a descriptive error`() {
+        val params = mapOf("x" to "0.0")
+
+        val featureCollections = listOf(
+            testApi.doGetWithParams(COORDINATE_TO_TRACK_ADDRESS_URL, params, HttpStatus.OK)
+                .let { body -> mapper.readValue(body, TestGeoJsonFeatureCollection::class.java) },
+
+            testApi.doPostWithParams(COORDINATE_TO_TRACK_ADDRESS_URL, params, HttpStatus.OK)
+                .let { body -> mapper.readValue(body, TestGeoJsonFeatureCollection::class.java) }
+        )
+
+        featureCollections.forEach { collection ->
+            assertNotNull(collection.features[0].properties?.get("virheet"))
+        }
+    }
+
+    @Test
+    fun `Invalid request with JSON should result in an error`() {
         val params = mapOf("json" to "")
 
         testApi.doGetWithParams(COORDINATE_TO_TRACK_ADDRESS_URL, params, HttpStatus.BAD_REQUEST)
         testApi.doPostWithParams(COORDINATE_TO_TRACK_ADDRESS_URL, params, HttpStatus.BAD_REQUEST)
+    }
+
+    @Test
+    fun `Missing x-coordinate in a request should result in an error`() {
+        val request = TestCoordinateToTrackAddressRequest(
+            y = 0.0,
+        )
+
+        val featureCollection = fetchFeatureCollection(
+            COORDINATE_TO_TRACK_ADDRESS_URL,
+            createJsonRequestParams(request),
+        )
+
+        assertEquals("FeatureCollection", featureCollection.type)
+        assertEquals(1, featureCollection.features.size)
+
+        assertEquals("Feature", featureCollection.features[0].type)
+        assertEquals("Point", featureCollection.features[0].geometry?.type)
+        assertEquals(emptyList<Double>(), featureCollection.features[0].geometry?.coordinates)
+
+        assertEquals(
+            "Pyyntö ei sisältänyt x-koordinaattia.",
+            featureCollection.features[0].properties?.get("virheet"),
+        )
+    }
+
+    @Test
+    fun `Missing y-coordinate in a request should result in an error`() {
+        val request = TestCoordinateToTrackAddressRequest(
+            x = 0.0,
+        )
+
+        val featureCollection = fetchFeatureCollection(
+            COORDINATE_TO_TRACK_ADDRESS_URL,
+            createJsonRequestParams(request),
+        )
+
+        assertEquals("FeatureCollection", featureCollection.type)
+        assertEquals(1, featureCollection.features.size)
+
+        assertEquals("Feature", featureCollection.features[0].type)
+        assertEquals("Point", featureCollection.features[0].geometry?.type)
+        assertEquals(emptyList<Double>(), featureCollection.features[0].geometry?.coordinates)
+
+        assertEquals(
+            "Pyyntö ei sisältänyt y-koordinaattia.",
+            featureCollection.features[0].properties?.get("virheet"),
+        )
     }
 
     @Test
@@ -398,35 +464,38 @@ class CoordinateToTrackAddressTest @Autowired constructor(
             segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
         )
 
-        val requestsToExpectedFoundFeatures = mapOf(
+        val requestsToExpectedError = mapOf(
             TestCoordinateToTrackAddressRequest(
                 tunniste = "requestWithoutRadius",
                 x = 0.0,
                 y = 0.0,
-            ) to 1,
+            ) to null,
 
             TestCoordinateToTrackAddressRequest(
                 tunniste = "requestInsideRadius",
                 x = 0.0,
                 y = 0.0,
                 sade = 1.0,
-            ) to 1,
+            ) to null,
 
             TestCoordinateToTrackAddressRequest(
                 tunniste = "requestOutsideRadius",
                 x = 0.0,
-                y = 10.0,
-                sade = 1.0,
-            ) to 0,
+                y = 3.0,
+                sade = 2.0,
+            ) to "Annetun (alku)pisteen parametreilla ei löytynyt tietoja.",
         )
 
-        requestsToExpectedFoundFeatures.forEach { (request, expectedAmountOfFeatures) ->
+        requestsToExpectedError.forEach { (request, expectedError) ->
             val featureCollection = fetchFeatureCollection(
                 COORDINATE_TO_TRACK_ADDRESS_URL,
                 createJsonRequestParams(request),
             )
 
-            assertEquals(expectedAmountOfFeatures, featureCollection.features.size, "request=${request.tunniste}")
+            assertEquals(1, featureCollection.features.size, "request=${request.tunniste}")
+
+            val properties = featureCollection.features[0].properties
+            assertEquals(expectedError, properties?.get("virheet"), "request=${request.tunniste}")
         }
     }
 
@@ -740,7 +809,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
     private fun fetchFeatureCollection(url: String, params: Map<String, String>): TestGeoJsonFeatureCollection {
         return testApi
             .doPostWithParams(url, params, HttpStatus.OK)
-            .let { body -> mapper.readValue(body, TestGeoJsonFeatureCollection::class.java)}
+            .let { body -> mapper.readValue(body, TestGeoJsonFeatureCollection::class.java) }
     }
 
     private fun createJsonRequestParams(request: TestCoordinateToTrackAddressRequest): Map<String, String> {
