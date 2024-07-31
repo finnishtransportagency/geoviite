@@ -78,7 +78,7 @@ data class CoordinateToTrackMeterConversionDetailsV1(
     @JsonProperty("sijaintiraide") val locationTrackName: AlignmentName,
     @JsonProperty("sijaintiraide_kuvaus") val locationTrackDescription: FreeText, // See GetFullDescription
     @JsonProperty("sijaintiraide_tyyppi") val translatedLocationTrackType: String,
-    @JsonProperty("ratakilometri") val kmNumber: KmNumber,
+    @JsonProperty("ratakilometri") val kmNumber: Int,
     @JsonProperty("ratametri") val trackMeter: Int, // TODO Verify this and the one below
     @JsonProperty("ratametri_desimaalit") val trackMeterDecimals: Int,
 )

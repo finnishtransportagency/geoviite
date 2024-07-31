@@ -4,10 +4,15 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.TestLayoutContext
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
@@ -16,6 +21,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -57,6 +63,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
     val referenceLineDao: ReferenceLineDao,
     val locationTrackService: LocationTrackService,
     val locationTrackDao: LocationTrackDao,
+    val layoutKmPostDao: LayoutKmPostDao,
 ) : DBTestBase() {
 
     private val mapper = ObjectMapper().apply {
@@ -410,7 +417,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
                 lang = LocalizationLanguage.FI,
             ).toString(),
             "sijaintiraide_tyyppi" to "pääraide",
-            "ratakilometri" to "0000",
+            "ratakilometri" to 0,
             "ratametri" to 10,
             "ratametri_desimaalit" to 0,
         )
@@ -717,15 +724,18 @@ class CoordinateToTrackAddressTest @Autowired constructor(
         assertEquals(geocodableTrack.locationTrack.name.toString(), properties?.get("sijaintiraide"))
         assertEquals(trackDescription, properties?.get("sijaintiraide_kuvaus"))
         assertEquals("kujaraide", properties?.get("sijaintiraide_tyyppi"))
-        assertEquals("0000", properties?.get("ratakilometri"))
+        assertEquals(0, properties?.get("ratakilometri"))
         assertEquals(10, properties?.get("ratametri") as? Int)
         assertEquals(0, properties?.get("ratametri_desimaalit") as? Int)
     }
 
     @Test
     fun `Response output data setting combination works`() {
+        val layoutContext = mainOfficialContext
+
         val geocodableTrack = insertGeocodableTrack(
-            segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))),
+            layoutContext = layoutContext,
+            segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
             locationTrackType = LocationTrackType.TRAP,
         )
 
@@ -770,9 +780,62 @@ class CoordinateToTrackAddressTest @Autowired constructor(
         assertEquals(geocodableTrack.locationTrack.name.toString(), properties["sijaintiraide"])
         assertEquals(trackDescription, properties["sijaintiraide_kuvaus"])
         assertEquals("turvaraide", properties["sijaintiraide_tyyppi"])
-        assertEquals("0000", properties["ratakilometri"])
-        assertEquals(10 + xPositionOnTrack.toInt(), properties["ratametri"] as? Int)
+        assertEquals(0, properties["ratakilometri"])
+        assertEquals(xPositionOnTrack.toInt(), properties["ratametri"] as? Int)
         assertEquals(0, properties["ratametri_desimaalit"] as? Int)
+    }
+
+    @Test
+    fun `Track km position is returned correctly`() {
+        val layoutContext = mainOfficialContext
+
+        val geocodableTrack = insertGeocodableTrack(
+            layoutContext = layoutContext,
+            segments = listOf(segment(Point(0.0, 0.0), Point(3000.0, 0.0))),
+            locationTrackType = LocationTrackType.TRAP,
+        )
+
+        val secondKmNumberXLocation = 2000.0 - 50
+
+        val xPositionOnTrack = 2123.456
+        val yPositionOnTrack = 0.0
+        val yRequestDifference = 50.0
+
+        val expectedKmNumber = 2
+        val expectedTrackMeters = xPositionOnTrack - secondKmNumberXLocation
+        val expectedTrackDecimals = 456
+
+        listOf(
+            Point(900.0, 0.0),
+            Point(secondKmNumberXLocation, 0.0)
+        ).mapIndexed { index, kmPostLocation ->
+            kmPost(
+                trackNumberId = geocodableTrack.trackNumber.id as IntId,
+                km = KmNumber(index + 1),
+                location = kmPostLocation,
+                draft = false,
+            )
+        }.forEach(layoutKmPostDao::insert)
+
+        val request = TestCoordinateToTrackAddressRequest(
+            x = xPositionOnTrack,
+            y = yPositionOnTrack + yRequestDifference,
+        )
+
+        val featureCollection = fetchFeatureCollection(
+            COORDINATE_TO_TRACK_ADDRESS_URL,
+            createJsonRequestParams(request),
+        )
+
+        val properties = featureCollection.features[0].properties
+
+        assertEquals(xPositionOnTrack, ((properties?.get("x") as? Double)!!), 0.001)
+        assertEquals(yPositionOnTrack, ((properties["y"] as? Double)!!), 0.001)
+        assertEquals(yRequestDifference, ((properties["valimatka"] as? Double)!!), 0.001)
+
+        assertEquals(expectedKmNumber, properties["ratakilometri"])
+        assertEquals(expectedTrackMeters.toInt(), properties["ratametri"] as? Int)
+        assertEquals(expectedTrackDecimals, properties["ratametri_desimaalit"] as? Int)
     }
 
     private fun insertGeocodableTrack(

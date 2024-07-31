@@ -188,7 +188,7 @@ class FrameConverterServiceV1 @Autowired constructor(
             locationTrackName = nearestMatch.locationTrack.name,
             locationTrackDescription = locationTrackDescription,
             translatedLocationTrackType = translatedLocationTrackType,
-            kmNumber = geocodedAddress.address.kmNumber,
+            kmNumber = geocodedAddress.address.kmNumber.number,
             trackMeter = trackMeter,
             trackMeterDecimals = trackMeterDecimals,
         )
