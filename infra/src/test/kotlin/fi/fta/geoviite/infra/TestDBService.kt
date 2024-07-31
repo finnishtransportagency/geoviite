@@ -22,6 +22,7 @@ import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.project
 import fi.fta.geoviite.infra.split.BulkTransfer
+import fi.fta.geoviite.infra.tracklayout.ContextIdentity
 import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
@@ -42,12 +43,14 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
+import fi.fta.geoviite.infra.tracklayout.OverwritingIdentity
 import fi.fta.geoviite.infra.tracklayout.PolyLineLayoutAsset
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.tracklayout.UnsavedIdentity
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.referenceLine
@@ -393,7 +396,7 @@ data class TestLayoutContext(
     ): DaoResponse<T> {
         val dao = getDao(T::class)
         val original = mutate(dao.fetch(rowVersion))
-        val withNewContext = original.withContext(createContextData(null, officialRowId, designRowId))
+        val withNewContext = original.withContext(createContextData(UnsavedIdentity(rowVersion), officialRowId, designRowId))
         return when (withNewContext) {
             // Also copy alignment: the types won't play nice unless we use the final ones, so this duplicates
             is LocationTrack -> insert(withNewContext, alignmentDao.fetch(withNewContext.getAlignmentVersionOrThrow()))
@@ -418,7 +421,7 @@ data class TestLayoutContext(
         val original = mutate(dao.fetch(rowVersion))
         val withNewContext = original.withContext(original.contextData.let { origCtx ->
             createContextData(
-                rowId = origCtx.rowId,
+                rowContextId = OverwritingIdentity(rowVersion.rowId, rowVersion),
                 officialRowId = origCtx.officialRowId.takeIf { context !is MainLayoutContext },
                 designRowId = origCtx.designRowId.takeIf { context.state == DRAFT },
             )
@@ -492,23 +495,23 @@ data class TestLayoutContext(
     )
 
     fun <T : LayoutAsset<T>> createContextData(
-        rowId: LayoutRowId<T>? = null,
+        rowContextId: ContextIdentity<T>,
         officialRowId: LayoutRowId<T>? = null,
         designRowId: LayoutRowId<T>? = null,
     ): LayoutContextData<T> = context.branch.let { branch ->
         when (context.state) {
             OFFICIAL -> when (branch) {
-                is MainBranch -> MainOfficialContextData(rowId, version = null).also {
+                is MainBranch -> MainOfficialContextData(rowContextId).also {
                     require(officialRowId == null) { "Can't set official row reference on official row itself" }
                     require(designRowId == null) { "Can't set design row reference on main-official row" }
                 }
-                is DesignBranch -> DesignOfficialContextData(rowId, version = null, officialRowId, branch.designId).also {
+                is DesignBranch -> DesignOfficialContextData(rowContextId, officialRowId, branch.designId).also {
                     require(designRowId == null) { "Can't set design row reference on official design itself" }
                 }
             }
             DRAFT -> when (branch) {
-                is MainBranch -> MainDraftContextData(rowId, version = null, officialRowId, designRowId)
-                is DesignBranch -> DesignDraftContextData(rowId, version = null, designRowId, officialRowId, branch.designId)
+                is MainBranch -> MainDraftContextData(rowContextId, officialRowId, designRowId)
+                is DesignBranch -> DesignDraftContextData(rowContextId, designRowId, officialRowId, branch.designId)
             }
         }
     }

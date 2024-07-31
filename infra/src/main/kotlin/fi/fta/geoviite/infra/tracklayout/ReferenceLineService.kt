@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.DataType.STORED
 import fi.fta.geoviite.infra.common.DataType.TEMP
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
@@ -212,12 +213,11 @@ class ReferenceLineService(
         return dao.fetchVersionsNear(layoutContext, bbox).map(dao::fetch)
     }
 
-    override fun mergeToMainBranch(fromBranch: LayoutBranch, id: IntId<ReferenceLine>): DaoResponse<ReferenceLine> {
+    override fun mergeToMainBranch(fromBranch: DesignBranch, id: IntId<ReferenceLine>): DaoResponse<ReferenceLine> {
         val (versions, line) = fetchAndCheckVersionsForMerging(fromBranch, id)
         return mergeToMainBranchInternal(
-            versions, if (line.alignmentVersion == null) line else {
-                line.copy(alignmentVersion = alignmentService.saveAsNew(alignmentDao.fetch(line.alignmentVersion)))
-            }
+            versions,
+            line.copy(alignmentVersion = alignmentService.duplicate(line.getAlignmentVersionOrThrow())),
         )
     }
 }

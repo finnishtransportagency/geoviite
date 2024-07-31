@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
@@ -116,7 +117,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     )
 
     protected fun fetchAndCheckVersionsForMerging(
-        fromBranch: LayoutBranch,
+        fromBranch: DesignBranch,
         id: IntId<ObjectType>,
     ): Pair<VersionsForMerging, ObjectType> {
         val branchOfficialVersion = dao.fetchVersion(fromBranch.official, id)
@@ -137,7 +138,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         return VersionsForMerging(branchOfficialVersion, mainOfficialVersion, mainDraftVersion) to branchObject
     }
 
-    fun mergeToMainBranch(fromBranch: LayoutBranch, id: IntId<ObjectType>): DaoResponse<ObjectType> =
+    fun mergeToMainBranch(fromBranch: DesignBranch, id: IntId<ObjectType>): DaoResponse<ObjectType> =
         fetchAndCheckVersionsForMerging(fromBranch, id).let { (versions, branchObject) ->
             mergeToMainBranchInternal(versions, branchObject)
         }
@@ -146,16 +147,11 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         versions: VersionsForMerging,
         objectFromBranch: ObjectType,
     ): DaoResponse<ObjectType> =
+        // The merge should overwrite any pre-existing main-draft row, or otherwise be saved as a new one
         if (versions.mainDraftVersion == null || versions.mainDraftVersion == versions.mainOfficialVersion) {
             dao.insert(asMainDraft(objectFromBranch))
         } else {
-            val newContext = MainDraftContextData(
-                rowId = versions.mainDraftVersion.rowId,
-                version = null,
-                officialRowId = objectFromBranch.contextData.officialRowId,
-                designRowId = versions.branchOfficialVersion.rowId,
-            )
-            dao.update(objectFromBranch.withContext(newContext))
+            dao.update(asOverwritingMainDraft(objectFromBranch, versions.mainDraftVersion.rowId))
         }
 
     private fun verifyInsertResponse(officialId: IntId<ObjectType>?, response: DaoResponse<ObjectType>) {
