@@ -283,7 +283,7 @@ class LayoutKmPostDaoIT @Autowired constructor(
         )
     }
 
-    private fun insertOfficial(tnId: IntId<TrackLayoutTrackNumber>, kmNumber: Int): DaoResponse<TrackLayoutKmPost> {
+    private fun insertOfficial(tnId: IntId<TrackLayoutTrackNumber>, kmNumber: Int): LayoutDaoResponse<TrackLayoutKmPost> {
         return kmPostDao.insert(kmPost(tnId, KmNumber(kmNumber), draft = false))
     }
 
@@ -291,7 +291,7 @@ class LayoutKmPostDaoIT @Autowired constructor(
         tnId: IntId<TrackLayoutTrackNumber>,
         kmNumber: Int,
         state: LayoutState = IN_USE,
-    ): DaoResponse<TrackLayoutKmPost> {
+    ): LayoutDaoResponse<TrackLayoutKmPost> {
         return kmPostDao.insert(kmPost(tnId, KmNumber(kmNumber), state = state, draft = true))
     }
 

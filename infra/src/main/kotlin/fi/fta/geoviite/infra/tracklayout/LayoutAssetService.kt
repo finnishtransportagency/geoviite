@@ -59,11 +59,11 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     protected open fun contentMatches(term: String, item: ObjectType): Boolean = false
 
     @Transactional
-    open fun saveDraft(branch: LayoutBranch, draftAsset: ObjectType): DaoResponse<ObjectType> {
+    open fun saveDraft(branch: LayoutBranch, draftAsset: ObjectType): LayoutDaoResponse<ObjectType> {
         return saveDraftInternal(branch, draftAsset)
     }
 
-    protected fun saveDraftInternal(branch: LayoutBranch, draftAsset: ObjectType): DaoResponse<ObjectType> {
+    protected fun saveDraftInternal(branch: LayoutBranch, draftAsset: ObjectType): LayoutDaoResponse<ObjectType> {
         val draft = asDraft(branch, draftAsset)
         require(draft.isDraft) { "Item is not a draft: id=${draft.id}" }
         val officialId = if (draftAsset.id is IntId) draftAsset.id as IntId else null
@@ -79,16 +79,16 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     }
 
     @Transactional
-    open fun deleteDraft(branch: LayoutBranch, id: IntId<ObjectType>): DaoResponse<ObjectType> {
+    open fun deleteDraft(branch: LayoutBranch, id: IntId<ObjectType>): LayoutDaoResponse<ObjectType> {
         return dao.deleteDraft(branch, id)
     }
 
     @Transactional
-    open fun publish(branch: LayoutBranch, version: ValidationVersion<ObjectType>): DaoResponse<ObjectType> {
+    open fun publish(branch: LayoutBranch, version: ValidationVersion<ObjectType>): LayoutDaoResponse<ObjectType> {
         return publishInternal(branch, version.validatedAssetVersion)
     }
 
-    protected fun publishInternal(branch: LayoutBranch, version: LayoutRowVersion<ObjectType>): DaoResponse<ObjectType> {
+    protected fun publishInternal(branch: LayoutBranch, version: LayoutRowVersion<ObjectType>): LayoutDaoResponse<ObjectType> {
         val draft = dao.fetch(version)
         require(branch == draft.branch) { "Draft branch does not match the publishing operation: branch=$branch draft=$draft" }
         require(draft.isDraft) { "Object to publish is not a draft: version=$version context=${draft.contextData}" }
@@ -138,7 +138,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         return VersionsForMerging(branchOfficialVersion, mainOfficialVersion, mainDraftVersion) to branchObject
     }
 
-    fun mergeToMainBranch(fromBranch: DesignBranch, id: IntId<ObjectType>): DaoResponse<ObjectType> =
+    fun mergeToMainBranch(fromBranch: DesignBranch, id: IntId<ObjectType>): LayoutDaoResponse<ObjectType> =
         fetchAndCheckVersionsForMerging(fromBranch, id).let { (versions, branchObject) ->
             mergeToMainBranchInternal(versions, branchObject)
         }
@@ -146,7 +146,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     protected fun mergeToMainBranchInternal(
         versions: VersionsForMerging,
         objectFromBranch: ObjectType,
-    ): DaoResponse<ObjectType> =
+    ): LayoutDaoResponse<ObjectType> =
         // The merge should overwrite any pre-existing main-draft row, or otherwise be saved as a new one
         if (versions.mainDraftVersion == null || versions.mainDraftVersion == versions.mainOfficialVersion) {
             dao.insert(asMainDraft(objectFromBranch))
@@ -154,7 +154,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
             dao.update(asOverwritingMainDraft(objectFromBranch, versions.mainDraftVersion.rowId))
         }
 
-    private fun verifyInsertResponse(officialId: IntId<ObjectType>?, response: DaoResponse<ObjectType>) {
+    private fun verifyInsertResponse(officialId: IntId<ObjectType>?, response: LayoutDaoResponse<ObjectType>) {
         if (officialId != null) require(response.id == officialId) {
             "Insert response ID doesn't match object: officialId=$officialId updated=$response"
         } else require(response.id.intValue == response.rowVersion.rowId.intValue) {
@@ -168,7 +168,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     private fun verifyDraftUpdateResponse(
         id: IntId<ObjectType>,
         previousVersion: LayoutRowVersion<ObjectType>,
-        response: DaoResponse<ObjectType>,
+        response: LayoutDaoResponse<ObjectType>,
     ) {
         require(response.id == id) {
             "Update response ID doesn't match object: id=$id updated=$response"

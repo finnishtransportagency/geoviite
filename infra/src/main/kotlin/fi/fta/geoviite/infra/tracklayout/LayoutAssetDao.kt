@@ -35,18 +35,18 @@ import org.springframework.transaction.annotation.Transactional
 import java.sql.Timestamp
 import java.time.Instant
 
-data class DaoResponse<T>(val id: IntId<T>, val rowVersion: LayoutRowVersion<T>)
+data class LayoutDaoResponse<T>(val id: IntId<T>, val rowVersion: LayoutRowVersion<T>)
 
 interface LayoutAssetWriter<T : LayoutAsset<T>> {
-    fun insert(newItem: T): DaoResponse<T>
+    fun insert(newItem: T): LayoutDaoResponse<T>
 
-    fun update(updatedItem: T): DaoResponse<T>
+    fun update(updatedItem: T): LayoutDaoResponse<T>
 
-    fun deleteRow(rowId: LayoutRowId<T>): DaoResponse<T>
+    fun deleteRow(rowId: LayoutRowId<T>): LayoutDaoResponse<T>
 
-    fun deleteDraft(branch: LayoutBranch, id: IntId<T>): DaoResponse<T>
+    fun deleteDraft(branch: LayoutBranch, id: IntId<T>): LayoutDaoResponse<T>
 
-    fun deleteDrafts(branch: LayoutBranch): List<DaoResponse<T>>
+    fun deleteDrafts(branch: LayoutBranch): List<LayoutDaoResponse<T>>
 }
 
 @Transactional(readOnly = true)
@@ -56,14 +56,14 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
     fun fetchChangeTime(): Instant
     fun fetchLayoutAssetChangeInfo(layoutContext: LayoutContext, id: IntId<T>): LayoutAssetChangeInfo?
 
-    fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean): List<DaoResponse<T>>
+    fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean): List<LayoutDaoResponse<T>>
 
     fun fetchPublicationVersions(branch: LayoutBranch): List<ValidationVersion<T>>
     fun fetchPublicationVersions(branch: LayoutBranch, ids: List<IntId<T>>): List<ValidationVersion<T>>
 
     fun fetchVersion(layoutContext: LayoutContext, id: IntId<T>): LayoutRowVersion<T>?
     fun fetchVersionOrThrow(layoutContext: LayoutContext, id: IntId<T>): LayoutRowVersion<T>
-    fun fetchVersions(layoutContext: LayoutContext, ids: List<IntId<T>>): List<DaoResponse<T>>
+    fun fetchVersions(layoutContext: LayoutContext, ids: List<IntId<T>>): List<LayoutDaoResponse<T>>
 
     fun fetchOfficialVersionAtMomentOrThrow(branch: LayoutBranch, id: IntId<T>, moment: Instant): LayoutRowVersion<T>
     fun fetchOfficialVersionAtMoment(branch: LayoutBranch, id: IntId<T>, moment: Instant): LayoutRowVersion<T>?
@@ -240,7 +240,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
     override fun fetchVersions(
         layoutContext: LayoutContext,
         ids: List<IntId<T>>,
-    ): List<DaoResponse<T>> {
+    ): List<LayoutDaoResponse<T>> {
         logger.daoAccess(AccessType.VERSION_FETCH, table.name, ids)
         return if (ids.isEmpty()) {
             emptyList()
@@ -250,7 +250,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue
             )
-            jdbcTemplate.query(multiLayoutContextVersionSql, params) { rs, _ -> DaoResponse(
+            jdbcTemplate.query(multiLayoutContextVersionSql, params) { rs, _ -> LayoutDaoResponse(
                 rs.getIntId("official_id"),
                 rs.getLayoutRowVersion("row_id", "row_version"),
             )}
@@ -301,7 +301,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
     }
 
     @Transactional
-    override fun deleteRow(rowId: LayoutRowId<T>): DaoResponse<T> {
+    override fun deleteRow(rowId: LayoutRowId<T>): LayoutDaoResponse<T> {
         val sql = """
             delete from ${table.fullName}
             where id = :row_id
@@ -313,7 +313,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         """.trimIndent()
         jdbcTemplate.setUser()
         val params = mapOf("row_id" to rowId.intValue)
-        return jdbcTemplate.query<DaoResponse<T>>(sql, params) { rs, _ ->
+        return jdbcTemplate.query<LayoutDaoResponse<T>>(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         }.singleOrNull().let { deleted ->
             if (deleted == null) error(
@@ -325,7 +325,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
     }
 
     @Transactional
-    override fun deleteDraft(branch: LayoutBranch, id: IntId<T>): DaoResponse<T> = deleteDraftsInternal(branch, id)
+    override fun deleteDraft(branch: LayoutBranch, id: IntId<T>): LayoutDaoResponse<T> = deleteDraftsInternal(branch, id)
         .let { r ->
             if (r.size > 1) {
                 error("Multiple rows deleted with one ID: type=${table.name} branch=$branch id=$id")
@@ -337,9 +337,9 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         }
 
     @Transactional
-    override fun deleteDrafts(branch: LayoutBranch): List<DaoResponse<T>> = deleteDraftsInternal(branch)
+    override fun deleteDrafts(branch: LayoutBranch): List<LayoutDaoResponse<T>> = deleteDraftsInternal(branch)
 
-    private fun deleteDraftsInternal(branch: LayoutBranch, id: IntId<T>? = null): List<DaoResponse<T>> {
+    private fun deleteDraftsInternal(branch: LayoutBranch, id: IntId<T>? = null): List<LayoutDaoResponse<T>> {
         val sql = """
             delete from ${table.fullName}
             where draft = true 
@@ -352,7 +352,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         """.trimIndent()
         jdbcTemplate.setUser()
         val params = mapOf("id" to id?.intValue, "design_id" to branch.designId?.intValue)
-        return jdbcTemplate.query<DaoResponse<T>>(sql, params) { rs, _ ->
+        return jdbcTemplate.query<LayoutDaoResponse<T>>(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         }.also { deleted -> logger.daoAccess(DELETE, table.fullName, deleted) }
     }

@@ -28,7 +28,6 @@ import fi.fta.geoviite.infra.util.getNullableDoubleArray
 import fi.fta.geoviite.infra.util.getNullableEnumArray
 import fi.fta.geoviite.infra.util.getNullableIntArray
 import fi.fta.geoviite.infra.util.getOidOrNull
-import fi.fta.geoviite.infra.util.getOne
 import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
@@ -53,7 +52,7 @@ class LayoutSwitchDao(
     override fun fetchVersions(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
-    ): List<DaoResponse<TrackLayoutSwitch>> {
+    ): List<LayoutDaoResponse<TrackLayoutSwitch>> {
         val sql = """
             select official_id, row_id, row_version
             from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id)
@@ -136,7 +135,7 @@ class LayoutSwitchDao(
     }
 
     @Transactional
-    override fun insert(newItem: TrackLayoutSwitch): DaoResponse<TrackLayoutSwitch> {
+    override fun insert(newItem: TrackLayoutSwitch): LayoutDaoResponse<TrackLayoutSwitch> {
         val sql = """
             insert into 
               layout.switch(
@@ -173,7 +172,7 @@ class LayoutSwitchDao(
               version as row_version
         """.trimIndent()
         jdbcTemplate.setUser()
-        val response: DaoResponse<TrackLayoutSwitch> = jdbcTemplate.queryForObject(
+        val response: LayoutDaoResponse<TrackLayoutSwitch> = jdbcTemplate.queryForObject(
             sql, mapOf(
                 "external_id" to newItem.externalId,
                 "geometry_switch_id" to newItem.sourceId?.let(::toDbId)?.intValue,
@@ -196,7 +195,7 @@ class LayoutSwitchDao(
     }
 
     @Transactional
-    override fun update(updatedItem: TrackLayoutSwitch): DaoResponse<TrackLayoutSwitch> {
+    override fun update(updatedItem: TrackLayoutSwitch): LayoutDaoResponse<TrackLayoutSwitch> {
         val rowId = requireNotNull(updatedItem.contextData.rowId) {
             "Cannot update a row that doesn't have a DB ID: kmPost=$updatedItem"
         }
@@ -235,7 +234,7 @@ class LayoutSwitchDao(
             "owner_id" to updatedItem.ownerId?.intValue
         )
         jdbcTemplate.setUser()
-        val response: DaoResponse<TrackLayoutSwitch> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+        val response: LayoutDaoResponse<TrackLayoutSwitch> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to get new version for Track Layout Switch")
 
@@ -510,7 +509,7 @@ class LayoutSwitchDao(
     fun findOfficialNameDuplicates(
         layoutBranch: LayoutBranch,
         names: List<SwitchName>,
-    ): Map<SwitchName, List<DaoResponse<TrackLayoutSwitch>>> {
+    ): Map<SwitchName, List<LayoutDaoResponse<TrackLayoutSwitch>>> {
         return if (names.isEmpty()) {
             emptyMap()
         } else {

@@ -252,7 +252,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
             .first()
             .let { version -> trackNumberService.publish(LayoutBranch.main, version) }
 
-    private fun publishReferenceLine(id: IntId<ReferenceLine>): DaoResponse<ReferenceLine> = referenceLineDao
+    private fun publishReferenceLine(id: IntId<ReferenceLine>): LayoutDaoResponse<ReferenceLine> = referenceLineDao
         .fetchPublicationVersions(LayoutBranch.main, listOf(id))
         .first()
         .let { version -> referenceLineService.publish(LayoutBranch.main, version) }

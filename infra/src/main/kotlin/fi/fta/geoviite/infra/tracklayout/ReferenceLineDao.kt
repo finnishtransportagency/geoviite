@@ -11,7 +11,6 @@ import fi.fta.geoviite.infra.util.getDaoResponse
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
-import fi.fta.geoviite.infra.util.getOne
 import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.getTrackMeter
 import fi.fta.geoviite.infra.util.queryOptional
@@ -108,7 +107,7 @@ class ReferenceLineDao(
     )
 
     @Transactional
-    override fun insert(newItem: ReferenceLine): DaoResponse<ReferenceLine> {
+    override fun insert(newItem: ReferenceLine): LayoutDaoResponse<ReferenceLine> {
         val sql = """
             insert into layout.reference_line(
               track_number_id,
@@ -148,7 +147,7 @@ class ReferenceLineDao(
         )
 
         jdbcTemplate.setUser()
-        val version: DaoResponse<ReferenceLine> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+        val version: LayoutDaoResponse<ReferenceLine> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: error("Failed to generate ID for new Location Track")
         logger.daoAccess(AccessType.INSERT, ReferenceLine::class, version)
@@ -156,7 +155,7 @@ class ReferenceLineDao(
     }
 
     @Transactional
-    override fun update(updatedItem: ReferenceLine): DaoResponse<ReferenceLine> {
+    override fun update(updatedItem: ReferenceLine): LayoutDaoResponse<ReferenceLine> {
         val rowId = requireNotNull(updatedItem.contextData.rowId) {
             "Cannot update a row that doesn't have a DB ID: kmPost=$updatedItem"
         }
@@ -190,7 +189,7 @@ class ReferenceLineDao(
             "design_id" to updatedItem.contextData.designId?.intValue,
         )
         jdbcTemplate.setUser()
-        val result: DaoResponse<ReferenceLine> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+        val result: LayoutDaoResponse<ReferenceLine> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: error("Failed to get new version for Reference Line")
         logger.daoAccess(AccessType.UPDATE, ReferenceLine::class, result)
@@ -223,7 +222,7 @@ class ReferenceLineDao(
     override fun fetchVersions(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
-    ): List<DaoResponse<ReferenceLine>> {
+    ): List<LayoutDaoResponse<ReferenceLine>> {
         val sql = """
             select
               rl.official_id,

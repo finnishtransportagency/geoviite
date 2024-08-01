@@ -18,9 +18,9 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.split.SplitService
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
@@ -223,7 +223,7 @@ class LinkingService @Autowired constructor(
     }
 
     @Transactional
-    fun saveKmPostLinking(branch: LayoutBranch, parameters: KmPostLinkingParameters): DaoResponse<TrackLayoutKmPost> {
+    fun saveKmPostLinking(branch: LayoutBranch, parameters: KmPostLinkingParameters): LayoutDaoResponse<TrackLayoutKmPost> {
         verifyPlanNotHidden(parameters.geometryPlanId)
 
         val geometryKmPost = geometryService.getKmPost(parameters.geometryKmPostId)

@@ -11,8 +11,8 @@ import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.pointInDirection
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
@@ -614,10 +614,10 @@ class PublicationValidationTest {
 
     @Test
     fun `Combine versions overrides official version with validation version`() {
-        val officialVersions: List<DaoResponse<PublicationValidationTest>> = listOf(
-            DaoResponse(IntId(1), LayoutRowVersion(LayoutRowId(1), 2)),
-            DaoResponse(IntId(2), LayoutRowVersion(LayoutRowId(2), 3)),
-            DaoResponse(IntId(3), LayoutRowVersion(LayoutRowId(3), 4)),
+        val officialVersions: List<LayoutDaoResponse<PublicationValidationTest>> = listOf(
+            LayoutDaoResponse(IntId(1), LayoutRowVersion(LayoutRowId(1), 2)),
+            LayoutDaoResponse(IntId(2), LayoutRowVersion(LayoutRowId(2), 3)),
+            LayoutDaoResponse(IntId(3), LayoutRowVersion(LayoutRowId(3), 4)),
         )
         val validationVersions: List<ValidationVersion<PublicationValidationTest>> = listOf(
             ValidationVersion(IntId(2), LayoutRowVersion(LayoutRowId(16), 1)),

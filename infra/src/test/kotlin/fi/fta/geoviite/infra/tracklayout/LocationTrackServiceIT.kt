@@ -639,7 +639,7 @@ class LocationTrackServiceIT @Autowired constructor(
     ): Pair<LocationTrack, LayoutAlignment> = locationTrackService
         .getWithAlignment(locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment).rowVersion)
 
-    private fun createPublishedLocationTrack(seed: Int): Pair<DaoResponse<LocationTrack>, LocationTrack> {
+    private fun createPublishedLocationTrack(seed: Int): Pair<LayoutDaoResponse<LocationTrack>, LocationTrack> {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val (trackInsertResponse, _) = createAndVerifyTrack(trackNumberId, seed)
         return publishAndVerify(trackInsertResponse.id)
@@ -648,7 +648,7 @@ class LocationTrackServiceIT @Autowired constructor(
     private fun createAndVerifyTrack(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         seed: Int,
-    ): Pair<DaoResponse<LocationTrack>, LocationTrack> {
+    ): Pair<LayoutDaoResponse<LocationTrack>, LocationTrack> {
         val insertRequest = saveRequest(trackNumberId, seed)
         val insertResponse = locationTrackService.insert(LayoutBranch.main, insertRequest)
         val insertedTrack = locationTrackService.get(MainLayoutContext.draft, insertResponse.id)!!
@@ -658,7 +658,7 @@ class LocationTrackServiceIT @Autowired constructor(
 
     private fun publishAndVerify(
         locationTrackId: IntId<LocationTrack>,
-    ): Pair<DaoResponse<LocationTrack>, LocationTrack> {
+    ): Pair<LayoutDaoResponse<LocationTrack>, LocationTrack> {
         val (draft, draftAlignment) = locationTrackService
             .getWithAlignmentOrThrow(MainLayoutContext.draft, locationTrackId)
         assertTrue(draft.isDraft)
@@ -723,7 +723,7 @@ class LocationTrackServiceIT @Autowired constructor(
         ownerId = IntId(1)
     )
 
-    private fun publish(id: IntId<LocationTrack>): DaoResponse<LocationTrack> = locationTrackDao
+    private fun publish(id: IntId<LocationTrack>): LayoutDaoResponse<LocationTrack> = locationTrackDao
         .fetchPublicationVersions(LayoutBranch.main, listOf(id))
         .first()
         .let { version -> locationTrackService.publish(LayoutBranch.main, version) }

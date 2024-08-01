@@ -26,10 +26,10 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
 import fi.fta.geoviite.infra.projektivelho.PVId
 import fi.fta.geoviite.infra.projektivelho.PVProjectName
 import fi.fta.geoviite.infra.publication.Change
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
+import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
@@ -199,7 +199,7 @@ inline fun <reified T> ResultSet.getNullableListOrNull(name: String): List<T?>? 
     else null
 }
 
-fun <T> ResultSet.getDaoResponse(officialIdName: String, versionIdName: String, versionName: String) = DaoResponse<T>(
+fun <T> ResultSet.getDaoResponse(officialIdName: String, versionIdName: String, versionName: String) = LayoutDaoResponse<T>(
     id = getIntId(officialIdName),
     rowVersion = getLayoutRowVersion(versionIdName, versionName),
 )

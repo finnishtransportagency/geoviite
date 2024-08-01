@@ -25,9 +25,9 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchConnectivityType
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.switchConnectivityType
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -895,7 +895,7 @@ private fun collectTopologyEndLinks(
 }.filter { (_, ends) -> ends.isNotEmpty() }
 
 fun <T> combineVersions(
-    officials: List<DaoResponse<T>>,
+    officials: List<LayoutDaoResponse<T>>,
     validations: List<ValidationVersion<T>>,
 ): Collection<LayoutRowVersion<T>> {
     val officialVersions = officials

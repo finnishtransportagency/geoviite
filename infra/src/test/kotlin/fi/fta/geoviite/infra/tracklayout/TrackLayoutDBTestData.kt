@@ -64,7 +64,7 @@ fun addTopologyStartSwitchIntoLocationTrackAndUpdate(
     switchId: IntId<TrackLayoutSwitch>,
     jointNumber: JointNumber,
     locationTrackService: LocationTrackService,
-): DaoResponse<LocationTrack> = locationTrackService.saveDraft(
+): LayoutDaoResponse<LocationTrack> = locationTrackService.saveDraft(
     LayoutBranch.main,
     locationTrack.copy(
         topologyStartSwitch = TopologyLocationTrackSwitch(
@@ -80,7 +80,7 @@ fun moveReferenceLineGeometryPointsAndUpdate(
     alignment: LayoutAlignment,
     moveFunc: (point: IPoint3DM) -> IPoint,
     referenceLineService: ReferenceLineService,
-): DaoResponse<ReferenceLine> = referenceLineService.saveDraft(
+): LayoutDaoResponse<ReferenceLine> = referenceLineService.saveDraft(
     LayoutBranch.main,
     referenceLine,
     moveAlignmentPoints(alignment, moveFunc),

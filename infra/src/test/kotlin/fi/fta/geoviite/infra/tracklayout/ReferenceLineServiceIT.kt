@@ -223,7 +223,7 @@ class ReferenceLineServiceIT @Autowired constructor(
     private fun publishAndVerify(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         referenceLineId: IntId<ReferenceLine>,
-    ): Pair<DaoResponse<ReferenceLine>, ReferenceLine> {
+    ): Pair<LayoutDaoResponse<ReferenceLine>, ReferenceLine> {
         val (draft, draftAlignment) = referenceLineService
             .getWithAlignmentOrThrow(MainLayoutContext.draft, referenceLineId)
         assertTrue(draft.isDraft)

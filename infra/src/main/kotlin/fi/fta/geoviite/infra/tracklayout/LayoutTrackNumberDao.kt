@@ -14,7 +14,6 @@ import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getOidOrNull
-import fi.fta.geoviite.infra.util.getOne
 import fi.fta.geoviite.infra.util.getTrackNumber
 import fi.fta.geoviite.infra.util.setUser
 import org.springframework.beans.factory.annotation.Value
@@ -47,7 +46,7 @@ class LayoutTrackNumberDao(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
         number: TrackNumber?,
-    ): List<DaoResponse<TrackLayoutTrackNumber>> {
+    ): List<LayoutDaoResponse<TrackLayoutTrackNumber>> {
         val sql = """
             select official_id, row_id, row_version
             from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id)
@@ -142,7 +141,7 @@ class LayoutTrackNumberDao(
     )
 
     @Transactional
-    override fun insert(newItem: TrackLayoutTrackNumber): DaoResponse<TrackLayoutTrackNumber> {
+    override fun insert(newItem: TrackLayoutTrackNumber): LayoutDaoResponse<TrackLayoutTrackNumber> {
         val sql = """
             insert into layout.track_number(
               external_id, 
@@ -180,7 +179,7 @@ class LayoutTrackNumberDao(
             "design_id" to newItem.contextData.designId?.intValue,
         )
         jdbcTemplate.setUser()
-        val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+        val response: LayoutDaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to generate ID for new TrackNumber")
         logger.daoAccess(AccessType.INSERT, TrackLayoutTrackNumber::class, response)
@@ -188,7 +187,7 @@ class LayoutTrackNumberDao(
     }
 
     @Transactional
-    override fun update(updatedItem: TrackLayoutTrackNumber): DaoResponse<TrackLayoutTrackNumber> {
+    override fun update(updatedItem: TrackLayoutTrackNumber): LayoutDaoResponse<TrackLayoutTrackNumber> {
         val rowId = requireNotNull(updatedItem.contextData.rowId) {
             "Cannot update a row that doesn't have a DB ID: kmPost=$updatedItem"
         }
@@ -221,7 +220,7 @@ class LayoutTrackNumberDao(
             "design_id" to updatedItem.contextData.designId?.intValue,
         )
         jdbcTemplate.setUser()
-        val response: DaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+        val response: LayoutDaoResponse<TrackLayoutTrackNumber> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to get new version for Track Layout TrackNumber")
         logger.daoAccess(AccessType.UPDATE, TrackLayoutTrackNumber::class, response)
@@ -248,7 +247,7 @@ class LayoutTrackNumberDao(
     fun findOfficialNumberDuplicates(
         layoutBranch: LayoutBranch,
         numbers: List<TrackNumber>,
-    ): Map<TrackNumber, List<DaoResponse<TrackLayoutTrackNumber>>> {
+    ): Map<TrackNumber, List<LayoutDaoResponse<TrackLayoutTrackNumber>>> {
         return if (numbers.isEmpty()) {
             emptyMap()
         } else {
@@ -261,10 +260,10 @@ class LayoutTrackNumberDao(
             """.trimIndent()
             val params = mapOf("numbers" to numbers, "design_id" to layoutBranch.designId?.intValue)
             val found =
-                jdbcTemplate.query<Pair<TrackNumber, DaoResponse<TrackLayoutTrackNumber>>>(sql, params) { rs, _ ->
-                    val version = rs.getDaoResponse<TrackLayoutTrackNumber>("official_id", "row_id", "row_version")
+                jdbcTemplate.query<Pair<TrackNumber, LayoutDaoResponse<TrackLayoutTrackNumber>>>(sql, params) { rs, _ ->
+                    val daoResponse = rs.getDaoResponse<TrackLayoutTrackNumber>("official_id", "row_id", "row_version")
                     val name = rs.getString("number").let(::TrackNumber)
-                    name to version
+                    name to daoResponse
                 }
             // Ensure that the result contains all asked-for numbers, even if there are no matches
             numbers.associateWith { n -> found.filter { (number, _) -> number == n }.map { (_, v) -> v } }

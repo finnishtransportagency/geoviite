@@ -324,7 +324,7 @@ class PublicationDao(
         switchIds: List<IntId<TrackLayoutSwitch>>,
         locationTrackIdsInPublicationUnit: List<IntId<LocationTrack>>? = null,
         includeDeleted: Boolean = false,
-    ): Map<IntId<TrackLayoutSwitch>, Set<DaoResponse<LocationTrack>>> {
+    ): Map<IntId<TrackLayoutSwitch>, Set<LayoutDaoResponse<LocationTrack>>> {
         if (switchIds.isEmpty()) return mapOf()
 
         val draftTrackIncludedCondition = if (locationTrackIdsInPublicationUnit == null) "true"
@@ -375,7 +375,7 @@ class PublicationDao(
             "location_track_ids" to locationTrackIdsInPublicationUnit?.map(IntId<*>::intValue),
             "include_deleted" to includeDeleted,
         )
-        val result = mutableMapOf<IntId<TrackLayoutSwitch>, Set<DaoResponse<LocationTrack>>>()
+        val result = mutableMapOf<IntId<TrackLayoutSwitch>, Set<LayoutDaoResponse<LocationTrack>>>()
         jdbcTemplate.query(sql, params) { rs, _ ->
             val trackVersion = rs.getDaoResponse<LocationTrack>("official_id", "row_id", "row_version")
             val switchIdList = rs.getIntIdArray<TrackLayoutSwitch>("switch_ids")
@@ -390,7 +390,7 @@ class PublicationDao(
     fun fetchOfficialDuplicateTrackVersions(
         layoutBranch: LayoutBranch,
         ids: List<IntId<LocationTrack>>,
-    ): Map<IntId<LocationTrack>, List<DaoResponse<LocationTrack>>> {
+    ): Map<IntId<LocationTrack>, List<LayoutDaoResponse<LocationTrack>>> {
         val sql = """
             select official_id, row_id, row_version, duplicate_of_location_track_id
             from layout.location_track_in_layout_context('OFFICIAL', :design_id)

@@ -4,9 +4,9 @@ import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.publication.ValidationVersion
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
+import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -32,7 +32,7 @@ class ChangeContext(
     val geocodingKeysBefore: LazyMap<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
     val geocodingKeysAfter: LazyMap<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
 
-    val getTrackNumberTracksBefore: (trackNumberId: IntId<TrackLayoutTrackNumber>) -> List<DaoResponse<LocationTrack>>,
+    val getTrackNumberTracksBefore: (trackNumberId: IntId<TrackLayoutTrackNumber>) -> List<LayoutDaoResponse<LocationTrack>>,
 ) {
 
     fun getGeocodingContextBefore(id: IntId<TrackLayoutTrackNumber>) =

@@ -10,8 +10,8 @@ import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.OVERWRITE
 import fi.fta.geoviite.infra.split.SplitTargetDuplicateOperation.TRANSFER
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -256,7 +256,7 @@ class SplitServiceIT @Autowired constructor(
     }
 
     private fun assertTargetTrack(
-        sourceResponse: DaoResponse<LocationTrack>,
+        sourceResponse: LayoutDaoResponse<LocationTrack>,
         request: SplitRequestTarget,
         response: SplitTarget,
     ) {

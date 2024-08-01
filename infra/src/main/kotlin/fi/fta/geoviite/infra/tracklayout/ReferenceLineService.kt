@@ -25,7 +25,7 @@ class ReferenceLineService(
         branch: LayoutBranch,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         startAddress: TrackMeter,
-    ): DaoResponse<ReferenceLine> {
+    ): LayoutDaoResponse<ReferenceLine> {
         return saveDraftInternal(
             branch,
             ReferenceLine(
@@ -43,7 +43,7 @@ class ReferenceLineService(
         branch: LayoutBranch,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         startAddress: TrackMeter,
-    ): DaoResponse<ReferenceLine>? {
+    ): LayoutDaoResponse<ReferenceLine>? {
         val originalVersion = dao.fetchVersionByTrackNumberId(branch.draft, trackNumberId)
             ?: throw IllegalStateException("Track number should have a reference line")
         val original = dao.fetch(originalVersion)
@@ -61,7 +61,7 @@ class ReferenceLineService(
     }
 
     @Transactional
-    override fun saveDraft(branch: LayoutBranch, draftAsset: ReferenceLine): DaoResponse<ReferenceLine> =
+    override fun saveDraft(branch: LayoutBranch, draftAsset: ReferenceLine): LayoutDaoResponse<ReferenceLine> =
         super.saveDraft(branch, draftAsset.copy(alignmentVersion = updatedAlignmentVersion(draftAsset)))
 
     @Transactional
@@ -69,7 +69,7 @@ class ReferenceLineService(
         branch: LayoutBranch,
         draftAsset: ReferenceLine,
         alignment: LayoutAlignment,
-    ): DaoResponse<ReferenceLine> {
+    ): LayoutDaoResponse<ReferenceLine> {
         return saveDraftInternal(branch, draftAsset, alignment)
     }
 
@@ -77,7 +77,7 @@ class ReferenceLineService(
         branch: LayoutBranch,
         draftAsset: ReferenceLine,
         alignment: LayoutAlignment,
-    ): DaoResponse<ReferenceLine> {
+    ): LayoutDaoResponse<ReferenceLine> {
         require(alignment.segments.all { it.switchId == null }) {
             "Reference lines cannot have switches: id=${draftAsset.id} referenceLine=$draftAsset"
         }
@@ -106,7 +106,7 @@ class ReferenceLineService(
         else line.alignmentVersion
 
     @Transactional
-    override fun publish(branch: LayoutBranch, version: ValidationVersion<ReferenceLine>): DaoResponse<ReferenceLine> {
+    override fun publish(branch: LayoutBranch, version: ValidationVersion<ReferenceLine>): LayoutDaoResponse<ReferenceLine> {
         val publishedVersion = publishInternal(branch, version.validatedAssetVersion)
         // Some of the versions may get deleted in publication -> delete any alignments they left behind
         alignmentDao.deleteOrphanedAlignments()
@@ -114,7 +114,7 @@ class ReferenceLineService(
     }
 
     @Transactional
-    override fun deleteDraft(branch: LayoutBranch, id: IntId<ReferenceLine>): DaoResponse<ReferenceLine> {
+    override fun deleteDraft(branch: LayoutBranch, id: IntId<ReferenceLine>): LayoutDaoResponse<ReferenceLine> {
         val draft = dao.getOrThrow(branch.draft, id)
         val deletedVersion = super.deleteDraft(branch, id)
         draft.alignmentVersion?.id?.let(alignmentDao::delete)
@@ -125,7 +125,7 @@ class ReferenceLineService(
     fun deleteDraftByTrackNumberId(
         branch: LayoutBranch,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-    ): DaoResponse<ReferenceLine>? {
+    ): LayoutDaoResponse<ReferenceLine>? {
         val referenceLine = requireNotNull(referenceLineDao.getByTrackNumber(branch.draft, trackNumberId)) {
             "Found Track Number without Reference Line $trackNumberId"
         }
@@ -213,7 +213,7 @@ class ReferenceLineService(
         return dao.fetchVersionsNear(layoutContext, bbox).map(dao::fetch)
     }
 
-    override fun mergeToMainBranch(fromBranch: DesignBranch, id: IntId<ReferenceLine>): DaoResponse<ReferenceLine> {
+    override fun mergeToMainBranch(fromBranch: DesignBranch, id: IntId<ReferenceLine>): LayoutDaoResponse<ReferenceLine> {
         val (versions, line) = fetchAndCheckVersionsForMerging(fromBranch, id)
         return mergeToMainBranchInternal(
             versions,

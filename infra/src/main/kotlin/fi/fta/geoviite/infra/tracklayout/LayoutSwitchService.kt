@@ -65,7 +65,7 @@ class LayoutSwitchService @Autowired constructor(
     }
 
     @Transactional
-    override fun deleteDraft(branch: LayoutBranch, id: IntId<TrackLayoutSwitch>): DaoResponse<TrackLayoutSwitch> {
+    override fun deleteDraft(branch: LayoutBranch, id: IntId<TrackLayoutSwitch>): LayoutDaoResponse<TrackLayoutSwitch> {
         val draft = dao.getOrThrow(branch.draft, id)
         // If removal also breaks references, clear them out first
         if (draft.contextData.officialRowId == null) {
@@ -122,7 +122,7 @@ class LayoutSwitchService @Autowired constructor(
         branch: LayoutBranch,
         id: IntId<TrackLayoutSwitch>,
         oid: Oid<TrackLayoutSwitch>,
-    ): DaoResponse<TrackLayoutSwitch> {
+    ): LayoutDaoResponse<TrackLayoutSwitch> {
         val original = dao.getOrThrow(branch.draft, id)
         return saveDraft(branch, original.copy(externalId = oid))
     }

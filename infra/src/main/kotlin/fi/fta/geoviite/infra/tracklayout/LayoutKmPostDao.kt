@@ -16,7 +16,6 @@ import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getKmNumber
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
-import fi.fta.geoviite.infra.util.getOne
 import fi.fta.geoviite.infra.util.getPointOrNull
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
@@ -52,7 +51,7 @@ class LayoutKmPostDao(
         includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         bbox: BoundingBox? = null,
-    ): List<DaoResponse<TrackLayoutKmPost>> {
+    ): List<LayoutDaoResponse<TrackLayoutKmPost>> {
         val sql = """
             select km_post.official_id, km_post.row_id, km_post.row_version 
             from layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id) km_post
@@ -83,7 +82,7 @@ class LayoutKmPostDao(
         branch: LayoutBranch,
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         kmPostIdsToPublish: List<IntId<TrackLayoutKmPost>>,
-    ): Map<IntId<TrackLayoutTrackNumber>, List<DaoResponse<TrackLayoutKmPost>>> {
+    ): Map<IntId<TrackLayoutTrackNumber>, List<LayoutDaoResponse<TrackLayoutKmPost>>> {
         if (trackNumberIds.isEmpty()) return emptyMap()
         val sql = """
             select km_post.track_number_id, km_post.official_id, km_post.row_id, km_post.row_version
@@ -210,7 +209,7 @@ class LayoutKmPostDao(
     )
 
     @Transactional
-    override fun insert(newItem: TrackLayoutKmPost): DaoResponse<TrackLayoutKmPost> {
+    override fun insert(newItem: TrackLayoutKmPost): LayoutDaoResponse<TrackLayoutKmPost> {
         val trackNumberId = toDbId(requireNotNull(newItem.trackNumberId) {
             "KM post not linked to TrackNumber: kmPost=$newItem"
         })
@@ -256,7 +255,7 @@ class LayoutKmPostDao(
             "design_id" to newItem.contextData.designId?.intValue,
         )
         jdbcTemplate.setUser()
-        val response: DaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+        val response: LayoutDaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to generate ID for new km-post")
         logger.daoAccess(AccessType.INSERT, TrackLayoutKmPost::class, response)
@@ -264,7 +263,7 @@ class LayoutKmPostDao(
     }
 
     @Transactional
-    override fun update(updatedItem: TrackLayoutKmPost): DaoResponse<TrackLayoutKmPost> {
+    override fun update(updatedItem: TrackLayoutKmPost): LayoutDaoResponse<TrackLayoutKmPost> {
         val trackNumberId = toDbId(requireNotNull(updatedItem.trackNumberId) {
             "KM post not linked to TrackNumber: kmPost=$updatedItem"
         })
@@ -307,7 +306,7 @@ class LayoutKmPostDao(
             "design_id" to updatedItem.contextData.designId?.intValue,
         )
         jdbcTemplate.setUser()
-        val response: DaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+        val response: LayoutDaoResponse<TrackLayoutKmPost> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         } ?: throw IllegalStateException("Failed to generate ID for new row version of updated km-post")
         logger.daoAccess(AccessType.UPDATE, TrackLayoutKmPost::class, response)

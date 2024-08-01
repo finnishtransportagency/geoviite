@@ -21,10 +21,10 @@ import fi.fta.geoviite.infra.publication.ValidationContext
 import fi.fta.geoviite.infra.publication.ValidationVersions
 import fi.fta.geoviite.infra.publication.validationError
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
+import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
@@ -100,7 +100,7 @@ class SplitService(
     @Transactional
     fun publishSplit(
         validatedSplitVersions: List<RowVersion<Split>>,
-        locationTracks: Collection<DaoResponse<LocationTrack>>,
+        locationTracks: Collection<LayoutDaoResponse<LocationTrack>>,
         publicationId: IntId<Publication>,
     ): List<RowVersion<Split>> {
         return validatedSplitVersions.map { splitVersion ->
@@ -436,7 +436,7 @@ class SplitService(
         ).forEach { updatedDuplicate -> locationTrackService.saveDraft(branch, updatedDuplicate) }
     }
 
-    private fun saveTargetTrack(branch: LayoutBranch, target: SplitTargetResult): DaoResponse<LocationTrack> =
+    private fun saveTargetTrack(branch: LayoutBranch, target: SplitTargetResult): LayoutDaoResponse<LocationTrack> =
         locationTrackService.saveDraft(
             branch = branch,
             draftAsset = locationTrackService.fetchNearbyTracksAndCalculateLocationTrackTopology(

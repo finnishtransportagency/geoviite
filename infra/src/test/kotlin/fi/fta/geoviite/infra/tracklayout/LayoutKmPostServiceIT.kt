@@ -196,7 +196,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
         )
         val kmPostSaveResults = kmPosts
             .map { d -> kmPostService.saveDraft(LayoutBranch.main, d) }
-            .map(DaoResponse<TrackLayoutKmPost>::id)
+            .map(LayoutDaoResponse<TrackLayoutKmPost>::id)
 
         // drop(1) because the track number km lengths include the section before the first km post
         val expected = trackNumberService.getKmLengths(MainLayoutContext.draft, trackNumberId)!!.drop(1)

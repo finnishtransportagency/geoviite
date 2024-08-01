@@ -7,7 +7,7 @@ import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
+import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
@@ -232,7 +232,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
         assertEquals(RatkoOperation.CREATE, ratkoPushError.operation)
     }
 
-    fun insertAndPublishLocationTrack(): DaoResponse<LocationTrack> =
+    fun insertAndPublishLocationTrack(): LayoutDaoResponse<LocationTrack> =
         locationTrackAndAlignment(trackNumberId, draft = true).let { (track, alignment) ->
             val draftVersion = locationTrackService.saveDraft(LayoutBranch.main, track, alignment)
             locationTrackService.publish(LayoutBranch.main, ValidationVersion(draftVersion.id, draftVersion.rowVersion))

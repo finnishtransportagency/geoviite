@@ -9,7 +9,7 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
+import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
@@ -27,7 +27,7 @@ import org.springframework.stereotype.Service
 import kotlin.test.assertEquals
 
 data class SwitchAndSegments(
-    val switch: DaoResponse<TrackLayoutSwitch>,
+    val switch: LayoutDaoResponse<TrackLayoutSwitch>,
     val straightSwitchSegments: List<LayoutSegment>,
     val turningSwitchSegments: List<LayoutSegment>,
 )
@@ -119,7 +119,7 @@ class SplitTestDataService @Autowired constructor(
     fun createAsMainTrack(
         segments: List<LayoutSegment>,
         trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
-    ): DaoResponse<LocationTrack> {
+    ): LayoutDaoResponse<LocationTrack> {
         val alignment = alignment(segments)
         mainOfficialContext.insert(referenceLine(trackNumberId), alignment)
 

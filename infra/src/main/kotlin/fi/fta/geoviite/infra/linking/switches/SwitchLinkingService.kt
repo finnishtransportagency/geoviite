@@ -40,10 +40,10 @@ import fi.fta.geoviite.infra.publication.validateWithParams
 import fi.fta.geoviite.infra.split.VALIDATION_SPLIT
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.GeometrySource
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
@@ -144,7 +144,7 @@ class SwitchLinkingService @Autowired constructor(
         branch: LayoutBranch,
         suggestedSwitch: SuggestedSwitch,
         switchId: IntId<TrackLayoutSwitch>,
-    ): DaoResponse<TrackLayoutSwitch> {
+    ): LayoutDaoResponse<TrackLayoutSwitch> {
         suggestedSwitch.geometrySwitchId?.let(::verifyPlanNotHidden)
         val originalTracks = suggestedSwitch.trackLinks.keys.associateWith { id ->
             locationTrackService.getWithAlignmentOrThrow(branch.draft, id)
@@ -439,7 +439,7 @@ class SwitchLinkingService @Autowired constructor(
         branch: LayoutBranch,
         suggestedSwitch: SuggestedSwitch,
         switchId: IntId<TrackLayoutSwitch>,
-    ): DaoResponse<TrackLayoutSwitch> {
+    ): LayoutDaoResponse<TrackLayoutSwitch> {
         return createModifiedLayoutSwitchLinking(branch, suggestedSwitch, switchId)
             .let { modifiedLayoutSwitch -> switchService.saveDraft(branch, modifiedLayoutSwitch) }
     }

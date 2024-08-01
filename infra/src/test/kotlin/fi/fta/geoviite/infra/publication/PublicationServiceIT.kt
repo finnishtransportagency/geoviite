@@ -40,13 +40,13 @@ import fi.fta.geoviite.infra.split.SplitTarget
 import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.split.validateSplitContent
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetService
+import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
@@ -218,7 +218,7 @@ class PublicationServiceIT @Autowired constructor(
 
     private fun <T> assertCandidatesContainCorrectVersions(
         candidates: List<PublicationCandidate<T>>,
-        vararg responses: DaoResponse<T>
+        vararg responses: LayoutDaoResponse<T>
     ) {
         assertEquals(responses.size, candidates.size)
         responses.forEach { response ->
@@ -3597,8 +3597,8 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     data class SplitSetup(
-        val sourceTrack: DaoResponse<LocationTrack>,
-        val targetTracks: List<Pair<DaoResponse<LocationTrack>, IntRange>>,
+        val sourceTrack: LayoutDaoResponse<LocationTrack>,
+        val targetTracks: List<Pair<LayoutDaoResponse<LocationTrack>, IntRange>>,
     ) {
         val targetParams: List<Pair<IntId<LocationTrack>, IntRange>> =
             targetTracks.map { (track, range) -> track.id to range }
@@ -4252,7 +4252,7 @@ fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> publishAndCheck(
     rowVersion: LayoutRowVersion<T>,
     dao: S,
     service: LayoutAssetService<T, S>,
-): Pair<DaoResponse<T>, T> {
+): Pair<LayoutDaoResponse<T>, T> {
     val draft = dao.fetch(rowVersion)
     val id = draft.id
 

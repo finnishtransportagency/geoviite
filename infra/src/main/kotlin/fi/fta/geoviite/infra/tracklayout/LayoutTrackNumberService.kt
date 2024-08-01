@@ -76,7 +76,7 @@ class LayoutTrackNumberService(
         branch: LayoutBranch,
         id: IntId<TrackLayoutTrackNumber>,
         oid: Oid<TrackLayoutTrackNumber>,
-    ): DaoResponse<TrackLayoutTrackNumber> {
+    ): LayoutDaoResponse<TrackLayoutTrackNumber> {
         val original = dao.getOrThrow(branch.draft, id)
         val trackLayoutTrackNumber = original.copy(externalId = oid)
 

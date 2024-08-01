@@ -661,7 +661,7 @@ class LocationTrackDaoIT @Autowired constructor(
         return nameSet
     }
 
-    private fun insertOfficialLocationTrack(tnId: IntId<TrackLayoutTrackNumber>): DaoResponse<LocationTrack> {
+    private fun insertOfficialLocationTrack(tnId: IntId<TrackLayoutTrackNumber>): LayoutDaoResponse<LocationTrack> {
         val (track, alignment) = locationTrackAndAlignment(tnId, draft = false)
         val alignmentVersion = alignmentDao.insert(alignment)
         return locationTrackDao.insert(track.copy(alignmentVersion = alignmentVersion))
@@ -670,7 +670,7 @@ class LocationTrackDaoIT @Autowired constructor(
     private fun insertDraftLocationTrack(
         tnId: IntId<TrackLayoutTrackNumber>,
         state: LocationTrackState = LocationTrackState.IN_USE,
-    ): DaoResponse<LocationTrack> {
+    ): LayoutDaoResponse<LocationTrack> {
         val (track, alignment) = locationTrackAndAlignment(
             trackNumberId = tnId,
             state = state,
@@ -683,7 +683,7 @@ class LocationTrackDaoIT @Autowired constructor(
     private fun createDraftWithNewTrackNumber(
         trackVersion: LayoutRowVersion<LocationTrack>,
         newTrackNumber: IntId<TrackLayoutTrackNumber>,
-    ): DaoResponse<LocationTrack> {
+    ): LayoutDaoResponse<LocationTrack> {
         val track = locationTrackDao.fetch(trackVersion)
         assertFalse(track.isDraft)
         val alignmentVersion = alignmentService.duplicate(track.alignmentVersion!!)

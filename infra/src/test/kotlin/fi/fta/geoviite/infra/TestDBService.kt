@@ -23,7 +23,6 @@ import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.project
 import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.tracklayout.ContextIdentity
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -31,6 +30,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import fi.fta.geoviite.infra.tracklayout.LayoutAssetDao
 import fi.fta.geoviite.infra.tracklayout.LayoutContextData
+import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutDesign
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
@@ -310,7 +310,7 @@ class TestDBService(
     final inline fun <reified T : LayoutAsset<T>> update(
         rowVersion: LayoutRowVersion<T>,
         mutate: (T) -> T = { it },
-    ): DaoResponse<T> {
+    ): LayoutDaoResponse<T> {
         val dao = getDao(T::class)
         return dao.update(mutate(dao.fetch(rowVersion)))
     }
@@ -336,7 +336,7 @@ class TestDBService(
         officialVersion: LayoutRowVersion<S>,
         targetBranch: LayoutBranch? = null,
         mutate: (S) -> S = { it },
-    ): DaoResponse<S> {
+    ): LayoutDaoResponse<S> {
         val original = fetch(officialVersion)
         assertTrue(original.isOfficial)
         val targetContext = testContext(targetBranch ?: original.branch, DRAFT)
@@ -360,12 +360,12 @@ data class TestLayoutContext(
     inline fun <reified T : PolyLineLayoutAsset<T>> fetchWithAlignment(id: IntId<T>): Pair<T, LayoutAlignment>? =
         fetch(id)?.let { a -> a to alignmentDao.fetch(a.getAlignmentVersionOrThrow()) }
 
-    fun <T : LayoutAsset<T>> insert(asset: T): DaoResponse<T> = testService.getDao(asset)
+    fun <T : LayoutAsset<T>> insert(asset: T): LayoutDaoResponse<T> = testService.getDao(asset)
         .insert(testService.updateContext(asset, context))
 
     fun <T : PolyLineLayoutAsset<T>> insert(
         assetAndAlignment: Pair<PolyLineLayoutAsset<T>, LayoutAlignment>
-    ): DaoResponse<T> = insert(assetAndAlignment.first, assetAndAlignment.second)
+    ): LayoutDaoResponse<T> = insert(assetAndAlignment.first, assetAndAlignment.second)
 
     inline fun <reified T : LayoutAsset<T>> assertContextVersionExists(id: IntId<T>) =
         assertEquals(context, getAssetOriginContext(id))
@@ -393,7 +393,7 @@ data class TestLayoutContext(
         officialRowId: LayoutRowId<T>? = null,
         designRowId: LayoutRowId<T>? = null,
         mutate: (T) -> T = { it },
-    ): DaoResponse<T> {
+    ): LayoutDaoResponse<T> {
         val dao = getDao(T::class)
         val original = mutate(dao.fetch(rowVersion))
         val withNewContext = original.withContext(createContextData(UnsavedIdentity(rowVersion), officialRowId, designRowId))
@@ -403,7 +403,7 @@ data class TestLayoutContext(
             is ReferenceLine -> insert(withNewContext, alignmentDao.fetch(withNewContext.getAlignmentVersionOrThrow()))
             is PolyLineLayoutAsset<*> -> error("Unhandled PolyLineAsset type: ${T::class.simpleName}")
             else -> insert(withNewContext)
-        } as DaoResponse<T>
+        } as LayoutDaoResponse<T>
     }
 
     /**
@@ -416,7 +416,7 @@ data class TestLayoutContext(
     inline fun <reified T : LayoutAsset<T>> moveFrom(
         rowVersion: LayoutRowVersion<T>,
         mutate: (T) -> T = { it },
-    ): DaoResponse<T> {
+    ): LayoutDaoResponse<T> {
         val dao = getDao(T::class)
         val original = mutate(dao.fetch(rowVersion))
         val withNewContext = original.withContext(original.contextData.let { origCtx ->
@@ -433,15 +433,15 @@ data class TestLayoutContext(
     fun <T : PolyLineLayoutAsset<T>> insert(
         asset: PolyLineLayoutAsset<T>,
         alignment: LayoutAlignment,
-    ): DaoResponse<T> = when (asset) {
+    ): LayoutDaoResponse<T> = when (asset) {
         is LocationTrack -> insert(asset.copy(alignmentVersion = alignmentDao.insert(alignment)))
         is ReferenceLine -> insert(asset.copy(alignmentVersion = alignmentDao.insert(alignment)))
-    } as DaoResponse<T>
+    } as LayoutDaoResponse<T>
 
-    fun <T : LayoutAsset<T>> insertMany(vararg asset: T): List<DaoResponse<T>> = asset.map(::insert)
+    fun <T : LayoutAsset<T>> insertMany(vararg asset: T): List<LayoutDaoResponse<T>> = asset.map(::insert)
     fun <T : PolyLineLayoutAsset<T>> insertMany(
         vararg assets: Pair<PolyLineLayoutAsset<T>, LayoutAlignment>,
-    ): List<DaoResponse<T>> = assets.map(::insert)
+    ): List<LayoutDaoResponse<T>> = assets.map(::insert)
 
     fun <T : LayoutAsset<T>> insertAndFetch(asset: T): T = getDao(asset).fetch(insert(asset).rowVersion)
 
@@ -462,7 +462,7 @@ data class TestLayoutContext(
         vararg assets: Pair<PolyLineLayoutAsset<T>, LayoutAlignment>,
     ): List<Pair<T, LayoutAlignment>> = assets.map(::insertAndFetch)
 
-    fun createLayoutTrackNumber(): DaoResponse<TrackLayoutTrackNumber> =
+    fun createLayoutTrackNumber(): LayoutDaoResponse<TrackLayoutTrackNumber> =
         insert(trackNumber(testService.getUnusedTrackNumber()))
 
     fun createAndFetchLayoutTrackNumber(): TrackLayoutTrackNumber =
@@ -470,10 +470,10 @@ data class TestLayoutContext(
 
     fun createLayoutTrackNumberAndReferenceLine(
         lineAlignment: LayoutAlignment = alignment()
-    ): DaoResponse<TrackLayoutTrackNumber> = createLayoutTrackNumber()
+    ): LayoutDaoResponse<TrackLayoutTrackNumber> = createLayoutTrackNumber()
         .also { tnResponse -> insert(referenceLine(trackNumberId = tnResponse.id), lineAlignment) }
 
-    fun createLayoutTrackNumbers(count: Int): List<DaoResponse<TrackLayoutTrackNumber>> =
+    fun createLayoutTrackNumbers(count: Int): List<LayoutDaoResponse<TrackLayoutTrackNumber>> =
         (1..count).map { createLayoutTrackNumber() }
 
     fun getOrCreateLayoutTrackNumber(trackNumber: TrackNumber): TrackLayoutTrackNumber {
@@ -487,7 +487,7 @@ data class TestLayoutContext(
 
     fun createSwitch(
         stateCategory: LayoutStateCategory = LayoutStateCategory.EXISTING,
-    ): DaoResponse<TrackLayoutSwitch> = insert(
+    ): LayoutDaoResponse<TrackLayoutSwitch> = insert(
         switch(
             name = testService.getUnusedSwitchName().toString(),
             stateCategory = stateCategory,

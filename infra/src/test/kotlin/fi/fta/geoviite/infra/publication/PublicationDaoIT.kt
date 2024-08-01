@@ -21,8 +21,8 @@ import fi.fta.geoviite.infra.integration.SwitchChange
 import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.integration.TrackNumberChange
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
@@ -385,7 +385,7 @@ class PublicationDaoIT @Autowired constructor(
 
     private fun insertAndCheck(
         trackNumber: TrackLayoutTrackNumber,
-    ): Pair<DaoResponse<TrackLayoutTrackNumber>, TrackLayoutTrackNumber> {
+    ): Pair<LayoutDaoResponse<TrackLayoutTrackNumber>, TrackLayoutTrackNumber> {
         val official = trackNumberDao.insert(trackNumber)
         val fromDb = trackNumberDao.fetch(official.rowVersion)
         assertEquals(official.id, fromDb.id)
@@ -396,7 +396,7 @@ class PublicationDaoIT @Autowired constructor(
         return official to fromDb
     }
 
-    private fun insertAndCheck(switch: TrackLayoutSwitch): Pair<DaoResponse<TrackLayoutSwitch>, TrackLayoutSwitch> {
+    private fun insertAndCheck(switch: TrackLayoutSwitch): Pair<LayoutDaoResponse<TrackLayoutSwitch>, TrackLayoutSwitch> {
         val official = switchDao.insert(switch)
         val fromDb = switchDao.fetch(official.rowVersion)
         assertEquals(official.id, fromDb.id)
@@ -407,7 +407,7 @@ class PublicationDaoIT @Autowired constructor(
         return official to fromDb
     }
 
-    private fun insertAndCheck(referenceLine: ReferenceLine): Pair<DaoResponse<ReferenceLine>, ReferenceLine> {
+    private fun insertAndCheck(referenceLine: ReferenceLine): Pair<LayoutDaoResponse<ReferenceLine>, ReferenceLine> {
         val dbAlignmentVersion = alignmentDao.insert(alignment())
         val lineWithAlignment = referenceLine.copy(alignmentVersion = dbAlignmentVersion)
         val official = referenceLineDao.insert(lineWithAlignment)
@@ -420,7 +420,7 @@ class PublicationDaoIT @Autowired constructor(
         return official to fromDb
     }
 
-    private fun insertAndCheck(locationTrack: LocationTrack): Pair<DaoResponse<LocationTrack>, LocationTrack> {
+    private fun insertAndCheck(locationTrack: LocationTrack): Pair<LayoutDaoResponse<LocationTrack>, LocationTrack> {
         val dbAlignmentVersion = alignmentDao.insert(alignment())
         val trackWithAlignment = locationTrack.copy(alignmentVersion = dbAlignmentVersion)
         val official = locationTrackDao.insert(trackWithAlignment)

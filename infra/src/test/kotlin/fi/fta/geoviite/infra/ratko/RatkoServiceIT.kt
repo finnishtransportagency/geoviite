@@ -37,10 +37,10 @@ import fi.fta.geoviite.infra.ratko.model.RatkoRouteNumberStateType
 import fi.fta.geoviite.infra.split.BulkTransferState
 import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitTestDataService
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
@@ -989,7 +989,7 @@ class RatkoServiceIT @Autowired constructor(
 
     private fun setupDraftSwitchAndLocationTracks(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-    ): Triple<DaoResponse<TrackLayoutSwitch>, DaoResponse<LocationTrack>, DaoResponse<LocationTrack>> {
+    ): Triple<LayoutDaoResponse<TrackLayoutSwitch>, LayoutDaoResponse<LocationTrack>, LayoutDaoResponse<LocationTrack>> {
         val switch = switchService.saveDraft(
             LayoutBranch.main,
             switch(
@@ -1358,7 +1358,7 @@ class RatkoServiceIT @Autowired constructor(
 
     private fun insertSomeOfficialReferenceLineFor(
         trackNumberId: IntId<TrackLayoutTrackNumber>
-    ): DaoResponse<ReferenceLine> {
+    ): LayoutDaoResponse<ReferenceLine> {
         return insertOfficialReferenceLineFromPair(
             referenceLineAndAlignment(
                 trackNumberId,
@@ -1370,7 +1370,7 @@ class RatkoServiceIT @Autowired constructor(
 
     private fun insertOfficialReferenceLineFromPair(
         pair: Pair<ReferenceLine, LayoutAlignment>
-    ): DaoResponse<ReferenceLine> {
+    ): LayoutDaoResponse<ReferenceLine> {
         val alignmentVersion = alignmentDao.insert(pair.second)
         return referenceLineDao.insert(pair.first.copy(alignmentVersion = alignmentVersion))
     }
@@ -1406,7 +1406,7 @@ class RatkoServiceIT @Autowired constructor(
     }
 
     private data class EstablishedTrackNumber(
-        val daoResponse: DaoResponse<TrackLayoutTrackNumber>,
+        val daoResponse: LayoutDaoResponse<TrackLayoutTrackNumber>,
         val externalId: Oid<TrackLayoutTrackNumber>,
         val trackNumberObject: TrackLayoutTrackNumber,
     ) {

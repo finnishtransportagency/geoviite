@@ -11,11 +11,11 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.split.Split
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
-import fi.fta.geoviite.infra.tracklayout.DaoResponse
 import fi.fta.geoviite.infra.tracklayout.ILayoutAssetDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
+import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
@@ -422,7 +422,7 @@ private fun <T : LayoutAsset<T>> preloadOfficialVersions(
 ) = cacheOfficialVersions(dao.fetchVersions(branch.official, ids), versionCache)
 
 private fun <T : LayoutAsset<T>> cacheOfficialVersions(
-    versions: List<DaoResponse<T>>,
+    versions: List<LayoutDaoResponse<T>>,
     cache: RowVersionCache<T>,
 ) = versions
     .filterNot { (id) -> cache.contains(id) }
@@ -433,7 +433,7 @@ private fun <T : LayoutAsset<T>, Field> mapIdsByField(
     fields: List<Field>,
     getField: (T) -> Field,
     publicationVersions: List<ValidationVersion<T>>,
-    matchingOfficialVersions: Map<Field, List<DaoResponse<T>>>,
+    matchingOfficialVersions: Map<Field, List<LayoutDaoResponse<T>>>,
     dao: ILayoutAssetDao<T>,
 ): Map<Field, List<IntId<T>>> {
     return fields.associateWith { field ->
