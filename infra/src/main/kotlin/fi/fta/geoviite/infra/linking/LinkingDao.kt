@@ -175,16 +175,13 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                             and segment_version.switch_id is not null
                             and exists(select *
                                          from layout.location_track
-                                           join lateral layout.location_track_in_layout_context(
-                                             :publication_state::layout.publication_state, :design_id,
-                                             coalesce(location_track.official_row_id,
-                                                      location_track.design_row_id,
-                                                      location_track.id))
-                                                on location_track.id = location_track_in_layout_context.row_id
-                                                  and location_track.version = location_track_in_layout_context.row_version
                                          where location_track.state != 'DELETED'
                                            and location_track.alignment_id = segment_version.alignment_id
                                            and location_track.alignment_version = segment_version.alignment_version
+                                           and layout.location_track_is_in_layout_context(
+                                             :publication_state::layout.publication_state,
+                                             :design_id,
+                                             segment_version.switch_id)
                             )
                             and exists(select *
                                          from layout.switch_in_layout_context(:publication_state::layout.publication_state,

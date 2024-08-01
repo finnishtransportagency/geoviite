@@ -421,29 +421,24 @@ class LocationTrackDao(
 
     fun fetchVersionsNear(context: LayoutContext, bbox: BoundingBox): List<LayoutRowVersion<LocationTrack>> {
         val sql = """
-            select row_id, row_version
-              from (
-                select coalesce(official_row_id, design_row_id, id) as official_id, id as row_id, version as row_version
-                  from layout.location_track
-                    join (
-                    select distinct alignment_id, alignment_version
-                      from layout.segment_version
-                        join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
-                      where postgis.st_intersects(
-                          postgis.st_makeenvelope(
-                              :x_min, :y_min,
-                              :x_max, :y_max,
-                              :layout_srid
-                            ),
-                          segment_geometry.bounding_box
-                        )
-                  ) in_box using (alignment_id, alignment_version)
-              ) location_track
-                join lateral (
-                select *
-                  from layout.location_track_in_layout_context(:publication_state::layout.publication_state,
-                                                               :design_id, location_track.official_id)
-                  where state != 'DELETED') in_layout_context using (row_id, row_version);
+            select id, version
+              from layout.location_track
+                join (
+                select distinct alignment_id, alignment_version
+                  from layout.segment_version
+                    join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+                  where postgis.st_intersects(
+                      postgis.st_makeenvelope(
+                          :x_min, :y_min,
+                          :x_max, :y_max,
+                          :layout_srid
+                        ),
+                      segment_geometry.bounding_box
+                    )
+              ) in_box using (alignment_id, alignment_version)
+              where state != 'DELETED'
+                and layout.location_track_is_in_layout_context(:publication_state::layout.publication_state, :design_id,
+                                                               location_track)
         """.trimIndent()
 
         val params = mapOf(
@@ -457,7 +452,7 @@ class LocationTrackDao(
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getLayoutRowVersion("row_id", "row_version")
+            rs.getLayoutRowVersion("id", "version")
         }
     }
 
