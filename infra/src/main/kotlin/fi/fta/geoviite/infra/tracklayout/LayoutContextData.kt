@@ -77,6 +77,7 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
     @get:JsonIgnore
     open val designRowId: LayoutRowId<T>? get() = null
 
+    @get:JsonIgnore
     val rowId: LayoutRowId<T>? get() = contextRowIdentity.rowId
 
     override val version: LayoutRowVersion<T>? get() = (contextRowIdentity as? StoredIdentity)?.version
