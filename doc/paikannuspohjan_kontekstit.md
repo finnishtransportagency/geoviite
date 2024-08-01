@@ -9,9 +9,9 @@ Virallinen paikannuspohja on se data joka viedään ratkoon ja joka esittää ra
 saatavilla olevan tiedon mukaan. Jos joku käsite on kerran ollut virallisessa paikannuspohjassa, se ei ikinä enää poistu
 täydellisesti vaan sen poistot tehdään nk. soft deletenä, eli asettamalla ne "poistettu" (Deleted) tilaan.
 
-## Luonnos paikannuspohja (Draft Layout)
+## Luonnospaikannuspohja (Draft Layout)
 
-Luonnos paikannuspohja on työtila jossa paikannuspohjaan voidaan tehdä muutoksia: uusien käsitteiden luontia ja
+Luonnospaikannuspohja on työtila jossa paikannuspohjaan voidaan tehdä muutoksia: uusien käsitteiden luontia ja
 olemassaolevien muokkauksia. Koska luonnos on oma kontekstinsa, mikään muutos siellä ei vaikuta viralliseen
 paikannuspohjaan suoraan.
 
@@ -30,9 +30,9 @@ olevaan käsitteeseen.
 ## Suunniteltu paikannupohja (Planned Layout)
 
 Suunniteltuja paikannuspohjia voi olla monta, sillä ne koostuvat erillisistä suunnitelmista jotka tarjoavat itsenäiset
-joukot suunniteltuja muutoksia. Käyttäjän kannalta ne toimivat pitkälti kuten luonnos paikannuspohja, mutta ne
+joukot suunniteltuja muutoksia. Käyttäjän kannalta ne toimivat pitkälti kuten luonnospaikannuspohja, mutta ne
 ovat kukin omia erillisiä kontekstejaan. Suunniteltu paikannuspohja rakentuu aina virallisen paikannuspohjan päälle,
-eikä siis ole mitenkään tietoinen varsinaisen paikannupohjan luonnos kontekstista.
+eikä siis ole mitenkään tietoinen varsinaisen paikannupohjan luonnoskontekstista.
 
 Suunnitelmilla on myös omat luonnosversionsa ja niistä tehdään omia julkaisujaan, jotka siis menevät julkaistuksi
 suunnitelmaksi, ei varsinaiseen paikannuspohjaan. Vasta julkaistu suunnitelma viedään Ratkoon suunniltuina käsitteinä,
@@ -48,11 +48,11 @@ Sekä virallisen paikannuspohjan että suunnitelmien muutokset tehdään aina lu
 valmistuminenkin on virallisen paikannuspohjan muutos ja menee luonnoksen kautta. Mahdollisia siirtymiä kontekstien
 välillä ovat siis:
 
--   Virallinen paikannuspohja -> Luonnos paikannuspohja (luonnos muutos)
--   Luonnos paikannuspohja -> Virallinen paikannuspohja (paikannuspohjan julkaisu)
--   Virallinen paikannuspohja -> Luonnos suunnitelma (suunniteltu muutos)
--   Luonnos suunnitelma -> Julkaistu suunnitelma (suunnitelman julkaisu)
--   Julkaistu suunnitelma -> Luonnos paikannuspohja (suunnitelman valmistuminen)
+-   Virallinen paikannuspohja -> Luonnospaikannuspohja (luonnosmuutos)
+-   Luonnospaikannuspohja -> Virallinen paikannuspohja (paikannuspohjan julkaisu)
+-   Virallinen paikannuspohja -> Luonnossuunnitelma (suunniteltu muutos)
+-   Luonnossuunnitelma -> Julkaistu suunnitelma (suunnitelman julkaisu)
+-   Julkaistu suunnitelma -> Luonnospaikannuspohja (suunnitelman valmistuminen)
 
 ## ID käsittely ja viittaukset kontekstien välillä
 
@@ -86,14 +86,14 @@ Alla oleva taulukko kuvaa eri kontekstien esitystavat tietokannan sarakkeissa, s
 | Konteksti                 | Virallinen ID                                | draft | design_id | official_row_id | design_row_id |
 |---------------------------|----------------------------------------------|-------|-----------|-----------------|---------------|
 | Virallinen paikannuspohja | id                                           | false | null      | null            | null          |
-| Luonnos paikannuspohja    | coalesce(official_row_id, id)                | true  | null      | X / null        | X / null      |
+| Luonnospaikannuspohja     | coalesce(official_row_id, design_row_id, id) | true  | null      | X / null        | X / null      |
 | Julkaistu suunnitelma     | coalesce(official_row_id, id)                | false | X         | X / null        | null          |
-| Luonnos suunnitelma       | coalesce(official_row_id, design_row_id, id) | false | X         | X / null        | X / null      |
+| Luonnossuunnitelma        | coalesce(official_row_id, design_row_id, id) | false | X         | X / null        | X / null      |
 
 #### Virallinen paikannuspohja
 - Virallinen käsite ei voi koskaan viitata muihin konteksteihin, eikä siihen voi liittyä suunnitelmaa
  
-#### Luonnos paikannuspohja
+#### Luonnospaikannuspohja
 - Jos official_row_id on määritelty, kyseessä on luonnosmuutos, muutoin kyseessä on uusi luonnos
 - Jos design_row_id on määritelty, draft on luotu toteuttamalla se suunnitelmasta
   - Julkaisun yhteydessä sekä suunnitelmarivi että luonnosrivi poistuu, sillä kyse on suunnitelman valmistumisesta
@@ -101,7 +101,7 @@ Alla oleva taulukko kuvaa eri kontekstien esitystavat tietokannan sarakkeissa, s
 #### Julkaistu suunnitelma
 - Jos official_row_id on määritelty, kyseessä on muutossuunnitelma. Muutoin kyseessä on uuden olion suunnitelma.
  
-#### Luonnos suunnitelma
+#### Luonnossuunnitelma
 - Jos design_row_id on määritelty, kyseessä on luonnosmuutos olemassaolevaan suunnitelmaan, muutoin kyseessä on uusi luonnos
 - Jos official_row_id on määritelty, kyseessä on suunniteltu muutos viralliseen paikannuspohjaan, muutoin kyseessä on uuden käsitteen suunnitelma
 - Huom. kaikki yhdistelmät official_row_id:n ja design_row_id:n kanssa ovat mahdollisia:
@@ -115,9 +115,9 @@ Alla oleva taulukko kuvaa eri kontekstien esitystavat tietokannan sarakkeissa, s
 ```mermaid
 graph TD
     subgraph legendColor [Värikoodit]
-        legendDraft(Luonnos paikannuspohja)
+        legendDraft(Luonnospaikannuspohja)
         legendOfficial(Virallinen paikannuspohja)
-legendDraftPlan(Luonnos suunnitelma)
+legendDraftPlan(Luonnossuunnitelma)
         legendPlan(Julkaistu suunnitelma)
         legendDraft ~~~ legendOfficial ~~~ legendDraftPlan ~~~ legendPlan
     end
@@ -125,9 +125,9 @@ legendDraftPlan(Luonnos suunnitelma)
         legendOfficialId("Virallinen ID\n❖ id=x")
     end
     subgraph legendLine [Viivat]
-        A -- Viite olioiden välillä --> B
-        Cv1 == Olio siirtyy ==> Cv2
-        D -. Olion data kopioidaan .-> E
+        A -- Viite olioiden välillä\n(yhtenäinen viiva) --> B
+        Cv1 == Olion kantarivi säilyy\n(katkoviiva) ==> Cv2
+        D -. Olion data kopioidaan toiselle riville\n(pisteviiva) .-> E
     end
     classDef draftObject fill: lightyellow, stroke: black, color: black;
     classDef officialObject fill: lightgreen, stroke: black, color: black;
@@ -220,7 +220,7 @@ graph TD
         track1InEnd --> officialTnInEnd
         track2InEnd --> officialTnInEnd
     end
-    startState == Luonnos muutos:\nViralliset oliot eivät muutu ==> draftState == Julkaisu:\nVirallinen olio päivittyy\nLuonnosolio poistuu ==> endState
+    startState == Luonnosmuutos:\nViralliset oliot eivät muutu ==> draftState == Julkaisu:\nVirallinen olio päivittyy\nLuonnosolio poistuu ==> endState
     officialTnInStart ====> officialTnInDraft ====> officialTnInEnd
     draftTnInDraft -. Luonnosdata kopioidaan\nalkuperäiseen olioon .-> officialTnInEnd
     classDef draftObject fill: lightyellow, stroke: black, color: black;
@@ -302,7 +302,7 @@ graph TD
         track3InEnd --> officialTnInEnd
     end
     planTnInPlanDraft ====> planTnInPlan ====> planTnInDraft ====> officialTnInEnd
-    planDraftState == Suunnitelman julkaisu:\nLuonnosolio muuttuu viralliseksi ==> planState == Luonnos muutos:\nSuunnitelman oliot eivät muutu ==> draftState == Julkaisu:\nSuunnitelmaolio muuttuu viralliseksi\nLuonnos poistuu ==> endState
+    planDraftState == Suunnitelman julkaisu:\nLuonnosolio muuttuu viralliseksi ==> planState == Luonnosmuutos:\nSuunnitelman oliot eivät muutu ==> draftState == Julkaisu:\nSuunnitelmaolio muuttuu viralliseksi\nLuonnos poistuu ==> endState
     planTnInPlan -. Suunnitelmadata kopioidaan\nluonnosolioon .-> draftTnInDraft
     draftTnInDraft -. Luonnosdata kopioidaan\nsuunnitelmaolioon .-> officialTnInEnd
     classDef draftObject fill: lightyellow, stroke: black, color: black;
@@ -404,7 +404,7 @@ graph TD
         track3InEnd --> officialTnInEnd
         track4InEnd --> officialTnInEnd
     end
-    startState == Suunniteltu luonnosmuutos:\nViralliset oliot eivät muutu ==> planDraftState == Suunnitelman julkaisu:\nViralliset oliot eivät muutu ==> planState == Luonnos muutos:\nSuunnitelman oliot eivät muutu ==> draftState == Julkaisu:\nVirallinen olio päivittyy\nLuonnos ja suunnitelmaolio poistuu ==> endState
+    startState == Suunniteltu luonnosmuutos:\nViralliset oliot eivät muutu ==> planDraftState == Suunnitelman julkaisu:\nViralliset oliot eivät muutu ==> planState == Luonnosmuutos:\nSuunnitelman oliot eivät muutu ==> draftState == Julkaisu:\nVirallinen olio päivittyy\nLuonnos ja suunnitelmaolio poistuu ==> endState
     officialTnInStart ====> officialTnInPlanDraft ====> officialTnInPlan ====> officialTnInDraft ====> officialTnInEnd
     planTnInPlanDraft ====>  planTnInPlan ====> planTnInDraft
     planTnInPlan -. Suunnitelmadata kopioidaan\nluonnosolioon .-> draftTnInDraft
