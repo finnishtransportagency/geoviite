@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.authorization.AUTH_EDIT_LAYOUT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_LAYOUT_DRAFT
 import fi.fta.geoviite.infra.authorization.AUTH_VIEW_PUBLICATION
 import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState
@@ -117,7 +118,7 @@ class PublicationController @Autowired constructor(
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/merge-to-main/{$LAYOUT_BRANCH}")
     fun mergeChangesToMain(
-        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @PathVariable(LAYOUT_BRANCH) branch: DesignBranch,
         @RequestBody request: PublicationRequestIds,
     ): PublicationResult {
         return publicationService.mergeChangesToMain(branch, request)

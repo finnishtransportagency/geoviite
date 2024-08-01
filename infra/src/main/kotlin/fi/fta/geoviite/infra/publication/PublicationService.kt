@@ -505,7 +505,7 @@ class PublicationService @Autowired constructor(
     }
 
     @Transactional
-    fun mergeChangesToMain(fromBranch: LayoutBranch, request: PublicationRequestIds): PublicationResult {
+    fun mergeChangesToMain(fromBranch: DesignBranch, request: PublicationRequestIds): PublicationResult {
         request.trackNumbers.forEach { id -> trackNumberService.mergeToMainBranch(fromBranch, id) }
         request.referenceLines.forEach { id -> referenceLineService.mergeToMainBranch(fromBranch, id) }
         request.locationTracks.forEach { id -> locationTrackService.mergeToMainBranch(fromBranch, id) }

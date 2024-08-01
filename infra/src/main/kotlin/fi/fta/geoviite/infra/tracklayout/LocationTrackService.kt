@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType.STORED
 import fi.fta.geoviite.infra.common.DataType.TEMP
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
@@ -679,12 +680,11 @@ class LocationTrackService(
         }
     }
 
-    override fun mergeToMainBranch(fromBranch: LayoutBranch, id: IntId<LocationTrack>): DaoResponse<LocationTrack> {
+    override fun mergeToMainBranch(fromBranch: DesignBranch, id: IntId<LocationTrack>): DaoResponse<LocationTrack> {
         val (versions, track) = fetchAndCheckVersionsForMerging(fromBranch, id)
         return mergeToMainBranchInternal(
-            versions, if (track.alignmentVersion == null) track else {
-                track.copy(alignmentVersion = alignmentService.saveAsNew(alignmentDao.fetch(track.alignmentVersion)))
-            }
+            versions,
+            track.copy(alignmentVersion = alignmentService.duplicate(track.getAlignmentVersionOrThrow())),
         )
     }
 }

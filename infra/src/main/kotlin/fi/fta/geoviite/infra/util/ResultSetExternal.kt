@@ -35,6 +35,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
+import fi.fta.geoviite.infra.tracklayout.StoredIdentity
 import java.sql.ResultSet
 import java.time.Instant
 import java.time.LocalDate
@@ -322,43 +323,36 @@ fun <T> ResultSet.getLayoutContextData(
     val designId = getIntIdOrNull<LayoutDesign>(designIdName)
     val designRowId = getLayoutRowIdOrNull<T>(designRowIdName)
     val officialRowId = getLayoutRowIdOrNull<T>(officialRowIdName)
-    val rowId = getLayoutRowId<T>(rowIdName)
-    val rowVersion = LayoutRowVersion(rowId, getInt(rowVersionName))
+    val rowVersion = LayoutRowVersion(getLayoutRowId<T>(rowIdName), getInt(rowVersionName))
     val isDraft = getBoolean(draftFlagName)
     return if (designId != null) {
         if (isDraft) {
             DesignDraftContextData(
+                contextRowIdentity = StoredIdentity(rowVersion),
                 officialRowId = officialRowId,
-                rowId = rowId,
-                version = rowVersion,
                 designId = designId,
                 designRowId = designRowId,
             )
         } else {
             require(designRowId == null) {
-                "For official design rows, design row ref should be null: officialRow=$officialRowId rowId=$rowId designRowId=$designRowId"
+                "For official design rows, design row ref should be null: officialRow=$officialRowId rowVersion=$rowVersion designRowId=$designRowId"
             }
             DesignOfficialContextData(
+                contextRowIdentity = StoredIdentity(rowVersion),
                 officialRowId = officialRowId,
-                rowId = rowId,
-                version = rowVersion,
                 designId = designId,
             )
         }
     } else if (isDraft) {
         MainDraftContextData(
+            contextRowIdentity = StoredIdentity(rowVersion),
             officialRowId = officialRowId,
-            rowId = rowId,
-            version = rowVersion,
             designRowId = designRowId,
         )
     } else {
         require(officialRowId == null) {
-            "For official rows, official row ref should be null: officialRow=$officialRowId rowId=$rowId draft=$isDraft"
+            "For official rows, official row ref should be null: officialRow=$officialRowId rowVersion=$rowVersion draft=$isDraft"
         }
-        MainOfficialContextData(
-            rowId = rowId,
-            version = rowVersion,
-        )
+        MainOfficialContextData(contextRowIdentity = StoredIdentity(rowVersion))
     }
 }

@@ -910,15 +910,13 @@ fun switch(
 
 fun <T> createMainContext(id: IntId<T>?, draftOfId: IntId<T>?, draft: Boolean): LayoutContextData<T> = if (draft) {
     MainDraftContextData(
-        rowId = id?.intValue?.let(::LayoutRowId),
-        version = null,
+        if (id != null) StoredIdentity(LayoutRowVersion(id.intValue.let(::LayoutRowId), 1)) else UnsavedIdentity(null),
         officialRowId = draftOfId?.intValue?.let(::LayoutRowId),
         designRowId = null,
     )
 } else {
     MainOfficialContextData(
-        rowId = id?.intValue?.let(::LayoutRowId),
-        version = null,
+        if (id != null) StoredIdentity(LayoutRowVersion(id.intValue.let(::LayoutRowId), 1)) else UnsavedIdentity(null),
     )
 }
 
