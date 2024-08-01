@@ -5,14 +5,11 @@ import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.TestLayoutContext
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
-import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
-import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
@@ -34,10 +31,9 @@ import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 
-const val API_URL = "/frame-converter/v1"
-const val COORDINATE_TO_TRACK_ADDRESS_URL = "$API_URL/todo-url" // TODO What's the correct URL?
+private const val API_URL = "/rata-vkm/v1"
 
-// Purposefully different data structure as the actual logic to imitate a user
+// Purposefully different data structure as the actual logic to imitate a user.
 private data class TestCoordinateToTrackAddressRequest(
     val tunniste: String? = null,
     val x: Double? = null,
@@ -79,8 +75,8 @@ class CoordinateToTrackAddressTest @Autowired constructor(
 
     @Test
     fun `Completely invalid request should result in a generic error`() {
-        testApi.doGet(COORDINATE_TO_TRACK_ADDRESS_URL, HttpStatus.BAD_REQUEST)
-        testApi.doPost(COORDINATE_TO_TRACK_ADDRESS_URL, null, HttpStatus.BAD_REQUEST)
+        testApi.doGet(API_URL, HttpStatus.BAD_REQUEST)
+        testApi.doPost(API_URL, null, HttpStatus.BAD_REQUEST)
     }
 
     @Test
@@ -88,10 +84,10 @@ class CoordinateToTrackAddressTest @Autowired constructor(
         val params = mapOf("x" to "0.0")
 
         val featureCollections = listOf(
-            testApi.doGetWithParams(COORDINATE_TO_TRACK_ADDRESS_URL, params, HttpStatus.OK)
+            testApi.doGetWithParams(API_URL, params, HttpStatus.OK)
                 .let { body -> mapper.readValue(body, TestGeoJsonFeatureCollection::class.java) },
 
-            testApi.doPostWithParams(COORDINATE_TO_TRACK_ADDRESS_URL, params, HttpStatus.OK)
+            testApi.doPostWithParams(API_URL, params, HttpStatus.OK)
                 .let { body -> mapper.readValue(body, TestGeoJsonFeatureCollection::class.java) }
         )
 
@@ -104,8 +100,8 @@ class CoordinateToTrackAddressTest @Autowired constructor(
     fun `Invalid request with JSON should result in an error`() {
         val params = mapOf("json" to "")
 
-        testApi.doGetWithParams(COORDINATE_TO_TRACK_ADDRESS_URL, params, HttpStatus.BAD_REQUEST)
-        testApi.doPostWithParams(COORDINATE_TO_TRACK_ADDRESS_URL, params, HttpStatus.BAD_REQUEST)
+        testApi.doGetWithParams(API_URL, params, HttpStatus.BAD_REQUEST)
+        testApi.doPostWithParams(API_URL, params, HttpStatus.BAD_REQUEST)
     }
 
     @Test
@@ -115,7 +111,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
         )
 
         val featureCollection = fetchFeatureCollection(
-            COORDINATE_TO_TRACK_ADDRESS_URL,
+            API_URL,
             createJsonRequestParams(request),
         )
 
@@ -139,7 +135,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
         )
 
         val featureCollection = fetchFeatureCollection(
-            COORDINATE_TO_TRACK_ADDRESS_URL,
+            API_URL,
             createJsonRequestParams(request),
         )
 
@@ -164,7 +160,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
         )
 
         val featureCollection = fetchFeatureCollection(
-            COORDINATE_TO_TRACK_ADDRESS_URL,
+            API_URL,
             createJsonRequestParams(request),
         )
 
@@ -197,7 +193,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
         )
 
         val featureCollection = fetchFeatureCollection(
-            COORDINATE_TO_TRACK_ADDRESS_URL,
+            API_URL,
             createJsonRequestParams(requests),
         )
 
@@ -245,7 +241,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
         )
 
         val featureCollection = fetchFeatureCollection(
-            COORDINATE_TO_TRACK_ADDRESS_URL,
+            API_URL,
             createJsonRequestParams(requests),
         )
 
@@ -275,8 +271,8 @@ class CoordinateToTrackAddressTest @Autowired constructor(
             "y" to "0.0",
         )
 
-        testApi.doGetWithParams(COORDINATE_TO_TRACK_ADDRESS_URL, params, HttpStatus.OK)
-        testApi.doPostWithParams(COORDINATE_TO_TRACK_ADDRESS_URL, params, HttpStatus.OK)
+        testApi.doGetWithParams(API_URL, params, HttpStatus.OK)
+        testApi.doPostWithParams(API_URL, params, HttpStatus.OK)
     }
 
     @Test
@@ -290,8 +286,8 @@ class CoordinateToTrackAddressTest @Autowired constructor(
             y = 0.0,
         )
 
-        testApi.doGetWithParams(COORDINATE_TO_TRACK_ADDRESS_URL, createJsonRequestParams(request), HttpStatus.OK)
-        testApi.doPostWithParams(COORDINATE_TO_TRACK_ADDRESS_URL, createJsonRequestParams(request), HttpStatus.OK)
+        testApi.doGetWithParams(API_URL, createJsonRequestParams(request), HttpStatus.OK)
+        testApi.doPostWithParams(API_URL, createJsonRequestParams(request), HttpStatus.OK)
     }
 
     @Test
@@ -311,8 +307,8 @@ class CoordinateToTrackAddressTest @Autowired constructor(
             ),
         )
 
-        testApi.doGetWithParams(COORDINATE_TO_TRACK_ADDRESS_URL, createJsonRequestParams(requests), HttpStatus.OK)
-        testApi.doPostWithParams(COORDINATE_TO_TRACK_ADDRESS_URL, createJsonRequestParams(requests), HttpStatus.OK)
+        testApi.doGetWithParams(API_URL, createJsonRequestParams(requests), HttpStatus.OK)
+        testApi.doPostWithParams(API_URL, createJsonRequestParams(requests), HttpStatus.OK)
     }
 
     @Test
@@ -340,7 +336,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
         )
 
         val featureCollection = fetchFeatureCollection(
-            COORDINATE_TO_TRACK_ADDRESS_URL,
+            API_URL,
             createJsonRequestParams(requests)
         )
 
@@ -379,10 +375,10 @@ class CoordinateToTrackAddressTest @Autowired constructor(
         )
 
         val featureCollections = listOf(
-            testApi.doGetWithParams(COORDINATE_TO_TRACK_ADDRESS_URL, params, HttpStatus.OK)
+            testApi.doGetWithParams(API_URL, params, HttpStatus.OK)
                 .let { body -> mapper.readValue(body, TestGeoJsonFeatureCollection::class.java) },
 
-            testApi.doPostWithParams(COORDINATE_TO_TRACK_ADDRESS_URL, params, HttpStatus.OK)
+            testApi.doPostWithParams(API_URL, params, HttpStatus.OK)
                 .let { body -> mapper.readValue(body, TestGeoJsonFeatureCollection::class.java) }
         )
 
@@ -423,7 +419,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
         )
 
         val featureCollection = fetchFeatureCollection(
-            COORDINATE_TO_TRACK_ADDRESS_URL,
+            API_URL,
             createJsonRequestParams(request),
         )
 
@@ -452,7 +448,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
         )
 
         val featureCollection = fetchFeatureCollection(
-            COORDINATE_TO_TRACK_ADDRESS_URL,
+            API_URL,
             createJsonRequestParams(request),
         )
 
@@ -495,7 +491,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
 
         requestsToExpectedError.forEach { (request, expectedError) ->
             val featureCollection = fetchFeatureCollection(
-                COORDINATE_TO_TRACK_ADDRESS_URL,
+                API_URL,
                 createJsonRequestParams(request),
             )
 
@@ -532,7 +528,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
             )
 
             val featureCollection = fetchFeatureCollection(
-                COORDINATE_TO_TRACK_ADDRESS_URL,
+                API_URL,
                 createJsonRequestParams(request),
             )
 
@@ -563,7 +559,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
             )
 
             val featureCollection = fetchFeatureCollection(
-                COORDINATE_TO_TRACK_ADDRESS_URL,
+                API_URL,
                 createJsonRequestParams(request),
             )
 
@@ -598,7 +594,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
             )
 
             val featureCollection = fetchFeatureCollection(
-                COORDINATE_TO_TRACK_ADDRESS_URL,
+                API_URL,
                 createJsonRequestParams(request),
             )
 
@@ -621,7 +617,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
         )
 
         val featureCollection = fetchFeatureCollection(
-            COORDINATE_TO_TRACK_ADDRESS_URL,
+            API_URL,
             createJsonRequestParams(request),
         )
 
@@ -657,7 +653,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
         )
 
         val featureCollection = fetchFeatureCollection(
-            COORDINATE_TO_TRACK_ADDRESS_URL,
+            API_URL,
             createJsonRequestParams(request),
         )
 
@@ -706,7 +702,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
         )
 
         val featureCollection = fetchFeatureCollection(
-            COORDINATE_TO_TRACK_ADDRESS_URL,
+            API_URL,
             createJsonRequestParams(request),
         )
 
@@ -756,7 +752,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
         )
 
         val featureCollection = fetchFeatureCollection(
-            COORDINATE_TO_TRACK_ADDRESS_URL,
+            API_URL,
             createJsonRequestParams(request),
         )
 
@@ -822,10 +818,7 @@ class CoordinateToTrackAddressTest @Autowired constructor(
             y = yPositionOnTrack + yRequestDifference,
         )
 
-        val featureCollection = fetchFeatureCollection(
-            COORDINATE_TO_TRACK_ADDRESS_URL,
-            createJsonRequestParams(request),
-        )
+        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
 
         val properties = featureCollection.features[0].properties
 
@@ -836,6 +829,138 @@ class CoordinateToTrackAddressTest @Autowired constructor(
         assertEquals(expectedKmNumber, properties["ratakilometri"])
         assertEquals(expectedTrackMeters.toInt(), properties["ratametri"] as? Int)
         assertEquals(expectedTrackDecimals, properties["ratametri_desimaalit"] as? Int)
+    }
+
+    @Test
+    fun `Search radius under supported range should result in an error`() {
+        insertGeocodableTrack(
+            segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+
+        val request = TestCoordinateToTrackAddressRequest(
+            x = 0.0,
+            y = 0.0,
+            sade = 0.9,
+        )
+
+        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+
+        val properties = featureCollection.features[0].properties
+
+        assertEquals(
+            "Pyyntö sisälsi pienemmän hakusäteen kuin sallittu minimiarvo (1.0)",
+            properties?.get("virheet"),
+        )
+    }
+
+    @Test
+    fun `Search radius over supported range should result in an error`() {
+        insertGeocodableTrack(
+            segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+
+        val request = TestCoordinateToTrackAddressRequest(
+            x = 0.0,
+            y = 0.0,
+            sade = 1000.1,
+        )
+
+        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+
+        val properties = featureCollection.features[0].properties
+
+        assertEquals(
+            "Pyyntö sisälsi suuremman hakusäteen kuin sallittu maksimiarvo (1000.0)",
+            properties?.get("virheet"),
+        )
+    }
+
+    @Test
+    fun `Invalid responseSettings should result in an error`() {
+        insertGeocodableTrack(
+            segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+
+        val request = TestCoordinateToTrackAddressRequest(
+            x = 0.0,
+            y = 0.0,
+            palautusarvot = listOf(3), // This is the parameter under test.
+        )
+
+        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+
+        val properties = featureCollection.features[0].properties
+
+        assertEquals(
+            "Pyyntö sisälsi virheellisen palautusarvo-asetuksen. Sallitut arvot ovat (1, 5, 10).",
+            properties?.get("virheet"),
+        )
+    }
+
+    @Test
+    fun `Invalid location track type should result in an error`() {
+        insertGeocodableTrack(
+            segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+
+        val request = TestCoordinateToTrackAddressRequest(
+            x = 0.0,
+            y = 0.0,
+            sijaintiraide_tyyppi = "something",
+        )
+
+        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+
+        val properties = featureCollection.features[0].properties
+
+        assertEquals(
+            "Pyyntö sisälsi virheellisen sijaintiraide_tyyppi-asetuksen. Sallitut arvot ovat (pääraide, sivuraide, kujaraide, turvaraide).",
+            properties?.get("virheet"),
+        )
+    }
+
+    @Test
+    fun `Invalid location track name should result in an error`() {
+        insertGeocodableTrack(
+            segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+
+        val request = TestCoordinateToTrackAddressRequest(
+            x = 0.0,
+            y = 0.0,
+            sijaintiraide = "@",
+        )
+
+        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+
+        val properties = featureCollection.features[0].properties
+
+        assertEquals(
+            "Pyyntö sisälsi virheellisen sijaintiraide-asetuksen.",
+            properties?.get("virheet"),
+        )
+    }
+
+    @Test
+    fun `Invalid track number should result in an error`() {
+        insertGeocodableTrack(
+            segments = listOf(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+
+        val request = TestCoordinateToTrackAddressRequest(
+            x = 0.0,
+            y = 0.0,
+            ratanumero = "alsjkdhkajlshdljkahsdljkahsldjkhaslkjdhalkjsdhlkjashdjklasdhj",
+        )
+
+        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+
+        val properties = featureCollection.features[0].properties
+
+        assertEquals(
+            "Pyyntö sisälsi virheellisen ratanumero-asetuksen.",
+            properties?.get("virheet"),
+        )
     }
 
     private fun insertGeocodableTrack(
@@ -869,7 +994,10 @@ class CoordinateToTrackAddressTest @Autowired constructor(
         )
     }
 
-    private fun fetchFeatureCollection(url: String, params: Map<String, String>): TestGeoJsonFeatureCollection {
+    private fun fetchFeatureCollection(
+        url: String,
+        params: Map<String, String>,
+    ): TestGeoJsonFeatureCollection {
         return testApi
             .doPostWithParams(url, params, HttpStatus.OK)
             .let { body -> mapper.readValue(body, TestGeoJsonFeatureCollection::class.java) }

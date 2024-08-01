@@ -1,3 +1,5 @@
+package fi.fta.geoviite.api.frameconverter.v1
+
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonUnwrapped
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeature
@@ -5,8 +7,8 @@ import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonGeometry
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonGeometryPoint
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonProperties
 import fi.fta.geoviite.infra.common.AlignmentName
-import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.util.FreeText
 
 typealias FrameConverterResponseSettings = Set<Int>
@@ -24,7 +26,6 @@ data class GeoJsonFeatureErrorResponseV1(
 }
 
 data class GeoJsonFeatureErrorResponsePropertiesV1(
-    // TODO Multiple errors in a single string? Are multiple errors even returned?
     @JsonProperty("tunniste") val identifier: String? = null,
     @JsonProperty("virheet") val errors: String = "",
 ) : GeoJsonProperties
@@ -37,18 +38,30 @@ data class CoordinateToTrackMeterRequestV1(
     val x: Double? = null, // x coordinate in ETRS-TM35FIN (EPSG:3067)
     val y: Double? = null, // y coordinate in ETRS-TM35FIN (EPSG:3067)
 
-    // TODO Clamp to 1-1000 meters
-    // TODO Use a radius instead of bbox
-    @JsonProperty("sade") val searchRadius: Double = 100.0, // Search radius
-    @JsonProperty("ratanumero") val trackNumberName: String? = null, // Filter results by track number
-    @JsonProperty("sijaintiraide") val locationTrackName: String? = null, // Filter results by location track name (0 or 1)
-    @JsonProperty("sijaintiraide_tyyppi") val locationTrackType: String? = null,
+    @JsonProperty("sade") val searchRadius: Double? = 100.0, // Filter by search radius around point.
+    @JsonProperty("ratanumero") val trackNumberName: String? = null, // Filter results by track number.
+    @JsonProperty("sijaintiraide") val locationTrackName: String? = null, // Filter by location track name.
+    @JsonProperty("sijaintiraide_tyyppi") val locationTrackType: String? = null, // Filter by location track type.
 
     // Response settings:
     // 1: Response contains location track's track address in properties
     // 5: Response contains location track's track address in geometry
     // 10: Result contains location track address and location track's information
-    @JsonProperty("palautusarvot") val responseSettings: FrameConverterResponseSettings = setOf(1, 10), // TODO Enum?
+    @JsonProperty("palautusarvot") val responseSettings: FrameConverterResponseSettings = setOf(1, 10),
+) : FrameConverterRequestV1()
+
+data class ValidCoordinateToTrackMeterRequestV1(
+    val identifier: String?,
+
+    val x: Double,
+    val y: Double,
+    val searchRadius: Double,
+
+    val trackNumberName: TrackNumber?,
+    val locationTrackName: AlignmentName?,
+    val locationTrackType: LocationTrackType?,
+
+    val responseSettings: FrameConverterResponseSettings,
 ) : FrameConverterRequestV1()
 
 data class CoordinateToTrackMeterResponsePropertiesV1(
@@ -68,8 +81,8 @@ data class CoordinateToTrackMeterResponseV1(
 ) : GeoJsonFeature()
 
 data class ClosestLocationTrackMatchV1(
-    val x: Double, // x coordinate on the geometry of the matched location track ETRS-TM35FIN (EPSG:3067)
-    val y: Double, // y coordinate on the geometry of the matched location track in ETRS-TM35FIN (EPSG:3067)
+    val x: Double, // x coordinate on the alignment of the matched location track ETRS-TM35FIN (EPSG:3067)
+    val y: Double, // y coordinate on the alignment of the matched location track in ETRS-TM35FIN (EPSG:3067)
     @JsonProperty("valimatka") val distanceFromRequestPoint: Double,
 )
 
@@ -79,7 +92,7 @@ data class CoordinateToTrackMeterConversionDetailsV1(
     @JsonProperty("sijaintiraide_kuvaus") val locationTrackDescription: FreeText, // See GetFullDescription
     @JsonProperty("sijaintiraide_tyyppi") val translatedLocationTrackType: String,
     @JsonProperty("ratakilometri") val kmNumber: Int,
-    @JsonProperty("ratametri") val trackMeter: Int, // TODO Verify this and the one below
+    @JsonProperty("ratametri") val trackMeter: Int,
     @JsonProperty("ratametri_desimaalit") val trackMeterDecimals: Int,
 )
 

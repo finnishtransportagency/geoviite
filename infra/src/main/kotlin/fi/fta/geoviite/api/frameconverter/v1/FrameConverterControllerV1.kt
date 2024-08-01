@@ -1,49 +1,41 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
-import CoordinateToTrackMeterRequestV1
-import FrameConverterRequestV1
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.DeserializationContext
 import com.fasterxml.jackson.databind.JsonDeserializer
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.exc.MismatchedInputException
 import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import fi.fta.geoviite.api.aspects.GeoviiteIntegrationApiController
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeature
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeatureCollection
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.error.IntegrationApiException
-import fi.fta.geoviite.infra.error.SplitFailureException
-import fi.fta.geoviite.infra.localization.LocalizationLanguage
-import fi.fta.geoviite.infra.localization.LocalizationService
-import fi.fta.geoviite.infra.localization.localizationParams
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.http.HttpStatus
-import org.springframework.web.bind.annotation.ModelAttribute
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
 import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.server.ResponseStatusException
 import kotlin.reflect.KClass
 
-@GeoviiteIntegrationApiController("/frame-converter/v1")
+@GeoviiteIntegrationApiController(
+    [
+        "/rata-vkm",
+        "/rata-vkm/dev",
+        "/rata-vkm/v1",
+        "/rata-vkm/dev/v1",
+    ],
+)
 class FrameConverterControllerV1 @Autowired constructor(
     private val frameConverterObjectMapperV1: ObjectMapper,
     private val frameConverterServiceV1: FrameConverterServiceV1,
-    private val localizationService: LocalizationService,
 ) {
 
-    @RequestMapping(
-        "/todo-url",
-        method = [RequestMethod.GET, RequestMethod.POST]
-    )
+    @RequestMapping(method = [RequestMethod.GET, RequestMethod.POST])
     fun multiInputTransform(
         request: HttpServletRequest,
         @RequestParam(required = false) json: String?,
@@ -61,10 +53,19 @@ class FrameConverterControllerV1 @Autowired constructor(
 
     private fun processRequest(request: FrameConverterRequestV1): List<GeoJsonFeature> {
         return when (request) {
-            is CoordinateToTrackMeterRequestV1 -> frameConverterServiceV1.coordinateToTrackAddress(
-                layoutContext = MainLayoutContext.official,
-                request = request,
-            )
+            is CoordinateToTrackMeterRequestV1 -> {
+                val (validatedRequest, errorResponse)
+                    = frameConverterServiceV1.validateCoordinateToTrackMeterRequest(request)
+
+                if (validatedRequest == null) {
+                    errorResponse
+                } else {
+                    frameConverterServiceV1.coordinateToTrackAddress(
+                        layoutContext = MainLayoutContext.official,
+                        request = validatedRequest,
+                    )
+                }
+            }
 
             else -> throw IntegrationApiException(
                 message = "Unsupported request type",
@@ -139,10 +140,7 @@ class FrameConverterRequestDeserializerV1(
     }
 
     private fun deserializeSingle(node: JsonNode): FrameConverterRequestV1 {
-        val clazz = determineClass(node)
-        requireNotNull(clazz) // TODO Better error handling
-
-        return objectMapper.treeToValue(node, clazz.java)
+        return objectMapper.treeToValue(node, determineClass(node).java)
     }
 }
 
