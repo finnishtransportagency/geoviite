@@ -9,9 +9,16 @@ import { DatePicker } from 'vayla-design-lib/datepicker/datepicker';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import styles from './workspace-dialog.scss';
-import { LayoutDesign, LayoutDesignSaveRequest } from 'track-layout/layout-design-api';
+import {
+    getLayoutDesigns,
+    LayoutDesign,
+    LayoutDesignSaveRequest,
+} from 'track-layout/layout-design-api';
 import { LayoutDesignId } from 'common/common-model';
 import { formatISODate } from 'utils/date-utils';
+import { getChangeTimes } from 'common/change-time-api';
+import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
+import { isEqualIgnoreCase } from 'utils/string-utils';
 
 type WorkspaceDialogProps = {
     existingDesign?: LayoutDesign;
@@ -35,7 +42,17 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
     const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(
         existingDesign ? new Date(existingDesign?.estimatedCompletion) : undefined,
     );
-    const [name, setName] = React.useState<string | undefined>(existingDesign?.name ?? '');
+    const [name, setName] = React.useState<string>(existingDesign?.name ?? '');
+
+    const [allDesigns, allDesignsFetchStatus] = useLoaderWithStatus(
+        () => getLayoutDesigns(getChangeTimes().layoutDesign),
+        [getChangeTimes().layoutDesign],
+    );
+    const designNameCollides =
+        allDesignsFetchStatus !== LoaderStatus.Ready ||
+        allDesigns?.some(
+            (design) => isEqualIgnoreCase(design.name, name) && design.id !== existingDesign?.id,
+        );
 
     return (
         <Dialog
@@ -54,7 +71,7 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
                             {t('button.cancel')}
                         </Button>
                         <Button
-                            disabled={!name || !selectedDate}
+                            disabled={!name || !selectedDate || designNameCollides}
                             qa-id={'workspace-dialog-save'}
                             onClick={() => {
                                 if (name && selectedDate) {
@@ -79,6 +96,7 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
                                 qa-id={'workspace-dialog-name'}
                             />
                         }
+                        errors={designNameCollides ? [t('workspace-dialog.name-collides')] : []}
                     />
                     <FieldLayout
                         label={`${t('workspace-dialog.completion-date')} *`}

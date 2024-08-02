@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.DbTable
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getFreeText
 import fi.fta.geoviite.infra.util.getIntId
@@ -41,13 +42,13 @@ class LayoutDesignDao(
         }
     }
 
-    fun list(): List<LayoutDesign> {
+    fun list(includeCompletedAndDeleted: Boolean = false): List<LayoutDesign> {
         val sql = """
             select id, name, estimated_completion, design_state
             from layout.design
-            where design_state = 'ACTIVE'::layout.design_state
+            where design_state = 'ACTIVE'::layout.design_state or :include_completed_and_deleted is true
         """.trimIndent()
-        return jdbcTemplate.query(sql) { rs, _ ->
+        return jdbcTemplate.query(sql, mapOf("include_completed_and_deleted" to includeCompletedAndDeleted)) { rs, _ ->
             LayoutDesign(
                 rs.getIntId("id"),
                 rs.getFreeText("name"),
@@ -60,6 +61,14 @@ class LayoutDesignDao(
     @Transactional
     fun update(id: DomainId<LayoutDesign>, design: LayoutDesignSaveRequest): IntId<LayoutDesign> {
         jdbcTemplate.setUser()
+        require(list(includeCompletedAndDeleted = true)
+            .none { existing ->
+                existing.name.equalsIgnoreCase(design.name) && existing.id != id && existing.designState != DesignState.DELETED
+            }
+        ) {
+            "Name must be unique"
+        }
+
         val params = mapOf(
             "id" to toDbId(id).intValue,
             "name" to design.name,
@@ -86,6 +95,12 @@ class LayoutDesignDao(
     @Transactional
     fun insert(design: LayoutDesignSaveRequest): IntId<LayoutDesign> {
         jdbcTemplate.setUser()
+        require(
+            list(includeCompletedAndDeleted = true).none { existing -> existing.name.equalsIgnoreCase(design.name) && existing.designState != DesignState.DELETED }
+        ) {
+            "Name must be unique"
+        }
+
         val sql = """
             insert into layout.design (name, estimated_completion, design_state)
             values (:name, :estimated_completion, :design_state::layout.design_state)

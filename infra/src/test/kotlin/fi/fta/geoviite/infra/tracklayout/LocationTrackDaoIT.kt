@@ -20,6 +20,7 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.queryOne
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -37,6 +38,10 @@ class LocationTrackDaoIT @Autowired constructor(
     private val locationTrackDao: LocationTrackDao,
     private val layoutDesignDao: LayoutDesignDao,
 ) : DBTestBase() {
+    @BeforeEach
+    fun cleanup() {
+        testDBService.clearAllTables()
+    }
 
     @Test
     fun locationTrackSaveAndLoadWorks() {
