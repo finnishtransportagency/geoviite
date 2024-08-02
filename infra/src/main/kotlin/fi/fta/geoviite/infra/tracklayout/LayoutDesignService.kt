@@ -8,7 +8,6 @@ import org.springframework.transaction.annotation.Transactional
 class LayoutDesignService(
     private val dao: LayoutDesignDao,
 ) {
-
     fun list(): List<LayoutDesign> {
         return dao.list()
     }
