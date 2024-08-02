@@ -12,6 +12,7 @@ import { LayoutContext, TimeStamp } from 'common/common-model';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
+import { filterUniqueById } from 'utils/array-utils';
 
 export type LocationTrackInfoboxDuplicateOfProps = {
     layoutContext: LayoutContext;
@@ -92,7 +93,7 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
         </React.Fragment>
     ) : duplicatesOfLocationTrack ? (
         <ul className={styles['location-track-infobox-duplicate-of__ul']}>
-            {duplicatesOfLocationTrack.map((duplicate) => (
+            {duplicatesOfLocationTrack.filter(filterUniqueById((d) => d.id)).map((duplicate) => (
                 <li key={duplicate.id}>
                     <LocationTrackLink
                         locationTrackId={duplicate.id}
