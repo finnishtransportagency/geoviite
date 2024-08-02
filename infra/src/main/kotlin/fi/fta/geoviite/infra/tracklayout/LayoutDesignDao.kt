@@ -42,13 +42,18 @@ class LayoutDesignDao(
         }
     }
 
-    fun list(includeCompletedAndDeleted: Boolean = false): List<LayoutDesign> {
+    fun list(includeCompleted: Boolean = false, includeDeleted: Boolean = false): List<LayoutDesign> {
         val sql = """
             select id, name, estimated_completion, design_state
             from layout.design
-            where design_state = 'ACTIVE'::layout.design_state or :include_completed_and_deleted is true
+            where design_state = 'ACTIVE'::layout.design_state 
+              or :include_completed is true and design_state = 'COMPLETED'::layout.design_state
+              or :include_deleted is true and design_state = 'DELETED'::layout.design_state
         """.trimIndent()
-        return jdbcTemplate.query(sql, mapOf("include_completed_and_deleted" to includeCompletedAndDeleted)) { rs, _ ->
+        return jdbcTemplate.query(
+            sql,
+            mapOf("include_completed" to includeCompleted, "include_deleted" to includeDeleted)
+        ) { rs, _ ->
             LayoutDesign(
                 rs.getIntId("id"),
                 rs.getFreeText("name"),
@@ -61,9 +66,9 @@ class LayoutDesignDao(
     @Transactional
     fun update(id: DomainId<LayoutDesign>, design: LayoutDesignSaveRequest): IntId<LayoutDesign> {
         jdbcTemplate.setUser()
-        require(list(includeCompletedAndDeleted = true)
+        require(list(includeCompleted = true)
             .none { existing ->
-                existing.name.equalsIgnoreCase(design.name) && existing.id != id && existing.designState != DesignState.DELETED
+                existing.name.equalsIgnoreCase(design.name) && existing.id != id
             }
         ) {
             "Name must be unique"
@@ -96,7 +101,7 @@ class LayoutDesignDao(
     fun insert(design: LayoutDesignSaveRequest): IntId<LayoutDesign> {
         jdbcTemplate.setUser()
         require(
-            list(includeCompletedAndDeleted = true).none { existing -> existing.name.equalsIgnoreCase(design.name) && existing.designState != DesignState.DELETED }
+            list(includeCompleted = true).none { existing -> existing.name.equalsIgnoreCase(design.name) }
         ) {
             "Name must be unique"
         }

@@ -45,7 +45,8 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
 
     @Test
     fun `insert() throws if name exists on non-deleted design ignoring case`() {
-        layoutDesignDao.insert(layoutDesignSaveRequest("foo bar"))
+        layoutDesignDao.insert(layoutDesignSaveRequest("foo bar", designState = DesignState.ACTIVE))
+        layoutDesignDao.insert(layoutDesignSaveRequest("foo barbar", designState = DesignState.COMPLETED))
         layoutDesignDao.insert(layoutDesignSaveRequest("boo too far", designState = DesignState.DELETED))
         assertThrows<IllegalArgumentException> {
             layoutDesignDao.insert(layoutDesignSaveRequest("foo bar"))
@@ -53,13 +54,16 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
         assertThrows<IllegalArgumentException> {
             layoutDesignDao.insert(layoutDesignSaveRequest("FOO BAR"))
         }
+        assertThrows<IllegalArgumentException> {
+            layoutDesignDao.insert(layoutDesignSaveRequest("foo barbar"))
+        }
         assertDoesNotThrow { layoutDesignDao.insert(layoutDesignSaveRequest("boo too far")) }
     }
 
     @Test
     fun `update() throws if name exists on non-deleted design ignoring case`() {
-        val design = layoutDesignDao.insert(layoutDesignSaveRequest("foo bar")).let(layoutDesignDao::fetch)
-        layoutDesignDao.insert(layoutDesignSaveRequest("boo too far")).let(layoutDesignDao::fetch)
+        val design = layoutDesignDao.insert(layoutDesignSaveRequest("foo bar", designState = DesignState.ACTIVE)).let(layoutDesignDao::fetch)
+        layoutDesignDao.insert(layoutDesignSaveRequest("boo too far", designState = DesignState.COMPLETED)).let(layoutDesignDao::fetch)
         layoutDesignDao.insert(layoutDesignSaveRequest("way too far", designState = DesignState.DELETED)).let(layoutDesignDao::fetch)
 
         assertThrows<IllegalArgumentException> {
@@ -99,17 +103,29 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
         val design1 = layoutDesignDao.insert(layoutDesignSaveRequest("foo bar", designState = DesignState.ACTIVE)).let(layoutDesignDao::fetch)
         val design2 = layoutDesignDao.insert(layoutDesignSaveRequest("aa bee see", designState = DesignState.DELETED)).let(layoutDesignDao::fetch)
         val design3 = layoutDesignDao.insert(layoutDesignSaveRequest("aa bee dee", designState = DesignState.COMPLETED)).let(layoutDesignDao::fetch)
+
         assertEquals(
             listOf(
                 design1,
             ),
-            layoutDesignDao.list().sortedBy(LayoutDesign::name),
+            layoutDesignDao.list()
         )
-        val list = layoutDesignDao.list(includeCompletedAndDeleted = true).sortedBy(LayoutDesign::name)
-        assertContains(list, design1)
-        assertContains(list, design2)
-        assertContains(list, design3)
-        assertEquals(3, list.size)
+
+        val listWithDeleted = layoutDesignDao.list(includeDeleted = true)
+        assertContains(listWithDeleted, design1)
+        assertContains(listWithDeleted, design2)
+        assertEquals(2, listWithDeleted.size)
+
+        val listWithCompleted = layoutDesignDao.list(includeCompleted = true)
+        assertContains(listWithCompleted, design1)
+        assertContains(listWithCompleted, design3)
+        assertEquals(2, listWithCompleted.size)
+
+        val listWithDeletedAndCompleted = layoutDesignDao.list(includeCompleted = true, includeDeleted = true)
+        assertContains(listWithDeletedAndCompleted, design1)
+        assertContains(listWithDeletedAndCompleted, design2)
+        assertContains(listWithDeletedAndCompleted, design3)
+        assertEquals(3, listWithDeletedAndCompleted.size)
     }
 
     private fun layoutDesignSaveRequest(
