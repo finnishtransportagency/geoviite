@@ -16,6 +16,7 @@ import { LoaderStatus, useLoader, useLoaderWithStatus, useOptionalLoader } from 
 import {
     CoordinateSystem,
     LayoutAssetChangeInfo,
+    LayoutBranch,
     LayoutContext,
     Srid,
     SwitchStructure,
@@ -49,17 +50,18 @@ import {
 import { getKmPost, getKmPostChangeInfo, getKmPosts } from 'track-layout/layout-km-post-api';
 import { PVDocumentHeader, PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { getPVDocument } from 'infra-model/infra-model-api';
-import { updateAllChangeTimes } from 'common/change-time-api';
-import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import {
+    updateAllChangeTimes,
     updateKmPostChangeTime,
-    updateSwitchChangeTime,
     updateLocationTrackChangeTime,
+    updateSwitchChangeTime,
 } from 'common/change-time-api';
+import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { deduplicate } from 'utils/array-utils';
 import { validateLocationTrackName } from 'tool-panel/location-track/dialog/location-track-validation';
 import { getMaxTimestamp } from 'utils/date-utils';
 import { ChangeTimes } from 'common/common-slice';
+import { getLayoutDesignByBranch, LayoutDesign } from 'track-layout/layout-design-api';
 
 export function useTrackNumberReferenceLine(
     trackNumberId: LayoutTrackNumberId | undefined,
@@ -423,3 +425,13 @@ export const getSaveDisabledReasons = (reasons: string[], saveInProgress: boolea
                   else return reason;
               }),
           );
+
+export const useLayoutDesign = (
+    changeTime: TimeStamp,
+    layoutBranch: LayoutBranch,
+): LayoutDesign | undefined =>
+    useLoader(
+        () =>
+            layoutBranch === 'MAIN' ? undefined : getLayoutDesignByBranch(changeTime, layoutBranch),
+        [layoutBranch],
+    );

@@ -784,8 +784,8 @@ class PublicationService @Autowired constructor(
     }
 
     @Transactional(readOnly = true)
-    fun fetchLatestPublicationDetails(layoutBranch: LayoutBranch, count: Int): List<PublicationDetails> {
-        return publicationDao.fetchLatestPublications(layoutBranch, count).map { getPublicationDetails(it.id) }
+    fun fetchLatestPublicationDetails(mode: PublicationListMode, count: Int): List<PublicationDetails> {
+        return publicationDao.fetchLatestPublications(mode, count).map { getPublicationDetails(it.id) }
     }
 
     @Transactional(readOnly = true)

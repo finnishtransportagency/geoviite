@@ -1,6 +1,6 @@
 import { TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
 import { getNonNull, postNonNull, putNonNull } from 'api/api-fetch';
-import { LayoutDesignId, TimeStamp } from 'common/common-model';
+import { designBranch, DesignBranch, LayoutDesignId, TimeStamp } from 'common/common-model';
 import { asyncCache } from 'cache/cache';
 
 const designCache = asyncCache<string, LayoutDesign[]>();
@@ -26,6 +26,14 @@ export async function getLayoutDesign(changeTime: TimeStamp, id: LayoutDesignId)
         }
         return design;
     });
+}
+
+export async function getLayoutDesignByBranch(
+    changeTime: TimeStamp,
+    branch: DesignBranch,
+): Promise<LayoutDesign | undefined> {
+    const designs = await getLayoutDesigns(changeTime);
+    return designs.find((design) => designBranch(design.id) === branch);
 }
 
 export const getLayoutDesignOrUndefined = async (changeTime: TimeStamp, id: LayoutDesignId) =>

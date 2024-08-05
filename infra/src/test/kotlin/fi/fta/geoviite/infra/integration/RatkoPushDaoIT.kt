@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.publication.Publication
 import fi.fta.geoviite.infra.publication.PublicationDao
+import fi.fta.geoviite.infra.publication.PublicationListMode
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
@@ -198,7 +199,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
         val locationTrack2Response = insertAndPublishLocationTrack()
         val publicationId2 = createPublication(locationTracks = listOf(locationTrack2Response.id), message = "Test")
 
-        val publications = publicationDao.fetchLatestPublications(LayoutBranch.main, 2)
+        val publications = publicationDao.fetchLatestPublications(PublicationListMode.MAIN, 2)
 
         assertEquals(publications.size, 2)
         assertEquals(publications[0].id, publicationId2)

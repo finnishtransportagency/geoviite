@@ -484,17 +484,17 @@ class PublicationDao(
     }
 
     //Inclusive from/start time, but exclusive to/end time
-    fun fetchLatestPublications(layoutBranch: LayoutBranch, count: Int): List<Publication> {
+    fun fetchLatestPublications(mode: PublicationListMode, count: Int): List<Publication> {
         val sql = """
             select id, publication_user, publication_time, message, design_id
             from publication.publication
-            where design_id is not distinct from :design_id
+            where case when :mode = 'MAIN' then design_id is null else design_id is not null end
             order by id desc limit :count
         """.trimIndent()
 
         val params = mapOf(
             "count" to count,
-            "design_id" to layoutBranch.designId?.intValue,
+            "mode" to mode.name,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->

@@ -1,4 +1,4 @@
-import { LayoutBranch, LayoutContext } from 'common/common-model';
+import { LayoutContext } from 'common/common-model';
 import { API_URI } from 'api/api-fetch';
 
 type LayoutDataType =
@@ -28,9 +28,5 @@ export function layoutUri(
 }
 
 export function contextInUri(layoutContext: LayoutContext): string {
-    return `${toBranchName(layoutContext.branch).toLowerCase()}/${layoutContext.publicationState.toLowerCase()}`;
-}
-
-export function toBranchName(layoutBranch: LayoutBranch) {
-    return layoutBranch === 'MAIN' ? layoutBranch : `DESIGN_${layoutBranch}`;
+    return `${layoutContext.branch.toLowerCase()}/${layoutContext.publicationState.toLowerCase()}`;
 }

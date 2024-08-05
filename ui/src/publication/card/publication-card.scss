@@ -2,6 +2,10 @@
 
 .publication-card {
     padding-top: 0;
+    width: 420px;
+    height: fit-content;
+    float: left;
+    margin: 5px 20px 5px 20px;
 
     &__title {
         @include vayla-design.typography-heading;

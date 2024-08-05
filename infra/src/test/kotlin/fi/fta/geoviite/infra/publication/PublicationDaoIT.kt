@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.TEST_USER
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
@@ -23,6 +24,7 @@ import fi.fta.geoviite.infra.integration.TrackNumberChange
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
@@ -39,6 +41,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.assertMatches
+import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
@@ -63,6 +66,7 @@ class PublicationDaoIT @Autowired constructor(
     val locationTrackService: LocationTrackService,
     val locationTrackDao: LocationTrackDao,
     val alignmentDao: LayoutAlignmentDao,
+    val layoutDesignDao: LayoutDesignDao,
 ) : DBTestBase() {
 
     @BeforeEach
@@ -380,6 +384,24 @@ class PublicationDaoIT @Autowired constructor(
                 listOf(switchByTopo),
                 listOf(draftLinkedTopo.id)
             )[switchByTopo]
+        )
+    }
+
+    @Test
+    fun `fetchLatestPublicationDetails lists design publications in design mode`() {
+        val someDesign = DesignBranch.of(layoutDesignDao.insert(layoutDesign("one")))
+        val anotherDesign = DesignBranch.of(layoutDesignDao.insert(layoutDesign("two")))
+        publicationDao.createPublication(someDesign, "in someDesign")
+        publicationDao.createPublication(LayoutBranch.main, "in main")
+        publicationDao.createPublication(anotherDesign, "in anotherDesign")
+        publicationDao.createPublication(LayoutBranch.main, "again in main")
+        assertEquals(
+            listOf("in anotherDesign", "in someDesign"),
+            publicationDao.fetchLatestPublications(PublicationListMode.DESIGN, 2).map { it.message }
+        )
+        assertEquals(
+            listOf("again in main", "in main"),
+            publicationDao.fetchLatestPublications(PublicationListMode.MAIN, 2).map { it.message }
         )
     }
 
