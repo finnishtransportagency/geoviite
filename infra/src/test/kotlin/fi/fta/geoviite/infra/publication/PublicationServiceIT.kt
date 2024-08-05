@@ -67,7 +67,7 @@ import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
-import fi.fta.geoviite.infra.tracklayout.StoredIdentity
+import fi.fta.geoviite.infra.tracklayout.StoredContextIdHolder
 import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
@@ -4263,7 +4263,7 @@ fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> publishAndCheck(
     assertEquals(DataType.STORED, draft.dataType)
     assertEquals(
         MainDraftContextData(
-            contextRowIdentity = StoredIdentity(rowVersion),
+            contextIdHolder = StoredContextIdHolder(rowVersion),
             officialRowId = draft.contextData.officialRowId,
             designRowId = null,
         ),
@@ -4280,7 +4280,7 @@ fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> publishAndCheck(
     assertEquals(id, published.id)
     assertEquals(id.intValue, published.rowVersion.rowId.intValue)
     assertEquals(
-        MainOfficialContextData(StoredIdentity(published.rowVersion)),
+        MainOfficialContextData(StoredContextIdHolder(published.rowVersion)),
         publishedItem.contextData,
     )
 

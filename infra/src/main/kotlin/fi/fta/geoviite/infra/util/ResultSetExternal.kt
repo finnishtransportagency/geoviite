@@ -35,7 +35,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
-import fi.fta.geoviite.infra.tracklayout.StoredIdentity
+import fi.fta.geoviite.infra.tracklayout.StoredContextIdHolder
 import java.sql.ResultSet
 import java.time.Instant
 import java.time.LocalDate
@@ -328,7 +328,7 @@ fun <T> ResultSet.getLayoutContextData(
     return if (designId != null) {
         if (isDraft) {
             DesignDraftContextData(
-                contextRowIdentity = StoredIdentity(rowVersion),
+                contextIdHolder = StoredContextIdHolder(rowVersion),
                 officialRowId = officialRowId,
                 designId = designId,
                 designRowId = designRowId,
@@ -338,14 +338,14 @@ fun <T> ResultSet.getLayoutContextData(
                 "For official design rows, design row ref should be null: officialRow=$officialRowId rowVersion=$rowVersion designRowId=$designRowId"
             }
             DesignOfficialContextData(
-                contextRowIdentity = StoredIdentity(rowVersion),
+                contextIdHolder = StoredContextIdHolder(rowVersion),
                 officialRowId = officialRowId,
                 designId = designId,
             )
         }
     } else if (isDraft) {
         MainDraftContextData(
-            contextRowIdentity = StoredIdentity(rowVersion),
+            contextIdHolder = StoredContextIdHolder(rowVersion),
             officialRowId = officialRowId,
             designRowId = designRowId,
         )
@@ -353,6 +353,6 @@ fun <T> ResultSet.getLayoutContextData(
         require(officialRowId == null) {
             "For official rows, official row ref should be null: officialRow=$officialRowId rowVersion=$rowVersion draft=$isDraft"
         }
-        MainOfficialContextData(contextRowIdentity = StoredIdentity(rowVersion))
+        MainOfficialContextData(contextIdHolder = StoredContextIdHolder(rowVersion))
     }
 }

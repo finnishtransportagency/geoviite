@@ -34,28 +34,28 @@ interface LayoutContextAware<T> {
     val isDesign: Boolean get() = false
 }
 
-sealed class ContextIdentity<T> {
+sealed class ContextIdHolder<T> {
     abstract val rowId: LayoutRowId<T>?
 }
 
-data class UnsavedIdentity<T>(
+data class UnstoredContextIdHolder<T>(
     val sourceRowVersion: LayoutRowVersion<T>?,
     val tempId: StringId<T> = StringId(),
-) : ContextIdentity<T>() {
+) : ContextIdHolder<T>() {
     override val rowId: LayoutRowId<T>? get() = null
 }
 
-data class OverwritingIdentity<T>(
-    val targetRowId: LayoutRowId<T>,
-    val sourceRowVersion: LayoutRowVersion<T>
-) : ContextIdentity<T>() {
-    override val rowId: LayoutRowId<T> get() = targetRowId
+data class StoredContextIdHolder<T>(
+    val version: LayoutRowVersion<T>
+) : ContextIdHolder<T>() {
+    override val rowId: LayoutRowId<T> get() = version.rowId
 }
 
-data class StoredIdentity<T>(
-    val version: LayoutRowVersion<T>
-) : ContextIdentity<T>() {
-    override val rowId: LayoutRowId<T> get() = version.rowId
+data class OverwritingContextIdHolder<T>(
+    val targetRowId: LayoutRowId<T>,
+    val sourceRowVersion: LayoutRowVersion<T>
+) : ContextIdHolder<T>() {
+    override val rowId: LayoutRowId<T> get() = targetRowId
 }
 
 sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) :
@@ -69,7 +69,7 @@ sealed class LayoutAsset<T : LayoutAsset<T>>(contextData: LayoutContextData<T>) 
 sealed class LayoutContextData<T> : LayoutContextAware<T> {
 
     @get:JsonIgnore
-    abstract val contextRowIdentity: ContextIdentity<T>
+    abstract val contextIdHolder: ContextIdHolder<T>
 
     @get:JsonIgnore
     open val officialRowId: LayoutRowId<T>? get() = null
@@ -78,14 +78,14 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
     open val designRowId: LayoutRowId<T>? get() = null
 
     @get:JsonIgnore
-    val rowId: LayoutRowId<T>? get() = contextRowIdentity.rowId
+    val rowId: LayoutRowId<T>? get() = contextIdHolder.rowId
 
-    override val version: LayoutRowVersion<T>? get() = (contextRowIdentity as? StoredIdentity)?.version
+    override val version: LayoutRowVersion<T>? get() = (contextIdHolder as? StoredContextIdHolder)?.version
 
     final override val id: DomainId<T> by lazy {
         (officialRowId ?: designRowId ?: rowId)
             ?.let { rowId -> IntId(rowId.intValue) }
-            ?: (contextRowIdentity as UnsavedIdentity).tempId
+            ?: (contextIdHolder as UnstoredContextIdHolder).tempId
     }
 
     final override val dataType get() = if (rowId == null) TEMP else STORED
@@ -95,8 +95,8 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
     @get:JsonIgnore
     open val designId: IntId<LayoutDesign>? get() = null
 
-    protected fun requireStoredRowVersion() = contextRowIdentity.let { current ->
-        if (current is StoredIdentity) current.version
+    protected fun requireStoredRowVersion() = contextIdHolder.let { current ->
+        if (current is StoredContextIdHolder) current.version
         else error {
             "Only $STORED rows can transition to a different context: context=${this::class.simpleName} dataType=$dataType"
         }
@@ -111,12 +111,12 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
 
         fun <T : LayoutAsset<T>> newDraft(branch: LayoutBranch): LayoutContextData<T> = when (branch) {
             is MainBranch -> MainDraftContextData(
-                contextRowIdentity = UnsavedIdentity(null),
+                contextIdHolder = UnstoredContextIdHolder(null),
                 officialRowId = null,
                 designRowId = null,
             )
             is DesignBranch -> DesignDraftContextData(
-                contextRowIdentity = UnsavedIdentity(null),
+                contextIdHolder = UnstoredContextIdHolder(null),
                 designRowId = null,
                 officialRowId = null,
                 designId = branch.designId,
@@ -125,10 +125,10 @@ sealed class LayoutContextData<T> : LayoutContextAware<T> {
 
         fun <T : LayoutAsset<T>> newOfficial(branch: LayoutBranch): LayoutContextData<T> = when (branch) {
             is MainBranch -> MainOfficialContextData(
-                contextRowIdentity = UnsavedIdentity(null),
+                contextIdHolder = UnstoredContextIdHolder(null),
             )
             is DesignBranch -> DesignOfficialContextData(
-                contextRowIdentity = UnsavedIdentity(null),
+                contextIdHolder = UnstoredContextIdHolder(null),
                 officialRowId = null,
                 designId = branch.designId,
             )
@@ -143,7 +143,7 @@ sealed class DesignContextData<T> : LayoutContextData<T>() {
 }
 
 data class MainOfficialContextData<T>(
-    override val contextRowIdentity: ContextIdentity<T>,
+    override val contextIdHolder: ContextIdHolder<T>,
 ) : MainContextData<T>() {
 
     override val editState: EditState get() = EditState.UNEDITED
@@ -152,7 +152,7 @@ data class MainOfficialContextData<T>(
     fun asMainDraft(): MainDraftContextData<T> {
         val ownRowVersion = requireStoredRowVersion()
         return MainDraftContextData(
-            contextRowIdentity = UnsavedIdentity(ownRowVersion),
+            contextIdHolder = UnstoredContextIdHolder(ownRowVersion),
             officialRowId = ownRowVersion.rowId,
             designRowId = null,
         )
@@ -161,7 +161,7 @@ data class MainOfficialContextData<T>(
     fun asDesignDraft(designId: IntId<LayoutDesign>): DesignDraftContextData<T> {
         val ownRowVersion = requireStoredRowVersion()
         return DesignDraftContextData(
-            contextRowIdentity = UnsavedIdentity(ownRowVersion),
+            contextIdHolder = UnstoredContextIdHolder(ownRowVersion),
             officialRowId = ownRowVersion.rowId,
             designRowId = null,
             designId = designId,
@@ -170,7 +170,7 @@ data class MainOfficialContextData<T>(
 }
 
 data class MainDraftContextData<T>(
-    override val contextRowIdentity: ContextIdentity<T>,
+    override val contextIdHolder: ContextIdHolder<T>,
     override val officialRowId: LayoutRowId<T>?,
     override val designRowId: LayoutRowId<T>?,
 ) : MainContextData<T>() {
@@ -184,7 +184,7 @@ data class MainDraftContextData<T>(
     fun asMainOfficial(): MainOfficialContextData<T> {
         val ownRowVersion = requireStoredRowVersion()
         return MainOfficialContextData(
-            OverwritingIdentity(
+            OverwritingContextIdHolder(
                 // At publish, we update the first known row for the asset, making it main-official if it wasn't
                 targetRowId = officialRowId ?: designRowId ?: ownRowVersion.rowId,
                 sourceRowVersion = ownRowVersion,
@@ -194,7 +194,7 @@ data class MainDraftContextData<T>(
 }
 
 data class DesignOfficialContextData<T>(
-    override val contextRowIdentity: ContextIdentity<T>,
+    override val contextIdHolder: ContextIdHolder<T>,
     override val officialRowId: LayoutRowId<T>?,
     override val designId: IntId<LayoutDesign>,
 ) : DesignContextData<T>() {
@@ -209,10 +209,10 @@ data class DesignOfficialContextData<T>(
     fun asMainDraft(overwriteRowId: LayoutRowId<T>?): MainDraftContextData<T> {
         val ownRowVersion = requireStoredRowVersion()
         return MainDraftContextData(
-            contextRowIdentity = if (overwriteRowId == null) {
-                UnsavedIdentity(ownRowVersion)
+            contextIdHolder = if (overwriteRowId == null) {
+                UnstoredContextIdHolder(ownRowVersion)
             } else {
-                OverwritingIdentity(targetRowId = overwriteRowId, sourceRowVersion = ownRowVersion)
+                OverwritingContextIdHolder(targetRowId = overwriteRowId, sourceRowVersion = ownRowVersion)
             },
             officialRowId = officialRowId,
             designRowId = ownRowVersion.rowId,
@@ -222,7 +222,7 @@ data class DesignOfficialContextData<T>(
     fun asDesignDraft(): DesignDraftContextData<T> {
         val ownRowVersion = requireStoredRowVersion()
         return DesignDraftContextData(
-            contextRowIdentity = UnsavedIdentity(ownRowVersion),
+            contextIdHolder = UnstoredContextIdHolder(ownRowVersion),
             officialRowId = officialRowId,
             designRowId = ownRowVersion.rowId,
             designId = designId,
@@ -231,7 +231,7 @@ data class DesignOfficialContextData<T>(
 }
 
 data class DesignDraftContextData<T>(
-    override val contextRowIdentity: ContextIdentity<T>,
+    override val contextIdHolder: ContextIdHolder<T>,
     override val designRowId: LayoutRowId<T>?,
     override val officialRowId: LayoutRowId<T>?,
     override val designId: IntId<LayoutDesign>,
@@ -247,7 +247,7 @@ data class DesignDraftContextData<T>(
     fun asDesignOfficial(): DesignOfficialContextData<T> {
         val ownRowVersion = requireStoredRowVersion()
         return DesignOfficialContextData(
-            contextRowIdentity = OverwritingIdentity(
+            contextIdHolder = OverwritingContextIdHolder(
                 // The publishing should update either the official or the draft row in the design (not main official)
                 targetRowId = designRowId ?: ownRowVersion.rowId,
                 sourceRowVersion = ownRowVersion,

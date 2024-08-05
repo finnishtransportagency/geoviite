@@ -22,7 +22,7 @@ import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.project
 import fi.fta.geoviite.infra.split.BulkTransfer
-import fi.fta.geoviite.infra.tracklayout.ContextIdentity
+import fi.fta.geoviite.infra.tracklayout.ContextIdHolder
 import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
 import fi.fta.geoviite.infra.tracklayout.DesignOfficialContextData
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -43,14 +43,14 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.MainDraftContextData
 import fi.fta.geoviite.infra.tracklayout.MainOfficialContextData
-import fi.fta.geoviite.infra.tracklayout.OverwritingIdentity
+import fi.fta.geoviite.infra.tracklayout.OverwritingContextIdHolder
 import fi.fta.geoviite.infra.tracklayout.PolyLineLayoutAsset
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import fi.fta.geoviite.infra.tracklayout.UnsavedIdentity
+import fi.fta.geoviite.infra.tracklayout.UnstoredContextIdHolder
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.referenceLine
@@ -396,7 +396,7 @@ data class TestLayoutContext(
     ): LayoutDaoResponse<T> {
         val dao = getDao(T::class)
         val original = mutate(dao.fetch(rowVersion))
-        val withNewContext = original.withContext(createContextData(UnsavedIdentity(rowVersion), officialRowId, designRowId))
+        val withNewContext = original.withContext(createContextData(UnstoredContextIdHolder(rowVersion), officialRowId, designRowId))
         return when (withNewContext) {
             // Also copy alignment: the types won't play nice unless we use the final ones, so this duplicates
             is LocationTrack -> insert(withNewContext, alignmentDao.fetch(withNewContext.getAlignmentVersionOrThrow()))
@@ -421,7 +421,7 @@ data class TestLayoutContext(
         val original = mutate(dao.fetch(rowVersion))
         val withNewContext = original.withContext(original.contextData.let { origCtx ->
             createContextData(
-                rowContextId = OverwritingIdentity(rowVersion.rowId, rowVersion),
+                rowContextId = OverwritingContextIdHolder(rowVersion.rowId, rowVersion),
                 officialRowId = origCtx.officialRowId.takeIf { context !is MainLayoutContext },
                 designRowId = origCtx.designRowId.takeIf { context.state == DRAFT },
             )
@@ -495,7 +495,7 @@ data class TestLayoutContext(
     )
 
     fun <T : LayoutAsset<T>> createContextData(
-        rowContextId: ContextIdentity<T>,
+        rowContextId: ContextIdHolder<T>,
         officialRowId: LayoutRowId<T>? = null,
         designRowId: LayoutRowId<T>? = null,
     ): LayoutContextData<T> = context.branch.let { branch ->
