@@ -66,14 +66,6 @@ class LayoutDesignDao(
     @Transactional
     fun update(id: DomainId<LayoutDesign>, design: LayoutDesignSaveRequest): IntId<LayoutDesign> {
         jdbcTemplate.setUser()
-        require(list(includeCompleted = true)
-            .none { existing ->
-                existing.name.equalsIgnoreCase(design.name) && existing.id != id
-            }
-        ) {
-            "Name must be unique"
-        }
-
         val params = mapOf(
             "id" to toDbId(id).intValue,
             "name" to design.name,
@@ -100,12 +92,6 @@ class LayoutDesignDao(
     @Transactional
     fun insert(design: LayoutDesignSaveRequest): IntId<LayoutDesign> {
         jdbcTemplate.setUser()
-        require(
-            list(includeCompleted = true).none { existing -> existing.name.equalsIgnoreCase(design.name) }
-        ) {
-            "Name must be unique"
-        }
-
         val sql = """
             insert into layout.design (name, estimated_completion, design_state)
             values (:name, :estimated_completion, :design_state::layout.design_state)

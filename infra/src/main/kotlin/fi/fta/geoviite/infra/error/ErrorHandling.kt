@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.util.LocalizationKey
 import jakarta.xml.bind.UnmarshalException
 import org.geotools.api.referencing.operation.TransformException
+import org.postgresql.util.PSQLException
 import org.springframework.beans.ConversionNotSupportedException
 import org.springframework.beans.TypeMismatchException
 import org.springframework.boot.context.properties.bind.BindException
@@ -306,4 +307,11 @@ data class ErrorDescription(
         params,
         priority,
     )
+}
+
+fun getPSQLExceptionConstraintAndDetailOrRethrow(psqlException: PSQLException): Pair<String, String> {
+    val constraint = psqlException.serverErrorMessage?.constraint ?: throw psqlException
+    val detail = psqlException.serverErrorMessage?.detail ?: throw psqlException
+
+    return constraint to detail
 }

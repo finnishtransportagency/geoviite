@@ -8,6 +8,7 @@ import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.test.context.ActiveProfiles
 import java.time.LocalDate
 import kotlin.test.assertContains
@@ -19,7 +20,7 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
 
     @BeforeEach
     fun cleanup() {
-        testDBService.clearAllTables()
+        testDBService.clearLayoutTables()
     }
 
     @Test
@@ -48,13 +49,13 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
         layoutDesignDao.insert(layoutDesignSaveRequest("foo bar", designState = DesignState.ACTIVE))
         layoutDesignDao.insert(layoutDesignSaveRequest("foo barbar", designState = DesignState.COMPLETED))
         layoutDesignDao.insert(layoutDesignSaveRequest("boo too far", designState = DesignState.DELETED))
-        assertThrows<IllegalArgumentException> {
+        assertThrows<DataIntegrityViolationException> {
             layoutDesignDao.insert(layoutDesignSaveRequest("foo bar"))
         }
-        assertThrows<IllegalArgumentException> {
+        assertThrows<DataIntegrityViolationException> {
             layoutDesignDao.insert(layoutDesignSaveRequest("FOO BAR"))
         }
-        assertThrows<IllegalArgumentException> {
+        assertThrows<DataIntegrityViolationException> {
             layoutDesignDao.insert(layoutDesignSaveRequest("foo barbar"))
         }
         assertDoesNotThrow { layoutDesignDao.insert(layoutDesignSaveRequest("boo too far")) }
@@ -66,7 +67,7 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
         layoutDesignDao.insert(layoutDesignSaveRequest("boo too far", designState = DesignState.COMPLETED)).let(layoutDesignDao::fetch)
         layoutDesignDao.insert(layoutDesignSaveRequest("way too far", designState = DesignState.DELETED)).let(layoutDesignDao::fetch)
 
-        assertThrows<IllegalArgumentException> {
+        assertThrows<DataIntegrityViolationException> {
             layoutDesignDao.update(
                 design.id,
                 LayoutDesignSaveRequest(
@@ -76,7 +77,7 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
                 )
             )
         }
-        assertThrows<IllegalArgumentException> {
+        assertThrows<DataIntegrityViolationException> {
             layoutDesignDao.update(
                 design.id,
                 LayoutDesignSaveRequest(
