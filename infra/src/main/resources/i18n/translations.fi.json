@@ -149,6 +149,9 @@
         }
     },
     "reference-line": "Pituusmittauslinja",
+    "design": {
+        "duplicate-name": "Nimi {{name}} on jo käytössä"
+    },
     "enum": {
         "plan-phase": {
             "RAILWAY_PLAN": "Ratasuunnitelma, RaS",
