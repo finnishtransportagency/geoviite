@@ -1,5 +1,6 @@
 import {
     AlignmentPoint,
+    GkLocationSource,
     LayoutKmPostId,
     LayoutState,
     LayoutStateCategory,
@@ -21,7 +22,7 @@ import {
     GeometryPlanId,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
-import { Point } from 'model/geometry';
+import { GeometryPoint, Point } from 'model/geometry';
 import {
     JointNumber,
     KmNumber,
@@ -29,6 +30,7 @@ import {
     LocationTrackOwnerId,
     LocationTrackPointUpdateType,
     Range,
+    Srid,
     SwitchAlignmentId,
     SwitchOwnerId,
     SwitchStructureId,
@@ -162,10 +164,22 @@ export type LinkingKmPost = LinkingBaseType & {
     geometryKmPostId: GeometryKmPostId;
 };
 
-export type KmPostSaveRequest = {
+export type KmPostSimpleFields = {
     kmNumber: KmNumber;
     state?: LayoutState;
     trackNumberId?: LayoutTrackNumberId;
+    gkLocationConfirmed?: boolean;
+};
+
+export type KmPostSaveRequest = KmPostSimpleFields & {
+    gkLocation: GeometryPoint | undefined;
+    gkLocationSource: GkLocationSource | undefined;
+};
+
+export type KmPostEditFields = KmPostSimpleFields & {
+    gkSrid: Srid | undefined;
+    gkLocationX: string;
+    gkLocationY: string;
 };
 
 export enum LinkingType {

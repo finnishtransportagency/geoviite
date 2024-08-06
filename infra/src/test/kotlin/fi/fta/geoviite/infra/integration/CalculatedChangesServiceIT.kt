@@ -786,12 +786,12 @@ class CalculatedChangesServiceIT @Autowired constructor(
     fun `changing km post should indirectly cause track number changes`() {
         val testData = insertTestData()
         val kmPost = testData.kmPosts.first()
-        val location = kmPost.location
+        val location = kmPost.layoutLocation
 
         assertNotNull(location)
         moveKmPostLocation(
             kmPost = kmPost,
-            location = location + 2.0,
+            layoutLocation = location + 2.0,
             kmPostService = kmPostService,
         )
 
@@ -808,12 +808,12 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val (locationTrack3, _) = testData.locationTracksAndAlignments[2]
         val (locationTrack4, _) = testData.locationTracksAndAlignments[3]
 
-        val location = kmPost.location
+        val location = kmPost.layoutLocation
 
         assertNotNull(location)
         moveKmPostLocation(
             kmPost = kmPost,
-            location = location + 2.0,
+            layoutLocation = location + 2.0,
             kmPostService = kmPostService,
         )
 
@@ -833,12 +833,12 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val (locationTrack4, _) = testData.locationTracksAndAlignments[3]
         val switch = testData.switches.first()
 
-        val location = kmPost.location
+        val location = kmPost.layoutLocation
 
         assertNotNull(location)
         moveKmPostLocation(
             kmPost = kmPost,
-            location = location + 2.0,
+            layoutLocation = location + 2.0,
             kmPostService = kmPostService,
         )
 
@@ -1213,7 +1213,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
                     kmPost(
                         trackNumberId = trackNumber.id as IntId,
                         km = kmNumber,
-                        location = refPoint + location,
+                        roughLayoutLocation = refPoint + location,
                         draft = false,
                     )
                 ).rowVersion
@@ -1222,8 +1222,8 @@ class CalculatedChangesServiceIT @Autowired constructor(
         val referenceLineGeometryVersion = layoutAlignmentDao.insert(
             alignment(
                 segment(
-                    kmPosts.first().location as Point,
-                    kmPosts.last().location as Point,
+                    kmPosts.first().layoutLocation as Point,
+                    kmPosts.last().layoutLocation as Point,
                 )
             )
         )

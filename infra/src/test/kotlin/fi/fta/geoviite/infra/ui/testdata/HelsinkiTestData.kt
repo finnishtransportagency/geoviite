@@ -137,9 +137,9 @@ class HelsinkiTestData private constructor() {
             val point3 = HKI_BASE_POINT + Point(x = 690.00, y = 560.00)
 
             return arrayListOf(
-                kmPost(trackNumberId = trackNumberId, km = KmNumber("0001we"), location = point1, draft = false),
-                kmPost(trackNumberId = trackNumberId, km = KmNumber("0002we"), location = point2, draft = false),
-                kmPost(trackNumberId = trackNumberId, km = KmNumber("0003we"), location = point3, draft = false),
+                kmPost(trackNumberId = trackNumberId, km = KmNumber("0001we"), roughLayoutLocation = point1, draft = false),
+                kmPost(trackNumberId = trackNumberId, km = KmNumber("0002we"), roughLayoutLocation = point2, draft = false),
+                kmPost(trackNumberId = trackNumberId, km = KmNumber("0003we"), roughLayoutLocation = point3, draft = false),
             )
         }
 
@@ -149,9 +149,9 @@ class HelsinkiTestData private constructor() {
             val point3 = HKI_BASE_POINT + Point(x = 752.00, y = 560.00)
 
             return arrayListOf(
-                kmPost(trackNumberId = trackNumberId, km = KmNumber("0001es"), location = point1, draft = false),
-                kmPost(trackNumberId = trackNumberId, km = KmNumber("0002es"), location = point2, draft = false),
-                kmPost(trackNumberId = trackNumberId, km = KmNumber("0003es"), location = point3, draft = false),
+                kmPost(trackNumberId = trackNumberId, km = KmNumber("0001es"), roughLayoutLocation = point1, draft = false),
+                kmPost(trackNumberId = trackNumberId, km = KmNumber("0002es"), roughLayoutLocation = point2, draft = false),
+                kmPost(trackNumberId = trackNumberId, km = KmNumber("0003es"), roughLayoutLocation = point3, draft = false),
             )
         }
 

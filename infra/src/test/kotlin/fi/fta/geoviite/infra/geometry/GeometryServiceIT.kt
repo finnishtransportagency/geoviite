@@ -130,12 +130,19 @@ class GeometryServiceIT @Autowired constructor(
         actual.forEachIndexed { kmIndex, actualKm ->
             val expectedKm = expectedData[kmIndex]
             assertEquals(KmNumber(expectedKm.first), actualKm.kmNumber)
-            val expectedLastM = if (kmIndex == expectedData.lastIndex) {
-                expectedData.last().second.last().second
+            // last lastM needs to be exactly correct, because it specifies the end of the track, and the front-end code
+            // depends on that being clean; the km post locations can slightly wobble due the GK coordinate
+            // transformation though
+            if (kmIndex == expectedData.lastIndex) {
+                assertEquals(expectedData.last().second.last().second, actualKm.endM, "endM at track end")
             } else {
-                expectedData[kmIndex + 1].second.first().second
+                assertEquals(
+                    expectedData[kmIndex + 1].second.first().second,
+                    actualKm.endM,
+                    0.00001,
+                    "endM at index $kmIndex"
+                )
             }
-            assertEquals(expectedLastM, actualKm.endM, "endM at index $kmIndex")
             assertEquals(expectedKm.second.size, actualKm.trackMeterHeights.size)
 
             actualKm.trackMeterHeights.forEachIndexed { mIndex, actualM ->

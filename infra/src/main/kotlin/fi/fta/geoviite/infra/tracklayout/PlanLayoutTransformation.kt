@@ -5,12 +5,14 @@ import fi.fta.geoviite.infra.common.FeatureTypeCode
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.geography.HeightTriangle
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.transformHeightValue
+import fi.fta.geoviite.infra.geography.transformToGKCoordinate
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryCant
 import fi.fta.geoviite.infra.geometry.GeometryElement
@@ -48,6 +50,7 @@ fun toTrackLayout(
     planToLayout: Transformation,
     pointListStepLength: Int,
     includeGeometryData: Boolean,
+    planSrid: Srid,
 ): GeometryPlanLayout {
     val switches = toTrackLayoutSwitches(geometryPlan.switches, planToLayout)
 
@@ -61,7 +64,7 @@ fun toTrackLayout(
         includeGeometryData
     )
 
-    val kmPosts = toTrackLayoutKmPosts(trackNumberId, geometryPlan.kmPosts, planToLayout)
+    val kmPosts = toTrackLayoutKmPosts(trackNumberId, geometryPlan.kmPosts, planToLayout, planSrid)
     val startAddress = getPlanStartAddress(geometryPlan.kmPosts)
 
     return GeometryPlanLayout(
@@ -80,15 +83,18 @@ fun toTrackLayoutKmPosts(
     trackNumberId: IntId<TrackLayoutTrackNumber>?,
     kmPosts: List<GeometryKmPost>,
     planToLayout: Transformation,
+    planSrid: Srid,
 ): List<TrackLayoutKmPost> {
-    return kmPosts.mapNotNull { kmPost ->
+    return kmPosts.mapIndexedNotNull { kmPostIndex, kmPost ->
         if (kmPost.location != null && kmPost.kmNumber != null) {
             TrackLayoutKmPost(
                 kmNumber = kmPost.kmNumber,
-                location = planToLayout.transform(kmPost.location),
                 state = getLayoutStateOrDefault(kmPost.state),
                 sourceId = kmPost.id,
                 trackNumberId = trackNumberId,
+                gkLocation = transformToGKCoordinate(planSrid, kmPost.location),
+                gkLocationSource = KmPostGkLocationSource.FROM_GEOMETRY,
+                gkLocationConfirmed = true,
                 contextData = LayoutContextData.newDraft(LayoutBranch.main),
             )
         } else null

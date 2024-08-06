@@ -1,5 +1,6 @@
 import { asyncCache } from 'cache/cache';
 import {
+    KmPostInfoboxExtras,
     LayoutKmLengthDetails,
     LayoutKmPost,
     LayoutKmPostId,
@@ -184,11 +185,13 @@ export async function getKmLengths(
     );
 }
 
-export async function getSingleKmPostKmLength(
+export async function getKmPostInfoboxExtras(
     layoutContext: LayoutContext,
     id: LayoutKmPostId,
-): Promise<number | undefined> {
-    return getNullable<number>(`${layoutUri('km-posts', layoutContext, id)}/km-length`);
+): Promise<KmPostInfoboxExtras | undefined> {
+    return getNullable<KmPostInfoboxExtras>(
+        `${layoutUri('km-posts', layoutContext, id)}/infobox-extras`,
+    );
 }
 
 export const getKmLengthsAsCsv = (

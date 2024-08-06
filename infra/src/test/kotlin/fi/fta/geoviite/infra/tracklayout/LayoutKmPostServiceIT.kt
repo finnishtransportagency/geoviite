@@ -32,7 +32,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
                 kmPost(
                     trackNumberId = trackNumberId,
                     km = KmNumber(1),
-                    location = Point(1.0, 1.0),
+                    roughLayoutLocation = Point(1.0, 1.0),
                     draft = false,
                 )
             ).rowVersion
@@ -42,7 +42,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
                 kmPost(
                     trackNumberId = trackNumberId,
                     km = KmNumber(2),
-                    location = Point(2.0, 1.0),
+                    roughLayoutLocation = Point(2.0, 1.0),
                     draft = false,
                 )
             ).rowVersion
@@ -52,7 +52,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
                 kmPost(
                     trackNumberId = trackNumberId,
                     km = KmNumber(3),
-                    location = null,
+                    roughLayoutLocation = null,
                     draft = false,
                 )
             ).rowVersion
@@ -62,7 +62,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
             kmPost(
                 trackNumberId = mainOfficialContext.createLayoutTrackNumber().id,
                 km = KmNumber(4),
-                location = null,
+                roughLayoutLocation = null,
                 draft = false,
             )
         )
@@ -86,7 +86,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
                 kmPost(
                     trackNumberId = trackNumberId,
                     km = KmNumber(1),
-                    location = Point(1.0, 1.0),
+                    roughLayoutLocation = Point(1.0, 1.0),
                     draft = false,
                 )
             ).rowVersion
@@ -109,7 +109,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
             kmPost(
                 trackNumberId = trackNumberId,
                 km = KmNumber(1),
-                location = Point(1.0, 1.0),
+                roughLayoutLocation = Point(1.0, 1.0),
                 draft = false,
             )
         )
@@ -126,7 +126,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
                 kmPost(
                     trackNumberId = trackNumber1Id,
                     km = KmNumber(1),
-                    location = Point(1.0, 1.0),
+                    roughLayoutLocation = Point(1.0, 1.0),
                     draft = false,
                 )
             ).rowVersion
@@ -157,6 +157,9 @@ class LayoutKmPostServiceIT @Autowired constructor(
             kmNumber = someKmNumber(),
             state = LayoutState.IN_USE,
             trackNumberId = trackNumberId,
+            gkLocation = null,
+            gkLocationSource = null,
+            gkLocationConfirmed = false,
         )
         val kmPostId = kmPostService.insertKmPost(LayoutBranch.main, kmPost)
 
@@ -201,7 +204,7 @@ class LayoutKmPostServiceIT @Autowired constructor(
         // drop(1) because the track number km lengths include the section before the first km post
         val expected = trackNumberService.getKmLengths(MainLayoutContext.draft, trackNumberId)!!.drop(1)
         val actual = kmPostSaveResults.mapNotNull { kmPost ->
-            kmPostService.getSingleKmPostLength(MainLayoutContext.draft, kmPost)
+            kmPostService.getKmPostInfoboxExtras(MainLayoutContext.draft, kmPost).kmLength
         }
         assertEquals(expected.size, actual.size)
         expected.zip(actual) { e, a -> assertEquals(e.length.toDouble(), a, 0.001) }

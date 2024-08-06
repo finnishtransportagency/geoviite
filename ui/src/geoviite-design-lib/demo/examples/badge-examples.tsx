@@ -43,9 +43,10 @@ const kmPost: LayoutKmPost = {
     ...layoutAssetFields,
     id: brand(''),
     kmNumber: '123',
-    location: { x: 0, y: 0 },
+    layoutLocation: { x: 0, y: 0 },
     state: 'IN_USE' as LayoutState,
     trackNumberId: brand(''),
+    gkLocationConfirmed: false,
 };
 const layoutSwitch: LayoutSwitch = {
     ...layoutAssetFields,

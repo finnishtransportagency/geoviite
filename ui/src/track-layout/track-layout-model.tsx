@@ -5,7 +5,7 @@ import {
     GeometryPlanLayoutId,
     GeometrySwitchId,
 } from 'geometry/geometry-model';
-import { BoundingBox, Point } from 'model/geometry';
+import { BoundingBox, GeometryPoint, Point } from 'model/geometry';
 import {
     DataType,
     JointNumber,
@@ -279,11 +279,16 @@ export type LayoutKmPostId = Brand<string, 'LayoutKmPostId'>;
 export type LayoutKmPost = {
     id: LayoutKmPostId;
     kmNumber: KmNumber;
-    location?: Point;
+    layoutLocation?: Point;
+    gkLocation?: GeometryPoint;
+    gkLocationSource?: GkLocationSource;
+    gkLocationConfirmed: boolean;
     state: LayoutState;
     trackNumberId: LayoutTrackNumberId;
     sourceId?: GeometryKmPostId;
 } & LayoutAssetFields;
+
+export type GkLocationSource = 'FROM_GEOMETRY' | 'FROM_LAYOUT' | 'MANUAL';
 
 export type LayoutKmLengthDetails = {
     trackNumber: TrackNumber;
@@ -385,6 +390,11 @@ export type OperatingPoint = {
     uicCode: string;
     type: OperationalPointType;
     location: Point;
+};
+
+export type KmPostInfoboxExtras = {
+    kmLength: number | undefined;
+    sourceGeometryPlanId: GeometryPlanId | undefined;
 };
 
 export function combineAlignmentPoints(points: AlignmentPoint[][]): AlignmentPoint[] {

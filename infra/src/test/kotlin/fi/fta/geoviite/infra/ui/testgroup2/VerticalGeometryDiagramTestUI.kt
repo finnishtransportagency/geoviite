@@ -59,7 +59,7 @@ class VerticalGeometryDiagramTestUI @Autowired constructor(
         kmPostDao.insert(
             kmPost(
                 trackNumberId = trackNumberId,
-                km = KmNumber(0), location = DEFAULT_BASE_POINT + Point(0.0, 0.0),
+                km = KmNumber(0), roughLayoutLocation = DEFAULT_BASE_POINT + Point(0.0, 0.0),
                 draft = false,
             )
         )

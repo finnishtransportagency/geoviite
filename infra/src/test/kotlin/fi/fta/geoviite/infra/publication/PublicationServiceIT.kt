@@ -1604,6 +1604,9 @@ class PublicationServiceIT @Autowired constructor(
                     KmNumber(0),
                     LayoutState.IN_USE,
                     trackNumber.id as IntId,
+                    gkLocation = null,
+                    gkLocationSource = null,
+                    gkLocationConfirmed = false,
                 )
             ),
         )
@@ -1621,6 +1624,9 @@ class PublicationServiceIT @Autowired constructor(
                     KmNumber(1),
                     LayoutState.NOT_IN_USE,
                     trackNumber2.id as IntId,
+                    gkLocation = null,
+                    gkLocationSource = null,
+                    gkLocationConfirmed = false,
                 ),
             ),
         )
@@ -1678,6 +1684,9 @@ class PublicationServiceIT @Autowired constructor(
             KmNumber(0),
             LayoutState.IN_USE,
             mainOfficialContext.createLayoutTrackNumber().id,
+            gkLocation = null,
+            gkLocationSource = null,
+            gkLocationConfirmed = false,
         )
 
         val kmPost = kmPostService.getOrThrow(
