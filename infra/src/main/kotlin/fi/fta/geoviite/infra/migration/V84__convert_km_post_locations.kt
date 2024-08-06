@@ -42,7 +42,7 @@ class V84__convert_km_post_locations : BaseJavaMigration() {
               gk_location = postgis.st_point(:gk_x, :gk_y, :gk_srid)
             where id = :id and version = :version
         """.trimIndent()
-        jdbcTemplate.batchUpdate(updateSql, rows.mapNotNull { (version, oldLayoutLocation) ->
+        jdbcTemplate.batchUpdate(updateSql, rows.map { (version, oldLayoutLocation) ->
             try {
                 val gkLocation = transformToGKCoordinate(LAYOUT_SRID, oldLayoutLocation)
                 val newLayoutLocation = transformNonKKJCoordinate(gkLocation.srid, LAYOUT_SRID, gkLocation)
@@ -58,7 +58,7 @@ class V84__convert_km_post_locations : BaseJavaMigration() {
                 )
             } catch (e: CoordinateTransformationException) {
                 logger.error("Could not transform location for km post $version in $table", e)
-                null
+                throw e
             }
         }.toTypedArray())
     }
