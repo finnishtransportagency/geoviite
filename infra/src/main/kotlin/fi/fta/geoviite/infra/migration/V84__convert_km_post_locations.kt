@@ -17,7 +17,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.jdbc.datasource.SingleConnectionDataSource
 
 @Suppress("unused", "ClassName")
-class V83__convert_km_post_locations : BaseJavaMigration() {
+class V84__convert_km_post_locations : BaseJavaMigration() {
 
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -44,7 +44,8 @@ class V83__convert_km_post_locations : BaseJavaMigration() {
         """.trimIndent()
         jdbcTemplate.batchUpdate(updateSql, rows.mapNotNull { (version, oldLayoutLocation) ->
             try {
-                val gkLocation = transformToGKCoordinate(LAYOUT_SRID, oldLayoutLocation)
+                val transformToGKCoordinate = transformToGKCoordinate(LAYOUT_SRID, oldLayoutLocation)
+                val gkLocation = transformToGKCoordinate
                 val newLayoutLocation = transformNonKKJCoordinate(gkLocation.srid, LAYOUT_SRID, gkLocation)
                 mapOf(
                     "id" to version.id.intValue,
