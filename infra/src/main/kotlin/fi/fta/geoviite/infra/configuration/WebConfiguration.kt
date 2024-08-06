@@ -2,6 +2,8 @@ package fi.fta.geoviite.infra.configuration
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS
+import fi.fta.geoviite.api.frameconverter.v1.FrameConverterListRequestConverterV1
+import fi.fta.geoviite.api.frameconverter.v1.FrameConverterRequestConverterV1
 import fi.fta.geoviite.infra.authorization.AuthName
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.AlignmentName
@@ -56,7 +58,10 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 @ConditionalOnWebApplication
 @EnableWebMvc
 @Configuration
-class WebConfig : WebMvcConfigurer {
+class WebConfig(
+    private val frameConverterRequestConverterV1: FrameConverterRequestConverterV1,
+    private val frameConverterListRequestConverterV1: FrameConverterListRequestConverterV1
+) : WebMvcConfigurer {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     override fun addFormatters(registry: FormatterRegistry) {
@@ -126,6 +131,10 @@ class WebConfig : WebMvcConfigurer {
 
         logger.info("Registering localization language converters")
         registry.addStringConstructorConverter { enumCaseInsensitive<LocalizationLanguage>(it) }
+
+        logger.info("Registering frame converter json request converters")
+        registry.addConverter(frameConverterRequestConverterV1)
+        registry.addConverter(frameConverterListRequestConverterV1)
     }
 
     override fun configureMessageConverters(converters: MutableList<HttpMessageConverter<*>?>) {
