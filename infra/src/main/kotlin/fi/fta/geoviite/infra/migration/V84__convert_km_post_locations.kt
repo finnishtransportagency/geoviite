@@ -58,14 +58,14 @@ class V84__convert_km_post_locations : BaseJavaMigration() {
                     "gk_srid" to gkLocation.srid.code,
                 )
             } catch (e: CoordinateTransformationException) {
-                logger.error("Could not transform location for km post $version in $table")
+                logger.error("Could not transform location for km post $version in $table", e)
                 null
             }
         }.toTypedArray())
     }
 
     override fun migrate(context: Context?) {
-        val connection = context?.connection ?: throw IllegalStateException("Can't run imports without DB connection")
+        val connection = requireNotNull(context?.connection) { "Can't run migrations without DB connection" }
         val jdbcTemplate = NamedParameterJdbcTemplate(SingleConnectionDataSource(connection, true))
         migrateTable(jdbcTemplate, "layout.km_post")
         migrateTable(jdbcTemplate, "layout.km_post_version")
