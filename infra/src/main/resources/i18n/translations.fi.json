@@ -1756,7 +1756,8 @@
             "title": "Työtilan poistaminen",
             "guide": "Poistettua työtilaa ei voi palauttaa eikä sen sisältöä muokata.",
             "confirm": "Haluatko poistaa työtilan <strong>{{name}}<strong>?"
-        }
+        },
+        "name-collides": "Nimi on jo käytössä"
     },
     "switch-delete-dialog": {
         "title": "Poistetaanko luonnos?",

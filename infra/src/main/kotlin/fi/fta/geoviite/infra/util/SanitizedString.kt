@@ -32,6 +32,7 @@ data class FreeText @JsonCreator(mode = DELEGATING) constructor(private val valu
     override fun toString(): String = value
     override fun compareTo(other: FreeText): Int = value.compareTo(other.value)
     operator fun plus(addition: String) = FreeText("$value$addition")
+    fun equalsIgnoreCase(other: FreeText): Boolean = value.toString().lowercase().compareTo(other.value.toString().lowercase()) == 0
 }
 
 data class FreeTextWithNewLines @JsonCreator(mode = DELEGATING) constructor(private val value: String)

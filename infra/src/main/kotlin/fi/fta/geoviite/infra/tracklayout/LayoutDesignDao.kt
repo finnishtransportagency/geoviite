@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.DbTable
+import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getFreeText
 import fi.fta.geoviite.infra.util.getIntId
@@ -41,13 +42,18 @@ class LayoutDesignDao(
         }
     }
 
-    fun list(): List<LayoutDesign> {
+    fun list(includeCompleted: Boolean = false, includeDeleted: Boolean = false): List<LayoutDesign> {
         val sql = """
             select id, name, estimated_completion, design_state
             from layout.design
-            where design_state = 'ACTIVE'::layout.design_state
+            where design_state = 'ACTIVE'::layout.design_state 
+              or :include_completed is true and design_state = 'COMPLETED'::layout.design_state
+              or :include_deleted is true and design_state = 'DELETED'::layout.design_state
         """.trimIndent()
-        return jdbcTemplate.query(sql) { rs, _ ->
+        return jdbcTemplate.query(
+            sql,
+            mapOf("include_completed" to includeCompleted, "include_deleted" to includeDeleted)
+        ) { rs, _ ->
             LayoutDesign(
                 rs.getIntId("id"),
                 rs.getFreeText("name"),
@@ -60,6 +66,14 @@ class LayoutDesignDao(
     @Transactional
     fun update(id: DomainId<LayoutDesign>, design: LayoutDesignSaveRequest): IntId<LayoutDesign> {
         jdbcTemplate.setUser()
+        require(list(includeCompleted = true)
+            .none { existing ->
+                existing.name.equalsIgnoreCase(design.name) && existing.id != id
+            }
+        ) {
+            "Name must be unique"
+        }
+
         val params = mapOf(
             "id" to toDbId(id).intValue,
             "name" to design.name,
@@ -86,6 +100,12 @@ class LayoutDesignDao(
     @Transactional
     fun insert(design: LayoutDesignSaveRequest): IntId<LayoutDesign> {
         jdbcTemplate.setUser()
+        require(
+            list(includeCompleted = true).none { existing -> existing.name.equalsIgnoreCase(design.name) }
+        ) {
+            "Name must be unique"
+        }
+
         val sql = """
             insert into layout.design (name, estimated_completion, design_state)
             values (:name, :estimated_completion, :design_state::layout.design_state)
