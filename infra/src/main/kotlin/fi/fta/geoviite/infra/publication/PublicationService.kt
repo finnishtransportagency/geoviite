@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationExcept
 import fi.fta.geoviite.infra.error.DuplicateNameInPublication
 import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.error.PublicationFailureException
+import fi.fta.geoviite.infra.error.getPSQLExceptionConstraintAndDetailOrRethrow
 import fi.fta.geoviite.infra.geocoding.*
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.integration.*
@@ -1561,9 +1562,12 @@ class PublicationService @Autowired constructor(
         branch: LayoutBranch,
         exception: DataIntegrityViolationException,
     ): Nothing {
-        val psqlException = exception.cause as? PSQLException ?: throw exception
-        val constraint = psqlException.serverErrorMessage?.constraint
-        val detail = psqlException.serverErrorMessage?.detail ?: throw exception
+        val cause = exception.cause
+        if (cause !is PSQLException) {
+            throw exception
+        }
+
+        val (constraint, detail) = getPSQLExceptionConstraintAndDetailOrRethrow(cause)
 
         when (constraint) {
             "switch_unique_official_name" -> maybeThrowDuplicateSwitchNameException(detail, exception)
