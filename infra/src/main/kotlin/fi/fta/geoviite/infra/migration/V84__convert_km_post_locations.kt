@@ -44,8 +44,7 @@ class V84__convert_km_post_locations : BaseJavaMigration() {
         """.trimIndent()
         jdbcTemplate.batchUpdate(updateSql, rows.mapNotNull { (version, oldLayoutLocation) ->
             try {
-                val transformToGKCoordinate = transformToGKCoordinate(LAYOUT_SRID, oldLayoutLocation)
-                val gkLocation = transformToGKCoordinate
+                val gkLocation = transformToGKCoordinate(LAYOUT_SRID, oldLayoutLocation)
                 val newLayoutLocation = transformNonKKJCoordinate(gkLocation.srid, LAYOUT_SRID, gkLocation)
                 mapOf(
                     "id" to version.id.intValue,
