@@ -57,10 +57,14 @@ export const LocationTrackTaskListContainer: React.FC = () => {
     };
 
     React.useEffect(() => {
-        if (locationTrackList && locationTrackList.branch !== layoutContext.branch) {
+        if (
+            locationTrackList &&
+            (locationTrackList.branch !== layoutContext.branch ||
+                layoutContext.publicationState !== 'DRAFT')
+        ) {
             delegates.hideLocationTrackTaskList();
         }
-    }, [layoutContext.branch]);
+    }, [layoutContext.branch, layoutContext.publicationState]);
 
     return createPortal(
         locationTrackList?.type == LocationTrackTaskListType.RELINKING_SWITCH_VALIDATION ? (
