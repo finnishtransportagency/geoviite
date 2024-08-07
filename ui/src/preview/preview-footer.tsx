@@ -149,7 +149,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                 ) : (
                     props.layoutContext.branch !== 'MAIN' && (
                         <PreviewMergeToMainConfirmationDialog
-                            designId={props.layoutContext.branch}
+                            designBranch={props.layoutContext.branch}
                             isPublishing={isPublishing}
                             onCancel={() => setPublishConfirmVisible(false)}
                             candidateCount={candidateCount}

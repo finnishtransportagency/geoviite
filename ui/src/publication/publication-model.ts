@@ -2,6 +2,7 @@ import {
     AssetId,
     JointNumber,
     KmNumber,
+    LayoutBranch,
     Oid,
     Range,
     RowVersion,
@@ -166,6 +167,7 @@ export type PublicationDetails = {
     id: PublicationId;
     publicationTime: TimeStamp;
     publicationUser: string;
+    layoutBranch: LayoutBranch;
     trackNumbers: PublishedTrackNumber[];
     referenceLines: PublishedReferenceLine[];
     locationTracks: PublishedLocationTrack[];
@@ -355,3 +357,5 @@ export type SplitTargetInPublication = {
 };
 
 export type DesignRowReferrer = 'MAIN_DRAFT' | 'DESIGN_DRAFT' | 'NONE';
+
+export type PublicationListMode = 'MAIN' | 'DESIGN';

@@ -145,12 +145,12 @@ class PublicationController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_VIEW_PUBLICATION)
-    @GetMapping("latest")
+    @GetMapping("latest/{mode}")
     fun getLatestPublications(
-        @RequestParam("layoutBranch", required = false) layoutBranch: LayoutBranch?,
+        @PathVariable("mode") mode: PublicationListMode,
         @RequestParam("count") count: Int,
     ): Page<PublicationDetails> {
-        val publications = publicationService.fetchLatestPublicationDetails(layoutBranch ?: LayoutBranch.main, count)
+        val publications = publicationService.fetchLatestPublicationDetails(mode, count)
 
         return Page(totalCount = publications.size, start = 0, items = publications)
     }

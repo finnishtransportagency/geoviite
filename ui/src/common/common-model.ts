@@ -9,7 +9,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { compare } from 'utils/array-utils';
 import i18next from 'i18next';
-import { Brand } from 'common/brand';
+import { brand, Brand } from 'common/brand';
 
 export type RotationDirection = 'CW' | 'CCW';
 export type LinearUnit = 'MILLIMETER' | 'CENTIMETER' | 'METER' | 'KILOMETER';
@@ -18,14 +18,17 @@ export type AngularUnit = 'RADIANS' | 'GRADS';
 export type DataType = 'STORED' | 'TEMP';
 
 export type LayoutDesignId = Brand<string, 'LayoutDesignId'>;
-export type MainLayoutBranchId = 'MAIN';
-export type LayoutBranch = MainLayoutBranchId | LayoutDesignId;
+export type MainBranch = 'MAIN';
+export type DesignBranch = Brand<string, 'DesignBranch'>;
+export type LayoutBranch = MainBranch | DesignBranch;
 
 export type PublicationState = 'OFFICIAL' | 'DRAFT';
 export type LayoutContext = {
     publicationState: PublicationState;
     branch: LayoutBranch;
 };
+
+export const designBranch = (designId: LayoutDesignId): DesignBranch => brand(`DESIGN_${designId}`);
 
 export type LayoutContextMode = 'MAIN-OFFICIAL' | 'MAIN-DRAFT' | 'DESIGN';
 
@@ -60,7 +63,7 @@ export const draftMainLayoutContext = (): LayoutContext => draftMainContext;
 export function draftDesignLayoutContext(designId: LayoutDesignId): LayoutContext {
     return {
         publicationState: 'DRAFT',
-        branch: designId,
+        branch: designBranch(designId),
     };
 }
 

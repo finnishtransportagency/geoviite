@@ -40,6 +40,13 @@ class RatkoController(
         return HttpStatus.NO_CONTENT
     }
 
+    @PreAuthorize(AUTH_EDIT_LAYOUT)
+    @PostMapping("/push-designs")
+    fun pushDesignChangesToRatko(): HttpStatus {
+        // TODO implement
+        return HttpStatus.NO_CONTENT
+    }
+
     @PreAuthorize(AUTH_VIEW_LAYOUT)
     @PostMapping("/push-location-tracks")
     fun pushLocationTracksToRatko(@RequestBody changes: List<LocationTrackChange>): ResponseEntity<String> {
