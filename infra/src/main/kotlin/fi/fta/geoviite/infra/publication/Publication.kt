@@ -529,5 +529,3 @@ data class MergeFromDesign(override val candidateBranch: DesignBranch): LayoutCo
     override val candidatePublicationState = PublicationState.OFFICIAL
     override val basePublicationState = PublicationState.DRAFT
 }
-
-enum class PublicationListMode { DESIGN, MAIN }

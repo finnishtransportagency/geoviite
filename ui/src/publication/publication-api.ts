@@ -10,12 +10,12 @@ import {
     CalculatedChanges,
     DraftChangeType,
     KmPostPublicationCandidate,
+    LayoutBranchType,
     LocationTrackPublicationCandidate,
     PublicationCandidate,
     PublicationCandidateReference,
     PublicationDetails,
     PublicationId,
-    PublicationListMode,
     PublicationRequest,
     PublicationRequestIds,
     PublicationResult,
@@ -218,13 +218,13 @@ export const mergeCandidatesToMain = (
     );
 };
 
-export const getLatestPublications = async (count: number, mode: PublicationListMode) => {
+export const getLatestPublications = async (count: number, branchType: LayoutBranchType) => {
     const params = queryParams({
         count,
     });
 
     const page = await getNonNull<Page<PublicationDetails>>(
-        `${PUBLICATION_URL}/latest/${mode}${params}`,
+        `${PUBLICATION_URL}/latest/${branchType}${params}`,
     );
     return page.items;
 };

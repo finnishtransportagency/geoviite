@@ -358,4 +358,4 @@ export type SplitTargetInPublication = {
 
 export type DesignRowReferrer = 'MAIN_DRAFT' | 'DESIGN_DRAFT' | 'NONE';
 
-export type PublicationListMode = 'MAIN' | 'DESIGN';
+export type LayoutBranchType = 'MAIN' | 'DESIGN';

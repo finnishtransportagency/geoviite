@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.SwitchName
@@ -397,11 +398,11 @@ class PublicationDaoIT @Autowired constructor(
         publicationDao.createPublication(LayoutBranch.main, "again in main")
         assertEquals(
             listOf("in anotherDesign", "in someDesign"),
-            publicationDao.fetchLatestPublications(PublicationListMode.DESIGN, 2).map { it.message }
+            publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 2).map { it.message }
         )
         assertEquals(
             listOf("again in main", "in main"),
-            publicationDao.fetchLatestPublications(PublicationListMode.MAIN, 2).map { it.message }
+            publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, 2).map { it.message }
         )
     }
 

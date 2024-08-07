@@ -31,14 +31,14 @@ const Frontpage: React.FC<FrontPageProps> = ({
                     ratkoPushChangeTime={ratkoPushChangeTime}
                     splitChangeTime={splitChangeTime}
                     ratkoStatus={ratkoStatus}
-                    publicationListMode="MAIN"
+                    branchType="MAIN"
                 />
                 <PublicationCard
                     publicationChangeTime={publicationChangeTime}
                     ratkoPushChangeTime={ratkoPushChangeTime}
                     splitChangeTime={splitChangeTime}
                     ratkoStatus={ratkoStatus}
-                    publicationListMode="DESIGN"
+                    branchType="DESIGN"
                 />
                 <UserCardContainer />
             </div>
