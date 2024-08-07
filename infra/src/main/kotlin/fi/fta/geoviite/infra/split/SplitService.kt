@@ -149,7 +149,7 @@ class SplitService(
         val splitIssues = validateSplitContent(
             trackVersions = candidates.locationTracks,
             switchVersions = candidates.switches,
-            splits = context.getUnfinishedSplits(),
+            publicationSplits = context.getPublicationSplits(),
             allowMultipleSplits = allowMultipleSplits,
         )
 
