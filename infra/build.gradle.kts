@@ -10,7 +10,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_ERROR
 import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_OUT
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val geotoolsVersion = "30.2"
+val geotoolsVersion = "31.3"
 val kotlinVersion = "1.9.22"
 
 plugins {
