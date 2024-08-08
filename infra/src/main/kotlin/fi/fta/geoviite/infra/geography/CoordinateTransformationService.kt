@@ -77,13 +77,13 @@ data class Transformation private constructor(
 
     private fun transformKkjToYkjAndNormalizeAxes(point: IPoint): org.locationtech.jts.geom.Point {
         // Geotools is accurate enough for transformations between KKJx and YKJ, so use it for those
-        val kkjToYkj = nonTriangulableTransform(sourceSrid, KKJ3_YKJ)
+        val kkjToYkj = nonTriangulableTransform(sourceSrid, KKJ3_YKJ_SRID)
         return JTS.transform(toJtsPoint(point, sourceCrs), kkjToYkj.math) as org.locationtech.jts.geom.Point
     }
 
     private fun transformYkjToKkjAndNormalizeAxes(point: IPoint): org.locationtech.jts.geom.Point {
         // Geotools is accurate enough for transformations between KKJx and YKJ, so use it for those
-        val ykjToKkj = nonTriangulableTransform(KKJ3_YKJ, targetSrid)
+        val ykjToKkj = nonTriangulableTransform(KKJ3_YKJ_SRID, targetSrid)
         return JTS.transform(toJtsPoint(point, YKJ_CRS), ykjToKkj.math) as org.locationtech.jts.geom.Point
     }
 }
@@ -110,4 +110,4 @@ class CoordinateTransformationService @Autowired constructor(
         getTransformation(sourceSrid, targetSrid).transform(point)
 }
 
-fun isKKJ(srid: Srid) = listOf(KKJ0, KKJ1, KKJ2, KKJ3_YKJ, KKJ4, KKJ5).contains(srid)
+fun isKKJ(srid: Srid) = listOf(KKJ0_SRID, KKJ1_SRID, KKJ2_SRID, KKJ3_YKJ_SRID, KKJ4_SRID, KKJ5_SRID).contains(srid)

@@ -10,11 +10,11 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AddressPoint
+import fi.fta.geoviite.infra.geography.ETRS89_TM35FIN_SRID
 import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.crs
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
@@ -34,7 +34,7 @@ import fi.fta.geoviite.infra.util.FreeText
 import java.math.BigDecimal
 import java.time.Instant
 
-val LAYOUT_SRID = Srid(3067)
+val LAYOUT_SRID = ETRS89_TM35FIN_SRID
 val LAYOUT_CRS = crs(LAYOUT_SRID)
 
 enum class LocationTrackState(val category: LayoutStateCategory) {

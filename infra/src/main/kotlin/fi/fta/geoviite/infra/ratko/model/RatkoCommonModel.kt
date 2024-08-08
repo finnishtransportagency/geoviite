@@ -4,7 +4,13 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonValue
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.ITrackMeter
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.formatTrackMeter
+import fi.fta.geoviite.infra.geography.WGS_84_SRID
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
@@ -12,7 +18,7 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import java.math.BigDecimal
 import java.math.RoundingMode
 
-val RATKO_SRID = Srid(4326)
+val RATKO_SRID = WGS_84_SRID
 const val GEOVIITE_NAME = "GEOVIITE"
 
 data class RatkoOid<T>(val id: String) {

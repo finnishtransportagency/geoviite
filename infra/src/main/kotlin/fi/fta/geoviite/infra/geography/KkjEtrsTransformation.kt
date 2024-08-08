@@ -1,17 +1,10 @@
 package fi.fta.geoviite.infra.geography
 
-import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.math.Point
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem
 import org.locationtech.jts.geom.Coordinate
 
-val KKJ0 = Srid(3386)
-val KKJ1 = Srid(2391)
-val KKJ2 = Srid(2392)
-val KKJ3_YKJ = Srid(2393)
-val KKJ4 = Srid(2394)
-val KKJ5 = Srid(3387)
-val YKJ_CRS = crs(KKJ3_YKJ)
+val YKJ_CRS = crs(KKJ3_YKJ_SRID)
 
 data class KkjTm35finTriangle(
     val corner1: Point,
@@ -26,7 +19,7 @@ data class KkjTm35finTriangle(
     private val crs: CoordinateReferenceSystem,
 ) {
     val polygon by lazy {
-        toJtsPolygon(listOf(corner1, corner2, corner3, corner1), crs(KKJ3_YKJ)) // Last parameter just indicates which axis is which
+        toJtsPolygon(listOf(corner1, corner2, corner3, corner1), crs(KKJ3_YKJ_SRID)) // Last parameter just indicates which axis is which
             ?: throw IllegalStateException("Failed to create polygon")
     }
 

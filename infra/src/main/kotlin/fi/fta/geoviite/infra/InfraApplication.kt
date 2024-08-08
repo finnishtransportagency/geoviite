@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra
 
+import fi.fta.geoviite.infra.geography.initGeotools
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
@@ -26,5 +27,6 @@ class InfraApplication
 class InfraScheduling
 
 fun main(args: Array<String>) {
+    initGeotools()
     runApplication<InfraApplication>(*args)
 }

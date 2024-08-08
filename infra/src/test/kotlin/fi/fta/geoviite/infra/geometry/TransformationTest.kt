@@ -4,7 +4,11 @@ import com.github.davidmoten.rtree2.RTree
 import com.github.davidmoten.rtree2.geometry.Rectangle
 import fi.fta.geoviite.infra.common.RotationDirection.CCW
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
-import fi.fta.geoviite.infra.geography.*
+import fi.fta.geoviite.infra.geography.HeightTriangle
+import fi.fta.geoviite.infra.geography.KKJ2_SRID
+import fi.fta.geoviite.infra.geography.KkjTm35finTriangle
+import fi.fta.geoviite.infra.geography.Transformation
+import fi.fta.geoviite.infra.geography.transformHeightValue
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DM
 import fi.fta.geoviite.infra.ratko.model.RATKO_SRID
@@ -73,7 +77,7 @@ class TransformationTest {
     @Test
     fun `Creating KKJ to TM35 transformation using non-KKJ transform throws`() {
         assertThrows<IllegalArgumentException> {
-            Transformation.nonTriangulableTransform(KKJ2, LAYOUT_SRID)
+            Transformation.nonTriangulableTransform(KKJ2_SRID, LAYOUT_SRID)
         }
     }
 
