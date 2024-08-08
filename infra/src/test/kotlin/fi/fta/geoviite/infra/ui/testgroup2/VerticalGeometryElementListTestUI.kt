@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.ui.testgroup2
 
+import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -183,11 +184,11 @@ class VerticalGeometryElementListTestUI
         val geoAlignmentA = geometryPlan.alignments[0]
         val locationTrackAlignment = alignmentDao.insert(
             alignment(
-                segment(Point(1.0, 1.0), Point(200.0, 200.0)).copy(sourceId = geoAlignmentA.elements[0].id),
-                segment(Point(200.0, 200.0), Point(300.0, 300.0)).copy(sourceId = geoAlignmentA.elements[0].id),
+                segment(Point(1.0, 1.0), Point(200.0, 200.0)).copy(sourceId = geoAlignmentA.elements[0].id as IndexedId),
+                segment(Point(200.0, 200.0), Point(300.0, 300.0)).copy(sourceId = geoAlignmentA.elements[0].id as IndexedId),
                 segment(Point(300.0, 300.0), Point(400.0, 400.0)),
-                segment(Point(400.0, 400.0), Point(500.0, 500.0)).copy(sourceId = geoAlignmentA.elements[1].id),
-                segment(Point(500.0, 500.0), Point(600.0, 600.0)).copy(sourceId = geoAlignmentA.elements[1].id),
+                segment(Point(400.0, 400.0), Point(500.0, 500.0)).copy(sourceId = geoAlignmentA.elements[1].id as IndexedId),
+                segment(Point(500.0, 500.0), Point(600.0, 600.0)).copy(sourceId = geoAlignmentA.elements[1].id as IndexedId),
             )
         )
         locationTrackDao.insert(

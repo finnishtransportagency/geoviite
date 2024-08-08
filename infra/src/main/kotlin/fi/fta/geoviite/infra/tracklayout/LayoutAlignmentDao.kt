@@ -756,9 +756,9 @@ private fun parseNullableDoubleList(listString: String?): List<Double?>? =
 private data class SegmentData(
     val id: IndexedId<LayoutSegment>,
     val start: Double,
-    val sourceId: DomainId<GeometryElement>?,
+    val sourceId: IndexedId<GeometryElement>?,
     val sourceStart: Double?,
-    val switchId: DomainId<TrackLayoutSwitch>?,
+    val switchId: IntId<TrackLayoutSwitch>?,
     val startJointNumber: JointNumber?,
     val endJointNumber: JointNumber?,
     val source: GeometrySource,

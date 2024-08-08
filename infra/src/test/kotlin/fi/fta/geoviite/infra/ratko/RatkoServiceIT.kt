@@ -526,7 +526,7 @@ class RatkoServiceIT @Autowired constructor(
                 draft = true,
             ),
             alignment(
-                segment(Point(2.0, 0.0), Point(8.0, 0.0), sourceId = plan.alignments[0].elements[0].id),
+                segment(Point(2.0, 0.0), Point(8.0, 0.0), sourceId = plan.alignments[0].elements[0]),
             ),
         )
         fakeRatko.acceptsNewLocationTrackGivingItOid("2.3.4.5.6")
@@ -1103,8 +1103,8 @@ class RatkoServiceIT @Autowired constructor(
             LayoutBranch.main,
             locationTrack(trackNumber.id, externalId = null, draft = true),
             alignment(
-                segment(Point(0.0, 0.0), Point(5.0, 0.0), sourceId = planAlignments[0].elements[0].id),
-                segment(Point(5.0, 0.0), Point(5.6, 0.0), sourceId = planAlignments[1].elements[0].id),
+                segment(Point(0.0, 0.0), Point(5.0, 0.0), sourceId = planAlignments[0].elements[0]),
+                segment(Point(5.0, 0.0), Point(5.6, 0.0), sourceId = planAlignments[1].elements[0]),
             ),
         )
 

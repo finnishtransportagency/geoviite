@@ -193,7 +193,7 @@ private fun toMissingElementListing(
     start = getLocation(context, segment.alignmentStart, segment.startDirection),
     end = getLocation(context, segment.alignmentEnd, segment.endDirection),
     locationTrackName = locationTrack.name,
-    connectedSwitchName = segment.switchId?.let { id -> if (id is IntId) getSwitchName(id) else null },
+    connectedSwitchName = segment.switchId?.let { id -> getSwitchName(id) },
     isPartial = false,
 )
 
@@ -366,7 +366,7 @@ private fun elementListing(
         lengthMeters = round(element.calculatedLength, LENGTH_DECIMALS),
         start = start,
         end = end,
-        connectedSwitchName = segment?.switchId?.let { id -> if (id is IntId) getSwitchName(id) else null },
+        connectedSwitchName = segment?.switchId?.let { id -> getSwitchName(id) },
         isPartial = false,
     )
 }

@@ -180,7 +180,7 @@ class ValidationContext(
         getPotentiallyAffectedSwitchIds(trackId).mapNotNull(::getSwitch)
 
     fun getSegmentSwitches(alignment: LayoutAlignment): List<SegmentSwitch> = alignment.segments
-        .mapNotNull { segment -> segment.switchId?.let { id -> id as IntId to segment } }
+        .mapNotNull { segment -> segment.switchId?.let { id -> id to segment } }
         .groupBy({ (switchId, _) -> switchId }, { (_, segment) -> segment })
         .map { (switchId, segments) ->
             val switch = getSwitch(switchId)

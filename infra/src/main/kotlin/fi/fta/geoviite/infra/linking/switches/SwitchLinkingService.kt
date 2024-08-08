@@ -350,7 +350,7 @@ class SwitchLinkingService @Autowired constructor(
         val topologySwitches = listOfNotNull(
             locationTrack.topologyStartSwitch?.switchId, locationTrack.topologyEndSwitch?.switchId
         )
-        val segmentSwitches = alignment.segments.mapNotNull { segment -> segment.switchId as IntId? }
+        val segmentSwitches = alignment.segments.mapNotNull { segment -> segment.switchId }
         val nearbySwitches = switchDao.findSwitchesNearAlignment(branch, locationTrack.getAlignmentVersionOrThrow())
 
         return (topologySwitches + segmentSwitches + nearbySwitches).distinct()

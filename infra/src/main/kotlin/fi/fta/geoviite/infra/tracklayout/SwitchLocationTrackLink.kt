@@ -183,8 +183,7 @@ fun collectSplitPoints(
 }
 
 fun getSwitchSplitPoints(segment: LayoutSegment): List<SwitchSplitPoint> {
-    val switchId = segment.switchId as IntId?
-    val joints = switchId?.let { switchId ->
+    val joints = segment.switchId?.let { switchId ->
         val startPoint = segment.startJointNumber?.let { jointNumber ->
             SwitchSplitPoint(
                 segment.alignmentStart, null, switchId, jointNumber

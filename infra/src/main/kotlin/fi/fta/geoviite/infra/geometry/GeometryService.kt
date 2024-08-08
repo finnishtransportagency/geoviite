@@ -483,7 +483,7 @@ class GeometryService @Autowired constructor(
 
         return alignment.segments.map { segment ->
             val sourceId = segment.sourceId
-            if (sourceId == null || sourceId !is IndexedId || segment.sourceStart == null) {
+            if (sourceId == null || segment.sourceStart == null) {
                 SegmentSource(null, null, null, null)
             } else {
                 val planAlignmentId = IntId<GeometryAlignment>(sourceId.parentId)

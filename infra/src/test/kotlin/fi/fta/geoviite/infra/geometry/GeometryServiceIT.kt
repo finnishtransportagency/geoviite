@@ -169,12 +169,12 @@ class GeometryServiceIT @Autowired constructor(
             LayoutBranch.main,
             locationTrack(trackNumberId, draft = true),
             alignment(
-                segment(yRangeToSegmentPoints(0..6), sourceId = p1.alignments[0].elements[0].id, sourceStart = 0.0),
+                segment(yRangeToSegmentPoints(0..6), sourceId = p1.alignments[0].elements[0], sourceStart = 0.0),
                 segment(yRangeToSegmentPoints(6..10)),
-                segment(yRangeToSegmentPoints(10..12), sourceId = p2.alignments[0].elements[0].id, sourceStart = 0.0),
+                segment(yRangeToSegmentPoints(10..12), sourceId = p2.alignments[0].elements[0], sourceStart = 0.0),
                 segment(yRangeToSegmentPoints(12..13)),
-                segment(yRangeToSegmentPoints(13..15), sourceId = p3.alignments[0].elements[0].id, sourceStart = 0.0),
-                segment(yRangeToSegmentPoints(15..17), sourceId = p1.alignments[0].elements[0].id, sourceStart = 0.0),
+                segment(yRangeToSegmentPoints(13..15), sourceId = p3.alignments[0].elements[0], sourceStart = 0.0),
+                segment(yRangeToSegmentPoints(15..17), sourceId = p1.alignments[0].elements[0], sourceStart = 0.0),
             ),
         ).id
         val kmHeights = geometryService.getLocationTrackHeights(
@@ -225,15 +225,15 @@ class GeometryServiceIT @Autowired constructor(
             referenceLine(trackNumberId, startAddress = TrackMeter("0154", 400), draft = true),
             alignment(segment(Point(0.0, 0.0), Point(0.0, 100.0))),
         )
-        val sourceId = insertPlanWithGeometry("plan1.xml", trackNumber.number).alignments[0].elements[0].id
+        val sourceElement = insertPlanWithGeometry("plan1.xml", trackNumber.number).alignments[0].elements[0]
         val locationTrackId = locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrack(trackNumberId, draft = true),
             alignment(
                 segment(yRangeToSegmentPoints(0..2)),
-                segment(yRangeToSegmentPoints(2..9), sourceId = sourceId, sourceStart = 0.0),
+                segment(yRangeToSegmentPoints(2..9), sourceId = sourceElement, sourceStart = 0.0),
                 segment(yRangeToSegmentPoints(9..10)),
-                segment(yRangeToSegmentPoints(10..20), sourceId = sourceId, sourceStart = 0.0),
+                segment(yRangeToSegmentPoints(10..20), sourceId = sourceElement, sourceStart = 0.0),
             ),
         ).id
         // geocoding rounds m-values to three decimals half-up, so placing the km post juuuuuuuust here in fact rounds
