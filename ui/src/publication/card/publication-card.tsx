@@ -23,14 +23,14 @@ import {
     ProgressIndicatorType,
     ProgressIndicatorWrapper,
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
-import { PublicationListMode } from 'publication/publication-model';
+import { LayoutBranchType } from 'publication/publication-model';
 
 type PublishListProps = {
     publicationChangeTime: TimeStamp;
     ratkoPushChangeTime: TimeStamp;
     splitChangeTime: TimeStamp;
     ratkoStatus: RatkoStatus | undefined;
-    publicationListMode: PublicationListMode;
+    branchType: LayoutBranchType;
 };
 
 const parseRatkoConnectionError = (errorType: string, ratkoStatusCode: number, contact: string) => {
@@ -78,7 +78,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
     ratkoPushChangeTime,
     splitChangeTime,
     ratkoStatus,
-    publicationListMode,
+    branchType,
 }) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
@@ -94,7 +94,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
 
     const [pageCount, setPageCount] = React.useState(1);
     const [publications, publicationFetchStatus] = useLoaderWithStatus(
-        () => getLatestPublications(MAX_LISTED_PUBLICATIONS * pageCount, publicationListMode),
+        () => getLatestPublications(MAX_LISTED_PUBLICATIONS * pageCount, branchType),
         [publicationChangeTime, ratkoPushChangeTime, splitChangeTime, pageCount],
     );
 
@@ -161,7 +161,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                 {latestFailures.length > 0 && (
                                     <div className={styles['publication-card__ratko-push-button']}>
                                         <RatkoPublishButton
-                                            mode={publicationListMode}
+                                            branchType={branchType}
                                             disabled={ratkoConnectionError}
                                         />
                                     </div>
@@ -185,7 +185,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
                             </Link>
                         </div>
                         <br />
-                        {publicationListMode === 'MAIN' && (
+                        {branchType === 'MAIN' && (
                             <div>
                                 <Link
                                     onClick={() => navigateToPublicationLog()}
