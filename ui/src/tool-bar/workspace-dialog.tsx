@@ -48,7 +48,7 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
         () => getLayoutDesigns(getChangeTimes().layoutDesign),
         [getChangeTimes().layoutDesign],
     );
-    const designNameCollides =
+    const designNameNotUnique =
         allDesignsFetchStatus !== LoaderStatus.Ready ||
         allDesigns?.some(
             (design) => isEqualIgnoreCase(design.name, name) && design.id !== existingDesign?.id,
@@ -71,7 +71,7 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
                             {t('button.cancel')}
                         </Button>
                         <Button
-                            disabled={!name || !selectedDate || designNameCollides}
+                            disabled={!name || !selectedDate || designNameNotUnique}
                             qa-id={'workspace-dialog-save'}
                             onClick={() => {
                                 if (name && selectedDate) {
@@ -96,7 +96,7 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
                                 qa-id={'workspace-dialog-name'}
                             />
                         }
-                        errors={designNameCollides ? [t('workspace-dialog.name-collides')] : []}
+                        errors={designNameNotUnique ? [t('workspace-dialog.name-not-unique')] : []}
                     />
                     <FieldLayout
                         label={`${t('workspace-dialog.completion-date')} *`}

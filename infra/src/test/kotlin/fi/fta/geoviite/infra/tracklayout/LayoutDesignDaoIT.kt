@@ -13,6 +13,8 @@ import org.springframework.test.context.ActiveProfiles
 import java.time.LocalDate
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -49,15 +51,21 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
         layoutDesignDao.insert(layoutDesignSaveRequest("foo bar", designState = DesignState.ACTIVE))
         layoutDesignDao.insert(layoutDesignSaveRequest("foo barbar", designState = DesignState.COMPLETED))
         layoutDesignDao.insert(layoutDesignSaveRequest("boo too far", designState = DesignState.DELETED))
-        assertThrows<DataIntegrityViolationException> {
+        val exception = assertThrows<DataIntegrityViolationException> {
             layoutDesignDao.insert(layoutDesignSaveRequest("foo bar"))
         }
-        assertThrows<DataIntegrityViolationException> {
+        assertNotNull(asDuplicateNameException(exception))
+
+        val exception2 = assertThrows<DataIntegrityViolationException> {
             layoutDesignDao.insert(layoutDesignSaveRequest("FOO BAR"))
         }
-        assertThrows<DataIntegrityViolationException> {
+        assertNotNull(asDuplicateNameException(exception2))
+
+        val exception3 = assertThrows<DataIntegrityViolationException> {
             layoutDesignDao.insert(layoutDesignSaveRequest("foo barbar"))
         }
+        assertNotNull(asDuplicateNameException(exception3))
+
         assertDoesNotThrow { layoutDesignDao.insert(layoutDesignSaveRequest("boo too far")) }
     }
 
@@ -67,7 +75,7 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
         layoutDesignDao.insert(layoutDesignSaveRequest("boo too far", designState = DesignState.COMPLETED)).let(layoutDesignDao::fetch)
         layoutDesignDao.insert(layoutDesignSaveRequest("way too far", designState = DesignState.DELETED)).let(layoutDesignDao::fetch)
 
-        assertThrows<DataIntegrityViolationException> {
+        val exception = assertThrows<DataIntegrityViolationException> {
             layoutDesignDao.update(
                 design.id,
                 LayoutDesignSaveRequest(
@@ -77,7 +85,9 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
                 )
             )
         }
-        assertThrows<DataIntegrityViolationException> {
+        assertNotNull(asDuplicateNameException(exception))
+
+        val exception2 = assertThrows<DataIntegrityViolationException> {
             layoutDesignDao.update(
                 design.id,
                 LayoutDesignSaveRequest(
@@ -87,6 +97,8 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
                 )
             )
         }
+        assertNotNull(asDuplicateNameException(exception2))
+
         assertDoesNotThrow {
             layoutDesignDao.update(
                 design.id,
@@ -100,7 +112,29 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
     }
 
     @Test
-    fun `list() respects includeCompletedAndDeleted`() {
+    fun `list() respects includeCompleted`() {
+        val design1 = layoutDesignDao.insert(layoutDesignSaveRequest("foo bar", designState = DesignState.ACTIVE)).let(layoutDesignDao::fetch)
+        val design2 = layoutDesignDao.insert(layoutDesignSaveRequest("aa bee dee", designState = DesignState.COMPLETED)).let(layoutDesignDao::fetch)
+
+        val listWithCompleted = layoutDesignDao.list(includeCompleted = true)
+        assertContains(listWithCompleted, design1)
+        assertContains(listWithCompleted, design2)
+        assertEquals(2, listWithCompleted.size)
+    }
+
+    @Test
+    fun `list() respects includeDeleted`() {
+        val design1 = layoutDesignDao.insert(layoutDesignSaveRequest("foo bar", designState = DesignState.ACTIVE)).let(layoutDesignDao::fetch)
+        val design2 = layoutDesignDao.insert(layoutDesignSaveRequest("aa bee see", designState = DesignState.DELETED)).let(layoutDesignDao::fetch)
+
+        val listWithDeleted = layoutDesignDao.list(includeDeleted = true)
+        assertContains(listWithDeleted, design1)
+        assertContains(listWithDeleted, design2)
+        assertEquals(2, listWithDeleted.size)
+    }
+
+    @Test
+    fun `list() respects includeCompleted and includeDeleted`() {
         val design1 = layoutDesignDao.insert(layoutDesignSaveRequest("foo bar", designState = DesignState.ACTIVE)).let(layoutDesignDao::fetch)
         val design2 = layoutDesignDao.insert(layoutDesignSaveRequest("aa bee see", designState = DesignState.DELETED)).let(layoutDesignDao::fetch)
         val design3 = layoutDesignDao.insert(layoutDesignSaveRequest("aa bee dee", designState = DesignState.COMPLETED)).let(layoutDesignDao::fetch)
@@ -109,18 +143,8 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
             listOf(
                 design1,
             ),
-            layoutDesignDao.list()
+            layoutDesignDao.list(includeCompleted = false, includeDeleted = false)
         )
-
-        val listWithDeleted = layoutDesignDao.list(includeDeleted = true)
-        assertContains(listWithDeleted, design1)
-        assertContains(listWithDeleted, design2)
-        assertEquals(2, listWithDeleted.size)
-
-        val listWithCompleted = layoutDesignDao.list(includeCompleted = true)
-        assertContains(listWithCompleted, design1)
-        assertContains(listWithCompleted, design3)
-        assertEquals(2, listWithCompleted.size)
 
         val listWithDeletedAndCompleted = layoutDesignDao.list(includeCompleted = true, includeDeleted = true)
         assertContains(listWithDeletedAndCompleted, design1)
