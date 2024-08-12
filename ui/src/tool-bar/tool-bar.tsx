@@ -395,6 +395,10 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const handleSwitchSave = refreshSwitchSelection(layoutContextDraft, onSelect, onUnselect);
     const handleKmPostSave = refereshKmPostSelection(layoutContextDraft, onSelect, onUnselect);
 
+    const layoutContextTransferDisabledReason = splittingState
+        ? t('tool-bar.splitting-in-progress')
+        : undefined;
+
     const modeNavigationButtonsDisabledReason = () => {
         if (splittingState) {
             return t('tool-bar.splitting-in-progress');
@@ -404,6 +408,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
             return undefined;
         }
     };
+
+    const newMenuTooltip = splittingState ? t('tool-bar.splitting-in-progress') : t('tool-bar.new');
 
     const className = createClassName(
         'tool-bar',
@@ -424,6 +430,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         className={styles['tool-bar__tab-header']}
                         qaId="current-mode-tab"
                         selected={layoutContextMode === 'MAIN-OFFICIAL'}
+                        title={layoutContextTransferDisabledReason}
                         disabled={!!splittingState}
                         onClick={() => switchToMainOfficial()}>
                         {t('tool-bar.current-mode')}
@@ -445,6 +452,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                     qaId={'design-mode-tab'}
                                     selected={layoutContextMode === 'DESIGN'}
                                     onClick={switchToDesign}
+                                    title={layoutContextTransferDisabledReason}
                                     disabled={!!splittingState}>
                                     <div className={styles['tool-bar__design-tab-content']}>
                                         {t('tool-bar.design-mode')}
@@ -455,6 +463,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                                 size={ButtonSize.SMALL}
                                                 icon={Icons.Down}
                                                 iconPosition={ButtonIconPosition.END}
+                                                disabled={!!splittingState}
                                                 inheritTypography={true}
                                                 onClick={(e) => {
                                                     e.stopPropagation(); // otherwise layout selection gets the click
@@ -529,7 +538,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         <div className={styles['tool-bar__new-menu-button']} qa-id={'tool-bar.new'}>
                             <Button
                                 ref={menuRef}
-                                title={t('tool-bar.new')}
+                                title={newMenuTooltip}
                                 variant={ButtonVariant.GHOST}
                                 icon={Icons.Append}
                                 disabled={disableNewAssetMenu}

@@ -9,6 +9,7 @@ type TabHeaderProps = {
     className?: string;
     qaId?: string;
     disabled?: boolean;
+    title?: string;
 };
 
 export const TabHeader: React.FC<TabHeaderProps> = ({
@@ -18,6 +19,7 @@ export const TabHeader: React.FC<TabHeaderProps> = ({
     className,
     qaId,
     disabled,
+    title,
 }) => {
     const tabClassName = createClassName(
         styles['tab-header'],
@@ -27,6 +29,7 @@ export const TabHeader: React.FC<TabHeaderProps> = ({
     );
     return (
         <a
+            title={title}
             className={tabClassName}
             onClick={() => {
                 !disabled && onClick();

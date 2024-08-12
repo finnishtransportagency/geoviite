@@ -23,7 +23,7 @@
     }
 
     &--disabled {
-        cursor: pointer;
+        cursor: default;
         color: vayla-design.$color-black-lighter;
     }
 }
