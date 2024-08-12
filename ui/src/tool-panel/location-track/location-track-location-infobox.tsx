@@ -148,6 +148,10 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             return t('tool-panel.disabled.activity-disabled-in-official-mode');
         }
 
+        if (layoutContext.branch !== 'MAIN') {
+            return t('tool-panel.location-track.splitting.validation.branch-not-main');
+        }
+
         if (extraInfo?.partOfUnfinishedSplit) {
             return t('tool-panel.location-track.splitting-blocks-geometry-changes');
         }
@@ -156,14 +160,16 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             return t('tool-panel.location-track.unsupported-state-for-splitting');
         }
 
-        if (locationTrackIsDraft)
+        if (locationTrackIsDraft) {
             reasons.push(t('tool-panel.location-track.splitting.validation.track-draft-exists'));
-        if (duplicatesOnOtherTrackNumbers)
+        }
+        if (duplicatesOnOtherTrackNumbers) {
             reasons.push(
                 t(
                     'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
                 ),
             );
+        }
 
         return reasons.join('\n\n');
     };
@@ -327,7 +333,8 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         locationTrackIsDraft ||
         duplicatesOnOtherTrackNumbers ||
         extraInfo?.partOfUnfinishedSplit ||
-        startingSplitting;
+        startingSplitting ||
+        layoutContext.branch !== 'MAIN';
 
     return (
         startAndEndPoints &&
