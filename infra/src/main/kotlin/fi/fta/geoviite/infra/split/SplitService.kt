@@ -513,7 +513,8 @@ fun splitLocationTrack(
 ): List<SplitTargetResult> {
     return targets.mapIndexed { index, target ->
         val nextSwitch = targets.getOrNull(index + 1)?.startSwitch
-        val segmentIndices = findSplitIndices(alignment, target.startSwitch, nextSwitch)
+        val indexSearchStartSwitch = if (index==0 && track.topologyStartSwitch!=null) null else target.startSwitch
+        val segmentIndices = findSplitIndices(alignment, indexSearchStartSwitch, nextSwitch)
         val segments = cutSegments(alignment, segmentIndices)
         val connectivityType = calculateTopologicalConnectivity(track, alignment.segments.size, segmentIndices)
         val (newTrack, newAlignment) = target.duplicate?.let { d ->
