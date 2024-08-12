@@ -424,6 +424,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         className={styles['tool-bar__tab-header']}
                         qaId="current-mode-tab"
                         selected={layoutContextMode === 'MAIN-OFFICIAL'}
+                        disabled={!!splittingState}
                         onClick={() => switchToMainOfficial()}>
                         {t('tool-bar.current-mode')}
                     </TabHeader>
@@ -443,7 +444,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                     className={styles['tool-bar__tab-header']}
                                     qaId={'design-mode-tab'}
                                     selected={layoutContextMode === 'DESIGN'}
-                                    onClick={switchToDesign}>
+                                    onClick={switchToDesign}
+                                    disabled={!!splittingState}>
                                     <div className={styles['tool-bar__design-tab-content']}>
                                         {t('tool-bar.design-mode')}
                                         <span>{currentDesign && `:`}</span>
@@ -454,8 +456,8 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                                                 icon={Icons.Down}
                                                 iconPosition={ButtonIconPosition.END}
                                                 inheritTypography={true}
-                                                onClick={(_e) => {
-                                                    _e.stopPropagation(); // otherwise layout selection gets the click
+                                                onClick={(e) => {
+                                                    e.stopPropagation(); // otherwise layout selection gets the click
                                                     switchToDesign();
                                                     setDesignIdSelectorOpened(
                                                         !designIdSelectorOpened,
