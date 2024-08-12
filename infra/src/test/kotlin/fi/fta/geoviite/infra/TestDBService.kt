@@ -143,7 +143,6 @@ class TestDBService(
                 "track_number",
                 "segment_version",
                 "segment_geometry",
-                "design",
             ),
         )
     }

@@ -45,34 +45,32 @@ internal fun validateSourceGeometry(
 internal fun validateSplitContent(
     trackVersions: List<ValidationVersion<LocationTrack>>,
     switchVersions: List<ValidationVersion<TrackLayoutSwitch>>,
-    splits: Collection<Split>,
+    publicationSplits: Collection<Split>,
     allowMultipleSplits: Boolean,
 ): List<Pair<Split, LayoutValidationIssue>> {
-    val multipleSplitsStagedErrors = if (!allowMultipleSplits && splits.size > 1) {
-        splits.map { split ->
+    val multipleSplitsStagedErrors = if (!allowMultipleSplits && publicationSplits.size > 1) {
+        publicationSplits.map { split ->
             split to LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.multiple-splits-not-allowed")
         }
     } else {
         emptyList()
     }
 
-    val contentErrors = splits
-        .filter { split -> split.publicationId == null }
-        .flatMap { split ->
-            val containsSource = trackVersions.any { it.officialId == split.sourceLocationTrackId }
-            val containsTargets = split.targetLocationTracks.all { tlt ->
-                trackVersions.any { it.officialId == tlt.locationTrackId }
-            }
-            val containsSwitches = split.relinkedSwitches.all { s -> switchVersions.any { sv -> sv.officialId == s } }
-            listOfNotNull(
-                validate(containsSource && containsTargets, ERROR) {
-                    "$VALIDATION_SPLIT.split-missing-location-tracks"
-                },
-                validate(containsSwitches, ERROR) {
-                    "$VALIDATION_SPLIT.split-missing-switches"
-                },
-            ).map { e -> split to e }
+    val contentErrors = publicationSplits.flatMap { split ->
+        val containsSource = trackVersions.any { it.officialId == split.sourceLocationTrackId }
+        val containsTargets = split.targetLocationTracks.all { tlt ->
+            trackVersions.any { it.officialId == tlt.locationTrackId }
         }
+        val containsSwitches = split.relinkedSwitches.all { s -> switchVersions.any { sv -> sv.officialId == s } }
+        listOfNotNull(
+            validate(containsSource && containsTargets, ERROR) {
+                "$VALIDATION_SPLIT.split-missing-location-tracks"
+            },
+            validate(containsSwitches, ERROR) {
+                "$VALIDATION_SPLIT.split-missing-switches"
+            },
+        ).map { e -> split to e }
+    }
 
     return listOf(multipleSplitsStagedErrors, contentErrors).flatten()
 }
