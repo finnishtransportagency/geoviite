@@ -152,19 +152,27 @@ fun collectSplitPoints(
     alignment: LayoutAlignment,
 ): List<SplitPoint> {
     val startSplitPoint = alignment.start?.let { start ->
-        if (track.topologyStartSwitch!=null)
+        val firstSegment = alignment.segments.first()
+        if (firstSegment.switchId!=null && firstSegment.startJointNumber!=null)
+            SwitchSplitPoint(
+                start, null, firstSegment.switchId as IntId, firstSegment.startJointNumber
+            )
+        else if (track.topologyStartSwitch!=null)
             SwitchSplitPoint(start, null, track.topologyStartSwitch.switchId, track.topologyStartSwitch.jointNumber)
-        else if (alignment.segments.first().switchId==null)
+        else
             EndpointSplitPoint(start,null, DuplicateEndPointType.START)
-        else null
     }
 
     val endSplitPoint = alignment.end?.let { end ->
-        if (track.topologyEndSwitch!=null)
+        val lastSegment = alignment.segments.last()
+        if (lastSegment.switchId!=null && lastSegment.endJointNumber!=null)
+            SwitchSplitPoint(
+                end, null, lastSegment.switchId as IntId, lastSegment.endJointNumber
+            )
+        else if (track.topologyEndSwitch!=null)
             SwitchSplitPoint(end, null, track.topologyEndSwitch.switchId, track.topologyEndSwitch.jointNumber)
-        else if (alignment.segments.last().switchId==null)
+        else
             EndpointSplitPoint(end, null, DuplicateEndPointType.END)
-        else null
     }
 
     val switchSplitPoints = alignment.segments.flatMap(::getSwitchSplitPoints)
