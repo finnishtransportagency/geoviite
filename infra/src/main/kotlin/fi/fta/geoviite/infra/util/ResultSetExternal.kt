@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.parse2DPolygon
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -117,6 +118,16 @@ fun ResultSet.getFeatureTypeCodeOrNull(name: String): FeatureTypeCode? = getStri
 fun ResultSet.getPoint(nameX: String, nameY: String): Point = requireNotNull(getPointOrNull(nameX, nameY)) {
     "Point does not exist in result set: nameX=$nameX nameY=$nameY"
 }
+
+fun ResultSet.getGeometryPoint(nameX: String, nameY: String, nameSrid: String): GeometryPoint =
+    getPoint(nameX, nameY).let { point -> GeometryPoint(point.x, point.y, getSrid(nameSrid)) }
+
+fun ResultSet.getGeometryPointOrNull(nameX: String, nameY: String, nameSrid: String): GeometryPoint? =
+    getPointOrNull(nameX, nameY)?.let { point ->
+        getSridOrNull(nameSrid)?.let { srid ->
+            GeometryPoint(point.x, point.y, srid)
+        }
+    }
 
 fun ResultSet.getPointOrNull(nameX: String, nameY: String): Point? {
     val x = getDoubleOrNull(nameX)

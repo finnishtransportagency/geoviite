@@ -1,6 +1,6 @@
 import { Polygon } from 'ol/geom';
 import { Coordinate } from 'ol/coordinate';
-import { Range } from 'common/common-model';
+import { Range, Srid } from 'common/common-model';
 import { expectCoordinate } from 'utils/type-utils';
 
 export enum CoordinateSystem {
@@ -10,6 +10,10 @@ export enum CoordinateSystem {
 export type Point = {
     x: number;
     y: number;
+};
+
+export type GeometryPoint = Point & {
+    srid: Srid;
 };
 
 export type Line = {

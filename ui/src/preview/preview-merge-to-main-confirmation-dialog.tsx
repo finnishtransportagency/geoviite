@@ -4,13 +4,13 @@ import dialogStyles from 'geoviite-design-lib/dialog/dialog.scss';
 import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { useTranslation } from 'react-i18next';
-import { getLayoutDesign } from 'track-layout/layout-design-api';
+import { getLayoutDesignByBranch } from 'track-layout/layout-design-api';
 import { useLoader } from 'utils/react-utils';
-import { LayoutDesignId } from 'common/common-model';
+import { DesignBranch } from 'common/common-model';
 import { getChangeTimes } from 'common/change-time-api';
 
 export type PreviewMergeToMainConfirmationDialogProps = {
-    designId: LayoutDesignId;
+    designBranch: DesignBranch;
     isPublishing: boolean;
     onCancel: () => void;
     candidateCount: number;
@@ -19,11 +19,14 @@ export type PreviewMergeToMainConfirmationDialogProps = {
 
 export const PreviewMergeToMainConfirmationDialog: React.FC<
     PreviewMergeToMainConfirmationDialogProps
-> = ({ designId, isPublishing, onCancel, candidateCount, mergeToMain }) => {
+> = ({ designBranch, isPublishing, onCancel, candidateCount, mergeToMain }) => {
     const { t } = useTranslation();
+
     const design =
-        useLoader(() => getLayoutDesign(getChangeTimes().layoutDesign, designId), [designId])
-            ?.name ?? '';
+        useLoader(
+            () => getLayoutDesignByBranch(getChangeTimes().layoutDesign, designBranch),
+            [designBranch],
+        )?.name ?? '';
 
     return (
         <Dialog

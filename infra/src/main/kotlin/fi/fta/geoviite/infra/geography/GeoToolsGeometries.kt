@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.geography
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.util.logger
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem
 import org.geotools.geometry.jts.JTS
 import org.geotools.geometry.jts.JTSFactoryFinder
@@ -16,14 +17,24 @@ import org.locationtech.jts.geom.PrecisionModel
 import kotlin.concurrent.getOrSet
 import kotlin.math.round
 
-val ETRS89_SRID = Srid(4258)
 val FINNISH_GK_LONGITUDE_RANGE = 19..31
-val FIN_GK19_SRID = Srid(3873)
+
+/**
+ * GeoTools will lazily intialize some classes, which can be an issue if the first invocation comes from a
+ * thread in ForkJoinPool as they have a different classloader. To ensure that the classes are properly loaded,
+ * call this method from the main thread before launching Geoviite.
+ *
+ * For details, see Spring issue: https://github.com/spring-projects/spring-boot/issues/39843
+ * Also https://extranet.vayla.fi/jira/browse/GVT-2698 for more specifics on geoviite
+ */
+fun initGeotools() {
+    logger.info("Initializing GeoTools (preload default crs)")
+    geoviiteDefaultSrids.forEach { srid -> crs(srid) }
+}
 
 fun transformNonKKJCoordinate(sourceSrid: Srid, targetSrid: Srid, point: IPoint): Point {
     return Transformation.nonTriangulableTransform(sourceSrid, targetSrid).transform(point)
 }
-
 
 fun getFinnishGKCoordinateProjectionByLongitude(longitude:Double): Srid {
     val nearestLongitude = round(longitude).toInt()
@@ -34,9 +45,12 @@ fun getFinnishGKCoordinateProjectionByLongitude(longitude:Double): Srid {
 }
 
 fun transformToGKCoordinate(sourceSrid: Srid, point: IPoint): GeometryPoint {
+    if (isGkFinSrid(sourceSrid)) {
+        return GeometryPoint(point, sourceSrid)
+    }
     val etrs89Coord = transformNonKKJCoordinate(sourceSrid, ETRS89_SRID, point)
     val gkSrid = getFinnishGKCoordinateProjectionByLongitude(etrs89Coord.x)
-    val gkPoint = transformNonKKJCoordinate(ETRS89_SRID, gkSrid, etrs89Coord)
+    val gkPoint = transformNonKKJCoordinate(sourceSrid, gkSrid, point)
     return GeometryPoint(
         gkPoint.x,
         gkPoint.y,

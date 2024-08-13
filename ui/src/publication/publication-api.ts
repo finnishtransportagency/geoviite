@@ -10,6 +10,7 @@ import {
     CalculatedChanges,
     DraftChangeType,
     KmPostPublicationCandidate,
+    LayoutBranchType,
     LocationTrackPublicationCandidate,
     PublicationCandidate,
     PublicationCandidateReference,
@@ -31,17 +32,16 @@ import { PublicationDetailsTableSortField } from 'publication/table/publication-
 import { SortDirection } from 'utils/table-utils';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { createPublicationCandidateReference } from 'publication/publication-utils';
-import { LayoutBranch, LayoutDesignId, PublicationState } from 'common/common-model';
-import { toBranchName } from 'track-layout/track-layout-api';
+import { DesignBranch, LayoutBranch, PublicationState } from 'common/common-model';
 
 const PUBLICATION_URL = `${API_URI}/publications`;
 
 function publicationUri(layoutBranch: LayoutBranch): string {
-    return `${PUBLICATION_URL}/${toBranchName(layoutBranch).toLowerCase()}`;
+    return `${PUBLICATION_URL}/${layoutBranch.toLowerCase()}`;
 }
 
-function mergeToMainUri(designId: LayoutDesignId): string {
-    return `${PUBLICATION_URL}/merge-to-main/${toBranchName(designId).toLowerCase()}`;
+function mergeToMainUri(designBranch: DesignBranch): string {
+    return `${PUBLICATION_URL}/merge-to-main/${designBranch.toLowerCase()}`;
 }
 
 export type PublicationCandidatesResponse = {
@@ -207,7 +207,7 @@ export const publishPublicationCandidates = (
 };
 
 export const mergeCandidatesToMain = (
-    layoutBranch: LayoutDesignId,
+    layoutBranch: DesignBranch,
     candidates: PublicationCandidateReference[],
 ) => {
     const request = toPublicationRequestIds(candidates);
@@ -218,12 +218,14 @@ export const mergeCandidatesToMain = (
     );
 };
 
-export const getLatestPublications = async (count: number) => {
+export const getLatestPublications = async (count: number, branchType: LayoutBranchType) => {
     const params = queryParams({
         count,
     });
 
-    const page = await getNonNull<Page<PublicationDetails>>(`${PUBLICATION_URL}/latest${params}`);
+    const page = await getNonNull<Page<PublicationDetails>>(
+        `${PUBLICATION_URL}/latest/${branchType}${params}`,
+    );
     return page.items;
 };
 

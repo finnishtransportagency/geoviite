@@ -8,8 +8,9 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import fi.fta.geoviite.infra.tracklayout.LayoutState.NOT_IN_USE
@@ -37,21 +38,23 @@ class LayoutKmPostDaoIT @Autowired constructor(
         val post1 = kmPost(
             trackNumberId = trackNumberId,
             km = KmNumber(123),
-            location = Point(123.4, 234.5),
+            gkLocation = GeometryPoint(25500000.0, 6675000.0, Srid(3879)),
             state = IN_USE,
             draft = false,
+            gkLocationConfirmed = true,
+            gkLocationSource = KmPostGkLocationSource.FROM_GEOMETRY,
         )
         val post2 = kmPost(
             trackNumberId = trackNumberId,
             km = KmNumber(125),
-            location = Point(125.6, 236.7),
+            gkLocation = GeometryPoint(25500005.0, 6675005.0, Srid(3879)),
             state = NOT_IN_USE,
             draft = false,
         )
         val post3 = kmPost(
             trackNumberId = trackNumberId,
             km = KmNumber(124),
-            location = Point(124.5, 235.6),
+            gkLocation = GeometryPoint(25500010.0, 6675000.0, Srid(3879)),
             state = PLANNED,
             draft = false,
         )
@@ -87,21 +90,21 @@ class LayoutKmPostDaoIT @Autowired constructor(
     @Test
     fun kmPostVersioningWorks() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val tempPost = kmPost(trackNumberId, KmNumber(1), Point(1.0, 1.0))
+        val tempPost = kmPost(trackNumberId, KmNumber(1), roughLayoutLocation = null)
         val (id, insertVersion) = mainOfficialContext.insert(tempPost)
         val inserted = kmPostDao.fetch(insertVersion)
         assertMatches(tempPost, inserted, contextMatch = false)
         assertEquals(insertVersion, kmPostDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(insertVersion, kmPostDao.fetchVersion(MainLayoutContext.draft, id))
 
-        val tempDraft1 = asMainDraft(inserted).copy(location = Point(2.0, 2.0))
+        val tempDraft1 = asMainDraft(inserted).copy(kmNumber = KmNumber(2))
         val draftVersion1 = kmPostDao.insert(tempDraft1).rowVersion
         val draft1 = kmPostDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1, contextMatch = false)
         assertEquals(insertVersion, kmPostDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(draftVersion1, kmPostDao.fetchVersion(MainLayoutContext.draft, id))
 
-        val tempDraft2 = draft1.copy(location = Point(3.0, 3.0))
+        val tempDraft2 = draft1.copy(kmNumber = KmNumber(3))
         val draftVersion2 = kmPostDao.update(tempDraft2).rowVersion
         val draft2 = kmPostDao.fetch(draftVersion2)
         assertMatches(tempDraft2, draft2, contextMatch = false)

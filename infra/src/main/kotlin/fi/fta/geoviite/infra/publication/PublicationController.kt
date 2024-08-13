@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.authorization.LAYOUT_BRANCH
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.integration.CalculatedChanges
@@ -145,12 +146,12 @@ class PublicationController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_VIEW_PUBLICATION)
-    @GetMapping("latest")
+    @GetMapping("latest/{branchType}")
     fun getLatestPublications(
-        @RequestParam("layoutBranch", required = false) layoutBranch: LayoutBranch?,
+        @PathVariable("branchType") branchType: LayoutBranchType,
         @RequestParam("count") count: Int,
     ): Page<PublicationDetails> {
-        val publications = publicationService.fetchLatestPublicationDetails(layoutBranch ?: LayoutBranch.main, count)
+        val publications = publicationService.fetchLatestPublicationDetails(branchType, count)
 
         return Page(totalCount = publications.size, start = 0, items = publications)
     }

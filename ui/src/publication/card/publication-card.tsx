@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { compareTimestamps } from 'utils/date-utils';
 import { PublicationList } from 'publication/card/publication-list';
@@ -13,7 +14,6 @@ import { Link } from 'vayla-design-lib/link/link';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
-import { useEffect } from 'react';
 import { useAppNavigate } from 'common/navigate';
 import { defaultPublicationSearch } from 'publication/publication-utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
@@ -23,13 +23,14 @@ import {
     ProgressIndicatorType,
     ProgressIndicatorWrapper,
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
-import { first } from 'utils/array-utils';
+import { LayoutBranchType } from 'publication/publication-model';
 
 type PublishListProps = {
     publicationChangeTime: TimeStamp;
     ratkoPushChangeTime: TimeStamp;
     splitChangeTime: TimeStamp;
     ratkoStatus: RatkoStatus | undefined;
+    branchType: LayoutBranchType;
 };
 
 const parseRatkoConnectionError = (errorType: string, ratkoStatusCode: number, contact: string) => {
@@ -77,6 +78,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
     ratkoPushChangeTime,
     splitChangeTime,
     ratkoStatus,
+    branchType,
 }) => {
     const { t } = useTranslation();
     const navigate = useAppNavigate();
@@ -92,7 +94,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
 
     const [pageCount, setPageCount] = React.useState(1);
     const [publications, publicationFetchStatus] = useLoaderWithStatus(
-        () => getLatestPublications(MAX_LISTED_PUBLICATIONS * pageCount),
+        () => getLatestPublications(MAX_LISTED_PUBLICATIONS * pageCount, branchType),
         [publicationChangeTime, ratkoPushChangeTime, splitChangeTime, pageCount],
     );
 
@@ -109,10 +111,9 @@ const PublicationCard: React.FC<PublishListProps> = ({
         ratkoPushSucceeded(publication.ratkoPushStatus),
     );
 
-    const latestFailure = first(
-        allPublications.filter((publication) => ratkoPushFailed(publication.ratkoPushStatus)),
+    const latestFailures = allPublications.filter((publication) =>
+        ratkoPushFailed(publication.ratkoPushStatus),
     );
-
     const ratkoConnectionError =
         ratkoStatus && !ratkoStatus.isOnline && ratkoStatus.statusCode >= 300;
 
@@ -144,9 +145,9 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                         {parseRatkoOfflineStatus(ratkoStatus)}
                                     </p>
                                 )}
-                                {latestFailure && (
-                                    <RatkoPushErrorDetails latestFailure={latestFailure} />
-                                )}
+                                {latestFailures.map((fail) => (
+                                    <RatkoPushErrorDetails key={fail.id} failedPublication={fail} />
+                                ))}
                                 <PublicationList publications={nonSuccesses} />
                                 {allWaiting && (
                                     <div className={styles['publication-card__waiting-text']}>
@@ -157,9 +158,12 @@ const PublicationCard: React.FC<PublishListProps> = ({
                                         <span>{t('publication-card.transfer-starts-shortly')}</span>
                                     </div>
                                 )}
-                                {latestFailure && (
+                                {latestFailures.length > 0 && (
                                     <div className={styles['publication-card__ratko-push-button']}>
-                                        <RatkoPublishButton disabled={ratkoConnectionError} />
+                                        <RatkoPublishButton
+                                            branchType={branchType}
+                                            disabled={ratkoConnectionError}
+                                        />
                                     </div>
                                 )}
                             </section>
@@ -181,13 +185,15 @@ const PublicationCard: React.FC<PublishListProps> = ({
                             </Link>
                         </div>
                         <br />
-                        <div>
-                            <Link
-                                onClick={() => navigateToPublicationLog()}
-                                qa-id={'open-publication-log'}>
-                                {t('publication-card.log-link')}
-                            </Link>
-                        </div>
+                        {branchType === 'MAIN' && (
+                            <div>
+                                <Link
+                                    onClick={() => navigateToPublicationLog()}
+                                    qa-id={'open-publication-log'}>
+                                    {t('publication-card.log-link')}
+                                </Link>
+                            </div>
+                        )}
                     </ProgressIndicatorWrapper>
                 </React.Fragment>
             }

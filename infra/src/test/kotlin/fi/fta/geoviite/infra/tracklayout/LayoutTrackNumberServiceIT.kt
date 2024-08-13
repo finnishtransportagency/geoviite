@@ -108,20 +108,20 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
             referenceLineDao.fetch(referenceLineVersion.rowVersion)
         }
 
-        listOf(
+        val kmPostVersions = listOf(
             kmPost(
                 trackNumberId = trackNumber.id as IntId,
                 km = KmNumber(2),
-                location = Point(1.0, 0.0),
+                roughLayoutLocation = Point(1.0, 0.0),
                 draft = false,
             ),
             kmPost(
                 trackNumberId = trackNumber.id as IntId,
                 km = KmNumber(3),
-                location = Point(3.0, 0.0),
+                roughLayoutLocation = Point(3.0, 0.0),
                 draft = false,
             ),
-        ).map(kmPostDao::insert)
+        ).map(kmPostDao::insert).map(LayoutDaoResponse<TrackLayoutKmPost>::rowVersion)
 
         val kmLengths = trackNumberService.getKmLengths(MainLayoutContext.official, trackNumber.id as IntId)
         assertNotNull(kmLengths)
@@ -145,7 +145,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 startM = BigDecimal(1).setScale(3),
                 endM = BigDecimal(3).setScale(3),
                 locationSource = GeometrySource.IMPORTED,
-                location = Point(1.0, 0.0)
+                location = kmPostDao.fetch(kmPostVersions[0]).layoutLocation,
             ), kmLengths[1]
         )
 
@@ -156,13 +156,13 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 startM = BigDecimal(3).setScale(3),
                 endM = BigDecimal(4).setScale(3),
                 locationSource = GeometrySource.IMPORTED,
-                location = Point(3.0, 0.0),
+                location = kmPostDao.fetch(kmPostVersions[1]).layoutLocation,
             ), kmLengths[2]
         )
     }
 
     @Test
-    fun `should ignore km posts without location when calculating lengths lengths between km posts`() {
+    fun `should ignore km posts without location when calculating lengths between km posts`() {
         val trackNumber = trackNumberDao.fetch(
             trackNumberDao.insert(trackNumber(testDBService.getUnusedTrackNumber(), draft = false)).rowVersion
         )
@@ -187,20 +187,20 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
             referenceLineDao.fetch(referenceLineVersion.rowVersion)
         }
 
-        listOf(
+        val kmPostVersions = listOf(
             kmPost(
                 trackNumberId = trackNumber.id as IntId,
                 km = KmNumber(2),
-                location = Point(1.0, 0.0),
+                roughLayoutLocation = Point(1.0, 0.0),
                 draft = false,
             ),
             kmPost(
                 trackNumberId = trackNumber.id as IntId,
                 km = KmNumber(3),
-                location = null,
+                roughLayoutLocation = null,
                 draft = false,
             ),
-        ).map(kmPostDao::insert)
+        ).map(kmPostDao::insert).map(LayoutDaoResponse<TrackLayoutKmPost>::rowVersion)
 
         val kmLengths = trackNumberService.getKmLengths(MainLayoutContext.official, trackNumber.id as IntId)
         assertNotNull(kmLengths)
@@ -225,7 +225,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 startM = BigDecimal(1).setScale(3),
                 endM = BigDecimal(4).setScale(3),
                 locationSource = GeometrySource.IMPORTED,
-                location = Point(1.0, 0.0)
+                location = kmPostDao.fetch(kmPostVersions[0]).layoutLocation,
             ),
             kmLengths.last(),
         )

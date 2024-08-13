@@ -149,6 +149,9 @@
         }
     },
     "reference-line": "Pituusmittauslinja",
+    "design": {
+        "duplicate-name": "Nimi {{name}} on jo käytössä"
+    },
     "enum": {
         "plan-phase": {
             "RAILWAY_PLAN": "Ratasuunnitelma, RaS",
@@ -439,7 +442,18 @@
                 "state": "Tila",
                 "kilometer-length": "Ratakilometrin pituus",
                 "location-title": "Tasakilometripisteen sijaintitiedot",
-                "coordinates": "Koordinaatit (TM35FIN)",
+                "coordinates": "Sijainti paikannuspohjassa (TM35FIN)",
+                "gk-coordinates": {
+                    "coordinate-system": "Koordinaatisto",
+                    "location": "Sijainti ({{coordinateSystemName}})",
+                    "confirmed-title": "Sijainti vahvistettu",
+                    "confirmed": "Vahvistettu",
+                    "not-confirmed": "Ei vahvistettu",
+                    "source": "Sijainnin lähde",
+                    "source-from-geometry": "Linkitetty suunnitelmasta",
+                    "source-from-layout": "Konvertoitu paikannuspohjasta",
+                    "source-manual": "Asetettu suoraan"
+                },
                 "change-info-heading": "Lokitiedot",
                 "no-kilometer-length": "Pituutta ei voida laskea",
                 "negative-kilometer-length": "Virheellinen sijainti",
@@ -693,7 +707,8 @@
                     "duplicate-not-published": "Duplikaattiraiteen {{duplicateName}} muutoksia ei ole julkaistu Ratkoon. Poikkeavat tiedot Geoviitteen ja Ratkon välillä voivat aiheuttaa ongelmia kohteiden massasiirrossa Ratkossa.",
                     "publish-duplicate": "Julkaise tai hylkää duplikaattiraiteen muutokset ja yritä jakamista sitten uudestaan.",
                     "has-errors": "Tiedoissa on virheitä",
-                    "show": "näytä"
+                    "show": "näytä",
+                    "branch-not-main": "Raiteita voi jakaa vain luonnostilassa"
                 },
                 "validation-in-progress": "Raiteen vaihteita validoidaan...",
                 "relink-critical-errors": "Raiteen vaihteiden linkityksessä on kriittisiä ongelmia, jotka täytyy korjata ennen raiteen jakamista",
@@ -1571,7 +1586,8 @@
         "show-split-info": "Näytä raiteen jakamisen tiedot",
         "mark-as-successful": "Merkitse kohteiden siirto onnistuneeksi",
         "transfer-starts-shortly": "Vienti käynnistyy automaattisesti hetken kuluttua",
-        "bulk-transfer-marked-as-successful": "Kohteiden siirto merkitty onnistuneeksi"
+        "bulk-transfer-marked-as-successful": "Kohteiden siirto merkitty onnistuneeksi",
+        "ratko-push-connection-issue": "Yhteysvirhe Ratko-viennissä"
     },
     "split-details-dialog": {
         "title": "Raiteen jakamisen tiedot",
@@ -1686,6 +1702,9 @@
         "mandatory-fields-missing": "Pakollisia kenttiä puuttuu",
         "save-in-progress": "Tallennetaan",
         "km-post-regexp": "Tunnuksessa tulee olla 4 numeroa, tai 4 numeroa ja enintään 2 kirjainta (esim. 1234 tai 1234AA)",
+        "gk-coordinate-parse": "GK-sijainnin koordinaatin tulee olla luku",
+        "gk-coordinate-saveable-as-float": "GK-sijainnin koordinaattia ei pystytä tallentamaan tällä tarkkuudella",
+        "gk-coordinate-in-finland": "Syötetty sijainti ei ole Suomen GK-koordinaatistojen määrittämällä alueella",
         "invalid-km-post-number": "Virheellinen tasakilometripistetunnus",
         "km-number-already-in-use": "Ratanumerolla ei voi olla kahta tasakilometripistettä samalla tunnuksella. Tunnus on jo käytössä valitulla ratanumerolla.",
         "insert-succeeded": "Uusi tasakilometripiste lisätty rekisteriin",
@@ -1694,7 +1713,20 @@
         "modify-failed": "Tasakilometripisteen muokkaus epäonnistui",
         "delete-successfully": "Tasakilometripiste poistettu",
         "cant-open-deleted": "Tietoja ei voitu avata, koska tasakilometripiste on poistettu",
-        "move-to-edit": "Siirry muokkaamaan tasakilometripistettä {{number}}."
+        "move-to-edit": "Siirry muokkaamaan tasakilometripistettä {{number}}.",
+        "gk-location": {
+            "title": "Sijaintitiedot",
+            "location-field": "Sijainti",
+            "coordinate-system-field": "Koordinaatisto",
+            "confirmed-field": "Sijainti vahvistettu",
+            "confirmed": "Vahvistettu",
+            "not-confirmed": "Ei vahvistettu",
+            "source": "Sijainnin lähde",
+            "source-from-geometry": "Linkitetty geometriasta",
+            "source-from-layout": "Konvertoitu paikannuspohjasta",
+            "source-manual": "Asetettu suoraan",
+            "location-in-layout": "Sijainti paikannuspohjassa (TM35FIN)"
+        }
     },
     "km-post-delete-dialog": {
         "title": "Tasakilometripisteen poistaminen paikannuspohjasta",
@@ -1757,7 +1789,7 @@
             "guide": "Poistettua työtilaa ei voi palauttaa eikä sen sisältöä muokata.",
             "confirm": "Haluatko poistaa työtilan <strong>{{name}}<strong>?"
         },
-        "name-collides": "Nimi on jo käytössä"
+        "name-not-unique": "Nimi on jo käytössä"
     },
     "switch-delete-dialog": {
         "title": "Poistetaanko luonnos?",

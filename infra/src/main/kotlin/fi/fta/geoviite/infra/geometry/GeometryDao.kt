@@ -1747,4 +1747,11 @@ class GeometryDao @Autowired constructor(
             )
         }.associate { it }
     }
+
+    fun getPlanIdForKmPost(id: IntId<GeometryKmPost>): IntId<GeometryPlan>? {
+        val sql = """
+            select plan_id from geometry.km_post where id = :id
+        """.trimIndent()
+        return jdbcTemplate.queryOptional(sql, mapOf("id" to id.intValue)) { rs, _ -> rs.getIntId("plan_id") }
+    }
 }

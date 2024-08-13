@@ -75,7 +75,7 @@ class KkjTm35finTriangulationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 b2 = rs.getDouble("b2"),
                 deltaN = rs.getDouble("delta_n"),
                 crs = when (direction) {
-                    TriangulationDirection.KKJ_TO_TM35FIN -> crs(KKJ3_YKJ)
+                    TriangulationDirection.KKJ_TO_TM35FIN -> crs(KKJ3_YKJ_SRID)
                     TriangulationDirection.TM35FIN_TO_KKJ -> LAYOUT_CRS
                 }
             )

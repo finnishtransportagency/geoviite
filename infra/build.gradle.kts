@@ -10,7 +10,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_ERROR
 import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_OUT
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val geotoolsVersion = "30.2"
+val geotoolsVersion = "31.3"
 val kotlinVersion = "1.9.22"
 
 plugins {
@@ -83,7 +83,7 @@ dependencies {
     implementation("jakarta.activation:jakarta.activation-api:2.1.3")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.2")
     implementation("com.github.davidmoten:rtree2:0.9.3")
-    implementation("commons-validator:commons-validator:1.8.0") {
+    implementation("commons-validator:commons-validator:1.9.0") {
         exclude("commons-logging", "commons-logging")
         exclude("commons-collections", "commons-collections")
     }
@@ -94,8 +94,6 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
     testImplementation("org.seleniumhq.selenium:selenium-java:4.19.1")
-    //Do not update to version 5.15.0 as it causes StackOverflowError.
-    //See: https://github.com/mock-server/mockserver/issues/1660
     testImplementation("org.mock-server:mockserver-netty:5.15.0")
     testImplementation("org.apache.httpcomponents.client5:httpclient5:5.3.1")
 }

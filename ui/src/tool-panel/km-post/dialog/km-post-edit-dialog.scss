@@ -1,0 +1,25 @@
+@use 'vayla-design-lib' as vayla-design;
+
+.km-post-edit-dialog__location {
+    display: flex;
+    gap: 12px;
+}
+
+.km-post-edit-dialog__location-axis {
+    display: flex;
+}
+
+.km-post-edit-dialog__location-axis-letter {
+    display: flex;
+    align-items: center;
+    margin-left: 4px;
+}
+
+.km-post-edit-dialog__location-axis-field {
+    max-width: 165px;
+}
+
+.km-post-edit-dialog__confirmed {
+    display: flex;
+    gap: 4px;
+}

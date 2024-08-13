@@ -41,7 +41,7 @@ import { getSuggestedSwitchId } from 'linking/linking-utils';
 import { bboxString, pointString } from 'common/common-api';
 import { BoundingBox, Point } from 'model/geometry';
 import { filterNotEmpty, first, indexIntoMap } from 'utils/array-utils';
-import { contextInUri, toBranchName } from 'track-layout/track-layout-api';
+import { contextInUri } from 'track-layout/track-layout-api';
 
 const LINKING_URI = `${API_URI}/linking`;
 
@@ -75,7 +75,7 @@ function linkingUri(
     linkingType: LinkingType,
     id?: string,
 ): string {
-    const base = `${LINKING_URI}/${toBranchName(layoutBranch).toLowerCase()}/${dataType}`;
+    const base = `${LINKING_URI}/${layoutBranch.toLowerCase()}/${dataType}`;
     const idSection = id ? `/${id}` : '';
     return `${base}/${idSection}/${linkingType}`;
 }

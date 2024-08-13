@@ -500,7 +500,7 @@ class RatkoServiceIT @Autowired constructor(
         val planVersion = geometryDao.insertPlan(
             plan(
                 trackNumber,
-                srid = Srid(4009),
+                srid = Srid(3879),
                 measurementMethod = MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY,
                 planTime = Instant.parse("2018-11-30T18:35:24.00Z"),
                 alignments = listOf(
@@ -541,7 +541,7 @@ class RatkoServiceIT @Autowired constructor(
             prop("measurement_method").enumValue,
         )
         assertEquals(2018, prop("created_year").integerValue)
-        assertEquals("EPSG:4009", prop("original_crs").stringValue)
+        assertEquals("EPSG:3879", prop("original_crs").stringValue)
         assertEquals("geo name", prop("alignment").stringValue)
     }
 
@@ -1040,17 +1040,18 @@ class RatkoServiceIT @Autowired constructor(
 
         val kmPost = kmPostService.saveDraft(
             LayoutBranch.main,
-            kmPost(trackNumber.id, KmNumber(1), Point(5.0, 0.0), draft = true),
+            kmPost(trackNumber.id, KmNumber(1), roughLayoutLocation = Point(5.0, 0.0), draft = true),
         )
         publishAndPush(kmPosts = listOf(kmPost.id))
         val deletions = fakeRatko.getRouteNumberPointDeletions("1.2.3.4.5")
         val updatedPoints = fakeRatko.getUpdatedRouteNumberPoints("1.2.3.4.5")
         assertEquals(listOf("0000", "0001"), deletions)
-        // km post was placed precisely at meter point => coordinates shouldn't change
-        assertEquals(
-            pushedPoints.flatten().map { point -> point.geometry!!.coordinates },
-            updatedPoints.flatten().map { point -> point.geometry!!.coordinates },
-        )
+        // km post was placed roughly at meter point, causing updated points' positions to move slightly due to
+        // conversion from GK to layout coordinates
+        pushedPoints.flatten().zip(updatedPoints.flatten()) { expected, actual ->
+            assertEquals(expected.geometry!!.coordinates[0], actual.geometry!!.coordinates[0], 0.000001)
+            assertEquals(expected.geometry!!.coordinates[1], actual.geometry!!.coordinates[1], 0.000001)
+        }
         assertEquals("0000", updatedPoints[0].map { p -> p.kmM.kmNumber.toString() }.distinct().single())
         assertEquals("0001", updatedPoints[1].map { p -> p.kmM.kmNumber.toString() }.distinct().single())
     }

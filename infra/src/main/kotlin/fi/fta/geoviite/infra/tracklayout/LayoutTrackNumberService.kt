@@ -217,7 +217,7 @@ private fun extractTrackKmLengths(
             kmNumber = kmPost.kmNumber,
             startM = roundTo3Decimals(startM),
             endM = roundTo3Decimals(endM),
-            location = kmPost.location,
+            location = kmPost.layoutLocation,
             locationSource = if (kmPost.sourceId != null) GeometrySource.PLAN else GeometrySource.IMPORTED
         )
     }
@@ -227,7 +227,7 @@ private fun getKmPostDistances(
     context: GeocodingContext,
     kmPosts: List<TrackLayoutKmPost>,
 ): List<Pair<TrackLayoutKmPost, Double>> = kmPosts.map { kmPost ->
-    val distance = kmPost.location?.let { loc -> context.getM(loc)?.first }
-    checkNotNull(distance) { "Couldn't calculated distance for km post, id=${kmPost.id} location=${kmPost.location}" }
+    val distance = kmPost.layoutLocation?.let { loc -> context.getM(loc)?.first }
+    checkNotNull(distance) { "Couldn't calculate distance for km post, id=${kmPost.id} location=${kmPost.layoutLocation}" }
     kmPost to distance
 }

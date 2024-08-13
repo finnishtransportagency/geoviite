@@ -2,6 +2,8 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.error.DuplicateDesignNameException
+import fi.fta.geoviite.infra.error.getPSQLExceptionConstraintAndDetailOrRethrow
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.DaoBase
@@ -15,6 +17,8 @@ import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
+import org.postgresql.util.PSQLException
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -66,14 +70,6 @@ class LayoutDesignDao(
     @Transactional
     fun update(id: DomainId<LayoutDesign>, design: LayoutDesignSaveRequest): IntId<LayoutDesign> {
         jdbcTemplate.setUser()
-        require(list(includeCompleted = true)
-            .none { existing ->
-                existing.name.equalsIgnoreCase(design.name) && existing.id != id
-            }
-        ) {
-            "Name must be unique"
-        }
-
         val params = mapOf(
             "id" to toDbId(id).intValue,
             "name" to design.name,
@@ -100,12 +96,6 @@ class LayoutDesignDao(
     @Transactional
     fun insert(design: LayoutDesignSaveRequest): IntId<LayoutDesign> {
         jdbcTemplate.setUser()
-        require(
-            list(includeCompleted = true).none { existing -> existing.name.equalsIgnoreCase(design.name) }
-        ) {
-            "Name must be unique"
-        }
-
         val sql = """
             insert into layout.design (name, estimated_completion, design_state)
             values (:name, :estimated_completion, :design_state::layout.design_state)
@@ -127,3 +117,22 @@ class LayoutDesignDao(
         return fetchLatestChangeTime(DbTable.LAYOUT_DESIGN)
     }
 }
+
+private val duplicateSwitchErrorRegex = Regex("""Key \(lower\(name\)\)=\(([^,]+)\) conflicts with existing key""")
+
+fun asDuplicateNameException(e: DataIntegrityViolationException): DuplicateDesignNameException? = e.cause
+    .let { cause -> cause as? PSQLException }
+    ?.let { cause -> getPSQLExceptionConstraintAndDetailOrRethrow(cause) }
+    ?.let { (constraint, detail) ->
+        duplicateSwitchErrorRegex
+            .matchAt(detail, 0)
+            ?.let { match -> match.groups[1]?.value }
+            ?.let { name -> constraint to name }
+    }
+    ?.let { (constraint, name) ->
+        if (constraint == "layout_design_unique_name") {
+            DuplicateDesignNameException(name, e)
+        } else {
+            null
+        }
+    }

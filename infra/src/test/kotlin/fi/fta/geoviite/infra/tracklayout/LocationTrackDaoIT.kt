@@ -40,7 +40,7 @@ class LocationTrackDaoIT @Autowired constructor(
 ) : DBTestBase() {
     @BeforeEach
     fun cleanup() {
-        testDBService.clearAllTables()
+        testDBService.clearLayoutTables()
     }
 
     @Test

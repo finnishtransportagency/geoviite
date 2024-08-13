@@ -74,11 +74,11 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
 
     const kmPosts =
         useLoader(async () => {
-            return geometryKmPost.location
+            return geometryKmPost.layoutLocation
                 ? await getKmPostForLinking(
                       layoutContext,
                       geometryKmPost.trackNumberId,
-                      geometryKmPost.location,
+                      geometryKmPost.layoutLocation,
                       0,
                       40,
                   )
@@ -87,7 +87,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
             layoutContext.publicationState,
             layoutContext.branch,
             geometryKmPost.trackNumberId,
-            geometryKmPost.location,
+            geometryKmPost.layoutLocation,
             layoutKmPost,
         ]) || [];
     const trackNumbers = useTrackNumbers(layoutContext);
@@ -270,6 +270,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                     onClose={() => setShowAddDialog(false)}
                     onSave={handleKmPostSave}
                     prefilledTrackNumberId={geometryKmPost.trackNumberId}
+                    geometryKmPostGkLocation={geometryKmPost.gkLocation}
                 />
             )}
         </React.Fragment>

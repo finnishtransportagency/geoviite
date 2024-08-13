@@ -178,3 +178,14 @@ class IntegrationNotConfiguredException(type: Integration) : ClientException(
     cause = null,
     localizedMessageKey = "error.integration-not-configured.$type",
 )
+
+class DuplicateDesignNameException(
+    name: String,
+    cause: Throwable? = null,
+) : ClientException(
+    status = BAD_REQUEST,
+    message = "Duplicate design name: $name",
+    cause = cause,
+    localizedMessageKey = "error.design.duplicate-name",
+    localizedMessageParams = localizationParams("name" to name),
+)

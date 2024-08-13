@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.calculateDistance
+import fi.fta.geoviite.infra.geography.transformToGKCoordinate
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
@@ -18,6 +19,7 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.split.SplitService
+import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
@@ -233,10 +235,12 @@ class LinkingService @Autowired constructor(
 
         val layoutKmPost = layoutKmPostService.getOrThrow(branch.draft, parameters.layoutKmPostId)
 
-        val newLocationInLayoutSpace =
-            coordinateTransformationService.transformCoordinate(kmPostSrid, LAYOUT_SRID, geometryKmPost.location)
+        val newGkLocation = transformToGKCoordinate(kmPostSrid, geometryKmPost.location)
         val modifiedLayoutKmPost = layoutKmPost.copy(
-            location = newLocationInLayoutSpace, sourceId = geometryKmPost.id
+            gkLocation = newGkLocation,
+            gkLocationSource = KmPostGkLocationSource.FROM_GEOMETRY,
+            sourceId = geometryKmPost.id,
+            gkLocationConfirmed = true,
         )
 
         return layoutKmPostService.saveDraft(branch, modifiedLayoutKmPost)

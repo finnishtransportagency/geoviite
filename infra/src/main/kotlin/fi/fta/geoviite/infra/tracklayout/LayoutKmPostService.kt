@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.geography.calculateDistance
+import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -16,16 +17,19 @@ import org.springframework.transaction.annotation.Transactional
 class LayoutKmPostService(
     dao: LayoutKmPostDao,
     private val referenceLineService: ReferenceLineService,
+    private val geometryDao: GeometryDao,
 ) : LayoutAssetService<TrackLayoutKmPost, LayoutKmPostDao>(dao) {
 
     @Transactional
     fun insertKmPost(branch: LayoutBranch, request: TrackLayoutKmPostSaveRequest): IntId<TrackLayoutKmPost> {
         val kmPost = TrackLayoutKmPost(
             kmNumber = request.kmNumber,
-            location = null,
             state = request.state,
             trackNumberId = request.trackNumberId,
             sourceId = null,
+            gkLocation = request.gkLocation,
+            gkLocationSource = request.gkLocationSource,
+            gkLocationConfirmed = request.gkLocationConfirmed,
             contextData = LayoutContextData.newDraft(branch),
         )
         return saveDraftInternal(branch, kmPost).id
@@ -40,6 +44,9 @@ class LayoutKmPostService(
         val trackLayoutKmPost = dao.getOrThrow(branch.draft, id).copy(
             kmNumber = kmPost.kmNumber,
             state = kmPost.state,
+            gkLocationConfirmed = kmPost.gkLocationConfirmed,
+            gkLocationSource = kmPost.gkLocationSource,
+            gkLocation = kmPost.gkLocation,
         )
         return saveDraftInternal(branch, trackLayoutKmPost).id
     }
@@ -81,6 +88,14 @@ class LayoutKmPostService(
     }
 
     @Transactional(readOnly = true)
+    fun getKmPostInfoboxExtras(layoutContext: LayoutContext, id: IntId<TrackLayoutKmPost>): KmPostInfoboxExtras {
+        val kmPost = dao.get(layoutContext, id)
+        val length = getSingleKmPostLength(layoutContext, id)
+        val geometryPlanId = if (kmPost?.sourceId is IntId) geometryDao.getPlanIdForKmPost(kmPost.sourceId) else null
+
+        return KmPostInfoboxExtras(length, geometryPlanId)
+    }
+
     fun getSingleKmPostLength(layoutContext: LayoutContext, id: IntId<TrackLayoutKmPost>): Double? {
         return dao.get(layoutContext, id)?.getAsIntegral()?.let { kmPost ->
             referenceLineService.getByTrackNumberWithAlignment(layoutContext, kmPost.trackNumberId)
@@ -111,4 +126,4 @@ class LayoutKmPostService(
 }
 
 fun associateByDistance(kmPost: TrackLayoutKmPost, comparisonPoint: Point): Pair<TrackLayoutKmPost, Double?> =
-    kmPost to kmPost.location?.let { l -> calculateDistance(LAYOUT_SRID, comparisonPoint, l) }
+    kmPost to kmPost.layoutLocation?.let { l -> calculateDistance(LAYOUT_SRID, comparisonPoint, l) }

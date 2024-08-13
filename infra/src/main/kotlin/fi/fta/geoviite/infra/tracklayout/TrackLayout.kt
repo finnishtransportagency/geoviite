@@ -10,14 +10,17 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.AddressPoint
+import fi.fta.geoviite.infra.geography.ETRS89_TM35FIN_SRID
+import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.crs
+import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
+import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.linking.SuggestedSwitch
 import fi.fta.geoviite.infra.math.BoundingBox
@@ -31,7 +34,7 @@ import fi.fta.geoviite.infra.util.FreeText
 import java.math.BigDecimal
 import java.time.Instant
 
-val LAYOUT_SRID = Srid(3067)
+val LAYOUT_SRID = ETRS89_TM35FIN_SRID
 val LAYOUT_CRS = crs(LAYOUT_SRID)
 
 enum class LocationTrackState(val category: LayoutStateCategory) {
@@ -373,9 +376,13 @@ data class TrackLayoutSwitch(
 
 data class TrackLayoutSwitchJoint(val number: JointNumber, val location: Point, val locationAccuracy: LocationAccuracy?)
 
+enum class KmPostGkLocationSource { FROM_GEOMETRY, FROM_LAYOUT, MANUAL }
+
 data class TrackLayoutKmPost(
     val kmNumber: KmNumber,
-    val location: Point?,
+    val gkLocation: GeometryPoint?,
+    val gkLocationSource: KmPostGkLocationSource?,
+    val gkLocationConfirmed: Boolean,
     val state: LayoutState,
     val trackNumberId: IntId<TrackLayoutTrackNumber>?,
     val sourceId: DomainId<GeometryKmPost>?,
@@ -384,9 +391,12 @@ data class TrackLayoutKmPost(
     @JsonIgnore
     val exists = !state.isRemoved()
 
+    val layoutLocation =
+        if (gkLocation == null) null else transformNonKKJCoordinate(gkLocation.srid, LAYOUT_SRID, gkLocation.toPoint())
+
     fun getAsIntegral(): IntegralTrackLayoutKmPost? =
-        if (state != LayoutState.IN_USE || location == null || trackNumberId == null) null
-        else IntegralTrackLayoutKmPost(kmNumber, location, trackNumberId)
+        if (state != LayoutState.IN_USE || layoutLocation == null || trackNumberId == null) null
+        else IntegralTrackLayoutKmPost(kmNumber, layoutLocation, trackNumberId)
 
     override fun toLog(): String = logFormat(
         "id" to id,
@@ -450,4 +460,9 @@ data class TrackNumberAndChangeTime(
     val id: IntId<TrackLayoutTrackNumber>,
     val number: TrackNumber,
     val changeTime: Instant,
+)
+
+data class KmPostInfoboxExtras(
+    val kmLength: Double?,
+    val sourceGeometryPlanId: IntId<GeometryPlan>?,
 )

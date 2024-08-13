@@ -21,4 +21,9 @@
     &--selected {
         border-color: vayla-design.$color-blue-light;
     }
+
+    &--disabled {
+        cursor: default;
+        color: vayla-design.$color-black-lighter;
+    }
 }

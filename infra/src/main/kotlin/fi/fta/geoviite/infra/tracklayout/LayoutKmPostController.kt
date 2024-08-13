@@ -161,13 +161,13 @@ class LayoutKmPostController(
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/km-length")
-    fun getKmLength(
+    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/infobox-extras")
+    fun getKmPostInfoboxExtras(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") kmPostId: IntId<TrackLayoutKmPost>,
-    ): ResponseEntity<Double> {
+    ): ResponseEntity<KmPostInfoboxExtras> {
         val context = LayoutContext.of(branch, publicationState)
-        return toResponse(kmPostService.getSingleKmPostLength(context, kmPostId))
+        return toResponse(kmPostService.getKmPostInfoboxExtras(context, kmPostId))
     }
 }

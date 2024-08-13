@@ -1,13 +1,42 @@
 package fi.fta.geoviite.infra.geometry
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
+import fi.fta.geoviite.infra.common.FeatureTypeCode
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LinearUnit
+import fi.fta.geoviite.infra.common.MeasurementMethod
+import fi.fta.geoviite.infra.common.ProjectName
+import fi.fta.geoviite.infra.common.RotationDirection
 import fi.fta.geoviite.infra.common.RotationDirection.CCW
 import fi.fta.geoviite.infra.common.RotationDirection.CW
+import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
+import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geometry.CantTransitionType.LINEAR
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
 import fi.fta.geoviite.infra.inframodel.PlanElementName
-import fi.fta.geoviite.infra.math.*
+import fi.fta.geoviite.infra.math.AngularUnit
+import fi.fta.geoviite.infra.math.Grads
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.circleArcLength
+import fi.fta.geoviite.infra.math.clothoidLength
+import fi.fta.geoviite.infra.math.clothoidPointAtOffset
+import fi.fta.geoviite.infra.math.clothoidRadiusAtLength
+import fi.fta.geoviite.infra.math.clothoidTwistAtLength
+import fi.fta.geoviite.infra.math.gradsToRads
+import fi.fta.geoviite.infra.math.lineIntersection
+import fi.fta.geoviite.infra.math.lineLength
+import fi.fta.geoviite.infra.math.pointInDirection
+import fi.fta.geoviite.infra.math.radsToGrads
+import fi.fta.geoviite.infra.math.rotateAroundOrigin
+import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
@@ -382,7 +411,7 @@ fun plan(
     verticalCoordinateSystem: VerticalCoordinateSystem? = null,
     source: PlanSource = PlanSource.GEOMETRIAPALVELU,
     planTime: Instant = Instant.EPOCH,
-    kmPosts: List<GeometryKmPost> = kmPosts(),
+    kmPosts: List<GeometryKmPost> = kmPosts(srid),
     project: Project = project(),
     units: GeometryUnits = geometryUnits(srid, coordinateSystemName, verticalCoordinateSystem),
 ): GeometryPlan {
@@ -502,14 +531,14 @@ fun geometryLine(
 )
 
 fun geometryElements(): List<GeometryElement> {
-    val start = Point(x = 2.549670824115E7, y = 6673712.000614)
-    val end = Point(x = 2.5496701599091E7, y = 6673744.810696)
+    val start = Point(x = 385372.582, y = 6673712.000614)
+    val end = Point(x = 385379.2240573294, y = 6673744.810696)
     val staStart = BigDecimal("543.333470")
     val length = BigDecimal("33.475639")
     val element0 = geometryLine("S004", "3", start, end, staStart, length)
 
-    val start1 = Point(x = 2.5496701599091E7, y = 6673744.810696)
-    val end1 = Point(x = 2.5496698181794E7, y = 6673761.691271)
+    val start1 = Point(x = 385379.2240573294, y = 6673744.810696)
+    val end1 = Point(x = 385382.6413540228, y = 6673761.691271)
     val staStart1 = BigDecimal("576.809109")
     val length1 = BigDecimal("17.223000")
     val element1 = geometryLine("V022", "4", start1, end1, staStart1, length1)
@@ -564,7 +593,7 @@ fun geometryCant(points: List<GeometryCantPoint>) = GeometryCant(
     points = points,
 )
 
-fun kmPosts() = listOf(
+fun kmPosts(srid: Srid) = listOf(
     GeometryKmPost(
         staBack = null,
         staAhead = BigDecimal("-148.729000"),
@@ -580,7 +609,7 @@ fun kmPosts() = listOf(
         kmNumber = KmNumber(1),
         description = PlanElementName("1"),
         state = PlanState.PROPOSED,
-        location = Point(x = 2.5496599876E7, y = 6674007.758),
+        location = transformNonKKJCoordinate(Srid(3879), srid, Point(x = 25496284.448063374, y = 6674885.339042075))
     )
 )
 

@@ -8,6 +8,8 @@ type TabHeaderProps = {
     children: React.ReactNode;
     className?: string;
     qaId?: string;
+    disabled?: boolean;
+    title?: string;
 };
 
 export const TabHeader: React.FC<TabHeaderProps> = ({
@@ -16,14 +18,23 @@ export const TabHeader: React.FC<TabHeaderProps> = ({
     children,
     className,
     qaId,
+    disabled,
+    title,
 }) => {
     const tabClassName = createClassName(
         styles['tab-header'],
         selected && styles['tab-header--selected'],
+        disabled && styles['tab-header--disabled'],
         className,
     );
     return (
-        <a className={tabClassName} onClick={onClick} qa-id={qaId}>
+        <a
+            title={title}
+            className={tabClassName}
+            onClick={() => {
+                !disabled && onClick();
+            }}
+            qa-id={qaId}>
             {children}
         </a>
     );

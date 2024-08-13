@@ -15,9 +15,10 @@ import {
     initialKmPostEditState,
     isValidKmNumber,
     KmPostEditState,
+    kmPostSaveRequest,
     reducer,
 } from 'tool-panel/km-post/dialog/km-post-edit-store';
-import { KmPostSaveRequest } from 'linking/linking-model';
+import { KmPostEditFields } from 'linking/linking-model';
 import {
     getKmPost,
     getKmPostByNumber,
@@ -37,12 +38,15 @@ import {
 } from 'track-layout/track-layout-react-utils';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
 import { useTrackLayoutAppSelector } from 'store/hooks';
+import { KmPostEditDialogGkLocationSection } from 'tool-panel/km-post/dialog/km-post-edit-dialog-gk-location-section';
+import { GeometryPoint } from 'model/geometry';
 
 type KmPostEditDialogContainerProps = {
     kmPostId?: LayoutKmPostId;
     onClose: () => void;
     onSave?: (kmPostId: LayoutKmPostId) => void;
     prefilledTrackNumberId?: LayoutTrackNumberId;
+    geometryKmPostGkLocation?: GeometryPoint;
 };
 
 type KmPostEditDialogProps = {
@@ -52,6 +56,7 @@ type KmPostEditDialogProps = {
     onSave?: (kmPostId: LayoutKmPostId) => void;
     prefilledTrackNumberId?: LayoutTrackNumberId;
     onEditKmPost: (id?: LayoutKmPostId) => void;
+    geometryKmPostGkLocation?: GeometryPoint;
 };
 
 export const KmPostEditDialogContainer: React.FC<KmPostEditDialogContainerProps> = (
@@ -69,6 +74,7 @@ export const KmPostEditDialogContainer: React.FC<KmPostEditDialogContainerProps>
             onSave={props.onSave}
             onEditKmPost={setEditKmPostId}
             prefilledTrackNumberId={props.prefilledTrackNumberId}
+            geometryKmPostGkLocation={props.geometryKmPostGkLocation}
         />
     );
 };
@@ -108,7 +114,10 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                 })
                 .catch(() => close());
         } else {
-            stateActions.initWithNewKmPost(props.prefilledTrackNumberId);
+            stateActions.initWithNewKmPost({
+                trackNumberId: props.prefilledTrackNumberId,
+                geometryKmPostLocation: props.geometryKmPostGkLocation,
+            });
             firstInputRef.current?.focus();
         }
     }, [props.kmPostId]);
@@ -134,7 +143,10 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
 
     async function saveState(state: KmPostEditState): Promise<LayoutKmPostId | undefined> {
         if (state.isNewKmPost) {
-            return insertKmPost(draftLayoutContext(props.layoutContext), state.kmPost).then(
+            return insertKmPost(
+                draftLayoutContext(props.layoutContext),
+                kmPostSaveRequest(state),
+            ).then(
                 (kmPostId) => {
                     Snackbar.success('km-post-dialog.insert-succeeded');
                     return kmPostId;
@@ -145,7 +157,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
             return updateKmPost(
                 draftLayoutContext(props.layoutContext),
                 state.existingKmPost.id,
-                state.kmPost,
+                kmPostSaveRequest(state),
             ).then(
                 (kmPostId) => {
                     Snackbar.success('km-post-dialog.modify-succeeded');
@@ -170,9 +182,9 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
         }
     }
 
-    function updateProp<TKey extends keyof KmPostSaveRequest>(
+    function updateProp<TKey extends keyof KmPostEditFields>(
         key: TKey,
-        value: KmPostSaveRequest[TKey],
+        value: KmPostEditFields[TKey],
     ) {
         stateActions.onUpdateProp({
             key: key,
@@ -181,7 +193,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
         });
     }
 
-    function getVisibleErrorsByProp(prop: keyof KmPostSaveRequest) {
+    function getVisibleErrorsByProp(prop: keyof KmPostEditFields) {
         return state.allFieldsCommitted || state.committedFields.includes(prop)
             ? state.validationIssues
                   .filter((issue) => issue.field == prop)
@@ -189,7 +201,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
             : [];
     }
 
-    function hasErrors(prop: keyof KmPostSaveRequest) {
+    function hasErrors(prop: keyof KmPostEditFields) {
         return getVisibleErrorsByProp(prop).length > 0;
     }
 
@@ -325,21 +337,13 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             }
                             errors={getVisibleErrorsByProp('state')}
                         />
-                        <Heading size={HeadingSize.SUB}>
-                            {t('km-post-dialog.extra-info-heading')}
-                        </Heading>
-                        <FieldLayout
-                            label={t('km-post-dialog.owner')}
-                            value={
-                                <Dropdown
-                                    value={undefined}
-                                    options={[]}
-                                    onChange={(_value) => undefined}
-                                    onBlur={() => undefined}
-                                    wide
-                                    disabled
-                                />
-                            }
+                        <KmPostEditDialogGkLocationSection
+                            getVisibleErrorsByProp={getVisibleErrorsByProp}
+                            hasErrors={hasErrors}
+                            state={state}
+                            stateActions={stateActions}
+                            updateProp={updateProp}
+                            geometryKmPostGkLocation={props.geometryKmPostGkLocation}
                         />
                     </FormLayoutColumn>
                 </FormLayout>

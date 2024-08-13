@@ -8,6 +8,12 @@ export function formatToTM35FINString(gvtPoint: Point): string {
     return `${longitude} E, ${latitude} N`;
 }
 
+export function formatToGkFinString(gkPoint: Point): string {
+    const easting = roundToPrecision(gkPoint.x, Precision.coordinateMeters);
+    const northing = roundToPrecision(gkPoint.y, Precision.coordinateMeters);
+    return `${northing} N, ${easting} E`;
+}
+
 // End result is something like "0185+0667.567"
 export function formatTrackMeter(address: TrackMeter): string {
     return `${address.kmNumber}+${roundToPrecision(

@@ -31,10 +31,17 @@ const Frontpage: React.FC<FrontPageProps> = ({
                     ratkoPushChangeTime={ratkoPushChangeTime}
                     splitChangeTime={splitChangeTime}
                     ratkoStatus={ratkoStatus}
+                    branchType="MAIN"
+                />
+                <PublicationCard
+                    publicationChangeTime={publicationChangeTime}
+                    ratkoPushChangeTime={ratkoPushChangeTime}
+                    splitChangeTime={splitChangeTime}
+                    ratkoStatus={ratkoStatus}
+                    branchType="DESIGN"
                 />
                 <UserCardContainer />
             </div>
-            <div className={styles['frontpage__photo']} />
         </React.Fragment>
     );
 };

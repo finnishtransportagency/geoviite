@@ -269,8 +269,8 @@ class PublicationDao(
                 candidate_km_post.state
               ) as operation,
               ${designRowReferrerSqlFragment("candidate_km_post", "km_post")},
-              postgis.st_x(candidate_km_post.location) as point_x,
-              postgis.st_y(candidate_km_post.location) as point_y
+              postgis.st_x(candidate_km_post.layout_location) as point_x,
+              postgis.st_y(candidate_km_post.layout_location) as point_y
             from (select *
                   from layout.km_post_in_layout_context(:candidate_state::layout.publication_state,
                                                         :candidate_design_id)
@@ -484,17 +484,17 @@ class PublicationDao(
     }
 
     //Inclusive from/start time, but exclusive to/end time
-    fun fetchLatestPublications(layoutBranch: LayoutBranch, count: Int): List<Publication> {
+    fun fetchLatestPublications(branchType: LayoutBranchType, count: Int): List<Publication> {
         val sql = """
             select id, publication_user, publication_time, message, design_id
             from publication.publication
-            where design_id is not distinct from :design_id
+            where case when :branch_type = 'MAIN' then design_id is null else design_id is not null end
             order by id desc limit :count
         """.trimIndent()
 
         val params = mapOf(
             "count" to count,
-            "design_id" to layoutBranch.designId?.intValue,
+            "branch_type" to branchType.name,
         )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
@@ -926,10 +926,10 @@ class PublicationDao(
               old_km_post_version.track_number_id as old_track_number_id,
               km_post_version.state,
               old_km_post_version.state as old_state,
-              postgis.st_x(km_post_version.location) as point_x, 
-              postgis.st_y(km_post_version.location) as point_y,
-              postgis.st_x(old_km_post_version.location) as old_point_x,
-              postgis.st_y(old_km_post_version.location) as old_point_y
+              postgis.st_x(km_post_version.layout_location) as point_x,
+              postgis.st_y(km_post_version.layout_location) as point_y,
+              postgis.st_x(old_km_post_version.layout_location) as old_point_x,
+              postgis.st_y(old_km_post_version.layout_location) as old_point_y
             from publication.km_post
               left join layout.km_post_version km_post_version
                       on km_post.km_post_id = km_post_version.id 
