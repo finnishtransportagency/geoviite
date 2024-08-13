@@ -423,6 +423,10 @@ data class TrackLayoutKmLengthDetails(
     val endM: BigDecimal,
     val locationSource: GeometrySource,
     val location: Point?,
+    val gkLocation: GeometryPoint?,
+    val gkLocationSource: KmPostGkLocationSource?,
+    val gkLocationConfirmed: Boolean,
+    val linkedFromGeometry: Boolean,
 ) {
     val length = endM - startM
 }

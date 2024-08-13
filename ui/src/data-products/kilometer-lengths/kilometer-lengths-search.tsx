@@ -19,6 +19,9 @@ import { KmLengthsSearchState } from 'data-products/data-products-slice';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 import { officialMainLayoutContext } from 'common/common-model';
+import { Radio } from 'vayla-design-lib/radio/radio';
+
+export type LocationPrecision = 'PRECISE' | 'LAYOUT';
 
 type KilometerLengthsSearchProps = {
     state: KmLengthsSearchState;
@@ -27,6 +30,8 @@ type KilometerLengthsSearchProps = {
     ) => void;
     setLengths: (lengths: LayoutKmLengthDetails[]) => void;
     setLoading: (isLoading: boolean) => void;
+    locationPrecision: LocationPrecision;
+    setLocationPrecision: (precision: LocationPrecision) => void;
 };
 
 export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
@@ -34,6 +39,8 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
     onUpdateProp,
     setLengths,
     setLoading,
+    locationPrecision,
+    setLocationPrecision,
 }) => {
     const { t } = useTranslation();
     const trackNumbers =
@@ -137,6 +144,23 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                         state.validationIssues,
                         'endKm',
                     ).map((error) => t(`data-products.search.${error}`))}
+                />
+                <FieldLayout
+                    label={t(`data-products.search.location-info`)}
+                    value={
+                        <span className={styles['data-product-view__radio-layout']}>
+                            <Radio
+                                checked={locationPrecision === 'PRECISE'}
+                                onChange={() => setLocationPrecision('PRECISE')}>
+                                {t('data-products.search.precise-location')}
+                            </Radio>
+                            <Radio
+                                checked={locationPrecision === 'LAYOUT'}
+                                onChange={() => setLocationPrecision('LAYOUT')}>
+                                {t('data-products.search.layout-location')}
+                            </Radio>
+                        </span>
+                    }
                 />
                 <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
                     <a

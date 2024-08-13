@@ -257,6 +257,11 @@
             "SWITCH_TO_BUFFER": "Vaihde - Puskin",
             "SWITCH_TO_OWNERSHIP_BOUNDARY": "Vaihde - Omistusraja",
             "NONE": "Ei lisäosaa"
+        },
+        "gk-location-source": {
+            "FROM_GEOMETRY": "Linkitetty geometriasta",
+            "FROM_LAYOUT": "Konvertoitu paikannuspohjasta",
+            "MANUAL": "Asetettu suoraan"
         }
     },
     "environment": {
@@ -774,6 +779,9 @@
             "download-csv": "Lataa CSV",
             "track-meter-range": "Ratakilometriväli",
             "track-number": "Ratanumero",
+            "location-info": "Sijaintitiedot",
+            "precise-location": "Tarkka sijainti",
+            "layout-location": "Sijainti paikannuspohjassa",
             "search": "Hae..."
         },
         "element-list": {
@@ -941,8 +949,15 @@
                 "station-start": "Alkupaalu",
                 "station-end": "Loppupaalu",
                 "length": "Pituus (m)",
+                "coordinate-system": "Koordinaattijärjestelmä",
                 "location-e": "Koordinaatti E",
                 "location-n": "Koordinaatti N",
+                "location-source": "Sijainnin lähde",
+                "location-confirmed": "Sijainti varmistettu",
+                "from-geometry": "Linkitetty suunnitelmasta",
+                "from-ratko": "Tuotu Ratkosta",
+                "confirmed": "Vahvistettu",
+                "not-confirmed": "Ei vahvistettu",
                 "warning": "Huomiot",
                 "generated-warning": "Sijainti on pituusmittauslinjan alun sijainti.",
                 "imported-warning": "Sijainti on raiteen keskilinjalle projisoitu sijainti."

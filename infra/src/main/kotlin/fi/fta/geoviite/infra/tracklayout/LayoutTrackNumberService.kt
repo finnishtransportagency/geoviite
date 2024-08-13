@@ -207,7 +207,11 @@ private fun extractTrackKmLengths(
             startM = roundTo3Decimals(context.startAddress.meters.negate()),
             endM = roundTo3Decimals(distances.firstOrNull()?.second ?: referenceLineLength),
             locationSource = GeometrySource.GENERATED,
-            location = startPoint.point.toPoint()
+            location = startPoint.point.toPoint(),
+            gkLocation = null,
+            gkLocationConfirmed = false,
+            gkLocationSource = null,
+            linkedFromGeometry = false,
         )
     ) + distances.mapIndexed { index, (kmPost, startM) ->
         val endM = distances.getOrNull(index + 1)?.second ?: referenceLineLength
@@ -218,7 +222,11 @@ private fun extractTrackKmLengths(
             startM = roundTo3Decimals(startM),
             endM = roundTo3Decimals(endM),
             location = kmPost.layoutLocation,
-            locationSource = if (kmPost.sourceId != null) GeometrySource.PLAN else GeometrySource.IMPORTED
+            gkLocation = kmPost.gkLocation,
+            locationSource = if (kmPost.sourceId != null) GeometrySource.PLAN else GeometrySource.IMPORTED,
+            gkLocationConfirmed = kmPost.gkLocationConfirmed,
+            gkLocationSource = kmPost.gkLocationSource,
+            linkedFromGeometry = kmPost.sourceId !== null,
         )
     }
 }

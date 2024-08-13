@@ -22,6 +22,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { wrapReducers } from 'store/store-utils';
 import { PURGE } from 'redux-persist';
+import { LocationPrecision } from 'data-products/kilometer-lengths/kilometer-lengths-search';
 
 type SearchGeometries = {
     searchLines: boolean;
@@ -76,6 +77,7 @@ export type KmLengthsSearchState = {
     kmLengths: LayoutKmLengthDetails[];
 
     selectedSearch: SelectedKmLengthsSearch;
+    locationPrecision: LocationPrecision;
 };
 
 enum MissingSection {
@@ -179,6 +181,7 @@ const initialKmLengthsSearchState: KmLengthsSearchState = {
     validationIssues: [],
     committedFields: [],
     kmLengths: [],
+    locationPrecision: 'PRECISE',
 };
 
 const spiralTypes = [GeometryType.CLOTHOID, GeometryType.BIQUADRATIC_PARABOLA];
@@ -515,6 +518,12 @@ const dataProductsSlice = createSlice({
             { payload: search }: PayloadAction<SelectedKmLengthsSearch>,
         ) {
             state.kmLenghts.selectedSearch = search;
+        },
+        setKmLengthsPrecision: (
+            state: DataProductsState,
+            { payload: precision }: PayloadAction<LocationPrecision>,
+        ) => {
+            state.kmLenghts.locationPrecision = precision;
         },
         ...wrapReducers(
             (state: DataProductsState) => state.elementList.locationTrackSearch,

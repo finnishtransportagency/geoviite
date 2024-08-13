@@ -7,6 +7,7 @@ import {
 } from 'geometry/geometry-model';
 import { BoundingBox, GeometryPoint, Point } from 'model/geometry';
 import {
+    CoordinateSystem,
     DataType,
     JointNumber,
     KmNumber,
@@ -296,8 +297,13 @@ export type LayoutKmLengthDetails = {
     length: number;
     startM: number;
     endM: number;
+    coordinateSystem: CoordinateSystem;
     locationSource: GeometrySource;
     location?: Point;
+    gkLocation?: GeometryPoint;
+    gkLocationSource?: GkLocationSource;
+    gkLocationConfirmed: boolean;
+    linkedFromGeometry: boolean;
 };
 
 export type PlanArea = {
