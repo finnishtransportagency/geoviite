@@ -74,7 +74,6 @@ jobs:
          --name geoviite-db-github gvt-postgres
 
         cd infra
-        ./gradlew cleanTest test-without-cache --tests "*DaoIT"
         ./gradlew cleanTest test --tests "*IT"
 
     - name: Run DAO integration tests without cache in infra (backend)
