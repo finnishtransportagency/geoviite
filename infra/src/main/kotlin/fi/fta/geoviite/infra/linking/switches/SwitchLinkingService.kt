@@ -383,13 +383,11 @@ class SwitchLinkingService @Autowired constructor(
             LayoutValidationIssue(
                 LayoutValidationIssueType.WARNING,
                 error.localizationKey,
-                error.params
+                error.params,
             )
         }
 
-        return (
-            publicationValidationErrorsMapped + originTrackLinkErrors
-            ) to presentationJointLocation
+        return (publicationValidationErrorsMapped + originTrackLinkErrors) to presentationJointLocation
     }
 
     private fun validateRelinkingRetainsLocationTrackConnections(
@@ -723,11 +721,10 @@ private fun withTopologicalLinks(
     switchId: IntId<TrackLayoutSwitch>,
 ): Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>> {
     val topologicalLinksMade = suggestedSwitch.trackLinks.entries.mapNotNull { (locationTrackId, trackLink) ->
-        if (trackLink.topologyJoint == null) null else {
+        trackLink.topologyJoint?.let { topologyJoint ->
             val (locationTrack, alignment) = existingLinksCleared.getValue(locationTrackId)
-            locationTrackId to (updateLocationTrackWithTopologyEndLinking(
-                locationTrack, switchId, trackLink.topologyJoint
-            ) to alignment)
+            val updatedTrack = updateLocationTrackWithTopologyEndLinking(locationTrack, switchId, topologyJoint)
+            locationTrackId to (updatedTrack to alignment)
         }
     }.associate { it }
     return topologicalLinksMade

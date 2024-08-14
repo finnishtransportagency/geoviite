@@ -408,45 +408,56 @@ fun validateSwitchAlignmentTopology(
     switchName: SwitchName,
     validatingTrack: LocationTrack?,
 ): LayoutValidationIssue? {
-    val nonDuplicateTracks = locationTracks.filter { (lt) -> lt.duplicateOf == null }
-    val switchAlignmentsUnlinkedToNonduplicates = connectivityType.trackLinkedAlignmentsJoints.filter { switchAlignment ->
-        nonDuplicateTracks.none { (_, alignment) ->
-            alignmentsAreLinked(switchAlignment, alignment, switchId)
-        }
-    }
     val switchAlignmentsUnlinkedToAny = connectivityType.trackLinkedAlignmentsJoints.filter { switchAlignment ->
         locationTracks.none { (_, alignment) ->
             alignmentsAreLinked(switchAlignment, alignment, switchId)
         }
+    }.toSet()
+    val allAlignmentsUnlinked = connectivityType.trackLinkedAlignmentsJoints.all { switchAlignment ->
+        switchAlignmentsUnlinkedToAny.contains(switchAlignment)
     }
-    val switchAlignmentsLinkedToOnlyDuplicates =
-        switchAlignmentsUnlinkedToNonduplicates.subtract(switchAlignmentsUnlinkedToAny.toSet())
-
-    // trackLinkedAlignmentsJoints splits up switch alignments going through the center on rail crossings; but it's
-    // possible that the alignment was supposed to actually go through the entire crossing. So, if the switch has any
-    // unlinked alignments, a track alignment that's only linked to a split alignment could in fact be the cause, so
-    // we need to check the unsplit switch alignments instead.
-    val trackBeingValidatedIsConnectedToFullAlignment =
-        nonDuplicateTracks.find { (lt) -> lt == validatingTrack }?.let { (_, validatingAlignment) ->
-            switchStructure.alignments.any { switchAlignment ->
-                alignmentsAreLinked(switchAlignment.jointNumbers, validatingAlignment, switchId)
+    return if (allAlignmentsUnlinked) {
+        validateWithParams(false, ERROR) {
+            "${switchOrTrackLinkageKey(validatingTrack)}.switch-no-alignments-connected" to localizationParams(
+                "switch" to switchName.toString()
+            )
+        }
+    } else {
+        val nonDuplicateTracks = locationTracks.filter { (lt) -> lt.duplicateOf == null }
+        val switchAlignmentsUnlinkedToNonduplicates =
+            connectivityType.trackLinkedAlignmentsJoints.filter { switchAlignment ->
+                nonDuplicateTracks.none { (_, alignment) ->
+                    alignmentsAreLinked(switchAlignment, alignment, switchId)
+                }
             }
-        } ?: false
+        val switchAlignmentsLinkedToOnlyDuplicates =
+            switchAlignmentsUnlinkedToNonduplicates.subtract(switchAlignmentsUnlinkedToAny)
 
-    return validateWithParams(
-        switchAlignmentsUnlinkedToNonduplicates.isEmpty() || trackBeingValidatedIsConnectedToFullAlignment,
-        WARNING
-    ) {
-        val alignmentsString = switchAlignmentsUnlinkedToNonduplicates.joinToString { alignment ->
-            alignment.joinToString("-") { joint -> joint.intValue.toString() }
-        }
-        val key = if (switchAlignmentsLinkedToOnlyDuplicates.isEmpty()) {
-            "${switchOrTrackLinkageKey(validatingTrack)}.switch-alignment-not-connected"
-        } else {
-            "${switchOrTrackLinkageKey(validatingTrack)}.switch-alignment-only-connected-to-duplicate"
-        }
+        // trackLinkedAlignmentsJoints splits up switch alignments going through the center on rail crossings; but it's
+        // possible that the alignment was supposed to actually go through the entire crossing. So, if the switch has any
+        // unlinked alignments, a track alignment that's only linked to a split alignment could in fact be the cause, so
+        // we need to check the unsplit switch alignments instead.
+        val trackBeingValidatedIsConnectedToFullAlignment =
+            nonDuplicateTracks.find { (lt) -> lt == validatingTrack }?.let { (_, validatingAlignment) ->
+                switchStructure.alignments.any { switchAlignment ->
+                    alignmentsAreLinked(switchAlignment.jointNumbers, validatingAlignment, switchId)
+                }
+            } ?: false
 
-        key to localizationParams("locationTracks" to alignmentsString, "switch" to switchName.toString())
+        validateWithParams(
+            switchAlignmentsUnlinkedToNonduplicates.isEmpty() || trackBeingValidatedIsConnectedToFullAlignment, WARNING
+        ) {
+            val alignmentsString = switchAlignmentsUnlinkedToNonduplicates.joinToString { alignment ->
+                alignment.joinToString("-") { joint -> joint.intValue.toString() }
+            }
+            val key = if (switchAlignmentsLinkedToOnlyDuplicates.isEmpty()) {
+                "${switchOrTrackLinkageKey(validatingTrack)}.switch-alignment-not-connected"
+            } else {
+                "${switchOrTrackLinkageKey(validatingTrack)}.switch-alignment-only-connected-to-duplicate"
+            }
+
+            key to localizationParams("locationTracks" to alignmentsString, "switch" to switchName.toString())
+        }
     }
 }
 

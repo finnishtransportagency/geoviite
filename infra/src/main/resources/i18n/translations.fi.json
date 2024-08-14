@@ -1414,6 +1414,7 @@
                 "switch-linkage": {
                     "front-joint-not-connected": "Vaihteen {{switch}} etujatkokselta ei jatku raidetta",
                     "front-joint-only-duplicate-connected": "Vaihteen {{switch}} etujatkokselta jatkuu vain duplikaatiksi merkittyjä raiteita",
+                    "switch-no-alignments-connected": "Yhtään vaihteen {{switch}} linjoista ei ole liitetty raiteelle",
                     "switch-alignment-not-connected": "Joitakin vaihteen {{switch}} linjoja ei ole liitetty raiteelle: {{locationTracks}}",
                     "switch-alignment-only-connected-to-duplicate": "Joitakin vaihteen {{switch}} linjoja on liitetty ainoastaan duplikaatiksi merkityille raiteille: {{locationTracks}}",
                     "multiple-tracks-through-joint": "Joistain vaihteen {{switch}} pisteistä menee läpi enemmän kuin yksi raide: {{locationTracks}}"

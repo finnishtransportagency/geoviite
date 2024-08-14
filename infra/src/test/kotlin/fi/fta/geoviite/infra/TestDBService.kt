@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainBranch
@@ -21,6 +22,7 @@ import fi.fta.geoviite.infra.geometry.CompanyName
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.project
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.BulkTransfer
 import fi.fta.geoviite.infra.tracklayout.ContextIdHolder
 import fi.fta.geoviite.infra.tracklayout.DesignDraftContextData
@@ -49,11 +51,14 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.UnstoredContextIdHolder
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
+import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.referenceLine
+import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.DbTable
@@ -492,6 +497,36 @@ data class TestLayoutContext(
             stateCategory = stateCategory,
         )
     )
+
+    fun createSwitchWithInnerTracks(
+        name: String,
+        vararg alignmentJointPositions: List<Pair<JointNumber, Point>>,
+    ): Pair<IntId<TrackLayoutSwitch>, List<IntId<LocationTrack>>> {
+        val switchId = insert(switch(
+            name = name,
+            joints = alignmentJointPositions
+                .flatMap { it }
+                .map { (jointNumber, position) ->
+                    TrackLayoutSwitchJoint(number = jointNumber, location = position, locationAccuracy = null)
+                },
+        )).id
+        val innerTrackIds = alignmentJointPositions.map { jointPositions ->
+            insert(
+                locationTrackAndAlignment(
+                    createLayoutTrackNumber().id,
+                    segments = jointPositions.zipWithNext().map { (from, to) ->
+                        segment(
+                            points = arrayOf(from.second, to.second),
+                            switchId = switchId,
+                            startJointNumber = from.first,
+                            endJointNumber = to.first,
+                        )
+                    },
+                )
+            ).id
+        }
+        return switchId to innerTrackIds
+    }
 
     fun <T : LayoutAsset<T>> createContextData(
         rowContextId: ContextIdHolder<T>,
