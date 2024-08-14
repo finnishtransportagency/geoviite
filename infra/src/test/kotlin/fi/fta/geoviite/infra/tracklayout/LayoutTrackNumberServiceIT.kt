@@ -5,9 +5,12 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.geography.FIN_GK23_SRID
+import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.util.FreeText
@@ -134,7 +137,11 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 startM = BigDecimal(-0.5).setScale(3),
                 endM = BigDecimal(1).setScale(3),
                 locationSource = GeometrySource.GENERATED,
-                location = Point(0.0, 0.0)
+                location = Point(0.0, 0.0),
+                gkLocation = null,
+                gkLocationConfirmed = false,
+                gkLocationSource = null,
+                linkedFromGeometry = false,
             ), kmLengths.first()
         )
 
@@ -146,6 +153,10 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 endM = BigDecimal(3).setScale(3),
                 locationSource = GeometrySource.IMPORTED,
                 location = kmPostDao.fetch(kmPostVersions[0]).layoutLocation,
+                gkLocation = GeometryPoint(x = 2.3445593612704854E7, y = 0.0, srid = FIN_GK23_SRID),
+                gkLocationConfirmed = false,
+                gkLocationSource = null,
+                linkedFromGeometry = false,
             ), kmLengths[1]
         )
 
@@ -157,6 +168,10 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 endM = BigDecimal(4).setScale(3),
                 locationSource = GeometrySource.IMPORTED,
                 location = kmPostDao.fetch(kmPostVersions[1]).layoutLocation,
+                gkLocation = GeometryPoint(x = 2.344559560739986E7, y = 0.0, srid = FIN_GK23_SRID),
+                gkLocationConfirmed = false,
+                gkLocationSource = null,
+                linkedFromGeometry = false,
             ), kmLengths[2]
         )
     }
@@ -213,7 +228,11 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 startM = BigDecimal(-0.5).setScale(3),
                 endM = BigDecimal(1).setScale(3),
                 locationSource = GeometrySource.GENERATED,
-                location = Point(0.0, 0.0)
+                location = Point(0.0, 0.0),
+                gkLocation = null,
+                gkLocationConfirmed = false,
+                gkLocationSource = null,
+                linkedFromGeometry = false,
             ),
             kmLengths.first(),
         )
@@ -226,6 +245,10 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 endM = BigDecimal(4).setScale(3),
                 locationSource = GeometrySource.IMPORTED,
                 location = kmPostDao.fetch(kmPostVersions[0]).layoutLocation,
+                gkLocation = GeometryPoint(x = 2.3445593612704854E7, y = 0.0, srid = FIN_GK23_SRID),
+                gkLocationConfirmed = false,
+                gkLocationSource = null,
+                linkedFromGeometry = false,
             ),
             kmLengths.last(),
         )
