@@ -189,3 +189,20 @@ class DuplicateDesignNameException(
     localizedMessageKey = "error.design.duplicate-name",
     localizedMessageParams = localizationParams("name" to name),
 )
+
+class IntegrationApiException(
+    message: String,
+    cause: Throwable? = null,
+    localizedMessageKey: String = "generic",
+    localizationParams: LocalizationParams = LocalizationParams.empty,
+) : ClientException(
+    BAD_REQUEST,
+    "Invalid request: $message",
+    cause,
+    "$LOCALIZATION_KEY_BASE.$localizedMessageKey",
+    localizationParams,
+) {
+    companion object {
+        const val LOCALIZATION_KEY_BASE = "integration-api.error"
+    }
+}
