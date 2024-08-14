@@ -300,20 +300,22 @@ export async function getTrackLayoutPlans(
     changeTime: TimeStamp,
     includeGeometryData = true,
 ): Promise<GeometryPlanLayout[]> {
-    const url = (planIds: GeometryPlanId[], includeGeometryData: boolean) =>
-        `${GEOMETRY_URI}/plans/layout?planIds=${planIds}&includeGeometryData=${includeGeometryData}`;
+    const url = (planId: GeometryPlanId, includeGeometryData: boolean) =>
+        `${GEOMETRY_URI}/plans/layout?planIds=${planId}&includeGeometryData=${includeGeometryData}`;
     return trackLayoutPlanCache
         .getMany(
             changeTime,
             planIds,
             (id) => `${id}-${includeGeometryData}`,
             (fetchIds) =>
-                getNonNull<GeometryPlanLayout[]>(url(fetchIds, includeGeometryData)).then(
-                    (tracks) => {
-                        const trackMap = indexIntoMap(tracks);
-                        return (id) => trackMap.get(id);
-                    },
-                ),
+                Promise.all(
+                    fetchIds.map((fetchId) =>
+                        getNonNull<[GeometryPlanLayout]>(url(fetchId, includeGeometryData)),
+                    ),
+                ).then((tracks) => {
+                    const trackMap = indexIntoMap(tracks.flat());
+                    return (id) => trackMap.get(id);
+                }),
         )
         .then((plans) => plans.filter(filterNotEmpty));
 }
