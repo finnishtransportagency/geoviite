@@ -65,13 +65,14 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
             "planIds" to planIds,
         )
 
+        val alignmentStatuses = fetchAlignmentLinkStatus(layoutContext, planIds = planIds)
         val switchStatuses = fetchSwitchLinkStatuses(layoutContext, planIds = planIds)
         val kmPostStatuses = fetchKmPostLinkStatuses(layoutContext, planIds = planIds)
 
         return planIds.map { planId ->
             GeometryPlanLinkStatus(
                 planId,
-                fetchAlignmentLinkStatus(layoutContext, planId = planId),
+                alignmentStatuses.getOrDefault(planId, listOf()),
                 switchStatuses.getOrDefault(planId, listOf()),
                 kmPostStatuses.getOrDefault(planId, listOf()),
             )
@@ -80,10 +81,11 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
 
     private fun fetchAlignmentLinkStatus(
         layoutContext: LayoutContext,
-        planId: IntId<GeometryPlan>,
-    ): List<GeometryAlignmentLinkStatus> {
+        planIds: List<IntId<GeometryPlan>>,
+    ): Map<IntId<GeometryPlan>, List<GeometryAlignmentLinkStatus>> {
         val sql = """
           select
+            plan_id,
             element.alignment_id,
             element.element_index,
             bool_or(case 
@@ -107,17 +109,18 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
             left join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) reference_track_number
               on reference_line.track_number_id = reference_track_number.row_id
                 and reference_track_number.state != 'DELETED'
-            where geometry_alignment.plan_id = :plan_id
-          group by element.alignment_id, element.element_index
-          order by element.alignment_id, element.element_index;
+            where geometry_alignment.plan_id in (:plan_ids)
+          group by plan_id, element.alignment_id, element.element_index
+          order by plan_id, element.alignment_id, element.element_index;
         """.trimIndent()
         val params = mapOf(
-            "plan_id" to planId.intValue,
+            "plan_ids" to planIds.map { it.intValue },
             "publication_state" to layoutContext.state.name,
             "design_id" to layoutContext.branch.designId?.intValue,
         )
 
         val elements = jdbcTemplate.query(sql, params) { rs, _ ->
+            val planId = rs.getIntId<GeometryPlan>("plan_id")
             val alignmentId = rs.getIntId<GeometryAlignment>("alignment_id")
             val geometryElementLinkStatus = GeometryElementLinkStatus(
                 id = rs.getIndexedId("alignment_id", "element_index"),
@@ -125,11 +128,13 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                 linkedLocationTrackIds = rs.getIntIdArray("location_track_ids"),
                 linkedReferenceLineIds = rs.getIntIdArray("reference_line_ids"),
             )
-            alignmentId to geometryElementLinkStatus
+            Triple(planId, alignmentId, geometryElementLinkStatus)
         }
-        return elements
-            .groupBy({ (alignmentId, _) -> alignmentId }, { (_, element) -> element })
-            .map { (alignmentId, elements) -> GeometryAlignmentLinkStatus(alignmentId, elements) }
+        return elements.groupBy { (planId) -> planId }.mapValues { byPlan ->
+                byPlan.value
+                    .groupBy({ (_, alignmentId, _) -> alignmentId }, { (_, _, element) -> element })
+                    .map { (alignmentId, elements) -> GeometryAlignmentLinkStatus(alignmentId, elements) }
+            }
     }
 
     private fun fetchKmPostLinkStatuses(
