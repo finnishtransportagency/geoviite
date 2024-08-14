@@ -795,7 +795,7 @@ class CoordinateToTrackAddressIT @Autowired constructor(
             kmPost(
                 trackNumberId = geocodableTrack.trackNumber.id as IntId,
                 km = KmNumber(index + 1),
-                location = kmPostLocation,
+                roughLayoutLocation = kmPostLocation,
                 draft = false,
             )
         }.forEach(layoutKmPostDao::insert)
