@@ -41,7 +41,7 @@ class FrameConverterControllerV1 @Autowired constructor(
 
     @RequestMapping(method = [RequestMethod.GET, RequestMethod.POST])
     fun multiInputTransform(
-        @RequestParam(required = false, name = "json") requests: List<FrameConverterRequestV1>?,
+        @RequestParam(name = "json") requests: List<FrameConverterRequestV1>?,
     ): GeoJsonFeatureCollection {
         val parsedRequests = requests ?: emptyList()
 

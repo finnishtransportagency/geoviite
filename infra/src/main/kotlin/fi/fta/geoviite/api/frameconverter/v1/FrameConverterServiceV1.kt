@@ -4,6 +4,7 @@ import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeature
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonGeometryPoint
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.InputValidationException
@@ -20,6 +21,8 @@ import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.util.produceIf
 import org.springframework.beans.factory.annotation.Autowired
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -50,10 +53,12 @@ class FrameConverterServiceV1 @Autowired constructor(
             bbox = boundingBoxAroundPoint(searchPoint, request.searchRadius) // TODO GVT-2687 Radius != Bounding box
         )
 
+        val trackNumbers = request.trackNumberName?.let { trackNumberService.mapById(layoutContext) } ?: emptyMap()
+
         val filteredLocationTracks = nearbyLocationTracks
             .filter { (locationTrack, _) -> filterByLocationTrackName(request.locationTrackName, locationTrack) }
             .filter { (locationTrack, _) -> filterByLocationTrackType(request.locationTrackType, locationTrack) }
-            .filter { (locationTrack, _) -> filterByTrackNumber(layoutContext, request.trackNumberName, locationTrack) }
+            .filter { (locationTrack, _) -> filterByTrackNumber(trackNumbers, request.trackNumberName, locationTrack) }
 
         val nearestMatch = findNearestLocationTrack(searchPoint, filteredLocationTracks)
             ?: return createErrorResponse(request.identifier, "features-not-found")
@@ -76,19 +81,18 @@ class FrameConverterServiceV1 @Autowired constructor(
         request: CoordinateToTrackMeterRequestV1
     ): Pair<ValidCoordinateToTrackMeterRequestV1?, List<GeoJsonFeatureErrorResponseV1>> {
         val allowedSearchRadiusRange = 1.0..1000.0
-        val allowedResponseSettings = setOf(1, 5, 10)
 
         val errors = mutableListOf(
-            validate(request.x != null) { "missing-x-coordinate" },
-            validate(request.y != null) { "missing-y-coordinate" },
-            validate(request.searchRadius != null) { "search-radius-undefined" },
-            validate(request.searchRadius != null && request.searchRadius >= allowedSearchRadiusRange.start) {
+            produceIf(request.x == null) { "missing-x-coordinate" },
+            produceIf(request.y == null) { "missing-y-coordinate" },
+            produceIf(request.searchRadius == null) { "search-radius-undefined" },
+            produceIf(request.searchRadius != null && request.searchRadius < allowedSearchRadiusRange.start) {
                 "search-radius-under-range"
             },
-            validate(request.searchRadius != null && request.searchRadius <= allowedSearchRadiusRange.endInclusive) {
+            produceIf(request.searchRadius != null && request.searchRadius > allowedSearchRadiusRange.endInclusive) {
                 "search-radius-over-range"
             },
-            validate(request.responseSettings.all { setting -> setting in allowedResponseSettings}) {
+            produceIf(FrameConverterResponseSettingV1.INVALID in request.responseSettings) {
                 "invalid-response-settings"
             }
         )
@@ -96,10 +100,10 @@ class FrameConverterServiceV1 @Autowired constructor(
         val mappedLocationTrackTypeOrNull = when (request.locationTrackType) {
             null -> null
 
-            "pääraide" -> LocationTrackType.MAIN
-            "sivuraide" -> LocationTrackType.SIDE
-            "kujaraide" -> LocationTrackType.CHORD
-            "turvaraide" -> LocationTrackType.TRAP
+            FrameConverterLocationTrackTypeV1.MAIN -> LocationTrackType.MAIN
+            FrameConverterLocationTrackTypeV1.SIDE -> LocationTrackType.SIDE
+            FrameConverterLocationTrackTypeV1.CHORD -> LocationTrackType.CHORD
+            FrameConverterLocationTrackTypeV1.TRAP -> LocationTrackType.TRAP
 
             else -> {
                 errors.add("invalid-location-track-type")
@@ -109,7 +113,7 @@ class FrameConverterServiceV1 @Autowired constructor(
 
         val trackNumberNameOrNull = request.trackNumberName?.let { unvalidatedTrackNumberName ->
             try {
-                TrackNumber(unvalidatedTrackNumberName)
+                TrackNumber(unvalidatedTrackNumberName.toString())
             } catch (e: InputValidationException) {
                 errors.add("invalid-track-number-name")
                 null
@@ -118,7 +122,7 @@ class FrameConverterServiceV1 @Autowired constructor(
 
         val locationTrackNameOrNull = request.locationTrackName?.let { unvalidatedLocationTrackName ->
             try {
-                AlignmentName(unvalidatedLocationTrackName)
+                AlignmentName(unvalidatedLocationTrackName.toString())
             } catch (e: InputValidationException) {
                 errors.add("invalid-location-track-name")
                 null
@@ -127,20 +131,18 @@ class FrameConverterServiceV1 @Autowired constructor(
 
         val nonNullErrors = errors.filterNotNull()
         return if (nonNullErrors.isEmpty()) {
-            // Already checked earlier but type-inference is not smart enough =(
-            requireNotNull(request.x)
-            requireNotNull(request.y)
-            requireNotNull(request.searchRadius)
-
             val validRequest = ValidCoordinateToTrackMeterRequestV1(
-                request.identifier,
-                request.x,
-                request.y,
-                request.searchRadius,
+                identifier = request.identifier,
+
+                // Already checked earlier but type-inference is not smart enough =(
+                x = requireNotNull(request.x),
+                y = requireNotNull(request.y),
+                searchRadius = requireNotNull(request.searchRadius),
+
                 trackNumberName = trackNumberNameOrNull,
                 locationTrackName = locationTrackNameOrNull,
                 locationTrackType = mappedLocationTrackTypeOrNull,
-                request.responseSettings,
+                responseSettings = request.responseSettings,
             )
 
             validRequest to emptyList()
@@ -155,12 +157,12 @@ class FrameConverterServiceV1 @Autowired constructor(
     }
 
     fun createErrorResponse(
-        identifier: String?,
+        identifier: FrameConverterIdentifierV1?,
         errorLocalizationKey: String
-    ) = createErrorResponse(identifier, listOf(errorLocalizationKey))
+    ): List<GeoJsonFeatureErrorResponseV1> = createErrorResponse(identifier, listOf(errorLocalizationKey))
 
     fun createErrorResponse(
-        identifier: String?,
+        identifier: FrameConverterIdentifierV1?,
         errorLocalizationKeys: List<String>
     ): List<GeoJsonFeatureErrorResponseV1> {
         return listOf(
@@ -177,30 +179,6 @@ class FrameConverterServiceV1 @Autowired constructor(
         return translation.t("enum.location-track-type.${locationTrack.type}")
     }
 
-    private fun filterByLocationTrackType(
-        locationTrackType: LocationTrackType?,
-        locationTrack: LocationTrack,
-    ): Boolean {
-        return if (locationTrackType == null) {
-            true
-        } else {
-            locationTrackType == locationTrack.type
-        }
-    }
-
-    private fun filterByTrackNumber(
-        layoutContext: LayoutContext,
-        requestTrackNumber: TrackNumber?,
-        locationTrack: LocationTrack,
-    ): Boolean {
-        return if (requestTrackNumber == null) {
-            true
-        } else {
-            val trackNumber = trackNumberService.get(layoutContext, locationTrack.trackNumberId)
-            requestTrackNumber == trackNumber?.number
-        }
-    }
-
     private fun createCoordinateToTrackMeterResponse(
         layoutContext: LayoutContext,
         request: ValidCoordinateToTrackMeterRequestV1,
@@ -209,23 +187,26 @@ class FrameConverterServiceV1 @Autowired constructor(
         geocodedAddress: AddressAndM,
     ): List<CoordinateToTrackMeterResponseV1> {
 
-        val featureGeometry = if (5 in request.responseSettings) {
-            createFeatureGeometry(nearestMatch)
-        } else {
-            GeoJsonGeometryPoint.empty()
-        }
+        val featureGeometry =
+            if (FrameConverterResponseSettingV1.FeatureGeometry in request.responseSettings) {
+                createFeatureGeometry(nearestMatch)
+            } else {
+                GeoJsonGeometryPoint.empty()
+            }
 
-        val closestLocationTrackMatch = if (1 in request.responseSettings) {
-            createBasicFeatureMatchData(nearestMatch)
-        } else {
-            null
-        }
+        val closestLocationTrackMatch =
+            if (FrameConverterResponseSettingV1.BasicFeatureMatchData in request.responseSettings) {
+                createBasicFeatureMatchData(nearestMatch)
+            } else {
+                null
+            }
 
-        val conversionDetails = if (10 in request.responseSettings) {
-            createDetailedFeatureMatchData(layoutContext, nearestMatch, trackNumber, geocodedAddress)
-        } else {
-            null
-        }
+        val conversionDetails =
+            if (FrameConverterResponseSettingV1.FeatureMatchDetails in request.responseSettings) {
+                createDetailedFeatureMatchData(layoutContext, nearestMatch, trackNumber, geocodedAddress)
+            } else {
+                null
+            }
 
         return listOf(
             CoordinateToTrackMeterResponseV1(
@@ -300,8 +281,8 @@ private fun createFeatureGeometry(
 
 private fun createBasicFeatureMatchData(
     nearestMatch: NearestLocationTrackPointMatch,
-): ClosestLocationTrackMatchV1 {
-    return ClosestLocationTrackMatchV1(
+): BasicFeatureMatchDataV1 {
+    return BasicFeatureMatchDataV1(
         x = nearestMatch.closestPointOnTrack.x,
         y = nearestMatch.closestPointOnTrack.y,
         distanceFromRequestPoint = nearestMatch.distanceToClosestPoint,
@@ -311,11 +292,28 @@ private fun createBasicFeatureMatchData(
 private fun filterByLocationTrackName(
     locationTrackName: AlignmentName?,
     locationTrack: LocationTrack,
+): Boolean = locationTrackName == null || locationTrackName == locationTrack.name
+
+private fun filterByLocationTrackType(
+    locationTrackType: LocationTrackType?,
+    locationTrack: LocationTrack,
 ): Boolean {
-    return if (locationTrackName == null) {
+    return if (locationTrackType == null) {
         true
     } else {
-        locationTrackName == locationTrack.name
+        locationTrackType == locationTrack.type
+    }
+}
+
+private fun filterByTrackNumber(
+    trackNumbers: Map<IntId<TrackLayoutTrackNumber>, TrackLayoutTrackNumber>,
+    requestTrackNumber: TrackNumber?,
+    locationTrack: LocationTrack,
+): Boolean {
+    return if (requestTrackNumber == null) {
+        true
+    } else {
+        requestTrackNumber == trackNumbers[locationTrack.trackNumberId]?.number
     }
 }
 
@@ -324,15 +322,8 @@ private fun splitBigDecimal(number: BigDecimal, decimalPlaces: Int = 3): Pair<In
     val fractionalPart = number.subtract(BigDecimal(wholePart))
     val scaledFractionalPart = fractionalPart
         .setScale(decimalPlaces, RoundingMode.DOWN)
-        .movePointRight(decimalPlaces).toInt()
+        .movePointRight(decimalPlaces)
+        .toInt()
 
     return Pair(wholePart, scaledFractionalPart)
-}
-
-private fun validate(valid: Boolean, issue: () -> String): String? {
-    return if (valid) {
-        null
-    } else {
-        issue()
-    }
 }

@@ -376,50 +376,6 @@ class CoordinateToTrackAddressIT @Autowired constructor(
     }
 
     @Test
-    fun `Requests with both request params and JSON should prioritize JSON`() {
-        insertGeocodableTrack(
-            segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))
-        )
-
-        val identifiers = (0..2).map { _ ->
-            "some-identifier-${UUID.randomUUID()}"
-        }
-
-        val jsonRequests = listOf(
-            TestCoordinateToTrackAddressRequest(
-                tunniste = identifiers[0],
-                x = 0.0,
-                y = 0.0,
-            ),
-            TestCoordinateToTrackAddressRequest(
-                tunniste = identifiers[1],
-                x = 1.0,
-                y = 1.0,
-            )
-        )
-
-        val params = mapOf(
-            "tunniste" to identifiers[2],
-            "x" to "-5.0",
-            "y" to "-5.0",
-            "json" to mapper.writeValueAsString(jsonRequests),
-        )
-
-        val featureCollections = listOf(
-            testApi.doGetWithParams(API_URL, params, HttpStatus.OK)
-                .let { body -> mapper.readValue(body, TestGeoJsonFeatureCollection::class.java) },
-
-            testApi.doPostWithParams(API_URL, params, HttpStatus.OK)
-                .let { body -> mapper.readValue(body, TestGeoJsonFeatureCollection::class.java) }
-        )
-
-        featureCollections.forEach { collection ->
-            assertEquals(identifiers[0], collection.features[0].properties?.get("tunniste"), "key=tunniste")
-            assertEquals(identifiers[1], collection.features[1].properties?.get("tunniste"), "key=tunniste")
-        }
-    }
-
-    @Test
     fun `Basic request should default to return data with responseSettings 1 and 10`() {
         val geocodableTrack = insertGeocodableTrack(
             segments = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0)))

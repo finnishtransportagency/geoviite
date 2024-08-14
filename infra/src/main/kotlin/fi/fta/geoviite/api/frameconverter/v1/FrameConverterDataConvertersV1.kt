@@ -82,3 +82,27 @@ class FrameConverterRequestDeserializerV1 : JsonDeserializer<FrameConverterReque
         return clazz
     }
 }
+
+class FrameConverterStringDeserializerV1 : JsonDeserializer<FrameConverterStringV1>() {
+    override fun deserialize(p: JsonParser?, ctxt: DeserializationContext?): FrameConverterStringV1 {
+        val value = p?.valueAsString ?: ""
+        return FrameConverterStringV1(value)
+    }
+}
+
+class FrameConverterResponseSettingsDeserializerV1 : JsonDeserializer<Set<FrameConverterResponseSettingV1>>() {
+    override fun deserialize(parser: JsonParser, ctxt: DeserializationContext): Set<FrameConverterResponseSettingV1> {
+        val intArray = parser.readValueAs(Array<Int>::class.java)
+        return intArray
+            .map { FrameConverterResponseSettingV1.fromValue(it) }
+            .toSet()
+    }
+}
+
+class FrameConverterLocationTrackTypeDeserializerV1 : JsonDeserializer<FrameConverterLocationTrackTypeV1>() {
+    @Throws(IOException::class)
+    override fun deserialize(parser: JsonParser, ctxt: DeserializationContext): FrameConverterLocationTrackTypeV1 {
+        val value = parser.text
+        return FrameConverterLocationTrackTypeV1.fromValue(value)
+    }
+}
