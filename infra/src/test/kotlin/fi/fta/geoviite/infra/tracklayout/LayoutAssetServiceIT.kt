@@ -7,6 +7,8 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -50,6 +52,25 @@ class LayoutAssetServiceIT @Autowired constructor(
 
         assertNull(mainDraftContext.fetch(locationTrackId))
         assertNull(mainDraftContext.fetch(referenceLineId))
+    }
+
+    @Test
+    fun `objects with a main-draft copy can still be edited in their design`() {
+        val someDesignBranch = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(someDesignBranch, PublicationState.OFFICIAL)
+        val designDraftContext = testDBService.testContext(someDesignBranch, PublicationState.DRAFT)
+
+        val trackNumberId = designOfficialContext.insert(trackNumber(TrackNumber("original"))).id
+        layoutTrackNumberService.mergeToMainBranch(someDesignBranch, trackNumberId)
+        designDraftContext.insert(
+            asDesignDraft(
+                designOfficialContext
+                    .fetch(trackNumberId)!!
+                    .copy(number = TrackNumber("edited")), someDesignBranch.designId
+            )
+        )
+        assertEquals("original", designOfficialContext.fetch(trackNumberId)!!.number.toString())
+        assertEquals("edited", designDraftContext.fetch(trackNumberId)!!.number.toString())
     }
 
     @Test
