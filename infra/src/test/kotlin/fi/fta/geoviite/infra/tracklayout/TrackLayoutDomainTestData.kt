@@ -21,6 +21,7 @@ import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geography.transformToGKCoordinate
 import fi.fta.geoviite.infra.geometry.GeometryElement
+import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.getSomeNullableValue
 import fi.fta.geoviite.infra.getSomeValue
@@ -949,6 +950,7 @@ fun kmPost(
     state: LayoutState = LayoutState.IN_USE,
     gkLocationConfirmed: Boolean = false,
     gkLocationSource: KmPostGkLocationSource? = null,
+    sourceId: IntId<GeometryKmPost>? = null,
     contextData: LayoutContextData<TrackLayoutKmPost> = createMainContext(null, null, draft),
 ): TrackLayoutKmPost {
 
@@ -956,7 +958,7 @@ fun kmPost(
         trackNumberId = trackNumberId,
         kmNumber = km,
         state = state,
-        sourceId = null,
+        sourceId = sourceId,
         contextData = contextData,
         gkLocation = if (gkLocation == null && roughLayoutLocation != null) {
             transformToGKCoordinate(LAYOUT_SRID, roughLayoutLocation)

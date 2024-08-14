@@ -1,15 +1,31 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.error.LinkingFailureException
+import fi.fta.geoviite.infra.geometry.GeometryAlignmentLinkStatus
 import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryElement
+import fi.fta.geoviite.infra.geometry.GeometryElementLinkStatus
+import fi.fta.geoviite.infra.geometry.GeometryKmPostLinkStatus
+import fi.fta.geoviite.infra.geometry.GeometryLine
+import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
 import fi.fta.geoviite.infra.geometry.GeometryService
+import fi.fta.geoviite.infra.geometry.GeometrySwitchLinkStatus
 import fi.fta.geoviite.infra.geometry.PlanLayoutService
+import fi.fta.geoviite.infra.geometry.SwitchData
+import fi.fta.geoviite.infra.geometry.emptySwitchData
 import fi.fta.geoviite.infra.geometry.geometryAlignment
+import fi.fta.geoviite.infra.geometry.geometryElements
+import fi.fta.geoviite.infra.geometry.geometryLine
+import fi.fta.geoviite.infra.geometry.geometrySwitch
+import fi.fta.geoviite.infra.geometry.kmPosts
 import fi.fta.geoviite.infra.geometry.line
 import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.geometry.testFile
@@ -27,11 +43,16 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.assertMatches
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.someKmNumber
+import fi.fta.geoviite.infra.tracklayout.switch
+import fi.fta.geoviite.infra.tracklayout.trackNumber
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -41,6 +62,7 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
+import java.math.BigDecimal
 import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
@@ -336,6 +358,119 @@ class LinkingServiceIT @Autowired constructor(
             )
         }
     }
+
+    @Test
+    fun `getPlanLinkStatuses() returns plan link statuses across multiple plans`() {
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        fun makeSomePlan(): GeometryPlan {
+            val switch = geometrySwitch()
+            val line = geometryLine(
+                "S004",
+                "3",
+                Point(x = 385372.582, y = 6673712.000614),
+                Point(x = 385379.2240573294, y = 6673744.810696),
+                BigDecimal("543.333470"),
+                BigDecimal("33.475639"),
+                elementSwitchData = SwitchData(
+                    switchId = switch.id, null, null
+                )
+            )
+            return plan(
+                trackNumber,
+                alignments = listOf(geometryAlignment(line)),
+                switches = listOf(switch),
+                kmPosts = kmPosts(Srid(3879)).take(1)
+            )
+        }
+        val linkingLocationTrack = geometryDao.fetchPlan(geometryDao.insertPlan(makeSomePlan(), testFile(), null))
+        val linkingReferenceLine = geometryDao.fetchPlan(geometryDao.insertPlan(makeSomePlan(), testFile(), null))
+        val linkingSwitchAndLocationTrack =
+            geometryDao.fetchPlan(geometryDao.insertPlan(makeSomePlan(), testFile(), null))
+        val linkingKmPost = geometryDao.fetchPlan(geometryDao.insertPlan(makeSomePlan(), testFile(), null))
+        val trackNumberId = mainOfficialContext.insert(trackNumber(trackNumber)).id
+        val linkedLocationTrack = mainDraftContext.insert(
+            locationTrackAndAlignment(
+                trackNumberId,
+                segment(
+                    Point(0.0, 0.0),
+                    Point(10.0, 0.0)
+                ).copy(sourceId = linkingLocationTrack.alignments[0].elements[0].id)
+            )
+        ).id
+        val linkedReferenceLine = mainDraftContext.insert(
+            referenceLineAndAlignment(
+                trackNumberId,
+                segment(
+                    Point(0.0, 0.0),
+                    Point(10.0, 0.0)
+                ).copy(sourceId = linkingReferenceLine.alignments[0].elements[0].id)
+            )
+        ).id
+        val linkedSwitch = mainDraftContext.insert(switch()).id
+        val linkedLocationTrackAlongSwitch = mainDraftContext.insert(
+            locationTrackAndAlignment(
+                trackNumberId, segment(Point(0.0, 0.0), Point(10.0, 0.0)).copy(
+                    sourceId = linkingSwitchAndLocationTrack.alignments[0].elements[0].id,
+                    switchId = linkedSwitch
+                )
+            )
+        ).id
+        val linkedKmPost = mainDraftContext.insert(
+            kmPost(
+                trackNumberId,
+                KmNumber("123"),
+                sourceId = linkingKmPost.kmPosts[0].id as IntId
+            )
+        ).id
+        val allPlanIds = listOf(
+            linkingLocationTrack,
+            linkingReferenceLine,
+            linkingSwitchAndLocationTrack,
+            linkingKmPost
+        ).map { it.id as IntId }
+
+        assertEquals(
+            listOf(
+                expectPlanLinkedObjects(linkingLocationTrack),
+                expectPlanLinkedObjects(linkingReferenceLine),
+                expectPlanLinkedObjects(linkingSwitchAndLocationTrack),
+                expectPlanLinkedObjects(linkingKmPost)
+            ), linkingService.getGeometryPlanLinkStatuses(mainOfficialContext.context, allPlanIds)
+        )
+        assertEquals(
+            listOf(
+                expectPlanLinkedObjects(linkingLocationTrack, linkedLocationTrack to null),
+                expectPlanLinkedObjects(linkingReferenceLine, null to linkedReferenceLine),
+                expectPlanLinkedObjects(
+                    linkingSwitchAndLocationTrack, linkedLocationTrackAlongSwitch to null, firstSwitchIsLinked = true
+                ),
+                expectPlanLinkedObjects(linkingKmPost, kmPostLinkedToFirst = linkedKmPost)
+            ), linkingService.getGeometryPlanLinkStatuses(mainDraftContext.context, allPlanIds)
+        )
+    }
+
+    fun expectPlanLinkedObjects(
+        plan: GeometryPlan,
+        firstAlignmentFirstElementLink: Pair<IntId<LocationTrack>?, IntId<ReferenceLine>?> = null to null,
+        firstSwitchIsLinked: Boolean = false,
+        kmPostLinkedToFirst: IntId<TrackLayoutKmPost>? = null,
+    ) = GeometryPlanLinkStatus(
+        plan.id as IntId,
+        listOf(
+            GeometryAlignmentLinkStatus(
+                plan.alignments[0].id as IntId, listOf(
+                    GeometryElementLinkStatus(
+                        plan.alignments[0].elements[0].id as IndexedId<GeometryElement>,
+                        firstAlignmentFirstElementLink.first != null || firstAlignmentFirstElementLink.second != null,
+                        listOfNotNull(firstAlignmentFirstElementLink.first),
+                        listOfNotNull(firstAlignmentFirstElementLink.second),
+                    )
+                )
+            )
+        ),
+        listOf(GeometrySwitchLinkStatus(plan.switches[0].id as IntId, firstSwitchIsLinked)),
+        listOf(GeometryKmPostLinkStatus(plan.kmPosts[0].id as IntId, listOfNotNull(kmPostLinkedToFirst)))
+    )
 
     fun assertMatches(
         trackAndAlignment1: Pair<LocationTrack, LayoutAlignment>,
