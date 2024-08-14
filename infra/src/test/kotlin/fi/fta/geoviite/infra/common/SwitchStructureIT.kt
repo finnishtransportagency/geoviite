@@ -159,7 +159,8 @@ class SwitchStructureIT @Autowired constructor(
         }
 
         val versionBeforeUpsert = switchStructureDao.fetchSwitchStructureVersion(versionId.id)
-        switchLibraryService.upsertSwitchStructure(modifiedSwitchStructure)
+        val existingSwitchStructure = switchStructureDao.fetchSwitchStructure(versionBeforeUpsert)
+        switchLibraryService.upsertSwitchStructure(modifiedSwitchStructure, existingSwitchStructure)
         val versionAfterUpsert = switchStructureDao.fetchSwitchStructureVersion(versionId.id)
         assertNotEquals(versionBeforeUpsert.version, versionAfterUpsert.version)
     }
@@ -180,14 +181,15 @@ class SwitchStructureIT @Autowired constructor(
         )
 
         val versionBeforeUpsert = switchStructureDao.fetchSwitchStructureVersion(versionId.id)
-        switchLibraryService.upsertSwitchStructure(similarSwitchStructure)
+        val existingSwitchStructure = switchStructureDao.fetchSwitchStructure(versionBeforeUpsert)
+        switchLibraryService.upsertSwitchStructure(similarSwitchStructure, existingSwitchStructure)
         val versionAfterUpsert = switchStructureDao.fetchSwitchStructureVersion(versionId.id)
         assertEquals(versionBeforeUpsert.version, versionAfterUpsert.version)
     }
 
     @Test
     fun `Replacing switch structures should add new ones`() {
-        val existingSwitchStructuresBeforeUpdate = switchLibraryService.getSwitchStructures()
+        val existingSwitchStructuresBeforeUpdate = switchStructureDao.fetchSwitchStructures()
 
         val seq = System.currentTimeMillis()
         val newSwitchType = SwitchType("YV60-$seq-1:9")
@@ -199,14 +201,14 @@ class SwitchStructureIT @Autowired constructor(
             existingSwitchStructuresBeforeUpdate + newSwitchStructure
         )
 
-        val existingSwitchStructuresAfterUpdate = switchLibraryService.getSwitchStructures()
+        val existingSwitchStructuresAfterUpdate = switchStructureDao.fetchSwitchStructures()
         assert(existingSwitchStructuresBeforeUpdate.none { s -> s.type==newSwitchType })
         assert(existingSwitchStructuresAfterUpdate.any { s -> s.type==newSwitchType })
     }
 
     @Test
     fun `Replacing switch structures should delete not-defined structures`() {
-        val existingSwitchStructuresBeforeUpdate = switchLibraryService.getSwitchStructures()
+        val existingSwitchStructuresBeforeUpdate = switchStructureDao.fetchSwitchStructures()
 
         val seq = System.currentTimeMillis()
         val newSwitchType = SwitchType("YV60-$seq-1:9")
@@ -217,12 +219,12 @@ class SwitchStructureIT @Autowired constructor(
         switchLibraryService.replaceExistingSwitchStructures(
             existingSwitchStructuresBeforeUpdate + newSwitchStructure
         )
-        val existingSwitchStructuresAfterFirstUpdate = switchLibraryService.getSwitchStructures()
+        val existingSwitchStructuresAfterFirstUpdate = switchStructureDao.fetchSwitchStructures()
 
         switchLibraryService.replaceExistingSwitchStructures(
             existingSwitchStructuresBeforeUpdate
         )
-        val existingSwitchStructuresAfterSecondUpdate = switchLibraryService.getSwitchStructures()
+        val existingSwitchStructuresAfterSecondUpdate = switchStructureDao.fetchSwitchStructures()
 
         assert(existingSwitchStructuresBeforeUpdate.none { s -> s.type==newSwitchType })
         assert(existingSwitchStructuresAfterFirstUpdate.any { s -> s.type==newSwitchType })

@@ -69,7 +69,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
-@SpringBootTest(properties = ["geoviite.cache.enabled=true"])
+@SpringBootTest
 class CalculatedChangesServiceIT @Autowired constructor(
     val calculatedChangesService: CalculatedChangesService,
     val switchDao: LayoutSwitchDao,

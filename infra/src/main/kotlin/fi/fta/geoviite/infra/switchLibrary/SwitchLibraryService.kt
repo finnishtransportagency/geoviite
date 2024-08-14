@@ -11,23 +11,18 @@ class SwitchLibraryService(
     private val switchStructureDao: SwitchStructureDao,
     private val switchOwnerDao: SwitchOwnerDao,
 ) {
+    private val structures: List<SwitchStructure> by lazy {
+        switchStructureDao.fetchSwitchStructures()
+    }
+
     private val structuresById: Map<IntId<SwitchStructure>, SwitchStructure> by lazy {
-        switchStructureDao.fetchSwitchStructures().associateBy { switchStructure ->
+        structures.associateBy { switchStructure ->
             switchStructure.id as IntId
         }
     }
 
-    fun getSwitchStructures(): List<SwitchStructure> {
-        return switchStructureDao.fetchSwitchStructures()
-    }
-
-    fun getSwitchStructuresById(): Map<IntId<SwitchStructure>, SwitchStructure> {
-        return structuresById
-    }
-
-    fun getSwitchStructureByType(type: SwitchType):SwitchStructure? {
-        return getSwitchStructures().find { switchStructure -> switchStructure.type == type }
-    }
+    fun getSwitchStructures(): List<SwitchStructure> = structures
+    fun getSwitchStructuresById(): Map<IntId<SwitchStructure>, SwitchStructure> = structuresById
 
     fun getSwitchStructure(id: IntId<SwitchStructure>): SwitchStructure {
         return getOrThrow(id)
@@ -35,10 +30,6 @@ class SwitchLibraryService(
 
     fun getPresentationJointNumber(id: IntId<SwitchStructure>): JointNumber {
         return getOrThrow(id).presentationJointNumber
-    }
-
-    fun getSwitchType(id: IntId<SwitchStructure>): SwitchType {
-        return getOrThrow(id).type
     }
 
     fun getSwitchOwners(): List<SwitchOwner> {
@@ -57,12 +48,11 @@ class SwitchLibraryService(
         structuresById[id] ?: throw NoSuchEntityException(SwitchStructure::class, id)
 
     @Transactional
-    fun upsertSwitchStructure(switchStructure: SwitchStructure) {
-        val existingSwitchStructure = getSwitchStructureByType(switchStructure.type)
+    fun upsertSwitchStructure(newSwitchStructure: SwitchStructure, existingSwitchStructure: SwitchStructure?) {
         if (existingSwitchStructure == null) {
-            switchStructureDao.insertSwitchStructure(switchStructure)
+            switchStructureDao.insertSwitchStructure(newSwitchStructure)
         } else {
-            val switchStructureWithExistingId = switchStructure.copy(id =existingSwitchStructure.id)
+            val switchStructureWithExistingId = newSwitchStructure.copy(id =existingSwitchStructure.id)
             if (!existingSwitchStructure.isSame(switchStructureWithExistingId)) {
                 switchStructureDao.updateSwitchStructure(switchStructureWithExistingId)
             }
@@ -71,7 +61,7 @@ class SwitchLibraryService(
 
     @Transactional
     fun replaceExistingSwitchStructures(newSwitchStructures: List<SwitchStructure>) {
-        val existingSwitchStructures = getSwitchStructures()
+        val existingSwitchStructures = switchStructureDao.fetchSwitchStructures()
         existingSwitchStructures.forEach { existingSwitchStructure ->
             val existsInNewSet = newSwitchStructures.any { newSwitchStructure ->
                 newSwitchStructure.type == existingSwitchStructure.type
@@ -81,6 +71,9 @@ class SwitchLibraryService(
             }
         }
 
-        newSwitchStructures.forEach { switchStructure -> upsertSwitchStructure(switchStructure) }
+        newSwitchStructures.forEach { newSwitchStructure ->
+            val existingSwitchStructure = existingSwitchStructures.find { it.type == newSwitchStructure.type }
+            upsertSwitchStructure(newSwitchStructure, existingSwitchStructure)
+        }
     }
 }

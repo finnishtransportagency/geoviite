@@ -36,6 +36,11 @@ configurations {
     }
 }
 
+val test2 = tasks.register<Test>("test-without-cache") {
+    systemProperty("geoviite.cache.enabled", false)
+    useJUnit()
+}
+
 ext["selenium.version"] = "4.19.1"
 dependencies {
     // Version overrides for transitive deps (due to known vulnerabilities)
