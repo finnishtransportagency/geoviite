@@ -134,9 +134,10 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         val sql = """
            select
               geometry_km_post.id,
-              array_agg(km_post.official_id) as km_post_id_list
+              array_agg(coalesce(km_post.official_row_id, km_post.design_row_id, km_post.id)) as km_post_id_list
               from geometry.km_post geometry_km_post
-              join layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id)
+              left join (select * from layout.km_post,
+                layout.km_post_is_in_layout_context(:publication_state::layout.publication_state, :design_id, km_post))
                 as km_post on geometry_km_post.id = km_post.geometry_km_post_id
               where
                plan_id=:plan_id
@@ -174,15 +175,10 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                             and segment_version.geometry_alignment_id = element.alignment_id
                             and segment_version.switch_id is not null
                             and exists(select *
-                                         from layout.location_track
-                                           join lateral layout.location_track_in_layout_context(
-                                             :publication_state::layout.publication_state, :design_id,
-                                             coalesce(location_track.official_row_id,
-                                                      location_track.design_row_id,
-                                                      location_track.id))
-                                                on location_track.id = location_track_in_layout_context.row_id
-                                                  and location_track.version = location_track_in_layout_context.row_version
-                                         where location_track.state != 'DELETED'
+                                         from layout.location_track,
+                                           layout.location_track_is_in_layout_context(
+                                            :publication_state::layout.publication_state, :design_id, location_track)
+                                          where location_track.state != 'DELETED'
                                            and location_track.alignment_id = segment_version.alignment_id
                                            and location_track.alignment_version = segment_version.alignment_version
                             )
