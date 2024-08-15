@@ -4,6 +4,9 @@
             "features-not-found": "Annetun (alku)pisteen parametreilla ei löytynyt tietoja.",
             "missing-x-coordinate": "Pyyntö ei sisältänyt x-koordinaattia.",
             "missing-y-coordinate": "Pyyntö ei sisältänyt y-koordinaattia.",
+            "missing-track-kilometer": "Pyyntö ei sisältänyt ratakilometriä.",
+            "missing-track-meter": "Pyyntö ei sisältänyt ratametriä.",
+            "missing-track-number": "Pyyntö ei sisältänyt ratanumeroa.",
             "bad-request": "Pyyntötyyppiä ei pystytty määrittämään.",
             "unsupported-request-type": "Pyyntötyyppiä ei tueta.",
             "request-could-not-be-deserialized": "Pyynnön rakenne oli virheellinen.",
@@ -16,7 +19,12 @@
             "invalid-track-number-name": "Pyyntö sisälsi virheellisen ratanumero-asetuksen.",
             "invalid-location-track-name": "Pyyntö sisälsi virheellisen sijaintiraide-asetuksen.",
             "invalid-location-track-type": "Pyyntö sisälsi virheellisen sijaintiraide_tyyppi-asetuksen. Sallitut arvot ovat pääraide, sivuraide, kujaraide, turvaraide.",
-            "invalid-response-settings": "Pyyntö sisälsi virheellisen palautusarvo-asetuksen. Sallitut arvot ovat (1, 5, 10)."
+            "invalid-response-settings": "Pyyntö sisälsi virheellisen palautusarvo-asetuksen. Sallitut arvot ovat (1, 5, 10).",
+            "track-kilometer-under-range": "Pyyntö sisälsi pienemmän ratakilometrin kuin sallittu minimiarvo (0).",
+            "track-kilometer-over-range": "Pyyntö sisälsi suuremman ratakilometrin kuin sallittu maksimiarvo (9999).",
+            "track-meter-under-range": "Pyyntö sisälsi pienemmän ratametrin kuin sallittu minimiarvo (0).",
+            "track-meter-over-range": "Pyyntö sisälsi suuremman ratametrin kuin sallittu maksimiarvo (9999).",
+            "track-number-not-found": "Pyynnön ratanumeroa ei löydetty."
         }
     },
     "error": {

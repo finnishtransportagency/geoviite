@@ -66,6 +66,11 @@ class FrameConverterRequestDeserializerV1 : JsonDeserializer<FrameConverterReque
             CoordinateToTrackMeterRequestV1::class to listOf("x", "y"),
             CoordinateToTrackMeterRequestV1::class to listOf("x"),
             CoordinateToTrackMeterRequestV1::class to listOf("y"),
+
+            TrackAddressToCoordinateRequestV1::class to listOf("ratakilometri", "ratametri", "ratanumero"),
+            TrackAddressToCoordinateRequestV1::class to listOf("ratakilometri", "ratametri"),
+            TrackAddressToCoordinateRequestV1::class to listOf("ratakilometri"),
+            TrackAddressToCoordinateRequestV1::class to listOf("ratametri")
         )
 
         val clazz = classMap.firstOrNull { (_, keys) ->

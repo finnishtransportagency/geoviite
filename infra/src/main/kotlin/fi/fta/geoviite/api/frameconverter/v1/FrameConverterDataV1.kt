@@ -8,25 +8,27 @@ import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonGeometry
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonGeometryPoint
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonProperties
 import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FreeText
 
 typealias FrameConverterIdentifierV1 = FreeText
 typealias FrameConverterResponseSettingsV1 = Set<FrameConverterResponseSettingV1>
 
 /**
- * @property BasicFeatureMatchData Response will include all fields from [BasicFeatureMatchDataV1]
- * @property FeatureGeometry Response will include geometry data, such as [GeoJsonGeometryPoint]
- * @property FeatureMatchDetails Response will include detailed data depending on request,
- * such as [CoordinateToTrackMeterConversionDetailsV1]
+ * @property FeatureMatchDataSimple Response will include all fields from [FeatureMatchDataSimpleV1]
+ * @property FeatureGeometryData Response will include geometry data, such as [GeoJsonGeometryPoint]
+ * @property FeatureMatchDataDetails Response will include detailed data depending on request,
+ *   such as [FeatureMatchDataDetailsV1]
  *
  * @property INVALID Response will include an error this value was mapped to set of response settings.
  */
 enum class FrameConverterResponseSettingV1(val code: Int) {
-    BasicFeatureMatchData(1),
-    FeatureGeometry(5),
-    FeatureMatchDetails(10),
+    FeatureMatchDataSimple(1),
+    FeatureGeometryData(5),
+    FeatureMatchDataDetails(10),
 
     INVALID(-1);
 
@@ -50,6 +52,10 @@ data class FrameConverterStringV1(val value: String) {
     }
 }
 
+/**
+ * Maps Finnish track type names to internally used type.
+ * There is additional mapping to the even more specific domain type LocationTrackType during request validation.
+ */
 enum class FrameConverterLocationTrackTypeV1(val value: String) {
     MAIN("pääraide"),
     SIDE("sivuraide"),
@@ -66,6 +72,9 @@ enum class FrameConverterLocationTrackTypeV1(val value: String) {
     }
 }
 
+/**
+ * General response type for a request that had an error during validation or processing.
+ */
 data class GeoJsonFeatureErrorResponseV1(
     override val geometry: GeoJsonGeometry = GeoJsonGeometryPoint.empty(),
     override val properties: GeoJsonFeatureErrorResponsePropertiesV1,
@@ -83,7 +92,11 @@ data class GeoJsonFeatureErrorResponsePropertiesV1(
     @JsonProperty("virheet") val errors: String = "",
 ) : GeoJsonProperties()
 
+/**
+ * Marker class for multiple request types.
+ */
 sealed class FrameConverterRequestV1
+
 /**
  * @property identifier User provided request identifier which is also included in the response feature(s).
  * @property x User provided x coordinate in ETRS-TM35FIN (EPSG:3067)
@@ -101,7 +114,8 @@ data class CoordinateToTrackMeterRequestV1(
     val x: Double? = null,
     val y: Double? = null,
 
-    @JsonProperty("sade") val searchRadius: Double? = 100.0,
+    @JsonProperty("sade")
+    val searchRadius: Double? = 100.0,
 
     @JsonProperty("ratanumero")
     @JsonDeserialize(using = FrameConverterStringDeserializerV1::class)
@@ -118,12 +132,16 @@ data class CoordinateToTrackMeterRequestV1(
     @JsonProperty("palautusarvot")
     @JsonDeserialize(using = FrameConverterResponseSettingsDeserializerV1::class)
     val responseSettings: FrameConverterResponseSettingsV1 = setOf(
-        FrameConverterResponseSettingV1.BasicFeatureMatchData,
-        FrameConverterResponseSettingV1.FeatureMatchDetails,
+        FrameConverterResponseSettingV1.FeatureMatchDataSimple,
+        FrameConverterResponseSettingV1.FeatureMatchDataDetails,
     ),
 
 ) : FrameConverterRequestV1()
 
+/**
+ * Valid version of the coordinate to track meter request is created during processing,
+ * it is not created for an invalid request.
+ */
 data class ValidCoordinateToTrackMeterRequestV1(
     val identifier: FrameConverterIdentifierV1?,
 
@@ -138,20 +156,26 @@ data class ValidCoordinateToTrackMeterRequestV1(
     val responseSettings: FrameConverterResponseSettingsV1,
 ) : FrameConverterRequestV1()
 
+/**
+ * Coordinate to track meter response is only created for a valid, successfully processed request.
+ * For invalid requests containing errors, see GeoJsonFeatureErrorResponseV1.
+ */
 data class CoordinateToTrackMeterResponseV1(
     override val geometry: GeoJsonGeometryPoint,
     override val properties: CoordinateToTrackMeterResponsePropertiesV1,
 ) : GeoJsonFeature()
 
+/**
+ * @property identifier User provided optional request identifier.
+ * @property featureMatchDataSimple Fields included in the output when responseSettings of the request contain
+ *   FrameConverterResponseSettingV1.FeatureMatchDataSimple.
+ * @property featureMatchDataDetails Fields included in the output when responseSettings of the request contain
+ *   FrameConverterResponseSettingV1.FeatureMatchDataDetails.
+ */
 data class CoordinateToTrackMeterResponsePropertiesV1(
-    // Same as request if supplied by the user.
-    @JsonProperty("tunniste") val id: FrameConverterIdentifierV1? = null,
-
-    // Returned when responseSettings in the request contain the number 1.
-    @JsonUnwrapped val closestLocationTrackMatch: BasicFeatureMatchDataV1? = null,
-
-    // Returned when responseSettings in the request contain the number 10.
-    @JsonUnwrapped val conversionDetails: CoordinateToTrackMeterConversionDetailsV1? = null,
+    @JsonProperty("tunniste") val identifier: FrameConverterIdentifierV1? = null,
+    @JsonUnwrapped val featureMatchDataSimple: FeatureMatchDataSimpleV1? = null,
+    @JsonUnwrapped val featureMatchDataDetails: FeatureMatchDataDetailsV1? = null,
 ) : GeoJsonProperties()
 
 /**
@@ -159,13 +183,17 @@ data class CoordinateToTrackMeterResponsePropertiesV1(
  * @property y The y coordinate on the alignment of the matched location track in ETRS-TM35FIN (EPSG:3067)
  * @property distanceFromRequestPoint Calculated distance from user-specified coordinate in meters.
  */
-data class BasicFeatureMatchDataV1(
+data class FeatureMatchDataSimpleV1(
     val x: Double,
     val y: Double,
     @JsonProperty("valimatka") val distanceFromRequestPoint: Double,
 )
 
-data class CoordinateToTrackMeterConversionDetailsV1(
+/**
+ * Returned within properties when responseSettings of a request
+ * contain FrameConverterResponseSettingV1.FeatureMatchDataDetails.
+ */
+data class FeatureMatchDataDetailsV1(
     @JsonProperty("ratanumero") val trackNumber: TrackNumber,
     @JsonProperty("sijaintiraide") val locationTrackName: AlignmentName,
     @JsonProperty("sijaintiraide_kuvaus") val locationTrackDescription: FreeText,
@@ -175,4 +203,82 @@ data class CoordinateToTrackMeterConversionDetailsV1(
     @JsonProperty("ratametri_desimaalit") val trackMeterDecimals: Int,
 )
 
+/**
+ * @property identifier User provided request identifier which is also included in the response feature(s), optional.
+ * @property trackNumberName User provided track number, required for valid requests.
+ * @property trackKilometer User provided track kilometer, required for valid requests.
+ * @property trackMeter User provided track meter on the specified track kilometer, required for valid requests.
+ *
+ * @property locationTrackName User provided location track name filter, optional.
+ * @property locationTrackType User provided location track type filter, optional.
+ * @property responseSettings User provided array of integers, which map to enum values, optional, has defaults.
+ */
+data class TrackAddressToCoordinateRequestV1(
+    @JsonProperty("tunniste")
+    val identifier: FrameConverterIdentifierV1? = null,
 
+    @JsonProperty("ratanumero")
+    @JsonDeserialize(using = FrameConverterStringDeserializerV1::class)
+    val trackNumberName: FrameConverterStringV1? = null,
+
+    @JsonProperty("ratakilometri")
+    val trackKilometer: Int? = null,
+
+    @JsonProperty("ratametri")
+    val trackMeter: Int? = null,
+
+    @JsonProperty("sijaintiraide")
+    @JsonDeserialize(using = FrameConverterStringDeserializerV1::class)
+    val locationTrackName: FrameConverterStringV1? = null, // Filter by location track name.
+
+    @JsonProperty("sijaintiraide_tyyppi")
+    @JsonDeserialize(using = FrameConverterLocationTrackTypeDeserializerV1::class)
+    val locationTrackType: FrameConverterLocationTrackTypeV1? = null, // Filter by location track type.
+
+    @JsonProperty("palautusarvot")
+    @JsonDeserialize(using = FrameConverterResponseSettingsDeserializerV1::class)
+    val responseSettings: FrameConverterResponseSettingsV1 = setOf(
+        FrameConverterResponseSettingV1.FeatureMatchDataSimple,
+        FrameConverterResponseSettingV1.FeatureMatchDataDetails,
+    ),
+
+) : FrameConverterRequestV1()
+
+/**
+ * Valid version of the track meter to coordinate request is created during processing,
+ * it is not created for an invalid request.
+ */
+data class ValidTrackAddressToCoordinateRequestV1(
+    val identifier: FrameConverterIdentifierV1?,
+
+    val trackNumber: TrackLayoutTrackNumber,
+    val trackAddress: TrackMeter,
+
+    val locationTrackName: AlignmentName?,
+    val locationTrackType: LocationTrackType?,
+
+    val responseSettings: FrameConverterResponseSettingsV1,
+) : FrameConverterRequestV1()
+
+
+/**
+ * Track meter to coordinate response is only created for a valid, successfully processed request.
+ * For invalid requests containing errors, see GeoJsonFeatureErrorResponseV1.
+ */
+data class TrackMeterToCoordinateResponseV1(
+    override val geometry: GeoJsonGeometryPoint,
+    override val properties: TrackMeterToCoordinateResponsePropertiesV1,
+) : GeoJsonFeature()
+
+/**
+ * @property identifier User provided optional request identifier.
+ * @property featureMatchDataSimple Fields included in the output when responseSettings of the request contain
+ *   FrameConverterResponseSettingV1.FeatureMatchDataSimple
+ * @property featureMatchDataDetails Fields included in the output when responseSettings of the request contain
+ *   FrameConverterResponseSettingV1.FeatureMatchDataDetails
+ */
+data class TrackMeterToCoordinateResponsePropertiesV1(
+    @JsonProperty("tunniste") val identifier: FrameConverterIdentifierV1? = null,
+    @JsonUnwrapped val featureMatchDataSimple: FeatureMatchDataSimpleV1? = null,
+    @JsonUnwrapped val featureMatchDataDetails: FeatureMatchDataDetailsV1? = null,
+) : GeoJsonProperties()

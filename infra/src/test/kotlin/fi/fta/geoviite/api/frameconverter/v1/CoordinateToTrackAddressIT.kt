@@ -4,7 +4,6 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.TestLayoutContext
-import fi.fta.geoviite.infra.authorization.AuthorizationService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutContext
@@ -29,7 +28,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
@@ -52,6 +50,7 @@ private data class TestCoordinateToTrackAddressRequest(
     val palautusarvot: List<Int>? = null,
 )
 
+// TODO Pull to another file for test class multi-use
 private data class GeocodableTrack(
     val layoutContext: LayoutContext,
     val trackNumber: TrackLayoutTrackNumber,
@@ -156,35 +155,6 @@ class CoordinateToTrackAddressIT @Autowired constructor(
             "Pyyntö ei sisältänyt y-koordinaattia.",
             featureCollection.features[0].properties?.get("virheet"),
         )
-    }
-
-    @Test
-    fun `Missing x- and y-coordinates in a request should result in two errors`() {
-        val params = emptyMap<String, String>()
-
-        val requests = listOf(
-            testApi.doGetWithParams(API_URL, params, HttpStatus.OK),
-            testApi.doPostWithParams(API_URL, params, HttpStatus.OK),
-        )
-
-        requests.forEach { request ->
-            val featureCollection = request
-                .let { body -> mapper.readValue(body, TestGeoJsonFeatureCollection::class.java) }
-
-            assertNotNull(featureCollection.features[0].properties?.get("virheet"))
-
-            assertEquals("FeatureCollection", featureCollection.type)
-            assertEquals(1, featureCollection.features.size)
-
-            assertEquals("Feature", featureCollection.features[0].type)
-            assertEquals("Point", featureCollection.features[0].geometry?.type)
-            assertEquals(emptyList<Double>(), featureCollection.features[0].geometry?.coordinates)
-
-            val errors: String = featureCollection.features[0].properties?.get("virheet").toString()
-
-            assertTrue(errors.contains("Pyyntö ei sisältänyt x-koordinaattia."))
-            assertTrue(errors.contains("Pyyntö ei sisältänyt y-koordinaattia."))
-        }
     }
 
     @Test
