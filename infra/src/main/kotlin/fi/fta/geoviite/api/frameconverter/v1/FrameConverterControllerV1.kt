@@ -5,12 +5,14 @@ import com.fasterxml.jackson.databind.module.SimpleModule
 import fi.fta.geoviite.api.aspects.GeoviiteIntegrationApiController
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeature
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeatureCollection
+import fi.fta.geoviite.infra.authorization.AUTH_API_FRAME_CONVERTER
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.error.IntegrationApiException
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.ModelAttribute
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestMethod
@@ -27,6 +29,7 @@ class FrameConverterApiObjectMapperV1 {
     }
 }
 
+@PreAuthorize(AUTH_API_FRAME_CONVERTER)
 @GeoviiteIntegrationApiController(
     [
         "/rata-vkm",

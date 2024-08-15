@@ -58,7 +58,13 @@ private data class GeocodableTrack(
 )
 
 @ActiveProfiles("dev", "test", "integration-api")
-@SpringBootTest(classes = [InfraApplication::class])
+@SpringBootTest(
+    classes = [InfraApplication::class],
+    properties = [
+        "geoviite.skip-auth=false"
+    ],
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+)
 @AutoConfigureMockMvc(addFilters = false)
 class CoordinateToTrackAddressIT @Autowired constructor(
     mockMvc: MockMvc,

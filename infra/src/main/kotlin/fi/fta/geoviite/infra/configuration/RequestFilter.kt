@@ -84,6 +84,35 @@ class RequestFilter @Autowired constructor(
         )
     }
 
+    private fun integrationApiUser(userType: IntegrationApiUserType): User {
+        val activeRole = authorizationService.getRole(userType.roleCode)
+            ?: throw ApiUnauthorizedException("Could not determine integration api user role.")
+
+        val userDetails = when (userType) {
+            IntegrationApiUserType.PUBLIC ->
+                UserDetails(
+                    userName = UserName.of("API_PUBLIC"),
+                    firstName = AuthName.of("Public"),
+                    lastName = AuthName.of("Api User"),
+                    organization = AuthName.of("Geoviite"),
+                )
+
+            IntegrationApiUserType.PRIVATE ->
+                UserDetails(
+                    userName = UserName.of("API_PRIVATE"),
+                    firstName = AuthName.of("Private"),
+                    lastName = AuthName.of("Api User"),
+                    organization = AuthName.of("Geoviite"),
+                )
+        }
+
+        return User(
+            details = userDetails,
+            role = activeRole,
+            availableRoles = listOf(activeRole),
+        )
+    }
+
     private val healthCheckUser by lazy {
         User(
             details = UserDetails(UserName.of("HEALTH_CHECK"), null, null, null),
@@ -154,6 +183,11 @@ class RequestFilter @Autowired constructor(
             )
         } else if (request.requestURI == "/actuator/health" && headers.none { h -> h.startsWith("x-iam") }) {
             healthCheckUser
+        } else if (
+            environment.activeProfiles.contains("integration-api") &&
+            request.requestURI.startsWith("/rata-vkm")
+        ) {
+            determineIntegrationApiUserOrThrow(request)
         } else {
             val content = getJwtData(request)
 
@@ -256,6 +290,22 @@ class RequestFilter @Autowired constructor(
         val publicKey = generated as? ECPublicKey
             ?: throw IllegalArgumentException("Invalid key (expected ECPublicKey): ${generated::class.qualifiedName}")
         return Algorithm.ECDSA256(publicKey, null)
+    }
+
+    private fun determineIntegrationApiUserOrThrow(request: HttpServletRequest): User {
+        return request.getHeader("x-forwarded-host")
+            ?.takeIf { it.isNotEmpty() }
+            ?.split(".")
+            ?.firstOrNull()
+            ?.let { firstSubDomain ->
+                when (firstSubDomain) {
+                    "avoinapi" -> integrationApiUser(IntegrationApiUserType.PUBLIC)
+                    "api" -> integrationApiUser(IntegrationApiUserType.PRIVATE)
+
+                    else ->
+                        throw ApiUnauthorizedException("Could not determine integration api user type (invalid host).")
+                }
+            } ?: throw ApiUnauthorizedException("Could not determine integration api user type (missing host).")
     }
 }
 
