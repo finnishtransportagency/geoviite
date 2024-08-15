@@ -59,8 +59,8 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
     };
 
     const locationSource = (): string => {
-        if (showingPreciseLocation) {
-            return gkLocationPrecision ? t(`enum.gk-location-source.${gkLocationPrecision}`) : '';
+        if (showingPreciseLocation && hasGkLocation) {
+            return t(`enum.gk-location-source.${gkLocationPrecision}`);
         } else if (hasLocation && source !== 'GENERATED') {
             return linkedFromGeometry
                 ? t('data-products.km-lengths.table.from-geometry')
@@ -71,12 +71,14 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
     };
 
     const locationConfirmed = (): string => {
-        if (showingPreciseLocation) {
+        if (showingPreciseLocation && hasGkLocation) {
             return gkLocationConfirmed
                 ? t('data-products.km-lengths.table.confirmed')
                 : t('data-products.km-lengths.table.not-confirmed');
-        } else {
+        } else if (hasLocation && source !== 'GENERATED') {
             return t('data-products.km-lengths.table.not-confirmed');
+        } else {
+            return '';
         }
     };
 
