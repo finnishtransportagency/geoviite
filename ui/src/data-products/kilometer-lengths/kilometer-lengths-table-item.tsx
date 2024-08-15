@@ -4,7 +4,7 @@ import styles from '../data-product-table.scss';
 import { GeometrySource, GkLocationSource, LAYOUT_SRID } from 'track-layout/track-layout-model';
 import { useTranslation } from 'react-i18next';
 import { CoordinateSystem } from 'common/common-model';
-import { GeometryPoint } from 'model/geometry';
+import { GeometryPoint, Point } from 'model/geometry';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import { useCoordinateSystem } from 'track-layout/track-layout-react-utils';
 import { KmLengthsLocationPrecision } from 'data-products/data-products-slice';
@@ -16,8 +16,7 @@ export type KilometerLengthsTableItemProps = {
     startM: number;
     endM: number;
     coordinateSystem: CoordinateSystem;
-    locationE: number | undefined;
-    locationN: number | undefined;
+    layoutLocation: Point | undefined;
     source: GeometrySource;
     gkLocation: GeometryPoint | undefined;
     gkLocationPrecision: GkLocationSource | undefined;
@@ -32,8 +31,7 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
     length,
     startM,
     endM,
-    locationE,
-    locationN,
+    layoutLocation,
     source,
     gkLocation,
     gkLocationConfirmed,
@@ -45,14 +43,24 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
     const kmPostCoordinateSystem = useCoordinateSystem(gkLocation?.srid);
     const layoutCoordinateSystem = useCoordinateSystem(LAYOUT_SRID);
 
-    const hasLocation = locationE !== undefined && locationN !== undefined;
+    const hasLayoutLocation = layoutLocation !== undefined;
     const hasGkLocation = gkLocation !== undefined;
     const showingPreciseLocation = locationPrecision === 'PRECISE';
+
+    const selectLocation = () => {
+        if (showingPreciseLocation && hasGkLocation) {
+            return gkLocation;
+        } else if (hasLayoutLocation) {
+            return layoutLocation;
+        }
+        return undefined;
+    };
+    const location = selectLocation();
 
     const coordinateSystem = () => {
         if (showingPreciseLocation && hasGkLocation) {
             return kmPostCoordinateSystem;
-        } else if (hasLocation) {
+        } else if (hasLayoutLocation) {
             return layoutCoordinateSystem;
         }
         return undefined;
@@ -61,7 +69,7 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
     const locationSource = (): string => {
         if (showingPreciseLocation && hasGkLocation) {
             return t(`enum.gk-location-source.${gkLocationPrecision}`);
-        } else if (hasLocation && source !== 'GENERATED') {
+        } else if (hasLayoutLocation && source !== 'GENERATED') {
             return linkedFromGeometry
                 ? t('data-products.km-lengths.table.from-geometry')
                 : t('data-products.km-lengths.table.from-ratko');
@@ -75,7 +83,7 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
             return gkLocationConfirmed
                 ? t('data-products.km-lengths.table.confirmed')
                 : t('data-products.km-lengths.table.not-confirmed');
-        } else if (hasLocation && source !== 'GENERATED') {
+        } else if (hasLayoutLocation && source !== 'GENERATED') {
             return t('data-products.km-lengths.table.not-confirmed');
         } else {
             return '';
@@ -100,23 +108,19 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
                     <CoordinateSystemView coordinateSystem={coordinateSystem()} />
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {showingPreciseLocation && hasGkLocation
-                        ? roundToPrecision(gkLocation.x, Precision.coordinateMeters)
-                        : hasLocation && roundToPrecision(locationE, Precision.coordinateMeters)}
+                    {location && roundToPrecision(location.x, Precision.coordinateMeters)}
                 </td>
                 <td className={styles['data-product-table__column--number']}>
-                    {showingPreciseLocation && hasGkLocation
-                        ? roundToPrecision(gkLocation.y, Precision.coordinateMeters)
-                        : hasLocation && roundToPrecision(locationN, Precision.coordinateMeters)}
+                    {location && roundToPrecision(location.y, Precision.coordinateMeters)}
                 </td>
                 <td>{locationSource()}</td>
                 <td>{locationConfirmed()}</td>
                 <td>
-                    {hasLocation &&
+                    {hasLayoutLocation &&
                         (source == 'IMPORTED' || gkLocationPrecision === 'FROM_LAYOUT') &&
                         t('data-products.km-lengths.table.imported-warning')}
 
-                    {hasLocation &&
+                    {hasLayoutLocation &&
                         source == 'GENERATED' &&
                         t('data-products.km-lengths.table.generated-warning')}
                 </td>
