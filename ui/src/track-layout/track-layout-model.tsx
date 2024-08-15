@@ -298,7 +298,7 @@ export type LayoutKmLengthDetails = {
     startM: number;
     endM: number;
     coordinateSystem: CoordinateSystem;
-    layoutLocationSource: GeometrySource;
+    layoutGeometrySource: GeometrySource;
     layoutLocation?: Point;
     gkLocation?: GeometryPoint;
     gkLocationSource?: GkLocationSource;

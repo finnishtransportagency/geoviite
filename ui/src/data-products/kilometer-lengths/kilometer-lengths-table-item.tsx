@@ -46,49 +46,38 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
     const hasLayoutLocation = layoutLocation !== undefined;
     const hasGkLocation = gkLocation !== undefined;
     const showingPreciseLocation = locationPrecision === 'PRECISE';
+    const generatedRow = layoutGeometrySource === 'GENERATED';
 
-    const selectLocation = () => {
-        if (showingPreciseLocation && hasGkLocation) {
-            return gkLocation;
-        } else if (hasLayoutLocation) {
-            return layoutLocation;
-        }
-        return undefined;
-    };
-    const location = selectLocation();
+    const location = showingPreciseLocation ? gkLocation : layoutLocation;
+    const coordinateSystem = showingPreciseLocation
+        ? kmPostCoordinateSystem
+        : layoutCoordinateSystem;
 
-    const coordinateSystem = () => {
-        if (showingPreciseLocation && hasGkLocation) {
-            return kmPostCoordinateSystem;
-        } else if (hasLayoutLocation) {
-            return layoutCoordinateSystem;
-        }
-        return undefined;
-    };
+    let locationSourceString = '';
+    if (!generatedRow) {
+        const gkLocationSourceString = hasGkLocation
+            ? t(`enum.gk-location-source.${gkLocationSource}`)
+            : '';
+        const layoutLocationSourceString = linkedFromGeometry
+            ? t('data-products.km-lengths.table.from-geometry')
+            : t('data-products.km-lengths.table.from-ratko');
 
-    const locationSource = (): string => {
-        if (showingPreciseLocation && hasGkLocation) {
-            return t(`enum.gk-location-source.${gkLocationSource}`);
-        } else if (hasLayoutLocation && layoutGeometrySource !== 'GENERATED') {
-            return linkedFromGeometry
-                ? t('data-products.km-lengths.table.from-geometry')
-                : t('data-products.km-lengths.table.from-ratko');
-        } else {
-            return '';
-        }
-    };
+        locationSourceString = showingPreciseLocation
+            ? gkLocationSourceString
+            : layoutLocationSourceString;
+    }
 
-    const locationConfirmed = (): string => {
-        if (showingPreciseLocation && hasGkLocation) {
-            return gkLocationConfirmed
-                ? t('data-products.km-lengths.table.confirmed')
-                : t('data-products.km-lengths.table.not-confirmed');
-        } else if (hasLayoutLocation && layoutGeometrySource !== 'GENERATED') {
-            return t('data-products.km-lengths.table.not-confirmed');
-        } else {
-            return '';
-        }
-    };
+    let locationPrecisionString = '';
+    if (!generatedRow) {
+        const gkLocationConfirmationString = gkLocationConfirmed
+            ? t('data-products.km-lengths.table.confirmed')
+            : t('data-products.km-lengths.table.not-confirmed');
+        const layoutLocationConfirmationString = t('data-products.km-lengths.table.not-confirmed');
+
+        locationPrecisionString = showingPreciseLocation
+            ? gkLocationConfirmationString
+            : layoutLocationConfirmationString;
+    }
 
     return (
         <React.Fragment>
@@ -105,7 +94,7 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
                     {roundToPrecision(length, Precision.measurementMeterDistance)}
                 </td>
                 <td>
-                    <CoordinateSystemView coordinateSystem={coordinateSystem()} />
+                    <CoordinateSystemView coordinateSystem={coordinateSystem} />
                 </td>
                 <td className={styles['data-product-table__column--number']}>
                     {location && roundToPrecision(location.x, Precision.coordinateMeters)}
@@ -113,8 +102,8 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
                 <td className={styles['data-product-table__column--number']}>
                     {location && roundToPrecision(location.y, Precision.coordinateMeters)}
                 </td>
-                <td>{locationSource()}</td>
-                <td>{locationConfirmed()}</td>
+                <td>{locationSourceString}</td>
+                <td>{locationPrecisionString}</td>
                 <td>
                     {hasLayoutLocation &&
                         (layoutGeometrySource == 'IMPORTED' ||
