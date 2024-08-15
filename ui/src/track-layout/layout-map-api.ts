@@ -32,7 +32,7 @@ import {
 import { bboxString, pointString } from 'common/common-api';
 import { getTrackLayoutPlan } from 'geometry/geometry-api';
 import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
-import { TRACK_LAYOUT_URI, contextInUri } from 'track-layout/track-layout-api';
+import { contextInUri, TRACK_LAYOUT_URI } from 'track-layout/track-layout-api';
 import { alignmentPointToLinkPoint, createLinkPoints } from 'linking/linking-store';
 import {
     deduplicate,
@@ -412,6 +412,7 @@ export async function getLinkPointsByTiles(
     layoutContext: LayoutContext,
     mapTiles: MapTile[],
     alignment: LayoutAlignmentTypeAndId,
+    includeSegmentEndPoints: boolean = false,
 ): Promise<LinkPoint[]> {
     const segmentEndMs = await getSegmentEnds(
         draftLayoutContext(layoutContext),
@@ -421,7 +422,13 @@ export async function getLinkPointsByTiles(
     );
     const tiledAlignments = await Promise.all(
         mapTiles.map((tile) =>
-            getPolyLines(tile, changeTime, draftLayoutContext(layoutContext), 'ALL'),
+            getPolyLines(
+                tile,
+                changeTime,
+                draftLayoutContext(layoutContext),
+                'ALL',
+                includeSegmentEndPoints,
+            ),
         ),
     );
     const allPieces = tiledAlignments
@@ -479,12 +486,14 @@ async function getPolyLines(
     changeTime: TimeStamp,
     layoutContext: LayoutContext,
     fetchType: AlignmentFetchType,
+    includeSegmentEndPoints: boolean = false,
 ): Promise<AlignmentPolyLine[]> {
     const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.branch}_${fetchType}`;
     const params = queryParams({
         resolution: toMapAlignmentResolution(mapTile.resolution),
         bbox: bboxString(mapTile.area),
         type: fetchType.toUpperCase(),
+        includeSegmentEndPoints: includeSegmentEndPoints,
     });
     return await alignmentPolyLinesCache.get(changeTime, tileKey, () =>
         getNonNull<AlignmentPolyLine[]>(`${mapUri(layoutContext)}/alignment-polylines${params}`),
