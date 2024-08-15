@@ -1,13 +1,10 @@
 package fi.fta.geoviite.infra.geometry
 
-import com.github.davidmoten.rtree2.RTree
-import com.github.davidmoten.rtree2.geometry.Rectangle
 import fi.fta.geoviite.infra.common.RotationDirection.CCW
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.geography.HeightTriangle
 import fi.fta.geoviite.infra.geography.KKJ2_SRID
-import fi.fta.geoviite.infra.geography.KkjTm35finTriangle
-import fi.fta.geoviite.infra.geography.Transformation
+import fi.fta.geoviite.infra.geography.geotoolsTransformation
 import fi.fta.geoviite.infra.geography.transformHeightValue
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Point3DM
@@ -19,8 +16,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
-
-val DummyTriangulationNetwork = RTree.create<KkjTm35finTriangle, Rectangle>()
 
 class TransformationTest {
 
@@ -77,21 +72,14 @@ class TransformationTest {
     @Test
     fun `Creating KKJ to TM35 transformation using non-KKJ transform throws`() {
         assertThrows<IllegalArgumentException> {
-            Transformation.nonTriangulableTransform(KKJ2_SRID, LAYOUT_SRID)
+            geotoolsTransformation(KKJ2_SRID, LAYOUT_SRID)
         }
     }
 
     @Test
     fun `Creating LAYOUT_SRID to RATKO_SRID transformation works without triangulation network`() {
         assertDoesNotThrow {
-            Transformation.nonTriangulableTransform(LAYOUT_SRID, RATKO_SRID)
-        }
-    }
-
-    @Test
-    fun `Creating KKJ to TM35 transform works with triangulation network`() {
-        assertDoesNotThrow {
-            Transformation.possiblyTriangulableTransform(LAYOUT_SRID, RATKO_SRID, DummyTriangulationNetwork, DummyTriangulationNetwork)
+            geotoolsTransformation(LAYOUT_SRID, RATKO_SRID)
         }
     }
 }

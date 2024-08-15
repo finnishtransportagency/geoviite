@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.boundingPolygonPointsByConvexHull
-import fi.fta.geoviite.infra.geography.crs
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 
@@ -27,6 +26,6 @@ fun createBoundingPolygonPoints(
     points: List<IPoint>,
     transformation: Transformation
 ): List<Point> {
-    val bounds = boundingPolygonPointsByConvexHull(points, crs(transformation.sourceSrid))
+    val bounds = boundingPolygonPointsByConvexHull(points, transformation.sourceSrid)
     return bounds.map { p -> transformation.transform(p) }
 }
