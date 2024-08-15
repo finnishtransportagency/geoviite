@@ -374,6 +374,11 @@ data class TrackLayoutSwitch(
         copy(contextData = contextData)
 }
 
+data class SwitchPlacingRequest(
+    val point: Point,
+    val layoutSwitchId: IntId<TrackLayoutSwitch>,
+)
+
 data class TrackLayoutSwitchJoint(val number: JointNumber, val location: Point, val locationAccuracy: LocationAccuracy?)
 
 enum class KmPostGkLocationSource { FROM_GEOMETRY, FROM_LAYOUT, MANUAL }

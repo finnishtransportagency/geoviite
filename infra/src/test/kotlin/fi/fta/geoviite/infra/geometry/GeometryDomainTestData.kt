@@ -403,7 +403,7 @@ fun plan(
 
 fun plan(
     trackNumber: TrackNumber = TrackNumber("001"),
-    srid: Srid = Srid(3879),
+    srid: Srid? = Srid(3879),
     alignments: List<GeometryAlignment> = listOf(geometryAlignment()),
     switches: List<GeometrySwitch> = listOf(),
     measurementMethod: MeasurementMethod? = MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY,
@@ -512,12 +512,12 @@ fun minimalPlan(
 )
 
 fun geometryLine(
-    name: String,
-    oidPart: String,
-    start: Point,
-    end: Point,
-    staStart: BigDecimal,
-    length: BigDecimal,
+    name: String = "S004",
+    oidPart: String = "3",
+    start: Point = Point(x = 385372.582, y = 6673712.000614),
+    end: Point = Point(x = 385379.2240573294, y = 6673744.810696),
+    staStart: BigDecimal = BigDecimal("543.333470"),
+    length: BigDecimal = BigDecimal("33.475639"),
     elementSwitchData: SwitchData? = null,
 ) = GeometryLine(
     elementData = ElementData(
@@ -599,18 +599,19 @@ fun geometryCant(points: List<GeometryCantPoint>) = GeometryCant(
 fun geometrySwitch(
     name: String = "TEST V001",
     switchStructureId: IntId<SwitchStructure>? = null,
+    joints: List<GeometrySwitchJoint> = listOf(
+        GeometrySwitchJoint(JointNumber(1), Point(1.0, 1.0)),
+        GeometrySwitchJoint(JointNumber(2), Point(2.0, 2.0)),
+    ),
 ) = GeometrySwitch(
     name = SwitchName(name),
     state = PlanState.EXISTING,
     switchStructureId = switchStructureId,
-    joints = listOf(
-        GeometrySwitchJoint(JointNumber(1), Point(1.0, 1.0)),
-        GeometrySwitchJoint(JointNumber(2), Point(2.0, 2.0)),
-    ),
+    joints = joints,
     typeName = GeometrySwitchTypeName("TestSwitchType"),
 )
 
-fun kmPosts(srid: Srid) = listOf(
+fun kmPosts(srid: Srid?) = listOf(
     GeometryKmPost(
         staBack = null,
         staAhead = BigDecimal("-148.729000"),
@@ -626,12 +627,14 @@ fun kmPosts(srid: Srid) = listOf(
         kmNumber = KmNumber(1),
         description = PlanElementName("1"),
         state = PlanState.PROPOSED,
-        location = transformNonKKJCoordinate(Srid(3879), srid, Point(x = 25496284.448063374, y = 6674885.339042075))
+        location = if (srid == null) null else {
+            transformNonKKJCoordinate(Srid(3879), srid, Point(x = 25496284.448063374, y = 6674885.339042075))
+        }
     )
 )
 
 fun geometryUnits(
-    srid: Srid,
+    srid: Srid?,
     coordinateSystemName: CoordinateSystemName? = null,
     verticalCoordinateSystem: VerticalCoordinateSystem? = VerticalCoordinateSystem.N2000,
 ) = GeometryUnits(

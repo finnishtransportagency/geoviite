@@ -2,7 +2,6 @@ import styles from './track-layout.module.scss';
 import * as React from 'react';
 import { MapContext } from 'map/map-store';
 import { SelectionPanelContainer } from 'selection-panel/selection-panel-container';
-import { SwitchSuggestionCreatorContainer } from 'linking/switch-suggestion-creator-container';
 import ToolPanelContainer from 'tool-panel/tool-panel-container';
 import { createClassName } from 'vayla-design-lib/utils';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
@@ -64,8 +63,6 @@ export const TrackLayoutView: React.FC<TrackLayoutViewProps> = ({
                             <ToolPanelContainer setHoveredOverItem={setHoveredOverPlanSection} />
                         </div>
                     </div>
-
-                    <SwitchSuggestionCreatorContainer />
                 </ProgressIndicatorWrapper>
             </div>
         </div>

@@ -365,12 +365,6 @@ class LinkingServiceIT @Autowired constructor(
         fun makeSomePlan(): GeometryPlan {
             val switch = geometrySwitch()
             val line = geometryLine(
-                "S004",
-                "3",
-                Point(x = 385372.582, y = 6673712.000614),
-                Point(x = 385379.2240573294, y = 6673744.810696),
-                BigDecimal("543.333470"),
-                BigDecimal("33.475639"),
                 elementSwitchData = SwitchData(
                     switchId = switch.id, null, null
                 )

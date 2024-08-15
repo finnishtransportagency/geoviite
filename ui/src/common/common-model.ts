@@ -210,11 +210,6 @@ export type LocationTrackOwner = {
 
 export type RowVersion = string;
 
-export enum LocationTrackPointUpdateType {
-    END_POINT = 'END_POINT',
-    START_POINT = 'START_POINT',
-}
-
 export enum LayoutEndPoint {
     SWITCH = 'SWITCH', // vaihde
     LOCATION_TRACK = 'LOCATION_TRACK',

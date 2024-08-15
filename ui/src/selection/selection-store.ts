@@ -38,7 +38,6 @@ export function createEmptyItemCollections(): ItemCollections {
         geometryLinkPoints: [],
         clusterPoints: [],
         suggestedSwitches: [],
-        locationTrackEndPoints: [],
         geometryPlans: [],
     };
 }
@@ -200,11 +199,6 @@ function updateItemCollectionsByOptions(
         options['suggestedSwitches'],
         flags,
     );
-    itemCollections['locationTrackEndPoints'] = getNewItemCollection(
-        itemCollections['locationTrackEndPoints'],
-        options['locationTrackEndPoints'],
-        flags,
-    );
     itemCollections['geometryPlans'] = getNewIdCollection(
         itemCollections['geometryPlans'],
         options['geometryPlans'],
@@ -255,10 +249,6 @@ function updateItemCollectionsByUnselecting(
     itemCollections['suggestedSwitches'] = filterItemCollection(
         itemCollections['suggestedSwitches'],
         unselectItemCollections['suggestedSwitches'],
-    );
-    itemCollections['locationTrackEndPoints'] = filterItemCollection(
-        itemCollections['locationTrackEndPoints'],
-        unselectItemCollections['locationTrackEndPoints'],
     );
     itemCollections['geometryPlans'] = filterIdCollection(
         itemCollections['geometryPlans'],

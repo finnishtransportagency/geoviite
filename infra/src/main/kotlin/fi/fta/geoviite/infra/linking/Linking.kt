@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.switchLibrary.*
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
+import java.lang.RuntimeException
 
 enum class LocationTrackPointUpdateType {
     START_POINT, END_POINT
@@ -84,12 +85,8 @@ data class TopologyLinkFindingSwitch(
 )
 
 data class FittedSwitch(
-    val name: SwitchName,
-    val switchStructureId: IntId<SwitchStructure>,
+    val switchStructure: SwitchStructure,
     val joints: List<FittedSwitchJoint>,
-    val alignmentEndPoint: LocationTrackEndpoint?,
-    val geometrySwitchId: IntId<GeometrySwitch>? = null,
-    val geometryPlanId: IntId<GeometryPlan>? = null,
 )
 
 data class SuggestedSwitch(
@@ -97,7 +94,6 @@ data class SuggestedSwitch(
     val joints: List<TrackLayoutSwitchJoint>,
     val trackLinks: Map<IntId<LocationTrack>, SwitchLinkingTrackLinks>,
     val geometrySwitchId: IntId<GeometrySwitch>? = null,
-    val alignmentEndPoint: LocationTrackEndpoint? = null,
     val name: SwitchName,
 )
 
@@ -159,24 +155,6 @@ data class TrackLayoutKmPostSaveRequest(
     val gkLocation: GeometryPoint?,
 )
 
-data class LocationTrackEndpoint(
-    val locationTrackId: IntId<LocationTrack>,
-    val location: Point,
-    val updateType: LocationTrackPointUpdateType,
-)
-
-data class SuggestedSwitchCreateParamsAlignmentMapping(
-    val switchAlignmentId: StringId<SwitchAlignment>,
-    val locationTrackId: IntId<LocationTrack>,
-    val ascending: Boolean? = null,
-)
-
-data class SuggestedSwitchCreateParams(
-    val locationTrackEndpoint: LocationTrackEndpoint,
-    val switchStructureId: IntId<SwitchStructure>?,
-    val alignmentMappings: List<SuggestedSwitchCreateParamsAlignmentMapping>,
-)
-
 data class KmPostLinkingParameters(
     val geometryPlanId: IntId<GeometryPlan>,
     val geometryKmPostId: IntId<GeometryKmPost>,
@@ -198,3 +176,22 @@ data class TrackSwitchRelinkingResult(
     val id: IntId<TrackLayoutSwitch>,
     val outcome: TrackSwitchRelinkingResultType
 )
+
+sealed class GeometrySwitchSuggestionResult
+data class GeometrySwitchSuggestionSuccess(val switch: SuggestedSwitch) : GeometrySwitchSuggestionResult()
+data class GeometrySwitchSuggestionFailure(val failure: GeometrySwitchSuggestionFailureReason) :
+    GeometrySwitchSuggestionResult()
+
+enum class GeometrySwitchSuggestionFailureReason {
+    RELATED_TRACKS_NOT_LINKED,
+    NO_SWITCH_STRUCTURE_ID_ON_SWITCH,
+    NO_SRID_ON_PLAN,
+    INVALID_JOINTS,
+    LESS_THAN_TWO_JOINTS,
+}
+
+sealed class GeometrySwitchFittingResult
+data class GeometrySwitchFittingSuccess(val switch: FittedSwitch) : GeometrySwitchFittingResult()
+data class GeometrySwitchFittingFailure(val failure: GeometrySwitchSuggestionFailureReason) :
+    GeometrySwitchFittingResult()
+data class GeometrySwitchFittingException(val failure: GeometrySwitchSuggestionFailureReason) : RuntimeException()

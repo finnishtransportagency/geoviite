@@ -1,9 +1,5 @@
 import { filterNotEmpty, filterUnique, first, last, objectEntries } from 'utils/array-utils';
-import {
-    SuggestedSwitch,
-    SuggestedSwitchJoint,
-    TopologicalJointConnection,
-} from 'linking/linking-model';
+import { SuggestedSwitch, TopologicalJointConnection } from 'linking/linking-model';
 import { JointNumber, LayoutContext } from 'common/common-model';
 import {
     LayoutLocationTrack,
@@ -94,33 +90,6 @@ export function getLocationTracksForJointConnections(
     );
 }
 
-export function getSuggestedSwitchId(suggestedSwitch: SuggestedSwitch): string {
-    return `${suggestedSwitch.geometrySwitchId}_${
-        suggestedSwitch.alignmentEndPoint?.locationTrackId
-    }_${Object.entries(suggestedSwitch.trackLinks).map(
-        ([t, js]) =>
-            t +
-            js.segmentJoints.map((j) => j.number + j.segmentIndex + j.m) +
-            (js.topologyJoint ? js.topologyJoint.number + js.topologyJoint.trackEnd : ''),
-    )}`;
-}
-
-export function asTrackLayoutSwitchJointConnection({
-    location,
-    number,
-    matches,
-    locationAccuracy,
-}: SuggestedSwitchJoint): LayoutSwitchJointConnection {
-    return {
-        accurateMatches: matches.map((m) => ({
-            locationTrackId: m.locationTrackId,
-            location: location,
-        })),
-        number: number,
-        locationAccuracy: locationAccuracy,
-    };
-}
-
 export function suggestedSwitchJointsAsLayoutSwitchJointConnections(
     ss: SuggestedSwitch,
 ): LayoutSwitchJointConnection[] {
@@ -166,23 +135,26 @@ export function combineLocationTrackIds(
     }
 
     return Object.values(
-        locationTracks.flat().reduce((acc, locationTrack) => {
-            const jointNumber = locationTrack.jointNumber;
+        locationTracks.flat().reduce(
+            (acc, locationTrack) => {
+                const jointNumber = locationTrack.jointNumber;
 
-            if (acc[jointNumber]) {
-                acc[jointNumber] = {
-                    jointNumber: jointNumber,
-                    locationTrackIds: expectDefined(
-                        acc[jointNumber]?.locationTrackIds
-                            .concat(locationTrack.locationTrackIds)
-                            .filter(filterUnique),
-                    ),
-                };
-            } else {
-                acc[jointNumber] = locationTrack;
-            }
+                if (acc[jointNumber]) {
+                    acc[jointNumber] = {
+                        jointNumber: jointNumber,
+                        locationTrackIds: expectDefined(
+                            acc[jointNumber]?.locationTrackIds
+                                .concat(locationTrack.locationTrackIds)
+                                .filter(filterUnique),
+                        ),
+                    };
+                } else {
+                    acc[jointNumber] = locationTrack;
+                }
 
-            return acc;
-        }, {} as { [key: JointNumber]: LocationTracksEndingAtJoint }),
+                return acc;
+            },
+            {} as { [key: JointNumber]: LocationTracksEndingAtJoint },
+        ),
     );
 }

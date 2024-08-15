@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.error.LinkingFailureException
-import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geography.transformToGKCoordinate
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
@@ -51,7 +50,6 @@ class LinkingService @Autowired constructor(
     private val locationTrackService: LocationTrackService,
     private val layoutKmPostService: LayoutKmPostService,
     private val linkingDao: LinkingDao,
-    private val coordinateTransformationService: CoordinateTransformationService,
     private val splitService: SplitService,
 ) {
 

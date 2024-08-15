@@ -4,14 +4,14 @@ import { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize } from 'vayla-design-lib/button/button';
-import { LinkingState } from 'linking/linking-model';
+import { GeometrySwitchInvalidityReason, LinkingState } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
 
 type GeometrySwitchLinkingInitiationProps = {
     linkingState: LinkingState | undefined;
     hasSuggestedSwitch: boolean;
-    isValidGeometrySwitch: boolean;
+    geometrySwitchInvalidityReason: GeometrySwitchInvalidityReason | undefined;
     onStartLinking: () => void;
 };
 
@@ -19,37 +19,31 @@ export const GeometrySwitchLinkingInitiation: React.FC<GeometrySwitchLinkingInit
     linkingState,
     hasSuggestedSwitch,
     onStartLinking,
-    isValidGeometrySwitch,
+    geometrySwitchInvalidityReason,
 }) => {
     const { t } = useTranslation();
     return (
         <PrivilegeRequired privilege={EDIT_LAYOUT}>
             {linkingState === undefined &&
-                (!isValidGeometrySwitch ? (
+                (geometrySwitchInvalidityReason !== undefined ? (
                     <InfoboxContentSpread>
                         <MessageBox>
                             {t(
-                                'tool-panel.switch.geometry.cannot-start-switch-linking-insufficient-geometry-switch-joints',
+                                `tool-panel.switch.geometry.cannot-start-switch-linking.${geometrySwitchInvalidityReason.toLowerCase().replaceAll('_', '-')}`,
                             )}
                         </MessageBox>
                     </InfoboxContentSpread>
-                ) : hasSuggestedSwitch ? (
-                    <InfoboxButtons>
-                        <Button
-                            size={ButtonSize.SMALL}
-                            qa-id="start-geometry-switch-linking"
-                            onClick={onStartLinking}>
-                            {t('tool-panel.switch.geometry.start-setup')}
-                        </Button>
-                    </InfoboxButtons>
                 ) : (
-                    <InfoboxContentSpread>
-                        <MessageBox>
-                            {t(
-                                'tool-panel.switch.geometry.cannot-start-switch-linking-related-tracks-not-linked-msg',
-                            )}
-                        </MessageBox>
-                    </InfoboxContentSpread>
+                    hasSuggestedSwitch && (
+                        <InfoboxButtons>
+                            <Button
+                                size={ButtonSize.SMALL}
+                                qa-id="start-geometry-switch-linking"
+                                onClick={onStartLinking}>
+                                {t('tool-panel.switch.geometry.start-setup')}
+                            </Button>
+                        </InfoboxButtons>
+                    )
                 ))}
         </PrivilegeRequired>
     );

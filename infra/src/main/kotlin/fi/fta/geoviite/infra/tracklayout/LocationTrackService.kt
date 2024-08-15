@@ -17,9 +17,6 @@ import fi.fta.geoviite.infra.error.SplitSourceLocationTrackUpdateException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
-import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.END_POINT
-import fi.fta.geoviite.infra.linking.LocationTrackPointUpdateType.START_POINT
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.TopologyLinkFindingSwitch
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
@@ -593,11 +590,6 @@ class LocationTrackService(
         )
     }
 
-    @Transactional(readOnly = true)
-    fun getLocationTrackEndpoints(layoutContext: LayoutContext, bbox: BoundingBox): List<LocationTrackEndpoint> {
-        return getLocationTrackEndpoints(listWithAlignments(layoutContext), bbox)
-    }
-
     fun getLocationTrackOwners(): List<LocationTrackOwner> {
         return dao.fetchLocationTrackOwners()
     }
@@ -811,21 +803,6 @@ private fun pickIfClose(
     } else {
         null
     }
-
-fun getLocationTrackEndpoints(
-    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
-    bbox: BoundingBox,
-): List<LocationTrackEndpoint> = locationTracks.flatMap { (locationTrack, alignment) ->
-    val trackId = locationTrack.id as IntId
-    listOfNotNull(
-        alignment.firstSegmentStart?.takeIf(bbox::contains)?.let { p ->
-            LocationTrackEndpoint(trackId, p.toPoint(), START_POINT)
-        },
-        alignment.lastSegmentEnd?.takeIf(bbox::contains)?.let { p ->
-            LocationTrackEndpoint(trackId, p.toPoint(), END_POINT)
-        },
-    )
-}
 
 fun locationTrackWithAlignment(
     locationTrackDao: LocationTrackDao,
