@@ -61,7 +61,7 @@ export const KilometerLengthsView = () => {
                         onUpdateProp={dataProductsDelegates.onUpdateKmLengthsSearchProp}
                         setLoading={setLoading}
                         locationPrecision={state.locationPrecision}
-                        setLocationPrecision={dataProductsDelegates.setKmLengthsPrecision}
+                        setLocationPrecision={dataProductsDelegates.setKmLengthsLocationPrecision}
                     />
                 )}
                 {state.selectedSearch === 'ENTIRE_RAIL_NETWORK' && (

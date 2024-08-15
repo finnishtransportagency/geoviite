@@ -11,8 +11,10 @@ import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.FIN_GK23_SRID
 import fi.fta.geoviite.infra.geography.GeometryPoint
+import fi.fta.geoviite.infra.geography.transformToGKCoordinate
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -145,6 +147,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
             ), kmLengths.first()
         )
 
+        val kmPostLocation1 = kmPostDao.fetch(kmPostVersions[0]).layoutLocation
         assertEquals(
             TrackLayoutKmLengthDetails(
                 trackNumber = trackNumber.number,
@@ -152,14 +155,16 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 startM = BigDecimal(1).setScale(3),
                 endM = BigDecimal(3).setScale(3),
                 locationSource = GeometrySource.IMPORTED,
-                location = kmPostDao.fetch(kmPostVersions[0]).layoutLocation,
-                gkLocation = GeometryPoint(x = 2.3445593612704854E7, y = 0.0, srid = FIN_GK23_SRID),
+                location = kmPostLocation1,
+                gkLocation = null,
                 gkLocationConfirmed = false,
                 gkLocationSource = null,
                 linkedFromGeometry = false,
-            ), kmLengths[1]
+            ), kmLengths[1].copy(gkLocation = null)
         )
+        assertApproximatelyEquals(transformToGKCoordinate(LAYOUT_SRID, kmPostLocation1!!), kmLengths[1].gkLocation!!, 0.01)
 
+        val kmPostLocation2 = kmPostDao.fetch(kmPostVersions[1]).layoutLocation
         assertEquals(
             TrackLayoutKmLengthDetails(
                 trackNumber = trackNumber.number,
@@ -167,13 +172,14 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 startM = BigDecimal(3).setScale(3),
                 endM = BigDecimal(4).setScale(3),
                 locationSource = GeometrySource.IMPORTED,
-                location = kmPostDao.fetch(kmPostVersions[1]).layoutLocation,
-                gkLocation = GeometryPoint(x = 2.344559560739986E7, y = 0.0, srid = FIN_GK23_SRID),
+                location = kmPostLocation2,
+                gkLocation = null,
                 gkLocationConfirmed = false,
                 gkLocationSource = null,
                 linkedFromGeometry = false,
-            ), kmLengths[2]
+            ), kmLengths[2].copy(gkLocation = null)
         )
+        assertApproximatelyEquals(transformToGKCoordinate(LAYOUT_SRID, kmPostLocation2!!), kmLengths[2].gkLocation!!, 0.01)
     }
 
     @Test
@@ -237,6 +243,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
             kmLengths.first(),
         )
 
+        val kmPostLocation = kmPostDao.fetch(kmPostVersions[0]).layoutLocation
         assertEquals(
             TrackLayoutKmLengthDetails(
                 trackNumber = trackNumber.number,
@@ -244,14 +251,15 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 startM = BigDecimal(1).setScale(3),
                 endM = BigDecimal(4).setScale(3),
                 locationSource = GeometrySource.IMPORTED,
-                location = kmPostDao.fetch(kmPostVersions[0]).layoutLocation,
-                gkLocation = GeometryPoint(x = 2.3445593612704854E7, y = 0.0, srid = FIN_GK23_SRID),
+                location = kmPostLocation,
+                gkLocation = null,
                 gkLocationConfirmed = false,
                 gkLocationSource = null,
                 linkedFromGeometry = false,
             ),
-            kmLengths.last(),
+            kmLengths.last().copy(gkLocation = null),
         )
+        assertApproximatelyEquals(transformToGKCoordinate(LAYOUT_SRID, kmPostLocation!!), kmLengths.last().gkLocation!!, 0.01)
     }
 
     fun createTrackNumberAndReferenceLineAndAlignment(): Triple<TrackLayoutTrackNumber, ReferenceLine, LayoutAlignment> {

@@ -3,11 +3,11 @@ import { Precision, roundToPrecision } from 'utils/rounding';
 import styles from '../data-product-table.scss';
 import { GeometrySource, GkLocationSource, LAYOUT_SRID } from 'track-layout/track-layout-model';
 import { useTranslation } from 'react-i18next';
-import { LocationPrecision } from 'data-products/kilometer-lengths/kilometer-lengths-search';
 import { CoordinateSystem } from 'common/common-model';
 import { GeometryPoint } from 'model/geometry';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import { useCoordinateSystem } from 'track-layout/track-layout-react-utils';
+import { KmLengthsLocationPrecision } from 'data-products/data-products-slice';
 
 export type KilometerLengthsTableItemProps = {
     trackNumber: string | undefined;
@@ -22,7 +22,7 @@ export type KilometerLengthsTableItemProps = {
     gkLocation: GeometryPoint | undefined;
     gkLocationPrecision: GkLocationSource | undefined;
     gkLocationConfirmed: boolean;
-    locationPrecision: LocationPrecision;
+    locationPrecision: KmLengthsLocationPrecision;
     linkedFromGeometry: boolean;
 };
 

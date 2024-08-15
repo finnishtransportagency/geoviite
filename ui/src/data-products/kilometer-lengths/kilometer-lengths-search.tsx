@@ -15,13 +15,14 @@ import {
     getKmPostsOnTrackNumber,
 } from 'track-layout/layout-km-post-api';
 import { getVisibleErrorsByProp } from 'data-products/data-products-utils';
-import { KmLengthsSearchState } from 'data-products/data-products-slice';
+import {
+    KmLengthsLocationPrecision,
+    KmLengthsSearchState,
+} from 'data-products/data-products-slice';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 import { officialMainLayoutContext } from 'common/common-model';
 import { Radio } from 'vayla-design-lib/radio/radio';
-
-export type LocationPrecision = 'PRECISE' | 'LAYOUT';
 
 type KilometerLengthsSearchProps = {
     state: KmLengthsSearchState;
@@ -30,8 +31,8 @@ type KilometerLengthsSearchProps = {
     ) => void;
     setLengths: (lengths: LayoutKmLengthDetails[]) => void;
     setLoading: (isLoading: boolean) => void;
-    locationPrecision: LocationPrecision;
-    setLocationPrecision: (precision: LocationPrecision) => void;
+    locationPrecision: KmLengthsLocationPrecision;
+    setLocationPrecision: (precision: KmLengthsLocationPrecision) => void;
 };
 
 export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({

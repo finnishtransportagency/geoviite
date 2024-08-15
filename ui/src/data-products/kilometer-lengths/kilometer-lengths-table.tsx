@@ -9,12 +9,12 @@ import {
 } from 'data-products/data-products-utils';
 import { KilometerLengthTableItem } from 'data-products/kilometer-lengths/kilometer-lengths-table-item';
 import { LayoutKmLengthDetails } from 'track-layout/track-layout-model';
-import { LocationPrecision } from 'data-products/kilometer-lengths/kilometer-lengths-search';
+import { KmLengthsLocationPrecision } from 'data-products/data-products-slice';
 
 type KilometerLengthsTableProps = {
     kmLengths: LayoutKmLengthDetails[];
     isLoading: boolean;
-    locationPrecision: LocationPrecision;
+    locationPrecision: KmLengthsLocationPrecision;
 };
 
 const KilometerLengthsTable = ({

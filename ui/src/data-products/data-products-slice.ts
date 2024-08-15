@@ -22,7 +22,6 @@ import {
 } from 'track-layout/track-layout-model';
 import { wrapReducers } from 'store/store-utils';
 import { PURGE } from 'redux-persist';
-import { LocationPrecision } from 'data-products/kilometer-lengths/kilometer-lengths-search';
 
 type SearchGeometries = {
     searchLines: boolean;
@@ -66,6 +65,7 @@ export type PlanVerticalGeometrySearchState = {
 };
 
 export type SelectedKmLengthsSearch = 'TRACK_NUMBER' | 'ENTIRE_RAIL_NETWORK';
+export type KmLengthsLocationPrecision = 'PRECISE' | 'LAYOUT';
 
 export type KmLengthsSearchState = {
     trackNumber: LayoutTrackNumber | undefined;
@@ -77,7 +77,7 @@ export type KmLengthsSearchState = {
     kmLengths: LayoutKmLengthDetails[];
 
     selectedSearch: SelectedKmLengthsSearch;
-    locationPrecision: LocationPrecision;
+    locationPrecision: KmLengthsLocationPrecision;
 };
 
 enum MissingSection {
@@ -519,9 +519,9 @@ const dataProductsSlice = createSlice({
         ) {
             state.kmLenghts.selectedSearch = search;
         },
-        setKmLengthsPrecision: (
+        setKmLengthsLocationPrecision: (
             state: DataProductsState,
-            { payload: precision }: PayloadAction<LocationPrecision>,
+            { payload: precision }: PayloadAction<KmLengthsLocationPrecision>,
         ) => {
             state.kmLenghts.locationPrecision = precision;
         },
