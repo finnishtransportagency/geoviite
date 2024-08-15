@@ -174,12 +174,12 @@ private fun asCsvFile(items: List<TrackLayoutKmLengthDetails>, translation: Tran
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.station-start" to { it.startM },
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.station-end" to { it.endM },
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.length" to { it.length },
-        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-e" to { it.location?.x?.let(::roundTo3Decimals) },
-        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-n" to { it.location?.y?.let(::roundTo3Decimals) },
+        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-e" to { it.layoutLocation?.x?.let(::roundTo3Decimals) },
+        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-n" to { it.layoutLocation?.y?.let(::roundTo3Decimals) },
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.warning" to { kmPost ->
-            if (kmPost.location != null && kmPost.locationSource == GeometrySource.IMPORTED) {
+            if (kmPost.layoutLocation != null && kmPost.layoutGeometrySource == GeometrySource.IMPORTED) {
                 translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.imported-warning")
-            } else if (kmPost.location != null && kmPost.locationSource == GeometrySource.GENERATED) {
+            } else if (kmPost.layoutLocation != null && kmPost.layoutGeometrySource == GeometrySource.GENERATED) {
                 translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.generated-warning")
             } else {
                 ""
@@ -206,12 +206,12 @@ private fun extractTrackKmLengths(
             kmNumber = startPoint.address.kmNumber,
             startM = roundTo3Decimals(context.startAddress.meters.negate()),
             endM = roundTo3Decimals(distances.firstOrNull()?.second ?: referenceLineLength),
-            locationSource = GeometrySource.GENERATED,
-            location = startPoint.point.toPoint(),
+            layoutGeometrySource = GeometrySource.GENERATED,
+            layoutLocation = startPoint.point.toPoint(),
             gkLocation = null,
             gkLocationConfirmed = false,
             gkLocationSource = null,
-            linkedFromGeometry = false,
+            gkLocationLinkedFromGeometry = false,
         )
     ) + distances.mapIndexed { index, (kmPost, startM) ->
         val endM = distances.getOrNull(index + 1)?.second ?: referenceLineLength
@@ -221,12 +221,12 @@ private fun extractTrackKmLengths(
             kmNumber = kmPost.kmNumber,
             startM = roundTo3Decimals(startM),
             endM = roundTo3Decimals(endM),
-            location = kmPost.layoutLocation,
+            layoutLocation = kmPost.layoutLocation,
             gkLocation = kmPost.gkLocation,
-            locationSource = if (kmPost.sourceId != null) GeometrySource.PLAN else GeometrySource.IMPORTED,
+            layoutGeometrySource = if (kmPost.sourceId != null) GeometrySource.PLAN else GeometrySource.IMPORTED,
             gkLocationConfirmed = kmPost.gkLocationConfirmed,
             gkLocationSource = kmPost.gkLocationSource,
-            linkedFromGeometry = kmPost.sourceId !== null,
+            gkLocationLinkedFromGeometry = kmPost.sourceId !== null,
         )
     }
 }

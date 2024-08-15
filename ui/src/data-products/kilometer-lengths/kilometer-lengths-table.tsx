@@ -72,12 +72,12 @@ const KilometerLengthsTable = ({
                                     startM={item.startM}
                                     endM={item.endM}
                                     coordinateSystem={item.coordinateSystem}
-                                    layoutLocation={item.location}
-                                    source={item.locationSource}
+                                    layoutLocation={item.layoutLocation}
+                                    layoutGeometrySource={item.layoutLocationSource}
                                     gkLocation={item.gkLocation}
-                                    gkLocationPrecision={item.gkLocationSource}
+                                    gkLocationSource={item.gkLocationSource}
                                     gkLocationConfirmed={item.gkLocationConfirmed}
-                                    linkedFromGeometry={item.linkedFromGeometry}
+                                    linkedFromGeometry={item.gkLocationLinkedFromGeometry}
                                 />
                             </React.Fragment>
                         ))}

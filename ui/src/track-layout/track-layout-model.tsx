@@ -298,12 +298,12 @@ export type LayoutKmLengthDetails = {
     startM: number;
     endM: number;
     coordinateSystem: CoordinateSystem;
-    locationSource: GeometrySource;
-    location?: Point;
+    layoutLocationSource: GeometrySource;
+    layoutLocation?: Point;
     gkLocation?: GeometryPoint;
     gkLocationSource?: GkLocationSource;
     gkLocationConfirmed: boolean;
-    linkedFromGeometry: boolean;
+    gkLocationLinkedFromGeometry: boolean;
 };
 
 export type PlanArea = {

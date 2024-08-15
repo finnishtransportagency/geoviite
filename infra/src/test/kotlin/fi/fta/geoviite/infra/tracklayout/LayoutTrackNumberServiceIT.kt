@@ -5,12 +5,9 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import fi.fta.geoviite.infra.geography.FIN_GK23_SRID
-import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.transformToGKCoordinate
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
@@ -138,12 +135,12 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 kmNumber = KmNumber(1),
                 startM = BigDecimal(-0.5).setScale(3),
                 endM = BigDecimal(1).setScale(3),
-                locationSource = GeometrySource.GENERATED,
-                location = Point(0.0, 0.0),
+                layoutGeometrySource = GeometrySource.GENERATED,
+                layoutLocation = Point(0.0, 0.0),
                 gkLocation = null,
                 gkLocationConfirmed = false,
                 gkLocationSource = null,
-                linkedFromGeometry = false,
+                gkLocationLinkedFromGeometry = false,
             ), kmLengths.first()
         )
 
@@ -154,12 +151,12 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 kmNumber = KmNumber(2),
                 startM = BigDecimal(1).setScale(3),
                 endM = BigDecimal(3).setScale(3),
-                locationSource = GeometrySource.IMPORTED,
-                location = kmPostLocation1,
+                layoutGeometrySource = GeometrySource.IMPORTED,
+                layoutLocation = kmPostLocation1,
                 gkLocation = null,
                 gkLocationConfirmed = false,
                 gkLocationSource = null,
-                linkedFromGeometry = false,
+                gkLocationLinkedFromGeometry = false,
             ), kmLengths[1].copy(gkLocation = null)
         )
         assertApproximatelyEquals(transformToGKCoordinate(LAYOUT_SRID, kmPostLocation1!!), kmLengths[1].gkLocation!!, 0.01)
@@ -171,12 +168,12 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 kmNumber = KmNumber(3),
                 startM = BigDecimal(3).setScale(3),
                 endM = BigDecimal(4).setScale(3),
-                locationSource = GeometrySource.IMPORTED,
-                location = kmPostLocation2,
+                layoutGeometrySource = GeometrySource.IMPORTED,
+                layoutLocation = kmPostLocation2,
                 gkLocation = null,
                 gkLocationConfirmed = false,
                 gkLocationSource = null,
-                linkedFromGeometry = false,
+                gkLocationLinkedFromGeometry = false,
             ), kmLengths[2].copy(gkLocation = null)
         )
         assertApproximatelyEquals(transformToGKCoordinate(LAYOUT_SRID, kmPostLocation2!!), kmLengths[2].gkLocation!!, 0.01)
@@ -233,12 +230,12 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 kmNumber = KmNumber(1),
                 startM = BigDecimal(-0.5).setScale(3),
                 endM = BigDecimal(1).setScale(3),
-                locationSource = GeometrySource.GENERATED,
-                location = Point(0.0, 0.0),
+                layoutGeometrySource = GeometrySource.GENERATED,
+                layoutLocation = Point(0.0, 0.0),
                 gkLocation = null,
                 gkLocationConfirmed = false,
                 gkLocationSource = null,
-                linkedFromGeometry = false,
+                gkLocationLinkedFromGeometry = false,
             ),
             kmLengths.first(),
         )
@@ -250,12 +247,12 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 kmNumber = KmNumber(2),
                 startM = BigDecimal(1).setScale(3),
                 endM = BigDecimal(4).setScale(3),
-                locationSource = GeometrySource.IMPORTED,
-                location = kmPostLocation,
+                layoutGeometrySource = GeometrySource.IMPORTED,
+                layoutLocation = kmPostLocation,
                 gkLocation = null,
                 gkLocationConfirmed = false,
                 gkLocationSource = null,
-                linkedFromGeometry = false,
+                gkLocationLinkedFromGeometry = false,
             ),
             kmLengths.last().copy(gkLocation = null),
         )
