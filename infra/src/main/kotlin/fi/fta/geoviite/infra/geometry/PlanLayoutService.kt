@@ -32,12 +32,12 @@ class PlanLayoutService(
         pointListStepLength: Int = 1,
     ): List<Pair<GeometryPlanLayout?, TransformationError?>> = planIds
         .map { planId ->
-            val planVersion = geometryDao.fetchPlanVersion(planId)
-            planLayoutCache.prepareGetPlanLayout(planVersion, includeGeometryData)
+            handlePointListStepLength(
+                planLayoutCache.getPlanLayout(
+                    geometryDao.fetchPlanVersion(planId), includeGeometryData
+                ), includeGeometryData, pointListStepLength
+            )
         }
-        .parallelStream()
-        .map { process -> handlePointListStepLength(process(), includeGeometryData, pointListStepLength) }
-        .collect(Collectors.toList())
 
     private fun handlePointListStepLength(
         layoutResult: Pair<GeometryPlanLayout?, TransformationError?>,
