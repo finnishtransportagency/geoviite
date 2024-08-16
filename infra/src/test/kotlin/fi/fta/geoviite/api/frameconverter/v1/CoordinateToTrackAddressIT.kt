@@ -4,16 +4,10 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.TestLayoutContext
-import fi.fta.geoviite.infra.authorization.AuthName
 import fi.fta.geoviite.infra.authorization.AuthorizationService
-import fi.fta.geoviite.infra.authorization.IntegrationApiUserType
-import fi.fta.geoviite.infra.authorization.User
-import fi.fta.geoviite.infra.authorization.UserDetails
-import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutContext
-import fi.fta.geoviite.infra.error.ApiUnauthorizedException
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
@@ -30,7 +24,6 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
-import fi.fta.geoviite.infra.util.Code
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -74,19 +67,12 @@ private data class GeocodableTrack(
 class CoordinateToTrackAddressIT @Autowired constructor(
     mockMvc: MockMvc,
 
-    val authorizationService: AuthorizationService,
     val trackNumberDao: LayoutTrackNumberDao,
     val referenceLineDao: ReferenceLineDao,
     val locationTrackService: LocationTrackService,
     val locationTrackDao: LocationTrackDao,
     val layoutKmPostDao: LayoutKmPostDao,
 ) : DBTestBase() {
-
-    val testHttpHeaders by lazy {
-        HttpHeaders().apply {
-            add("X-Forwarded-Host", "avoinapi.example.test")
-        }
-    }
 
     private val mapper = ObjectMapper().apply {
         setSerializationInclusion(JsonInclude.Include.NON_NULL)
@@ -104,8 +90,8 @@ class CoordinateToTrackAddressIT @Autowired constructor(
         val params = mapOf("x" to "0.0")
 
         val requests = listOf(
-            testApi.doGetWithParams(API_URL, params, HttpStatus.OK, testHttpHeaders),
-            testApi.doPostWithParams(API_URL, params, HttpStatus.OK, testHttpHeaders),
+            testApi.doGetWithParams(API_URL, params, HttpStatus.OK),
+            testApi.doPostWithParams(API_URL, params, HttpStatus.OK),
         )
 
         requests.forEach { request ->
