@@ -6,7 +6,8 @@
     min-width: 494px;
     width: 100%;
 
-    background-image: url('geoviite-design-lib/frontpage-background.jpeg');
+    background: #bbb url('geoviite-design-lib/frontpage-background.jpeg');
+    background-blend-mode: color-burn;
     background-size: cover;
     background-position: right center;
 }
