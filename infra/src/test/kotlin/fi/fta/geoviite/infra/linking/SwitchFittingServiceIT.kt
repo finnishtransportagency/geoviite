@@ -124,7 +124,7 @@ class SwitchFittingServiceIT @Autowired constructor(
 
 
     private fun yv60SwitchId() =
-        switchLibraryService.getSwitchStructureByType(SwitchType("YV60-300-1:9-O"))!!.id as IntId
+        switchLibraryService.getSwitchStructures().find { it.type == SwitchType("YV60-300-1:9-O") }!!.id as IntId
 
     private fun firstSwitchFitResult(
         plan: GeometryPlan,
