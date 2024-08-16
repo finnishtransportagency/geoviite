@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.linking
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
-import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.linking.switches.*
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
@@ -13,7 +12,6 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_10_V
 import fi.fta.geoviite.infra.switchLibrary.data.YV60_300_1_9_O
 import fi.fta.geoviite.infra.tracklayout.*
-import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -1041,8 +1039,8 @@ class SwitchLinkingTest {
 
         val point1 = Point(10.0, 10.0)
         val point2 = Point(12.0, 10.0)
-        val point3_1 = Point(10.0, 12.0)
-        val point3_2 = Point(10.0, 13.0)
+        val point3e1 = Point(10.0, 12.0)
+        val point3e2 = Point(10.0, 13.0)
 
         // Linked from the start only -> second point shouldn't matter
         val track1 = locationTrack(
@@ -1059,7 +1057,7 @@ class SwitchLinkingTest {
         // Linked by segment ends -> both points matter
         val track3 = locationTrack(tnId) to alignment(
             segment(
-                point3_1, point3_2,
+                point3e1, point3e2,
                 switchId = switchId,
                 startJointNumber = JointNumber(1),
                 endJointNumber = JointNumber(2),
@@ -1067,7 +1065,7 @@ class SwitchLinkingTest {
         )
 
         assertEquals(
-            boundingBoxAroundPoints(point1, point2, point3_1, point3_2),
+            boundingBoxAroundPoints(point1, point2, point3e1, point3e2),
             getSwitchBoundsFromTracks(listOf(track1, track2, track3), switchId),
         )
     }
