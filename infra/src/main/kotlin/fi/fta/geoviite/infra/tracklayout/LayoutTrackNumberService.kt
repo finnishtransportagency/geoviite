@@ -20,6 +20,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.util.CsvEntry
+import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.printCsv
 import org.springframework.transaction.annotation.Transactional
 import java.util.stream.Collectors
@@ -204,12 +205,10 @@ private fun asCsvFile(
             )?.y?.let(::roundTo3Decimals)
         },
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-source" to {
-            translation.t(
-                locationSourceTranslationKey(
-                    it,
-                    precision
-                )
-            )
+            locationSourceTranslationKey(
+                it,
+                precision
+            )?.let(translation::t) ?: ""
         },
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-confirmed" to {
             if (isGeneratedRow(it)) {
@@ -221,9 +220,12 @@ private fun asCsvFile(
             }
         },
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.warning" to { kmPost ->
-            if (kmPost.layoutLocation != null
-                && kmPost.layoutGeometrySource == GeometrySource.IMPORTED
-                || kmPost.gkLocationSource == KmPostGkLocationSource.FROM_LAYOUT) {
+            if (precision === KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT
+                    && kmPost.layoutLocation != null
+                    && kmPost.layoutGeometrySource == GeometrySource.IMPORTED) {
+                translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.imported-warning")
+            } else if (precision === KmLengthsLocationPrecision.PRECISE_LOCATION
+                && kmPost.gkLocationSource == KmPostGkLocationSource.FROM_LAYOUT) {
                 translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.imported-warning")
             } else if (kmPost.layoutLocation != null && kmPost.layoutGeometrySource == GeometrySource.GENERATED) {
                 translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.generated-warning")
@@ -242,23 +244,23 @@ private fun isGeneratedRow(kmPost: TrackLayoutKmLengthDetails): Boolean =
 private fun locationSourceTranslationKey(
     kmPost: TrackLayoutKmLengthDetails,
     precision: KmLengthsLocationPrecision,
-): String {
+): LocalizationKey? {
     return if (isGeneratedRow(kmPost)) {
-        ""
+        null
     } else if (precision == KmLengthsLocationPrecision.PRECISE_LOCATION) {
-        kmPost.gkLocationSource?.let { source -> "enum.gk-location-source.$source" } ?: ""
+        kmPost.gkLocationSource?.let { source -> "enum.gk-location-source.$source" } ?: null
     } else {
         when (kmPost.gkLocationLinkedFromGeometry) {
             true -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.from-geometry"
             false -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.from-ratko"
         }
-    }
+    }?.let(::LocalizationKey)
 }
 
-private fun gkLocationConfirmedTranslationKey(confirmed: Boolean): String = when {
+private fun gkLocationConfirmedTranslationKey(confirmed: Boolean): LocalizationKey = when {
     confirmed -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.confirmed"
     else -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.not-confirmed"
-}
+}.let(::LocalizationKey)
 
 private fun getLocationByPrecision(kmPost: TrackLayoutKmLengthDetails, precision: KmLengthsLocationPrecision): IPoint? =
     when (precision) {
