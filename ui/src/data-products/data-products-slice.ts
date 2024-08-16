@@ -65,7 +65,7 @@ export type PlanVerticalGeometrySearchState = {
 };
 
 export type SelectedKmLengthsSearch = 'TRACK_NUMBER' | 'ENTIRE_RAIL_NETWORK';
-export type KmLengthsLocationPrecision = 'PRECISE' | 'LAYOUT';
+export type KmLengthsLocationPrecision = 'PRECISE_LOCATION' | 'APPROXIMATION_IN_LAYOUT';
 
 export type KmLengthsSearchState = {
     trackNumber: LayoutTrackNumber | undefined;
@@ -181,7 +181,7 @@ const initialKmLengthsSearchState: KmLengthsSearchState = {
     validationIssues: [],
     committedFields: [],
     kmLengths: [],
-    locationPrecision: 'PRECISE',
+    locationPrecision: 'PRECISE_LOCATION',
 };
 
 const spiralTypes = [GeometryType.CLOTHOID, GeometryType.BIQUADRATIC_PARABOLA];

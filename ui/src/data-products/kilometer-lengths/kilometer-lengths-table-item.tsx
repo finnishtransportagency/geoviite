@@ -45,7 +45,7 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
 
     const hasLayoutLocation = layoutLocation !== undefined;
     const hasGkLocation = gkLocation !== undefined;
-    const showingPreciseLocation = locationPrecision === 'PRECISE';
+    const showingPreciseLocation = locationPrecision === 'PRECISE_LOCATION';
     const generatedRow = layoutGeometrySource === 'GENERATED';
 
     const location = showingPreciseLocation ? gkLocation : layoutLocation;
@@ -105,9 +105,12 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
                 <td>{locationSourceString}</td>
                 <td>{locationPrecisionString}</td>
                 <td>
-                    {hasLayoutLocation &&
-                        (layoutGeometrySource == 'IMPORTED' ||
-                            gkLocationSource === 'FROM_LAYOUT') &&
+                    {!showingPreciseLocation &&
+                        hasLayoutLocation &&
+                        layoutGeometrySource == 'IMPORTED' &&
+                        t('data-products.km-lengths.table.imported-warning')}
+                    {showingPreciseLocation &&
+                        gkLocationSource === 'FROM_LAYOUT' &&
                         t('data-products.km-lengths.table.imported-warning')}
 
                     {hasLayoutLocation &&

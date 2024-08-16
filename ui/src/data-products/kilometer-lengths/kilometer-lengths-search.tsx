@@ -151,13 +151,13 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                     value={
                         <span className={styles['data-product-view__radio-layout']}>
                             <Radio
-                                checked={locationPrecision === 'PRECISE'}
-                                onChange={() => setLocationPrecision('PRECISE')}>
+                                checked={locationPrecision === 'PRECISE_LOCATION'}
+                                onChange={() => setLocationPrecision('PRECISE_LOCATION')}>
                                 {t('data-products.search.precise-location')}
                             </Radio>
                             <Radio
-                                checked={locationPrecision === 'LAYOUT'}
-                                onChange={() => setLocationPrecision('LAYOUT')}>
+                                checked={locationPrecision === 'APPROXIMATION_IN_LAYOUT'}
+                                onChange={() => setLocationPrecision('APPROXIMATION_IN_LAYOUT')}>
                                 {t('data-products.search.layout-location')}
                             </Radio>
                         </span>
@@ -172,6 +172,7 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                                 state.trackNumber?.id,
                                 state.startKm,
                                 state.endKm,
+                                state.locationPrecision,
                             ),
                         })}>
                         <Button
