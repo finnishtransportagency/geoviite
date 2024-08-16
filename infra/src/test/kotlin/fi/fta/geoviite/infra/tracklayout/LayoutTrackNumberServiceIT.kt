@@ -8,8 +8,10 @@ import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.geography.transformToGKCoordinate
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -133,32 +135,48 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 kmNumber = KmNumber(1),
                 startM = BigDecimal(-0.5).setScale(3),
                 endM = BigDecimal(1).setScale(3),
-                locationSource = GeometrySource.GENERATED,
-                location = Point(0.0, 0.0)
+                layoutGeometrySource = GeometrySource.GENERATED,
+                layoutLocation = Point(0.0, 0.0),
+                gkLocation = null,
+                gkLocationConfirmed = false,
+                gkLocationSource = null,
+                gkLocationLinkedFromGeometry = false,
             ), kmLengths.first()
         )
 
+        val kmPostLocation1 = kmPostDao.fetch(kmPostVersions[0]).layoutLocation
         assertEquals(
             TrackLayoutKmLengthDetails(
                 trackNumber = trackNumber.number,
                 kmNumber = KmNumber(2),
                 startM = BigDecimal(1).setScale(3),
                 endM = BigDecimal(3).setScale(3),
-                locationSource = GeometrySource.IMPORTED,
-                location = kmPostDao.fetch(kmPostVersions[0]).layoutLocation,
-            ), kmLengths[1]
+                layoutGeometrySource = GeometrySource.IMPORTED,
+                layoutLocation = kmPostLocation1,
+                gkLocation = null,
+                gkLocationConfirmed = false,
+                gkLocationSource = null,
+                gkLocationLinkedFromGeometry = false,
+            ), kmLengths[1].copy(gkLocation = null)
         )
+        assertApproximatelyEquals(transformToGKCoordinate(LAYOUT_SRID, kmPostLocation1!!), kmLengths[1].gkLocation!!, 0.01)
 
+        val kmPostLocation2 = kmPostDao.fetch(kmPostVersions[1]).layoutLocation
         assertEquals(
             TrackLayoutKmLengthDetails(
                 trackNumber = trackNumber.number,
                 kmNumber = KmNumber(3),
                 startM = BigDecimal(3).setScale(3),
                 endM = BigDecimal(4).setScale(3),
-                locationSource = GeometrySource.IMPORTED,
-                location = kmPostDao.fetch(kmPostVersions[1]).layoutLocation,
-            ), kmLengths[2]
+                layoutGeometrySource = GeometrySource.IMPORTED,
+                layoutLocation = kmPostLocation2,
+                gkLocation = null,
+                gkLocationConfirmed = false,
+                gkLocationSource = null,
+                gkLocationLinkedFromGeometry = false,
+            ), kmLengths[2].copy(gkLocation = null)
         )
+        assertApproximatelyEquals(transformToGKCoordinate(LAYOUT_SRID, kmPostLocation2!!), kmLengths[2].gkLocation!!, 0.01)
     }
 
     @Test
@@ -212,23 +230,33 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 kmNumber = KmNumber(1),
                 startM = BigDecimal(-0.5).setScale(3),
                 endM = BigDecimal(1).setScale(3),
-                locationSource = GeometrySource.GENERATED,
-                location = Point(0.0, 0.0)
+                layoutGeometrySource = GeometrySource.GENERATED,
+                layoutLocation = Point(0.0, 0.0),
+                gkLocation = null,
+                gkLocationConfirmed = false,
+                gkLocationSource = null,
+                gkLocationLinkedFromGeometry = false,
             ),
             kmLengths.first(),
         )
 
+        val kmPostLocation = kmPostDao.fetch(kmPostVersions[0]).layoutLocation
         assertEquals(
             TrackLayoutKmLengthDetails(
                 trackNumber = trackNumber.number,
                 kmNumber = KmNumber(2),
                 startM = BigDecimal(1).setScale(3),
                 endM = BigDecimal(4).setScale(3),
-                locationSource = GeometrySource.IMPORTED,
-                location = kmPostDao.fetch(kmPostVersions[0]).layoutLocation,
+                layoutGeometrySource = GeometrySource.IMPORTED,
+                layoutLocation = kmPostLocation,
+                gkLocation = null,
+                gkLocationConfirmed = false,
+                gkLocationSource = null,
+                gkLocationLinkedFromGeometry = false,
             ),
-            kmLengths.last(),
+            kmLengths.last().copy(gkLocation = null),
         )
+        assertApproximatelyEquals(transformToGKCoordinate(LAYOUT_SRID, kmPostLocation!!), kmLengths.last().gkLocation!!, 0.01)
     }
 
     fun createTrackNumberAndReferenceLineAndAlignment(): Triple<TrackLayoutTrackNumber, ReferenceLine, LayoutAlignment> {

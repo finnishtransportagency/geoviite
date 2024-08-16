@@ -29,6 +29,7 @@ import { KmPostSaveRequest } from 'linking/linking-model';
 import { ValidatedKmPost } from 'publication/publication-model';
 import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import i18next from 'i18next';
+import { KmLengthsLocationPrecision } from 'data-products/data-products-slice';
 
 const kmPostListCache = asyncCache<string, LayoutKmPost[]>();
 const kmPostForLinkingCache = asyncCache<string, LayoutKmPost[]>();
@@ -199,10 +200,12 @@ export const getKmLengthsAsCsv = (
     trackNumberId: LayoutTrackNumberId,
     startKmNumber: KmNumber | undefined,
     endKmNumber: KmNumber | undefined,
+    precision: KmLengthsLocationPrecision,
 ) => {
     const params = queryParams({
         startKmNumber,
         endKmNumber,
+        precision,
         lang: i18next.language,
     });
 

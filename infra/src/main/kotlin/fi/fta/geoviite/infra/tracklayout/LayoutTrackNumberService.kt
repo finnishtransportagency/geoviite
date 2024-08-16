@@ -11,18 +11,25 @@ import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geography.crs
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.util.CsvEntry
+import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.printCsv
 import org.springframework.transaction.annotation.Transactional
 import java.util.stream.Collectors
 
 const val KM_LENGTHS_CSV_TRANSLATION_PREFIX = "data-products.km-lengths.csv"
+enum class KmLengthsLocationPrecision {
+    PRECISE_LOCATION,
+    APPROXIMATION_IN_LAYOUT,
+}
 
 @GeoviiteService
 class LayoutTrackNumberService(
@@ -118,6 +125,7 @@ class LayoutTrackNumberService(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         startKmNumber: KmNumber? = null,
         endKmNumber: KmNumber? = null,
+        precision: KmLengthsLocationPrecision,
         lang: LocalizationLanguage,
     ): String {
         val kmLengths = getKmLengths(layoutContext, trackNumberId) ?: emptyList()
@@ -128,7 +136,7 @@ class LayoutTrackNumberService(
             kmPost.kmNumber in start..end
         }
 
-        return asCsvFile(filteredKmLengths, localizationService.getLocalization(lang))
+        return asCsvFile(filteredKmLengths, precision, localizationService.getLocalization(lang))
     }
 
     fun getAllKmLengthsAsCsv(
@@ -142,7 +150,7 @@ class LayoutTrackNumberService(
             .sorted(compareBy { kmLengthDetails -> kmLengthDetails.trackNumber })
             .collect(Collectors.toList())
 
-        return asCsvFile(kmLengths, localizationService.getLocalization(lang))
+        return asCsvFile(kmLengths, KmLengthsLocationPrecision.PRECISE_LOCATION, localizationService.getLocalization(lang))
     }
 
     @Transactional(readOnly = true)
@@ -167,19 +175,59 @@ class LayoutTrackNumberService(
     }
 }
 
-private fun asCsvFile(items: List<TrackLayoutKmLengthDetails>, translation: Translation): String {
+private fun asCsvFile(
+    items: List<TrackLayoutKmLengthDetails>,
+    precision: KmLengthsLocationPrecision,
+    translation: Translation,
+): String {
     val columns = mapOf<String, (item: TrackLayoutKmLengthDetails) -> Any?>(
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.track-number" to { it.trackNumber },
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.kilometer" to { it.kmNumber },
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.station-start" to { it.startM },
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.station-end" to { it.endM },
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.length" to { it.length },
-        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-e" to { it.location?.x?.let(::roundTo3Decimals) },
-        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-n" to { it.location?.y?.let(::roundTo3Decimals) },
+        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.coordinate-system" to {
+            when (precision) {
+                KmLengthsLocationPrecision.PRECISE_LOCATION -> it.gkLocation?.srid?.let(::crs)?.name
+                KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT -> LAYOUT_CRS.name
+            }
+        },
+        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-e" to {
+            getLocationByPrecision(
+                it,
+                precision
+            )?.x?.let(::roundTo3Decimals)
+        },
+        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-n" to {
+            getLocationByPrecision(
+                it,
+                precision
+            )?.y?.let(::roundTo3Decimals)
+        },
+        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-source" to {
+            locationSourceTranslationKey(
+                it,
+                precision
+            )?.let(translation::t) ?: ""
+        },
+        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-confirmed" to {
+            if (isGeneratedRow(it)) {
+                ""
+            } else if (precision == KmLengthsLocationPrecision.PRECISE_LOCATION) {
+                translation.t(gkLocationConfirmedTranslationKey(it.gkLocationConfirmed))
+            } else {
+                translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.not-confirmed")
+            }
+        },
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.warning" to { kmPost ->
-            if (kmPost.location != null && kmPost.locationSource == GeometrySource.IMPORTED) {
+            if (precision === KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT
+                    && kmPost.layoutLocation != null
+                    && kmPost.layoutGeometrySource == GeometrySource.IMPORTED) {
                 translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.imported-warning")
-            } else if (kmPost.location != null && kmPost.locationSource == GeometrySource.GENERATED) {
+            } else if (precision === KmLengthsLocationPrecision.PRECISE_LOCATION
+                && kmPost.gkLocationSource == KmPostGkLocationSource.FROM_LAYOUT) {
+                translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.imported-warning")
+            } else if (kmPost.layoutLocation != null && kmPost.layoutGeometrySource == GeometrySource.GENERATED) {
                 translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.generated-warning")
             } else {
                 ""
@@ -189,6 +237,36 @@ private fun asCsvFile(items: List<TrackLayoutKmLengthDetails>, translation: Tran
 
     return printCsv(columns, items)
 }
+
+private fun isGeneratedRow(kmPost: TrackLayoutKmLengthDetails): Boolean =
+    kmPost.layoutGeometrySource == GeometrySource.GENERATED
+
+private fun locationSourceTranslationKey(
+    kmPost: TrackLayoutKmLengthDetails,
+    precision: KmLengthsLocationPrecision,
+): LocalizationKey? {
+    return if (isGeneratedRow(kmPost)) {
+        null
+    } else if (precision == KmLengthsLocationPrecision.PRECISE_LOCATION) {
+        kmPost.gkLocationSource?.let { source -> "enum.gk-location-source.$source" } ?: null
+    } else {
+        when (kmPost.gkLocationLinkedFromGeometry) {
+            true -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.from-geometry"
+            false -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.from-ratko"
+        }
+    }?.let(::LocalizationKey)
+}
+
+private fun gkLocationConfirmedTranslationKey(confirmed: Boolean): LocalizationKey = when {
+    confirmed -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.confirmed"
+    else -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.not-confirmed"
+}.let(::LocalizationKey)
+
+private fun getLocationByPrecision(kmPost: TrackLayoutKmLengthDetails, precision: KmLengthsLocationPrecision): IPoint? =
+    when (precision) {
+        KmLengthsLocationPrecision.PRECISE_LOCATION -> kmPost.gkLocation
+        KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT -> kmPost.layoutLocation
+    }
 
 private fun extractTrackKmLengths(
     context: GeocodingContext,
@@ -206,8 +284,12 @@ private fun extractTrackKmLengths(
             kmNumber = startPoint.address.kmNumber,
             startM = roundTo3Decimals(context.startAddress.meters.negate()),
             endM = roundTo3Decimals(distances.firstOrNull()?.second ?: referenceLineLength),
-            locationSource = GeometrySource.GENERATED,
-            location = startPoint.point.toPoint()
+            layoutGeometrySource = GeometrySource.GENERATED,
+            layoutLocation = startPoint.point.toPoint(),
+            gkLocation = null,
+            gkLocationConfirmed = false,
+            gkLocationSource = null,
+            gkLocationLinkedFromGeometry = false,
         )
     ) + distances.mapIndexed { index, (kmPost, startM) ->
         val endM = distances.getOrNull(index + 1)?.second ?: referenceLineLength
@@ -217,8 +299,12 @@ private fun extractTrackKmLengths(
             kmNumber = kmPost.kmNumber,
             startM = roundTo3Decimals(startM),
             endM = roundTo3Decimals(endM),
-            location = kmPost.layoutLocation,
-            locationSource = if (kmPost.sourceId != null) GeometrySource.PLAN else GeometrySource.IMPORTED
+            layoutLocation = kmPost.layoutLocation,
+            gkLocation = kmPost.gkLocation,
+            layoutGeometrySource = if (kmPost.sourceId != null) GeometrySource.PLAN else GeometrySource.IMPORTED,
+            gkLocationConfirmed = kmPost.gkLocationConfirmed,
+            gkLocationSource = kmPost.gkLocationSource,
+            gkLocationLinkedFromGeometry = kmPost.sourceId !== null,
         )
     }
 }

@@ -15,10 +15,14 @@ import {
     getKmPostsOnTrackNumber,
 } from 'track-layout/layout-km-post-api';
 import { getVisibleErrorsByProp } from 'data-products/data-products-utils';
-import { KmLengthsSearchState } from 'data-products/data-products-slice';
+import {
+    KmLengthsLocationPrecision,
+    KmLengthsSearchState,
+} from 'data-products/data-products-slice';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { DOWNLOAD_GEOMETRY } from 'user/user-model';
 import { officialMainLayoutContext } from 'common/common-model';
+import { Radio } from 'vayla-design-lib/radio/radio';
 
 type KilometerLengthsSearchProps = {
     state: KmLengthsSearchState;
@@ -27,6 +31,8 @@ type KilometerLengthsSearchProps = {
     ) => void;
     setLengths: (lengths: LayoutKmLengthDetails[]) => void;
     setLoading: (isLoading: boolean) => void;
+    locationPrecision: KmLengthsLocationPrecision;
+    setLocationPrecision: (precision: KmLengthsLocationPrecision) => void;
 };
 
 export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
@@ -34,6 +40,8 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
     onUpdateProp,
     setLengths,
     setLoading,
+    locationPrecision,
+    setLocationPrecision,
 }) => {
     const { t } = useTranslation();
     const trackNumbers =
@@ -138,6 +146,23 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                         'endKm',
                     ).map((error) => t(`data-products.search.${error}`))}
                 />
+                <FieldLayout
+                    label={t(`data-products.search.location-info`)}
+                    value={
+                        <span className={styles['data-product-view__radio-layout']}>
+                            <Radio
+                                checked={locationPrecision === 'PRECISE_LOCATION'}
+                                onChange={() => setLocationPrecision('PRECISE_LOCATION')}>
+                                {t('data-products.search.precise-location')}
+                            </Radio>
+                            <Radio
+                                checked={locationPrecision === 'APPROXIMATION_IN_LAYOUT'}
+                                onChange={() => setLocationPrecision('APPROXIMATION_IN_LAYOUT')}>
+                                {t('data-products.search.layout-location')}
+                            </Radio>
+                        </span>
+                    }
+                />
                 <PrivilegeRequired privilege={DOWNLOAD_GEOMETRY}>
                     <a
                         qa-id="km-lengths-csv-download"
@@ -147,6 +172,7 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                                 state.trackNumber?.id,
                                 state.startKm,
                                 state.endKm,
+                                state.locationPrecision,
                             ),
                         })}>
                         <Button
