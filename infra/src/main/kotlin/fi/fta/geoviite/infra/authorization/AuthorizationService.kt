@@ -9,6 +9,7 @@ const val LDAP_GROUP_GEOVIITE_PREFIX = "geoviite_"
 const val DESIRED_ROLE_COOKIE_NAME = "desiredRole"
 
 enum class IntegrationApiUserType(val roleCode: Code) {
+    LOCAL(Code("api-private")),
     PUBLIC(Code("api-public")),
     PRIVATE(Code("api-private")),
 }

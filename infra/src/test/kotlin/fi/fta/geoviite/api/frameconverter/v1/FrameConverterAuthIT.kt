@@ -1,20 +1,19 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
 import TestGeoJsonFeatureCollection
+import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.exc.ValueInstantiationException
 import fi.fta.geoviite.infra.InfraApplication
+import fi.fta.geoviite.infra.TestApi
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.web.client.TestRestTemplate
-import org.springframework.boot.test.web.server.LocalServerPort
-import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
-import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
-import org.springframework.http.HttpStatusCode
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
+import org.springframework.test.web.servlet.MockMvc
 import kotlin.test.assertNotNull
 
 private const val API_URI = "/rata-vkm/v1"
@@ -22,25 +21,23 @@ private const val API_URI = "/rata-vkm/v1"
 @ActiveProfiles("dev", "test", "integration-api")
 @SpringBootTest(
     classes = [InfraApplication::class],
-    properties = [
-        "geoviite.skip-auth=false"
-    ],
-    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+    properties = ["geoviite.skip-auth=false"],
 )
+@AutoConfigureMockMvc
 class FrameConverterAuthIT @Autowired constructor(
-    private val objectMapper: ObjectMapper,
-    private val restTemplate: TestRestTemplate
+    mockMvc: MockMvc,
 ) {
+    private val mapper = ObjectMapper().apply {
+        setSerializationInclusion(JsonInclude.Include.NON_NULL)
+    }
 
-    @LocalServerPort
-    private var port: Int = 0
+    val testApi = TestApi(mapper, mockMvc)
 
     @Test
     fun `Unset api host should not work`() {
         val headers = HttpHeaders()
 
-        val (status, _) = fetchFeatureCollection(headers)
-        assertEquals(HttpStatus.UNAUTHORIZED, status)
+        fetchAuthorizedFeatureCollectionOrNull(headers, expectedStatus = HttpStatus.UNAUTHORIZED)
     }
 
     @Test
@@ -48,8 +45,7 @@ class FrameConverterAuthIT @Autowired constructor(
         val headers = HttpHeaders()
         headers.set("X-Forwarded-Host", "")
 
-        val (status, _) = fetchFeatureCollection(headers)
-        assertEquals(HttpStatus.UNAUTHORIZED, status)
+        fetchAuthorizedFeatureCollectionOrNull(headers, expectedStatus = HttpStatus.UNAUTHORIZED)
     }
 
     @Test
@@ -57,8 +53,7 @@ class FrameConverterAuthIT @Autowired constructor(
         val headers = HttpHeaders()
         headers.set("X-Forwarded-Host", "asd.something.test")
 
-        val (status, _) = fetchFeatureCollection(headers)
-        assertEquals(HttpStatus.UNAUTHORIZED, status)
+        fetchAuthorizedFeatureCollectionOrNull(headers, expectedStatus = HttpStatus.UNAUTHORIZED)
     }
 
     @Test
@@ -66,8 +61,7 @@ class FrameConverterAuthIT @Autowired constructor(
         val headers = HttpHeaders()
         headers.set("X-Forwarded-Host", "http://asd.example.test")
 
-        val (status, _) = fetchFeatureCollection(headers)
-        assertEquals(HttpStatus.UNAUTHORIZED, status)
+        fetchAuthorizedFeatureCollectionOrNull(headers, expectedStatus = HttpStatus.UNAUTHORIZED)
     }
 
     @Test
@@ -75,9 +69,8 @@ class FrameConverterAuthIT @Autowired constructor(
         val headers = HttpHeaders()
         headers.set("X-Forwarded-Host", "avoinapi.example.test")
 
-        val (status, featureCollection) = fetchFeatureCollection(headers)
+        val featureCollection = fetchAuthorizedFeatureCollectionOrNull(headers)
 
-        assertEquals(HttpStatus.OK, status)
         assertNotNull(featureCollection!!.features[0].properties?.get("virheet"))
     }
 
@@ -86,23 +79,23 @@ class FrameConverterAuthIT @Autowired constructor(
         val headers = HttpHeaders()
         headers.set("X-Forwarded-Host", "api.example.test")
 
-        val (status, featureCollection) = fetchFeatureCollection(headers)
-
-        assertEquals(HttpStatus.OK, status)
+        val featureCollection = fetchAuthorizedFeatureCollectionOrNull(headers)
         assertNotNull(featureCollection!!.features[0].properties?.get("virheet"))
     }
 
-    private fun fetchFeatureCollection(headers: HttpHeaders): Pair<HttpStatusCode, TestGeoJsonFeatureCollection?> {
-        val url = "http://localhost:$port/$API_URI"
-        val entity = HttpEntity<String>(null, headers)
-
-        val response = restTemplate.exchange(url, HttpMethod.GET, entity, String::class.java)
-
-        return when (response.statusCode) {
-            HttpStatus.OK ->
-                response.statusCode to objectMapper.readValue(response.body, TestGeoJsonFeatureCollection::class.java)
-
-            else -> response.statusCode to null
-        }
+    private fun fetchAuthorizedFeatureCollectionOrNull(
+        headers: HttpHeaders,
+        apiUri: String = API_URI,
+        expectedStatus: HttpStatus = HttpStatus.OK,
+    ): TestGeoJsonFeatureCollection? {
+        return testApi
+            .doPostWithParams(apiUri, emptyMap(), expectedStatus, headers)
+            .let { body ->
+                try {
+                    mapper.readValue(body, TestGeoJsonFeatureCollection::class.java)
+                } catch (e: ValueInstantiationException) {
+                    null
+                }
+            }
     }
 }

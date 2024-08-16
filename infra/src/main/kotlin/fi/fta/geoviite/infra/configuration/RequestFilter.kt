@@ -89,6 +89,14 @@ class RequestFilter @Autowired constructor(
             ?: throw ApiUnauthorizedException("Could not determine integration api user role.")
 
         val userDetails = when (userType) {
+            IntegrationApiUserType.LOCAL ->
+                UserDetails(
+                    userName = UserName.of("API_LOCAL"),
+                    firstName = AuthName.of("Local"),
+                    lastName = AuthName.of("Api User"),
+                    organization = AuthName.of("Geoviite"),
+                )
+
             IntegrationApiUserType.PUBLIC ->
                 UserDetails(
                     userName = UserName.of("API_PUBLIC"),
@@ -173,20 +181,21 @@ class RequestFilter @Autowired constructor(
         val headers = request.headerNames.toList()
 
         return if (skipAuth) {
-            val availableRolesForLocalUser = authorizationService.getRoles(
-                authorizationService.defaultRoleCodeOrder,
-            )
+            if (isIntegrationApiRequest(request)) {
+                integrationApiUser(IntegrationApiUserType.LOCAL)
+            } else {
+                val availableRolesForLocalUser = authorizationService.getRoles(
+                    authorizationService.defaultRoleCodeOrder,
+                )
 
-            localUser(
-                activeRole = getActiveUserRole(request, availableRolesForLocalUser),
-                availableRoles = availableRolesForLocalUser,
-            )
+                localUser(
+                    activeRole = getActiveUserRole(request, availableRolesForLocalUser),
+                    availableRoles = availableRolesForLocalUser,
+                )
+            }
         } else if (request.requestURI == "/actuator/health" && headers.none { h -> h.startsWith("x-iam") }) {
             healthCheckUser
-        } else if (
-            environment.activeProfiles.contains("integration-api") &&
-            request.requestURI.startsWith("/rata-vkm")
-        ) {
+        } else if (isIntegrationApiRequest(request)) {
             determineIntegrationApiUserOrThrow(request)
         } else {
             val content = getJwtData(request)
@@ -290,6 +299,11 @@ class RequestFilter @Autowired constructor(
         val publicKey = generated as? ECPublicKey
             ?: throw IllegalArgumentException("Invalid key (expected ECPublicKey): ${generated::class.qualifiedName}")
         return Algorithm.ECDSA256(publicKey, null)
+    }
+
+    private fun isIntegrationApiRequest(request: HttpServletRequest): Boolean {
+        return environment.activeProfiles.contains("integration-api") &&
+            request.requestURI.startsWith("/rata-vkm")
     }
 
     private fun determineIntegrationApiUserOrThrow(request: HttpServletRequest): User {
