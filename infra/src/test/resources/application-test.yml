@@ -7,7 +7,6 @@ geoviite:
   scheduling:
     enabled: false
   cache:
-    enabled: false
     preload: false
   data:
     import: false
