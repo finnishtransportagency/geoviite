@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.ElevationMeasurementMethod
 import fi.fta.geoviite.infra.common.FeatureTypeCode
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LinearUnit
 import fi.fta.geoviite.infra.common.MeasurementMethod
@@ -15,6 +16,7 @@ import fi.fta.geoviite.infra.common.RotationDirection.CW
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
@@ -37,6 +39,7 @@ import fi.fta.geoviite.infra.math.pointInDirection
 import fi.fta.geoviite.infra.math.radsToGrads
 import fi.fta.geoviite.infra.math.rotateAroundOrigin
 import fi.fta.geoviite.infra.math.round
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
@@ -591,6 +594,20 @@ fun geometryCant(points: List<GeometryCantPoint>) = GeometryCant(
     gauge = FINNISH_RAIL_GAUGE,
     rotationPoint = CantRotationPoint.INSIDE_RAIL,
     points = points,
+)
+
+fun geometrySwitch(
+    name: String = "TEST V001",
+    switchStructureId: IntId<SwitchStructure>? = null,
+) = GeometrySwitch(
+    name = SwitchName(name),
+    state = PlanState.EXISTING,
+    switchStructureId = switchStructureId,
+    joints = listOf(
+        GeometrySwitchJoint(JointNumber(1), Point(1.0, 1.0)),
+        GeometrySwitchJoint(JointNumber(2), Point(2.0, 2.0)),
+    ),
+    typeName = GeometrySwitchTypeName("TestSwitchType"),
 )
 
 fun kmPosts(srid: Srid) = listOf(

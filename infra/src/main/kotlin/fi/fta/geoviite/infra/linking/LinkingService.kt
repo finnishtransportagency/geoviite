@@ -214,14 +214,14 @@ class LinkingService @Autowired constructor(
     }
 
     fun getGeometryPlanLinkStatus(layoutContext: LayoutContext, planId: IntId<GeometryPlan>): GeometryPlanLinkStatus {
-        return linkingDao.fetchPlanLinkStatus(layoutContext, planId)
+        return linkingDao.fetchPlanLinkStatuses(layoutContext, listOf(planId))[0]
     }
 
     fun getGeometryPlanLinkStatuses(
         layoutContext: LayoutContext,
         planIds: List<IntId<GeometryPlan>>,
     ): List<GeometryPlanLinkStatus> {
-        return planIds.map { planId -> linkingDao.fetchPlanLinkStatus(layoutContext, planId) }
+        return linkingDao.fetchPlanLinkStatuses(layoutContext, planIds)
     }
 
     @Transactional
