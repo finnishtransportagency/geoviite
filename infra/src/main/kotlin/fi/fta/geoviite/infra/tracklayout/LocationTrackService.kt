@@ -455,6 +455,10 @@ class LocationTrackService(
 
     @Transactional(readOnly = true)
     fun getInfoboxExtras(layoutContext: LayoutContext, id: IntId<LocationTrack>): LocationTrackInfoboxExtras? {
+        val isPresentationJointNumberInContext = { switchId: IntId<TrackLayoutSwitch>, jointNumber: JointNumber ->
+            isPresentationJointNumber(layoutContext, switchId, jointNumber)
+        }
+
         return getWithAlignment(layoutContext, id)?.let { (locationTrack, alignment) ->
             val start = alignment.start ?: return null
             val end = alignment.end ?: return null
@@ -470,26 +474,20 @@ class LocationTrackService(
                 duplicate.duplicateStatus.startSplitPoint?.address
             }
 
-            val startAddress = geocodingContext?.getAddress(start)?.first
-            val startSwitchId = alignment.segments.firstOrNull()?.switchId as IntId?
-                ?: locationTrack.topologyStartSwitch?.switchId
-            val startSplitPoint = if (startSwitchId!=null)
-                    SwitchSplitPoint( start, startAddress, startSwitchId, JointNumber(0))
-                else
-                    EndpointSplitPoint( start, startAddress, DuplicateEndPointType.START)
+            val endPointSwitchInfos = getEndPointSwitchInfos(locationTrack, alignment, isPresentationJointNumberInContext)
 
-            val endAddress = geocodingContext?.getAddress(end)?.first
-            val endSwitchId = alignment.segments.lastOrNull()?.switchId as IntId?
-                ?: locationTrack.topologyEndSwitch?.switchId
-            val endSplitPoint = if (endSwitchId!=null)
-                    SwitchSplitPoint(end, endAddress, endSwitchId, JointNumber(0))
-                else
-                    EndpointSplitPoint(end, endAddress, DuplicateEndPointType.END)
+            val startAddress = geocodingContext.getAddress(start)?.first
+            val startSplitPoint = endPointSwitchInfos.start?.let { endPointSwitchInfo ->
+                SwitchSplitPoint( start, startAddress, endPointSwitchInfo.switchId, endPointSwitchInfo.jointNumber)
+            } ?: EndpointSplitPoint( start, startAddress, DuplicateEndPointType.START)
 
-            val startSwitch = (alignment.segments.firstOrNull()?.switchId as IntId?
-                ?: locationTrack.topologyStartSwitch?.switchId)?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
-            val endSwitch = (alignment.segments.lastOrNull()?.switchId as IntId?
-                ?: locationTrack.topologyEndSwitch?.switchId)?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
+            val endAddress = geocodingContext.getAddress(end)?.first
+            val endSplitPoint = endPointSwitchInfos.end?.let { endPointSwitchInfo ->
+                SwitchSplitPoint(end, endAddress, endPointSwitchInfo.switchId, endPointSwitchInfo.jointNumber)
+            } ?: EndpointSplitPoint(end, endAddress, DuplicateEndPointType.END)
+
+            val startSwitch = endPointSwitchInfos.start?.switchId?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
+            val endSwitch = endPointSwitchInfos.end?.switchId?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
             val partOfUnfinishedSplit = splitDao
                 .locationTracksPartOfAnyUnfinishedSplit(layoutContext.branch , listOf(id))
                 .isNotEmpty()
@@ -521,6 +519,12 @@ class LocationTrackService(
             locationTrack.topologyEndSwitch?.switchId,
         ) + switchDao.findSwitchesNearAlignment(branch, locationTrack.getAlignmentVersionOrThrow())).distinct().size
 
+    private fun isPresentationJointNumber(layoutContext: LayoutContext, switchId: IntId<TrackLayoutSwitch>, jointNumber: JointNumber): Boolean {
+        return switchDao.get(layoutContext, switchId)?.let { switch ->
+            switchLibraryService.getPresentationJointNumber(switch.switchStructureId) == jointNumber
+        } ?: false
+    }
+
     @Transactional(readOnly = true)
     fun getLocationTrackDuplicates(
         layoutContext: LayoutContext,
@@ -535,16 +539,26 @@ class LocationTrackService(
             .distinct()
             .map(::getWithAlignmentInternal)
             .filter { (duplicateTrack, _) -> duplicateTrack.id != track.id && duplicateTrack.id != track.duplicateOf }
-        return getLocationTrackDuplicatesBySplitPoints(track, alignment, duplicateTracksAndAlignments)
+        val isPresentationJointNumberInContext = { switchId: IntId<TrackLayoutSwitch>, jointNumber: JointNumber ->
+            isPresentationJointNumber(layoutContext, switchId, jointNumber)
+        }
+        return getLocationTrackDuplicatesBySplitPoints(
+            track,
+            alignment,
+            duplicateTracksAndAlignments,
+            isPresentationJointNumberInContext)
     }
 
     private fun getDuplicateTrackParent(
         layoutContext: LayoutContext,
         childTrack: LocationTrack,
     ): LocationTrackDuplicate? = childTrack.duplicateOf?.let { parentId ->
+        val isPresentationJointNumberInContext = { switchId: IntId<TrackLayoutSwitch>, jointNumber: JointNumber ->
+            isPresentationJointNumber(layoutContext, switchId, jointNumber)
+        }
         getWithAlignment(layoutContext, parentId)?.let { (parentTrack, parentTrackAlignment) ->
             val childAlignment = alignmentDao.fetch(childTrack.getAlignmentVersionOrThrow())
-            getDuplicateTrackParentStatus(parentTrack, parentTrackAlignment, childTrack, childAlignment)
+            getDuplicateTrackParentStatus(parentTrack, parentTrackAlignment, childTrack, childAlignment, isPresentationJointNumberInContext)
         }
     }
 
