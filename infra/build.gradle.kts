@@ -36,11 +36,6 @@ configurations {
     }
 }
 
-tasks.register<Test>("test-without-cache") {
-    systemProperty("geoviite.cache.enabled", false)
-    useJUnit()
-}
-
 ext["selenium.version"] = "4.19.1"
 dependencies {
     // Version overrides for transitive deps (due to known vulnerabilities)
@@ -132,6 +127,15 @@ tasks.withType<Test> {
     testLogging.exceptionFormat = FULL
     //testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED)
     testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED, STANDARD_OUT, STANDARD_ERROR)
+}
+
+tasks.register<Test>("integrationtest") {
+    useJUnitPlatform()
+}
+
+tasks.register<Test>("integrationtest-without-cache") {
+    systemProperty("geoviite.cache.enabled", false)
+    useJUnitPlatform()
 }
 
 tasks.withType<AbstractArchiveTask> {
