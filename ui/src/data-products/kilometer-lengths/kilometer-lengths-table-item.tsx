@@ -45,7 +45,7 @@ export const KilometerLengthTableItem: React.FC<KilometerLengthsTableItemProps> 
 
     const hasLayoutLocation = layoutLocation !== undefined;
     const hasGkLocation = gkLocation !== undefined;
-    const showingPreciseLocation = locationPrecision === 'PRECISE';
+    const showingPreciseLocation = locationPrecision === 'PRECISE_LOCATION';
     const generatedRow = layoutGeometrySource === 'GENERATED';
 
     const location = showingPreciseLocation ? gkLocation : layoutLocation;
