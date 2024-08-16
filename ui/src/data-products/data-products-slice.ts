@@ -65,7 +65,7 @@ export type PlanVerticalGeometrySearchState = {
 };
 
 export type SelectedKmLengthsSearch = 'TRACK_NUMBER' | 'ENTIRE_RAIL_NETWORK';
-export type KmLengthsLocationPrecision = 'PRECISE_LOCATION' | 'LAYOUT_LOCATION';
+export type KmLengthsLocationPrecision = 'PRECISE_LOCATION' | 'APPROXIMATION_IN_LAYOUT';
 
 export type KmLengthsSearchState = {
     trackNumber: LayoutTrackNumber | undefined;

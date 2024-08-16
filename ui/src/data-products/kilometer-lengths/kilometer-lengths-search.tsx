@@ -156,8 +156,8 @@ export const KilometerLengthsSearch: React.FC<KilometerLengthsSearchProps> = ({
                                 {t('data-products.search.precise-location')}
                             </Radio>
                             <Radio
-                                checked={locationPrecision === 'LAYOUT_LOCATION'}
-                                onChange={() => setLocationPrecision('LAYOUT_LOCATION')}>
+                                checked={locationPrecision === 'APPROXIMATION_IN_LAYOUT'}
+                                onChange={() => setLocationPrecision('APPROXIMATION_IN_LAYOUT')}>
                                 {t('data-products.search.layout-location')}
                             </Radio>
                         </span>

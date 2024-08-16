@@ -27,7 +27,7 @@ import java.util.stream.Collectors
 const val KM_LENGTHS_CSV_TRANSLATION_PREFIX = "data-products.km-lengths.csv"
 enum class KmLengthsLocationPrecision {
     PRECISE_LOCATION,
-    LAYOUT_LOCATION,
+    APPROXIMATION_IN_LAYOUT,
 }
 
 @GeoviiteService
@@ -188,7 +188,7 @@ private fun asCsvFile(
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.coordinate-system" to {
             when (precision) {
                 KmLengthsLocationPrecision.PRECISE_LOCATION -> it.gkLocation?.srid?.let(::crs)?.name
-                KmLengthsLocationPrecision.LAYOUT_LOCATION -> LAYOUT_CRS.name
+                KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT -> LAYOUT_CRS.name
             }
         },
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-e" to {
@@ -263,7 +263,7 @@ private fun gkLocationConfirmedTranslationKey(confirmed: Boolean): String = when
 private fun getLocationByPrecision(kmPost: TrackLayoutKmLengthDetails, precision: KmLengthsLocationPrecision): IPoint? =
     when (precision) {
         KmLengthsLocationPrecision.PRECISE_LOCATION -> kmPost.gkLocation
-        KmLengthsLocationPrecision.LAYOUT_LOCATION -> kmPost.layoutLocation
+        KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT -> kmPost.layoutLocation
     }
 
 private fun extractTrackKmLengths(

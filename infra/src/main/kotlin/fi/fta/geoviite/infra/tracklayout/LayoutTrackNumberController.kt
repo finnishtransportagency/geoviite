@@ -196,5 +196,5 @@ class LayoutTrackNumberController(
 
 private fun kmLengthsPrecisionSuffix(precision: KmLengthsLocationPrecision): String = when (precision) {
     KmLengthsLocationPrecision.PRECISE_LOCATION -> ""
-    KmLengthsLocationPrecision.LAYOUT_LOCATION -> "-paikannuspohjan-tarkkuus"
+    KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT -> "-paikannuspohjan-tarkkuus"
 }
