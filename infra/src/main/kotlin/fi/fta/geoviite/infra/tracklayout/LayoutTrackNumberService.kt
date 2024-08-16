@@ -236,6 +236,9 @@ private fun asCsvFile(
     return printCsv(columns, items)
 }
 
+private fun isGeneratedRow(kmPost: TrackLayoutKmLengthDetails): Boolean =
+    kmPost.layoutGeometrySource == GeometrySource.GENERATED
+
 private fun locationSourceTranslationKey(
     kmPost: TrackLayoutKmLengthDetails,
     precision: KmLengthsLocationPrecision,
@@ -256,9 +259,6 @@ private fun gkLocationConfirmedTranslationKey(confirmed: Boolean): String = when
     confirmed -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.confirmed"
     else -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.not-confirmed"
 }
-
-private fun isGeneratedRow(kmPost: TrackLayoutKmLengthDetails): Boolean =
-    kmPost.layoutGeometrySource == GeometrySource.GENERATED
 
 private fun getLocationByPrecision(kmPost: TrackLayoutKmLengthDetails, precision: KmLengthsLocationPrecision): IPoint? =
     when (precision) {
