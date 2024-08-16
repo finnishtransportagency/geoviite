@@ -130,7 +130,11 @@ const PublicationCard: React.FC<PublishListProps> = ({
             content={
                 <React.Fragment>
                     <h2 className={styles['publication-card__title']}>
-                        {t('publication-card.title')}
+                        {t(
+                            branchType === 'MAIN'
+                                ? 'publication-card.title'
+                                : 'publication-card.designs-title',
+                        )}
                     </h2>
                     <ProgressIndicatorWrapper
                         indicator={ProgressIndicatorType.Area}
