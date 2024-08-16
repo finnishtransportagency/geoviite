@@ -319,10 +319,7 @@ export type GeometrySwitchSuggestionFailureReason =
     | 'RELATED_TRACKS_NOT_LINKED'
     | 'NO_SWITCH_STRUCTURE_ID_ON_SWITCH'
     | 'NO_SRID_ON_PLAN'
-    | 'INVALID_JOINTS';
-
-export type GeometrySwitchInvalidityReason =
-    | GeometrySwitchSuggestionFailureReason
+    | 'INVALID_JOINTS'
     | 'LESS_THAN_TWO_JOINTS';
 
 export type KmPostLinkingParameters = {

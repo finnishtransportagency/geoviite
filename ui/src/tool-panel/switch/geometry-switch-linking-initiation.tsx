@@ -4,14 +4,14 @@ import { InfoboxContentSpread } from 'tool-panel/infobox/infobox-content';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize } from 'vayla-design-lib/button/button';
-import { GeometrySwitchInvalidityReason, LinkingState } from 'linking/linking-model';
+import { GeometrySwitchSuggestionFailureReason, LinkingState } from 'linking/linking-model';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
 
 type GeometrySwitchLinkingInitiationProps = {
     linkingState: LinkingState | undefined;
     hasSuggestedSwitch: boolean;
-    geometrySwitchInvalidityReason: GeometrySwitchInvalidityReason | undefined;
+    geometrySwitchInvalidityReason: GeometrySwitchSuggestionFailureReason | undefined;
     onStartLinking: () => void;
 };
 

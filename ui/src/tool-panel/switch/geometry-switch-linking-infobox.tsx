@@ -6,7 +6,7 @@ import styles from './switch-infobox.scss';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import {
-    GeometrySwitchInvalidityReason,
+    GeometrySwitchSuggestionFailureReason,
     LinkingState,
     LinkingSwitch,
     SuggestedSwitch,
@@ -115,7 +115,7 @@ const GeometrySwitchLinkingInfobox: React.FC<GeometrySwitchLinkingInfoboxProps> 
 
     const [switchTypeDifferenceIsConfirmed, setSwitchTypeDifferenceIsConfirmed] =
         React.useState(false);
-    const geometrySwitchInvalidityReason: GeometrySwitchInvalidityReason | undefined =
+    const geometrySwitchInvalidityReason: GeometrySwitchSuggestionFailureReason | undefined =
         suggestedSwitchResult !== undefined && 'failure' in suggestedSwitchResult
             ? suggestedSwitchResult.failure
             : undefined;
