@@ -48,7 +48,7 @@ import {
     VerticalCoordinateSystem,
 } from 'common/common-model';
 import { bboxString } from 'common/common-api';
-import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
+import { filterNotEmpty } from 'utils/array-utils';
 import { GeometryTypeIncludingMissing } from 'data-products/data-products-slice';
 import { AlignmentHeader } from 'track-layout/layout-map-api';
 import i18next from 'i18next';
@@ -300,24 +300,9 @@ export async function getTrackLayoutPlans(
     changeTime: TimeStamp,
     includeGeometryData = true,
 ): Promise<GeometryPlanLayout[]> {
-    const url = (planId: GeometryPlanId, includeGeometryData: boolean) =>
-        `${GEOMETRY_URI}/plans/layout?planIds=${planId}&includeGeometryData=${includeGeometryData}`;
-    return trackLayoutPlanCache
-        .getMany(
-            changeTime,
-            planIds,
-            (id) => `${id}-${includeGeometryData}`,
-            (fetchIds) =>
-                Promise.all(
-                    fetchIds.map((fetchId) =>
-                        getNonNull<[GeometryPlanLayout]>(url(fetchId, includeGeometryData)),
-                    ),
-                ).then((tracks) => {
-                    const trackMap = indexIntoMap(tracks.flat());
-                    return (id) => trackMap.get(id);
-                }),
-        )
-        .then((plans) => plans.filter(filterNotEmpty));
+    return Promise.all(
+        planIds.map((planId) => getTrackLayoutPlan(planId, changeTime, includeGeometryData)),
+    ).then((layouts) => layouts.filter(filterNotEmpty));
 }
 
 export async function getProjects(changeTime = getChangeTimes().project): Promise<Project[]> {
