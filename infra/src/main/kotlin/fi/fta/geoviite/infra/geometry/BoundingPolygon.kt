@@ -8,24 +8,21 @@ import fi.fta.geoviite.infra.math.Point
 fun collectAnglePoints(alignments: List<GeometryAlignment>): List<Point> =
     alignments.flatMap { a: GeometryAlignment -> a.elements.flatMap { e -> e.bounds } }
 
-fun getBoundingPolygonPointsFromAlignments(alignments: List<GeometryAlignment>, transformation: Transformation): List<Point> =
-    tryCreateBoundingPolygonPoints(collectAnglePoints(alignments), transformation)
+fun getBoundingPolygonPointsFromAlignments(
+    alignments: List<GeometryAlignment>,
+    transformation: Transformation,
+): List<Point> = tryCreateBoundingPolygonPoints(collectAnglePoints(alignments), transformation)
 
 fun tryCreateBoundingPolygonPoints(
     anglePoints: List<IPoint>,
     transformation: Transformation,
-): List<Point> {
-    return try {
-        createBoundingPolygonPoints(anglePoints, transformation)
-    } catch (e: Exception) {
-        listOf()
-    }
+): List<Point> = try {
+    createBoundingPolygonPoints(anglePoints, transformation)
+} catch (e: Exception) {
+    listOf()
 }
 
-fun createBoundingPolygonPoints(
-    points: List<IPoint>,
-    transformation: Transformation
-): List<Point> {
+fun createBoundingPolygonPoints(points: List<IPoint>, transformation: Transformation): List<Point> {
     val bounds = boundingPolygonPointsByConvexHull(points, transformation.sourceSrid)
     return bounds.map { p -> transformation.transform(p) }
 }

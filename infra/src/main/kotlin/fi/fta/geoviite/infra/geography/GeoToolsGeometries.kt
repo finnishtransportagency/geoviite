@@ -106,7 +106,10 @@ fun toJtsGeoPolygon(points: List<IPoint>, srid: Srid): JtsPolygon {
     }
 }
 
-fun toJtsGeoPoint(point: IPoint, ref: CoordinateReferenceSystem): JtsPoint =
+fun toJtsGeoPoint(point: IPoint, srid: Srid): JtsPoint =
+    toJtsGeoPoint(toJtsCoordinate(point, crs(srid)))
+
+private fun toJtsGeoPoint(point: IPoint, ref: CoordinateReferenceSystem): JtsPoint =
     toJtsGeoPoint(toJtsCoordinate(point, ref))
 
 fun toJtsGeoPoint(coordinate: JtsCoordinate): JtsPoint {

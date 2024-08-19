@@ -2,7 +2,6 @@ package fi.fta.geoviite.infra.geography
 
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_CRS
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 
 data class HeightTriangle(
@@ -18,5 +17,5 @@ data class HeightTriangle(
     val corner2XZ: Point by lazy { Point(corner2.x, corner2Diff) }
     val corner3XZ: Point by lazy { Point(corner3.x, corner3Diff) }
 
-    fun contains(point: IPoint) = polygon.intersects(toJtsGeoPoint(point, LAYOUT_CRS))
+    fun contains(point: IPoint) = polygon.intersects(toJtsGeoPoint(point, LAYOUT_SRID))
 }

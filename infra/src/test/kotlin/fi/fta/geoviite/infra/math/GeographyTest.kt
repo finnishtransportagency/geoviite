@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.math
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geography.boundingPolygonPointsByConvexHull
 import fi.fta.geoviite.infra.geography.calculateDistance
-import fi.fta.geoviite.infra.geography.crs
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geography.transformToGKCoordinate
 import org.junit.jupiter.api.Assertions
@@ -25,7 +24,7 @@ class GeographyTest {
             Point(416258.105283, 6697012.526639),
         )
 
-        val bounds = boundingPolygonPointsByConvexHull(points3067, crs(Srid(3067)))
+        val bounds = boundingPolygonPointsByConvexHull(points3067, Srid(3067))
 
         val expectedBounds = listOf(
             Point(410380.415197, 6695143.038955),
