@@ -2446,29 +2446,24 @@ class PublicationServiceIT @Autowired constructor(
     private data class TopologicalSwitchConnectionTestData(
         val locationTracksUnderTest: List<Pair<IntId<LocationTrack>, LocationTrack>>,
         val switchIdsUnderTest: List<IntId<TrackLayoutSwitch>>,
+        val switchInnerTrackIds: List<IntId<LocationTrack>>,
     )
 
     private fun getTopologicalSwitchConnectionTestData(): TopologicalSwitchConnectionTestData {
-        val topologyStartSwitch = createSwitchWithJoints(
+        val (topologyStartSwitchId, topologyStartSwitchInnerTrackIds) = mainDraftContext.createSwitchWithInnerTracks(
             name = "Topological switch connection test start switch",
-            jointPositions = listOf(
+            listOf(
                 JointNumber(1) to Point(0.0, 0.0),
                 JointNumber(3) to Point(1.0, 0.0),
             ),
-            draft = true,
         )
-
-        val topologyEndSwitch = createSwitchWithJoints(
+        val (topologyEndSwitchId, topologyEndSwitchInnerTrackIds) = mainDraftContext.createSwitchWithInnerTracks(
             name = "Topological switch connection test end switch",
-            jointPositions = listOf(
+            listOf(
                 JointNumber(1) to Point(2.0, 0.0),
                 JointNumber(3) to Point(3.0, 0.0),
             ),
-            draft = true,
         )
-
-        val topologyStartSwitchId = switchDao.insert(topologyStartSwitch).id
-        val topologyEndSwitchId = switchDao.insert(topologyEndSwitch).id
 
         val locationTrackAlignment = alignment(segment(Point(1.0, 0.0), Point(2.0, 0.0)))
         val locationTracksUnderTest = getTopologicalSwitchConnectionTestCases(
@@ -2486,16 +2481,18 @@ class PublicationServiceIT @Autowired constructor(
         return TopologicalSwitchConnectionTestData(
             locationTracksUnderTest = locationTrackIdsUnderTest,
             switchIdsUnderTest = listOf(topologyStartSwitchId, topologyEndSwitchId),
+            switchInnerTrackIds = topologyStartSwitchInnerTrackIds + topologyEndSwitchInnerTrackIds,
         )
     }
 
     private fun getLocationTrackValidationResult(
         locationTrackId: IntId<LocationTrack>,
         stagedSwitches: List<IntId<TrackLayoutSwitch>> = listOf(),
+        stagedTracks: List<IntId<LocationTrack>> = listOf(locationTrackId),
     ): LocationTrackPublicationCandidate {
         val publicationRequestIds = PublicationRequestIds(
             trackNumbers = listOf(),
-            locationTracks = listOf(locationTrackId),
+            locationTracks = stagedTracks,
             referenceLines = listOf(),
             switches = stagedSwitches,
             kmPosts = listOf(),
@@ -2581,13 +2578,13 @@ class PublicationServiceIT @Autowired constructor(
         "Topological switch connection test start switch"
     )
     private val topoTestDataStartSwitchJointsNotConnectedError = switchAlignmentNotConnectedTrackValidationError(
-        "1-5-2, 1-3",
+        "1-5-2", // alignment 1-3 is generated in the data, 1-5-2 is not
         "Topological switch connection test start switch",
     )
     private val topoTestDataEndSwitchNotPublishedError =
         switchNotPublishedError("Topological switch connection test end switch")
     private val topoTestDataEndSwitchJointsNotConnectedError = switchAlignmentNotConnectedTrackValidationError(
-        "1-5-2, 1-3",
+        "1-5-2", // alignment 1-3 is generated in the data, 1-5-2 is not
         "Topological switch connection test end switch",
     )
     private val topoTestDataEndSwitchFrontJointNotConnectedError = switchFrontJointNotConnectedError(
@@ -2634,7 +2631,7 @@ class PublicationServiceIT @Autowired constructor(
             topoTestDataContextOnLocationTrackValidationError + noStart + noEnd
         )
         val actual = topologyTestData.locationTracksUnderTest.map { (locationTrackId) ->
-            getLocationTrackValidationResult(locationTrackId, topologyTestData.switchIdsUnderTest).issues
+            getLocationTrackValidationResult(locationTrackId, topologyTestData.switchIdsUnderTest, topologyTestData.switchInnerTrackIds + locationTrackId).issues
         }
 
         assertValidationErrorsForEach(expected, actual)
@@ -2659,7 +2656,7 @@ class PublicationServiceIT @Autowired constructor(
             topoTestDataContextOnLocationTrackValidationError + noStart + noEnd
         )
 
-        publish(publicationService, switches = topologyTestData.switchIdsUnderTest)
+        publish(publicationService, switches = topologyTestData.switchIdsUnderTest, locationTracks = topologyTestData.switchInnerTrackIds)
         val actual = topologyTestData.locationTracksUnderTest.map { (locationTrackId) ->
             getLocationTrackValidationResult(locationTrackId).issues
         }
@@ -4352,23 +4349,5 @@ private fun getTopologicalSwitchConnectionTestCases(
             topologyEndSwitch = topologyEndSwitch,
             draft = true,
         )
-    )
-}
-
-private fun createSwitchWithJoints(
-    name: String,
-    jointPositions: List<Pair<JointNumber, Point>>,
-    draft: Boolean,
-): TrackLayoutSwitch {
-    return switch(
-        name = name,
-        joints = jointPositions.map { (jointNumber, position) ->
-            TrackLayoutSwitchJoint(
-                number = jointNumber,
-                location = position,
-                locationAccuracy = null,
-            )
-        },
-        draft = draft,
     )
 }
