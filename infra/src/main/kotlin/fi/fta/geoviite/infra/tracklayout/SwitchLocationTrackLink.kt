@@ -51,7 +51,8 @@ fun getLocationTrackDuplicatesBySplitPoints(
             mainTrackSplitPoints,
             duplicateTrack,
             duplicateAlignment,
-            isPresentationJointNumber)
+            isPresentationJointNumber,
+        )
     }.sortedWith(compareBy({ it.first }, { it.second.name })).map { (_, duplicate) -> duplicate }.toList()
 }
 
@@ -159,19 +160,20 @@ fun buildDuplicateIndexRanges(matches: List<Pair<Int, Int>>): List<IntRange> {
 }
 
 fun getEndPointSwitchInfo(
-    switchId:IntId<TrackLayoutSwitch>?,
-    jointNumber: JointNumber?,
+    segmentSwitchId:IntId<TrackLayoutSwitch>?,
+    segmentJointNumber: JointNumber?,
     topologySwitchId:IntId<TrackLayoutSwitch>?,
     topologyJointNumber: JointNumber?,
-    isPresentationJointNumber: (IntId<TrackLayoutSwitch>, JointNumber) -> Boolean): EndPointSwitchInfo? {
-    if (switchId!=null && jointNumber!=null && isPresentationJointNumber(switchId, jointNumber)) {
-        return EndPointSwitchInfo(switchId, jointNumber)
-    } else if (topologySwitchId!=null && topologyJointNumber!=null) {
-        return EndPointSwitchInfo(topologySwitchId, topologyJointNumber)
-    } else if (switchId!=null && jointNumber!=null) {
-        return EndPointSwitchInfo(switchId, jointNumber)
+    isPresentationJointNumber: (IntId<TrackLayoutSwitch>, JointNumber) -> Boolean
+): EndPointSwitchInfo? {
+    return if (segmentSwitchId != null && segmentJointNumber != null && isPresentationJointNumber(segmentSwitchId, segmentJointNumber)) {
+        EndPointSwitchInfo(segmentSwitchId, segmentJointNumber)
+    } else if (topologySwitchId != null && topologyJointNumber != null) {
+        EndPointSwitchInfo(topologySwitchId, topologyJointNumber)
+    } else if (segmentSwitchId != null && segmentJointNumber != null) {
+        EndPointSwitchInfo(segmentSwitchId, segmentJointNumber)
     } else {
-        return null
+        null
     }
 }
 

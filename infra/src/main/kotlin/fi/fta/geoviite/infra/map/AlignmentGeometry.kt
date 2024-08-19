@@ -6,7 +6,13 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.IAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import kotlin.math.roundToInt
 
 enum class MapAlignmentSource {
@@ -90,14 +96,14 @@ fun <T> toAlignmentPolyLine(
     alignment: IAlignment,
     resolution: Int? = null,
     bbox: BoundingBox? = null,
-    includeSegmentEndPoints:Boolean = false
+    includeSegmentEndPoints: Boolean
 ) = AlignmentPolyLine(id, type, simplify(alignment, resolution, bbox, includeSegmentEndPoints))
 
 fun simplify(
     alignment: IAlignment,
     resolution: Int? = null,
     bbox: BoundingBox? = null,
-    includeSegmentEndPoints:Boolean = false
+    includeSegmentEndPoints: Boolean
 ): List<AlignmentPoint> {
     val segments = bbox?.let(alignment::filterSegmentsByBbox) ?: alignment.segments
     var previousM = Double.NEGATIVE_INFINITY
@@ -112,7 +118,7 @@ fun simplify(
             bbox == null || s.segmentPoints.getOrNull(pIndex)?.let(bbox::contains) ?: false
         }
         val simplifiedPoints = s.segmentPoints.mapIndexedNotNull { pIndex, p ->
-            if (takePoint(
+            if (isPointIncluded(
                     pIndex,
                     p.m + s.startM,
                     isEndPoint,
@@ -123,17 +129,19 @@ fun simplify(
                 p.toAlignmentPoint(s.startM)
             } else null
         }
-        val segmentEndPoints = if (includeSegmentEndPoints)
-                listOfNotNull(
-                    s.segmentPoints.firstOrNull()?.let {segmentStartPoint ->
-                        if (bbox==null || bbox.contains(segmentStartPoint))
-                            segmentStartPoint.toAlignmentPoint(s.startM)
-                        else
-                            null
+        val segmentEndPoints = if (includeSegmentEndPoints) {
+            listOfNotNull(
+                s.segmentPoints.first().let {segmentStartPoint ->
+                    if (bbox == null || bbox.contains(segmentStartPoint)) {
+                        segmentStartPoint.toAlignmentPoint(s.startM)
+                    } else {
+                        null
                     }
-                )
-            else
-                listOf()
+                }
+            )
+        } else {
+            listOf()
+        }
 
         val allPoints = (simplifiedPoints + segmentEndPoints)
             .distinctBy { p -> p.m }
@@ -143,7 +151,7 @@ fun simplify(
     }.let { points -> if (points.size >= 2) points else listOf() }
 }
 
-private fun takePoint(
+private fun isPointIncluded(
     index: Int,
     m: Double,
     isEndPoint: (index: Int) -> Boolean,

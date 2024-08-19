@@ -80,7 +80,7 @@ class MapAlignmentService(
         return locationTrackService
             .getWithAlignment(layoutContext, id)
             ?.takeIf { (t, _) -> t.state != LocationTrackState.DELETED }
-            ?.let { (track, alignment) -> toAlignmentPolyLine(track.id, LOCATION_TRACK, alignment, resolution, bbox) }
+            ?.let { (track, alignment) -> toAlignmentPolyLine(track.id, LOCATION_TRACK, alignment, resolution, bbox, includeSegmentEndPoints = false) }
     }
 
     fun getSectionsWithoutLinking(
@@ -176,7 +176,7 @@ class MapAlignmentService(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
         resolution: Int,
-        includeSegmentEndPoints: Boolean = false
+        includeSegmentEndPoints: Boolean
     ): List<AlignmentPolyLine<LocationTrack>> = locationTrackService
         .listWithAlignments(layoutContext, includeDeleted = false)
         .map { (track, alignment) -> toAlignmentPolyLine(track.id, LOCATION_TRACK, alignment, resolution, bbox, includeSegmentEndPoints) }
@@ -185,7 +185,7 @@ class MapAlignmentService(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
         resolution: Int,
-        includeSegmentEndPoints: Boolean = false
+        includeSegmentEndPoints: Boolean
     ): List<AlignmentPolyLine<*>> {
         val trackNumbers = trackNumberService.mapById(layoutContext)
         return referenceLineService
