@@ -21,9 +21,9 @@ import fi.fta.geoviite.infra.math.directionBetweenPoints
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.WARNING
-import fi.fta.geoviite.infra.switchLibrary.SwitchConnectivityType
+import fi.fta.geoviite.infra.switchLibrary.SwitchConnectivity
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.switchLibrary.switchConnectivityType
+import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_COORDINATE_DELTA
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -301,13 +301,13 @@ fun validateSwitchTopologicalConnectivity(
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     validatingTrack: LocationTrack?,
 ): List<LayoutValidationIssue> {
-    val connectivityType = switchConnectivityType(structure)
+    val connectivity = switchConnectivity(structure)
     val nonDuplicateTracks = locationTracks.filter { (locationTrack, _) -> locationTrack.duplicateOf == null }
     val nonDuplicateTracksThroughJoints = getTracksThroughJoints(structure, nonDuplicateTracks, switch)
     return listOfNotNull(
         validateFrontJointTopology(switch, structure, locationTracks, validatingTrack),
-        validateExcessTracksThroughJoint(connectivityType, nonDuplicateTracksThroughJoints, switch.name, validatingTrack),
-        validateSwitchAlignmentTopology(switch.id, structure, connectivityType, locationTracks, switch.name, validatingTrack),
+        validateExcessTracksThroughJoint(connectivity, nonDuplicateTracksThroughJoints, switch.name, validatingTrack),
+        validateSwitchAlignmentTopology(switch.id, structure, connectivity, locationTracks, switch.name, validatingTrack),
     )
 }
 
@@ -336,16 +336,16 @@ private fun validateFrontJointTopology(
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     validatingTrack: LocationTrack?,
 ): LayoutValidationIssue? {
-    val connectivityType = switchConnectivityType(switchStructure)
+    val connectivity = switchConnectivity(switchStructure)
     fun tracksHaveOkFrontJointLink(tracks: List<Pair<LocationTrack, LayoutAlignment>>) =
         tracks.any { (locationTrack, _) ->
             val topoStart =
-                locationTrack.topologyStartSwitch?.switchId == switch.id && locationTrack.topologyStartSwitch.jointNumber == connectivityType.frontJoint
+                locationTrack.topologyStartSwitch?.switchId == switch.id && locationTrack.topologyStartSwitch.jointNumber == connectivity.frontJoint
             val topoEnd =
-                locationTrack.topologyEndSwitch?.switchId == switch.id && locationTrack.topologyEndSwitch.jointNumber == connectivityType.frontJoint
-            val tracksThroughFrontJoint = if (connectivityType.frontJoint == null) {
+                locationTrack.topologyEndSwitch?.switchId == switch.id && locationTrack.topologyEndSwitch.jointNumber == connectivity.frontJoint
+            val tracksThroughFrontJoint = if (connectivity.frontJoint == null) {
                 listOf()
-            } else getTracksThroughJoints(switchStructure, tracks, switch)[connectivityType.frontJoint]
+            } else getTracksThroughJoints(switchStructure, tracks, switch)[connectivity.frontJoint]
             topoStart || topoEnd || !tracksThroughFrontJoint.isNullOrEmpty()
         }
 
@@ -354,7 +354,7 @@ private fun validateFrontJointTopology(
         tracksHaveOkFrontJointLink(locationTracks.filter { it.first.duplicateOf == null })
 
     return validateWithParams(
-        connectivityType.frontJoint == null || okFrontJointLinkInNonDuplicates, WARNING
+        connectivity.frontJoint == null || okFrontJointLinkInNonDuplicates, WARNING
     ) {
         val key = "${switchOrTrackLinkageKey(validatingTrack)}.${
             if (okFrontJointLinkInDuplicates) "front-joint-only-duplicate-connected"
@@ -366,13 +366,13 @@ private fun validateFrontJointTopology(
 }
 
 private fun validateExcessTracksThroughJoint(
-    connectivityType: SwitchConnectivityType,
+    connectivity: SwitchConnectivity,
     tracksThroughJoint: Map<JointNumber, List<LocationTrack>>,
     switchName: SwitchName,
     validatingTrack: LocationTrack?,
 ): LayoutValidationIssue? {
     val excesses = tracksThroughJoint.filter { (joint, tracks) ->
-        joint != connectivityType.sharedPassThroughJoint && tracks.size > 1
+        joint != connectivity.sharedPassThroughJoint && tracks.size > 1
     }
     val someoneElseIsResponsible = validatingTrack?.let {
         excesses.values.flatten().none { excess -> excess.id == validatingTrack.id }
@@ -403,17 +403,17 @@ private fun alignmentsAreLinked(
 fun validateSwitchAlignmentTopology(
     switchId: DomainId<TrackLayoutSwitch>,
     switchStructure: SwitchStructure,
-    connectivityType: SwitchConnectivityType,
+    connectivity: SwitchConnectivity,
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     switchName: SwitchName,
     validatingTrack: LocationTrack?,
 ): LayoutValidationIssue? {
-    val switchAlignmentsUnlinkedToAny = connectivityType.trackLinkedAlignmentsJoints.filter { switchAlignment ->
+    val switchAlignmentsUnlinkedToAny = connectivity.alignmentJoints.filter { switchAlignment ->
         locationTracks.none { (_, alignment) ->
             alignmentsAreLinked(switchAlignment, alignment, switchId)
         }
     }.toSet()
-    val allAlignmentsUnlinked = connectivityType.trackLinkedAlignmentsJoints.all { switchAlignment ->
+    val allAlignmentsUnlinked = connectivity.alignmentJoints.all { switchAlignment ->
         switchAlignmentsUnlinkedToAny.contains(switchAlignment)
     }
     return if (allAlignmentsUnlinked) {
@@ -425,7 +425,7 @@ fun validateSwitchAlignmentTopology(
     } else {
         val nonDuplicateTracks = locationTracks.filter { (lt) -> lt.duplicateOf == null }
         val switchAlignmentsUnlinkedToNonduplicates =
-            connectivityType.trackLinkedAlignmentsJoints.filter { switchAlignment ->
+            connectivity.alignmentJoints.filter { switchAlignment ->
                 nonDuplicateTracks.none { (_, alignment) ->
                     alignmentsAreLinked(switchAlignment, alignment, switchId)
                 }
