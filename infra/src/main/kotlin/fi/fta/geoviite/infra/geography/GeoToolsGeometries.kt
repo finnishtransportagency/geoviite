@@ -93,12 +93,12 @@ fun calculateDistance(points: List<IPoint>, ref: CoordinateReferenceSystem): Dou
         }
 }
 
-private val crsCache: MutableMap<Srid, CoordinateReferenceSystem> = mutableMapOf()
-fun crs(srid: Srid): CoordinateReferenceSystem = crsCache.getOrPut(srid) { CRS.decode(srid.toString()) }
+private val crsCache: MutableMap<Srid, CoordinateReferenceSystem> = ConcurrentHashMap()
+private fun crs(srid: Srid): CoordinateReferenceSystem = crsCache.getOrPut(srid) { CRS.decode(srid.toString()) }
 
 private val geometryFactory = JTSFactoryFinder.getGeometryFactory()
 
-fun toJtsGeoPolygon(points: List<IPoint>, srid: Srid): JtsPolygon {
+internal fun toJtsGeoPolygon(points: List<IPoint>, srid: Srid): JtsPolygon {
     val jtsPoints = points.map { point -> toJtsGeoPoint(point, crs(srid)) }.toTypedArray()
     val geometryCollection = geometryFactory.createGeometryCollection(jtsPoints).coordinates
     return requireNotNull(geometryFactory.createPolygon(geometryCollection)) {
@@ -106,13 +106,13 @@ fun toJtsGeoPolygon(points: List<IPoint>, srid: Srid): JtsPolygon {
     }
 }
 
-fun toJtsGeoPoint(point: IPoint, srid: Srid): JtsPoint =
+internal fun toJtsGeoPoint(point: IPoint, srid: Srid): JtsPoint =
     toJtsGeoPoint(toJtsCoordinate(point, crs(srid)))
 
 private fun toJtsGeoPoint(point: IPoint, ref: CoordinateReferenceSystem): JtsPoint =
     toJtsGeoPoint(toJtsCoordinate(point, ref))
 
-fun toJtsGeoPoint(coordinate: JtsCoordinate): JtsPoint {
+internal fun toJtsGeoPoint(coordinate: JtsCoordinate): JtsPoint {
     return requireNotNull(geometryFactory.createPoint(coordinate)) {
         "Failed to create JTS coordinate: coordinate=$coordinate"
     }
@@ -120,11 +120,11 @@ fun toJtsGeoPoint(coordinate: JtsCoordinate): JtsPoint {
 
 private val jtsBuilder = GeometryBuilder()
 
-fun toJtsBox(x: Range<Double>, y: Range<Double>): JtsPolygon = jtsBuilder.box(x.min, y.min, x.max, y.max)
+internal fun toJtsBox(x: Range<Double>, y: Range<Double>): JtsPolygon = jtsBuilder.box(x.min, y.min, x.max, y.max)
 
-fun toJtsLineString(points: List<IPoint>): JtsLineString = jtsBuilder.lineString(*pointArray(points))
+internal fun toJtsLineString(points: List<IPoint>): JtsLineString = jtsBuilder.lineString(*pointArray(points))
 
-fun toJtsPolygon(points: List<IPoint>): JtsPolygon = jtsBuilder.polygon(*pointArray(points))
+internal fun toJtsPolygon(points: List<IPoint>): JtsPolygon = jtsBuilder.polygon(*pointArray(points))
 
 private fun pointArray(points: List<IPoint>): DoubleArray = points.flatMap { p -> listOf(p.x, p.y) }.toDoubleArray()
 
@@ -199,6 +199,9 @@ data class KKJToTM35FINTransformation(
     private val kkjToYkj = GeotoolsTransformation(sourceSrid, KKJ3_YKJ_SRID)
 
     init {
+        require(isKKJ(sourceSrid)) {
+            "This transformation is only for KKJ coordinates: sourceSrid=$sourceSrid"
+        }
         val expected = KKJ3_YKJ_SRID to ETRS89_TM35FIN_SRID
         val actual = kkjToTm35FinTriangulation.sourceSrid to kkjToTm35FinTriangulation.targetSrid
         require(expected == actual) {
@@ -219,6 +222,9 @@ data class TM35FINToKKJTransformation(
     private val ykjToKkj = GeotoolsTransformation(KKJ3_YKJ_SRID, targetSrid)
 
     init {
+        require(isKKJ(targetSrid)) {
+            "This transformation is only for KKJ coordinates: targetSrid=$targetSrid"
+        }
         val expected = ETRS89_TM35FIN_SRID to KKJ3_YKJ_SRID
         val actual = tm35FinToYkjTriangulation.sourceSrid to tm35FinToYkjTriangulation.targetSrid
         require(expected == actual) {
