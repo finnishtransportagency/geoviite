@@ -90,12 +90,14 @@ fun <T> toAlignmentPolyLine(
     alignment: IAlignment,
     resolution: Int? = null,
     bbox: BoundingBox? = null,
-) = AlignmentPolyLine(id, type, simplify(alignment, resolution, bbox))
+    includeSegmentEndPoints:Boolean = false
+) = AlignmentPolyLine(id, type, simplify(alignment, resolution, bbox, includeSegmentEndPoints))
 
 fun simplify(
     alignment: IAlignment,
     resolution: Int? = null,
     bbox: BoundingBox? = null,
+    includeSegmentEndPoints:Boolean = false
 ): List<AlignmentPoint> {
     val segments = bbox?.let(alignment::filterSegmentsByBbox) ?: alignment.segments
     var previousM = Double.NEGATIVE_INFINITY
@@ -109,12 +111,35 @@ fun simplify(
         val bboxContains = { pIndex: Int ->
             bbox == null || s.segmentPoints.getOrNull(pIndex)?.let(bbox::contains) ?: false
         }
-        s.segmentPoints.mapIndexedNotNull { pIndex, p ->
-            if (takePoint(pIndex, p.m + s.startM, isEndPoint, isOverResolution, bboxContains)) {
+        val simplifiedPoints = s.segmentPoints.mapIndexedNotNull { pIndex, p ->
+            if (takePoint(
+                    pIndex,
+                    p.m + s.startM,
+                    isEndPoint,
+                    isOverResolution,
+                    bboxContains,
+                )) {
                 previousM = s.startM + p.m
                 p.toAlignmentPoint(s.startM)
             } else null
         }
+        val segmentEndPoints = if (includeSegmentEndPoints)
+                listOfNotNull(
+                    s.segmentPoints.firstOrNull()?.let {segmentStartPoint ->
+                        if (bbox==null || bbox.contains(segmentStartPoint))
+                            segmentStartPoint.toAlignmentPoint(s.startM)
+                        else
+                            null
+                    }
+                )
+            else
+                listOf()
+
+        val allPoints = (simplifiedPoints + segmentEndPoints)
+            .distinctBy { p -> p.m }
+            .sortedBy { p -> p.m }
+        allPoints
+
     }.let { points -> if (points.size >= 2) points else listOf() }
 }
 

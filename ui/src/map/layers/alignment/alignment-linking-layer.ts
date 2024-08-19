@@ -806,6 +806,7 @@ async function getLinkingData(
     selection: Selection,
     state: LinkingState | undefined,
     changeTimes: ChangeTimes,
+    includeSegmentEndPoints: boolean,
 ): Promise<LinkingData> {
     const changeTime = getMaxTimestamp(
         changeTimes.layoutReferenceLine,
@@ -817,7 +818,13 @@ async function getLinkingData(
         return { type: 'empty' };
     } else if (state.type === LinkingType.LinkingAlignment) {
         const [points, pointAddresses] = await Promise.all([
-            getLinkPointsByTiles(changeTime, layoutContext, mapTiles, state.layoutAlignment),
+            getLinkPointsByTiles(
+                changeTime,
+                layoutContext,
+                mapTiles,
+                state.layoutAlignment,
+                includeSegmentEndPoints,
+            ),
             getLinkPointsWithAddresses(layoutContext, state.layoutAlignment, {
                 layoutStart: state.layoutAlignmentInterval.start,
                 layoutEnd: state.layoutAlignmentInterval.end,
@@ -1017,6 +1024,7 @@ export function createAlignmentLinkingLayer(
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
     const drawLinkingDots = resolution <= LINKING_DOTS;
+    const loadSegmentEndPoints = drawLinkingDots;
 
     const dataPromise = getLinkingData(
         mapTiles,
@@ -1024,6 +1032,7 @@ export function createAlignmentLinkingLayer(
         selection,
         linkingState,
         changeTimes,
+        loadSegmentEndPoints,
     );
 
     loadLayerData(source, isLatest, onLoadingData, dataPromise, (data) =>
