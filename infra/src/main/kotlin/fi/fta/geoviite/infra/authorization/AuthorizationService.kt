@@ -8,6 +8,12 @@ import org.springframework.transaction.annotation.Transactional
 const val LDAP_GROUP_GEOVIITE_PREFIX = "geoviite_"
 const val DESIRED_ROLE_COOKIE_NAME = "desiredRole"
 
+enum class IntegrationApiUserType(val roleCode: Code) {
+    LOCAL(Code("api-private")),
+    PUBLIC(Code("api-public")),
+    PRIVATE(Code("api-private")),
+}
+
 @GeoviiteService
 class AuthorizationService @Autowired constructor(private val authorizationDao: AuthorizationDao) {
 
@@ -19,6 +25,10 @@ class AuthorizationService @Autowired constructor(private val authorizationDao: 
             Code("consultant"),
             Code("browser"),
         )
+    }
+
+    fun getRole(roleCode: Code): Role? {
+        return authorizationDao.getRoleByRoleCode(roleCode)
     }
 
     fun getRoles(roleCodes: List<Code>): List<Role> {

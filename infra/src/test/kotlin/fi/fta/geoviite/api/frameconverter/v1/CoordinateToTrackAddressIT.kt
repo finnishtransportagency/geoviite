@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.TestLayoutContext
+import fi.fta.geoviite.infra.authorization.AuthorizationService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutContext
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
@@ -58,8 +60,10 @@ private data class GeocodableTrack(
 )
 
 @ActiveProfiles("dev", "test", "integration-api")
-@SpringBootTest(classes = [InfraApplication::class])
-@AutoConfigureMockMvc(addFilters = false)
+@SpringBootTest(
+    classes = [InfraApplication::class],
+)
+@AutoConfigureMockMvc
 class CoordinateToTrackAddressIT @Autowired constructor(
     mockMvc: MockMvc,
 

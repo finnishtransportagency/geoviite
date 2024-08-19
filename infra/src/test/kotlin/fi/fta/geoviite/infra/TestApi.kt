@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import fi.fta.geoviite.infra.error.ApiErrorResponse
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType.APPLICATION_JSON
 import org.springframework.test.web.servlet.MockMvc
@@ -27,9 +28,15 @@ class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
             .andReturn().response.getContentAsString(Charsets.UTF_8)
     }
 
-    fun doGetWithParams(url: String, params: Map<String, String>, expectedStatus: HttpStatus): String {
+    fun doGetWithParams(
+        url: String,
+        params: Map<String, String>,
+        expectedStatus: HttpStatus,
+        headers: HttpHeaders = HttpHeaders(),
+    ): String {
         val request = MockMvcRequestBuilders.get(url)
         params.forEach { (key, value) -> request.param(key, value) }
+        request.headers(headers)
 
         return doGet(request, expectedStatus)
     }
@@ -39,9 +46,15 @@ class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
         return doPostWithString(url, bodyString, expectedStatus)
     }
 
-    fun doPostWithParams(url: String, params: Map<String, String>, expectedStatus: HttpStatus): String {
+    fun doPostWithParams(
+        url: String,
+        params: Map<String, String>,
+        expectedStatus: HttpStatus,
+        headers: HttpHeaders = HttpHeaders(),
+    ): String {
         val request = MockMvcRequestBuilders.post(url)
         params.forEach { (key, value) -> request.param(key, value) }
+        request.headers(headers)
 
         return mockMvc
             .perform(request)
