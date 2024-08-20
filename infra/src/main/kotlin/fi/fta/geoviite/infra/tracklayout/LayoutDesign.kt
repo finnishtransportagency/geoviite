@@ -5,7 +5,9 @@ import fi.fta.geoviite.infra.util.FreeText
 import java.time.LocalDate
 
 enum class DesignState {
-    ACTIVE, DELETED, COMPLETED
+    ACTIVE,
+    DELETED,
+    COMPLETED
 }
 
 data class LayoutDesign(

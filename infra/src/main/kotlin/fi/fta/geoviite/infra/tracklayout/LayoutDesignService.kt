@@ -18,16 +18,18 @@ class LayoutDesignService(
     }
 
     @Transactional
-    fun update(id: IntId<LayoutDesign>, request: LayoutDesignSaveRequest): IntId<LayoutDesign> = try {
-        dao.update(id, request)
-    } catch (e: DataIntegrityViolationException) {
-        throw asDuplicateNameException(e) ?: e
-    }
+    fun update(id: IntId<LayoutDesign>, request: LayoutDesignSaveRequest): IntId<LayoutDesign> =
+        try {
+            dao.update(id, request)
+        } catch (e: DataIntegrityViolationException) {
+            throw asDuplicateNameException(e) ?: e
+        }
 
     @Transactional
-    fun insert(request: LayoutDesignSaveRequest): IntId<LayoutDesign> = try {
-        dao.insert(request)
-    } catch (e: DataIntegrityViolationException) {
-        throw asDuplicateNameException(e) ?: e
-    }
+    fun insert(request: LayoutDesignSaveRequest): IntId<LayoutDesign> =
+        try {
+            dao.insert(request)
+        } catch (e: DataIntegrityViolationException) {
+            throw asDuplicateNameException(e) ?: e
+        }
 }

@@ -30,7 +30,8 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         @RequestParam("type") type: AlignmentFetchType? = null,
     ): List<AlignmentPolyLine<*>> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        return mapAlignmentService.getAlignmentPolyLines(layoutContext, bbox, resolution, type ?: ALL)
+        return mapAlignmentService.getAlignmentPolyLines(
+            layoutContext, bbox, resolution, type ?: ALL)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -43,7 +44,8 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         @RequestParam("resolution") resolution: Int,
     ): AlignmentPolyLine<LocationTrack>? {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        return mapAlignmentService.getAlignmentPolyline(layoutContext, locationTrackId, bbox, resolution)
+        return mapAlignmentService.getAlignmentPolyline(
+            layoutContext, locationTrackId, bbox, resolution)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)

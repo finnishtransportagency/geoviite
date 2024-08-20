@@ -14,7 +14,8 @@ import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
 
 enum class LocationTrackPointUpdateType {
-    START_POINT, END_POINT
+    START_POINT,
+    END_POINT
 }
 
 data class LayoutInterval<T>(
@@ -58,7 +59,9 @@ data class LocationTrackSaveRequest(
 }
 
 enum class SuggestedSwitchJointMatchType {
-    START, END, LINE,
+    START,
+    END,
+    LINE,
 }
 
 data class FittedSwitchJointMatch(
@@ -71,6 +74,7 @@ data class FittedSwitchJointMatch(
     val distanceToAlignment: Double,
     val alignmentId: IntId<LayoutAlignment>?,
 )
+
 data class FittedSwitchJoint(
     override val number: JointNumber,
     override val location: Point,
@@ -102,7 +106,8 @@ data class SuggestedSwitch(
 )
 
 enum class TrackEnd {
-    START, END
+    START,
+    END
 }
 
 data class SwitchLinkingTopologicalTrackLink(
@@ -116,8 +121,12 @@ data class SwitchLinkingTrackLinks(
 ) {
     init {
         // linking to neither is OK; that just communicates cleaning up all links
-        check(topologyJoint == null || segmentJoints.isEmpty()) { "Switch linking track link links both to segment and topology"}
-        check(segmentJoints.zipWithNext { a, b -> a.m < b.m }.all { it }) { "Switch linking track link segment joints should be m-ordered"}
+        check(topologyJoint == null || segmentJoints.isEmpty()) {
+            "Switch linking track link links both to segment and topology"
+        }
+        check(segmentJoints.zipWithNext { a, b -> a.m < b.m }.all { it }) {
+            "Switch linking track link segment joints should be m-ordered"
+        }
     }
 
     fun isLinked(): Boolean = segmentJoints.isNotEmpty() || topologyJoint != null
@@ -146,7 +155,9 @@ data class TrackNumberSaveRequest(
 ) {
     init {
         require(description.isNotBlank()) { "TrackNumber should have a non-blank description" }
-        require(description.length < 100) { "TrackNumber description too long: ${description.length}>100" }
+        require(description.length < 100) {
+            "TrackNumber description too long: ${description.length}>100"
+        }
     }
 }
 
@@ -188,12 +199,17 @@ data class SwitchRelinkingValidationResult(
     val successfulSuggestion: SwitchRelinkingSuggestion?,
     val validationIssues: List<LayoutValidationIssue>,
 )
+
 data class SwitchRelinkingSuggestion(
     val location: Point,
     val address: TrackMeter,
 )
 
-enum class TrackSwitchRelinkingResultType { RELINKED, NOT_AUTOMATICALLY_LINKABLE }
+enum class TrackSwitchRelinkingResultType {
+    RELINKED,
+    NOT_AUTOMATICALLY_LINKABLE
+}
+
 data class TrackSwitchRelinkingResult(
     val id: IntId<TrackLayoutSwitch>,
     val outcome: TrackSwitchRelinkingResultType

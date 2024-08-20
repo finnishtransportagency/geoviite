@@ -5,8 +5,8 @@ import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geometry.GeometryIssueType
 import fi.fta.geoviite.infra.geometry.GeometryPlan
-import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
+import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.util.FileName
@@ -16,9 +16,6 @@ import jakarta.xml.bind.JAXBContext
 import jakarta.xml.bind.Marshaller
 import jakarta.xml.bind.UnmarshalException
 import jakarta.xml.bind.Unmarshaller
-import org.springframework.http.MediaType
-import org.springframework.web.multipart.MultipartFile
-import org.xml.sax.InputSource
 import java.io.File
 import java.io.StringReader
 import java.nio.charset.Charset
@@ -27,6 +24,9 @@ import javax.xml.parsers.SAXParserFactory
 import javax.xml.transform.sax.SAXSource
 import javax.xml.validation.Schema
 import javax.xml.validation.SchemaFactory
+import org.springframework.http.MediaType
+import org.springframework.web.multipart.MultipartFile
+import org.xml.sax.InputSource
 
 // Schema from https://buildingsmart.fi/infra/schema/im_current.html
 private const val SCHEMA_LOCATION = "/xml/inframodel.xsd"
@@ -40,10 +40,7 @@ data class ParsingError(override val localizationKey: LocalizationKey) : Geometr
 }
 
 private val jaxbContext: JAXBContext by lazy {
-    JAXBContext.newInstance(
-        InfraModel403::class.java,
-        InfraModel404::class.java
-    )
+    JAXBContext.newInstance(InfraModel403::class.java, InfraModel404::class.java)
 }
 
 private val schema: Schema by lazy {
@@ -51,21 +48,23 @@ private val schema: Schema by lazy {
     val factory = SchemaFactory.newInstance(language)
     factory.newSchema(
         InfraModel403::class.java.getResource(SCHEMA_LOCATION)
-            ?: throw IllegalArgumentException("Failed to load schema from classpath:$SCHEMA_LOCATION")
-    )
+            ?: throw IllegalArgumentException(
+                "Failed to load schema from classpath:$SCHEMA_LOCATION"))
 }
 
-
-//Unlike jaxbContexts, Marshallers are not thread-safe
-val unmarshaller: Unmarshaller get() = jaxbContext.createUnmarshaller()
-val marshaller: Marshaller get() = jaxbContext.createMarshaller()
+// Unlike jaxbContexts, Marshallers are not thread-safe
+val unmarshaller: Unmarshaller
+    get() = jaxbContext.createUnmarshaller()
+val marshaller: Marshaller
+    get() = jaxbContext.createMarshaller()
 
 private val saxParserFactory: SAXParserFactory by lazy {
     val spf = SAXParserFactory.newInstance()
 
     // Validate
     spf.isNamespaceAware = true
-    // This id only DTD validation, as per http://www.w3.org/TR/REC-xml#proc-types - we don't want that
+    // This id only DTD validation, as per http://www.w3.org/TR/REC-xml#proc-types - we don't want
+    // that
     spf.isValidating = false
     spf.schema = schema
 
@@ -83,10 +82,11 @@ private val saxParserFactory: SAXParserFactory by lazy {
     spf
 }
 
-fun toSaxSource(xmlString: String) = SAXSource(
-    saxParserFactory.newSAXParser().xmlReader,
-    InputSource(StringReader(xmlString)),
-)
+fun toSaxSource(xmlString: String) =
+    SAXSource(
+        saxParserFactory.newSAXParser().xmlReader,
+        InputSource(StringReader(xmlString)),
+    )
 
 fun classPathToInfraModelFile(fileName: String) =
     toInfraModelFile(FileName(fileName), classpathResourceToString(fileName))
@@ -97,7 +97,11 @@ fun toInfraModelFile(file: MultipartFile, fileEncodingOverride: Charset?): Infra
     return toInfraModelFile(file.bytes, name, fileEncodingOverride)
 }
 
-fun toInfraModelFile(file: ByteArray, fileName: FileName, fileEncodingOverride: Charset?): InfraModelFile {
+fun toInfraModelFile(
+    file: ByteArray,
+    fileName: FileName,
+    fileEncodingOverride: Charset?
+): InfraModelFile {
     toInfraModelFile(fileName, fileToString(file, fileEncodingOverride))
     return toInfraModelFile(fileName, fileToString(file, fileEncodingOverride))
 }
@@ -136,8 +140,9 @@ fun toInfraModel(file: InfraModelFile): InfraModel {
 }
 
 fun classpathResourceToString(fileName: String): String {
-    val resource = InfraModel::class.java.getResource(fileName)
-        ?: throw InframodelParsingException("Resource not found: $fileName")
+    val resource =
+        InfraModel::class.java.getResource(fileName)
+            ?: throw InframodelParsingException("Resource not found: $fileName")
     return xmlBytesToString(resource.readBytes())
 }
 
@@ -149,10 +154,15 @@ fun fileToString(file: File): String {
     return xmlBytesToString(file.readBytes())
 }
 
-fun assertContentType(fileName: FileName, contentType: String?, vararg fileContentTypes: MediaType) {
+fun assertContentType(
+    fileName: FileName,
+    contentType: String?,
+    vararg fileContentTypes: MediaType
+) {
     val isCorrectType = contentType?.let { fileContentTypes.contains(MediaType.valueOf(it)) }
-    if (isCorrectType == false) throw InframodelParsingException(
-        message = "File's $fileName type is incorrect: $contentType",
-        localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.wrong-content-type",
-    )
+    if (isCorrectType == false)
+        throw InframodelParsingException(
+            message = "File's $fileName type is incorrect: $contentType",
+            localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.wrong-content-type",
+        )
 }

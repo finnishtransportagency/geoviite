@@ -20,20 +20,32 @@ enum class PVDocumentStatus {
 
 val pvProjectNameLength = 1..200
 val pvProjectNameRegex = Regex("^[A-ZÄÖÅa-zäöå0-9 \t_\\\\\\-–—+().,:;'/*!@\"£#$€\\[\\]{}=?^~<>]*\$")
-data class PVProjectName @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(private val value: String)
-    : Comparable<PVProjectName>, CharSequence by value {
-    init { assertSanitized<PVProjectName>(value, pvProjectNameRegex, pvProjectNameLength) }
 
-    @JsonValue
-    override fun toString(): String = value
+data class PVProjectName
+@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+constructor(private val value: String) : Comparable<PVProjectName>, CharSequence by value {
+    init {
+        assertSanitized<PVProjectName>(value, pvProjectNameRegex, pvProjectNameLength)
+    }
+
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: PVProjectName): Int = value.compareTo(other.value)
 }
 
-data class PVProjectGroup(val oid: Oid<PVProjectGroup>, val name: PVProjectName, val state: PVDictionaryName)
+data class PVProjectGroup(
+    val oid: Oid<PVProjectGroup>,
+    val name: PVProjectName,
+    val state: PVDictionaryName
+)
 
 data class PVProject(val oid: Oid<PVProject>, val name: PVProjectName, val state: PVDictionaryName)
 
-data class PVAssignment(val oid: Oid<PVAssignment>, val name: PVProjectName, val state: PVDictionaryName)
+data class PVAssignment(
+    val oid: Oid<PVAssignment>,
+    val name: PVProjectName,
+    val state: PVDictionaryName
+)
 
 data class PVDocumentRejection(
     val id: IntId<PVDocumentRejection>,

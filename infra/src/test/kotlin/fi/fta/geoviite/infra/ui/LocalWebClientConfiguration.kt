@@ -8,7 +8,6 @@ class LocalHostWebClient(
     val client: WebClient,
 ) : WebClient by client
 
-
 @Configuration
 class LocalWebClientConfiguration {
     @Bean

@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.aspects
 
 import fi.fta.geoviite.infra.logging.serviceCall
+import java.util.concurrent.ConcurrentHashMap
 import org.aspectj.lang.JoinPoint
 import org.aspectj.lang.annotation.Aspect
 import org.aspectj.lang.annotation.Before
@@ -8,7 +9,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.stereotype.Service
-import java.util.concurrent.ConcurrentHashMap
 
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
@@ -23,9 +23,10 @@ class GeoviiteServiceAspect {
     @Before("within(@GeoviiteService *)")
     fun logBefore(joinPoint: JoinPoint) {
         val targetClass = joinPoint.target::class.java
-        val logger = loggerCache.computeIfAbsent(targetClass) { classRef ->
-            LoggerFactory.getLogger(classRef)
-        }
+        val logger =
+            loggerCache.computeIfAbsent(targetClass) { classRef ->
+                LoggerFactory.getLogger(classRef)
+            }
 
         if (logger.isDebugEnabled) {
             reflectedLogBefore(joinPoint, logger::serviceCall)

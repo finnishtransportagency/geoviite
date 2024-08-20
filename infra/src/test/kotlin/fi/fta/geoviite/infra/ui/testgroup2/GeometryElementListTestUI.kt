@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.ui.LocalHostWebClient
 import fi.fta.geoviite.infra.ui.SeleniumTest
+import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
@@ -30,11 +31,12 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertNotNull
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
-class GeometryElementListTestUI @Autowired constructor(
+class GeometryElementListTestUI
+@Autowired
+constructor(
     private val geometryDao: GeometryDao,
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
@@ -50,7 +52,8 @@ class GeometryElementListTestUI @Autowired constructor(
     @Test
     fun `List layout geometry`() {
         val trackNumber = TrackNumber("foo")
-        val trackNumberId = mainOfficialContext.getOrCreateLayoutTrackNumber(trackNumber).id as IntId
+        val trackNumberId =
+            mainOfficialContext.getOrCreateLayoutTrackNumber(trackNumber).id as IntId
         val planVersion = insertSomePlan(trackNumber)
         linkPlanToSomeLocationTrack(planVersion, trackNumberId)
 
@@ -118,22 +121,23 @@ class GeometryElementListTestUI @Autowired constructor(
 
     private fun insertSomePlan(trackNumber: TrackNumber): RowVersion<GeometryPlan> =
         geometryDao.insertPlan(
-            plan = plan(
-                trackNumber = trackNumber,
-                alignments = listOf(
-                    geometryAlignment(
-                        name = "test-alignment-name",
-                        elements = listOf(
-                            line(Point(1.0, 1.0), Point(3.0, 3.0)),
-                            minimalClothoid(Point(3.0, 3.0), Point(5.0, 6.0)),
-                            line(Point(5.0, 6.0), Point(9.0, 10.0)),
-                            minimalCurve(Point(9.0, 10.0), Point(12.0, 13.0))
-                        ),
-                    )
+            plan =
+                plan(
+                    trackNumber = trackNumber,
+                    alignments =
+                        listOf(
+                            geometryAlignment(
+                                name = "test-alignment-name",
+                                elements =
+                                    listOf(
+                                        line(Point(1.0, 1.0), Point(3.0, 3.0)),
+                                        minimalClothoid(Point(3.0, 3.0), Point(5.0, 6.0)),
+                                        line(Point(5.0, 6.0), Point(9.0, 10.0)),
+                                        minimalCurve(Point(9.0, 10.0), Point(12.0, 13.0))),
+                            )),
+                    coordinateSystemName = CoordinateSystemName("testcrs"),
+                    verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
                 ),
-                coordinateSystemName = CoordinateSystemName("testcrs"),
-                verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
-            ),
             file = infraModelFile("testfile.xml"),
             boundingBoxInLayoutCoordinates = null,
         )
@@ -144,22 +148,25 @@ class GeometryElementListTestUI @Autowired constructor(
     ) {
         val geometryPlan = geometryDao.fetchPlan(planVersion)
         val geoAlignmentA = geometryPlan.alignments[0]
-        val locationTrackAlignment = alignmentDao.insert(
-            alignment(
-                segment(Point(1.0, 1.0), Point(2.0, 2.0)).copy(sourceId = geoAlignmentA.elements[0].id),
-                segment(Point(2.0, 2.0), Point(3.0, 3.0)).copy(sourceId = geoAlignmentA.elements[1].id),
-                segment(Point(3.0, 3.0), Point(4.0, 4.0)),
-                segment(Point(4.0, 4.0), Point(5.0, 5.0)).copy(sourceId = geoAlignmentA.elements[2].id),
-                segment(Point(5.0, 5.0), Point(6.0, 6.0)).copy(sourceId = geoAlignmentA.elements[3].id),
-            )
-        )
+        val locationTrackAlignment =
+            alignmentDao.insert(
+                alignment(
+                    segment(Point(1.0, 1.0), Point(2.0, 2.0))
+                        .copy(sourceId = geoAlignmentA.elements[0].id),
+                    segment(Point(2.0, 2.0), Point(3.0, 3.0))
+                        .copy(sourceId = geoAlignmentA.elements[1].id),
+                    segment(Point(3.0, 3.0), Point(4.0, 4.0)),
+                    segment(Point(4.0, 4.0), Point(5.0, 5.0))
+                        .copy(sourceId = geoAlignmentA.elements[2].id),
+                    segment(Point(5.0, 5.0), Point(6.0, 6.0))
+                        .copy(sourceId = geoAlignmentA.elements[3].id),
+                ))
         locationTrackDao.insert(
             locationTrack(
                 trackNumberId = trackNumberId,
                 name = "foo test track",
                 alignmentVersion = locationTrackAlignment,
                 draft = false,
-            )
-        )
+            ))
     }
 }

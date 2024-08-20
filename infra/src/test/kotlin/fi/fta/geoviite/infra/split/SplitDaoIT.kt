@@ -9,19 +9,21 @@ import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class SplitDaoIT @Autowired constructor(
+class SplitDaoIT
+@Autowired
+constructor(
     val splitDao: SplitDao,
     val publicationDao: PublicationDao,
 ) : DBTestBase() {
@@ -36,12 +38,15 @@ class SplitDaoIT @Autowired constructor(
 
         val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
-        val split = splitDao.saveSplit(
-            sourceTrack.rowVersion,
-            listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE)),
-            listOf(relinkedSwitchId),
-            updatedDuplicates = emptyList(),
-        ).let(splitDao::getOrThrow)
+        val split =
+            splitDao
+                .saveSplit(
+                    sourceTrack.rowVersion,
+                    listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE)),
+                    listOf(relinkedSwitchId),
+                    updatedDuplicates = emptyList(),
+                )
+                .let(splitDao::getOrThrow)
 
         assertTrue { split.bulkTransferState == BulkTransferState.PENDING }
         assertNull(split.publicationId)
@@ -64,19 +69,26 @@ class SplitDaoIT @Autowired constructor(
 
         val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
-        val split = splitDao.saveSplit(
-            sourceTrack.rowVersion,
-            listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE)),
-            listOf(relinkedSwitchId),
-            updatedDuplicates = emptyList(),
-        ).let(splitDao::getOrThrow)
+        val split =
+            splitDao
+                .saveSplit(
+                    sourceTrack.rowVersion,
+                    listOf(SplitTarget(targetTrack.id, 0..0, SplitTargetOperation.CREATE)),
+                    listOf(relinkedSwitchId),
+                    updatedDuplicates = emptyList(),
+                )
+                .let(splitDao::getOrThrow)
 
         val publicationId = publicationDao.createPublication(LayoutBranch.main, "SPLIT PUBLICATION")
-        val updatedSplit = splitDao.updateSplit(
-            splitId = split.id,
-            bulkTransferState = BulkTransferState.FAILED,
-            publicationId = publicationId,
-        ).id.let(splitDao::getOrThrow)
+        val updatedSplit =
+            splitDao
+                .updateSplit(
+                    splitId = split.id,
+                    bulkTransferState = BulkTransferState.FAILED,
+                    publicationId = publicationId,
+                )
+                .id
+                .let(splitDao::getOrThrow)
 
         assertEquals(BulkTransferState.FAILED, updatedSplit.bulkTransferState)
         assertEquals(publicationId, updatedSplit.publicationId)
@@ -95,22 +107,26 @@ class SplitDaoIT @Autowired constructor(
         val relinkedSwitchId1 = mainOfficialContext.createSwitch().id
         val relinkedSwitchId2 = mainOfficialContext.createSwitch().id
 
-        val doneSplit = splitDao.saveSplit(
-            sourceTrack.rowVersion,
-            listOf(SplitTarget(targetTrack1.id, 0..0, SplitTargetOperation.CREATE)),
-            listOf(relinkedSwitchId1),
-            updatedDuplicates = emptyList(),
-        ).also { splitId ->
-            val split = splitDao.getOrThrow(splitId)
-            splitDao.updateSplit(split.id, bulkTransferState = BulkTransferState.DONE)
-        }
+        val doneSplit =
+            splitDao
+                .saveSplit(
+                    sourceTrack.rowVersion,
+                    listOf(SplitTarget(targetTrack1.id, 0..0, SplitTargetOperation.CREATE)),
+                    listOf(relinkedSwitchId1),
+                    updatedDuplicates = emptyList(),
+                )
+                .also { splitId ->
+                    val split = splitDao.getOrThrow(splitId)
+                    splitDao.updateSplit(split.id, bulkTransferState = BulkTransferState.DONE)
+                }
 
-        val pendingSplitId = splitDao.saveSplit(
-            sourceTrack.rowVersion,
-            listOf(SplitTarget(targetTrack2.id, 0..0, SplitTargetOperation.CREATE)),
-            listOf(relinkedSwitchId2),
-            updatedDuplicates = emptyList(),
-        )
+        val pendingSplitId =
+            splitDao.saveSplit(
+                sourceTrack.rowVersion,
+                listOf(SplitTarget(targetTrack2.id, 0..0, SplitTargetOperation.CREATE)),
+                listOf(relinkedSwitchId2),
+                updatedDuplicates = emptyList(),
+            )
 
         val splits = splitDao.fetchUnfinishedSplits(LayoutBranch.main)
 
@@ -129,12 +145,12 @@ class SplitDaoIT @Autowired constructor(
 
         val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
-        val splitId = splitDao.saveSplit(
-            sourceTrack.rowVersion,
-            listOf(SplitTarget(targetTrack1.id, 0..0, SplitTargetOperation.OVERWRITE)),
-            listOf(relinkedSwitchId),
-            updatedDuplicates = listOf(someDuplicateTrack.id)
-        )
+        val splitId =
+            splitDao.saveSplit(
+                sourceTrack.rowVersion,
+                listOf(SplitTarget(targetTrack1.id, 0..0, SplitTargetOperation.OVERWRITE)),
+                listOf(relinkedSwitchId),
+                updatedDuplicates = listOf(someDuplicateTrack.id))
 
         assertTrue { splitDao.fetchUnfinishedSplits(LayoutBranch.main).any { it.id == splitId } }
 
@@ -153,12 +169,13 @@ class SplitDaoIT @Autowired constructor(
 
         val relinkedSwitchId = mainOfficialContext.createSwitch().id
 
-        val splitId = splitDao.saveSplit(
-            sourceTrack.rowVersion,
-            listOf(SplitTarget(targetTrack1.id, 0..0, SplitTargetOperation.CREATE)),
-            listOf(relinkedSwitchId),
-            updatedDuplicates = emptyList(),
-        )
+        val splitId =
+            splitDao.saveSplit(
+                sourceTrack.rowVersion,
+                listOf(SplitTarget(targetTrack1.id, 0..0, SplitTargetOperation.CREATE)),
+                listOf(relinkedSwitchId),
+                updatedDuplicates = emptyList(),
+            )
 
         val splitHeader = splitDao.getSplitHeader(splitId)
         assertEquals(splitId, splitHeader.id)
@@ -187,21 +204,22 @@ class SplitDaoIT @Autowired constructor(
     @Test
     fun `Split bulk transfer state can be updated`() {
         val splitId = createSplit()
-        val publicationId = publicationDao.createPublication(LayoutBranch.main, "test: bulk transfer state update")
+        val publicationId =
+            publicationDao.createPublication(LayoutBranch.main, "test: bulk transfer state update")
 
         BulkTransferState.entries.forEach { newBulkTransferState ->
             when (newBulkTransferState) {
-                BulkTransferState.PENDING -> splitDao.updateSplit(
-                    splitId = splitId,
-                    bulkTransferState = newBulkTransferState
-                )
+                BulkTransferState.PENDING ->
+                    splitDao.updateSplit(
+                        splitId = splitId, bulkTransferState = newBulkTransferState)
 
-                else -> splitDao.updateSplit(
-                    splitId = splitId,
-                    publicationId = publicationId,
-                    bulkTransferState = newBulkTransferState,
-                    bulkTransferId = testDBService.getUnusedBulkTransferId(),
-                )
+                else ->
+                    splitDao.updateSplit(
+                        splitId = splitId,
+                        publicationId = publicationId,
+                        bulkTransferState = newBulkTransferState,
+                        bulkTransferId = testDBService.getUnusedBulkTransferId(),
+                    )
             }
             splitDao.updateSplit(splitId, bulkTransferState = newBulkTransferState)
             assertEquals(newBulkTransferState, splitDao.getOrThrow(splitId).bulkTransferState)

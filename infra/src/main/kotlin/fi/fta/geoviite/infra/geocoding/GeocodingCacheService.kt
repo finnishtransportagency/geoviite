@@ -21,11 +21,11 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.context.annotation.Lazy
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 sealed interface GeocodingContextCacheKey
 
@@ -40,10 +40,10 @@ data class LayoutGeocodingContextCacheKey(
             kmPostVersions.getOrNull(index + 1)?.also { next ->
                 require(next.rowId.intValue > version.rowId.intValue) {
                     "Cache key km-posts must be in order: " +
-                            "index=$index " +
-                            "trackNumberVersion=$trackNumberVersion " +
-                            "kmPostVersion=$version " +
-                            "nextKmPostVersion=$next"
+                        "index=$index " +
+                        "trackNumberVersion=$trackNumberVersion " +
+                        "kmPostVersion=$version " +
+                        "nextKmPostVersion=$next"
                 }
             }
         }
@@ -64,37 +64,45 @@ class GeocodingCacheService(
     private val planLayoutService: PlanLayoutService,
     private val geocodingDao: GeocodingDao,
 ) {
-    @Autowired
-    @Lazy
-    lateinit var geocodingCacheService: GeocodingCacheService
+    @Autowired @Lazy lateinit var geocodingCacheService: GeocodingCacheService
 
     @Transactional(readOnly = true)
     fun getGeocodingContext(key: GeocodingContextCacheKey): GeocodingContext? =
         getGeocodingContextWithReasons(key)?.geocodingContext
 
     @Transactional(readOnly = true)
-    fun getGeocodingContextWithReasons(key: GeocodingContextCacheKey): GeocodingContextCreateResult? =
+    fun getGeocodingContextWithReasons(
+        key: GeocodingContextCacheKey
+    ): GeocodingContextCreateResult? =
         when (key) {
-            is LayoutGeocodingContextCacheKey -> geocodingCacheService.getLayoutGeocodingContext(key)
-            is GeometryGeocodingContextCacheKey -> geocodingCacheService.getGeometryGeocodingContext(key)
+            is LayoutGeocodingContextCacheKey ->
+                geocodingCacheService.getLayoutGeocodingContext(key)
+            is GeometryGeocodingContextCacheKey ->
+                geocodingCacheService.getGeometryGeocodingContext(key)
         }
 
     @Transactional(readOnly = true)
     @Cacheable(CACHE_GEOCODING_CONTEXTS, sync = true)
-    fun getLayoutGeocodingContext(key: LayoutGeocodingContextCacheKey): GeocodingContextCreateResult? {
+    fun getLayoutGeocodingContext(
+        key: LayoutGeocodingContextCacheKey
+    ): GeocodingContextCreateResult? {
         val trackNumber = trackNumberDao.fetch(key.trackNumberVersion)
         val referenceLine = referenceLineDao.fetch(key.referenceLineVersion)
-        val alignment = referenceLine.alignmentVersion?.let(alignmentDao::fetch)
-            ?: throw IllegalStateException("DB ReferenceLine should have an alignment")
+        val alignment =
+            referenceLine.alignmentVersion?.let(alignmentDao::fetch)
+                ?: throw IllegalStateException("DB ReferenceLine should have an alignment")
         // If the track number is deleted or reference line has no geometry, we cannot geocode.
         if (!trackNumber.exists || alignment.segments.isEmpty()) return null
         val kmPosts = key.kmPostVersions.map(kmPostDao::fetch).sortedBy { post -> post.kmNumber }
-        return GeocodingContext.create(trackNumber.number, referenceLine.startAddress, alignment, kmPosts)
+        return GeocodingContext.create(
+            trackNumber.number, referenceLine.startAddress, alignment, kmPosts)
     }
 
     @Transactional(readOnly = true)
     @Cacheable(CACHE_PLAN_GEOCODING_CONTEXTS, sync = true)
-    fun getGeometryGeocodingContext(key: GeometryGeocodingContextCacheKey): GeocodingContextCreateResult? {
+    fun getGeometryGeocodingContext(
+        key: GeometryGeocodingContextCacheKey
+    ): GeocodingContextCreateResult? {
         val plan = planLayoutService.getLayoutPlan(key.planVersion).first
         val startAddress = plan?.startAddress
         val referenceLine = plan?.let(::getGeometryGeocodingContextReferenceLine)
@@ -106,10 +114,13 @@ class GeocodingCacheService(
         }
     }
 
-    private fun getGeometryGeocodingContextReferenceLine(plan: GeometryPlanLayout): PlanLayoutAlignment? {
-        val referenceLines = plan.alignments.filter { alignment ->
-            alignment.header.alignmentType == MapAlignmentType.REFERENCE_LINE
-        }
+    private fun getGeometryGeocodingContextReferenceLine(
+        plan: GeometryPlanLayout
+    ): PlanLayoutAlignment? {
+        val referenceLines =
+            plan.alignments.filter { alignment ->
+                alignment.header.alignmentType == MapAlignmentType.REFERENCE_LINE
+            }
         return if (referenceLines.size == 1) referenceLines[0] else null
     }
 
@@ -117,18 +128,20 @@ class GeocodingCacheService(
     fun getGeocodingContextCreateResult(
         layoutContext: LayoutContext,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
-    ): GeocodingContextCreateResult? = geocodingDao
-        .getLayoutGeocodingContextCacheKey(layoutContext, trackNumberId)
-        ?.let(geocodingCacheService::getGeocodingContextWithReasons)
+    ): GeocodingContextCreateResult? =
+        geocodingDao
+            .getLayoutGeocodingContextCacheKey(layoutContext, trackNumberId)
+            ?.let(geocodingCacheService::getGeocodingContextWithReasons)
 
     @Transactional(readOnly = true)
     fun getGeocodingContextAtMoment(
         branch: LayoutBranch,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         moment: Instant,
-    ): GeocodingContext? = geocodingDao
-        .getLayoutGeocodingContextCacheKey(branch, trackNumberId, moment)
-        ?.let(geocodingCacheService::getGeocodingContext)
+    ): GeocodingContext? =
+        geocodingDao
+            .getLayoutGeocodingContextCacheKey(branch, trackNumberId, moment)
+            ?.let(geocodingCacheService::getGeocodingContext)
 
     @Transactional(readOnly = true)
     fun getGeocodingContext(

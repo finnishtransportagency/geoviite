@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.ratko.model
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.annotation.JsonValue
 
-
 @JsonInclude(JsonInclude.Include.NON_NULL)
 data class RatkoRouteNumber(
     val id: String?,

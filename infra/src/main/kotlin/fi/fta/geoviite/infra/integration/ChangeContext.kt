@@ -18,6 +18,7 @@ import kotlin.reflect.KClass
 
 class LazyMap<K, V>(private val compute: (K) -> V) {
     private val map = mutableMapOf<K, V>()
+
     operator fun get(key: K): V = map.getOrPut(key) { compute(key) }
 }
 
@@ -28,11 +29,10 @@ class ChangeContext(
     val kmPosts: TypedChangeContext<TrackLayoutKmPost>,
     val locationTracks: TypedChangeContext<LocationTrack>,
     val switches: TypedChangeContext<TrackLayoutSwitch>,
-
     val geocodingKeysBefore: LazyMap<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
     val geocodingKeysAfter: LazyMap<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey?>,
-
-    val getTrackNumberTracksBefore: (trackNumberId: IntId<TrackLayoutTrackNumber>) -> List<LayoutDaoResponse<LocationTrack>>,
+    val getTrackNumberTracksBefore:
+        (trackNumberId: IntId<TrackLayoutTrackNumber>) -> List<LayoutDaoResponse<LocationTrack>>,
 ) {
 
     fun getGeocodingContextBefore(id: IntId<TrackLayoutTrackNumber>) =
@@ -46,22 +46,27 @@ inline fun <reified T : LayoutAsset<T>> createTypedContext(
     branch: LayoutBranch,
     dao: LayoutAssetDao<T>,
     versions: List<ValidationVersion<T>>
-): TypedChangeContext<T> = createTypedContext(
-    dao,
-    { id -> dao.fetchVersion(branch.official, id) },
-    { id -> versions.find { v -> v.officialId == id }?.validatedAssetVersion ?: dao.fetchVersion(branch.official, id) },
-)
+): TypedChangeContext<T> =
+    createTypedContext(
+        dao,
+        { id -> dao.fetchVersion(branch.official, id) },
+        { id ->
+            versions.find { v -> v.officialId == id }?.validatedAssetVersion
+                ?: dao.fetchVersion(branch.official, id)
+        },
+    )
 
 inline fun <reified T : LayoutAsset<T>> createTypedContext(
     branch: LayoutBranch,
     dao: LayoutAssetDao<T>,
     before: Instant,
     after: Instant,
-): TypedChangeContext<T> = createTypedContext(
-    dao,
-    { id -> dao.fetchOfficialVersionAtMoment(branch, id, before) },
-    { id -> dao.fetchOfficialVersionAtMoment(branch, id, after) },
-)
+): TypedChangeContext<T> =
+    createTypedContext(
+        dao,
+        { id -> dao.fetchOfficialVersionAtMoment(branch, id, before) },
+        { id -> dao.fetchOfficialVersionAtMoment(branch, id, after) },
+    )
 
 inline fun <reified T : LayoutAsset<T>> createTypedContext(
     dao: LayoutAssetDao<T>,
@@ -76,10 +81,14 @@ class TypedChangeContext<T : LayoutAsset<T>>(
     private val afterVersions: LazyMap<IntId<T>, LayoutRowVersion<T>?>,
 ) {
     fun beforeVersion(id: IntId<T>) = beforeVersions[id]
+
     fun afterVersion(id: IntId<T>) = afterVersions[id] ?: throw NoSuchEntityException(klass, id)
+
     private fun afterVersionIfExists(id: IntId<T>) = afterVersions[id]
 
     fun getBefore(id: IntId<T>) = beforeVersion(id)?.let(dao::fetch)
+
     fun getAfter(id: IntId<T>) = dao.fetch(afterVersion(id))
+
     fun getAfterIfExists(id: IntId<T>) = afterVersionIfExists(id)?.let(dao::fetch)
 }

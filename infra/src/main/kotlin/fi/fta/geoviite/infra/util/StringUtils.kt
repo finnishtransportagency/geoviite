@@ -6,10 +6,12 @@ val lineBreakRegex = Regex("[\n\r\t]")
 const val UNSAFE_LOG_CHARACTERS = "[^A-Za-zäöÄÖåÅ0-9_-+!?.:;', �/]"
 
 const val UNIX_LINEBREAK = "\n"
-const val LEGACY_LINEBREAK = "\r" // Possibly used in older files were text may be copied and pasted from.
+const val LEGACY_LINEBREAK =
+    "\r" // Possibly used in older files were text may be copied and pasted from.
 const val WINDOWS_LINEBREAK = "\r\n"
 
-// Order matters due to both Windows style & legacy linebreaks containing the same special character.
+// Order matters due to both Windows style & legacy linebreaks containing the same special
+// character.
 val linebreakNormalizationRegex = Regex("$WINDOWS_LINEBREAK|$LEGACY_LINEBREAK")
 
 const val UNSAFE_REPLACEMENT = "�"
@@ -20,16 +22,22 @@ const val DEFAULT_EXCEPTION_MAX_LENGTH = 100
 
 inline fun <reified T> parsePrefixedInt(prefix: String, value: String): Int =
     parsePrefixed<T>(prefix, value).toIntOrNull()
-        ?: failInput<T>(value) { "Invalid string value: prefix=$prefix value=${formatForException(value)}" }
+        ?: failInput<T>(value) {
+            "Invalid string value: prefix=$prefix value=${formatForException(value)}"
+        }
 
 inline fun <reified T> parsePrefixed(prefix: String, value: String): String =
     if (value.startsWith(prefix)) value.substring(prefix.length)
-    else failInput<T>(value) { "Invalid string prefix: prefix=$prefix value=${formatForException(value)}" }
+    else
+        failInput<T>(value) {
+            "Invalid string prefix: prefix=$prefix value=${formatForException(value)}"
+        }
 
 fun equalsIgnoreCaseAndWhitespace(s1: String, s2: String) =
     s1.filterNot(Char::isWhitespace).equals(s2.filterNot(Char::isWhitespace), ignoreCase = false)
 
-fun formatForException(input: String, maxLength: Int = DEFAULT_EXCEPTION_MAX_LENGTH) = formatForLog(input, maxLength)
+fun formatForException(input: String, maxLength: Int = DEFAULT_EXCEPTION_MAX_LENGTH) =
+    formatForLog(input, maxLength)
 
 fun formatForLog(input: String, maxLength: Int = DEFAULT_LOG_MAX_LENGTH): String =
     "\"${limitLength(input, maxLength).let(::removeLogUnsafe).let(::removeLinebreaks)}\""
@@ -41,7 +49,9 @@ fun removeLogUnsafe(input: String) = input.replace(UNSAFE_LOG_CHARACTERS, UNSAFE
 
 fun removeLinebreaks(input: String) = input.replace(lineBreakRegex, LINE_BREAK_REPLACEMENT)
 
-fun normalizeLinebreaksToUnixFormat(input: String) = input.replace(linebreakNormalizationRegex, UNIX_LINEBREAK)
+fun normalizeLinebreaksToUnixFormat(input: String) =
+    input.replace(linebreakNormalizationRegex, UNIX_LINEBREAK)
+
 fun normalizeLinebreaksToUnixFormat(input: FreeTextWithNewLines) =
     FreeTextWithNewLines(normalizeLinebreaksToUnixFormat(input.toString()))
 
@@ -50,9 +60,10 @@ fun isSanitized(
     regex: Regex,
     length: ClosedRange<Int>? = null,
     allowBlank: Boolean = true,
-) = (length == null || stringValue.length in length)
-        && (allowBlank || stringValue.isNotBlank())
-        && stringValue.matches(regex)
+) =
+    (length == null || stringValue.length in length) &&
+        (allowBlank || stringValue.isNotBlank()) &&
+        stringValue.matches(regex)
 
 inline fun <reified T> assertSanitized(
     stringValue: String,

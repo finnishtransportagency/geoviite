@@ -5,12 +5,12 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.time.Duration
 
 private const val GEOMETRY_CHANGE_BATCH_SIZE = 10
 
@@ -30,30 +30,36 @@ class PublicationGeometryChangeRemarksUpdateService(
 
     @Scheduled(initialDelay = 1000 * 30, fixedDelay = 24 * 60 * 60 * 1000)
     fun updateUnprocessedGeometryChangeRemarks() {
-        lockDao.runWithLock(DatabaseLock.PUBLICATION_GEOMETRY_CHANGE_CALCULATION, Duration.ofMinutes(60)) {
-            var unprocessedRemarksWereLeft = true
-            while (unprocessedRemarksWereLeft) {
-                val unprocessed = publicationDao.fetchUnprocessedGeometryChangeRemarks(GEOMETRY_CHANGE_BATCH_SIZE)
-                logger.info("Processing pending publication change remarks batch: count=${unprocessed.size}")
-                unprocessedRemarksWereLeft = unprocessed.isNotEmpty()
-                if (unprocessed.isNotEmpty()) processBatch(unprocessed)
+        lockDao.runWithLock(
+            DatabaseLock.PUBLICATION_GEOMETRY_CHANGE_CALCULATION, Duration.ofMinutes(60)) {
+                var unprocessedRemarksWereLeft = true
+                while (unprocessedRemarksWereLeft) {
+                    val unprocessed =
+                        publicationDao.fetchUnprocessedGeometryChangeRemarks(
+                            GEOMETRY_CHANGE_BATCH_SIZE)
+                    logger.info(
+                        "Processing pending publication change remarks batch: count=${unprocessed.size}")
+                    unprocessedRemarksWereLeft = unprocessed.isNotEmpty()
+                    if (unprocessed.isNotEmpty()) processBatch(unprocessed)
+                }
             }
-        }
     }
 
     private fun processBatch(unprocessedBatch: List<PublicationDao.UnprocessedGeometryChange>) {
-        val range = " ${unprocessedBatch.first().publicationId}-${unprocessedBatch.last().publicationId}"
+        val range =
+            " ${unprocessedBatch.first().publicationId}-${unprocessedBatch.last().publicationId}"
         logger.info("processing geometry change remarks for publicationIds $range")
         unprocessedBatch.forEach(::processOne)
         logger.info("finished processing geometry change remarks for publicationIds $range")
     }
 
     private fun processOne(unprocessedChange: PublicationDao.UnprocessedGeometryChange) {
-        val geocodingContext = geocodingService.getGeocodingContextAtMoment(
-            unprocessedChange.branch,
-            unprocessedChange.trackNumberId,
-            unprocessedChange.publicationTime,
-        )
+        val geocodingContext =
+            geocodingService.getGeocodingContextAtMoment(
+                unprocessedChange.branch,
+                unprocessedChange.trackNumberId,
+                unprocessedChange.publicationTime,
+            )
         publicationDao.upsertGeometryChangeSummaries(
             unprocessedChange.publicationId,
             unprocessedChange.locationTrackId,
@@ -65,7 +71,6 @@ class PublicationGeometryChangeRemarksUpdateService(
                     oldAlignment = alignmentDao.fetch(unprocessedChange.oldAlignmentVersion),
                     newAlignment = alignmentDao.fetch(unprocessedChange.newAlignmentVersion),
                 )
-            }
-        )
+            })
     }
 }

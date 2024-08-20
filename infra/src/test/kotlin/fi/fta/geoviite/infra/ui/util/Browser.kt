@@ -1,8 +1,11 @@
-import fi.fta.geoviite.infra.ui.pagemodel.common.E2EToast
-import fi.fta.geoviite.infra.ui.pagemodel.common.ToastType
+import java.io.File
+import java.time.Duration
+import java.time.Instant
+import java.util.*
+import java.util.concurrent.atomic.AtomicReference
+import java.util.logging.Level
 import org.apache.commons.io.FileUtils
 import org.json.JSONObject
-import org.openqa.selenium.By
 import org.openqa.selenium.JavascriptExecutor
 import org.openqa.selenium.OutputType
 import org.openqa.selenium.TakesScreenshot
@@ -19,18 +22,12 @@ import org.openqa.selenium.logging.LoggingPreferences
 import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.io.File
-import java.time.Duration
-import java.time.Instant
-import java.util.*
-import java.util.concurrent.atomic.AtomicReference
-import java.util.logging.Level
 
 private fun createChromeDriver(headless: Boolean): WebDriver {
     val options = ChromeOptions()
 
     if (headless) options.addArguments("--headless")
-    //if (!headless) chromeOptions.addArguments("--app=http://localhost:9001")
+    // if (!headless) chromeOptions.addArguments("--app=http://localhost:9001")
     options.addArguments("--disable-dev-shm-usage")
     options.addArguments("--no-sandbox")
     options.addArguments("--whitelisted-ips=")
@@ -39,7 +36,7 @@ private fun createChromeDriver(headless: Boolean): WebDriver {
     options.setExperimentalOption("excludeSwitches", listOf("enable-automation"))
     options.addArguments("--remote-allow-origins=*")
 
-    //if (!headless) chromeOptions.addArguments("--auto-open-devtools-for-tabs")
+    // if (!headless) chromeOptions.addArguments("--auto-open-devtools-for-tabs")
     if (DEV_DEBUG) options.setExperimentalOption("detach", true)
 
     val logPrefs = LoggingPreferences()
@@ -73,15 +70,18 @@ private fun setBrowser(createWebDriver: () -> WebDriver?) {
     webDriver.updateAndGet { currentDriver ->
         logger.info("Removing browser: title=${currentDriver?.title}")
         currentDriver?.quit()
-        createWebDriver().also { newDriver -> logger.info("Setting browser: title=${newDriver?.title}") }
+        createWebDriver().also { newDriver ->
+            logger.info("Setting browser: title=${newDriver?.title}")
+        }
     }
 }
 
 const val DEV_DEBUG = false
+
 fun openBrowser() {
     val headless = !DEV_DEBUG
     logger.info("Initializing webdriver")
-//    openFirefox(headless)
+    //    openFirefox(headless)
     openChrome(headless)
     logger.info("Webdriver initialized")
 
@@ -96,67 +96,77 @@ fun openFirefox(headless: Boolean) = setBrowser { createFirefoxDriver(headless) 
 
 fun closeBrowser() = setBrowser { null }
 
-fun browser() = requireNotNull(webDriver.get()) {
-    "Browser null: not initialized, or already destroyed."
-}
+fun browser() =
+    requireNotNull(webDriver.get()) { "Browser null: not initialized, or already destroyed." }
 
 fun javaScriptExecutor(): JavascriptExecutor = browser() as JavascriptExecutor
 
 const val SCREENSHOTS_PATH = "build/reports/screenshots"
 
-fun takeScreenShot(targetFilePrefix: String) = try {
-    val screenShotDir = File(SCREENSHOTS_PATH)
-    screenShotDir.mkdirs()
-    val targetFile = File("$SCREENSHOTS_PATH/$targetFilePrefix-screenshot-${Instant.now()}.png")
-    logger.info("Taking screenshot for $targetFilePrefix")
-    val screenShot = (browser() as TakesScreenshot).getScreenshotAs(OutputType.FILE)
-    logger.info("Saving screenshot to ${targetFile.absolutePath}")
-    FileUtils.copyFile(screenShot, targetFile)
-    logger.info("Screenshot saved: exists=${targetFile.exists()} isFile=${targetFile.isFile}")
-} catch (e: Exception) {
-    logger.error("Failed to take screenshot for $targetFilePrefix: error=${e.message}")
-}
+fun takeScreenShot(targetFilePrefix: String) =
+    try {
+        val screenShotDir = File(SCREENSHOTS_PATH)
+        screenShotDir.mkdirs()
+        val targetFile = File("$SCREENSHOTS_PATH/$targetFilePrefix-screenshot-${Instant.now()}.png")
+        logger.info("Taking screenshot for $targetFilePrefix")
+        val screenShot = (browser() as TakesScreenshot).getScreenshotAs(OutputType.FILE)
+        logger.info("Saving screenshot to ${targetFile.absolutePath}")
+        FileUtils.copyFile(screenShot, targetFile)
+        logger.info("Screenshot saved: exists=${targetFile.exists()} isFile=${targetFile.isFile}")
+    } catch (e: Exception) {
+        logger.error("Failed to take screenshot for $targetFilePrefix: error=${e.message}")
+    }
 
 enum class LogSource {
-    CONSOLE, NETWORK, NETWORK_RESPONSES,
+    CONSOLE,
+    NETWORK,
+    NETWORK_RESPONSES,
 }
 
-fun printBrowserLogs() = try {
-    val logEntries: LogEntries = browser().manage().logs().get(LogType.BROWSER)
-    printLogEntries(LogSource.CONSOLE, logEntries)
-} catch (e: Exception) {
-    logger.error("Failed to print browser logs ${e.message}")
-}
-
-fun printNetworkLogsAll() = try {
-    val logEntries = browser().manage().logs().get(LogType.PERFORMANCE)
-    printLogEntries(LogSource.NETWORK, logEntries.toList())
-} catch (e: Exception) {
-    logger.error("Failed to print network logs ${e.message}")
-}
-
-fun printNetworkLogsResponses() = try {
-    val logEntries: LogEntries = browser().manage().logs().get(LogType.PERFORMANCE)
-    val filtered = filter(logEntries.toList(), ".*\"Network.responseReceived\".*".toRegex())
-    for (entry in filtered) {
-        val jsonObject = JSONObject(entry.message)
-
-        val response = jsonObject.getJSONObject("message").getJSONObject("params").getJSONObject("response")
-        val url = response.get("url")
-        val statusCode = response.get("status")
-        val statusText = response.get("statusText")
-
-        if (!url.toString().contentEquals("data:,")) {
-            println("$url $statusCode/$statusText")
-        }
-
+fun printBrowserLogs() =
+    try {
+        val logEntries: LogEntries = browser().manage().logs().get(LogType.BROWSER)
+        printLogEntries(LogSource.CONSOLE, logEntries)
+    } catch (e: Exception) {
+        logger.error("Failed to print browser logs ${e.message}")
     }
-    printLogEntries(LogSource.NETWORK_RESPONSES, filtered)
-} catch (e: Exception) {
-    logger.error("Failed to print network responses ${e.message}")
-}
 
-fun synchronizeAndConsumeCurrentBrowserLog(timeoutInSeconds: Duration = defaultWait): List<LogEntry> {
+fun printNetworkLogsAll() =
+    try {
+        val logEntries = browser().manage().logs().get(LogType.PERFORMANCE)
+        printLogEntries(LogSource.NETWORK, logEntries.toList())
+    } catch (e: Exception) {
+        logger.error("Failed to print network logs ${e.message}")
+    }
+
+fun printNetworkLogsResponses() =
+    try {
+        val logEntries: LogEntries = browser().manage().logs().get(LogType.PERFORMANCE)
+        val filtered = filter(logEntries.toList(), ".*\"Network.responseReceived\".*".toRegex())
+        for (entry in filtered) {
+            val jsonObject = JSONObject(entry.message)
+
+            val response =
+                jsonObject
+                    .getJSONObject("message")
+                    .getJSONObject("params")
+                    .getJSONObject("response")
+            val url = response.get("url")
+            val statusCode = response.get("status")
+            val statusText = response.get("statusText")
+
+            if (!url.toString().contentEquals("data:,")) {
+                println("$url $statusCode/$statusText")
+            }
+        }
+        printLogEntries(LogSource.NETWORK_RESPONSES, filtered)
+    } catch (e: Exception) {
+        logger.error("Failed to print network responses ${e.message}")
+    }
+
+fun synchronizeAndConsumeCurrentBrowserLog(
+    timeoutInSeconds: Duration = defaultWait
+): List<LogEntry> {
     val timestamp = Instant.now().toEpochMilli()
     val syncMessage = "browser_log_sync_and_consume$timestamp"
     val syncScript = "console.log('$syncMessage')"
@@ -175,7 +185,11 @@ fun synchronizeAndConsumeCurrentBrowserLog(timeoutInSeconds: Duration = defaultW
     return consumedLogEntries
 }
 
-fun waitForCookie(cookieName: String, desiredValue: String? = null, timeout: Duration = defaultWait) {
+fun waitForCookie(
+    cookieName: String,
+    desiredValue: String? = null,
+    timeout: Duration = defaultWait
+) {
     WebDriverWait(browser(), timeout).until { driver ->
         driver.manage().cookies.any { cookie ->
             if (desiredValue == null) {

@@ -32,15 +32,17 @@ data class GeometryAlignment(
     val bounds by lazy { boundingBoxAroundPointsOrNull(elements.flatMap { e -> e.bounds }) }
 
     fun getElementAt(distance: Double) =
-        foldElementLengths(elements).findLast { element -> element.first <= distance }
+        foldElementLengths(elements)
+            .findLast { element -> element.first <= distance }
             ?.let { match ->
-                    val distanceLeft = distance - match.first
-                    if (distanceLeft <= match.second.calculatedLength) match
-                    else null
-                }
+                val distanceLeft = distance - match.first
+                if (distanceLeft <= match.second.calculatedLength) match else null
+            }
 
     fun getCoordinateAt(distance: Double) =
-        getElementAt(distance)?.let { match -> match.second.getCoordinateAt(distance - match.first) }
+        getElementAt(distance)?.let { match ->
+            match.second.getCoordinateAt(distance - match.first)
+        }
 
     fun stationValueNormalized(station: Double) =
         station - (elements.firstOrNull()?.staStart?.toDouble() ?: 0.0)
@@ -51,7 +53,8 @@ data class GeometryAlignment(
             ?.let { match -> match.first..(match.first + match.second.calculatedLength) }
             ?: throw IllegalArgumentException("Element not found from alignment")
 
-    override fun toLog(): String = logFormat("id" to id, "name" to name, "elements" to elements.size)
+    override fun toLog(): String =
+        logFormat("id" to id, "name" to name, "elements" to elements.size)
 }
 
 private fun foldElementLengths(elements: List<GeometryElement>) =

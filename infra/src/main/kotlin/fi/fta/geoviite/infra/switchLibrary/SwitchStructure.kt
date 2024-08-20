@@ -41,27 +41,24 @@ enum class SwitchHand(val abbreviation: String) {
     NONE("")
 }
 
-val SWITCH_BASE_TYPES_WITH_HANDEDNESS = setOf(
-    SwitchBaseType.YV,
-    SwitchBaseType.KV,
-    SwitchBaseType.SKV,
-    SwitchBaseType.UKV
-)
+val SWITCH_BASE_TYPES_WITH_HANDEDNESS =
+    setOf(SwitchBaseType.YV, SwitchBaseType.KV, SwitchBaseType.SKV, SwitchBaseType.UKV)
 
 val SWITCH_TYPE_ABBREVIATION_REGEX_OPTIONS =
     enumValues<SwitchBaseType>().joinToString(separator = "|", transform = { it.name })
 val SWITCH_TYPE_HAND_REGEX_OPTIONS =
-    enumValues<SwitchHand>().filter { it.abbreviation.isNotEmpty() }
+    enumValues<SwitchHand>()
+        .filter { it.abbreviation.isNotEmpty() }
         .joinToString(separator = "|", transform = { it.abbreviation })
-private val SWITCH_TYPE_REGEX = Regex(
-    "^" +
+private val SWITCH_TYPE_REGEX =
+    Regex(
+        "^" +
             "($SWITCH_TYPE_ABBREVIATION_REGEX_OPTIONS)" + // simple type
             "(\\d{2})" + // rail weight
             "(?:-([\\d/]+)([()A-Z]*))?" + // optional radius of the curve(s) + spread/tilted
             "-((?:\\dx)?1:[\\w\\d,.\\-/]+?)" + // ratio
             "(?:-($SWITCH_TYPE_HAND_REGEX_OPTIONS))?" + // optional hand
-            "$"
-)
+            "$")
 
 fun switchTypeRequiresHandedness(baseType: SwitchBaseType): Boolean {
     return SWITCH_BASE_TYPES_WITH_HANDEDNESS.contains(baseType)
@@ -77,18 +74,14 @@ data class SwitchTypeParts(
 )
 
 private fun parseCurveRadius(curveRadiusList: String): List<Int> {
-    return curveRadiusList
-        .split("/").mapNotNull { radius -> radius.toIntOrNull() }
+    return curveRadiusList.split("/").mapNotNull { radius -> radius.toIntOrNull() }
 }
 
 private fun findSwitchTypeHand(abbreviation: String): SwitchHand {
-    return SwitchHand.values().find { hand -> hand.abbreviation == abbreviation }
-        ?: SwitchHand.NONE
+    return SwitchHand.values().find { hand -> hand.abbreviation == abbreviation } ?: SwitchHand.NONE
 }
 
-/**
- * Returns parsed switch type parts or null if parsing fails
- */
+/** Returns parsed switch type parts or null if parsing fails */
 fun parseSwitchType(typeName: String): SwitchTypeParts? {
     val matchResult = SWITCH_TYPE_REGEX.find(typeName) ?: return null
     val captured = matchResult.destructured.toList()
@@ -102,16 +95,16 @@ fun parseSwitchType(typeName: String): SwitchTypeParts? {
         curveRadius = parseCurveRadius(captured[2]),
         spread = captured[3].ifEmpty { null },
         ratio = captured[4],
-        hand = hand
-    )
+        hand = hand)
 }
 
 data class SwitchType @JsonCreator(mode = DELEGATING) constructor(val typeName: String) {
-    val parts = parseSwitchType(typeName)
-        ?: throw IllegalArgumentException("Cannot parse switch type: \"${formatForException(typeName)}\"")
+    val parts =
+        parseSwitchType(typeName)
+            ?: throw IllegalArgumentException(
+                "Cannot parse switch type: \"${formatForException(typeName)}\"")
 
-    @JsonValue
-    override fun toString(): String = typeName
+    @JsonValue override fun toString(): String = typeName
 }
 
 fun tryParseSwitchType(typeName: String): SwitchType? {
@@ -143,7 +136,7 @@ data class SwitchJoint(
 enum class SwitchElementType {
     LINE,
     CURVE,
-//    CLOTHOID // this seems to be possible :(
+    //    CLOTHOID // this seems to be possible :(
 }
 
 sealed class SwitchElement {
@@ -173,7 +166,8 @@ data class SwitchElementCurve(
 data class SwitchAlignment(
     val jointNumbers: List<JointNumber>,
     val elements: List<SwitchElement>,
-    val id: DomainId<SwitchAlignment> = StringId(jointNumbers.joinToString("-") { joint -> joint.intValue.toString() }),
+    val id: DomainId<SwitchAlignment> =
+        StringId(jointNumbers.joinToString("-") { joint -> joint.intValue.toString() }),
 ) {
     init {
         if (jointNumbers.isEmpty()) {
@@ -193,20 +187,18 @@ data class SwitchStructure(
     val alignments: List<SwitchAlignment>,
 ) {
     // These props are published into JSON from API
-    @Suppress("unused")
-    val hand = type.parts.hand
+    @Suppress("unused") val hand = type.parts.hand
 
-    @Suppress("unused")
-    val baseType = type.parts.baseType
+    @Suppress("unused") val baseType = type.parts.baseType
 
     val alignmentJoints by lazy {
-        joints.filter { joint -> alignments.any { alignment -> alignment.jointNumbers.contains(joint.number) } }
+        joints.filter { joint ->
+            alignments.any { alignment -> alignment.jointNumbers.contains(joint.number) }
+        }
     }
 
     val bbox: BoundingBox by lazy {
-        boundingBoxAroundPoints(
-            joints.map { joint -> joint.location }
-        )
+        boundingBoxAroundPoints(joints.map { joint -> joint.location })
     }
 
     init {
@@ -214,61 +206,62 @@ data class SwitchStructure(
             throw IllegalArgumentException("No joint points")
         }
         if (joints.none { it.number == presentationJointNumber }) {
-            throw IllegalArgumentException("Presentation joint number $presentationJointNumber does not exists in joints!")
+            throw IllegalArgumentException(
+                "Presentation joint number $presentationJointNumber does not exists in joints!")
         }
         if (alignments.isEmpty()) {
             throw IllegalArgumentException("No alignments")
         }
-        if (alignments.any { it.jointNumbers.any { alignJointNumber -> joints.none { joint -> joint.number == alignJointNumber } } }) {
-            throw IllegalArgumentException("Alignment contains joint number that does not exists in joints!")
+        if (alignments.any {
+            it.jointNumbers.any { alignJointNumber ->
+                joints.none { joint -> joint.number == alignJointNumber }
+            }
+        }) {
+            throw IllegalArgumentException(
+                "Alignment contains joint number that does not exists in joints!")
         }
         if (alignments
-                .map { alignment -> alignment.id }
-                .let { alignmentIds -> alignmentIds != alignmentIds.distinct() }
-        ) {
+            .map { alignment -> alignment.id }
+            .let { alignmentIds -> alignmentIds != alignmentIds.distinct() }) {
             throw IllegalArgumentException("Two or more alignments has the same id!")
         }
     }
 
     fun getAlignment(id: StringId<SwitchAlignment>): SwitchAlignment {
         return alignments.find { alignment -> alignment.id == id }
-            ?: throw IllegalArgumentException("Switch structure $type does not contain alignment $id!")
+            ?: throw IllegalArgumentException(
+                "Switch structure $type does not contain alignment $id!")
     }
 
     fun flipAlongYAxis(): SwitchStructure {
         val multiplier = Point(1.0, -1.0)
         return this.copy(
-            joints = joints.map { joint ->
-                joint.copy(
-                    location = joint.location * multiplier
-                )
-            },
-            alignments = alignments.map { alignment ->
-                alignment.copy(
-                    elements = alignment.elements.map { element ->
-                        when (element) {
-                            is SwitchElementLine -> {
-                                element.copy(
-                                    start = element.start * multiplier,
-                                    end = element.end * multiplier
-                                )
-                            }
-                            is SwitchElementCurve -> {
-                                element.copy(
-                                    start = element.start * multiplier,
-                                    end = element.end * multiplier
-                                )
-                            }
-                        }
-                    }
-                )
-            }
-        )
+            joints = joints.map { joint -> joint.copy(location = joint.location * multiplier) },
+            alignments =
+                alignments.map { alignment ->
+                    alignment.copy(
+                        elements =
+                            alignment.elements.map { element ->
+                                when (element) {
+                                    is SwitchElementLine -> {
+                                        element.copy(
+                                            start = element.start * multiplier,
+                                            end = element.end * multiplier)
+                                    }
+                                    is SwitchElementCurve -> {
+                                        element.copy(
+                                            start = element.start * multiplier,
+                                            end = element.end * multiplier)
+                                    }
+                                }
+                            })
+                })
     }
 
     fun getJoint(jointNumber: JointNumber): SwitchJoint {
         return joints.find { joint -> joint.number == jointNumber }
-            ?: throw IllegalArgumentException("Joint number $jointNumber does not exist in switch $type!")
+            ?: throw IllegalArgumentException(
+                "Joint number $jointNumber does not exist in switch $type!")
     }
 
     fun getJointLocation(jointNumber: JointNumber): Point {
@@ -276,31 +269,31 @@ data class SwitchStructure(
     }
 
     fun stripUniqueIdentifiers(): SwitchStructure {
-        var i = 0;
+        var i = 0
         return copy(
             id = IntId(i++),
-            alignments = alignments.map { a ->
-                a.copy(
-                    id = IntId(i++),
-                    elements = a.elements.map { e ->
-                        when (e) {
-                            is SwitchElementLine -> e.copy(id= IntId(i++))
-                            is SwitchElementCurve -> e.copy(id= IntId(i++))
-                        }
-                    }
-                )
-            }
-        )
+            alignments =
+                alignments.map { a ->
+                    a.copy(
+                        id = IntId(i++),
+                        elements =
+                            a.elements.map { e ->
+                                when (e) {
+                                    is SwitchElementLine -> e.copy(id = IntId(i++))
+                                    is SwitchElementCurve -> e.copy(id = IntId(i++))
+                                }
+                            })
+                })
     }
 
-    fun isSame(other:SwitchStructure):Boolean {
+    fun isSame(other: SwitchStructure): Boolean {
         return stripUniqueIdentifiers() == other.stripUniqueIdentifiers()
     }
 }
 
 /**
- * Contains information how the geometry of a switch is transformed
- * from an ideal switch (from the switch library).
+ * Contains information how the geometry of a switch is transformed from an ideal switch (from the
+ * switch library).
  */
 data class SwitchPositionTransformation(
     val translation: Point,
@@ -323,43 +316,46 @@ fun calculateSwitchLocationDelta(
     joints: List<ISwitchJoint>,
     switchStructure: SwitchStructure,
 ): SwitchPositionTransformation {
-    val jointPairs = joints.mapNotNull { joint ->
-        val matchingStructureJoint =
-            switchStructure.alignmentJoints.find { structureJoint ->
-                joint.number == structureJoint.number
-            }
-        if (matchingStructureJoint != null) Pair(joint, matchingStructureJoint) else null
-    }
+    val jointPairs =
+        joints.mapNotNull { joint ->
+            val matchingStructureJoint =
+                switchStructure.alignmentJoints.find { structureJoint ->
+                    joint.number == structureJoint.number
+                }
+            if (matchingStructureJoint != null) Pair(joint, matchingStructureJoint) else null
+        }
 
     if (jointPairs.size < 2) {
-        throw InvalidJointsException("Switch angle cannot be calculated by ${jointPairs.size} common joints!")
+        throw InvalidJointsException(
+            "Switch angle cannot be calculated by ${jointPairs.size} common joints!")
     }
 
     if (abs(
-            lineLength(jointPairs[0].first.location, jointPairs[1].first.location) -
-                    lineLength(jointPairs[0].second.location, jointPairs[1].second.location)
-        ) > 0.1
-    ) {
+        lineLength(jointPairs[0].first.location, jointPairs[1].first.location) -
+            lineLength(jointPairs[0].second.location, jointPairs[1].second.location)) > 0.1) {
         throw InvalidJointsException("Given joints do not match to the given switch structure!")
     }
 
     val angleDelta =
-        angleBetween(jointPairs[0].first.location, jointPairs[1].first.location, AngularUnit.RADIANS).original -
-                angleBetween(jointPairs[0].second.location, jointPairs[1].second.location, AngularUnit.RADIANS).original
+        angleBetween(
+                jointPairs[0].first.location, jointPairs[1].first.location, AngularUnit.RADIANS)
+            .original -
+            angleBetween(
+                    jointPairs[0].second.location,
+                    jointPairs[1].second.location,
+                    AngularUnit.RADIANS)
+                .original
     val locationDelta = jointPairs[0].first.location - jointPairs[0].second.location
     return SwitchPositionTransformation(
         rotation = Rads(angleDelta),
         translation = locationDelta,
-        rotationReferencePoint = jointPairs[0].second.location
-    )
+        rotationReferencePoint = jointPairs[0].second.location)
 }
 
 fun transformSwitchPoint(transformation: SwitchPositionTransformation, point: Point): Point {
     return rotateAroundPoint(
-        transformation.rotationReferencePoint,
-        transformation.rotation.rads,
-        point
-    ) + transformation.translation
+        transformation.rotationReferencePoint, transformation.rotation.rads, point) +
+        transformation.translation
 }
 
 data class SwitchConnectivity(
@@ -368,19 +364,32 @@ data class SwitchConnectivity(
     val sharedPassThroughJoint: JointNumber?,
 )
 
-fun switchConnectivity(structure: SwitchStructure): SwitchConnectivity = when (structure.baseType) {
-    SwitchBaseType.YV, SwitchBaseType.TYV, SwitchBaseType.YRV, SwitchBaseType.SKV, SwitchBaseType.UKV, SwitchBaseType.KV -> SwitchConnectivity(
-        alignmentJoints = structure.alignments.map { it.jointNumbers },
-        frontJoint = JointNumber(1),
-        sharedPassThroughJoint = null,
-    )
+fun switchConnectivity(structure: SwitchStructure): SwitchConnectivity =
+    when (structure.baseType) {
+        SwitchBaseType.YV,
+        SwitchBaseType.TYV,
+        SwitchBaseType.YRV,
+        SwitchBaseType.SKV,
+        SwitchBaseType.UKV,
+        SwitchBaseType.KV ->
+            SwitchConnectivity(
+                alignmentJoints = structure.alignments.map { it.jointNumbers },
+                frontJoint = JointNumber(1),
+                sharedPassThroughJoint = null,
+            )
 
-    SwitchBaseType.KRV, SwitchBaseType.RR, SwitchBaseType.SRR -> SwitchConnectivity(
-        alignmentJoints = structure.alignments.filter { it.jointNumbers.size == 3 }.flatMap { alignment ->
-            val joints = alignment.jointNumbers
-            listOf(listOf(joints[0], joints[1]), listOf(joints[1], joints[2]))
-        },
-        frontJoint = null,
-        sharedPassThroughJoint = JointNumber(5),
-    )
-}
+        SwitchBaseType.KRV,
+        SwitchBaseType.RR,
+        SwitchBaseType.SRR ->
+            SwitchConnectivity(
+                alignmentJoints =
+                    structure.alignments
+                        .filter { it.jointNumbers.size == 3 }
+                        .flatMap { alignment ->
+                            val joints = alignment.jointNumbers
+                            listOf(listOf(joints[0], joints[1]), listOf(joints[1], joints[2]))
+                        },
+                frontJoint = null,
+                sharedPassThroughJoint = JointNumber(5),
+            )
+    }

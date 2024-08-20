@@ -2,19 +2,19 @@ package fi.fta.geoviite.infra
 
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.util.setUser
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import withUser
-import kotlin.test.assertTrue
 
 const val TEST_ROLE_CODE = "it_tst"
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class MetaDataIT: DBTestBase() {
+class MetaDataIT : DBTestBase() {
 
     private data class VersionData(
         val changeUser: String,
@@ -59,19 +59,23 @@ class MetaDataIT: DBTestBase() {
 
     private fun getUserGroup(code: String): String? {
         val sql = "select user_group from common.role where code = :code"
-        val userGroups = jdbc.query(sql, mapOf("code" to code)) { rs, _ -> rs.getString("user_group") }
+        val userGroups =
+            jdbc.query(sql, mapOf("code" to code)) { rs, _ -> rs.getString("user_group") }
         assertTrue(userGroups.size <= 1)
         return userGroups.firstOrNull()
     }
 
     private fun getRoleVersionData(code: String): Map<Int, VersionData> {
         val sql = "select version, change_user, deleted from common.role_version where code = :code"
-        return jdbc.query(sql, mapOf("code" to code)) { rs, _ ->
-            rs.getInt("version") to VersionData(
-                changeUser = rs.getString("change_user"),
-                deleted = rs.getBoolean("deleted"),
-            )
-        }.associate { it }
+        return jdbc
+            .query(sql, mapOf("code" to code)) { rs, _ ->
+                rs.getInt("version") to
+                    VersionData(
+                        changeUser = rs.getString("change_user"),
+                        deleted = rs.getBoolean("deleted"),
+                    )
+            }
+            .associate { it }
     }
 
     private fun insertRole(code: String, userGroup: String) {

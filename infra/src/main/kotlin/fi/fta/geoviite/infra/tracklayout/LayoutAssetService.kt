@@ -9,13 +9,14 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.FreeText
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @GeoviiteService
-abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType : ILayoutAssetDao<ObjectType>>(
+abstract class LayoutAssetService<
+    ObjectType : LayoutAsset<ObjectType>, DaoType : ILayoutAssetDao<ObjectType>>(
     protected open val dao: DaoType,
 ) {
 
@@ -33,7 +34,11 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         return dao.getMany(context, ids)
     }
 
-    fun getOfficialAtMoment(branch: LayoutBranch, id: IntId<ObjectType>, moment: Instant): ObjectType? {
+    fun getOfficialAtMoment(
+        branch: LayoutBranch,
+        id: IntId<ObjectType>,
+        moment: Instant
+    ): ObjectType? {
         return dao.getOfficialAtMoment(branch, id, moment)
     }
 
@@ -45,7 +50,10 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         return dao.fetchChangeTime()
     }
 
-    fun getLayoutAssetChangeInfo(context: LayoutContext, id: IntId<ObjectType>): LayoutAssetChangeInfo? {
+    fun getLayoutAssetChangeInfo(
+        context: LayoutContext,
+        id: IntId<ObjectType>
+    ): LayoutAssetChangeInfo? {
         return dao.fetchLayoutAssetChangeInfo(context, id)
     }
 
@@ -59,11 +67,17 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
     protected open fun contentMatches(term: String, item: ObjectType): Boolean = false
 
     @Transactional
-    open fun saveDraft(branch: LayoutBranch, draftAsset: ObjectType): LayoutDaoResponse<ObjectType> {
+    open fun saveDraft(
+        branch: LayoutBranch,
+        draftAsset: ObjectType
+    ): LayoutDaoResponse<ObjectType> {
         return saveDraftInternal(branch, draftAsset)
     }
 
-    protected fun saveDraftInternal(branch: LayoutBranch, draftAsset: ObjectType): LayoutDaoResponse<ObjectType> {
+    protected fun saveDraftInternal(
+        branch: LayoutBranch,
+        draftAsset: ObjectType
+    ): LayoutDaoResponse<ObjectType> {
         val draft = asDraft(branch, draftAsset)
         require(draft.isDraft) { "Item is not a draft: id=${draft.id}" }
         val officialId = if (draftAsset.id is IntId) draftAsset.id as IntId else null
@@ -73,38 +87,62 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         } else {
             requireNotNull(officialId) { "Updating item that has no known official ID" }
             verifyObjectIsExisting(draft)
-            val previousVersion = requireNotNull(draft.version) { "Updating item without rowVersion: $draftAsset" }
-            dao.update(draft).also { response -> verifyDraftUpdateResponse(officialId, previousVersion, response) }
+            val previousVersion =
+                requireNotNull(draft.version) { "Updating item without rowVersion: $draftAsset" }
+            dao.update(draft).also { response ->
+                verifyDraftUpdateResponse(officialId, previousVersion, response)
+            }
         }
     }
 
     @Transactional
-    open fun deleteDraft(branch: LayoutBranch, id: IntId<ObjectType>): LayoutDaoResponse<ObjectType> {
+    open fun deleteDraft(
+        branch: LayoutBranch,
+        id: IntId<ObjectType>
+    ): LayoutDaoResponse<ObjectType> {
         return dao.deleteDraft(branch, id)
     }
 
     @Transactional
-    open fun publish(branch: LayoutBranch, version: ValidationVersion<ObjectType>): LayoutDaoResponse<ObjectType> {
+    open fun publish(
+        branch: LayoutBranch,
+        version: ValidationVersion<ObjectType>
+    ): LayoutDaoResponse<ObjectType> {
         return publishInternal(branch, version.validatedAssetVersion)
     }
 
-    protected fun publishInternal(branch: LayoutBranch, version: LayoutRowVersion<ObjectType>): LayoutDaoResponse<ObjectType> {
+    protected fun publishInternal(
+        branch: LayoutBranch,
+        version: LayoutRowVersion<ObjectType>
+    ): LayoutDaoResponse<ObjectType> {
         val draft = dao.fetch(version)
-        require(branch == draft.branch) { "Draft branch does not match the publishing operation: branch=$branch draft=$draft" }
-        require(draft.isDraft) { "Object to publish is not a draft: version=$version context=${draft.contextData}" }
+        require(branch == draft.branch) {
+            "Draft branch does not match the publishing operation: branch=$branch draft=$draft"
+        }
+        require(draft.isDraft) {
+            "Object to publish is not a draft: version=$version context=${draft.contextData}"
+        }
         val published = asOfficial(branch, draft)
-        require(!published.isDraft) { "Published object is still a draft: context=${published.contextData}" }
+        require(!published.isDraft) {
+            "Published object is still a draft: context=${published.contextData}"
+        }
         verifyObjectIsExisting(published)
 
-        val publicationResponse = dao.update(published).also { r ->
-            require(r.id == draft.id) { "Publication response ID doesn't match object: id=${draft.id} updated=$r" }
-        }
-        // If draft row-id changed, the data was updated to the official row -> delete the now-redundant draft row
+        val publicationResponse =
+            dao.update(published).also { r ->
+                require(r.id == draft.id) {
+                    "Publication response ID doesn't match object: id=${draft.id} updated=$r"
+                }
+            }
+        // If draft row-id changed, the data was updated to the official row -> delete the
+        // now-redundant draft row
         if (version.rowId != publicationResponse.rowVersion.rowId) {
             dao.deleteRow(version.rowId)
         }
-        // If main-draft was published and it came from a design row that wasn't updated, then that row is redundant too
-        if (draft.branch == LayoutBranch.main && draft.contextData.designRowId != publicationResponse.rowVersion.rowId) {
+        // If main-draft was published and it came from a design row that wasn't updated, then that
+        // row is redundant too
+        if (draft.branch == LayoutBranch.main &&
+            draft.contextData.designRowId != publicationResponse.rowVersion.rowId) {
             draft.contextData.designRowId?.let(dao::deleteRow)
         }
         return publicationResponse
@@ -135,10 +173,14 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         require(dao.fetchVersion(fromBranch.draft, id) == branchOfficialVersion) {
             "Object must not have branch-draft version when merging to main: fromBranch=$fromBranch id=$id"
         }
-        return VersionsForMerging(branchOfficialVersion, mainOfficialVersion, mainDraftVersion) to branchObject
+        return VersionsForMerging(branchOfficialVersion, mainOfficialVersion, mainDraftVersion) to
+            branchObject
     }
 
-    fun mergeToMainBranch(fromBranch: DesignBranch, id: IntId<ObjectType>): LayoutDaoResponse<ObjectType> =
+    fun mergeToMainBranch(
+        fromBranch: DesignBranch,
+        id: IntId<ObjectType>
+    ): LayoutDaoResponse<ObjectType> =
         fetchAndCheckVersionsForMerging(fromBranch, id).let { (versions, branchObject) ->
             mergeToMainBranchInternal(versions, branchObject)
         }
@@ -147,19 +189,27 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         versions: VersionsForMerging,
         objectFromBranch: ObjectType,
     ): LayoutDaoResponse<ObjectType> =
-        // The merge should overwrite any pre-existing main-draft row, or otherwise be saved as a new one
-        if (versions.mainDraftVersion == null || versions.mainDraftVersion == versions.mainOfficialVersion) {
+        // The merge should overwrite any pre-existing main-draft row, or otherwise be saved as a
+        // new one
+        if (versions.mainDraftVersion == null ||
+            versions.mainDraftVersion == versions.mainOfficialVersion) {
             dao.insert(asMainDraft(objectFromBranch))
         } else {
             dao.update(asOverwritingMainDraft(objectFromBranch, versions.mainDraftVersion.rowId))
         }
 
-    private fun verifyInsertResponse(officialId: IntId<ObjectType>?, response: LayoutDaoResponse<ObjectType>) {
-        if (officialId != null) require(response.id == officialId) {
-            "Insert response ID doesn't match object: officialId=$officialId updated=$response"
-        } else require(response.id.intValue == response.rowVersion.rowId.intValue) {
-            "Inserted new object refers to another official row: inserted=$response"
-        }
+    private fun verifyInsertResponse(
+        officialId: IntId<ObjectType>?,
+        response: LayoutDaoResponse<ObjectType>
+    ) {
+        if (officialId != null)
+            require(response.id == officialId) {
+                "Insert response ID doesn't match object: officialId=$officialId updated=$response"
+            }
+        else
+            require(response.id.intValue == response.rowVersion.rowId.intValue) {
+                "Inserted new object refers to another official row: inserted=$response"
+            }
         require(response.rowVersion.version == 1) {
             "Inserted new row has a version over 1: inserted=$response"
         }
@@ -180,8 +230,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
             // We could do optimistic locking here by throwing
             logger.warn(
                 "Updated version isn't the next one: a concurrent change may have been overwritten: " +
-                        "id=$id previous=$previousVersion updated=$response"
-            )
+                    "id=$id previous=$previousVersion updated=$response")
         }
     }
 }

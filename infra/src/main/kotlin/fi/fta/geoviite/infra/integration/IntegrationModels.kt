@@ -4,9 +4,24 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.tracklayout.LayoutAsset
 import java.time.Instant
 
-enum class RatkoPushErrorType { PROPERTIES, LOCATION, GEOMETRY, STATE }
-enum class RatkoOperation { CREATE, UPDATE, DELETE }
-enum class RatkoAssetType { TRACK_NUMBER, LOCATION_TRACK, SWITCH }
+enum class RatkoPushErrorType {
+    PROPERTIES,
+    LOCATION,
+    GEOMETRY,
+    STATE
+}
+
+enum class RatkoOperation {
+    CREATE,
+    UPDATE,
+    DELETE
+}
+
+enum class RatkoAssetType {
+    TRACK_NUMBER,
+    LOCATION_TRACK,
+    SWITCH
+}
 
 data class RatkoPush(
     val id: IntId<RatkoPush>,

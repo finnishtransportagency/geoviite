@@ -19,18 +19,22 @@ data class KkjTm35finTriangle(
     private val crs: CoordinateReferenceSystem,
 ) {
     val polygon by lazy {
-        toJtsPolygon(listOf(corner1, corner2, corner3, corner1), crs(KKJ3_YKJ_SRID)) // Last parameter just indicates which axis is which
-            ?: throw IllegalStateException("Failed to create polygon")
+        toJtsPolygon(
+            listOf(corner1, corner2, corner3, corner1),
+            crs(KKJ3_YKJ_SRID)) // Last parameter just indicates which axis is which
+        ?: throw IllegalStateException("Failed to create polygon")
     }
 
-    fun intersects(point: org.locationtech.jts.geom.Point): Boolean =
-        polygon.intersects(point)
+    fun intersects(point: org.locationtech.jts.geom.Point): Boolean = polygon.intersects(point)
 
-    fun intersects(poly: org.locationtech.jts.geom.Polygon): Boolean =
-        polygon.intersects(poly)
+    fun intersects(poly: org.locationtech.jts.geom.Polygon): Boolean = polygon.intersects(poly)
 }
 
-fun transformPointInTriangle(point: org.locationtech.jts.geom.Point, targetCrs: CoordinateReferenceSystem, triangle: KkjTm35finTriangle): Point {
+fun transformPointInTriangle(
+    point: org.locationtech.jts.geom.Point,
+    targetCrs: CoordinateReferenceSystem,
+    triangle: KkjTm35finTriangle
+): Point {
     val x = (triangle.a2 * point.y) + (triangle.a1 * point.x) + triangle.deltaE
     val y = (triangle.b2 * point.y) + (triangle.b1 * point.x) + triangle.deltaN
     return toPoint(Coordinate(x, y), targetCrs)

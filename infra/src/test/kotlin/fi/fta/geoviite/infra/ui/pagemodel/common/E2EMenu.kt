@@ -8,14 +8,15 @@ open class E2EMenu(
     itemsBy: By = By.tagName("li"),
 ) : E2EList<E2EMenuItem>(menuBy, itemsBy) {
     override fun getItemContent(item: WebElement) = E2EMenuItem(item)
-
 }
 
 data class E2EMenuItem(
     val name: String,
     val element: WebElement?,
 ) {
-    constructor(item: WebElement) : this(
+    constructor(
+        item: WebElement
+    ) : this(
         name = item.text,
         element = item,
     )

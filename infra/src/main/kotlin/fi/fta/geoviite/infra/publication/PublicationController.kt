@@ -22,6 +22,9 @@ import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.Page
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.toResponse
+import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.ResponseEntity
@@ -32,14 +35,13 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
-import java.time.Duration
-import java.time.Instant
-import java.time.ZoneId
 
 val publicationMaxDuration: Duration = Duration.ofMinutes(15)
 
 @GeoviiteController("/publications")
-class PublicationController @Autowired constructor(
+class PublicationController
+@Autowired
+constructor(
     private val lockDao: LockDao,
     private val publicationService: PublicationService,
     private val calculatedChangesService: CalculatedChangesService,
@@ -52,7 +54,8 @@ class PublicationController @Autowired constructor(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable("from_state") fromState: PublicationState,
     ): PublicationCandidates {
-        return publicationService.collectPublicationCandidates(LayoutContextTransition.of(branch, fromState))
+        return publicationService.collectPublicationCandidates(
+            LayoutContextTransition.of(branch, fromState))
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
@@ -62,8 +65,9 @@ class PublicationController @Autowired constructor(
         @RequestBody request: PublicationRequestIds,
     ): ValidatedPublicationCandidates {
         return publicationService.validatePublicationCandidates(
-            publicationService.collectPublicationCandidates(LayoutContextTransition.publicationIn(branch)), request
-        )
+            publicationService.collectPublicationCandidates(
+                LayoutContextTransition.publicationIn(branch)),
+            request)
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
@@ -72,7 +76,8 @@ class PublicationController @Autowired constructor(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestBody request: PublicationRequestIds,
     ): CalculatedChanges {
-        return calculatedChangesService.getCalculatedChanges(publicationService.getValidationVersions(branch, request))
+        return calculatedChangesService.getCalculatedChanges(
+            publicationService.getValidationVersions(branch, request))
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
@@ -83,10 +88,11 @@ class PublicationController @Autowired constructor(
     ): PublicationResult {
         return lockDao.runWithLock(PUBLICATION, publicationMaxDuration) {
             publicationService.revertPublicationCandidates(branch, toDelete)
-        } ?: throw PublicationFailureException(
-            message = "Could not reserve publication lock",
-            localizedMessageKey = "lock-obtain-failed",
-        )
+        }
+            ?: throw PublicationFailureException(
+                message = "Could not reserve publication lock",
+                localizedMessageKey = "lock-obtain-failed",
+            )
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
@@ -110,10 +116,11 @@ class PublicationController @Autowired constructor(
             publicationService.validatePublicationRequest(versions)
             val calculatedChanges = publicationService.getCalculatedChanges(versions)
             publicationService.publishChanges(branch, versions, calculatedChanges, request.message)
-        } ?: throw PublicationFailureException(
-            message = "Could not reserve publication lock",
-            localizedMessageKey = "lock-obtain-failed",
-        )
+        }
+            ?: throw PublicationFailureException(
+                message = "Could not reserve publication lock",
+                localizedMessageKey = "lock-obtain-failed",
+            )
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
@@ -129,20 +136,25 @@ class PublicationController @Autowired constructor(
     @GetMapping
     fun getPublicationsBetween(
         @RequestParam("layoutBranch", required = false) layoutBranch: LayoutBranch?,
-        @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
-        @RequestParam("to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
+        @RequestParam("from", required = false)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+        from: Instant?,
+        @RequestParam("to", required = false)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+        to: Instant?,
     ): Page<PublicationDetails> {
-        val publications = publicationService.fetchPublicationDetailsBetweenInstants(
-            layoutBranch ?: LayoutBranch.main,
-            from,
-            to,
-        )
+        val publications =
+            publicationService.fetchPublicationDetailsBetweenInstants(
+                layoutBranch ?: LayoutBranch.main,
+                from,
+                to,
+            )
 
         return Page(
             totalCount = publications.size,
             start = 0,
-            items = publications.take(50) //Prevents frontend from going kaput
-        )
+            items = publications.take(50) // Prevents frontend from going kaput
+            )
     }
 
     @PreAuthorize(AUTH_VIEW_PUBLICATION)
@@ -160,22 +172,27 @@ class PublicationController @Autowired constructor(
     @GetMapping("csv")
     fun getPublicationsAsCsv(
         @RequestParam("layoutBranch", required = false) layoutBranch: LayoutBranch?,
-        @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
-        @RequestParam("to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
+        @RequestParam("from", required = false)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+        from: Instant?,
+        @RequestParam("to", required = true)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+        to: Instant?,
         @RequestParam("sortBy", required = false) sortBy: PublicationTableColumn?,
         @RequestParam("order", required = false) order: SortOrder?,
         @RequestParam("timeZone") timeZone: ZoneId?,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
-        val publicationsAsCsv = publicationService.fetchPublicationsAsCsv(
-            layoutBranch ?: LayoutBranch.main,
-            from,
-            to,
-            sortBy,
-            order,
-            timeZone,
-            localizationService.getLocalization(lang),
-        )
+        val publicationsAsCsv =
+            publicationService.fetchPublicationsAsCsv(
+                layoutBranch ?: LayoutBranch.main,
+                from,
+                to,
+                sortBy,
+                order,
+                timeZone,
+                localizationService.getLocalization(lang),
+            )
 
         val dateString = getDateStringForFileName(from, to, timeZone ?: ZoneId.of("UTC"))
 
@@ -187,26 +204,31 @@ class PublicationController @Autowired constructor(
     @GetMapping("/table-rows")
     fun getPublicationDetailsAsTableRows(
         @RequestParam("layoutBranch", required = false) layoutBranch: LayoutBranch?,
-        @RequestParam("from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) from: Instant?,
-        @RequestParam("to", required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) to: Instant?,
+        @RequestParam("from", required = false)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+        from: Instant?,
+        @RequestParam("to", required = true)
+        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
+        to: Instant?,
         @RequestParam("sortBy", required = false) sortBy: PublicationTableColumn?,
         @RequestParam("order", required = false) order: SortOrder?,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): Page<PublicationTableItem> {
-        val publications = publicationService.fetchPublicationDetails(
-            layoutBranch = layoutBranch ?: LayoutBranch.main,
-            from = from,
-            to = to,
-            sortBy = sortBy,
-            order = order,
-            translation = localizationService.getLocalization(lang),
-        )
+        val publications =
+            publicationService.fetchPublicationDetails(
+                layoutBranch = layoutBranch ?: LayoutBranch.main,
+                from = from,
+                to = to,
+                sortBy = sortBy,
+                order = order,
+                translation = localizationService.getLocalization(lang),
+            )
 
         return Page(
             totalCount = publications.size,
             start = 0,
-            items = publications.take(500) //Prevents frontend from going kaput
-        )
+            items = publications.take(500) // Prevents frontend from going kaput
+            )
     }
 
     @PreAuthorize(AUTH_VIEW_PUBLICATION)
@@ -215,7 +237,8 @@ class PublicationController @Autowired constructor(
         @PathVariable("id") id: IntId<Publication>,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): List<PublicationTableItem> {
-        return publicationService.getPublicationDetailsAsTableItems(id, localizationService.getLocalization(lang))
+        return publicationService.getPublicationDetailsAsTableItems(
+            id, localizationService.getLocalization(lang))
     }
 
     @PreAuthorize(AUTH_VIEW_PUBLICATION)
@@ -226,16 +249,20 @@ class PublicationController @Autowired constructor(
 
     @PreAuthorize(AUTH_VIEW_PUBLICATION)
     @GetMapping("/{id}/split-details")
-    fun getSplitDetails(@PathVariable("id") id: IntId<Publication>): ResponseEntity<SplitInPublication> {
+    fun getSplitDetails(
+        @PathVariable("id") id: IntId<Publication>
+    ): ResponseEntity<SplitInPublication> {
         return publicationService.getSplitInPublication(id).let(::toResponse)
     }
 
     @PreAuthorize(AUTH_DOWNLOAD_PUBLICATION)
     @GetMapping("/{id}/split-details/csv")
-    fun getSplitDetailsAsCsv(@PathVariable("id") id: IntId<Publication>, @RequestParam("lang") lang: LocalizationLanguage): ResponseEntity<ByteArray> {
-        return publicationService
-            .getSplitInPublicationCsv(id, lang)
-            .let { (csv, ltName) -> getCsvResponseEntity(csv, FileName("Raiteen jakaminen $ltName.csv")) }
+    fun getSplitDetailsAsCsv(
+        @PathVariable("id") id: IntId<Publication>,
+        @RequestParam("lang") lang: LocalizationLanguage
+    ): ResponseEntity<ByteArray> {
+        return publicationService.getSplitInPublicationCsv(id, lang).let { (csv, ltName) ->
+            getCsvResponseEntity(csv, FileName("Raiteen jakaminen $ltName.csv"))
+        }
     }
-
 }

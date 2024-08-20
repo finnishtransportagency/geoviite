@@ -17,7 +17,8 @@ class GeographyService(
     }
 
     /**
-     * Returns a mapping of application coordinate systems' names and aliases to their respective SRID code
+     * Returns a mapping of application coordinate systems' names and aliases to their respective
+     * SRID code
      */
     fun getCoordinateSystemNameToSridMapping(): Map<CoordinateSystemName, Srid> {
         return mapByNameOrAlias(coordinateSystemDao.fetchApplicationCoordinateSystems())

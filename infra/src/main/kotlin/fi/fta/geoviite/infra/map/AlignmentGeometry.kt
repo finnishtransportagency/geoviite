@@ -30,13 +30,11 @@ data class AlignmentHeader<T, U>(
     val version: LayoutRowVersion<T>?,
     val trackNumberId: DomainId<TrackLayoutTrackNumber>?,
     val duplicateOf: IntId<LocationTrack>?,
-
     val name: AlignmentName,
     val state: U,
     val alignmentSource: MapAlignmentSource,
     val alignmentType: MapAlignmentType,
     val trackType: LocationTrackType?,
-
     val length: Double,
     val boundingBox: BoundingBox?,
     val segmentCount: Int,
@@ -47,45 +45,48 @@ data class AlignmentPolyLine<T>(
     val alignmentType: MapAlignmentType,
     val points: List<AlignmentPoint>,
 ) : Loggable {
-    override fun toLog(): String = logFormat("id" to id, "type" to alignmentType, "points" to points.size)
+    override fun toLog(): String =
+        logFormat("id" to id, "type" to alignmentType, "points" to points.size)
 }
 
 fun toAlignmentHeader(
     trackNumber: TrackLayoutTrackNumber,
     referenceLine: ReferenceLine,
     alignment: LayoutAlignment?,
-) = AlignmentHeader(
-    id = referenceLine.id,
-    version = referenceLine.version,
-    trackNumberId = referenceLine.trackNumberId,
-    duplicateOf = null,
-    name = AlignmentName(trackNumber.number.toString()),
-    state = trackNumber.state,
-    alignmentSource = MapAlignmentSource.LAYOUT,
-    alignmentType = MapAlignmentType.REFERENCE_LINE,
-    trackType = null,
-    length = alignment?.length ?: 0.0,
-    segmentCount = referenceLine.segmentCount,
-    boundingBox = alignment?.boundingBox,
-)
+) =
+    AlignmentHeader(
+        id = referenceLine.id,
+        version = referenceLine.version,
+        trackNumberId = referenceLine.trackNumberId,
+        duplicateOf = null,
+        name = AlignmentName(trackNumber.number.toString()),
+        state = trackNumber.state,
+        alignmentSource = MapAlignmentSource.LAYOUT,
+        alignmentType = MapAlignmentType.REFERENCE_LINE,
+        trackType = null,
+        length = alignment?.length ?: 0.0,
+        segmentCount = referenceLine.segmentCount,
+        boundingBox = alignment?.boundingBox,
+    )
 
 fun toAlignmentHeader(
     locationTrack: LocationTrack,
     alignment: LayoutAlignment?,
-) = AlignmentHeader(
-    id = locationTrack.id,
-    version = locationTrack.version,
-    trackNumberId = locationTrack.trackNumberId,
-    duplicateOf = locationTrack.duplicateOf,
-    name = locationTrack.name,
-    state = locationTrack.state,
-    alignmentSource = MapAlignmentSource.LAYOUT,
-    alignmentType = MapAlignmentType.LOCATION_TRACK,
-    trackType = locationTrack.type,
-    length = alignment?.length ?: 0.0,
-    segmentCount = locationTrack.segmentCount,
-    boundingBox = alignment?.boundingBox,
-)
+) =
+    AlignmentHeader(
+        id = locationTrack.id,
+        version = locationTrack.version,
+        trackNumberId = locationTrack.trackNumberId,
+        duplicateOf = locationTrack.duplicateOf,
+        name = locationTrack.name,
+        state = locationTrack.state,
+        alignmentSource = MapAlignmentSource.LAYOUT,
+        alignmentType = MapAlignmentType.LOCATION_TRACK,
+        trackType = locationTrack.type,
+        length = alignment?.length ?: 0.0,
+        segmentCount = locationTrack.segmentCount,
+        boundingBox = alignment?.boundingBox,
+    )
 
 fun getSegmentBorderMValues(alignment: IAlignment): List<Double> =
     alignment.segments.map { s -> s.startM } + alignment.length
@@ -108,20 +109,23 @@ fun simplify(
     val isOverResolution = { mValue: Double ->
         resolution?.let { r -> (mValue - previousM).roundToInt() >= r } ?: true
     }
-    return segments.flatMapIndexed { sIndex, s ->
-        val isEndPoint = { pIndex: Int ->
-            (sIndex == 0 && pIndex == 0) || (sIndex == segments.lastIndex && pIndex == s.segmentPoints.lastIndex)
+    return segments
+        .flatMapIndexed { sIndex, s ->
+            val isEndPoint = { pIndex: Int ->
+                (sIndex == 0 && pIndex == 0) ||
+                    (sIndex == segments.lastIndex && pIndex == s.segmentPoints.lastIndex)
+            }
+            val bboxContains = { pIndex: Int ->
+                bbox == null || s.segmentPoints.getOrNull(pIndex)?.let(bbox::contains) ?: false
+            }
+            s.segmentPoints.mapIndexedNotNull { pIndex, p ->
+                if (takePoint(pIndex, p.m + s.startM, isEndPoint, isOverResolution, bboxContains)) {
+                    previousM = s.startM + p.m
+                    p.toAlignmentPoint(s.startM)
+                } else null
+            }
         }
-        val bboxContains = { pIndex: Int ->
-            bbox == null || s.segmentPoints.getOrNull(pIndex)?.let(bbox::contains) ?: false
-        }
-        s.segmentPoints.mapIndexedNotNull { pIndex, p ->
-            if (takePoint(pIndex, p.m + s.startM, isEndPoint, isOverResolution, bboxContains)) {
-                previousM = s.startM + p.m
-                p.toAlignmentPoint(s.startM)
-            } else null
-        }
-    }.let { points -> if (points.size >= 2) points else listOf() }
+        .let { points -> if (points.size >= 2) points else listOf() }
 }
 
 private fun takePoint(

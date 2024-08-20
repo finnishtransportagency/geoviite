@@ -13,11 +13,11 @@ import fi.fta.geoviite.infra.geometry.Author
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryService
+import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
 import fi.fta.geoviite.infra.geometry.PlanLayoutCache
 import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.TransformationError
-import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
 import fi.fta.geoviite.infra.geometry.getBoundingPolygonPointsFromAlignments
 import fi.fta.geoviite.infra.geometry.validate
 import fi.fta.geoviite.infra.localization.localizationParams
@@ -35,15 +35,18 @@ const val VALIDATION_LAYOUT_POINTS_RESOLUTION = 10
 
 val noFileValidationError = ParsingError(LocalizationKey(INFRAMODEL_PARSING_KEY_EMPTY))
 
-fun noFileValidationResponse(overrideParameters: OverrideParameters?) = ValidationResponse(
-    geometryValidationIssues = listOf(noFileValidationError),
-    geometryPlan = null,
-    planLayout = null,
-    source = overrideParameters?.source ?: PlanSource.GEOMETRIAPALVELU,
-)
+fun noFileValidationResponse(overrideParameters: OverrideParameters?) =
+    ValidationResponse(
+        geometryValidationIssues = listOf(noFileValidationError),
+        geometryPlan = null,
+        planLayout = null,
+        source = overrideParameters?.source ?: PlanSource.GEOMETRIAPALVELU,
+    )
 
 @GeoviiteService
-class InfraModelService @Autowired constructor(
+class InfraModelService
+@Autowired
+constructor(
     private val geometryService: GeometryService,
     private val layoutCache: PlanLayoutCache,
     private val geometryDao: GeometryDao,
@@ -55,8 +58,11 @@ class InfraModelService @Autowired constructor(
 ) {
 
     @Transactional
-    fun saveInfraModel(file: MultipartFile, overrides: OverrideParameters?, extraInfo: ExtraInfoParameters?) =
-        saveInfraModel(toInfraModelFile(file, overrides?.encoding?.charset), overrides, extraInfo)
+    fun saveInfraModel(
+        file: MultipartFile,
+        overrides: OverrideParameters?,
+        extraInfo: ExtraInfoParameters?
+    ) = saveInfraModel(toInfraModelFile(file, overrides?.encoding?.charset), overrides, extraInfo)
 
     @Transactional
     fun saveInfraModel(
@@ -65,9 +71,14 @@ class InfraModelService @Autowired constructor(
         extraInfo: ExtraInfoParameters?,
     ): RowVersion<GeometryPlan> {
         val geometryPlan = cleanMissingFeatureTypeCodes(parseInfraModel(file, overrides, extraInfo))
-        val transformedBoundingBox = geometryPlan.units.coordinateSystemSrid
-            ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
-            ?.let { transformation -> getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation) }
+        val transformedBoundingBox =
+            geometryPlan.units.coordinateSystemSrid
+                ?.let { planSrid ->
+                    coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID)
+                }
+                ?.let { transformation ->
+                    getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation)
+                }
 
         checkForDuplicateFile(file, geometryPlan.source)
 
@@ -79,15 +90,17 @@ class InfraModelService @Autowired constructor(
         overrides: OverrideParameters? = null,
         extraInfo: ExtraInfoParameters? = null,
     ): GeometryPlan {
-        val switchStructuresByType = switchLibraryService.getSwitchStructures().associateBy { it.type }
+        val switchStructuresByType =
+            switchLibraryService.getSwitchStructures().associateBy { it.type }
 
-        val parsed = parseInfraModelFile(
-            overrides?.source ?: PlanSource.GEOMETRIAPALVELU,
-            file,
-            geographyService.getCoordinateSystemNameToSridMapping(),
-            switchStructuresByType,
-            switchLibraryService.getInframodelAliases(),
-        )
+        val parsed =
+            parseInfraModelFile(
+                overrides?.source ?: PlanSource.GEOMETRIAPALVELU,
+                file,
+                geographyService.getCoordinateSystemNameToSridMapping(),
+                switchStructuresByType,
+                switchLibraryService.getInframodelAliases(),
+            )
         return overrideGeometryPlanWithParameters(parsed, overrides, extraInfo)
     }
 
@@ -108,18 +121,24 @@ class InfraModelService @Autowired constructor(
         return tryParsing(overrideParameters?.source) { validateInternal(file, overrideParameters) }
     }
 
-    private fun validateInternal(file: InfraModelFile, overrides: OverrideParameters?): ValidationResponse {
+    private fun validateInternal(
+        file: InfraModelFile,
+        overrides: OverrideParameters?
+    ): ValidationResponse {
         val geometryPlan = parseInfraModel(file, overrides)
         return validateAndTransformToLayoutPlan(geometryPlan)
     }
 
     private fun cleanMissingFeatureTypeCodes(plan: GeometryPlan): GeometryPlan {
         val codes = codeDictionaryService.getFeatureTypes().map(FeatureType::code)
-        val cleanedAlignments = plan.alignments.map { a ->
-            if (a.featureTypeCode != null && a.featureTypeCode !in codes) a.copy(featureTypeCode = null)
-            else a
-        }
-        return if (cleanedAlignments != plan.alignments) plan.copy(alignments = cleanedAlignments) else plan
+        val cleanedAlignments =
+            plan.alignments.map { a ->
+                if (a.featureTypeCode != null && a.featureTypeCode !in codes)
+                    a.copy(featureTypeCode = null)
+                else a
+            }
+        return if (cleanedAlignments != plan.alignments) plan.copy(alignments = cleanedAlignments)
+        else plan
     }
 
     @Transactional(readOnly = true)
@@ -128,18 +147,22 @@ class InfraModelService @Autowired constructor(
         overrideParameters: OverrideParameters?,
     ): ValidationResponse {
         val geometryPlan = geometryService.getGeometryPlan(planId)
-        val planWithParameters = overrideGeometryPlanWithParameters(geometryPlan, overrideParameters)
+        val planWithParameters =
+            overrideGeometryPlanWithParameters(geometryPlan, overrideParameters)
         return validateAndTransformToLayoutPlan(planWithParameters)
     }
 
     private fun validateAndTransformToLayoutPlan(plan: GeometryPlan): ValidationResponse {
-        val (planLayout: GeometryPlanLayout?, layoutCreationError: TransformationError?) = layoutCache.transformToLayoutPlan(
-            geometryPlan = plan,
-            includeGeometryData = true,
-            pointListStepLength = VALIDATION_LAYOUT_POINTS_RESOLUTION,
-        )
-        val validationIssues = validateGeometryPlanContent(plan) + listOfNotNull(layoutCreationError)
-        return ValidationResponse(validationIssues, plan, planLayout?.withLayoutGeometry(), plan.source)
+        val (planLayout: GeometryPlanLayout?, layoutCreationError: TransformationError?) =
+            layoutCache.transformToLayoutPlan(
+                geometryPlan = plan,
+                includeGeometryData = true,
+                pointListStepLength = VALIDATION_LAYOUT_POINTS_RESOLUTION,
+            )
+        val validationIssues =
+            validateGeometryPlanContent(plan) + listOfNotNull(layoutCreationError)
+        return ValidationResponse(
+            validationIssues, plan, planLayout?.withLayoutGeometry(), plan.source)
     }
 
     @Transactional
@@ -149,7 +172,9 @@ class InfraModelService @Autowired constructor(
         extraInfoParameters: ExtraInfoParameters?,
     ): RowVersion<GeometryPlan> {
         val geometryPlan = geometryService.getGeometryPlan(planId)
-        val overriddenPlan = overrideGeometryPlanWithParameters(geometryPlan, overrideParameters, extraInfoParameters)
+        val overriddenPlan =
+            overrideGeometryPlanWithParameters(
+                geometryPlan, overrideParameters, extraInfoParameters)
 
         if (overriddenPlan.source != geometryPlan.source) {
             checkForDuplicateFile(geometryService.getPlanFile(planId), overriddenPlan.source)
@@ -164,30 +189,39 @@ class InfraModelService @Autowired constructor(
         extraInfoParameters: ExtraInfoParameters? = null,
     ): GeometryPlan {
         val planProject =
-            if (overrideParameters?.projectId is IntId<Project>) geometryDao.getProject(overrideParameters.projectId)
+            if (overrideParameters?.projectId is IntId<Project>)
+                geometryDao.getProject(overrideParameters.projectId)
             else geometryDao.findProject(plan.project.name) ?: plan.project
 
         val planAuthor =
-            if (overrideParameters?.authorId is IntId<Author>) geometryDao.getAuthor(overrideParameters.authorId)
+            if (overrideParameters?.authorId is IntId<Author>)
+                geometryDao.getAuthor(overrideParameters.authorId)
             else plan.author?.let { author -> geometryDao.findAuthor(author.companyName) ?: author }
 
-        val application = geometryDao.findApplication(plan.application.name, plan.application.version)
-            ?: plan.application
+        val application =
+            geometryDao.findApplication(plan.application.name, plan.application.version)
+                ?: plan.application
 
-        val overrideCs = overrideParameters?.coordinateSystemSrid?.let(geographyService::getCoordinateSystem)
+        val overrideCs =
+            overrideParameters?.coordinateSystemSrid?.let(geographyService::getCoordinateSystem)
 
-        val messageWithNormalizedLinebreaks = extraInfoParameters
-            ?.message?.let { normalizeLinebreaksToUnixFormat(extraInfoParameters.message) }
+        val messageWithNormalizedLinebreaks =
+            extraInfoParameters?.message?.let {
+                normalizeLinebreaksToUnixFormat(extraInfoParameters.message)
+            }
 
-        // Nullable fields that do not contain a default parameter via the elvis-operator are considered to be assignable
+        // Nullable fields that do not contain a default parameter via the elvis-operator are
+        // considered to be assignable
         // to null even if they have non-null values stored in the database.
         return plan.copy(
-            units = plan.units.copy(
-                coordinateSystemSrid = overrideCs?.srid ?: plan.units.coordinateSystemSrid,
-                coordinateSystemName = overrideCs?.name ?: plan.units.coordinateSystemName,
-                verticalCoordinateSystem = overrideParameters?.verticalCoordinateSystem
-                    ?: plan.units.verticalCoordinateSystem,
-            ),
+            units =
+                plan.units.copy(
+                    coordinateSystemSrid = overrideCs?.srid ?: plan.units.coordinateSystemSrid,
+                    coordinateSystemName = overrideCs?.name ?: plan.units.coordinateSystemName,
+                    verticalCoordinateSystem =
+                        overrideParameters?.verticalCoordinateSystem
+                            ?: plan.units.verticalCoordinateSystem,
+                ),
             trackNumber = overrideParameters?.trackNumber ?: plan.trackNumber,
             project = planProject,
             author = planAuthor,
@@ -203,7 +237,9 @@ class InfraModelService @Autowired constructor(
         )
     }
 
-    private fun validateGeometryPlanContent(geometryPlan: GeometryPlan): List<GeometryValidationIssue> {
+    private fun validateGeometryPlanContent(
+        geometryPlan: GeometryPlan
+    ): List<GeometryValidationIssue> {
         return validate(
             geometryPlan,
             codeDictionaryService.getFeatureTypes(),
@@ -216,7 +252,8 @@ class InfraModelService @Autowired constructor(
         geometryService.fetchDuplicateGeometryPlanHeader(planFile, source)?.also { duplicate ->
             throw InframodelParsingException(
                 message = "InfraModel file exists already",
-                localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.duplicate-inframodel-file-content",
+                localizedMessageKey =
+                    "$INFRAMODEL_PARSING_KEY_PARENT.duplicate-inframodel-file-content",
                 localizedMessageParams = localizationParams("fileName" to duplicate.fileName),
             )
         }

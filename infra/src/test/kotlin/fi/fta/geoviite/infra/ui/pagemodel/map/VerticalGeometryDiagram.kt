@@ -9,6 +9,7 @@ class E2EVerticalGeometryDiagram(parentView: E2EViewFragment) :
     E2EViewFragment(parentView, By.className("vertical-geometry-diagram-holder")) {
 
     fun waitForContent() { // will throw if no content
-        waitUntilChildExists(ByChained(byQaId("vertical-geometry-diagram-proper"), By.tagName("line")))
+        waitUntilChildExists(
+            ByChained(byQaId("vertical-geometry-diagram-proper"), By.tagName("line")))
     }
 }

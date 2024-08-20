@@ -9,7 +9,8 @@ import org.springframework.http.HttpStatus.OK
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 
-fun <T> toResponse(value: T?) = value?.let { v -> ResponseEntity(v, OK) } ?: ResponseEntity(NO_CONTENT)
+fun <T> toResponse(value: T?) =
+    value?.let { v -> ResponseEntity(v, OK) } ?: ResponseEntity(NO_CONTENT)
 
 fun toFileDownloadResponse(file: InfraModelFile): ResponseEntity<ByteArray> =
     toFileDownloadResponse(file.name.withSuffix(XML), file.content.toByteArray())
@@ -19,6 +20,9 @@ fun toFileDownloadResponse(fileName: FileName, content: ByteArray): ResponseEnti
     headers.contentType = MediaType.APPLICATION_OCTET_STREAM
     headers.set(
         HttpHeaders.CONTENT_DISPOSITION,
-        ContentDisposition.attachment().filename(fileName.toString(), Charsets.UTF_8).build().toString())
+        ContentDisposition.attachment()
+            .filename(fileName.toString(), Charsets.UTF_8)
+            .build()
+            .toString())
     return ResponseEntity.ok().headers(headers).body(content)
 }

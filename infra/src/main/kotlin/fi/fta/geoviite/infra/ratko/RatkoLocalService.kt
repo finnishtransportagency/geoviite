@@ -23,7 +23,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.Cacheable
 
 @GeoviiteService
-class RatkoLocalService @Autowired constructor(
+class RatkoLocalService
+@Autowired
+constructor(
     private val ratkoClient: RatkoClient?,
     private val ratkoPushDao: RatkoPushDao,
     private val ratkoOperatingPointDao: RatkoOperatingPointDao,
@@ -39,12 +41,23 @@ class RatkoLocalService @Autowired constructor(
 
     fun getRatkoPushError(publicationId: IntId<Publication>): RatkoPushErrorWithAsset? {
         return ratkoPushDao.getLatestRatkoPushErrorFor(publicationId)?.let { ratkoError ->
-            val asset = when (ratkoError.assetType) {
-                TRACK_NUMBER -> trackNumberService.get(MainLayoutContext.official, ratkoError.assetId as IntId<TrackLayoutTrackNumber>)
-                LOCATION_TRACK -> locationTrackService.get(MainLayoutContext.official, ratkoError.assetId as IntId<LocationTrack>)
-                SWITCH -> switchService.get(MainLayoutContext.official, ratkoError.assetId as IntId<TrackLayoutSwitch>)
+            val asset =
+                when (ratkoError.assetType) {
+                    TRACK_NUMBER ->
+                        trackNumberService.get(
+                            MainLayoutContext.official,
+                            ratkoError.assetId as IntId<TrackLayoutTrackNumber>)
+                    LOCATION_TRACK ->
+                        locationTrackService.get(
+                            MainLayoutContext.official, ratkoError.assetId as IntId<LocationTrack>)
+                    SWITCH ->
+                        switchService.get(
+                            MainLayoutContext.official,
+                            ratkoError.assetId as IntId<TrackLayoutSwitch>)
+                }
+            checkNotNull(asset) {
+                "No asset found for id! ${ratkoError.assetType} ${ratkoError.assetId}"
             }
-            checkNotNull(asset) { "No asset found for id! ${ratkoError.assetType} ${ratkoError.assetId}" }
 
             RatkoPushErrorWithAsset(
                 ratkoError.id,
@@ -52,8 +65,7 @@ class RatkoLocalService @Autowired constructor(
                 ratkoError.errorType,
                 ratkoError.operation,
                 ratkoError.assetType,
-                asset
-            )
+                asset)
         }
     }
 
@@ -61,7 +73,10 @@ class RatkoLocalService @Autowired constructor(
         return ratkoOperatingPointDao.getOperatingPoints(bbox)
     }
 
-    fun searchOperatingPoints(searchTerm: FreeText, resultLimit: Int = 10): List<RatkoOperatingPoint> {
+    fun searchOperatingPoints(
+        searchTerm: FreeText,
+        resultLimit: Int = 10
+    ): List<RatkoOperatingPoint> {
         return ratkoOperatingPointDao.searchOperatingPoints(searchTerm, resultLimit)
     }
 }

@@ -11,9 +11,8 @@ import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class GeographyServiceIT @Autowired constructor(
-    private val geographyService: GeographyService
-): DBTestBase() {
+class GeographyServiceIT @Autowired constructor(private val geographyService: GeographyService) :
+    DBTestBase() {
 
     @Test
     fun someCoordinateSystemsAreReturnedAsDefault() {
@@ -42,6 +41,7 @@ class GeographyServiceIT @Autowired constructor(
         assertEquals(Srid(2393), mapping[CoordinateSystemName("KKJ3")])
         assertEquals(Srid(2393), mapping[CoordinateSystemName("KKJ / Finland zone 3")])
         assertEquals(Srid(2393), mapping[CoordinateSystemName("KKJ")])
-        assertEquals(Srid(2393), mapping[CoordinateSystemName("KKJ / Finland Uniform Coordinate System")])
+        assertEquals(
+            Srid(2393), mapping[CoordinateSystemName("KKJ / Finland Uniform Coordinate System")])
     }
 }

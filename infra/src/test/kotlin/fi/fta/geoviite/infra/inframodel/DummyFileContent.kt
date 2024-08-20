@@ -8,7 +8,6 @@ object DummyFileContent {
     fun dummyValidFileXmlAsInputStream(): InputStream {
         val resource = InfraModel::class.java.getResource("/inframodel/testfile_simple.xml")!!
         return File(resource.toURI()).inputStream()
-
     }
 
     fun dummyInvalidFileXmlAsInputStream(): InputStream {

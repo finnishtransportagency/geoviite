@@ -5,26 +5,28 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 
+val allowedFreeTextCases =
+    listOf(
+        "",
+        "Legal Free text: * -> 'asdf' (Äö/å) _-–\\ +123465790?!",
+    )
 
-val allowedFreeTextCases = listOf(
-    "",
-    "Legal Free text: * -> 'asdf' (Äö/å) _-–\\ +123465790?!",
-)
+val illegalFreeTextCases =
+    listOf(
+        "Illegal`",
+        "Illegal´",
+        "Illegal=",
+        "Illegal\"",
+        "Illegal\tName",
+    )
 
-val illegalFreeTextCases = listOf(
-    "Illegal`",
-    "Illegal´",
-    "Illegal=",
-    "Illegal\"",
-    "Illegal\tName",
-)
-
-val freeTextWithNewLineCases = listOf(
-    "\nStarting line break is allowed",
-    "Ending line break is allowed\n",
-    "Legal Free text with newline in the middle: * -> 'asdf' \n (Äö/å) _-–\\ +123465790?!",
-    "Legal Free text with multiple newlines \n in the middle: * -> 'asdf' \n (Äö/å) _-–\\ +123465790?!",
-)
+val freeTextWithNewLineCases =
+    listOf(
+        "\nStarting line break is allowed",
+        "Ending line break is allowed\n",
+        "Legal Free text with newline in the middle: * -> 'asdf' \n (Äö/å) _-–\\ +123465790?!",
+        "Legal Free text with multiple newlines \n in the middle: * -> 'asdf' \n (Äö/å) _-–\\ +123465790?!",
+    )
 
 class SanitizedStringTest {
 
@@ -62,9 +64,7 @@ class SanitizedStringTest {
         }
 
         (illegalFreeTextCases + freeTextWithNewLineCases).forEach { illegalFreeText ->
-            assertThrows<InputValidationException> {
-                FreeText(illegalFreeText)
-            }
+            assertThrows<InputValidationException> { FreeText(illegalFreeText) }
         }
     }
 
@@ -78,11 +78,7 @@ class SanitizedStringTest {
     @Test
     fun freeTextWithNewLinesCantContainIllegalChars() {
         illegalFreeTextCases.forEach { illegalFreeText ->
-            assertThrows<InputValidationException> {
-                FreeText(illegalFreeText)
-            }
+            assertThrows<InputValidationException> { FreeText(illegalFreeText) }
         }
     }
-
-
 }

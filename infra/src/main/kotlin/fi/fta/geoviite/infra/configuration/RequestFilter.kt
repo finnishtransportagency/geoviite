@@ -20,6 +20,14 @@ import fi.fta.geoviite.infra.util.isValidCode
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
+import java.net.URL
+import java.security.KeyFactory
+import java.security.interfaces.ECPublicKey
+import java.security.interfaces.RSAPublicKey
+import java.security.spec.X509EncodedKeySpec
+import java.time.Duration
+import java.time.Instant
+import java.util.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -32,14 +40,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
-import java.net.URL
-import java.security.KeyFactory
-import java.security.interfaces.ECPublicKey
-import java.security.interfaces.RSAPublicKey
-import java.security.spec.X509EncodedKeySpec
-import java.time.Duration
-import java.time.Instant
-import java.util.*
 
 const val HTTP_HEADER_REMOTE_IP = "X-FORWARDED-FOR"
 const val HTTP_HEADER_CORRELATION_ID = "X-Amzn-Trace-Id"
@@ -54,7 +54,9 @@ val slowRequestThreshold: Duration = Duration.ofSeconds(5)
 @ConditionalOnWebApplication
 @Component
 @Order(1)
-class RequestFilter @Autowired constructor(
+class RequestFilter
+@Autowired
+constructor(
     @Value("\${geoviite.skip-auth:false}") private val skipAuth: Boolean,
     @Value("\${geoviite.jwt.validation.enabled:true}") private val validationEnabled: Boolean,
     @Value("\${geoviite.jwt.validation.jwks-url:}") private val jwksUrl: String,
@@ -63,56 +65,63 @@ class RequestFilter @Autowired constructor(
 
     private val log: Logger = LoggerFactory.getLogger(this::class.java)
 
-    private val authorizationService: AuthorizationService by lazy { SpringContextUtility.getBean() }
+    private val authorizationService: AuthorizationService by lazy {
+        SpringContextUtility.getBean()
+    }
     private val objectMapper: ObjectMapper by lazy { SpringContextUtility.getBean() }
 
     private val jwkProvider: UrlJwkProvider by lazy {
-        check(jwksUrl.isNotBlank()) { "Invalid configuration: set property geoviite.jwt.validation.url" }
+        check(jwksUrl.isNotBlank()) {
+            "Invalid configuration: set property geoviite.jwt.validation.url"
+        }
         UrlJwkProvider(URL("$jwksUrl/.well-known/jwks.json"))
     }
 
     private fun localUser(activeRole: Role, availableRoles: List<Role>): User {
         return User(
-            details = UserDetails(
-                userName = UserName.of("LOCAL_USER"),
-                firstName = AuthName.of("Local"),
-                lastName = AuthName.of("User"),
-                organization = AuthName.of("Geoviite"),
-            ),
+            details =
+                UserDetails(
+                    userName = UserName.of("LOCAL_USER"),
+                    firstName = AuthName.of("Local"),
+                    lastName = AuthName.of("User"),
+                    organization = AuthName.of("Geoviite"),
+                ),
             role = activeRole,
             availableRoles = availableRoles,
         )
     }
 
     private fun integrationApiUser(userType: IntegrationApiUserType): User {
-        val activeRole = authorizationService.getRole(userType.roleCode)
-            ?: throw ApiUnauthorizedException("Could not determine integration api user role.")
+        val activeRole =
+            authorizationService.getRole(userType.roleCode)
+                ?: throw ApiUnauthorizedException("Could not determine integration api user role.")
 
-        val userDetails = when (userType) {
-            IntegrationApiUserType.LOCAL ->
-                UserDetails(
-                    userName = UserName.of("API_LOCAL"),
-                    firstName = AuthName.of("Local"),
-                    lastName = AuthName.of("Api User"),
-                    organization = AuthName.of("Geoviite"),
-                )
+        val userDetails =
+            when (userType) {
+                IntegrationApiUserType.LOCAL ->
+                    UserDetails(
+                        userName = UserName.of("API_LOCAL"),
+                        firstName = AuthName.of("Local"),
+                        lastName = AuthName.of("Api User"),
+                        organization = AuthName.of("Geoviite"),
+                    )
 
-            IntegrationApiUserType.PUBLIC ->
-                UserDetails(
-                    userName = UserName.of("API_PUBLIC"),
-                    firstName = AuthName.of("Public"),
-                    lastName = AuthName.of("Api User"),
-                    organization = AuthName.of("Geoviite"),
-                )
+                IntegrationApiUserType.PUBLIC ->
+                    UserDetails(
+                        userName = UserName.of("API_PUBLIC"),
+                        firstName = AuthName.of("Public"),
+                        lastName = AuthName.of("Api User"),
+                        organization = AuthName.of("Geoviite"),
+                    )
 
-            IntegrationApiUserType.PRIVATE ->
-                UserDetails(
-                    userName = UserName.of("API_PRIVATE"),
-                    firstName = AuthName.of("Private"),
-                    lastName = AuthName.of("Api User"),
-                    organization = AuthName.of("Geoviite"),
-                )
-        }
+                IntegrationApiUserType.PRIVATE ->
+                    UserDetails(
+                        userName = UserName.of("API_PRIVATE"),
+                        firstName = AuthName.of("Private"),
+                        lastName = AuthName.of("Api User"),
+                        organization = AuthName.of("Geoviite"),
+                    )
+            }
 
         return User(
             details = userDetails,
@@ -124,19 +133,18 @@ class RequestFilter @Autowired constructor(
     private val healthCheckUser by lazy {
         User(
             details = UserDetails(UserName.of("HEALTH_CHECK"), null, null, null),
-            role = Role(
-                code = Code("health-check"),
-                privileges = listOf(),
-            ),
-            availableRoles = listOf()
-        )
+            role =
+                Role(
+                    code = Code("health-check"),
+                    privileges = listOf(),
+                ),
+            availableRoles = listOf())
     }
 
     init {
         log.info(
             "Initializing request filter: " +
-                "skipAuth=$skipAuth validationEnabled=$validationEnabled jwksUrl=$jwksUrl elbJwtUrl=$elbJwtUrl"
-        )
+                "skipAuth=$skipAuth validationEnabled=$validationEnabled jwksUrl=$jwksUrl elbJwtUrl=$elbJwtUrl")
     }
 
     override fun doFilterInternal(
@@ -156,16 +164,13 @@ class RequestFilter @Autowired constructor(
             currentUserRole.set(user.role.code)
 
             log.apiRequest(request, requestIP)
-            val auth = UsernamePasswordAuthenticationToken(
-                user,
-                "",
-                user.role.privileges
-            )
+            val auth = UsernamePasswordAuthenticationToken(user, "", user.role.privileges)
             SecurityContextHolder.getContext().authentication = auth
             chain.doFilter(request, response)
         } catch (ex: Exception) {
             val errorResponse = createErrorResponse(log, ex)
-            response.contentType = errorResponse.headers.contentType?.toString() ?: MediaType.APPLICATION_JSON_VALUE
+            response.contentType =
+                errorResponse.headers.contentType?.toString() ?: MediaType.APPLICATION_JSON_VALUE
             response.status = errorResponse.statusCode.value()
             response.writer.write(objectMapper.writeValueAsString(errorResponse.body))
             response.writer.flush()
@@ -184,16 +189,18 @@ class RequestFilter @Autowired constructor(
             if (isIntegrationApiRequest(request)) {
                 integrationApiUser(IntegrationApiUserType.LOCAL)
             } else {
-                val availableRolesForLocalUser = authorizationService.getRoles(
-                    authorizationService.defaultRoleCodeOrder,
-                )
+                val availableRolesForLocalUser =
+                    authorizationService.getRoles(
+                        authorizationService.defaultRoleCodeOrder,
+                    )
 
                 localUser(
                     activeRole = getActiveUserRole(request, availableRolesForLocalUser),
                     availableRoles = availableRolesForLocalUser,
                 )
             }
-        } else if (request.requestURI == "/actuator/health" && headers.none { h -> h.startsWith("x-iam") }) {
+        } else if (request.requestURI == "/actuator/health" &&
+            headers.none { h -> h.startsWith("x-iam") }) {
             healthCheckUser
         } else if (isIntegrationApiRequest(request)) {
             determineIntegrationApiUserOrThrow(request)
@@ -202,14 +209,12 @@ class RequestFilter @Autowired constructor(
 
             log.info(
                 "JWT authorization headers processed: " +
-                    "validated=$validationEnabled user=${content.userDetails.userName} groups=${content.groupNames}"
-            )
+                    "validated=$validationEnabled user=${content.userDetails.userName} groups=${content.groupNames}")
 
             val availableRoles = authorizationService.getRolesByUserGroups(content.groupNames)
             if (availableRoles.isEmpty()) {
                 throw ApiUnauthorizedException(
-                    "User doesn't have a valid role: userId=${content.userDetails.userName} groups=${content.groupNames}"
-                )
+                    "User doesn't have a valid role: userId=${content.userDetails.userName} groups=${content.groupNames}")
             }
 
             User(
@@ -221,16 +226,13 @@ class RequestFilter @Autowired constructor(
     }
 
     private fun getActiveUserRole(request: HttpServletRequest, availableRoles: List<Role>): Role {
-        return request.cookies?.firstOrNull { cookie ->
-            cookie?.name == DESIRED_ROLE_COOKIE_NAME
-        }?.let { desiredRoleCookie ->
-            val desiredRoleCode = Code(desiredRoleCookie.value)
+        return request.cookies
+            ?.firstOrNull { cookie -> cookie?.name == DESIRED_ROLE_COOKIE_NAME }
+            ?.let { desiredRoleCookie ->
+                val desiredRoleCode = Code(desiredRoleCookie.value)
 
-            availableRoles.find { availableRole ->
-                availableRole.code == desiredRoleCode
-            }
-
-        } ?: authorizationService.getDefaultRole(availableRoles)
+                availableRoles.find { availableRole -> availableRole.code == desiredRoleCode }
+            } ?: authorizationService.getDefaultRole(availableRoles)
     }
 
     private fun getJwtData(request: HttpServletRequest): JwtContent {
@@ -245,10 +247,13 @@ class RequestFilter @Autowired constructor(
     private fun validateAccessToken(jwt: DecodedJWT) {
         @Suppress("TooGenericExceptionCaught")
         try {
-            val algorithm = when (jwt.algorithm) {
-                ALGORITHM_RS256 -> getCognitoValidationAlgorithm(jwt.keyId)
-                else -> throw IllegalArgumentException("Unsupported access JWT algorithm: ${jwt.algorithm}")
-            }
+            val algorithm =
+                when (jwt.algorithm) {
+                    ALGORITHM_RS256 -> getCognitoValidationAlgorithm(jwt.keyId)
+                    else ->
+                        throw IllegalArgumentException(
+                            "Unsupported access JWT algorithm: ${jwt.algorithm}")
+                }
             JWT.require(algorithm).withIssuer(jwksUrl).build().verify(jwt)
             log.debug("JWT access token validated")
         } catch (ex: TokenExpiredException) {
@@ -265,10 +270,13 @@ class RequestFilter @Autowired constructor(
     private fun validateDataToken(jwt: DecodedJWT) {
         @Suppress("TooGenericExceptionCaught")
         try {
-            val algorithm = when (jwt.algorithm) {
-                ALGORITHM_ES256 -> getElbValidationAlgorithm(jwt.keyId)
-                else -> throw IllegalArgumentException("Unsupported data JWT algorithm: ${jwt.algorithm}")
-            }
+            val algorithm =
+                when (jwt.algorithm) {
+                    ALGORITHM_ES256 -> getElbValidationAlgorithm(jwt.keyId)
+                    else ->
+                        throw IllegalArgumentException(
+                            "Unsupported data JWT algorithm: ${jwt.algorithm}")
+                }
             JWT.require(algorithm).withIssuer(jwksUrl).build().verify(jwt)
             log.debug("JWT data token validated")
         } catch (ex: TokenExpiredException) {
@@ -284,9 +292,13 @@ class RequestFilter @Autowired constructor(
 
     private fun getCognitoValidationAlgorithm(keyId: String): Algorithm {
         val jwk = jwkProvider.get(keyId)
-        val publicKey = jwk.publicKey as? RSAPublicKey
-            ?: throw IllegalArgumentException("Invalid key type: ${jwk.publicKey::class.qualifiedName}")
-        check(jwk.algorithm == ALGORITHM_RS256) { "Unsupported JWK RSA algorithm: ${jwk.algorithm}" }
+        val publicKey =
+            jwk.publicKey as? RSAPublicKey
+                ?: throw IllegalArgumentException(
+                    "Invalid key type: ${jwk.publicKey::class.qualifiedName}")
+        check(jwk.algorithm == ALGORITHM_RS256) {
+            "Unsupported JWK RSA algorithm: ${jwk.algorithm}"
+        }
         return Algorithm.RSA256(publicKey, null)
     }
 
@@ -296,8 +308,10 @@ class RequestFilter @Autowired constructor(
         val keyData = unwrapPublicKey(keyString)
         val kf: KeyFactory = KeyFactory.getInstance("EC")
         val generated = kf.generatePublic(X509EncodedKeySpec(Base64.getDecoder().decode(keyData)))
-        val publicKey = generated as? ECPublicKey
-            ?: throw IllegalArgumentException("Invalid key (expected ECPublicKey): ${generated::class.qualifiedName}")
+        val publicKey =
+            generated as? ECPublicKey
+                ?: throw IllegalArgumentException(
+                    "Invalid key (expected ECPublicKey): ${generated::class.qualifiedName}")
         return Algorithm.ECDSA256(publicKey, null)
     }
 
@@ -307,7 +321,8 @@ class RequestFilter @Autowired constructor(
     }
 
     private fun determineIntegrationApiUserOrThrow(request: HttpServletRequest): User {
-        return request.getHeader("x-forwarded-host")
+        return request
+            .getHeader("x-forwarded-host")
             ?.takeIf { it.isNotEmpty() }
             ?.split(".")
             ?.firstOrNull()
@@ -317,20 +332,24 @@ class RequestFilter @Autowired constructor(
                     "api" -> integrationApiUser(IntegrationApiUserType.PRIVATE)
 
                     else ->
-                        throw ApiUnauthorizedException("Could not determine integration api user type (invalid host).")
+                        throw ApiUnauthorizedException(
+                            "Could not determine integration api user type (invalid host).")
                 }
-            } ?: throw ApiUnauthorizedException("Could not determine integration api user type (missing host).")
+            }
+            ?: throw ApiUnauthorizedException(
+                "Could not determine integration api user type (missing host).")
     }
 }
 
 const val PUBLIC_KEY_PREFIX = "-----BEGIN PUBLIC KEY-----"
 const val PUBLIC_KEY_POSTFIX = "-----END PUBLIC KEY-----"
 
-private fun unwrapPublicKey(keyData: String): String = keyData
-    .replace("\n", "")
-    .trim()
-    .drop(PUBLIC_KEY_PREFIX.length)
-    .dropLast(PUBLIC_KEY_POSTFIX.length)
+private fun unwrapPublicKey(keyData: String): String =
+    keyData
+        .replace("\n", "")
+        .trim()
+        .drop(PUBLIC_KEY_PREFIX.length)
+        .dropLast(PUBLIC_KEY_POSTFIX.length)
 
 private fun extractRequestIP(req: HttpServletRequest): String {
     return (req.getHeader(HTTP_HEADER_REMOTE_IP) ?: req.remoteAddr).split(",")[0]
@@ -342,22 +361,27 @@ private fun extractRequestCorrelationId(request: HttpServletRequest): String {
 
 private fun randomCorrelationId(): String = "NCI-${UUID.randomUUID()}"
 
-private fun jwtDataContent(dataToken: DecodedJWT) = JwtContent(
-    userDetails = UserDetails(
-        userName = UserName.of(dataToken.getMandatoryClaim(JwtClaim.USER_ID)),
-        firstName = dataToken.getOptionalClaim(JwtClaim.FIRST_NAME)?.let(AuthName::of),
-        lastName = dataToken.getOptionalClaim(JwtClaim.LAST_NAME)?.let(AuthName::of),
-        organization = dataToken.getOptionalClaim(JwtClaim.ORGANIZATION)?.let(AuthName::of),
-    ),
-    groupNames = dataToken
-        .getMandatoryClaim(JwtClaim.ROLES)
-        .split(",")
-        .filter(::isValidCode)
-        .map(::Code),
-)
+private fun jwtDataContent(dataToken: DecodedJWT) =
+    JwtContent(
+        userDetails =
+            UserDetails(
+                userName = UserName.of(dataToken.getMandatoryClaim(JwtClaim.USER_ID)),
+                firstName = dataToken.getOptionalClaim(JwtClaim.FIRST_NAME)?.let(AuthName::of),
+                lastName = dataToken.getOptionalClaim(JwtClaim.LAST_NAME)?.let(AuthName::of),
+                organization = dataToken.getOptionalClaim(JwtClaim.ORGANIZATION)?.let(AuthName::of),
+            ),
+        groupNames =
+            dataToken
+                .getMandatoryClaim(JwtClaim.ROLES)
+                .split(",")
+                .filter(::isValidCode)
+                .map(::Code),
+    )
 
 private fun extractJwtToken(request: HttpServletRequest, header: String): DecodedJWT {
-    val tokenString = request.getHeader(header) ?: throw ApiUnauthorizedException("JWT header is missing: $header")
+    val tokenString =
+        request.getHeader(header)
+            ?: throw ApiUnauthorizedException("JWT header is missing: $header")
     return decodeJwt(tokenString)
 }
 
@@ -385,5 +409,8 @@ enum class JwtClaim(val header: String) {
 }
 
 fun DecodedJWT.getOptionalClaim(claim: JwtClaim): String? = claims[claim.header]?.asString()
-fun DecodedJWT.getMandatoryClaim(claim: JwtClaim): String = getOptionalClaim(claim)
-    ?: throw ApiUnauthorizedException("JWT token does not contain required claim ${claim.header}")
+
+fun DecodedJWT.getMandatoryClaim(claim: JwtClaim): String =
+    getOptionalClaim(claim)
+        ?: throw ApiUnauthorizedException(
+            "JWT token does not contain required claim ${claim.header}")

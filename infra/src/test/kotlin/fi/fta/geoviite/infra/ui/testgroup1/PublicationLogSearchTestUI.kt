@@ -12,6 +12,10 @@ import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.setUser
+import java.time.Instant
+import java.time.ZoneOffset
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -20,14 +24,12 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
-import java.time.ZoneOffset
-import kotlin.test.assertContains
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
-class PublicationLogSearchTestUI @Autowired constructor(
+class PublicationLogSearchTestUI
+@Autowired
+constructor(
     private val publicationService: PublicationService,
     private val testPublicationUpdaterDao: TestPublicationUpdaterDao,
 ) : SeleniumTest() {
@@ -36,47 +38,47 @@ class PublicationLogSearchTestUI @Autowired constructor(
     fun `Publication log date search works`() {
         testDBService.clearAllTables()
 
-        val someTrackNumberId = mainDraftContext.insert(trackNumber(TrackNumber("Test track number"))).id
+        val someTrackNumberId =
+            mainDraftContext.insert(trackNumber(TrackNumber("Test track number"))).id
         val someReferenceLine = HelsinkiTestData.westReferenceLine(someTrackNumberId, draft = true)
         val someTrack = HelsinkiTestData.westMainLocationTrack(someTrackNumberId, draft = true)
 
-        val publicationRequests = listOf(
-            PublicationRequest(
-                content = publicationRequestIds(
-                    trackNumbers = listOf(someTrackNumberId)
+        val publicationRequests =
+            listOf(
+                PublicationRequest(
+                    content = publicationRequestIds(trackNumbers = listOf(someTrackNumberId)),
+                    message = "some test publication 1",
                 ),
-                message = "some test publication 1",
-            ),
-
-            PublicationRequest(
-                content = publicationRequestIds(
-                    referenceLines = listOf(mainDraftContext.insert(someReferenceLine.first, someReferenceLine.second).id)
+                PublicationRequest(
+                    content =
+                        publicationRequestIds(
+                            referenceLines =
+                                listOf(
+                                    mainDraftContext
+                                        .insert(someReferenceLine.first, someReferenceLine.second)
+                                        .id)),
+                    message = "some test publication 2",
                 ),
-                message = "some test publication 2",
-            ),
-
-            PublicationRequest(
-                content = publicationRequestIds(
-                    locationTracks = listOf(mainDraftContext.insert(someTrack).id)
-                ),
-                message = "some test publication 3",
-            )
-        )
+                PublicationRequest(
+                    content =
+                        publicationRequestIds(
+                            locationTracks = listOf(mainDraftContext.insert(someTrack).id)),
+                    message = "some test publication 3",
+                ))
 
         val testDateBeforeAnyTestPublications = Instant.parse("2022-01-01T12:34:00Z")
 
-        val testPublicationDates = listOf(
-            Instant.parse("2023-01-01T12:34:00Z"),
-            Instant.parse("2023-06-01T00:00:00Z"),
-            Instant.parse("2024-01-01T00:00:00Z"),
-        )
+        val testPublicationDates =
+            listOf(
+                Instant.parse("2023-01-01T12:34:00Z"),
+                Instant.parse("2023-06-01T00:00:00Z"),
+                Instant.parse("2024-01-01T00:00:00Z"),
+            )
 
         val testDateAfterAllTestPublications = Instant.parse("2025-01-01T00:00:00Z")
 
         publicationRequests
-            .map { publicationRequest ->
-                testPublish(publicationRequest)
-            }
+            .map { publicationRequest -> testPublish(publicationRequest) }
             .zip(testPublicationDates)
             .map { (publicationId, newDate) ->
                 // The publication service calls the publication dao, which uses the postgres
@@ -132,19 +134,20 @@ class PublicationLogSearchTestUI @Autowired constructor(
     }
 
     private fun testPublish(publicationRequest: PublicationRequest): IntId<Publication> {
-        val versions = publicationService.getValidationVersions(LayoutBranch.main, publicationRequest.content)
+        val versions =
+            publicationService.getValidationVersions(LayoutBranch.main, publicationRequest.content)
         val calculatedChanges = publicationService.getCalculatedChanges(versions)
-        val result = publicationService.publishChanges(
-            LayoutBranch.main,
-            versions,
-            calculatedChanges,
-            publicationRequest.message,
-        )
+        val result =
+            publicationService.publishChanges(
+                LayoutBranch.main,
+                versions,
+                calculatedChanges,
+                publicationRequest.message,
+            )
 
         return result.publicationId!!
     }
 }
-
 
 @Component
 class TestPublicationUpdaterDao(
@@ -157,19 +160,20 @@ class TestPublicationUpdaterDao(
         newPublicationTime: Instant,
     ) {
         jdbcTemplate.setUser()
-        val sql = """
+        val sql =
+            """
             update publication.publication
             set publication_time = :new_publication_time
             where id = :publication_id
-        """.trimIndent()
+        """
+                .trimIndent()
 
         val params = MapSqlParameterSource()
         params.addValue("publication_id", publicationId.intValue, java.sql.Types.INTEGER)
         params.addValue(
             "new_publication_time",
             newPublicationTime.atOffset(ZoneOffset.UTC),
-            java.sql.Types.TIMESTAMP_WITH_TIMEZONE
-        )
+            java.sql.Types.TIMESTAMP_WITH_TIMEZONE)
 
         jdbcTemplate.update(sql, params)
     }

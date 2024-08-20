@@ -68,7 +68,9 @@ class IdTestController {
     }
 
     @GetMapping("/id-test-arg/indexed")
-    fun requestWithIdArgument(@RequestParam("id") id: IndexedId<IdTestObject>): IndexedIdTestObject {
+    fun requestWithIdArgument(
+        @RequestParam("id") id: IndexedId<IdTestObject>
+    ): IndexedIdTestObject {
         return IndexedIdTestObject(id)
     }
 

@@ -35,19 +35,20 @@ data class OverrideParameters(
     val source: PlanSource?,
 )
 
-fun tryParsing(source: PlanSource?, op: () -> ValidationResponse): ValidationResponse = try {
-    op()
-} catch (e: Exception) {
-    logger.warn("Failed to parse InfraModel", e)
-    ValidationResponse(
-        geometryValidationIssues = listOf(
-            ParsingError(
-                if (e is HasLocalizedMessage) e.localizationKey
-                else LocalizationKey(INFRAMODEL_PARSING_KEY_GENERIC)
-            ),
-        ),
-        geometryPlan = null,
-        planLayout = null,
-        source = source ?: PlanSource.GEOMETRIAPALVELU,
-    )
-}
+fun tryParsing(source: PlanSource?, op: () -> ValidationResponse): ValidationResponse =
+    try {
+        op()
+    } catch (e: Exception) {
+        logger.warn("Failed to parse InfraModel", e)
+        ValidationResponse(
+            geometryValidationIssues =
+                listOf(
+                    ParsingError(
+                        if (e is HasLocalizedMessage) e.localizationKey
+                        else LocalizationKey(INFRAMODEL_PARSING_KEY_GENERIC)),
+                ),
+            geometryPlan = null,
+            planLayout = null,
+            source = source ?: PlanSource.GEOMETRIAPALVELU,
+        )
+    }

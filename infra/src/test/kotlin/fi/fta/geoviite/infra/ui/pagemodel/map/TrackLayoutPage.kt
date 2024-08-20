@@ -9,20 +9,17 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialogWithTextField
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
-import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
-import getElement
 import getElementIfExists
 import getElementWhenExists
+import java.time.Instant
 import javaScriptExecutor
+import kotlin.math.roundToInt
 import org.openqa.selenium.By
 import org.openqa.selenium.interactions.Actions
-import org.xmlunit.diff.ElementSelectors.byXPath
 import tryWait
 import waitUntilExists
 import waitUntilNotExist
-import java.time.Instant
-import kotlin.math.roundToInt
 
 class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
 
@@ -61,7 +58,9 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     val toolPanel: E2EToolPanel by lazy { E2EToolPanel(this) }
     val selectionPanel: E2ESelectionPanel by lazy { E2ESelectionPanel(this) }
     val toolBar: E2EToolBar by lazy { E2EToolBar(this) }
-    val verticalGeometryDiagram: E2EVerticalGeometryDiagram by lazy { E2EVerticalGeometryDiagram(this) }
+    val verticalGeometryDiagram: E2EVerticalGeometryDiagram by lazy {
+        E2EVerticalGeometryDiagram(this)
+    }
 
     private val resolution: Double
         get() = childElement(By.className("map__ol-map")).getAttribute("qa-resolution").toDouble()
@@ -70,11 +69,13 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
     val switchToDesignModeButton = getElementIfExists(byQaId("design-mode-tab"))
 
     val mapScale: MapScale
-        get() = tryWait({
-            val scale = childText(By.className("ol-scale-line-inner"))
-            MapScale.entries.firstOrNull { it.value == scale }
-        }) { "Invalid map scale" }
-
+        get() =
+            tryWait({
+                val scale = childText(By.className("ol-scale-line-inner"))
+                MapScale.entries.firstOrNull { it.value == scale }
+            }) {
+                "Invalid map scale"
+            }
 
     companion object {
         fun finishLoading() {
@@ -95,22 +96,37 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
         clickAtCoordinates(point.x, point.y, doubleClick)
     }
 
-    fun clickAtCoordinates(point: AlignmentPoint, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
+    fun clickAtCoordinates(
+        point: AlignmentPoint,
+        doubleClick: Boolean = false
+    ): E2ETrackLayoutPage = apply {
         finishLoading()
         clickAtCoordinates(point.x, point.y, doubleClick)
     }
 
-    fun clickAtCoordinates(xPoint: Double, yPoint: Double, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
+    fun clickAtCoordinates(
+        xPoint: Double,
+        yPoint: Double,
+        doubleClick: Boolean = false
+    ): E2ETrackLayoutPage = apply {
         finishLoading()
         val pxlCoordinates =
-            javaScriptExecutor().executeScript("return map.getPixelFromCoordinate([$xPoint,$yPoint])").toString()
-                .replace("[^0-9.,]".toRegex(), "").split(",").map { doubleStr -> doubleStr.toDouble().roundToInt() }
+            javaScriptExecutor()
+                .executeScript("return map.getPixelFromCoordinate([$xPoint,$yPoint])")
+                .toString()
+                .replace("[^0-9.,]".toRegex(), "")
+                .split(",")
+                .map { doubleStr -> doubleStr.toDouble().roundToInt() }
 
         logger.info("Map coordinates ($xPoint,$yPoint) are at $pxlCoordinates")
         clickAtCoordinates(pixelX = pxlCoordinates[0], pixelY = pxlCoordinates[1], doubleClick)
     }
 
-    fun clickAtCoordinates(pixelX: Int, pixelY: Int, doubleClick: Boolean = false): E2ETrackLayoutPage = apply {
+    fun clickAtCoordinates(
+        pixelX: Int,
+        pixelY: Int,
+        doubleClick: Boolean = false
+    ): E2ETrackLayoutPage = apply {
         finishLoading()
         logger.info("Click map at ($pixelX,$pixelY)")
         val canvas = childElement(By.cssSelector("div.map"))
@@ -162,8 +178,8 @@ class E2ETrackLayoutPage : E2EViewFragment(byQaId("track-layout-content")) {
             .selectInput(byQaId("workspace-dialog-date"))
             .also {
                 getElementWhenExists(
-                    By.xpath("//*[contains(@class, 'react-datepicker__day--001')]")
-                ).click()
+                        By.xpath("//*[contains(@class, 'react-datepicker__day--001')]"))
+                    .click()
             }
             .clickPrimaryButton()
     }

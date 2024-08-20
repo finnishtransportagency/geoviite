@@ -54,11 +54,9 @@ fun multiArgumentOperation(operator: PVApiSearchOperator, vararg children: JsonN
         children.forEach(arrayNode::add)
     }
 
-fun and(vararg children: JsonNode) =
-    multiArgumentOperation(PVApiSearchOperator.AND, *children)
+fun and(vararg children: JsonNode) = multiArgumentOperation(PVApiSearchOperator.AND, *children)
 
-fun or(vararg children: JsonNode) =
-    multiArgumentOperation(PVApiSearchOperator.OR, *children)
+fun or(vararg children: JsonNode) = multiArgumentOperation(PVApiSearchOperator.OR, *children)
 
 fun equals(path: List<String>, value: String) =
     operationWithPath(PVApiSearchOperator.EQUALS, path, value)
@@ -79,7 +77,11 @@ fun operationWithPath(operator: PVApiSearchOperator, path: List<String>, value: 
         arrayNode.add(value)
     }
 
-fun operationWithPath(operator: PVApiSearchOperator, path: List<String>, values: List<String>): ArrayNode =
+fun operationWithPath(
+    operator: PVApiSearchOperator,
+    path: List<String>,
+    values: List<String>
+): ArrayNode =
     JsonNodeFactory.instance.arrayNode().also { arrayNode ->
         arrayNode.add(operator.apiValue)
         arrayNode.add(jsonStringArray(path))
@@ -93,83 +95,46 @@ fun ordering(path: List<String>, direction: PVApiOrderingDirection): ArrayNode =
     }
 
 fun jsonObjectArray(items: List<JsonNode>): ArrayNode =
-    JsonNodeFactory.instance.arrayNode(items.size).also { array ->
-        items.forEach(array::add)
-    }
+    JsonNodeFactory.instance.arrayNode(items.size).also { array -> items.forEach(array::add) }
 
 fun jsonStringArray(items: List<String>): ArrayNode =
-    JsonNodeFactory.instance.arrayNode(items.size).also { array ->
-        items.forEach(array::add)
-    }
+    JsonNodeFactory.instance.arrayNode(items.size).also { array -> items.forEach(array::add) }
 
 fun searchJson(cutoffDate: Instant, minOid: Oid<PVDocument>?, maxResultCount: Int) =
     searchRoot(
-        settings = settings(
-            searchType = PVApiSearchType.TARGET_SEARCH,
-            maxResultCount = maxResultCount,
-            ordering = jsonObjectArray(
-                listOf(
-                    ordering(
+        settings =
+            settings(
+                searchType = PVApiSearchType.TARGET_SEARCH,
+                maxResultCount = maxResultCount,
+                ordering =
+                    jsonObjectArray(
                         listOf(
-                            "aineisto/aineisto",
-                            "tuorein-versio",
-                            "muokattu"
-                        ), PVApiOrderingDirection.ASCENDING
-                    ),
-                    ordering(
-                        listOf(
-                            "aineisto/aineisto",
-                            "oid"
-                        ), PVApiOrderingDirection.ASCENDING
-                    )
-                )
-            )
-        ),
-        formula = and(
-            or(
-                greaterThan(
-                    path = listOf(
-                        "aineisto/aineisto",
-                        "tuorein-versio",
-                        "muokattu"
-                    ),
-                    value = cutoffDate.toString()
-                ),
-                and(
-                    equals(
-                        path = listOf(
-                            "aineisto/aineisto",
-                            "tuorein-versio",
-                            "muokattu"
-                        ),
-                        value = cutoffDate.toString()
-                    ),
+                            ordering(
+                                listOf("aineisto/aineisto", "tuorein-versio", "muokattu"),
+                                PVApiOrderingDirection.ASCENDING),
+                            ordering(
+                                listOf("aineisto/aineisto", "oid"),
+                                PVApiOrderingDirection.ASCENDING)))),
+        formula =
+            and(
+                or(
                     greaterThan(
-                        path = listOf(
-                            "aineisto/aineisto",
-                            "oid"
-                        ),
-                        value = minOid?.let { minOid.toString() } ?: ""
-                    )
-                )
-            ),
-            includesText(path = listOf("aineisto/aineisto", "tuorein-versio", "nimi"), value = ".xml"),
-            contains(
-                path = listOf(
-                    "aineisto/aineisto",
-                    "metatiedot",
-                    "tekniikka-alat"
-                ), values = listOf("tekniikka-ala/ta15")
-            ),
-            or(
-                equals(
-                    path = listOf(
-                        "aineisto/aineisto",
-                        "metatiedot",
-                        "ryhma"
-                    ), value = "aineistoryhma/ar07"
-                )
-            )
-        ),
-        targetCategories = JsonNodeFactory.instance.arrayNode().add("aineisto/aineisto")
-    )
+                        path = listOf("aineisto/aineisto", "tuorein-versio", "muokattu"),
+                        value = cutoffDate.toString()),
+                    and(
+                        equals(
+                            path = listOf("aineisto/aineisto", "tuorein-versio", "muokattu"),
+                            value = cutoffDate.toString()),
+                        greaterThan(
+                            path = listOf("aineisto/aineisto", "oid"),
+                            value = minOid?.let { minOid.toString() } ?: ""))),
+                includesText(
+                    path = listOf("aineisto/aineisto", "tuorein-versio", "nimi"), value = ".xml"),
+                contains(
+                    path = listOf("aineisto/aineisto", "metatiedot", "tekniikka-alat"),
+                    values = listOf("tekniikka-ala/ta15")),
+                or(
+                    equals(
+                        path = listOf("aineisto/aineisto", "metatiedot", "ryhma"),
+                        value = "aineistoryhma/ar07"))),
+        targetCategories = JsonNodeFactory.instance.arrayNode().add("aineisto/aineisto"))

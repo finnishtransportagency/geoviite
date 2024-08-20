@@ -25,17 +25,19 @@ import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
+import java.time.Instant
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
-class FrontPageTestUI @Autowired constructor(
+class FrontPageTestUI
+@Autowired
+constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val referenceLineDao: ReferenceLineDao,
     private val alignmentDao: LayoutAlignmentDao,
@@ -51,32 +53,39 @@ class FrontPageTestUI @Autowired constructor(
 
     @Test
     fun `Retry failed publication`() {
-        val originalTrackNumber = trackNumberDao.insert(
-            trackNumber(TrackNumber("original name"), externalId = Oid("1.2.3.4.5"), draft = false)
-        )
+        val originalTrackNumber =
+            trackNumberDao.insert(
+                trackNumber(
+                    TrackNumber("original name"), externalId = Oid("1.2.3.4.5"), draft = false))
         val trackNumberId = originalTrackNumber.id
-        val alignmentVersion = alignmentDao.insert(
-            alignment(segment(toSegmentPoints(Point(0.0, 0.0), Point(10.0, 0.0))))
-        )
-        referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = alignmentVersion, draft = false))
+        val alignmentVersion =
+            alignmentDao.insert(
+                alignment(segment(toSegmentPoints(Point(0.0, 0.0), Point(10.0, 0.0)))))
+        referenceLineDao.insert(
+            referenceLine(trackNumberId, alignmentVersion = alignmentVersion, draft = false))
 
-        val successfulPublicationId = publicationDao.createPublication(LayoutBranch.main, "successful")
-        publicationDao.insertCalculatedChanges(successfulPublicationId, changesTouchingTrackNumber(trackNumberId))
+        val successfulPublicationId =
+            publicationDao.createPublication(LayoutBranch.main, "successful")
+        publicationDao.insertCalculatedChanges(
+            successfulPublicationId, changesTouchingTrackNumber(trackNumberId))
 
         trackNumberDao
             .fetch(originalTrackNumber.rowVersion)
             .copy(number = TrackNumber("updated name"))
             .let(trackNumberDao::update)
 
-        val failingPublicationId = publicationDao.createPublication(LayoutBranch.main, "failing test publication")
-        publicationDao.insertCalculatedChanges(failingPublicationId, changesTouchingTrackNumber(trackNumberId))
+        val failingPublicationId =
+            publicationDao.createPublication(LayoutBranch.main, "failing test publication")
+        publicationDao.insertCalculatedChanges(
+            failingPublicationId, changesTouchingTrackNumber(trackNumberId))
 
         val failedRatkoPushId = ratkoPushDao.startPushing(listOf(failingPublicationId))
         ratkoPushDao.updatePushStatus(failedRatkoPushId, RatkoPushStatus.FAILED)
 
         startGeoviite()
 
-        // two publications; an original one that succeeded (with the original name), then a new one above it that
+        // two publications; an original one that succeeded (with the original name), then a new one
+        // above it that
         // failed
         E2EFrontPage()
             .openNthPublication(2)
@@ -97,10 +106,13 @@ class FrontPageTestUI @Autowired constructor(
 
         E2EFrontPage().pushToRatko()
 
-        // the publication list will only update with the changeTimes mechanism, which can take up to 15 seconds,
-        // so we're not going to bother checking that; we'll just poll Ratko to see that the change went through instead
+        // the publication list will only update with the changeTimes mechanism, which can take up
+        // to 15 seconds,
+        // so we're not going to bother checking that; we'll just poll Ratko to see that the change
+        // went through instead
         val maxWaitUntil = Instant.now().plusSeconds(2)
-        while (Instant.now().isBefore(maxWaitUntil) && fakeRatko.getPushedRouteNumber(Oid("1.2.3.4.5")).isEmpty()) {
+        while (Instant.now().isBefore(maxWaitUntil) &&
+            fakeRatko.getPushedRouteNumber(Oid("1.2.3.4.5")).isEmpty()) {
             Thread.sleep(100)
         }
         assertEquals("updated name", fakeRatko.getPushedRouteNumber(Oid("1.2.3.4.5"))[0].name)
@@ -108,17 +120,19 @@ class FrontPageTestUI @Autowired constructor(
         fakeRatko.stop()
     }
 
-    private fun changesTouchingTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): CalculatedChanges =
+    private fun changesTouchingTrackNumber(
+        trackNumberId: IntId<TrackLayoutTrackNumber>
+    ): CalculatedChanges =
         CalculatedChanges(
             DirectChanges(
-                trackNumberChanges = listOf(
-                    TrackNumberChange(
-                        trackNumberId,
-                        changedKmNumbers = setOf(),
-                        isStartChanged = false,
-                        isEndChanged = false,
-                    )
-                ),
+                trackNumberChanges =
+                    listOf(
+                        TrackNumberChange(
+                            trackNumberId,
+                            changedKmNumbers = setOf(),
+                            isStartChanged = false,
+                            isEndChanged = false,
+                        )),
                 kmPostChanges = listOf(),
                 switchChanges = listOf(),
                 locationTrackChanges = listOf(),

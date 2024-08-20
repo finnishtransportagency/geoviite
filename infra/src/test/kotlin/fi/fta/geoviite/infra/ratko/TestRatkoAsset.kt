@@ -3,10 +3,15 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.ratko.model.*
 
 /*
- Shadow clones of the parts of Ratko's API that we actually use, in the specific form that Ratko sends them, which can
- be fairly unlike our own Ratko-prefixed classes.
- */
-data class InterfaceRatkoGeometry(val type: RatkoGeometryType, val coordinates: List<Double>, val crs: RatkoCrs)
+Shadow clones of the parts of Ratko's API that we actually use, in the specific form that Ratko sends them, which can
+be fairly unlike our own Ratko-prefixed classes.
+*/
+data class InterfaceRatkoGeometry(
+    val type: RatkoGeometryType,
+    val coordinates: List<Double>,
+    val crs: RatkoCrs
+)
+
 data class InterfaceRatkoAssetGeometry(
     val geometryOriginal: InterfaceRatkoGeometry,
     val geomType: RatkoAssetGeometryType,
@@ -82,7 +87,8 @@ fun ratkoLocationTrack(
     state: RatkoLocationTrackState = RatkoLocationTrackState.IN_USE,
     rowMetadata: RatkoMetadata = RatkoMetadata(),
     duplicateOf: String? = null,
-    topologicalConnectivityType: RatkoTopologicalConnectivityType = RatkoTopologicalConnectivityType.NONE,
+    topologicalConnectivityType: RatkoTopologicalConnectivityType =
+        RatkoTopologicalConnectivityType.NONE,
 ) =
     InterfaceRatkoLocationTrack(
         id,
@@ -94,8 +100,7 @@ fun ratkoLocationTrack(
         state,
         rowMetadata,
         duplicateOf,
-        topologicalConnectivityType
-    )
+        topologicalConnectivityType)
 
 fun ratkoSwitch(
     oid: String,
@@ -109,5 +114,4 @@ fun ratkoSwitch(
         state = state,
         properties = properties,
         locations = locations,
-        assetGeoms = assetGeoms
-    )
+        assetGeoms = assetGeoms)

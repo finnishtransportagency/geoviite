@@ -1,11 +1,11 @@
 package fi.fta.geoviite.infra.common
 
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
 class KmNumberTest {
 
@@ -95,6 +95,7 @@ class KmNumberTest {
             TrackMeter(123, 1.50, 2).ceil(1),
         )
     }
+
     @Test
     fun roundDecimalsWork() {
         assertEquals(
@@ -105,14 +106,10 @@ class KmNumberTest {
 
     @Test
     fun addressesWorkInRanges() {
-        assertTrue(TrackMeter(704, 87) in
-                TrackMeter(704, 85.123, 3)..TrackMeter(704, 87.123, 3))
-        assertTrue(TrackMeter(704, 87) in
-                TrackMeter(704, 87)..TrackMeter(704, 87))
-        assertTrue(TrackMeter(704, 87) in
-                TrackMeter(704, 9)..TrackMeter(704, 123))
-        assertTrue(TrackMeter(704, 87) in
-                TrackMeter(703, 999.123, 3)..TrackMeter(705, 7.123, 3))
+        assertTrue(TrackMeter(704, 87) in TrackMeter(704, 85.123, 3)..TrackMeter(704, 87.123, 3))
+        assertTrue(TrackMeter(704, 87) in TrackMeter(704, 87)..TrackMeter(704, 87))
+        assertTrue(TrackMeter(704, 87) in TrackMeter(704, 9)..TrackMeter(704, 123))
+        assertTrue(TrackMeter(704, 87) in TrackMeter(703, 999.123, 3)..TrackMeter(705, 7.123, 3))
     }
 
     @Test
@@ -134,13 +131,17 @@ class KmNumberTest {
         assertTrue(TrackMeter("0001+0002.0") in TrackMeter("0001+0002")..TrackMeter("0001+0003"))
         assertTrue(TrackMeter("0001+0002.521") in TrackMeter("0001+0002")..TrackMeter("0001+0003"))
         assertTrue(TrackMeter("0001+0003.0") in TrackMeter("0001+0002")..TrackMeter("0001+0003"))
-        assertTrue(TrackMeter("0001+0002") in TrackMeter("0001+0002.000")..TrackMeter("0001+0003.000"))
-        assertTrue(TrackMeter("0001+0003") in TrackMeter("0001+0002.000")..TrackMeter("0001+0003.000"))
+        assertTrue(
+            TrackMeter("0001+0002") in TrackMeter("0001+0002.000")..TrackMeter("0001+0003.000"))
+        assertTrue(
+            TrackMeter("0001+0003") in TrackMeter("0001+0002.000")..TrackMeter("0001+0003.000"))
 
         assertFalse(TrackMeter("0001+0001.999") in TrackMeter("0001+0002")..TrackMeter("0001+0003"))
         assertFalse(TrackMeter("0001+0003.001") in TrackMeter("0001+0002")..TrackMeter("0001+0003"))
-        assertFalse(TrackMeter("0001+0001.999") in TrackMeter("0001+0002.0")..TrackMeter("0001+0003.0"))
-        assertFalse(TrackMeter("0001+0003.001") in TrackMeter("0001+0002.0")..TrackMeter("0001+0003.0"))
+        assertFalse(
+            TrackMeter("0001+0001.999") in TrackMeter("0001+0002.0")..TrackMeter("0001+0003.0"))
+        assertFalse(
+            TrackMeter("0001+0003.001") in TrackMeter("0001+0002.0")..TrackMeter("0001+0003.0"))
     }
 
     @Test

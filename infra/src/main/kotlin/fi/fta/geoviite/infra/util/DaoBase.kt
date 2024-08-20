@@ -8,26 +8,29 @@ import fi.fta.geoviite.infra.logging.AccessType.VERSION_FETCH
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.FetchType.MULTI
 import fi.fta.geoviite.infra.util.FetchType.SINGLE
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import java.sql.ResultSet
 import java.time.Instant
 import kotlin.reflect.KClass
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 
 enum class FetchType {
-    SINGLE, MULTI
+    SINGLE,
+    MULTI
 }
 
-fun idOrIdsEqualSqlFragment(fetchType: FetchType) = when (fetchType) {
-    MULTI -> "in (:ids)"
-    SINGLE -> "= :id"
-}
+fun idOrIdsEqualSqlFragment(fetchType: FetchType) =
+    when (fetchType) {
+        MULTI -> "in (:ids)"
+        SINGLE -> "= :id"
+    }
 
-fun idOrIdsSqlFragment(fetchType: FetchType) = when (fetchType) {
-    MULTI -> "unnest (array[:ids])"
-    SINGLE -> "(values (:id))"
-}
+fun idOrIdsSqlFragment(fetchType: FetchType) =
+    when (fetchType) {
+        MULTI -> "unnest (array[:ids])"
+        SINGLE -> "(values (:id))"
+    }
 
 enum class LayoutAssetTable(val dbTable: DbTable, layoutContextFunction: String) {
     LAYOUT_ASSET_TRACK_NUMBER(DbTable.LAYOUT_TRACK_NUMBER, "track_number_in_layout_context"),
@@ -44,17 +47,14 @@ enum class LayoutAssetTable(val dbTable: DbTable, layoutContextFunction: String)
 
 enum class DbTable(schema: String, table: String, sortColumns: List<String> = listOf("id")) {
     COMMON_SWITCH_STRUCTURE("common", "switch_structure"),
-
     LAYOUT_ALIGNMENT("layout", "alignment"),
     LAYOUT_LOCATION_TRACK("layout", "location_track"),
     LAYOUT_REFERENCE_LINE("layout", "reference_line"),
     LAYOUT_SWITCH("layout", "switch"),
     LAYOUT_KM_POST("layout", "km_post", listOf("track_number_id", "km_number")),
     LAYOUT_TRACK_NUMBER("layout", "track_number"),
-
     LAYOUT_DESIGN("layout", "design"),
     OPERATING_POINT("layout", "operating_point"),
-
     GEOMETRY_PLAN("geometry", "plan"),
     GEOMETRY_PLAN_PROJECT("geometry", "plan_project"),
     GEOMETRY_PLAN_AUTHOR("geometry", "plan_author"),
@@ -62,25 +62,25 @@ enum class DbTable(schema: String, table: String, sortColumns: List<String> = li
     GEOMETRY_SWITCH("geometry", "switch"),
     GEOMETRY_KM_POST("geometry", "km_post", listOf("track_number_id", "km_number")),
     GEOMETRY_TRACK_NUMBER("geometry", "track_number"),
-
     PROJEKTIVELHO_DOCUMENT("projektivelho", "document"),
-
     PUBLICATION_SPLIT("publication", "split");
 
     val fullName: String = "$schema.$table"
     val versionTable = "$schema.${table}_version"
     val orderBy: String = sortColumns.joinToString(",")
 
-    //language=SQL
+    // language=SQL
     val changeTimeSql = "select max(change_time) change_time from $versionTable"
 
-    //language=SQL
-    val singleRowVersionSql = "select id, version from $fullName where id ${idOrIdsEqualSqlFragment(SINGLE)}"
+    // language=SQL
+    val singleRowVersionSql =
+        "select id, version from $fullName where id ${idOrIdsEqualSqlFragment(SINGLE)}"
 
-    //language=SQL
-    val multiRowVersionSql = "select id, version from $fullName where id ${idOrIdsEqualSqlFragment(MULTI)}"
+    // language=SQL
+    val multiRowVersionSql =
+        "select id, version from $fullName where id ${idOrIdsEqualSqlFragment(MULTI)}"
 
-    //language=SQL
+    // language=SQL
     val rowVersionsSql = "select id, version from $fullName order by $orderBy"
 }
 
@@ -89,8 +89,9 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
     protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     /**
-     * The template from DI is nullable so that we can configure to run without DB when needed (i.e. unit tests)
-     * For actual code, use this non-null variable. It will throw on first use if DB-initialization is not done.
+     * The template from DI is nullable so that we can configure to run without DB when needed (i.e.
+     * unit tests) For actual code, use this non-null variable. It will throw on first use if
+     * DB-initialization is not done.
      */
     protected val jdbcTemplate: NamedParameterJdbcTemplate by lazy {
         jdbcTemplateParam ?: throw IllegalStateException("Database connection not initialized")
@@ -101,12 +102,17 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
         return queryRowVersion(table.singleRowVersionSql, id)
     }
 
-    protected fun <T> fetchManyRowVersions(ids: List<IntId<T>>, table: DbTable): List<RowVersion<T>> {
-        logger.daoAccess(VERSION_FETCH, "fetchManyRowVersions", "id" to ids, "table" to table.fullName)
+    protected fun <T> fetchManyRowVersions(
+        ids: List<IntId<T>>,
+        table: DbTable
+    ): List<RowVersion<T>> {
+        logger.daoAccess(
+            VERSION_FETCH, "fetchManyRowVersions", "id" to ids, "table" to table.fullName)
         return if (ids.isEmpty()) {
             emptyList()
         } else {
-            jdbcTemplate.query(table.multiRowVersionSql, mapOf("ids" to ids.map { it.intValue }), ::toRowVersion)
+            jdbcTemplate.query(
+                table.multiRowVersionSql, mapOf("ids" to ids.map { it.intValue }), ::toRowVersion)
         }
     }
 
@@ -117,14 +123,17 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
 
     protected fun fetchLatestChangeTime(table: DbTable): Instant {
         return jdbcTemplate
-            .query(table.changeTimeSql, mapOf<String, Any>()) { rs, _ -> rs.getInstantOrNull("change_time") }
+            .query(table.changeTimeSql, mapOf<String, Any>()) { rs, _ ->
+                rs.getInstantOrNull("change_time")
+            }
             .firstOrNull() ?: Instant.EPOCH
     }
 
-    protected fun <T> createListString(items: List<T>, mapping: (t: T) -> Double?) = when {
-        items.none { i -> mapping(i) != null } -> null
-        else -> items.joinToString(",") { i -> mapping(i)?.let(Double::toString) ?: "null" }
-    }
+    protected fun <T> createListString(items: List<T>, mapping: (t: T) -> Double?) =
+        when {
+            items.none { i -> mapping(i) != null } -> null
+            else -> items.joinToString(",") { i -> mapping(i)?.let(Double::toString) ?: "null" }
+        }
 
     protected fun <T> queryRowVersion(sql: String, id: IntId<T>): RowVersion<T> =
         jdbcTemplate.queryOne(sql, mapOf("id" to id.intValue), id.toString(), ::toRowVersion)
@@ -132,9 +141,11 @@ open class DaoBase(private val jdbcTemplateParam: NamedParameterJdbcTemplate?) {
     protected fun <T> queryRowVersionOrNull(sql: String, id: IntId<T>): RowVersion<T>? =
         jdbcTemplate.queryOptional(sql, mapOf("id" to id.intValue), ::toRowVersionOrNull)
 
-    protected fun <T> toRowVersion(rs: ResultSet, index: Int): RowVersion<T> = rs.getRowVersion("id", "version")
+    protected fun <T> toRowVersion(rs: ResultSet, index: Int): RowVersion<T> =
+        rs.getRowVersion("id", "version")
 
-    protected fun <T> toRowVersionOrNull(rs: ResultSet, index: Int): RowVersion<T> = rs.getRowVersion("id", "version")
+    protected fun <T> toRowVersionOrNull(rs: ResultSet, index: Int): RowVersion<T> =
+        rs.getRowVersion("id", "version")
 }
 
 inline fun <reified T, reified S> getOne(id: DomainId<T>, result: List<S>) =

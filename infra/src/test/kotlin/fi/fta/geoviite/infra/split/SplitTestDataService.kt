@@ -22,9 +22,9 @@ import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.segmentsFromSwitchStructure
 import fi.fta.geoviite.infra.tracklayout.switchFromDbStructure
+import kotlin.test.assertEquals
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import kotlin.test.assertEquals
 
 data class SwitchAndSegments(
     val switch: LayoutDaoResponse<TrackLayoutSwitch>,
@@ -33,7 +33,9 @@ data class SwitchAndSegments(
 )
 
 @Service
-class SplitTestDataService @Autowired constructor(
+class SplitTestDataService
+@Autowired
+constructor(
     private val switchStructureDao: SwitchStructureDao,
     private val locationTrackService: LocationTrackService,
     private val splitDao: SplitDao,
@@ -41,7 +43,8 @@ class SplitTestDataService @Autowired constructor(
 ) : DBTestBase() {
 
     fun clearSplits() {
-        val sql = """
+        val sql =
+            """
         truncate publication.split cascade;
         truncate publication.split_version cascade;
         truncate publication.split_relinked_switch cascade;
@@ -50,22 +53,25 @@ class SplitTestDataService @Autowired constructor(
         truncate publication.split_target_location_track_version cascade;
         truncate publication.split_updated_duplicate cascade;
         truncate publication.split_updated_duplicate_version cascade;
-    """.trimIndent()
+    """
+                .trimIndent()
         jdbc.execute(sql) { it.execute() }
     }
 
     fun insertSplit(
-        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
+        trackNumberId: IntId<TrackLayoutTrackNumber> =
+            mainOfficialContext.createLayoutTrackNumber().id,
     ): IntId<Split> {
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
-        val sourceTrack = mainDraftContext.insert(
-            locationTrack(
-                trackNumberId = trackNumberId,
-                state = LocationTrackState.DELETED,
-            ),
-            alignment,
-        )
+        val sourceTrack =
+            mainDraftContext.insert(
+                locationTrack(
+                    trackNumberId = trackNumberId,
+                    state = LocationTrackState.DELETED,
+                ),
+                alignment,
+            )
         val targetTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
 
         return splitDao.saveSplit(
@@ -81,22 +87,28 @@ class SplitTestDataService @Autowired constructor(
         structure: SwitchStructure = getYvStructure(),
         externalId: Oid<TrackLayoutSwitch>? = null,
     ): SwitchAndSegments {
-        val switchInsertResponse = mainOfficialContext.insert(
-            switchFromDbStructure(
-                testDBService.getUnusedSwitchName().toString(),
-                startPoint,
-                structure,
-                externalId = externalId?.toString(),
-            )
-        )
+        val switchInsertResponse =
+            mainOfficialContext.insert(
+                switchFromDbStructure(
+                    testDBService.getUnusedSwitchName().toString(),
+                    startPoint,
+                    structure,
+                    externalId = externalId?.toString(),
+                ))
         return SwitchAndSegments(
             switchInsertResponse,
-            segmentsFromSwitchStructure(startPoint, switchInsertResponse.id, structure, listOf(1, 5, 2)),
-            segmentsFromSwitchStructure(startPoint, switchInsertResponse.id, structure, listOf(1, 3)),
+            segmentsFromSwitchStructure(
+                startPoint, switchInsertResponse.id, structure, listOf(1, 5, 2)),
+            segmentsFromSwitchStructure(
+                startPoint, switchInsertResponse.id, structure, listOf(1, 3)),
         )
     }
 
-    fun createSegments(startPoint: IPoint, count: Int = 3, pointOffset: Double = 10.0): List<LayoutSegment> {
+    fun createSegments(
+        startPoint: IPoint,
+        count: Int = 3,
+        pointOffset: Double = 10.0
+    ): List<LayoutSegment> {
         return (0..<count).map { idx ->
             val start = startPoint + Point(idx * pointOffset, 0.0)
             val end = start + Point(pointOffset, 0.0)
@@ -107,18 +119,22 @@ class SplitTestDataService @Autowired constructor(
     fun insertAsTrack(
         segments: List<LayoutSegment>,
         duplicateOf: IntId<LocationTrack>? = null,
-        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
+        trackNumberId: IntId<TrackLayoutTrackNumber> =
+            mainOfficialContext.createLayoutTrackNumber().id,
     ): IntId<LocationTrack> {
         val alignment = alignment(segments)
-        return mainOfficialContext.insert(
-            locationTrack(trackNumberId = trackNumberId, duplicateOf = duplicateOf),
-            alignment,
-        ).id
+        return mainOfficialContext
+            .insert(
+                locationTrack(trackNumberId = trackNumberId, duplicateOf = duplicateOf),
+                alignment,
+            )
+            .id
     }
 
     fun createAsMainTrack(
         segments: List<LayoutSegment>,
-        trackNumberId: IntId<TrackLayoutTrackNumber> = mainOfficialContext.createLayoutTrackNumber().id,
+        trackNumberId: IntId<TrackLayoutTrackNumber> =
+            mainOfficialContext.createLayoutTrackNumber().id,
     ): LayoutDaoResponse<LocationTrack> {
         val alignment = alignment(segments)
         mainOfficialContext.insert(referenceLine(trackNumberId), alignment)
@@ -132,17 +148,19 @@ class SplitTestDataService @Autowired constructor(
     }
 
     fun getYvStructure(): SwitchStructure =
-        requireNotNull(switchStructureDao.fetchSwitchStructures().find { s -> s.type.typeName == "YV60-300-1:9-O" })
+        requireNotNull(
+            switchStructureDao.fetchSwitchStructures().find { s ->
+                s.type.typeName == "YV60-300-1:9-O"
+            })
 
     fun forcefullyFinishAllCurrentlyUnfinishedSplits(branch: LayoutBranch) {
         assertMainBranch(branch)
 
-        splitService.findUnfinishedSplits(branch)
-            .forEach { split ->
-                splitService.updateSplit(
-                    splitId = split.id,
-                    bulkTransferState = BulkTransferState.DONE,
-                )
-            }
+        splitService.findUnfinishedSplits(branch).forEach { split ->
+            splitService.updateSplit(
+                splitId = split.id,
+                bulkTransferState = BulkTransferState.DONE,
+            )
+        }
     }
 }

@@ -30,7 +30,9 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 
 @GeoviiteController("/linking")
-class LinkingController @Autowired constructor(
+class LinkingController
+@Autowired
+constructor(
     private val linkingService: LinkingService,
     private val switchLinkingService: SwitchLinkingService,
 ) {
@@ -119,7 +121,8 @@ class LinkingController @Autowired constructor(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestParam("id") locationTrackId: IntId<LocationTrack>,
         @RequestParam("location") location: Point,
-        @RequestParam("locationTrackPointUpdateType") locationTrackPointUpdateType: LocationTrackPointUpdateType,
+        @RequestParam("locationTrackPointUpdateType")
+        locationTrackPointUpdateType: LocationTrackPointUpdateType,
         @RequestParam("bbox") bbox: BoundingBox,
     ): List<LocationTrack> {
         return linkingService.getSuggestedAlignments(

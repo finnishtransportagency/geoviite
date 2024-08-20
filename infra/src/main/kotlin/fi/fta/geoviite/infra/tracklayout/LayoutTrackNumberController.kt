@@ -21,6 +21,9 @@ import fi.fta.geoviite.infra.publication.ValidatedAsset
 import fi.fta.geoviite.infra.publication.getCsvResponseEntity
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.toResponse
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -30,9 +33,6 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 @GeoviiteController("/track-layout/track-numbers")
 class LayoutTrackNumberController(
@@ -141,19 +141,21 @@ class LayoutTrackNumberController(
     ): ResponseEntity<ByteArray> {
         val context = LayoutContext.of(branch, publicationState)
 
-        val csv = trackNumberService.getKmLengthsAsCsv(
-            layoutContext = context,
-            trackNumberId = id,
-            startKmNumber = startKmNumber,
-            endKmNumber = endKmNumber,
-            precision = precision,
-            lang = lang,
-        )
+        val csv =
+            trackNumberService.getKmLengthsAsCsv(
+                layoutContext = context,
+                trackNumberId = id,
+                startKmNumber = startKmNumber,
+                endKmNumber = endKmNumber,
+                precision = precision,
+                lang = lang,
+            )
 
         val trackNumber = trackNumberService.getOrThrow(context, id)
 
         val fileName =
-            FileName("ratakilometrien-pituudet_${trackNumber.number}${kmLengthsPrecisionSuffix(precision)}.csv")
+            FileName(
+                "ratakilometrien-pituudet_${trackNumber.number}${kmLengthsPrecisionSuffix(precision)}.csv")
         return getCsvResponseEntity(csv, fileName)
     }
 
@@ -166,17 +168,21 @@ class LayoutTrackNumberController(
     ): ResponseEntity<ByteArray> {
         val layoutContext = LayoutContext.of(branch, publicationState)
 
-        val csv = trackNumberService.getAllKmLengthsAsCsv(
-            layoutContext = layoutContext,
-            trackNumberIds = trackNumberService.list(layoutContext).map { tn -> tn.id as IntId },
-            lang = lang,
-        )
+        val csv =
+            trackNumberService.getAllKmLengthsAsCsv(
+                layoutContext = layoutContext,
+                trackNumberIds =
+                    trackNumberService.list(layoutContext).map { tn -> tn.id as IntId },
+                lang = lang,
+            )
 
         val localization = localizationService.getLocalization(lang)
-        val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
+        val dateFormatter =
+            DateTimeFormatter.ofPattern("dd.MM.yyyy").withZone(ZoneId.of("Europe/Helsinki"))
 
         val fileDescription =
-            localization.t("data-products.km-lengths.entire-rail-network-km-lengths-file-name-without-date")
+            localization.t(
+                "data-products.km-lengths.entire-rail-network-km-lengths-file-name-without-date")
         val fileDate = dateFormatter.format(Instant.now())
 
         return getCsvResponseEntity(csv, FileName("$fileDescription $fileDate.csv"))
@@ -194,7 +200,8 @@ class LayoutTrackNumberController(
     }
 }
 
-private fun kmLengthsPrecisionSuffix(precision: KmLengthsLocationPrecision): String = when (precision) {
-    KmLengthsLocationPrecision.PRECISE_LOCATION -> ""
-    KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT -> "-paikannuspohjan-tarkkuus"
-}
+private fun kmLengthsPrecisionSuffix(precision: KmLengthsLocationPrecision): String =
+    when (precision) {
+        KmLengthsLocationPrecision.PRECISE_LOCATION -> ""
+        KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT -> "-paikannuspohjan-tarkkuus"
+    }

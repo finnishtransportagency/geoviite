@@ -20,16 +20,16 @@ class LayoutAlignmentService(
     fun saveAsNew(alignment: LayoutAlignment): RowVersion<LayoutAlignment> = save(asNew(alignment))
 
     @Transactional
-    fun duplicateOrNew(alignmentVersion: RowVersion<LayoutAlignment>?): RowVersion<LayoutAlignment> =
-        alignmentVersion?.let(::duplicate) ?: newEmpty().second
+    fun duplicateOrNew(
+        alignmentVersion: RowVersion<LayoutAlignment>?
+    ): RowVersion<LayoutAlignment> = alignmentVersion?.let(::duplicate) ?: newEmpty().second
 
     @Transactional
     fun duplicate(alignmentVersion: RowVersion<LayoutAlignment>): RowVersion<LayoutAlignment> =
         save(asNew(dao.fetch(alignmentVersion)))
 
     fun save(alignment: LayoutAlignment): RowVersion<LayoutAlignment> =
-        if (alignment.dataType == DataType.STORED) dao.update(alignment)
-        else dao.insert(alignment)
+        if (alignment.dataType == DataType.STORED) dao.update(alignment) else dao.insert(alignment)
 
     fun newEmpty(): Pair<LayoutAlignment, RowVersion<LayoutAlignment>> {
         val alignment = emptyAlignment()
@@ -42,7 +42,8 @@ class LayoutAlignmentService(
         boundingBox: BoundingBox?,
         context: GeocodingContext,
     ): List<AlignmentPlanSection> {
-        val sections = dao.fetchSegmentGeometriesAndPlanMetadata(alignmentVersion, externalId, boundingBox)
+        val sections =
+            dao.fetchSegmentGeometriesAndPlanMetadata(alignmentVersion, externalId, boundingBox)
         val alignment = dao.fetch(alignmentVersion)
         return sections.mapNotNull { section ->
             val start = section.startPoint?.let { p -> toPlanSectionPoint(p, alignment, context) }
@@ -66,17 +67,20 @@ class LayoutAlignmentService(
     }
 }
 
-private fun toPlanSectionPoint(point: IPoint, alignment: LayoutAlignment, context: GeocodingContext) =
+private fun toPlanSectionPoint(
+    point: IPoint,
+    alignment: LayoutAlignment,
+    context: GeocodingContext
+) =
     context.getAddress(point)?.let { (address, _) ->
         PlanSectionPoint(
             address = address,
             location = point,
-            m = alignment.getClosestPointM(point)?.first ?: throw IllegalArgumentException(
-                "Could not find closest point for $point"
-            ),
+            m =
+                alignment.getClosestPointM(point)?.first
+                    ?: throw IllegalArgumentException("Could not find closest point for $point"),
         )
     }
 
 private fun asNew(alignment: LayoutAlignment): LayoutAlignment =
-    if (alignment.dataType == TEMP) alignment
-    else alignment.copy(id = StringId(), dataType = TEMP)
+    if (alignment.dataType == TEMP) alignment else alignment.copy(id = StringId(), dataType = TEMP)

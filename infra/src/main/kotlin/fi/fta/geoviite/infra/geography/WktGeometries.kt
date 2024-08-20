@@ -17,12 +17,14 @@ private const val POLYGON_TYPE_2D = "POLYGON"
 
 fun parse2DPoint(point: String): Point = parse2DPointValues(dropWktType(point, POINT_TYPE_2D))
 
-fun parse2DLineString(lineString: String): List<Point> = split2DPointValues(dropWktType(lineString, LINESTRING_TYPE_2D))
+fun parse2DLineString(lineString: String): List<Point> =
+    split2DPointValues(dropWktType(lineString, LINESTRING_TYPE_2D))
 
 fun parse3DMLineString(lineString: String): List<Point3DM> =
     get3DMLineStringContent(lineString).map { s -> parse3DMPointValue(s) }
 
-fun parse2DPolygon(polygon: String): List<Point> = split2DPointValues(dropWktType(polygon, POLYGON_TYPE_2D, 2))
+fun parse2DPolygon(polygon: String): List<Point> =
+    split2DPointValues(dropWktType(polygon, POLYGON_TYPE_2D, 2))
 
 fun create2DPoint(coordinate: IPoint): String {
     val content = point2DToString(coordinate)
@@ -44,7 +46,8 @@ fun create2DPolygonString(coordinates: List<IPoint>): String {
     return "$POLYGON_TYPE_2D${addParenthesis(content, 2)}"
 }
 
-private fun point2DToString(coordinate: IPoint): String = "${coordinate.x}$COORDINATE_SEPARATOR${coordinate.y}"
+private fun point2DToString(coordinate: IPoint): String =
+    "${coordinate.x}$COORDINATE_SEPARATOR${coordinate.y}"
 
 private fun point3DMToString(coordinate: IPoint3DM): String =
     "${coordinate.x}$COORDINATE_SEPARATOR${coordinate.y}$COORDINATE_SEPARATOR${coordinate.m}"
@@ -56,12 +59,13 @@ fun split2DPointValues(valuesString: String): List<Point> {
 fun get3DMLineStringContent(string: String): List<String> =
     split3DMPointValues(dropWktType(string, LINESTRING_TYPE_3DM))
 
-fun split3DMPointValues(valuesString: String): List<String> = try {
-    valuesString.split(POINT_SEPARATOR)
-} catch (e: NumberFormatException) {
-    logger.error("tried=$valuesString")
-    throw e
-}
+fun split3DMPointValues(valuesString: String): List<String> =
+    try {
+        valuesString.split(POINT_SEPARATOR)
+    } catch (e: NumberFormatException) {
+        logger.error("tried=$valuesString")
+        throw e
+    }
 
 fun parse2DPointValues(pointString: String): Point {
     val values = splitPointValues(pointString, 2)
@@ -73,10 +77,13 @@ fun parse3DMPointValue(pointString: String): Point3DM {
     return Point3DM(values[0], values[1], values[2])
 }
 
-fun splitPointValues(pointString: String, count: Int): List<Double> = pointString
-    .split(COORDINATE_SEPARATOR)
-    .also { values -> require(values.size == count) { "Invalid point value count: ${values.size} <> $count" } }
-    .map(String::toDouble)
+fun splitPointValues(pointString: String, count: Int): List<Double> =
+    pointString
+        .split(COORDINATE_SEPARATOR)
+        .also { values ->
+            require(values.size == count) { "Invalid point value count: ${values.size} <> $count" }
+        }
+        .map(String::toDouble)
 
 fun parseSegmentPoint(pointString: String, zValue: Double?, cantValue: Double?): SegmentPoint {
     val values = splitPointValues(pointString, 3)
@@ -91,7 +98,9 @@ fun parseSegmentPoint(pointString: String, zValue: Double?, cantValue: Double?):
 
 private fun dropWktType(wkt: String, typeString: String, parenthesis: Int = 1): String {
     val actualTypeString = wkt.substringBefore("(")
-    require(typeString == actualTypeString.trim()) { "WKT type does not match: expected=$typeString actual=$actualTypeString" }
+    require(typeString == actualTypeString.trim()) {
+        "WKT type does not match: expected=$typeString actual=$actualTypeString"
+    }
     return wkt.substring(actualTypeString.length + parenthesis, wkt.length - parenthesis)
 }
 

@@ -36,7 +36,8 @@ class GeocodingController(
         @RequestParam("coordinate") coordinate: Point,
     ): ResponseEntity<TrackMeter> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        return toResponse(geocodingService.getAddressIfWithin(layoutContext, trackNumberId, coordinate))
+        return toResponse(
+            geocodingService.getAddressIfWithin(layoutContext, trackNumberId, coordinate))
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)
@@ -48,7 +49,8 @@ class GeocodingController(
         @RequestParam("address") address: TrackMeter,
     ): ResponseEntity<AddressPoint> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        return toResponse(locationTrackService.getTrackPoint(layoutContext, locationTrackId, address))
+        return toResponse(
+            locationTrackService.getTrackPoint(layoutContext, locationTrackId, address))
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)

@@ -4,13 +4,13 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.HttpsUrl
+import java.time.Instant
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test", "nodb")
 @SpringBootTest
@@ -23,7 +23,8 @@ class PVApiSerializationTest @Autowired constructor(val mapper: ObjectMapper) {
         val searchId = PVId("asdf123")
         val startTime = Instant.now()
         val validFor = 123456L
-        val json = """{"tila":"$state","hakutunniste":"$searchId","alkuaika":"$startTime","hakutunniste-voimassa":$validFor}"""
+        val json =
+            """{"tila":"$state","hakutunniste":"$searchId","alkuaika":"$startTime","hakutunniste-voimassa":$validFor}"""
         val data = PVApiSearchStatus(state, searchId, startTime, validFor)
 
         assertEquals(json, toJson(data))
@@ -40,16 +41,17 @@ class PVApiSerializationTest @Autowired constructor(val mapper: ObjectMapper) {
         val technicalFields = listOf<PVDictionaryCode>()
         val containsPersonalInfo = null
 
-        val json = """{"tila":"$materialState","kuvaus":"$description","laji":"$materialCategory","dokumenttityyppi":"$documentType","ryhma":"$materialGroup","tekniikka-alat":[],"sisaltaa-henkilotietoja":null}"""
-        val data = PVApiDocumentMetadata(
-            materialState,
-            description,
-            materialCategory,
-            documentType,
-            materialGroup,
-            technicalFields,
-            containsPersonalInfo
-        )
+        val json =
+            """{"tila":"$materialState","kuvaus":"$description","laji":"$materialCategory","dokumenttityyppi":"$documentType","ryhma":"$materialGroup","tekniikka-alat":[],"sisaltaa-henkilotietoja":null}"""
+        val data =
+            PVApiDocumentMetadata(
+                materialState,
+                description,
+                materialCategory,
+                documentType,
+                materialGroup,
+                technicalFields,
+                containsPersonalInfo)
 
         assertEquals(json, toJson(data))
         assertEquals(data, toObject<PVApiDocumentMetadata>(json))
@@ -60,7 +62,8 @@ class PVApiSerializationTest @Autowired constructor(val mapper: ObjectMapper) {
         val masterSystem = PVMasterSystem("someservice")
         val targetCategory = PVTargetCategory("somenamespace/somecategory")
         val targetUrl = HttpsUrl("https://some.url.org:1234/some-path?query=test&other=other")
-        val json = """{"master-jarjestelma":"$masterSystem","kohdeluokka":"$targetCategory","kohde-url":"$targetUrl"}"""
+        val json =
+            """{"master-jarjestelma":"$masterSystem","kohdeluokka":"$targetCategory","kohde-url":"$targetUrl"}"""
         val data = PVApiRedirect(masterSystem, targetCategory, targetUrl)
 
         assertEquals(json, toJson(data))
@@ -68,5 +71,6 @@ class PVApiSerializationTest @Autowired constructor(val mapper: ObjectMapper) {
     }
 
     private fun toJson(value: Any): String = mapper.writeValueAsString(value)
+
     private inline fun <reified T> toObject(value: String): T = mapper.readValue<T>(value)
 }

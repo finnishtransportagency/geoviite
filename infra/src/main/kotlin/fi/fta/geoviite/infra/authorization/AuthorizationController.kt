@@ -5,8 +5,8 @@ import fi.fta.geoviite.infra.cloudfront.CloudFrontCookies
 import fi.fta.geoviite.infra.cloudfront.CookieSigner
 import fi.fta.geoviite.infra.error.ApiUnauthorizedException
 import fi.fta.geoviite.infra.util.Code
-import jakarta.servlet.http.HttpServletResponse
 import jakarta.servlet.http.Cookie
+import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -30,11 +30,12 @@ class AuthorizationController @Autowired constructor(private val signer: CookieS
         @RequestParam("code") code: Code,
         response: HttpServletResponse,
     ): Code {
-        val roleCookie = Cookie(DESIRED_ROLE_COOKIE_NAME, code.toString()).apply {
-            path = "/"
-            isHttpOnly = true
-            secure = true
-        }
+        val roleCookie =
+            Cookie(DESIRED_ROLE_COOKIE_NAME, code.toString()).apply {
+                path = "/"
+                isHttpOnly = true
+                secure = true
+            }
 
         response.addCookie(roleCookie)
         return code
@@ -42,7 +43,9 @@ class AuthorizationController @Autowired constructor(private val signer: CookieS
 
     @PreAuthorize(AUTH_BASIC)
     @GetMapping("/cf-cookies")
-    fun getCloudFrontCookies(@RequestParam("redirect") redirectPath: String = ""): ResponseEntity<CloudFrontCookies> {
+    fun getCloudFrontCookies(
+        @RequestParam("redirect") redirectPath: String = ""
+    ): ResponseEntity<CloudFrontCookies> {
         val cloudFrontCookies = signer.createSignedCustomCookies()
         val httpHeaders = HttpHeaders()
 
@@ -53,10 +56,7 @@ class AuthorizationController @Autowired constructor(private val signer: CookieS
         httpHeaders.add("Set-Cookie", cloudFrontCookies.keyPairId)
         httpHeaders.add("Location", "https://${cloudFrontCookies.domain}/$trimmedRedirectPath")
 
-        return ResponseEntity
-            .status(HttpStatus.FOUND)
-            .headers(httpHeaders)
-            .body(cloudFrontCookies)
+        return ResponseEntity.status(HttpStatus.FOUND).headers(httpHeaders).body(cloudFrontCookies)
     }
 
     @PreAuthorize(AUTH_BASIC)

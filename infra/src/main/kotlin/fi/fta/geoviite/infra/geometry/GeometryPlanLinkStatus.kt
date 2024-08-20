@@ -18,8 +18,10 @@ data class GeometryAlignmentLinkStatus(
     val elements: List<GeometryElementLinkStatus>,
 ) {
     val isLinked = elements.any(GeometryElementLinkStatus::isLinked)
-    val linkedLocationTrackIds = elements.flatMap(GeometryElementLinkStatus::linkedLocationTrackIds).distinct()
-    val linkedReferenceLineIds = elements.flatMap(GeometryElementLinkStatus::linkedReferenceLineIds).distinct()
+    val linkedLocationTrackIds =
+        elements.flatMap(GeometryElementLinkStatus::linkedLocationTrackIds).distinct()
+    val linkedReferenceLineIds =
+        elements.flatMap(GeometryElementLinkStatus::linkedReferenceLineIds).distinct()
 }
 
 data class GeometryElementLinkStatus(

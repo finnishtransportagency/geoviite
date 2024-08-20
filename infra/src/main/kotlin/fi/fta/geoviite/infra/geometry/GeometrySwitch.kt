@@ -24,16 +24,19 @@ data class GeometrySwitch(
     fun getJoint(number: JointNumber): GeometrySwitchJoint? =
         joints.find { j -> j.number == number }
 
-    override fun toLog(): String = logFormat("id" to id, "name" to name, "joints" to joints.map { j -> j.number.intValue })
+    override fun toLog(): String =
+        logFormat("id" to id, "name" to name, "joints" to joints.map { j -> j.number.intValue })
 }
 
-data class GeometrySwitchJoint(override val number: JointNumber, override val location: Point) : ISwitchJoint
+data class GeometrySwitchJoint(override val number: JointNumber, override val location: Point) :
+    ISwitchJoint
 
 private val geometrySwitchTypeNameLength = 0..30
 private val geometrySwitchTypeNameRegex = Regex("^[A-Za-z0-9:\\-/(),.]*\$")
 
-data class GeometrySwitchTypeName @JsonCreator(mode = DELEGATING) constructor(private val value: String)
-    : Comparable<GeometrySwitchTypeName>, CharSequence by value {
+data class GeometrySwitchTypeName
+@JsonCreator(mode = DELEGATING)
+constructor(private val value: String) : Comparable<GeometrySwitchTypeName>, CharSequence by value {
     init {
         assertSanitized<GeometrySwitchTypeName>(
             value,
@@ -43,7 +46,7 @@ data class GeometrySwitchTypeName @JsonCreator(mode = DELEGATING) constructor(pr
         )
     }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: GeometrySwitchTypeName): Int = value.compareTo(other.value)
 }

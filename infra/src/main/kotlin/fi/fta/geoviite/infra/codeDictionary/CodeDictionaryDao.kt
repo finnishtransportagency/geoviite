@@ -13,18 +13,19 @@ import org.springframework.transaction.annotation.Transactional
 
 @Transactional(readOnly = true)
 @Component
-class CodeDictionaryDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+class CodeDictionaryDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
+    DaoBase(jdbcTemplateParam) {
 
     @Cacheable(CACHE_FEATURE_TYPES, sync = true)
     fun getFeatureTypes(): List<FeatureType> {
         val sql = "select code, description from common.feature_type"
         val params = emptyMap<String, Int>()
-        val result = jdbcTemplate.query(sql, params) { rs, _ ->
-            FeatureType(
-                code = rs.getFeatureTypeCode("code"),
-                description = rs.getFreeText("description")
-            )
-        }
+        val result =
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                FeatureType(
+                    code = rs.getFeatureTypeCode("code"),
+                    description = rs.getFreeText("description"))
+            }
         logger.daoAccess(FETCH, FeatureType::class, result.map { r -> r.code })
         return result
     }

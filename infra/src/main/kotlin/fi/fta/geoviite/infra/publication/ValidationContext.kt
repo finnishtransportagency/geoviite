@@ -32,7 +32,8 @@ import java.util.concurrent.ConcurrentHashMap
 class NullableCache<K, V> {
     val map: ConcurrentHashMap<K, NullableValue<V>> = ConcurrentHashMap()
 
-    fun get(key: K, getter: (K) -> V?): V? = map.computeIfAbsent(key) { k -> NullableValue(getter(k)) }.value
+    fun get(key: K, getter: (K) -> V?): V? =
+        map.computeIfAbsent(key) { k -> NullableValue(getter(k)) }.value
 
     fun preload(keys: List<K>, getter: (List<K>) -> Map<K, V?>) {
         val missingKeys = keys.filterNot(map::containsKey)
@@ -42,7 +43,8 @@ class NullableCache<K, V> {
         putAll(preloaded + notFound.associateWith { null })
     }
 
-    fun putAll(values: Map<K, V?>): Unit = map.putAll(values.mapValues { (_, v) -> NullableValue(v) })
+    fun putAll(values: Map<K, V?>): Unit =
+        map.putAll(values.mapValues { (_, v) -> NullableValue(v) })
 
     fun contains(key: K): Boolean = map.containsKey(key)
 
@@ -62,11 +64,13 @@ class NameCache<Field, T : LayoutAsset<T>>(val fetch: (List<Field>) -> Map<Field
 }
 
 typealias RowVersionCache<T> = NullableCache<IntId<T>, LayoutRowVersion<T>>
+
 typealias ReferenceCache<To, From> = NullableCache<IntId<To>, List<IntId<From>>>
 
 /**
- * Validation context provides a layout world-view that combines the drafts of a publication set (selected drafts) to
- * the baseline of official layout. Each object only has one version that can exist in this context:
+ * Validation context provides a layout world-view that combines the drafts of a publication set
+ * (selected drafts) to the baseline of official layout. Each object only has one version that can
+ * exist in this context:
  *
  * In addition, it caches the validation data for quicker access.
  */
@@ -96,12 +100,15 @@ class ValidationContext(
     private val switchTrackLinks = ReferenceCache<TrackLayoutSwitch, LocationTrack>()
     private val trackDuplicateLinks = ReferenceCache<LocationTrack, LocationTrack>()
 
-    private val geocodingContextKeys = NullableCache<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey>()
+    private val geocodingContextKeys =
+        NullableCache<IntId<TrackLayoutTrackNumber>, GeocodingContextCacheKey>()
     private val switchNameCache = NameCache(::fetchSwitchesByName)
     private val trackNameCache = NameCache(::fetchLocationTracksByName)
     private val trackNumberNumberCache = NameCache(::fetchTrackNumbersByNumber)
 
-    private val allUnfinishedSplits: List<Split> by lazy { splitService.findUnfinishedSplits(branch) }
+    private val allUnfinishedSplits: List<Split> by lazy {
+        splitService.findUnfinishedSplits(branch)
+    }
 
     fun getTrackNumber(id: IntId<TrackLayoutTrackNumber>): TrackLayoutTrackNumber? =
         getObject(branch, id, publicationSet.trackNumbers, trackNumberDao, trackNumberVersionCache)
@@ -110,17 +117,26 @@ class ValidationContext(
         trackNumberNumberCache.get(number).mapNotNull(::getTrackNumber)
 
     fun getReferenceLine(id: IntId<ReferenceLine>): ReferenceLine? =
-        getObject(branch, id, publicationSet.referenceLines, referenceLineDao, referenceLineVersionCache)
+        getObject(
+            branch, id, publicationSet.referenceLines, referenceLineDao, referenceLineVersionCache)
 
-    fun getReferenceLineWithAlignment(id: IntId<ReferenceLine>): Pair<ReferenceLine, LayoutAlignment>? =
-        getObject(branch, id, publicationSet.referenceLines, referenceLineDao, referenceLineVersionCache)
+    fun getReferenceLineWithAlignment(
+        id: IntId<ReferenceLine>
+    ): Pair<ReferenceLine, LayoutAlignment>? =
+        getObject(
+                branch,
+                id,
+                publicationSet.referenceLines,
+                referenceLineDao,
+                referenceLineVersionCache)
             ?.let { rl -> rl to alignmentDao.fetch(rl.getAlignmentVersionOrThrow()) }
 
     fun getKmPost(id: IntId<TrackLayoutKmPost>): TrackLayoutKmPost? =
         getObject(branch, id, publicationSet.kmPosts, kmPostDao, kmPostVersionCache)
 
     fun getLocationTrack(id: IntId<LocationTrack>): LocationTrack? =
-        getObject(branch, id, publicationSet.locationTracks, locationTrackDao, locationTrackVersionCache)
+        getObject(
+            branch, id, publicationSet.locationTracks, locationTrackDao, locationTrackVersionCache)
 
     fun getLocationTracksByName(name: AlignmentName): List<LocationTrack> =
         trackNameCache.get(name).mapNotNull(::getLocationTrack)
@@ -131,8 +147,12 @@ class ValidationContext(
     fun getDuplicateTracks(id: IntId<LocationTrack>): List<LocationTrack> =
         (getDuplicateTrackIds(id) ?: emptyList()).mapNotNull(::getLocationTrack)
 
-    fun getLocationTrackWithAlignment(id: IntId<LocationTrack>): Pair<LocationTrack, LayoutAlignment>? =
-        getLocationTrack(id)?.let { track -> track to track.getAlignmentVersionOrThrow().let(alignmentDao::fetch) }
+    fun getLocationTrackWithAlignment(
+        id: IntId<LocationTrack>
+    ): Pair<LocationTrack, LayoutAlignment>? =
+        getLocationTrack(id)?.let { track ->
+            track to track.getAlignmentVersionOrThrow().let(alignmentDao::fetch)
+        }
 
     fun getSwitch(id: IntId<TrackLayoutSwitch>): TrackLayoutSwitch? =
         getObject(branch, id, publicationSet.switches, switchDao, switchVersionCache)
@@ -140,18 +160,24 @@ class ValidationContext(
     fun getSwitchesByName(name: SwitchName): List<TrackLayoutSwitch> =
         switchNameCache.get(name).mapNotNull(::getSwitch)
 
-    fun getReferenceLineByTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): ReferenceLine? =
-        getReferenceLineIdByTrackNumber(trackNumberId)?.let(::getReferenceLine)
+    fun getReferenceLineByTrackNumber(
+        trackNumberId: IntId<TrackLayoutTrackNumber>
+    ): ReferenceLine? = getReferenceLineIdByTrackNumber(trackNumberId)?.let(::getReferenceLine)
 
-    fun getReferenceLineIdByTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): IntId<ReferenceLine>? =
-        getTrackNumber(trackNumberId)?.referenceLineId
+    fun getReferenceLineIdByTrackNumber(
+        trackNumberId: IntId<TrackLayoutTrackNumber>
+    ): IntId<ReferenceLine>? = getTrackNumber(trackNumberId)?.referenceLineId
 
-    fun getKmPostsByTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): List<TrackLayoutKmPost> =
+    fun getKmPostsByTrackNumber(
+        trackNumberId: IntId<TrackLayoutTrackNumber>
+    ): List<TrackLayoutKmPost> =
         trackNumberKmPosts
             .get(trackNumberId) { id -> fetchKmPostIdsByTrackNumbers(listOf(id))[id] }
             ?.mapNotNull(::getKmPost) ?: emptyList()
 
-    fun getLocationTracksByTrackNumber(trackNumberId: IntId<TrackLayoutTrackNumber>): List<LocationTrack> =
+    fun getLocationTracksByTrackNumber(
+        trackNumberId: IntId<TrackLayoutTrackNumber>
+    ): List<LocationTrack> =
         trackNumberLocationTracks
             .get(trackNumberId) { id -> fetchLocationTrackIdsByTrackNumbers(listOf(id))[id] }
             ?.mapNotNull(::getLocationTrack) ?: emptyList()
@@ -159,51 +185,61 @@ class ValidationContext(
     fun getSwitchTrackLinks(switchId: IntId<TrackLayoutSwitch>): List<IntId<LocationTrack>>? =
         switchTrackLinks.get(switchId) { id -> fetchSwitchTrackLinks(listOf(id))[id] }
 
-    fun getSwitchTracksWithAlignments(id: IntId<TrackLayoutSwitch>): List<Pair<LocationTrack, LayoutAlignment>> =
+    fun getSwitchTracksWithAlignments(
+        id: IntId<TrackLayoutSwitch>
+    ): List<Pair<LocationTrack, LayoutAlignment>> =
         getSwitchTrackLinks(id)?.mapNotNull(::getLocationTrackWithAlignment) ?: emptyList()
 
-    fun getPotentiallyAffectedSwitchIds(trackId: IntId<LocationTrack>): List<IntId<TrackLayoutSwitch>> {
+    fun getPotentiallyAffectedSwitchIds(
+        trackId: IntId<LocationTrack>
+    ): List<IntId<TrackLayoutSwitch>> {
         val track = getLocationTrack(trackId)
         val draftLinks = track?.switchIds ?: emptyList()
-        val officialLinks = if (track == null || track.isDraft) {
-            locationTrackVersionCache
-                .get(trackId) { id -> locationTrackDao.fetchVersion(branch.official, id) }
-                ?.let(locationTrackDao::fetch)?.switchIds
-                ?: emptyList()
-        } else {
-            emptyList()
-        }
+        val officialLinks =
+            if (track == null || track.isDraft) {
+                locationTrackVersionCache
+                    .get(trackId) { id -> locationTrackDao.fetchVersion(branch.official, id) }
+                    ?.let(locationTrackDao::fetch)
+                    ?.switchIds ?: emptyList()
+            } else {
+                emptyList()
+            }
         return (officialLinks + draftLinks).distinct()
     }
 
     fun getPotentiallyAffectedSwitches(trackId: IntId<LocationTrack>): List<TrackLayoutSwitch> =
         getPotentiallyAffectedSwitchIds(trackId).mapNotNull(::getSwitch)
 
-    fun getSegmentSwitches(alignment: LayoutAlignment): List<SegmentSwitch> = alignment.segments
-        .mapNotNull { segment -> segment.switchId?.let { id -> id as IntId to segment } }
-        .groupBy({ (switchId, _) -> switchId }, { (_, segment) -> segment })
-        .map { (switchId, segments) ->
-            val switch = getSwitch(switchId)
-            val name = switch?.name ?: getDraftSwitch(switchId)?.name
-            val structure = switch?.switchStructureId?.let(switchLibraryService::getSwitchStructure)
-            SegmentSwitch(switchId, name, switch, structure, segments)
-        }
+    fun getSegmentSwitches(alignment: LayoutAlignment): List<SegmentSwitch> =
+        alignment.segments
+            .mapNotNull { segment -> segment.switchId?.let { id -> id as IntId to segment } }
+            .groupBy({ (switchId, _) -> switchId }, { (_, segment) -> segment })
+            .map { (switchId, segments) ->
+                val switch = getSwitch(switchId)
+                val name = switch?.name ?: getDraftSwitch(switchId)?.name
+                val structure =
+                    switch?.switchStructureId?.let(switchLibraryService::getSwitchStructure)
+                SegmentSwitch(switchId, name, switch, structure, segments)
+            }
 
-    fun getTopologicallyConnectedSwitches(track: LocationTrack): List<Pair<SwitchName, TrackLayoutSwitch?>> =
-        listOfNotNull(track.topologyStartSwitch?.switchId, track.topologyEndSwitch?.switchId).map { switchId ->
+    fun getTopologicallyConnectedSwitches(
+        track: LocationTrack
+    ): List<Pair<SwitchName, TrackLayoutSwitch?>> =
+        listOfNotNull(track.topologyStartSwitch?.switchId, track.topologyEndSwitch?.switchId).map {
+            switchId ->
             val switch = getSwitch(switchId)
             // If there's no draft either, we have a referential integrity error
             val name = switch?.name ?: requireNotNull(getDraftSwitch(switchId)).name
             name to switch
         }
 
-    fun getPublicationSplits(): List<Split> = allUnfinishedSplits.filter { split ->
-        publicationSet.containsSplit(split.id)
-    }
+    fun getPublicationSplits(): List<Split> =
+        allUnfinishedSplits.filter { split -> publicationSet.containsSplit(split.id) }
 
-    fun getUnfinishedSplits(): List<Split> = allUnfinishedSplits.filter { split ->
-        split.publicationId != null || publicationSet.containsSplit(split.id)
-    }
+    fun getUnfinishedSplits(): List<Split> =
+        allUnfinishedSplits.filter { split ->
+            split.publicationId != null || publicationSet.containsSplit(split.id)
+        }
 
     fun getGeocodingContext(trackNumberId: IntId<TrackLayoutTrackNumber>) =
         getGeocodingContextCacheKey(trackNumberId)?.let { key ->
@@ -279,13 +315,14 @@ class ValidationContext(
         referenceLineIds: List<IntId<ReferenceLine>> = emptyList(),
         kmPostIds: List<IntId<TrackLayoutKmPost>> = emptyList(),
         trackIds: List<IntId<LocationTrack>> = emptyList(),
-    ): Unit = preloadTrackNumberAndReferenceLineVersions(
-        collectAssociatedTrackNumberIds(trackNumberIds, referenceLineIds, kmPostIds, trackIds)
-    )
+    ): Unit =
+        preloadTrackNumberAndReferenceLineVersions(
+            collectAssociatedTrackNumberIds(trackNumberIds, referenceLineIds, kmPostIds, trackIds))
 
     fun preloadTrackNumberAndReferenceLineVersions(ids: List<IntId<TrackLayoutTrackNumber>>) =
         preloadTrackNumberVersions(ids).also {
-            val referenceLineIds = ids.mapNotNull(::getTrackNumber).mapNotNull(TrackLayoutTrackNumber::referenceLineId)
+            val referenceLineIds =
+                ids.mapNotNull(::getTrackNumber).mapNotNull(TrackLayoutTrackNumber::referenceLineId)
             preloadReferenceLineVersions(referenceLineIds)
         }
 
@@ -295,107 +332,160 @@ class ValidationContext(
     fun preloadTrackDuplicates(trackIds: List<IntId<LocationTrack>>): Unit =
         trackDuplicateLinks.preload(trackIds, ::fetchLocationTrackDuplicateLinks)
 
-    fun preloadSwitchesByName(switchIds: List<IntId<TrackLayoutSwitch>>) = switchNameCache.preload(
-        switchIds.mapNotNull(::getSwitch).map(TrackLayoutSwitch::name).distinct(),
-    )
+    fun preloadSwitchesByName(switchIds: List<IntId<TrackLayoutSwitch>>) =
+        switchNameCache.preload(
+            switchIds.mapNotNull(::getSwitch).map(TrackLayoutSwitch::name).distinct(),
+        )
 
-    fun fetchSwitchesByName(names: List<SwitchName>): Map<SwitchName, List<IntId<TrackLayoutSwitch>>> {
+    fun fetchSwitchesByName(
+        names: List<SwitchName>
+    ): Map<SwitchName, List<IntId<TrackLayoutSwitch>>> {
         val officialVersions = switchDao.findOfficialNameDuplicates(branch, names)
         cacheOfficialVersions(officialVersions.values.flatten(), switchVersionCache)
-        return mapIdsByField(names, { s -> s.name }, publicationSet.switches, officialVersions, switchDao)
+        return mapIdsByField(
+            names, { s -> s.name }, publicationSet.switches, officialVersions, switchDao)
     }
 
-    fun preloadLocationTracksByName(trackIds: List<IntId<LocationTrack>>) = trackNameCache.preload(
-        trackIds.mapNotNull(::getLocationTrack).map(LocationTrack::name).distinct(),
-    )
+    fun preloadLocationTracksByName(trackIds: List<IntId<LocationTrack>>) =
+        trackNameCache.preload(
+            trackIds.mapNotNull(::getLocationTrack).map(LocationTrack::name).distinct(),
+        )
 
-    fun fetchLocationTracksByName(names: List<AlignmentName>): Map<AlignmentName, List<IntId<LocationTrack>>> {
+    fun fetchLocationTracksByName(
+        names: List<AlignmentName>
+    ): Map<AlignmentName, List<IntId<LocationTrack>>> {
         val officialVersions = locationTrackDao.findOfficialNameDuplicates(branch, names)
         cacheOfficialVersions(officialVersions.values.flatten(), locationTrackVersionCache)
-        return mapIdsByField(names, { t -> t.name }, publicationSet.locationTracks, officialVersions, locationTrackDao)
+        return mapIdsByField(
+            names,
+            { t -> t.name },
+            publicationSet.locationTracks,
+            officialVersions,
+            locationTrackDao)
     }
 
-    fun preloadTrackNumbersByNumber(trackNumberIds: List<IntId<TrackLayoutTrackNumber>>) = trackNumberNumberCache.preload(
-        trackNumberIds.mapNotNull(::getTrackNumber).map(TrackLayoutTrackNumber::number).distinct()
-    )
+    fun preloadTrackNumbersByNumber(trackNumberIds: List<IntId<TrackLayoutTrackNumber>>) =
+        trackNumberNumberCache.preload(
+            trackNumberIds
+                .mapNotNull(::getTrackNumber)
+                .map(TrackLayoutTrackNumber::number)
+                .distinct())
 
-    private fun fetchTrackNumbersByNumber(numbers: List<TrackNumber>): Map<TrackNumber, List<IntId<TrackLayoutTrackNumber>>> {
+    private fun fetchTrackNumbersByNumber(
+        numbers: List<TrackNumber>
+    ): Map<TrackNumber, List<IntId<TrackLayoutTrackNumber>>> {
         val officialVersions = trackNumberDao.findOfficialNumberDuplicates(branch, numbers)
         cacheOfficialVersions(officialVersions.values.flatten(), trackNumberVersionCache)
-        return mapIdsByField(numbers, { t -> t.number }, publicationSet.trackNumbers, officialVersions, trackNumberDao)
+        return mapIdsByField(
+            numbers,
+            { t -> t.number },
+            publicationSet.trackNumbers,
+            officialVersions,
+            trackNumberDao)
     }
 
-    // Draft searches that ignore context, for logging reference errors when the item doesn't exist in the context
+    // Draft searches that ignore context, for logging reference errors when the item doesn't exist
+    // in the context
     // Versions are fetched lazily once, if needed
-    fun getDraftTrackNumber(id: IntId<TrackLayoutTrackNumber>) = allDraftTrackNumbers[id]?.let(trackNumberDao::fetch)
+    fun getDraftTrackNumber(id: IntId<TrackLayoutTrackNumber>) =
+        allDraftTrackNumbers[id]?.let(trackNumberDao::fetch)
 
-    private val allDraftTrackNumbers: Map<IntId<TrackLayoutTrackNumber>, LayoutRowVersion<TrackLayoutTrackNumber>> by lazy {
-        trackNumberDao.fetchPublicationVersions(branch).associate { v -> v.officialId to v.validatedAssetVersion }
+    private val allDraftTrackNumbers:
+        Map<IntId<TrackLayoutTrackNumber>, LayoutRowVersion<TrackLayoutTrackNumber>> by lazy {
+        trackNumberDao.fetchPublicationVersions(branch).associate { v ->
+            v.officialId to v.validatedAssetVersion
+        }
     }
 
     fun getDraftSwitch(id: IntId<TrackLayoutSwitch>) = allDraftSwitches[id]?.let(switchDao::fetch)
 
-    private val allDraftSwitches: Map<IntId<TrackLayoutSwitch>, LayoutRowVersion<TrackLayoutSwitch>> by lazy {
-        switchDao.fetchPublicationVersions(branch).associate { v -> v.officialId to v.validatedAssetVersion }
+    private val allDraftSwitches:
+        Map<IntId<TrackLayoutSwitch>, LayoutRowVersion<TrackLayoutSwitch>> by lazy {
+        switchDao.fetchPublicationVersions(branch).associate { v ->
+            v.officialId to v.validatedAssetVersion
+        }
     }
 
-    fun getDraftLocationTrack(id: IntId<LocationTrack>) = allDraftLocationTracks[id]?.let(locationTrackDao::fetch)
-    private val allDraftLocationTracks: Map<IntId<LocationTrack>, LayoutRowVersion<LocationTrack>> by lazy {
-        locationTrackDao.fetchPublicationVersions(branch).associate { v -> v.officialId to v.validatedAssetVersion }
+    fun getDraftLocationTrack(id: IntId<LocationTrack>) =
+        allDraftLocationTracks[id]?.let(locationTrackDao::fetch)
+
+    private val allDraftLocationTracks:
+        Map<IntId<LocationTrack>, LayoutRowVersion<LocationTrack>> by lazy {
+        locationTrackDao.fetchPublicationVersions(branch).associate { v ->
+            v.officialId to v.validatedAssetVersion
+        }
     }
 
     private fun fetchKmPostIdsByTrackNumbers(
         tnIds: List<IntId<TrackLayoutTrackNumber>>,
-    ): Map<IntId<TrackLayoutTrackNumber>, List<IntId<TrackLayoutKmPost>>> = kmPostDao
-        .fetchVersionsForPublication(branch, tnIds, publicationSet.kmPosts.map { v -> v.officialId })
-        .mapValues { (_, versions) ->
-            val officialVersions = versions.filterNot { v -> publicationSet.containsKmPost(v.id) }
-            cacheOfficialVersions(officialVersions, kmPostVersionCache)
-            versions.map { v -> v.id }
-        }
+    ): Map<IntId<TrackLayoutTrackNumber>, List<IntId<TrackLayoutKmPost>>> =
+        kmPostDao
+            .fetchVersionsForPublication(
+                branch, tnIds, publicationSet.kmPosts.map { v -> v.officialId })
+            .mapValues { (_, versions) ->
+                val officialVersions =
+                    versions.filterNot { v -> publicationSet.containsKmPost(v.id) }
+                cacheOfficialVersions(officialVersions, kmPostVersionCache)
+                versions.map { v -> v.id }
+            }
 
     private fun fetchLocationTrackIdsByTrackNumbers(
         tnIds: List<IntId<TrackLayoutTrackNumber>>,
-    ): Map<IntId<TrackLayoutTrackNumber>, List<IntId<LocationTrack>>> = locationTrackDao
-        .fetchVersionsForPublication(branch, tnIds, publicationSet.locationTracks.map { v -> v.officialId })
-        .mapValues { (_, versions) ->
-            val officialVersions = versions.filterNot { v -> publicationSet.containsLocationTrack(v.id) }
-            cacheOfficialVersions(officialVersions, locationTrackVersionCache)
-            versions.map { v -> v.id }
-        }
+    ): Map<IntId<TrackLayoutTrackNumber>, List<IntId<LocationTrack>>> =
+        locationTrackDao
+            .fetchVersionsForPublication(
+                branch, tnIds, publicationSet.locationTracks.map { v -> v.officialId })
+            .mapValues { (_, versions) ->
+                val officialVersions =
+                    versions.filterNot { v -> publicationSet.containsLocationTrack(v.id) }
+                cacheOfficialVersions(officialVersions, locationTrackVersionCache)
+                versions.map { v -> v.id }
+            }
 
     private fun fetchSwitchTrackLinks(
         ids: List<IntId<TrackLayoutSwitch>>,
-    ): Map<IntId<TrackLayoutSwitch>, List<IntId<LocationTrack>>> = publicationDao
-        .fetchLinkedLocationTracks(branch, ids, publicationSet.locationTracks.map { v -> v.officialId })
-        .mapValues { (_, versions) ->
-            val officialVersions = versions.filterNot { v -> publicationSet.containsLocationTrack(v.id) }
-            cacheOfficialVersions(officialVersions, locationTrackVersionCache)
-            versions.map { v -> v.id }
-        }
+    ): Map<IntId<TrackLayoutSwitch>, List<IntId<LocationTrack>>> =
+        publicationDao
+            .fetchLinkedLocationTracks(
+                branch, ids, publicationSet.locationTracks.map { v -> v.officialId })
+            .mapValues { (_, versions) ->
+                val officialVersions =
+                    versions.filterNot { v -> publicationSet.containsLocationTrack(v.id) }
+                cacheOfficialVersions(officialVersions, locationTrackVersionCache)
+                versions.map { v -> v.id }
+            }
 
     fun collectAssociatedTrackNumberIds(
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>> = emptyList(),
         referenceLineIds: List<IntId<ReferenceLine>> = emptyList(),
         kmPostIds: List<IntId<TrackLayoutKmPost>> = emptyList(),
         trackIds: List<IntId<LocationTrack>> = emptyList(),
-    ): List<IntId<TrackLayoutTrackNumber>> = listOf(
-        trackNumberIds,
-        referenceLineIds.mapNotNull { id -> getReferenceLine(id)?.trackNumberId },
-        kmPostIds.mapNotNull { id -> getKmPost(id)?.trackNumberId },
-        trackIds.mapNotNull { id -> getLocationTrack(id)?.trackNumberId },
-    ).flatten().distinct()
+    ): List<IntId<TrackLayoutTrackNumber>> =
+        listOf(
+                trackNumberIds,
+                referenceLineIds.mapNotNull { id -> getReferenceLine(id)?.trackNumberId },
+                kmPostIds.mapNotNull { id -> getKmPost(id)?.trackNumberId },
+                trackIds.mapNotNull { id -> getLocationTrack(id)?.trackNumberId },
+            )
+            .flatten()
+            .distinct()
 
     private fun fetchLocationTrackDuplicateLinks(
         ids: List<IntId<LocationTrack>>
     ): Map<IntId<LocationTrack>, List<IntId<LocationTrack>>> {
-        val officialVersions = publicationDao
-            .fetchOfficialDuplicateTrackVersions(branch, ids)
-            .mapValues { (_, vs) -> vs.filterNot { v -> publicationSet.containsLocationTrack(v.id) } }
-            .also { duplicateMap ->
-                cacheOfficialVersions(duplicateMap.values.flatten(), locationTrackVersionCache)
+        val officialVersions =
+            publicationDao
+                .fetchOfficialDuplicateTrackVersions(branch, ids)
+                .mapValues { (_, vs) ->
+                    vs.filterNot { v -> publicationSet.containsLocationTrack(v.id) }
+                }
+                .also { duplicateMap ->
+                    cacheOfficialVersions(duplicateMap.values.flatten(), locationTrackVersionCache)
+                }
+        val draftTracks =
+            publicationSet.locationTracks.map { v ->
+                locationTrackDao.fetch(v.validatedAssetVersion)
             }
-        val draftTracks = publicationSet.locationTracks.map { v -> locationTrackDao.fetch(v.validatedAssetVersion) }
         return ids.associateWith { id ->
             val draft = draftTracks.filter { t -> t.duplicateOf == id }.map { t -> t.id as IntId }
             val official = officialVersions[id]?.map { v -> v.id } ?: emptyList()
@@ -411,10 +501,9 @@ private fun <T : LayoutAsset<T>> getObject(
     dao: ILayoutAssetDao<T>,
     versionCache: RowVersionCache<T>,
 ): T? {
-    val version = publicationVersions
-        .find { v -> v.officialId == itemId }
-        ?.validatedAssetVersion
-        ?: versionCache.get(itemId) { id -> dao.fetchVersion(branch.official, id) }
+    val version =
+        publicationVersions.find { v -> v.officialId == itemId }?.validatedAssetVersion
+            ?: versionCache.get(itemId) { id -> dao.fetchVersion(branch.official, id) }
     return version?.let(dao::fetch)
 }
 
@@ -428,10 +517,11 @@ private fun <T : LayoutAsset<T>> preloadOfficialVersions(
 private fun <T : LayoutAsset<T>> cacheOfficialVersions(
     versions: List<LayoutDaoResponse<T>>,
     cache: RowVersionCache<T>,
-) = versions
-    .filterNot { (id) -> cache.contains(id) }
-    .associate { v -> v.id to v.rowVersion }
-    .let(cache::putAll)
+) =
+    versions
+        .filterNot { (id) -> cache.contains(id) }
+        .associate { v -> v.id to v.rowVersion }
+        .let(cache::putAll)
 
 private fun <T : LayoutAsset<T>, Field> mapIdsByField(
     fields: List<Field>,
@@ -441,14 +531,15 @@ private fun <T : LayoutAsset<T>, Field> mapIdsByField(
     dao: ILayoutAssetDao<T>,
 ): Map<Field, List<IntId<T>>> {
     return fields.associateWith { field ->
-        val draftMatches = publicationVersions.mapNotNull { v ->
-            val draftObject = dao.fetch(v.validatedAssetVersion)
-            if (getField(draftObject) == field) draftObject.id as IntId else null
-        }
-        val officialMatches = matchingOfficialVersions[field]
-            ?.filterNot { ov -> publicationVersions.any { pv -> pv.officialId == ov.id } }
-            ?.map { v -> v.id }
-            ?: emptyList()
+        val draftMatches =
+            publicationVersions.mapNotNull { v ->
+                val draftObject = dao.fetch(v.validatedAssetVersion)
+                if (getField(draftObject) == field) draftObject.id as IntId else null
+            }
+        val officialMatches =
+            matchingOfficialVersions[field]
+                ?.filterNot { ov -> publicationVersions.any { pv -> pv.officialId == ov.id } }
+                ?.map { v -> v.id } ?: emptyList()
         (draftMatches + officialMatches).distinct()
     }
 }

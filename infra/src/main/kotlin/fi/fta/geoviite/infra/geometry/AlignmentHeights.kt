@@ -15,6 +15,7 @@ data class TrackMeterHeight(
     val height: Double?,
     val point: Point,
 )
+
 data class KmHeights(
     val kmNumber: KmNumber,
     val trackMeterHeights: List<TrackMeterHeight>,
@@ -30,4 +31,3 @@ data class PlanLinkingSummaryItem(
     val verticalCoordinateSystem: VerticalCoordinateSystem?,
     val elevationMeasurementMethod: ElevationMeasurementMethod?,
 )
-

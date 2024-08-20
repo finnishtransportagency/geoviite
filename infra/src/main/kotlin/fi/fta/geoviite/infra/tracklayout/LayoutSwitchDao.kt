@@ -31,13 +31,13 @@ import fi.fta.geoviite.infra.util.getOidOrNull
 import fi.fta.geoviite.infra.util.getPoint
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
+import java.sql.ResultSet
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.Instant
 
 const val SWITCH_CACHE_SIZE = 10000L
 
@@ -47,22 +47,27 @@ const val SWITCH_CACHE_SIZE = 10000L
 class LayoutSwitchDao(
     jdbcTemplateParam: NamedParameterJdbcTemplate?,
     @Value("\${geoviite.cache.enabled}") cacheEnabled: Boolean,
-) : LayoutAssetDao<TrackLayoutSwitch>(jdbcTemplateParam, LayoutAssetTable.LAYOUT_ASSET_SWITCH, cacheEnabled, SWITCH_CACHE_SIZE) {
+) :
+    LayoutAssetDao<TrackLayoutSwitch>(
+        jdbcTemplateParam, LayoutAssetTable.LAYOUT_ASSET_SWITCH, cacheEnabled, SWITCH_CACHE_SIZE) {
 
     override fun fetchVersions(
         layoutContext: LayoutContext,
         includeDeleted: Boolean,
     ): List<LayoutDaoResponse<TrackLayoutSwitch>> {
-        val sql = """
+        val sql =
+            """
             select official_id, row_id, row_version
             from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id)
             where (:include_deleted = true or state_category != 'NOT_EXISTING')
-        """.trimIndent()
-        val params = mapOf(
-            "publication_state" to layoutContext.state.name,
-            "design_id" to layoutContext.branch.designId?.intValue,
-            "include_deleted" to includeDeleted,
-        )
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "publication_state" to layoutContext.state.name,
+                "design_id" to layoutContext.branch.designId?.intValue,
+                "include_deleted" to includeDeleted,
+            )
         return jdbcTemplate.query(sql, params) { rs, _ ->
             rs.getDaoResponse("official_id", "row_id", "row_version")
         }
@@ -72,7 +77,8 @@ class LayoutSwitchDao(
         layoutContext: LayoutContext,
         switchId: IntId<TrackLayoutSwitch>,
     ): List<TrackLayoutSwitchJointConnection> {
-        val sql = """
+        val sql =
+            """
             select number, location_accuracy, location_track_id, postgis.st_x(point) x, postgis.st_y(point) y
               from layout.switch_in_layout_context(:publication_state::layout.publication_state,
                                                    :design_id,
@@ -99,12 +105,14 @@ class LayoutSwitchDao(
                   where switch_id = :switch_id
               ) segment_joint using (number)
             where state_category != 'NOT_EXISTING';
-        """.trimIndent()
-        val params = mapOf(
-            "switch_id" to switchId.intValue,
-            "publication_state" to layoutContext.state.name,
-            "design_id" to layoutContext.branch.designId?.intValue,
-        )
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "switch_id" to switchId.intValue,
+                "publication_state" to layoutContext.state.name,
+                "design_id" to layoutContext.branch.designId?.intValue,
+            )
 
         data class JointKey(
             val number: JointNumber,
@@ -112,31 +120,37 @@ class LayoutSwitchDao(
         )
 
         val unmatchedJoints: MutableSet<JointKey> = mutableSetOf()
-        val accurateMatches: MutableMap<JointKey, MutableMap<IntId<LocationTrack>, Point>> = mutableMapOf()
+        val accurateMatches: MutableMap<JointKey, MutableMap<IntId<LocationTrack>, Point>> =
+            mutableMapOf()
 
         jdbcTemplate.query(sql, params) { rs, _ ->
-            val jointKey = JointKey(
-                number = JointNumber(rs.getInt("number")),
-                locationAccuracy = rs.getEnumOrNull<LocationAccuracy>("location_accuracy")
-            )
+            val jointKey =
+                JointKey(
+                    number = JointNumber(rs.getInt("number")),
+                    locationAccuracy = rs.getEnumOrNull<LocationAccuracy>("location_accuracy"))
             val locationTrackId = rs.getIntIdOrNull<LocationTrack>("location_track_id")
             if (locationTrackId != null) {
                 val location = rs.getPoint("x", "y")
-                accurateMatches.computeIfAbsent(jointKey) { mutableMapOf() }[locationTrackId] = location
+                accurateMatches.computeIfAbsent(jointKey) { mutableMapOf() }[locationTrackId] =
+                    location
             } else {
                 unmatchedJoints.add(jointKey)
             }
         }
         return (unmatchedJoints + accurateMatches.keys).map { joint ->
-            TrackLayoutSwitchJointConnection(joint.number,
-                accurateMatches[joint]?.entries?.map { e -> TrackLayoutSwitchJointMatch(e.key, e.value) } ?: listOf(),
+            TrackLayoutSwitchJointConnection(
+                joint.number,
+                accurateMatches[joint]?.entries?.map { e ->
+                    TrackLayoutSwitchJointMatch(e.key, e.value)
+                } ?: listOf(),
                 joint.locationAccuracy)
         }
     }
 
     @Transactional
     override fun insert(newItem: TrackLayoutSwitch): LayoutDaoResponse<TrackLayoutSwitch> {
-        val sql = """
+        val sql =
+            """
             insert into 
               layout.switch(
                 external_id,
@@ -170,25 +184,27 @@ class LayoutSwitchDao(
               coalesce(official_row_id, id) as official_id,
               id as row_id,
               version as row_version
-        """.trimIndent()
+        """
+                .trimIndent()
         jdbcTemplate.setUser()
-        val response: LayoutDaoResponse<TrackLayoutSwitch> = jdbcTemplate.queryForObject(
-            sql, mapOf(
-                "external_id" to newItem.externalId,
-                "geometry_switch_id" to newItem.sourceId?.let(::toDbId)?.intValue,
-                "name" to newItem.name,
-                "switch_structure_id" to newItem.switchStructureId.intValue,
-                "state_category" to newItem.stateCategory.name,
-                "trap_point" to newItem.trapPoint,
-                "owner_id" to newItem.ownerId?.intValue,
-                "draft" to newItem.isDraft,
-                "official_row_id" to newItem.contextData.officialRowId?.intValue,
-                "design_row_id" to newItem.contextData.designRowId?.intValue,
-                "design_id" to newItem.contextData.designId?.intValue,
-                "source" to newItem.source.name
-            )
-        ) { rs, _ -> rs.getDaoResponse("official_id", "row_id", "row_version") }
-            ?: throw IllegalStateException("Failed to generate ID for new switch")
+        val response: LayoutDaoResponse<TrackLayoutSwitch> =
+            jdbcTemplate.queryForObject(
+                sql,
+                mapOf(
+                    "external_id" to newItem.externalId,
+                    "geometry_switch_id" to newItem.sourceId?.let(::toDbId)?.intValue,
+                    "name" to newItem.name,
+                    "switch_structure_id" to newItem.switchStructureId.intValue,
+                    "state_category" to newItem.stateCategory.name,
+                    "trap_point" to newItem.trapPoint,
+                    "owner_id" to newItem.ownerId?.intValue,
+                    "draft" to newItem.isDraft,
+                    "official_row_id" to newItem.contextData.officialRowId?.intValue,
+                    "design_row_id" to newItem.contextData.designRowId?.intValue,
+                    "design_id" to newItem.contextData.designId?.intValue,
+                    "source" to newItem.source.name)) { rs, _ ->
+                    rs.getDaoResponse("official_id", "row_id", "row_version")
+                } ?: throw IllegalStateException("Failed to generate ID for new switch")
         if (newItem.joints.isNotEmpty()) upsertJoints(response.rowVersion, newItem.joints)
         logger.daoAccess(INSERT, TrackLayoutSwitch::class, response)
         return response
@@ -196,10 +212,12 @@ class LayoutSwitchDao(
 
     @Transactional
     override fun update(updatedItem: TrackLayoutSwitch): LayoutDaoResponse<TrackLayoutSwitch> {
-        val rowId = requireNotNull(updatedItem.contextData.rowId) {
-            "Cannot update a row that doesn't have a DB ID: kmPost=$updatedItem"
-        }
-        val sql = """
+        val rowId =
+            requireNotNull(updatedItem.contextData.rowId) {
+                "Cannot update a row that doesn't have a DB ID: kmPost=$updatedItem"
+            }
+        val sql =
+            """
             update layout.switch
             set
               external_id = :external_id,
@@ -218,25 +236,27 @@ class LayoutSwitchDao(
               coalesce(official_row_id, design_row_id, id) as official_id,
               id as row_id,
               version as row_version
-        """.trimIndent()
-        val params = mapOf(
-            "id" to rowId.intValue,
-            "external_id" to updatedItem.externalId,
-            "geometry_switch_id" to updatedItem.sourceId?.let(::toDbId)?.intValue,
-            "name" to updatedItem.name,
-            "switch_structure_id" to updatedItem.switchStructureId.intValue,
-            "state_category" to updatedItem.stateCategory.name,
-            "trap_point" to updatedItem.trapPoint,
-            "draft" to updatedItem.isDraft,
-            "official_row_id" to updatedItem.contextData.officialRowId?.intValue,
-            "design_row_id" to updatedItem.contextData.designRowId?.intValue,
-            "design_id" to updatedItem.contextData.designId?.intValue,
-            "owner_id" to updatedItem.ownerId?.intValue
-        )
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "id" to rowId.intValue,
+                "external_id" to updatedItem.externalId,
+                "geometry_switch_id" to updatedItem.sourceId?.let(::toDbId)?.intValue,
+                "name" to updatedItem.name,
+                "switch_structure_id" to updatedItem.switchStructureId.intValue,
+                "state_category" to updatedItem.stateCategory.name,
+                "trap_point" to updatedItem.trapPoint,
+                "draft" to updatedItem.isDraft,
+                "official_row_id" to updatedItem.contextData.officialRowId?.intValue,
+                "design_row_id" to updatedItem.contextData.designRowId?.intValue,
+                "design_id" to updatedItem.contextData.designId?.intValue,
+                "owner_id" to updatedItem.ownerId?.intValue)
         jdbcTemplate.setUser()
-        val response: LayoutDaoResponse<TrackLayoutSwitch> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            rs.getDaoResponse("official_id", "row_id", "row_version")
-        } ?: throw IllegalStateException("Failed to get new version for Track Layout Switch")
+        val response: LayoutDaoResponse<TrackLayoutSwitch> =
+            jdbcTemplate.queryForObject(sql, params) { rs, _ ->
+                rs.getDaoResponse("official_id", "row_id", "row_version")
+            } ?: throw IllegalStateException("Failed to get new version for Track Layout Switch")
 
         upsertJoints(response.rowVersion, updatedItem.joints)
 
@@ -249,7 +269,8 @@ class LayoutSwitchDao(
         joints: List<TrackLayoutSwitchJoint>,
     ) {
         if (joints.isNotEmpty()) {
-            val sql = """
+            val sql =
+                """
               insert into layout.switch_joint(
                 switch_id,
                 switch_version,
@@ -269,37 +290,45 @@ class LayoutSwitchDao(
                 switch_version = excluded.switch_version,
                 location = excluded.location,
                 location_accuracy = excluded.location_accuracy
-          """.trimIndent()
-            val params = joints.map { joint ->
-                mapOf(
-                    "switch_id" to switchVersion.rowId.intValue,
-                    "switch_version" to switchVersion.version,
-                    "number" to joint.number.intValue,
-                    "location_x" to joint.location.x,
-                    "location_y" to joint.location.y,
-                    "srid" to LAYOUT_SRID.code,
-                    "location_accuracy" to joint.locationAccuracy?.name,
-                )
-            }.toTypedArray()
+          """
+                    .trimIndent()
+            val params =
+                joints
+                    .map { joint ->
+                        mapOf(
+                            "switch_id" to switchVersion.rowId.intValue,
+                            "switch_version" to switchVersion.version,
+                            "number" to joint.number.intValue,
+                            "location_x" to joint.location.x,
+                            "location_y" to joint.location.y,
+                            "srid" to LAYOUT_SRID.code,
+                            "location_accuracy" to joint.locationAccuracy?.name,
+                        )
+                    }
+                    .toTypedArray()
             jdbcTemplate.batchUpdate(sql, params)
         }
 
         if (switchVersion.version > 1) {
-            val sqlDelete = """ 
+            val sqlDelete =
+                """ 
               delete from layout.switch_joint 
               where switch_id = :switch_id 
                 and switch_joint.switch_version < :switch_version  
-            """.trimIndent()
-            val paramsDelete = mapOf(
-                "switch_id" to switchVersion.rowId.intValue,
-                "switch_version" to switchVersion.version,
-            )
+            """
+                    .trimIndent()
+            val paramsDelete =
+                mapOf(
+                    "switch_id" to switchVersion.rowId.intValue,
+                    "switch_version" to switchVersion.version,
+                )
             jdbcTemplate.update(sqlDelete, paramsDelete)
         }
     }
 
     override fun fetchInternal(version: LayoutRowVersion<TrackLayoutSwitch>): TrackLayoutSwitch {
-        val sql = """
+        val sql =
+            """
             select 
               sv.id as row_id,
               sv.version as row_version,
@@ -325,18 +354,20 @@ class LayoutSwitchDao(
               and sv.deleted = false
               and coalesce(jv.deleted,false) = false
             group by sv.id, sv.version
-        """.trimIndent()
-        val params = mapOf(
-            "id" to version.rowId.intValue,
-            "version" to version.version,
-        )
-        return getOne(version, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutSwitch(rs) }).also {
-            logger.daoAccess(FETCH, TrackLayoutSwitch::class, version)
-        }
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "id" to version.rowId.intValue,
+                "version" to version.version,
+            )
+        return getOne(version, jdbcTemplate.query(sql, params) { rs, _ -> getLayoutSwitch(rs) })
+            .also { logger.daoAccess(FETCH, TrackLayoutSwitch::class, version) }
     }
 
     override fun preloadCache() {
-        val sql = """
+        val sql =
+            """
             select 
               s.id as row_id,
               s.version as row_version,
@@ -360,11 +391,13 @@ class LayoutSwitchDao(
               left join layout.switch_joint_version jv on jv.switch_id = s.id and jv.switch_version = s.version
             where coalesce(jv.deleted,false) = false
             group by s.id, s.version
-        """.trimIndent()
+        """
+                .trimIndent()
 
-        val switches = jdbcTemplate
-            .query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutSwitch(rs) }
-            .associateBy(TrackLayoutSwitch::version)
+        val switches =
+            jdbcTemplate
+                .query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutSwitch(rs) }
+                .associateBy(TrackLayoutSwitch::version)
         logger.daoAccess(FETCH, TrackLayoutSwitch::class, switches.keys)
         cache.putAll(switches)
     }
@@ -377,23 +410,26 @@ class LayoutSwitchDao(
             name = SwitchName(rs.getString("name")),
             switchStructureId = switchStructureId,
             stateCategory = rs.getEnum("state_category"),
-            joints = parseJoints(
-                numbers = rs.getNullableIntArray("joint_numbers"),
-                xValues = rs.getNullableDoubleArray("joint_x_values"),
-                yValues = rs.getNullableDoubleArray("joint_y_values"),
-                accuracies = rs.getNullableEnumArray<LocationAccuracy>("joint_location_accuracies"),
-            ),
+            joints =
+                parseJoints(
+                    numbers = rs.getNullableIntArray("joint_numbers"),
+                    xValues = rs.getNullableDoubleArray("joint_x_values"),
+                    yValues = rs.getNullableDoubleArray("joint_y_values"),
+                    accuracies =
+                        rs.getNullableEnumArray<LocationAccuracy>("joint_location_accuracies"),
+                ),
             trapPoint = rs.getBooleanOrNull("trap_point"),
             ownerId = rs.getIntIdOrNull("owner_id"),
             source = rs.getEnum("source"),
-            contextData = rs.getLayoutContextData(
-                "official_row_id",
-                "design_row_id",
-                "design_id",
-                "row_id",
-                "row_version",
-                "draft",
-            ),
+            contextData =
+                rs.getLayoutContextData(
+                    "official_row_id",
+                    "design_row_id",
+                    "design_id",
+                    "row_id",
+                    "row_version",
+                    "draft",
+                ),
         )
     }
 
@@ -403,17 +439,25 @@ class LayoutSwitchDao(
         yValues: List<Double?>,
         accuracies: List<LocationAccuracy?>,
     ): List<TrackLayoutSwitchJoint> {
-        require(numbers.size == xValues.size && numbers.size == yValues.size && numbers.size == accuracies.size) {
-            "Joint piece arrays should be the same size: numbers=${numbers.size} xValues=${xValues.size} yValues=${yValues.size} accuracies=${accuracies.size}"
-        }
+        require(
+            numbers.size == xValues.size &&
+                numbers.size == yValues.size &&
+                numbers.size == accuracies.size) {
+                "Joint piece arrays should be the same size: numbers=${numbers.size} xValues=${xValues.size} yValues=${yValues.size} accuracies=${accuracies.size}"
+            }
         return (0..numbers.lastIndex).mapNotNull { i ->
             numbers[i]?.let(::JointNumber)?.let { jointNumber ->
                 TrackLayoutSwitchJoint(
                     number = jointNumber,
-                    location = Point(
-                        requireNotNull(xValues[i]) { "Joint should have an x-coordinate: number=$jointNumber" },
-                        requireNotNull(yValues[i]) { "Joint should have an y-coordinate: number=$jointNumber" },
-                    ),
+                    location =
+                        Point(
+                            requireNotNull(xValues[i]) {
+                                "Joint should have an x-coordinate: number=$jointNumber"
+                            },
+                            requireNotNull(yValues[i]) {
+                                "Joint should have an y-coordinate: number=$jointNumber"
+                            },
+                        ),
                     locationAccuracy = accuracies[i],
                 )
             }
@@ -428,7 +472,8 @@ class LayoutSwitchDao(
     fun findLocationTracksLinkedToSwitch(
         layoutContext: LayoutContext,
         switchId: IntId<TrackLayoutSwitch>,
-    ): List<LocationTrackIdentifiers> = findLocationTracksLinkedToSwitches(layoutContext, listOf(switchId))
+    ): List<LocationTrackIdentifiers> =
+        findLocationTracksLinkedToSwitches(layoutContext, listOf(switchId))
 
     fun findLocationTracksLinkedToSwitches(
         layoutContext: LayoutContext,
@@ -436,7 +481,8 @@ class LayoutSwitchDao(
     ): List<LocationTrackIdentifiers> {
         if (switchIds.isEmpty()) return emptyList()
 
-        val sql = """ 
+        val sql =
+            """ 
             select 
               location_track.row_id,
               location_track.row_version,
@@ -448,20 +494,28 @@ class LayoutSwitchDao(
                            where sv.switch_id in (:switch_ids)
                              and sv.alignment_id = location_track.alignment_id
                              and sv.alignment_version = location_track.alignment_version)
-        """.trimIndent()
-        val params = mapOf(
-            "switch_ids" to switchIds.map { it.intValue },
-            "publication_state" to layoutContext.state.name,
-            "design_id" to layoutContext.branch.designId?.intValue,
-        )
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            LocationTrackIdentifiers(
-                rowVersion = rs.getLayoutRowVersion("row_id", "row_version"),
-                externalId = rs.getOidOrNull("external_id"),
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "switch_ids" to switchIds.map { it.intValue },
+                "publication_state" to layoutContext.state.name,
+                "design_id" to layoutContext.branch.designId?.intValue,
             )
-        }.also { logger.daoAccess(FETCH, "LocationTracks linked to switch",
-            switchIds,
-        ) }
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                LocationTrackIdentifiers(
+                    rowVersion = rs.getLayoutRowVersion("row_id", "row_version"),
+                    externalId = rs.getOidOrNull("external_id"),
+                )
+            }
+            .also {
+                logger.daoAccess(
+                    FETCH,
+                    "LocationTracks linked to switch",
+                    switchIds,
+                )
+            }
     }
 
     fun findLocationTracksLinkedToSwitchAtMoment(
@@ -471,7 +525,8 @@ class LayoutSwitchDao(
         moment: Instant,
     ): List<LocationTrackIdentifiers> {
         assertMainBranch(layoutBranch)
-        val sql = """ 
+        val sql =
+            """ 
             select distinct
               location_track.id, 
               location_track.version,
@@ -490,20 +545,24 @@ class LayoutSwitchDao(
                     and location_track.topology_end_switch_joint_number = :topology_joint_number
                   )
               )
-        """.trimIndent()
+        """
+                .trimIndent()
 
-        val params = mapOf(
-            "switch_id" to switchId.intValue,
-            "topology_joint_number" to topologyJointNumber.intValue,
-            "moment" to Timestamp.from(moment),
-        )
-
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            LocationTrackIdentifiers(
-                rowVersion = rs.getLayoutRowVersion("id", "version"),
-                externalId = rs.getOidOrNull("external_id"),
+        val params =
+            mapOf(
+                "switch_id" to switchId.intValue,
+                "topology_joint_number" to topologyJointNumber.intValue,
+                "moment" to Timestamp.from(moment),
             )
-        }.also { logger.daoAccess(FETCH, "LocationTracks linked to switch at moment", switchId) }
+
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                LocationTrackIdentifiers(
+                    rowVersion = rs.getLayoutRowVersion("id", "version"),
+                    externalId = rs.getOidOrNull("external_id"),
+                )
+            }
+            .also { logger.daoAccess(FETCH, "LocationTracks linked to switch at moment", switchId) }
     }
 
     fun findOfficialNameDuplicates(
@@ -513,22 +572,26 @@ class LayoutSwitchDao(
         return if (names.isEmpty()) {
             emptyMap()
         } else {
-            val sql = """
+            val sql =
+                """
                 select official_id, row_id, row_version, name
                 from layout.switch_in_layout_context('OFFICIAL', :design_id)
                 where name in (:names)
                   and state_category != 'NOT_EXISTING'
-            """.trimIndent()
+            """
+                    .trimIndent()
             val params = mapOf("names" to names, "design_id" to layoutBranch.designId?.intValue)
-            val found = jdbcTemplate.query(sql, params) { rs, _ ->
-                val version = rs.getDaoResponse<TrackLayoutSwitch>("official_id", "row_id", "row_version")
-                val name = rs.getString("name").let(::SwitchName)
-                name to version
-            }
+            val found =
+                jdbcTemplate.query(sql, params) { rs, _ ->
+                    val version =
+                        rs.getDaoResponse<TrackLayoutSwitch>("official_id", "row_id", "row_version")
+                    val name = rs.getString("name").let(::SwitchName)
+                    name to version
+                }
             // Ensure that the result contains all asked-for names, even if there are no matches
-            names.associateWith { n -> found.filter { (name, _) -> name == n }.map { (_, v) -> v } }.also { dups ->
-                logger.daoAccess(FETCH, "Switch name duplicates", dups.keys)
-            }
+            names
+                .associateWith { n -> found.filter { (name, _) -> name == n }.map { (_, v) -> v } }
+                .also { dups -> logger.daoAccess(FETCH, "Switch name duplicates", dups.keys) }
         }
     }
 
@@ -537,7 +600,8 @@ class LayoutSwitchDao(
         alignmentVersion: RowVersion<LayoutAlignment>,
         maxDistance: Double = 1.0,
     ): List<IntId<TrackLayoutSwitch>> {
-        val sql = """
+        val sql =
+            """
             select distinct switch.official_id as switch_id
               from layout.segment_version
                 join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
@@ -548,17 +612,19 @@ class LayoutSwitchDao(
               where segment_version.alignment_id = :alignmentId
                 and segment_version.alignment_version = :alignmentVersion
                 and switch.state_category != 'NOT_EXISTING';
-        """.trimIndent()
-        return jdbcTemplate.query(
-            sql,
-            mapOf(
-                "alignmentId" to alignmentVersion.id.intValue,
-                "alignmentVersion" to alignmentVersion.version,
-                "dist" to maxDistance,
-                "design_id" to branch.designId?.intValue,
-            )
-        ) { rs, _ ->
-            rs.getIntId<TrackLayoutSwitch>("switch_id")
-        }.also { results -> logger.daoAccess(FETCH, "Switches near alignment", results)}
+        """
+                .trimIndent()
+        return jdbcTemplate
+            .query(
+                sql,
+                mapOf(
+                    "alignmentId" to alignmentVersion.id.intValue,
+                    "alignmentVersion" to alignmentVersion.version,
+                    "dist" to maxDistance,
+                    "design_id" to branch.designId?.intValue,
+                )) { rs, _ ->
+                    rs.getIntId<TrackLayoutSwitch>("switch_id")
+                }
+            .also { results -> logger.daoAccess(FETCH, "Switches near alignment", results) }
     }
 }

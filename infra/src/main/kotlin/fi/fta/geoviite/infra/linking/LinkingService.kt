@@ -39,12 +39,17 @@ fun isAlignmentConnected(
     alignment: LayoutAlignment,
     distanceTolerance: Double,
 ): Boolean {
-    val comparePoint = if (updateType == END_POINT) alignment.firstSegmentStart else alignment.lastSegmentEnd
-    return comparePoint?.let { p -> calculateDistance(LAYOUT_SRID, p, location) <= distanceTolerance } ?: false
+    val comparePoint =
+        if (updateType == END_POINT) alignment.firstSegmentStart else alignment.lastSegmentEnd
+    return comparePoint?.let { p ->
+        calculateDistance(LAYOUT_SRID, p, location) <= distanceTolerance
+    } ?: false
 }
 
 @GeoviiteService
-class LinkingService @Autowired constructor(
+class LinkingService
+@Autowired
+constructor(
     private val geometryService: GeometryService,
     private val planLayoutService: PlanLayoutService,
     private val referenceLineService: ReferenceLineService,
@@ -65,7 +70,9 @@ class LinkingService @Autowired constructor(
         return locationTrackService
             .listNearWithAlignments(branch.draft, bbox)
             .filter { (first, _) -> first.id != locationTrackId }
-            .filter { (_, second) -> isAlignmentConnected(location, locationTrackPointUpdateType, second, 2.0) }
+            .filter { (_, second) ->
+                isAlignmentConnected(location, locationTrackPointUpdateType, second, 2.0)
+            }
             .map { (first, _) -> first }
     }
 
@@ -77,7 +84,8 @@ class LinkingService @Autowired constructor(
         verifyPlanNotHidden(parameters.geometryPlanId)
 
         val referenceLineId = parameters.layoutInterval.alignmentId
-        val (referenceLine, alignment) = referenceLineService.getWithAlignmentOrThrow(branch.draft, referenceLineId)
+        val (referenceLine, alignment) =
+            referenceLineService.getWithAlignmentOrThrow(branch.draft, referenceLineId)
 
         val newAlignment = linkGeometry(alignment, parameters)
         return referenceLineService.saveDraft(branch, referenceLine, newAlignment).id
@@ -89,7 +97,8 @@ class LinkingService @Autowired constructor(
         parameters: LinkingParameters<LocationTrack>,
     ): IntId<LocationTrack> {
         val locationTrackId = parameters.layoutInterval.alignmentId
-        val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(branch.draft, locationTrackId)
+        val (locationTrack, alignment) =
+            locationTrackService.getWithAlignmentOrThrow(branch.draft, locationTrackId)
 
         verifyLocationTrackNotDeleted(locationTrack)
         verifyPlanNotHidden(parameters.geometryPlanId)
@@ -101,12 +110,17 @@ class LinkingService @Autowired constructor(
         return locationTrackService.saveDraft(branch, newLocationTrack, newAlignment).id
     }
 
-    private fun <T> linkGeometry(layoutAlignment: LayoutAlignment, parameters: LinkingParameters<T>): LayoutAlignment {
+    private fun <T> linkGeometry(
+        layoutAlignment: LayoutAlignment,
+        parameters: LinkingParameters<T>
+    ): LayoutAlignment {
         val geometryInterval = parameters.geometryInterval
-        val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
+        val geometryAlignment =
+            getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
         val layoutRange = parameters.layoutInterval.mRange
         val geometryRange = parameters.geometryInterval.mRange
-        return linkLayoutGeometrySection(layoutAlignment, layoutRange, geometryAlignment, geometryRange)
+        return linkLayoutGeometrySection(
+            layoutAlignment, layoutRange, geometryAlignment, geometryRange)
     }
 
     private fun updateTopology(
@@ -136,7 +150,8 @@ class LinkingService @Autowired constructor(
     private fun endChanged(oldAlignment: LayoutAlignment, newAlignment: LayoutAlignment) =
         !equalsXY(oldAlignment.lastSegmentEnd, newAlignment.lastSegmentEnd)
 
-    private fun equalsXY(point1: IPoint?, point2: IPoint?) = point1?.x == point2?.x && point1?.y == point2?.y
+    private fun equalsXY(point1: IPoint?, point2: IPoint?) =
+        point1?.x == point2?.x && point1?.y == point2?.y
 
     @Transactional
     fun saveReferenceLineLinking(
@@ -148,10 +163,13 @@ class LinkingService @Autowired constructor(
         val referenceLineId = parameters.layoutAlignmentId
         val geometryInterval = parameters.geometryInterval
 
-        val (referenceLine, layoutAlignment) = referenceLineService.getWithAlignmentOrThrow(branch.draft, referenceLineId)
-        val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
+        val (referenceLine, layoutAlignment) =
+            referenceLineService.getWithAlignmentOrThrow(branch.draft, referenceLineId)
+        val geometryAlignment =
+            getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
 
-        val newAlignment = replaceLayoutGeometry(layoutAlignment, geometryAlignment, geometryInterval.mRange)
+        val newAlignment =
+            replaceLayoutGeometry(layoutAlignment, geometryAlignment, geometryInterval.mRange)
 
         return referenceLineService.saveDraft(branch, referenceLine, newAlignment).id
     }
@@ -166,10 +184,13 @@ class LinkingService @Autowired constructor(
         val locationTrackId = parameters.layoutAlignmentId
         val geometryInterval = parameters.geometryInterval
 
-        val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(branch.draft, locationTrackId)
-        val geometryAlignment = getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
+        val (locationTrack, alignment) =
+            locationTrackService.getWithAlignmentOrThrow(branch.draft, locationTrackId)
+        val geometryAlignment =
+            getAlignmentLayout(parameters.geometryPlanId, geometryInterval.alignmentId)
 
-        val newAlignment = replaceLayoutGeometry(alignment, geometryAlignment, geometryInterval.mRange)
+        val newAlignment =
+            replaceLayoutGeometry(alignment, geometryAlignment, geometryInterval.mRange)
         val newLocationTrack = updateTopology(branch, locationTrack, alignment, newAlignment)
 
         return locationTrackService.saveDraft(branch, newLocationTrack, newAlignment).id
@@ -181,10 +202,12 @@ class LinkingService @Autowired constructor(
     ): PlanLayoutAlignment {
         val (geometryPlan, transformationError) = planLayoutService.getLayoutPlan(planId)
         if (geometryPlan == null) {
-            throw LinkingFailureException("Could not create plan layout: plan=$planId error=$transformationError")
+            throw LinkingFailureException(
+                "Could not create plan layout: plan=$planId error=$transformationError")
         }
         return geometryPlan.alignments.find { alignment -> alignment.id == alignmentId }
-            ?: throw LinkingFailureException("Geometry alignment not found: plan=$planId alignment=$alignmentId")
+            ?: throw LinkingFailureException(
+                "Geometry alignment not found: plan=$planId alignment=$alignmentId")
     }
 
     @Transactional
@@ -193,7 +216,8 @@ class LinkingService @Autowired constructor(
         referenceLineId: IntId<ReferenceLine>,
         mRange: Range<Double>,
     ): IntId<ReferenceLine> {
-        val (referenceLine, alignment) = referenceLineService.getWithAlignmentOrThrow(branch.draft, referenceLineId)
+        val (referenceLine, alignment) =
+            referenceLineService.getWithAlignmentOrThrow(branch.draft, referenceLineId)
         val updatedAlignment = cutLayoutGeometry(alignment, mRange)
 
         return referenceLineService.saveDraft(branch, referenceLine, updatedAlignment).id
@@ -206,14 +230,19 @@ class LinkingService @Autowired constructor(
         mRange: Range<Double>,
     ): IntId<LocationTrack> {
         verifyAllSplitsDone(branch, locationTrackId)
-        val (locationTrack, alignment) = locationTrackService.getWithAlignmentOrThrow(branch.draft, locationTrackId)
+        val (locationTrack, alignment) =
+            locationTrackService.getWithAlignmentOrThrow(branch.draft, locationTrackId)
         val updatedAlignment = cutLayoutGeometry(alignment, mRange)
-        val updatedLocationTrack = updateTopology(branch, locationTrack, alignment, updatedAlignment)
+        val updatedLocationTrack =
+            updateTopology(branch, locationTrack, alignment, updatedAlignment)
 
         return locationTrackService.saveDraft(branch, updatedLocationTrack, updatedAlignment).id
     }
 
-    fun getGeometryPlanLinkStatus(layoutContext: LayoutContext, planId: IntId<GeometryPlan>): GeometryPlanLinkStatus {
+    fun getGeometryPlanLinkStatus(
+        layoutContext: LayoutContext,
+        planId: IntId<GeometryPlan>
+    ): GeometryPlanLinkStatus {
         return linkingDao.fetchPlanLinkStatuses(layoutContext, listOf(planId))[0]
     }
 
@@ -225,31 +254,39 @@ class LinkingService @Autowired constructor(
     }
 
     @Transactional
-    fun saveKmPostLinking(branch: LayoutBranch, parameters: KmPostLinkingParameters): LayoutDaoResponse<TrackLayoutKmPost> {
+    fun saveKmPostLinking(
+        branch: LayoutBranch,
+        parameters: KmPostLinkingParameters
+    ): LayoutDaoResponse<TrackLayoutKmPost> {
         verifyPlanNotHidden(parameters.geometryPlanId)
 
         val geometryKmPost = geometryService.getKmPost(parameters.geometryKmPostId)
-        val kmPostSrid = geometryService.getKmPostSrid(parameters.geometryKmPostId)
-            ?: throw IllegalArgumentException("Cannot link a geometry km post with an unknown coordinate system!")
-        requireNotNull(geometryKmPost.location) { "Cannot link a geometry km post without a location!" }
+        val kmPostSrid =
+            geometryService.getKmPostSrid(parameters.geometryKmPostId)
+                ?: throw IllegalArgumentException(
+                    "Cannot link a geometry km post with an unknown coordinate system!")
+        requireNotNull(geometryKmPost.location) {
+            "Cannot link a geometry km post without a location!"
+        }
 
         val layoutKmPost = layoutKmPostService.getOrThrow(branch.draft, parameters.layoutKmPostId)
 
         val newGkLocation = transformToGKCoordinate(kmPostSrid, geometryKmPost.location)
-        val modifiedLayoutKmPost = layoutKmPost.copy(
-            gkLocation = newGkLocation,
-            gkLocationSource = KmPostGkLocationSource.FROM_GEOMETRY,
-            sourceId = geometryKmPost.id,
-            gkLocationConfirmed = true,
-        )
+        val modifiedLayoutKmPost =
+            layoutKmPost.copy(
+                gkLocation = newGkLocation,
+                gkLocationSource = KmPostGkLocationSource.FROM_GEOMETRY,
+                sourceId = geometryKmPost.id,
+                gkLocationConfirmed = true,
+            )
 
         return layoutKmPostService.saveDraft(branch, modifiedLayoutKmPost)
     }
 
     fun verifyPlanNotHidden(id: IntId<GeometryPlan>) {
-        if (geometryService.getPlanHeader(id).isHidden) throw LinkingFailureException(
-            message = "Cannot link a plan that is hidden", localizedMessageKey = "plan-hidden"
-        )
+        if (geometryService.getPlanHeader(id).isHidden)
+            throw LinkingFailureException(
+                message = "Cannot link a plan that is hidden", localizedMessageKey = "plan-hidden")
     }
 
     fun verifyAllSplitsDone(branch: LayoutBranch, id: IntId<LocationTrack>) {

@@ -24,7 +24,8 @@ class FrameConverterApiObjectMapperV1 {
     @Bean
     fun objectMapper(builder: Jackson2ObjectMapperBuilder): ObjectMapper {
         val module = SimpleModule()
-        module.addDeserializer(FrameConverterRequestV1::class.java, FrameConverterRequestDeserializerV1())
+        module.addDeserializer(
+            FrameConverterRequestV1::class.java, FrameConverterRequestDeserializerV1())
         return builder.build<ObjectMapper>().registerModule(module)
     }
 }
@@ -38,7 +39,9 @@ class FrameConverterApiObjectMapperV1 {
         "/rata-vkm/dev/v1",
     ],
 )
-class FrameConverterControllerV1 @Autowired constructor(
+class FrameConverterControllerV1
+@Autowired
+constructor(
     private val frameConverterServiceV1: FrameConverterServiceV1,
 ) {
 
@@ -65,8 +68,8 @@ class FrameConverterControllerV1 @Autowired constructor(
     private fun processRequest(request: FrameConverterRequestV1): List<GeoJsonFeature> {
         return when (request) {
             is CoordinateToTrackMeterRequestV1 -> {
-                val (validatedRequest, errorResponse)
-                    = frameConverterServiceV1.validateCoordinateToTrackMeterRequest(request)
+                val (validatedRequest, errorResponse) =
+                    frameConverterServiceV1.validateCoordinateToTrackMeterRequest(request)
 
                 if (validatedRequest == null) {
                     errorResponse
@@ -78,10 +81,11 @@ class FrameConverterControllerV1 @Autowired constructor(
                 }
             }
 
-            else -> throw IntegrationApiException(
-                message = "Unsupported request type",
-                localizedMessageKey = "unsupported-request-type",
-            )
+            else ->
+                throw IntegrationApiException(
+                    message = "Unsupported request type",
+                    localizedMessageKey = "unsupported-request-type",
+                )
         }
     }
 }

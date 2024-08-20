@@ -8,6 +8,8 @@ import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import kotlin.test.assertContains
+import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
@@ -17,12 +19,12 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
-import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class LayoutSwitchDaoIT @Autowired constructor(
+class LayoutSwitchDaoIT
+@Autowired
+constructor(
     private val switchDao: LayoutSwitchDao,
 ) : DBTestBase() {
 
@@ -49,10 +51,12 @@ class LayoutSwitchDaoIT @Autowired constructor(
 
     @Test
     fun switchesAreStoredAndLoadedOk() {
-        (1..10).map { seed -> switch(seed, draft = false) }.forEach { switch ->
-            val rowVersion = switchDao.insert(switch).rowVersion
-            assertMatches(switch, switchDao.fetch(rowVersion))
-        }
+        (1..10)
+            .map { seed -> switch(seed, draft = false) }
+            .forEach { switch ->
+                val rowVersion = switchDao.insert(switch).rowVersion
+                assertMatches(switch, switchDao.fetch(rowVersion))
+            }
     }
 
     @Test
@@ -129,7 +133,7 @@ class LayoutSwitchDaoIT @Autowired constructor(
         val draftWithoutDeleted = switchDao.fetchVersions(MainLayoutContext.draft, false)
         assertContains(draftWithoutDeleted, undeletedDraft)
         assertFalse(draftWithoutDeleted.contains(deleteStateDraft))
-        assertFalse(draftWithoutDeleted.any { r -> r.id == deletedDraft.id})
+        assertFalse(draftWithoutDeleted.any { r -> r.id == deletedDraft.id })
 
         val draftWithDeleted = switchDao.fetchVersions(MainLayoutContext.draft, true)
         assertContains(draftWithDeleted, undeletedDraft)
@@ -152,7 +156,10 @@ class LayoutSwitchDaoIT @Autowired constructor(
         Thread.sleep(1) // Ensure that they get different timestamps
 
         val switch1MainV2 = testDBService.update(switch1MainV1).rowVersion
-        val switch1DesignV2 = designOfficialContext.copyFrom(switch1MainV1, officialRowId = switch1MainV1.rowId).rowVersion
+        val switch1DesignV2 =
+            designOfficialContext
+                .copyFrom(switch1MainV1, officialRowId = switch1MainV1.rowId)
+                .rowVersion
         val switch2DesignV2 = testDBService.update(switch2DesignV1).rowVersion
         switchDao.deleteRow(switch3DesignV1.rowId)
         val v2Time = switchDao.fetchChangeTime()
@@ -163,32 +170,59 @@ class LayoutSwitchDaoIT @Autowired constructor(
         val switch2MainV3 = mainOfficialContext.moveFrom(switch2DesignV2).rowVersion
         val v3Time = switchDao.fetchChangeTime()
 
-        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch1Id, v0Time))
-        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch2Id, v0Time))
-        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch3Id, v0Time))
+        assertEquals(
+            null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch1Id, v0Time))
+        assertEquals(
+            null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch2Id, v0Time))
+        assertEquals(
+            null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch3Id, v0Time))
         assertEquals(null, switchDao.fetchOfficialVersionAtMoment(designBranch, switch1Id, v0Time))
         assertEquals(null, switchDao.fetchOfficialVersionAtMoment(designBranch, switch2Id, v0Time))
         assertEquals(null, switchDao.fetchOfficialVersionAtMoment(designBranch, switch3Id, v0Time))
 
-        assertEquals(switch1MainV1, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch1Id, v1Time))
-        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch2Id, v1Time))
-        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch3Id, v1Time))
-        assertEquals(switch1MainV1, switchDao.fetchOfficialVersionAtMoment(designBranch, switch1Id, v1Time))
-        assertEquals(switch2DesignV1, switchDao.fetchOfficialVersionAtMoment(designBranch, switch2Id, v1Time))
-        assertEquals(switch3DesignV1, switchDao.fetchOfficialVersionAtMoment(designBranch, switch3Id, v1Time))
+        assertEquals(
+            switch1MainV1,
+            switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch1Id, v1Time))
+        assertEquals(
+            null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch2Id, v1Time))
+        assertEquals(
+            null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch3Id, v1Time))
+        assertEquals(
+            switch1MainV1, switchDao.fetchOfficialVersionAtMoment(designBranch, switch1Id, v1Time))
+        assertEquals(
+            switch2DesignV1,
+            switchDao.fetchOfficialVersionAtMoment(designBranch, switch2Id, v1Time))
+        assertEquals(
+            switch3DesignV1,
+            switchDao.fetchOfficialVersionAtMoment(designBranch, switch3Id, v1Time))
 
-        assertEquals(switch1MainV2, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch1Id, v2Time))
-        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch2Id, v2Time))
-        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch3Id, v2Time))
-        assertEquals(switch1DesignV2, switchDao.fetchOfficialVersionAtMoment(designBranch, switch1Id, v2Time))
-        assertEquals(switch2DesignV2, switchDao.fetchOfficialVersionAtMoment(designBranch, switch2Id, v2Time))
+        assertEquals(
+            switch1MainV2,
+            switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch1Id, v2Time))
+        assertEquals(
+            null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch2Id, v2Time))
+        assertEquals(
+            null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch3Id, v2Time))
+        assertEquals(
+            switch1DesignV2,
+            switchDao.fetchOfficialVersionAtMoment(designBranch, switch1Id, v2Time))
+        assertEquals(
+            switch2DesignV2,
+            switchDao.fetchOfficialVersionAtMoment(designBranch, switch2Id, v2Time))
         assertEquals(null, switchDao.fetchOfficialVersionAtMoment(designBranch, switch3Id, v2Time))
 
-        assertEquals(switch1MainV2, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch1Id, v3Time))
-        assertEquals(switch2MainV3, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch2Id, v3Time))
-        assertEquals(null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch3Id, v3Time))
-        assertEquals(switch1MainV2, switchDao.fetchOfficialVersionAtMoment(designBranch, switch1Id, v3Time))
-        assertEquals(switch2MainV3, switchDao.fetchOfficialVersionAtMoment(designBranch, switch2Id, v3Time))
+        assertEquals(
+            switch1MainV2,
+            switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch1Id, v3Time))
+        assertEquals(
+            switch2MainV3,
+            switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch2Id, v3Time))
+        assertEquals(
+            null, switchDao.fetchOfficialVersionAtMoment(LayoutBranch.main, switch3Id, v3Time))
+        assertEquals(
+            switch1MainV2, switchDao.fetchOfficialVersionAtMoment(designBranch, switch1Id, v3Time))
+        assertEquals(
+            switch2MainV3, switchDao.fetchOfficialVersionAtMoment(designBranch, switch2Id, v3Time))
         assertEquals(null, switchDao.fetchOfficialVersionAtMoment(designBranch, switch3Id, v3Time))
     }
 }

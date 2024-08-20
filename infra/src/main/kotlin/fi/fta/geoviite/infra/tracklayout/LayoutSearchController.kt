@@ -28,15 +28,18 @@ class LayoutSearchController(
 ) {
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}", params = ["searchTerm", "limitPerResultType"])
+    @GetMapping(
+        "/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}", params = ["searchTerm", "limitPerResultType"])
     fun searchAssets(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @RequestParam("searchTerm", required = true) searchTerm: FreeText,
         @RequestParam("limitPerResultType", required = true) limitPerResultType: Int,
-        @RequestParam("locationTrackSearchScope", required = false) locationTrackSearchScope: IntId<LocationTrack>?,
+        @RequestParam("locationTrackSearchScope", required = false)
+        locationTrackSearchScope: IntId<LocationTrack>?,
     ): TrackLayoutSearchResult {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        return searchService.searchAssets(layoutContext, searchTerm, limitPerResultType, locationTrackSearchScope)
+        return searchService.searchAssets(
+            layoutContext, searchTerm, limitPerResultType, locationTrackSearchScope)
     }
 }

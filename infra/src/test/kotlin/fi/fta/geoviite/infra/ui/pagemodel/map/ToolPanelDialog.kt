@@ -6,8 +6,8 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDropdown
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ETextInput
 import fi.fta.geoviite.infra.ui.util.byQaId
 import fi.fta.geoviite.infra.ui.util.dateFormat
-import org.openqa.selenium.By
 import java.time.LocalDate
+import org.openqa.selenium.By
 
 class E2ELocationTrackEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
     enum class State {
@@ -38,7 +38,9 @@ class E2ELocationTrackEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy)
 
     private val nameInput: E2ETextInput by lazy { childTextInput(byQaId("location-track-name")) }
 
-    private val trackNumberDropdown: E2EDropdown by lazy { childDropdown(byQaId("location-track-track-number")) }
+    private val trackNumberDropdown: E2EDropdown by lazy {
+        childDropdown(byQaId("location-track-track-number"))
+    }
 
     val ownerDropdown: E2EDropdown by lazy { childDropdown(byQaId("location-track-dialog.owner")) }
 
@@ -46,11 +48,17 @@ class E2ELocationTrackEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy)
 
     private val typeDropdown: E2EDropdown by lazy { childDropdown(byQaId("location-track-type")) }
 
-    private val descriptionBaseInput: E2ETextInput by lazy { childTextInput(byQaId("location-track-description-base")) }
+    private val descriptionBaseInput: E2ETextInput by lazy {
+        childTextInput(byQaId("location-track-description-base"))
+    }
 
-    private val descriptionSuffixDropdown: E2EDropdown by lazy { childDropdown(byQaId("location-track-description-suffix")) }
+    private val descriptionSuffixDropdown: E2EDropdown by lazy {
+        childDropdown(byQaId("location-track-description-suffix"))
+    }
 
-    private val topologicalConnectivityDropdown: E2EDropdown by lazy { childDropdown(byQaId("location-track-topological-connectivity")) }
+    private val topologicalConnectivityDropdown: E2EDropdown by lazy {
+        childDropdown(byQaId("location-track-topological-connectivity"))
+    }
 
     fun setName(name: String): E2ELocationTrackEditDialog = apply {
         logger.info("Set name $name")
@@ -82,18 +90,20 @@ class E2ELocationTrackEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy)
         descriptionBaseInput.replaceValue(description)
     }
 
-    fun setDescriptionSuffix(descriptionSuffix: DescriptionSuffix): E2ELocationTrackEditDialog = apply {
-        logger.info("Set description suffix $descriptionSuffix")
-
-        descriptionSuffixDropdown.selectByQaId(descriptionSuffix.name)
-    }
-
-    fun selectTopologicalConnectivity(topologicalConnectivity: TopologicalConnectivity): E2ELocationTrackEditDialog =
+    fun setDescriptionSuffix(descriptionSuffix: DescriptionSuffix): E2ELocationTrackEditDialog =
         apply {
-            logger.info("Select topological connectivity $topologicalConnectivity")
+            logger.info("Set description suffix $descriptionSuffix")
 
-            topologicalConnectivityDropdown.selectByQaId(topologicalConnectivity.name)
+            descriptionSuffixDropdown.selectByQaId(descriptionSuffix.name)
         }
+
+    fun selectTopologicalConnectivity(
+        topologicalConnectivity: TopologicalConnectivity
+    ): E2ELocationTrackEditDialog = apply {
+        logger.info("Select topological connectivity $topologicalConnectivity")
+
+        topologicalConnectivityDropdown.selectByQaId(topologicalConnectivity.name)
+    }
 
     fun save() = waitUntilClosed {
         logger.info("Save location track changes")
@@ -105,9 +115,7 @@ class E2ELocationTrackEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy)
             clickChild(
                 By.xpath(
                     "following-sibling::div[contains(@class, 'dialog')]" +
-                            "//button[contains(@class, 'button--primary')]"
-                )
-            )
+                        "//button[contains(@class, 'button--primary')]"))
         }
     }
 
@@ -127,8 +135,9 @@ class E2ETrackNumberEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
 
     private val nameInput: E2ETextInput by lazy { childTextInput(byQaId("track-number-name")) }
     private val stateDropdown: E2EDropdown by lazy { childDropdown(byQaId("track-number-state")) }
-    private val descriptionInput: E2ETextInput by lazy { childTextInput(byQaId("track-number-description")) }
-
+    private val descriptionInput: E2ETextInput by lazy {
+        childTextInput(byQaId("track-number-description"))
+    }
 
     fun setName(name: String): E2ETrackNumberEditDialog = apply {
         logger.info("Set name $name")
@@ -158,9 +167,7 @@ class E2ETrackNumberEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
             clickChild(
                 By.xpath(
                     "following-sibling::div[contains(@class, 'dialog')]/" +
-                            "/button[contains(@class, 'button--primary')]"
-                )
-            )
+                        "/button[contains(@class, 'button--primary')]"))
         }
     }
 }
@@ -231,8 +238,8 @@ class E2ELayoutSwitchEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) 
 
         if (isNotExisting) {
             clickChild(
-                By.xpath("following-sibling::div[contains(@class, 'dialog')]//button[contains(@class, 'button--primary')]")
-            )
+                By.xpath(
+                    "following-sibling::div[contains(@class, 'dialog')]//button[contains(@class, 'button--primary')]"))
         }
     }
 }

@@ -35,10 +35,11 @@ const val VALIDATION_CANT = "cant"
 const val VALIDATION_SWITCH = "switch"
 const val VALIDATION_KM_POST = "km-post"
 
-val trackTypeCodes = listOf(
-    FeatureTypeCode("281"),
-    FeatureTypeCode("111"),
-)
+val trackTypeCodes =
+    listOf(
+        FeatureTypeCode("281"),
+        FeatureTypeCode("111"),
+    )
 
 interface GeometryValidationIssue {
     val localizationKey: LocalizationKey
@@ -49,7 +50,11 @@ data class GeometryValidationIssueData(
     override val localizationKey: LocalizationKey,
     override val issueType: GeometryIssueType,
 ) : GeometryValidationIssue {
-    constructor(parentKey: String, errorKey: String, errorType: GeometryIssueType) : this(
+    constructor(
+        parentKey: String,
+        errorKey: String,
+        errorType: GeometryIssueType
+    ) : this(
         LocalizationKey("$VALIDATION.$parentKey.$errorKey"),
         errorType,
     )
@@ -59,7 +64,11 @@ data class MetadataError(
     @JsonIgnore private val data: GeometryValidationIssueData,
     val value: String?,
 ) : GeometryValidationIssue by data {
-    constructor(key: String, type: GeometryIssueType, value: String? = null) : this(
+    constructor(
+        key: String,
+        type: GeometryIssueType,
+        value: String? = null
+    ) : this(
         GeometryValidationIssueData(VALIDATION_METADATA, key, type),
         value,
     )
@@ -96,7 +105,12 @@ data class AlignmentIssue(
     val alignmentName: AlignmentName,
     val value: String?,
 ) : GeometryValidationIssue by data {
-    constructor(key: String, type: GeometryIssueType, alignmentName: AlignmentName, value: CharSequence? = null) : this(
+    constructor(
+        key: String,
+        type: GeometryIssueType,
+        alignmentName: AlignmentName,
+        value: CharSequence? = null
+    ) : this(
         GeometryValidationIssueData(VALIDATION_ALIGNMENT, key, type),
         alignmentName,
         value?.toString(),
@@ -146,8 +160,13 @@ data class CantIssue(
     val station: BigDecimal,
     val value: String?,
 ) : GeometryValidationIssue by data {
-    constructor(key: String, type: GeometryIssueType, cantName: PlanElementName, station: BigDecimal, value: String? = null):
-            this(GeometryValidationIssueData(VALIDATION_CANT, key, type), cantName, station, value)
+    constructor(
+        key: String,
+        type: GeometryIssueType,
+        cantName: PlanElementName,
+        station: BigDecimal,
+        value: String? = null
+    ) : this(GeometryValidationIssueData(VALIDATION_CANT, key, type), cantName, station, value)
 }
 
 data class KmPostIssue(
@@ -155,7 +174,12 @@ data class KmPostIssue(
     val kmPostName: PlanElementName,
     val value: String?,
 ) : GeometryValidationIssue by data {
-    constructor(key: String, type: GeometryIssueType, kmPostName: PlanElementName, value: String? = null) : this(
+    constructor(
+        key: String,
+        type: GeometryIssueType,
+        kmPostName: PlanElementName,
+        value: String? = null
+    ) : this(
         GeometryValidationIssueData(VALIDATION_KM_POST, key, type),
         kmPostName,
         value,
@@ -166,7 +190,12 @@ data class CollectionIssue(
     @JsonIgnore private val data: GeometryValidationIssueData,
     val value: String?,
 ) : GeometryValidationIssue by data {
-    constructor(key: String, groupingType: String, type: GeometryIssueType, value: CharSequence? = null) : this(
+    constructor(
+        key: String,
+        groupingType: String,
+        type: GeometryIssueType,
+        value: CharSequence? = null
+    ) : this(
         GeometryValidationIssueData(groupingType, key, type),
         value?.toString(),
     )
@@ -203,51 +232,59 @@ fun validate(
     officialTrackNumbers: List<TrackNumber>,
 ): List<GeometryValidationIssue> {
     return validateMetadata(plan, officialTrackNumbers) +
-            validateAlignments(plan.alignments, featureTypes) +
-            validateSwitches(plan.switches, plan.alignments, switchStructures) +
-            validateKmPosts(plan.kmPosts)
+        validateAlignments(plan.alignments, featureTypes) +
+        validateSwitches(plan.switches, plan.alignments, switchStructures) +
+        validateKmPosts(plan.kmPosts)
 }
 
-fun validateMetadata(plan: GeometryPlan, officialTrackNumbers: List<TrackNumber>): List<GeometryValidationIssue> =
+fun validateMetadata(
+    plan: GeometryPlan,
+    officialTrackNumbers: List<TrackNumber>
+): List<GeometryValidationIssue> =
     listOfNotNull<GeometryValidationIssue>(
-    validate(plan.units.coordinateSystemSrid != null) {
-        val key =
-            if (plan.units.coordinateSystemName == null) "coordinate-system-missing"
-            else "coordinate-system-unsupported"
-        MetadataError(key, VALIDATION_ERROR, plan.units.coordinateSystemName?.toString())
-    },
-    validate(plan.units.verticalCoordinateSystem != null || plan.alignments.all { a -> a.profile == null }) {
-        MetadataError("vertical-coordinate-system-missing", VALIDATION_ERROR)
-    },
-    validate(plan.trackNumber != null) {
-        MetadataError("track-number-missing", OBSERVATION_MAJOR)
-    },
-    validate(plan.trackNumber == null || officialTrackNumbers.contains(plan.trackNumber)) {
-        MetadataError("track-number-not-found", OBSERVATION_MAJOR, plan.trackNumber?.toString())
-    },
-    validate(plan.planTime != null) {
-        MetadataError("plan-time-missing", OBSERVATION_MINOR)
-    },
-    validate(plan.author != null) {
-        MetadataError("author-missing", OBSERVATION_MINOR)
-    },
-    validate(plan.kmPosts.isNotEmpty()) {
-        MetadataError("km-posts-missing", OBSERVATION_MAJOR)
-    },
-)
+        validate(plan.units.coordinateSystemSrid != null) {
+            val key =
+                if (plan.units.coordinateSystemName == null) "coordinate-system-missing"
+                else "coordinate-system-unsupported"
+            MetadataError(key, VALIDATION_ERROR, plan.units.coordinateSystemName?.toString())
+        },
+        validate(
+            plan.units.verticalCoordinateSystem != null ||
+                plan.alignments.all { a -> a.profile == null }) {
+                MetadataError("vertical-coordinate-system-missing", VALIDATION_ERROR)
+            },
+        validate(plan.trackNumber != null) {
+            MetadataError("track-number-missing", OBSERVATION_MAJOR)
+        },
+        validate(plan.trackNumber == null || officialTrackNumbers.contains(plan.trackNumber)) {
+            MetadataError("track-number-not-found", OBSERVATION_MAJOR, plan.trackNumber?.toString())
+        },
+        validate(plan.planTime != null) { MetadataError("plan-time-missing", OBSERVATION_MINOR) },
+        validate(plan.author != null) { MetadataError("author-missing", OBSERVATION_MINOR) },
+        validate(plan.kmPosts.isNotEmpty()) {
+            MetadataError("km-posts-missing", OBSERVATION_MAJOR)
+        },
+    )
 
 fun validateAlignments(
     alignments: List<GeometryAlignment>,
     featureTypes: List<FeatureType>,
 ): List<GeometryValidationIssue> {
-    val duplicateNames = alignments.mapNotNull { alignment ->
-        if (alignments.any { other -> other.id != alignment.id && other.name == alignment.name }) {
-            alignment.name
-        } else null
-    }.toSet()
-    val duplicateErrors = duplicateNames.map { name -> AlignmentIssue("duplicate-name", OBSERVATION_MAJOR, name) }
+    val duplicateNames =
+        alignments
+            .mapNotNull { alignment ->
+                if (alignments.any { other ->
+                    other.id != alignment.id && other.name == alignment.name
+                }) {
+                    alignment.name
+                } else null
+            }
+            .toSet()
+    val duplicateErrors =
+        duplicateNames.map { name -> AlignmentIssue("duplicate-name", OBSERVATION_MAJOR, name) }
 
-    val alignmentErrors = alignments.flatMap { alignment -> validateAlignment(alignment, featureTypes) }
+    val alignmentErrors =
+        alignments.flatMap { alignment -> validateAlignment(alignment, featureTypes) }
 
     val alignmentCollectionErrors = validateAlignmentCollection(alignments)
 
@@ -259,29 +296,35 @@ fun validateSwitches(
     alignments: List<GeometryAlignment>,
     switchStructures: Map<IntId<SwitchStructure>, SwitchStructure>,
 ): List<GeometryValidationIssue> {
-    val duplicateNames = switches.mapNotNull { switch ->
-        if (switches.any { other -> other.id != switch.id && other.name == switch.name }) {
-            switch.name
-        } else null
-    }.toSet()
-    val duplicateErrors = duplicateNames.map { name ->
-        SwitchDefinitionError("duplicate-name", OBSERVATION_MAJOR, name)
-    }
-    val switchErrors = switches.flatMap { switch ->
-        validateSwitch(
-            switch,
-            switch.switchStructureId?.let(switchStructures::get),
-            alignments.mapNotNull { a -> collectAlignmentSwitchJoints(switch.id, a) },
-        )
-    }
+    val duplicateNames =
+        switches
+            .mapNotNull { switch ->
+                if (switches.any { other -> other.id != switch.id && other.name == switch.name }) {
+                    switch.name
+                } else null
+            }
+            .toSet()
+    val duplicateErrors =
+        duplicateNames.map { name ->
+            SwitchDefinitionError("duplicate-name", OBSERVATION_MAJOR, name)
+        }
+    val switchErrors =
+        switches.flatMap { switch ->
+            validateSwitch(
+                switch,
+                switch.switchStructureId?.let(switchStructures::get),
+                alignments.mapNotNull { a -> collectAlignmentSwitchJoints(switch.id, a) },
+            )
+        }
     return duplicateErrors + switchErrors
 }
 
 fun validateKmPosts(kmPosts: List<GeometryKmPost>): List<GeometryValidationIssue> {
-    val singularKmPostsValidations =  kmPosts.flatMapIndexed { i, p ->
-        // Don't validate 1st km-post as it's just a 0-point with different data
-        if (i > 0) validateKmPost(p) else listOf()
-    }
+    val singularKmPostsValidations =
+        kmPosts.flatMapIndexed { i, p ->
+            // Don't validate 1st km-post as it's just a 0-point with different data
+            if (i > 0) validateKmPost(p) else listOf()
+        }
 
     return singularKmPostsValidations + validateKmPostCollection(kmPosts)
 }
@@ -291,35 +334,41 @@ private fun validateKmPostCollection(kmPosts: List<GeometryKmPost>): List<Collec
     val firstKmPost = groupedKmPosts.firstOrNull()
     val duplicateKmPosts = groupedKmPosts.groupBy { it.kmNumber }.filter { it.value.size > 1 }.keys
 
-    val generalErrors = listOfNotNull(
-        validate(duplicateKmPosts.isEmpty()) {
-            CollectionIssue(
-                "duplicate-km-posts",
-                VALIDATION_KM_POST,
-                VALIDATION_ERROR,
-                duplicateKmPosts.map { it.toString() }.joinToString(", ")
-            )
-        },
-        validate(firstKmPost != null && firstKmPost.staAhead <= BigDecimal.ZERO) {
-            CollectionIssue("sta-ahead-not-negative", VALIDATION_KM_POST, VALIDATION_ERROR, firstKmPost?.staAhead?.toString())
-        },
-    )
+    val generalErrors =
+        listOfNotNull(
+            validate(duplicateKmPosts.isEmpty()) {
+                CollectionIssue(
+                    "duplicate-km-posts",
+                    VALIDATION_KM_POST,
+                    VALIDATION_ERROR,
+                    duplicateKmPosts.map { it.toString() }.joinToString(", "))
+            },
+            validate(firstKmPost != null && firstKmPost.staAhead <= BigDecimal.ZERO) {
+                CollectionIssue(
+                    "sta-ahead-not-negative",
+                    VALIDATION_KM_POST,
+                    VALIDATION_ERROR,
+                    firstKmPost?.staAhead?.toString())
+            },
+        )
     return generalErrors
 }
 
-fun validateKmPost(post: GeometryKmPost) = listOfNotNull(
-    validate(post.location != null) {
-        KmPostIssue("location-missing", OBSERVATION_MAJOR, post.description)
-    },
-    validate(post.kmNumber != null) {
-        KmPostIssue("km-number-incorrect", OBSERVATION_MINOR, post.description)
-    },
-)
+fun validateKmPost(post: GeometryKmPost) =
+    listOfNotNull(
+        validate(post.location != null) {
+            KmPostIssue("location-missing", OBSERVATION_MAJOR, post.description)
+        },
+        validate(post.kmNumber != null) {
+            KmPostIssue("km-number-incorrect", OBSERVATION_MINOR, post.description)
+        },
+    )
 
-fun validateAlignmentCollection(alignments: List<GeometryAlignment>): List<GeometryValidationIssue> {
-    val referenceLineAlignments = alignments.filter { alignment ->
-        alignment.featureTypeCode == REFERENCE_LINE_TYPE_CODE
-    }
+fun validateAlignmentCollection(
+    alignments: List<GeometryAlignment>
+): List<GeometryValidationIssue> {
+    val referenceLineAlignments =
+        alignments.filter { alignment -> alignment.featureTypeCode == REFERENCE_LINE_TYPE_CODE }
     return listOfNotNull(
         validate(referenceLineAlignments.isNotEmpty()) {
             CollectionIssue("no-reference-lines", VALIDATION_ALIGNMENT, OBSERVATION_MAJOR)
@@ -331,137 +380,165 @@ fun validateAlignmentCollection(alignments: List<GeometryAlignment>): List<Geome
 }
 
 fun validateAlignmentGeometry(alignment: GeometryAlignment): List<GeometryValidationIssue> {
-    return validatePieces(alignment.name, alignment.elements, ::validateElement, ::validateElementVsPrevious)
+    return validatePieces(
+        alignment.name, alignment.elements, ::validateElement, ::validateElementVsPrevious)
 }
 
 fun validateAlignmentProfile(alignment: GeometryAlignment): List<GeometryValidationIssue> {
     return alignment.profile?.let { profile ->
-        val intersectionErrors = validatePieces(
-            profile.name,
-            profile.elements,
-            ::validateIntersection,
-            ::validateIntersectionVsPrevious,
-        )
-        val segmentErrors = validatePieces(
-            profile.name,
-            profile.segments,
-            ::validateProfileSegment,
-            ::validateProfileSegmentVsPrevious,
-        )
+        val intersectionErrors =
+            validatePieces(
+                profile.name,
+                profile.elements,
+                ::validateIntersection,
+                ::validateIntersectionVsPrevious,
+            )
+        val segmentErrors =
+            validatePieces(
+                profile.name,
+                profile.segments,
+                ::validateProfileSegment,
+                ::validateProfileSegmentVsPrevious,
+            )
         intersectionErrors + segmentErrors
     } ?: listOf(AlignmentIssue("no-profile", OBSERVATION_MAJOR, alignment.name))
 }
 
 fun validateAlignmentCant(alignment: GeometryAlignment): List<GeometryValidationIssue> {
     return alignment.cant?.let { cant ->
-        val cantErrors = listOfNotNull(
-            validate(cant.rotationPoint != null || alignment.featureTypeCode == REFERENCE_LINE_TYPE_CODE) {
-                AlignmentIssue("cant-rotation-point-undefined", VALIDATION_ERROR, alignment.name)
-            },
-            validate(cant.rotationPoint != CENTER) {
-                AlignmentIssue("cant-rotation-point-center", VALIDATION_ERROR, alignment.name)
-            },
-            validate(cant.gauge == FINNISH_RAIL_GAUGE) {
-                AlignmentIssue("cant-gauge-invalid", OBSERVATION_MAJOR, alignment.name, value = cant.gauge.toString())
-            },
-        )
-        val pointErrors = validatePieces(
-            parentName = cant.name,
-            pieces = cant.points,
-            itemValidator = { cantName, cp -> validateCantPoint(cantName, cp, cant.gauge) },
-            itemVsPreviousValidator = ::validateCantPointVsPrevious,
-        )
+        val cantErrors =
+            listOfNotNull(
+                validate(
+                    cant.rotationPoint != null ||
+                        alignment.featureTypeCode == REFERENCE_LINE_TYPE_CODE) {
+                        AlignmentIssue(
+                            "cant-rotation-point-undefined", VALIDATION_ERROR, alignment.name)
+                    },
+                validate(cant.rotationPoint != CENTER) {
+                    AlignmentIssue("cant-rotation-point-center", VALIDATION_ERROR, alignment.name)
+                },
+                validate(cant.gauge == FINNISH_RAIL_GAUGE) {
+                    AlignmentIssue(
+                        "cant-gauge-invalid",
+                        OBSERVATION_MAJOR,
+                        alignment.name,
+                        value = cant.gauge.toString())
+                },
+            )
+        val pointErrors =
+            validatePieces(
+                parentName = cant.name,
+                pieces = cant.points,
+                itemValidator = { cantName, cp -> validateCantPoint(cantName, cp, cant.gauge) },
+                itemVsPreviousValidator = ::validateCantPointVsPrevious,
+            )
         cantErrors + pointErrors
     } ?: listOf(AlignmentIssue("no-cant", OBSERVATION_MAJOR, alignment.name))
 }
 
-fun validateAlignment(alignment: GeometryAlignment, featureTypes: List<FeatureType>): List<GeometryValidationIssue> {
+fun validateAlignment(
+    alignment: GeometryAlignment,
+    featureTypes: List<FeatureType>
+): List<GeometryValidationIssue> {
     val typeCode = alignment.featureTypeCode
     val type = typeCode?.let { c -> featureTypes.find { ft -> ft.code == c } }
-    val typeCodeError = if (typeCode == null) {
-        AlignmentIssue("no-feature-type", OBSERVATION_MAJOR, alignment.name)
-    } else if (type == null) {
-        AlignmentIssue("unknown-feature-type", OBSERVATION_MAJOR, alignment.name, typeCode)
-    } else if (type.code !in trackTypeCodes) {
-        AlignmentIssue("wrong-feature-type", OBSERVATION_MINOR, alignment.name, "${type.code} (${type.description})")
-    } else {
-        null
-    }
-    val alignmentIssues = listOfNotNull(
-        typeCodeError,
-        validate(alignment.state != null) {
-            AlignmentIssue("no-state", OBSERVATION_MINOR, alignment.name)
-        },
-    )
+    val typeCodeError =
+        if (typeCode == null) {
+            AlignmentIssue("no-feature-type", OBSERVATION_MAJOR, alignment.name)
+        } else if (type == null) {
+            AlignmentIssue("unknown-feature-type", OBSERVATION_MAJOR, alignment.name, typeCode)
+        } else if (type.code !in trackTypeCodes) {
+            AlignmentIssue(
+                "wrong-feature-type",
+                OBSERVATION_MINOR,
+                alignment.name,
+                "${type.code} (${type.description})")
+        } else {
+            null
+        }
+    val alignmentIssues =
+        listOfNotNull(
+            typeCodeError,
+            validate(alignment.state != null) {
+                AlignmentIssue("no-state", OBSERVATION_MINOR, alignment.name)
+            },
+        )
     return alignmentIssues +
-            validateAlignmentGeometry(alignment) +
-            validateAlignmentProfile(alignment) +
-            validateAlignmentCant(alignment)
+        validateAlignmentGeometry(alignment) +
+        validateAlignmentProfile(alignment) +
+        validateAlignmentCant(alignment)
 }
 
-private fun validateElement(alignmentName: AlignmentName, element: GeometryElement): List<ElementIssue> {
+private fun validateElement(
+    alignmentName: AlignmentName,
+    element: GeometryElement
+): List<ElementIssue> {
     val lengthDelta = abs(element.length.toDouble() - element.calculatedLength)
-    val fieldErrors = listOfNotNull(
-        validate(element.length > BigDecimal.ZERO) {
-            ElementIssue(
-                key = "field-invalid-length",
-                type = OBSERVATION_MAJOR,
-                alignmentName = alignmentName,
-                element = element,
-                value = element.length.toString(),
-            )
-        },
-        validate(element.length <= BigDecimal.ZERO || lengthDelta < ACCURATE_LENGTH_DELTA) {
-            val isIncorrect = lengthDelta > LENGTH_DELTA
-            ElementIssue(
-                key = if (isIncorrect) "field-incorrect-length" else "field-inaccurate-length",
-                type = if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
-                alignmentName = alignmentName,
-                element = element,
-                value = "${element.length} <> ${round(element.calculatedLength, element.length.scale())}"
-            )
-        },
-    )
+    val fieldErrors =
+        listOfNotNull(
+            validate(element.length > BigDecimal.ZERO) {
+                ElementIssue(
+                    key = "field-invalid-length",
+                    type = OBSERVATION_MAJOR,
+                    alignmentName = alignmentName,
+                    element = element,
+                    value = element.length.toString(),
+                )
+            },
+            validate(element.length <= BigDecimal.ZERO || lengthDelta < ACCURATE_LENGTH_DELTA) {
+                val isIncorrect = lengthDelta > LENGTH_DELTA
+                ElementIssue(
+                    key = if (isIncorrect) "field-incorrect-length" else "field-inaccurate-length",
+                    type = if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
+                    alignmentName = alignmentName,
+                    element = element,
+                    value =
+                        "${element.length} <> ${round(element.calculatedLength, element.length.scale())}")
+            },
+        )
 
     val calculatedStart = element.getCoordinateAt(0.0)
     val calculatedEnd = element.getCoordinateAt(element.calculatedLength)
-    val endPointErrors = listOfNotNull(
-        validate(!element.start.isSame(element.end, ACCURATE_COORDINATE_DELTA)) {
-            ElementIssue(
-                key = "start-end-same",
-                type = OBSERVATION_MAJOR,
-                alignmentName = alignmentName,
-                element = element,
-            )
-        },
-        validate(calculatedStart.isSame(element.start, ACCURATE_COORDINATE_DELTA)) {
-            val isIncorrect = !calculatedStart.isSame(element.start, COORDINATE_DELTA)
-            ElementIssue(
-                key = if (isIncorrect) "incorrect-start-point" else "inaccurate-start-point",
-                type = if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
-                alignmentName = alignmentName,
-                element = element,
-                value = roundTo3Decimals(lineLength(element.start, calculatedStart)).toString(),
-            )
-        },
-        validate(calculatedEnd.isSame(element.end, ACCURATE_COORDINATE_DELTA)) {
-            val isIncorrect = !calculatedEnd.isSame(element.end, COORDINATE_DELTA)
-            ElementIssue(
-                key = if (isIncorrect) "incorrect-end-point" else "inaccurate-end-point",
-                type = if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
-                alignmentName = alignmentName,
-                element = element,
-                value = roundTo3Decimals(lineLength(element.end, calculatedEnd)).toString(),
-            )
-        },
-    )
+    val endPointErrors =
+        listOfNotNull(
+            validate(!element.start.isSame(element.end, ACCURATE_COORDINATE_DELTA)) {
+                ElementIssue(
+                    key = "start-end-same",
+                    type = OBSERVATION_MAJOR,
+                    alignmentName = alignmentName,
+                    element = element,
+                )
+            },
+            validate(calculatedStart.isSame(element.start, ACCURATE_COORDINATE_DELTA)) {
+                val isIncorrect = !calculatedStart.isSame(element.start, COORDINATE_DELTA)
+                ElementIssue(
+                    key = if (isIncorrect) "incorrect-start-point" else "inaccurate-start-point",
+                    type = if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
+                    alignmentName = alignmentName,
+                    element = element,
+                    value = roundTo3Decimals(lineLength(element.start, calculatedStart)).toString(),
+                )
+            },
+            validate(calculatedEnd.isSame(element.end, ACCURATE_COORDINATE_DELTA)) {
+                val isIncorrect = !calculatedEnd.isSame(element.end, COORDINATE_DELTA)
+                ElementIssue(
+                    key = if (isIncorrect) "incorrect-end-point" else "inaccurate-end-point",
+                    type = if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
+                    alignmentName = alignmentName,
+                    element = element,
+                    value = roundTo3Decimals(lineLength(element.end, calculatedEnd)).toString(),
+                )
+            },
+        )
 
-    val typeErrors = when (element) {
-        is GeometryLine -> listOf()
-        is GeometryCurve -> validateCurve(alignmentName, element)
-        is GeometryClothoid -> validateSpiral(alignmentName, element) + validateClothoid(alignmentName, element)
-        is BiquadraticParabola -> validateSpiral(alignmentName, element)
-    }
+    val typeErrors =
+        when (element) {
+            is GeometryLine -> listOf()
+            is GeometryCurve -> validateCurve(alignmentName, element)
+            is GeometryClothoid ->
+                validateSpiral(alignmentName, element) + validateClothoid(alignmentName, element)
+            is BiquadraticParabola -> validateSpiral(alignmentName, element)
+        }
 
     return fieldErrors + endPointErrors + typeErrors
 }
@@ -490,7 +567,8 @@ private fun validateElementVsPrevious(
                 type = if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
                 alignmentName = alignmentName,
                 element = element,
-                value = "${roundTo3Decimals(previous.endDirectionRads)} <> ${roundTo3Decimals(element.startDirectionRads)}",
+                value =
+                    "${roundTo3Decimals(previous.endDirectionRads)} <> ${roundTo3Decimals(element.startDirectionRads)}",
             )
         },
         validate(element.staStart > previous.staStart) {
@@ -514,7 +592,9 @@ private fun validateCurve(alignmentName: AlignmentName, curve: GeometryCurve): L
         validate(startRadiusDiff <= ACCURATE_RADIUS_DELTA) {
             val isIncorrect = startRadiusDiff > RADIUS_DELTA
             ElementIssue(
-                key = if (isIncorrect) "curve-radius-incorrect-start" else "curve-radius-inaccurate-start",
+                key =
+                    if (isIncorrect) "curve-radius-incorrect-start"
+                    else "curve-radius-inaccurate-start",
                 type = if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
                 alignmentName = alignmentName,
                 element = curve,
@@ -524,7 +604,9 @@ private fun validateCurve(alignmentName: AlignmentName, curve: GeometryCurve): L
         validate(endRadiusDiff <= ACCURATE_RADIUS_DELTA) {
             val isIncorrect = endRadiusDiff > RADIUS_DELTA
             ElementIssue(
-                key = if (isIncorrect) "curve-radius-incorrect-end" else "curve-radius-inaccurate-end",
+                key =
+                    if (isIncorrect) "curve-radius-incorrect-end"
+                    else "curve-radius-inaccurate-end",
                 type = if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
                 alignmentName = alignmentName,
                 element = curve,
@@ -552,7 +634,10 @@ private fun validateCurve(alignmentName: AlignmentName, curve: GeometryCurve): L
     )
 }
 
-private fun validateSpiral(alignmentName: AlignmentName, spiral: GeometrySpiral): List<ElementIssue> {
+private fun validateSpiral(
+    alignmentName: AlignmentName,
+    spiral: GeometrySpiral
+): List<ElementIssue> {
     val startRadius = spiral.radiusStart
     val endRadius = spiral.radiusEnd
     return listOfNotNull(
@@ -577,12 +662,17 @@ private fun validateSpiral(alignmentName: AlignmentName, spiral: GeometrySpiral)
     )
 }
 
-private fun validateClothoid(alignmentName: AlignmentName, clothoid: GeometryClothoid): List<ElementIssue> {
+private fun validateClothoid(
+    alignmentName: AlignmentName,
+    clothoid: GeometryClothoid
+): List<ElementIssue> {
     val calculatedConstant =
         if (clothoid.radiusStart != null) {
             sqrt(clothoid.radiusStart.toDouble() * clothoid.segmentToClothoidDistance(0.0))
         } else if (clothoid.radiusEnd != null) {
-            sqrt(clothoid.radiusEnd.toDouble() * clothoid.segmentToClothoidDistance(clothoid.length.toDouble()))
+            sqrt(
+                clothoid.radiusEnd.toDouble() *
+                    clothoid.segmentToClothoidDistance(clothoid.length.toDouble()))
         } else null
 
     return listOfNotNull(
@@ -591,7 +681,9 @@ private fun validateClothoid(alignmentName: AlignmentName, clothoid: GeometryClo
             validate(constantDiff <= ACCURATE_CONSTANT_A_DELTA) {
                 val isIncorrect = constantDiff > CONSTANT_A_DELTA
                 ElementIssue(
-                    key = if (isIncorrect) "clothoid-incorrect-constant" else "clothoid-inaccurate-constant",
+                    key =
+                        if (isIncorrect) "clothoid-incorrect-constant"
+                        else "clothoid-inaccurate-constant",
                     type = if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
                     alignmentName = alignmentName,
                     element = clothoid,
@@ -602,7 +694,10 @@ private fun validateClothoid(alignmentName: AlignmentName, clothoid: GeometryClo
     )
 }
 
-private fun validateIntersection(profileName: PlanElementName, intersection: VerticalIntersection): List<ProfileIssue> {
+private fun validateIntersection(
+    profileName: PlanElementName,
+    intersection: VerticalIntersection
+): List<ProfileIssue> {
     return if (intersection is VICircularCurve) {
         listOfNotNull(
             validate(intersection.length != null) {
@@ -629,13 +724,14 @@ private fun validateIntersectionVsPrevious(
     profileName: PlanElementName,
     intersection: VerticalIntersection,
     previous: VerticalIntersection,
-) : List<ProfileIssue> {
+): List<ProfileIssue> {
     val deltaX = intersection.point.x - previous.point.x
     val deltaY = intersection.point.y - previous.point.y
-    val profileAngle = if (deltaX > 0) radsToDegrees(sin(deltaY/deltaX)) else null
+    val profileAngle = if (deltaX > 0) radsToDegrees(sin(deltaY / deltaX)) else null
     return listOfNotNull(
         validate(deltaX > 0) {
-            ProfileIssue("incorrect-station", OBSERVATION_MAJOR, profileName, intersection.description)
+            ProfileIssue(
+                "incorrect-station", OBSERVATION_MAJOR, profileName, intersection.description)
         },
         profileAngle?.let { angle ->
             validate(abs(angle) <= MAX_PROFILE_SLOPE_DEGREES) {
@@ -651,7 +747,10 @@ private fun validateIntersectionVsPrevious(
     )
 }
 
-private fun validateProfileSegment(profileName: PlanElementName, segment: ProfileSegment): List<ProfileIssue> {
+private fun validateProfileSegment(
+    profileName: PlanElementName,
+    segment: ProfileSegment
+): List<ProfileIssue> {
     return listOfNotNull(
         validate(segment !is LinearProfileSegment || segment.valid) {
             ProfileIssue(
@@ -669,7 +768,7 @@ private fun validateProfileSegmentVsPrevious(
     profileName: PlanElementName,
     segment: ProfileSegment,
     previous: ProfileSegment,
-) : List<ProfileIssue> {
+): List<ProfileIssue> {
     val segmentValid = segment is LinearProfileSegment && !segment.valid
     val previousValid = previous is LinearProfileSegment && !previous.valid
     return listOfNotNull(
@@ -691,15 +790,19 @@ private fun validateProfileSegmentVsPrevious(
                 value = "${roundTo3Decimals(previous.end.y)}<>${roundTo3Decimals(segment.start.y)}",
             )
         },
-        validate(!segmentValid || !previousValid || abs(segment.startAngle - previous.endAngle) <= 0.0001) {
-            ProfileIssue(
-                key = "segment-angle-not-continuous",
-                type = OBSERVATION_MAJOR,
-                profileName = profileName,
-                viName = segment.viName,
-                value = "${roundTo3Decimals(radsToDegrees(previous.endAngle))}<>${roundTo3Decimals(radsToDegrees(segment.startAngle))}",
-            )
-        },
+        validate(
+            !segmentValid ||
+                !previousValid ||
+                abs(segment.startAngle - previous.endAngle) <= 0.0001) {
+                ProfileIssue(
+                    key = "segment-angle-not-continuous",
+                    type = OBSERVATION_MAJOR,
+                    profileName = profileName,
+                    viName = segment.viName,
+                    value =
+                        "${roundTo3Decimals(radsToDegrees(previous.endAngle))}<>${roundTo3Decimals(radsToDegrees(segment.startAngle))}",
+                )
+            },
     )
 }
 
@@ -709,7 +812,7 @@ private fun validateCantPoint(
     gauge: BigDecimal
 ): List<CantIssue> {
     return listOfNotNull(
-        validate (cantPoint.appliedCant.toDouble() in 0.0..gauge.toDouble()) {
+        validate(cantPoint.appliedCant.toDouble() in 0.0..gauge.toDouble()) {
             CantIssue(
                 key = "value-incorrect",
                 type = OBSERVATION_MAJOR,
@@ -741,33 +844,36 @@ fun validateSwitch(
     val jointNumbers = switch.joints.map(GeometrySwitchJoint::number)
     val structureJointNumbers = structure?.joints?.map(SwitchJoint::number) ?: listOf()
 
-    val fieldErrors = listOfNotNull(
-        validate(structure != null) {
-            SwitchDefinitionError("type-unrecognized", OBSERVATION_MAJOR, switch.name, switch.typeName)
-        },
-        validate(structure == null || jointNumbers.all(structureJointNumbers::contains)) {
-            SwitchDefinitionError(
-                key = "incorrect-joints",
-                switchName = switch.name,
-                jointNumbers = jointNumbers,
-                structureJointNumbers = structureJointNumbers,
-                type = OBSERVATION_MAJOR,
-            )
-        },
-        validate(jointNumbers.size >= 2) {
-            SwitchDefinitionError(
-                key = "insufficient-joints",
-                switchName = switch.name,
-                jointNumbers = jointNumbers,
-                structureJointNumbers = structureJointNumbers,
-                type = OBSERVATION_MINOR,
-            )
-        }
-    )
+    val fieldErrors =
+        listOfNotNull(
+            validate(structure != null) {
+                SwitchDefinitionError(
+                    "type-unrecognized", OBSERVATION_MAJOR, switch.name, switch.typeName)
+            },
+            validate(structure == null || jointNumbers.all(structureJointNumbers::contains)) {
+                SwitchDefinitionError(
+                    key = "incorrect-joints",
+                    switchName = switch.name,
+                    jointNumbers = jointNumbers,
+                    structureJointNumbers = structureJointNumbers,
+                    type = OBSERVATION_MAJOR,
+                )
+            },
+            validate(jointNumbers.size >= 2) {
+                SwitchDefinitionError(
+                    key = "insufficient-joints",
+                    switchName = switch.name,
+                    jointNumbers = jointNumbers,
+                    structureJointNumbers = structureJointNumbers,
+                    type = OBSERVATION_MINOR,
+                )
+            })
 
     val geometryErrors = structure?.let { s -> validateSwitchGeometry(switch, s) } ?: emptyList()
 
-    val alignmentErrors = structure?.let { s -> validateSwitchAlignments(switch, s, alignmentSwitches) } ?: emptyList()
+    val alignmentErrors =
+        structure?.let { s -> validateSwitchAlignments(switch, s, alignmentSwitches) }
+            ?: emptyList()
 
     return fieldErrors + geometryErrors + alignmentErrors
 }
@@ -778,29 +884,37 @@ fun validateSwitchGeometry(
 ): List<SwitchDefinitionError> {
     val joints: List<GeometrySwitchJoint> = switch.joints
     val positionTransformation =
-        if (joints.size > 1) getSwitchPositionTransformation(switchStructure, joints)
-        else null
+        if (joints.size > 1) getSwitchPositionTransformation(switchStructure, joints) else null
     return if (positionTransformation == null) {
-        listOfNotNull(validate(joints.size <= 1) {
-            SwitchDefinitionError("location-difference", OBSERVATION_MAJOR, switch.name)
-        })
-    } else {
-        val locationPairs = joints.mapNotNull { joint ->
-            switchStructure.joints
-                .find { structureJoint -> structureJoint.number == joint.number }
-                ?.let { structureJoint -> transformSwitchPoint(positionTransformation, structureJoint.location) }
-                ?.let { calculatedLocation -> joint.location to calculatedLocation }
-        }
         listOfNotNull(
-            validate(locationPairs.all { (loc, calc) -> loc.isSame(calc, ACCURATE_JOINT_LOCATION_DELTA) }) {
-                val isIncorrect = locationPairs.any { (loc, calc) -> !loc.isSame(calc, JOINT_LOCATION_DELTA) }
-                SwitchDefinitionError(
-                    key = if (isIncorrect) "incorrect-joint-locations" else "inaccurate-joint-locations",
-                    type = if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
-                    switchName = switch.name,
-                )
+            validate(joints.size <= 1) {
+                SwitchDefinitionError("location-difference", OBSERVATION_MAJOR, switch.name)
+            })
+    } else {
+        val locationPairs =
+            joints.mapNotNull { joint ->
+                switchStructure.joints
+                    .find { structureJoint -> structureJoint.number == joint.number }
+                    ?.let { structureJoint ->
+                        transformSwitchPoint(positionTransformation, structureJoint.location)
+                    }
+                    ?.let { calculatedLocation -> joint.location to calculatedLocation }
             }
-        )
+        listOfNotNull(
+            validate(
+                locationPairs.all { (loc, calc) ->
+                    loc.isSame(calc, ACCURATE_JOINT_LOCATION_DELTA)
+                }) {
+                    val isIncorrect =
+                        locationPairs.any { (loc, calc) -> !loc.isSame(calc, JOINT_LOCATION_DELTA) }
+                    SwitchDefinitionError(
+                        key =
+                            if (isIncorrect) "incorrect-joint-locations"
+                            else "inaccurate-joint-locations",
+                        type = if (isIncorrect) OBSERVATION_MAJOR else OBSERVATION_MINOR,
+                        switchName = switch.name,
+                    )
+                })
     }
 }
 
@@ -811,19 +925,21 @@ fun validateSwitchAlignments(
 ): List<SwitchDefinitionError> {
     val joints: List<GeometrySwitchJoint> = switch.joints
     return alignmentSwitches.flatMap { alignmentSwitch ->
-        val structureAlignment = switchStructure.alignments.find { sa ->
-            sa.jointNumbers.containsAll(sa.jointNumbers)
-        }
+        val structureAlignment =
+            switchStructure.alignments.find { sa -> sa.jointNumbers.containsAll(sa.jointNumbers) }
         val incorrectJoints = mutableListOf<JointNumber>()
         val inaccurateJoints = mutableListOf<JointNumber>()
         alignmentSwitch.joints.forEach { asj ->
-            joints.find { j -> j.number == asj.number }?.also { joint ->
-                if (!asj.location.isSame(joint.location, JOINT_LOCATION_DELTA)) {
-                    incorrectJoints.add(asj.number)
-                } else if (!asj.location.isSame(joint.location, ACCURATE_JOINT_LOCATION_DELTA)) {
-                    inaccurateJoints.add(asj.number)
+            joints
+                .find { j -> j.number == asj.number }
+                ?.also { joint ->
+                    if (!asj.location.isSame(joint.location, JOINT_LOCATION_DELTA)) {
+                        incorrectJoints.add(asj.number)
+                    } else if (!asj.location.isSame(
+                        joint.location, ACCURATE_JOINT_LOCATION_DELTA)) {
+                        inaccurateJoints.add(asj.number)
+                    }
                 }
-            }
         }
 
         listOfNotNull(
@@ -861,7 +977,10 @@ fun validateSwitchAlignments(
     }
 }
 
-fun getSwitchPositionTransformation(switchStructure: SwitchStructure, joints: List<GeometrySwitchJoint>) =
+fun getSwitchPositionTransformation(
+    switchStructure: SwitchStructure,
+    joints: List<GeometrySwitchJoint>
+) =
     try {
         calculateSwitchLocationDelta(joints, switchStructure)
     } catch (e: Exception) {
@@ -883,22 +1002,28 @@ fun collectAlignmentSwitchJoints(
         .let { joints -> if (joints.isEmpty()) null else AlignmentSwitch(alignment, joints) }
 }
 
-data class AlignmentSwitch(val alignment: GeometryAlignment, val joints: List<AlignmentSwitchJoint>) {
-    val jointNumbers = joints
-        .filterIndexed { i, j -> j.number.intValue != 0 && (i == 0 || joints[i].number != j.number) }
-        .map(AlignmentSwitchJoint::number)
+data class AlignmentSwitch(
+    val alignment: GeometryAlignment,
+    val joints: List<AlignmentSwitchJoint>
+) {
+    val jointNumbers =
+        joints
+            .filterIndexed { i, j ->
+                j.number.intValue != 0 && (i == 0 || joints[i].number != j.number)
+            }
+            .map(AlignmentSwitchJoint::number)
 }
+
 data class AlignmentSwitchJoint(val number: JointNumber, val location: Point)
 
-private fun <T: GeometryValidationIssue> validate(check: Boolean, lazyError: () -> T): T? =
-    if (check) null
-    else lazyError()
+private fun <T : GeometryValidationIssue> validate(check: Boolean, lazyError: () -> T): T? =
+    if (check) null else lazyError()
 
 /**
- * Validate a list of items, using one function to check the items themselves and another to check them versus the
- * previous one for consistency
+ * Validate a list of items, using one function to check the items themselves and another to check
+ * them versus the previous one for consistency
  */
-private fun <N : CharSequence, T : Any, E: GeometryValidationIssue> validatePieces(
+private fun <N : CharSequence, T : Any, E : GeometryValidationIssue> validatePieces(
     parentName: N,
     pieces: List<T>,
     itemValidator: (N, T) -> List<E>,
@@ -907,7 +1032,8 @@ private fun <N : CharSequence, T : Any, E: GeometryValidationIssue> validatePiec
     return pieces.flatMapIndexed { index, item ->
         val pointErrors = itemValidator(parentName, item)
         val previous = pieces.getOrNull(index - 1)
-        val consistencyErrors = previous?.let { p -> itemVsPreviousValidator(parentName, item, p) } ?: listOf()
+        val consistencyErrors =
+            previous?.let { p -> itemVsPreviousValidator(parentName, item, p) } ?: listOf()
         (pointErrors + consistencyErrors)
     }
 }

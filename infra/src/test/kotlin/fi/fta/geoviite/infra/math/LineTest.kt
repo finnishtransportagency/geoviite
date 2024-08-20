@@ -1,10 +1,10 @@
 package fi.fta.geoviite.infra.math
 
 import fi.fta.geoviite.infra.math.IntersectType.*
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Test
 import kotlin.math.hypot
 import kotlin.math.sqrt
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 
 const val DOUBLE_CALC_ACCURACY = 0.00000000000001
 
@@ -23,16 +23,24 @@ class LineTest {
 
     @Test
     fun pointAlongLineWorks() {
-        assertEquals(Point(3.0, 3.0), linePointAtDistance(Point(2.0, 2.0), Point(4.0, 4.0), sqrt(2.0)))
-        assertEquals(Point(3.0, 3.0), linePointAtDistance(Point(4.0, 4.0), Point(2.0, 2.0), sqrt(2.0)))
+        assertEquals(
+            Point(3.0, 3.0), linePointAtDistance(Point(2.0, 2.0), Point(4.0, 4.0), sqrt(2.0)))
+        assertEquals(
+            Point(3.0, 3.0), linePointAtDistance(Point(4.0, 4.0), Point(2.0, 2.0), sqrt(2.0)))
 
-        assertEquals(Point(-3.0, -3.0), linePointAtDistance(Point(-2.0, -2.0), Point(-4.0, -4.0), sqrt(2.0)))
-        assertEquals(Point(-3.0, -3.0), linePointAtDistance(Point(-4.0, -4.0), Point(-2.0, -2.0), sqrt(2.0)))
+        assertEquals(
+            Point(-3.0, -3.0), linePointAtDistance(Point(-2.0, -2.0), Point(-4.0, -4.0), sqrt(2.0)))
+        assertEquals(
+            Point(-3.0, -3.0), linePointAtDistance(Point(-4.0, -4.0), Point(-2.0, -2.0), sqrt(2.0)))
 
-        assertEquals(Point(1.0, 1.0), linePointAtDistance(Point(0.0, 0.0), Point(2.0, 2.0), sqrt(2.0)))
-        assertEquals(Point(1.0, -1.0), linePointAtDistance(Point(0.0, 0.0), Point(2.0, -2.0), sqrt(2.0)))
-        assertEquals(Point(-1.0, -1.0), linePointAtDistance(Point(0.0, 0.0), Point(-2.0, -2.0), sqrt(2.0)))
-        assertEquals(Point(-1.0, 1.0), linePointAtDistance(Point(0.0, 0.0), Point(-2.0, 2.0), sqrt(2.0)))
+        assertEquals(
+            Point(1.0, 1.0), linePointAtDistance(Point(0.0, 0.0), Point(2.0, 2.0), sqrt(2.0)))
+        assertEquals(
+            Point(1.0, -1.0), linePointAtDistance(Point(0.0, 0.0), Point(2.0, -2.0), sqrt(2.0)))
+        assertEquals(
+            Point(-1.0, -1.0), linePointAtDistance(Point(0.0, 0.0), Point(-2.0, -2.0), sqrt(2.0)))
+        assertEquals(
+            Point(-1.0, 1.0), linePointAtDistance(Point(0.0, 0.0), Point(-2.0, 2.0), sqrt(2.0)))
     }
 
     @Test
@@ -111,14 +119,20 @@ class LineTest {
         assertEquals(0.0, pointDistanceToLine(start, end, Point(2.0, 2.0)))
         assertEquals(0.0, pointDistanceToLine(start, end, Point(1.5, 1.5)))
 
-        assertEquals(hypot(0.5, 0.5), pointDistanceToLine(start, end, Point(1.0, 2.0)), DOUBLE_CALC_ACCURACY)
-        assertEquals(hypot(0.5, 0.5), pointDistanceToLine(start, end, Point(2.0, 1.0)), DOUBLE_CALC_ACCURACY)
+        assertEquals(
+            hypot(0.5, 0.5), pointDistanceToLine(start, end, Point(1.0, 2.0)), DOUBLE_CALC_ACCURACY)
+        assertEquals(
+            hypot(0.5, 0.5), pointDistanceToLine(start, end, Point(2.0, 1.0)), DOUBLE_CALC_ACCURACY)
 
-        assertEquals(hypot(0.5, 0.5), pointDistanceToLine(start, end, Point(2.5, 2.5)), DOUBLE_CALC_ACCURACY)
-        assertEquals(hypot(0.5, 0.5), pointDistanceToLine(start, end, Point(0.5, 0.5)), DOUBLE_CALC_ACCURACY)
+        assertEquals(
+            hypot(0.5, 0.5), pointDistanceToLine(start, end, Point(2.5, 2.5)), DOUBLE_CALC_ACCURACY)
+        assertEquals(
+            hypot(0.5, 0.5), pointDistanceToLine(start, end, Point(0.5, 0.5)), DOUBLE_CALC_ACCURACY)
 
-        assertEquals(hypot(0.5, 0.5), pointDistanceToLine(start, end, Point(1.5, 2.5)), DOUBLE_CALC_ACCURACY)
-        assertEquals(hypot(0.5, 0.5), pointDistanceToLine(start, end, Point(2.5, 1.5)), DOUBLE_CALC_ACCURACY)
+        assertEquals(
+            hypot(0.5, 0.5), pointDistanceToLine(start, end, Point(1.5, 2.5)), DOUBLE_CALC_ACCURACY)
+        assertEquals(
+            hypot(0.5, 0.5), pointDistanceToLine(start, end, Point(2.5, 1.5)), DOUBLE_CALC_ACCURACY)
     }
 
     @Test
@@ -128,46 +142,64 @@ class LineTest {
                 val xi = xIntersection.toDouble()
                 val yi = yIntersection.toDouble()
                 assertIntersection(
-                    Point(xi, yi), inSegment1 = WITHIN, inSegment2 = WITHIN,
+                    Point(xi, yi),
+                    inSegment1 = WITHIN,
+                    inSegment2 = WITHIN,
                     lineIntersection(
-                        Point(xi - 10.0, yi), Point(xi + 10.0, yi),
-                        Point(xi, yi - 10.0), Point(xi, yi + 10.0)
-                    )!!,
+                        Point(xi - 10.0, yi),
+                        Point(xi + 10.0, yi),
+                        Point(xi, yi - 10.0),
+                        Point(xi, yi + 10.0))!!,
                 )
                 assertIntersection(
-                    Point(xi, yi), inSegment1 = WITHIN, inSegment2 = WITHIN,
+                    Point(xi, yi),
+                    inSegment1 = WITHIN,
+                    inSegment2 = WITHIN,
                     lineIntersection(
-                        Point(xi - 4.0, yi - 3.0), Point(xi + 4.0, yi + 3.0),
-                        Point(xi + 2.0, yi - 4.0), Point(xi - 2.0, yi + 4.0)
-                    )!!,
+                        Point(xi - 4.0, yi - 3.0),
+                        Point(xi + 4.0, yi + 3.0),
+                        Point(xi + 2.0, yi - 4.0),
+                        Point(xi - 2.0, yi + 4.0))!!,
                 )
                 assertIntersection(
-                    Point(xi, yi), inSegment1 = AFTER, inSegment2 = WITHIN,
+                    Point(xi, yi),
+                    inSegment1 = AFTER,
+                    inSegment2 = WITHIN,
                     lineIntersection(
-                        Point(xi - 10.0, yi), Point(xi - 1.0, yi),
-                        Point(xi, yi - 10.0), Point(xi, yi + 10.0)
-                    )!!,
+                        Point(xi - 10.0, yi),
+                        Point(xi - 1.0, yi),
+                        Point(xi, yi - 10.0),
+                        Point(xi, yi + 10.0))!!,
                 )
                 assertIntersection(
-                    Point(xi, yi), inSegment1 = BEFORE, inSegment2 = WITHIN,
+                    Point(xi, yi),
+                    inSegment1 = BEFORE,
+                    inSegment2 = WITHIN,
                     lineIntersection(
-                        Point(xi - 1.0, yi), Point(xi - 10.0, yi),
-                        Point(xi, yi - 10.0), Point(xi, yi + 10.0)
-                    )!!,
+                        Point(xi - 1.0, yi),
+                        Point(xi - 10.0, yi),
+                        Point(xi, yi - 10.0),
+                        Point(xi, yi + 10.0))!!,
                 )
                 assertIntersection(
-                    Point(xi, yi), inSegment1 = WITHIN, inSegment2 = AFTER,
+                    Point(xi, yi),
+                    inSegment1 = WITHIN,
+                    inSegment2 = AFTER,
                     lineIntersection(
-                        Point(xi - 10.0, yi), Point(xi + 10.0, yi),
-                        Point(xi, yi + 10.0), Point(xi, yi + 1.0)
-                    )!!,
+                        Point(xi - 10.0, yi),
+                        Point(xi + 10.0, yi),
+                        Point(xi, yi + 10.0),
+                        Point(xi, yi + 1.0))!!,
                 )
                 assertIntersection(
-                    Point(xi, yi), inSegment1 = WITHIN, inSegment2 = BEFORE,
+                    Point(xi, yi),
+                    inSegment1 = WITHIN,
+                    inSegment2 = BEFORE,
                     lineIntersection(
-                        Point(xi - 10.0, yi), Point(xi + 10.0, yi),
-                        Point(xi, yi + 1.0), Point(xi, yi + 10.0)
-                    )!!,
+                        Point(xi - 10.0, yi),
+                        Point(xi + 10.0, yi),
+                        Point(xi, yi + 1.0),
+                        Point(xi, yi + 10.0))!!,
                 )
             }
         }

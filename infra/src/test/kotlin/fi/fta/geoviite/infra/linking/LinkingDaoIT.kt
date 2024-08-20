@@ -17,14 +17,17 @@ import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class LinkingDaoIT @Autowired constructor(
+class LinkingDaoIT
+@Autowired
+constructor(
     private val linkingDao: LinkingDao,
 ) : DBTestBase() {
 
     @Test
     fun noSwitchBoundsAreFoundWhenNotLinkedToTracks() {
         val switchId = mainDraftContext.createSwitch().id
-        assertEquals(null, linkingDao.getSwitchBoundsFromTracks(MainLayoutContext.official, switchId))
+        assertEquals(
+            null, linkingDao.getSwitchBoundsFromTracks(MainLayoutContext.official, switchId))
         assertEquals(null, linkingDao.getSwitchBoundsFromTracks(MainLayoutContext.draft, switchId))
     }
 
@@ -59,12 +62,12 @@ class LinkingDaoIT @Autowired constructor(
             locationTrack(tnId),
             alignment(
                 segment(
-                    point3_1, point3_2,
+                    point3_1,
+                    point3_2,
                     switchId = switchId,
                     startJointNumber = JointNumber(1),
                     endJointNumber = JointNumber(2),
-                )
-            ),
+                )),
         )
         assertEquals(
             null,

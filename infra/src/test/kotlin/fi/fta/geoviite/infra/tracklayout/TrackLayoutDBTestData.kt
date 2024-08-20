@@ -15,9 +15,7 @@ fun moveKmPostLocation(
     kmPostService: LayoutKmPostService,
 ) {
     val gkPoint = transformToGKCoordinate(LAYOUT_SRID, layoutLocation)
-    kmPostService.saveDraft(
-        LayoutBranch.main, kmPost.copy(gkLocation = gkPoint)
-    )
+    kmPostService.saveDraft(LayoutBranch.main, kmPost.copy(gkLocation = gkPoint))
 }
 
 fun moveLocationTrackGeometryPointsAndUpdate(
@@ -25,11 +23,12 @@ fun moveLocationTrackGeometryPointsAndUpdate(
     alignment: LayoutAlignment,
     moveFunc: (point: IPoint3DM) -> IPoint,
     locationTrackService: LocationTrackService,
-) = locationTrackService.saveDraft(
-    LayoutBranch.main,
-    locationTrack,
-    moveAlignmentPoints(alignment, moveFunc),
-)
+) =
+    locationTrackService.saveDraft(
+        LayoutBranch.main,
+        locationTrack,
+        moveAlignmentPoints(alignment, moveFunc),
+    )
 
 fun addTopologyEndSwitchIntoLocationTrackAndUpdate(
     locationTrack: LocationTrack,
@@ -37,29 +36,32 @@ fun addTopologyEndSwitchIntoLocationTrackAndUpdate(
     switchId: IntId<TrackLayoutSwitch>,
     jointNumber: JointNumber,
     locationTrackService: LocationTrackService,
-) = locationTrackService.saveDraft(
-    LayoutBranch.main,
-    locationTrack.copy(
-        topologyEndSwitch = TopologyLocationTrackSwitch(
-            switchId = switchId,
-            jointNumber = jointNumber,
+) =
+    locationTrackService.saveDraft(
+        LayoutBranch.main,
+        locationTrack.copy(
+            topologyEndSwitch =
+                TopologyLocationTrackSwitch(
+                    switchId = switchId,
+                    jointNumber = jointNumber,
+                ),
         ),
-    ),
-    alignment,
-)
+        alignment,
+    )
 
 fun removeTopologySwitchesFromLocationTrackAndUpdate(
     locationTrack: LocationTrack,
     alignment: LayoutAlignment,
     locationTrackService: LocationTrackService,
-) = locationTrackService.saveDraft(
-    LayoutBranch.main,
-    locationTrack.copy(
-        topologyStartSwitch = null,
-        topologyEndSwitch = null,
-    ),
-    alignment,
-)
+) =
+    locationTrackService.saveDraft(
+        LayoutBranch.main,
+        locationTrack.copy(
+            topologyStartSwitch = null,
+            topologyEndSwitch = null,
+        ),
+        alignment,
+    )
 
 fun addTopologyStartSwitchIntoLocationTrackAndUpdate(
     locationTrack: LocationTrack,
@@ -67,27 +69,30 @@ fun addTopologyStartSwitchIntoLocationTrackAndUpdate(
     switchId: IntId<TrackLayoutSwitch>,
     jointNumber: JointNumber,
     locationTrackService: LocationTrackService,
-): LayoutDaoResponse<LocationTrack> = locationTrackService.saveDraft(
-    LayoutBranch.main,
-    locationTrack.copy(
-        topologyStartSwitch = TopologyLocationTrackSwitch(
-            switchId = switchId,
-            jointNumber = jointNumber,
+): LayoutDaoResponse<LocationTrack> =
+    locationTrackService.saveDraft(
+        LayoutBranch.main,
+        locationTrack.copy(
+            topologyStartSwitch =
+                TopologyLocationTrackSwitch(
+                    switchId = switchId,
+                    jointNumber = jointNumber,
+                ),
         ),
-    ),
-    alignment,
-)
+        alignment,
+    )
 
 fun moveReferenceLineGeometryPointsAndUpdate(
     referenceLine: ReferenceLine,
     alignment: LayoutAlignment,
     moveFunc: (point: IPoint3DM) -> IPoint,
     referenceLineService: ReferenceLineService,
-): LayoutDaoResponse<ReferenceLine> = referenceLineService.saveDraft(
-    LayoutBranch.main,
-    referenceLine,
-    moveAlignmentPoints(alignment, moveFunc),
-)
+): LayoutDaoResponse<ReferenceLine> =
+    referenceLineService.saveDraft(
+        LayoutBranch.main,
+        referenceLine,
+        moveAlignmentPoints(alignment, moveFunc),
+    )
 
 fun moveAlignmentPoints(
     alignment: LayoutAlignment,
@@ -95,17 +100,21 @@ fun moveAlignmentPoints(
 ): LayoutAlignment {
     var segmentM = 0.0
     return alignment.copy(
-        segments = alignment.segments.map { segment ->
-            var prevPoint: IPoint3DM? = null
-            val newPoints = segment.segmentPoints.map { point ->
-                val newPoint = moveFunc(point.toAlignmentPoint(segment.startM))
-                val m = prevPoint?.let { p -> p.m + lineLength(p, newPoint) } ?: 0.0
-                point.copy(x = newPoint.x, y = newPoint.y, m = m).also { p -> prevPoint = p }
-            }
-            segment
-                .withPoints(points = newPoints, newStart = segmentM, newSourceStart = null)
-                .also { newSegment -> segmentM = newSegment.endM }
-        },
+        segments =
+            alignment.segments.map { segment ->
+                var prevPoint: IPoint3DM? = null
+                val newPoints =
+                    segment.segmentPoints.map { point ->
+                        val newPoint = moveFunc(point.toAlignmentPoint(segment.startM))
+                        val m = prevPoint?.let { p -> p.m + lineLength(p, newPoint) } ?: 0.0
+                        point.copy(x = newPoint.x, y = newPoint.y, m = m).also { p ->
+                            prevPoint = p
+                        }
+                    }
+                segment
+                    .withPoints(points = newPoints, newStart = segmentM, newSourceStart = null)
+                    .also { newSegment -> segmentM = newSegment.endM }
+            },
     )
 }
 
@@ -118,10 +127,8 @@ fun moveSwitchPoints(
 fun moveSwitchPoints(
     switch: TrackLayoutSwitch,
     moveFunc: (point: IPoint) -> IPoint,
-) = switch.copy(
-    joints = switch.joints.map { joint ->
-        joint.copy(
-            location = Point(moveFunc(joint.location))
-        )
-    },
-)
+) =
+    switch.copy(
+        joints =
+            switch.joints.map { joint -> joint.copy(location = Point(moveFunc(joint.location))) },
+    )

@@ -54,7 +54,8 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}", params = ["searchTerm", "limit"])
+    @GetMapping(
+        "/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}", params = ["searchTerm", "limit"])
     fun searchLocationTracks(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
@@ -96,10 +97,14 @@ class LocationTrackController(
     ): ResponseEntity<AlignmentStartAndEndWithId<*>> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         val locationTrackAndAlignment = locationTrackService.getWithAlignment(context, id)
-        return toResponse(locationTrackAndAlignment?.let { (locationTrack, alignment) ->
-            geocodingService.getLocationTrackStartAndEnd(context, locationTrack, alignment)
-                ?.let { AlignmentStartAndEndWithId(locationTrack.id as IntId, it.start, it.end) }
-        })
+        return toResponse(
+            locationTrackAndAlignment?.let { (locationTrack, alignment) ->
+                geocodingService
+                    .getLocationTrackStartAndEnd(context, locationTrack, alignment)
+                    ?.let {
+                        AlignmentStartAndEndWithId(locationTrack.id as IntId, it.start, it.end)
+                    }
+            })
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -112,8 +117,11 @@ class LocationTrackController(
         val context = LayoutContext.of(layoutBranch, publicationState)
         return ids.mapNotNull { id ->
             locationTrackService.getWithAlignment(context, id)?.let { (locationTrack, alignment) ->
-                geocodingService.getLocationTrackStartAndEnd(context, locationTrack, alignment)
-                    ?.let { AlignmentStartAndEndWithId(locationTrack.id as IntId, it.start, it.end) }
+                geocodingService
+                    .getLocationTrackStartAndEnd(context, locationTrack, alignment)
+                    ?.let {
+                        AlignmentStartAndEndWithId(locationTrack.id as IntId, it.start, it.end)
+                    }
             }
         }
     }
@@ -130,7 +138,8 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/relinkable-switches-count")
+    @GetMapping(
+        "/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/relinkable-switches-count")
     fun getRelinkableSwitchesCount(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
@@ -150,9 +159,11 @@ class LocationTrackController(
     ): List<LocationTrackDescription> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         return ids.mapNotNull { id ->
-            id.let { locationTrackService.get(context, it) }?.let { lt ->
-                LocationTrackDescription(id, locationTrackService.getFullDescription(context, lt, lang))
-            }
+            id.let { locationTrackService.get(context, it) }
+                ?.let { lt ->
+                    LocationTrackDescription(
+                        id, locationTrackService.getFullDescription(context, lt, lang))
+                }
         }
     }
 
@@ -175,7 +186,10 @@ class LocationTrackController(
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<ValidatedAsset<LocationTrack>> {
         val context = LayoutContext.of(layoutBranch, publicationState)
-        return publicationService.validateLocationTracks(context, listOf(id)).firstOrNull().let(::toResponse)
+        return publicationService
+            .validateLocationTracks(context, listOf(id))
+            .firstOrNull()
+            .let(::toResponse)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -187,7 +201,8 @@ class LocationTrackController(
     ): List<SwitchValidationWithSuggestedSwitch> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         val switchSuggestions = switchLinkingService.getTrackSwitchSuggestions(context, id)
-        val switchValidation = publicationService.validateSwitches(context, switchSuggestions.map { (id, _) -> id })
+        val switchValidation =
+            publicationService.validateSwitches(context, switchSuggestions.map { (id, _) -> id })
         return switchValidation.map { validatedAsset ->
             SwitchValidationWithSuggestedSwitch(
                 validatedAsset.id,
@@ -257,7 +272,8 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/track-numbers/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{trackNumberId}/location-tracks")
+    @GetMapping(
+        "/track-numbers/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{trackNumberId}/location-tracks")
     fun getTrackNumberTracksByName(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
@@ -275,7 +291,8 @@ class LocationTrackController(
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/splitting-initialization-parameters")
+    @GetMapping(
+        "/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/{id}/splitting-initialization-parameters")
     fun getSplittingInitializationParameters(
         @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,

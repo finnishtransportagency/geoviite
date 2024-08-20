@@ -5,7 +5,8 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
 
-class E2EToolPanel(parentView: E2EViewFragment) : E2EViewFragment(parentView, By.className("tool-panel")) {
+class E2EToolPanel(parentView: E2EViewFragment) :
+    E2EViewFragment(parentView, By.className("tool-panel")) {
 
     fun selectToolPanelTab(tabName: String) {
         logger.info("Select tab $tabName")
@@ -38,14 +39,15 @@ class E2EToolPanel(parentView: E2EViewFragment) : E2EViewFragment(parentView, By
     }
 
     val locationTrackVerticalGeometry: E2ELocationTrackVerticalGeometryInfoBox by lazy {
-        infoBox("location-track-vertical-geometry-infobox", ::E2ELocationTrackVerticalGeometryInfoBox)
+        infoBox(
+            "location-track-vertical-geometry-infobox", ::E2ELocationTrackVerticalGeometryInfoBox)
     }
 
     val locationTrackLog: E2ELocationTrackLogInfoBox by lazy {
         infoBox("location-track-log-infobox", ::E2ELocationTrackLogInfoBox)
     }
 
-    //re-used old qa-id so don't worry
+    // re-used old qa-id so don't worry
     val trackNumberLog: E2ETrackNumberLogInfoBox by lazy {
         infoBox("track-number-log-infobox", ::E2ETrackNumberLogInfoBox)
     }

@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import fi.fta.geoviite.infra.error.ApiErrorResponse
+import kotlin.test.assertTrue
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType.APPLICATION_JSON
@@ -12,7 +13,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.test.web.servlet.result.isEqualTo
-import kotlin.test.assertTrue
 
 class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
 
@@ -25,7 +25,9 @@ class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
             .perform(requestBuilder)
             .andExpect(status().isEqualTo(expectedStatus.value()))
             .andExpect(content().contentType(APPLICATION_JSON))
-            .andReturn().response.getContentAsString(Charsets.UTF_8)
+            .andReturn()
+            .response
+            .getContentAsString(Charsets.UTF_8)
     }
 
     fun doGetWithParams(
@@ -60,16 +62,23 @@ class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
             .perform(request)
             .andExpect(status().isEqualTo(expectedStatus.value()))
             .andExpect(content().contentType(APPLICATION_JSON))
-            .andReturn().response.getContentAsString(Charsets.UTF_8)
+            .andReturn()
+            .response
+            .getContentAsString(Charsets.UTF_8)
     }
 
     fun doPostWithString(url: String, body: String?, expectedStatus: HttpStatus): String {
-        val request = MockMvcRequestBuilders.post(url).characterEncoding(Charsets.UTF_8).contentType(APPLICATION_JSON)
+        val request =
+            MockMvcRequestBuilders.post(url)
+                .characterEncoding(Charsets.UTF_8)
+                .contentType(APPLICATION_JSON)
         return mockMvc
             .perform(if (body != null) request.content(body) else request)
             .andExpect(status().isEqualTo(expectedStatus.value()))
             .andExpect(content().contentType(APPLICATION_JSON))
-            .andReturn().response.getContentAsString(Charsets.UTF_8)
+            .andReturn()
+            .response
+            .getContentAsString(Charsets.UTF_8)
     }
 
     fun doPut(url: String, body: Any?, expectedStatus: HttpStatus): String {
@@ -78,18 +87,24 @@ class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
     }
 
     fun doPutWithString(url: String, body: String?, expectedStatus: HttpStatus): String {
-        val request = MockMvcRequestBuilders.put(url).characterEncoding(Charsets.UTF_8).contentType(APPLICATION_JSON)
+        val request =
+            MockMvcRequestBuilders.put(url)
+                .characterEncoding(Charsets.UTF_8)
+                .contentType(APPLICATION_JSON)
         return mockMvc
             .perform(if (body != null) request.content(body) else request)
             .andExpect(status().isEqualTo(expectedStatus.value()))
             .andExpect(content().contentType(APPLICATION_JSON))
-            .andReturn().response.getContentAsString(Charsets.UTF_8)
+            .andReturn()
+            .response
+            .getContentAsString(Charsets.UTF_8)
     }
 
     fun assertErrorResult(result: String, vararg messages: String) {
         val parsed = mapper.readValue<ApiErrorResponse>(result)
         for (message in messages) {
-            assertTrue(parsed.messageRows.contains(message),
+            assertTrue(
+                parsed.messageRows.contains(message),
                 "Response should contain \"$message\" actual=${parsed.messageRows}")
         }
     }

@@ -7,8 +7,8 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.getLocationTrackEndpoints
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
-import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import org.junit.jupiter.api.Test
 
 class LocationTrackEndpointTest {
     private val bbox = BoundingBox(-10.0..10.0, -10.0..10.0)
@@ -20,12 +20,13 @@ class LocationTrackEndpointTest {
 
     @Test
     fun shouldFindLocationTrackStartPoint() {
-        val trackWithStartPointInsideBbox = locationTrackAndAlignment(
-            trackNumberId = IntId(0),
-            segments = listOf(segment(pointInsideBbox, pointOutsideBbox)),
-            id = IntId(0),
-            draft = false,
-        )
+        val trackWithStartPointInsideBbox =
+            locationTrackAndAlignment(
+                trackNumberId = IntId(0),
+                segments = listOf(segment(pointInsideBbox, pointOutsideBbox)),
+                id = IntId(0),
+                draft = false,
+            )
         val alignments = listOf(trackWithStartPointInsideBbox)
 
         val endpoints = getLocationTrackEndpoints(alignments, bbox)
@@ -35,20 +36,20 @@ class LocationTrackEndpointTest {
             LocationTrackEndpoint(
                 locationTrackId = trackWithStartPointInsideBbox.first.id as IntId<LocationTrack>,
                 location = pointInsideBbox,
-                updateType = LocationTrackPointUpdateType.START_POINT
-            ),
+                updateType = LocationTrackPointUpdateType.START_POINT),
             endpoints.first(),
         )
     }
 
     @Test
     fun shouldFindLocationTrackEndPoint() {
-        val trackWithEndPointInsideBbox = locationTrackAndAlignment(
-            trackNumberId = IntId(0),
-            segments = listOf(segment(pointOutsideBbox, otherPointInsideBbox)),
-            id = IntId(0),
-            draft = false,
-        )
+        val trackWithEndPointInsideBbox =
+            locationTrackAndAlignment(
+                trackNumberId = IntId(0),
+                segments = listOf(segment(pointOutsideBbox, otherPointInsideBbox)),
+                id = IntId(0),
+                draft = false,
+            )
         val alignments = listOf(trackWithEndPointInsideBbox)
 
         val endpoints = getLocationTrackEndpoints(alignments, bbox)
@@ -58,23 +59,24 @@ class LocationTrackEndpointTest {
             LocationTrackEndpoint(
                 locationTrackId = trackWithEndPointInsideBbox.first.id as IntId<LocationTrack>,
                 location = otherPointInsideBbox,
-                updateType = LocationTrackPointUpdateType.END_POINT
-            ),
+                updateType = LocationTrackPointUpdateType.END_POINT),
             endpoints.first(),
         )
     }
 
     @Test
     fun shouldFindBothLocationTrackEndpoints() {
-        val alignmentWithMissingBothEndpointsInsideBbox = locationTrackAndAlignment(
-            trackNumberId = IntId(0),
-            segments = listOf(
-                segment(pointInsideBbox, otherPointInsideBbox),
-                segment(otherPointInsideBbox, thirdPointInsideBbox),
-            ),
-            id = IntId(1),
-            draft = false,
-        )
+        val alignmentWithMissingBothEndpointsInsideBbox =
+            locationTrackAndAlignment(
+                trackNumberId = IntId(0),
+                segments =
+                    listOf(
+                        segment(pointInsideBbox, otherPointInsideBbox),
+                        segment(otherPointInsideBbox, thirdPointInsideBbox),
+                    ),
+                id = IntId(1),
+                draft = false,
+            )
         val alignments = listOf(alignmentWithMissingBothEndpointsInsideBbox)
 
         val endpoints = getLocationTrackEndpoints(alignments, bbox)
@@ -82,33 +84,32 @@ class LocationTrackEndpointTest {
         assert(
             endpoints.contains(
                 LocationTrackEndpoint(
-                    locationTrackId = alignmentWithMissingBothEndpointsInsideBbox.first.id as IntId<LocationTrack>,
+                    locationTrackId =
+                        alignmentWithMissingBothEndpointsInsideBbox.first.id
+                            as IntId<LocationTrack>,
                     location = pointInsideBbox,
-                    updateType = LocationTrackPointUpdateType.START_POINT
-                )
-            )
-        )
+                    updateType = LocationTrackPointUpdateType.START_POINT)))
         assert(
             endpoints.contains(
                 LocationTrackEndpoint(
-                    locationTrackId = alignmentWithMissingBothEndpointsInsideBbox.first.id as IntId<LocationTrack>,
+                    locationTrackId =
+                        alignmentWithMissingBothEndpointsInsideBbox.first.id
+                            as IntId<LocationTrack>,
                     location = thirdPointInsideBbox,
-                    updateType = LocationTrackPointUpdateType.END_POINT
-                )
-            )
-        )
+                    updateType = LocationTrackPointUpdateType.END_POINT)))
     }
 
     @Test
     fun shouldIgnoreLocationTrackEndpointsOutsideBbox() {
-        val alignmentsWithEndpointsOutsideBbox = listOf(
-            locationTrackAndAlignment(
-                trackNumberId = IntId(0),
-                id = IntId(0),
-                segments = listOf(segment(pointOutsideBbox, otherPointOutsideBbox)),
-                draft = false,
-            ),
-        )
+        val alignmentsWithEndpointsOutsideBbox =
+            listOf(
+                locationTrackAndAlignment(
+                    trackNumberId = IntId(0),
+                    id = IntId(0),
+                    segments = listOf(segment(pointOutsideBbox, otherPointOutsideBbox)),
+                    draft = false,
+                ),
+            )
 
         val endpoints = getLocationTrackEndpoints(alignmentsWithEndpointsOutsideBbox, bbox)
 

@@ -46,7 +46,11 @@ class ClothoidTest {
         assertCoordinateAtOffset(472.679000, 75.0, Pair(74.99888294202714, 0.3148311978089424))
     }
 
-    private fun assertCoordinateAtOffset(constantA: Double, distance: Double, expected: Pair<Double, Double>) {
+    private fun assertCoordinateAtOffset(
+        constantA: Double,
+        distance: Double,
+        expected: Pair<Double, Double>
+    ) {
         val delta = 0.001
         val actual = clothoidPointAtOffset(constantA, distance)
         assertEquals(expected.first, actual.x, delta)

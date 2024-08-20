@@ -6,13 +6,13 @@ import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementWhenExists
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import org.openqa.selenium.By
 import org.openqa.selenium.support.pagefactory.ByChained
 import waitUntilExists
 import waitUntilNotExist
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
 
@@ -20,11 +20,7 @@ class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
         logger.info("Open publication nth=$nth")
 
         clickChild(
-            ByChained(
-                By.xpath("(//div[@class='publication-list-item'])[$nth]"),
-                By.tagName("a")
-            )
-        )
+            ByChained(By.xpath("(//div[@class='publication-list-item'])[$nth]"), By.tagName("a")))
 
         return E2EPublicationDetailsPage()
     }
@@ -50,9 +46,7 @@ class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
         clickChild(
             ByChained(
                 By.xpath("(//div[@class='publication-list-item__split'])[$nth]"),
-                byQaId("publication-actions-menu-toggle")
-            )
-        )
+                byQaId("publication-actions-menu-toggle")))
     }
 
     fun openLatestPublication(): E2EPublicationDetailsPage {
@@ -76,7 +70,8 @@ class E2EFrontPage : E2EViewFragment(By.className("frontpage")) {
     }
 }
 
-class E2EPublicationDetailsPage(pageBy: By = By.className("publication-details")) : E2EViewFragment(pageBy) {
+class E2EPublicationDetailsPage(pageBy: By = By.className("publication-details")) :
+    E2EViewFragment(pageBy) {
     fun returnToFrontPage(): E2EFrontPage {
         logger.info("Go to front page")
 
@@ -115,16 +110,16 @@ class E2EPublicationLog(pageBy: By = By.className("publication-log")) : E2EViewF
     }
 
     fun setSearchStartDate(instant: Instant) = apply {
-        childTextInput(byQaId("publication-log-start-date-input")).replaceValue(formatInstant(instant))
+        childTextInput(byQaId("publication-log-start-date-input"))
+            .replaceValue(formatInstant(instant))
     }
 
     fun setSearchEndDate(instant: Instant) = apply {
-        childTextInput(byQaId("publication-log-end-date-input")).replaceValue(formatInstant(instant))
+        childTextInput(byQaId("publication-log-end-date-input"))
+            .replaceValue(formatInstant(instant))
     }
 
-    fun waitUntilLoaded() = apply {
-        waitUntilNotExist(By.className("table__container--loading"))
-    }
+    fun waitUntilLoaded() = apply { waitUntilNotExist(By.className("table__container--loading")) }
 
     val rows: List<E2EPublicationDetailRow>
         get() {

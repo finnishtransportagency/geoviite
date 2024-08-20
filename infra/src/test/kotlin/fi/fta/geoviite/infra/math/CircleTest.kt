@@ -1,9 +1,9 @@
 package fi.fta.geoviite.infra.math
 
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Test
 import kotlin.math.PI
 import kotlin.math.sqrt
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Test
 
 class CircleTest {
 

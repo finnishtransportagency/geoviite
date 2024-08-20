@@ -7,15 +7,14 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import fi.fta.geoviite.infra.error.IntegrationApiException
-import org.springframework.core.convert.converter.Converter
-import org.springframework.stereotype.Component
 import java.io.IOException
 import kotlin.reflect.KClass
+import org.springframework.core.convert.converter.Converter
+import org.springframework.stereotype.Component
 
 @Component
-class FrameConverterRequestConverterV1(
-    private val objectMapper: ObjectMapper
-) : Converter<String, FrameConverterRequestV1> {
+class FrameConverterRequestConverterV1(private val objectMapper: ObjectMapper) :
+    Converter<String, FrameConverterRequestV1> {
 
     override fun convert(source: String): FrameConverterRequestV1? {
         return try {
@@ -31,15 +30,15 @@ class FrameConverterRequestConverterV1(
 }
 
 @Component
-class FrameConverterListRequestConverterV1(
-    private val objectMapper: ObjectMapper
-) : Converter<String, List<FrameConverterRequestV1>> {
+class FrameConverterListRequestConverterV1(private val objectMapper: ObjectMapper) :
+    Converter<String, List<FrameConverterRequestV1>> {
 
     override fun convert(source: String): List<FrameConverterRequestV1>? {
-        val collectionType = objectMapper.typeFactory.constructCollectionType(
-            List::class.java,
-            FrameConverterRequestV1::class.java,
-        )
+        val collectionType =
+            objectMapper.typeFactory.constructCollectionType(
+                List::class.java,
+                FrameConverterRequestV1::class.java,
+            )
 
         return try {
             objectMapper.readValue(source, collectionType)
@@ -62,15 +61,14 @@ class FrameConverterRequestDeserializerV1 : JsonDeserializer<FrameConverterReque
     }
 
     private fun determineClass(node: JsonNode): KClass<out FrameConverterRequestV1> {
-        val classMap = listOf(
-            CoordinateToTrackMeterRequestV1::class to listOf("x", "y"),
-            CoordinateToTrackMeterRequestV1::class to listOf("x"),
-            CoordinateToTrackMeterRequestV1::class to listOf("y"),
-        )
+        val classMap =
+            listOf(
+                CoordinateToTrackMeterRequestV1::class to listOf("x", "y"),
+                CoordinateToTrackMeterRequestV1::class to listOf("x"),
+                CoordinateToTrackMeterRequestV1::class to listOf("y"),
+            )
 
-        val clazz = classMap.firstOrNull { (_, keys) ->
-            keys.all { key -> node.has(key) }
-        }?.first
+        val clazz = classMap.firstOrNull { (_, keys) -> keys.all { key -> node.has(key) } }?.first
 
         if (clazz == null) {
             throw IntegrationApiException(
@@ -84,24 +82,33 @@ class FrameConverterRequestDeserializerV1 : JsonDeserializer<FrameConverterReque
 }
 
 class FrameConverterStringDeserializerV1 : JsonDeserializer<FrameConverterStringV1>() {
-    override fun deserialize(p: JsonParser?, ctxt: DeserializationContext?): FrameConverterStringV1 {
+    override fun deserialize(
+        p: JsonParser?,
+        ctxt: DeserializationContext?
+    ): FrameConverterStringV1 {
         val value = p?.valueAsString ?: ""
         return FrameConverterStringV1(value)
     }
 }
 
-class FrameConverterResponseSettingsDeserializerV1 : JsonDeserializer<Set<FrameConverterResponseSettingV1>>() {
-    override fun deserialize(parser: JsonParser, ctxt: DeserializationContext): Set<FrameConverterResponseSettingV1> {
+class FrameConverterResponseSettingsDeserializerV1 :
+    JsonDeserializer<Set<FrameConverterResponseSettingV1>>() {
+    override fun deserialize(
+        parser: JsonParser,
+        ctxt: DeserializationContext
+    ): Set<FrameConverterResponseSettingV1> {
         val intArray = parser.readValueAs(Array<Int>::class.java)
-        return intArray
-            .map { FrameConverterResponseSettingV1.fromValue(it) }
-            .toSet()
+        return intArray.map { FrameConverterResponseSettingV1.fromValue(it) }.toSet()
     }
 }
 
-class FrameConverterLocationTrackTypeDeserializerV1 : JsonDeserializer<FrameConverterLocationTrackTypeV1>() {
+class FrameConverterLocationTrackTypeDeserializerV1 :
+    JsonDeserializer<FrameConverterLocationTrackTypeV1>() {
     @Throws(IOException::class)
-    override fun deserialize(parser: JsonParser, ctxt: DeserializationContext): FrameConverterLocationTrackTypeV1 {
+    override fun deserialize(
+        parser: JsonParser,
+        ctxt: DeserializationContext
+    ): FrameConverterLocationTrackTypeV1 {
         val value = parser.text
         return FrameConverterLocationTrackTypeV1.fromValue(value)
     }

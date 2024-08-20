@@ -37,10 +37,9 @@ class E2EInfraModelForm : E2EViewFragment(By.className("infra-model-upload__form
     }
 
     private fun confirmSaving() {
-        //Confirm saving if confirmation dialog appears
+        // Confirm saving if confirmation dialog appears
         E2EConfirmDialog().confirm()
     }
-
 }
 
 class E2EMetaFormGroup(formBy: By) : E2EFormGroup(formBy) {
@@ -48,8 +47,11 @@ class E2EMetaFormGroup(formBy: By) : E2EFormGroup(formBy) {
     private val projectField: E2EFormGroupField = formGroupField("project-im-field")
     private val authorField: E2EFormGroupField = formGroupField("author-im-field")
 
-    val project: String get() = projectField.value
-    val author: String get() = authorField.value
+    val project: String
+        get() = projectField.value
+
+    val author: String
+        get() = authorField.value
 
     fun selectNewProject(newProject: String): E2EMetaFormGroup = apply {
         logger.info("Select new project $newProject")
@@ -72,13 +74,22 @@ class E2ELocationFormGroup(formBy: By) : E2EFormGroup(formBy) {
 
     private val trackNumberField: E2EFormGroupField = formGroupField("track-number-im-field")
     private val kmNumberField: E2EFormGroupField = formGroupField("km-interval-im-field")
-    private val coordinateSystemField: E2EFormGroupField = formGroupField("coordinate-system-im-field")
-    private val verticalCoordinateSystemField: E2EFormGroupField = formGroupField("vertical-coordinate-system-im-field")
+    private val coordinateSystemField: E2EFormGroupField =
+        formGroupField("coordinate-system-im-field")
+    private val verticalCoordinateSystemField: E2EFormGroupField =
+        formGroupField("vertical-coordinate-system-im-field")
 
-    val trackNumber: String get() = trackNumberField.value
-    val kmNumberRange: String get() = kmNumberField.value
-    val coordinateSystem: String get() = coordinateSystemField.value
-    val verticalCoordinateSystem: String get() = verticalCoordinateSystemField.value
+    val trackNumber: String
+        get() = trackNumberField.value
+
+    val kmNumberRange: String
+        get() = kmNumberField.value
+
+    val coordinateSystem: String
+        get() = coordinateSystemField.value
+
+    val verticalCoordinateSystem: String
+        get() = verticalCoordinateSystemField.value
 
     fun selectExistingTrackNumber(trackNumber: String): E2ELocationFormGroup = apply {
         logger.info("Select track number $trackNumber")
@@ -111,14 +122,22 @@ class E2EQualityFormGroup(formBy: By) : E2EFormGroup(formBy) {
 
     private val planPhaseField: E2EFormGroupField = formGroupField("plan-phase-im-field")
     private val decisionPhaseField: E2EFormGroupField = formGroupField("decision-phase-im-field")
-    private val measurementMethodField: E2EFormGroupField = formGroupField("measurement-method-im-field")
+    private val measurementMethodField: E2EFormGroupField =
+        formGroupField("measurement-method-im-field")
     private val elevationMeasurementMethodField: E2EFormGroupField =
         formGroupField("elevation-measurement-method-im-field")
 
-    val planPhase: String get() = planPhaseField.value
-    val decisionPhase: String get() = decisionPhaseField.value
-    val measurementMethod: String get() = measurementMethodField.value
-    val elevationMeasurementMethod: String get() = elevationMeasurementMethodField.value
+    val planPhase: String
+        get() = planPhaseField.value
+
+    val decisionPhase: String
+        get() = decisionPhaseField.value
+
+    val measurementMethod: String
+        get() = measurementMethodField.value
+
+    val elevationMeasurementMethod: String
+        get() = elevationMeasurementMethodField.value
 
     fun selectPlanPhase(phase: String): E2EQualityFormGroup = apply {
         logger.info("Select plan phase $phase")
@@ -149,7 +168,8 @@ class E2ELogFormGroup(formBy: By) : E2EFormGroup(formBy) {
 
     private val planTimeField: E2EFormGroupField = formGroupField("plan-time-im-field")
 
-    val planTime: String get() = planTimeField.value
+    val planTime: String
+        get() = planTimeField.value
 
     fun setPlanTime(month: String, year: String): E2ELogFormGroup = apply {
         logger.info("Select plan time $month $year")

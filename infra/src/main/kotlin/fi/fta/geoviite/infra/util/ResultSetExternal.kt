@@ -73,9 +73,12 @@ fun <T> ResultSet.getIndexedIdOrNull(parent: String, index: String): IndexedId<T
         null
     }
 }
-fun <T> ResultSet.getLayoutRowId(name: String): LayoutRowId<T> = verifyNotNull(name, ::getLayoutRowIdOrNull)
 
-fun <T> ResultSet.getLayoutRowIdOrNull(name: String): LayoutRowId<T>? = getIntOrNull(name)?.let(::LayoutRowId)
+fun <T> ResultSet.getLayoutRowId(name: String): LayoutRowId<T> =
+    verifyNotNull(name, ::getLayoutRowIdOrNull)
+
+fun <T> ResultSet.getLayoutRowIdOrNull(name: String): LayoutRowId<T>? =
+    getIntOrNull(name)?.let(::LayoutRowId)
 
 fun <T> ResultSet.getIntId(name: String): IntId<T> = verifyNotNull(name, ::getIntIdOrNull)
 
@@ -93,9 +96,8 @@ fun ResultSet.getSrid(name: String): Srid = verifyNotNull(name, ::getSridOrNull)
 
 fun ResultSet.getSridOrNull(name: String): Srid? = getIntOrNull(name)?.let(::Srid)
 
-fun ResultSet.getTrackNumber(name: String): TrackNumber = requireNotNull(getTrackNumberOrNull(name)) {
-    "Track number was null"
-}
+fun ResultSet.getTrackNumber(name: String): TrackNumber =
+    requireNotNull(getTrackNumberOrNull(name)) { "Track number was null" }
 
 fun ResultSet.getTrackNumberOrNull(name: String): TrackNumber? = getString(name)?.let(::TrackNumber)
 
@@ -107,26 +109,33 @@ fun ResultSet.getTrackMeter(name: String): TrackMeter = verifyNotNull(name, ::ge
 
 fun ResultSet.getTrackMeterOrNull(name: String): TrackMeter? = getString(name)?.let(::TrackMeter)
 
-fun ResultSet.getJointNumber(name: String): JointNumber = verifyNotNull(name, ::getJointNumberOrNull)
+fun ResultSet.getJointNumber(name: String): JointNumber =
+    verifyNotNull(name, ::getJointNumberOrNull)
 
-fun ResultSet.getJointNumberOrNull(name: String): JointNumber? = getIntOrNull(name)?.let(::JointNumber)
+fun ResultSet.getJointNumberOrNull(name: String): JointNumber? =
+    getIntOrNull(name)?.let(::JointNumber)
 
-fun ResultSet.getFeatureTypeCode(name: String): FeatureTypeCode = verifyNotNull(name, ::getFeatureTypeCodeOrNull)
+fun ResultSet.getFeatureTypeCode(name: String): FeatureTypeCode =
+    verifyNotNull(name, ::getFeatureTypeCodeOrNull)
 
-fun ResultSet.getFeatureTypeCodeOrNull(name: String): FeatureTypeCode? = getString(name)?.let(::FeatureTypeCode)
+fun ResultSet.getFeatureTypeCodeOrNull(name: String): FeatureTypeCode? =
+    getString(name)?.let(::FeatureTypeCode)
 
-fun ResultSet.getPoint(nameX: String, nameY: String): Point = requireNotNull(getPointOrNull(nameX, nameY)) {
-    "Point does not exist in result set: nameX=$nameX nameY=$nameY"
-}
+fun ResultSet.getPoint(nameX: String, nameY: String): Point =
+    requireNotNull(getPointOrNull(nameX, nameY)) {
+        "Point does not exist in result set: nameX=$nameX nameY=$nameY"
+    }
 
 fun ResultSet.getGeometryPoint(nameX: String, nameY: String, nameSrid: String): GeometryPoint =
     getPoint(nameX, nameY).let { point -> GeometryPoint(point.x, point.y, getSrid(nameSrid)) }
 
-fun ResultSet.getGeometryPointOrNull(nameX: String, nameY: String, nameSrid: String): GeometryPoint? =
+fun ResultSet.getGeometryPointOrNull(
+    nameX: String,
+    nameY: String,
+    nameSrid: String
+): GeometryPoint? =
     getPointOrNull(nameX, nameY)?.let { point ->
-        getSridOrNull(nameSrid)?.let { srid ->
-            GeometryPoint(point.x, point.y, srid)
-        }
+        getSridOrNull(nameSrid)?.let { srid -> GeometryPoint(point.x, point.y, srid) }
     }
 
 fun ResultSet.getPointOrNull(nameX: String, nameY: String): Point? {
@@ -146,9 +155,11 @@ inline fun <reified T : Enum<T>> ResultSet.getEnumOrNull(name: String): T? {
 fun ResultSet.getStringListFromString(name: String): List<String> =
     verifyNotNull(name, ::getStringsListOrNullFromString)
 
-fun ResultSet.getStringsListOrNullFromString(name: String): List<String>? = getString(name)?.split(",")
+fun ResultSet.getStringsListOrNullFromString(name: String): List<String>? =
+    getString(name)?.split(",")
 
-fun ResultSet.getDoubleListFromString(name: String): List<Double> = verifyNotNull(name, ::getDoubleListOrNullFromString)
+fun ResultSet.getDoubleListFromString(name: String): List<Double> =
+    verifyNotNull(name, ::getDoubleListOrNullFromString)
 
 fun ResultSet.getDoubleListOrNullFromString(name: String): List<Double>? =
     getStringsListOrNullFromString(name)?.map { s -> s.toDouble() }
@@ -156,11 +167,14 @@ fun ResultSet.getDoubleListOrNullFromString(name: String): List<Double>? =
 fun ResultSet.getNullableDoubleListOrNullFromString(name: String): List<Double?>? =
     getStringsListOrNullFromString(name)?.map { s -> s.toDoubleOrNull() }
 
-fun ResultSet.getIntListFromString(name: String): List<Int> = verifyNotNull(name, ::getIntListOrNullFromString)
+fun ResultSet.getIntListFromString(name: String): List<Int> =
+    verifyNotNull(name, ::getIntListOrNullFromString)
 
-fun ResultSet.getIntListOrNullFromString(name: String): List<Int>? = getString(name)?.split(",")?.map { s -> s.toInt() }
+fun ResultSet.getIntListOrNullFromString(name: String): List<Int>? =
+    getString(name)?.split(",")?.map { s -> s.toInt() }
 
-fun <T> ResultSet.getIntIdArray(name: String): List<IntId<T>> = getListOrNull<Int>(name)?.map(::IntId) ?: emptyList()
+fun <T> ResultSet.getIntIdArray(name: String): List<IntId<T>> =
+    getListOrNull<Int>(name)?.map(::IntId) ?: emptyList()
 
 fun <T> ResultSet.getLayoutRowIdArray(name: String): List<LayoutRowId<T>> =
     getListOrNull<Int>(name)?.map(::LayoutRowId) ?: emptyList()
@@ -169,7 +183,8 @@ fun ResultSet.getIntArray(name: String): List<Int> = verifyNotNull(name, ::getIn
 
 fun ResultSet.getIntArrayOrNull(name: String): List<Int>? = getListOrNull(name)
 
-fun ResultSet.getDoubleArray(name: String): List<Double> = verifyNotNull(name, ::getDoubleArrayOrNull)
+fun ResultSet.getDoubleArray(name: String): List<Double> =
+    verifyNotNull(name, ::getDoubleArrayOrNull)
 
 fun ResultSet.getDoubleArrayOrNull(name: String): List<Double>? = getListOrNull(name)
 
@@ -177,17 +192,22 @@ fun ResultSet.getStringArray(name: String): List<String> = verifyNotNull(name, :
 
 fun ResultSet.getStringArrayOrNull(name: String): List<String>? = getListOrNull(name)
 
-fun ResultSet.getNullableIntArray(name: String): List<Int?> = verifyNotNull(name, ::getNullableIntArrayOrNull)
+fun ResultSet.getNullableIntArray(name: String): List<Int?> =
+    verifyNotNull(name, ::getNullableIntArrayOrNull)
 
 fun ResultSet.getNullableIntArrayOrNull(name: String): List<Int?>? = getNullableListOrNull(name)
 
-fun ResultSet.getNullableDoubleArray(name: String): List<Double?> = verifyNotNull(name, ::getNullableDoubleArrayOrNull)
+fun ResultSet.getNullableDoubleArray(name: String): List<Double?> =
+    verifyNotNull(name, ::getNullableDoubleArrayOrNull)
 
-fun ResultSet.getNullableDoubleArrayOrNull(name: String): List<Double?>? = getNullableListOrNull(name)
+fun ResultSet.getNullableDoubleArrayOrNull(name: String): List<Double?>? =
+    getNullableListOrNull(name)
 
-fun ResultSet.getNullableStringArray(name: String): List<String?> = verifyNotNull(name, ::getNullableStringArrayOrNull)
+fun ResultSet.getNullableStringArray(name: String): List<String?> =
+    verifyNotNull(name, ::getNullableStringArrayOrNull)
 
-fun ResultSet.getNullableStringArrayOrNull(name: String): List<String?>? = getNullableListOrNull(name)
+fun ResultSet.getNullableStringArrayOrNull(name: String): List<String?>? =
+    getNullableListOrNull(name)
 
 inline fun <reified T : Enum<T>> ResultSet.getNullableEnumArray(name: String): List<T?> =
     verifyNotNull(name) { getNullableEnumArrayOrNull<T>(name) }
@@ -198,22 +218,28 @@ inline fun <reified T : Enum<T>> ResultSet.getNullableEnumArrayOrNull(name: Stri
 fun ResultSet.getIntArrayOfArrayOrNull(name: String): List<List<Int>>? =
     getListOrNull<Array<Int>>(name)?.map { it.toList() }
 
-inline fun <reified T> ResultSet.getList(name: String): List<T> = verifyNotNull(name, ::getListOrNull)
+inline fun <reified T> ResultSet.getList(name: String): List<T> =
+    verifyNotNull(name, ::getListOrNull)
 
-inline fun <reified T> ResultSet.getListOrNull(name: String): List<T>? = getArray(name)?.array?.let { arr ->
-    if (arr is Array<*>) (arr as Array<out Any?>).mapNotNull(::verifyType)
-    else null
-}
+inline fun <reified T> ResultSet.getListOrNull(name: String): List<T>? =
+    getArray(name)?.array?.let { arr ->
+        if (arr is Array<*>) (arr as Array<out Any?>).mapNotNull(::verifyType) else null
+    }
 
-inline fun <reified T> ResultSet.getNullableListOrNull(name: String): List<T?>? = getArray(name)?.array?.let { arr ->
-    if (arr is Array<*>) (arr as Array<out Any?>).map { it?.let(::verifyType) }
-    else null
-}
+inline fun <reified T> ResultSet.getNullableListOrNull(name: String): List<T?>? =
+    getArray(name)?.array?.let { arr ->
+        if (arr is Array<*>) (arr as Array<out Any?>).map { it?.let(::verifyType) } else null
+    }
 
-fun <T> ResultSet.getDaoResponse(officialIdName: String, versionIdName: String, versionName: String) = LayoutDaoResponse<T>(
-    id = getIntId(officialIdName),
-    rowVersion = getLayoutRowVersion(versionIdName, versionName),
-)
+fun <T> ResultSet.getDaoResponse(
+    officialIdName: String,
+    versionIdName: String,
+    versionName: String
+) =
+    LayoutDaoResponse<T>(
+        id = getIntId(officialIdName),
+        rowVersion = getLayoutRowVersion(versionIdName, versionName),
+    )
 
 fun <T> ResultSet.getRowVersion(idName: String, versionName: String): RowVersion<T> =
     RowVersion(getIntId(idName), getIntNonNull(versionName))
@@ -227,7 +253,10 @@ fun <T> ResultSet.getRowVersionOrNull(idName: String, versionName: String): RowV
 fun <T> ResultSet.getLayoutRowVersion(rowIdName: String, versionName: String): LayoutRowVersion<T> =
     LayoutRowVersion(getLayoutRowId(rowIdName), getIntNonNull(versionName))
 
-fun <T> ResultSet.getLayoutRowVersionOrNull(rowIdName: String, versionName: String): LayoutRowVersion<T>? {
+fun <T> ResultSet.getLayoutRowVersionOrNull(
+    rowIdName: String,
+    versionName: String
+): LayoutRowVersion<T>? {
     val rowId = getLayoutRowIdOrNull<T>(rowIdName)
     val version = getIntOrNull(versionName)
     return if (rowId != null && version != null) LayoutRowVersion(rowId, version) else null
@@ -243,7 +272,8 @@ fun ResultSet.getFreeText(name: String): FreeText = verifyNotNull(name, ::getFre
 
 fun ResultSet.getFreeTextOrNull(name: String): FreeText? = getString(name)?.let(::FreeText)
 
-fun ResultSet.getFreeTextWithNewLinesOrNull(name: String): FreeTextWithNewLines? = getString(name)?.let(::FreeTextWithNewLines)
+fun ResultSet.getFreeTextWithNewLinesOrNull(name: String): FreeTextWithNewLines? =
+    getString(name)?.let(::FreeTextWithNewLines)
 
 fun ResultSet.getFileName(name: String): FileName = verifyNotNull(name, ::getFileNameOrNull)
 
@@ -254,21 +284,29 @@ fun ResultSet.getBbox(name: String): BoundingBox = verifyNotNull(name, ::getBbox
 fun ResultSet.getBboxOrNull(name: String): BoundingBox? =
     getPolygonPointListOrNull(name)?.let(::boundingBoxAroundPoints)
 
-fun ResultSet.getPolygonPointList(name: String): List<Point> = verifyNotNull(name, ::getPolygonPointListOrNull)
+fun ResultSet.getPolygonPointList(name: String): List<Point> =
+    verifyNotNull(name, ::getPolygonPointListOrNull)
 
-fun ResultSet.getPolygonPointListOrNull(name: String): List<Point>? = getString(name)?.let(::parse2DPolygon)
+fun ResultSet.getPolygonPointListOrNull(name: String): List<Point>? =
+    getString(name)?.let(::parse2DPolygon)
 
-fun ResultSet.getPVProjectName(name: String): PVProjectName = verifyNotNull(name, ::getPVProjectNameOrNull)
+fun ResultSet.getPVProjectName(name: String): PVProjectName =
+    verifyNotNull(name, ::getPVProjectNameOrNull)
 
-fun ResultSet.getPVProjectNameOrNull(name: String): PVProjectName? = getString(name)?.let(::PVProjectName)
+fun ResultSet.getPVProjectNameOrNull(name: String): PVProjectName? =
+    getString(name)?.let(::PVProjectName)
 
-fun ResultSet.getPVDictionaryName(name: String): PVDictionaryName = verifyNotNull(name, ::getPVDictionaryNameOrNull)
+fun ResultSet.getPVDictionaryName(name: String): PVDictionaryName =
+    verifyNotNull(name, ::getPVDictionaryNameOrNull)
 
-fun ResultSet.getPVDictionaryNameOrNull(name: String): PVDictionaryName? = getString(name)?.let(::PVDictionaryName)
+fun ResultSet.getPVDictionaryNameOrNull(name: String): PVDictionaryName? =
+    getString(name)?.let(::PVDictionaryName)
 
-fun ResultSet.getPVDictionaryCode(name: String): PVDictionaryCode = verifyNotNull(name, ::getPVDictionaryCodeOrNull)
+fun ResultSet.getPVDictionaryCode(name: String): PVDictionaryCode =
+    verifyNotNull(name, ::getPVDictionaryCodeOrNull)
 
-fun ResultSet.getPVDictionaryCodeOrNull(name: String): PVDictionaryCode? = getString(name)?.let(::PVDictionaryCode)
+fun ResultSet.getPVDictionaryCodeOrNull(name: String): PVDictionaryCode? =
+    getString(name)?.let(::PVDictionaryCode)
 
 fun ResultSet.getPVId(name: String): PVId = verifyNotNull(name, ::getPVIdOrNull)
 
@@ -281,18 +319,28 @@ fun ResultSet.getChangePoint(nameX: String, nameY: String) =
     Change(getPointOrNull("old_$nameX", "old_$nameY"), getPointOrNull(nameX, nameY))
 
 fun <T> ResultSet.getChangeRowVersion(idName: String, versionName: String): Change<RowVersion<T>> =
-    Change(getRowVersionOrNull("old_$idName", "old_$versionName"), getRowVersionOrNull(idName, versionName))
+    Change(
+        getRowVersionOrNull("old_$idName", "old_$versionName"),
+        getRowVersionOrNull(idName, versionName))
 
 fun ResultSet.getLayoutContext(designIdName: String, draftFlagName: String): LayoutContext =
     toLayoutContext(getPublicationState(draftFlagName), getIntIdOrNull(designIdName))
 
 fun ResultSet.getLayoutContextOrNull(designIdName: String, draftFlagName: String): LayoutContext? =
-    getPublicationStateOrNull(draftFlagName)?.let { state -> toLayoutContext(state, getIntIdOrNull(designIdName)) }
+    getPublicationStateOrNull(draftFlagName)?.let { state ->
+        toLayoutContext(state, getIntIdOrNull(designIdName))
+    }
 
-fun ResultSet.getDesignLayoutContext(designIdName: String, draftFlagName: String): DesignLayoutContext =
+fun ResultSet.getDesignLayoutContext(
+    designIdName: String,
+    draftFlagName: String
+): DesignLayoutContext =
     DesignLayoutContext.of(getIntId(designIdName), getPublicationState(draftFlagName))
 
-fun ResultSet.getDesignLayoutContextOrNull(designIdName: String, draftFlagName: String): DesignLayoutContext? =
+fun ResultSet.getDesignLayoutContextOrNull(
+    designIdName: String,
+    draftFlagName: String
+): DesignLayoutContext? =
     getIntIdOrNull<LayoutDesign>(designIdName)
         ?.let { id -> id to getPublicationState(draftFlagName) }
         ?.let { (id, state) -> DesignLayoutContext.of(id, state) }
@@ -303,25 +351,39 @@ fun ResultSet.getMainLayoutContext(draftFlagName: String): MainLayoutContext =
 fun ResultSet.getMainLayoutContextOrNull(draftFlagName: String): MainLayoutContext? =
     getPublicationStateOrNull(draftFlagName)?.let(MainLayoutContext::of)
 
-private fun toLayoutContext(state: PublicationState, designId: IntId<LayoutDesign>?): LayoutContext =
+private fun toLayoutContext(
+    state: PublicationState,
+    designId: IntId<LayoutDesign>?
+): LayoutContext =
     designId?.let { id -> DesignLayoutContext.of(id, state) } ?: MainLayoutContext.of(state)
 
 fun ResultSet.getPublicationState(draftFlagName: String): PublicationState =
-    requireNotNull(getPublicationStateOrNull(draftFlagName)) { "Value was null: type=Boolean column=$draftFlagName" }
+    requireNotNull(getPublicationStateOrNull(draftFlagName)) {
+        "Value was null: type=Boolean column=$draftFlagName"
+    }
 
 fun ResultSet.getPublicationStateOrNull(draftFlagName: String): PublicationState? =
-    getBooleanOrNull(draftFlagName)?.let { draft -> if (draft) PublicationState.DRAFT else PublicationState.OFFICIAL }
+    getBooleanOrNull(draftFlagName)?.let { draft ->
+        if (draft) PublicationState.DRAFT else PublicationState.OFFICIAL
+    }
 
 fun ResultSet.getLayoutBranch(designIdName: String): LayoutBranch =
-    getIntIdOrNull<LayoutDesign>(designIdName).let { id -> if (id == null) LayoutBranch.main else DesignBranch.of(id) }
+    getIntIdOrNull<LayoutDesign>(designIdName).let { id ->
+        if (id == null) LayoutBranch.main else DesignBranch.of(id)
+    }
 
 inline fun <reified T> verifyNotNull(column: String, nullableGet: (column: String) -> T?): T =
-    requireNotNull(nullableGet(column)) { "Value was null: type=${T::class.simpleName} column=$column" }
+    requireNotNull(nullableGet(column)) {
+        "Value was null: type=${T::class.simpleName} column=$column"
+    }
 
-inline fun <reified T> verifyType(value: Any?): T = value.let { v ->
-    require(v is T) { "Value is of unexpected type: expected=${T::class.simpleName} value=${v}" }
-    v
-}
+inline fun <reified T> verifyType(value: Any?): T =
+    value.let { v ->
+        require(v is T) {
+            "Value is of unexpected type: expected=${T::class.simpleName} value=${v}"
+        }
+        v
+    }
 
 fun <T> ResultSet.getLayoutContextData(
     officialRowIdName: String,

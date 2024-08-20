@@ -21,21 +21,23 @@ data class E2EToast(
     val content: String?,
     val type: ToastType,
 ) {
-    constructor(element: WebElement) : this(
+    constructor(
+        element: WebElement
+    ) : this(
         header = element.findElement(headerBy).text,
         content = if (element.childExists(contentBy)) element.findElement(contentBy).text else null,
-        type = getToastType(element)
-    )
+        type = getToastType(element))
 }
 
-private fun getToastType(toast: WebElement) = with(toast.getAttribute("class")) {
-    when {
-        contains("Toastify__toast--success") -> ToastType.SUCCESS
-        contains("Toastify__toast--error") -> ToastType.ERROR
-        contains("Toastify__toast--warning") -> ToastType.INFO
-        else -> error("Could not determine toast type")
+private fun getToastType(toast: WebElement) =
+    with(toast.getAttribute("class")) {
+        when {
+            contains("Toastify__toast--success") -> ToastType.SUCCESS
+            contains("Toastify__toast--error") -> ToastType.ERROR
+            contains("Toastify__toast--warning") -> ToastType.INFO
+            else -> error("Could not determine toast type")
+        }
     }
-}
 
 private fun clearToast(toastBy: By) {
     clickWhenClickable(toastBy)
@@ -45,7 +47,5 @@ private fun clearToast(toastBy: By) {
 fun waitAndClearToast(id: String): E2EToast {
     val toastBy = By.xpath("//div[starts-with(@id, 'toast') and contains(@id, '$id')]")
 
-    return getElementWhenVisible(toastBy)
-        .let(::E2EToast)
-        .also { clearToast(toastBy) }
+    return getElementWhenVisible(toastBy).let(::E2EToast).also { clearToast(toastBy) }
 }

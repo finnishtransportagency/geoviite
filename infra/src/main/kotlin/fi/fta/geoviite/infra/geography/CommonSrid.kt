@@ -54,4 +54,5 @@ val geoviiteDefaultSrids by lazy {
         KKJ5_SRID,
     )
 }
+
 fun isGkFinSrid(srid: Srid) = srid.code in 3873..3885

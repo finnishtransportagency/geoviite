@@ -22,7 +22,9 @@ import org.springframework.test.context.ActiveProfiles
 @ActiveProfiles("dev", "test")
 @SpringBootTest
 @ConditionalOnBean(RatkoClient::class)
-class RatkoClientIT @Autowired constructor(
+class RatkoClientIT
+@Autowired
+constructor(
     private val ratkoClient: RatkoClient,
     private val switchLibraryService: SwitchLibraryService,
     private val fakeRatkoService: FakeRatkoService,
@@ -69,11 +71,15 @@ class RatkoClientIT @Autowired constructor(
     }
 
     private fun createRatkoBasicUpdateSwitch(layoutSwitch: TrackLayoutSwitch): RatkoSwitchAsset {
-        val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
-        val oid = (layoutSwitch.externalId ?: throw IllegalArgumentException("No switch external ID")).toString()
+        val switchStructure =
+            switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
+        val oid =
+            (layoutSwitch.externalId ?: throw IllegalArgumentException("No switch external ID"))
+                .toString()
         fakeRatko.hasSwitch(ratkoSwitch(oid))
         val ratkoSwitch = ratkoClient.getSwitchAsset(RatkoOid(oid))
-        return convertToRatkoSwitch(layoutSwitch, switchStructure, switchOwners.firstOrNull(), ratkoSwitch)
+        return convertToRatkoSwitch(
+            layoutSwitch, switchStructure, switchOwners.firstOrNull(), ratkoSwitch)
     }
 
     @Test
@@ -90,14 +96,13 @@ class RatkoClientIT @Autowired constructor(
 
     @Test
     fun `New bulk transfer can be started`() {
-        val split = splitTestDataService
-            .insertSplit()
-            .let(splitDao::getOrThrow)
+        val split = splitTestDataService.insertSplit().let(splitDao::getOrThrow)
 
         val expectedBulkTransferId = testDBService.getUnusedBulkTransferId()
 
         fakeRatko.acceptsNewBulkTransferGivingItId(expectedBulkTransferId)
-        val (receivedBulkTransferId, receivedBulkTransferState) = ratkoClient.startNewBulkTransfer(split)
+        val (receivedBulkTransferId, receivedBulkTransferState) =
+            ratkoClient.startNewBulkTransfer(split)
 
         assertEquals(expectedBulkTransferId, receivedBulkTransferId)
         assertEquals(BulkTransferState.IN_PROGRESS, receivedBulkTransferState)
@@ -105,15 +110,14 @@ class RatkoClientIT @Autowired constructor(
 
     @Test
     fun `Bulk transfer state can be polled`() {
-        val split = splitTestDataService
-            .insertSplit()
-            .let(splitDao::getOrThrow)
+        val split = splitTestDataService.insertSplit().let(splitDao::getOrThrow)
 
         val expectedBulkTransferId = testDBService.getUnusedBulkTransferId()
 
         fakeRatko.acceptsNewBulkTransferGivingItId(expectedBulkTransferId)
         val (receivedBulkTransferId, _) = ratkoClient.startNewBulkTransfer(split)
 
-        assertEquals(BulkTransferState.DONE, ratkoClient.pollBulkTransferState(receivedBulkTransferId))
+        assertEquals(
+            BulkTransferState.DONE, ratkoClient.pollBulkTransferState(receivedBulkTransferId))
     }
 }

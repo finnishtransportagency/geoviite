@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.aspects
 
 import fi.fta.geoviite.infra.logging.apiCall
+import java.util.concurrent.ConcurrentHashMap
 import org.aspectj.lang.JoinPoint
 import org.aspectj.lang.annotation.Aspect
 import org.aspectj.lang.annotation.Before
@@ -11,7 +12,6 @@ import org.springframework.core.annotation.AliasFor
 import org.springframework.stereotype.Component
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import java.util.concurrent.ConcurrentHashMap
 
 @Profile("backend")
 @Target(AnnotationTarget.CLASS)
@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap
 @RestController
 @RequestMapping
 annotation class GeoviiteController(
-    @get: AliasFor(annotation = RequestMapping::class) val path: String,
+    @get:AliasFor(annotation = RequestMapping::class) val path: String,
 )
 
 @Aspect
@@ -30,9 +30,10 @@ class GeoviiteControllerAspect {
     @Before("within(@GeoviiteController *)")
     fun logBefore(joinPoint: JoinPoint) {
         val targetClass = joinPoint.target::class.java
-        val logger = loggerCache.computeIfAbsent(targetClass) { classRef ->
-            LoggerFactory.getLogger(classRef)
-        }
+        val logger =
+            loggerCache.computeIfAbsent(targetClass) { classRef ->
+                LoggerFactory.getLogger(classRef)
+            }
 
         if (logger.isInfoEnabled) {
             reflectedLogBefore(joinPoint, logger::apiCall)

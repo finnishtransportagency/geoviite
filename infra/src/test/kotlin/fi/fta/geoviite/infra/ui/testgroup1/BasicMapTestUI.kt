@@ -41,7 +41,9 @@ import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
-class BasicMapTestUI @Autowired constructor(
+class BasicMapTestUI
+@Autowired
+constructor(
     private val switchDao: LayoutSwitchDao,
     private val geometryDao: GeometryDao,
     private val trackNumberDao: LayoutTrackNumberDao,
@@ -59,7 +61,8 @@ class BasicMapTestUI @Autowired constructor(
     fun createTestData() {
         testDBService.clearAllTables()
 
-        // TODO: GVT-1945  Don't use shared test data - init the data in the test as is needed, so it's clear what is expected
+        // TODO: GVT-1945  Don't use shared test data - init the data in the test as is needed, so
+        // it's clear what is expected
         TRACK_NUMBER_WEST = trackNumber(HKI_TRACK_NUMBER_1, draft = false)
         val trackNumberEast = trackNumber(HKI_TRACK_NUMBER_2, draft = false)
         val trackNumberWestId = trackNumberDao.insert(TRACK_NUMBER_WEST)
@@ -83,9 +86,9 @@ class BasicMapTestUI @Autowired constructor(
         switchDao.insert(westTrackLayoutSwitch())
         switchDao.insert(EAST_LAYOUT_SWITCH)
 
-        GEOMETRY_PLAN = geometryDao.fetchPlan(
-            (geometryDao.insertPlan(geometryPlan(TRACK_NUMBER_WEST.number), testFile(), null))
-        )
+        GEOMETRY_PLAN =
+            geometryDao.fetchPlan(
+                (geometryDao.insertPlan(geometryPlan(TRACK_NUMBER_WEST.number), testFile(), null)))
 
         startGeoviite()
     }
@@ -142,7 +145,8 @@ class BasicMapTestUI @Autowired constructor(
         assertNotEquals("R36240 kuvaus", locationTrackInfobox.description)
 
         assertNotEquals(E2ELocationTrackEditDialog.Type.SIDE.name, locationTrackInfobox.type)
-        assertNotEquals(E2ELocationTrackEditDialog.State.NOT_IN_USE.name, locationTrackInfobox.state)
+        assertNotEquals(
+            E2ELocationTrackEditDialog.State.NOT_IN_USE.name, locationTrackInfobox.state)
     }
 
     @Test
@@ -159,10 +163,7 @@ class BasicMapTestUI @Autowired constructor(
         selectionPanel.selectLocationTrack(locationTrackToBeEdited)
         val editDialog = locationTrackInfobox.edit()
 
-        editDialog
-            .setName("R36240")
-            .setDescription("R36240 kuvaus")
-            .save()
+        editDialog.setName("R36240").setDescription("R36240 kuvaus").save()
 
         waitAndClearToast("location-track-dialog.modified-successfully")
 
@@ -181,7 +182,7 @@ class BasicMapTestUI @Autowired constructor(
         assertEquals("Sijaintiraide R36240", changedAlignment.name)
 
         previewChangesPage.stageChange("Sijaintiraide R36240").publish()
-        //selectionPanel.selectLocationTrack("R36240")
+        // selectionPanel.selectLocationTrack("R36240")
 
         assertEquals("R36240", locationTrackInfobox.name)
         locationTrackInfobox.waitUntilDescriptionChanges("R36240 kuvaus")

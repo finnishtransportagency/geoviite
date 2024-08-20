@@ -46,10 +46,11 @@ private val parameterNameDiscoverer = DefaultParameterNameDiscoverer()
 
 fun reflectedLogBefore(
     joinPoint: JoinPoint,
-    loggerMethod: (
-        methodName: String,
-        params: List<Pair<String, *>>,
-    ) -> Unit,
+    loggerMethod:
+        (
+            methodName: String,
+            params: List<Pair<String, *>>,
+        ) -> Unit,
 ) {
     logInternal(
         joinPoint = joinPoint,
@@ -60,11 +61,12 @@ fun reflectedLogBefore(
 fun reflectedLogWithReturnValue(
     joinPoint: JoinPoint,
     returnValue: Any?,
-    loggerMethodWithReturnValue: (
-        methodName: String,
-        params: List<Pair<String, *>>,
-        returnValue: Any?,
-    ) -> Unit,
+    loggerMethodWithReturnValue:
+        (
+            methodName: String,
+            params: List<Pair<String, *>>,
+            returnValue: Any?,
+        ) -> Unit,
 ) {
     logInternal(
         joinPoint = joinPoint,
@@ -100,9 +102,7 @@ private fun reflectParams(
 
     return parameterNames
         .filterIndexed { index, _ ->
-            method.parameterAnnotations[index].none { annotation ->
-                annotation is DoNotWriteToLog
-            }
+            method.parameterAnnotations[index].none { annotation -> annotation is DoNotWriteToLog }
         }
         .zip(joinPoint.args)
 }

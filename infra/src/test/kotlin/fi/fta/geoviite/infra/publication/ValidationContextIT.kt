@@ -30,7 +30,9 @@ import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class ValidationContextIT @Autowired constructor(
+class ValidationContextIT
+@Autowired
+constructor(
     val trackNumberDao: LayoutTrackNumberDao,
     val referenceLineDao: ReferenceLineDao,
     val kmPostDao: LayoutKmPostDao,
@@ -86,7 +88,8 @@ class ValidationContextIT @Autowired constructor(
         )
         assertEquals(
             listOf(trackNumberDao.fetch(tn1DraftVersion)),
-            validationContext(trackNumbers = listOf(tn1Id)).getTrackNumbersByNumber(trackNumber1.number),
+            validationContext(trackNumbers = listOf(tn1Id))
+                .getTrackNumbersByNumber(trackNumber1.number),
         )
 
         assertEquals(
@@ -95,16 +98,20 @@ class ValidationContextIT @Autowired constructor(
         )
         assertEquals(
             listOf(trackNumberDao.fetch(tn2DraftVersion)),
-            validationContext(trackNumbers = listOf(tn2Id)).getTrackNumbersByNumber(trackNumber2.number),
+            validationContext(trackNumbers = listOf(tn2Id))
+                .getTrackNumbersByNumber(trackNumber2.number),
         )
     }
 
     @Test
     fun `ValidationContext returns correct versions for LocationTrack`() {
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val (lt1Id, lt1OfficialVersion) = mainOfficialContext.insert(locationTrackAndAlignment(trackNumberId))
-        val (_, lt1DraftVersion) = locationTrackDao.insert(asMainDraft(locationTrackDao.fetch(lt1OfficialVersion)))
-        val (lt2Id, lt2DraftVersion) = mainDraftContext.insert(locationTrackAndAlignment(trackNumberId))
+        val (lt1Id, lt1OfficialVersion) =
+            mainOfficialContext.insert(locationTrackAndAlignment(trackNumberId))
+        val (_, lt1DraftVersion) =
+            locationTrackDao.insert(asMainDraft(locationTrackDao.fetch(lt1OfficialVersion)))
+        val (lt2Id, lt2DraftVersion) =
+            mainDraftContext.insert(locationTrackAndAlignment(trackNumberId))
 
         assertEquals(
             locationTrackDao.fetch(lt1OfficialVersion),
@@ -124,7 +131,8 @@ class ValidationContextIT @Autowired constructor(
     @Test
     fun `ValidationContext returns correct versions for Switch`() {
         val switchName1 = testDBService.getUnusedSwitchName()
-        val (s1Id, s1OfficialVersion) = mainOfficialContext.insert(switch(name = switchName1.toString()))
+        val (s1Id, s1OfficialVersion) =
+            mainOfficialContext.insert(switch(name = switchName1.toString()))
         val (_, s1DraftVersion) = switchDao.insert(asMainDraft(switchDao.fetch(s1OfficialVersion)))
         val switchName2 = testDBService.getUnusedSwitchName()
         val (s2Id, s2DraftVersion) = mainDraftContext.insert(switch(name = switchName2.toString()))
@@ -151,7 +159,8 @@ class ValidationContextIT @Autowired constructor(
             listOf(switchDao.fetch(s1DraftVersion)),
             validationContext(switches = listOf(s1Id)).getSwitchesByName(switchName1),
         )
-        assertEquals(emptyList<TrackLayoutSwitch>(), validationContext().getSwitchesByName(switchName2))
+        assertEquals(
+            emptyList<TrackLayoutSwitch>(), validationContext().getSwitchesByName(switchName2))
         assertEquals(
             listOf(switchDao.fetch(s2DraftVersion)),
             validationContext(switches = listOf(s2Id)).getSwitchesByName(switchName2),
@@ -161,8 +170,10 @@ class ValidationContextIT @Autowired constructor(
     @Test
     fun `ValidationContext returns correct versions for KM-Post`() {
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
-        val (kmp1Id, kmp1OfficialVersion) = mainOfficialContext.insert(kmPost(trackNumberId, KmNumber(1)))
-        val (_, kmp1DraftVersion) = kmPostDao.insert(asMainDraft(kmPostDao.fetch(kmp1OfficialVersion)))
+        val (kmp1Id, kmp1OfficialVersion) =
+            mainOfficialContext.insert(kmPost(trackNumberId, KmNumber(1)))
+        val (_, kmp1DraftVersion) =
+            kmPostDao.insert(asMainDraft(kmPostDao.fetch(kmp1OfficialVersion)))
         val (kmp2Id, kmp2DraftVersion) = mainDraftContext.insert(kmPost(trackNumberId, KmNumber(2)))
         assertEquals(
             kmPostDao.fetch(kmp1OfficialVersion),
@@ -186,25 +197,29 @@ class ValidationContextIT @Autowired constructor(
         referenceLines: List<IntId<ReferenceLine>> = listOf(),
         switches: List<IntId<TrackLayoutSwitch>> = listOf(),
         kmPosts: List<IntId<TrackLayoutKmPost>> = listOf(),
-    ): ValidationContext = ValidationContext(
-        trackNumberDao = trackNumberDao,
-        referenceLineDao = referenceLineDao,
-        kmPostDao = kmPostDao,
-        locationTrackDao = locationTrackDao,
-        switchDao = switchDao,
-        geocodingService = geocodingService,
-        alignmentDao = alignmentDao,
-        publicationDao = publicationDao,
-        switchLibraryService = switchLibraryService,
-        splitService = splitService,
-        publicationSet = ValidationVersions(
-            branch = branch,
-            trackNumbers = trackNumberDao.fetchPublicationVersions(branch, trackNumbers),
-            referenceLines = referenceLineDao.fetchPublicationVersions(branch, referenceLines),
-            kmPosts = kmPostDao.fetchPublicationVersions(branch, kmPosts),
-            locationTracks = locationTrackDao.fetchPublicationVersions(branch, locationTracks),
-            switches = switchDao.fetchPublicationVersions(branch, switches),
-            splits = splitService.fetchPublicationVersions(branch, locationTracks, switches),
-        )
-    )
+    ): ValidationContext =
+        ValidationContext(
+            trackNumberDao = trackNumberDao,
+            referenceLineDao = referenceLineDao,
+            kmPostDao = kmPostDao,
+            locationTrackDao = locationTrackDao,
+            switchDao = switchDao,
+            geocodingService = geocodingService,
+            alignmentDao = alignmentDao,
+            publicationDao = publicationDao,
+            switchLibraryService = switchLibraryService,
+            splitService = splitService,
+            publicationSet =
+                ValidationVersions(
+                    branch = branch,
+                    trackNumbers = trackNumberDao.fetchPublicationVersions(branch, trackNumbers),
+                    referenceLines =
+                        referenceLineDao.fetchPublicationVersions(branch, referenceLines),
+                    kmPosts = kmPostDao.fetchPublicationVersions(branch, kmPosts),
+                    locationTracks =
+                        locationTrackDao.fetchPublicationVersions(branch, locationTracks),
+                    switches = switchDao.fetchPublicationVersions(branch, switches),
+                    splits =
+                        splitService.fetchPublicationVersions(branch, locationTracks, switches),
+                ))
 }

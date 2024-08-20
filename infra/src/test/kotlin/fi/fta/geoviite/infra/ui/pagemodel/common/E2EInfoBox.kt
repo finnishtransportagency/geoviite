@@ -8,14 +8,17 @@ import waitUntilTextIs
 
 abstract class E2EInfoBox(infoboxBy: By) : E2EViewFragment(infoboxBy) {
 
-    protected val title: String get() = childText(By.className("infobox__title"))
+    protected val title: String
+        get() = childText(By.className("infobox__title"))
 
-    private fun getValueBy(fieldQaId: String) = ByChained(byQaId(fieldQaId), By.className("infobox__field-value"))
+    private fun getValueBy(fieldQaId: String) =
+        ByChained(byQaId(fieldQaId), By.className("infobox__field-value"))
 
     protected fun getEnumValueForField(fieldQaId: String): String {
         logger.info("Get enum value for field $fieldQaId")
 
-        return childElement(ByChained(getValueBy(fieldQaId), By.tagName("span"))).getAttribute("qa-id")
+        return childElement(ByChained(getValueBy(fieldQaId), By.tagName("span")))
+            .getAttribute("qa-id")
     }
 
     protected fun getValueForField(fieldQaId: String): String {
@@ -39,7 +42,10 @@ abstract class E2EInfoBox(infoboxBy: By) : E2EViewFragment(infoboxBy) {
         clickChild(By.className("infobox__edit-icon"))
     }
 
-    protected fun waitUntilValueChangesForField(fieldQaId: String, targetValue: String): E2EInfoBox = apply {
+    protected fun waitUntilValueChangesForField(
+        fieldQaId: String,
+        targetValue: String
+    ): E2EInfoBox = apply {
         logger.info("Wait for field $fieldQaId to change value to $targetValue")
 
         waitUntilTextIs(childBy(getValueBy(fieldQaId)), targetValue)

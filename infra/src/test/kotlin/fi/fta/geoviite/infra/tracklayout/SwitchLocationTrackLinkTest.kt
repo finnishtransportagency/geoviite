@@ -5,8 +5,8 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
-import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import org.junit.jupiter.api.Test
 
 class SwitchLocationTrackLinkTest {
 
@@ -18,12 +18,14 @@ class SwitchLocationTrackLinkTest {
         //                 2-1..2-2..3-1
         assertEquals(
             expected = listOf(fullMatch(2 to 1, 3 to 1)),
-            actual = getDuplicateMatches(
-                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackSplitPoints = matchRange(2 to 1, 2 to 2, 3 to 1),
-                mainTrackId = StringId(),
-                duplicateOf = null,
-            ),
+            actual =
+                getDuplicateMatches(
+                    mainTrackSplitPoints =
+                        matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                    duplicateTrackSplitPoints = matchRange(2 to 1, 2 to 2, 3 to 1),
+                    mainTrackId = StringId(),
+                    duplicateOf = null,
+                ),
         )
     }
 
@@ -35,12 +37,14 @@ class SwitchLocationTrackLinkTest {
         //       1-1..1-2
         assertEquals(
             expected = listOf(fullMatch(1 to 1, 1 to 2)),
-            actual = getDuplicateMatches(
-                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2),
-                mainTrackId = StringId(),
-                duplicateOf = null,
-            ),
+            actual =
+                getDuplicateMatches(
+                    mainTrackSplitPoints =
+                        matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                    duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2),
+                    mainTrackId = StringId(),
+                    duplicateOf = null,
+                ),
         )
     }
 
@@ -52,12 +56,14 @@ class SwitchLocationTrackLinkTest {
         //                           3-1..3-2
         assertEquals(
             expected = listOf(fullMatch(3 to 1, 3 to 2)),
-            actual = getDuplicateMatches(
-                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackSplitPoints = matchRange(3 to 1, 3 to 2),
-                mainTrackId = StringId(),
-                duplicateOf = null,
-            ),
+            actual =
+                getDuplicateMatches(
+                    mainTrackSplitPoints =
+                        matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                    duplicateTrackSplitPoints = matchRange(3 to 1, 3 to 2),
+                    mainTrackId = StringId(),
+                    duplicateOf = null,
+                ),
         )
     }
 
@@ -69,12 +75,14 @@ class SwitchLocationTrackLinkTest {
         //       1-1..1-2..5-1..5-2
         assertEquals(
             expected = listOf(partialMatch(1 to 1, 1 to 2)),
-            actual = getDuplicateMatches(
-                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2, 5 to 1, 5 to 2),
-                mainTrackId = StringId(),
-                duplicateOf = null,
-            ),
+            actual =
+                getDuplicateMatches(
+                    mainTrackSplitPoints =
+                        matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                    duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2, 5 to 1, 5 to 2),
+                    mainTrackId = StringId(),
+                    duplicateOf = null,
+                ),
         )
     }
 
@@ -86,12 +94,14 @@ class SwitchLocationTrackLinkTest {
         //       5-1..1-2..2-1..6-2
         assertEquals(
             expected = listOf(partialMatch(1 to 2, 2 to 1, from = 1)),
-            actual = getDuplicateMatches(
-                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackSplitPoints = matchRange(5 to 1, 1 to 2, 2 to 1, 6 to 2),
-                mainTrackId = StringId(),
-                duplicateOf = null,
-            ),
+            actual =
+                getDuplicateMatches(
+                    mainTrackSplitPoints =
+                        matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                    duplicateTrackSplitPoints = matchRange(5 to 1, 1 to 2, 2 to 1, 6 to 2),
+                    mainTrackId = StringId(),
+                    duplicateOf = null,
+                ),
         )
     }
 
@@ -103,12 +113,14 @@ class SwitchLocationTrackLinkTest {
         //                 5-1..2-2..3-1..3-2
         assertEquals(
             expected = listOf(partialMatch(2 to 2, 3 to 2, from = 1)),
-            actual = getDuplicateMatches(
-                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackSplitPoints = matchRange(5 to 1, 2 to 2, 3 to 1, 3 to 2),
-                mainTrackId = StringId(),
-                duplicateOf = null,
-            ),
+            actual =
+                getDuplicateMatches(
+                    mainTrackSplitPoints =
+                        matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                    duplicateTrackSplitPoints = matchRange(5 to 1, 2 to 2, 3 to 1, 3 to 2),
+                    mainTrackId = StringId(),
+                    duplicateOf = null,
+                ),
         )
     }
 
@@ -119,16 +131,19 @@ class SwitchLocationTrackLinkTest {
         // Dupl:  0    1         2    3
         //       1-1..1-2..5-5..2-2..3-1
         assertEquals(
-            expected = listOf(
-                partialMatch(1 to 1, 1 to 2),
-                partialMatch(2 to 2, 3 to 1, from = 2),
-            ),
-            actual = getDuplicateMatches(
-                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 2, 3 to 1),
-                mainTrackId = StringId(),
-                duplicateOf = null,
-            ),
+            expected =
+                listOf(
+                    partialMatch(1 to 1, 1 to 2),
+                    partialMatch(2 to 2, 3 to 1, from = 2),
+                ),
+            actual =
+                getDuplicateMatches(
+                    mainTrackSplitPoints =
+                        matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                    duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 2, 3 to 1),
+                    mainTrackId = StringId(),
+                    duplicateOf = null,
+                ),
         )
     }
 
@@ -139,16 +154,18 @@ class SwitchLocationTrackLinkTest {
         // Dupl:  0    1    2    3    4
         //       1-1..1-2..2-1..2-2..3-1
         assertEquals(
-            expected = listOf(
-                partialMatch(1 to 1, 1 to 2),
-                partialMatch(2 to 2, 3 to 1, from = 3),
-            ),
-            actual = getDuplicateMatches(
-                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1),
-                mainTrackId = StringId(),
-                duplicateOf = null,
-            ),
+            expected =
+                listOf(
+                    partialMatch(1 to 1, 1 to 2),
+                    partialMatch(2 to 2, 3 to 1, from = 3),
+                ),
+            actual =
+                getDuplicateMatches(
+                    mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 2, 3 to 1, 3 to 2),
+                    duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1),
+                    mainTrackId = StringId(),
+                    duplicateOf = null,
+                ),
         )
     }
 
@@ -159,16 +176,19 @@ class SwitchLocationTrackLinkTest {
         // Dupl:  0    1         2    3
         //       1-1..1-2.......2-2..3-1
         assertEquals(
-            expected = listOf(
-                partialMatch(1 to 1, 1 to 2),
-                partialMatch(2 to 2, 3 to 1, from = 2),
-            ),
-            actual = getDuplicateMatches(
-                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 2, 3 to 1),
-                mainTrackId = StringId(),
-                duplicateOf = null,
-            ),
+            expected =
+                listOf(
+                    partialMatch(1 to 1, 1 to 2),
+                    partialMatch(2 to 2, 3 to 1, from = 2),
+                ),
+            actual =
+                getDuplicateMatches(
+                    mainTrackSplitPoints =
+                        matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                    duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 2, 3 to 1),
+                    mainTrackId = StringId(),
+                    duplicateOf = null,
+                ),
         )
     }
 
@@ -180,12 +200,14 @@ class SwitchLocationTrackLinkTest {
         //       1-1..1-2............3-1
         assertEquals(
             expected = listOf(partialMatch(1 to 1, 1 to 2)),
-            actual = getDuplicateMatches(
-                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2, 3 to 1),
-                mainTrackId = StringId(),
-                duplicateOf = null,
-            ),
+            actual =
+                getDuplicateMatches(
+                    mainTrackSplitPoints =
+                        matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                    duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2, 3 to 1),
+                    mainTrackId = StringId(),
+                    duplicateOf = null,
+                ),
         )
     }
 
@@ -198,30 +220,31 @@ class SwitchLocationTrackLinkTest {
         val start = Point(0.0, 0.0)
         val end = Point(10.0, 0.0)
         assertEquals(
-            expected = listOf(
-                0 to DuplicateStatus(
-                    DuplicateMatch.FULL,
-                    duplicateOfId = null,
-                    startSplitPoint = startPoint(start),
-                    endSplitPoint = endPoint(end)
-                )
-            ),
-            actual = getDuplicateMatches(
-                mainTrackSplitPoints = listOf(
-                    startPoint(start),
-                    switchSplitPoint(1, 2),
-                    switchSplitPoint(2, 1),
-                    endPoint(end)
+            expected =
+                listOf(
+                    0 to
+                        DuplicateStatus(
+                            DuplicateMatch.FULL,
+                            duplicateOfId = null,
+                            startSplitPoint = startPoint(start),
+                            endSplitPoint = endPoint(end))),
+            actual =
+                getDuplicateMatches(
+                    mainTrackSplitPoints =
+                        listOf(
+                            startPoint(start),
+                            switchSplitPoint(1, 2),
+                            switchSplitPoint(2, 1),
+                            endPoint(end)),
+                    duplicateTrackSplitPoints =
+                        listOf(
+                            startPoint(start),
+                            switchSplitPoint(1, 2),
+                            switchSplitPoint(2, 1),
+                            endPoint(end)),
+                    mainTrackId = StringId(),
+                    duplicateOf = null,
                 ),
-                duplicateTrackSplitPoints = listOf(
-                    startPoint(start),
-                    switchSplitPoint(1, 2),
-                    switchSplitPoint(2, 1),
-                    endPoint(end)
-                ),
-                mainTrackId = StringId(),
-                duplicateOf = null,
-            ),
         )
     }
 
@@ -236,30 +259,31 @@ class SwitchLocationTrackLinkTest {
         val otherStart = Point(2.5, 0.0)
         val otherEnd = Point(12.5, 0.0)
         assertEquals(
-            expected = listOf(
-                1 to DuplicateStatus(
-                    DuplicateMatch.PARTIAL,
-                    duplicateOfId = null,
-                    startSplitPoint = switchSplitPoint(1, 2),
-                    endSplitPoint = switchSplitPoint(2, 1)
-                )
-            ),
-            actual = getDuplicateMatches(
-                mainTrackSplitPoints = listOf(
-                    startPoint(start),
-                    switchSplitPoint(1, 2),
-                    switchSplitPoint(2, 1),
-                    endPoint(end)
+            expected =
+                listOf(
+                    1 to
+                        DuplicateStatus(
+                            DuplicateMatch.PARTIAL,
+                            duplicateOfId = null,
+                            startSplitPoint = switchSplitPoint(1, 2),
+                            endSplitPoint = switchSplitPoint(2, 1))),
+            actual =
+                getDuplicateMatches(
+                    mainTrackSplitPoints =
+                        listOf(
+                            startPoint(start),
+                            switchSplitPoint(1, 2),
+                            switchSplitPoint(2, 1),
+                            endPoint(end)),
+                    duplicateTrackSplitPoints =
+                        listOf(
+                            startPoint(otherStart),
+                            switchSplitPoint(1, 2),
+                            switchSplitPoint(2, 1),
+                            endPoint(otherEnd)),
+                    mainTrackId = StringId(),
+                    duplicateOf = null,
                 ),
-                duplicateTrackSplitPoints = listOf(
-                    startPoint(otherStart),
-                    switchSplitPoint(1, 2),
-                    switchSplitPoint(2, 1),
-                    endPoint(otherEnd)
-                ),
-                mainTrackId = StringId(),
-                duplicateOf = null,
-            ),
         )
     }
 
@@ -271,15 +295,16 @@ class SwitchLocationTrackLinkTest {
         //       start..1-2............3-1
         assertEquals(
             expected = listOf(partialMatch(1 to 1, 1 to 2)),
-            actual = getDuplicateMatches(
-                mainTrackSplitPoints = matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
-                duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2, 3 to 1),
-                mainTrackId = StringId(),
-                duplicateOf = null,
-            ),
+            actual =
+                getDuplicateMatches(
+                    mainTrackSplitPoints =
+                        matchRange(1 to 1, 1 to 2, 2 to 1, 2 to 2, 3 to 1, 3 to 2),
+                    duplicateTrackSplitPoints = matchRange(1 to 1, 1 to 2, 3 to 1),
+                    mainTrackId = StringId(),
+                    duplicateOf = null,
+                ),
         )
     }
-
 }
 
 fun emptyPoint() = AlignmentPoint(0.0, 0.0, 0.0, 0.0, 0.0)
@@ -290,12 +315,17 @@ fun partialMatch(
     from: Int = 0,
     startPoint: AlignmentPoint = emptyPoint(),
     endPoint: AlignmentPoint = emptyPoint(),
-) = from to DuplicateStatus(
-    DuplicateMatch.PARTIAL,
-    null,
-    startSplitPoint = SwitchSplitPoint(startPoint, null, IntId(startSwitch.first), JointNumber(startSwitch.second)),
-    endSplitPoint = SwitchSplitPoint(endPoint, null, IntId(endSwitch.first), JointNumber(endSwitch.second))
-)
+) =
+    from to
+        DuplicateStatus(
+            DuplicateMatch.PARTIAL,
+            null,
+            startSplitPoint =
+                SwitchSplitPoint(
+                    startPoint, null, IntId(startSwitch.first), JointNumber(startSwitch.second)),
+            endSplitPoint =
+                SwitchSplitPoint(
+                    endPoint, null, IntId(endSwitch.first), JointNumber(endSwitch.second)))
 
 fun fullMatch(
     startSwitch: Pair<Int, Int>,
@@ -303,30 +333,33 @@ fun fullMatch(
     from: Int = 0,
     startPoint: AlignmentPoint = emptyPoint(),
     endPoint: AlignmentPoint = emptyPoint(),
-) = from to DuplicateStatus(
-    DuplicateMatch.FULL,
-    null,
-    startSplitPoint = SwitchSplitPoint(startPoint, null, IntId(startSwitch.first), JointNumber(startSwitch.second)),
-    endSplitPoint = SwitchSplitPoint(endPoint, null, IntId(endSwitch.first), JointNumber(endSwitch.second))
-)
+) =
+    from to
+        DuplicateStatus(
+            DuplicateMatch.FULL,
+            null,
+            startSplitPoint =
+                SwitchSplitPoint(
+                    startPoint, null, IntId(startSwitch.first), JointNumber(startSwitch.second)),
+            endSplitPoint =
+                SwitchSplitPoint(
+                    endPoint, null, IntId(endSwitch.first), JointNumber(endSwitch.second)))
 
-fun startPoint(point: IPoint):EndpointSplitPoint {
+fun startPoint(point: IPoint): EndpointSplitPoint {
     return EndpointSplitPoint(
         location = AlignmentPoint(point.x, point.y, null, 0.0, null),
         address = null,
-        DuplicateEndPointType.START
-    )
+        DuplicateEndPointType.START)
 }
 
-fun endPoint(point: IPoint):EndpointSplitPoint {
+fun endPoint(point: IPoint): EndpointSplitPoint {
     return EndpointSplitPoint(
         location = AlignmentPoint(point.x, point.y, null, 0.0, null),
         address = null,
-        DuplicateEndPointType.END
-    )
+        DuplicateEndPointType.END)
 }
 
-fun switchSplitPoint(switchId:Int, joint:Int):SwitchSplitPoint {
+fun switchSplitPoint(switchId: Int, joint: Int): SwitchSplitPoint {
     return SwitchSplitPoint(
         emptyPoint(),
         null,
@@ -334,11 +367,13 @@ fun switchSplitPoint(switchId:Int, joint:Int):SwitchSplitPoint {
         JointNumber(joint),
     )
 }
-fun matchRange(vararg switchToJoint: Pair<Int, Int>): List<SplitPoint> = switchToJoint.map { (id, joint) ->
-    SwitchSplitPoint(
-        emptyPoint(),
-        null,
-        IntId(id),
-        JointNumber(joint),
-    )
-}
+
+fun matchRange(vararg switchToJoint: Pair<Int, Int>): List<SplitPoint> =
+    switchToJoint.map { (id, joint) ->
+        SwitchSplitPoint(
+            emptyPoint(),
+            null,
+            IntId(id),
+            JointNumber(joint),
+        )
+    }

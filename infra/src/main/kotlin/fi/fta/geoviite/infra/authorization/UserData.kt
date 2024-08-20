@@ -19,34 +19,39 @@ data class UserDetails(
 data class Role(val code: Code, val privileges: List<Privilege>)
 
 data class Privilege(val code: Code) : GrantedAuthority {
-    @JsonIgnore
-    override fun getAuthority(): String = code.toString()
+    @JsonIgnore override fun getAuthority(): String = code.toString()
 }
 
 val userNameLength = 3..300
 
-data class UserName @JsonCreator(mode = DELEGATING) private constructor(private val value: String)
-    : Comparable<UserName>, CharSequence by value {
+data class UserName @JsonCreator(mode = DELEGATING) private constructor(private val value: String) :
+    Comparable<UserName>, CharSequence by value {
     companion object {
         fun of(name: String) = UserName(removeLogUnsafe(name))
     }
-    init { assertLength<UserName>(value, userNameLength) }
 
-    @JsonValue
-    override fun toString(): String = value
+    init {
+        assertLength<UserName>(value, userNameLength)
+    }
+
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: UserName): Int = value.compareTo(other.value)
 }
 
 val authNameLength = 1..300
 
-data class AuthName @JsonCreator(mode = DELEGATING) private constructor(private val value: String)
-    : Comparable<AuthName>, CharSequence by value {
+data class AuthName @JsonCreator(mode = DELEGATING) private constructor(private val value: String) :
+    Comparable<AuthName>, CharSequence by value {
     companion object {
         fun of(name: String) = AuthName(removeLogUnsafe(name))
     }
-    init { assertLength<AuthName>(value, authNameLength) }
 
-    @JsonValue
-    override fun toString(): String = value
+    init {
+        assertLength<AuthName>(value, authNameLength)
+    }
+
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: AuthName): Int = value.compareTo(other.value)
 }

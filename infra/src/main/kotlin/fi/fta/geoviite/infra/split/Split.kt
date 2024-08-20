@@ -32,7 +32,9 @@ data class SplitHeader(
     val bulkTransferState: BulkTransferState,
     val publicationId: IntId<Publication>?,
 ) {
-    constructor(split: Split) : this(
+    constructor(
+        split: Split
+    ) : this(
         id = split.id,
         locationTrackId = split.sourceLocationTrackId,
         bulkTransferState = split.bulkTransferState,
@@ -55,10 +57,14 @@ data class Split(
 ) {
     init {
         if (publicationId != null) {
-            require(id == rowVersion.id) { "Split source row version must refer to official row, once published" }
+            require(id == rowVersion.id) {
+                "Split source row version must refer to official row, once published"
+            }
         }
         if (publicationId == null) {
-            require(bulkTransferState == BulkTransferState.PENDING) { "Split must be pending if not published" }
+            require(bulkTransferState == BulkTransferState.PENDING) {
+                "Split must be pending if not published"
+            }
         }
 
         if (bulkTransferState == BulkTransferState.IN_PROGRESS) {
@@ -69,29 +75,42 @@ data class Split(
     }
 
     @get:JsonIgnore
-    val locationTracks by lazy { targetLocationTracks.map { it.locationTrackId } + sourceLocationTrackId }
+    val locationTracks by lazy {
+        targetLocationTracks.map { it.locationTrackId } + sourceLocationTrackId
+    }
 
     @JsonIgnore
-    val isPublishedAndWaitingTransfer: Boolean = bulkTransferState != BulkTransferState.DONE && publicationId != null
+    val isPublishedAndWaitingTransfer: Boolean =
+        bulkTransferState != BulkTransferState.DONE && publicationId != null
 
     fun containsTargetTrack(trackId: IntId<LocationTrack>): Boolean =
         targetLocationTracks.any { tlt -> tlt.locationTrackId == trackId }
-    fun containsLocationTrack(trackId: IntId<LocationTrack>): Boolean = locationTracks.contains(trackId)
+
+    fun containsLocationTrack(trackId: IntId<LocationTrack>): Boolean =
+        locationTracks.contains(trackId)
+
     fun getTargetLocationTrack(trackId: IntId<LocationTrack>): SplitTarget? =
         targetLocationTracks.find { track -> track.locationTrackId == trackId }
 
-    fun containsSwitch(switchId: IntId<TrackLayoutSwitch>): Boolean = relinkedSwitches.contains(switchId)
+    fun containsSwitch(switchId: IntId<TrackLayoutSwitch>): Boolean =
+        relinkedSwitches.contains(switchId)
 }
 
-enum class SplitTargetOperation { CREATE, OVERWRITE, TRANSFER }
+enum class SplitTargetOperation {
+    CREATE,
+    OVERWRITE,
+    TRANSFER
+}
 
 enum class SplitTargetDuplicateOperation {
     TRANSFER,
     OVERWRITE;
-    fun toSplitTargetOperation(): SplitTargetOperation = when (this) {
-        TRANSFER -> SplitTargetOperation.TRANSFER
-        OVERWRITE -> SplitTargetOperation.OVERWRITE
-    }
+
+    fun toSplitTargetOperation(): SplitTargetOperation =
+        when (this) {
+            TRANSFER -> SplitTargetOperation.TRANSFER
+            OVERWRITE -> SplitTargetOperation.OVERWRITE
+        }
 }
 
 data class SplitTarget(
@@ -108,7 +127,12 @@ data class SplitLayoutValidationIssues(
     val switches: Map<IntId<TrackLayoutSwitch>, List<LayoutValidationIssue>>,
 ) {
     fun allIssues(): List<LayoutValidationIssue> =
-        (trackNumbers.values + referenceLines.values + kmPosts.values + locationTracks.values + switches.values).flatten()
+        (trackNumbers.values +
+                referenceLines.values +
+                kmPosts.values +
+                locationTracks.values +
+                switches.values)
+            .flatten()
 }
 
 data class SplitRequestTargetDuplicate(

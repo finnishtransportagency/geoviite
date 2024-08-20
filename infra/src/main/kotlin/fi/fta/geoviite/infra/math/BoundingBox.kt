@@ -10,7 +10,9 @@ private val jtsBuilder = GeometryBuilder()
 
 data class BoundingBox(val x: Range<Double>, val y: Range<Double>) {
     constructor(ranges: Pair<Range<Double>, Range<Double>>) : this(ranges.first, ranges.second)
+
     constructor(min: Point, max: Point) : this(Range(min.x, max.x), Range(min.y, max.y))
+
     constructor(value: String) : this(parseRanges(value))
 
     constructor(
@@ -20,17 +22,13 @@ data class BoundingBox(val x: Range<Double>, val y: Range<Double>) {
 
     override fun toString() = "${x.min}$SEPARATOR${x.max}$SEPARATOR${y.min}$SEPARATOR${y.max}"
 
-    @get:JsonIgnore
-    val width: Double by lazy { x.max - x.min }
+    @get:JsonIgnore val width: Double by lazy { x.max - x.min }
 
-    @get:JsonIgnore
-    val height: Double by lazy { y.max - y.min }
+    @get:JsonIgnore val height: Double by lazy { y.max - y.min }
 
-    @get:JsonIgnore
-    val min: Point by lazy { Point(x.min, y.min) }
+    @get:JsonIgnore val min: Point by lazy { Point(x.min, y.min) }
 
-    @get:JsonIgnore
-    val max: Point by lazy { Point(x.max, y.max) }
+    @get:JsonIgnore val max: Point by lazy { Point(x.max, y.max) }
 
     @get:JsonIgnore
     val corners: List<Point> by lazy {
@@ -39,13 +37,15 @@ data class BoundingBox(val x: Range<Double>, val y: Range<Double>) {
 
     @get:JsonIgnore
     val polygonFromCorners: List<Point> by lazy {
-        listOf(Point(x.min, y.min), Point(x.max, y.min), Point(x.max, y.max), Point(x.min, y.max), Point(x.min, y.min))
+        listOf(
+            Point(x.min, y.min),
+            Point(x.max, y.min),
+            Point(x.max, y.max),
+            Point(x.min, y.max),
+            Point(x.min, y.min))
     }
 
-    @get:JsonIgnore
-    val center: Point by lazy {
-        Point((x.min + x.max) / 2, (y.min + y.max) / 2)
-    }
+    @get:JsonIgnore val center: Point by lazy { Point((x.min + x.max) / 2, (y.min + y.max) / 2) }
 
     private val jtsBox by lazy { jtsBuilder.box(x.min, y.min, x.max, y.max) }
 
@@ -71,44 +71,44 @@ data class BoundingBox(val x: Range<Double>, val y: Range<Double>) {
         return BoundingBox(min + translation, max + translation)
     }
 
-    private fun pointArray(points: List<Point>) = points.flatMap { p -> listOf(p.x, p.y) }.toDoubleArray()
+    private fun pointArray(points: List<Point>) =
+        points.flatMap { p -> listOf(p.x, p.y) }.toDoubleArray()
 
     operator fun plus(increment: Double): BoundingBox {
-        return BoundingBox(
-            min - increment,
-            max + increment
-        )
+        return BoundingBox(min - increment, max + increment)
     }
 
     operator fun times(ratio: Double): BoundingBox {
         val width = x.max - x.min
         val height = y.max - y.min
         val delta = Point(width * ratio - width, height * ratio - height)
-        return BoundingBox(
-            min - delta / 2.0,
-            max + delta / 2.0
-        )
+        return BoundingBox(min - delta / 2.0, max + delta / 2.0)
     }
 }
 
 fun parseRanges(value: String): Pair<Range<Double>, Range<Double>> {
     val values = value.split(SEPARATOR).map(String::toDouble)
-    if (values.size != 4) throw IllegalArgumentException("Invalid bounding box (expected 4 numbers): \"$value\"")
+    if (values.size != 4)
+        throw IllegalArgumentException("Invalid bounding box (expected 4 numbers): \"$value\"")
     return Range(values[0]..values[1]) to Range(values[2]..values[3])
 }
 
 fun boundingBoxAroundPoint(point: IPoint, delta: Double) =
-    BoundingBox(point.x-delta..point.x+delta, point.y-delta..point.y+delta)
+    BoundingBox(point.x - delta..point.x + delta, point.y - delta..point.y + delta)
 
 fun boundingBoxAroundPoints(point1: Point, vararg rest: Point): BoundingBox =
-    boundingBoxAroundPointsOrNull(listOf(point1) + rest) ?: throw IllegalStateException("Failed to create bounding box")
+    boundingBoxAroundPointsOrNull(listOf(point1) + rest)
+        ?: throw IllegalStateException("Failed to create bounding box")
 
 fun boundingBoxAroundPoints(points: List<Point>, buffer: Double = DEFAULT_BUFFER) =
-    boundingBoxAroundPointsOrNull(points, buffer) ?: throw IllegalStateException("Failed to create bounding box")
+    boundingBoxAroundPointsOrNull(points, buffer)
+        ?: throw IllegalStateException("Failed to create bounding box")
 
 fun <T : IPoint> boundingBoxAroundPointsOrNull(points: List<T>, buffer: Double = DEFAULT_BUFFER) =
     if (points.isEmpty()) null
-    else BoundingBox(minPoint(points) - Point(buffer, buffer), maxPoint(points) + Point(buffer, buffer))
+    else
+        BoundingBox(
+            minPoint(points) - Point(buffer, buffer), maxPoint(points) + Point(buffer, buffer))
 
 fun boundingBoxCombining(boxes: List<BoundingBox>) =
     if (boxes.isEmpty()) null

@@ -22,13 +22,14 @@ fun targetRequest(
     descriptionSuffix: DescriptionSuffixType = DescriptionSuffixType.SWITCH_TO_SWITCH,
     duplicateTrackId: IntId<LocationTrack>? = null,
     operation: SplitTargetDuplicateOperation = SplitTargetDuplicateOperation.OVERWRITE,
-): SplitRequestTarget = SplitRequestTarget(
-    duplicateTrack = duplicateTrackId?.let { id -> SplitRequestTargetDuplicate(id, operation) },
-    startAtSwitchId = startAtSwitchId,
-    name = AlignmentName(name),
-    descriptionBase = FreeText(descriptionBase),
-    descriptionSuffix = descriptionSuffix,
-)
+): SplitRequestTarget =
+    SplitRequestTarget(
+        duplicateTrack = duplicateTrackId?.let { id -> SplitRequestTargetDuplicate(id, operation) },
+        startAtSwitchId = startAtSwitchId,
+        name = AlignmentName(name),
+        descriptionBase = FreeText(descriptionBase),
+        descriptionSuffix = descriptionSuffix,
+    )
 
 fun targetParams(
     switchId: IntId<TrackLayoutSwitch>?,
@@ -39,22 +40,26 @@ fun targetParams(
     duplicate: Pair<LocationTrack, LayoutAlignment>? = null,
 ): SplitTargetParams {
     return SplitTargetParams(
-        startSwitch = if (switchId != null && switchJoint != null) {
-            SplitPointSwitch(switchId, switchJoint, SwitchName("S${switchId.intValue}"))
-        } else {
-            null
-        },
-        request = SplitRequestTarget(
-            duplicateTrack = (duplicate?.first?.id as? IntId)?.let { id ->
-                SplitRequestTargetDuplicate(id, SplitTargetDuplicateOperation.OVERWRITE)
+        startSwitch =
+            if (switchId != null && switchJoint != null) {
+                SplitPointSwitch(switchId, switchJoint, SwitchName("S${switchId.intValue}"))
+            } else {
+                null
             },
-            startAtSwitchId = switchId,
-            name = AlignmentName(name),
-            descriptionBase = FreeText(descriptionBase),
-            descriptionSuffix = descriptionSuffixType,
-        ),
-        duplicate = duplicate?.let { (track, alignment) ->
-            SplitTargetDuplicate(SplitTargetDuplicateOperation.OVERWRITE, track, alignment)
-        },
+        request =
+            SplitRequestTarget(
+                duplicateTrack =
+                    (duplicate?.first?.id as? IntId)?.let { id ->
+                        SplitRequestTargetDuplicate(id, SplitTargetDuplicateOperation.OVERWRITE)
+                    },
+                startAtSwitchId = switchId,
+                name = AlignmentName(name),
+                descriptionBase = FreeText(descriptionBase),
+                descriptionSuffix = descriptionSuffixType,
+            ),
+        duplicate =
+            duplicate?.let { (track, alignment) ->
+                SplitTargetDuplicate(SplitTargetDuplicateOperation.OVERWRITE, track, alignment)
+            },
     )
 }

@@ -17,7 +17,9 @@ import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 
 @GeoviiteController("/inframodel")
-class InfraModelController @Autowired constructor(
+class InfraModelController
+@Autowired
+constructor(
     private val infraModelService: InfraModelService,
     private val geometryService: GeometryService,
     private val pvDocumentService: PVDocumentService,
@@ -72,7 +74,9 @@ class InfraModelController @Autowired constructor(
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @PutMapping("/{planId}/linked-items")
-    fun getInfraModelLinkedItems(@PathVariable("planId") planId: IntId<GeometryPlan>): GeometryPlanLinkedItems {
+    fun getInfraModelLinkedItems(
+        @PathVariable("planId") planId: IntId<GeometryPlan>
+    ): GeometryPlanLinkedItems {
         return geometryService.getPlanLinkedItems(planId)
     }
 
@@ -84,7 +88,9 @@ class InfraModelController @Autowired constructor(
 
     @PreAuthorize(AUTH_VIEW_PV_DOCUMENTS)
     @GetMapping("/projektivelho/documents")
-    fun getPVDocumentHeaders(@RequestParam("status") status: PVDocumentStatus?): List<PVDocumentHeader> {
+    fun getPVDocumentHeaders(
+        @RequestParam("status") status: PVDocumentStatus?
+    ): List<PVDocumentHeader> {
         return pvDocumentService.getDocumentHeaders(status)
     }
 
@@ -130,10 +136,10 @@ class InfraModelController @Autowired constructor(
 
     @PreAuthorize(AUTH_DOWNLOAD_GEOMETRY)
     @GetMapping("/projektivelho/{documentId}", MediaType.APPLICATION_OCTET_STREAM_VALUE)
-    fun downloadPVDocument(@PathVariable("documentId") documentId: IntId<PVDocument>): ResponseEntity<ByteArray> {
-        return pvDocumentService.getFile(documentId)
-            ?.let(::toFileDownloadResponse)
+    fun downloadPVDocument(
+        @PathVariable("documentId") documentId: IntId<PVDocument>
+    ): ResponseEntity<ByteArray> {
+        return pvDocumentService.getFile(documentId)?.let(::toFileDownloadResponse)
             ?: throw NoSuchEntityException(PVDocument::class, documentId)
     }
-
 }

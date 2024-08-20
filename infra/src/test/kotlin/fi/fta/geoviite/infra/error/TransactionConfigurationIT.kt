@@ -15,38 +15,41 @@ import org.springframework.transaction.annotation.Transactional
 
 @GeoviiteService
 class TransactionTestService {
-    @Transactional
-    fun <T> run(operation: () -> T): T = operation()
+    @Transactional fun <T> run(operation: () -> T): T = operation()
 
-    @Transactional(readOnly = true)
-    fun <T> runReadOnly(operation: () -> T): T = operation()
+    @Transactional(readOnly = true) fun <T> runReadOnly(operation: () -> T): T = operation()
 }
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class TransactionConfigurationIT @Autowired constructor(val transactionTestService: TransactionTestService): DBTestBase() {
+class TransactionConfigurationIT
+@Autowired
+constructor(val transactionTestService: TransactionTestService) : DBTestBase() {
 
     @BeforeEach
     fun setup() {
         transactionTestService.run {
-            val sql = """
+            val sql =
+                """
                 drop table if exists common.test_table;
                 create table common.test_table(
                     id int generated always as identity,
                     value varchar not null
                 );
-            """.trimIndent()
+            """
+                    .trimIndent()
             jdbc.update(sql, mapOf<String, Any>())
         }
     }
 
     @Test
     fun transactionSeesOwnChanges() {
-        val allValues = transactionTestService.run {
-            insert("test 1")
-            insert("test 2")
-            fetchAll()
-        }
+        val allValues =
+            transactionTestService.run {
+                insert("test 1")
+                insert("test 2")
+                fetchAll()
+            }
         assertEquals(allValues, listOf(1 to "test 1", 2 to "test 2"))
     }
 
@@ -83,14 +86,16 @@ class TransactionConfigurationIT @Autowired constructor(val transactionTestServi
 
     @Test
     fun readOnlyTransactionDoesntWrite() {
-        assertThrows<DataAccessException> { transactionTestService.runReadOnly { insert("test 1") } }
+        assertThrows<DataAccessException> {
+            transactionTestService.runReadOnly { insert("test 1") }
+        }
         val allValues = transactionTestService.runReadOnly { fetchAll() }
         assertTrue(allValues.isEmpty())
     }
 
     fun fetchAll(): List<Pair<Int, String>> {
         val sql = "select id, value from common.test_table order by id;"
-        return jdbc.query(sql, mapOf<String,Any>()) { rs, _ ->
+        return jdbc.query(sql, mapOf<String, Any>()) { rs, _ ->
             rs.getInt("id") to rs.getString("value")
         }
     }

@@ -9,12 +9,11 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 
-
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class CodeDictionaryServiceIT @Autowired constructor(
-    private val codeDictionaryService: CodeDictionaryService
-): DBTestBase() {
+class CodeDictionaryServiceIT
+@Autowired
+constructor(private val codeDictionaryService: CodeDictionaryService) : DBTestBase() {
 
     @Test
     fun fetchFeatureTypesWorks() {
@@ -23,8 +22,11 @@ class CodeDictionaryServiceIT @Autowired constructor(
 
     @Test
     fun fetchFeatureTypeHasValues() {
-        assertTrue(codeDictionaryService.getFeatureTypes().any { t -> t.code == FeatureTypeCode("111") })
-        assertTrue(codeDictionaryService.getFeatureTypes().any { t -> t.code == FeatureTypeCode("121") })
-        assertTrue(codeDictionaryService.getFeatureTypes().any { t -> t.code == FeatureTypeCode("281") })
+        assertTrue(
+            codeDictionaryService.getFeatureTypes().any { t -> t.code == FeatureTypeCode("111") })
+        assertTrue(
+            codeDictionaryService.getFeatureTypes().any { t -> t.code == FeatureTypeCode("121") })
+        assertTrue(
+            codeDictionaryService.getFeatureTypes().any { t -> t.code == FeatureTypeCode("281") })
     }
 }

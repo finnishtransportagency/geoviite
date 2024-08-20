@@ -107,7 +107,9 @@ class LayoutKmPostController(
         @RequestParam("includeDeleted") includeDeleted: Boolean,
     ): ResponseEntity<TrackLayoutKmPost> {
         val context = LayoutContext.of(branch, publicationState)
-        return kmPostService.getByKmNumber(context, trackNumberId, kmNumber, includeDeleted).let(::toResponse)
+        return kmPostService
+            .getByKmNumber(context, trackNumberId, kmNumber, includeDeleted)
+            .let(::toResponse)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -118,7 +120,10 @@ class LayoutKmPostController(
         @PathVariable("id") id: IntId<TrackLayoutKmPost>,
     ): ResponseEntity<ValidatedAsset<TrackLayoutKmPost>> {
         val context = LayoutContext.of(branch, publicationState)
-        return publicationService.validateKmPosts(context, listOf(id)).firstOrNull().let(::toResponse)
+        return publicationService
+            .validateKmPosts(context, listOf(id))
+            .firstOrNull()
+            .let(::toResponse)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)

@@ -11,9 +11,7 @@ class E2ESelectionPanel(
         E2ETrackNumberSelectionList(viewBy)
     }
 
-    val kmPostsList: E2EKmPostSelectionList by lazy {
-        E2EKmPostSelectionList(viewBy)
-    }
+    val kmPostsList: E2EKmPostSelectionList by lazy { E2EKmPostSelectionList(viewBy) }
 
     val referenceLinesList: E2EReferenceLineSelectionList by lazy {
         E2EReferenceLineSelectionList(viewBy)
@@ -23,14 +21,17 @@ class E2ESelectionPanel(
         E2ELocationTrackSelectionList(viewBy)
     }
 
-    val switchesList: E2ESwitchesSelectionList by lazy {
-        E2ESwitchesSelectionList(viewBy)
-    }
+    val switchesList: E2ESwitchesSelectionList by lazy { E2ESwitchesSelectionList(viewBy) }
 
     val geometryPlans: List<E2EGeometryPlanAccordion> by lazy {
         childElements(By.cssSelector(".geometry-plan-panel .accordion__header-title"))
             .map { it.text }
-            .map { E2EGeometryPlanAccordion(By.xpath("//div[@class='accordion' and parent::div[@class='geometry-plan-panel'] and h4/span[text() = '${it}']]"), null) }
+            .map {
+                E2EGeometryPlanAccordion(
+                    By.xpath(
+                        "//div[@class='accordion' and parent::div[@class='geometry-plan-panel'] and h4/span[text() = '${it}']]"),
+                    null)
+            }
     }
 
     fun selectTrackNumber(name: String): E2ESelectionPanel = apply {

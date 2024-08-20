@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.configuration.HTTP_HEADER_JWT_DATA
 import fi.fta.geoviite.infra.util.Code
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -14,8 +15,6 @@ import org.springframework.http.MediaType
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-import kotlin.test.assertEquals
-
 
 /*
 Generated via jwt.io
@@ -51,7 +50,9 @@ const val TOKEN =
 @ActiveProfiles("dev", "test", "backend")
 @SpringBootTest(properties = ["geoviite.jwt.validation.enabled=false", "geoviite.skip-auth=false"])
 @AutoConfigureMockMvc
-class AuthorizationIT @Autowired constructor(
+class AuthorizationIT
+@Autowired
+constructor(
     authorizationDao: AuthorizationDao,
     authorizationService: AuthorizationService,
     mapper: ObjectMapper,
@@ -63,12 +64,13 @@ class AuthorizationIT @Autowired constructor(
     val availableRoles = authorizationDao.getRolesByRoleCodes(listOf(Code("browser")))
     val user by lazy {
         User(
-            details = UserDetails(
-                userName = UserName.of("A123456"),
-                firstName = AuthName.of("John"),
-                lastName = AuthName.of("Doe"),
-                organization = AuthName.of("Test Oy"),
-            ),
+            details =
+                UserDetails(
+                    userName = UserName.of("A123456"),
+                    firstName = AuthName.of("John"),
+                    lastName = AuthName.of("Doe"),
+                    organization = AuthName.of("Test Oy"),
+                ),
             role = authorizationService.getDefaultRole(availableRoles),
             availableRoles = availableRoles,
         )
@@ -122,10 +124,9 @@ class AuthorizationIT @Autowired constructor(
         )
     }
 
-    private fun getRequest(url: String) = MockMvcRequestBuilders
-        .get(url)
-        .header(HTTP_HEADER_JWT_DATA, TOKEN)
-        .characterEncoding(Charsets.UTF_8)
-        .contentType(MediaType.APPLICATION_JSON)
-
+    private fun getRequest(url: String) =
+        MockMvcRequestBuilders.get(url)
+            .header(HTTP_HEADER_JWT_DATA, TOKEN)
+            .characterEncoding(Charsets.UTF_8)
+            .contentType(MediaType.APPLICATION_JSON)
 }

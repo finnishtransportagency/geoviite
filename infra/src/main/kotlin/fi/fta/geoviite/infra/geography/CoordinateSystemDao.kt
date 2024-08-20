@@ -15,30 +15,35 @@ import org.springframework.transaction.annotation.Transactional
 
 @Transactional(readOnly = true)
 @Component
-class CoordinateSystemDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+class CoordinateSystemDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) :
+    DaoBase(jdbcTemplateParam) {
 
     @Cacheable(CACHE_COORDINATE_SYSTEMS, sync = true)
     fun fetchApplicationCoordinateSystems(): List<CoordinateSystem> {
-        val sql = """
+        val sql =
+            """
             select 
               srid,
               name,
               array_to_string(aliases, ',') as aliases_str
             from common.coordinate_system
-        """.trimIndent()
-        val systems = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            CoordinateSystem(
-                srid = rs.getSrid("srid"),
-                name = CoordinateSystemName(rs.getString("name")),
-                aliases = rs.getStringListFromString("aliases_str").map(::CoordinateSystemName),
-            )
-        }
+        """
+                .trimIndent()
+        val systems =
+            jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+                CoordinateSystem(
+                    srid = rs.getSrid("srid"),
+                    name = CoordinateSystemName(rs.getString("name")),
+                    aliases = rs.getStringListFromString("aliases_str").map(::CoordinateSystemName),
+                )
+            }
         logger.daoAccess(FETCH, CoordinateSystem::class, systems.map { r -> r.srid })
         return systems
     }
 
     fun fetchCoordinateSystem(srid: Srid): CoordinateSystem {
-        val sql = """
+        val sql =
+            """
             select 
               ref.srid,
               cs.name as cs_name,
@@ -47,17 +52,24 @@ class CoordinateSystemDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoB
             from postgis.spatial_ref_sys ref 
               left join common.coordinate_system cs on cs.srid = ref.srid
             where ref.srid = :srid 
-        """.trimIndent()
-        val system = jdbcTemplate.query(sql, mapOf("srid" to srid.code)) { rs, _ ->
-            CoordinateSystem(
-                srid = rs.getSrid("srid"),
-                name = CoordinateSystemName(
-                    rs.getString("cs_name") ?: rs.getString("sr_name")
-                ),
-                aliases = rs.getStringListFromString("aliases_str").filter(String::isNotBlank)
-                    .map(::CoordinateSystemName),
-            )
-        }.firstOrNull() ?: throw NoSuchEntityException(CoordinateSystem::class, srid.toString())
+        """
+                .trimIndent()
+        val system =
+            jdbcTemplate
+                .query(sql, mapOf("srid" to srid.code)) { rs, _ ->
+                    CoordinateSystem(
+                        srid = rs.getSrid("srid"),
+                        name =
+                            CoordinateSystemName(
+                                rs.getString("cs_name") ?: rs.getString("sr_name")),
+                        aliases =
+                            rs.getStringListFromString("aliases_str")
+                                .filter(String::isNotBlank)
+                                .map(::CoordinateSystemName),
+                    )
+                }
+                .firstOrNull()
+                ?: throw NoSuchEntityException(CoordinateSystem::class, srid.toString())
         logger.daoAccess(FETCH, CoordinateSystem::class, srid)
         return system
     }

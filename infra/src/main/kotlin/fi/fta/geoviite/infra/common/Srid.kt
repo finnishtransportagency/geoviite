@@ -21,6 +21,5 @@ data class Srid @JsonCreator(mode = DISABLED) constructor(val code: Int) {
         }
     }
 
-    @JsonValue
-    override fun toString(): String = SRID_PREFIX + code
+    @JsonValue override fun toString(): String = SRID_PREFIX + code
 }

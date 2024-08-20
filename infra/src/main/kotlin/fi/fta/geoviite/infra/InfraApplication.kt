@@ -12,17 +12,18 @@ import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 
 @SpringBootApplication(
-    exclude = [
-        SecurityAutoConfiguration::class,
-        UserDetailsServiceAutoConfiguration::class,
-    ]
-)
+    exclude =
+        [
+            SecurityAutoConfiguration::class,
+            UserDetailsServiceAutoConfiguration::class,
+        ])
 @EnableMethodSecurity
 @ComponentScan(basePackages = ["fi.fta.geoviite"])
 class InfraApplication
 
 @Configuration
-@ConditionalOnProperty(prefix = "geoviite.scheduling", name = ["enabled"], havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(
+    prefix = "geoviite.scheduling", name = ["enabled"], havingValue = "true", matchIfMissing = true)
 @EnableScheduling
 class InfraScheduling
 

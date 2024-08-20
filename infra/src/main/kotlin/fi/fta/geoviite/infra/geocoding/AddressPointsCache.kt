@@ -34,7 +34,10 @@ class AddressPointsCache(
     val geocodingCacheService: GeocodingCacheService,
 ) {
     private val cache: Cache<AddressPointCacheKey, AlignmentAddresses?> =
-        Caffeine.newBuilder().maximumSize(ADDRESS_POINT_CACHE_SIZE).expireAfterAccess(layoutCacheDuration).build()
+        Caffeine.newBuilder()
+            .maximumSize(ADDRESS_POINT_CACHE_SIZE)
+            .expireAfterAccess(layoutCacheDuration)
+            .build()
 
     @Transactional(readOnly = true)
     fun getAddressPointCacheKey(
@@ -43,7 +46,8 @@ class AddressPointsCache(
     ): AddressPointCacheKey? {
         return locationTrackDao.fetchVersion(layoutContext, locationTrackId)?.let { trackVersion ->
             val track = locationTrackDao.fetch(trackVersion)
-            val contextCacheKey = geocodingDao.getLayoutGeocodingContextCacheKey(layoutContext, track.trackNumberId)
+            val contextCacheKey =
+                geocodingDao.getLayoutGeocodingContextCacheKey(layoutContext, track.trackNumberId)
             if (track.alignmentVersion != null && contextCacheKey != null) {
                 AddressPointCacheKey(track.alignmentVersion, contextCacheKey)
             } else {
@@ -55,14 +59,18 @@ class AddressPointsCache(
     /**
      * This is for caching address points. Please don't call this directly if possible, please
      * prefer GeocodingService's getAddressPoints method instead
-     **/
+     */
     fun getAddressPoints(cacheKey: AddressPointCacheKey): AlignmentAddresses? {
         return getAddressPointCalculationData(cacheKey)?.let(::getAddressPoints)
     }
 
-    fun getAddressPointCalculationData(cacheKey: AddressPointCacheKey): AddressPointCalculationData? =
-        geocodingCacheService.getGeocodingContext(cacheKey.geocodingContextCacheKey)?.let { geocodingContext ->
-            AddressPointCalculationData(cacheKey, alignmentDao.fetch(cacheKey.alignmentVersion), geocodingContext)
+    fun getAddressPointCalculationData(
+        cacheKey: AddressPointCacheKey
+    ): AddressPointCalculationData? =
+        geocodingCacheService.getGeocodingContext(cacheKey.geocodingContextCacheKey)?.let {
+            geocodingContext ->
+            AddressPointCalculationData(
+                cacheKey, alignmentDao.fetch(cacheKey.alignmentVersion), geocodingContext)
         }
 
     fun getAddressPoints(input: AddressPointCalculationData): AlignmentAddresses? =

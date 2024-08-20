@@ -46,18 +46,18 @@ class LayoutTrackNumberService(
         branch: LayoutBranch,
         saveRequest: TrackNumberSaveRequest,
     ): IntId<TrackLayoutTrackNumber> {
-        val draftSaveResponse = saveDraftInternal(
-            branch, TrackLayoutTrackNumber(
-                number = saveRequest.number,
-                description = saveRequest.description,
-                state = saveRequest.state,
-                externalId = null,
-                contextData = LayoutContextData.newDraft(branch),
-            )
-        )
+        val draftSaveResponse =
+            saveDraftInternal(
+                branch,
+                TrackLayoutTrackNumber(
+                    number = saveRequest.number,
+                    description = saveRequest.description,
+                    state = saveRequest.state,
+                    externalId = null,
+                    contextData = LayoutContextData.newDraft(branch),
+                ))
         referenceLineService.addTrackNumberReferenceLine(
-            branch, draftSaveResponse.id, saveRequest.startAddress
-        )
+            branch, draftSaveResponse.id, saveRequest.startAddress)
         return draftSaveResponse.id
     }
 
@@ -68,13 +68,14 @@ class LayoutTrackNumberService(
         saveRequest: TrackNumberSaveRequest,
     ): IntId<TrackLayoutTrackNumber> {
         val original = dao.getOrThrow(branch.draft, id)
-        val draftSaveResponse = saveDraftInternal(
-            branch, original.copy(
-                number = saveRequest.number,
-                description = saveRequest.description,
-                state = saveRequest.state,
-            )
-        )
+        val draftSaveResponse =
+            saveDraftInternal(
+                branch,
+                original.copy(
+                    number = saveRequest.number,
+                    description = saveRequest.description,
+                    state = saveRequest.state,
+                ))
         referenceLineService.updateTrackNumberReferenceLine(branch, id, saveRequest.startAddress)
         return draftSaveResponse.id
     }
@@ -119,7 +120,9 @@ class LayoutTrackNumberService(
         layoutContext: LayoutContext,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmLengthDetails>? {
-        return geocodingService.getGeocodingContextCreateResult(layoutContext, trackNumberId)?.let { contextResult ->
+        return geocodingService
+            .getGeocodingContextCreateResult(layoutContext, trackNumberId)
+            ?.let { contextResult ->
                 extractTrackKmLengths(contextResult.geocodingContext, contextResult)
             }
     }
@@ -134,11 +137,12 @@ class LayoutTrackNumberService(
     ): String {
         val kmLengths = getKmLengths(layoutContext, trackNumberId) ?: emptyList()
 
-        val filteredKmLengths = kmLengths.filter { kmPost ->
-            val start = startKmNumber ?: kmLengths.first().kmNumber
-            val end = endKmNumber ?: kmLengths.last().kmNumber
-            kmPost.kmNumber in start..end
-        }
+        val filteredKmLengths =
+            kmLengths.filter { kmPost ->
+                val start = startKmNumber ?: kmLengths.first().kmNumber
+                val end = endKmNumber ?: kmLengths.last().kmNumber
+                kmPost.kmNumber in start..end
+            }
 
         return asCsvFile(filteredKmLengths, precision, localizationService.getLocalization(lang))
     }
@@ -148,13 +152,19 @@ class LayoutTrackNumberService(
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         lang: LocalizationLanguage,
     ): String {
-        val kmLengths = trackNumberIds.parallelStream().flatMap { trackNumberId ->
-                (getKmLengths(layoutContext, trackNumberId) ?: emptyList()).stream()
-            }.sorted(compareBy { kmLengthDetails -> kmLengthDetails.trackNumber }).collect(Collectors.toList())
+        val kmLengths =
+            trackNumberIds
+                .parallelStream()
+                .flatMap { trackNumberId ->
+                    (getKmLengths(layoutContext, trackNumberId) ?: emptyList()).stream()
+                }
+                .sorted(compareBy { kmLengthDetails -> kmLengthDetails.trackNumber })
+                .collect(Collectors.toList())
 
         return asCsvFile(
-            kmLengths, KmLengthsLocationPrecision.PRECISE_LOCATION, localizationService.getLocalization(lang)
-        )
+            kmLengths,
+            KmLengthsLocationPrecision.PRECISE_LOCATION,
+            localizationService.getLocalization(lang))
     }
 
     @Transactional(readOnly = true)
@@ -165,10 +175,11 @@ class LayoutTrackNumberService(
     ): List<AlignmentPlanSection> {
         return get(layoutContext, trackNumberId)?.let { trackNumber ->
             val referenceLine =
-                referenceLineService.getByTrackNumber(layoutContext, trackNumberId) ?: throw NoSuchEntityException(
-                    "No ReferenceLine for TrackNumber", trackNumberId
-                )
-            val geocodingContext = geocodingService.getGeocodingContext(layoutContext, trackNumberId)
+                referenceLineService.getByTrackNumber(layoutContext, trackNumberId)
+                    ?: throw NoSuchEntityException(
+                        "No ReferenceLine for TrackNumber", trackNumberId)
+            val geocodingContext =
+                geocodingService.getGeocodingContext(layoutContext, trackNumberId)
             if (geocodingContext != null && referenceLine.alignmentVersion != null) {
                 alignmentService.getGeometryMetadataSections(
                     referenceLine.alignmentVersion,
@@ -186,51 +197,61 @@ private fun asCsvFile(
     precision: KmLengthsLocationPrecision,
     translation: Translation,
 ): String {
-    val columns = mapOf<String, (item: TrackLayoutKmLengthDetails) -> Any?>(
-        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.track-number" to { it.trackNumber },
-        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.kilometer" to { it.kmNumber },
-        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.station-start" to { it.startM },
-        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.station-end" to { it.endM },
-        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.length" to { it.length },
-        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.coordinate-system" to {
-            when (precision) {
-                KmLengthsLocationPrecision.PRECISE_LOCATION -> it.gkLocation?.srid?.let(::crs)?.name
-                KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT -> LAYOUT_CRS.name
-            }
-        },
-        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-e" to {
-            getLocationByPrecision(it, precision)?.x?.let(::roundTo3Decimals)
-        },
-        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-n" to {
-            getLocationByPrecision(it, precision)?.y?.let(::roundTo3Decimals)
-        },
-        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-source" to {
-            locationSourceTranslationKey(it, precision)?.let(translation::t) ?: ""
-        },
-        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-confirmed" to {
-            if (isGeneratedRow(it)) {
-                ""
-            } else if (precision == KmLengthsLocationPrecision.PRECISE_LOCATION) {
-                translation.t(gkLocationConfirmedTranslationKey(it.gkLocationConfirmed))
-            } else {
-                translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.not-confirmed")
-            }
-        },
-        "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.warning" to { kmPost ->
-            if (precision == KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT
-                    && kmPost.layoutLocation != null
-                    && kmPost.layoutGeometrySource == GeometrySource.IMPORTED) {
-                translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.imported-warning")
-            } else if (precision == KmLengthsLocationPrecision.PRECISE_LOCATION
-                && kmPost.gkLocationSource == KmPostGkLocationSource.FROM_LAYOUT) {
-                translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.imported-warning")
-            } else if (kmPost.layoutLocation != null && kmPost.layoutGeometrySource == GeometrySource.GENERATED) {
-                translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.generated-warning")
-            } else {
-                ""
-            }
-        },
-    ).map { (key, fn) -> CsvEntry(translation.t(key), fn) }
+    val columns =
+        mapOf<String, (item: TrackLayoutKmLengthDetails) -> Any?>(
+                "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.track-number" to { it.trackNumber },
+                "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.kilometer" to { it.kmNumber },
+                "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.station-start" to { it.startM },
+                "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.station-end" to { it.endM },
+                "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.length" to { it.length },
+                "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.coordinate-system" to
+                    {
+                        when (precision) {
+                            KmLengthsLocationPrecision.PRECISE_LOCATION ->
+                                it.gkLocation?.srid?.let(::crs)?.name
+                            KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT -> LAYOUT_CRS.name
+                        }
+                    },
+                "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-e" to
+                    {
+                        getLocationByPrecision(it, precision)?.x?.let(::roundTo3Decimals)
+                    },
+                "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-n" to
+                    {
+                        getLocationByPrecision(it, precision)?.y?.let(::roundTo3Decimals)
+                    },
+                "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-source" to
+                    {
+                        locationSourceTranslationKey(it, precision)?.let(translation::t) ?: ""
+                    },
+                "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-confirmed" to
+                    {
+                        if (isGeneratedRow(it)) {
+                            ""
+                        } else if (precision == KmLengthsLocationPrecision.PRECISE_LOCATION) {
+                            translation.t(gkLocationConfirmedTranslationKey(it.gkLocationConfirmed))
+                        } else {
+                            translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.not-confirmed")
+                        }
+                    },
+                "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.warning" to
+                    { kmPost ->
+                        if (precision == KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT &&
+                            kmPost.layoutLocation != null &&
+                            kmPost.layoutGeometrySource == GeometrySource.IMPORTED) {
+                            translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.imported-warning")
+                        } else if (precision == KmLengthsLocationPrecision.PRECISE_LOCATION &&
+                            kmPost.gkLocationSource == KmPostGkLocationSource.FROM_LAYOUT) {
+                            translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.imported-warning")
+                        } else if (kmPost.layoutLocation != null &&
+                            kmPost.layoutGeometrySource == GeometrySource.GENERATED) {
+                            translation.t("$KM_LENGTHS_CSV_TRANSLATION_PREFIX.generated-warning")
+                        } else {
+                            ""
+                        }
+                    },
+            )
+            .map { (key, fn) -> CsvEntry(translation.t(key), fn) }
 
     return printCsv(columns, items)
 }
@@ -244,20 +265,23 @@ private fun locationSourceTranslationKey(
 ): LocalizationKey? {
     return if (isGeneratedRow(kmPost)) {
         null
-    } else if (precision == KmLengthsLocationPrecision.PRECISE_LOCATION) {
-        kmPost.gkLocationSource?.let { source -> "enum.gk-location-source.$source" } ?: null
-    } else {
-        when (kmPost.gkLocationLinkedFromGeometry) {
-            true -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.from-geometry"
-            false -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.from-ratko"
-        }
-    }?.let(::LocalizationKey)
+    } else
+        if (precision == KmLengthsLocationPrecision.PRECISE_LOCATION) {
+                kmPost.gkLocationSource?.let { source -> "enum.gk-location-source.$source" } ?: null
+            } else {
+                when (kmPost.gkLocationLinkedFromGeometry) {
+                    true -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.from-geometry"
+                    false -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.from-ratko"
+                }
+            }
+            ?.let(::LocalizationKey)
 }
 
-private fun gkLocationConfirmedTranslationKey(confirmed: Boolean): LocalizationKey = when {
-    confirmed -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.confirmed"
-    else -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.not-confirmed"
-}.let(::LocalizationKey)
+private fun gkLocationConfirmedTranslationKey(confirmed: Boolean): LocalizationKey =
+    when {
+        confirmed -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.confirmed"
+        else -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.not-confirmed"
+    }.let(::LocalizationKey)
 
 private fun getLocationByPrecision(
     kmPost: TrackLayoutKmLengthDetails,
@@ -290,32 +314,34 @@ private fun extractTrackKmLengths(
             gkLocationConfirmed = false,
             gkLocationSource = null,
             gkLocationLinkedFromGeometry = false,
-        )
-    ) + distances.mapIndexed { index, (kmPost, startM) ->
-        val endM = distances.getOrNull(index + 1)?.second ?: referenceLineLength
+        )) +
+        distances.mapIndexed { index, (kmPost, startM) ->
+            val endM = distances.getOrNull(index + 1)?.second ?: referenceLineLength
 
-        TrackLayoutKmLengthDetails(
-            trackNumber = trackNumber,
-            kmNumber = kmPost.kmNumber,
-            startM = roundTo3Decimals(startM),
-            endM = roundTo3Decimals(endM),
-            layoutLocation = kmPost.layoutLocation,
-            gkLocation = kmPost.gkLocation,
-            layoutGeometrySource = if (kmPost.sourceId != null) GeometrySource.PLAN else GeometrySource.IMPORTED,
-            gkLocationConfirmed = kmPost.gkLocationConfirmed,
-            gkLocationSource = kmPost.gkLocationSource,
-            gkLocationLinkedFromGeometry = kmPost.sourceId !== null,
-        )
-    }
+            TrackLayoutKmLengthDetails(
+                trackNumber = trackNumber,
+                kmNumber = kmPost.kmNumber,
+                startM = roundTo3Decimals(startM),
+                endM = roundTo3Decimals(endM),
+                layoutLocation = kmPost.layoutLocation,
+                gkLocation = kmPost.gkLocation,
+                layoutGeometrySource =
+                    if (kmPost.sourceId != null) GeometrySource.PLAN else GeometrySource.IMPORTED,
+                gkLocationConfirmed = kmPost.gkLocationConfirmed,
+                gkLocationSource = kmPost.gkLocationSource,
+                gkLocationLinkedFromGeometry = kmPost.sourceId !== null,
+            )
+        }
 }
 
 private fun getKmPostDistances(
     context: GeocodingContext,
     kmPosts: List<TrackLayoutKmPost>,
-): List<Pair<TrackLayoutKmPost, Double>> = kmPosts.map { kmPost ->
-    val distance = kmPost.layoutLocation?.let { loc -> context.getM(loc)?.first }
-    checkNotNull(distance) {
-        "Couldn't calculate distance for km post, id=${kmPost.id} location=${kmPost.layoutLocation}"
+): List<Pair<TrackLayoutKmPost, Double>> =
+    kmPosts.map { kmPost ->
+        val distance = kmPost.layoutLocation?.let { loc -> context.getM(loc)?.first }
+        checkNotNull(distance) {
+            "Couldn't calculate distance for km post, id=${kmPost.id} location=${kmPost.layoutLocation}"
+        }
+        kmPost to distance
     }
-    kmPost to distance
-}

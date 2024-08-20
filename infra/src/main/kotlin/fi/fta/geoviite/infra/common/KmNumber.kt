@@ -21,14 +21,15 @@ const val DEFAULT_TRACK_METER_DECIMALS = 3
 private val extensionLength = 1..2
 private val extensionRegex = Regex("^[A-Z]*\$")
 
-data class KmNumber @JsonCreator(mode = DISABLED) constructor(
+data class KmNumber
+@JsonCreator(mode = DISABLED)
+constructor(
     val number: Int,
     val extension: String? = null,
 ) : Comparable<KmNumber> {
     private constructor(values: Pair<Int, String?>) : this(values.first, values.second)
 
-    @JsonCreator(mode = DELEGATING)
-    constructor(value: String) : this(parseKmNumberParts(value))
+    @JsonCreator(mode = DELEGATING) constructor(value: String) : this(parseKmNumberParts(value))
 
     companion object {
         val ZERO = KmNumber(0)
@@ -38,8 +39,7 @@ data class KmNumber @JsonCreator(mode = DISABLED) constructor(
         "${number.toString().padStart(4, '0')}${extension ?: ""}"
     }
 
-    @JsonValue
-    override fun toString(): String = stringValue
+    @JsonValue override fun toString(): String = stringValue
 
     init {
         extension?.let {
@@ -54,6 +54,7 @@ data class KmNumber @JsonCreator(mode = DISABLED) constructor(
 
 private const val METERS_MAX_INTEGER_DIGITS = 4
 private const val METERS_MAX_DECIMAL_DIGITS = 6
+
 private fun limitScale(meters: BigDecimal) =
     if (meters.scale() < 0) {
         meters.setScale(0)
@@ -71,11 +72,17 @@ interface ITrackMeter : Comparable<ITrackMeter> {
     val meters: BigDecimal
 
     fun format(): String = formatTrackMeter(kmNumber, meters)
-    fun formatDropDecimals(decimals: Int = 0): String = formatTrackMeter(kmNumber, metersFloor(decimals))
-    fun formatRoundDecimals(decimals: Int = 0): String = formatTrackMeter(kmNumber, metersRound(decimals))
+
+    fun formatDropDecimals(decimals: Int = 0): String =
+        formatTrackMeter(kmNumber, metersFloor(decimals))
+
+    fun formatRoundDecimals(decimals: Int = 0): String =
+        formatTrackMeter(kmNumber, metersRound(decimals))
 
     fun metersFloor(decimals: Int = 0): BigDecimal = meters.setScale(decimals, DOWN)
+
     fun metersCeil(decimals: Int = 0): BigDecimal = meters.setScale(decimals, UP)
+
     fun metersRound(decimals: Int = 0): BigDecimal = meters.setScale(decimals, HALF_UP)
 
     fun decimalCount(): Int = meters.scale()
@@ -86,7 +93,9 @@ interface ITrackMeter : Comparable<ITrackMeter> {
     override operator fun compareTo(other: ITrackMeter): Int = compare(this, other)
 }
 
-data class TrackMeter @JsonCreator(mode = DISABLED) constructor(
+data class TrackMeter
+@JsonCreator(mode = DISABLED)
+constructor(
     override val kmNumber: KmNumber,
     override val meters: BigDecimal,
 ) : ITrackMeter {
@@ -108,8 +117,7 @@ data class TrackMeter @JsonCreator(mode = DISABLED) constructor(
 
     private constructor(values: Pair<KmNumber, BigDecimal>) : this(values.first, values.second)
 
-    @JsonCreator(mode = DELEGATING)
-    constructor(value: String) : this(parseTrackMeterParts(value))
+    @JsonCreator(mode = DELEGATING) constructor(value: String) : this(parseTrackMeterParts(value))
 
     companion object {
         val ZERO = TrackMeter(KmNumber.ZERO, BigDecimal.ZERO)
@@ -131,46 +139,94 @@ data class TrackMeter @JsonCreator(mode = DISABLED) constructor(
     }
 
     constructor(kmNumber: KmNumber, meters: Int) : this(kmNumber, meters.toBigDecimal())
-    constructor(kmNumber: KmNumber, meters: Double, decimals: Int) : this(kmNumber, round(meters, decimals))
-    constructor(kmNumber: KmNumber, meters: String) : this(kmNumber, meters.toBigDecimal())
-    constructor(kmNumber: String, meters: Int) : this(KmNumber(kmNumber), meters)
-    constructor(kmNumber: String, meters: Double, decimals: Int) : this(KmNumber(kmNumber), meters, decimals)
-    constructor(kmNumber: String, meters: String) : this(KmNumber(kmNumber), meters)
-    constructor(kmNumber: String, meters: BigDecimal) : this(KmNumber(kmNumber), meters)
-    constructor(kmNumber: Int, meters: Int) : this(KmNumber(kmNumber), meters)
-    constructor(kmNumber: Int, meters: Double, decimals: Int) : this(KmNumber(kmNumber), meters, decimals)
-    constructor(kmNumber: Int, meters: String) : this(KmNumber(kmNumber), meters)
-    constructor(kmNumber: Int, meters: BigDecimal) : this(KmNumber(kmNumber), meters)
-    constructor(kmNumber: Int, extension: String, meters: Int) : this(KmNumber(kmNumber, extension), meters)
-    constructor(kmNumber: Int, extension: String, meters: Double, decimals: Int) : this(
-        KmNumber(kmNumber, extension),
-        meters,
-        decimals
-    )
 
-    constructor(kmNumber: Int, extension: String, meters: String) : this(KmNumber(kmNumber, extension), meters)
-    constructor(kmNumber: Int, extension: String, meters: BigDecimal) : this(KmNumber(kmNumber, extension), meters)
+    constructor(
+        kmNumber: KmNumber,
+        meters: Double,
+        decimals: Int
+    ) : this(kmNumber, round(meters, decimals))
+
+    constructor(kmNumber: KmNumber, meters: String) : this(kmNumber, meters.toBigDecimal())
+
+    constructor(kmNumber: String, meters: Int) : this(KmNumber(kmNumber), meters)
+
+    constructor(
+        kmNumber: String,
+        meters: Double,
+        decimals: Int
+    ) : this(KmNumber(kmNumber), meters, decimals)
+
+    constructor(kmNumber: String, meters: String) : this(KmNumber(kmNumber), meters)
+
+    constructor(kmNumber: String, meters: BigDecimal) : this(KmNumber(kmNumber), meters)
+
+    constructor(kmNumber: Int, meters: Int) : this(KmNumber(kmNumber), meters)
+
+    constructor(
+        kmNumber: Int,
+        meters: Double,
+        decimals: Int
+    ) : this(KmNumber(kmNumber), meters, decimals)
+
+    constructor(kmNumber: Int, meters: String) : this(KmNumber(kmNumber), meters)
+
+    constructor(kmNumber: Int, meters: BigDecimal) : this(KmNumber(kmNumber), meters)
+
+    constructor(
+        kmNumber: Int,
+        extension: String,
+        meters: Int
+    ) : this(KmNumber(kmNumber, extension), meters)
+
+    constructor(
+        kmNumber: Int,
+        extension: String,
+        meters: Double,
+        decimals: Int
+    ) : this(KmNumber(kmNumber, extension), meters, decimals)
+
+    constructor(
+        kmNumber: Int,
+        extension: String,
+        meters: String
+    ) : this(KmNumber(kmNumber, extension), meters)
+
+    constructor(
+        kmNumber: Int,
+        extension: String,
+        meters: BigDecimal
+    ) : this(KmNumber(kmNumber, extension), meters)
 
     override fun toString() = format()
 
     fun floor(decimals: Int = 0) = TrackMeter(kmNumber, metersFloor(decimals))
+
     fun ceil(decimals: Int = 0) = TrackMeter(kmNumber, metersCeil(decimals))
+
     fun round(decimals: Int = 0) = TrackMeter(kmNumber, metersRound(decimals))
 
     operator fun plus(metersDelta: Int) = plus(metersDelta.toBigDecimal())
+
     operator fun plus(metersDelta: Double) = plus(metersDelta, meters.scale())
+
     operator fun plus(metersDelta: BigDecimal) = TrackMeter(kmNumber, meters + metersDelta)
+
     fun plus(metersDelta: Double, decimals: Int) = plus(round(metersDelta, decimals))
 
     operator fun minus(metersDelta: Int) = minus(metersDelta.toBigDecimal())
+
     operator fun minus(metersDelta: Double) = minus(metersDelta, meters.scale())
+
     operator fun minus(metersDelta: BigDecimal) = TrackMeter(kmNumber, meters - metersDelta)
+
     fun minus(metersDelta: Double, decimals: Int) = minus(round(metersDelta, decimals))
+
     fun stripTrailingZeroes() = TrackMeter(kmNumber, limitScale(meters.stripTrailingZeros()))
 }
 
-private fun getMetersFormat(decimals: Int) = meterFormats[decimals]
-    ?: throw IllegalStateException("No meters format defined for scale $decimals")
+private fun getMetersFormat(decimals: Int) =
+    meterFormats[decimals]
+        ?: throw IllegalStateException("No meters format defined for scale $decimals")
 
 private val meterFormats: Map<Int, DecimalFormat> by lazy {
     (0..METERS_MAX_DECIMAL_DIGITS).associateWith { decimals ->
@@ -194,8 +250,10 @@ private fun parseTrackMeterParts(value: String): Pair<KmNumber, BigDecimal> {
 private fun parseKmNumberParts(kmString: String): Pair<Int, String?> {
     val letterStart = kmString.indexOfFirst { c -> !c.isDigit() }
     val numberPart = if (letterStart > 0) kmString.substring(0, letterStart) else kmString
-    val number = numberPart.toIntOrNull()
-        ?: throw IllegalArgumentException("KM-number doesn't have a number: ${formatForException(kmString)}")
+    val number =
+        numberPart.toIntOrNull()
+            ?: throw IllegalArgumentException(
+                "KM-number doesn't have a number: ${formatForException(kmString)}")
     val letterPart = if (letterStart > 0) kmString.substring(letterStart).uppercase() else null
     return number to letterPart
 }
@@ -208,5 +266,6 @@ fun compare(trackMeter1: ITrackMeter, trackMeter2: ITrackMeter): Int {
 }
 
 fun compare(trackMeter1: ITrackMeter, trackMeter2: ITrackMeter, decimals: Int): Int {
-    return compareValuesBy(trackMeter1, trackMeter2, { tm -> tm.kmNumber }, { tm -> tm.metersRound(decimals) })
+    return compareValuesBy(
+        trackMeter1, trackMeter2, { tm -> tm.kmNumber }, { tm -> tm.metersRound(decimals) })
 }

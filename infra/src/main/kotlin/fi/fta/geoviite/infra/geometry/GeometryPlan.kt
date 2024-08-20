@@ -31,13 +31,11 @@ import fi.fta.geoviite.infra.util.Page
 import java.time.Instant
 
 enum class PlanSource {
-    GEOMETRIAPALVELU, PAIKANNUSPALVELU,
+    GEOMETRIAPALVELU,
+    PAIKANNUSPALVELU,
 }
 
-/**
- * GeometryPlanHeader is a lightweight object to be us
- * ed as list items etc.
- */
+/** GeometryPlanHeader is a lightweight object to be us ed as list items etc. */
 data class GeometryPlanHeader(
     val id: IntId<GeometryPlan>,
     val version: RowVersion<GeometryPlan>,
@@ -65,13 +63,16 @@ data class GeometryPlanHeader(
         listOfNotNull(fileName, project.name, message).map { o -> o.toString().lowercase() }
     }
 
-    override fun toLog(): String = logFormat("version" to version, "name" to fileName, "source" to source)
+    override fun toLog(): String =
+        logFormat("version" to version, "name" to fileName, "source" to source)
 }
 
 /**
- * Plan is a design for a portion of railways/roads/etc. that can go through various states of completion.
+ * Plan is a design for a portion of railways/roads/etc. that can go through various states of
+ * completion.
  *
- * It is typically handled as a single file, and can consists of a number of parallel ways (alignments), each with their own geometries.
+ * It is typically handled as a single file, and can consists of a number of parallel ways
+ * (alignments), each with their own geometries.
  */
 data class GeometryPlan(
     val source: PlanSource,
@@ -100,14 +101,15 @@ data class GeometryPlan(
     @get:JsonIgnore
     val bounds by lazy { boundingBoxCombining(alignments.mapNotNull { a -> a.bounds }) }
 
-    override fun toLog(): String = logFormat(
-        "id" to id,
-        "name" to fileName,
-        "source" to source,
-        "alignments" to alignments.map(GeometryAlignment::toLog),
-        "switches" to switches.map(GeometrySwitch::toLog),
-        "kmPosts" to kmPosts.map(GeometryKmPost::toLog),
-    )
+    override fun toLog(): String =
+        logFormat(
+            "id" to id,
+            "name" to fileName,
+            "source" to source,
+            "alignments" to alignments.map(GeometryAlignment::toLog),
+            "switches" to switches.map(GeometrySwitch::toLog),
+            "kmPosts" to kmPosts.map(GeometryKmPost::toLog),
+        )
 }
 
 data class GeometryPlanArea(
@@ -123,7 +125,8 @@ data class GeometryPlanUnits(
 
 data class GeometryUnits(
     val coordinateSystemSrid: Srid?,
-    val coordinateSystemName: CoordinateSystemName?, // Redundant, if SRID is resolved, but it might not be
+    val coordinateSystemName:
+        CoordinateSystemName?, // Redundant, if SRID is resolved, but it might not be
     val verticalCoordinateSystem: VerticalCoordinateSystem?,
     val directionUnit: AngularUnit,
     val linearUnit: LinearUnit,

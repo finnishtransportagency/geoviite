@@ -40,7 +40,9 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 
 @GeoviiteController("/geometry")
-class GeometryController @Autowired constructor(
+class GeometryController
+@Autowired
+constructor(
     private val geometryService: GeometryService,
     private val planLayoutService: PlanLayoutService,
 ) {
@@ -60,8 +62,11 @@ class GeometryController @Autowired constructor(
     ): GeometryPlanHeadersSearchResult {
         val filter = geometryService.getFilter(freeText, trackNumbers ?: listOf())
         val headers = geometryService.getPlanHeaders(sources, bbox, filter)
-        val comparator = geometryService.getComparator(sortField ?: ID, sortOrder ?: ASCENDING, lang)
-        val results = pageAndRest(items = headers, offset = offset ?: 0, limit = limit ?: 50, comparator = comparator)
+        val comparator =
+            geometryService.getComparator(sortField ?: ID, sortOrder ?: ASCENDING, lang)
+        val results =
+            pageAndRest(
+                items = headers, offset = offset ?: 0, limit = limit ?: 50, comparator = comparator)
         return GeometryPlanHeadersSearchResult(
             planHeaders = results.page,
             remainingIds = results.rest.map { plan -> plan.id },
@@ -103,12 +108,17 @@ class GeometryController @Autowired constructor(
         @RequestParam("planIds") planIds: List<IntId<GeometryPlan>>,
         @RequestParam("includeGeometryData") includeGeometryData: Boolean = true,
     ): ResponseEntity<List<GeometryPlanLayout>> {
-        return toResponse(planLayoutService.getManyLayoutPlans(planIds, includeGeometryData).mapNotNull { it.first })
+        return toResponse(
+            planLayoutService.getManyLayoutPlans(planIds, includeGeometryData).mapNotNull {
+                it.first
+            })
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @GetMapping("/switches/{switchId}")
-    fun getGeometrySwitch(@PathVariable("switchId") switchId: IntId<GeometrySwitch>): GeometrySwitch {
+    fun getGeometrySwitch(
+        @PathVariable("switchId") switchId: IntId<GeometrySwitch>
+    ): GeometrySwitch {
         return geometryService.getSwitch(switchId)
     }
 
@@ -128,7 +138,9 @@ class GeometryController @Autowired constructor(
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @GetMapping("/plans/elements/{id}")
-    fun getGeometryElement(@PathVariable("id") geometryElementId: IndexedId<GeometryElement>): GeometryElement {
+    fun getGeometryElement(
+        @PathVariable("id") geometryElementId: IndexedId<GeometryElement>
+    ): GeometryElement {
         return geometryService.getGeometryElement(geometryElementId)
     }
 
@@ -191,7 +203,8 @@ class GeometryController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY_FILE)
-    @GetMapping("/layout/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/location-tracks/{id}/element-listing")
+    @GetMapping(
+        "/layout/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/location-tracks/{id}/element-listing")
     fun getTrackElementListing(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
@@ -201,11 +214,13 @@ class GeometryController @Autowired constructor(
         @RequestParam("endAddress") endAddress: TrackMeter? = null,
     ): List<ElementListing> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        return geometryService.getElementListing(layoutContext, id, elementTypes, startAddress, endAddress)
+        return geometryService.getElementListing(
+            layoutContext, id, elementTypes, startAddress, endAddress)
     }
 
     @PreAuthorize(AUTH_DOWNLOAD_GEOMETRY)
-    @GetMapping("/layout/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/location-tracks/{id}/element-listing/file")
+    @GetMapping(
+        "/layout/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/location-tracks/{id}/element-listing/file")
     fun getTrackElementListingCSV(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
@@ -216,14 +231,15 @@ class GeometryController @Autowired constructor(
         @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        val (filename, content) = geometryService.getElementListingCsv(
-            layoutContext = layoutContext,
-            trackId = id,
-            elementTypes = elementTypes,
-            startAddress = startAddress,
-            endAddress = endAddress,
-            lang = lang,
-        )
+        val (filename, content) =
+            geometryService.getElementListingCsv(
+                layoutContext = layoutContext,
+                trackId = id,
+                elementTypes = elementTypes,
+                startAddress = startAddress,
+                endAddress = endAddress,
+                lang = lang,
+            )
         return toFileDownloadResponse(filename.withSuffix(CSV), content.toByteArray(Charsets.UTF_8))
     }
 
@@ -233,8 +249,8 @@ class GeometryController @Autowired constructor(
         val elementListingFile = geometryService.getElementListingCsv()
         return elementListingFile?.let {
             toFileDownloadResponse(
-                elementListingFile.name.withSuffix(CSV), elementListingFile.content.toByteArray(Charsets.UTF_8)
-            )
+                elementListingFile.name.withSuffix(CSV),
+                elementListingFile.content.toByteArray(Charsets.UTF_8))
         } ?: ResponseEntity(HttpStatus.NO_CONTENT)
     }
 
@@ -257,7 +273,8 @@ class GeometryController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY_FILE)
-    @GetMapping("/layout/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/location-tracks/{id}/vertical-geometry")
+    @GetMapping(
+        "/layout/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/location-tracks/{id}/vertical-geometry")
     fun getTrackVerticalGeometryListing(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
@@ -282,7 +299,8 @@ class GeometryController @Autowired constructor(
         @RequestParam("endAddress") endAddress: TrackMeter? = null,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
-        val (filename, content) = geometryService.getVerticalGeometryListingCsv(id, startAddress, endAddress, lang)
+        val (filename, content) =
+            geometryService.getVerticalGeometryListingCsv(id, startAddress, endAddress, lang)
         return toFileDownloadResponse(filename.withSuffix(CSV), content)
     }
 
@@ -316,12 +334,13 @@ class GeometryController @Autowired constructor(
         @RequestParam("endDistance") endDistance: Double,
         @RequestParam("tickLength") tickLength: Int,
     ): List<KmHeights> {
-        return geometryService.getPlanAlignmentHeights(planId, planAlignmentId, startDistance, endDistance, tickLength)
-            ?: emptyList()
+        return geometryService.getPlanAlignmentHeights(
+            planId, planAlignmentId, startDistance, endDistance, tickLength) ?: emptyList()
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/layout/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/location-tracks/{id}/linking-summary")
+    @GetMapping(
+        "/layout/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/location-tracks/{id}/linking-summary")
     fun getLocationTrackLinkingSummary(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
@@ -332,7 +351,8 @@ class GeometryController @Autowired constructor(
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/layout/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/location-tracks/{id}/alignment-heights")
+    @GetMapping(
+        "/layout/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/location-tracks/{id}/alignment-heights")
     fun getLayoutAlignmentHeights(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
