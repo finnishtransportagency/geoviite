@@ -35,7 +35,7 @@ import {
 import { ChangeTimes } from 'common/common-slice';
 import { LayoutContext, officialMainLayoutContext } from 'common/common-model';
 import { useTrackNumbers } from 'track-layout/track-layout-react-utils';
-import { filterNotEmpty } from 'utils/array-utils';
+import { filterNotEmpty, first } from 'utils/array-utils';
 
 type GeometryPlansPanelProps = {
     changeTimes: ChangeTimes;
@@ -268,7 +268,7 @@ const SelectionPanelGeometrySection: React.FC<GeometryPlansPanelProps> = ({
                                 linkStatus={fetchedPlans.get(h.id)?.linkStatus}
                                 planBeingLoaded={plansBeingFetched.has(h.id)}
                                 loadPlanLayout={() =>
-                                    fetchPlanLayouts([h.id]).then((ps) => ps?.[0])
+                                    fetchPlanLayouts([h.id]).then((ps) => first(ps))
                                 }
                                 disabled={disabled}
                             />
