@@ -151,7 +151,7 @@ class LinkingController @Autowired constructor(
     ): ResponseEntity<SuggestedSwitch> = toResponse(
         switchLinkingService
             .getSuggestedSwitches(branch, listOf(SwitchPlacingRequest(location, layoutSwitchId)))
-            .getOrNull(0)
+            .firstOrNull()
     )
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)

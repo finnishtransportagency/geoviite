@@ -99,7 +99,7 @@ class SwitchLinkingService @Autowired constructor(
         point: Point,
         layoutSwitchId: IntId<TrackLayoutSwitch>,
     ): SuggestedSwitch? {
-        return getSuggestedSwitches(branch, listOf(SwitchPlacingRequest(point, layoutSwitchId))).getOrNull(0)
+        return getSuggestedSwitches(branch, listOf(SwitchPlacingRequest(point, layoutSwitchId))).firstOrNull()
     }
 
     @Transactional(readOnly = true)
