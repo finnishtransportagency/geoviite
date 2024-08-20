@@ -65,6 +65,7 @@ export type PlanVerticalGeometrySearchState = {
 };
 
 export type SelectedKmLengthsSearch = 'TRACK_NUMBER' | 'ENTIRE_RAIL_NETWORK';
+export type KmLengthsLocationPrecision = 'PRECISE_LOCATION' | 'APPROXIMATION_IN_LAYOUT';
 
 export type KmLengthsSearchState = {
     trackNumber: LayoutTrackNumber | undefined;
@@ -76,6 +77,7 @@ export type KmLengthsSearchState = {
     kmLengths: LayoutKmLengthDetails[];
 
     selectedSearch: SelectedKmLengthsSearch;
+    locationPrecision: KmLengthsLocationPrecision;
 };
 
 enum MissingSection {
@@ -179,6 +181,7 @@ const initialKmLengthsSearchState: KmLengthsSearchState = {
     validationIssues: [],
     committedFields: [],
     kmLengths: [],
+    locationPrecision: 'PRECISE_LOCATION',
 };
 
 const spiralTypes = [GeometryType.CLOTHOID, GeometryType.BIQUADRATIC_PARABOLA];
@@ -515,6 +518,12 @@ const dataProductsSlice = createSlice({
             { payload: search }: PayloadAction<SelectedKmLengthsSearch>,
         ) {
             state.kmLenghts.selectedSearch = search;
+        },
+        setKmLengthsLocationPrecision: (
+            state: DataProductsState,
+            { payload: precision }: PayloadAction<KmLengthsLocationPrecision>,
+        ) => {
+            state.kmLenghts.locationPrecision = precision;
         },
         ...wrapReducers(
             (state: DataProductsState) => state.elementList.locationTrackSearch,

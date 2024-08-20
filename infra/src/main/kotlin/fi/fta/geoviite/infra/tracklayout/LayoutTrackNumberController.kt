@@ -136,6 +136,7 @@ class LayoutTrackNumberController(
         @PathVariable("id") id: IntId<TrackLayoutTrackNumber>,
         @RequestParam("startKmNumber") startKmNumber: KmNumber? = null,
         @RequestParam("endKmNumber") endKmNumber: KmNumber? = null,
+        @RequestParam("precision") precision: KmLengthsLocationPrecision,
         @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
         val context = LayoutContext.of(branch, publicationState)
@@ -145,12 +146,14 @@ class LayoutTrackNumberController(
             trackNumberId = id,
             startKmNumber = startKmNumber,
             endKmNumber = endKmNumber,
+            precision = precision,
             lang = lang,
         )
 
         val trackNumber = trackNumberService.getOrThrow(context, id)
 
-        val fileName = FileName("ratakilometrien-pituudet_${trackNumber.number}.csv")
+        val fileName =
+            FileName("ratakilometrien-pituudet_${trackNumber.number}${kmLengthsPrecisionSuffix(precision)}.csv")
         return getCsvResponseEntity(csv, fileName)
     }
 
@@ -189,4 +192,9 @@ class LayoutTrackNumberController(
         val context = LayoutContext.of(branch, publicationState)
         return toResponse(trackNumberService.getLayoutAssetChangeInfo(context, id))
     }
+}
+
+private fun kmLengthsPrecisionSuffix(precision: KmLengthsLocationPrecision): String = when (precision) {
+    KmLengthsLocationPrecision.PRECISE_LOCATION -> ""
+    KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT -> "-paikannuspohjan-tarkkuus"
 }

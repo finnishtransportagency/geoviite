@@ -6,7 +6,9 @@ with temp(code, user_group) as (
       ('browser', 'geoviite_selaaja'), -- Deprecated: remove when users are updated in AD to "authority"
       ('authority', 'geoviite_virasto'),
       ('consultant', 'geoviite_konsultti'),
-      ('team', 'geoviite_tiimi')
+      ('team', 'geoviite_tiimi'),
+      ('api-public', 'geoviite_api_julkinen'),
+      ('api-private', 'geoviite_api_yksityinen')
 )
 select *
   from temp;
@@ -24,7 +26,8 @@ with temp(code) as (
       ('view-pv-documents'),
       ('view-geometry-file'),
       ('view-publication'),
-      ('download-publication')
+      ('download-publication'),
+      ('api-frame-converter')
 )
 select *
   from temp;
@@ -71,7 +74,10 @@ with temp(role_code, privilege_code) as (
       ('consultant', 'view-basic'),
       ('consultant', 'view-publication'),
       ('consultant', 'download-publication'),
-      ('consultant', 'view-layout')
+      ('consultant', 'view-layout'),
+
+      ('api-public', 'api-frame-converter'),
+      ('api-private', 'api-frame-converter')
 )
 select *
   from temp;
@@ -81,19 +87,27 @@ select *
 delete
   from common.role_privilege
   where not exists(
-      select
-        from new_role_privilege
-        where new_role_privilege.role_code = role_privilege.role_code
-          and new_role_privilege.privilege_code = role_privilege.privilege_code
-    );
+    select
+      from new_role_privilege
+      where new_role_privilege.role_code = role_privilege.role_code
+        and new_role_privilege.privilege_code = role_privilege.privilege_code
+  );
 
 delete
   from common.privilege
-  where not exists(select from new_privilege where new_privilege.code = privilege.code);
+  where not exists(
+    select
+      from new_privilege
+      where new_privilege.code = privilege.code
+  );
 
 delete
   from common.role
-  where not exists(select from new_role where new_role.code = role.code);
+  where not exists(
+    select
+      from new_role
+      where new_role.code = role.code
+  );
 
 -- Upsert using 'except' to avoid updating rows that are already identical
 insert into common.role(code, user_group)

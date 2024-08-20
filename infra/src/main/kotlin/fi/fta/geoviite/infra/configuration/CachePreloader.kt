@@ -26,7 +26,6 @@ class CachePreloader(
     private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
     private val alignmentDao: LayoutAlignmentDao,
-    private val switchStructureDao: SwitchStructureDao,
     private val geometryDao: GeometryDao,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -34,7 +33,6 @@ class CachePreloader(
     @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
     fun scheduleLayoutAssetReload() {
         if (cacheEnabled && cachePreloadEnabled) {
-            switchStructureDao.fetchSwitchStructures()
             listOf(
                 layoutTrackNumberDao, referenceLineDao, locationTrackDao, switchDao, layoutKmPostDao
             ).parallelStream().forEach { dao -> refreshCache(dao) }

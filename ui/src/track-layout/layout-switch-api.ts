@@ -169,8 +169,10 @@ export const getSwitchesValidation = async (
             const switchValidationMap = indexIntoMap<LayoutSwitchId, ValidatedSwitch>(switches);
             return (id: LayoutSwitchId) => switchValidationMap.get(id) as ValidatedSwitch;
         });
+    const cacheKey = (id: LayoutSwitchId) =>
+        `${layoutContext.branch}_${layoutContext.publicationState}_${id}`;
     return switchValidationCache
-        .getMany(maxTime, ids, (id) => id, fetchOperation)
+        .getMany(maxTime, ids, cacheKey, fetchOperation)
         .then((switches) => switches.filter(filterNotEmpty));
 };
 
@@ -179,7 +181,7 @@ export const getSwitchesValidationByTile = async (
     mapTile: MapTile,
     layoutContext: LayoutContext,
 ): Promise<ValidatedSwitch[]> => {
-    const tileKey = `${mapTile.id}_${layoutContext.publicationState}`;
+    const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.branch}`;
     return tiledSwitchValidationCache.get(changeTime, tileKey, () =>
         getNonNull<ValidatedSwitch[]>(
             `${layoutUri('switches', layoutContext)}/validation${queryParams({

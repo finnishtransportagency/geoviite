@@ -129,6 +129,15 @@ tasks.withType<Test> {
     testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED, STANDARD_OUT, STANDARD_ERROR)
 }
 
+tasks.register<Test>("integrationtest") {
+    useJUnitPlatform()
+}
+
+tasks.register<Test>("integrationtest-without-cache") {
+    systemProperty("geoviite.cache.enabled", false)
+    useJUnitPlatform()
+}
+
 tasks.withType<AbstractArchiveTask> {
     isPreserveFileTimestamps = false
     isReproducibleFileOrder = true

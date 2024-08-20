@@ -524,7 +524,7 @@ export async function getTrackMeter(
 
     return trackNumberTrackMeterCache.get(
         changeTime,
-        `${trackNumberId}_${layoutContext.publicationState}_${pointString(location)}`,
+        `${trackNumberId}_${layoutContext.publicationState}_${layoutContext.branch}_${pointString(location)}`,
         () => {
             return getNullable<TrackMeter>(
                 `${geocodingUri(layoutContext)}/address/${trackNumberId}${params}`,

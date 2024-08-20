@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.switchLibrary
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.configuration.CACHE_COMMON_SWITCH_STRUCTURE
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.daoAccess
@@ -31,7 +30,6 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
 
     fun fetchSwitchStructureVersion(id: IntId<SwitchStructure>) = fetchRowVersion(id, DbTable.COMMON_SWITCH_STRUCTURE)
 
-    @Cacheable(CACHE_COMMON_SWITCH_STRUCTURE, sync = true)
     fun fetchSwitchStructures(): List<SwitchStructure> {
         val sql = """
             select
@@ -55,7 +53,6 @@ class SwitchStructureDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBa
         return switchStructures
     }
 
-    @Cacheable(CACHE_COMMON_SWITCH_STRUCTURE, sync = true)
     fun fetchSwitchStructure(version: RowVersion<SwitchStructure>): SwitchStructure {
         val sql = """
             select
