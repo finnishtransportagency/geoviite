@@ -133,15 +133,13 @@ class SwitchFittingService @Autowired constructor(
     private fun getTracksLinkedThroughGeometry(
         branch: LayoutBranch,
         switchId: IntId<GeometrySwitch>,
-    ): List<LayoutRowVersion<LocationTrack>> {
-        val tracks = geometryDao.getLocationTracksLinkedThroughGeometryElementToSwitch(branch, switchId)
-        // we might be able to link a geometry switch to whatever tracks are there at its location, but it's always
-        // been a requirement that at least some track geometry should be linked as well
-        if (tracks.isEmpty()) {
-            throw GeometrySwitchFittingException(GeometrySwitchSuggestionFailureReason.RELATED_TRACKS_NOT_LINKED)
-        }
-        return tracks
-    }
+    ): List<LayoutRowVersion<LocationTrack>> =
+        geometryDao
+            .getLocationTracksLinkedThroughGeometryElementToSwitch(branch, switchId)
+            // we might be able to link a geometry switch to whatever tracks are there at its location, but it's always
+            // been a requirement that at least some track geometry should be linked as well
+            .takeIf { tracks -> tracks.isNotEmpty() }
+              ?: throw GeometrySwitchFittingException(GeometrySwitchSuggestionFailureReason.RELATED_TRACKS_NOT_LINKED)
 
     private fun getGeometrySwitchStructure(geometrySwitch: GeometrySwitch): SwitchStructure =
         geometrySwitch.switchStructureId?.let { switchStructureId ->
