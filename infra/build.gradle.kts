@@ -19,10 +19,13 @@ plugins {
     id("com.github.jk1.dependency-license-report") version "2.5"
     kotlin("jvm") version "1.9.23"
     kotlin("plugin.spring") version "1.9.23"
+    id("com.ncorti.ktfmt.gradle") version "0.19.0"
 }
 
 group = "fi.fta.geoviite"
+
 version = "SNAPSHOT"
+
 java.sourceCompatibility = JavaVersion.VERSION_17
 
 repositories {
@@ -30,13 +33,12 @@ repositories {
     mavenCentral()
 }
 
-configurations {
-    all {
-        exclude("org.springframework.boot", "spring-boot-starter-logging")
-    }
-}
+configurations { all { exclude("org.springframework.boot", "spring-boot-starter-logging") } }
+
+ktfmt { kotlinLangStyle() }
 
 ext["selenium.version"] = "4.19.1"
+
 dependencies {
     // Version overrides for transitive deps (due to known vulnerabilities)
 
@@ -60,7 +62,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.1.0")
     implementation("org.flywaydb:flyway-core:9.22.3")
     // v enable once going to Flyway 10.0 (requires Spring Boot 2.7.18)
-    //implementation("org.flywaydb:flyway-database-postgresql:10.0.0")
+    // implementation("org.flywaydb:flyway-database-postgresql:10.0.0")
     implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
     implementation("org.geotools:gt-main:$geotoolsVersion") {
         // Excluded as the license (JDL or JRL) compatibility is unconfirmed. We don't need this.
@@ -100,10 +102,11 @@ dependencies {
 
 licenseReport {
     renderers = arrayOf<ReportRenderer>(InventoryHtmlReportRenderer("report.html", "Backend"))
-    filters = arrayOf<DependencyFilter>(
-        LicenseBundleNormalizer(),
-        // ExcludeTransitiveDependenciesFilter(),
-    )
+    filters =
+        arrayOf<DependencyFilter>(
+            LicenseBundleNormalizer(),
+            // ExcludeTransitiveDependenciesFilter(),
+        )
     allowedLicensesFile = File("$projectDir/allowed-licenses.json")
 }
 
@@ -113,6 +116,7 @@ tasks.withType<KotlinCompile> {
         jvmTarget = "17"
     }
 }
+
 tasks.withType<Jar> {
     from("${rootProject.projectDir}/..") {
         include("LICENSE.txt")
@@ -125,13 +129,11 @@ tasks.withType<Test> {
     systemProperty("browser.name", System.getProperty("browser.name"))
     systemProperty("browser.headless", System.getProperty("browser.headless"))
     testLogging.exceptionFormat = FULL
-    //testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED)
+    // testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED)
     testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED, STANDARD_OUT, STANDARD_ERROR)
 }
 
-tasks.register<Test>("integrationtest") {
-    useJUnitPlatform()
-}
+tasks.register<Test>("integrationtest") { useJUnitPlatform() }
 
 tasks.register<Test>("integrationtest-without-cache") {
     systemProperty("geoviite.cache.enabled", false)
