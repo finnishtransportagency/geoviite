@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -8,6 +9,7 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.geometry.GeometrySwitchJoint
@@ -22,6 +24,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackNumber
@@ -152,7 +155,10 @@ class SwitchFittingServiceIT @Autowired constructor(
     ) {
         val context = testDBService.testContext(layoutContext.branch, layoutContext.state)
         val trackNumber = context.insert(trackNumber(testDBService.getUnusedTrackNumber())).id
-        val segment = segment(Point(0.0, 0.0), Point(1.0, 0.0), sourceId = plan.alignments[0].elements[0].id)
+        val segment = segment(
+            Point(0.0, 0.0),
+            Point(1.0, 0.0)
+        ).copy(sourceId = plan.alignments[0].elements[0].id as IndexedId<GeometryElement>)
         context.insert(locationTrackAndAlignment(trackNumber, segment))
     }
 }
