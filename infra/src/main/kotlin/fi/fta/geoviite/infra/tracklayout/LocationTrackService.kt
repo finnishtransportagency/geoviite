@@ -510,7 +510,10 @@ class LocationTrackService(
             }
 
             val endPointSwitchInfos = getEndPointSwitchInfos(
-                locationTrack, alignment, createFunIsPresentationJointNumberInContext(layoutContext))
+                locationTrack,
+                alignment,
+                createFunIsPresentationJointNumberInContext(layoutContext)
+            )
 
             val startAddress = geocodingContext.getAddress(start)?.first
             val startSplitPoint = endPointSwitchInfos.start?.let { endPointSwitchInfo ->
