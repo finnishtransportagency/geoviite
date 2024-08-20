@@ -12,8 +12,7 @@ import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.geography.KkjTm35finTriangulationDao
-import fi.fta.geoviite.infra.geography.TriangulationDirection
+import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
@@ -74,7 +73,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
     private val locationTrackService: LocationTrackService,
     private val geometryDao: GeometryDao,
     private val switchStructureDao: SwitchStructureDao,
-    private val kkjTm35FinTriangulationDao: KkjTm35finTriangulationDao,
+    private val transformationService: CoordinateTransformationService,
     private val switchLibraryService: SwitchLibraryService,
     private val locationTrackDao: LocationTrackDao,
 ) : DBTestBase() {
@@ -1594,8 +1593,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             val (locationTrack, alignment) = locationTrackAndAlignmentForGeometryAlignment(
                 trackNumber.id as IntId,
                 a,
-                kkjTm35FinTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.KKJ_TO_TM35FIN),
-                kkjTm35FinTriangulationDao.fetchTriangulationNetwork(TriangulationDirection.TM35FIN_TO_KKJ),
+                transformationService.getTransformation(LAYOUT_SRID, LAYOUT_SRID),
                 draft = true,
             )
             locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)

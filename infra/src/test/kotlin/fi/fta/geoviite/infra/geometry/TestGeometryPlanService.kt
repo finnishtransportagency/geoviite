@@ -1,13 +1,16 @@
 package fi.fta.geoviite.infra.geometry
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geography.boundingPolygonPointsByConvexHull
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.rotateAroundOrigin
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_CRS
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.ui.testdata.createGeometryAlignment
 import fi.fta.geoviite.infra.ui.testdata.createGeometryKmPost
@@ -92,15 +95,17 @@ class TestGeometryPlanService @Autowired constructor(
                 srid = LAYOUT_SRID,
                 units = tmi35GeometryUnit(),
             ),
-                boundingPolygonPointsByConvexHull(builtAlignments.flatMap { alignment -> alignment.elements.flatMap { element -> element.bounds } } + kmPosts.mapNotNull { kmPost -> kmPost.location },
-                    LAYOUT_CRS
+                boundingPolygonPointsByConvexHull(
+                    builtAlignments.flatMap { alignment ->
+                        alignment.elements.flatMap { element -> element.bounds }
+                    } + kmPosts.mapNotNull { kmPost -> kmPost.location },
+                    LAYOUT_SRID,
                 )
             )
         }
     }
 
     fun buildPlan(trackNumber: TrackNumber) = BuildGeometryPlan(trackNumber)
-
 
     fun saveAndRefetchGeometryPlan(plan: GeometryPlan, boundingBox: List<Point>): GeometryPlan {
         return geometryDao.fetchPlan(

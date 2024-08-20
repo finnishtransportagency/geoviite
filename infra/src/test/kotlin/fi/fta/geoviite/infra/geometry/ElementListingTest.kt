@@ -11,7 +11,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
-import fi.fta.geoviite.infra.geography.Transformation
+import fi.fta.geoviite.infra.geography.geotoolsTransformation
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.CLOTHOID
 import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.CURVE
@@ -36,7 +36,7 @@ import kotlin.test.assertEquals
 
 private val allElementTypes = GeometryElementType.values().toList()
 private val allTrackElementTypes = TrackGeometryElementType.values().toList()
-private val getTransformation = { srid: Srid -> Transformation.nonTriangulableTransform(srid, LAYOUT_SRID) }
+private val getTransformation = { srid: Srid -> geotoolsTransformation(srid, LAYOUT_SRID) }
 
 class ElementListingTest {
 
