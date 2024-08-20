@@ -173,10 +173,12 @@ sealed class Transformation {
     protected val sourceCrs: CoordinateReferenceSystem by lazy { crs(sourceSrid) }
     protected val targetCrs: CoordinateReferenceSystem by lazy { crs(targetSrid) }
 
-    fun transform(point: IPoint): Point = toGvtPoint(transformJts(toJtsGeoPoint(point, sourceCrs)), targetCrs)
+    fun transform(point: IPoint): Point =
+        if (sourceSrid == targetSrid) point.toPoint()
+        else toGvtPoint(transformJts(toJtsGeoPoint(point, sourceCrs)), targetCrs)
 
     fun transformJts(point: JtsPoint): JtsPoint = try {
-        transformJtsInternal(point)
+        if (sourceSrid == targetSrid) point else transformJtsInternal(point)
     } catch (e: Exception) {
         throw CoordinateTransformationException(point, sourceSrid, targetSrid, e)
     }
