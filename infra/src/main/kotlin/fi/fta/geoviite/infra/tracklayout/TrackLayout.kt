@@ -184,8 +184,8 @@ data class LocationTrackInfoboxExtras(
     val switchAtStart: LayoutSwitchIdAndName?,
     val switchAtEnd: LayoutSwitchIdAndName?,
     val partOfUnfinishedSplit: Boolean?,
-    val startSplitPoint: SplitPoint,
-    val endSplitPoint: SplitPoint,
+    val startSplitPoint: SplitPoint?,
+    val endSplitPoint: SplitPoint?,
 )
 
 data class SwitchValidationWithSuggestedSwitch(

@@ -214,8 +214,8 @@ export type LayoutSwitchIdAndName = {
 export type LocationTrackInfoboxExtras = {
     duplicateOf?: LocationTrackDuplicate;
     duplicates: LocationTrackDuplicate[];
-    startSplitPoint: SplitPoint;
-    endSplitPoint: SplitPoint;
+    startSplitPoint?: SplitPoint;
+    endSplitPoint?: SplitPoint;
     switchAtStart?: LayoutSwitchIdAndName;
     switchAtEnd?: LayoutSwitchIdAndName;
     partOfUnfinishedSplit?: boolean;

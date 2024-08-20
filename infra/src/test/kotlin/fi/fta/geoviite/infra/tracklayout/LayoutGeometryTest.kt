@@ -1,7 +1,8 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.infra.common.IndexedId
+import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
-import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
@@ -64,9 +65,9 @@ class LayoutGeometryTest {
                 resolution = 2,
             ),
             startM = 10.0,
-            sourceId = StringId(),
+            sourceId = IndexedId(1, 1),
             sourceStart = 15.0,
-            switchId = StringId(),
+            switchId = IntId(1),
             startJointNumber = JointNumber(2),
             endJointNumber = JointNumber(2),
             source = GeometrySource.IMPORTED,
@@ -336,9 +337,9 @@ class LayoutGeometryTest {
                 resolution = 2,
             ),
             startM = 10.0,
-            sourceId = StringId(),
+            sourceId = IndexedId(1, 1),
             sourceStart = 15.0,
-            switchId = StringId(),
+            switchId = IntId(1),
             startJointNumber = JointNumber(2),
             endJointNumber = JointNumber(2),
             source = GeometrySource.IMPORTED,
@@ -380,9 +381,9 @@ class LayoutGeometryTest {
                 resolution = 2,
             ),
             startM = 10.0,
-            sourceId = StringId(),
+            sourceId = IndexedId(1, 1),
             sourceStart = 15.0,
-            switchId = StringId(),
+            switchId = IntId(1),
             startJointNumber = JointNumber(2),
             endJointNumber = JointNumber(2),
             source = GeometrySource.IMPORTED,

@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -56,14 +55,14 @@ import fi.fta.geoviite.infra.ui.testdata.createSwitchAndAlignments
 import fi.fta.geoviite.infra.ui.testdata.locationTrackAndAlignmentForGeometryAlignment
 import fi.fta.geoviite.infra.ui.testdata.switchJoint
 import fi.fta.geoviite.infra.util.LocalizationKey
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
@@ -898,7 +897,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     private fun shiftSegmentGeometry(
         source: LayoutSegment,
-        switchId: DomainId<TrackLayoutSwitch>?,
+        switchId: IntId<TrackLayoutSwitch>?,
         shiftVector: Point,
     ): LayoutSegment = source.copy(
         geometry = SegmentGeometry(
@@ -916,7 +915,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         name = SwitchName(name)
     )
 
-    private fun shiftTrack(template: List<LayoutSegment>, switchId: DomainId<TrackLayoutSwitch>?, shiftVector: Point) =
+    private fun shiftTrack(template: List<LayoutSegment>, switchId: IntId<TrackLayoutSwitch>?, shiftVector: Point) =
         template.map { segment -> shiftSegmentGeometry(segment, switchId, shiftVector)}
 
     @Test

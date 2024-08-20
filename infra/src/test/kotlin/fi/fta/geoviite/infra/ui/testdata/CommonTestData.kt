@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.ui.testdata
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.FeatureTypeCode
+import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
@@ -217,7 +218,7 @@ fun locationTrackAndAlignmentForGeometryAlignment(
             startJointNumber = null,
             endJointNumber = null,
             source = GeometrySource.PLAN,
-            sourceId = element.id,
+            sourceId = element.id as IndexedId,
             sourceStart = null,
             switchId = null,
         ).also { startM += it.length }
