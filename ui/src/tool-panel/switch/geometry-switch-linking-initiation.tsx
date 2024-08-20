@@ -29,7 +29,7 @@ export const GeometrySwitchLinkingInitiation: React.FC<GeometrySwitchLinkingInit
                     <InfoboxContentSpread>
                         <MessageBox>
                             {t(
-                                `tool-panel.switch.geometry.cannot-start-switch-linking.${geometrySwitchInvalidityReason.toLowerCase().replaceAll('_', '-')}`,
+                                `tool-panel.switch.geometry.cannot-start-switch-linking.${geometrySwitchInvalidityReason}`,
                             )}
                         </MessageBox>
                     </InfoboxContentSpread>

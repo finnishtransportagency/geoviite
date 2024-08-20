@@ -530,11 +530,11 @@
                 "linking-header": "Linkitys",
                 "is-linked": "Linkitetty",
                 "cannot-start-switch-linking": {
-                    "related-tracks-not-linked": "Vaihdetta ei voi linkittää, koska vaihteeseen liittyvää raidegeometriaa ei ole linkitetty.",
-                    "less-than-two-joints": "Vaihteen geometrialla ei ole vähintään kahta vaihdepistettä, joten sitä ei voi linkittää.",
-                    "no-switch-structure-id-on-switch": "Linkitettävältä vaihteelta puuttuu vaihdetyyppitieto, joten sitä ei voi linkittää.",
-                    "no-srid-on-plan": "Linkitettävän vaihteen suunnitelmalta puuttuu koordinaatistotieto.",
-                    "invalid-joints": "Linkitettävän vaihteen vaihdepisteet eivät vastaa vaihdetyypin vaihdepisteitä."
+                    "RELATED_TRACKS_NOT_LINKED": "Vaihdetta ei voi linkittää, koska vaihteeseen liittyvää raidegeometriaa ei ole linkitetty.",
+                    "LESS_THAN_TWO_JOINTS": "Vaihteen geometrialla ei ole vähintään kahta vaihdepistettä, joten sitä ei voi linkittää.",
+                    "NO_SWITCH_STRUCTURE_ID_ON_SWITCH": "Linkitettävältä vaihteelta puuttuu vaihdetyyppitieto, joten sitä ei voi linkittää.",
+                    "NO_SRID_ON_PLAN": "Linkitettävän vaihteen suunnitelmalta puuttuu koordinaatistotieto.",
+                    "INVALID_JOINTS": "Linkitettävän vaihteen vaihdepisteet eivät vastaa vaihdetyypin vaihdepisteitä."
                 },
                 "start-setup": "Aloita linkitys",
                 "select-switch-msg": "Valitse vaihde, johon linkitetään",
