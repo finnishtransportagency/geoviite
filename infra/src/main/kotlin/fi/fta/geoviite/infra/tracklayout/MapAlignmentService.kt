@@ -52,6 +52,7 @@ class MapAlignmentService(
         bbox: BoundingBox,
         resolution: Int,
         type: AlignmentFetchType,
+        includeSegmentEndPoints: Boolean = false
     ): List<AlignmentPolyLine<*>> {
         logger.serviceCall(
             "getAlignmentPolyLines",
@@ -62,10 +63,10 @@ class MapAlignmentService(
         )
         val referenceLines =
             if (type == AlignmentFetchType.LOCATION_TRACKS) listOf()
-            else getReferenceLinePolyLines(layoutContext, bbox, resolution)
+            else getReferenceLinePolyLines(layoutContext, bbox, resolution, includeSegmentEndPoints)
         val locationTracks =
             if (type == AlignmentFetchType.REFERENCE_LINES) listOf()
-            else getLocationTrackPolyLines(layoutContext, bbox, resolution)
+            else getLocationTrackPolyLines(layoutContext, bbox, resolution, includeSegmentEndPoints)
 
         return (referenceLines + locationTracks).filter { pl -> pl.points.isNotEmpty() }
     }
@@ -79,7 +80,7 @@ class MapAlignmentService(
         return locationTrackService
             .getWithAlignment(layoutContext, id)
             ?.takeIf { (t, _) -> t.state != LocationTrackState.DELETED }
-            ?.let { (track, alignment) -> toAlignmentPolyLine(track.id, LOCATION_TRACK, alignment, resolution, bbox) }
+            ?.let { (track, alignment) -> toAlignmentPolyLine(track.id, LOCATION_TRACK, alignment, resolution, bbox, includeSegmentEndPoints = false) }
     }
 
     fun getSectionsWithoutLinking(
@@ -175,21 +176,23 @@ class MapAlignmentService(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
         resolution: Int,
+        includeSegmentEndPoints: Boolean
     ): List<AlignmentPolyLine<LocationTrack>> = locationTrackService
         .listWithAlignments(layoutContext, includeDeleted = false)
-        .map { (track, alignment) -> toAlignmentPolyLine(track.id, LOCATION_TRACK, alignment, resolution, bbox) }
+        .map { (track, alignment) -> toAlignmentPolyLine(track.id, LOCATION_TRACK, alignment, resolution, bbox, includeSegmentEndPoints) }
 
     private fun getReferenceLinePolyLines(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
         resolution: Int,
+        includeSegmentEndPoints: Boolean
     ): List<AlignmentPolyLine<*>> {
         val trackNumbers = trackNumberService.mapById(layoutContext)
         return referenceLineService
             .listWithAlignments(layoutContext, includeDeleted = false)
             .mapNotNull { (line, alignment) ->
                 val trackNumber = trackNumbers[line.trackNumberId]
-                if (trackNumber != null) toAlignmentPolyLine(line.id, REFERENCE_LINE, alignment, resolution, bbox)
+                if (trackNumber != null) toAlignmentPolyLine(line.id, REFERENCE_LINE, alignment, resolution, bbox, includeSegmentEndPoints)
                 else null
             }
     }

@@ -6,7 +6,13 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
+import fi.fta.geoviite.infra.tracklayout.IAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import kotlin.math.roundToInt
 
 enum class MapAlignmentSource {
@@ -90,12 +96,14 @@ fun <T> toAlignmentPolyLine(
     alignment: IAlignment,
     resolution: Int? = null,
     bbox: BoundingBox? = null,
-) = AlignmentPolyLine(id, type, simplify(alignment, resolution, bbox))
+    includeSegmentEndPoints: Boolean
+) = AlignmentPolyLine(id, type, simplify(alignment, resolution, bbox, includeSegmentEndPoints))
 
 fun simplify(
     alignment: IAlignment,
     resolution: Int? = null,
     bbox: BoundingBox? = null,
+    includeSegmentEndPoints: Boolean
 ): List<AlignmentPoint> {
     val segments = bbox?.let(alignment::filterSegmentsByBbox) ?: alignment.segments
     var previousM = Double.NEGATIVE_INFINITY
@@ -104,21 +112,36 @@ fun simplify(
     }
     return segments.flatMapIndexed { sIndex, s ->
         val isEndPoint = { pIndex: Int ->
-            (sIndex == 0 && pIndex == 0) || (sIndex == segments.lastIndex && pIndex == s.segmentPoints.lastIndex)
+            val isTrackEndPoint = (sIndex == 0 && pIndex == 0) || (sIndex == segments.lastIndex && pIndex == s.segmentPoints.lastIndex)
+            val isSegmentStartPoint = pIndex == 0
+            isTrackEndPoint || includeSegmentEndPoints && isSegmentStartPoint
+        }
+        val isSegmentEndPoint = { pIndex: Int ->
+            pIndex == 0 || pIndex == s.segmentPoints.lastIndex
         }
         val bboxContains = { pIndex: Int ->
             bbox == null || s.segmentPoints.getOrNull(pIndex)?.let(bbox::contains) ?: false
         }
         s.segmentPoints.mapIndexedNotNull { pIndex, p ->
-            if (takePoint(pIndex, p.m + s.startM, isEndPoint, isOverResolution, bboxContains)) {
-                previousM = s.startM + p.m
+            if (isPointIncluded(
+                    pIndex,
+                    p.m + s.startM,
+                    isEndPoint,
+                    isOverResolution,
+                    bboxContains,
+                )) {
+                if (!isSegmentEndPoint(pIndex)) {
+                    // segment end points should be additional points,
+                    // so increase m-counter only when handling middle points
+                    previousM = s.startM + p.m
+                }
                 p.toAlignmentPoint(s.startM)
             } else null
         }
     }.let { points -> if (points.size >= 2) points else listOf() }
 }
 
-private fun takePoint(
+private fun isPointIncluded(
     index: Int,
     m: Double,
     isEndPoint: (index: Int) -> Boolean,

@@ -31,7 +31,7 @@ data class GeometryPlanLayout(
     fun withLayoutGeometry(resolution: Int? = null) = copy(
         alignments = alignments.map { alignment ->
             alignment.copy(
-                polyLine = toAlignmentPolyLine(alignment.id, alignment.header.alignmentType, alignment, resolution),
+                polyLine = toAlignmentPolyLine(alignment.id, alignment.header.alignmentType, alignment, resolution, includeSegmentEndPoints=true),
                 segmentMValues = getSegmentBorderMValues(alignment),
             )
         },
