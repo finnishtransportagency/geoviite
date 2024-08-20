@@ -408,15 +408,19 @@ fun validateSwitchAlignmentTopology(
     switchName: SwitchName,
     validatingTrack: LocationTrack?,
 ): LayoutValidationIssue? {
-    val switchAlignmentsUnlinkedToAny = connectivity.alignmentJoints.filter { switchAlignment ->
+    val unlinkedConnectivityAlignments = connectivity.alignmentJoints.filter { switchAlignment ->
         locationTracks.none { (_, alignment) ->
             alignmentsAreLinked(switchAlignment, alignment, switchId)
         }
     }.toSet()
-    val allAlignmentsUnlinked = connectivity.alignmentJoints.all { switchAlignment ->
-        switchAlignmentsUnlinkedToAny.contains(switchAlignment)
-    }
-    return if (allAlignmentsUnlinked) {
+    // The alignment can be connected through the switch or ending in the middle of it. Check both.
+    val noAlignmentsLinked = unlinkedConnectivityAlignments.size == connectivity.alignmentJoints.size &&
+        switchStructure.alignments.none { switchAlignment ->
+            locationTracks.any { (_, trackAlignment) ->
+                alignmentsAreLinked(switchAlignment.jointNumbers, trackAlignment, switchId)
+            }
+        }
+    return if (noAlignmentsLinked) {
         validateWithParams(false, ERROR) {
             "${switchOrTrackLinkageKey(validatingTrack)}.switch-no-alignments-connected" to localizationParams(
                 "switch" to switchName.toString()
@@ -431,7 +435,7 @@ fun validateSwitchAlignmentTopology(
                 }
             }
         val switchAlignmentsLinkedToOnlyDuplicates =
-            switchAlignmentsUnlinkedToNonduplicates.subtract(switchAlignmentsUnlinkedToAny)
+            switchAlignmentsUnlinkedToNonduplicates.subtract(unlinkedConnectivityAlignments)
 
         // trackLinkedAlignmentsJoints splits up switch alignments going through the center on rail crossings; but it's
         // possible that the alignment was supposed to actually go through the entire crossing. So, if the switch has any
