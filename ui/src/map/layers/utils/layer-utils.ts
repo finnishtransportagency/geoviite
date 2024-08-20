@@ -249,10 +249,6 @@ export function mergePartialItemSearchResults(
                 merged.suggestedSwitches,
                 searchResult.suggestedSwitches,
             ),
-            locationTrackEndPoints: mergeOptionalArrays(
-                merged.locationTrackEndPoints,
-                searchResult.locationTrackEndPoints,
-            ),
             geometryPlans: mergeOptionalArrays(merged.geometryPlans, searchResult.geometryPlans),
         };
     }, {});

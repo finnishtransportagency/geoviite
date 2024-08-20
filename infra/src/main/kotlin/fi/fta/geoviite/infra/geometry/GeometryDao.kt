@@ -21,6 +21,8 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.math.toAngle
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.*
 import org.springframework.beans.factory.annotation.Autowired
@@ -1119,7 +1121,7 @@ class GeometryDao @Autowired constructor(
     @Cacheable(CACHE_GEOMETRY_SWITCH, sync = true)
     fun getSwitch(id: IntId<GeometrySwitch>) = getOne(id, fetchSwitches(planId = null, switchId = id))
 
-    fun getSwitchPlanId(id: IntId<GeometrySwitch>): IntId<GeometryPlan>? = jdbcTemplate.queryOptional(
+    fun getSwitchPlanId(id: IntId<GeometrySwitch>): IntId<GeometryPlan> = jdbcTemplate.queryOne(
         "select plan_id from geometry.switch where id = :id", mapOf("id" to id.intValue)
     ) { rs, _ ->
         rs.getIntId("plan_id")
@@ -1623,23 +1625,6 @@ class GeometryDao @Autowired constructor(
         return mapOf("${name}_x" to point?.x, "${name}_y" to point?.y)
     }
 
-    fun getMeasurementMethodForSwitch(id: IntId<GeometrySwitch>): MeasurementMethod? {
-        val sql = """
-            select plan.measurement_method
-            from geometry.plan
-                join geometry.switch on plan.id = switch.plan_id
-            where switch.id = :switch_id
-        """.trimIndent()
-
-        return jdbcTemplate.query(
-            sql, mapOf(
-                "switch_id" to id.intValue
-            )
-        ) { rs, _ ->
-            rs.getEnumOrNull<MeasurementMethod>("measurement_method")
-        }.firstOrNull()
-    }
-
     /**
      * If planIds is null, returns all plans' linking summaries
      */
@@ -1753,5 +1738,32 @@ class GeometryDao @Autowired constructor(
             select plan_id from geometry.km_post where id = :id
         """.trimIndent()
         return jdbcTemplate.queryOptional(sql, mapOf("id" to id.intValue)) { rs, _ -> rs.getIntId("plan_id") }
+    }
+
+    fun getLocationTracksLinkedThroughGeometryElementToSwitch(
+        layoutBranch: LayoutBranch,
+        geometrySwitchId: IntId<GeometrySwitch>
+    ): List<LayoutRowVersion<LocationTrack>> {
+        val sql = """
+            select location_track.id, location_track.version
+              from layout.location_track, layout.location_track_is_in_layout_context('DRAFT', :design_id, location_track)
+              where exists(select *
+                             from layout.segment_version
+                             where segment_version.alignment_id = location_track.alignment_id
+                               and segment_version.alignment_version = location_track.alignment_version
+                               and exists(select *
+                                            from geometry.element
+                                            where segment_version.geometry_alignment_id = element.alignment_id
+                                              and segment_version.geometry_element_index = element.element_index
+                                              and element.switch_id = :switch_id)
+                )
+                and state != 'DELETED';
+        """.trimIndent()
+        return jdbcTemplate.query(sql, mapOf(
+            "design_id" to layoutBranch.designId?.intValue,
+            "switch_id" to geometrySwitchId.intValue,
+        )) { rs, _ ->
+            rs.getLayoutRowVersion("id", "version")
+        }
     }
 }

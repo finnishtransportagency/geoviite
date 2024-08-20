@@ -1,6 +1,5 @@
 import {
     LayoutKmPostId,
-    LayoutLocationTrack,
     LayoutSwitchId,
     LocationTrackId,
     ReferenceLineId,
@@ -15,12 +14,11 @@ import {
 } from 'api/api-fetch';
 import {
     GeometryPlanLinkStatus,
+    GeometrySwitchSuggestionResult,
     KmPostLinkingParameters,
     LinkingGeometryWithAlignmentParameters,
     LinkingGeometryWithEmptyAlignmentParameters,
-    LocationTrackEndpoint,
     SuggestedSwitch,
-    SuggestedSwitchCreateParams,
     SwitchRelinkingValidationResult,
     TrackSwitchRelinkingResult,
 } from 'linking/linking-model';
@@ -34,13 +32,11 @@ import {
 } from 'common/change-time-api';
 import { LayoutBranch, LayoutContext, PublicationState, Range } from 'common/common-model';
 import { asyncCache } from 'cache/cache';
-import { GeometryAlignmentId, GeometryPlanId } from 'geometry/geometry-model';
-import { MapTile } from 'map/map-model';
+import { GeometryAlignmentId, GeometryPlanId, GeometrySwitchId } from 'geometry/geometry-model';
 import { getMaxTimestamp } from 'utils/date-utils';
-import { getSuggestedSwitchId } from 'linking/linking-utils';
-import { bboxString, pointString } from 'common/common-api';
-import { BoundingBox, Point } from 'model/geometry';
-import { filterNotEmpty, first, indexIntoMap } from 'utils/array-utils';
+import { pointString } from 'common/common-api';
+import { Point } from 'model/geometry';
+import { filterNotEmpty, indexIntoMap } from 'utils/array-utils';
 import { contextInUri } from 'track-layout/track-layout-api';
 
 const LINKING_URI = `${API_URI}/linking`;
@@ -49,7 +45,6 @@ const geometryElementsLinkedStatusCache = asyncCache<
     `${PublicationState}_${LayoutBranch}_${GeometryPlanId}`,
     GeometryPlanLinkStatus
 >();
-const suggestedSwitchesCache = asyncCache<`${LayoutBranch}_${string}`, SuggestedSwitch[]>();
 const relinkingSwitchValidationCache = asyncCache<
     `${LayoutBranch}_${LocationTrackId}`,
     SwitchRelinkingValidationResult[]
@@ -79,22 +74,6 @@ function linkingUri(
     const idSection = id ? `/${id}` : '';
     return `${base}/${idSection}/${linkingType}`;
 }
-
-export const getSuggestedContinuousLocationTracks = async (
-    layoutBranch: LayoutBranch,
-    locationTrackId: LocationTrackId,
-    locationTrackEndPoint: LocationTrackEndpoint,
-    bbox: BoundingBox,
-): Promise<LayoutLocationTrack[]> => {
-    const params = queryParams({
-        id: locationTrackId,
-        location: pointString(locationTrackEndPoint.location),
-        locationTrackPointUpdateType: locationTrackEndPoint.updateType,
-        bbox: bboxString(bbox),
-    });
-    const uri = linkingUri(layoutBranch, 'location-tracks', 'suggested');
-    return getNonNull<LayoutLocationTrack[]>(`${uri}${params}`);
-};
 
 export const linkGeometryWithReferenceLine = async (
     layoutBranch: LayoutBranch,
@@ -234,57 +213,33 @@ export async function getPlanLinkStatuses(
         .then((tracks) => tracks.filter(filterNotEmpty));
 }
 
-export async function getSuggestedSwitchesByTile(
+export async function getSuggestedSwitchForLayoutSwitchPlacing(
     layoutBranch: LayoutBranch,
-    mapTile: MapTile,
-): Promise<SuggestedSwitch[]> {
-    const key = `${layoutBranch}_${mapTile.id}` as const;
-    const params = queryParams({
-        bbox: bboxString(mapTile.area),
-    });
-    return (
-        suggestedSwitchesCache
-            .get(
-                getMaxTimestamp(
-                    getChangeTimes().layoutLocationTrack,
-                    getChangeTimes().layoutSwitch,
-                ),
-                key,
-                () => getNonNull(`${linkingUri(layoutBranch, 'switches', 'suggested')}${params}`),
-            )
-            // IDs are needed to separate different suggested switches from each other.
-            // If suggested switch is generated from geometry switch, geom switch id
-            // can be used as a id, otherwise create id from other attributes and
-            // JSON serialize that object.
-            .then((suggestedSwitches) =>
-                suggestedSwitches.map((suggestedSwitch) => {
-                    return {
-                        ...suggestedSwitch,
-                        id: getSuggestedSwitchId(suggestedSwitch),
-                    };
-                }),
-            )
+    point: Point,
+    layoutSwitchId: LayoutSwitchId,
+): Promise<SuggestedSwitch | undefined> {
+    return getSuggestedSwitch(
+        layoutBranch,
+        queryParams({
+            location: pointString(point),
+            layoutSwitchId,
+        }),
     );
 }
 
-export async function getSuggestedSwitchByPoint(
+export async function getSuggestedSwitchForGeometrySwitch(
     layoutBranch: LayoutBranch,
-    point: Point,
-    switchId: LayoutSwitchId,
-): Promise<SuggestedSwitch[]> {
-    const params = queryParams({
-        location: pointString(point),
-        switchId,
-    });
+    geometrySwitchId: GeometrySwitchId,
+): Promise<GeometrySwitchSuggestionResult | undefined> {
+    return getSuggestedSwitch(layoutBranch, queryParams({ geometrySwitchId }));
+}
+
+function getSuggestedSwitch<SuggestedSwitchType>(
+    layoutBranch: LayoutBranch,
+    params: string,
+): Promise<SuggestedSwitchType | undefined> {
     const uri = linkingUri(layoutBranch, 'switches', 'suggested');
-    return getNullable<SuggestedSwitch[]>(`${uri}${params}`).then((suggestedSwitches) => {
-        return (suggestedSwitches || []).map((suggestedSwitch) => {
-            return {
-                ...suggestedSwitch,
-                id: getSuggestedSwitchId(suggestedSwitch),
-            };
-        });
-    });
+    return getNullable<SuggestedSwitchType>(`${uri}${params}`);
 }
 
 export async function linkSwitch(
@@ -301,19 +256,6 @@ export async function linkSwitch(
     await updateSwitchChangeTime();
 
     return result;
-}
-
-export async function createSuggestedSwitch(
-    layoutBranch: LayoutBranch,
-    params: SuggestedSwitchCreateParams,
-): Promise<SuggestedSwitch | undefined> {
-    return postNonNull<SuggestedSwitchCreateParams, SuggestedSwitch[]>(
-        linkingUri(layoutBranch, 'switches', 'suggested'),
-        params,
-    ).then((switches) => {
-        const s = first(switches);
-        return s ? { ...s, id: getSuggestedSwitchId(s) } : undefined;
-    });
 }
 
 export async function linkKmPost(

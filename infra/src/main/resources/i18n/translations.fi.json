@@ -534,8 +534,13 @@
                 "trap-point": "Turvavaihde",
                 "linking-header": "Linkitys",
                 "is-linked": "Linkitetty",
-                "cannot-start-switch-linking-related-tracks-not-linked-msg": "Vaihdetta ei voi linkittää, koska vaihteeseen liittyvää raidegeometriaa ei ole linkitetty.",
-                "cannot-start-switch-linking-insufficient-geometry-switch-joints": "Vaihteen geometrialla ei ole vähintään kahta vaihdepistettä, joten sitä ei voi linkittää.",
+                "cannot-start-switch-linking": {
+                    "RELATED_TRACKS_NOT_LINKED": "Vaihdetta ei voi linkittää, koska vaihteeseen liittyvää raidegeometriaa ei ole linkitetty.",
+                    "LESS_THAN_TWO_JOINTS": "Vaihteen geometrialla ei ole vähintään kahta vaihdepistettä, joten sitä ei voi linkittää.",
+                    "NO_SWITCH_STRUCTURE_ID_ON_SWITCH": "Linkitettävältä vaihteelta puuttuu vaihdetyyppitieto, joten sitä ei voi linkittää.",
+                    "NO_SRID_ON_PLAN": "Linkitettävän vaihteen suunnitelmalta puuttuu koordinaatistotieto.",
+                    "INVALID_JOINTS": "Linkitettävän vaihteen vaihdepisteet eivät vastaa vaihdetyypin vaihdepisteitä."
+                },
                 "start-setup": "Aloita linkitys",
                 "select-switch-msg": "Valitse vaihde, johon linkitetään",
                 "cannot-link-invalid-switch-type": "Valitun vaihteen tyyppi:\n{{selectedType}}\n\neroaa liikaa oletetusta vaihteen tyyppistä:\n{{suggestedType}}\n\nVaihdetta ei voi linkittää.",

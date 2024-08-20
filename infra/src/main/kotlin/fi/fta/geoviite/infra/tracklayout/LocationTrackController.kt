@@ -14,7 +14,6 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.geocoding.AlignmentStartAndEndWithId
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
 import fi.fta.geoviite.infra.linking.LocationTrackSaveRequest
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
@@ -154,17 +153,6 @@ class LocationTrackController(
                 LocationTrackDescription(id, locationTrackService.getFullDescription(context, lt, lang))
             }
         }
-    }
-
-    @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
-    @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}/end-points")
-    fun getLocationTrackAlignmentEndpoints(
-        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
-        @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
-        @RequestParam("bbox") bbox: BoundingBox,
-    ): List<LocationTrackEndpoint> {
-        val context = LayoutContext.of(layoutBranch, publicationState)
-        return locationTrackService.getLocationTrackEndpoints(context, bbox)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)

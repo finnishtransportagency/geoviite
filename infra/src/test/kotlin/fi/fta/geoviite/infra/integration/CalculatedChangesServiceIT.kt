@@ -13,11 +13,13 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.linking.FittedSwitch
 import fi.fta.geoviite.infra.linking.FittedSwitchJoint
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
+import fi.fta.geoviite.infra.linking.switches.matchFittedSwitchToTracks
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Line
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.publication.ValidationVersions
+import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
@@ -85,6 +87,7 @@ class CalculatedChangesServiceIT @Autowired constructor(
     val alignmentDao: LayoutAlignmentDao,
     val kmPostService: LayoutKmPostService,
     val trackNumberservice: LayoutTrackNumberService,
+    val switchLibraryService: SwitchLibraryService,
 ) : DBTestBase() {
 
     @BeforeEach
@@ -1369,14 +1372,15 @@ class CalculatedChangesServiceIT @Autowired constructor(
                     locationAccuracy = null,
                 ),
             ),
-            geometrySwitchId = null,
-            switchStructureId = switch.switchStructureId,
-            alignmentEndPoint = null,
-            name = SwitchName("abc"),
+            switchStructure = switchLibraryService.getSwitchStructure(switch.switchStructureId),
         )
         switchLinkingService.saveSwitchLinking(
             LayoutBranch.main,
-            switchLinkingService.matchFittedSwitch(LayoutBranch.main, suggestedFitting, switch.id as IntId),
+            matchFittedSwitchToTracks(
+                suggestedFitting, switchLinkingService.findLocationTracksForMatchingSwitchToTracks(
+                    LayoutBranch.main, suggestedFitting, switch.id as IntId
+                ), switch.id as IntId
+            ),
             switch.id as IntId,
         )
         return switch

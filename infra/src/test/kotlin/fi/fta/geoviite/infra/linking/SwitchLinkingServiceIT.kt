@@ -19,10 +19,9 @@ import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.geometry.plan
 import fi.fta.geoviite.infra.geometry.testFile
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
+import fi.fta.geoviite.infra.linking.switches.matchFittedSwitchToTracks
 import fi.fta.geoviite.infra.localization.LocalizationParams
-import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType
 import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
@@ -93,30 +92,19 @@ class SwitchLinkingServiceIT @Autowired constructor(
         testDBService.clearLayoutTables()
     }
 
-    @Test()
-    fun getSuggestedSwitchesWorks() {
-        switchLinkingService.getSuggestedSwitches(
-            LayoutBranch.main,
-            BoundingBox(
-                x = Range(500000.0, 600000.0),
-                y = Range(6900000.0, 7000000.0),
-            )
-        )
-    }
-
     @Test
     fun updatingSwitchLinkingChangesSourceToGenerated() {
         val insertedSwitch = switchDao.fetch(
             switchDao.insert(switch(665, draft = false)).rowVersion
         )
-        val suggestedSwitch = switchLinkingService.matchFittedSwitch(
-            LayoutBranch.main,
-            FittedSwitch(
-                joints = emptyList(),
-                geometrySwitchId = null,
-                switchStructureId = insertedSwitch.switchStructureId,
-                name = SwitchName("Foo V123"),
-                alignmentEndPoint = null,
+        val fittedSwitch = FittedSwitch(
+            joints = emptyList(),
+            switchStructure = switchLibraryService.getSwitchStructure(insertedSwitch.switchStructureId),
+        )
+        val suggestedSwitch = matchFittedSwitchToTracks(
+            fittedSwitch,
+            switchLinkingService.findLocationTracksForMatchingSwitchToTracks(
+                LayoutBranch.main, fittedSwitch, insertedSwitch.id as IntId
             ),
             insertedSwitch.id as IntId,
         )
@@ -129,14 +117,11 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun linkingExistingGeometrySwitchGetsSwitchAccuracyForJoints() {
-        setupJointLocationAccuracyTest()
-        val suggestedSwitch = switchLinkingService.getSuggestedSwitches(
+        val geometrySwitchId = setupJointLocationAccuracyTest()
+        val suggestedSwitch = (switchLinkingService.getSuggestedSwitch(
             LayoutBranch.main,
-            BoundingBox(
-                x = Range(0.0, 100.0),
-                y = Range(0.0, 100.0),
-            )
-        )[0]
+            geometrySwitchId
+        ) as GeometrySwitchSuggestionSuccess).switch
         for (joint in suggestedSwitch.joints.map { j -> j.number }) {
             assertJointPointLocationAccuracy(suggestedSwitch, joint, LocationAccuracy.DIGITIZED_AERIAL_IMAGE)
         }
@@ -144,8 +129,10 @@ class SwitchLinkingServiceIT @Autowired constructor(
 
     @Test
     fun linkingManualSwitchGetsGeometryCalculatedAccuracy() {
-        val suggestedSwitchCreateParams = setupJointLocationAccuracyTest()
-        val suggestedSwitch = switchLinkingService.getSuggestedSwitch(LayoutBranch.main, suggestedSwitchCreateParams)!!
+        setupJointLocationAccuracyTest()
+        val layoutSwitchId = switchDao.insert(switch(structureId = switchStructure.id as IntId)).id
+        val suggestedSwitch =
+            switchLinkingService.getSuggestedSwitch(LayoutBranch.main, Point(50.0, 50.0), layoutSwitchId)!!
 
         for (joint in suggestedSwitch.joints.map { j -> j.number }) {
             assertJointPointLocationAccuracy(suggestedSwitch, joint, LocationAccuracy.GEOMETRY_CALCULATED)
@@ -206,14 +193,16 @@ class SwitchLinkingServiceIT @Autowired constructor(
             ),
         )
 
+        val fittedSwitch = FittedSwitch(
+            joints = linkingJoints,
+            switchStructure = switchLibraryService.getSwitchStructure(insertedSwitch.switchStructureId)
+        )
         switchLinkingService.saveSwitchLinking(
             LayoutBranch.main,
-            switchLinkingService.matchFittedSwitch(
-                LayoutBranch.main,
-                suggestedSwitchFitting(
-                    joints = linkingJoints,
-                    geometrySwitchId = null,
-                    switchStructureId = insertedSwitch.switchStructureId
+            matchFittedSwitchToTracks(
+                fittedSwitch,
+                switchLinkingService.findLocationTracksForMatchingSwitchToTracks(
+                    LayoutBranch.main, fittedSwitch, insertedSwitch.id as IntId
                 ),
                 insertedSwitch.id as IntId,
             ),
@@ -285,16 +274,18 @@ class SwitchLinkingServiceIT @Autowired constructor(
             ),
         )
 
+        val fittedSwitch = FittedSwitch(
+            joints = linkingJoints,
+            switchStructure = switchLibraryService.getSwitchStructure(insertedSwitch.switchStructureId)
+        )
         switchLinkingService.saveSwitchLinking(
             LayoutBranch.main,
-            switchLinkingService.matchFittedSwitch(
-                LayoutBranch.main,
-                suggestedSwitchFitting(
-                    joints = linkingJoints,
-                    geometrySwitchId = null,
-                    switchStructureId = insertedSwitch.switchStructureId
-                ), insertedSwitch.id as IntId,
-            ), insertedSwitch.id as IntId,
+            matchFittedSwitchToTracks(
+                fittedSwitch, switchLinkingService.findLocationTracksForMatchingSwitchToTracks(
+                    LayoutBranch.main, fittedSwitch, insertedSwitch.id as IntId
+                ), insertedSwitch.id as IntId
+            ),
+            insertedSwitch.id as IntId,
         )
 
         val (_, alignment) = locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, locationTrackId)
@@ -319,13 +310,16 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
             .let(mainOfficialContext::insertAndFetch)
             .let { storedSwitch ->
+                val fittedSwitch = FittedSwitch(
+                    switchStructure = switchLibraryService.getSwitchStructure(storedSwitch.switchStructureId),
+                    joints = linkedJoints,
+                )
                 switchLinkingService.saveSwitchLinking(
                     LayoutBranch.main,
-                    switchLinkingService.matchFittedSwitch(
-                        LayoutBranch.main,
-                        suggestedSwitchFitting(
-                            switchStructureId = storedSwitch.switchStructureId,
-                            joints = linkedJoints,
+                    matchFittedSwitchToTracks(
+                        fittedSwitch,
+                        switchLinkingService.findLocationTracksForMatchingSwitchToTracks(
+                            LayoutBranch.main, fittedSwitch, storedSwitch.id as IntId
                         ),
                         storedSwitch.id as IntId,
                     ),
@@ -1566,7 +1560,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         return locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, locationTrackId)
     }
 
-    private fun setupJointLocationAccuracyTest(): SuggestedSwitchCreateParams {
+    private fun setupJointLocationAccuracyTest(): IntId<GeometrySwitch> {
         val trackNumber = mainOfficialContext.createAndFetchLayoutTrackNumber()
         val (switch, switchAlignments) = createSwitchAndAlignments(
             "fooSwitch",
@@ -1588,32 +1582,17 @@ class SwitchLinkingServiceIT @Autowired constructor(
             alignments = listOf(switchAlignments[1]),
         )
 
-        val trackNumberIds = (plan1.alignments + plan2.alignments).map { a ->
+        (plan1.alignments + plan2.alignments).forEach { geometryAlignment ->
             val (locationTrack, alignment) = locationTrackAndAlignmentForGeometryAlignment(
                 trackNumber.id as IntId,
-                a,
+                geometryAlignment,
                 transformationService.getTransformation(LAYOUT_SRID, LAYOUT_SRID),
                 draft = true,
             )
             locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
         }
-        val mainLocationTrackId = trackNumberIds[0].id
 
-        return SuggestedSwitchCreateParams(
-            LocationTrackEndpoint(
-                locationTrackId = mainLocationTrackId,
-                location = Point(50.0, 50.0),
-                updateType = LocationTrackPointUpdateType.START_POINT
-            ),
-            switchStructure.id as IntId,
-            listOf(
-                SuggestedSwitchCreateParamsAlignmentMapping(
-                    switchAlignment_1_5_2.id as StringId,
-                    mainLocationTrackId,
-                    true,
-                ),
-            ),
-        )
+        return plan1.switches[0].id as IntId
     }
 
     private fun makeAndSavePlan(
@@ -1669,18 +1648,4 @@ fun suggestedSwitchJointMatch(
     0.1,
     0.1,
     null
-)
-
-fun suggestedSwitchFitting(
-    switchStructureId: IntId<SwitchStructure>,
-    joints: List<FittedSwitchJoint>,
-    name: SwitchName? = null,
-    alignmentEndPoint: LocationTrackEndpoint? = null,
-    geometrySwitchId: IntId<GeometrySwitch>? = null,
-): FittedSwitch = FittedSwitch(
-    name = name ?: SwitchName("Foo V123"),
-    switchStructureId = switchStructureId,
-    joints = joints,
-    alignmentEndPoint = alignmentEndPoint,
-    geometrySwitchId = geometrySwitchId
 )

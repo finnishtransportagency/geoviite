@@ -16,7 +16,6 @@ import {
     ClusterPoint,
     LinkPoint,
     LinkPointId,
-    LocationTrackEndpoint,
     SuggestedSwitch,
     SuggestedSwitchId,
 } from 'linking/linking-model';
@@ -38,7 +37,6 @@ export type ItemCollections = {
     geometryLinkPoints: LinkPoint[];
     clusterPoints: ClusterPoint[];
     suggestedSwitches: SuggestedSwitch[];
-    locationTrackEndPoints: LocationTrackEndpoint[];
     geometryPlans: GeometryPlanId[];
 };
 
@@ -56,7 +54,6 @@ export type UnselectableItemCollections = {
     layoutLinkPoints: LinkPointId[];
     geometryLinkPoints: LinkPointId[];
     suggestedSwitches: SuggestedSwitchId[];
-    locationTrackEndPoints: string[];
     geometryPlans: GeometryPlanId[];
 };
 
@@ -82,7 +79,6 @@ export const allSelectableItemTypes: SelectableItemType[] = ensureAllKeys<Select
     'geometryLinkPoints',
     'clusterPoints',
     'suggestedSwitches',
-    'locationTrackEndPoints',
     'geometryPlans',
 ]);
 

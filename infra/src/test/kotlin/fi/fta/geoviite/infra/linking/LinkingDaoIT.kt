@@ -25,61 +25,6 @@ class LinkingDaoIT @Autowired constructor(
     private val linkingDao: LinkingDao,
 ) : DBTestBase() {
 
-    @Test
-    fun noSwitchBoundsAreFoundWhenNotLinkedToTracks() {
-        val switchId = mainDraftContext.createSwitch().id
-        assertEquals(null, linkingDao.getSwitchBoundsFromTracks(MainLayoutContext.official, switchId))
-        assertEquals(null, linkingDao.getSwitchBoundsFromTracks(MainLayoutContext.draft, switchId))
-    }
-
-    @Test
-    fun switchBoundsAreFoundFromTracks() {
-        val tnId = mainDraftContext.createLayoutTrackNumber().id
-        val switchId = mainDraftContext.createSwitch().id
-
-        val point1 = Point(10.0, 10.0)
-        val point2 = Point(12.0, 10.0)
-        val point3_1 = Point(10.0, 12.0)
-        val point3_2 = Point(10.0, 13.0)
-
-        // Linked from the start only -> second point shouldn't matter
-        mainDraftContext.insert(
-            locationTrack(
-                trackNumberId = tnId,
-                topologyStartSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1)),
-            ),
-            alignment(segment(point1, point1 + Point(5.0, 5.0))),
-        )
-        // Linked from the end only -> first point shouldn't matter
-        mainDraftContext.insert(
-            locationTrack(
-                trackNumberId = tnId,
-                topologyEndSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(2)),
-            ),
-            alignment(segment(point2 - Point(5.0, 5.0), point2)),
-        )
-        // Linked by segment ends -> both points matter
-        mainDraftContext.insert(
-            locationTrack(tnId),
-            alignment(
-                segment(
-                    point3_1, point3_2,
-                    switchId = switchId,
-                    startJointNumber = JointNumber(1),
-                    endJointNumber = JointNumber(2),
-                )
-            ),
-        )
-        assertEquals(
-            null,
-            linkingDao.getSwitchBoundsFromTracks(MainLayoutContext.official, switchId),
-        )
-        assertEquals(
-            boundingBoxAroundPoints(point1, point2, point3_1, point3_2),
-            linkingDao.getSwitchBoundsFromTracks(MainLayoutContext.draft, switchId),
-        )
-    }
-
     data class TriangulationPoint(
         val kkjPoint: Point,
         val kkjPointTransformed: Point,

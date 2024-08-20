@@ -6,32 +6,29 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.MeasurementMethod
-import fi.fta.geoviite.infra.common.StringId
-import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geometry.GeometryDao
-import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.GeometryPlanHeader
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.linking.FittedSwitch
 import fi.fta.geoviite.infra.linking.FittedSwitchJoint
 import fi.fta.geoviite.infra.linking.FittedSwitchJointMatch
-import fi.fta.geoviite.infra.linking.LinkingDao
-import fi.fta.geoviite.infra.linking.LocationTrackEndpoint
-import fi.fta.geoviite.infra.linking.SuggestedSwitchCreateParams
-import fi.fta.geoviite.infra.linking.SuggestedSwitchCreateParamsAlignmentMapping
+import fi.fta.geoviite.infra.linking.GeometrySwitchFittingException
+import fi.fta.geoviite.infra.linking.GeometrySwitchFittingFailure
+import fi.fta.geoviite.infra.linking.GeometrySwitchFittingResult
+import fi.fta.geoviite.infra.linking.GeometrySwitchFittingSuccess
+import fi.fta.geoviite.infra.linking.GeometrySwitchSuggestionFailureReason
 import fi.fta.geoviite.infra.linking.SuggestedSwitchJointMatchType
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IntersectType
 import fi.fta.geoviite.infra.math.Line
-import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.math.boundingBoxCombining
 import fi.fta.geoviite.infra.math.closestPointOnLine
 import fi.fta.geoviite.infra.math.directionBetweenPoints
-import fi.fta.geoviite.infra.math.interpolate
 import fi.fta.geoviite.infra.math.lineIntersection
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.pointDistanceToLine
@@ -48,8 +45,8 @@ import fi.fta.geoviite.infra.tracklayout.IAlignment
 import fi.fta.geoviite.infra.tracklayout.ISegment
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
-import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
@@ -67,51 +64,10 @@ const val TOLERANCE_JOINT_LOCATION_NEW_POINT = 0.01
 @GeoviiteService
 class SwitchFittingService @Autowired constructor(
     private val locationTrackService: LocationTrackService,
-    private val locationTrackDao: LocationTrackDao,
-    private val linkingDao: LinkingDao,
-    private val geometryDao: GeometryDao,
     private val switchLibraryService: SwitchLibraryService,
+    private val geometryDao: GeometryDao,
     private val coordinateTransformationService: CoordinateTransformationService,
 ) {
-
-    @Transactional(readOnly = true)
-    fun getFitsInArea(branch: LayoutBranch, bbox: BoundingBox): List<FittedSwitch> {
-        val missing = linkingDao.getMissingLayoutSwitchLinkings(branch, bbox)
-        return missing.mapNotNull { missingLayoutSwitchLinking ->
-            // Transform joints to layout space and calculate missing joints
-            val geomSwitch = geometryDao.getSwitch(missingLayoutSwitchLinking.geometrySwitchId)
-            val structure = geomSwitch.switchStructureId?.let(switchLibraryService::getSwitchStructure)
-            val toLayoutCoordinate =
-                coordinateTransformationService.getTransformation(missingLayoutSwitchLinking.planSrid, LAYOUT_SRID)
-            // TODO: There is a missing switch here, but current logic doesn't support non-typed suggestions
-            if (structure == null) null else calculateLayoutSwitchJoints(
-                geomSwitch, structure, toLayoutCoordinate
-            )?.let { calculatedJoints ->
-                val switchBoundingBox = boundingBoxAroundPoints(calculatedJoints.map { it.location }) * 1.5
-                val nearAlignmentIds = locationTrackDao.fetchVersionsNear(branch.draft, switchBoundingBox)
-
-                val alignments = (nearAlignmentIds + missingLayoutSwitchLinking.locationTrackIds)
-                    .distinct()
-                    .map { id -> locationTrackService.getWithAlignment(id) }
-
-                fitSwitch(
-                    jointsInLayoutSpace = calculatedJoints,
-                    switchStructure = structure,
-                    alignments = alignments,
-                    geometrySwitch = geomSwitch,
-                    alignmentEndPoint = null,
-                    geometryPlanId = missingLayoutSwitchLinking.planId,
-                    getMeasurementMethod = this::getMeasurementMethod,
-                )
-            }
-        }
-    }
-
-    @Transactional(readOnly = true)
-    fun getFitAtPoint(branch: LayoutBranch, point: IPoint, switchStructureId: IntId<SwitchStructure>): FittedSwitch? {
-        return getFitsAtPoints(branch, listOf(point to switchStructureId))[0]
-    }
-
     @Transactional(readOnly = true)
     fun getFitsAtPoints(branch: LayoutBranch, points: List<Pair<IPoint, IntId<SwitchStructure>>>): List<FittedSwitch?> {
         val nearbyLocationTracks = points.map { (location) ->
@@ -119,43 +75,92 @@ class SwitchFittingService @Autowired constructor(
         }
         val switchStructures = points.map { (_, id) -> switchLibraryService.getSwitchStructure(id) }
         return points.mapIndexed { index, point -> index to point }.parallelStream().map { (index, point) ->
-            createSuggestedSwitchByPoint(point.first, switchStructures[index], nearbyLocationTracks[index])
+            createFittedSwitchByPoint(point.first, switchStructures[index], nearbyLocationTracks[index])
         }.collect(Collectors.toList())
     }
 
     @Transactional(readOnly = true)
-    fun getFitAtEndpoint(branch: LayoutBranch, createParams: SuggestedSwitchCreateParams): FittedSwitch? {
-        val switchStructure =
-            createParams.switchStructureId?.let(switchLibraryService::getSwitchStructure) ?: return null
-        val locationTracks = createParams.alignmentMappings
-            .map { mapping -> mapping.locationTrackId }
-            .associateWith { id -> locationTrackService.getWithAlignmentOrThrow(branch.draft, id) }
-
-        val areaSize = switchStructure.bbox.width.coerceAtLeast(switchStructure.bbox.height) * 2.0
-        val switchAreaBbox = BoundingBox(
-            Point(0.0, 0.0), Point(areaSize, areaSize)
-        ).centerAt(createParams.locationTrackEndpoint.location)
-        val nearbyLocationTracks = locationTrackService.listNearWithAlignments(branch.draft, switchAreaBbox)
-
-        return fitSwitch(
-            createParams.locationTrackEndpoint,
-            switchStructure,
-            createParams.alignmentMappings,
-            nearbyLocationTracks,
-            locationTracks,
-            getMeasurementMethod = this::getMeasurementMethod,
+    fun fitGeometrySwitch(
+        branch: LayoutBranch,
+        switchId: IntId<GeometrySwitch>,
+    ): GeometrySwitchFittingResult = try {
+        val geometrySwitch = getGeometrySwitchForFitting(switchId)
+        val planHeader = geometryDao.getPlanHeader(geometryDao.getSwitchPlanId(switchId))
+        val switchStructure = getGeometrySwitchStructure(geometrySwitch)
+        GeometrySwitchFittingSuccess(
+            fitGeometrySwitch(
+                switchStructure,
+                getTracksLinkedThroughGeometry(branch, switchId),
+                branch,
+                calculateLayoutSwitchJoints(
+                    geometrySwitch, switchStructure, getTransformationForGeometryPlan(planHeader)
+                ),
+                planHeader.measurementMethod?.let(::mapMeasurementMethodToLocationAccuracy)
+                    ?: LocationAccuracy.DIGITIZED_AERIAL_IMAGE,
+            )
         )
+    } catch (e: GeometrySwitchFittingException) {
+        GeometrySwitchFittingFailure(e.failure)
     }
 
-    private fun getMeasurementMethod(id: IntId<GeometrySwitch>): MeasurementMethod? =
-        geometryDao.getMeasurementMethodForSwitch(id)
+    private fun fitGeometrySwitch(
+        switchStructure: SwitchStructure,
+        tracksLinkedThroughGeometry: List<LayoutRowVersion<LocationTrack>>,
+        branch: LayoutBranch,
+        jointsInLayoutSpace: List<SwitchJoint>,
+        locationAccuracy: LocationAccuracy?,
+    ): FittedSwitch {
+        val tracks = listOf(
+            tracksLinkedThroughGeometry.map(locationTrackService::getWithAlignment),
+            locationTrackService.listNearWithAlignments(
+                branch.draft, boundingBoxAroundPoints(jointsInLayoutSpace.map { it.location }) * 1.5
+            )
+        ).flatten().distinctBy { it.first.id }
+
+        return fitSwitch(jointsInLayoutSpace, switchStructure, tracks, locationAccuracy)
+    }
+
+    private fun getGeometrySwitchForFitting(
+        id: IntId<GeometrySwitch>
+    ): GeometrySwitch {
+        val geometrySwitch = geometryDao.getSwitch(id)
+        if (geometrySwitch.joints.count() < 2) {
+            throw GeometrySwitchFittingException(GeometrySwitchSuggestionFailureReason.LESS_THAN_TWO_JOINTS)
+        }
+        return geometrySwitch
+    }
+
+    private fun getTracksLinkedThroughGeometry(
+        branch: LayoutBranch,
+        switchId: IntId<GeometrySwitch>,
+    ): List<LayoutRowVersion<LocationTrack>> =
+        geometryDao
+            .getLocationTracksLinkedThroughGeometryElementToSwitch(branch, switchId)
+            // we might be able to link a geometry switch to whatever tracks are there at its location, but it's always
+            // been a requirement that at least some track geometry should be linked as well
+            .takeIf { tracks -> tracks.isNotEmpty() }
+              ?: throw GeometrySwitchFittingException(GeometrySwitchSuggestionFailureReason.RELATED_TRACKS_NOT_LINKED)
+
+    private fun getGeometrySwitchStructure(geometrySwitch: GeometrySwitch): SwitchStructure =
+        geometrySwitch.switchStructureId?.let { switchStructureId ->
+            switchLibraryService.getSwitchStructure(switchStructureId)
+        } ?: throw GeometrySwitchFittingException(
+            GeometrySwitchSuggestionFailureReason.NO_SWITCH_STRUCTURE_ID_ON_SWITCH
+        )
+
+    private fun getTransformationForGeometryPlan(planHeader: GeometryPlanHeader): Transformation =
+        planHeader.units.coordinateSystemSrid?.let { srid ->
+            coordinateTransformationService.getTransformation(srid, LAYOUT_SRID)
+        } ?: throw GeometrySwitchFittingException(
+            GeometrySwitchSuggestionFailureReason.NO_SRID_ON_PLAN
+        )
 }
 
 fun calculateLayoutSwitchJoints(
     geomSwitch: GeometrySwitch,
     switchStructure: SwitchStructure,
     toLayoutCoordinate: Transformation,
-): List<SwitchJoint>? {
+): List<SwitchJoint> {
     val layoutJointPoints = geomSwitch.joints.map { geomJoint ->
         SwitchJoint(
             number = geomJoint.number,
@@ -170,7 +175,7 @@ fun calculateLayoutSwitchJoints(
             )
         }
     } else {
-        null
+        throw GeometrySwitchFittingException(GeometrySwitchSuggestionFailureReason.INVALID_JOINTS)
     }
 }
 
@@ -270,10 +275,7 @@ fun fitSwitch(
     jointsInLayoutSpace: List<SwitchJoint>,
     switchStructure: SwitchStructure,
     alignments: List<Pair<LocationTrack, LayoutAlignment>>,
-    alignmentEndPoint: LocationTrackEndpoint?,
-    geometrySwitch: GeometrySwitch? = null,
-    geometryPlanId: IntId<GeometryPlan>? = null,
-    getMeasurementMethod: (switchId: IntId<GeometrySwitch>) -> MeasurementMethod?,
+    locationAccuracy: LocationAccuracy?,
 ): FittedSwitch {
     val jointMatchTolerance = 0.2 // TODO: There could be tolerance per joint point in switch structure
 
@@ -292,22 +294,17 @@ fun fitSwitch(
         .associateWith { emptyList<FittedSwitchJointMatch>() }
 
     val suggestedJoints = (matchByJoint + jointsWithoutMatches).map { (joint, matches) ->
-        val locationAccuracy = switchJointLocationAccuracy(getMeasurementMethod, geometrySwitch)
         FittedSwitchJoint(
             number = joint.number,
             location = joint.location,
             matches = matches,
             locationAccuracy = locationAccuracy,
-        )
+       )
     }
 
     return FittedSwitch(
-        name = geometrySwitch?.name ?: SwitchName(switchStructure.baseType.name),
-        switchStructureId = switchStructure.id as IntId,
+        switchStructure = switchStructure,
         joints = suggestedJoints,
-        geometrySwitchId = geometrySwitch?.id?.let { id -> id as? IntId },
-        alignmentEndPoint = alignmentEndPoint,
-        geometryPlanId = geometryPlanId,
     )
 }
 
@@ -355,174 +352,12 @@ private fun getEndJoints(matchesByLocationTrack: Map<LocationTrack, List<FittedS
         min to max
     }
 
-private fun switchJointLocationAccuracy(
-    getMeasurementMethod: (match: IntId<GeometrySwitch>) -> MeasurementMethod?,
-    geometrySwitch: GeometrySwitch?,
-): LocationAccuracy? {
-    return if (geometrySwitch != null) {
-        getMeasurementMethod(geometrySwitch.id as IntId)?.let(::mapMeasurementMethodToLocationAccuracy)
-    } else {
-        LocationAccuracy.GEOMETRY_CALCULATED
-    }
-}
-
 private fun mapMeasurementMethodToLocationAccuracy(mm: MeasurementMethod): LocationAccuracy = when (mm) {
     MeasurementMethod.VERIFIED_DESIGNED_GEOMETRY -> LocationAccuracy.DESIGNED_GEOLOCATION
     MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY -> LocationAccuracy.OFFICIALLY_MEASURED_GEODETICALLY
     MeasurementMethod.TRACK_INSPECTION -> LocationAccuracy.MEASURED_GEODETICALLY
     MeasurementMethod.DIGITIZED_AERIAL_IMAGE -> LocationAccuracy.DIGITIZED_AERIAL_IMAGE
     MeasurementMethod.UNVERIFIED_DESIGNED_GEOMETRY -> LocationAccuracy.MEASURED_GEODETICALLY
-}
-
-fun inferSwitchTransformationBothDirection(
-    location: IPoint,
-    switchStructure: SwitchStructure,
-    switchAlignmentId: StringId<SwitchAlignment>,
-    alignment: LayoutAlignment,
-): SwitchPositionTransformation? {
-    return inferSwitchTransformation(
-        location, switchStructure, switchAlignmentId, alignment, true
-    ) ?: inferSwitchTransformation(
-        location, switchStructure, switchAlignmentId, alignment, false
-    )
-}
-
-fun inferSwitchTransformation(
-    location: IPoint,
-    switchStructure: SwitchStructure,
-    switchAlignmentId: StringId<SwitchAlignment>,
-    alignment: LayoutAlignment,
-    ascending: Boolean,
-): SwitchPositionTransformation? {
-    val switchAlignment = switchStructure.getAlignment(switchAlignmentId)
-
-    val alignmentJointNumberPairs = switchAlignment.jointNumbers.flatMapIndexed { index1, jointNumber1 ->
-        switchAlignment.jointNumbers.mapIndexed { index2, jointNumber2 ->
-            if (index2 > index1) jointNumber1 to jointNumber2
-            else null
-        }.filterNotNull()
-    }.sortedBy { (jointNumber1, jointNumber2) ->
-        // Prefer full alignments, then alignments from the presentation point
-        if (jointNumber1 == switchAlignment.jointNumbers.first() && jointNumber2 == switchAlignment.jointNumbers.last()) 0
-        else if (jointNumber1 == switchStructure.presentationJointNumber) 1
-        else 2
-    }
-
-    val allPoints = alignment.allSegmentPoints.toList()
-    // Find the "start" point for switch joint
-    // It's usually the first or the last point of alignment
-    val startPointIndex = allPoints.indexOfFirst { point ->
-        point.isSame(location, TOLERANCE_JOINT_LOCATION_NEW_POINT)
-    }
-
-    if (startPointIndex == -1) return null
-
-    val switchEndPointSearchIndexes = if (ascending) (startPointIndex..allPoints.lastIndex)
-    else (startPointIndex downTo 0)
-
-    val startPoint = allPoints[startPointIndex]
-
-    return alignmentJointNumberPairs.firstNotNullOfOrNull { (startJointNumber, endJointNumber) ->
-        val startJointLocation = switchStructure.getJointLocation(startJointNumber)
-        val endJointLocation = switchStructure.getJointLocation(endJointNumber)
-        val switchJointLength = lineLength(startJointLocation, endJointLocation)
-
-        switchEndPointSearchIndexes.firstOrNull { endPointIndex ->
-            val pointsLength = lineLength(allPoints[endPointIndex], startPoint)
-            pointsLength > switchJointLength
-        }?.let { endPointIndex ->
-            allPoints
-                .getOrNull(if (ascending) endPointIndex - 1 else endPointIndex + 1)
-                ?.let { previousEndPoint ->
-                    val endPoint = allPoints[endPointIndex]
-                    val lengthToPreviousEndPoint = lineLength(previousEndPoint, startPoint)
-                    val lengthToEndPoint = lineLength(endPoint, startPoint)
-
-                    val proportion =
-                        (switchJointLength - lengthToPreviousEndPoint) / (lengthToEndPoint - lengthToPreviousEndPoint)
-                    interpolate(previousEndPoint, endPoint, proportion)
-                }
-        }?.let { endPoint ->
-            val testJoints = listOf(
-                SwitchJoint(startJointNumber, startPoint.toPoint()),
-                SwitchJoint(endJointNumber, endPoint.toPoint()),
-            )
-
-            calculateSwitchLocationDeltaOrNull(testJoints, switchStructure)
-        }
-    }
-}
-
-fun hasAllMappedAlignments(
-    alignmentMappings: List<SuggestedSwitchCreateParamsAlignmentMapping>,
-    switchSuggestion: FittedSwitch,
-    switchStructure: SwitchStructure,
-): Boolean {
-    return alignmentMappings.all { mappingToCheck ->
-        val switchAlignmentToCheck = switchStructure.getAlignment(mappingToCheck.switchAlignmentId)
-        switchAlignmentToCheck.jointNumbers.all { jointNumberToCheck ->
-            switchSuggestion.joints.any { suggestedSwitchJoint ->
-                suggestedSwitchJoint.number == jointNumberToCheck && suggestedSwitchJoint.matches.any { match ->
-                    match.locationTrackId == mappingToCheck.locationTrackId
-                }
-            }
-        }
-    }
-}
-
-fun fitSwitch(
-    locationTrackEndpoint: LocationTrackEndpoint,
-    switchStructure: SwitchStructure,
-    alignmentMappings: List<SuggestedSwitchCreateParamsAlignmentMapping>,
-    nearbyAlignments: List<Pair<LocationTrack, LayoutAlignment>>,
-    alignmentById: Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>,
-    getMeasurementMethod: (switchId: IntId<GeometrySwitch>) -> MeasurementMethod?,
-): FittedSwitch? {
-    val mappedAlignments = alignmentMappings.map { mapping ->
-        alignmentById[mapping.locationTrackId]
-            ?: throw IllegalArgumentException("Alignment with id ${mapping.locationTrackId} is not provided")
-    }
-
-    alignmentMappings.forEach { alignmentMapping ->
-        val alignment = alignmentById[alignmentMapping.locationTrackId]?.second
-        require(alignment != null) { "Alignment mapping failed: id=${alignmentMapping.locationTrackId}" }
-        val switchTransformation = if (alignmentMapping.ascending == null) inferSwitchTransformationBothDirection(
-            locationTrackEndpoint.location,
-            switchStructure,
-            alignmentMapping.switchAlignmentId,
-            alignment,
-        )
-        else inferSwitchTransformation(
-            locationTrackEndpoint.location,
-            switchStructure,
-            alignmentMapping.switchAlignmentId,
-            alignment,
-            alignmentMapping.ascending,
-        )
-
-        if (switchTransformation != null) {
-            val jointsInLayoutSpace = switchStructure.joints.map { joint ->
-                joint.copy(location = transformSwitchPoint(switchTransformation, joint.location))
-            }
-
-            val alignments = (nearbyAlignments + mappedAlignments).distinctBy { (locationTrack, _) -> locationTrack.id }
-
-            val suggestedSwitch = fitSwitch(
-                jointsInLayoutSpace = jointsInLayoutSpace,
-                switchStructure = switchStructure,
-                alignments = alignments,
-                geometrySwitch = null,
-                geometryPlanId = null,
-                alignmentEndPoint = locationTrackEndpoint,
-                getMeasurementMethod = getMeasurementMethod
-            )
-
-            return if (hasAllMappedAlignments(alignmentMappings, suggestedSwitch, switchStructure)) suggestedSwitch
-            else null
-        }
-    }
-
-    return null
 }
 
 private fun lines(alignment: IAlignment): List<Line> {
@@ -701,6 +536,7 @@ fun fitSwitch(
     transformation: SwitchPositionTransformation,
     tracks: List<Pair<LocationTrack, LayoutAlignment>>,
     switchStructure: SwitchStructure,
+    locationAccuracy: LocationAccuracy?,
 ): FittedSwitch {
     val jointsInLayoutSpace = switchStructure.joints.map { joint ->
         joint.copy(
@@ -708,13 +544,12 @@ fun fitSwitch(
         )
     }
 
-    return fitSwitch(jointsInLayoutSpace = jointsInLayoutSpace,
+    return fitSwitch(
+        jointsInLayoutSpace = jointsInLayoutSpace,
         switchStructure = switchStructure,
         alignments = tracks,
-        geometrySwitch = null,
-        geometryPlanId = null,
-        alignmentEndPoint = null,
-        getMeasurementMethod = { MeasurementMethod.DIGITIZED_AERIAL_IMAGE })
+        locationAccuracy = locationAccuracy,
+    )
 }
 
 fun getSharedSwitchJoint(switchStructure: SwitchStructure): Pair<SwitchJoint, List<SwitchAlignment>> {
@@ -790,7 +625,7 @@ fun selectBestSuggestedSwitch(
     }
 }
 
-fun createSuggestedSwitchByPoint(
+fun createFittedSwitchByPoint(
     point: IPoint,
     switchStructure: SwitchStructure,
     nearbyLocationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
@@ -813,7 +648,7 @@ fun createSuggestedSwitchByPoint(
             switchStructure
         )
         val suggestedSwitches = transformations.parallelStream().map { transformation ->
-            fitSwitch(transformation, nearbyLocationTracks, switchStructure)
+            fitSwitch(transformation, nearbyLocationTracks, switchStructure, LocationAccuracy.GEOMETRY_CALCULATED)
         }.collect(Collectors.toList())
         suggestedSwitches
     }
