@@ -166,10 +166,10 @@ class PublicationValidationTest {
         val good = locationTrackAndAlignment(
             trackNumberId = IntId(0),
             segment(Point(0.0, 0.0), Point(10.0, 10.0)).copy(
-                switchId = switch.id, endJointNumber = switch.joints.last().number
+                switchId = switch.id as IntId, endJointNumber = switch.joints.last().number
             ),
             segment(Point(10.0, 10.0), Point(20.0, 20.0)).copy(
-                switchId = switch.id, startJointNumber = switch.joints.first().number
+                switchId = switch.id as IntId, startJointNumber = switch.joints.first().number
             ),
             segment(Point(20.0, 20.0), Point(30.0, 30.0)),
             draft = true,
@@ -177,11 +177,11 @@ class PublicationValidationTest {
         val broken = locationTrackAndAlignment(
             trackNumberId = IntId(0),
             segment(Point(0.0, 0.0), Point(10.0, 10.0)).copy(
-                switchId = switch.id, endJointNumber = switch.joints.last().number
+                switchId = switch.id as IntId, endJointNumber = switch.joints.last().number
             ),
             segment(Point(10.0, 10.0), Point(20.0, 20.0)),
             segment(Point(20.0, 20.0), Point(30.0, 30.0)).copy(
-                switchId = switch.id, startJointNumber = switch.joints.first().number
+                switchId = switch.id as IntId, startJointNumber = switch.joints.first().number
             ),
             draft = true,
         )
@@ -964,7 +964,7 @@ class PublicationValidationTest {
         val joint1 = switch.joints.first()
         val joint2 = switch.joints.last()
         val segment = segment(joint1.location, joint2.location).copy(
-            switchId = switch.id,
+            switchId = switch.id as IntId,
             startJointNumber = joint1.number,
             endJointNumber = joint2.number,
         )

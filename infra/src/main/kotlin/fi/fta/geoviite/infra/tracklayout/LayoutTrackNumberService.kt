@@ -6,12 +6,14 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCreateResult
 import fi.fta.geoviite.infra.geocoding.GeocodingService
-import fi.fta.geoviite.infra.geography.crs
+import fi.fta.geoviite.infra.geography.CoordinateSystem
+import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
@@ -22,8 +24,8 @@ import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.printCsv
-import java.util.stream.Collectors
 import org.springframework.transaction.annotation.Transactional
+import java.util.stream.Collectors
 
 const val KM_LENGTHS_CSV_TRANSLATION_PREFIX = "data-products.km-lengths.csv"
 
@@ -39,6 +41,7 @@ class LayoutTrackNumberService(
     private val geocodingService: GeocodingService,
     private val alignmentService: LayoutAlignmentService,
     private val localizationService: LocalizationService,
+    private val geographyService: GeographyService,
 ) : LayoutAssetService<TrackLayoutTrackNumber, LayoutTrackNumberDao>(dao) {
 
     @Transactional
@@ -140,7 +143,12 @@ class LayoutTrackNumberService(
             kmPost.kmNumber in start..end
         }
 
-        return asCsvFile(filteredKmLengths, precision, localizationService.getLocalization(lang))
+        return asCsvFile(
+            filteredKmLengths,
+            precision,
+            localizationService.getLocalization(lang),
+            geographyService::getCoordinateSystem,
+        )
     }
 
     fun getAllKmLengthsAsCsv(
@@ -148,12 +156,19 @@ class LayoutTrackNumberService(
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         lang: LocalizationLanguage,
     ): String {
-        val kmLengths = trackNumberIds.parallelStream().flatMap { trackNumberId ->
-                (getKmLengths(layoutContext, trackNumberId) ?: emptyList()).stream()
-            }.sorted(compareBy { kmLengthDetails -> kmLengthDetails.trackNumber }).collect(Collectors.toList())
+        val kmLengths = trackNumberIds
+            .parallelStream()
+            .flatMap { trackNumberId -> (
+                getKmLengths(layoutContext, trackNumberId) ?: emptyList()).stream()
+            }
+            .sorted(compareBy { kmLengthDetails -> kmLengthDetails.trackNumber })
+            .collect(Collectors.toList())
 
         return asCsvFile(
-            kmLengths, KmLengthsLocationPrecision.PRECISE_LOCATION, localizationService.getLocalization(lang)
+            kmLengths,
+            KmLengthsLocationPrecision.PRECISE_LOCATION,
+            localizationService.getLocalization(lang),
+            geographyService::getCoordinateSystem,
         )
     }
 
@@ -176,7 +191,9 @@ class LayoutTrackNumberService(
                     boundingBox,
                     geocodingContext,
                 )
-            } else null
+            } else {
+                null
+            }
         } ?: listOf()
     }
 }
@@ -185,6 +202,7 @@ private fun asCsvFile(
     items: List<TrackLayoutKmLengthDetails>,
     precision: KmLengthsLocationPrecision,
     translation: Translation,
+    getCoordinateSystem: (srid: Srid) -> CoordinateSystem,
 ): String {
     val columns = mapOf<String, (item: TrackLayoutKmLengthDetails) -> Any?>(
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.track-number" to { it.trackNumber },
@@ -194,8 +212,8 @@ private fun asCsvFile(
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.length" to { it.length },
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.coordinate-system" to {
             when (precision) {
-                KmLengthsLocationPrecision.PRECISE_LOCATION -> it.gkLocation?.srid?.let(::crs)?.name
-                KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT -> LAYOUT_CRS.name
+                KmLengthsLocationPrecision.PRECISE_LOCATION -> it.gkLocation?.srid?.let(getCoordinateSystem)?.name
+                KmLengthsLocationPrecision.APPROXIMATION_IN_LAYOUT -> getCoordinateSystem(LAYOUT_SRID).name
             }
         },
         "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.location-e" to {

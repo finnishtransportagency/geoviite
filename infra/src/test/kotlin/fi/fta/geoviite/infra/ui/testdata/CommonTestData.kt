@@ -1,10 +1,9 @@
 package fi.fta.geoviite.infra.ui.testdata
 
-import com.github.davidmoten.rtree2.RTree
-import com.github.davidmoten.rtree2.geometry.Rectangle
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.FeatureTypeCode
+import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
@@ -12,10 +11,8 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LinearUnit
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.ProjectName
-import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
-import fi.fta.geoviite.infra.geography.KkjTm35finTriangle
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
@@ -202,17 +199,9 @@ fun pointsFromIncrementList(basePoint: Point, incrementPoints: List<Point>) =
 fun locationTrackAndAlignmentForGeometryAlignment(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     geometryAlignment: GeometryAlignment,
-    ykjToEtrsTriangulationNetwork: RTree<KkjTm35finTriangle, Rectangle>,
-    etrsToYkjTriangulationNetwork: RTree<KkjTm35finTriangle, Rectangle>,
-    planSrid: Srid = LAYOUT_SRID,
+    transformation: Transformation,
     draft: Boolean,
 ): Pair<LocationTrack, LayoutAlignment> {
-    val transformation = Transformation.possiblyTriangulableTransform(
-        planSrid,
-        LAYOUT_SRID,
-        ykjToEtrsTriangulationNetwork,
-        etrsToYkjTriangulationNetwork,
-    )
     var startM = 0.0
     val segments = geometryAlignment.elements.map { element ->
         val start = transformation.transform(element.start)
@@ -229,7 +218,7 @@ fun locationTrackAndAlignmentForGeometryAlignment(
             startJointNumber = null,
             endJointNumber = null,
             source = GeometrySource.PLAN,
-            sourceId = element.id,
+            sourceId = element.id as IndexedId,
             sourceStart = null,
             switchId = null,
         ).also { startM += it.length }

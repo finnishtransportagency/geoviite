@@ -1,22 +1,18 @@
 package fi.fta.geoviite.infra.geography
 
-import com.github.davidmoten.rtree2.RTree
-import com.github.davidmoten.rtree2.geometry.Geometries
-import com.github.davidmoten.rtree2.geometry.Rectangle
+import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.configuration.CACHE_KKJ_TM35FIN_TRIANGULATION_NETWORK
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
-import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
-import fi.fta.geoviite.infra.tracklayout.LAYOUT_CRS
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getPoint
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 
-enum class TriangulationDirection(val direction: String) {
-    KKJ_TO_TM35FIN("KKJ_TO_TM35FIN"),
-    TM35FIN_TO_KKJ("TM35FIN_TO_KKJ"),
+enum class TriangulationDirection(val direction: String, val source: Srid, val target: Srid) {
+    KKJ_TO_TM35FIN("KKJ_TO_TM35FIN", KKJ3_YKJ_SRID, ETRS89_TM35FIN_SRID),
+    TM35FIN_TO_KKJ("TM35FIN_TO_KKJ", ETRS89_TM35FIN_SRID, KKJ3_YKJ_SRID),
 }
 
 //language=SQL
@@ -56,7 +52,7 @@ val TM35FIN_TO_KKJ_SQL = """
 @Component
 class KkjTm35finTriangulationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
     @Cacheable(CACHE_KKJ_TM35FIN_TRIANGULATION_NETWORK, sync = true)
-    fun fetchTriangulationNetwork(direction: TriangulationDirection): RTree<KkjTm35finTriangle, Rectangle> {
+    fun fetchTriangulationNetwork(direction: TriangulationDirection): KkjTm35FinTriangulationNetwork {
         logger.daoAccess(AccessType.FETCH, HeightTriangle::class)
         val sql = when (direction) {
             TriangulationDirection.KKJ_TO_TM35FIN -> KKJ_TO_TM35FIN_SQL
@@ -74,18 +70,9 @@ class KkjTm35finTriangulationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?)
                 b1 = rs.getDouble("b1"),
                 b2 = rs.getDouble("b2"),
                 deltaN = rs.getDouble("delta_n"),
-                crs = when (direction) {
-                    TriangulationDirection.KKJ_TO_TM35FIN -> crs(KKJ3_YKJ_SRID)
-                    TriangulationDirection.TM35FIN_TO_KKJ -> LAYOUT_CRS
-                }
+                sourceSrid = direction.source,
             )
         }
-        return triangulationNetworkToRTree(triangles)
+        return KkjTm35FinTriangulationNetwork(triangles, direction.source, direction.target)
     }
-
-    private fun triangulationNetworkToRTree(triangulationNetwork: List<KkjTm35finTriangle>) =
-        triangulationNetwork.fold(RTree.star().create<KkjTm35finTriangle, Rectangle>()) { tree, triangle ->
-            val bbox = boundingBoxAroundPoints(triangle.corner1, triangle.corner2, triangle.corner3)
-            tree.add(triangle, Geometries.rectangle(bbox.min.y, bbox.min.x, bbox.max.y, bbox.max.x))
-        }
 }

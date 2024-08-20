@@ -1,12 +1,12 @@
 package fi.fta.geoviite.infra.math
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import org.geotools.geometry.jts.GeometryBuilder
+import fi.fta.geoviite.infra.geography.toJtsBox
+import fi.fta.geoviite.infra.geography.toJtsLineString
+import fi.fta.geoviite.infra.geography.toJtsPolygon
 
 private const val DEFAULT_BUFFER = 0.000001
 private const val SEPARATOR = "_"
-
-private val jtsBuilder = GeometryBuilder()
 
 data class BoundingBox(val x: Range<Double>, val y: Range<Double>) {
     constructor(ranges: Pair<Range<Double>, Range<Double>>) : this(ranges.first, ranges.second)
@@ -47,7 +47,7 @@ data class BoundingBox(val x: Range<Double>, val y: Range<Double>) {
         Point((x.min + x.max) / 2, (y.min + y.max) / 2)
     }
 
-    private val jtsBox by lazy { jtsBuilder.box(x.min, y.min, x.max, y.max) }
+    private val jtsBox by lazy { toJtsBox(x, y) }
 
     fun contains(point: IPoint): Boolean {
         return x.contains(point.x) && y.contains(point.y)
@@ -61,8 +61,8 @@ data class BoundingBox(val x: Range<Double>, val y: Range<Double>) {
         return when (polygonPoints.size) {
             0 -> false
             1 -> contains(polygonPoints.first())
-            2 -> jtsBox.intersects(jtsBuilder.lineString(*pointArray(polygonPoints)))
-            else -> jtsBox.intersects(jtsBuilder.polygon(*pointArray(polygonPoints)))
+            2 -> jtsBox.intersects(toJtsLineString(polygonPoints))
+            else -> jtsBox.intersects(toJtsPolygon(polygonPoints))
         }
     }
 
@@ -70,8 +70,6 @@ data class BoundingBox(val x: Range<Double>, val y: Range<Double>) {
         val translation = point - center
         return BoundingBox(min + translation, max + translation)
     }
-
-    private fun pointArray(points: List<Point>) = points.flatMap { p -> listOf(p.x, p.y) }.toDoubleArray()
 
     operator fun plus(increment: Double): BoundingBox {
         return BoundingBox(

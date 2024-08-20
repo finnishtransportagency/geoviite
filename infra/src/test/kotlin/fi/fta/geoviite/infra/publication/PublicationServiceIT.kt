@@ -3363,7 +3363,6 @@ class PublicationServiceIT @Autowired constructor(
 
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
         val testDraftContext = testDBService.testContext(testBranch, DRAFT)
-        val testOfficialContext = testDBService.testContext(testBranch, OFFICIAL)
 
         testDraftContext.insert(
             asDesignDraft(

@@ -206,7 +206,9 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                     startAndEndPoints?.start &&
                     startAndEndPoints?.end &&
                     trackNumber &&
-                    extraInfo
+                    extraInfo &&
+                    extraInfo.startSplitPoint &&
+                    extraInfo.endSplitPoint
                 ) {
                     const switches = splitInitializationParameters?.switches || [];
                     const getSwitchName = (switchId: LayoutSwitchId) =>

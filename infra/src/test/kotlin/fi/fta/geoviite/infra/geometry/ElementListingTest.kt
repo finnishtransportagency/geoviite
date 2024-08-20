@@ -11,7 +11,7 @@ import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
-import fi.fta.geoviite.infra.geography.Transformation
+import fi.fta.geoviite.infra.geography.geotoolsTransformation
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.CLOTHOID
 import fi.fta.geoviite.infra.geometry.TrackGeometryElementType.CURVE
@@ -36,7 +36,7 @@ import kotlin.test.assertEquals
 
 private val allElementTypes = GeometryElementType.values().toList()
 private val allTrackElementTypes = TrackGeometryElementType.values().toList()
-private val getTransformation = { srid: Srid -> Transformation.nonTriangulableTransform(srid, LAYOUT_SRID) }
+private val getTransformation = { srid: Srid -> geotoolsTransformation(srid, LAYOUT_SRID) }
 
 class ElementListingTest {
 
@@ -269,10 +269,10 @@ class ElementListingTest {
         )
         val (track, layoutAlignment) = locationTrackAndAlignment(
             IntId(1),
-            segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = alignment1.elements[1].id),
-            segment(Point(20.0, 2.0), Point(30.0, 3.0), source = PLAN, sourceId = alignment1.elements[2].id),
-            segment(Point(30.0, 3.0), Point(40.0, 4.0), source = PLAN, sourceId = alignment2.elements[0].id),
-            segment(Point(40.0, 4.0), Point(50.0, 5.0), source = PLAN, sourceId = alignment2.elements[1].id),
+            segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = alignment1.elements[1]),
+            segment(Point(20.0, 2.0), Point(30.0, 3.0), source = PLAN, sourceId = alignment1.elements[2]),
+            segment(Point(30.0, 3.0), Point(40.0, 4.0), source = PLAN, sourceId = alignment2.elements[0]),
+            segment(Point(40.0, 4.0), Point(50.0, 5.0), source = PLAN, sourceId = alignment2.elements[1]),
             draft = false,
         )
         val planHeader = planHeader(trackNumber = trackNumber, srid = LAYOUT_SRID)
@@ -313,8 +313,8 @@ class ElementListingTest {
         )
         val (track, layoutAlignment) = locationTrackAndAlignment(
             IntId(1),
-            segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = alignment.elements[0].id),
-            segment(Point(20.0, 2.0), Point(25.0, 2.5), source = PLAN, sourceId = alignment.elements[1].id, switchId = IntId(1)),
+            segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = alignment.elements[0]),
+            segment(Point(20.0, 2.0), Point(25.0, 2.5), source = PLAN, sourceId = alignment.elements[1], switchId = IntId(1)),
             draft = false,
         )
 
@@ -355,11 +355,11 @@ class ElementListingTest {
         )
         val (track, layoutAlignment) = locationTrackAndAlignment(
             IntId(1),
-            segment(Point(0.0, 0.0), Point(10.0, 1.0), source = PLAN, sourceId = alignment.elements[2].id),
-            segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = alignment.elements[0].id),
-            segment(Point(20.0, 2.0), Point(30.0, 3.0), source = PLAN, sourceId = alignment.elements[0].id),
-            segment(Point(30.0, 3.0), Point(40.0, 4.0), source = PLAN, sourceId = alignment.elements[1].id),
-            segment(Point(40.0, 4.0), Point(50.0, 5.0), source = PLAN, sourceId = alignment.elements[0].id),
+            segment(Point(0.0, 0.0), Point(10.0, 1.0), source = PLAN, sourceId = alignment.elements[2]),
+            segment(Point(10.0, 1.0), Point(20.0, 2.0), source = PLAN, sourceId = alignment.elements[0]),
+            segment(Point(20.0, 2.0), Point(30.0, 3.0), source = PLAN, sourceId = alignment.elements[0]),
+            segment(Point(30.0, 3.0), Point(40.0, 4.0), source = PLAN, sourceId = alignment.elements[1]),
+            segment(Point(40.0, 4.0), Point(50.0, 5.0), source = PLAN, sourceId = alignment.elements[0]),
             draft = false,
         )
 
@@ -389,7 +389,7 @@ class ElementListingTest {
     private fun createSegments(alignment: GeometryAlignment) =
         if (alignment.id !is IntId) throw IllegalStateException("Alignment must have int-id for element seeking to work")
         else if (alignment.elements.isEmpty()) throw IllegalStateException("Must have elements to generate the segments for")
-        else alignment.elements.map { e -> segment(e.start, e.end, sourceId = e.id) }
+        else alignment.elements.map { e -> segment(e.start, e.end, sourceId = e) }
 
     private fun getElementListingTypes(
         plan: GeometryPlan,

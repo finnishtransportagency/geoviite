@@ -216,11 +216,11 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         val geometryAlignment = plan.alignments.first()
         val geometryElement = geometryAlignment.elements.first()
         val alignment = alignment(
-            segment(points = points, source = GeometrySource.PLAN, sourceId = geometryElement.id),
-            segment(points = points2, source = GeometrySource.PLAN, sourceId = geometryElement.id),
+            segment(points = points, source = GeometrySource.PLAN, sourceId = geometryElement),
+            segment(points = points2, source = GeometrySource.PLAN, sourceId = geometryElement),
             segment(points = points3, source = GeometrySource.GENERATED),
             segment(points = points4, source = GeometrySource.GENERATED),
-            segment(points = points5, source = GeometrySource.PLAN, sourceId = geometryElement.id),
+            segment(points = points5, source = GeometrySource.PLAN, sourceId = geometryElement),
         )
         val version = alignmentDao.insert(alignment)
 
@@ -297,11 +297,11 @@ class LayoutAlignmentDaoIT @Autowired constructor(
         val geometryElementWithoutCrs = geometryAlignmentWithoutCrs.elements.first()
 
         val alignment = alignment(
-            segment(points = points, source = GeometrySource.PLAN, sourceId = geometryElement.id),
+            segment(points = points, source = GeometrySource.PLAN, sourceId = geometryElement),
             segment(points = points2, source = GeometrySource.IMPORTED),
             segment(points = points3, source = GeometrySource.GENERATED),
-            segment(points = points4, source = GeometrySource.PLAN, sourceId = geometryElementWithoutCrs.id),
-            segment(points = points5, source = GeometrySource.PLAN, sourceId = geometryElement.id),
+            segment(points = points4, source = GeometrySource.PLAN, sourceId = geometryElementWithoutCrs),
+            segment(points = points5, source = GeometrySource.PLAN, sourceId = geometryElement),
         )
         val version = alignmentDao.insert(alignment)
         locationTrackDao.insert(locationTrack(trackNumberId, alignmentVersion = version, draft = false))

@@ -13,16 +13,13 @@ import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.GeometryElementLinkStatus
 import fi.fta.geoviite.infra.geometry.GeometryKmPostLinkStatus
-import fi.fta.geoviite.infra.geometry.GeometryLine
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
 import fi.fta.geoviite.infra.geometry.GeometryService
 import fi.fta.geoviite.infra.geometry.GeometrySwitchLinkStatus
 import fi.fta.geoviite.infra.geometry.PlanLayoutService
 import fi.fta.geoviite.infra.geometry.SwitchData
-import fi.fta.geoviite.infra.geometry.emptySwitchData
 import fi.fta.geoviite.infra.geometry.geometryAlignment
-import fi.fta.geoviite.infra.geometry.geometryElements
 import fi.fta.geoviite.infra.geometry.geometryLine
 import fi.fta.geoviite.infra.geometry.geometrySwitch
 import fi.fta.geoviite.infra.geometry.kmPosts
@@ -388,7 +385,7 @@ class LinkingServiceIT @Autowired constructor(
                 segment(
                     Point(0.0, 0.0),
                     Point(10.0, 0.0)
-                ).copy(sourceId = linkingLocationTrack.alignments[0].elements[0].id)
+                ).copy(sourceId = linkingLocationTrack.alignments[0].elements[0].id as IndexedId)
             )
         ).id
         val linkedReferenceLine = mainDraftContext.insert(
@@ -397,14 +394,14 @@ class LinkingServiceIT @Autowired constructor(
                 segment(
                     Point(0.0, 0.0),
                     Point(10.0, 0.0)
-                ).copy(sourceId = linkingReferenceLine.alignments[0].elements[0].id)
+                ).copy(sourceId = linkingReferenceLine.alignments[0].elements[0].id as IndexedId)
             )
         ).id
         val linkedSwitch = mainDraftContext.insert(switch()).id
         val linkedLocationTrackAlongSwitch = mainDraftContext.insert(
             locationTrackAndAlignment(
                 trackNumberId, segment(Point(0.0, 0.0), Point(10.0, 0.0)).copy(
-                    sourceId = linkingSwitchAndLocationTrack.alignments[0].elements[0].id,
+                    sourceId = linkingSwitchAndLocationTrack.alignments[0].elements[0].id as IndexedId,
                     switchId = linkedSwitch
                 )
             )

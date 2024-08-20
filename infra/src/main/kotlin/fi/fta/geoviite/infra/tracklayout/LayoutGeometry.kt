@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IndexedId
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.MeasurementMethod
@@ -481,10 +482,10 @@ data class PointSeekResult<T : IPoint3DM>(
 
 data class LayoutSegment(
     @JsonIgnore override val geometry: SegmentGeometry,
-    override val sourceId: DomainId<GeometryElement>?,
+    override val sourceId: IndexedId<GeometryElement>?,
     override val sourceStart: Double?,
     override val startM: Double,
-    val switchId: DomainId<TrackLayoutSwitch>?,
+    val switchId: IntId<TrackLayoutSwitch>?,
     val startJointNumber: JointNumber?,
     val endJointNumber: JointNumber?,
     override val source: GeometrySource,

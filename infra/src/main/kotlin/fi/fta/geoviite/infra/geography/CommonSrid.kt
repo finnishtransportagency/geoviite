@@ -20,6 +20,21 @@ val FIN_GK28_SRID = Srid(3882)
 val FIN_GK29_SRID = Srid(3883)
 val FIN_GK30_SRID = Srid(3884)
 val FIN_GK31_SRID = Srid(3885)
+val gkFinSrids = setOf(
+    FIN_GK19_SRID,
+    FIN_GK20_SRID,
+    FIN_GK21_SRID,
+    FIN_GK22_SRID,
+    FIN_GK23_SRID,
+    FIN_GK24_SRID,
+    FIN_GK25_SRID,
+    FIN_GK26_SRID,
+    FIN_GK27_SRID,
+    FIN_GK28_SRID,
+    FIN_GK29_SRID,
+    FIN_GK30_SRID,
+    FIN_GK31_SRID,
+)
 
 val KKJ0_SRID = Srid(3386)
 val KKJ1_SRID = Srid(2391)
@@ -27,31 +42,19 @@ val KKJ2_SRID = Srid(2392)
 val KKJ3_YKJ_SRID = Srid(2393)
 val KKJ4_SRID = Srid(2394)
 val KKJ5_SRID = Srid(3387)
+val kkjSrids = setOf(
+    KKJ0_SRID,
+    KKJ1_SRID,
+    KKJ2_SRID,
+    KKJ3_YKJ_SRID,
+    KKJ4_SRID,
+    KKJ5_SRID,
+)
 
 val geoviiteDefaultSrids by lazy {
-    listOf(
-        WGS_84_SRID,
-        ETRS89_SRID,
-        ETRS89_TM35FIN_SRID,
-        FIN_GK19_SRID,
-        FIN_GK20_SRID,
-        FIN_GK21_SRID,
-        FIN_GK22_SRID,
-        FIN_GK23_SRID,
-        FIN_GK24_SRID,
-        FIN_GK25_SRID,
-        FIN_GK26_SRID,
-        FIN_GK27_SRID,
-        FIN_GK28_SRID,
-        FIN_GK29_SRID,
-        FIN_GK30_SRID,
-        FIN_GK31_SRID,
-        KKJ0_SRID,
-        KKJ1_SRID,
-        KKJ2_SRID,
-        KKJ3_YKJ_SRID,
-        KKJ4_SRID,
-        KKJ5_SRID,
-    )
+    (listOf(WGS_84_SRID, ETRS89_SRID, ETRS89_TM35FIN_SRID) + gkFinSrids + kkjSrids).sortedBy(Srid::code)
 }
-fun isGkFinSrid(srid: Srid) = srid.code in 3873..3885
+
+fun isKKJ(srid: Srid) = kkjSrids.contains(srid)
+
+fun isGkFinSrid(srid: Srid) = gkFinSrids.contains(srid)

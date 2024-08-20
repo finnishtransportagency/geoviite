@@ -93,17 +93,8 @@ class GeometryController @Autowired constructor(
     fun getTrackLayoutPlan(
         @PathVariable("geometryPlanId") geometryPlanId: IntId<GeometryPlan>,
         @RequestParam("includeGeometryData") includeGeometryData: Boolean = true,
-    ): GeometryPlanLayout? {
-        return planLayoutService.getLayoutPlan(geometryPlanId, includeGeometryData).first
-    }
-
-    @PreAuthorize(AUTH_VIEW_GEOMETRY)
-    @GetMapping("/plans/layout")
-    fun getTrackLayoutPlans(
-        @RequestParam("planIds") planIds: List<IntId<GeometryPlan>>,
-        @RequestParam("includeGeometryData") includeGeometryData: Boolean = true,
-    ): ResponseEntity<List<GeometryPlanLayout>> {
-        return toResponse(planLayoutService.getManyLayoutPlans(planIds, includeGeometryData).mapNotNull { it.first })
+    ): ResponseEntity<GeometryPlanLayout> {
+        return toResponse(planLayoutService.getLayoutPlan(geometryPlanId, includeGeometryData).first)
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY)

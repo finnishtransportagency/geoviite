@@ -3,7 +3,6 @@ package fi.fta.geoviite.infra.math
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geography.boundingPolygonPointsByConvexHull
 import fi.fta.geoviite.infra.geography.calculateDistance
-import fi.fta.geoviite.infra.geography.crs
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geography.transformToGKCoordinate
 import org.junit.jupiter.api.Assertions
@@ -25,7 +24,7 @@ class GeographyTest {
             Point(416258.105283, 6697012.526639),
         )
 
-        val bounds = boundingPolygonPointsByConvexHull(points3067, crs(Srid(3067)))
+        val bounds = boundingPolygonPointsByConvexHull(points3067, Srid(3067))
 
         val expectedBounds = listOf(
             Point(410380.415197, 6695143.038955),
@@ -87,33 +86,6 @@ class GeographyTest {
     }
 
     @Test
-    fun pointEpsg2392To3857Works() {
-        val point2392 = Point(2545821.01, 6679696.72)
-        val point3857 = Point(2763351.44, 8450266.36)
-
-        val transformed3857 = transformNonKKJCoordinate(Srid(2392), Srid(3857), point2392)
-        assertApproximatelyEquals(point3857, transformed3857, 0.01)
-    }
-
-    @Test
-    fun pointEpsg2392To3857Works2() {
-        val point2392 = Point(2493105.32, 7472870.07)
-        val point3857 = Point(2653350.403813375, 10254765.780128963)
-
-        val transformed3857 = transformNonKKJCoordinate(Srid(2392), Srid(3857), point2392)
-        assertApproximatelyEquals(point3857, transformed3857, 0.01)
-    }
-
-    @Test
-    fun pointEpsg3857To2392Works() {
-        val point3857 = Point(2763351.44, 8450266.36)
-        val point2392 = Point(2545821.01, 6679696.72)
-
-        val transformed2392 = transformNonKKJCoordinate(Srid(3857), Srid(2392), point3857)
-        assertApproximatelyEquals(point2392, transformed2392, 0.01)
-    }
-
-    @Test
     fun pointEpsg3857To3879Works() {
         val point3857 = Point(2778638.852223, 8546271.258509)
         val point3879 = Point(25497863.32, 6726678.57)
@@ -165,5 +137,4 @@ class GeographyTest {
         assertApproximatelyEquals(Point(x=27.165853988, y=60.542330292), p4326, 0.000000001)
         assertApproximatelyEquals(p3067, p3067v2, 0.01)
     }
-
 }
