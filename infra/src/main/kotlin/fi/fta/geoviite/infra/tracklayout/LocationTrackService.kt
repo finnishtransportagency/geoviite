@@ -468,14 +468,17 @@ class LocationTrackService(
                 .let { dups -> geocodingContext?.let { gc -> fillTrackAddresses(dups, gc) } ?: dups }
                 .sortedBy { dup -> dup.duplicateStatus.startSplitPoint?.address }
 
-            val startSwitchId = alignment.segments.firstOrNull()?.switchId ?: track.topologyStartSwitch?.switchId
-            val startSwitch = startSwitchId?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
-            val startSplitPoint = createSplitPoint(start, startSwitchId, DuplicateEndPointType.START, geocodingContext)
+            val endPointSwitchInfos = getEndPointSwitchInfos(
+                track,
+                alignment,
+                createFunIsPresentationJointNumberInContext(layoutContext)
+            )
 
-            val endSwitchId = alignment.segments.lastOrNull()?.switchId ?: track.topologyEndSwitch?.switchId
-            val endSwitch = endSwitchId?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
-            val endSplitPoint = createSplitPoint(end, endSwitchId, DuplicateEndPointType.END, geocodingContext)
+            val startSplitPoint = createSplitPoint(start, endPointSwitchInfos.start?.switchId, DuplicateEndPointType.START, geocodingContext)
+            val endSplitPoint = createSplitPoint(end, endPointSwitchInfos.end?.switchId, DuplicateEndPointType.END, geocodingContext)
 
+            val startSwitch = endPointSwitchInfos.start?.switchId?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
+            val endSwitch = endPointSwitchInfos.end?.switchId?.let { id -> fetchSwitchAtEndById(layoutContext, id) }
             val partOfUnfinishedSplit = splitDao
                 .locationTracksPartOfAnyUnfinishedSplit(layoutContext.branch, listOf(id))
                 .isNotEmpty()
@@ -521,6 +524,18 @@ class LocationTrackService(
             locationTrack.topologyEndSwitch?.switchId,
         ) + switchDao.findSwitchesNearAlignment(branch, locationTrack.getAlignmentVersionOrThrow())).distinct().size
 
+    private fun isPresentationJointNumber(layoutContext: LayoutContext, switchId: IntId<TrackLayoutSwitch>, jointNumber: JointNumber): Boolean {
+        return switchDao.get(layoutContext, switchId)?.let { switch ->
+            switchLibraryService.getPresentationJointNumber(switch.switchStructureId) == jointNumber
+        } ?: false
+    }
+
+    private fun createFunIsPresentationJointNumberInContext(layoutContext: LayoutContext):  (IntId<TrackLayoutSwitch>, JointNumber) -> Boolean {
+        return { switchId: IntId<TrackLayoutSwitch>, jointNumber: JointNumber ->
+            isPresentationJointNumber(layoutContext, switchId, jointNumber)
+        }
+    }
+
     @Transactional(readOnly = true)
     fun getLocationTrackDuplicates(
         layoutContext: LayoutContext,
@@ -535,7 +550,12 @@ class LocationTrackService(
             .distinct()
             .map(::getWithAlignmentInternal)
             .filter { (duplicateTrack, _) -> duplicateTrack.id != track.id && duplicateTrack.id != track.duplicateOf }
-        return getLocationTrackDuplicatesBySplitPoints(track, alignment, duplicateTracksAndAlignments)
+        return getLocationTrackDuplicatesBySplitPoints(
+            track,
+            alignment,
+            duplicateTracksAndAlignments,
+            createFunIsPresentationJointNumberInContext(layoutContext)
+        )
     }
 
     private fun getDuplicateTrackParent(
@@ -544,7 +564,13 @@ class LocationTrackService(
     ): LocationTrackDuplicate? = childTrack.duplicateOf?.let { parentId ->
         getWithAlignment(layoutContext, parentId)?.let { (parentTrack, parentTrackAlignment) ->
             val childAlignment = alignmentDao.fetch(childTrack.getAlignmentVersionOrThrow())
-            getDuplicateTrackParentStatus(parentTrack, parentTrackAlignment, childTrack, childAlignment)
+            getDuplicateTrackParentStatus(
+                parentTrack,
+                parentTrackAlignment,
+                childTrack,
+                childAlignment,
+                createFunIsPresentationJointNumberInContext(layoutContext),
+            )
         }
     }
 
