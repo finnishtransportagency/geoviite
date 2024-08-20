@@ -26,19 +26,6 @@ class PlanLayoutService(
     ): Pair<GeometryPlanLayout?, TransformationError?> =
         getLayoutPlan(geometryDao.fetchPlanVersion(geometryPlanId), includeGeometryData, pointListStepLength)
 
-    fun getManyLayoutPlans(
-        planIds: List<IntId<GeometryPlan>>,
-        includeGeometryData: Boolean = true,
-        pointListStepLength: Int = 1,
-    ): List<Pair<GeometryPlanLayout?, TransformationError?>> = planIds
-        .map { planId ->
-            handlePointListStepLength(
-                planLayoutCache.getPlanLayout(
-                    geometryDao.fetchPlanVersion(planId), includeGeometryData
-                ), includeGeometryData, pointListStepLength
-            )
-        }
-
     private fun handlePointListStepLength(
         layoutResult: Pair<GeometryPlanLayout?, TransformationError?>,
         includeGeometryData: Boolean,
