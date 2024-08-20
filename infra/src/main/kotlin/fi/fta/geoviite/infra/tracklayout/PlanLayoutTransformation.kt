@@ -64,7 +64,7 @@ fun toTrackLayout(
         includeGeometryData
     )
 
-    val kmPosts = toTrackLayoutKmPosts(trackNumberId, geometryPlan.kmPosts, planToLayout, planSrid)
+    val kmPosts = toTrackLayoutKmPosts(trackNumberId, geometryPlan.kmPosts, planSrid)
     val startAddress = getPlanStartAddress(geometryPlan.kmPosts)
 
     return GeometryPlanLayout(
@@ -82,10 +82,9 @@ fun toTrackLayout(
 fun toTrackLayoutKmPosts(
     trackNumberId: IntId<TrackLayoutTrackNumber>?,
     kmPosts: List<GeometryKmPost>,
-    planToLayout: Transformation,
     planSrid: Srid,
 ): List<TrackLayoutKmPost> {
-    return kmPosts.mapIndexedNotNull { kmPostIndex, kmPost ->
+    return kmPosts.mapIndexedNotNull { _, kmPost ->
         if (kmPost.location != null && kmPost.kmNumber != null) {
             TrackLayoutKmPost(
                 kmNumber = kmPost.kmNumber,
@@ -97,7 +96,9 @@ fun toTrackLayoutKmPosts(
                 gkLocationConfirmed = true,
                 contextData = LayoutContextData.newDraft(LayoutBranch.main),
             )
-        } else null
+        } else {
+            null
+        }
     }
 }
 
