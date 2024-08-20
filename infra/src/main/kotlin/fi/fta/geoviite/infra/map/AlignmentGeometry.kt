@@ -112,12 +112,17 @@ fun simplify(
     }
     return segments.flatMapIndexed { sIndex, s ->
         val isEndPoint = { pIndex: Int ->
-            (sIndex == 0 && pIndex == 0) || (sIndex == segments.lastIndex && pIndex == s.segmentPoints.lastIndex)
+            val isTrackEndPoint = (sIndex == 0 && pIndex == 0) || (sIndex == segments.lastIndex && pIndex == s.segmentPoints.lastIndex)
+            val isSegmentStartPoint = pIndex == 0
+            isTrackEndPoint || includeSegmentEndPoints && isSegmentStartPoint
+        }
+        val isSegmentEndPoint = { pIndex: Int ->
+            pIndex == 0 || pIndex == s.segmentPoints.lastIndex
         }
         val bboxContains = { pIndex: Int ->
             bbox == null || s.segmentPoints.getOrNull(pIndex)?.let(bbox::contains) ?: false
         }
-        val simplifiedPoints = s.segmentPoints.mapIndexedNotNull { pIndex, p ->
+        s.segmentPoints.mapIndexedNotNull { pIndex, p ->
             if (isPointIncluded(
                     pIndex,
                     p.m + s.startM,
@@ -125,29 +130,14 @@ fun simplify(
                     isOverResolution,
                     bboxContains,
                 )) {
-                previousM = s.startM + p.m
+                if (!isSegmentEndPoint(pIndex)) {
+                    // segment end points should be additional points,
+                    // so increase m-counter only when handling middle points
+                    previousM = s.startM + p.m
+                }
                 p.toAlignmentPoint(s.startM)
             } else null
         }
-        val segmentEndPoints = if (includeSegmentEndPoints) {
-            listOfNotNull(
-                s.segmentPoints.first().let {segmentStartPoint ->
-                    if (bbox == null || bbox.contains(segmentStartPoint)) {
-                        segmentStartPoint.toAlignmentPoint(s.startM)
-                    } else {
-                        null
-                    }
-                }
-            )
-        } else {
-            listOf()
-        }
-
-        val allPoints = (simplifiedPoints + segmentEndPoints)
-            .distinctBy { p -> p.m }
-            .sortedBy { p -> p.m }
-        allPoints
-
     }.let { points -> if (points.size >= 2) points else listOf() }
 }
 
