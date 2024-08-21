@@ -1,5 +1,6 @@
 drop function if exists layout.switch_in_layout_context(layout.publication_state, int);
 drop function if exists layout.switch_in_layout_context(layout.publication_state, int, int);
+drop function if exists layout.switch_is_in_layout_context(publication_state_in layout.publication_state, design_id_in integer, switch layout.switch);
 
 create function layout.switch_is_in_layout_context(publication_state_in layout.publication_state, design_id_in int,
                                                    switch layout.switch) returns setof empty_type
