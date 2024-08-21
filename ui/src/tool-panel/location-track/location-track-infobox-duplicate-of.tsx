@@ -37,7 +37,7 @@ const getTrackNumberName = (
 
 const LocationTrackDuplicateInfoIcon: React.FC<{
     type: NoticeLevel;
-}> = ({ type = 'INFO' }) => {
+}> = ({ type }) => {
     return (
         <span
             className={createClassName(
