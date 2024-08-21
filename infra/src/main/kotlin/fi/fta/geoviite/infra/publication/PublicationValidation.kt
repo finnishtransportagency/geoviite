@@ -408,15 +408,11 @@ fun validateSwitchAlignmentTopology(
     switchName: SwitchName,
     validatingTrack: LocationTrack?,
 ): LayoutValidationIssue? {
-    val switchAlignmentsUnlinkedToAny = connectivity.alignmentJoints.filter { switchAlignment ->
-        locationTracks.none { (_, alignment) ->
-            alignmentsAreLinked(switchAlignment, alignment, switchId)
-        }
-    }.toSet()
-    val allAlignmentsUnlinked = connectivity.alignmentJoints.all { switchAlignment ->
-        switchAlignmentsUnlinkedToAny.contains(switchAlignment)
-    }
-    return if (allAlignmentsUnlinked) {
+    val unlinkedConnectivityAlignments = collectUnlinkedAlignments(switchId, connectivity, locationTracks).toSet()
+    // The alignment can be connected through the switch or ending in the middle of it. Check both.
+    val noAlignmentsLinked = unlinkedConnectivityAlignments.size == connectivity.alignmentJoints.size &&
+        locationTracks.none { (_, alignment) -> trackMatchesStructureAlignment(switchId, alignment, switchStructure) }
+    return if (noAlignmentsLinked) {
         validateWithParams(false, ERROR) {
             "${switchOrTrackLinkageKey(validatingTrack)}.switch-no-alignments-connected" to localizationParams(
                 "switch" to switchName.toString()
@@ -425,24 +421,18 @@ fun validateSwitchAlignmentTopology(
     } else {
         val nonDuplicateTracks = locationTracks.filter { (lt) -> lt.duplicateOf == null }
         val switchAlignmentsUnlinkedToNonduplicates =
-            connectivity.alignmentJoints.filter { switchAlignment ->
-                nonDuplicateTracks.none { (_, alignment) ->
-                    alignmentsAreLinked(switchAlignment, alignment, switchId)
-                }
-            }
+            collectUnlinkedAlignments(switchId, connectivity, nonDuplicateTracks)
         val switchAlignmentsLinkedToOnlyDuplicates =
-            switchAlignmentsUnlinkedToNonduplicates.subtract(switchAlignmentsUnlinkedToAny)
+            switchAlignmentsUnlinkedToNonduplicates.subtract(unlinkedConnectivityAlignments)
 
         // trackLinkedAlignmentsJoints splits up switch alignments going through the center on rail crossings; but it's
         // possible that the alignment was supposed to actually go through the entire crossing. So, if the switch has any
         // unlinked alignments, a track alignment that's only linked to a split alignment could in fact be the cause, so
         // we need to check the unsplit switch alignments instead.
-        val trackBeingValidatedIsConnectedToFullAlignment =
-            nonDuplicateTracks.find { (lt) -> lt == validatingTrack }?.let { (_, validatingAlignment) ->
-                switchStructure.alignments.any { switchAlignment ->
-                    alignmentsAreLinked(switchAlignment.jointNumbers, validatingAlignment, switchId)
-                }
-            } ?: false
+        val trackBeingValidatedIsConnectedToFullAlignment = nonDuplicateTracks
+            .find { (lt) -> lt == validatingTrack }
+            ?.let { (_, alignment) -> trackMatchesStructureAlignment(switchId, alignment, switchStructure) }
+            ?: false
 
         validateWithParams(
             switchAlignmentsUnlinkedToNonduplicates.isEmpty() || trackBeingValidatedIsConnectedToFullAlignment, WARNING
@@ -459,6 +449,24 @@ fun validateSwitchAlignmentTopology(
             key to localizationParams("locationTracks" to alignmentsString, "switch" to switchName.toString())
         }
     }
+}
+
+private fun collectUnlinkedAlignments(
+    switchId: DomainId<TrackLayoutSwitch>,
+    connectivity: SwitchConnectivity,
+    tracks: List<Pair<LocationTrack, LayoutAlignment>>,
+): List<List<JointNumber>> = connectivity.alignmentJoints.filter { switchAlignment ->
+    tracks.none { (_, alignment) ->
+        alignmentsAreLinked(switchAlignment, alignment, switchId)
+    }
+}
+
+private fun trackMatchesStructureAlignment(
+    switchId: DomainId<TrackLayoutSwitch>,
+    alignment: LayoutAlignment,
+    structure: SwitchStructure,
+): Boolean = structure.alignments.any { structureAlignment ->
+    alignmentsAreLinked(structureAlignment.jointNumbers, alignment, switchId)
 }
 
 private fun alignmentHasSwitchJointLink(
