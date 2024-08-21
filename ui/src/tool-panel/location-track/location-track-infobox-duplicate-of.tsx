@@ -23,14 +23,20 @@ export type LocationTrackInfoboxDuplicateOfProps = {
     currentTrackNumberId: LayoutTrackNumberId | undefined;
 };
 
+type NoticeLevel = 'ERROR' | 'INFO';
+type LocationTrackDuplicateNotice = {
+    translationKey: string;
+    translationParams: object;
+    level: NoticeLevel;
+};
+
 const getTrackNumberName = (
     trackNumbers: LayoutTrackNumber[] | undefined,
     trackNumberId: LayoutTrackNumberId,
 ) => trackNumbers?.find((tn) => tn.id === trackNumberId)?.number || '';
 
 const LocationTrackDuplicateInfoIcon: React.FC<{
-    msg?: string | undefined;
-    type: 'INFO' | 'ERROR';
+    type: NoticeLevel;
 }> = ({ type = 'INFO' }) => {
     return (
         <span
@@ -47,12 +53,85 @@ const LocationTrackDuplicateInfoIcon: React.FC<{
     );
 };
 
-type NoticeLevel = 'ERROR' | 'INFO';
-type LocationTrackDuplicateNotice = {
-    translationKey: string;
-    translationParams: object;
-    level: NoticeLevel;
-};
+function checkAndNotifyImplicitDuplicate(
+    duplicate: LocationTrackDuplicate,
+    targetLocationTrackName: string,
+): LocationTrackDuplicateNotice | undefined {
+    if (duplicate.duplicateStatus.duplicateOfId === undefined) {
+        return {
+            translationKey: 'tool-panel.location-track.implicit-duplicate-tooltip',
+            translationParams: {
+                trackName: duplicate.name,
+                otherTrackName: targetLocationTrackName,
+            },
+            level: 'INFO',
+        };
+    } else {
+        return undefined;
+    }
+}
+
+function checkAndNotifyLocationTrackOnDifferentTrackNumber(
+    currentTrackNumberId: LayoutTrackNumberId | undefined,
+    duplicate: LocationTrackDuplicate,
+    trackNumbers: LayoutTrackNumber[] | undefined,
+): LocationTrackDuplicateNotice | undefined {
+    if (currentTrackNumberId !== duplicate.trackNumberId) {
+        return {
+            translationKey: 'tool-panel.location-track.duplicate-on-different-track-number',
+            translationParams: {
+                trackNumber: getTrackNumberName(trackNumbers, duplicate.trackNumberId),
+            },
+            level: 'ERROR',
+        };
+    } else {
+        return undefined;
+    }
+}
+
+function checkAndNotifyOverlappingDuplicateOfDifferentLocationTrack(
+    targetLocationTrack: LayoutLocationTrack,
+    duplicate: LocationTrackDuplicate,
+    explicitDuplicateLocationTrackNames: LayoutLocationTrack[],
+): LocationTrackDuplicateNotice | undefined {
+    if (
+        duplicate.duplicateStatus.duplicateOfId !== undefined &&
+        targetLocationTrack.id !== duplicate.duplicateStatus.duplicateOfId
+    ) {
+        return {
+            translationKey:
+                'tool-panel.location-track.overlapping-duplicate-of-different-track-tooltip',
+            translationParams: {
+                trackName: targetLocationTrack.name,
+                implicitDuplicateName: duplicate.name,
+                explicitDuplicateName: explicitDuplicateLocationTrackNames.find(
+                    (d) => d.id === duplicate.duplicateStatus.duplicateOfId,
+                )?.name,
+            },
+            level: 'ERROR',
+        };
+    } else {
+        return undefined;
+    }
+}
+
+function checkAndNotifyNonOverlappingDuplicate(
+    duplicate: LocationTrackDuplicate,
+    targetLocationTrack: LayoutLocationTrack,
+): LocationTrackDuplicateNotice | undefined {
+    if (duplicate.duplicateStatus.match === 'NONE') {
+        return {
+            translationKey: 'tool-panel.location-track.non-overlapping-duplicate-tooltip',
+            translationParams: {
+                trackName: duplicate.name,
+                otherTrackName: targetLocationTrack.name,
+            },
+            level: 'ERROR',
+        };
+    } else {
+        return undefined;
+    }
+}
 
 export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDuplicateOfProps> = ({
     targetLocationTrack,
@@ -91,56 +170,18 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
         <ul className={styles['location-track-infobox-duplicate-of__ul']}>
             {duplicatesOfLocationTrack.filter(filterUniqueById((d) => d.id)).map((duplicate) => {
                 const notices: LocationTrackDuplicateNotice[] = [
-                    duplicate.duplicateStatus.duplicateOfId == undefined
-                        ? {
-                              translationKey:
-                                  'tool-panel.location-track.implicit-duplicate-tooltip',
-                              translationParams: {
-                                  trackName: duplicate.name,
-                                  otherTrackName: targetLocationTrack.name,
-                              },
-                              level: 'INFO' as NoticeLevel,
-                          }
-                        : undefined,
-                    currentTrackNumberId !== duplicate.trackNumberId
-                        ? {
-                              translationKey:
-                                  'tool-panel.location-track.duplicate-on-different-track-number',
-                              translationParams: {
-                                  trackNumber: getTrackNumberName(
-                                      trackNumbers,
-                                      duplicate.trackNumberId,
-                                  ),
-                              },
-                              level: 'ERROR' as NoticeLevel,
-                          }
-                        : undefined,
-                    targetLocationTrack.id !== duplicate.duplicateStatus.duplicateOfId &&
-                    duplicate.duplicateStatus.duplicateOfId
-                        ? {
-                              translationKey:
-                                  'tool-panel.location-track.overlapping-duplicate-of-different-track-tooltip',
-                              translationParams: {
-                                  trackName: targetLocationTrack.name,
-                                  implicitDuplicateName: duplicate.name,
-                                  explicitDuplicateName: explicitDuplicateLocationTrackNames.find(
-                                      (d) => d.id === duplicate.duplicateStatus.duplicateOfId,
-                                  )?.name,
-                              },
-                              level: 'ERROR' as NoticeLevel,
-                          }
-                        : undefined,
-                    duplicate.duplicateStatus.match === 'NONE'
-                        ? {
-                              translationKey:
-                                  'tool-panel.location-track.non-overlapping-duplicate-tooltip',
-                              translationParams: {
-                                  trackName: duplicate.name,
-                                  otherTrackName: targetLocationTrack.name,
-                              },
-                              level: 'ERROR' as NoticeLevel,
-                          }
-                        : undefined,
+                    checkAndNotifyImplicitDuplicate(duplicate, targetLocationTrack.name),
+                    checkAndNotifyLocationTrackOnDifferentTrackNumber(
+                        currentTrackNumberId,
+                        duplicate,
+                        trackNumbers,
+                    ),
+                    checkAndNotifyOverlappingDuplicateOfDifferentLocationTrack(
+                        targetLocationTrack,
+                        duplicate,
+                        explicitDuplicateLocationTrackNames,
+                    ),
+                    checkAndNotifyNonOverlappingDuplicate(duplicate, targetLocationTrack),
                 ].filter(filterNotEmpty);
 
                 const errors = notices
