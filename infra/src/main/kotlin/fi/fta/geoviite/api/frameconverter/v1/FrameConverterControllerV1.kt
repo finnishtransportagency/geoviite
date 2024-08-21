@@ -36,6 +36,12 @@ class FrameConverterApiObjectMapperV1 {
         "/rata-vkm/dev",
         "/rata-vkm/v1",
         "/rata-vkm/dev/v1",
+
+        // Trailing slashes are also supported in the frame converter.
+        "/rata-vkm/",
+        "/rata-vkm/dev/",
+        "/rata-vkm/v1/",
+        "/rata-vkm/dev/v1/",
     ],
 )
 class FrameConverterControllerV1 @Autowired constructor(
