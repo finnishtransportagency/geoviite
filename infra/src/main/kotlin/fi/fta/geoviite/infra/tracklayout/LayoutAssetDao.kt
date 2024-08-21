@@ -108,21 +108,23 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
 
     private val allPublicationVersionsSql = """
         select
-          coalesce(official_row_id, design_row_id, id) as official_id,
+          official_id,
           id as row_id,
           version as row_version
         from ${table.fullName}
-        where draft and design_id is not distinct from :design_id
+        where draft
+          and design_id is not distinct from :design_id
     """.trimIndent()
 
     private val publicationVersionsSql = """
         select
-          coalesce(official_row_id, design_row_id, id) as official_id,
+          official_id,
           id as row_id,
           version as row_version
         from ${table.fullName}
-        where coalesce(official_row_id, design_row_id, id) in (:ids)
-          and draft and design_id is not distinct from :design_id
+        where official_id in (:ids)
+          and draft
+          and design_id is not distinct from :design_id
     """.trimIndent()
 
     override fun fetchPublicationVersions(branch: LayoutBranch): List<ValidationVersion<T>> {
@@ -307,7 +309,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
             where id = :row_id
               and (draft = true or design_id is not null) -- Don't allow deleting main-official rows
             returning 
-              coalesce(official_row_id, design_row_id, id) as official_id,
+              official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -346,7 +348,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
               and (:id::int is null or :id = id or :id = design_row_id or :id = official_row_id)
               and design_id is not distinct from :design_id
             returning 
-              coalesce(official_row_id, design_row_id, id) as official_id,
+              official_id,
               id as row_id,
               version as row_version
         """.trimIndent()

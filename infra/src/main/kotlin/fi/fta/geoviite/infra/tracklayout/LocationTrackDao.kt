@@ -278,7 +278,7 @@ class LocationTrackDao(
               :owner_id
             ) 
             returning 
-              coalesce(official_row_id, id) as official_id,
+              official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -343,7 +343,7 @@ class LocationTrackDao(
               owner_id = :owner_id
             where id = :id
             returning 
-              coalesce(official_row_id, design_row_id, id) as official_id,
+              official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -423,7 +423,7 @@ class LocationTrackDao(
         val sql = """
             select row_id, row_version
               from (
-                select coalesce(official_row_id, design_row_id, id) as official_id, id as row_id, version as row_version
+                select official_id, id as row_id, version as row_version
                   from layout.location_track
                     join (
                     select distinct alignment_id, alignment_version

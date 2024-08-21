@@ -177,7 +177,7 @@ class SplitDao(
               split.bulk_transfer_id,
               split.publication_id,
               publication.publication_time,
-              coalesce(source_track.official_row_id, source_track.id) as source_location_track_official_id,
+              source_track.official_id as source_location_track_official_id,
               split.source_location_track_row_id,
               split.source_location_track_row_version,
               array_agg(split_relinked_switch.switch_id) as switch_ids,
@@ -190,7 +190,7 @@ class SplitDao(
               left join publication.split_relinked_switch on split.id = split_relinked_switch.split_id
               left join publication.split_updated_duplicate on split.id = split_updated_duplicate.split_id
           where split.id = :id
-          group by split.id, source_track.official_row_id, source_track.id, publication.publication_time
+          group by split.id, source_track.official_id, publication.publication_time
         """.trimIndent()
 
         return getOptional(
@@ -205,7 +205,7 @@ class SplitDao(
               split.id,
               split.bulk_transfer_state,
               split.publication_id,
-              coalesce(ltv.official_row_id, ltv.id) as source_location_track_official_id
+              ltv.official_id as source_location_track_official_id
           from publication.split 
               inner join layout.location_track_version ltv 
                   on split.source_location_track_row_id = ltv.id
@@ -291,7 +291,7 @@ class SplitDao(
               publication.publication_time,
               array_agg(split_relinked_switch.switch_id) as switch_ids,
               array_agg(split_updated_duplicate.duplicate_location_track_id) as updated_duplicate_ids,
-              coalesce(ltv.official_row_id, ltv.design_row_id, ltv.id) as source_location_track_official_id,
+              ltv.official_id as source_location_track_official_id,
               split.source_location_track_row_id,
               split.source_location_track_row_version
           from publication.split 
@@ -303,7 +303,7 @@ class SplitDao(
                    and split.source_location_track_row_version = ltv.version
           where split.bulk_transfer_state != 'DONE'
             and (ltv.design_id is null or ltv.design_id = :design_id)
-          group by split.id, ltv.official_row_id, ltv.design_row_id, ltv.id, publication.publication_time
+          group by split.id, ltv.official_id, publication.publication_time
         """.trimIndent()
 
         return jdbcTemplate.query(sql, mapOf("design_id" to branch.designId?.intValue)) { rs, _ ->

@@ -79,11 +79,10 @@ class LayoutTrackNumberDao(
               tn.number,
               tn.description,
               tn.state,
-              coalesce(rl.official_row_id, rl.design_row_id, rl.id) reference_line_id
+              rl.official_id reference_line_id
             from layout.track_number_version tn
               -- TrackNumber reference line identity should never change, so we can join version 1
-              left join layout.reference_line_version rl on 
-                rl.track_number_id = coalesce(tn.official_row_id, tn.design_row_id, tn.id) and rl.version = 1
+              left join layout.reference_line_version rl on rl.track_number_id = tn.official_id and rl.version = 1
             where tn.id = :id
               and tn.version = :version
               and tn.deleted = false
@@ -112,9 +111,9 @@ class LayoutTrackNumberDao(
               tn.number, 
               tn.description,
               tn.state,
-              coalesce(rl.official_row_id, rl.id) as reference_line_id
+              rl.official_id as reference_line_id
             from layout.track_number tn
-              left join layout.reference_line rl on rl.track_number_id = coalesce(tn.official_row_id, tn.id)
+              left join layout.reference_line rl on rl.track_number_id = tn.official_id
             order by tn.id, rl.id
         """.trimIndent()
         val trackNumbers = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutTrackNumber(rs) }
@@ -164,7 +163,7 @@ class LayoutTrackNumberDao(
               :design_id
             ) 
             returning 
-              coalesce(official_row_id, id) as official_id,
+              official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -204,7 +203,7 @@ class LayoutTrackNumberDao(
               design_id = :design_id
             where id = :id
             returning 
-              coalesce(official_row_id, design_row_id, id) as official_id,
+              official_id,
               id as row_id,
               version as row_version
         """.trimIndent()

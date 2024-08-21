@@ -145,7 +145,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
            select
               plan_id,
               geometry_km_post.id,
-              array_agg(coalesce(km_post.official_row_id, km_post.design_row_id, km_post.id)) as km_post_id_list
+              array_agg(km_post.official_id) as km_post_id_list
               from geometry.km_post geometry_km_post
               left join (select * from layout.km_post,
                 layout.km_post_is_in_layout_context(:publication_state::layout.publication_state, :design_id, km_post))

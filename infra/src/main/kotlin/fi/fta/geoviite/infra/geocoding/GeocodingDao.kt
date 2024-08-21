@@ -93,7 +93,7 @@ class GeocodingDao(
             with 
               tn_versions as (
                 select distinct on (id) 
-                  id, version, deleted, design_id is not null as is_design, coalesce(official_row_id, id) as official_id
+                  id, version, deleted, design_id is not null as is_design, official_id
                 from layout.track_number_version
                 where (id = :tn_id or official_row_id = :tn_id)
                   and draft = false
@@ -127,7 +127,7 @@ class GeocodingDao(
               ),
               kmp_versions as (
                 select distinct on (id)
-                  id, version, state, deleted, design_id is not null as is_design, coalesce(official_row_id, id) as official_id
+                  id, version, state, deleted, design_id is not null as is_design, official_id
                 from layout.km_post_version
                 where track_number_id = :tn_id
                   and draft = false

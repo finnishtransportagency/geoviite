@@ -62,7 +62,7 @@ as
 $$
 select
   row.id as row_id,
-  coalesce(row.official_row_id, row.design_row_id, row.id) as official_id,
+  row.official_id,
   design_id,
   case when row.draft then row.id end as draft_id,
   row.version as row_version,

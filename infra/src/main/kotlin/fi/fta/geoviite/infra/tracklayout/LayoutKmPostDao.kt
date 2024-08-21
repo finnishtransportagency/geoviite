@@ -18,7 +18,6 @@ import fi.fta.geoviite.infra.util.getIntIdOrNull
 import fi.fta.geoviite.infra.util.getKmNumber
 import fi.fta.geoviite.infra.util.getLayoutContextData
 import fi.fta.geoviite.infra.util.getLayoutRowVersion
-import fi.fta.geoviite.infra.util.getPointOrNull
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
@@ -256,7 +255,7 @@ class LayoutKmPostDao(
               :design_id
             )
             returning 
-              coalesce(official_row_id, id) as official_id,
+              official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -311,7 +310,7 @@ class LayoutKmPostDao(
               design_id = :design_id
             where id = :km_post_id
             returning 
-              coalesce(official_row_id, design_row_id, id) as official_id,
+              official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
