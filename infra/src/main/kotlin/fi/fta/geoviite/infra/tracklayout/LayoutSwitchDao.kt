@@ -167,7 +167,7 @@ class LayoutSwitchDao(
               :source::layout.geometry_source
             )
             returning 
-              coalesce(official_row_id, id) as official_id,
+              official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -215,7 +215,7 @@ class LayoutSwitchDao(
               owner_id = :owner_id
             where id = :id
             returning 
-              coalesce(official_row_id, design_row_id, id) as official_id,
+              official_id,
               id as row_id,
               version as row_version
         """.trimIndent()

@@ -123,7 +123,7 @@ class PublicationDao(
             with splits as (
                 select
                     split.id as split_id,
-                    coalesce(source.official_row_id, source.id) as source_track_id,
+                    source.official_id as source_track_id,
                     array_agg(stlt.location_track_id) as target_track_ids,
                     array_agg(split_updated_duplicates.duplicate_location_track_id) as split_updated_duplicate_ids
                 from publication.split
@@ -134,7 +134,7 @@ class PublicationDao(
                     left join publication.split_updated_duplicate split_updated_duplicates 
                         on split_updated_duplicates.split_id = split.id
                 where split.publication_id is null
-                group by split.id, source.official_row_id, source.id
+                group by split.id, source.official_id
             )
             select 
               candidate_location_track.row_id,
@@ -528,7 +528,7 @@ class PublicationDao(
         assertMainBranch(layoutBranch)
         val sql = """
             select
-              coalesce(tn.official_row_id, tn.design_row_id, tn.id) as tn_official_id,
+              tn.official_id as tn_official_id,
               tn.number as track_number,
               old_tn.number as old_track_number,
               tn.description as description,
@@ -957,7 +957,7 @@ class PublicationDao(
     fun fetchPublicationReferenceLineChanges(publicationId: IntId<Publication>): Map<IntId<ReferenceLine>, ReferenceLineChanges> {
         val sql = """
             select
-              coalesce(rlv.official_row_id, rlv.design_row_id, rlv.id) as rl_official_id,
+              rlv.official_id as rl_official_id,
               rlv.track_number_id as track_number_id,
               old_rlv.track_number_id as old_track_number_id,
               av.length,
@@ -1434,7 +1434,7 @@ class PublicationDao(
     fun fetchPublishedLocationTracks(publicationId: IntId<Publication>): PublishedItemListing<PublishedLocationTrack> {
         val sql = """
             select
-              coalesce(ltv.official_row_id, ltv.design_row_id, ltv.id) as official_id,
+              official_id,
               ltv.id as row_id,
               ltv.version as row_version,
               ltv.name,
@@ -1477,7 +1477,7 @@ class PublicationDao(
                 and design_id is not distinct from (select design_id from publication.publication where id = :publication_id)
             )
             select
-              coalesce(rl.official_row_id, rl.design_row_id, rl.id) as official_id,
+              rl.official_id,
               rl.id as row_id,
               rl.version as row_version,
               rl.track_number_id,
@@ -1519,7 +1519,7 @@ class PublicationDao(
     fun fetchPublishedKmPosts(publicationId: IntId<Publication>): List<PublishedKmPost> {
         val sql = """
             select
-              coalesce(kmp.official_row_id, kmp.design_row_id, kmp.id) as official_id,
+              official_id,
               kmp.id as row_id,
               kmp.version as row_version,
               layout.infer_operation_from_state_transition(kpc.old_state, kpc.state) as operation,
@@ -1549,7 +1549,7 @@ class PublicationDao(
     fun fetchPublishedSwitches(publicationId: IntId<Publication>): PublishedItemListing<PublishedSwitch> {
         val sql = """
             select
-              coalesce(sv.official_row_id, sv.design_row_id, sv.id) as official_id,
+              sv.official_id,
               sv.id as row_id,
               sv.version as row_version,
               sv.name,

@@ -130,7 +130,7 @@ class ReferenceLineDao(
               :design_id
             ) 
             returning 
-              coalesce(official_row_id, id) as official_id,
+              official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
@@ -172,7 +172,7 @@ class ReferenceLineDao(
               design_id = :design_id
             where id = :id
             returning 
-              coalesce(official_row_id, design_row_id, id) as official_id,
+              official_id,
               id as row_id,
               version as row_version
         """.trimIndent()
