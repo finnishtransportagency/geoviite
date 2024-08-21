@@ -259,13 +259,18 @@ class LocationTrackService(
 
     fun list(
         layoutContext: LayoutContext,
+        includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         names: List<AlignmentName>,
     ): List<LocationTrack> {
         logger.serviceCall(
-            "list", "layoutContext" to layoutContext, "trackNumberId" to trackNumberId, "names" to names
+            "list",
+            "layoutContext" to layoutContext,
+            "includeDeleted" to includeDeleted,
+            "trackNumberId" to trackNumberId,
+            "names" to names
         )
-        return dao.list(layoutContext, true, trackNumberId, names)
+        return dao.list(layoutContext, includeDeleted, trackNumberId, names)
     }
 
     override fun idMatches(term: String, item: LocationTrack) =

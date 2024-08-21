@@ -49,13 +49,13 @@ import {
 import { getKmPost, getKmPostChangeInfo, getKmPosts } from 'track-layout/layout-km-post-api';
 import { PVDocumentHeader, PVDocumentId } from 'infra-model/projektivelho/pv-model';
 import { getPVDocument } from 'infra-model/infra-model-api';
-import { updateAllChangeTimes } from 'common/change-time-api';
-import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import {
+    updateAllChangeTimes,
     updateKmPostChangeTime,
-    updateSwitchChangeTime,
     updateLocationTrackChangeTime,
+    updateSwitchChangeTime,
 } from 'common/change-time-api';
+import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
 import { deduplicate } from 'utils/array-utils';
 import { validateLocationTrackName } from 'tool-panel/location-track/dialog/location-track-validation';
 import { getMaxTimestamp } from 'utils/date-utils';
@@ -248,6 +248,7 @@ export function useLocationTrackInfoboxExtras(
         [id, layoutContext.designId, layoutContext.publicationState, changeTimes],
     );
 }
+
 export function useConflictingTracks(
     trackNumberId: LayoutTrackNumberId | undefined,
     trackNames: string[],
@@ -263,9 +264,12 @@ export function useConflictingTracks(
         () =>
             trackNumberId === undefined || properAlignmentNames.length === 0
                 ? undefined
-                : getLocationTracksByName(trackNumberId, properAlignmentNames, layoutContext).then(
-                      (tracks) => tracks.filter((t) => !trackIds.includes(t.id)),
-                  ),
+                : getLocationTracksByName(
+                      trackNumberId,
+                      properAlignmentNames,
+                      layoutContext,
+                      false,
+                  ).then((tracks) => tracks.filter((t) => !trackIds.includes(t.id))),
         [
             trackNumberId,
             namesString,
