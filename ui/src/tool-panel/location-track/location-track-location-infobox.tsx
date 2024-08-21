@@ -140,6 +140,9 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     const duplicatesOnOtherTrackNumbers = extraInfo?.duplicates?.some(
         (duplicate) => duplicate.trackNumberId !== trackNumber?.id,
     );
+    const duplicatesOnOtherLocationTracks = extraInfo?.duplicates?.some(
+        (duplicate) => duplicate.duplicateStatus.duplicateOfId !== locationTrack.id,
+    );
 
     const getSplittingDisabledReasonsTranslated = () => {
         const reasons: string[] = [];
@@ -167,6 +170,13 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             reasons.push(
                 t(
                     'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
+                ),
+            );
+        }
+        if (duplicatesOnOtherLocationTracks) {
+            reasons.push(
+                t(
+                    'tool-panel.location-track.splitting.validation.duplicates-on-different-location-track',
                 ),
             );
         }
@@ -334,6 +344,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         !isDraft ||
         locationTrackIsDraft ||
         duplicatesOnOtherTrackNumbers ||
+        duplicatesOnOtherLocationTracks ||
         extraInfo?.partOfUnfinishedSplit ||
         startingSplitting ||
         layoutContext.branch !== 'MAIN';
