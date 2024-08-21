@@ -155,6 +155,38 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
               })
             : '';
 
+    function createDuplicateNoticeListingTooltip(
+        notices: LocationTrackDuplicateNotice[],
+        trackName: string,
+    ): string {
+        const errors = notices
+            .filter((n) => n.level === 'ERROR')
+            .map((n) => t(n.translationKey, { ...n.translationParams }));
+        const infos = notices
+            .filter((n) => n.level === 'INFO')
+            .map((n) => t(n.translationKey, { ...n.translationParams }));
+
+        const errorsString =
+            errors.length > 0
+                ? t('tool-panel.location-track.errors', { count: errors.length }) +
+                  '\n' +
+                  errors.map((err) => `- ${err}`).join('\n')
+                : undefined;
+        const infosString =
+            infos.length > 0
+                ? t('tool-panel.location-track.infos', { count: infos.length }) +
+                  '\n' +
+                  infos.map((info) => `- ${info}`).join('\n')
+                : undefined;
+
+        const noticeListingTooltip =
+            t('tool-panel.location-track.location-track', { trackName }) +
+            (errorsString ? `\n${errorsString}` : '') +
+            (errorsString && infosString ? '\n' : '') +
+            (infosString ? `\n${infosString}` : '');
+        return noticeListingTooltip;
+    }
+
     return existingDuplicate ? (
         <span title={duplicateTrackNumberWarning}>
             <LocationTrackLink
@@ -184,31 +216,10 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
                     checkAndNotifyNonOverlappingDuplicate(duplicate, targetLocationTrack),
                 ].filter(filterNotEmpty);
 
-                const errors = notices
-                    .filter((n) => n.level === 'ERROR')
-                    .map((n) => t(n.translationKey, { ...n.translationParams }));
-                const infos = notices
-                    .filter((n) => n.level === 'INFO')
-                    .map((n) => t(n.translationKey, { ...n.translationParams }));
-
-                const errorsString =
-                    errors.length > 0
-                        ? t('tool-panel.location-track.errors', { count: errors.length }) +
-                          '\n' +
-                          errors.map((err) => `- ${err}`).join('\n')
-                        : undefined;
-                const infosString =
-                    infos.length > 0
-                        ? t('tool-panel.location-track.infos', { count: infos.length }) +
-                          '\n' +
-                          infos.map((info) => `- ${info}`).join('\n')
-                        : undefined;
-
-                const noticeListingTooltip =
-                    t('tool-panel.location-track.location-track', { trackName: duplicate.name }) +
-                    (errorsString ? `\n${errorsString}` : '') +
-                    (errorsString && infosString ? '\n' : '') +
-                    (infosString ? `\n${infosString}` : '');
+                const noticeListingTooltip = createDuplicateNoticeListingTooltip(
+                    notices,
+                    duplicate.name,
+                );
 
                 return (
                     <li key={duplicate.id}>
