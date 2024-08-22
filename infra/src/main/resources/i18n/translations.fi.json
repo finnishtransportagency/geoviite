@@ -281,7 +281,7 @@
         "gk-location-source": {
             "FROM_GEOMETRY": "Linkitetty geometriasta",
             "FROM_LAYOUT": "Konvertoitu paikannuspohjasta",
-            "MANUAL": "Asetettu suoraan"
+            "MANUAL": "Operaattorin asettama"
         }
     },
     "environment": {
@@ -477,7 +477,7 @@
                     "source": "Sijainnin lähde",
                     "source-from-geometry": "Linkitetty suunnitelmasta",
                     "source-from-layout": "Konvertoitu paikannuspohjasta",
-                    "source-manual": "Asetettu suoraan"
+                    "source-manual": "Operaattorin asettama"
                 },
                 "change-info-heading": "Lokitiedot",
                 "no-kilometer-length": "Pituutta ei voida laskea",
@@ -1603,6 +1603,11 @@
             "owner": "Omistaja",
             "length": "Pituus",
             "location": "Sijainti",
+            "layout-location": "Sijainti paikannuspohjassa (TM35FIN)",
+            "gk-location": "Sijainti",
+            "gk-srid": "Koordinaatisto",
+            "gk-location-source": "Sijainnin lähde",
+            "gk-location-confirmed": "Sijainti vahvistettu",
             "start-location": "Alkukoordinaatit (TM35FIN)",
             "end-location": "Loppukoordinaatit (TM35FIN)",
             "geometry": "Geometria",
@@ -1779,7 +1784,7 @@
             "source": "Sijainnin lähde",
             "source-from-geometry": "Linkitetty geometriasta",
             "source-from-layout": "Konvertoitu paikannuspohjasta",
-            "source-manual": "Asetettu suoraan",
+            "source-manual": "Operaattorin asettama",
             "location-in-layout": "Sijainti paikannuspohjassa (TM35FIN)"
         }
     },

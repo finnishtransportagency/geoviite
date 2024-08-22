@@ -3,8 +3,10 @@ package fi.fta.geoviite.infra.publication
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
+import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.Translation
@@ -176,11 +178,16 @@ private fun getComparator(sortBy: PublicationTableColumn): Comparator<Publicatio
     }
 }
 
-fun formatLocation(location: Point) = "${roundTo3Decimals(location.x)} E, ${
+fun formatLocation(location: IPoint) = "${roundTo3Decimals(location.x)} E, ${
     roundTo3Decimals(
         location.y
     )
 } N"
+fun formatGkLocation(location: GeometryPoint, crsNameGetter: (srid: Srid) -> String) = "${roundTo3Decimals(location.y)} N, ${
+    roundTo3Decimals(
+        location.x
+    )
+} E (${crsNameGetter(location.srid)})"
 
 const val DISTANCE_CHANGE_THRESHOLD = 0.0005
 

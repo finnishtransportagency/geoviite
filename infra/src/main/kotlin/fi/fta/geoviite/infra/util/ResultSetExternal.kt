@@ -280,6 +280,11 @@ fun <T> ResultSet.getChange(name: String, getter: (name: String) -> T?): Change<
 fun ResultSet.getChangePoint(nameX: String, nameY: String) =
     Change(getPointOrNull("old_$nameX", "old_$nameY"), getPointOrNull(nameX, nameY))
 
+fun ResultSet.getChangeGeometryPoint(nameX: String, nameY: String, sridName: String) = Change(
+    getGeometryPointOrNull("old_$nameX", "old_$nameY", "old_$sridName"),
+    getGeometryPointOrNull(nameX, nameY, sridName)
+)
+
 fun <T> ResultSet.getChangeRowVersion(idName: String, versionName: String): Change<RowVersion<T>> =
     Change(getRowVersionOrNull("old_$idName", "old_$versionName"), getRowVersionOrNull(idName, versionName))
 

@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.publication
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.integration.RatkoPushStatus
 import fi.fta.geoviite.infra.integration.SwitchJointChange
@@ -52,7 +53,11 @@ data class ChangeValue<T>(
     val newValue: T?,
     val localizationKey: LocalizationKey? = null,
 ) {
-    constructor(oldValue: T?, newValue: T?, localizationKey: String?) : this(
+    constructor(
+        oldValue: T?,
+        newValue: T?,
+        localizationKey: String?
+    ) : this(
         oldValue,
         newValue,
         localizationKey?.let(::LocalizationKey),
@@ -69,7 +74,10 @@ data class PropKey(
     val key: LocalizationKey,
     val params: LocalizationParams = LocalizationParams.empty,
 ) {
-    constructor(key: String, params: LocalizationParams = LocalizationParams.empty) : this(LocalizationKey(key), params)
+    constructor(
+        key: String,
+        params: LocalizationParams = LocalizationParams.empty
+    ) : this(LocalizationKey(key), params)
 }
 
 open class Publication(
@@ -128,7 +136,7 @@ data class PublishedKmPost(
 )
 
 data class PublishedIndirectChanges(
-    //Currently only used by Ratko integration
+    // Currently only used by Ratko integration
     @JsonIgnore val trackNumbers: List<PublishedTrackNumber>,
     val locationTracks: List<PublishedLocationTrack>,
     val switches: List<PublishedSwitch>,
@@ -156,11 +164,19 @@ data class PublicationDetails(
 }
 
 enum class DraftChangeType {
-    TRACK_NUMBER, LOCATION_TRACK, REFERENCE_LINE, SWITCH, KM_POST,
+    TRACK_NUMBER,
+    LOCATION_TRACK,
+    REFERENCE_LINE,
+    SWITCH,
+    KM_POST,
 }
 
 enum class Operation(val priority: Int) {
-    CREATE(0), MODIFY(1), DELETE(2), RESTORE(3), CALCULATED(4),
+    CREATE(0),
+    MODIFY(1),
+    DELETE(2),
+    RESTORE(3),
+    CALCULATED(4),
 }
 
 data class ValidatedPublicationCandidates(
@@ -181,44 +197,58 @@ data class PublicationCandidates(
     val switches: List<SwitchPublicationCandidate>,
     val kmPosts: List<KmPostPublicationCandidate>,
 ) : Loggable {
-    fun ids(): PublicationRequestIds = PublicationRequestIds(
-        trackNumbers.map { candidate -> candidate.id },
-        locationTracks.map { candidate -> candidate.id },
-        referenceLines.map { candidate -> candidate.id },
-        switches.map { candidate -> candidate.id },
-        kmPosts.map { candidate -> candidate.id },
-    )
+    fun ids(): PublicationRequestIds =
+        PublicationRequestIds(
+            trackNumbers.map { candidate -> candidate.id },
+            locationTracks.map { candidate -> candidate.id },
+            referenceLines.map { candidate -> candidate.id },
+            switches.map { candidate -> candidate.id },
+            kmPosts.map { candidate -> candidate.id },
+        )
 
     fun getValidationVersions(
         branch: LayoutBranch,
         splitVersions: List<RowVersion<Split>>,
-    ) = ValidationVersions(
-        branch = branch,
-        trackNumbers = trackNumbers.map(TrackNumberPublicationCandidate::getPublicationVersion),
-        referenceLines = referenceLines.map(ReferenceLinePublicationCandidate::getPublicationVersion),
-        locationTracks = locationTracks.map(LocationTrackPublicationCandidate::getPublicationVersion),
-        switches = switches.map(SwitchPublicationCandidate::getPublicationVersion),
-        kmPosts = kmPosts.map(KmPostPublicationCandidate::getPublicationVersion),
-        splits = splitVersions,
-    )
+    ) =
+        ValidationVersions(
+            branch = branch,
+            trackNumbers = trackNumbers.map(TrackNumberPublicationCandidate::getPublicationVersion),
+            referenceLines =
+                referenceLines.map(ReferenceLinePublicationCandidate::getPublicationVersion),
+            locationTracks =
+                locationTracks.map(LocationTrackPublicationCandidate::getPublicationVersion),
+            switches = switches.map(SwitchPublicationCandidate::getPublicationVersion),
+            kmPosts = kmPosts.map(KmPostPublicationCandidate::getPublicationVersion),
+            splits = splitVersions,
+        )
 
-    fun filter(request: PublicationRequestIds) = copy(
-        trackNumbers = trackNumbers.filter { candidate -> request.trackNumbers.contains(candidate.id) },
-        referenceLines = referenceLines.filter { candidate -> request.referenceLines.contains(candidate.id) },
-        locationTracks = locationTracks.filter { candidate -> request.locationTracks.contains(candidate.id) },
-        switches = switches.filter { candidate -> request.switches.contains(candidate.id) },
-        kmPosts = kmPosts.filter { candidate -> request.kmPosts.contains(candidate.id) },
-    )
+    fun filter(request: PublicationRequestIds) =
+        copy(
+            trackNumbers =
+                trackNumbers.filter { candidate -> request.trackNumbers.contains(candidate.id) },
+            referenceLines =
+                referenceLines.filter { candidate ->
+                    request.referenceLines.contains(candidate.id)
+                },
+            locationTracks =
+                locationTracks.filter { candidate ->
+                    request.locationTracks.contains(candidate.id)
+                },
+            switches = switches.filter { candidate -> request.switches.contains(candidate.id) },
+            kmPosts = kmPosts.filter { candidate -> request.kmPosts.contains(candidate.id) },
+        )
 
-    override fun toLog(): String = logFormat(
-        "trackNumbers" to toLog(trackNumbers),
-        "locationTracks" to toLog(locationTracks),
-        "referenceLines" to toLog(referenceLines),
-        "switches" to toLog(switches),
-        "kmPosts" to toLog(kmPosts),
-    )
+    override fun toLog(): String =
+        logFormat(
+            "trackNumbers" to toLog(trackNumbers),
+            "locationTracks" to toLog(locationTracks),
+            "referenceLines" to toLog(referenceLines),
+            "switches" to toLog(switches),
+            "kmPosts" to toLog(kmPosts),
+        )
 
-    private fun <T : PublicationCandidate<*>> toLog(list: List<T>): String = "${list.map(PublicationCandidate<*>::rowVersion)}"
+    private fun <T : PublicationCandidate<*>> toLog(list: List<T>): String =
+        "${list.map(PublicationCandidate<*>::rowVersion)}"
 }
 
 data class ValidationVersions(
@@ -231,19 +261,30 @@ data class ValidationVersions(
     val splits: List<RowVersion<Split>>,
 ) {
     fun containsLocationTrack(id: IntId<LocationTrack>) = locationTracks.any { it.officialId == id }
+
     fun containsKmPost(id: IntId<TrackLayoutKmPost>) = kmPosts.any { it.officialId == id }
+
     fun containsSwitch(id: IntId<TrackLayoutSwitch>) = switches.any { it.officialId == id }
+
     fun containsSplit(id: IntId<Split>): Boolean = splits.any { it.id == id }
 
-    fun findTrackNumber(id: IntId<TrackLayoutTrackNumber>) = trackNumbers.find { it.officialId == id }
+    fun findTrackNumber(id: IntId<TrackLayoutTrackNumber>) =
+        trackNumbers.find { it.officialId == id }
+
     fun findLocationTrack(id: IntId<LocationTrack>) = locationTracks.find { it.officialId == id }
+
     fun findSwitch(id: IntId<TrackLayoutSwitch>) = switches.find { it.officialId == id }
 
     fun getTrackNumberIds() = trackNumbers.map { v -> v.officialId }
+
     fun getReferenceLineIds() = referenceLines.map { v -> v.officialId }
+
     fun getLocationTrackIds() = locationTracks.map { v -> v.officialId }
+
     fun getSwitchIds() = switches.map { v -> v.officialId }
+
     fun getKmPostIds() = kmPosts.map { v -> v.officialId }
+
     fun getSplitIds() = splits.map { v -> v.id }
 }
 
@@ -252,7 +293,10 @@ data class PublicationGroup(
 )
 
 // TODO: GVT-2629 Rename validatedAssetVersion -> rowVersion
-data class ValidationVersion<T>(val officialId: IntId<T>, val validatedAssetVersion: LayoutRowVersion<T>)
+data class ValidationVersion<T>(
+    val officialId: IntId<T>,
+    val validatedAssetVersion: LayoutRowVersion<T>
+)
 
 data class PublicationRequestIds(
     val trackNumbers: List<IntId<TrackLayoutTrackNumber>>,
@@ -261,13 +305,14 @@ data class PublicationRequestIds(
     val switches: List<IntId<TrackLayoutSwitch>>,
     val kmPosts: List<IntId<TrackLayoutKmPost>>,
 ) {
-    operator fun minus(other: PublicationRequestIds) = PublicationRequestIds(
-        trackNumbers - other.trackNumbers.toSet(),
-        locationTracks - other.locationTracks.toSet(),
-        referenceLines - other.referenceLines.toSet(),
-        switches - other.switches.toSet(),
-        kmPosts - other.kmPosts.toSet(),
-    )
+    operator fun minus(other: PublicationRequestIds) =
+        PublicationRequestIds(
+            trackNumbers - other.trackNumbers.toSet(),
+            locationTracks - other.locationTracks.toSet(),
+            referenceLines - other.referenceLines.toSet(),
+            switches - other.switches.toSet(),
+            kmPosts - other.kmPosts.toSet(),
+        )
 }
 
 data class PublicationRequest(
@@ -284,7 +329,11 @@ data class PublicationResult(
     val kmPosts: Int,
 )
 
-enum class LayoutValidationIssueType { ERROR, WARNING }
+enum class LayoutValidationIssueType {
+    ERROR,
+    WARNING
+}
+
 data class LayoutValidationIssue(
     val type: LayoutValidationIssueType,
     val localizationKey: LocalizationKey,
@@ -421,7 +470,9 @@ data class LocationTrackChanges(
 
 // Todo: Consider making TrackLayoutSwitch use this for trapPoint as well
 enum class TrapPoint {
-    Yes, No, Unknown
+    Yes,
+    No,
+    Unknown
 }
 
 data class SwitchChanges(
@@ -460,6 +511,10 @@ data class KmPostChanges(
     val kmNumber: Change<KmNumber>,
     val state: Change<LayoutState>,
     val location: Change<Point>,
+    val gkLocation: Change<GeometryPoint>,
+    val gkSrid: Change<Srid>,
+    val gkLocationSource: Change<KmPostGkLocationSource>,
+    val gkLocationConfirmed: Change<Boolean>,
 )
 
 data class SwitchChangeIds(val name: String, val externalId: Oid<TrackLayoutSwitch>?)
@@ -486,7 +541,9 @@ data class SplitTargetInPublication(
 )
 
 enum class DesignRowReferrer {
-    MAIN_DRAFT, DESIGN_DRAFT, NONE,
+    MAIN_DRAFT,
+    DESIGN_DRAFT,
+    NONE,
 }
 
 sealed class LayoutContextTransition {
@@ -497,11 +554,14 @@ sealed class LayoutContextTransition {
                 "Can't transition layout context from main-official"
             }
             return if (branch is DesignBranch) {
-                if (fromState == PublicationState.DRAFT) PublicationInDesign(branch) else MergeFromDesign(branch)
+                if (fromState == PublicationState.DRAFT) PublicationInDesign(branch)
+                else MergeFromDesign(branch)
             } else PublicationInMain
         }
+
         fun publicationIn(layoutBranch: LayoutBranch): LayoutContextTransition =
-            if (layoutBranch is DesignBranch) PublicationInDesign(layoutBranch) else PublicationInMain
+            if (layoutBranch is DesignBranch) PublicationInDesign(layoutBranch)
+            else PublicationInMain
     }
 
     abstract val candidateBranch: LayoutBranch
@@ -509,22 +569,28 @@ sealed class LayoutContextTransition {
     abstract val candidatePublicationState: PublicationState
     abstract val basePublicationState: PublicationState
 
-    val candidateContext get() = LayoutContext.of(candidateBranch, candidatePublicationState)
-    val baseContext get() = LayoutContext.of(baseBranch, basePublicationState)
+    val candidateContext
+        get() = LayoutContext.of(candidateBranch, candidatePublicationState)
+
+    val baseContext
+        get() = LayoutContext.of(baseBranch, basePublicationState)
 }
+
 data object PublicationInMain : LayoutContextTransition() {
     override val candidateBranch = MainBranch.instance
     override val baseBranch = MainBranch.instance
     override val candidatePublicationState = PublicationState.DRAFT
     override val basePublicationState = PublicationState.OFFICIAL
 }
-data class PublicationInDesign(private val branch: DesignBranch): LayoutContextTransition() {
+
+data class PublicationInDesign(private val branch: DesignBranch) : LayoutContextTransition() {
     override val candidateBranch = branch
     override val baseBranch = branch
     override val candidatePublicationState = PublicationState.DRAFT
     override val basePublicationState = PublicationState.OFFICIAL
 }
-data class MergeFromDesign(override val candidateBranch: DesignBranch): LayoutContextTransition() {
+
+data class MergeFromDesign(override val candidateBranch: DesignBranch) : LayoutContextTransition() {
     override val baseBranch = MainBranch.instance
     override val candidatePublicationState = PublicationState.OFFICIAL
     override val basePublicationState = PublicationState.DRAFT

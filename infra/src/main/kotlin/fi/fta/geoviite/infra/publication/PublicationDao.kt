@@ -929,7 +929,17 @@ class PublicationDao(
               postgis.st_x(km_post_version.layout_location) as point_x,
               postgis.st_y(km_post_version.layout_location) as point_y,
               postgis.st_x(old_km_post_version.layout_location) as old_point_x,
-              postgis.st_y(old_km_post_version.layout_location) as old_point_y
+              postgis.st_y(old_km_post_version.layout_location) as old_point_y,
+              postgis.st_x(km_post_version.gk_location) as gk_point_x,
+              postgis.st_y(km_post_version.gk_location) as gk_point_y,
+              postgis.st_x(old_km_post_version.gk_location) as old_gk_point_x,
+              postgis.st_y(old_km_post_version.gk_location) as old_gk_point_y,
+              postgis.st_srid(km_post_version.gk_location) as gk_srid,
+              postgis.st_srid(old_km_post_version.gk_location) as old_gk_srid,
+              km_post_version.gk_location_confirmed,
+              old_km_post_version.gk_location_confirmed as old_gk_location_confirmed,
+              km_post_version.gk_location_source,
+              old_km_post_version.gk_location_source as old_gk_location_source
             from publication.km_post
               left join layout.km_post_version km_post_version
                       on km_post.km_post_id = km_post_version.id 
@@ -950,6 +960,10 @@ class PublicationDao(
                 trackNumberId = rs.getChange("track_number_id", rs::getIntIdOrNull),
                 state = rs.getChange("state") { rs.getEnumOrNull<LayoutState>(it) },
                 location = rs.getChangePoint("point_x", "point_y"),
+                gkLocation = rs.getChangeGeometryPoint("gk_point_x", "gk_point_y", "gk_srid"),
+                gkSrid = rs.getChange("gk_srid", rs::getSridOrNull),
+                gkLocationConfirmed = rs.getChange("gk_location_confirmed", rs::getBooleanOrNull),
+                gkLocationSource = rs.getChange("gk_location_source") { rs.getEnumOrNull<KmPostGkLocationSource>(it) }
             )
         }.toMap().also { logger.daoAccess(FETCH, KmPostChanges::class, publicationId) }
     }

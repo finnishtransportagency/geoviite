@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
 import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.integration.CalculatedChanges
 import fi.fta.geoviite.infra.integration.CalculatedChangesService
 import fi.fta.geoviite.infra.integration.LocationTrackChange
@@ -135,6 +136,7 @@ class PublicationServiceIT @Autowired constructor(
     val splitDao: SplitDao,
     val splitService: SplitService,
     val layoutDesignDao: LayoutDesignDao,
+    val geographyService: GeographyService,
 ) : DBTestBase() {
 
     @BeforeEach
@@ -1643,7 +1645,9 @@ class PublicationServiceIT @Autowired constructor(
             latestPub.publicationTime,
             latestPub.publicationTime.minusMillis(1),
             trackNumberDao.fetchTrackNumberNames(),
-        ) { _, _ -> null }
+            { _, _ -> null },
+            { geographyService.getCoordinateSystem(it).name.toString() },
+        )
         assertEquals(2, diff.size)
         // assertEquals("track-number", diff[0].propKey) TODO Enable when track number switching works
         assertEquals("km-post", diff[0].propKey.key.toString())
@@ -1676,7 +1680,9 @@ class PublicationServiceIT @Autowired constructor(
             latestPub.publicationTime,
             latestPub.publicationTime.minusMillis(1),
             trackNumberDao.fetchTrackNumberNames(),
-        ) { _, _ -> null }
+            { _, _ -> null },
+            { geographyService.getCoordinateSystem(it).name.toString() },
+        )
     }
 
     @Test
@@ -1710,7 +1716,9 @@ class PublicationServiceIT @Autowired constructor(
             latestPub.publicationTime,
             latestPub.publicationTime.minusMillis(1),
             trackNumberDao.fetchTrackNumberNames(),
-        ) { _, _ -> null }
+            { _, _ -> null },
+            { geographyService.getCoordinateSystem(it).name.toString() },
+        )
         assertEquals(1, diff.size)
         assertEquals("km-post", diff[0].propKey.key.toString())
         assertEquals(kmPost.kmNumber, diff[0].value.oldValue)
