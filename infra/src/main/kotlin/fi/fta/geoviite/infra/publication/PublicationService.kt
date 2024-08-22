@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.error.getPSQLExceptionConstraintAndDetailOrRethrow
 import fi.fta.geoviite.infra.geocoding.*
+import fi.fta.geoviite.infra.geography.GeographyService
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.integration.*
 import fi.fta.geoviite.infra.linking.*
@@ -69,8 +70,8 @@ class PublicationService @Autowired constructor(
     private val transactionTemplate: TransactionTemplate,
     private val publicationGeometryChangeRemarksUpdateService: PublicationGeometryChangeRemarksUpdateService,
     private val splitService: SplitService,
-    private val splitDao: SplitDao,
-    private val localizationService: LocalizationService
+    private val localizationService: LocalizationService,
+    private val geographyService: GeographyService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -1181,6 +1182,7 @@ class PublicationService @Autowired constructor(
         oldTimestamp: Instant,
         trackNumberCache: List<TrackNumberAndChangeTime>,
         geocodingContextGetter: (IntId<TrackLayoutTrackNumber>, Instant) -> GeocodingContext?,
+        crsNameGetter: (srid: Srid) -> String,
     ) = listOfNotNull(
         compareChangeValues(
             changes.trackNumberId,
@@ -1192,7 +1194,7 @@ class PublicationService @Autowired constructor(
         compareChangeValues(changes.kmNumber, { it }, PropKey("km-post")),
         compareChangeValues(changes.state, { it }, PropKey("state"), null, "layout-state"),
         compareChangeValues(
-            changes.location, ::formatLocation, PropKey("location"), remark = getPointMovedRemarkOrNull(
+            changes.location, ::formatLocation, PropKey("layout-location"), remark = getPointMovedRemarkOrNull(
                 translation, projectPointToReferenceLineAtTime(
                     oldTimestamp, changes.location.old, changes.trackNumberId.old, geocodingContextGetter
                 ), projectPointToReferenceLineAtTime(
@@ -1200,6 +1202,15 @@ class PublicationService @Autowired constructor(
                 ), "moved-x-meters-on-reference-line"
             )
         ),
+        compareChangeValues(
+            changes.gkLocation, { formatGkLocation(it, crsNameGetter) }, PropKey("gk-location")
+        ),
+        compareChangeValues(
+            changes.gkLocationSource, { it }, PropKey("gk-location-source"), enumLocalizationKey = "gk-location-source"
+        ),
+        compareChangeValues(
+            changes.gkLocationConfirmed, { it }, PropKey("gk-location-confirmed")
+        )
     )
 
     private fun projectPointToReferenceLineAtTime(
@@ -1469,6 +1480,7 @@ class PublicationService @Autowired constructor(
                     previousComparisonTime,
                     trackNumberNamesCache,
                     geocodingContextGetter,
+                    crsNameGetter = { srid -> geographyService.getCoordinateSystem(srid).name.toString() },
                 ),
             )
         }
