@@ -191,7 +191,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     <InfoboxFieldWithEditLink
                         qaId="km-post-gk-coordinate-system"
                         label={t('tool-panel.km-post.layout.gk-coordinates.coordinate-system')}
-                        value={`${gkCoordinateSystem?.name} ${gkCoordinateSystem?.srid}`}
+                        value={`${gkCoordinateSystem?.name ?? '-'} ${gkCoordinateSystem?.srid ?? ''}`}
                     />
                     <InfoboxFieldWithEditLink
                         qaId="km-post-gk-coordinates"
@@ -199,7 +199,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                             gkCoordinateSystem === undefined
                                 ? ''
                                 : t('tool-panel.km-post.layout.gk-coordinates.location', {
-                                      coordinateSystemName: gkCoordinateSystem?.name,
+                                      coordinateSystemName: gkCoordinateSystem?.name ?? '',
                                   })
                         }
                         value={
@@ -246,7 +246,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                             ) : updatedKmPost?.gkLocationSource === 'MANUAL' ? (
                                 t('tool-panel.km-post.layout.gk-coordinates.source-manual')
                             ) : (
-                                ''
+                                '-'
                             )
                         }
                     />

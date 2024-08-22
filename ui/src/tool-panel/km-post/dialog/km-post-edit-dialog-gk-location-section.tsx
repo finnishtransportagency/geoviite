@@ -17,9 +17,10 @@ import { GkLocationSource, LAYOUT_SRID } from 'track-layout/track-layout-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import proj4 from 'proj4';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
-import { GeometryPoint } from 'model/geometry';
+import { GeometryPoint, Point } from 'model/geometry';
 import styles from 'tool-panel/km-post/dialog/km-post-edit-dialog.scss';
 import { Srid } from 'common/common-model';
+import { parseFloatOrUndefined } from 'utils/string-utils';
 
 // GK-FIN coordinate systems currently only used for the live display of layout coordinates when editing km post
 // positions manually
@@ -59,6 +60,22 @@ function gkLocationSourceI18nKey(source: GkLocationSource) {
     return `km-post-dialog.gk-location.source-${end}`;
 }
 
+function gkToLayout(gkSrid: Srid | undefined, xStr: string, yStr: string): Point | undefined {
+    const x = parseFloatOrUndefined(xStr);
+    const y = parseFloatOrUndefined(yStr);
+    const projection = GK_FIN_COORDINATE_SYSTEMS.find(([srid]) => srid === gkSrid)?.[1];
+    if (projection === undefined || x === undefined || y === undefined) {
+        return undefined;
+    } else {
+        try {
+            const res = proj4(projection, LAYOUT_SRID).forward({ x, y });
+            return Number.isFinite(res.x) && Number.isFinite(res.y) ? res : undefined;
+        } catch (e) {
+            return undefined;
+        }
+    }
+}
+
 export const KmPostEditDialogGkLocationSection: React.FC<
     KmPostEditDialogGkLocationSectionProps
 > = ({
@@ -79,24 +96,11 @@ export const KmPostEditDialogGkLocationSection: React.FC<
         (state.kmPost.gkLocationY !== '' && state.kmPost.gkLocationX !== '');
 
     const gkCoordinateSystem = useCoordinateSystem(state.kmPost.gkSrid);
-    const layoutLocation =
-        gkCoordinateSystem === undefined || !gkLocationEntered
-            ? undefined
-            : (() => {
-                  try {
-                      const projection = GK_FIN_COORDINATE_SYSTEMS.find(
-                          ([srid]) => srid === gkCoordinateSystem.srid,
-                      )?.[1];
-                      return projection === undefined
-                          ? undefined
-                          : proj4(projection, LAYOUT_SRID).forward({
-                                x: parseFloat(state.kmPost.gkLocationX),
-                                y: parseFloat(state.kmPost.gkLocationY),
-                            });
-                  } catch (e) {
-                      return undefined;
-                  }
-              })();
+    const layoutLocation = gkToLayout(
+        gkCoordinateSystem?.srid,
+        state.kmPost.gkLocationX,
+        state.kmPost.gkLocationY,
+    );
 
     const coordinateSystems = useCoordinateSystems(GK_FIN_COORDINATE_SYSTEMS.map(([srid]) => srid));
 
@@ -185,7 +189,9 @@ export const KmPostEditDialogGkLocationSection: React.FC<
                 {t('km-post-dialog.gk-location.location-in-layout')}
             </Heading>
             <div className="field-layout__value">
-                {layoutLocation === undefined ? '' : formatToTM35FINString(layoutLocation)}
+                {layoutLocation === undefined
+                    ? t('km-post-dialog.gk-location.location-not-defined')
+                    : formatToTM35FINString(layoutLocation)}
             </div>
         </>
     );
