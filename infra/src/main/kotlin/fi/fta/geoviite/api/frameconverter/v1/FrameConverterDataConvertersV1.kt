@@ -63,9 +63,9 @@ class FrameConverterRequestDeserializerV1 : JsonDeserializer<FrameConverterReque
 
     private fun determineClass(node: JsonNode): KClass<out FrameConverterRequestV1> {
         val classMap = listOf(
-            CoordinateToTrackMeterRequestV1::class to listOf("x", "y"),
-            CoordinateToTrackMeterRequestV1::class to listOf("x"),
-            CoordinateToTrackMeterRequestV1::class to listOf("y"),
+            CoordinateToTrackAddressRequestV1::class to listOf("x", "y"),
+            CoordinateToTrackAddressRequestV1::class to listOf("x"),
+            CoordinateToTrackAddressRequestV1::class to listOf("y"),
 
             TrackAddressToCoordinateRequestV1::class to listOf("ratakilometri", "ratametri", "ratanumero"),
             TrackAddressToCoordinateRequestV1::class to listOf("ratakilometri", "ratametri"),

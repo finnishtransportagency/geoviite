@@ -64,11 +64,11 @@ class FrameConverterControllerV1 @Autowired constructor(
     }
 
     @RequestMapping(method = [RequestMethod.GET, RequestMethod.POST], params = ["!json", "x", "y"])
-    fun coordinateToTrackMeterRequest(
+    fun coordinateToTrackAddressRequest(
         @RequestParam params: Map<String, String?>,
     ): GeoJsonFeatureCollection {
         val jsonString = objectMapper.writeValueAsString(params)
-        val request = objectMapper.readValue(jsonString, CoordinateToTrackMeterRequestV1::class.java)
+        val request = objectMapper.readValue(jsonString, CoordinateToTrackAddressRequestV1::class.java)
 
         return GeoJsonFeatureCollection(
             features = processRequest(request),
@@ -110,15 +110,15 @@ class FrameConverterControllerV1 @Autowired constructor(
     private fun processRequest(request: FrameConverterRequestV1): List<GeoJsonFeature> {
         return when (request) {
 
-            is CoordinateToTrackMeterRequestV1 -> processRequestHelper(
+            is CoordinateToTrackAddressRequestV1 -> processRequestHelper(
                 request,
-                frameConverterServiceV1::validateCoordinateToTrackMeterRequest,
+                frameConverterServiceV1::validateCoordinateToTrackAddressRequest,
                 frameConverterServiceV1::coordinateToTrackAddress,
             )
 
             is TrackAddressToCoordinateRequestV1 -> processRequestHelper(
                 request,
-                frameConverterServiceV1::validateTrackMeterToCoordinateRequest,
+                frameConverterServiceV1::validateTrackAddressToCoordinateRequest,
                 frameConverterServiceV1::trackAddressToCoordinate,
             )
 

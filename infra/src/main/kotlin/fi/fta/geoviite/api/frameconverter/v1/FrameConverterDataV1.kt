@@ -108,7 +108,7 @@ sealed class FrameConverterRequestV1
  * @property locationTrackType User provided location track type filter, optional.
  * @property responseSettings User provided array of integers, which map to enum values, optional, has defaults.
  */
-data class CoordinateToTrackMeterRequestV1(
+data class CoordinateToTrackAddressRequestV1(
     @JsonProperty("tunniste") val identifier: FrameConverterIdentifierV1? = null,
 
     val x: Double? = null,
@@ -142,7 +142,7 @@ data class CoordinateToTrackMeterRequestV1(
  * Valid version of the coordinate to track meter request is created during processing,
  * it is not created for an invalid request.
  */
-data class ValidCoordinateToTrackMeterRequestV1(
+data class ValidCoordinateToTrackAddressRequestV1(
     val identifier: FrameConverterIdentifierV1?,
 
     val x: Double,
@@ -160,9 +160,9 @@ data class ValidCoordinateToTrackMeterRequestV1(
  * Coordinate to track meter response is only created for a valid, successfully processed request.
  * For invalid requests containing errors, see GeoJsonFeatureErrorResponseV1.
  */
-data class CoordinateToTrackMeterResponseV1(
+data class CoordinateToTrackAddressResponseV1(
     override val geometry: GeoJsonGeometryPoint,
-    override val properties: CoordinateToTrackMeterResponsePropertiesV1,
+    override val properties: CoordinateToTrackAddressResponsePropertiesV1,
 ) : GeoJsonFeature()
 
 /**
@@ -172,7 +172,7 @@ data class CoordinateToTrackMeterResponseV1(
  * @property featureMatchDataDetails Fields included in the output when responseSettings of the request contain
  *   FrameConverterResponseSettingV1.FeatureMatchDataDetails.
  */
-data class CoordinateToTrackMeterResponsePropertiesV1(
+data class CoordinateToTrackAddressResponsePropertiesV1(
     @JsonProperty("tunniste") val identifier: FrameConverterIdentifierV1? = null,
     @JsonUnwrapped val featureMatchDataSimple: FeatureMatchDataSimpleV1? = null,
     @JsonUnwrapped val featureMatchDataDetails: FeatureMatchDataDetailsV1? = null,
@@ -265,9 +265,9 @@ data class ValidTrackAddressToCoordinateRequestV1(
  * Track meter to coordinate response is only created for a valid, successfully processed request.
  * For invalid requests containing errors, see GeoJsonFeatureErrorResponseV1.
  */
-data class TrackMeterToCoordinateResponseV1(
+data class TrackAddressToCoordinateResponseV1(
     override val geometry: GeoJsonGeometryPoint,
-    override val properties: TrackMeterToCoordinateResponsePropertiesV1,
+    override val properties: TrackAddressToCoordinateResponsePropertiesV1,
 ) : GeoJsonFeature()
 
 /**
@@ -277,7 +277,7 @@ data class TrackMeterToCoordinateResponseV1(
  * @property featureMatchDataDetails Fields included in the output when responseSettings of the request contain
  *   FrameConverterResponseSettingV1.FeatureMatchDataDetails
  */
-data class TrackMeterToCoordinateResponsePropertiesV1(
+data class TrackAddressToCoordinateResponsePropertiesV1(
     @JsonProperty("tunniste") val identifier: FrameConverterIdentifierV1? = null,
     @JsonUnwrapped val featureMatchDataSimple: FeatureMatchDataSimpleV1? = null,
     @JsonUnwrapped val featureMatchDataDetails: FeatureMatchDataDetailsV1? = null,
