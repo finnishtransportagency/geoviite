@@ -1,5 +1,6 @@
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
+import fi.fta.geoviite.api.frameconverter.v1.GeocodableTrack
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.TestApi
@@ -48,14 +49,6 @@ private data class TestCoordinateToTrackAddressRequest(
     val sijaintiraide: String? = null,
     val sijaintiraide_tyyppi: String? = null,
     val palautusarvot: List<Int>? = null,
-)
-
-// TODO Pull to another file for test class multi-use
-private data class GeocodableTrack(
-    val layoutContext: LayoutContext,
-    val trackNumber: TrackLayoutTrackNumber,
-    val referenceLine: ReferenceLine,
-    val locationTrack: LocationTrack,
 )
 
 @ActiveProfiles("dev", "test", "integration-api")
@@ -348,7 +341,6 @@ class CoordinateToTrackAddressIT @Autowired constructor(
         assertEquals(identifiers[0], featureCollection.features[0].properties?.get("tunniste"), "key=tunniste")
         assertEquals(identifiers[1], featureCollection.features[1].properties?.get("tunniste"), "key=tunniste")
     }
-
 
     @Test
     fun `Basic request should default to return data with responseSettings 1 and 10`() {
