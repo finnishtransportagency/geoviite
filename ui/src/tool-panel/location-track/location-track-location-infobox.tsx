@@ -136,9 +136,15 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
     );
 
     const isDraft = layoutContext.publicationState === 'DRAFT';
+    const isMainDraft = layoutContext.branch === 'MAIN' && isDraft;
     const locationTrackIsDraft = locationTrack.editState !== 'UNEDITED';
     const duplicatesOnOtherTrackNumbers = extraInfo?.duplicates?.some(
         (duplicate) => duplicate.trackNumberId !== trackNumber?.id,
+    );
+    const duplicatesOnOtherLocationTracks = extraInfo?.duplicates?.some(
+        (duplicate) =>
+            duplicate.duplicateStatus.duplicateOfId !== undefined &&
+            duplicate.duplicateStatus.duplicateOfId !== locationTrack.id,
     );
 
     const getSplittingDisabledReasonsTranslated = () => {
@@ -167,6 +173,13 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
             reasons.push(
                 t(
                     'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
+                ),
+            );
+        }
+        if (duplicatesOnOtherLocationTracks) {
+            reasons.push(
+                t(
+                    'tool-panel.location-track.splitting.validation.duplicates-on-different-location-track',
                 ),
             );
         }
@@ -334,6 +347,7 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         !isDraft ||
         locationTrackIsDraft ||
         duplicatesOnOtherTrackNumbers ||
+        duplicatesOnOtherLocationTracks ||
         extraInfo?.partOfUnfinishedSplit ||
         startingSplitting ||
         layoutContext.branch !== 'MAIN';
@@ -441,28 +455,40 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
                             )}
                             <EnvRestricted restrictTo="test">
                                 <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                                    {isDraft &&
-                                        locationTrackIsDraft &&
-                                        !extraInfo?.partOfUnfinishedSplit && (
-                                            <InfoboxContentSpread>
-                                                <MessageBox>
-                                                    {t(
-                                                        'tool-panel.location-track.splitting.validation.track-draft-exists',
-                                                    )}
-                                                </MessageBox>
-                                            </InfoboxContentSpread>
-                                        )}
-                                    {isDraft &&
-                                        duplicatesOnOtherTrackNumbers &&
-                                        !extraInfo?.partOfUnfinishedSplit && (
-                                            <InfoboxContentSpread>
-                                                <MessageBox>
-                                                    {t(
-                                                        'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
-                                                    )}
-                                                </MessageBox>
-                                            </InfoboxContentSpread>
-                                        )}
+                                    {isMainDraft && (
+                                        <React.Fragment>
+                                            {locationTrackIsDraft &&
+                                                !extraInfo?.partOfUnfinishedSplit && (
+                                                    <InfoboxContentSpread>
+                                                        <MessageBox>
+                                                            {t(
+                                                                'tool-panel.location-track.splitting.validation.track-draft-exists',
+                                                            )}
+                                                        </MessageBox>
+                                                    </InfoboxContentSpread>
+                                                )}
+                                            {duplicatesOnOtherTrackNumbers &&
+                                                !extraInfo?.partOfUnfinishedSplit && (
+                                                    <InfoboxContentSpread>
+                                                        <MessageBox>
+                                                            {t(
+                                                                'tool-panel.location-track.splitting.validation.duplicates-on-different-track-number',
+                                                            )}
+                                                        </MessageBox>
+                                                    </InfoboxContentSpread>
+                                                )}
+                                            {duplicatesOnOtherLocationTracks &&
+                                                !extraInfo?.partOfUnfinishedSplit && (
+                                                    <InfoboxContentSpread>
+                                                        <MessageBox>
+                                                            {t(
+                                                                'tool-panel.location-track.splitting.validation.duplicates-on-different-location-track',
+                                                            )}
+                                                        </MessageBox>
+                                                    </InfoboxContentSpread>
+                                                )}
+                                        </React.Fragment>
+                                    )}
                                     <InfoboxButtons>
                                         {!linkingState && !splittingState && (
                                             <SplitButton
