@@ -1,18 +1,47 @@
 package fi.fta.geoviite.infra.linking
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.error.LinkingFailureException
+import fi.fta.geoviite.infra.geography.CoordinateTransformationException
 import fi.fta.geoviite.infra.geography.GeometryPoint
+import fi.fta.geoviite.infra.geography.isGkFinSrid
+import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
+import fi.fta.geoviite.infra.localization.LocalizationParams
+import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
-import fi.fta.geoviite.infra.switchLibrary.*
-import fi.fta.geoviite.infra.tracklayout.*
+import fi.fta.geoviite.infra.switchLibrary.ISwitchJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
+import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType
+import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.LocationTrackOwner
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
+import fi.fta.geoviite.infra.tracklayout.LocationTrackType
+import fi.fta.geoviite.infra.tracklayout.TopologicalConnectivityType
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FreeText
-import java.lang.RuntimeException
 
 enum class LocationTrackPointUpdateType {
     START_POINT, END_POINT
@@ -153,7 +182,34 @@ data class TrackLayoutKmPostSaveRequest(
     val gkLocationConfirmed: Boolean,
     val gkLocationSource: KmPostGkLocationSource?,
     val gkLocation: GeometryPoint?,
-)
+) {
+    init {
+        gkLocation?.let { location ->
+            try {
+                if (!isGkFinSrid(location.srid)) {
+                    throw LinkingFailureException(
+                        message = "Given GK location SRID is not a GK coordinate system",
+                        localizedMessageKey = "invalid-gk-srid",
+                        localizedMessageParams = localizationParams("srid" to "${location.srid.code}"),
+                    )
+                }
+                // We don't use the value here, but transform it as a form of validation
+                transformNonKKJCoordinate(location.srid, LAYOUT_SRID, location)
+            } catch (e: CoordinateTransformationException) {
+                throw LinkingFailureException(
+                    message = "Invalid GK location given for km-post",
+                    localizedMessageKey = "invalid-gk-location",
+                    localizedMessageParams = localizationParams(
+                        "x" to "${location.x}",
+                        "y" to "${location.y}",
+                        "srid" to "${location.srid.code}",
+                    ),
+                    cause = e,
+                )
+            }
+        }
+    }
+}
 
 data class KmPostLinkingParameters(
     val geometryPlanId: IntId<GeometryPlan>,

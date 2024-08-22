@@ -44,7 +44,14 @@ class LinkingFailureException(
     message: String,
     cause: Throwable? = null,
     localizedMessageKey: String = "generic",
-) : ClientException(BAD_REQUEST, "Linking failed: $message", cause, "$LOCALIZATION_KEY_BASE.$localizedMessageKey") {
+    localizedMessageParams: LocalizationParams = LocalizationParams.empty,
+) : ClientException(
+    status = BAD_REQUEST,
+    message = "Linking failed: $message",
+    cause = cause,
+    localizedMessageKey = "$LOCALIZATION_KEY_BASE.$localizedMessageKey",
+    localizedMessageParams = localizedMessageParams,
+) {
     companion object {
         const val LOCALIZATION_KEY_BASE = "error.linking"
     }

@@ -30,7 +30,9 @@
             "segments-sharp-angle": "Uudessa geometriassa on yli 90 asteen kulma",
             "plan-hidden": "Linkitystä ei voida tehdä, koska suunnitelma on poistettu",
             "unfinished-splits": "Linkitystä ei voida tehdä, koska raiteen jakaminen ei ole valmis",
-            "location-track-deleted": "Linkitystä ei voida tehdä, koska sijaintiraide on Poistettu-tilassa"
+            "location-track-deleted": "Linkitystä ei voida tehdä, koska sijaintiraide on Poistettu-tilassa",
+            "invalid-gk-srid": "Annettu koordinaattijärjestelmä (EPSG:{{srid}}) ei ole GK-koordinaattijärjestelmä",
+            "invalid-gk-location": "Sijainnin määritys on virheellinen: {{y}} N {{x}} E (EPSG:{{srid}})"
         },
         "split": {
             "source-track-state-not-in-use": "Jakamista ei voitu suorittaa, koska jaettava raide ei ole \"Käytössä\"-tilassa",
