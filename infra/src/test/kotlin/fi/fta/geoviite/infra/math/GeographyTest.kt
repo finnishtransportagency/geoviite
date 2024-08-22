@@ -4,7 +4,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geography.boundingPolygonPointsByConvexHull
 import fi.fta.geoviite.infra.geography.calculateDistance
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
-import fi.fta.geoviite.infra.geography.transformToGKCoordinate
+import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -54,7 +54,7 @@ class GeographyTest {
         // https://kartta.paikkatietoikkuna.fi converter tool, TM35FIN -> GK30
         val pointGK30 = Point(30488465.8931, 6943581.3836)
 
-        val transformedPoint = transformToGKCoordinate(Srid(3067), pointTM35FINInJoensuu)
+        val transformedPoint = transformFromLayoutToGKCoordinate(pointTM35FINInJoensuu)
         assertEquals(transformedPoint.srid, Srid(3884))
         assertApproximatelyEquals(transformedPoint, pointGK30, 0.01)
     }
@@ -66,7 +66,7 @@ class GeographyTest {
         // https://kartta.paikkatietoikkuna.fi converter tool, TM35FIN -> GK21
         val pointGK21 = Point(21522350.1588, 6836123.7529)
 
-        val transformedPoint = transformToGKCoordinate(Srid(3067), pointTM35FINInPori)
+        val transformedPoint = transformFromLayoutToGKCoordinate(pointTM35FINInPori)
         assertEquals(transformedPoint.srid, Srid(3875))
         assertApproximatelyEquals(transformedPoint, pointGK21, 0.01)
     }
@@ -77,11 +77,11 @@ class GeographyTest {
         val pointTM35FINInTooFarWest = Point(1000.0, 6765000.0)
 
         assertThrows<IllegalArgumentException> {
-            transformToGKCoordinate(Srid(3067), pointTM35FINInTooFarEast)
+            transformFromLayoutToGKCoordinate(pointTM35FINInTooFarEast)
         }
 
         assertThrows<IllegalArgumentException> {
-            transformToGKCoordinate(Srid(3067), pointTM35FINInTooFarWest)
+            transformFromLayoutToGKCoordinate(pointTM35FINInTooFarWest)
         }
     }
 

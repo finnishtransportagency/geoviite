@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.geography.TriangulationDirection.KKJ_TO_TM35FIN
 import fi.fta.geoviite.infra.geography.TriangulationDirection.TM35FIN_TO_KKJ
 import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import org.springframework.beans.factory.annotation.Autowired
 import java.util.concurrent.ConcurrentHashMap
@@ -40,4 +41,17 @@ class CoordinateTransformationService @Autowired constructor(
 
     fun transformCoordinate(sourceSrid: Srid, targetSrid: Srid, point: IPoint) =
         getTransformation(sourceSrid, targetSrid).transform(point)
+
+    fun getTransformationToGkFin(sourceSrid: Srid): ToGkFinTransformation {
+        if (isGkFinSrid(sourceSrid)) {
+            return ToGkFinTransformation { point: Point -> GeometryPoint(point, sourceSrid) }
+        }
+        val toLayout = getTransformation(sourceSrid, LAYOUT_SRID)
+        return ToGkFinTransformation { point: Point ->
+            val layoutCoord = toLayout.transform(point)
+            val etrs89Coord = transformNonKKJCoordinate(LAYOUT_SRID, ETRS89_SRID, layoutCoord)
+            val gkSrid = getFinnishGKCoordinateProjectionByLongitude(etrs89Coord.x)
+            GeometryPoint(transformNonKKJCoordinate(LAYOUT_SRID, gkSrid, layoutCoord), gkSrid)
+        }
+    }
 }

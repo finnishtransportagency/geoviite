@@ -6,12 +6,12 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.configuration.planCacheDuration
 import fi.fta.geoviite.infra.geography.CoordinateTransformationException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.HeightTriangle
 import fi.fta.geoviite.infra.geography.HeightTriangleDao
+import fi.fta.geoviite.infra.geography.ToGkFinTransformation
 import fi.fta.geoviite.infra.geography.Transformation
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
@@ -89,6 +89,8 @@ class PlanLayoutCache(
             return { null to TransformationError("srid-missing", geometryPlan.units) }
         }
         val planToLayoutTransformation = coordinateTransformationService.getTransformation(srid, LAYOUT_SRID)
+        val planToGkTransformation = coordinateTransformationService.getTransformationToGkFin(srid)
+
         val polygon = getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, planToLayoutTransformation)
 
         if (polygon.isEmpty()) {
@@ -111,7 +113,7 @@ class PlanLayoutCache(
             pointListStepLength,
             planToLayoutTransformation,
             heightTriangles,
-            srid,
+            planToGkTransformation,
             logger
         )
         // caching is optional because some callers just want the transformation, but don't have a saved plan
@@ -133,7 +135,7 @@ private fun transformToLayoutPlan(
     pointListStepLength: Int,
     planToLayoutTransformation: Transformation,
     heightTriangles: List<HeightTriangle>,
-    planSrid: Srid,
+    planToGkTransformation: ToGkFinTransformation,
     logger: Logger,
 ): Pair<GeometryPlanLayout?, TransformationError?> =
     try {
@@ -144,7 +146,7 @@ private fun transformToLayoutPlan(
             planToLayout = planToLayoutTransformation,
             includeGeometryData = includeGeometryData,
             pointListStepLength = pointListStepLength,
-            planSrid = planSrid,
+            planToGkTransformation = planToGkTransformation,
         ) to null
     } catch (e: CoordinateTransformationException) {
         logger.warn("Could not convert plan coordinates: " +

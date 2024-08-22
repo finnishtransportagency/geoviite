@@ -2,7 +2,7 @@ package fi.fta.geoviite.infra.migration
 
 import fi.fta.geoviite.infra.geography.CoordinateTransformationException
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
-import fi.fta.geoviite.infra.geography.transformToGKCoordinate
+import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
@@ -44,7 +44,7 @@ class V84__convert_km_post_locations : BaseJavaMigration() {
         """.trimIndent()
         jdbcTemplate.batchUpdate(updateSql, rows.map { (version, oldLayoutLocation) ->
             try {
-                val gkLocation = transformToGKCoordinate(LAYOUT_SRID, oldLayoutLocation)
+                val gkLocation = transformFromLayoutToGKCoordinate(oldLayoutLocation)
                 val newLayoutLocation = transformNonKKJCoordinate(gkLocation.srid, LAYOUT_SRID, gkLocation)
                 mapOf(
                     "id" to version.id.intValue,

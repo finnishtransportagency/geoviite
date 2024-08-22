@@ -61,13 +61,10 @@ fun getFinnishGKCoordinateProjectionByLongitude(longitude:Double): Srid {
     return Srid(FIN_GK19_SRID.code + longitudeRelativeToGk19)
 }
 
-fun transformToGKCoordinate(sourceSrid: Srid, point: IPoint): GeometryPoint {
-    if (isGkFinSrid(sourceSrid)) {
-        return GeometryPoint(point, sourceSrid)
-    }
-    val etrs89Coord = transformNonKKJCoordinate(sourceSrid, ETRS89_SRID, point)
+fun transformFromLayoutToGKCoordinate(point: IPoint): GeometryPoint {
+    val etrs89Coord = transformNonKKJCoordinate(LAYOUT_SRID, ETRS89_SRID, point)
     val gkSrid = getFinnishGKCoordinateProjectionByLongitude(etrs89Coord.x)
-    val gkPoint = transformNonKKJCoordinate(sourceSrid, gkSrid, point)
+    val gkPoint = transformNonKKJCoordinate(LAYOUT_SRID, gkSrid, point)
     return GeometryPoint(gkPoint.x, gkPoint.y, gkSrid)
 }
 
@@ -237,4 +234,8 @@ data class TM35FINToKKJTransformation(
     override fun transformJtsInternal(point: JtsPoint): JtsPoint = point
         .let(tm35FinToYkjTriangulation::transformJts)
         .let(ykjToKkj::transformJts)
+}
+
+fun interface ToGkFinTransformation {
+    fun transform(point: Point): GeometryPoint
 }

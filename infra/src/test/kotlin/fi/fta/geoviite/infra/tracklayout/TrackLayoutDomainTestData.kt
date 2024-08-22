@@ -9,17 +9,14 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
-import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
-import fi.fta.geoviite.infra.geography.ETRS89_SRID
 import fi.fta.geoviite.infra.geography.GeometryPoint
-import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
-import fi.fta.geoviite.infra.geography.transformToGKCoordinate
+import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.geometry.GeometryElement
 import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.MetaDataName
@@ -52,7 +49,6 @@ import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
 import fi.fta.geoviite.infra.util.FreeText
 import java.time.LocalDate
 import kotlin.math.ceil
-import kotlin.math.round
 import kotlin.random.Random
 import kotlin.random.Random.Default.nextInt
 
@@ -963,7 +959,7 @@ fun kmPost(
         sourceId = sourceId,
         contextData = contextData,
         gkLocation = if (gkLocation == null && roughLayoutLocation != null) {
-            transformToGKCoordinate(LAYOUT_SRID, roughLayoutLocation)
+            transformFromLayoutToGKCoordinate(roughLayoutLocation)
         } else gkLocation,
         gkLocationConfirmed = gkLocationConfirmed,
         gkLocationSource = gkLocationSource,
