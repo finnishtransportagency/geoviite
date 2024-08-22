@@ -1203,7 +1203,7 @@ class PublicationService @Autowired constructor(
             )
         ),
         compareChangeValues(
-            changes.gkLocation, ::formatGkLocation, PropKey("gk-location")
+            changes.gkLocation, { formatGkLocation(it, crsNameGetter) }, PropKey("gk-location")
         ),
         compareChangeValues(
             changes.gkSrid, { crsNameGetter(it) }, PropKey("gk-srid")

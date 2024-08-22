@@ -281,7 +281,7 @@
         "gk-location-source": {
             "FROM_GEOMETRY": "Linkitetty geometriasta",
             "FROM_LAYOUT": "Konvertoitu paikannuspohjasta",
-            "MANUAL": "Asetettu suoraan"
+            "MANUAL": "Operaattorin asettama"
         }
     },
     "environment": {
@@ -477,7 +477,7 @@
                     "source": "Sijainnin lähde",
                     "source-from-geometry": "Linkitetty suunnitelmasta",
                     "source-from-layout": "Konvertoitu paikannuspohjasta",
-                    "source-manual": "Asetettu suoraan"
+                    "source-manual": "Operaattorin asettama"
                 },
                 "change-info-heading": "Lokitiedot",
                 "no-kilometer-length": "Pituutta ei voida laskea",
@@ -1779,7 +1779,7 @@
             "source": "Sijainnin lähde",
             "source-from-geometry": "Linkitetty geometriasta",
             "source-from-layout": "Konvertoitu paikannuspohjasta",
-            "source-manual": "Asetettu suoraan",
+            "source-manual": "Operaattorin asettama",
             "location-in-layout": "Sijainti paikannuspohjassa (TM35FIN)"
         }
     },

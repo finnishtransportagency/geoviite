@@ -960,7 +960,7 @@ class PublicationDao(
                 trackNumberId = rs.getChange("track_number_id", rs::getIntIdOrNull),
                 state = rs.getChange("state") { rs.getEnumOrNull<LayoutState>(it) },
                 location = rs.getChangePoint("point_x", "point_y"),
-                gkLocation = rs.getChangePoint("gk_point_x", "gk_point_y"),
+                gkLocation = rs.getChangeGeometryPoint("gk_point_x", "gk_point_y", "gk_srid"),
                 gkSrid = rs.getChange("gk_srid", rs::getSridOrNull),
                 gkLocationConfirmed = rs.getChange("gk_location_confirmed", rs::getBooleanOrNull),
                 gkLocationSource = rs.getChange("gk_location_source") { rs.getEnumOrNull<KmPostGkLocationSource>(it) }

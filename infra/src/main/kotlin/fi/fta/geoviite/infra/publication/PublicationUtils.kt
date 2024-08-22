@@ -183,11 +183,11 @@ fun formatLocation(location: IPoint) = "${roundTo3Decimals(location.x)} E, ${
         location.y
     )
 } N"
-fun formatGkLocation(location: IPoint) = "${roundTo3Decimals(location.y)} N, ${
+fun formatGkLocation(location: GeometryPoint, crsNameGetter: (srid: Srid) -> String) = "${roundTo3Decimals(location.y)} N, ${
     roundTo3Decimals(
         location.x
     )
-} E"
+} E (${crsNameGetter(location.srid)})"
 
 const val DISTANCE_CHANGE_THRESHOLD = 0.0005
 
