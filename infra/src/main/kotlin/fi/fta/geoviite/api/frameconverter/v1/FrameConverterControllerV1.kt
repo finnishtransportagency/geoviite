@@ -94,9 +94,7 @@ class FrameConverterControllerV1 @Autowired constructor(
         method = [RequestMethod.GET, RequestMethod.POST],
         params = ["!json"],
     )
-    fun invalidRequest(
-        @RequestParam params: Map<String, String?>,
-    ): GeoJsonFeatureCollection {
+    fun invalidRequest(): GeoJsonFeatureCollection {
         return GeoJsonFeatureCollection(
             features = GeoJsonFeatureErrorResponseV1(
                 identifier = null,
