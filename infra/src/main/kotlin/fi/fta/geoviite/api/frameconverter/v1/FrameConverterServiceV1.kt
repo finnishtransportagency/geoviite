@@ -73,17 +73,17 @@ class FrameConverterServiceV1 @Autowired constructor(
             geocodingContext?.trackNumber to geocodingContext?.getAddressAndM(searchPoint)
         }
 
-        if (trackNumber == null || geocodedAddress == null) {
-            return createErrorResponse(request.identifier, "address-geocoding-failed")
+        return if (trackNumber == null || geocodedAddress == null) {
+            createErrorResponse(request.identifier, "address-geocoding-failed")
+        } else {
+            createCoordinateToTrackAddressResponse(
+                layoutContext,
+                request,
+                nearestMatch,
+                trackNumber,
+                geocodedAddress,
+            )
         }
-
-        return createCoordinateToTrackAddressResponse(
-            layoutContext,
-            request,
-            nearestMatch,
-            trackNumber,
-            geocodedAddress,
-        )
     }
 
     fun trackAddressToCoordinate(
@@ -312,17 +312,13 @@ class FrameConverterServiceV1 @Autowired constructor(
             nearestMatch.distanceToClosestPoint,
         )
 
-        val conversionDetails =
-            if (FrameConverterResponseSettingV1.FeatureMatchDataDetails in request.responseSettings) {
-                createDetailedFeatureMatchData(
-                    layoutContext,
-                    nearestMatch.locationTrack,
-                    trackNumber,
-                    geocodedAddress.address
-                )
-            } else {
-                null
-            }
+        val conversionDetails = createDetailedFeatureMatchDataOrNull(
+            request.responseSettings,
+            layoutContext,
+            nearestMatch.locationTrack,
+            trackNumber,
+            geocodedAddress.address,
+        )
 
         return listOf(
             CoordinateToTrackAddressResponseV1(
@@ -350,17 +346,13 @@ class FrameConverterServiceV1 @Autowired constructor(
             distanceToClosestPoint = 0.0, // The point should be directly on the track so there's no distance to it.
         )
 
-        val conversionDetails =
-            if (FrameConverterResponseSettingV1.FeatureMatchDataDetails in request.responseSettings) {
-                createDetailedFeatureMatchData(
-                    layoutContext,
-                    locationTrack,
-                    request.trackNumber.number,
-                    addressPoint.address
-                )
-            } else {
-                null
-            }
+        val conversionDetails = createDetailedFeatureMatchDataOrNull(
+            request.responseSettings,
+            layoutContext,
+            locationTrack,
+            request.trackNumber.number,
+            addressPoint.address
+        )
 
         return TrackAddressToCoordinateResponseV1(
             geometry = featureGeometry,
@@ -372,30 +364,35 @@ class FrameConverterServiceV1 @Autowired constructor(
         )
     }
 
-    private fun createDetailedFeatureMatchData(
+    private fun createDetailedFeatureMatchDataOrNull(
+        responseSettings: FrameConverterResponseSettingsV1,
         layoutContext: LayoutContext,
         locationTrack: LocationTrack,
         trackNumber: TrackNumber,
         trackMeter: TrackMeter,
-    ): FeatureMatchDataDetailsV1 {
-        val locationTrackDescription = locationTrackService.getFullDescription(
-            layoutContext = layoutContext,
-            locationTrack = locationTrack,
-            LocalizationLanguage.FI,
-        )
+    ): FeatureMatchDataDetailsV1? {
+        return if (FrameConverterResponseSettingV1.FeatureMatchDataDetails in responseSettings) {
+            val locationTrackDescription = locationTrackService.getFullDescription(
+                layoutContext = layoutContext,
+                locationTrack = locationTrack,
+                LocalizationLanguage.FI,
+            )
 
-        val (trackMeterIntegers, trackMeterDecimals) = splitBigDecimal(trackMeter.meters)
-        val translatedLocationTrackType = translateLocationTrackType(locationTrack).lowercase()
+            val (trackMeterIntegers, trackMeterDecimals) = splitBigDecimal(trackMeter.meters)
+            val translatedLocationTrackType = translateLocationTrackType(locationTrack).lowercase()
 
-        return FeatureMatchDataDetailsV1(
-            trackNumber = trackNumber,
-            locationTrackName = locationTrack.name,
-            locationTrackDescription = locationTrackDescription,
-            translatedLocationTrackType = translatedLocationTrackType,
-            kmNumber = trackMeter.kmNumber.number,
-            trackMeter = trackMeterIntegers,
-            trackMeterDecimals = trackMeterDecimals,
-        )
+            FeatureMatchDataDetailsV1(
+                trackNumber = trackNumber,
+                locationTrackName = locationTrack.name,
+                locationTrackDescription = locationTrackDescription,
+                translatedLocationTrackType = translatedLocationTrackType,
+                kmNumber = trackMeter.kmNumber.number,
+                trackMeter = trackMeterIntegers,
+                trackMeterDecimals = trackMeterDecimals,
+            )
+        } else {
+            null
+        }
     }
 }
 
