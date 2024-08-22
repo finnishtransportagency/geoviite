@@ -59,7 +59,7 @@ class FrameConverterControllerV1 @Autowired constructor(
         val parsedRequests = requests ?: emptyList()
 
         return GeoJsonFeatureCollection(
-            features = parsedRequests.flatMap(this::processRequest),
+            features = parsedRequests.flatMap(::processRequest),
         )
     }
 
