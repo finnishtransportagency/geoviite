@@ -5,8 +5,9 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.error.LinkingFailureException
+import fi.fta.geoviite.infra.geography.CoordinateTransformationService
 import fi.fta.geoviite.infra.geography.calculateDistance
-import fi.fta.geoviite.infra.geography.transformToGKCoordinate
+import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
@@ -51,6 +52,7 @@ class LinkingService @Autowired constructor(
     private val layoutKmPostService: LayoutKmPostService,
     private val linkingDao: LinkingDao,
     private val splitService: SplitService,
+    private val coordinateTransformationService: CoordinateTransformationService,
 ) {
 
     fun getSuggestedAlignments(
@@ -233,7 +235,8 @@ class LinkingService @Autowired constructor(
 
         val layoutKmPost = layoutKmPostService.getOrThrow(branch.draft, parameters.layoutKmPostId)
 
-        val newGkLocation = transformToGKCoordinate(kmPostSrid, geometryKmPost.location)
+        val newGkLocation =
+            coordinateTransformationService.getTransformationToGkFin(kmPostSrid).transform(geometryKmPost.location)
         val modifiedLayoutKmPost = layoutKmPost.copy(
             gkLocation = newGkLocation,
             gkLocationSource = KmPostGkLocationSource.FROM_GEOMETRY,

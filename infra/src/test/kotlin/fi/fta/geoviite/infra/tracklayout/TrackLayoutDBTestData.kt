@@ -3,7 +3,7 @@ package fi.fta.geoviite.infra.tracklayout
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
-import fi.fta.geoviite.infra.geography.transformToGKCoordinate
+import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.IPoint3DM
 import fi.fta.geoviite.infra.math.Point
@@ -14,7 +14,7 @@ fun moveKmPostLocation(
     layoutLocation: Point,
     kmPostService: LayoutKmPostService,
 ) {
-    val gkPoint = transformToGKCoordinate(LAYOUT_SRID, layoutLocation)
+    val gkPoint = transformFromLayoutToGKCoordinate(layoutLocation)
     kmPostService.saveDraft(
         LayoutBranch.main, kmPost.copy(gkLocation = gkPoint)
     )

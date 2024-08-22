@@ -8,7 +8,7 @@ import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
-import fi.fta.geoviite.infra.geography.transformToGKCoordinate
+import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
@@ -159,7 +159,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 gkLocationLinkedFromGeometry = false,
             ), kmLengths[1].copy(gkLocation = null)
         )
-        assertApproximatelyEquals(transformToGKCoordinate(LAYOUT_SRID, kmPostLocation1!!), kmLengths[1].gkLocation!!, 0.01)
+        assertApproximatelyEquals(transformFromLayoutToGKCoordinate(kmPostLocation1!!), kmLengths[1].gkLocation!!, 0.01)
 
         val kmPostLocation2 = kmPostDao.fetch(kmPostVersions[1]).layoutLocation
         assertEquals(
@@ -176,7 +176,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
                 gkLocationLinkedFromGeometry = false,
             ), kmLengths[2].copy(gkLocation = null)
         )
-        assertApproximatelyEquals(transformToGKCoordinate(LAYOUT_SRID, kmPostLocation2!!), kmLengths[2].gkLocation!!, 0.01)
+        assertApproximatelyEquals(transformFromLayoutToGKCoordinate(kmPostLocation2!!), kmLengths[2].gkLocation!!, 0.01)
     }
 
     @Test
@@ -256,7 +256,7 @@ class LayoutTrackNumberServiceIT @Autowired constructor(
             ),
             kmLengths.last().copy(gkLocation = null),
         )
-        assertApproximatelyEquals(transformToGKCoordinate(LAYOUT_SRID, kmPostLocation!!), kmLengths.last().gkLocation!!, 0.01)
+        assertApproximatelyEquals(transformFromLayoutToGKCoordinate(kmPostLocation!!), kmLengths.last().gkLocation!!, 0.01)
     }
 
     fun createTrackNumberAndReferenceLineAndAlignment(): Triple<TrackLayoutTrackNumber, ReferenceLine, LayoutAlignment> {
