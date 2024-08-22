@@ -101,24 +101,6 @@ export const KmPostEditDialogGkLocationSection: React.FC<
         state.kmPost.gkLocationX,
         state.kmPost.gkLocationY,
     );
-    // const layoutLocation =
-    //     gkCoordinateSystem === undefined || !gkLocationEntered
-    //         ? undefined
-    //         : (() => {
-    //               try {
-    //                   const projection = GK_FIN_COORDINATE_SYSTEMS.find(
-    //                       ([srid]) => srid === gkCoordinateSystem.srid,
-    //                   )?.[1];
-    //                   return projection === undefined
-    //                       ? undefined
-    //                       : proj4(projection, LAYOUT_SRID).forward({
-    //                             x: parseFloat(state.kmPost.gkLocationX),
-    //                             y: parseFloat(state.kmPost.gkLocationY),
-    //                         });
-    //               } catch (e) {
-    //                   return undefined;
-    //               }
-    //           })();
 
     const coordinateSystems = useCoordinateSystems(GK_FIN_COORDINATE_SYSTEMS.map(([srid]) => srid));
 
