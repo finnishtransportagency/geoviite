@@ -511,7 +511,7 @@ data class KmPostChanges(
     val kmNumber: Change<KmNumber>,
     val state: Change<LayoutState>,
     val location: Change<Point>,
-    val gkLocation: Change<GeometryPoint>,
+    val gkLocation: Change<Point>,
     val gkSrid: Change<Srid>,
     val gkLocationSource: Change<KmPostGkLocationSource>,
     val gkLocationConfirmed: Change<Boolean>,

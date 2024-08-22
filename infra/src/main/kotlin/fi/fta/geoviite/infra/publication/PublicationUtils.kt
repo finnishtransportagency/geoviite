@@ -178,16 +178,16 @@ private fun getComparator(sortBy: PublicationTableColumn): Comparator<Publicatio
     }
 }
 
-fun formatLocation(location: Point) = "${roundTo3Decimals(location.x)} E, ${
+fun formatLocation(location: IPoint) = "${roundTo3Decimals(location.x)} E, ${
     roundTo3Decimals(
         location.y
     )
 } N"
-fun formatGkLocation(location: GeometryPoint, crsNameGetter: (srid: Srid) -> String) = "${roundTo3Decimals(location.x)} E, ${
+fun formatGkLocation(location: IPoint) = "${roundTo3Decimals(location.y)} N, ${
     roundTo3Decimals(
-        location.y
+        location.x
     )
-} N (${crsNameGetter(location.srid)})"
+} E"
 
 const val DISTANCE_CHANGE_THRESHOLD = 0.0005
 
