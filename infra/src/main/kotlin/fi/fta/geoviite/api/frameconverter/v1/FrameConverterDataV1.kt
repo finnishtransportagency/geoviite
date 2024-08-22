@@ -229,11 +229,11 @@ data class TrackAddressToCoordinateRequestV1(
 
     @JsonProperty("sijaintiraide")
     @JsonDeserialize(using = FrameConverterStringDeserializerV1::class)
-    val locationTrackName: FrameConverterStringV1? = null, // Filter by location track name.
+    val locationTrackName: FrameConverterStringV1? = null,
 
     @JsonProperty("sijaintiraide_tyyppi")
     @JsonDeserialize(using = FrameConverterLocationTrackTypeDeserializerV1::class)
-    val locationTrackType: FrameConverterLocationTrackTypeV1? = null, // Filter by location track type.
+    val locationTrackType: FrameConverterLocationTrackTypeV1? = null,
 
     @JsonProperty("palautusarvot")
     @JsonDeserialize(using = FrameConverterResponseSettingsDeserializerV1::class)
