@@ -141,7 +141,9 @@ export const LocationTrackLocationInfobox: React.FC<LocationTrackLocationInfobox
         (duplicate) => duplicate.trackNumberId !== trackNumber?.id,
     );
     const duplicatesOnOtherLocationTracks = extraInfo?.duplicates?.some(
-        (duplicate) => duplicate.duplicateStatus.duplicateOfId !== locationTrack.id,
+        (duplicate) =>
+            duplicate.duplicateStatus.duplicateOfId !== undefined &&
+            duplicate.duplicateStatus.duplicateOfId !== locationTrack.id,
     );
 
     const getSplittingDisabledReasonsTranslated = () => {

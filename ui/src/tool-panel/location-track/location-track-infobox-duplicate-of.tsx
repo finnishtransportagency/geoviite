@@ -13,6 +13,7 @@ import { useLocationTracks, useTrackNumbers } from 'track-layout/track-layout-re
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
 import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
+import { PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS } from 'tool-panel/location-track/split-store';
 
 export type LocationTrackInfoboxDuplicateOfProps = {
     layoutContext: LayoutContext;
@@ -30,15 +31,16 @@ const getTrackNumberName = (
 
 const LocationTrackDuplicateInfoIcon: React.FC<{
     msg?: string | undefined;
-    type: 'INFO' | 'ERROR';
+    type: 'INFO' | 'WARNING' | 'ERROR';
 }> = ({ type = 'INFO' }) => {
     return (
         <span
             className={createClassName(
                 styles['location-track-infobox-duplicate-of__icon'],
+                type === 'WARNING' && styles['location-track-infobox-duplicate-of__icon--warning'],
                 type === 'ERROR' && styles['location-track-infobox-duplicate-of__icon--error'],
             )}>
-            {type === 'ERROR' ? (
+            {type === 'ERROR' || type === 'WARNING' ? (
                 <Icons.StatusError color={IconColor.INHERIT} size={IconSize.SMALL} />
             ) : (
                 <Icons.Info color={IconColor.INHERIT} size={IconSize.SMALL} />
@@ -47,7 +49,7 @@ const LocationTrackDuplicateInfoIcon: React.FC<{
     );
 };
 
-type NoticeLevel = 'ERROR' | 'INFO';
+type NoticeLevel = 'ERROR' | 'WARNING' | 'INFO';
 type LocationTrackDuplicateNotice = {
     translationKey: string;
     translationParams: object;
@@ -90,8 +92,38 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
     ) : duplicatesOfLocationTrack ? (
         <ul className={styles['location-track-infobox-duplicate-of__ul']}>
             {duplicatesOfLocationTrack.filter(filterUniqueById((d) => d.id)).map((duplicate) => {
+                const isFullButNotMarkedDuplicate =
+                    duplicate.duplicateStatus.match === 'FULL' &&
+                    duplicate.duplicateStatus.duplicateOfId == undefined;
+
+                const isPartialDuplicate = duplicate.duplicateStatus.match === 'PARTIAL';
+                const overLappingLength = duplicate.duplicateStatus.overlappingLength;
+                const nonOverlappingLength =
+                    (duplicate.length != undefined &&
+                        overLappingLength != undefined &&
+                        duplicate.length - overLappingLength) ||
+                    undefined;
+                const shortNonOverlappingLength =
+                    nonOverlappingLength != undefined &&
+                    nonOverlappingLength <
+                        PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS;
+
                 const notices: LocationTrackDuplicateNotice[] = [
-                    duplicate.duplicateStatus.duplicateOfId == undefined
+                    isPartialDuplicate &&
+                    overLappingLength !== undefined &&
+                    nonOverlappingLength !== undefined
+                        ? {
+                              translationKey:
+                                  'tool-panel.location-track.is-partial-duplicate-tooltip',
+                              translationParams: {
+                                  trackName: duplicate.name,
+                                  overlappingLength: overLappingLength.toFixed(1),
+                                  nonOverlappingLength: nonOverlappingLength.toFixed(1),
+                              },
+                              level: 'INFO' as NoticeLevel,
+                          }
+                        : undefined,
+                    isFullButNotMarkedDuplicate
                         ? {
                               translationKey:
                                   'tool-panel.location-track.implicit-duplicate-tooltip',
@@ -100,6 +132,17 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
                                   otherTrackName: targetLocationTrack.name,
                               },
                               level: 'INFO' as NoticeLevel,
+                          }
+                        : undefined,
+                    shortNonOverlappingLength && nonOverlappingLength != undefined
+                        ? {
+                              translationKey:
+                                  'tool-panel.location-track.short-non-overlapping-length-warning',
+                              translationParams: {
+                                  trackName: duplicate.name,
+                                  nonOverlappingLength: nonOverlappingLength.toFixed(1),
+                              },
+                              level: 'WARNING' as NoticeLevel,
                           }
                         : undefined,
                     currentTrackNumberId !== duplicate.trackNumberId
@@ -146,6 +189,9 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
                 const errors = notices
                     .filter((n) => n.level === 'ERROR')
                     .map((n) => t(n.translationKey, { ...n.translationParams }));
+                const warnings = notices
+                    .filter((n) => n.level === 'WARNING')
+                    .map((n) => t(n.translationKey, { ...n.translationParams }));
                 const infos = notices
                     .filter((n) => n.level === 'INFO')
                     .map((n) => t(n.translationKey, { ...n.translationParams }));
@@ -156,6 +202,12 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
                           '\n' +
                           errors.map((err) => `- ${err}`).join('\n')
                         : undefined;
+                const warningsString =
+                    warnings.length > 0
+                        ? t('tool-panel.location-track.warnings', { count: warnings.length }) +
+                          '\n' +
+                          warnings.map((warning) => `- ${warning}`).join('\n')
+                        : undefined;
                 const infosString =
                     infos.length > 0
                         ? t('tool-panel.location-track.infos', { count: infos.length }) +
@@ -165,31 +217,28 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
 
                 const noticeListingTooltip =
                     t('tool-panel.location-track.location-track', { trackName: duplicate.name }) +
-                    (errorsString ? `\n${errorsString}` : '') +
-                    (errorsString && infosString ? '\n' : '') +
-                    (infosString ? `\n${infosString}` : '');
+                    [errorsString, warningsString, infosString]
+                        .filter(filterNotEmpty)
+                        .map((str) => `\n\n${str}`)
+                        .join('');
+
+                const iconType =
+                    errors.length > 0 ? 'ERROR' : warnings.length > 0 ? 'WARNING' : 'INFO';
 
                 return (
                     <li key={duplicate.id}>
-                        <span title={notices.length ? noticeListingTooltip : ''}>
+                        <span
+                            className={
+                                styles['location-track-infobox-duplicate-of__duplicate-track']
+                            }
+                            title={notices.length ? noticeListingTooltip : ''}>
                             <LocationTrackLink
                                 locationTrackId={duplicate.id}
                                 locationTrackName={duplicate.name}
                             />
-                            <span
-                                className={
-                                    styles['location-track-infobox-duplicate-of__info-icons']
-                                }>
-                                {notices.length > 0 && (
-                                    <LocationTrackDuplicateInfoIcon
-                                        type={
-                                            notices.some((n) => n.level === 'ERROR')
-                                                ? 'ERROR'
-                                                : 'INFO'
-                                        }
-                                    />
-                                )}
-                            </span>
+                            {notices.length > 0 && (
+                                <LocationTrackDuplicateInfoIcon type={iconType} />
+                            )}
                         </span>
                     </li>
                 );

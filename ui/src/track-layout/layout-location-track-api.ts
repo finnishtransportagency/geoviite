@@ -83,6 +83,7 @@ export type SplitDuplicate = {
     name: string;
     start: AddressPoint;
     end: AddressPoint;
+    length: number;
     status: DuplicateStatus;
 };
 
