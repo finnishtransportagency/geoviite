@@ -143,10 +143,14 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
                         })()}
                     </span>
                 </span>
-                {design && (
-                    <span className={styles['publication-list-item__design-name']}>{design}: </span>
-                )}
-                <span>{publication.message}</span>
+                <span>
+                    {design && (
+                        <span className={styles['publication-list-item__design-name']}>
+                            {`${design}:`}
+                        </span>
+                    )}
+                    {publication.message}
+                </span>
             </div>
             {publication.split && (
                 <div className={styles['publication-list-item__split']}>

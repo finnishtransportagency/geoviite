@@ -28,15 +28,15 @@ type LocationTrackDuplicateNotice = {
 };
 
 export const LocationTrackDuplicateInfoIcon: React.FC<{
-    type: NoticeLevel;
-}> = ({ type }) => {
+    level: NoticeLevel;
+}> = ({ level }) => {
     return (
         <span
             className={createClassName(
                 styles['location-track-infobox-duplicate-of__icon'],
-                type === 'ERROR' && styles['location-track-infobox-duplicate-of__icon--error'],
+                level === 'ERROR' && styles['location-track-infobox-duplicate-of__icon--error'],
             )}>
-            {type === 'ERROR' ? (
+            {level === 'ERROR' ? (
                 <Icons.StatusError color={IconColor.INHERIT} size={IconSize.SMALL} />
             ) : (
                 <Icons.Info color={IconColor.INHERIT} size={IconSize.SMALL} />
@@ -192,7 +192,7 @@ export const LocationTrackInfoboxDuplicateTrackEntry: React.FC<
                 <span className={styles['location-track-infobox-duplicate-of__info-icons']}>
                     {notices.length > 0 && (
                         <LocationTrackDuplicateInfoIcon
-                            type={notices.some((n) => n.level === 'ERROR') ? 'ERROR' : 'INFO'}
+                            level={notices.some((n) => n.level === 'ERROR') ? 'ERROR' : 'INFO'}
                         />
                     )}
                 </span>
