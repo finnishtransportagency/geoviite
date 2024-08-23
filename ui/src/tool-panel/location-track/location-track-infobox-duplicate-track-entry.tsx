@@ -45,7 +45,7 @@ export const LocationTrackDuplicateInfoIcon: React.FC<{
     );
 };
 
-function checkAndNotifyImplicitDuplicate(
+function validateIsExplicitDuplicate(
     duplicate: LocationTrackDuplicate,
     targetLocationTrackName: string,
 ): LocationTrackDuplicateNotice | undefined {
@@ -63,7 +63,7 @@ function checkAndNotifyImplicitDuplicate(
     }
 }
 
-function checkAndNotifyLocationTrackOnDifferentTrackNumber(
+function validateExplicitDuplicateOnSameTrackNumber(
     currentTrackNumberId: LayoutTrackNumberId | undefined,
     duplicate: LocationTrackDuplicate,
     trackNumbers: LayoutTrackNumber[] | undefined,
@@ -81,7 +81,7 @@ function checkAndNotifyLocationTrackOnDifferentTrackNumber(
     }
 }
 
-function checkAndNotifyOverlappingDuplicateOfDifferentLocationTrack(
+function validateExplicitDuplicateOfThisLocationTrack(
     targetLocationTrack: LayoutLocationTrack,
     duplicate: LocationTrackDuplicate,
     explicitDuplicateLocationTrackNames: LayoutLocationTrack[],
@@ -107,7 +107,7 @@ function checkAndNotifyOverlappingDuplicateOfDifferentLocationTrack(
     }
 }
 
-function checkAndNotifyNonOverlappingDuplicate(
+function validateDuplicateHasOverlappingGeometry(
     duplicate: LocationTrackDuplicate,
     targetLocationTrack: LayoutLocationTrack,
 ): LocationTrackDuplicateNotice | undefined {
@@ -137,18 +137,14 @@ export const LocationTrackInfoboxDuplicateTrackEntry: React.FC<
     const { t } = useTranslation();
 
     const notices: LocationTrackDuplicateNotice[] = [
-        checkAndNotifyImplicitDuplicate(duplicate, targetLocationTrack.name),
-        checkAndNotifyLocationTrackOnDifferentTrackNumber(
-            currentTrackNumberId,
-            duplicate,
-            trackNumbers,
-        ),
-        checkAndNotifyOverlappingDuplicateOfDifferentLocationTrack(
+        validateIsExplicitDuplicate(duplicate, targetLocationTrack.name),
+        validateExplicitDuplicateOnSameTrackNumber(currentTrackNumberId, duplicate, trackNumbers),
+        validateExplicitDuplicateOfThisLocationTrack(
             targetLocationTrack,
             duplicate,
             explicitDuplicateLocationTrackNames,
         ),
-        checkAndNotifyNonOverlappingDuplicate(duplicate, targetLocationTrack),
+        validateDuplicateHasOverlappingGeometry(duplicate, targetLocationTrack),
     ].filter(filterNotEmpty);
 
     const createNoticeTooltipFragmentByLevel = (
