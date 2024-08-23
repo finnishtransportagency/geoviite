@@ -27,6 +27,7 @@ import { useTrackLayoutAppSelector } from 'store/hooks';
 import { useTranslation } from 'react-i18next';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { validationIssueIsError } from 'publication/publication-model';
 
 type SwitchRelinkingValidationTaskListProps = {
     layoutContext: LayoutContext;
@@ -165,8 +166,8 @@ const SwitchRelinkingValidationTaskList: React.FC<SwitchRelinkingValidationTaskL
                                 );
 
                                 const errors =
-                                    switchRelinkingResult?.validationIssues?.filter(
-                                        (e) => e.type === 'ERROR',
+                                    switchRelinkingResult?.validationIssues?.filter((e) =>
+                                        validationIssueIsError(e.type),
                                     ) ?? [];
 
                                 const title = errors

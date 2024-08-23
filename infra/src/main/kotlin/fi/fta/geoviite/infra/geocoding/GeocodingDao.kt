@@ -192,23 +192,23 @@ class GeocodingDao(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         versions: ValidationVersions,
     ): GeocodingContextCacheKey? {
-        val official = getLayoutGeocodingContextCacheKey(versions.branch.official, trackNumberId)
+        val base = getLayoutGeocodingContextCacheKey(versions.target.baseContext, trackNumberId)
         val trackNumberVersion =
-            versions.findTrackNumber(trackNumberId)?.validatedAssetVersion ?: official?.trackNumberVersion
+            versions.findTrackNumber(trackNumberId)?.validatedAssetVersion ?: base?.trackNumberVersion
         // We have to fetch the actual objects (reference line & km-post) here to check references
         // However, when this is done, the objects are needed elsewhere as well -> they should
         // always be in cache
         val referenceLineVersion =
             versions.referenceLines
                 .find { v -> referenceLineDao.fetch(v.validatedAssetVersion).trackNumberId == trackNumberId }
-                ?.validatedAssetVersion ?: official?.referenceLineVersion
+                ?.validatedAssetVersion ?: base?.referenceLineVersion
         return if (trackNumberVersion != null && referenceLineVersion != null) {
             val mainOrDesignOfficialRowIdsWithDraftKmPosts =
                 versions.kmPosts
                     .map { v -> kmPostDao.fetch(v.validatedAssetVersion) }
                     .flatMap { draft -> listOfNotNull(draft.contextData.designRowId, draft.contextData.officialRowId) }
             val officialKmPosts =
-                official?.kmPostVersions?.filter { v -> !mainOrDesignOfficialRowIdsWithDraftKmPosts.contains(v.rowId) }
+                base?.kmPostVersions?.filter { v -> !mainOrDesignOfficialRowIdsWithDraftKmPosts.contains(v.rowId) }
                     ?: listOf()
             val draftKmPosts =
                 versions.kmPosts

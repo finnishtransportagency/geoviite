@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.integration.CalculatedChanges
@@ -353,37 +354,33 @@ constructor(
                     draft = true,
                 )
             )
+        val target = draftTransitionOrOfficialState(PublicationState.DRAFT, LayoutBranch.main)
         assertEquals(
             setOf(officialLinkedAlignment, draftLinkedAlignment),
-            publicationDao.fetchLinkedLocationTracks(LayoutBranch.main, listOf(switchByAlignment))[switchByAlignment],
+            publicationDao.fetchLinkedLocationTracks(target, listOf(switchByAlignment))[switchByAlignment],
         )
         assertEquals(
             setOf(officialLinkedAlignment),
-            publicationDao
-                .fetchLinkedLocationTracks(LayoutBranch.main, listOf(switchByAlignment), listOf())[switchByAlignment],
+            publicationDao.fetchLinkedLocationTracks(target, listOf(switchByAlignment), listOf())[switchByAlignment],
         )
         assertEquals(
             setOf(officialLinkedAlignment, draftLinkedAlignment),
             publicationDao
-                .fetchLinkedLocationTracks(
-                    LayoutBranch.main,
-                    listOf(switchByAlignment),
-                    listOf(draftLinkedAlignment.id),
-                )[switchByAlignment],
+                .fetchLinkedLocationTracks(target, listOf(switchByAlignment), listOf(draftLinkedAlignment.id))[
+                    switchByAlignment],
         )
         assertEquals(
             setOf(officialLinkedTopo, draftLinkedTopo),
-            publicationDao.fetchLinkedLocationTracks(LayoutBranch.main, listOf(switchByTopo))[switchByTopo],
+            publicationDao.fetchLinkedLocationTracks(target, listOf(switchByTopo))[switchByTopo],
         )
         assertEquals(
             setOf(officialLinkedTopo),
-            publicationDao.fetchLinkedLocationTracks(LayoutBranch.main, listOf(switchByTopo), listOf())[switchByTopo],
+            publicationDao.fetchLinkedLocationTracks(target, listOf(switchByTopo), listOf())[switchByTopo],
         )
         assertEquals(
             setOf(officialLinkedTopo, draftLinkedTopo),
             publicationDao
-                .fetchLinkedLocationTracks(LayoutBranch.main, listOf(switchByTopo), listOf(draftLinkedTopo.id))[
-                    switchByTopo],
+                .fetchLinkedLocationTracks(target, listOf(switchByTopo), listOf(draftLinkedTopo.id))[switchByTopo],
         )
     }
 

@@ -15,8 +15,10 @@ import {
 } from 'common/change-time-api';
 import {
     LayoutValidationIssue,
+    LayoutValidationIssueType,
     PublicationCandidate,
     PublicationResult,
+    validationIssueIsError,
 } from 'publication/publication-model';
 import { OnSelectFunction } from 'selection/selection-model';
 import { LayoutContext } from 'common/common-model';
@@ -48,9 +50,23 @@ function publishErrors(publishCandidates: PublicationCandidate[]): LayoutValidat
     return publishCandidates.flatMap((candidate) => candidate.issues);
 }
 
+function checkStagedCandidateValidation(
+    stagedPublicationCandidates: PublicationCandidate[],
+    designPublicationMode: DesignPublicationMode,
+): boolean {
+    const disablesPublication: (issue: LayoutValidationIssueType) => boolean =
+        designPublicationMode === 'MERGE_TO_MAIN' ? (t) => t === 'FATAL' : validationIssueIsError;
+    return (
+        publishErrors(stagedPublicationCandidates)
+            .map((error) => error.type)
+            .filter(disablesPublication).length === 0
+    );
+}
+
 export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooterProps) => {
-    const allPublishErrors = publishErrors(props.stagedPublicationCandidates).filter(
-        (error) => error.type === 'ERROR',
+    const stagedCandidateValidationOk = checkStagedCandidateValidation(
+        props.stagedPublicationCandidates,
+        props.designPublicationMode,
     );
     const describeResult = (result: PublicationResult | undefined): string => {
         return [
@@ -121,7 +137,7 @@ export const PreviewFooter: React.FC<PreviewFooterProps> = (props: PreviewFooter
                         candidateCount === 0 ||
                         publishConfirmVisible ||
                         props.disablePublication ||
-                        (allPublishErrors && allPublishErrors?.length > 0) ||
+                        !stagedCandidateValidationOk ||
                         !publishPreviewChanges
                     }>
                     {t('preview-footer.publish-changes')}

@@ -471,21 +471,21 @@ class CalculatedChangesService(
     private fun createChangeContext(versions: ValidationVersions) =
         ChangeContext(
             geocodingService = geocodingService,
-            trackNumbers = createTypedContext(versions.branch, trackNumberDao, versions.trackNumbers),
-            referenceLines = createTypedContext(versions.branch, referenceLineDao, versions.referenceLines),
-            kmPosts = createTypedContext(versions.branch, kmPostDao, versions.kmPosts),
-            locationTracks = createTypedContext(versions.branch, locationTrackDao, versions.locationTracks),
-            switches = createTypedContext(versions.branch, switchDao, versions.switches),
+            trackNumbers = createTypedContext(versions.target.baseContext, trackNumberDao, versions.trackNumbers),
+            referenceLines = createTypedContext(versions.target.baseContext, referenceLineDao, versions.referenceLines),
+            kmPosts = createTypedContext(versions.target.baseContext, kmPostDao, versions.kmPosts),
+            locationTracks = createTypedContext(versions.target.baseContext, locationTrackDao, versions.locationTracks),
+            switches = createTypedContext(versions.target.baseContext, switchDao, versions.switches),
             geocodingKeysBefore =
                 LazyMap { id: IntId<TrackLayoutTrackNumber> ->
-                    geocodingService.getGeocodingContextCacheKey(versions.branch.official, id)
+                    geocodingService.getGeocodingContextCacheKey(versions.target.baseContext, id)
                 },
             geocodingKeysAfter =
                 LazyMap { id: IntId<TrackLayoutTrackNumber> ->
                     geocodingService.getGeocodingContextCacheKey(id, versions)
                 },
             getTrackNumberTracksBefore = { trackNumberId: IntId<TrackLayoutTrackNumber> ->
-                locationTrackDao.fetchVersions(versions.branch.official, false, trackNumberId)
+                locationTrackDao.fetchVersions(versions.target.baseContext, false, trackNumberId)
             },
         )
 }

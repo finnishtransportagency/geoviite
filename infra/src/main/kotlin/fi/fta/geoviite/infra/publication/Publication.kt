@@ -173,7 +173,7 @@ data class ValidatedPublicationCandidates(
 data class ValidatedAsset<T>(val id: IntId<T>, val errors: List<LayoutValidationIssue>)
 
 data class PublicationCandidates(
-    val branch: LayoutBranch,
+    val transition: LayoutContextTransition,
     val trackNumbers: List<TrackNumberPublicationCandidate>,
     val locationTracks: List<LocationTrackPublicationCandidate>,
     val referenceLines: List<ReferenceLinePublicationCandidate>,
@@ -189,9 +189,9 @@ data class PublicationCandidates(
             kmPosts.map { candidate -> candidate.id },
         )
 
-    fun getValidationVersions(branch: LayoutBranch, splitVersions: List<RowVersion<Split>>) =
+    fun getValidationVersions(transition: LayoutContextTransition, splitVersions: List<RowVersion<Split>>) =
         ValidationVersions(
-            branch = branch,
+            target = ValidateTransition(transition),
             trackNumbers = trackNumbers.map(TrackNumberPublicationCandidate::getPublicationVersion),
             referenceLines = referenceLines.map(ReferenceLinePublicationCandidate::getPublicationVersion),
             locationTracks = locationTracks.map(LocationTrackPublicationCandidate::getPublicationVersion),
@@ -223,7 +223,7 @@ data class PublicationCandidates(
 }
 
 data class ValidationVersions(
-    val branch: LayoutBranch,
+    val target: ValidationTarget,
     val trackNumbers: List<ValidationVersion<TrackLayoutTrackNumber>>,
     val locationTracks: List<ValidationVersion<LocationTrack>>,
     val referenceLines: List<ValidationVersion<ReferenceLine>>,
@@ -292,6 +292,7 @@ data class PublicationResult(
 )
 
 enum class LayoutValidationIssueType {
+    FATAL,
     ERROR,
     WARNING,
 }
@@ -508,13 +509,9 @@ enum class DesignRowReferrer {
 sealed class LayoutContextTransition {
 
     companion object {
-        fun of(branch: LayoutBranch, fromState: PublicationState): LayoutContextTransition {
-            assert(branch is DesignBranch || fromState == PublicationState.DRAFT) {
-                "Can't transition layout context from main-official"
-            }
-            return if (branch is DesignBranch) {
-                if (fromState == PublicationState.DRAFT) PublicationInDesign(branch) else MergeFromDesign(branch)
-            } else PublicationInMain
+        fun mergeToMainFrom(layoutBranch: LayoutBranch): LayoutContextTransition {
+            assert(layoutBranch is DesignBranch) { "Can't transition from main layout context to main layout context" }
+            return MergeFromDesign(layoutBranch as DesignBranch)
         }
 
         fun publicationIn(layoutBranch: LayoutBranch): LayoutContextTransition =
@@ -531,6 +528,15 @@ sealed class LayoutContextTransition {
 
     val baseContext
         get() = LayoutContext.of(baseBranch, basePublicationState)
+}
+
+fun publicationInOrMergeFromBranch(branch: LayoutBranch, fromState: PublicationState): LayoutContextTransition {
+    assert(branch is DesignBranch || fromState == PublicationState.DRAFT) {
+        "Can't transition layout context from main-official"
+    }
+    return if (branch is DesignBranch) {
+        if (fromState == PublicationState.DRAFT) PublicationInDesign(branch) else MergeFromDesign(branch)
+    } else PublicationInMain
 }
 
 data object PublicationInMain : LayoutContextTransition() {
@@ -552,3 +558,57 @@ data class MergeFromDesign(override val candidateBranch: DesignBranch) : LayoutC
     override val candidatePublicationState = PublicationState.OFFICIAL
     override val basePublicationState = PublicationState.DRAFT
 }
+
+enum class ValidationTargetType {
+    PUBLISHING,
+    MERGING_TO_MAIN,
+    VALIDATING_STATE,
+}
+
+sealed class ValidationTarget {
+    val candidateContext
+        get() = LayoutContext.of(candidateBranch, candidatePublicationState)
+
+    val baseContext
+        get() = LayoutContext.of(baseBranch, basePublicationState)
+
+    abstract val candidateBranch: LayoutBranch
+    abstract val baseBranch: LayoutBranch
+    abstract val candidatePublicationState: PublicationState
+    abstract val basePublicationState: PublicationState
+    abstract val type: ValidationTargetType
+
+    fun sqlParameters(): Map<String, Any?> =
+        mapOf(
+            "candidate_state" to candidatePublicationState.name,
+            "candidate_design_id" to candidateBranch.designId?.intValue,
+            "base_state" to basePublicationState.name,
+            "base_design_id" to baseBranch.designId?.intValue,
+        )
+}
+
+data class ValidateTransition(val transition: LayoutContextTransition) : ValidationTarget() {
+
+    override val candidateBranch = transition.candidateBranch
+    override val baseBranch = transition.baseBranch
+    override val candidatePublicationState = transition.candidatePublicationState
+    override val basePublicationState = transition.basePublicationState
+    override val type =
+        if (transition is MergeFromDesign) ValidationTargetType.MERGING_TO_MAIN else ValidationTargetType.PUBLISHING
+}
+
+data class ValidateContext(val context: LayoutContext) : ValidationTarget() {
+
+    override val candidateBranch = context.branch
+    override val baseBranch = context.branch
+    override val candidatePublicationState = context.state
+    override val basePublicationState = context.state
+    override val type = ValidationTargetType.VALIDATING_STATE
+}
+
+fun draftTransitionOrOfficialState(publicationState: PublicationState, branch: LayoutBranch): ValidationTarget =
+    if (publicationState == PublicationState.DRAFT) {
+        ValidateTransition(LayoutContextTransition.publicationIn(branch))
+    } else {
+        ValidateContext(LayoutContext.of(branch, publicationState))
+    }

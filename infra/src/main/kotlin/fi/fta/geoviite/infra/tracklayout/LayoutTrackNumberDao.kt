@@ -1,6 +1,5 @@
 package fi.fta.geoviite.infra.tracklayout
 
-import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.logging.AccessType
@@ -260,8 +259,8 @@ class LayoutTrackNumberDao(
             .also { logger.daoAccess(AccessType.FETCH, "track_number_version") }
     }
 
-    fun findOfficialNumberDuplicates(
-        layoutBranch: LayoutBranch,
+    fun findNumberDuplicates(
+        context: LayoutContext,
         numbers: List<TrackNumber>,
     ): Map<TrackNumber, List<LayoutDaoResponse<TrackLayoutTrackNumber>>> {
         return if (numbers.isEmpty()) {
@@ -270,13 +269,17 @@ class LayoutTrackNumberDao(
             val sql =
                 """
                 select official_id, row_id, row_version, number
-                from layout.track_number_in_layout_context('OFFICIAL', :design_id)
+                from layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id)
                 where number in (:numbers)
-                  and draft = false
                   and state != 'DELETED'
             """
                     .trimIndent()
-            val params = mapOf("numbers" to numbers, "design_id" to layoutBranch.designId?.intValue)
+            val params =
+                mapOf(
+                    "numbers" to numbers,
+                    "publication_state" to context.state.name,
+                    "design_id" to context.branch.designId?.intValue,
+                )
             val found =
                 jdbcTemplate.query<Pair<TrackNumber, LayoutDaoResponse<TrackLayoutTrackNumber>>>(sql, params) { rs, _ ->
                     val daoResponse = rs.getDaoResponse<TrackLayoutTrackNumber>("official_id", "row_id", "row_version")

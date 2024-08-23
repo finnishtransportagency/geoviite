@@ -3,8 +3,9 @@ import { Icons } from 'vayla-design-lib/icon/Icon';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
 import {
-    PublicationStage,
     LayoutValidationIssue,
+    LayoutValidationIssueType,
+    PublicationStage,
     PublicationValidationState,
 } from 'publication/publication-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -57,15 +58,16 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     const [isErrorRowExpanded, setIsErrorRowExpanded] = React.useState(false);
     const [actionMenuVisible, setActionMenuVisible] = React.useState(false);
 
-    const issuesToStrings = (list: LayoutValidationIssue[], type: 'ERROR' | 'WARNING') => {
+    const issuesToStrings = (list: LayoutValidationIssue[], type: LayoutValidationIssueType) => {
         const filtered = list.filter((e) => e.type === type);
         return filtered.map((error) => t(error.localizationKey, error.params));
     };
 
-    const hasErrors = tableEntry.issues.length > 0;
-
+    const fatalTexts = issuesToStrings(tableEntry.issues, 'FATAL');
     const errorTexts = issuesToStrings(tableEntry.issues, 'ERROR');
     const warningTexts = issuesToStrings(tableEntry.issues, 'WARNING');
+
+    const hasErrors = tableEntry.issues.length > 0;
 
     const actionMenuRef = React.useRef(null);
 
@@ -193,10 +195,11 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                 <ValidationStateCell
                     validationState={validationState}
                     hasErrors={hasErrors}
-                    errorTexts={errorTexts}
+                    errorTexts={errorTexts.concat(fatalTexts)}
                     warningTexts={warningTexts}
                     toggleRowExpansion={() => setIsErrorRowExpanded(!isErrorRowExpanded)}
                 />
+
                 <td className={'preview-table-item preview-table-item__actions--cell'}>
                     <Button
                         qa-id={'stage-change-button'}
@@ -227,7 +230,10 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                 </td>
             </tr>
             {isErrorRowExpanded && hasErrors && (
-                <ValidationStateRow errorTexts={errorTexts} warningTexts={warningTexts} />
+                <ValidationStateRow
+                    errorTexts={errorTexts.concat(fatalTexts)}
+                    warningTexts={warningTexts}
+                />
             )}
             {actionMenuVisible && (
                 <Menu

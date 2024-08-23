@@ -171,12 +171,32 @@ export const getPublicationCandidates = (
         `${publicationUri(layoutBranch)}/${fromState}/candidates`,
     ).then(toPublicationCandidates);
 
-export const validatePublicationCandidates = (
+export const validateMergeToMainCandidates = (
     layoutBranch: LayoutBranch,
     candidates: PublicationCandidateReference[],
 ) =>
     postNonNull<PublicationRequestIds, ValidatedPublicationCandidatesResponse>(
-        `${publicationUri(layoutBranch)}/validate`,
+        `${publicationUri(layoutBranch)}/validate-merge-to-main`,
+        toPublicationRequestIds(candidates),
+    ).then(toValidatedPublicationCandidates);
+
+export const validatePublicationCandidates = (
+    layoutBranch: LayoutBranch,
+    candidates: PublicationCandidateReference[],
+) => validatePublicationCandidatesWith('validate', layoutBranch, candidates);
+
+export const validateMergeToMain = (
+    layoutBranch: LayoutBranch,
+    candidates: PublicationCandidateReference[],
+) => validatePublicationCandidatesWith('validate-merge-to-main', layoutBranch, candidates);
+
+const validatePublicationCandidatesWith = (
+    validationPath: string,
+    layoutBranch: LayoutBranch,
+    candidates: PublicationCandidateReference[],
+) =>
+    postNonNull<PublicationRequestIds, ValidatedPublicationCandidatesResponse>(
+        `${publicationUri(layoutBranch)}/${validationPath}`,
         toPublicationRequestIds(candidates),
     ).then(toValidatedPublicationCandidates);
 

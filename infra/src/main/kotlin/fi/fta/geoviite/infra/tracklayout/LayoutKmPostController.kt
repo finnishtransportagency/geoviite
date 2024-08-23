@@ -15,6 +15,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.PublicationService
 import fi.fta.geoviite.infra.publication.ValidatedAsset
+import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
@@ -117,8 +118,10 @@ class LayoutKmPostController(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<TrackLayoutKmPost>,
     ): ResponseEntity<ValidatedAsset<TrackLayoutKmPost>> {
-        val context = LayoutContext.of(branch, publicationState)
-        return publicationService.validateKmPosts(context, listOf(id)).firstOrNull().let(::toResponse)
+        return publicationService
+            .validateKmPosts(draftTransitionOrOfficialState(publicationState, branch), listOf(id))
+            .firstOrNull()
+            .let(::toResponse)
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)

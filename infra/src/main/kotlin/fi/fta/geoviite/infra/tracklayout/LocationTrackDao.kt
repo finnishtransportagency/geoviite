@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.publication.ValidationTarget
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBboxOrNull
 import fi.fta.geoviite.infra.util.getDaoResponse
@@ -71,8 +72,8 @@ class LocationTrackDao(
         return versions
     }
 
-    fun findOfficialNameDuplicates(
-        layoutBranch: LayoutBranch,
+    fun findNameDuplicates(
+        context: LayoutContext,
         names: List<AlignmentName>,
     ): Map<AlignmentName, List<LayoutDaoResponse<LocationTrack>>> {
         return if (names.isEmpty()) {
@@ -81,12 +82,17 @@ class LocationTrackDao(
             val sql =
                 """
                 select official_id, row_id, row_version, name
-                from layout.location_track_in_layout_context('OFFICIAL', :design_id)
+                from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
                 where name in (:names)
                   and state != 'DELETED'
             """
                     .trimIndent()
-            val params = mapOf("names" to names, "design_id" to layoutBranch.designId?.intValue)
+            val params =
+                mapOf(
+                    "names" to names,
+                    "publication_state" to context.state.name,
+                    "design_id" to context.branch.designId?.intValue,
+                )
             val found =
                 jdbcTemplate.query<Pair<AlignmentName, LayoutDaoResponse<LocationTrack>>>(sql, params) { rs, _ ->
                     val daoResponse = rs.getDaoResponse<LocationTrack>("official_id", "row_id", "row_version")
@@ -545,7 +551,7 @@ class LocationTrackDao(
     }
 
     fun fetchVersionsForPublication(
-        branch: LayoutBranch,
+        target: ValidationTarget,
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         trackIdsToPublish: List<IntId<LocationTrack>>,
     ): Map<IntId<TrackLayoutTrackNumber>, List<LayoutDaoResponse<LocationTrack>>> {
@@ -556,11 +562,11 @@ class LocationTrackDao(
             select track.track_number_id, track.official_id, track.row_id, track.row_version
             from (
             select state, track_number_id, official_id, row_id, row_version
-              from layout.location_track_in_layout_context('OFFICIAL', :design_id) official
+              from layout.location_track_in_layout_context(:base_state::layout.publication_state, :base_design_id) official
               where (official_id in (:track_ids_to_publish)) is distinct from true 
             union all
             select state, track_number_id, official_id, row_id, row_version
-              from layout.location_track_in_layout_context('DRAFT', :design_id) draft
+              from layout.location_track_in_layout_context(:candidate_state::layout.publication_state, :candidate_design_id) draft
               where official_id in (:track_ids_to_publish)
             ) track
             where track_number_id in (:track_number_ids)
@@ -571,12 +577,11 @@ class LocationTrackDao(
         val params =
             mapOf(
                 "track_number_ids" to trackNumberIds.map { id -> id.intValue },
-                "design_id" to branch.designId?.intValue,
                 // listOf(null) to indicate an empty list due to SQL syntax limitations; the "is
                 // distinct from true" checks
                 // explicitly for false or null, since "foo in (null)" in SQL is null
                 "track_ids_to_publish" to (trackIdsToPublish.map { id -> id.intValue }.ifEmpty { listOf(null) }),
-            )
+            ) + target.sqlParameters()
         val versions =
             jdbcTemplate.query(sql, params) { rs, _ ->
                 val trackNumberId = rs.getIntId<TrackLayoutTrackNumber>("track_number_id")

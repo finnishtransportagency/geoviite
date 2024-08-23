@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.geography.create2DPolygonString
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.publication.ValidationTarget
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getDaoResponse
 import fi.fta.geoviite.infra.util.getEnum
@@ -88,7 +89,7 @@ class LayoutKmPostDao(
     }
 
     fun fetchVersionsForPublication(
-        branch: LayoutBranch,
+        target: ValidationTarget,
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>>,
         kmPostIdsToPublish: List<IntId<TrackLayoutKmPost>>,
     ): Map<IntId<TrackLayoutTrackNumber>, List<LayoutDaoResponse<TrackLayoutKmPost>>> {
@@ -97,10 +98,10 @@ class LayoutKmPostDao(
             """
             select km_post.track_number_id, km_post.official_id, km_post.row_id, km_post.row_version
             from (
-              select * from layout.km_post_in_layout_context('DRAFT', :design_id)
+              select * from layout.km_post_in_layout_context(:candidate_state::layout.publication_state, :candidate_design_id)
                 where official_id in (:km_post_ids_to_publish)
               union all
-              select * from layout.km_post_in_layout_context('OFFICIAL', :design_id)
+              select * from layout.km_post_in_layout_context(:base_state::layout.publication_state, :base_design_id)
                 where (official_id in (:km_post_ids_to_publish)) is distinct from true
               ) km_post
             where track_number_id in (:track_number_ids)
@@ -111,12 +112,11 @@ class LayoutKmPostDao(
         val params =
             mapOf(
                 "track_number_ids" to trackNumberIds.map { id -> id.intValue },
-                "design_id" to branch.designId?.intValue,
                 // listOf(null) to indicate an empty list due to SQL syntax limitations; the "is
                 // distinct from true" checks
                 // explicitly for false or null, since "foo in (null)" in SQL is null
                 "km_post_ids_to_publish" to (kmPostIdsToPublish.map { id -> id.intValue }.ifEmpty { listOf(null) }),
-            )
+            ) + target.sqlParameters()
         val versions =
             jdbcTemplate.query(sql, params) { rs, _ ->
                 val trackNumberId = rs.getIntId<TrackLayoutTrackNumber>("track_number_id")

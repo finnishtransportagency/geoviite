@@ -22,12 +22,28 @@ import { RatkoPushStatus } from 'ratko/ratko-model';
 import { BoundingBox, Point } from 'model/geometry';
 import { LocalizationParams } from 'i18n/config';
 import { SplitTargetOperation } from 'tool-panel/location-track/split-store';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 export type LayoutValidationIssue = {
-    type: 'ERROR' | 'WARNING';
+    type: LayoutValidationIssueType;
     localizationKey: string;
     params: LocalizationParams;
 };
+
+export type LayoutValidationIssueType = 'FATAL' | 'ERROR' | 'WARNING';
+
+export const validationIssueIsAtLeastAsBadAs =
+    (base: LayoutValidationIssueType) =>
+    (issue: LayoutValidationIssueType): boolean =>
+        issue === 'FATAL'
+            ? true
+            : issue === 'ERROR'
+              ? base !== 'FATAL'
+              : issue === 'WARNING'
+                ? base === 'WARNING'
+                : exhaustiveMatchingGuard(issue);
+
+export const validationIssueIsError = validationIssueIsAtLeastAsBadAs('ERROR');
 
 export enum DraftChangeType {
     TRACK_NUMBER = 'TRACK_NUMBER',

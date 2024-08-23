@@ -285,7 +285,7 @@ class SplitService(
             splits.mapNotNull { (_, sourceTrack) ->
                 produceIf(trackId == sourceTrack.id) {
                     val draftAddresses = context.getAddressPoints(sourceTrack)
-                    val officialAddresses = geocodingService.getAddressPoints(context.branch.official, trackId)
+                    val officialAddresses = geocodingService.getAddressPoints(context.target.baseContext, trackId)
                     validateSourceGeometry(draftAddresses, officialAddresses)
                 }
             }

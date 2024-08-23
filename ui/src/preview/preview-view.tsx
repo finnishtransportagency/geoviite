@@ -8,6 +8,7 @@ import {
     getPublicationCandidates,
     getRevertRequestDependencies,
     revertPublicationCandidates,
+    validateMergeToMain,
     validatePublicationCandidates,
 } from 'publication/publication-api';
 import { DesignPublicationMode, PreviewToolBar } from 'preview/preview-tool-bar';
@@ -21,7 +22,6 @@ import {
     PublicationGroup,
     PublicationStage,
     PublicationValidationState,
-    ValidatedPublicationCandidates,
 } from 'publication/publication-model';
 import PreviewTable from 'preview/preview-table';
 import { PreviewConfirmRevertChangesDialog } from 'preview/preview-confirm-revert-changes-dialog';
@@ -36,7 +36,6 @@ import {
     conditionallyUpdateCandidates,
     countPublicationGroupAmounts,
     noCalculatedChanges,
-    pretendValidated,
     PublicationAssetChangeAmounts,
     setValidationStateToApiError,
     stageTransform,
@@ -112,10 +111,17 @@ export type ChangesBeingReverted = {
 export type MapDisplayTransitionSide = 'BASE_CONTEXT' | 'WITH_CHANGES';
 
 const validateDebounced = debounceAsync(
-    (layoutBranch: LayoutBranch, candidates: PublicationCandidateReference[]) =>
-        validatePublicationCandidates(layoutBranch, candidates),
+    (
+        designPublicationMode: DesignPublicationMode,
+        layoutBranch: LayoutBranch,
+        candidates: PublicationCandidateReference[],
+    ) =>
+        designPublicationMode === 'MERGE_TO_MAIN'
+            ? validateMergeToMain(layoutBranch, candidates)
+            : validatePublicationCandidates(layoutBranch, candidates),
     1000,
 );
+
 const getCalculatedChangesDebounced = debounceAsync(
     (layoutBranch: LayoutBranch, candidates: PublicationCandidateReference[]) =>
         getCalculatedChanges(layoutBranch, candidates),
@@ -143,10 +149,6 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
     const onChangeDesignPublicationMode = (newMode: DesignPublicationMode) => {
         setDesignPublicationMode(newMode);
-        if (newMode === 'PUBLISH_CHANGES') {
-            // TODO GVT-2421: No ability to validate when moving changes to main yet; just pretend everything is OK
-            setPublicationValidationState('API_CALL_OK');
-        }
     };
 
     const canRevertChanges =
@@ -195,20 +197,13 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     );
 
     const validatedPublicationCandidates =
-        useLoader((): Promise<ValidatedPublicationCandidates> => {
-            if (designPublicationMode == 'MERGE_TO_MAIN') {
-                // TODO GVT-2421: No ability to validate when moving changes to main yet; just pretend everything is OK
-                return Promise.resolve({
-                    validatedAsPublicationUnit: stagedPublicationCandidates.map(pretendValidated),
-                    allChangesValidated: publicationCandidates.map(pretendValidated),
-                });
-            }
-
+        useLoader(() => {
             const validationId = latestValidationIdRef.current + 1;
             latestValidationIdRef.current = validationId;
             setPublicationValidationState('IN_PROGRESS');
 
             return validateDebounced(
+                designPublicationMode,
                 props.layoutContext.branch,
                 props.stagedPublicationCandidateReferences,
             )
@@ -558,8 +553,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     ? officialLayoutContext(props.layoutContext)
                                     : draftMainLayoutContext()
                                 : mapDisplayTransitionSide === 'WITH_CHANGES'
-                                ? draftLayoutContext(props.layoutContext)
-                                : officialLayoutContext(props.layoutContext)
+                                  ? draftLayoutContext(props.layoutContext)
+                                  : officialLayoutContext(props.layoutContext)
                         }
                     />
                 </MapContext.Provider>

@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
@@ -19,6 +20,7 @@ import fi.fta.geoviite.infra.math.Line
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.publication.ValidationVersions
+import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
@@ -1342,14 +1344,15 @@ constructor(
         switchIds: List<IntId<TrackLayoutSwitch>> = emptyList(),
         trackNumberIds: List<IntId<TrackLayoutTrackNumber>> = emptyList(),
     ): CalculatedChanges {
+        val target = draftTransitionOrOfficialState(PublicationState.DRAFT, LayoutBranch.main)
         val publicationVersions =
             ValidationVersions(
-                branch = LayoutBranch.main,
-                locationTracks = locationTrackDao.fetchPublicationVersions(LayoutBranch.main, locationTrackIds),
-                kmPosts = layoutKmPostDao.fetchPublicationVersions(LayoutBranch.main, kmPostIds),
-                referenceLines = referenceLineDao.fetchPublicationVersions(LayoutBranch.main, referenceLineIds),
-                switches = switchDao.fetchPublicationVersions(LayoutBranch.main, switchIds),
-                trackNumbers = layoutTrackNumberDao.fetchPublicationVersions(LayoutBranch.main, trackNumberIds),
+                target = target,
+                locationTracks = locationTrackDao.fetchCandidateVersions(target.candidateContext, locationTrackIds),
+                kmPosts = layoutKmPostDao.fetchCandidateVersions(target.candidateContext, kmPostIds),
+                referenceLines = referenceLineDao.fetchCandidateVersions(target.candidateContext, referenceLineIds),
+                switches = switchDao.fetchCandidateVersions(target.candidateContext, switchIds),
+                trackNumbers = layoutTrackNumberDao.fetchCandidateVersions(target.candidateContext, trackNumberIds),
                 splits = listOf(),
             )
 

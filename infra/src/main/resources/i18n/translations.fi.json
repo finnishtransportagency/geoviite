@@ -1396,7 +1396,8 @@
                     "reference-deleted": "Poistettavaan ratanumeroon viittaa edelleen poistamattomia tasakilometripisteitä: {{kmPosts}}"
                 },
                 "duplicate-name-official": "Ratanumeron numero {{trackNumber}} on jo käytössä",
-                "duplicate-name-draft": "Muutosjoukossa on monta ratanumeroa nimellä {{trackNumber}}"
+                "duplicate-name-draft": "Muutosjoukossa on monta ratanumeroa nimellä {{trackNumber}}",
+                "duplicate-name-draft-in-main": "Ratanumeron numero {{trackNumber}} on jo käytössä luonnostilassa"
             },
             "km-post": {
                 "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
@@ -1412,7 +1413,8 @@
                 },
                 "reference-line": {
                     "null": "Tasakilometripisteen pituusmittauslinja ei ole mukana julkaisussa"
-                }
+                },
+                "duplicate-km-number": "Ratanumerolla ei voi olla kahta tasakilometripistettä samalla tunnuksella. Tunnus on jo käytössä tällä ratanumerolla."
             },
             "reference-line": {
                 "no-context": "Pituusmittauslinjalle ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
@@ -1472,6 +1474,7 @@
                 },
                 "duplicate-name-official": "Sijaintiraiteen nimi {{locationTrack}} on jo käytössä toisella ratanumeron {{trackNumber}} sijaintiraiteella",
                 "duplicate-name-draft": "Muutosjoukossa on monta sijaintiraidetta nimellä {{locationTrack}} ratanumerolla {{trackNumber}}",
+                "duplicate-name-draft-in-main": "Sijaintiraiteen nimi {{locationTrack}} on jo käytössä toisella ratanumeron {{trackNumber}} sijaintiraiteella luonnostilassa",
                 "topological-connectivity": {
                     "start-switch-is-topologically-connected": "Raiteen alku on kytkeytynyt rataverkkoon vaikka ominaisuustietojen mukaan raiteen ei pitäisi olla kytketty",
                     "end-switch-is-topologically-connected": "Raiteen loppu on kytkeytynyt rataverkkoon vaikka ominaisuustietojen mukaan raiteen ei pitäisi olla kytketty",
@@ -1491,6 +1494,7 @@
                 },
                 "duplicate-name-official": "Vaihteen nimi {{switch}} on jo käytössä jollain toisella paikannuspohjan vaihteella",
                 "duplicate-name-draft": "Muutosjoukossa on monta vaihdetta nimellä {{switch}}",
+                "duplicate-name-draft-in-main": "Vaihteen nimi {{switch}} on jo käytössä jollain toisella paikannuspohjan vaihteella luonnostilassa",
                 "track-linkage": {
                     "front-joint-not-connected": "Vaihteen etujatkokselta ei jatku raidetta",
                     "front-joint-only-duplicate-connected": "Vaihteen etujatkokselta jatkuu vain duplikaatiksi merkittyjä raiteita",

@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.GeometryPoint
+import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import fi.fta.geoviite.infra.tracklayout.LayoutState.NOT_IN_USE
@@ -121,16 +122,16 @@ class LayoutKmPostDaoIT @Autowired constructor(private val kmPostDao: LayoutKmPo
         val postThreeOnlyDraft = kmPostDao.insert(kmPost(trackNumberId, KmNumber(3), draft = true))
         val postFourOnlyOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(4), draft = false))
 
+        val target = draftTransitionOrOfficialState(PublicationState.DRAFT, LayoutBranch.main)
         val versionsEmpty =
-            kmPostDao.fetchVersionsForPublication(LayoutBranch.main, listOf(trackNumberId), listOf())[trackNumberId]!!
+            kmPostDao.fetchVersionsForPublication(target, listOf(trackNumberId), listOf())[trackNumberId]!!
         val versionsOnlyOne =
             kmPostDao
-                .fetchVersionsForPublication(LayoutBranch.main, listOf(trackNumberId), listOf(postOneOfficial.id))[
-                    trackNumberId]!!
+                .fetchVersionsForPublication(target, listOf(trackNumberId), listOf(postOneOfficial.id))[trackNumberId]!!
         val versionsOneAndThree =
             kmPostDao
                 .fetchVersionsForPublication(
-                    LayoutBranch.main,
+                    target,
                     listOf(trackNumberId),
                     listOf(postOneOfficial.id, postThreeOnlyDraft.id),
                 )[trackNumberId]!!
