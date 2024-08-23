@@ -216,6 +216,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
     const [showEditWorkspaceDialog, setShowEditWorkspaceDialog] = React.useState(false);
     const [showDeleteWorkspaceDialog, setShowDeleteWorkspaceDialog] = React.useState(false);
     const [designIdSelectorOpened, setDesignIdSelectorOpened] = React.useState(false);
+    const [savingWorkspace, setSavingWorkspace] = React.useState(false);
     const menuRef = React.useRef(null);
     const designIdSelectorRef = React.useRef(null);
 
@@ -622,12 +623,16 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                     onCancel={() => setShowEditWorkspaceDialog(false)}
                     onSave={(_, request) => {
                         if (currentDesign) {
-                            updateLayoutDesign(currentDesign.id, request).finally(() => {
-                                updateLayoutDesignChangeTime();
-                                setShowEditWorkspaceDialog(false);
-                            });
+                            setSavingWorkspace(true);
+                            updateLayoutDesign(currentDesign.id, request)
+                                .finally(() => {
+                                    updateLayoutDesignChangeTime();
+                                    setShowEditWorkspaceDialog(false);
+                                })
+                                .finally(() => setSavingWorkspace(false));
                         }
                     }}
+                    saving={savingWorkspace}
                 />
             )}
 
