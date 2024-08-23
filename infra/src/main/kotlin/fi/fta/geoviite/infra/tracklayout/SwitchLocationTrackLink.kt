@@ -34,6 +34,9 @@ fun getDuplicateTrackParentStatus(
         parentTrack.trackNumberId,
         parentTrack.name,
         parentTrack.externalId,
+        start = childAlignment.start,
+        end = childAlignment.end,
+        length = childAlignment.length,
         status,
     )
 }
@@ -71,6 +74,9 @@ private fun getLocationTrackDuplicatesBySplitPoints(
             duplicateTrack.trackNumberId,
             duplicateTrack.name,
             duplicateTrack.externalId,
+            start = duplicateAlignment.start,
+            end = duplicateAlignment.end,
+            length = duplicateAlignment.length,
             status,
         )
     }
@@ -97,16 +103,19 @@ fun getDuplicateMatches(
         emptyList()
     } else if (matchRanges.isEmpty() && duplicateOf == mainTrackId) {
         // Marked as duplicate, but no matches -> something is likely wrong
-        listOf(-1 to DuplicateStatus(DuplicateMatch.NONE, duplicateOf, null, null))
+        listOf(-1 to DuplicateStatus(DuplicateMatch.NONE, duplicateOf, null, null, null))
     } else {
         matchRanges.map { range ->
             val match = if (range == 0..duplicateTrackSplitPoints.lastIndex) DuplicateMatch.FULL
             else DuplicateMatch.PARTIAL
+            val start = duplicateTrackSplitPoints[range.first]
+            val end = duplicateTrackSplitPoints[range.last]
             range.first to DuplicateStatus(
                 match = match,
                 duplicateOfId = duplicateOf,
-                startSplitPoint = duplicateTrackSplitPoints[range.first],
-                endSplitPoint = duplicateTrackSplitPoints[range.last],
+                startSplitPoint = start,
+                endSplitPoint = end,
+                overlappingLength = end.location.m - start.location.m
             )
         }
     }
