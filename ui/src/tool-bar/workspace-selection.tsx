@@ -47,6 +47,7 @@ type DesignSelectionProps = {
 export const DesignSelection: React.FC<DesignSelectionProps> = ({ designId, onDesignSelected }) => {
     const { t } = useTranslation();
     const [showCreateWorkspaceDialog, setShowCreateWorkspaceDialog] = React.useState(false);
+    const [savingWorkspace, setSavingWorkspace] = React.useState(false);
     const selectWorkspaceDropdownRef = React.useRef<HTMLInputElement>(null);
 
     React.useEffect(() => {
@@ -93,7 +94,11 @@ export const DesignSelection: React.FC<DesignSelectionProps> = ({ designId, onDe
             {showCreateWorkspaceDialog && (
                 <WorkspaceDialog
                     onCancel={() => setShowCreateWorkspaceDialog(false)}
-                    onSave={(_, request) => handleInsertLayoutDesign(request)}
+                    onSave={(_, request) => {
+                        setSavingWorkspace(true);
+                        handleInsertLayoutDesign(request).finally(() => setSavingWorkspace(false));
+                    }}
+                    saving={savingWorkspace}
                 />
             )}
         </React.Fragment>

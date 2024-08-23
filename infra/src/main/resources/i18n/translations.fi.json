@@ -129,6 +129,9 @@
                 "plan-transformation-failed": "Suunnitelman muuntaminen kartalla esitettävään muotoon epäonnistui"
             }
         },
+        "design": {
+            "duplicate-name": "Nimi {{name}} on jo käytössä toisella suunnitelmalla"
+        },
         "entity-not-found": "Tietoa ei löydy",
         "entity-not-found-on-path": "Tietoa ei löytynyt: {{path}}",
         "request-failed": "Pyyntö epäonnistui: {{path}}",

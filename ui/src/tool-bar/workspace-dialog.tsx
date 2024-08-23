@@ -24,6 +24,7 @@ type WorkspaceDialogProps = {
     existingDesign?: LayoutDesign;
     onCancel: () => void;
     onSave: (id: LayoutDesignId | undefined, saveRequest: LayoutDesignSaveRequest) => void;
+    saving: boolean;
 };
 
 const saveRequest = (name: string, estimatedCompletion: Date): LayoutDesignSaveRequest => ({
@@ -36,6 +37,7 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
     existingDesign,
     onCancel,
     onSave,
+    saving,
 }) => {
     const { t } = useTranslation();
 
@@ -67,12 +69,14 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
                         <Button
                             variant={ButtonVariant.SECONDARY}
                             onClick={onCancel}
+                            disabled={saving}
                             qa-id={'workspace-dialog-cancel'}>
                             {t('button.cancel')}
                         </Button>
                         <Button
-                            disabled={!name || !selectedDate || designNameNotUnique}
+                            disabled={!name || !selectedDate || designNameNotUnique || saving}
                             qa-id={'workspace-dialog-save'}
+                            isProcessing={saving}
                             onClick={() => {
                                 if (name && selectedDate) {
                                     onSave(existingDesign?.id, saveRequest(name, selectedDate));
