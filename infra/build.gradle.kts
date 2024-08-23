@@ -36,7 +36,7 @@ configurations {
     }
 }
 
-ext["selenium.version"] = "4.19.1"
+ext["selenium.version"] = "4.23.1"
 dependencies {
     // Version overrides for transitive deps (due to known vulnerabilities)
 
@@ -93,7 +93,7 @@ dependencies {
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
-    testImplementation("org.seleniumhq.selenium:selenium-java:4.19.1")
+    testImplementation("org.seleniumhq.selenium:selenium-java:4.23.1")
     testImplementation("org.mock-server:mockserver-netty:5.15.0")
     testImplementation("org.apache.httpcomponents.client5:httpclient5:5.3.1")
 }
