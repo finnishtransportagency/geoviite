@@ -56,7 +56,7 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
             />
             &nbsp;
             {currentTrackNumberId !== existingDuplicate.trackNumberId && (
-                <LocationTrackDuplicateInfoIcon type={'ERROR'} />
+                <LocationTrackDuplicateInfoIcon level={'ERROR'} />
             )}
         </span>
     ) : duplicatesOfLocationTrack ? (

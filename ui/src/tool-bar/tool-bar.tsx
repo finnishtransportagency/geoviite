@@ -625,11 +625,13 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                         if (currentDesign) {
                             setSavingWorkspace(true);
                             updateLayoutDesign(currentDesign.id, request)
-                                .finally(() => {
-                                    updateLayoutDesignChangeTime();
+                                .then(() => {
                                     setShowEditWorkspaceDialog(false);
                                 })
-                                .finally(() => setSavingWorkspace(false));
+                                .finally(() => {
+                                    updateLayoutDesignChangeTime();
+                                    setSavingWorkspace(false);
+                                });
                         }
                     }}
                     saving={savingWorkspace}
