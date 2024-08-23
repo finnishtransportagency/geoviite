@@ -160,32 +160,38 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         planId: IntId<GeometryPlan>,
     ): List<GeometrySwitchLinkStatus> {
         val sql = """
-        select
-            switch.id,
-            bool_or(case 
-              when segment_version.switch_id is not null 
-               and layout_switch.row_id is not null 
-               and location_track.row_id is not null
-              then true 
-              else false 
-            end) as is_linked
-          from geometry.switch
-            left join geometry.element
-                      on switch.id = element.switch_id
-            left join layout.segment_version
-                      on segment_version.geometry_element_index = element.element_index
-                        and segment_version.geometry_alignment_id = element.alignment_id
-            left join
-              layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
-                location_track on location_track.alignment_id = segment_version.alignment_id
-                        and location_track.alignment_version = segment_version.alignment_version
-                        and location_track.state != 'DELETED'
-            left join lateral layout.switch_in_layout_context(:publication_state::layout.publication_state,
-                                                              :design_id,
-                                                              segment_version.switch_id)
-              layout_switch on layout_switch.state_category != 'NOT_EXISTING'
-          where switch.plan_id = :plan_id
-          group by switch.id;
+            select
+              plan_id,
+              switch.id,
+              exists(
+                  select *
+                    from geometry.element
+                    where element.switch_id = switch.id
+                      and exists(
+                        select *
+                          from layout.segment_version
+                          where segment_version.geometry_element_index = element.element_index
+                            and segment_version.geometry_alignment_id = element.alignment_id
+                            and segment_version.switch_id is not null
+                            and exists(select location_track.*
+                                         from layout.location_track
+                                           join lateral layout.location_track_in_layout_context(
+                                             :publication_state::layout.publication_state, :design_id,
+                                             coalesce(location_track.official_row_id, location_track.id)) ilc
+                                                on location_track.id = ilc.row_id and location_track.version = ilc.row_version
+                                         where location_track.state != 'DELETED'
+                                           and location_track.alignment_id = segment_version.alignment_id
+                                           and location_track.alignment_version = segment_version.alignment_version
+                            )
+                            and exists(select *
+                                         from layout.switch_in_layout_context(:publication_state::layout.publication_state,
+                                                                              :design_id,
+                                                                              segment_version.switch_id)
+                                         where state_category != 'NOT_EXISTING')
+                      )
+                ) as is_linked
+              from geometry.switch
+              where switch.plan_id = :plan_id;
         """.trimIndent()
         val params = mapOf(
             "plan_id" to planId.intValue,
