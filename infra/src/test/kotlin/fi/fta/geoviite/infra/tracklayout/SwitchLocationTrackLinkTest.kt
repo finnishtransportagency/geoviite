@@ -204,7 +204,7 @@ class SwitchLocationTrackLinkTest {
                     duplicateOfId = null,
                     startSplitPoint = startPoint(start),
                     endSplitPoint = endPoint(end),
-                    overlappingLength = null
+                    overlappingLength = 0.0
                 )
             ),
             actual = getDuplicateMatches(
@@ -243,7 +243,7 @@ class SwitchLocationTrackLinkTest {
                     duplicateOfId = null,
                     startSplitPoint = switchSplitPoint(1, 2),
                     endSplitPoint = switchSplitPoint(2, 1),
-                    overlappingLength = null
+                    overlappingLength = 0.0
                 )
             ),
             actual = getDuplicateMatches(
@@ -297,7 +297,7 @@ fun partialMatch(
     null,
     startSplitPoint = SwitchSplitPoint(startPoint, null, IntId(startSwitch.first), JointNumber(startSwitch.second)),
     endSplitPoint = SwitchSplitPoint(endPoint, null, IntId(endSwitch.first), JointNumber(endSwitch.second)),
-    overlappingLength = null
+    overlappingLength = 0.0
 )
 
 fun fullMatch(
@@ -311,7 +311,7 @@ fun fullMatch(
     null,
     startSplitPoint = SwitchSplitPoint(startPoint, null, IntId(startSwitch.first), JointNumber(startSwitch.second)),
     endSplitPoint = SwitchSplitPoint(endPoint, null, IntId(endSwitch.first), JointNumber(endSwitch.second)),
-    overlappingLength = null
+    overlappingLength = 0.0
 )
 
 fun startPoint(point: IPoint):EndpointSplitPoint {
