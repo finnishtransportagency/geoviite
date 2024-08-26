@@ -10,7 +10,7 @@ const CoordinateSystemView: React.FC<CoordinateSystemViewProps> = ({
     coordinateSystem,
 }: CoordinateSystemViewProps) => {
     return (
-        <React.Fragment>{coordinateSystem ? formatWithSrid(coordinateSystem) : ''}</React.Fragment>
+        <React.Fragment>{coordinateSystem ? formatWithSrid(coordinateSystem) : '-'}</React.Fragment>
     );
 };
 

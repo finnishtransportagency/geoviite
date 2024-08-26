@@ -4,7 +4,7 @@ import { LayoutKmPost } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { useTranslation } from 'react-i18next';
-import { formatToGkFinString, formatToTM35FINString, formatWithSrid } from 'utils/geography-utils';
+import { formatToGkFinString, formatToTM35FINString } from 'utils/geography-utils';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 import { draftLayoutContext, LayoutContext, TimeStamp } from 'common/common-model';
@@ -33,6 +33,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { Link } from 'vayla-design-lib/link/link';
 import { createDelegates } from 'store/store-utils';
 import { getGeometryPlan } from 'geometry/geometry-api';
+import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 
 type KmPostInfoboxProps = {
     layoutContext: LayoutContext;
@@ -191,7 +192,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     <InfoboxFieldWithEditLink
                         qaId="km-post-gk-coordinate-system"
                         label={t('tool-panel.km-post.layout.gk-coordinates.coordinate-system')}
-                        value={gkCoordinateSystem ? formatWithSrid(gkCoordinateSystem) : '-'}
+                        value={<CoordinateSystemView coordinateSystem={gkCoordinateSystem} />}
                     />
                     <InfoboxFieldWithEditLink
                         qaId="km-post-gk-coordinates"
