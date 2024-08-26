@@ -60,15 +60,28 @@ function gkLocationSourceI18nKey(source: GkLocationSource) {
     return `km-post-dialog.gk-location.source-${end}`;
 }
 
-function gkToLayout(gkSrid: Srid | undefined, xStr: string, yStr: string): Point | undefined {
+function parseGk(
+    gkSrid: string | undefined,
+    xStr: string,
+    yStr: string,
+): GeometryPoint | undefined {
+    const gkCoordinateSystem = useCoordinateSystem(gkSrid);
     const x = parseFloatOrUndefined(xStr);
     const y = parseFloatOrUndefined(yStr);
-    const projection = GK_FIN_COORDINATE_SYSTEMS.find(([srid]) => srid === gkSrid)?.[1];
-    if (projection === undefined || x === undefined || y === undefined) {
+    if (gkCoordinateSystem === undefined || x === undefined || y === undefined) {
+        return undefined;
+    } else {
+        return { x, y, srid: gkCoordinateSystem.srid };
+    }
+}
+
+function transformGkToLayout(point: GeometryPoint): Point | undefined {
+    const projection = GK_FIN_COORDINATE_SYSTEMS.find(([srid]) => srid === point.srid)?.[1];
+    if (projection === undefined) {
         return undefined;
     } else {
         try {
-            const res = proj4(projection, LAYOUT_SRID).forward({ x, y });
+            const res = proj4(projection, LAYOUT_SRID).forward({ x: point.x, y: point.y });
             return Number.isFinite(res.x) && Number.isFinite(res.y) ? res : undefined;
         } catch (e) {
             return undefined;
@@ -91,18 +104,13 @@ export const KmPostEditDialogGkLocationSection: React.FC<
     const displayGkLocationSource = (source: GkLocationSource | undefined) =>
         source === undefined ? '' : t(gkLocationSourceI18nKey(source));
 
-    const gkLocationEntered =
-        geometryKmPostGkLocation !== undefined ||
-        (state.kmPost.gkLocationY !== '' && state.kmPost.gkLocationX !== '');
-
-    const gkCoordinateSystem = useCoordinateSystem(state.kmPost.gkSrid);
-    const layoutLocation = gkToLayout(
-        gkCoordinateSystem?.srid,
-        state.kmPost.gkLocationX,
-        state.kmPost.gkLocationY,
-    );
+    const kmPost = state.kmPost;
+    const gkLocation = parseGk(kmPost.gkSrid, kmPost.gkLocationX, kmPost.gkLocationY);
+    const layoutLocation = gkLocation ? transformGkToLayout(gkLocation) : undefined;
 
     const coordinateSystems = useCoordinateSystems(GK_FIN_COORDINATE_SYSTEMS.map(([srid]) => srid));
+
+    const gkLocationEntered = geometryKmPostGkLocation !== undefined || layoutLocation != undefined;
 
     return (
         <>
