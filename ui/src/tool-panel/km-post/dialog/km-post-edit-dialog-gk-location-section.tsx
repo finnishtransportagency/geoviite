@@ -3,7 +3,7 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import { filterUnique } from 'utils/array-utils';
 import { Radio } from 'vayla-design-lib/radio/radio';
-import { formatToTM35FINString } from 'utils/geography-utils';
+import { formatToTM35FINString, formatWithSrid } from 'utils/geography-utils';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -160,7 +160,7 @@ export const KmPostEditDialogGkLocationSection: React.FC<
                     <Dropdown
                         options={(coordinateSystems ?? []).map((system) => ({
                             value: system.srid,
-                            name: `${system.srid} ${system.name}`,
+                            name: formatWithSrid(system),
                             qaId: system.srid,
                         }))}
                         value={state.kmPost.gkSrid}
