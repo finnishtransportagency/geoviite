@@ -1,6 +1,6 @@
 import { Point } from 'model/geometry';
 import { Precision, roundToPrecision } from 'utils/rounding';
-import { TrackMeter } from 'common/common-model';
+import { CoordinateSystem, TrackMeter } from 'common/common-model';
 
 export function formatToTM35FINString(gvtPoint: Point): string {
     const longitude = roundToPrecision(gvtPoint.x, Precision.coordinateMeters);
@@ -28,4 +28,8 @@ export function formatTrackMeterWithoutMeters(address: TrackMeter): string {
         Math.floor(address.meters),
         Precision.distanceEvenMeters,
     ).padStart(4, '0')}`;
+}
+
+export function formatWithSrid(coordinateSystem: CoordinateSystem): string {
+    return `${coordinateSystem.name} ${coordinateSystem.srid}`;
 }

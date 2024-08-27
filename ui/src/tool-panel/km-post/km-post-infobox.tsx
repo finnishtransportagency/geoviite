@@ -33,6 +33,7 @@ import { ChangeTimes } from 'common/common-slice';
 import { Link } from 'vayla-design-lib/link/link';
 import { createDelegates } from 'store/store-utils';
 import { getGeometryPlan } from 'geometry/geometry-api';
+import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 
 type KmPostInfoboxProps = {
     layoutContext: LayoutContext;
@@ -191,7 +192,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     <InfoboxFieldWithEditLink
                         qaId="km-post-gk-coordinate-system"
                         label={t('tool-panel.km-post.layout.gk-coordinates.coordinate-system')}
-                        value={`${gkCoordinateSystem?.name ?? '-'} ${gkCoordinateSystem?.srid ?? ''}`}
+                        value={<CoordinateSystemView coordinateSystem={gkCoordinateSystem} />}
                     />
                     <InfoboxFieldWithEditLink
                         qaId="km-post-gk-coordinates"
