@@ -294,15 +294,17 @@ class LocationTrackController(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("trackNumberId") trackNumberId: IntId<TrackLayoutTrackNumber>,
         @RequestParam("locationTrackNames") names: List<AlignmentName>,
+        @RequestParam("includeDeleted") includeDeleted: Boolean = true,
     ): List<LocationTrack> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         logger.apiCall(
             "getTrackNumberTracksByName",
             "context" to context,
+            "includeDeleted" to includeDeleted,
             "trackNumberId" to trackNumberId,
             "names" to names,
         )
-        return locationTrackService.list(context, trackNumberId, names)
+        return locationTrackService.list(context, includeDeleted, trackNumberId, names)
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT)

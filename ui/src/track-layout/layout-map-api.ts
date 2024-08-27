@@ -488,7 +488,7 @@ async function getPolyLines(
     fetchType: AlignmentFetchType,
     includeSegmentEndPoints: boolean = false,
 ): Promise<AlignmentPolyLine[]> {
-    const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.designId}_${fetchType}`;
+    const tileKey = `${mapTile.id}_${layoutContext.publicationState}_${layoutContext.designId}_${fetchType}_${includeSegmentEndPoints}`;
     const params = queryParams({
         resolution: toMapAlignmentResolution(mapTile.resolution),
         bbox: bboxString(mapTile.area),

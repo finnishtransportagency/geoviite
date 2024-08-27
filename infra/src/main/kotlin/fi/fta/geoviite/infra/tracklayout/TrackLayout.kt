@@ -84,6 +84,9 @@ data class LocationTrackDuplicate(
     val trackNumberId: IntId<TrackLayoutTrackNumber>,
     val name: AlignmentName,
     val externalId: Oid<LocationTrack>?,
+    val start: AlignmentPoint?,
+    val end: AlignmentPoint?,
+    val length: Double?,
     val duplicateStatus: DuplicateStatus,
 )
 
@@ -245,7 +248,8 @@ data class DuplicateStatus(
     val match: DuplicateMatch,
     val duplicateOfId: IntId<LocationTrack>?,
     val startSplitPoint: SplitPoint?,
-    val endSplitPoint: SplitPoint?
+    val endSplitPoint: SplitPoint?,
+    val overlappingLength: Double?
 )
 
 data class SplitDuplicateTrack(
@@ -253,6 +257,7 @@ data class SplitDuplicateTrack(
     val name: AlignmentName,
     val start: AddressPoint,
     val end: AddressPoint,
+    val length: Double,
     val status: DuplicateStatus,
 )
 

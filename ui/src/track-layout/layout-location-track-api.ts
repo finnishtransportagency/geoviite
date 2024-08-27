@@ -83,6 +83,7 @@ export type SplitDuplicate = {
     name: string;
     start: AddressPoint;
     end: AddressPoint;
+    length: number;
     status: DuplicateStatus;
 };
 
@@ -145,8 +146,9 @@ export async function getLocationTracksByName(
     trackNumberId: LayoutTrackNumberId,
     locationTrackNames: string[],
     layoutContext: LayoutContext,
+    includeDeleted: boolean,
 ): Promise<LayoutLocationTrack[]> {
-    const params = queryParams({ locationTrackNames });
+    const params = queryParams({ locationTrackNames, includeDeleted });
     return getNonNull<LayoutLocationTrack[]>(
         `${layoutUri('track-numbers', layoutContext)}/${trackNumberId}/location-tracks${params}`,
     );

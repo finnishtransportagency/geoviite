@@ -16,12 +16,23 @@ $-color-warning: vayla-design.$color-lemon-dark;
     margin: 0; /* Remove margins */
 }
 
+.location-track-infobox-duplicate-of__duplicate-track {
+    display: inline-flex;
+    align-items: center;
+}
+
 .location-track-infobox-duplicate-of__info-icons {
     padding-left: 4px;
 }
 
 .location-track-infobox-duplicate-of__icon {
-    padding: 0 4px;
+    padding: 0 6px;
+    fill: vayla-design.$color-blue-dark;
+    display: inline-flex;
+}
+
+.location-track-infobox-duplicate-of__icon--warning {
+    fill: vayla-design.$color-lemon-dark;
 }
 
 .location-track-infobox-duplicate-of__icon--error {
@@ -156,6 +167,28 @@ $-color-warning: vayla-design.$color-lemon-dark;
         display: flex;
         flex-direction: column;
     }
+}
+
+.location-track-infobox__split-operation {
+    @include vayla-design.typography-caption;
+    color: vayla-design.$color-black-light;
+    display: inline-flex;
+    align-items: center;
+}
+
+.location-track-infobox__split-operation--warning {
+    color: vayla-design.$color-lemon-dark;
+}
+
+.location-track-infobox__split-operation-icon {
+    fill: vayla-design.$color-black-light;
+    display: inline-flex;
+    align-items: center;
+    margin-left: 6px;
+}
+
+.location-track-infobox__split-operation-icon--warning {
+    fill: vayla-design.$color-lemon-dark;
 }
 
 .location-track-infobox__split-error {
