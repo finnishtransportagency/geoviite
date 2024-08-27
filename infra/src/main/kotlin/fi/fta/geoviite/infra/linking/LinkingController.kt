@@ -13,18 +13,18 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
+import fi.fta.geoviite.infra.linking.switches.SamplingGridPoints
+import fi.fta.geoviite.infra.linking.switches.SuggestedSwitchesAtGridPoints
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
+import fi.fta.geoviite.infra.linking.switches.matchSamplingGridToQueryPoints
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
-import fi.fta.geoviite.infra.tracklayout.SwitchPlacingRequest
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.http.ResponseEntity
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -143,16 +143,17 @@ class LinkingController @Autowired constructor(
     ): GeometrySwitchSuggestionResult = switchLinkingService.getSuggestedSwitch(branch, geometrySwitchId)
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
-    @GetMapping("/{$LAYOUT_BRANCH}/switches/suggested", params = ["location", "layoutSwitchId"])
-    fun getSuggestedSwitchForLayoutSwitchPlacing(
+    @GetMapping("/{$LAYOUT_BRANCH}/switches/suggested", params = ["points", "switchId"])
+    fun getSuggestedSwitchesForLayoutSwitchPlacing(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
-        @RequestParam("location") location: Point,
-        @RequestParam("layoutSwitchId") layoutSwitchId: IntId<TrackLayoutSwitch>,
-    ): ResponseEntity<SuggestedSwitch> = toResponse(
-        switchLinkingService
-            .getSuggestedSwitches(branch, listOf(SwitchPlacingRequest(location, layoutSwitchId)))
-            .firstOrNull()
-    )
+        @RequestParam("points") points: List<Point>,
+        @RequestParam("switchId") switchId: IntId<TrackLayoutSwitch>,
+    ): SuggestedSwitchesAtGridPoints {
+        val suggestedSwitches =
+            switchLinkingService.getSuggestedSwitches(branch, listOf(SamplingGridPoints(points) to switchId))[0]
+        return matchSamplingGridToQueryPoints(suggestedSwitches, points)
+    }
+
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/{$LAYOUT_BRANCH}/switches/{switchId}/geometry")

@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.linking
 
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.linking.switches.cropNothing
 import fi.fta.geoviite.infra.linking.switches.fitSwitch
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
@@ -102,7 +103,7 @@ class FittedSwitchTest {
                 ),
             ),
             switchStructure,
-            alignments = listOf(locationTrack to alignmentContainingSwitchSegments),
+            alignments = listOf(locationTrack to cropNothing(alignmentContainingSwitchSegments)),
             locationAccuracy = null,
         )
 

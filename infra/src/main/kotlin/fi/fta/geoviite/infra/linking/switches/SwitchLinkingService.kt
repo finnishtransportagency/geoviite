@@ -34,6 +34,7 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoints
 import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
 import fi.fta.geoviite.infra.math.isSame
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
@@ -55,7 +56,6 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.NearbyTracks
-import fi.fta.geoviite.infra.tracklayout.SwitchPlacingRequest
 import fi.fta.geoviite.infra.tracklayout.TRACK_SEARCH_AREA_SIZE
 import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
@@ -66,6 +66,7 @@ import fi.fta.geoviite.infra.tracklayout.clearLinksToSwitch
 import fi.fta.geoviite.infra.tracklayout.collectAllSwitches
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
+import java.util.stream.Collectors
 
 private val temporarySwitchId: IntId<TrackLayoutSwitch> = IntId(-1)
 
@@ -84,23 +85,23 @@ class SwitchLinkingService @Autowired constructor(
     private val geocodingService: GeocodingService,
     private val switchFittingService: SwitchFittingService,
 ) {
-
-    @Transactional(readOnly = true)
-    fun getSuggestedSwitches(
-        branch: LayoutBranch,
-        requests: List<SwitchPlacingRequest>,
-    ): List<SuggestedSwitch?> {
-        return getSuggestedSwitchesWithRelevantTracks(branch, requests).map { it?.first }
-    }
-
     @Transactional(readOnly = true)
     fun getSuggestedSwitch(
         branch: LayoutBranch,
         point: Point,
-        layoutSwitchId: IntId<TrackLayoutSwitch>,
-    ): SuggestedSwitch? {
-        return getSuggestedSwitches(branch, listOf(SwitchPlacingRequest(point, layoutSwitchId))).firstOrNull()
+        switchId: IntId<TrackLayoutSwitch>,
+    ): SuggestedSwitch? =
+        getSuggestedSwitches(branch, listOf(SamplingGridPoints(point) to switchId))[0].keys().firstOrNull()
+
+    @Transactional(readOnly = true)
+    fun getSuggestedSwitches(
+        branch: LayoutBranch,
+        grids: List<Pair<SamplingGridPoints, IntId<TrackLayoutSwitch>>>,
+    ): List<PointAssociation<SuggestedSwitch>> {
+        val withTracks = getSuggestedSwitchesAtGridsWithRelevantTracks(branch, grids)
+        return withTracks.map { atPoints -> atPoints.map { (suggestedSwitch) -> suggestedSwitch } }
     }
+
 
     @Transactional(readOnly = true)
     fun getSuggestedSwitch(
@@ -117,26 +118,47 @@ class SwitchLinkingService @Autowired constructor(
     // "relevant" = definitely includes tracks that the switches are linked to after the suggestion, but also tracks
     // that are just within the expanded bounding box of the fitted switch joints, or that the switch was originally
     // linked to
-    private fun getSuggestedSwitchesWithRelevantTracks(
+    private fun getSuggestedSwitchesAtGridsWithRelevantTracks(
         branch: LayoutBranch,
-        requests: List<SwitchPlacingRequest>,
-    ): List<Pair<SuggestedSwitch, Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>>?> {
-        val originallyLinkedLocationTracksBySwitch =
-            collectOriginallyLinkedLocationTracksBySwitch(branch, requests.map { request -> request.layoutSwitchId })
-        val originalSwitches =
-            requests.map { request -> switchService.getOrThrow(branch.draft, request.layoutSwitchId) }
+        grids: List<Pair<SamplingGridPoints, IntId<TrackLayoutSwitch>>>
+    ): List<PointAssociation<SuggestedSwitchWithRelevantTracks>> {
+        val originallyLinkedBySwitchId =
+            collectOriginallyLinkedLocationTracksBySwitch(branch, grids.map { (_, switchId) -> switchId })
+        return grids.map { (grid, switchId) ->
+            getSuggestedSwitchAtGridPointsWithRelevantTracks(
+                branch,
+                grid,
+                switchId,
+                originallyLinkedBySwitchId.getOrDefault(switchId, mapOf())
+            )
+        }
+    }
 
-        return switchFittingService.getFitsAtPoints(branch, requests.mapIndexed { index, request ->
-            request.point to originalSwitches[index].switchStructureId
-        }).mapIndexed { index, maybeFit ->
-            maybeFit?.let { fit ->
-                findRelevantTracksAndMatchFittedSwitch(
-                    branch,
-                    fit,
-                    requests[index].layoutSwitchId,
-                    originallyLinkedLocationTracksBySwitch[requests[index].layoutSwitchId]
-                )
-            }
+    data class SuggestedSwitchWithRelevantTracks(
+        val suggestedSwitch: SuggestedSwitch,
+        val relevantTracks: TracksByTrackId,
+    )
+
+    private fun getSuggestedSwitchAtGridPointsWithRelevantTracks(
+        branch: LayoutBranch,
+        grid: SamplingGridPoints,
+        switchId: IntId<TrackLayoutSwitch>,
+        originallyLinkedLocationTracks: TracksByTrackId,
+    ): PointAssociation<SuggestedSwitchWithRelevantTracks> {
+        val originalSwitch = switchService.getOrThrow(branch.draft, switchId)
+        val switchStructure = switchLibraryService.getSwitchStructure(originalSwitch.switchStructureId)
+        val gridFits = findBestSwitchFitForAllPointsInSamplingGrid(
+            grid, switchStructure, locationTrackService.listNearWithAlignments(
+                branch.draft, grid.bounds() + TRACK_SEARCH_AREA_SIZE
+            )
+        )
+        return gridFits.map { fit ->
+            val tracksAroundFit = findLocationTracksForMatchingSwitchToTracks(branch, fit, switchId)
+            val relevantTracks = tracksAroundFit + originallyLinkedLocationTracks
+            val match = matchFittedSwitchToTracks(fit, relevantTracks, switchId)
+            SuggestedSwitchWithRelevantTracks(
+                match,
+                relevantTracks.filterKeys { track -> match.trackLinks.containsKey(track) })
         }
     }
 
@@ -288,10 +310,13 @@ class SwitchLinkingService @Autowired constructor(
 
         val replacementSwitchLocations = switchIds.map { switchId ->
             val switch = switchService.getOrThrow(branch.draft, switchId)
-            SwitchPlacingRequest(switchService.getPresentationJointOrThrow(switch).location, switchId)
+            SamplingGridPoints(switchService.getPresentationJointOrThrow(switch).location) to switchId
         }
 
-        val switchSuggestions = getSuggestedSwitchesWithRelevantTracks(branch, replacementSwitchLocations)
+        val switchSuggestions = getSuggestedSwitchesAtGridsWithRelevantTracks(
+            branch,
+            replacementSwitchLocations
+        ).map { pointAssociation -> pointAssociation.keys().firstOrNull() }
         val geocodingContext = requireNotNull(geocodingService.getGeocodingContext(branch.draft, track.trackNumberId)) {
             "Could not get geocoding context: trackNumber=${track.trackNumberId} track=$track"
         }
@@ -340,10 +365,10 @@ class SwitchLinkingService @Autowired constructor(
         val switchIds = collectAllSwitches(track, alignment)
         val replacementSwitchLocations = switchIds.map { switchId ->
             val switch = switchService.getOrThrow(layoutContext, switchId)
-            SwitchPlacingRequest(switchService.getPresentationJointOrThrow(switch).location, switchId)
+            SamplingGridPoints(switchService.getPresentationJointOrThrow(switch).location) to switchId
         }
         val switchSuggestions = getSuggestedSwitches(layoutContext.branch, replacementSwitchLocations)
-        return switchIds.mapIndexed { index, id -> id to switchSuggestions[index] }
+        return switchIds.mapIndexed { index, id -> id to switchSuggestions[index].keys().firstOrNull() }
     }
 
     private fun collectAllSwitchesOnTrackAndNearby(
@@ -966,3 +991,99 @@ private fun combineAdjacentSegmentJointNumbers(
     acc
 }
 
+typealias TracksByTrackId = Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>>
+
+data class SamplingGridPoints(
+    val points: List<Point>
+) {
+    constructor(point: Point) : this(listOf(point))
+    fun bounds(): BoundingBox = boundingBoxAroundPoints(points)
+
+    fun <R> map(parallel: Boolean = false, f: (point: Point) -> R) = PointAssociation(
+        points
+            .let { if (parallel) it.parallelStream() else it.stream() }
+            .map { point -> f(point) to point }
+            .toList()
+    )
+
+    fun <R> mapMulti(parallel: Boolean = false, f: (point: Point) -> Set<R>): PointAssociation<R> {
+        val stream = if (parallel) points.parallelStream() else points.stream()
+        val map = stream.map { point -> point to f(point)}.collect(Collectors.toMap({ it.first }, { it.second }))
+        return PointAssociation(invertMapOfSets(map))
+    }
+
+    fun get(index: Int) = points[index]
+}
+
+/**
+ * Associate a set of items with a set of points for each item.
+ */
+data class PointAssociation<T>(
+    val items: Map<T, Set<Point>>
+) {
+    constructor(pairs: List<Pair<T, Point>>) : this(pairs.associate { (i, ps) -> i to setOf(ps) })
+
+    fun keys(): Set<T> = items.keys
+
+    fun <R> map(parallel: Boolean = false, transform: (item: T) -> R): PointAssociation<R> =
+        PointAssociation(itemStream(parallel).flatMap { (i, ps) ->
+            transform(i).let { result -> ps.stream().map { point -> result to point } }
+        }.collect(Collectors.groupingBy({ it.first }, Collectors.mapping({ it.second }, Collectors.toSet()))))
+
+    fun <R> mapMulti(parallel: Boolean = false, transform: (item: T) -> Set<R>): PointAssociation<R> =
+        PointAssociation(itemStream(parallel).flatMap { (i, ps) ->
+            transform(i).stream().flatMap { result -> ps.stream().map { point -> result to point } }
+        }.collect(Collectors.groupingBy({ it.first }, Collectors.mapping({ it.second }, Collectors.toSet()))))
+
+    /**
+     * Collect items by point, and run the aggregation callback for each point's collection. The callback does not
+     * receive any calls with empty collections.
+     */
+    fun <R> aggregateByPoint(parallel: Boolean = false, aggregate: (point: Point, item: Set<T>) -> R): PointAssociation<R> {
+        val byPoint = invertItems().entries
+        val stream = if (parallel) byPoint.parallelStream() else byPoint.stream()
+        return PointAssociation(stream.map { (point, es) ->
+            aggregate(point, es) to point
+        }.collect(Collectors.groupingBy({ it.first }, Collectors.mapping({ it.second }, Collectors.toSet()))))
+    }
+
+    fun zipWithByPoint(other: PointAssociation<T>, combine: (my: Set<T>, theirs: Set<T>) -> Set<T>): PointAssociation<T> {
+        val meByPoint = invertItems()
+        val themByPoint = other.invertItems()
+
+        return PointAssociation(invertMapOfSets((meByPoint.keys + themByPoint.keys).associateWith { point ->
+            val myItems = meByPoint.getOrDefault(point, setOf())
+            val theirItems = themByPoint.getOrDefault(point, setOf())
+            combine(myItems, theirItems)
+        }))
+    }
+
+    private fun itemStream(parallel: Boolean) = if (parallel) items.entries.parallelStream() else items.entries.stream()
+
+    private fun invertItems(): Map<Point, Set<T>> = invertMapOfSets(items)
+}
+
+fun <K, V> invertMapOfSets(map: Map<K, Set<V>>): Map<V, Set<K>> = map.entries
+    .stream()
+    .flatMap { (i, ps) -> ps.stream().map { point -> point to i } }
+    .collect(Collectors.groupingBy({ it.first }, Collectors.mapping({ it.second }, Collectors.toSet())))
+
+data class SuggestedSwitchesAtGridPoints(
+    val suggestedSwitches: List<SuggestedSwitch>,
+    val gridSwitchIndices: List<Int?>,
+)
+
+fun matchSamplingGridToQueryPoints(grid: PointAssociation<SuggestedSwitch>, queryPoints: List<Point>): SuggestedSwitchesAtGridPoints {
+    val switchesByPoint = invertMapOfSets(grid.items)
+    assert(switchesByPoint.values.all { it.size == 1 }) { "suggested switches grid assigns unique suggestion per point" }
+    val switchByPoint = switchesByPoint.mapValues { (_, v) -> v.firstOrNull() }
+    val switches = grid.keys().toList()
+    return SuggestedSwitchesAtGridPoints(switches,
+        queryPoints.map { point ->
+            switchByPoint[point]?.let { switch ->
+                switches
+                    .indexOf(switch)
+                    .let { index -> if (index == -1) null else index }
+            }
+        })
+}

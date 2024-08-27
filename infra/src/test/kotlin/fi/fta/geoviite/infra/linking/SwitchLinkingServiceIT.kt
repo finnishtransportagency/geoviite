@@ -1461,8 +1461,8 @@ class SwitchLinkingServiceIT @Autowired constructor(
             locationTrack(trackNumberId, name = "through track", draft = true),
             alignment(
                 segment(
-                    Point(0.0, 0.0),
-                    Point(40.0, 0.0),
+                    Point(0.0, 0.0), Point(40.0, 0.0)
+                ).copy(
                     switchId = switchId,
                     startJointNumber = JointNumber(1),
                 )
