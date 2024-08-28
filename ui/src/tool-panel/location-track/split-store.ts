@@ -20,6 +20,8 @@ import { mapReducers } from 'map/map-store';
 import { expectDefined } from 'utils/type-utils';
 import { filterNotEmpty } from 'utils/array-utils';
 
+export const PARTIAL_DUPLICATE_EXPECTED_MINIMUM_NON_OVERLAPPING_PART_LENGTH_METERS = 10;
+
 export type SplitTargetDuplicateOperation = 'TRANSFER' | 'OVERWRITE';
 export type SplitTargetOperation = SplitTargetDuplicateOperation | 'CREATE';
 

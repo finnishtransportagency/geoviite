@@ -2,18 +2,19 @@ import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     LayoutLocationTrack,
+    LayoutTrackNumber,
     LayoutTrackNumberId,
     LocationTrackDuplicate,
 } from 'track-layout/track-layout-model';
 import { LocationTrackLink } from 'tool-panel/location-track/location-track-link';
 import styles from './location-track-infobox.scss';
 import { LayoutContext, TimeStamp } from 'common/common-model';
-import { useLocationTracks, useTrackNumbers } from 'track-layout/track-layout-react-utils';
-import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 import {
     LocationTrackDuplicateInfoIcon,
     LocationTrackInfoboxDuplicateTrackEntry,
 } from 'tool-panel/location-track/location-track-infobox-duplicate-track-entry';
+import { useLocationTracks, useTrackNumbers } from 'track-layout/track-layout-react-utils';
+import { filterNotEmpty, filterUniqueById } from 'utils/array-utils';
 
 export type LocationTrackInfoboxDuplicateOfProps = {
     layoutContext: LayoutContext;
@@ -23,6 +24,11 @@ export type LocationTrackInfoboxDuplicateOfProps = {
     duplicatesOfLocationTrack: LocationTrackDuplicate[] | undefined;
     currentTrackNumberId: LayoutTrackNumberId | undefined;
 };
+
+const getTrackNumberName = (
+    trackNumbers: LayoutTrackNumber[] | undefined,
+    trackNumberId: LayoutTrackNumberId,
+) => trackNumbers?.find((tn) => tn.id === trackNumberId)?.number || '';
 
 export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDuplicateOfProps> = ({
     targetLocationTrack,
@@ -44,7 +50,7 @@ export const LocationTrackInfoboxDuplicateOf: React.FC<LocationTrackInfoboxDupli
         currentTrackNumberId &&
         currentTrackNumberId !== existingDuplicate?.trackNumberId
             ? t('tool-panel.location-track.duplicate-on-different-track-number', {
-                  trackNumber: trackNumbers?.find((tn) => tn.id === currentTrackNumberId)?.number,
+                  trackNumber: getTrackNumberName(trackNumbers, existingDuplicate.trackNumberId),
               })
             : '';
 

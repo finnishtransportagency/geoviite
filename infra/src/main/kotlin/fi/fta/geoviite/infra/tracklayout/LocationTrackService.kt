@@ -240,10 +240,11 @@ class LocationTrackService(
 
     fun list(
         layoutContext: LayoutContext,
+        includeDeleted: Boolean,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         names: List<AlignmentName>,
     ): List<LocationTrack> {
-        return dao.list(layoutContext, true, trackNumberId, names)
+        return dao.list(layoutContext, includeDeleted, trackNumberId, names)
     }
 
     override fun idMatches(term: String, item: LocationTrack) =
@@ -655,11 +656,22 @@ class LocationTrackService(
 
             val duplicateTracks = getLocationTrackDuplicates(layoutContext, locationTrack, alignment)
                 .mapNotNull { duplicate ->
-                    getWithAlignmentOrThrow(layoutContext, duplicate.id).let { (dupe, alignment) ->
-                        geocodingService.getLocationTrackStartAndEnd(layoutContext, dupe, alignment)
-                    }?.let { (start, end) ->
+                    val (duplicateTrack, duplicateAlignment) =  getWithAlignmentOrThrow(layoutContext, duplicate.id)
+                    val startAndEnd = geocodingService.getLocationTrackStartAndEnd(
+                        layoutContext,
+                        duplicateTrack,
+                        duplicateAlignment
+                    )
+                    startAndEnd?.let {(start, end) ->
                         if (start != null && end != null) {
-                            SplitDuplicateTrack(duplicate.id, duplicate.name, start, end, duplicate.duplicateStatus)
+                            SplitDuplicateTrack(
+                                duplicate.id,
+                                duplicate.name,
+                                start,
+                                end,
+                                duplicateAlignment.length,
+                                duplicate.duplicateStatus
+                            )
                         } else {
                             null
                         }

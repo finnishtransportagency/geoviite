@@ -235,6 +235,7 @@ export function useLocationTrackInfoboxExtras(
         [id, layoutContext.branch, layoutContext.publicationState, changeTimes],
     );
 }
+
 export function useConflictingTracks(
     trackNumberId: LayoutTrackNumberId | undefined,
     trackNames: string[],
@@ -250,9 +251,12 @@ export function useConflictingTracks(
         () =>
             trackNumberId === undefined || properAlignmentNames.length === 0
                 ? undefined
-                : getLocationTracksByName(trackNumberId, properAlignmentNames, layoutContext).then(
-                      (tracks) => tracks.filter((t) => !trackIds.includes(t.id)),
-                  ),
+                : getLocationTracksByName(
+                      trackNumberId,
+                      properAlignmentNames,
+                      layoutContext,
+                      false,
+                  ).then((tracks) => tracks.filter((t) => !trackIds.includes(t.id))),
         [
             trackNumberId,
             namesString,

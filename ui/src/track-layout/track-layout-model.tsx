@@ -197,6 +197,7 @@ export type DuplicateStatus = {
     endPoint?: AlignmentPoint;
     startSplitPoint?: SplitPoint;
     endSplitPoint?: SplitPoint;
+    overlappingLength?: number;
 };
 
 export type LocationTrackDuplicate = {
@@ -204,7 +205,10 @@ export type LocationTrackDuplicate = {
     trackNumberId: LayoutTrackNumberId;
     name: string;
     externalId: Oid;
+    start: AlignmentPoint | undefined;
+    end: AlignmentPoint | undefined;
     duplicateStatus: DuplicateStatus;
+    length?: number;
 };
 export type LayoutSwitchIdAndName = {
     id: LayoutSwitchId;
