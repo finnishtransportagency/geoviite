@@ -3,6 +3,7 @@ import OlMap from 'ol/Map';
 import {
     OnClickLocationFunction,
     OnHighlightItemsFunction,
+    OnHoverLocationFunction,
     OnSelectFunction,
     Selection,
 } from 'selection/selection-model';
@@ -27,7 +28,13 @@ import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
 import { highlightTool } from 'map/tools/highlight-tool';
 import { LineString, Point as OlPoint, Polygon } from 'ol/geom';
-import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
+import {
+    LinkingState,
+    LinkingSwitch,
+    LinkingType,
+    LinkPoint,
+    SuggestedSwitch,
+} from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
 import { GeometryPlanLayout, LAYOUT_SRID } from 'track-layout/track-layout-model';
@@ -48,7 +55,7 @@ import { createGeometryKmPostLayer } from 'map/layers/geometry/geometry-km-post-
 import { createKmPostLayer } from 'map/layers/km-post/km-post-layer';
 import { createAlignmentLinkingLayer } from 'map/layers/alignment/alignment-linking-layer';
 import { createPlanAreaLayer } from 'map/layers/geometry/plan-area-layer';
-import { pointToCoords } from 'map/layers/utils/layer-utils';
+import { getPlanarDistance, pointToCoords } from 'map/layers/utils/layer-utils';
 import { createGeometrySwitchLayer } from 'map/layers/geometry/geometry-switch-layer';
 import { createSwitchLayer } from 'map/layers/switch/switch-layer';
 import {
@@ -70,7 +77,7 @@ import { createDuplicateTracksHighlightLayer } from 'map/layers/highlight/duplic
 import { createMissingLinkingHighlightLayer } from 'map/layers/highlight/missing-linking-highlight-layer';
 import { createMissingProfileHighlightLayer } from 'map/layers/highlight/missing-profile-highlight-layer';
 import { createTrackNumberEndPointAddressesLayer } from 'map/layers/highlight/track-number-end-point-addresses-layer';
-import { Point, Rectangle } from 'model/geometry';
+import { coordsToPoint, Point, Rectangle } from 'model/geometry';
 import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-section-highlight-layer';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -87,6 +94,12 @@ import { layersCoveringLayers } from 'map/map-store';
 import { createLocationTrackSplitAlignmentLayer } from 'map/layers/alignment/location-track-split-alignment-layer';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import Feature from 'ol/Feature';
+import { Brand } from 'common/brand';
+import { getSuggestedSwitchesForLayoutSwitchPlacing } from 'linking/linking-api';
+import { pointString } from 'common/common-api';
+import { useLimitedRequestsInFlight } from 'utils/react-utils';
+import { AsyncCache, asyncCache } from 'cache/cache';
+import { grid, gridPositionEquals } from 'utils/math-utils';
 
 declare global {
     interface Window {
@@ -104,6 +117,7 @@ export type MapViewProps = {
     changeTimes: ChangeTimes;
     onHighlightItems: OnHighlightItemsFunction;
     onClickLocation: OnClickLocationFunction;
+    onHoverLocation: OnHoverLocationFunction;
     onViewportUpdate: (viewport: MapViewport) => void;
     onShownLayerItemsChange: (items: OptionalShownItems) => void;
     onSetLayoutPoint: (linkPoint: LinkPoint) => void;
@@ -117,6 +131,8 @@ export type MapViewProps = {
     onMapLayerChange: (change: MapLayerMenuChange) => void;
     mapLayerMenuGroups: MapLayerMenuGroups;
     visibleLayerNames: MapLayerName[];
+    suggestSwitch: (suggestedSwitch: SuggestedSwitch | undefined) => void;
+    showLayers: (layers: MapLayerName[]) => void;
 };
 
 export type ClickType = 'all' | 'geometryPoint' | 'layoutPoint' | 'remove';
@@ -160,6 +176,15 @@ function getDomainViewportByOlView(map: OlMap): MapViewport {
     };
 }
 
+export type ScreenPoint = Brand<Point, 'ScreenPoint'>;
+
+export const SUGGESTED_SWITCHES_GRID_SIZE = 5;
+
+type ScreenGrid = {
+    cellIndex: Point;
+    positionInCell: Point;
+};
+
 const MapView: React.FC<MapViewProps> = ({
     map,
     selection,
@@ -178,6 +203,9 @@ const MapView: React.FC<MapViewProps> = ({
     onShownLayerItemsChange,
     onHighlightItems,
     onClickLocation,
+    onHoverLocation,
+    suggestSwitch,
+    showLayers,
     onMapLayerChange,
     mapLayerMenuGroups,
     visibleLayerNames,
@@ -189,9 +217,132 @@ const MapView: React.FC<MapViewProps> = ({
     const olMapContainer = React.useRef<HTMLDivElement>(null);
     const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
     const [measurementToolActive, setMeasurementToolActive] = React.useState(false);
-    const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
+    const [hoveredLocation, _setHoveredLocation] = React.useState<Point>();
+    const [hoveredPixelLocation, setHoveredPixelLocation] = React.useState<ScreenPoint>();
 
     const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
+
+    const positionInSuggestedSwitchGrid = React.useRef<ScreenGrid>();
+
+    const suggestedSwitchCache = React.useRef<{
+        cache: AsyncCache<string, (undefined | SuggestedSwitch)[]>;
+        resolution: number;
+        center: Point;
+    }>();
+
+    React.useEffect(
+        () => {
+            const view = olMap?.getView();
+            const centerCoords = view?.getCenter();
+            const resolution = view?.getResolution();
+            if (view && centerCoords && resolution) {
+                const current = suggestedSwitchCache.current;
+                const center = coordsToPoint(centerCoords);
+                if (
+                    current === undefined ||
+                    current.resolution !== resolution ||
+                    center.x !== current.center.x ||
+                    center.y !== current.center.y
+                ) {
+                    suggestedSwitchCache.current = {
+                        cache: asyncCache(),
+                        resolution,
+                        center,
+                    };
+                }
+            }
+        } /* no deps list: we're checking for the update deliberately on every render */,
+    );
+
+    const suggestSwitchAndDisplaySwitchLinkingLayer = (
+        suggestedSwitch: SuggestedSwitch | undefined,
+    ) => {
+        suggestSwitch(suggestedSwitch);
+        showLayers(['switch-linking-layer']);
+    };
+
+    const requestLoadingSuggestedSwitch = useLimitedRequestsInFlight<
+        (SuggestedSwitch | undefined)[]
+    >('stack', 5);
+
+    const setHoveredLocation = (newHoveredLocation: Point, pixelPosition: ScreenPoint) => {
+        _setHoveredLocation(newHoveredLocation);
+        setHoveredPixelLocation(pixelPosition);
+
+        const container = olMapContainer.current;
+        if (
+            olMap !== undefined &&
+            hoveredPixelLocation !== undefined &&
+            container !== null &&
+            (linkingState?.type === LinkingType.PlacingSwitch ||
+                linkingState?.type === LinkingType.SuggestingSwitchPlace)
+        ) {
+            const rect = container.getBoundingClientRect();
+            const pixel = {
+                x: hoveredPixelLocation.x - rect.x,
+                y: hoveredPixelLocation.y - rect.y,
+            };
+            const suggestedSwitchesGrid = grid(SUGGESTED_SWITCHES_GRID_SIZE, pixel);
+            positionInSuggestedSwitchGrid.current = suggestedSwitchesGrid;
+            const points = [...Array(SUGGESTED_SWITCHES_GRID_SIZE)].flatMap((_, yIndex) =>
+                [...Array(SUGGESTED_SWITCHES_GRID_SIZE)].map((_, xIndex) =>
+                    coordsToPoint(
+                        olMap.getCoordinateFromPixel([
+                            suggestedSwitchesGrid.cellIndex.x * SUGGESTED_SWITCHES_GRID_SIZE +
+                                xIndex,
+                            suggestedSwitchesGrid.cellIndex.y * SUGGESTED_SWITCHES_GRID_SIZE +
+                                yIndex,
+                        ]),
+                    ),
+                ),
+            );
+            const key = pointString(suggestedSwitchesGrid.cellIndex);
+            const cache = suggestedSwitchCache.current;
+            if (cache !== undefined) {
+                cache.cache
+                    .getImmutable(key, () =>
+                        requestLoadingSuggestedSwitch(() =>
+                            getSuggestedSwitchesForLayoutSwitchPlacing(
+                                layoutContext.branch,
+                                points,
+                                linkingState.layoutSwitch.id,
+                            ),
+                        ),
+                    )
+                    .then((tileSwitches) => {
+                        // need to store full hovered pixel location as well as validity stuff in ref so that we can check
+                        // for all of it whether it's current here, but for now...
+                        if (
+                            cache === suggestedSwitchCache.current &&
+                            positionInSuggestedSwitchGrid.current &&
+                            gridPositionEquals(
+                                suggestedSwitchesGrid,
+                                positionInSuggestedSwitchGrid.current,
+                            )
+                        ) {
+                            const switchIndexInCell =
+                                suggestedSwitchesGrid.positionInCell.y *
+                                    SUGGESTED_SWITCHES_GRID_SIZE +
+                                suggestedSwitchesGrid.positionInCell.x;
+                            const suggested = tileSwitches[switchIndexInCell];
+                            if (
+                                suggested &&
+                                hoveredLocation &&
+                                suggested.joints[0] !== undefined &&
+                                getPlanarDistance(suggested.joints[0].location, hoveredLocation) <
+                                    10
+                            ) {
+                                suggestSwitchAndDisplaySwitchLinkingLayer(
+                                    tileSwitches[switchIndexInCell],
+                                );
+                            }
+                        }
+                    });
+            }
+        } else {
+            positionInSuggestedSwitchGrid.current = undefined;
+        }
+    };
 
     const onLayerLoading = (name: MapLayerName, isLoading: boolean) => {
         setLayersLoadingData((prevLoadingLayers) => {
@@ -664,7 +815,10 @@ const MapView: React.FC<MapViewProps> = ({
         const toolActivateOptions: MapToolActivateOptions = {
             onSelect: onSelect,
             onHighlightItems: onHighlightItems,
-            onHoverLocation: (p) => setHoveredLocation(p),
+            onHoverLocation: (p, px) => {
+                setHoveredLocation(p, px);
+                onHoverLocation(p, px);
+            },
             onClickLocation: onClickLocation,
         };
 

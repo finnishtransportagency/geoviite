@@ -124,6 +124,56 @@ export function useRateLimitedLoaderWithStatus<TEntity>(
     return [entity, loaderStatus];
 }
 
+export function useLimitedRequestsInFlight<TEntity>(
+    policy: 'queue' | 'stack' = 'queue',
+    maxRequestsInFlight: number = 1,
+): (loader: () => Promise<TEntity>) => Promise<TEntity> {
+    const requestQueue = useRef<
+        {
+            loader: () => Promise<TEntity>;
+            resolve: (value: TEntity | PromiseLike<TEntity>) => void;
+            reject: (reason?: never) => void;
+        }[]
+    >([]);
+    const inFlight = useRef(0);
+    const drainQueue = () => {
+        const next = policy === 'queue' ? requestQueue.current.shift() : requestQueue.current.pop();
+        if (next) {
+            inFlight.current++;
+            next.loader()
+                .then(next.resolve, next.reject)
+                .finally(() => {
+                    inFlight.current--;
+                    drainQueue();
+                });
+        }
+    };
+    return (loader: () => Promise<TEntity>): Promise<TEntity> => {
+        if (inFlight.current <= maxRequestsInFlight) {
+            return new Promise((resolve, reject) => {
+                requestQueue.current.push({
+                    loader,
+                    resolve,
+                    reject,
+                });
+            });
+        } else {
+            inFlight.current++;
+            return loader().then(
+                (result) => {
+                    inFlight.current--;
+                    drainQueue();
+                    return result;
+                },
+                (error) => {
+                    inFlight.current--;
+                    throw error;
+                },
+            );
+        }
+    };
+}
+
 export function useImmediateLoader<TEntity>(setter: (result: TEntity) => void): {
     isLoading: boolean;
     load: (promise: Promise<TEntity>) => void;

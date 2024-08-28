@@ -3,9 +3,6 @@ import ToolPanel from 'tool-panel/tool-panel';
 import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks';
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createDelegates } from 'store/store-utils';
-import { LinkingType, SuggestedSwitch } from 'linking/linking-model';
-import { LayoutSwitch } from 'track-layout/track-layout-model';
-import { getSuggestedSwitchForLayoutSwitchPlacing } from 'linking/linking-api';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 
 type ToolPanelContainerProps = {
@@ -24,7 +21,7 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
     const switchIds = store.selection.selectedItems.switches;
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
-    const startSwitchLinking = React.useCallback(function (
+    /*const startSwitchLinking = React.useCallback(function (
         suggestedSwitch: SuggestedSwitch,
         layoutSwitch: LayoutSwitch,
     ) {
@@ -36,14 +33,14 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
             switches: [layoutSwitch.id],
         });
         delegates.showLayers(['switch-linking-layer']);
-    }, []);
+    }, []);*/
 
     const infoboxVisibilities = useTrackLayoutAppSelector((state) => state.infoboxVisibilities);
-
+    /*
     React.useEffect(() => {
         const linkingState = store.linkingState;
         if (linkingState?.type == LinkingType.PlacingSwitch && linkingState.location) {
-            getSuggestedSwitchForLayoutSwitchPlacing(
+            getSuggestedSwitchesForLayoutSwitchPlacing(
                 store.layoutContext.branch,
                 linkingState.location,
                 linkingState.layoutSwitch.id,
@@ -58,7 +55,7 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
             });
         }
     }, [store.linkingState]);
-
+*/
     return (
         <ToolPanel
             infoboxVisibilities={infoboxVisibilities}

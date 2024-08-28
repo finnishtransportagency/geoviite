@@ -3,7 +3,7 @@ import { Style } from 'ol/style';
 import { Point as OlPoint } from 'ol/geom';
 import { MapLayerName } from 'map/map-model';
 import { LayerItemSearchResult, MapLayer, SearchItemsOptions } from 'map/layers/utils/layer-model';
-import { LinkingSwitch, SuggestedSwitch } from 'linking/linking-model';
+import { LinkingSwitch, SuggestedSwitch, SuggestingSwitchPlace } from 'linking/linking-model';
 import {
     createLayer,
     findMatchingEntities,
@@ -21,11 +21,11 @@ import VectorSource from 'ol/source/Vector';
 
 function createSwitchFeatures(
     suggestedSwitch: SuggestedSwitch,
-    isSelected: boolean,
+    doDisplay: boolean,
 ): Feature<OlPoint>[] {
     const features: Feature<OlPoint>[] = [];
 
-    if (isSelected) {
+    if (doDisplay) {
         suggestedSwitch.joints.forEach((joint) => {
             const f = new Feature({
                 geometry: new OlPoint(pointToCoords(joint.location)),
@@ -53,7 +53,7 @@ const layerName: MapLayerName = 'switch-linking-layer';
 export function createSwitchLinkingLayer(
     existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
     selection: Selection,
-    linkingState: LinkingSwitch | undefined,
+    linkingState: LinkingSwitch | SuggestingSwitchPlace | undefined,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);

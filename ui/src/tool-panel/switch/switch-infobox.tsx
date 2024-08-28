@@ -32,7 +32,7 @@ import {
 } from 'common/common-model';
 import LayoutStateCategoryLabel from 'geoviite-design-lib/layout-state-category/layout-state-category-label';
 import { BoundingBox, Point } from 'model/geometry';
-import { PlacingSwitch } from 'linking/linking-model';
+import { LinkingType, PlacingSwitch, SuggestingSwitchPlace } from 'linking/linking-model';
 import { MessageBox } from 'geoviite-design-lib/message-box/message-box';
 import { translateSwitchTrapPoint } from 'utils/enum-localization-utils';
 import { filterNotEmpty } from 'utils/array-utils';
@@ -54,6 +54,7 @@ import SwitchDeleteConfirmationDialog from './dialog/switch-delete-confirmation-
 import { calculateBoundingBoxToShowAroundLocation } from 'map/map-utils';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
+import { suggestedSwitchJointsAsLayoutSwitchJointConnections } from 'linking/linking-utils';
 
 type SwitchInfoboxProps = {
     switchId: LayoutSwitchId;
@@ -63,7 +64,7 @@ type SwitchInfoboxProps = {
     layoutContext: LayoutContext;
     onSelect: (options: OnSelectOptions) => void;
     onUnselect: (items: OptionalUnselectableItemCollections) => void;
-    placingSwitchLinkingState?: PlacingSwitch;
+    placingSwitchLinkingState?: PlacingSwitch | SuggestingSwitchPlace;
     startSwitchPlacing: (layoutSwitch: LayoutSwitch) => void;
     stopLinking: () => void;
     visibilities: SwitchInfoboxVisibilities;
@@ -158,10 +159,26 @@ const SwitchInfobox: React.FC<SwitchInfoboxProps> = ({
     const structure = switchStructures?.find(
         (structure) => structure.id === layoutSwitch?.switchStructureId,
     );
-    const switchJointConnections = useLoader(
-        () => getSwitchJointConnections(layoutContext, switchId),
-        [layoutContext.branch, layoutContext.publicationState, layoutSwitch],
-    );
+    const switchJointConnections = useLoader(() => {
+        if (placingSwitchLinkingState?.type === LinkingType.SuggestingSwitchPlace) {
+            return Promise.resolve(
+                placingSwitchLinkingState.suggestedSwitch === undefined
+                    ? undefined
+                    : suggestedSwitchJointsAsLayoutSwitchJointConnections(
+                          placingSwitchLinkingState.suggestedSwitch,
+                      ),
+            );
+        } else {
+            return getSwitchJointConnections(layoutContext, switchId);
+        }
+    }, [
+        layoutContext.branch,
+        layoutContext.publicationState,
+        layoutSwitch,
+        placingSwitchLinkingState?.type === LinkingType.SuggestingSwitchPlace,
+        (placingSwitchLinkingState as SuggestingSwitchPlace)?.suggestedSwitch?.joints?.[0]
+            ?.location,
+    ]);
     const switchChangeTimes = useSwitchChangeTimes(layoutSwitch?.id, layoutContext);
 
     const switchJointTrackMeters = useLoader(() => {

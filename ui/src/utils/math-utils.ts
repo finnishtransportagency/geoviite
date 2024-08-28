@@ -136,3 +136,23 @@ export function slopeFromPoints({ x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point
 export function linearFunction(slope: Slope, intercept: number): (x: number) => number {
     return (x: number) => slope * x + intercept;
 }
+
+export function grid(gridSize: number, point: Point): { cellIndex: Point; positionInCell: Point } {
+    const xIndex = Math.trunc(point.x / gridSize);
+    const yIndex = Math.trunc(point.y / gridSize);
+    const xPos = point.x % gridSize;
+    const yPos = point.y % gridSize;
+    return { cellIndex: { x: xIndex, y: yIndex }, positionInCell: { x: xPos, y: yPos } };
+}
+
+export function gridPositionEquals(
+    a: { cellIndex: Point; positionInCell: Point },
+    b: { cellIndex: Point; positionInCell: Point },
+): boolean {
+    return (
+        a.cellIndex.x === b.cellIndex.x &&
+        a.cellIndex.y === b.cellIndex.y &&
+        a.positionInCell.x === b.positionInCell.x &&
+        a.positionInCell.y === b.positionInCell.y
+    );
+}

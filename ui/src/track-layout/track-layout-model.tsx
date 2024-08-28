@@ -370,6 +370,7 @@ export function getSwitchPresentationJoint(
 export type LayoutSwitchJointMatch = {
     locationTrackId: LocationTrackId;
     location: Point;
+    matchDistance?: number;
 };
 
 export type LayoutSwitchJointConnection = {
