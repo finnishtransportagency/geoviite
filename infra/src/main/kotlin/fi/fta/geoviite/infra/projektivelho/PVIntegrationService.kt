@@ -6,11 +6,20 @@ import fi.fta.geoviite.infra.common.FeatureTypeCode
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.geometry.GeometryAlignment
-import fi.fta.geoviite.infra.inframodel.*
+import fi.fta.geoviite.infra.inframodel.INFRAMODEL_PARSING_KEY_GENERIC
+import fi.fta.geoviite.infra.inframodel.INFRAMODEL_PARSING_KEY_PARENT
+import fi.fta.geoviite.infra.inframodel.InfraModelService
+import fi.fta.geoviite.infra.inframodel.censorAuthorIdentifyingInfo
+import fi.fta.geoviite.infra.inframodel.toInfraModelFile
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LockDao
-import fi.fta.geoviite.infra.projektivelho.PVDocumentStatus.*
-import fi.fta.geoviite.infra.projektivelho.PVFetchStatus.*
+import fi.fta.geoviite.infra.projektivelho.PVDocumentStatus.NOT_IM
+import fi.fta.geoviite.infra.projektivelho.PVDocumentStatus.REJECTED
+import fi.fta.geoviite.infra.projektivelho.PVDocumentStatus.SUGGESTED
+import fi.fta.geoviite.infra.projektivelho.PVFetchStatus.ERROR
+import fi.fta.geoviite.infra.projektivelho.PVFetchStatus.FETCHING
+import fi.fta.geoviite.infra.projektivelho.PVFetchStatus.FINISHED
+import fi.fta.geoviite.infra.projektivelho.PVFetchStatus.WAITING
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.formatForLog
 import org.slf4j.Logger
@@ -151,7 +160,8 @@ class PVIntegrationService @Autowired constructor(
     }
 
     private fun insertFileToDatabase(file: PVFileHolder, assignment: PVAssignmentHolder) {
-        val result = file.content?.let { content -> checkInfraModel(content, file.latestVersion.name) }
+        val result = file.content
+            ?.let { content -> checkInfraModel(content, FileName(file.latestVersion.name)) }
             ?: InfraModelCheckResult(NOT_IM, "error.infra-model.missing-file")
         val xmlContent = if (result.state == NOT_IM) null else file.content?.let(::censorAuthorIdentifyingInfo)
         val pvDocumentRowVersion = pvDao.insertDocumentMetadata(

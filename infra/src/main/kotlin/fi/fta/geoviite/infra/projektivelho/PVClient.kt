@@ -6,7 +6,13 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.logging.integrationCall
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.MATERIAL
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.PROJECT
-import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.*
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.DOCUMENT_TYPE
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.MATERIAL_CATEGORY
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.MATERIAL_GROUP
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.MATERIAL_STATE
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.PROJECT_STATE
+import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.TECHNICS_FIELD
+import fi.fta.geoviite.infra.util.UnsafeString
 import fi.fta.geoviite.infra.util.formatForLog
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -98,10 +104,10 @@ class PVClient @Autowired constructor(
             .also { content -> if (content == null) logger.warn("File content was null! oid=$oid") }
     }
 
-    fun fetchDictionaries(): Map<PVDictionaryType, List<PVDictionaryEntry>> =
+    fun fetchDictionaries(): Map<PVDictionaryType, List<PVApiDictionaryEntry>> =
         fetchDictionaries(MATERIAL) + fetchDictionaries(PROJECT)
 
-    fun fetchDictionaries(group: PVDictionaryGroup): Map<PVDictionaryType, List<PVDictionaryEntry>> {
+    fun fetchDictionaries(group: PVDictionaryGroup): Map<PVDictionaryType, List<PVApiDictionaryEntry>> {
         logger.integrationCall("fetchDictionaries")
         return getJsonOptional(encodingGroupUrl(group))?.let { json ->
             json.get("info").let { infoNode ->
@@ -114,14 +120,14 @@ class PVClient @Autowired constructor(
         } ?: emptyMap()
     }
 
-    private fun fetchDictionaryType(dictionaryToGet: PVDictionaryType, classes: JsonNode) =
+    private fun fetchDictionaryType(dictionaryToGet: PVDictionaryType, classes: JsonNode): List<PVApiDictionaryEntry> =
         classes.get(encodingTypeDictionary(dictionaryToGet)).let { asset ->
             val version = asset.get("uusin-nimikkeistoversio").intValue()
             asset.get("nimikkeistoversiot").get(version.toString()).let { nodes ->
                 nodes.fieldNames().asSequence().toList().map { code ->
-                    PVDictionaryEntry(
+                    PVApiDictionaryEntry(
                         code = PVDictionaryCode(code),
-                        name = PVDictionaryName(nodes.get(code).get("otsikko").textValue()),
+                        name = UnsafeString(nodes.get(code).get("otsikko").textValue()),
                     )
                 }
             }

@@ -6,10 +6,10 @@ import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.inframodel.INFRAMODEL_PARSING_KEY_GENERIC
-import fi.fta.geoviite.infra.localization.LocalizationParams
-import fi.fta.geoviite.infra.localization.localizationParams
 import fi.fta.geoviite.infra.localization.LocalizationKey
+import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.util.formatForException
+import fi.fta.geoviite.infra.localization.localizationParams
 import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.BAD_REQUEST
 import org.springframework.http.HttpStatus.NOT_FOUND

@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.projektivelho
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.MATERIAL
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.PROJECT
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.DOCUMENT_TYPE
@@ -11,8 +12,7 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.MATERIAL_GROUP
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.MATERIAL_STATE
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.PROJECT_STATE
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.TECHNICS_FIELD
-import fi.fta.geoviite.infra.util.FileName
-import fi.fta.geoviite.infra.localization.LocalizationKey
+import fi.fta.geoviite.infra.util.UnsafeString
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -61,43 +61,43 @@ class PVIntegrationServiceIT @Autowired constructor(
         pvIntegrationService.updateDictionaries()
         PVDictionaryType.values().forEach { type ->
             assertEquals(
-                (materialDictionaries + projectDictionaries)[type]!!.map { e -> e.code to e.name }.associate { it },
+                (materialDictionaries + projectDictionaries)[type]!!.map { e -> e.code to PVDictionaryName(e.name) }.associate { it },
                 pvDao.fetchDictionary(type),
             )
         }
 
-        val materialDictionaries2: Map<PVDictionaryType, List<PVDictionaryEntry>> = mapOf(
+        val materialDictionaries2: Map<PVDictionaryType, List<PVApiDictionaryEntry>> = mapOf(
             DOCUMENT_TYPE to listOf(
-                PVDictionaryEntry("dokumenttityyppi/dt01", "test doc type 1"),
-                PVDictionaryEntry("dokumenttityyppi/dt02", "test doc type 2 altered"),
-                PVDictionaryEntry("dokumenttityyppi/dt03", "test doc type 3 added"),
+                PVApiDictionaryEntry("dokumenttityyppi/dt01", "test doc type 1"),
+                PVApiDictionaryEntry("dokumenttityyppi/dt02", "test doc type 2 altered"),
+                PVApiDictionaryEntry("dokumenttityyppi/dt03", "test doc type 3 added"),
             ),
             MATERIAL_STATE to listOf(
-                PVDictionaryEntry("aineistotila/tila01", "test mat state 1"),
-                PVDictionaryEntry("aineistotila/tila02", "test mat state 2 altered"),
-                PVDictionaryEntry("aineistotila/tila03", "test mat state 3 added"),
+                PVApiDictionaryEntry("aineistotila/tila01", "test mat state 1"),
+                PVApiDictionaryEntry("aineistotila/tila02", "test mat state 2 altered"),
+                PVApiDictionaryEntry("aineistotila/tila03", "test mat state 3 added"),
             ),
             MATERIAL_CATEGORY to listOf(
-                PVDictionaryEntry("aineistolaji/al00", "test mat category 0 altered"),
-                PVDictionaryEntry("aineistolaji/al01", "test mat category 1"),
-                PVDictionaryEntry("aineistolaji/al02", "test mat category 2 added"),
+                PVApiDictionaryEntry("aineistolaji/al00", "test mat category 0 altered"),
+                PVApiDictionaryEntry("aineistolaji/al01", "test mat category 1"),
+                PVApiDictionaryEntry("aineistolaji/al02", "test mat category 2 added"),
             ),
             MATERIAL_GROUP to listOf(
-                PVDictionaryEntry("aineistoryhma/ar00", "test mat group 0 altered"),
-                PVDictionaryEntry("aineistoryhma/ar01", "test mat group 1"),
-                PVDictionaryEntry("aineistoryhma/ar02", "test mat group 2 added"),
+                PVApiDictionaryEntry("aineistoryhma/ar00", "test mat group 0 altered"),
+                PVApiDictionaryEntry("aineistoryhma/ar01", "test mat group 1"),
+                PVApiDictionaryEntry("aineistoryhma/ar02", "test mat group 2 added"),
             ),
             TECHNICS_FIELD to listOf(
-                PVDictionaryEntry("tekniikka-ala/ta00", "test tech field 0"),
-                PVDictionaryEntry("tekniikka-ala/ta01", "test tech field 1 altered"),
-                PVDictionaryEntry("tekniikka-ala/ta02", "test tech field 2 added"),
+                PVApiDictionaryEntry("tekniikka-ala/ta00", "test tech field 0"),
+                PVApiDictionaryEntry("tekniikka-ala/ta01", "test tech field 1 altered"),
+                PVApiDictionaryEntry("tekniikka-ala/ta02", "test tech field 2 added"),
             ),
         )
-        val projectDictionaries2: Map<PVDictionaryType, List<PVDictionaryEntry>> = mapOf(
+        val projectDictionaries2: Map<PVDictionaryType, List<PVApiDictionaryEntry>> = mapOf(
             PROJECT_STATE to listOf(
-                PVDictionaryEntry("tila/tila14", "test state 14 altered"),
-                PVDictionaryEntry("tila/tila15", "test state 15"),
-                PVDictionaryEntry("tila/tila15", "test state 16 added"),
+                PVApiDictionaryEntry("tila/tila14", "test state 14 altered"),
+                PVApiDictionaryEntry("tila/tila15", "test state 15"),
+                PVApiDictionaryEntry("tila/tila15", "test state 16 added"),
             ),
         )
         fakeProjektiVelho.fetchDictionaries(MATERIAL, materialDictionaries2)
@@ -105,7 +105,7 @@ class PVIntegrationServiceIT @Autowired constructor(
         pvIntegrationService.updateDictionaries()
         PVDictionaryType.values().forEach { type ->
             assertEquals(
-                (materialDictionaries2 + projectDictionaries2)[type]!!.map { e -> e.code to e.name }.associate { it },
+                (materialDictionaries2 + projectDictionaries2)[type]!!.map { e -> e.code to PVDictionaryName(e.name) }.associate { it },
                 pvDao.fetchDictionary(type),
             )
         }
@@ -199,17 +199,22 @@ class PVIntegrationServiceIT @Autowired constructor(
 }
 
 fun insertTestDictionary(pvDao: PVDao) {
-    pvDao.upsertDictionary(DOCUMENT_TYPE, listOf(PVDictionaryEntry("test", "test")))
-    pvDao.upsertDictionary(MATERIAL_CATEGORY, listOf(PVDictionaryEntry("test", "test")))
-    pvDao.upsertDictionary(MATERIAL_GROUP, listOf(PVDictionaryEntry("test", "test")))
-    pvDao.upsertDictionary(MATERIAL_STATE, listOf(PVDictionaryEntry("test", "test")))
+    pvDao.upsertDictionary(DOCUMENT_TYPE, listOf(PVApiDictionaryEntry("test", "test")))
+    pvDao.upsertDictionary(MATERIAL_CATEGORY, listOf(PVApiDictionaryEntry("test", "test")))
+    pvDao.upsertDictionary(MATERIAL_GROUP, listOf(PVApiDictionaryEntry("test", "test")))
+    pvDao.upsertDictionary(MATERIAL_STATE, listOf(PVApiDictionaryEntry("test", "test")))
 }
 
 fun insertDocumentMetaWithStatus(pvDao: PVDao, oid: Oid<PVDocument>, status: PVDocumentStatus) =
     pvDao.insertDocumentMetadata(
-        oid = oid, assignmentOid = null, latestVersion = PVApiLatestVersion(
-            version = PVId("test"), name = FileName("test"), changeTime = Instant.now()
-        ), metadata = PVApiDocumentMetadata(
+        oid = oid,
+        assignmentOid = null,
+        latestVersion = PVApiLatestVersion(
+            version = PVId("test"),
+            name = UnsafeString("test"),
+            changeTime = Instant.now()
+        ),
+        metadata = PVApiDocumentMetadata(
             materialCategory = PVDictionaryCode("test"),
             description = null,
             materialGroup = PVDictionaryCode("test"),
@@ -217,8 +222,9 @@ fun insertDocumentMetaWithStatus(pvDao: PVDao, oid: Oid<PVDocument>, status: PVD
             documentType = PVDictionaryCode("test"),
             technicalFields = emptyList(),
             containsPersonalInfo = false
-        ), projectGroupOid = null, projectOid = null, status = status
+        ),
+        projectGroupOid = null, projectOid = null, status = status
     )
 
-private fun getTestDataDictionaryName(type: PVDictionaryType, code: PVDictionaryCode) =
-    (materialDictionaries + projectDictionaries)[type]?.find { e -> e.code == code }?.name
+private fun getTestDataDictionaryName(type: PVDictionaryType, code: PVDictionaryCode): PVDictionaryName? =
+    (materialDictionaries + projectDictionaries)[type]?.find { e -> e.code == code }?.name?.let(::PVDictionaryName)

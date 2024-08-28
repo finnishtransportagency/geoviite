@@ -18,7 +18,7 @@ data class Srid @JsonCreator(mode = DISABLED) constructor(val code: Int) {
     }
 
     init {
-        assertInput<Srid>(code in sridRange, code.toString()) {
+        assertInput(Srid::class, code in sridRange, code.toString()) {
             "SRID (EPSG code) $code outside allowed range $sridRange"
         }
     }

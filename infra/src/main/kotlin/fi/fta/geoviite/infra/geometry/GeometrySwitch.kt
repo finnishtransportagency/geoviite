@@ -3,11 +3,16 @@ package fi.fta.geoviite.infra.geometry
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.DomainId
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.StringId
+import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.ISwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.util.StringSanitizer
 import fi.fta.geoviite.infra.util.assertSanitized
 
 data class GeometrySwitch(
@@ -29,19 +34,16 @@ data class GeometrySwitch(
 
 data class GeometrySwitchJoint(override val number: JointNumber, override val location: Point) : ISwitchJoint
 
-private val geometrySwitchTypeNameLength = 0..30
-private val geometrySwitchTypeNameRegex = Regex("^[A-Za-z0-9:\\-/(),.]*\$")
+data class GeometrySwitchTypeName @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
+    Comparable<GeometrySwitchTypeName>, CharSequence by value {
 
-data class GeometrySwitchTypeName @JsonCreator(mode = DELEGATING) constructor(private val value: String)
-    : Comparable<GeometrySwitchTypeName>, CharSequence by value {
-    init {
-        assertSanitized<GeometrySwitchTypeName>(
-            value,
-            geometrySwitchTypeNameRegex,
-            geometrySwitchTypeNameLength,
-            allowBlank = true,
-        )
+    companion object {
+        private val allowedLength = 0..30
+        private const val ALLOWED_CHARACTERS = "A-Za-z0-9:\\-/(),."
+        private val sanitizer = StringSanitizer(GeometrySwitchTypeName::class, ALLOWED_CHARACTERS, allowedLength)
     }
+
+    init { sanitizer.assertSanitized(value) }
 
     @JsonValue
     override fun toString(): String = value

@@ -2,8 +2,7 @@ package fi.fta.geoviite.infra.projektivelho
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import fi.fta.geoviite.infra.util.FreeText
-import fi.fta.geoviite.infra.util.HttpsUrl
+import fi.fta.geoviite.infra.util.UnsafeString
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -31,9 +30,9 @@ class PVApiSerializationTest @Autowired constructor(val mapper: ObjectMapper) {
     }
 
     @Test
-    fun `Metadata is serialized and deserialized correctly`() {
+    fun `Metadata is deserialized correctly`() {
         val materialState = PVDictionaryCode("matstate/some01")
-        val description = FreeText("some description")
+        val description = UnsafeString("some description")
         val materialCategory = PVDictionaryCode("matcat/some01")
         val documentType = PVDictionaryCode("doctype/some01")
         val materialGroup = PVDictionaryCode("matgrp/some01")
@@ -51,20 +50,8 @@ class PVApiSerializationTest @Autowired constructor(val mapper: ObjectMapper) {
             containsPersonalInfo
         )
 
-        assertEquals(json, toJson(data))
+        // Test only deserialization, as we never serialize these anyhow and unsafe string is not serializable
         assertEquals(data, toObject<PVApiDocumentMetadata>(json))
-    }
-
-    @Test
-    fun `Redirect is serialized and deserialized correctly`() {
-        val masterSystem = PVMasterSystem("someservice")
-        val targetCategory = PVTargetCategory("somenamespace/somecategory")
-        val targetUrl = HttpsUrl("https://some.url.org:1234/some-path?query=test&other=other")
-        val json = """{"master-jarjestelma":"$masterSystem","kohdeluokka":"$targetCategory","kohde-url":"$targetUrl"}"""
-        val data = PVApiRedirect(masterSystem, targetCategory, targetUrl)
-
-        assertEquals(json, toJson(data))
-        assertEquals(data, toObject<PVApiRedirect>(json))
     }
 
     private fun toJson(value: Any): String = mapper.writeValueAsString(value)

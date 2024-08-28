@@ -125,5 +125,4 @@ class AuthorizationIT @Autowired constructor(
         .header(HTTP_HEADER_JWT_DATA, TOKEN)
         .characterEncoding(Charsets.UTF_8)
         .contentType(MediaType.APPLICATION_JSON)
-
 }
