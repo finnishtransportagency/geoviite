@@ -36,7 +36,6 @@ export const START_OF_2022 = new Date(2022, 0, 1);
 export const END_OF_CENTURY = new Date(2099, 11, 31);
 
 const clampDateToRange = (date: Date, minDate?: Date, maxDate?: Date): Date => {
-    console.log(date, minDate, maxDate);
     if (minDate && date < minDate) {
         return minDate;
     } else if (maxDate && date > maxDate) {

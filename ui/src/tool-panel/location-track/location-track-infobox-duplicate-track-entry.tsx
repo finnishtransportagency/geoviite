@@ -239,10 +239,6 @@ export const LocationTrackInfoboxDuplicateTrackEntry: React.FC<
         const warningsString = createNoticeTooltipFragmentByLevel(notices, 'WARNING');
         const infosString = createNoticeTooltipFragmentByLevel(notices, 'INFO');
 
-        if (duplicate.name == 'KAS 102') {
-            console.log(JSON.stringify(errorsString));
-        }
-
         const noticesStr = [errorsString, warningsString, infosString]
             .filter((str) => str !== '')
             .map((str) => `\n\n${str}`)
