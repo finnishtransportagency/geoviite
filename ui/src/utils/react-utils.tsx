@@ -149,7 +149,7 @@ export function useLimitedRequestsInFlight<TEntity>(
         }
     };
     return (loader: () => Promise<TEntity>): Promise<TEntity> => {
-        if (inFlight.current <= maxRequestsInFlight) {
+        if (inFlight.current >= maxRequestsInFlight) {
             return new Promise((resolve, reject) => {
                 requestQueue.current.push({
                     loader,
@@ -167,6 +167,7 @@ export function useLimitedRequestsInFlight<TEntity>(
                 },
                 (error) => {
                     inFlight.current--;
+                    drainQueue();
                     throw error;
                 },
             );

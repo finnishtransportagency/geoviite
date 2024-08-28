@@ -21,29 +21,29 @@ import VectorSource from 'ol/source/Vector';
 
 function createSwitchFeatures(
     suggestedSwitch: SuggestedSwitch,
-    doDisplay: boolean,
+    //    doDisplay: boolean,
 ): Feature<OlPoint>[] {
     const features: Feature<OlPoint>[] = [];
 
-    if (doDisplay) {
-        suggestedSwitch.joints.forEach((joint) => {
-            const f = new Feature({
-                geometry: new OlPoint(pointToCoords(joint.location)),
-            });
-
-            f.setStyle(
-                new Style({
-                    renderer: getLinkingJointRenderer(
-                        joint,
-                        suggestedSwitchHasMatchOnJoint(suggestedSwitch, joint.number),
-                    ),
-                }),
-            );
-
-            setSuggestedSwitchFeatureProperty(f, suggestedSwitch);
-            features.push(f);
+    //    if (doDisplay) {
+    suggestedSwitch.joints.forEach((joint) => {
+        const f = new Feature({
+            geometry: new OlPoint(pointToCoords(joint.location)),
         });
-    }
+
+        f.setStyle(
+            new Style({
+                renderer: getLinkingJointRenderer(
+                    joint,
+                    suggestedSwitchHasMatchOnJoint(suggestedSwitch, joint.number),
+                ),
+            }),
+        );
+
+        setSuggestedSwitchFeatureProperty(f, suggestedSwitch);
+        features.push(f);
+    });
+    //    }
 
     return features;
 }
@@ -58,7 +58,7 @@ export function createSwitchLinkingLayer(
 ): MapLayer {
     const { layer, source, isLatest } = createLayer(layerName, existingOlLayer);
 
-    const selectedSwitches = selection.selectedItems.suggestedSwitches;
+    //const selectedSwitches = selection.selectedItems.suggestedSwitches;
 
     const dataPromise = Promise.resolve(
         linkingState?.suggestedSwitch ? [linkingState.suggestedSwitch] : [],
@@ -68,7 +68,7 @@ export function createSwitchLinkingLayer(
         suggestedSwitches.flatMap((suggestedSwitch) =>
             createSwitchFeatures(
                 suggestedSwitch,
-                selectedSwitches.some((switchToCheck) => switchToCheck.id == suggestedSwitch.id),
+                //                selectedSwitches.some((switchToCheck) => switchToCheck.id == suggestedSwitch.id),
             ),
         );
 
