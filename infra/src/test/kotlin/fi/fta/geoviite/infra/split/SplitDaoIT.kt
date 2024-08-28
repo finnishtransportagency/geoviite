@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.publication.PublicationDao
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
@@ -71,7 +72,7 @@ class SplitDaoIT @Autowired constructor(
             updatedDuplicates = emptyList(),
         ).let(splitDao::getOrThrow)
 
-        val publicationId = publicationDao.createPublication(LayoutBranch.main, "SPLIT PUBLICATION")
+        val publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines("SPLIT PUBLICATION"))
         val updatedSplit = splitDao.updateSplit(
             splitId = split.id,
             bulkTransferState = BulkTransferState.FAILED,
@@ -187,7 +188,7 @@ class SplitDaoIT @Autowired constructor(
     @Test
     fun `Split bulk transfer state can be updated`() {
         val splitId = createSplit()
-        val publicationId = publicationDao.createPublication(LayoutBranch.main, "test: bulk transfer state update")
+        val publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines("test: bulk transfer state update"))
 
         BulkTransferState.entries.forEach { newBulkTransferState ->
             when (newBulkTransferState) {

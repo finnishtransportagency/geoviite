@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonValue
 val codeRegex = Regex("^[A-Za-z0-9_\\-.]+\$")
 
 const val newLineCharacter = "\n"
-const val freeTextCharacters = "A-ZÄÖÅa-zäöå0-9 _\\\\\\-–+().,'/*<>:;!?&"
+const val freeTextCharacters = "A-ZÄÖÅa-zäöå0-9 _\\\\\\-–+().,'/*<>:;!?&\""
 const val freeTextWithNewLineCharacters = freeTextCharacters + newLineCharacter
 
 val freeTextRegex = Regex("^[$freeTextCharacters]*\$")

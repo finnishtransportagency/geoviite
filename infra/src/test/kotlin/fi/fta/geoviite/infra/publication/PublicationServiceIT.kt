@@ -93,6 +93,7 @@ import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.LocalizationKey
 import fi.fta.geoviite.infra.util.SortOrder
 import org.junit.jupiter.api.BeforeEach
@@ -736,7 +737,7 @@ class PublicationServiceIT @Autowired constructor(
             publicationRequest(locationTracks = splitSetup.trackIds)
         ).let { versions ->
             publicationService
-                .publishChanges(LayoutBranch.main, versions, getCalculatedChangesInRequest(versions), "")
+                .publishChanges(LayoutBranch.main, versions, getCalculatedChangesInRequest(versions), FreeTextWithNewLines(""))
                 .publicationId
         }
 
@@ -4135,7 +4136,7 @@ class PublicationServiceIT @Autowired constructor(
         layoutBranch,
         versions,
         calculatedChanges,
-        "${this::class.simpleName}",
+        FreeTextWithNewLines("${this::class.simpleName}"),
     )
 }
 

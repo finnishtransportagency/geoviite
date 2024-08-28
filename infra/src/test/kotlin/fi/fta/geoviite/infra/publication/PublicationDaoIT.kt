@@ -48,6 +48,7 @@ import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -232,7 +233,7 @@ class PublicationDaoIT @Autowired constructor(
             ),
             indirectChanges = IndirectChanges(emptyList(), emptyList(), emptyList()),
         )
-        val publicationId = publicationDao.createPublication(LayoutBranch.main, "")
+        val publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines(""))
         publicationDao.insertCalculatedChanges(publicationId, changes)
 
         val publishedTrackNumbers = publicationDao.fetchPublishedTrackNumbers(publicationId)
@@ -256,7 +257,7 @@ class PublicationDaoIT @Autowired constructor(
 
     @Test
     fun `Publication message is stored and fetched correctly`() {
-        val message = "Test"
+        val message = FreeTextWithNewLines("Test")
         val publicationId = publicationDao.createPublication(LayoutBranch.main, message)
         assertEquals(message, publicationDao.getPublication(publicationId).message)
     }
@@ -392,17 +393,17 @@ class PublicationDaoIT @Autowired constructor(
     fun `fetchLatestPublicationDetails lists design publications in design mode`() {
         val someDesign = DesignBranch.of(layoutDesignDao.insert(layoutDesign("one")))
         val anotherDesign = DesignBranch.of(layoutDesignDao.insert(layoutDesign("two")))
-        publicationDao.createPublication(someDesign, "in someDesign")
-        publicationDao.createPublication(LayoutBranch.main, "in main")
-        publicationDao.createPublication(anotherDesign, "in anotherDesign")
-        publicationDao.createPublication(LayoutBranch.main, "again in main")
+        publicationDao.createPublication(someDesign, FreeTextWithNewLines("in someDesign"))
+        publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines("in main"))
+        publicationDao.createPublication(anotherDesign, FreeTextWithNewLines("in anotherDesign"))
+        publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines("again in main"))
         assertEquals(
             listOf("in anotherDesign", "in someDesign"),
-            publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 2).map { it.message }
+            publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 2).map { it.message.toString() }
         )
         assertEquals(
             listOf("again in main", "in main"),
-            publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, 2).map { it.message }
+            publicationDao.fetchLatestPublications(LayoutBranchType.MAIN, 2).map { it.message.toString() }
         )
     }
 

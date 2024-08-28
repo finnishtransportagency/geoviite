@@ -5,17 +5,16 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 
-
 val allowedFreeTextCases = listOf(
     "",
     "Legal Free text: * -> 'asdf' (Äö/å) _-–\\ +123465790?!",
+    "legal with quote\"",
 )
 
 val illegalFreeTextCases = listOf(
     "Illegal`",
     "Illegal´",
     "Illegal=",
-    "Illegal\"",
     "Illegal\tName",
 )
 
@@ -83,6 +82,4 @@ class SanitizedStringTest {
             }
         }
     }
-
-
 }
