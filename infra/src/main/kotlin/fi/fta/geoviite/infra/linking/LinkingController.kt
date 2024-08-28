@@ -22,6 +22,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
+import fi.fta.geoviite.infra.tracklayout.SwitchPlacingRequest
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import org.springframework.beans.factory.annotation.Autowired
@@ -149,11 +150,12 @@ class LinkingController @Autowired constructor(
         @RequestParam("points") points: List<Point>,
         @RequestParam("switchId") switchId: IntId<TrackLayoutSwitch>,
     ): SuggestedSwitchesAtGridPoints {
-        val suggestedSwitches =
-            switchLinkingService.getSuggestedSwitches(branch, listOf(SamplingGridPoints(points) to switchId))[0]
+        val suggestedSwitches = switchLinkingService.getSuggestedSwitches(
+            branch,
+            listOf(SwitchPlacingRequest(SamplingGridPoints(points), switchId))
+        )[0]
         return matchSamplingGridToQueryPoints(suggestedSwitches, points)
     }
-
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/{$LAYOUT_BRANCH}/switches/{switchId}/geometry")
