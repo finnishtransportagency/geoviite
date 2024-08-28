@@ -2,11 +2,7 @@ import * as React from 'react';
 import styles from './publication-log.scss';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'vayla-design-lib/link/link';
-import {
-    DatePicker,
-    END_OF_DECAMILLENNIUM,
-    START_OF_MILLENNIUM,
-} from 'vayla-design-lib/datepicker/datepicker';
+import { DatePicker, END_OF_CENTURY, START_OF_2022 } from 'vayla-design-lib/datepicker/datepicker';
 import { parseISOOrUndefined } from 'utils/date-utils';
 import { endOfDay, startOfDay } from 'date-fns';
 import { getPublicationsAsTableItems, getPublicationsCsvUri } from 'publication/publication-api';
@@ -140,8 +136,8 @@ const PublicationLog: React.FC = () => {
                             <DatePicker
                                 value={storedStartDate}
                                 onChange={setStartDate}
-                                minDate={START_OF_MILLENNIUM}
-                                maxDate={END_OF_DECAMILLENNIUM}
+                                minDate={START_OF_2022}
+                                maxDate={END_OF_CENTURY}
                                 qa-id={'publication-log-start-date-input'}
                             />
                         }
@@ -152,8 +148,8 @@ const PublicationLog: React.FC = () => {
                             <DatePicker
                                 value={storedEndDate}
                                 onChange={setEndDate}
-                                minDate={START_OF_MILLENNIUM}
-                                maxDate={END_OF_DECAMILLENNIUM}
+                                minDate={START_OF_2022}
+                                maxDate={END_OF_CENTURY}
                                 qa-id={'publication-log-end-date-input'}
                             />
                         }

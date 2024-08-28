@@ -7,7 +7,7 @@ import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
 import { TextField } from 'vayla-design-lib/text-field/text-field';
 import {
     DatePicker,
-    END_OF_DECAMILLENNIUM,
+    END_OF_CENTURY,
     START_OF_MILLENNIUM,
 } from 'vayla-design-lib/datepicker/datepicker';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -114,7 +114,7 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
                                 onChange={(date) => setSelectedDate(date)}
                                 wide={true}
                                 minDate={START_OF_MILLENNIUM}
-                                maxDate={END_OF_DECAMILLENNIUM}
+                                maxDate={END_OF_CENTURY}
                                 qa-id={'workspace-dialog-date'}
                             />
                         }
