@@ -104,14 +104,10 @@ class SwitchLinkingService @Autowired constructor(
         return fitGrids.mapIndexed { i, r -> i to r }.parallelStream().map { (index, fitGrid) ->
             val switchId = requests[index].layoutSwitchId
             val originallyLinked = originallyLinkedBySwitch[switchId] ?: mapOf()
-            val alignmentsNearFit = alignmentsNearFits[index]
-            if (alignmentsNearFit == null) {
-                PointAssociation(listOf())
-            } else {
-                val relevantTracks = originallyLinked + alignmentsNearFit.associateBy { it.first.id as IntId }
-                fitGrid.map(parallel = true) { fit ->
-                    matchFittedSwitchToTracks(fit, relevantTracks, switchId)
-                }
+            val alignmentsNearFit = alignmentsNearFits[index] ?: listOf()
+            val relevantTracks = originallyLinked + alignmentsNearFit.associateBy { it.first.id as IntId }
+            fitGrid.map(parallel = true) { fit ->
+                matchFittedSwitchToTracks(fit, relevantTracks, switchId)
             }
         }.toList()
     }
