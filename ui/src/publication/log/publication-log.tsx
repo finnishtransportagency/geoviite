@@ -27,6 +27,7 @@ import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { debounceAsync } from 'utils/async-utils';
 
 let fetchId = 0;
+const debouncedGetPublicationsAsTableItems = debounceAsync(getPublicationsAsTableItems, 500);
 
 const PublicationLog: React.FC = () => {
     const { t } = useTranslation();
@@ -80,21 +81,19 @@ const PublicationLog: React.FC = () => {
         }
 
         setIsLoading(true);
-        debounceAsync(async () => {
-            const currentFetchId = ++fetchId;
+        const currentFetchId = ++fetchId;
 
-            await getPublicationsAsTableItems(
-                startDate && startOfDay(startDate),
-                endDate && endOfDay(endDate),
-                sortInfo.propName,
-                sortInfo.direction,
-            ).then((r) => {
-                if (fetchId === currentFetchId) {
-                    r && setPagedPublications(r);
-                    setIsLoading(false);
-                }
-            });
-        }, 250)();
+        debouncedGetPublicationsAsTableItems(
+            startDate && startOfDay(startDate),
+            endDate && endOfDay(endDate),
+            sortInfo.propName,
+            sortInfo.direction,
+        ).then((r) => {
+            if (fetchId === currentFetchId) {
+                r && setPagedPublications(r);
+                setIsLoading(false);
+            }
+        });
     };
 
     const clearPublicationsTable = () => {
