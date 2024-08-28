@@ -67,6 +67,12 @@
         line-height: 24px;
     }
 
+    &__day--disabled {
+        color: colors.$color-black-lighter;
+        cursor: default;
+        pointer-events: none;
+    }
+
     &__day-names {
         color: colors.$color-black-light;
         margin-bottom: 2px;

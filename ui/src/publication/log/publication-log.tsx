@@ -2,7 +2,7 @@ import * as React from 'react';
 import styles from './publication-log.scss';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'vayla-design-lib/link/link';
-import { DatePicker } from 'vayla-design-lib/datepicker/datepicker';
+import { DatePicker, END_OF_CENTURY, START_OF_2022 } from 'vayla-design-lib/datepicker/datepicker';
 import { parseISOOrUndefined } from 'utils/date-utils';
 import { endOfDay, startOfDay } from 'date-fns';
 import { getPublicationsAsTableItems, getPublicationsCsvUri } from 'publication/publication-api';
@@ -24,8 +24,10 @@ import { useAppNavigate } from 'common/navigate';
 import { defaultPublicationSearch } from 'publication/publication-utils';
 import { DOWNLOAD_PUBLICATION } from 'user/user-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
+import { debounceAsync } from 'utils/async-utils';
 
 let fetchId = 0;
+const debouncedGetPublicationsAsTableItems = debounceAsync(getPublicationsAsTableItems, 500);
 
 const PublicationLog: React.FC = () => {
     const { t } = useTranslation();
@@ -79,9 +81,9 @@ const PublicationLog: React.FC = () => {
         }
 
         setIsLoading(true);
-
         const currentFetchId = ++fetchId;
-        getPublicationsAsTableItems(
+
+        debouncedGetPublicationsAsTableItems(
             startDate && startOfDay(startDate),
             endDate && endOfDay(endDate),
             sortInfo.propName,
@@ -133,6 +135,8 @@ const PublicationLog: React.FC = () => {
                             <DatePicker
                                 value={storedStartDate}
                                 onChange={setStartDate}
+                                minDate={START_OF_2022}
+                                maxDate={END_OF_CENTURY}
                                 qa-id={'publication-log-start-date-input'}
                             />
                         }
@@ -143,6 +147,8 @@ const PublicationLog: React.FC = () => {
                             <DatePicker
                                 value={storedEndDate}
                                 onChange={setEndDate}
+                                minDate={START_OF_2022}
+                                maxDate={END_OF_CENTURY}
                                 qa-id={'publication-log-end-date-input'}
                             />
                         }
