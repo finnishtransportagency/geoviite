@@ -261,13 +261,17 @@ fun ResultSet.getPolygonPointList(name: String): List<Point> = verifyNotNull(nam
 
 fun ResultSet.getPolygonPointListOrNull(name: String): List<Point>? = getString(name)?.let(::parse2DPolygon)
 
-fun ResultSet.getPVProjectName(name: String): PVProjectName = verifyNotNull(name, ::getPVProjectNameOrNull)
+fun ResultSet.getUnsafeString(name: String): UnsafeString = verifyNotNull(name, ::getUnsafeStringOrNull)
 
-fun ResultSet.getPVProjectNameOrNull(name: String): PVProjectName? = getString(name)?.let(::PVProjectName)
+fun ResultSet.getUnsafeStringOrNull(name: String): UnsafeString? = getString(name)?.let(::UnsafeString)
 
 fun ResultSet.getPVDictionaryName(name: String): PVDictionaryName = verifyNotNull(name, ::getPVDictionaryNameOrNull)
 
-fun ResultSet.getPVDictionaryNameOrNull(name: String): PVDictionaryName? = getString(name)?.let(::PVDictionaryName)
+fun ResultSet.getPVDictionaryNameOrNull(name: String): PVDictionaryName? = getUnsafeStringOrNull(name)?.let(::PVDictionaryName)
+
+fun ResultSet.getPVProjectName(name: String): PVProjectName = verifyNotNull(name, ::getPVProjectNameOrNull)
+
+fun ResultSet.getPVProjectNameOrNull(name: String): PVProjectName? = getUnsafeStringOrNull(name)?.let(::PVProjectName)
 
 fun ResultSet.getPVDictionaryCode(name: String): PVDictionaryCode = verifyNotNull(name, ::getPVDictionaryCodeOrNull)
 

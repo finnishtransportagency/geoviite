@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.inframodel.InfraModelFile
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.logging.AccessType.FETCH
 import fi.fta.geoviite.infra.logging.AccessType.INSERT
 import fi.fta.geoviite.infra.logging.AccessType.UPDATE
@@ -18,10 +19,11 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.TECHNICS_FIELD
 import fi.fta.geoviite.infra.projektivelho.PVFetchStatus.WAITING
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.DbTable
-import fi.fta.geoviite.infra.localization.LocalizationKey
+import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.UnsafeString
+import fi.fta.geoviite.infra.util.formatForLog
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getFileName
-import fi.fta.geoviite.infra.util.getFreeTextOrNull
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getOid
@@ -33,12 +35,15 @@ import fi.fta.geoviite.infra.util.getPVDictionaryName
 import fi.fta.geoviite.infra.util.getPVId
 import fi.fta.geoviite.infra.util.getPVProjectName
 import fi.fta.geoviite.infra.util.getRowVersion
+import fi.fta.geoviite.infra.util.getUnsafeString
+import fi.fta.geoviite.infra.util.getUnsafeStringOrNull
 import fi.fta.geoviite.infra.util.setUser
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import java.sql.Timestamp
 import java.time.Instant
+import kotlin.reflect.KClass
 
 data class PVDocumentCounts(
     val suggested: Int,
@@ -48,6 +53,7 @@ data class PVDocumentCounts(
 @Transactional(readOnly = true)
 @Component
 class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
+
     @Transactional
     fun insertDocumentMetadata(
         oid: Oid<PVDocument>,
@@ -58,6 +64,10 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         projectOid: Oid<PVProject>?,
         projectGroupOid: Oid<PVProjectGroup>?,
     ): RowVersion<PVDocument> {
+        val name = clipToLength(PVApiLatestVersion::class, "name", 100, latestVersion.name)
+        val description = metadata.description?.let { desc ->
+            clipToLength(PVApiDocumentMetadata::class, "description", 500, desc)
+        }
         val sql = """
             insert into projektivelho.document(
                 oid,
@@ -107,8 +117,8 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         val params = mapOf(
             "oid" to oid,
             "status" to status.name,
-            "filename" to latestVersion.name,
-            "description" to metadata.description,
+            "filename" to name,
+            "description" to description,
             "document_version" to latestVersion.version,
             "document_change_time" to Timestamp.from(latestVersion.changeTime),
             "document_type" to metadata.documentType,
@@ -132,6 +142,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
 
     @Transactional
     fun upsertProject(project: PVApiProject) {
+        val name = clipToLength(PVApiProject::class, "name", PVProjectName.length.last, project.properties.name)
         val sql = """
             insert into projektivelho.project (oid, name, state_code, created_at, modified)
             values (:oid, :name, :state_code, :created_at, :modified)
@@ -147,7 +158,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         """.trimIndent()
         val params = mapOf(
             "oid" to project.oid,
-            "name" to project.properties.name,
+            "name" to name,
             "state_code" to project.properties.state,
             "created_at" to Timestamp.from(project.createdAt),
             "modified" to Timestamp.from(project.modified),
@@ -159,6 +170,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
 
     @Transactional
     fun upsertProjectGroup(projectGroup: PVApiProjectGroup) {
+        val name = clipToLength(PVApiProjectGroup::class, "name", PVProjectName.length.last, projectGroup.properties.name)
         val sql = """
             insert into projektivelho.project_group (oid, name, state_code, created_at, modified)
             values (:oid, :name, :state_code, :created_at, :modified)
@@ -174,7 +186,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         """.trimIndent()
         val params = mapOf(
             "oid" to projectGroup.oid,
-            "name" to projectGroup.properties.name,
+            "name" to name,
             "state_code" to projectGroup.properties.state,
             "created_at" to Timestamp.from(projectGroup.createdAt),
             "modified" to Timestamp.from(projectGroup.modified),
@@ -186,6 +198,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
 
     @Transactional
     fun upsertAssignment(assignment: PVApiAssignment) {
+        val name = clipToLength(PVApiAssignment::class, "name", PVProjectName.length.last, assignment.properties.name)
         val sql = """
             insert into projektivelho.assignment (oid, name, state_code, created_at, modified)
             values (:oid, :name, :state_code, :created_at, :modified)
@@ -201,7 +214,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         """.trimIndent()
         val params = mapOf(
             "oid" to assignment.oid,
-            "name" to assignment.properties.name,
+            "name" to name,
             "state_code" to assignment.properties.state,
             "created_at" to Timestamp.from(assignment.createdAt),
             "modified" to Timestamp.from(assignment.modified),
@@ -409,23 +422,31 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
         return jdbcTemplate.query(sql, params) { rs, _ ->
             PVDocumentHeader(
                 project = rs.getOidOrNull<PVProject>("project_oid")?.let { oid ->
-                    PVProject(oid, rs.getPVProjectName("project_name"), rs.getPVDictionaryName("project_state"))
+                    PVProject(
+                        oid = oid,
+                        name = rs.getPVProjectName("project_name"),
+                        state = rs.getPVDictionaryName("project_state"),
+                    )
                 },
                 projectGroup = rs.getOidOrNull<PVProjectGroup>("project_group_oid")?.let { oid ->
                     PVProjectGroup(
-                        oid,
-                        rs.getPVProjectName("project_group_name"),
-                        rs.getPVDictionaryName("project_state")
+                        oid = oid,
+                        name = rs.getPVProjectName("project_group_name"),
+                        state = rs.getPVDictionaryName("project_state"),
                     )
                 },
                 assignment = rs.getOidOrNull<PVAssignment>("assignment_oid")?.let { oid ->
-                    PVAssignment(oid, rs.getPVProjectName("assignment_name"), rs.getPVDictionaryName("project_state"))
+                    PVAssignment(
+                        oid = oid,
+                        name = rs.getPVProjectName("assignment_name"),
+                        state = rs.getPVDictionaryName("project_state"),
+                    )
                 },
                 document = PVDocument(
                     id = rs.getIntId("id"),
                     oid = rs.getOid("oid"),
                     name = rs.getFileName("filename"),
-                    description = rs.getFreeTextOrNull("description"),
+                    description = rs.getUnsafeStringOrNull("description")?.let(::FreeText),
                     type = rs.getPVDictionaryName("document_type"),
                     state = rs.getPVDictionaryName("material_state"),
                     group = rs.getPVDictionaryName("material_group"),
@@ -476,7 +497,7 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
     }
 
     @Transactional
-    fun upsertDictionary(type: PVDictionaryType, entries: List<PVDictionaryEntry>) {
+    fun upsertDictionary(type: PVDictionaryType, entries: List<PVApiDictionaryEntry>) {
         val tableName = tableName(type)
         val sql = """
             insert into $tableName(code, name) 
@@ -490,14 +511,14 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             )
         }.toTypedArray()
         jdbcTemplate.setUser()
-        logger.daoAccess(UPSERT, PVDictionaryEntry::class, entries.map(PVDictionaryEntry::code))
+        logger.daoAccess(UPSERT, PVApiDictionaryEntry::class, entries.map(PVApiDictionaryEntry::code))
         jdbcTemplate.batchUpdate(sql, params)
     }
 
     fun fetchDictionary(type: PVDictionaryType): Map<PVDictionaryCode, PVDictionaryName> {
         val sql = "select code, name from ${tableName(type)}"
         return jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            rs.getPVDictionaryCode("code") to rs.getPVDictionaryName("name")
+            rs.getPVDictionaryCode("code") to PVDictionaryName(rs.getUnsafeString("name"))
         }.associate { it }.also { _ -> logger.daoAccess(FETCH, PVDictionaryType::class, type) }
     }
 
@@ -511,4 +532,17 @@ class PVDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTempla
             PROJECT_STATE -> "project_state"
         }
     }"
+
+    private fun clipToLength(clazz: KClass<*>, field: String, maxLength: Int, value: UnsafeString): String =
+        value.unsafeValue.let { str ->
+            if (str.length > maxLength) {
+                logger.warn(
+                    "Received unsafe string exceeds max length. It must be clipped to fit in the DB column: " +
+                        "class=${clazz.simpleName} field=$field length=${str.length} maxLength=$maxLength value=${formatForLog(str)})"
+                )
+                str.take(maxLength)
+            } else {
+                str
+            }
+        }
 }

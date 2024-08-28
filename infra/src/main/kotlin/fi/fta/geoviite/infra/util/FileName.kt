@@ -23,13 +23,18 @@ data class FileName @JsonCreator(mode = DELEGATING) constructor(private val valu
          */
         const val umlautsCanonicalDecomposition = "aäöåÄÖÅ"
 
-        val sanitizer = Regex("^[\\p{L}\\p{N}${umlautsCanonicalDecomposition}_\\-+~., /()]+\$")
         val allowedLength = 1..100
+        const val ALLOWED_CHARACTERS = "\\p{L}\\p{N}${umlautsCanonicalDecomposition}_\\-+~., /()$UNSAFE_REPLACEMENT"
+        val sanitizer = StringSanitizer(FileName::class, ALLOWED_CHARACTERS, allowedLength)
     }
 
-    init { assertSanitized<FileName>(value, sanitizer, allowedLength) }
+    init { sanitizer.assertSanitized(value) }
 
     constructor(file: MultipartFile) : this(file.originalFilename?.takeIf(String::isNotBlank) ?: file.name)
+    constructor(unsafeString: UnsafeString) : this(
+        if (unsafeString.unsafeValue.isBlank()) "-"
+        else sanitizer.sanitize(unsafeString.unsafeValue)
+    )
 
     @JsonValue
     override fun toString(): String = value

@@ -11,13 +11,13 @@ val allowedFreeTextCases = listOf(
     "",
     "Legal Free text: * -> 'asdf' (Äö/å) _-–\\ +123465790?!",
     "legal with quote\"",
+    "legal ´`@%=",
+    "legal \tName",
 )
 
 val illegalFreeTextCases = listOf(
-    "Illegal`",
-    "Illegal´",
-    "Illegal=",
-    "Illegal\tName",
+    "Illegal^",
+    "Illegal|",
 )
 
 val freeTextWithNewLineCases = listOf(
@@ -28,33 +28,6 @@ val freeTextWithNewLineCases = listOf(
 )
 
 class SanitizedStringTest {
-
-    @Test
-    fun `Code can't contain illegal chars`() {
-        assertDoesNotThrow { AuthCode("LEGAL-M123.3_0") }
-        assertThrows<InputValidationException> { AuthCode("") }
-        assertThrows<InputValidationException> { AuthCode("Ä1") }
-        assertThrows<InputValidationException> { AuthCode("A A") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL'") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL`") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL´") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL*") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL+") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL(") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL)") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL<") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL>") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL!") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL=") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL?") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL/") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL:") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL;") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL\\") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL\"") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL\n") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL\tCode") }
-    }
 
     @Test
     fun `FreeText can't contain illegal chars`() {

@@ -12,10 +12,25 @@ import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.Translation
 import fi.fta.geoviite.infra.localization.localizationParams
-import fi.fta.geoviite.infra.math.*
+import fi.fta.geoviite.infra.math.IPoint
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.Range
+import fi.fta.geoviite.infra.math.roundTo1Decimal
+import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
-import fi.fta.geoviite.infra.tracklayout.*
-import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutSegment
+import fi.fta.geoviite.infra.tracklayout.LocationTrack
+import fi.fta.geoviite.infra.tracklayout.SegmentPoint
+import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.util.CsvEntry
+import fi.fta.geoviite.infra.util.FileName
+import fi.fta.geoviite.infra.util.SortOrder
+import fi.fta.geoviite.infra.util.nullsLastComparator
+import fi.fta.geoviite.infra.util.printCsv
+import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
 import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
@@ -372,12 +387,10 @@ fun getKmNumbersChangedRemarkOrNull(
     )
 } else summaries.joinToString(". ") { summary ->
     translation.t(
-        "publication-details-table.remark.geometry-changed", LocalizationParams(
-            mapOf(
-                "changedLengthM" to roundTo1Decimal(summary.changedLengthM).toString(),
-                "maxDistance" to roundTo1Decimal(summary.maxDistance).toString(),
-                "addressRange" to "${summary.startAddress.round(0)}-${summary.endAddress.round(0)}"
-            )
+        "publication-details-table.remark.geometry-changed", localizationParams(
+            "changedLengthM" to roundTo1Decimal(summary.changedLengthM).toString(),
+            "maxDistance" to roundTo1Decimal(summary.maxDistance).toString(),
+            "addressRange" to "${summary.startAddress.round(0)}-${summary.endAddress.round(0)}"
         )
     )
 }

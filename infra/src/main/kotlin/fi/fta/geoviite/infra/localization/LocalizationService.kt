@@ -1,38 +1,12 @@
 package fi.fta.geoviite.infra.localization
 
-import com.fasterxml.jackson.annotation.JsonCreator
-import com.fasterxml.jackson.annotation.JsonValue
 import com.fasterxml.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import org.springframework.beans.factory.annotation.Value
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
-private val LOCALIZATION_PARAMS_KEY_REGEX = Regex("[a-zA-Z0-9_\\s\\-]*")
 private val LOCALIZATION_PARAMS_PLACEHOLDER_REGEX = Regex("\\{\\{[a-zA-Z0-9_\\s\\-]*\\}\\}")
-
-data class LocalizationParams @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
-    constructor(@JsonValue val params: Map<String, String>) {
-
-    init {
-        require(params.none { LOCALIZATION_PARAMS_KEY_REGEX.matchEntire(it.key) == null }) {
-            "There are localization keys that do not match with the localization pattern regex. Keys in question are ${
-                params.map { it.key }.filter { LOCALIZATION_PARAMS_KEY_REGEX.matchEntire(it) == null }
-            }"
-        }
-    }
-
-    fun get(key: String) = params[key] ?: ""
-
-    companion object {
-        val empty = LocalizationParams(emptyMap())
-    }
-}
-
-fun localizationParams(params: Map<String, Any?>): LocalizationParams =
-    LocalizationParams(params.mapValues { it.value?.toString() ?: "" })
-
-fun localizationParams(vararg params: Pair<String, Any?>): LocalizationParams = localizationParams(mapOf(*params))
 
 data class Translation(val lang: LocalizationLanguage, val localization: String) {
     private val jsonRoot = JsonMapper().readTree(localization)

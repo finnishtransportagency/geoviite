@@ -8,11 +8,13 @@ data class FreeText @JsonCreator(mode = DELEGATING) constructor(private val valu
     Comparable<FreeText>, CharSequence by value {
 
     companion object {
-        const val ALLOWED_CHARACTERS = "A-ZÄÖÅa-zäöå0-9 _\\\\\\-–+().,'/*<>:;!?&\""
-        val sanitizer = Regex("^[$ALLOWED_CHARACTERS]*\$")
+        const val ALLOWED_CHARACTERS = "A-ZÄÖÅa-zäöå0-9 \t_\\\\\\-–—+(){}.,´`'\"/*#<>\\[\\]:;!?&=€$£@%~$UNSAFE_REPLACEMENT"
+        val sanitizer = StringSanitizer(FreeText::class, ALLOWED_CHARACTERS)
     }
 
-    init { assertSanitized<FreeText>(value, sanitizer) }
+    init { sanitizer.assertSanitized(value) }
+
+    constructor(unsafeString: UnsafeString) : this(sanitizer.sanitize(unsafeString.unsafeValue))
 
     @JsonValue
     override fun toString(): String = value
@@ -25,14 +27,14 @@ data class FreeTextWithNewLines private constructor(private val value: String) :
 
     companion object {
         const val ALLOWED_CHARACTERS = FreeText.ALLOWED_CHARACTERS + "\n"
-        val sanitizer = Regex("^[$ALLOWED_CHARACTERS]*\$")
+        val sanitizer = StringSanitizer(FreeTextWithNewLines::class, ALLOWED_CHARACTERS)
 
         @JvmStatic
         @JsonCreator
         fun of(value: String) = FreeTextWithNewLines(normalizeLinebreaksToUnixFormat(value))
     }
 
-    init { assertSanitized<FreeTextWithNewLines>(value, sanitizer) }
+    init { sanitizer.assertSanitized(value) }
 
     @JsonValue
     override fun toString(): String = value
