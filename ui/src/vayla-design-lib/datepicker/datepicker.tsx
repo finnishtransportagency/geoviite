@@ -1,7 +1,7 @@
 import * as React from 'react';
 import styles from './datepicker.scss';
 import ReactDatePicker, { ReactDatePickerCustomHeaderProps } from 'react-datepicker';
-import { format } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 import { fi } from 'date-fns/locale';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
@@ -15,6 +15,8 @@ type DatePickerProps = {
     value: Date | undefined;
     onChange: (date: Date | undefined) => void;
     wide?: boolean;
+    minDate?: Date;
+    maxDate?: Date;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>;
 
 type DatePickerInputProps = {
@@ -22,13 +24,30 @@ type DatePickerInputProps = {
     date: Date | undefined;
     setDate: (date: Date | undefined) => void;
     wide: boolean | undefined;
+    minDate?: Date;
+    maxDate?: Date;
 } & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'>;
 
 const DATE_FORMAT = 'dd.MM.yyyy';
 const DATE_PICKER_POPUP_LEFT_PAD_PX = 14;
 
+export const START_OF_MILLENNIUM = new Date(2000, 0, 1);
+export const START_OF_2022 = new Date(2022, 0, 1);
+export const END_OF_CENTURY = new Date(2099, 11, 31);
+
+const clampDateToRange = (date: Date, minDate?: Date, maxDate?: Date): Date => {
+    console.log(date, minDate, maxDate);
+    if (minDate && date < minDate) {
+        return minDate;
+    } else if (maxDate && date > maxDate) {
+        return maxDate;
+    } else {
+        return date;
+    }
+};
+
 const DatePickerInput = React.forwardRef<HTMLInputElement, DatePickerInputProps>(
-    ({ openDatePicker, date, setDate, wide, ...props }, ref) => {
+    ({ openDatePicker, date, setDate, wide, minDate, maxDate, ...props }, ref) => {
         const [value, setValue] = React.useState<string>('');
         const localRef = useCloneRef<HTMLInputElement>(ref);
         React.useEffect(() => {
@@ -41,17 +60,19 @@ const DatePickerInput = React.forwardRef<HTMLInputElement, DatePickerInputProps>
             setValue(e.target.value);
 
             const newDate = parse(e.target.value, DATE_FORMAT, new Date());
-            if (isValid(newDate)) {
-                setDate(newDate);
+            if (isValid(newDate) && (!date || !isSameDay(date, newDate))) {
+                setDate(clampDateToRange(newDate, minDate, maxDate));
             }
         }
 
         function setDateOrResetIfInvalid(e: React.FocusEvent<HTMLInputElement>): void {
             const newDate = parse(e.target.value, DATE_FORMAT, new Date());
-            if (isValid(newDate)) {
-                setDate(newDate);
-            } else {
+            if (!isValid(newDate)) {
                 setValue(date ? formatDateShort(date) : '');
+            } else if (!date || !isSameDay(date, newDate)) {
+                const clampedDate = clampDateToRange(newDate, minDate, maxDate);
+                setValue(formatDateShort(clampedDate));
+                setDate(clampedDate);
             }
         }
 
@@ -150,8 +171,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, .
                         selected={value}
                         onChange={(date) => {
                             onChange(date ?? undefined);
-                            setOpen(false);
                         }}
+                        onChangeRaw={() => setOpen(false)}
+                        onClickOutside={() => setOpen(false)}
+                        minDate={props.minDate}
+                        maxDate={props.maxDate}
                         calendarStartDay={1}
                         showWeekNumbers
                         inline
