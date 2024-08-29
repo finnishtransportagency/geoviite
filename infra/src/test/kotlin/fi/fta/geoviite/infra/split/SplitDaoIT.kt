@@ -72,7 +72,7 @@ class SplitDaoIT @Autowired constructor(
             updatedDuplicates = emptyList(),
         ).let(splitDao::getOrThrow)
 
-        val publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines("SPLIT PUBLICATION"))
+        val publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("SPLIT PUBLICATION"))
         val updatedSplit = splitDao.updateSplit(
             splitId = split.id,
             bulkTransferState = BulkTransferState.FAILED,
@@ -188,7 +188,7 @@ class SplitDaoIT @Autowired constructor(
     @Test
     fun `Split bulk transfer state can be updated`() {
         val splitId = createSplit()
-        val publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines("test: bulk transfer state update"))
+        val publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("test: bulk transfer state update"))
 
         BulkTransferState.entries.forEach { newBulkTransferState ->
             when (newBulkTransferState) {

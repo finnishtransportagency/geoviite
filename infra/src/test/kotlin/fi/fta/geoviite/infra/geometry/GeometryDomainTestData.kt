@@ -436,7 +436,7 @@ fun plan(
         decisionPhase = PlanDecisionPhase.APPROVED_PLAN,
         measurementMethod = measurementMethod,
         elevationMeasurementMethod = elevationMeasurementMethod,
-        message = FreeTextWithNewLines("test text \n description"),
+        message = FreeTextWithNewLines.of("test text \n description"),
         uploadTime = Instant.now(),
     )
 }
@@ -465,7 +465,7 @@ fun planHeader(
     planTime = Instant.EPOCH,
     trackNumber = trackNumber,
     linkedAsPlanId = null,
-    message = FreeTextWithNewLines("test text \n description"),
+    message = FreeTextWithNewLines.of("test text \n description"),
     uploadTime = Instant.now(),
     source = source,
     hasCant = false,

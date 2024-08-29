@@ -65,5 +65,5 @@ fun publish(
 ): PublicationResult {
     val versions = publicationService.getValidationVersions(branch, request)
     val calculatedChanges = publicationService.getCalculatedChanges(versions)
-    return publicationService.publishChanges(branch, versions, calculatedChanges, FreeTextWithNewLines("Test"))
+    return publicationService.publishChanges(branch, versions, calculatedChanges, FreeTextWithNewLines.of("Test"))
 }

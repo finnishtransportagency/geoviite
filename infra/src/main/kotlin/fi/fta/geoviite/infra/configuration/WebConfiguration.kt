@@ -41,6 +41,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.util.Code
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.HttpsUrl
 import fi.fta.geoviite.infra.util.LocalizationKey
 import org.slf4j.Logger
@@ -68,6 +69,7 @@ class WebConfig(
         logger.info("Registering sanitized string converters")
         registry.addStringConstructorConverter(::Code)
         registry.addStringConstructorConverter(::FreeText)
+        registry.addStringConstructorConverter(FreeTextWithNewLines::of)
         registry.addStringConstructorConverter(::LocalizationKey)
 
         registry.addStringConstructorConverter(UserName::of)

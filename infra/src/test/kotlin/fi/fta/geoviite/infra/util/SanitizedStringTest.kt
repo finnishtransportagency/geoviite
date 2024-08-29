@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.error.InputValidationException
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
+import kotlin.test.assertEquals
 
 val allowedFreeTextCases = listOf(
     "",
@@ -28,7 +29,7 @@ val freeTextWithNewLineCases = listOf(
 class SanitizedStringTest {
 
     @Test
-    fun codeCantContainIllegalChars() {
+    fun `Code can't contain illegal chars`() {
         assertDoesNotThrow { Code("LEGAL-M123.3_0") }
         assertThrows<InputValidationException> { Code("") }
         assertThrows<InputValidationException> { Code("Ä1") }
@@ -55,7 +56,7 @@ class SanitizedStringTest {
     }
 
     @Test
-    fun freeTextCantContainIllegalChars() {
+    fun `FreeText can't contain illegal chars`() {
         allowedFreeTextCases.forEach { allowedFreeText ->
             assertDoesNotThrow { FreeText(allowedFreeText) }
         }
@@ -68,18 +69,24 @@ class SanitizedStringTest {
     }
 
     @Test
-    fun freeTextWithNewLinesCanContainNewLines() {
+    fun `FreeTextWithNewLines can contain line breaks`() {
         (allowedFreeTextCases + freeTextWithNewLineCases).forEach { allowedFreeTextWithNewlines ->
-            assertDoesNotThrow { FreeTextWithNewLines(allowedFreeTextWithNewlines) }
+            assertDoesNotThrow { FreeTextWithNewLines.of(allowedFreeTextWithNewlines) }
         }
     }
 
     @Test
-    fun freeTextWithNewLinesCantContainIllegalChars() {
+    fun `FreeTextWithNewLines can't contain illegal chars`() {
         illegalFreeTextCases.forEach { illegalFreeText ->
             assertThrows<InputValidationException> {
                 FreeText(illegalFreeText)
             }
         }
+    }
+
+    @Test
+    fun `FreeTextWithNewLines canonizes line breaks`() {
+        val text = FreeTextWithNewLines.of("Windows\r\nline break")
+        assertEquals("Windows\nline break", text.toString())
     }
 }

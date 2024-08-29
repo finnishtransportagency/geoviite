@@ -250,7 +250,7 @@ internal class RatkoPushDaoIT @Autowired constructor(
         message: String = "",
     ): IntId<Publication> =
         publicationDao
-            .createPublication(layoutBranch = layoutBranch, message = FreeTextWithNewLines(message))
+            .createPublication(layoutBranch = layoutBranch, message = FreeTextWithNewLines.of(message))
             .also { publicationId ->
                 val calculatedChanges = CalculatedChanges(
                     directChanges = DirectChanges(

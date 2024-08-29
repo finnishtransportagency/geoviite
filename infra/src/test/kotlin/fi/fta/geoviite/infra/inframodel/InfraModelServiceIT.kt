@@ -98,7 +98,7 @@ class InfraModelServiceIT @Autowired constructor(
             decisionPhase = PlanDecisionPhase.APPROVED_PLAN,
             measurementMethod = MeasurementMethod.OFFICIALLY_MEASURED_GEODETICALLY,
             elevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_RAIL,
-            message = FreeTextWithNewLines("test message 1"),
+            message = FreeTextWithNewLines.of("test message 1"),
         )
 
         val overrides2 = OverrideParameters(
@@ -116,7 +116,7 @@ class InfraModelServiceIT @Autowired constructor(
             decisionPhase = PlanDecisionPhase.UNDER_CONSTRUCTION,
             measurementMethod = MeasurementMethod.DIGITIZED_AERIAL_IMAGE,
             elevationMeasurementMethod = ElevationMeasurementMethod.TOP_OF_SLEEPER,
-            message = FreeTextWithNewLines("test message 2"),
+            message = FreeTextWithNewLines.of("test message 2"),
         )
 
         val planId = infraModelService.saveInfraModel(file, overrides1, extraInfo1).id

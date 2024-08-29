@@ -1218,7 +1218,7 @@ class RatkoServiceIT @Autowired constructor(
         splitTestDataService.forcefullyFinishAllCurrentlyUnfinishedSplits(LayoutBranch.main)
 
         val splitId = splitTestDataService.insertSplit()
-        val publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines("test: bulk transfer to in progress"))
+        val publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("test: bulk transfer to in progress"))
         splitDao.updateSplit(splitId = splitId, publicationId = publicationId)
 
         val someBulkTransferId = testDBService.getUnusedBulkTransferId()
@@ -1244,7 +1244,7 @@ class RatkoServiceIT @Autowired constructor(
         splitTestDataService.insertSplit().let { splitId ->
             splitDao.updateSplit(
                 splitId = splitId,
-                publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines("some in progress bulk transfer")),
+                publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("some in progress bulk transfer")),
                 bulkTransferState = BulkTransferState.IN_PROGRESS,
                 bulkTransferId = someBulkTransferId,
             ).id
@@ -1253,7 +1253,7 @@ class RatkoServiceIT @Autowired constructor(
         val pendingSplitId = splitTestDataService.insertSplit().let { splitId ->
             splitDao.updateSplit(
                 splitId = splitId,
-                publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines("pending bulk transfer")),
+                publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("pending bulk transfer")),
             ).id
         }
 
@@ -1272,7 +1272,7 @@ class RatkoServiceIT @Autowired constructor(
         val splitId = splitTestDataService.insertSplit().let { splitId ->
             splitDao.updateSplit(
                 splitId = splitId,
-                publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines("pending bulk transfer")),
+                publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("pending bulk transfer")),
             ).id
         }
 
@@ -1306,7 +1306,7 @@ class RatkoServiceIT @Autowired constructor(
             splitTestDataService.insertSplit().let { splitId ->
                 splitDao.updateSplit(
                     splitId = splitId,
-                    publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines("pending bulk transfer $index")),
+                    publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("pending bulk transfer $index")),
                 ).id
             }
         }
@@ -1337,7 +1337,7 @@ class RatkoServiceIT @Autowired constructor(
                     else ->
                         splitDao.updateSplit(
                             splitId = splitId,
-                            publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines("testing $bulkTransferState")),
+                            publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("testing $bulkTransferState")),
                             bulkTransferId = testDBService.getUnusedBulkTransferId(),
                             bulkTransferState = bulkTransferState,
                         )
@@ -1403,7 +1403,7 @@ class RatkoServiceIT @Autowired constructor(
         publicationService.updateExternalId(LayoutBranch.main, ids)
         val versions = publicationService.getValidationVersions(LayoutBranch.main, ids)
         val calculatedChanges = publicationService.getCalculatedChanges(versions)
-        publicationService.publishChanges(LayoutBranch.main, versions, calculatedChanges, FreeTextWithNewLines(""))
+        publicationService.publishChanges(LayoutBranch.main, versions, calculatedChanges, FreeTextWithNewLines.of(""))
         ratkoService.pushChangesToRatko(LayoutBranch.main)
     }
 
