@@ -6,11 +6,16 @@ import com.fasterxml.jackson.annotation.JsonValue
 import org.apache.commons.validator.routines.UrlValidator
 import java.net.URL
 
-val urlLength = 1..2000
-val httpsValidator = UrlValidator(arrayOf("https"))
-data class HttpsUrl @JsonCreator(mode = DELEGATING) constructor(private val value: URL)
-    : Comparable<HttpsUrl>, CharSequence by value.toString() {
-    constructor(stringValue: String): this(URL(stringValue))
+data class HttpsUrl @JsonCreator(mode = DELEGATING) constructor(private val value: URL) :
+    Comparable<HttpsUrl>, CharSequence by value.toString() {
+
+    constructor(stringValue: String) : this(URL(stringValue))
+
+    companion object {
+        val urlLength = 1..2000
+        val httpsValidator = UrlValidator(arrayOf("https"))
+    }
+
     init {
         assertLength<HttpsUrl>(value.toString(), urlLength)
         require(httpsValidator.isValid(value.toString())) {

@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 
 fun publicationRequest(
     trackNumbers: List<IntId<TrackLayoutTrackNumber>> = listOf(),
@@ -64,7 +65,5 @@ fun publish(
 ): PublicationResult {
     val versions = publicationService.getValidationVersions(branch, request)
     val calculatedChanges = publicationService.getCalculatedChanges(versions)
-    return publicationService.publishChanges(branch, versions, calculatedChanges, "Test")
+    return publicationService.publishChanges(branch, versions, calculatedChanges, FreeTextWithNewLines("Test"))
 }
-
-fun <T> daoResponseToValidationVersion(response: LayoutDaoResponse<T>) = ValidationVersion<T>(response.id, response.rowVersion)

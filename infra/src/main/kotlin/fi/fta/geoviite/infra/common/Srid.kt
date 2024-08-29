@@ -7,13 +7,15 @@ import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.util.assertInput
 import fi.fta.geoviite.infra.util.parsePrefixedInt
 
-private const val SRID_PREFIX = "EPSG:"
-private val sridRange: IntRange = 1024..32767
-
 data class Srid @JsonCreator(mode = DISABLED) constructor(val code: Int) {
 
     @JsonCreator(mode = DELEGATING)
     constructor(value: String) : this(parsePrefixedInt<Srid>(SRID_PREFIX, value))
+
+    companion object {
+        private const val SRID_PREFIX = "EPSG:"
+        private val sridRange: IntRange = 1024..32767
+    }
 
     init {
         assertInput<Srid>(code in sridRange, code.toString()) {

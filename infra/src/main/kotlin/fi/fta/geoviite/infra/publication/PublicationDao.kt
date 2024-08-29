@@ -296,7 +296,7 @@ class PublicationDao(
     }
 
     @Transactional
-    fun createPublication(layoutBranch: LayoutBranch, message: String): IntId<Publication> {
+    fun createPublication(layoutBranch: LayoutBranch, message: FreeTextWithNewLines): IntId<Publication> {
         jdbcTemplate.setUser()
         val sql = """
             insert into publication.publication(publication_user, publication_time, message, design_id)
@@ -425,7 +425,7 @@ class PublicationDao(
                 id = rs.getIntId("id"),
                 publicationUser = rs.getString("publication_user").let(UserName::of),
                 publicationTime = rs.getInstant("publication_time"),
-                message = rs.getString("message"),
+                message = rs.getFreeTextWithNewLines("message"),
                 layoutBranch = rs.getLayoutBranch("design_id"),
             )
         }).also { logger.daoAccess(FETCH, Publication::class, publicationId) }
@@ -477,7 +477,7 @@ class PublicationDao(
                 id = rs.getIntId("id"),
                 publicationUser = rs.getString("publication_user").let(UserName::of),
                 publicationTime = rs.getInstant("publication_time"),
-                message = rs.getString("message"),
+                message = rs.getFreeTextWithNewLines("message"),
                 layoutBranch = rs.getLayoutBranch("design_id"),
             )
         }.also { publications -> logger.daoAccess(FETCH, Publication::class, publications.map { it.id }) }
@@ -502,7 +502,7 @@ class PublicationDao(
                 id = rs.getIntId("id"),
                 publicationUser = rs.getString("publication_user").let(UserName::of),
                 publicationTime = rs.getInstant("publication_time"),
-                message = rs.getString("message"),
+                message = rs.getFreeTextWithNewLines("message"),
                 layoutBranch = rs.getLayoutBranch("design_id"),
             )
         }.also { publications -> logger.daoAccess(FETCH, Publication::class, publications.map { it.id }) }

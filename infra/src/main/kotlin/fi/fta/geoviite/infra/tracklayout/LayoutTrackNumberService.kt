@@ -263,7 +263,7 @@ private fun locationSourceTranslationKey(
     return if (isGeneratedRow(kmPost)) {
         null
     } else if (precision == KmLengthsLocationPrecision.PRECISE_LOCATION) {
-        kmPost.gkLocationSource?.let { source -> "enum.gk-location-source.$source" } ?: null
+        kmPost.gkLocationSource?.let { source -> "enum.gk-location-source.$source" }
     } else {
         when (kmPost.gkLocationLinkedFromGeometry) {
             true -> "$KM_LENGTHS_CSV_TRANSLATION_PREFIX.from-geometry"

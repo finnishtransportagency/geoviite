@@ -24,7 +24,6 @@ import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.ratko.RatkoClient
 import fi.fta.geoviite.infra.ratko.RatkoPushDao
 import fi.fta.geoviite.infra.split.Split
-import fi.fta.geoviite.infra.split.SplitDao
 import fi.fta.geoviite.infra.split.SplitHeader
 import fi.fta.geoviite.infra.split.SplitLayoutValidationIssues
 import fi.fta.geoviite.infra.split.SplitService
@@ -32,6 +31,8 @@ import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.CsvEntry
+import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.SortOrder
 import fi.fta.geoviite.infra.util.nullsFirstComparator
 import fi.fta.geoviite.infra.util.printCsv
@@ -495,7 +496,7 @@ class PublicationService @Autowired constructor(
         branch: LayoutBranch,
         versions: ValidationVersions,
         calculatedChanges: CalculatedChanges,
-        message: String,
+        message: FreeTextWithNewLines,
     ): PublicationResult {
         try {
             return requireNotNull(
@@ -528,7 +529,7 @@ class PublicationService @Autowired constructor(
         branch: LayoutBranch,
         versions: ValidationVersions,
         calculatedChanges: CalculatedChanges,
-        message: String,
+        message: FreeTextWithNewLines,
     ): PublicationResult {
         val trackNumbers = versions.trackNumbers.map { v -> trackNumberService.publish(branch, v) }
         val kmPosts = versions.kmPosts.map { v -> kmPostService.publish(branch, v) }
@@ -1562,13 +1563,13 @@ class PublicationService @Autowired constructor(
         changedKmNumbers: Set<KmNumber>? = null,
         propChanges: List<PublicationChange<*>>,
     ) = PublicationTableItem(
-        name = name,
+        name = FreeText(name),
         trackNumbers = trackNumbers.sorted(),
         changedKmNumbers = changedKmNumbers?.let { groupChangedKmNumbers(changedKmNumbers.toList()) } ?: emptyList(),
         operation = operation,
         publicationTime = publication.publicationTime,
         publicationUser = publication.publicationUser,
-        message = publication.message ?: "",
+        message = publication.message,
         ratkoPushTime = if (publication.ratkoPushStatus == RatkoPushStatus.SUCCESSFUL) publication.ratkoPushTime else null,
         propChanges = propChanges,
     )
