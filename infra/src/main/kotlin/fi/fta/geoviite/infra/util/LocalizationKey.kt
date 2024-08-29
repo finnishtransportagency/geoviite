@@ -4,12 +4,15 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 
-val localizationKeyRegex = Regex("^[A-Za-z0-9_\\-.]+\$")
-val localizationKeyLength = 1..100
+data class LocalizationKey @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
+    Comparable<LocalizationKey>, CharSequence by value {
 
-data class LocalizationKey @JsonCreator(mode = DELEGATING) constructor(private val value: String)
-    : Comparable<LocalizationKey>, CharSequence by value {
-    init { assertSanitized<LocalizationKey>(value, localizationKeyRegex, localizationKeyLength) }
+    companion object {
+        val sanitizer = Regex("^[A-Za-z0-9_\\-.]+\$")
+        val allowedLength = 1..100
+    }
+
+    init { assertSanitized<LocalizationKey>(value, sanitizer, allowedLength) }
 
     @JsonValue
     override fun toString(): String = value

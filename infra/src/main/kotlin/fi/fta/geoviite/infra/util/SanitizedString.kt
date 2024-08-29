@@ -4,29 +4,31 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 
-val codeRegex = Regex("^[A-Za-z0-9_\\-.]+\$")
+data class Code @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
+    Comparable<Code>, CharSequence by value {
 
-const val newLineCharacter = "\n"
-const val freeTextCharacters = "A-ZÄÖÅa-zäöå0-9 _\\\\\\-–+().,'/*<>:;!?&\""
-const val freeTextWithNewLineCharacters = freeTextCharacters + newLineCharacter
+    companion object {
+        val sanitizer = Regex("^[A-Za-z0-9_\\-.]+\$")
+    }
 
-val freeTextRegex = Regex("^[$freeTextCharacters]*\$")
-val freeTextWithNewLinesRegex = Regex("^[$freeTextWithNewLineCharacters]*\$")
-
-data class Code @JsonCreator(mode = DELEGATING) constructor(private val value: String)
-    : Comparable<Code>, CharSequence by value {
-    init { assertSanitized<Code>(value, codeRegex) }
+    init { assertSanitized<Code>(value, sanitizer) }
 
     @JsonValue
     override fun toString(): String = value
     override fun compareTo(other: Code): Int = value.compareTo(other.value)
 }
 
-fun isValidCode(source: String): Boolean = isSanitized(source, codeRegex, allowBlank = false)
+fun isValidCode(source: String): Boolean = isSanitized(source, Code.sanitizer, allowBlank = false)
 
-data class FreeText @JsonCreator(mode = DELEGATING) constructor(private val value: String)
-    : Comparable<FreeText>, CharSequence by value {
-    init { assertSanitized<FreeText>(value, freeTextRegex) }
+data class FreeText @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
+    Comparable<FreeText>, CharSequence by value {
+
+    companion object {
+        const val ALLOWED_CHARACTERS = "A-ZÄÖÅa-zäöå0-9 _\\\\\\-–+().,'/*<>:;!?&\""
+        val sanitizer = Regex("^[$ALLOWED_CHARACTERS]*\$")
+    }
+
+    init { assertSanitized<FreeText>(value, sanitizer) }
 
     @JsonValue
     override fun toString(): String = value
@@ -34,9 +36,15 @@ data class FreeText @JsonCreator(mode = DELEGATING) constructor(private val valu
     operator fun plus(addition: String) = FreeText("$value$addition")
 }
 
-data class FreeTextWithNewLines @JsonCreator(mode = DELEGATING) constructor(private val value: String)
-    : Comparable<FreeTextWithNewLines>, CharSequence by value {
-    init { assertSanitized<FreeTextWithNewLines>(value, freeTextWithNewLinesRegex) }
+data class FreeTextWithNewLines @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
+    Comparable<FreeTextWithNewLines>, CharSequence by value {
+
+    companion object {
+        const val ALLOWED_CHARACTERS = FreeText.ALLOWED_CHARACTERS + "\n"
+        val sanitizer = Regex("^[$ALLOWED_CHARACTERS]*\$")
+    }
+
+    init { assertSanitized<FreeTextWithNewLines>(value, sanitizer) }
 
     @JsonValue
     override fun toString(): String = value

@@ -18,9 +18,6 @@ import kotlin.math.pow
 const val TRACK_METER_SEPARATOR = "+"
 const val DEFAULT_TRACK_METER_DECIMALS = 3
 
-private val extensionLength = 1..2
-private val extensionRegex = Regex("^[A-Z]*\$")
-
 data class KmNumber @JsonCreator(mode = DISABLED) constructor(
     val number: Int,
     val extension: String? = null,
@@ -31,6 +28,8 @@ data class KmNumber @JsonCreator(mode = DISABLED) constructor(
     constructor(value: String) : this(parseKmNumberParts(value))
 
     companion object {
+        private val extensionLength = 1..2
+        private val extensionSanitizer = Regex("^[A-Z]*\$")
         val ZERO = KmNumber(0)
     }
 
@@ -43,7 +42,7 @@ data class KmNumber @JsonCreator(mode = DISABLED) constructor(
 
     init {
         extension?.let {
-            assertSanitized<KmNumber>(it, extensionRegex, extensionLength, allowBlank = false)
+            assertSanitized<KmNumber>(it, extensionSanitizer, extensionLength, allowBlank = false)
         }
     }
 
