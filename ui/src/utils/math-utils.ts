@@ -183,10 +183,25 @@ export function normalize(point: Point): Point {
     return div(point, m);
 }
 
+/**
+ * Calculates a projected location of the point on the line and returns a relative location on the line.
+ *
+ * Returns 0 if the projected location is at the line start.
+ * Returns 0.5 if the projected location is in the middle of the line.
+ * Returns 1 if the projected location is at the line end.
+ *
+ * Value is not clamped!
+ * Returns a negative value if the projected location is before the line start
+ * Returns a value greater than 1 if the projected location is after the line end
+ *
+ * @param start
+ * @param end
+ * @param point
+ */
 export function portion(start: Point, end: Point, point: Point) {
-    const v = minus(end, start);
-    const relativePoint = minus(point, start);
-    return dot(normalize(v), relativePoint) / magnitude(v);
+    const lineVector = minus(end, start);
+    const relativePointVector = minus(point, start);
+    return dot(normalize(lineVector), relativePointVector) / magnitude(lineVector);
 }
 
 export function clamp(val: number, min: number, max: number): number {

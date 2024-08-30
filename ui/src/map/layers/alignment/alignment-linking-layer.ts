@@ -995,6 +995,24 @@ function getPointByOlPoint(olPoint: OlPoint): Point {
     };
 }
 
+function createInterpolatedLinkPoint(p1: LinkPoint, p2: LinkPoint, targetPoint: Point): LinkPoint {
+    const portionBetweenPoints = portion(p1, p2, targetPoint);
+    const interpolatedM = roundToPrecisionNumber(
+        interpolate(p1.m, p2.m, portionBetweenPoints),
+        Precision.alignmentM,
+    );
+    return {
+        ...p1,
+        id: 'interpolated_' + interpolatedM,
+        x: interpolate(p1.x, p2.x, portionBetweenPoints),
+        y: interpolate(p1.y, p2.y, portionBetweenPoints),
+        m: interpolatedM,
+        isSegmentEndPoint: false,
+        isEndPoint: false,
+        isInterpolated: true,
+    };
+}
+
 function getInterpolatedLinkPoint(
     linkPointFeatures: Feature<OlPoint>[],
     targetPoint: Point,
@@ -1002,51 +1020,34 @@ function getInterpolatedLinkPoint(
     resolution: number,
 ): LinkPoint | undefined {
     const filteredLinkPointFeatures = linkPointFeatures.filter((f) => {
-        const d = getFeatureData(f) as LinkPoint;
-        return !d.isInterpolated;
+        const linkPoint = getFeatureData(f) as LinkPoint;
+        return !linkPoint.isInterpolated;
     });
+
     const closestLinkPoint = findFirstOfType(filteredLinkPointFeatures, featureType) as LinkPoint;
-    const closestLinkPointDistanceInPixels = closestLinkPoint
-        ? distance(targetPoint, closestLinkPoint) / resolution
-        : undefined;
-    if (
-        closestLinkPoint &&
-        closestLinkPointDistanceInPixels !== undefined &&
-        closestLinkPointDistanceInPixels > linkPointSnapRadiusInPixels
-    ) {
-        const fromClosestToTargetVector = minus(targetPoint, closestLinkPoint);
-        const neighbourPointFeature =
-            closestLinkPoint && fromClosestToTargetVector
-                ? linkPointFeatures.find((f) => {
-                      const testPointType = getFeatureType(f);
-                      if (testPointType !== featureType) {
-                          return false;
-                      }
-                      const testLinkPoint = getFeatureData(f) as LinkPoint;
-                      const fromTestToTargetVector = minus(targetPoint, testLinkPoint);
-                      const dotProduct = dot(fromClosestToTargetVector, fromTestToTargetVector);
-                      const oppositeDirection = dotProduct < 0;
-                      return closestLinkPoint.id !== testLinkPoint.id && oppositeDirection;
-                  })
-                : undefined;
+    if (!closestLinkPoint) {
+        return undefined;
+    }
+
+    const closestLinkPointDistanceInPixels = distance(targetPoint, closestLinkPoint) / resolution;
+    if (closestLinkPointDistanceInPixels > linkPointSnapRadiusInPixels) {
+        const fromClosestPointToTargetVector = minus(targetPoint, closestLinkPoint);
+
+        const neighbourPointFeature = linkPointFeatures.find((f) => {
+            const testPointType = getFeatureType(f);
+            if (testPointType !== featureType) {
+                return false;
+            }
+            const testLinkPoint = getFeatureData(f) as LinkPoint;
+            const fromTestPointToTargetVector = minus(targetPoint, testLinkPoint);
+            const dotProduct = dot(fromClosestPointToTargetVector, fromTestPointToTargetVector);
+            const oppositeDirection = dotProduct < 0;
+            return closestLinkPoint.id !== testLinkPoint.id && oppositeDirection;
+        });
 
         if (neighbourPointFeature) {
             const neighbourLinkPoint = getFeatureData(neighbourPointFeature) as LinkPoint;
-            const portionBetweenPoints = portion(closestLinkPoint, neighbourLinkPoint, targetPoint);
-            const interpolatedM = roundToPrecisionNumber(
-                interpolate(closestLinkPoint.m, neighbourLinkPoint.m, portionBetweenPoints),
-                Precision.alignmentM,
-            );
-            return {
-                ...closestLinkPoint,
-                id: 'interpolated_' + interpolatedM,
-                x: interpolate(closestLinkPoint.x, neighbourLinkPoint.x, portionBetweenPoints),
-                y: interpolate(closestLinkPoint.y, neighbourLinkPoint.y, portionBetweenPoints),
-                m: interpolatedM,
-                isSegmentEndPoint: false,
-                isEndPoint: false,
-                isInterpolated: true,
-            };
+            return createInterpolatedLinkPoint(closestLinkPoint, neighbourLinkPoint, targetPoint);
         }
     }
     return closestLinkPoint;
