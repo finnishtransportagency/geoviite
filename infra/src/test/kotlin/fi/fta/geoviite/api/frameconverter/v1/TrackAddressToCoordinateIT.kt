@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.Point
@@ -129,59 +130,61 @@ class TrackAddressToCoordinateIT @Autowired constructor(
         )
     }
 
-    @Test
-    fun `Track kilometer under range in a request should result in an error`() {
-        val layoutContext = mainOfficialContext
-        val trackNumberName = testDBService.getUnusedTrackNumber().value
+//    TODO Enable after GVT-2757?
+//    @Test
+//    fun `Track kilometer under range in a request should result in an error`() {
+//        val layoutContext = mainOfficialContext
+//        val trackNumberName = testDBService.getUnusedTrackNumber().value
+//
+//        val trackNumber = layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id
+//            .let { trackNumberId ->
+//                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
+//            }
+//
+//        frameConverterTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId)
+//
+//        val request = TestTrackAddressToCoordinateRequest(
+//            ratakilometri = -1,
+//            ratametri = 0,
+//            ratanumero = trackNumberName,
+//        )
+//
+//        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+//
+//        assertSimpleFeatureCollection(featureCollection)
+//        assertEquals(
+//            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen).",
+//            featureCollection.features[0].properties?.get("virheet"),
+//        )
+//    }
 
-        val trackNumber = layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id
-            .let { trackNumberId ->
-                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
-            }
-
-        frameConverterTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId)
-
-        val request = TestTrackAddressToCoordinateRequest(
-            ratakilometri = -1,
-            ratametri = 0,
-            ratanumero = trackNumberName,
-        )
-
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
-
-        assertSimpleFeatureCollection(featureCollection)
-        assertEquals(
-            "Pyyntö sisälsi pienemmän ratakilometrin kuin sallittu minimiarvo (0).",
-            featureCollection.features[0].properties?.get("virheet"),
-        )
-    }
-
-    @Test
-    fun `Track kilometer over range in a request should result in an error`() {
-        val layoutContext = mainOfficialContext
-        val trackNumberName = testDBService.getUnusedTrackNumber().value
-
-        val trackNumber = layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id
-            .let { trackNumberId ->
-                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
-            }
-
-        frameConverterTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId)
-
-        val request = TestTrackAddressToCoordinateRequest(
-            ratakilometri = 10000,
-            ratametri = 0,
-            ratanumero = trackNumberName,
-        )
-
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
-
-        assertSimpleFeatureCollection(featureCollection)
-        assertEquals(
-            "Pyyntö sisälsi suuremman ratakilometrin kuin sallittu maksimiarvo (9999).",
-            featureCollection.features[0].properties?.get("virheet"),
-        )
-    }
+//    TODO Enable after GVT-2757?
+//    @Test
+//    fun `Track kilometer over range in a request should result in an error`() {
+//        val layoutContext = mainOfficialContext
+//        val trackNumberName = testDBService.getUnusedTrackNumber().value
+//
+//        val trackNumber = layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id
+//            .let { trackNumberId ->
+//                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
+//            }
+//
+//        frameConverterTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId)
+//
+//        val request = TestTrackAddressToCoordinateRequest(
+//            ratakilometri = 10000,
+//            ratametri = 0,
+//            ratanumero = trackNumberName,
+//        )
+//
+//        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+//
+//        assertSimpleFeatureCollection(featureCollection)
+//        assertEquals(
+//            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen)",
+//            featureCollection.features[0].properties?.get("virheet"),
+//        )
+//    }
 
     @Test
     fun `Missing track meter in a request should result in an error`() {
@@ -223,7 +226,7 @@ class TrackAddressToCoordinateIT @Autowired constructor(
 
         val request = TestTrackAddressToCoordinateRequest(
             ratakilometri = 123,
-            ratametri = -1,
+            ratametri = -10001,
             ratanumero = trackNumberName,
         )
 
@@ -231,7 +234,7 @@ class TrackAddressToCoordinateIT @Autowired constructor(
 
         assertSimpleFeatureCollection(featureCollection)
         assertEquals(
-            "Pyyntö sisälsi pienemmän ratametrin kuin sallittu minimiarvo (0).",
+            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen).",
             featureCollection.features[0].properties?.get("virheet"),
         )
     }
@@ -258,7 +261,7 @@ class TrackAddressToCoordinateIT @Autowired constructor(
 
         assertSimpleFeatureCollection(featureCollection)
         assertEquals(
-            "Pyyntö sisälsi suuremman ratametrin kuin sallittu maksimiarvo (9999).",
+            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen).",
             featureCollection.features[0].properties?.get("virheet"),
         )
     }

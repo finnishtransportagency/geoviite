@@ -191,9 +191,6 @@ class FrameConverterServiceV1 @Autowired constructor(
     fun validateTrackAddressToCoordinateRequest(
         request: TrackAddressToCoordinateRequestV1,
     ): Pair<ValidTrackAddressToCoordinateRequestV1?, List<GeoJsonFeatureErrorResponseV1>> {
-        val validKilometerRange = 0..9999
-        val validMeterRange = 0..9999
-
         val errors = mutableListOf(
             produceIf(request.trackNumberName == null) { FrameConverterErrorV1.MissingTrackNumber },
             produceIf(request.trackKilometer == null) { FrameConverterErrorV1.MissingTrackKilometer },
@@ -202,31 +199,19 @@ class FrameConverterServiceV1 @Autowired constructor(
             produceIf(FrameConverterResponseSettingV1.INVALID in request.responseSettings) {
                 FrameConverterErrorV1.InvalidResponseSettings
             },
-
-            request.trackKilometer?.let {
-                produceIf(request.trackKilometer < validKilometerRange.start) {
-                    FrameConverterErrorV1.TrackKilometerUnderRange
-                }
-            },
-
-            request.trackKilometer?.let {
-                produceIf(request.trackKilometer > validKilometerRange.endInclusive) {
-                    FrameConverterErrorV1.TrackKilometerOverRange
-                }
-            },
-
-            request.trackMeter?.let {
-                produceIf(request.trackMeter < validMeterRange.start) {
-                    FrameConverterErrorV1.TrackMeterUnderRange
-                }
-            },
-
-            request.trackMeter?.let {
-                produceIf(request.trackMeter > validMeterRange.endInclusive) {
-                    FrameConverterErrorV1.TrackMeterOverRange
-                }
-            },
         )
+
+        val validTrackMeterOrNull = when {
+            request.trackKilometer != null && request.trackMeter != null ->
+                try {
+                    TrackMeter(requireNotNull(request.trackKilometer), requireNotNull(request.trackMeter))
+                } catch (e: IllegalArgumentException) {
+                    errors.add(FrameConverterErrorV1.InvalidTrackAddress)
+                    null
+                }
+
+            else -> null
+        }
 
         val mappedLocationTrackTypeOrNull = mapLocationTrackTypeToDomainTypeOrNull(request.locationTrackType)
             .let { (mappedTrackType, errorOrNull) ->
@@ -257,7 +242,7 @@ class FrameConverterServiceV1 @Autowired constructor(
             val validRequest = ValidTrackAddressToCoordinateRequestV1(
                 identifier = request.identifier,
                 trackNumber = requireNotNull(layoutTrackNumberOrNull),
-                trackAddress = TrackMeter(requireNotNull(request.trackKilometer), requireNotNull(request.trackMeter)),
+                trackAddress = requireNotNull(validTrackMeterOrNull),
                 locationTrackName = locationTrackNameOrNull,
                 locationTrackType = mappedLocationTrackTypeOrNull,
                 responseSettings = request.responseSettings,

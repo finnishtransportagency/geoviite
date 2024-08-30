@@ -23,9 +23,6 @@ enum class FrameConverterErrorV1(val localizationKey: LocalizationKey) {
     InvalidLocationTrackName(LocalizationKey("$BASE.invalid-location-track-name")),
     InvalidLocationTrackType(LocalizationKey("$BASE.invalid-location-track-type")),
     InvalidResponseSettings(LocalizationKey("$BASE.invalid-response-settings")),
-    TrackKilometerUnderRange(LocalizationKey("$BASE.track-kilometer-under-range")),
-    TrackKilometerOverRange(LocalizationKey("$BASE.track-kilometer-over-range")),
-    TrackMeterUnderRange(LocalizationKey("$BASE.track-meter-under-range")),
-    TrackMeterOverRange(LocalizationKey("$BASE.track-meter-over-range")),
+    InvalidTrackAddress(LocalizationKey("$BASE.invalid-track-address")),
     TrackNumberNotFound(LocalizationKey("$BASE.track-number-not-found")),
 }
