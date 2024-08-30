@@ -85,7 +85,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
     const kmPostStateOptions = layoutStates
         .filter((ls) => !state.isNewKmPost || ls.value != 'DELETED')
-        .map((ls) => ({ ...ls, qaId: ls.value, disabled: ls.value === 'PLANNED' }));
+        .map((ls) => ({ ...ls, qaId: ls.value }));
 
     const debouncedKmNumber = useDebouncedState(state.kmPost?.kmNumber, 300);
     const firstInputRef = React.useRef<HTMLInputElement>(null);

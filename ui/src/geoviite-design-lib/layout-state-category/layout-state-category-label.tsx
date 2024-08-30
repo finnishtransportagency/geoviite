@@ -11,7 +11,6 @@ function getTranslationKey(category: LayoutStateCategory) {
     switch (category) {
         case 'EXISTING':
         case 'NOT_EXISTING':
-        case 'FUTURE_EXISTING':
             return category;
         default:
             return exhaustiveMatchingGuard(category);
