@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.error
 
+import fi.fta.geoviite.api.frameconverter.v1.FrameConverterErrorV1
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.RowVersion
@@ -197,19 +198,15 @@ class DuplicateDesignNameException(
     localizedMessageParams = localizationParams("name" to name),
 )
 
-class IntegrationApiException(
+class IntegrationApiExceptionV1(
     message: String,
     cause: Throwable? = null,
-    localizedMessageKey: String = "generic",
+    error: FrameConverterErrorV1,
     localizationParams: LocalizationParams = LocalizationParams.empty,
 ) : ClientException(
     BAD_REQUEST,
     "Invalid request: $message",
     cause,
-    "$LOCALIZATION_KEY_BASE.$localizedMessageKey",
+    error.localizationKey,
     localizationParams,
-) {
-    companion object {
-        const val LOCALIZATION_KEY_BASE = "integration-api.error"
-    }
-}
+)

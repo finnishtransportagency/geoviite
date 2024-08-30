@@ -1,10 +1,12 @@
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.ObjectMapper
+import fi.fta.geoviite.api.frameconverter.v1.GeocodableTrack
+import fi.fta.geoviite.api.frameconverter.v1.assertNullDetailedProperties
+import fi.fta.geoviite.api.frameconverter.v1.assertNullSimpleProperties
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.TestLayoutContext
-import fi.fta.geoviite.infra.authorization.AuthorizationService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutContext
@@ -29,7 +31,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
@@ -50,13 +51,6 @@ private data class TestCoordinateToTrackAddressRequest(
     val sijaintiraide: String? = null,
     val sijaintiraide_tyyppi: String? = null,
     val palautusarvot: List<Int>? = null,
-)
-
-private data class GeocodableTrack(
-    val layoutContext: LayoutContext,
-    val trackNumber: TrackLayoutTrackNumber,
-    val referenceLine: ReferenceLine,
-    val locationTrack: LocationTrack,
 )
 
 @ActiveProfiles("dev", "test", "integration-api")
@@ -156,35 +150,6 @@ class CoordinateToTrackAddressIT @Autowired constructor(
             "Pyyntö ei sisältänyt y-koordinaattia.",
             featureCollection.features[0].properties?.get("virheet"),
         )
-    }
-
-    @Test
-    fun `Missing x- and y-coordinates in a request should result in two errors`() {
-        val params = emptyMap<String, String>()
-
-        val requests = listOf(
-            testApi.doGetWithParams(API_URL, params, HttpStatus.OK),
-            testApi.doPostWithParams(API_URL, params, HttpStatus.OK),
-        )
-
-        requests.forEach { request ->
-            val featureCollection = request
-                .let { body -> mapper.readValue(body, TestGeoJsonFeatureCollection::class.java) }
-
-            assertNotNull(featureCollection.features[0].properties?.get("virheet"))
-
-            assertEquals("FeatureCollection", featureCollection.type)
-            assertEquals(1, featureCollection.features.size)
-
-            assertEquals("Feature", featureCollection.features[0].type)
-            assertEquals("Point", featureCollection.features[0].geometry?.type)
-            assertEquals(emptyList<Double>(), featureCollection.features[0].geometry?.coordinates)
-
-            val errors: String = featureCollection.features[0].properties?.get("virheet").toString()
-
-            assertTrue(errors.contains("Pyyntö ei sisältänyt x-koordinaattia."))
-            assertTrue(errors.contains("Pyyntö ei sisältänyt y-koordinaattia."))
-        }
     }
 
     @Test
@@ -616,19 +581,13 @@ class CoordinateToTrackAddressIT @Autowired constructor(
         assertEquals("Point", featureCollection.features[0].geometry?.type)
         assertEquals(0, (featureCollection.features[0].geometry?.coordinates as List<*>).size)
 
-        val properties = featureCollection.features[0].properties
+        val properties = featureCollection.features[0].properties!!
 
-        assertEquals(0.0, properties?.get("x"))
-        assertEquals(0.0, properties?.get("y"))
-        assertEquals(yDifference, ((properties?.get("valimatka") as? Double)!!), 0.001)
+        assertEquals(0.0, properties["x"])
+        assertEquals(0.0, properties["y"])
+        assertEquals(yDifference, ((properties["valimatka"] as Double)), 0.001)
 
-        assertEquals(null, properties.get("ratanumero"))
-        assertEquals(null, properties.get("sijaintiraide"))
-        assertEquals(null, properties.get("sijaintiraide_kuvaus"))
-        assertEquals(null, properties.get("sijaintiraide_tyyppi"))
-        assertEquals(null, properties.get("ratakilometri"))
-        assertEquals(null, properties.get("ratametri"))
-        assertEquals(null, properties.get("ratametri_desimaalit"))
+        assertNullDetailedProperties(properties)
     }
 
     @Test
@@ -658,19 +617,10 @@ class CoordinateToTrackAddressIT @Autowired constructor(
         assertEquals(0.0, coordinatesOnTrack[0])
         assertEquals(0.0, coordinatesOnTrack[1])
 
-        val properties = featureCollection.features[0].properties
+        val properties = featureCollection.features[0].properties!!
 
-        assertEquals(null, properties?.get("x"))
-        assertEquals(null, properties?.get("y"))
-        assertEquals(null, properties?.get("valimatka"))
-
-        assertEquals(null, properties?.get("ratanumero"))
-        assertEquals(null, properties?.get("sijaintiraide"))
-        assertEquals(null, properties?.get("sijaintiraide_kuvaus"))
-        assertEquals(null, properties?.get("sijaintiraide_tyyppi"))
-        assertEquals(null, properties?.get("ratakilometri"))
-        assertEquals(null, properties?.get("ratametri"))
-        assertEquals(null, properties?.get("ratametri_desimaalit"))
+        assertNullSimpleProperties(properties)
+        assertNullDetailedProperties(properties)
     }
 
     @Test
@@ -701,19 +651,17 @@ class CoordinateToTrackAddressIT @Autowired constructor(
         assertEquals("Point", featureCollection.features[0].geometry?.type)
         assertEquals(0, (featureCollection.features[0].geometry?.coordinates as List<*>).size)
 
-        val properties = featureCollection.features[0].properties
+        val properties = featureCollection.features[0].properties!!
 
-        assertEquals(null, properties?.get("x"))
-        assertEquals(null, properties?.get("y"))
-        assertEquals(null, properties?.get("valimatka"))
+        assertNullSimpleProperties(properties)
 
-        assertEquals(geocodableTrack.trackNumber.number.toString(), properties?.get("ratanumero"))
-        assertEquals(geocodableTrack.locationTrack.name.toString(), properties?.get("sijaintiraide"))
-        assertEquals(trackDescription, properties?.get("sijaintiraide_kuvaus"))
-        assertEquals("kujaraide", properties?.get("sijaintiraide_tyyppi"))
-        assertEquals(0, properties?.get("ratakilometri"))
-        assertEquals(10, properties?.get("ratametri") as? Int)
-        assertEquals(0, properties?.get("ratametri_desimaalit") as? Int)
+        assertEquals(geocodableTrack.trackNumber.number.toString(), properties["ratanumero"])
+        assertEquals(geocodableTrack.locationTrack.name.toString(), properties["sijaintiraide"])
+        assertEquals(trackDescription, properties["sijaintiraide_kuvaus"])
+        assertEquals("kujaraide", properties.get("sijaintiraide_tyyppi"))
+        assertEquals(0, properties["ratakilometri"])
+        assertEquals(10, properties["ratametri"] as Int)
+        assertEquals(0, properties["ratametri_desimaalit"] as Int)
     }
 
     @Test

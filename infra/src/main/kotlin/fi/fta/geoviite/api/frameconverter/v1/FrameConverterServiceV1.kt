@@ -6,9 +6,12 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.InputValidationException
 import fi.fta.geoviite.infra.geocoding.AddressAndM
+import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
@@ -22,6 +25,7 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import fi.fta.geoviite.infra.util.alsoIfNull
 import fi.fta.geoviite.infra.util.produceIf
 import org.springframework.beans.factory.annotation.Autowired
 import java.math.BigDecimal
@@ -45,7 +49,7 @@ class FrameConverterServiceV1 @Autowired constructor(
 
     fun coordinateToTrackAddress(
         layoutContext: LayoutContext,
-        request: ValidCoordinateToTrackMeterRequestV1,
+        request: ValidCoordinateToTrackAddressRequestV1,
     ): List<GeoJsonFeature> {
         val searchPoint = Point(request.x, request.y)
         val nearbyLocationTracks = locationTrackService.listNearWithAlignments(
@@ -61,7 +65,7 @@ class FrameConverterServiceV1 @Autowired constructor(
             .filter { (locationTrack, _) -> filterByTrackNumber(trackNumbers, request.trackNumberName, locationTrack) }
 
         val nearestMatch = findNearestLocationTrack(searchPoint, filteredLocationTracks)
-            ?: return createErrorResponse(request.identifier, "features-not-found")
+            ?: return createErrorResponse(request.identifier, FrameConverterErrorV1.FeaturesNotFound)
 
         val (trackNumber, geocodedAddress) = geocodingService.getGeocodingContext(
             layoutContext = layoutContext,
@@ -70,68 +74,95 @@ class FrameConverterServiceV1 @Autowired constructor(
             geocodingContext?.trackNumber to geocodingContext?.getAddressAndM(searchPoint)
         }
 
-        if (trackNumber == null || geocodedAddress == null) {
-            return createErrorResponse(request.identifier, "address-geocoding-failed")
+        return if (trackNumber == null || geocodedAddress == null) {
+            createErrorResponse(request.identifier, FrameConverterErrorV1.AddressGeocodingFailed)
+        } else {
+            createCoordinateToTrackAddressResponse(
+                layoutContext,
+                request,
+                nearestMatch,
+                trackNumber,
+                geocodedAddress,
+            )
         }
-
-        return createCoordinateToTrackMeterResponse(layoutContext, request, nearestMatch, trackNumber, geocodedAddress)
     }
 
-    fun validateCoordinateToTrackMeterRequest(
-        request: CoordinateToTrackMeterRequestV1
-    ): Pair<ValidCoordinateToTrackMeterRequestV1?, List<GeoJsonFeatureErrorResponseV1>> {
+    fun trackAddressToCoordinate(
+        layoutContext: LayoutContext,
+        request: ValidTrackAddressToCoordinateRequestV1,
+    ): List<GeoJsonFeature> {
+
+        val tracksAndAlignments = locationTrackService.listWithAlignments(
+            layoutContext = layoutContext,
+            trackNumberId = request.trackNumber.id as IntId,
+        )
+            .filter { (locationTrack, _) -> filterByLocationTrackName(request.locationTrackName, locationTrack) }
+            .filter { (locationTrack, _) -> filterByLocationTrackType(request.locationTrackType, locationTrack) }
+
+        val geocodingContext = geocodingService.getGeocodingContext(
+            layoutContext = layoutContext,
+            trackNumberId = request.trackNumber.id,
+        )
+
+        geocodingContext ?: return createErrorResponse(request.identifier, FrameConverterErrorV1.AddressGeocodingFailed)
+
+        val tracksAndMatchingAddressPoints = tracksAndAlignments
+            .map { (locationTrack, alignment) ->
+                locationTrack to geocodingContext.getTrackLocation(
+                    alignment = alignment,
+                    address = request.trackAddress,
+                )
+            }
+            .filter { (_, addressPoint) -> addressPoint != null }
+
+        return tracksAndMatchingAddressPoints.map { (locationTrack, addressPoint) ->
+            createTrackAddressToCoordinateResponse(layoutContext, request, locationTrack, requireNotNull(addressPoint))
+        }.ifEmpty {
+            createErrorResponse(request.identifier, FrameConverterErrorV1.FeaturesNotFound)
+        }
+    }
+
+    fun validateCoordinateToTrackAddressRequest(
+        request: CoordinateToTrackAddressRequestV1
+    ): Pair<ValidCoordinateToTrackAddressRequestV1?, List<GeoJsonFeatureErrorResponseV1>> {
         val allowedSearchRadiusRange = 1.0..1000.0
 
         val errors = mutableListOf(
-            produceIf(request.x == null) { "missing-x-coordinate" },
-            produceIf(request.y == null) { "missing-y-coordinate" },
-            produceIf(request.searchRadius == null) { "search-radius-undefined" },
+            produceIf(request.x == null) { FrameConverterErrorV1.MissingXCoordinate },
+            produceIf(request.y == null) { FrameConverterErrorV1.MissingYCoordinate },
+            produceIf(request.searchRadius == null) { FrameConverterErrorV1.SearchRadiusUndefined },
             produceIf(request.searchRadius != null && request.searchRadius < allowedSearchRadiusRange.start) {
-                "search-radius-under-range"
+                FrameConverterErrorV1.SearchRadiusUnderRange
             },
             produceIf(request.searchRadius != null && request.searchRadius > allowedSearchRadiusRange.endInclusive) {
-                "search-radius-over-range"
+                FrameConverterErrorV1.SearchRadiusOverRange
             },
             produceIf(FrameConverterResponseSettingV1.INVALID in request.responseSettings) {
-                "invalid-response-settings"
+                FrameConverterErrorV1.InvalidResponseSettings
             }
         )
 
-        val mappedLocationTrackTypeOrNull = when (request.locationTrackType) {
-            null -> null
-
-            FrameConverterLocationTrackTypeV1.MAIN -> LocationTrackType.MAIN
-            FrameConverterLocationTrackTypeV1.SIDE -> LocationTrackType.SIDE
-            FrameConverterLocationTrackTypeV1.CHORD -> LocationTrackType.CHORD
-            FrameConverterLocationTrackTypeV1.TRAP -> LocationTrackType.TRAP
-
-            else -> {
-                errors.add("invalid-location-track-type")
-                null
+        val mappedLocationTrackTypeOrNull = mapLocationTrackTypeToDomainTypeOrNull(request.locationTrackType)
+            .let { (mappedType, errorOrNull) ->
+                errorOrNull?.also(errors::add)
+                mappedType
             }
-        }
 
-        val trackNumberNameOrNull = request.trackNumberName?.let { unvalidatedTrackNumberName ->
-            try {
-                TrackNumber(unvalidatedTrackNumberName.toString())
-            } catch (e: InputValidationException) {
-                errors.add("invalid-track-number-name")
-                null
+        val trackNumberNameOrNull = createValidTrackNumberNameOrNull(request.trackNumberName)
+            .let { (trackNumberOrNull, errorOrNull) ->
+                errorOrNull?.also(errors::add)
+                trackNumberOrNull
             }
-        }
 
-        val locationTrackNameOrNull = request.locationTrackName?.let { unvalidatedLocationTrackName ->
-            try {
-                AlignmentName(unvalidatedLocationTrackName.toString())
-            } catch (e: InputValidationException) {
-                errors.add("invalid-location-track-name")
-                null
+        val locationTrackNameOrNull = createValidAlignmentNameOrNull(request.locationTrackName)
+            .let { (trackNameOrNull, errorOrNull) ->
+                errorOrNull?.also(errors::add)
+                trackNameOrNull
             }
-        }
 
         val nonNullErrors = errors.filterNotNull()
         return if (nonNullErrors.isEmpty()) {
-            val validRequest = ValidCoordinateToTrackMeterRequestV1(
+            val validRequest = ValidCoordinateToTrackAddressRequestV1(
                 identifier = request.identifier,
 
                 // Already checked earlier but type-inference is not smart enough =(
@@ -149,7 +180,78 @@ class FrameConverterServiceV1 @Autowired constructor(
         } else {
             val errorResponse = createErrorResponse(
                 identifier = request.identifier,
-                errorLocalizationKeys = nonNullErrors,
+                errors = nonNullErrors,
+            )
+
+            null to errorResponse
+        }
+    }
+
+    fun validateTrackAddressToCoordinateRequest(
+        request: TrackAddressToCoordinateRequestV1,
+    ): Pair<ValidTrackAddressToCoordinateRequestV1?, List<GeoJsonFeatureErrorResponseV1>> {
+        val errors = mutableListOf(
+            produceIf(request.trackNumberName == null) { FrameConverterErrorV1.MissingTrackNumber },
+            produceIf(request.trackKilometer == null) { FrameConverterErrorV1.MissingTrackKilometer },
+            produceIf(request.trackMeter == null) { FrameConverterErrorV1.MissingTrackMeter },
+
+            produceIf(FrameConverterResponseSettingV1.INVALID in request.responseSettings) {
+                FrameConverterErrorV1.InvalidResponseSettings
+            },
+        )
+
+        val validTrackMeterOrNull = when {
+            request.trackKilometer != null && request.trackMeter != null ->
+                try {
+                    TrackMeter(requireNotNull(request.trackKilometer), requireNotNull(request.trackMeter))
+                } catch (e: IllegalArgumentException) {
+                    errors.add(FrameConverterErrorV1.InvalidTrackAddress)
+                    null
+                }
+
+            else -> null
+        }
+
+        val mappedLocationTrackTypeOrNull = mapLocationTrackTypeToDomainTypeOrNull(request.locationTrackType)
+            .let { (mappedTrackType, errorOrNull) ->
+                errorOrNull?.also(errors::add)
+                mappedTrackType
+            }
+
+        val layoutTrackNumberOrNull = createValidTrackNumberNameOrNull(request.trackNumberName)
+            .let { (trackNumberNameOrNull, errorOrNull) ->
+                errorOrNull?.also(errors::add)
+                trackNumberNameOrNull
+            }
+            ?.let { trackNumberName ->
+                trackNumberService
+                    .find(MainLayoutContext.official, trackNumberName)
+                    .firstOrNull()
+                    .alsoIfNull { errors.add(FrameConverterErrorV1.TrackNumberNotFound) }
+            }
+
+        val locationTrackNameOrNull = createValidAlignmentNameOrNull(request.locationTrackName)
+            .let { (trackNameOrNull, errorOrNull) ->
+                errorOrNull?.also(errors::add)
+                trackNameOrNull
+            }
+
+        val nonNullErrors = errors.filterNotNull()
+        return if (nonNullErrors.isEmpty()) {
+            val validRequest = ValidTrackAddressToCoordinateRequestV1(
+                identifier = request.identifier,
+                trackNumber = requireNotNull(layoutTrackNumberOrNull),
+                trackAddress = requireNotNull(validTrackMeterOrNull),
+                locationTrackName = locationTrackNameOrNull,
+                locationTrackType = mappedLocationTrackTypeOrNull,
+                responseSettings = request.responseSettings,
+            )
+
+            validRequest to emptyList()
+        } else {
+            val errorResponse = createErrorResponse(
+                identifier = request.identifier,
+                errors = nonNullErrors,
             )
 
             null to errorResponse
@@ -158,18 +260,18 @@ class FrameConverterServiceV1 @Autowired constructor(
 
     fun createErrorResponse(
         identifier: FrameConverterIdentifierV1?,
-        errorLocalizationKey: String
-    ): List<GeoJsonFeatureErrorResponseV1> = createErrorResponse(identifier, listOf(errorLocalizationKey))
+        error: FrameConverterErrorV1,
+    ): List<GeoJsonFeatureErrorResponseV1> = createErrorResponse(identifier, listOf(error))
 
     fun createErrorResponse(
         identifier: FrameConverterIdentifierV1?,
-        errorLocalizationKeys: List<String>
+        errors: List<FrameConverterErrorV1>
     ): List<GeoJsonFeatureErrorResponseV1> {
         return listOf(
             GeoJsonFeatureErrorResponseV1(
                 identifier = identifier,
-                errorMessages = errorLocalizationKeys.joinToString(" ") { localizationKey ->
-                    translation.t("integration-api.error.$localizationKey")
+                errorMessages = errors.joinToString(" ") { error ->
+                    translation.t(error.localizationKey)
                 }
             )
         )
@@ -179,71 +281,102 @@ class FrameConverterServiceV1 @Autowired constructor(
         return translation.t("enum.location-track-type.${locationTrack.type}")
     }
 
-    private fun createCoordinateToTrackMeterResponse(
+    private fun createCoordinateToTrackAddressResponse(
         layoutContext: LayoutContext,
-        request: ValidCoordinateToTrackMeterRequestV1,
+        request: ValidCoordinateToTrackAddressRequestV1,
         nearestMatch: NearestLocationTrackPointMatch,
         trackNumber: TrackNumber,
         geocodedAddress: AddressAndM,
-    ): List<CoordinateToTrackMeterResponseV1> {
+    ): List<CoordinateToTrackAddressResponseV1> {
+        val featureGeometry = createFeatureGeometry(request.responseSettings, nearestMatch.closestPointOnTrack)
 
-        val featureGeometry =
-            if (FrameConverterResponseSettingV1.FeatureGeometry in request.responseSettings) {
-                createFeatureGeometry(nearestMatch)
-            } else {
-                GeoJsonGeometryPoint.empty()
-            }
+        val featureMatchSimple = createSimpleFeatureMatchOrNull(
+            request.responseSettings,
+            nearestMatch.closestPointOnTrack,
+            nearestMatch.distanceToClosestPoint,
+        )
 
-        val closestLocationTrackMatch =
-            if (FrameConverterResponseSettingV1.BasicFeatureMatchData in request.responseSettings) {
-                createBasicFeatureMatchData(nearestMatch)
-            } else {
-                null
-            }
-
-        val conversionDetails =
-            if (FrameConverterResponseSettingV1.FeatureMatchDetails in request.responseSettings) {
-                createDetailedFeatureMatchData(layoutContext, nearestMatch, trackNumber, geocodedAddress)
-            } else {
-                null
-            }
+        val conversionDetails = createDetailedFeatureMatchOrNull(
+            request.responseSettings,
+            layoutContext,
+            nearestMatch.locationTrack,
+            trackNumber,
+            geocodedAddress.address,
+        )
 
         return listOf(
-            CoordinateToTrackMeterResponseV1(
+            CoordinateToTrackAddressResponseV1(
                 geometry = featureGeometry,
-                properties = CoordinateToTrackMeterResponsePropertiesV1(
-                    id = request.identifier,
-                    closestLocationTrackMatch = closestLocationTrackMatch,
-                    conversionDetails = conversionDetails,
+                properties = CoordinateToTrackAddressResponsePropertiesV1(
+                    identifier = request.identifier,
+                    featureMatchSimple = featureMatchSimple,
+                    featureMatchDetails = conversionDetails,
                 )
             )
         )
     }
 
-    private fun createDetailedFeatureMatchData(
+    private fun createTrackAddressToCoordinateResponse(
         layoutContext: LayoutContext,
-        nearestMatch: NearestLocationTrackPointMatch,
+        request: ValidTrackAddressToCoordinateRequestV1,
+        locationTrack: LocationTrack,
+        addressPoint: AddressPoint,
+    ): TrackAddressToCoordinateResponseV1 {
+        val featureGeometry = createFeatureGeometry(request.responseSettings, addressPoint.point)
+
+        val featureMatchSimple = createSimpleFeatureMatchOrNull(
+            request.responseSettings,
+            addressPoint.point,
+            distanceToClosestPoint = 0.0, // The point should be directly on the track so there's no distance to it.
+        )
+
+        val conversionDetails = createDetailedFeatureMatchOrNull(
+            request.responseSettings,
+            layoutContext,
+            locationTrack,
+            request.trackNumber.number,
+            addressPoint.address
+        )
+
+        return TrackAddressToCoordinateResponseV1(
+            geometry = featureGeometry,
+            properties = TrackAddressToCoordinateResponsePropertiesV1(
+                identifier = request.identifier,
+                featureMatchSimple = featureMatchSimple,
+                featureMatchDetails = conversionDetails,
+            )
+        )
+    }
+
+    private fun createDetailedFeatureMatchOrNull(
+        responseSettings: FrameConverterResponseSettingsV1,
+        layoutContext: LayoutContext,
+        locationTrack: LocationTrack,
         trackNumber: TrackNumber,
-        geocodedAddress: AddressAndM,
-    ): CoordinateToTrackMeterConversionDetailsV1 {
-        val locationTrackDescription = locationTrackService.getFullDescription(
-            layoutContext = layoutContext,
-            locationTrack = nearestMatch.locationTrack,
-            LocalizationLanguage.FI,
-        )
+        trackMeter: TrackMeter,
+    ): FeatureMatchDetailsV1? {
+        return if (FrameConverterResponseSettingV1.FeatureMatchDetails in responseSettings) {
+            val locationTrackDescription = locationTrackService.getFullDescription(
+                layoutContext = layoutContext,
+                locationTrack = locationTrack,
+                LocalizationLanguage.FI,
+            )
 
-        val (trackMeter, trackMeterDecimals) = splitBigDecimal(geocodedAddress.address.meters)
-        val translatedLocationTrackType = translateLocationTrackType(nearestMatch.locationTrack).lowercase()
+            val (trackMeterIntegers, trackMeterDecimals) = splitBigDecimal(trackMeter.meters)
+            val translatedLocationTrackType = translateLocationTrackType(locationTrack).lowercase()
 
-        return CoordinateToTrackMeterConversionDetailsV1(
-            trackNumber = trackNumber,
-            locationTrackName = nearestMatch.locationTrack.name,
-            locationTrackDescription = locationTrackDescription,
-            translatedLocationTrackType = translatedLocationTrackType,
-            kmNumber = geocodedAddress.address.kmNumber.number,
-            trackMeter = trackMeter,
-            trackMeterDecimals = trackMeterDecimals,
-        )
+            FeatureMatchDetailsV1(
+                trackNumber = trackNumber,
+                locationTrackName = locationTrack.name,
+                locationTrackDescription = locationTrackDescription,
+                translatedLocationTrackType = translatedLocationTrackType,
+                kmNumber = trackMeter.kmNumber.number,
+                trackMeter = trackMeterIntegers,
+                trackMeterDecimals = trackMeterDecimals,
+            )
+        } else {
+            null
+        }
     }
 }
 
@@ -269,24 +402,35 @@ private fun findNearestLocationTrack(
 }
 
 private fun createFeatureGeometry(
-    nearestMatch: NearestLocationTrackPointMatch,
+    responseSettings: FrameConverterResponseSettingsV1,
+    point: AlignmentPoint,
 ): GeoJsonGeometryPoint {
-    return GeoJsonGeometryPoint(
-        coordinates = listOf(
-            nearestMatch.closestPointOnTrack.x,
-            nearestMatch.closestPointOnTrack.y,
+    return if (FrameConverterResponseSettingV1.FeatureGeometry in responseSettings) {
+        GeoJsonGeometryPoint(
+            coordinates = listOf(
+                point.x,
+                point.y,
+            ),
         )
-    )
+    } else {
+        GeoJsonGeometryPoint.empty()
+    }
 }
 
-private fun createBasicFeatureMatchData(
-    nearestMatch: NearestLocationTrackPointMatch,
-): BasicFeatureMatchDataV1 {
-    return BasicFeatureMatchDataV1(
-        x = nearestMatch.closestPointOnTrack.x,
-        y = nearestMatch.closestPointOnTrack.y,
-        distanceFromRequestPoint = nearestMatch.distanceToClosestPoint,
-    )
+private fun createSimpleFeatureMatchOrNull(
+    responseSettings: FrameConverterResponseSettingsV1,
+    point: AlignmentPoint,
+    distanceToClosestPoint: Double,
+): FeatureMatchSimpleV1? {
+    return if (FrameConverterResponseSettingV1.FeatureMatchSimple in responseSettings) {
+        FeatureMatchSimpleV1(
+            x = point.x,
+            y = point.y,
+            distanceFromRequestPoint = distanceToClosestPoint,
+        )
+    } else {
+        null
+    }
 }
 
 private fun filterByLocationTrackName(
@@ -326,4 +470,47 @@ private fun splitBigDecimal(number: BigDecimal, decimalPlaces: Int = 3): Pair<In
         .toInt()
 
     return Pair(wholePart, scaledFractionalPart)
+}
+
+private fun mapLocationTrackTypeToDomainTypeOrNull(
+    locationTrackType: FrameConverterLocationTrackTypeV1?,
+): Pair<LocationTrackType?, FrameConverterErrorV1?> {
+    return when (locationTrackType) {
+        null -> null to null
+
+        FrameConverterLocationTrackTypeV1.MAIN -> LocationTrackType.MAIN to null
+        FrameConverterLocationTrackTypeV1.SIDE -> LocationTrackType.SIDE to null
+        FrameConverterLocationTrackTypeV1.CHORD -> LocationTrackType.CHORD to null
+        FrameConverterLocationTrackTypeV1.TRAP -> LocationTrackType.TRAP to null
+
+        else -> {
+            null to FrameConverterErrorV1.InvalidLocationTrackType
+        }
+    }
+}
+
+private fun createValidTrackNumberNameOrNull(
+    unvalidatedTrackNumberName: FrameConverterStringV1?,
+): Pair<TrackNumber?, FrameConverterErrorV1?> {
+    return when (unvalidatedTrackNumberName) {
+        null -> null to null
+        else -> try {
+            TrackNumber(unvalidatedTrackNumberName.toString()) to null
+        } catch (e: InputValidationException) {
+            null to FrameConverterErrorV1.InvalidTrackNumberName
+        }
+    }
+}
+
+private fun createValidAlignmentNameOrNull(
+    unvalidatedLocationTrackName: FrameConverterStringV1?,
+): Pair<AlignmentName?, FrameConverterErrorV1?> {
+    return when (unvalidatedLocationTrackName) {
+        null -> null to null
+        else -> try {
+            AlignmentName(unvalidatedLocationTrackName.toString()) to null
+        } catch (e: InputValidationException) {
+            null to FrameConverterErrorV1.InvalidLocationTrackName
+        }
+    }
 }
