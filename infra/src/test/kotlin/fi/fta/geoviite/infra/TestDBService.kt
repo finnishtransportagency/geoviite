@@ -15,8 +15,6 @@ import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.common.switchNameLength
-import fi.fta.geoviite.infra.common.trackNumberLength
 import fi.fta.geoviite.infra.geometry.Author
 import fi.fta.geoviite.infra.geometry.CompanyName
 import fi.fta.geoviite.infra.geometry.GeometryDao
@@ -233,11 +231,11 @@ class TestDBService(
     }
 
     fun getUnusedTrackNumber(): TrackNumber {
-        return TrackNumber(getUniqueName(DbTable.LAYOUT_TRACK_NUMBER, trackNumberLength.last))
+        return TrackNumber(getUniqueName(DbTable.LAYOUT_TRACK_NUMBER, TrackNumber.allowedLength.last))
     }
 
     fun getUnusedSwitchName(): SwitchName {
-        return SwitchName(getUniqueName(DbTable.LAYOUT_SWITCH, switchNameLength.last))
+        return SwitchName(getUniqueName(DbTable.LAYOUT_SWITCH, SwitchName.allowedLength.last))
     }
 
     fun getUnusedProjectName(): ProjectName = ProjectName(

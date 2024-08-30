@@ -5,13 +5,15 @@ import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.util.assertSanitized
 
-val alignmentNameLength = 1..50
-val alignmentNameRegex = Regex("^[A-Za-zÄÖÅäöå0-9 \\-_!?§]+\$")
+data class AlignmentName @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
+    Comparable<AlignmentName>, CharSequence by value {
 
-data class AlignmentName @JsonCreator(mode = DELEGATING) constructor(private val value: String)
-    : Comparable<AlignmentName>, CharSequence by value {
+    companion object {
+        val sanitizer = Regex("^[A-Za-zÄÖÅäöå0-9 \\-_!?§]+\$")
+        val allowedLength = 1..50
+    }
 
-    init { assertSanitized<AlignmentName>(value, alignmentNameRegex, alignmentNameLength, allowBlank = false) }
+    init { assertSanitized<AlignmentName>(value, sanitizer, allowedLength, allowBlank = false) }
 
     @JsonValue
     override fun toString(): String = value

@@ -25,6 +25,7 @@ import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -60,7 +61,7 @@ class FrontPageTestUI @Autowired constructor(
         )
         referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = alignmentVersion, draft = false))
 
-        val successfulPublicationId = publicationDao.createPublication(LayoutBranch.main, "successful")
+        val successfulPublicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines("successful"))
         publicationDao.insertCalculatedChanges(successfulPublicationId, changesTouchingTrackNumber(trackNumberId))
 
         trackNumberDao
@@ -68,7 +69,7 @@ class FrontPageTestUI @Autowired constructor(
             .copy(number = TrackNumber("updated name"))
             .let(trackNumberDao::update)
 
-        val failingPublicationId = publicationDao.createPublication(LayoutBranch.main, "failing test publication")
+        val failingPublicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines("failing test publication"))
         publicationDao.insertCalculatedChanges(failingPublicationId, changesTouchingTrackNumber(trackNumberId))
 
         val failedRatkoPushId = ratkoPushDao.startPushing(listOf(failingPublicationId))

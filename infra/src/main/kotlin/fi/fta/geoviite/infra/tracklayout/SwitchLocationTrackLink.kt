@@ -169,9 +169,9 @@ fun buildDuplicateIndexRanges(matches: List<Pair<Int, Int>>): List<IntRange> {
 }
 
 fun getEndPointSwitchInfo(
-    segmentSwitchId:IntId<TrackLayoutSwitch>?,
+    segmentSwitchId: IntId<TrackLayoutSwitch>?,
     segmentJointNumber: JointNumber?,
-    topologySwitchId:IntId<TrackLayoutSwitch>?,
+    topologySwitchId: IntId<TrackLayoutSwitch>?,
     topologyJointNumber: JointNumber?,
     isPresentationJointNumber: (IntId<TrackLayoutSwitch>, JointNumber) -> Boolean
 ): EndPointSwitchInfo? {
@@ -195,14 +195,14 @@ fun getEndPointSwitchInfos(
     val lastSegment = alignment.segments.lastOrNull()
     return EndPointSwitchInfos(
         start = getEndPointSwitchInfo(
-            firstSegment?.switchId as? IntId,
+            firstSegment?.switchId,
             firstSegment?.startJointNumber,
             track.topologyStartSwitch?.switchId,
             track.topologyStartSwitch?.jointNumber,
             isPresentationJointNumber
         ),
         end = getEndPointSwitchInfo(
-            lastSegment?.switchId as? IntId,
+            lastSegment?.switchId,
             lastSegment?.endJointNumber,
             track.topologyEndSwitch?.switchId,
             track.topologyEndSwitch?.jointNumber,
@@ -210,7 +210,6 @@ fun getEndPointSwitchInfos(
         )
     )
 }
-
 
 fun collectSplitPoints(
     track: LocationTrack,
@@ -221,14 +220,14 @@ fun collectSplitPoints(
 
     val startSplitPoint = alignment.start?.let { start ->
         endPointSwitchInfos.start?.let { endPointSwitchInfo ->
-            SwitchSplitPoint( start, null, endPointSwitchInfo.switchId, endPointSwitchInfo.jointNumber)
-        } ?: EndpointSplitPoint(start,null, DuplicateEndPointType.START)
+            SwitchSplitPoint(start, null, endPointSwitchInfo.switchId, endPointSwitchInfo.jointNumber)
+        } ?: EndpointSplitPoint(start, null, DuplicateEndPointType.START)
     }
 
     val endSplitPoint = alignment.end?.let { end ->
         endPointSwitchInfos.end?.let { endPointSwitchInfo ->
-            SwitchSplitPoint( end, null, endPointSwitchInfo.switchId, endPointSwitchInfo.jointNumber)
-        } ?: EndpointSplitPoint(end,null, DuplicateEndPointType.END)
+            SwitchSplitPoint(end, null, endPointSwitchInfo.switchId, endPointSwitchInfo.jointNumber)
+        } ?: EndpointSplitPoint(end, null, DuplicateEndPointType.END)
     }
 
     val switchSplitPoints = alignment.segments.flatMap(::getSwitchSplitPoints)

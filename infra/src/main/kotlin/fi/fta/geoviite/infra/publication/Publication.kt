@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.split.SplitTargetOperation
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.LocalizationKey
 import java.time.Instant
 
@@ -35,13 +36,13 @@ enum class PublicationTableColumn {
 }
 
 data class PublicationTableItem(
-    val name: String,
+    val name: FreeText,
     val trackNumbers: List<TrackNumber>,
     val changedKmNumbers: List<Range<KmNumber>>,
     val operation: Operation,
     val publicationTime: Instant,
     val publicationUser: UserName,
-    val message: String,
+    val message: FreeTextWithNewLines,
     val ratkoPushTime: Instant?,
     val propChanges: List<PublicationChange<*>>,
 ) {
@@ -67,6 +68,7 @@ data class ChangeValue<T>(
 data class PublicationChange<T>(
     val propKey: PropKey,
     val value: ChangeValue<T>,
+    // The string is intentionally nullable to allow omitting the whole field (change lists can be large)
     val remark: String?,
 )
 
@@ -84,7 +86,7 @@ open class Publication(
     open val id: IntId<Publication>,
     open val publicationTime: Instant,
     open val publicationUser: UserName,
-    open val message: String?,
+    open val message: FreeTextWithNewLines,
     open val layoutBranch: LayoutBranch,
 )
 
@@ -146,7 +148,7 @@ data class PublicationDetails(
     override val id: IntId<Publication>,
     override val publicationTime: Instant,
     override val publicationUser: UserName,
-    override val message: String?,
+    override val message: FreeTextWithNewLines,
     override val layoutBranch: LayoutBranch,
     val trackNumbers: List<PublishedTrackNumber>,
     val referenceLines: List<PublishedReferenceLine>,
@@ -317,7 +319,7 @@ data class PublicationRequestIds(
 
 data class PublicationRequest(
     val content: PublicationRequestIds,
-    val message: String,
+    val message: FreeTextWithNewLines,
 )
 
 data class PublicationResult(

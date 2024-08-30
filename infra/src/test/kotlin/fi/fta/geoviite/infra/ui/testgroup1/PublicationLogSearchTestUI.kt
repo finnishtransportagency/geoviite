@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData
 import fi.fta.geoviite.infra.util.DaoBase
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.setUser
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -45,21 +46,21 @@ class PublicationLogSearchTestUI @Autowired constructor(
                 content = publicationRequestIds(
                     trackNumbers = listOf(someTrackNumberId)
                 ),
-                message = "some test publication 1",
+                message = FreeTextWithNewLines("some test publication 1"),
             ),
 
             PublicationRequest(
                 content = publicationRequestIds(
                     referenceLines = listOf(mainDraftContext.insert(someReferenceLine.first, someReferenceLine.second).id)
                 ),
-                message = "some test publication 2",
+                message = FreeTextWithNewLines("some test publication 2"),
             ),
 
             PublicationRequest(
                 content = publicationRequestIds(
                     locationTracks = listOf(mainDraftContext.insert(someTrack).id)
                 ),
-                message = "some test publication 3",
+                message = FreeTextWithNewLines("some test publication 3"),
             )
         )
 

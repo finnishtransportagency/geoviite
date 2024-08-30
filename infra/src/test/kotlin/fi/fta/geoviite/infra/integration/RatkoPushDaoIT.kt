@@ -17,6 +17,7 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
+import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getInstantOrNull
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -248,35 +249,37 @@ internal class RatkoPushDaoIT @Autowired constructor(
         kmPosts: List<IntId<TrackLayoutKmPost>> = listOf(),
         message: String = "",
     ): IntId<Publication> =
-        publicationDao.createPublication(layoutBranch = layoutBranch, message = message).also { publicationId ->
-        val calculatedChanges = CalculatedChanges(
-            directChanges = DirectChanges(
-                kmPostChanges = kmPosts,
-                referenceLineChanges = referenceLines,
-                trackNumberChanges = trackNumbers.map {
-                    TrackNumberChange(
-                        trackNumberId = it,
-                        changedKmNumbers = emptySet(),
-                        isStartChanged = false,
-                        isEndChanged = false,
-                    )
-                },
-                locationTrackChanges = locationTracks.map {
-                    LocationTrackChange(
-                        locationTrackId = it,
-                        changedKmNumbers = emptySet(),
-                        isStartChanged = false,
-                        isEndChanged = false
-                    )
-                },
-                switchChanges = switches.map { SwitchChange(it, emptyList()) },
-            ),
-            indirectChanges = IndirectChanges(
-                trackNumberChanges = emptyList(),
-                locationTrackChanges = emptyList(),
-                switchChanges = emptyList(),
-            ),
-        )
-        publicationDao.insertCalculatedChanges(publicationId, calculatedChanges)
-    }
+        publicationDao
+            .createPublication(layoutBranch = layoutBranch, message = FreeTextWithNewLines(message))
+            .also { publicationId ->
+                val calculatedChanges = CalculatedChanges(
+                    directChanges = DirectChanges(
+                        kmPostChanges = kmPosts,
+                        referenceLineChanges = referenceLines,
+                        trackNumberChanges = trackNumbers.map {
+                            TrackNumberChange(
+                                trackNumberId = it,
+                                changedKmNumbers = emptySet(),
+                                isStartChanged = false,
+                                isEndChanged = false,
+                            )
+                        },
+                        locationTrackChanges = locationTracks.map {
+                            LocationTrackChange(
+                                locationTrackId = it,
+                                changedKmNumbers = emptySet(),
+                                isStartChanged = false,
+                                isEndChanged = false
+                            )
+                        },
+                        switchChanges = switches.map { SwitchChange(it, emptyList()) },
+                    ),
+                    indirectChanges = IndirectChanges(
+                        trackNumberChanges = emptyList(),
+                        locationTrackChanges = emptyList(),
+                        switchChanges = emptyList(),
+                    ),
+                )
+                publicationDao.insertCalculatedChanges(publicationId, calculatedChanges)
+            }
 }
