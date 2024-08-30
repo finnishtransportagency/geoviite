@@ -19,6 +19,7 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.util.*
+import kotlin.test.assertEquals
 
 data class GeocodableTrack(
     val layoutContext: LayoutContext,
@@ -26,6 +27,30 @@ data class GeocodableTrack(
     val referenceLine: ReferenceLine,
     val locationTrack: LocationTrack,
 )
+
+
+fun assertNullSimpleProperties(properties: Map<String, Any>) {
+    assertNullProperties(properties, "x", "y", "valimatka")
+}
+
+fun assertNullDetailedProperties(properties: Map<String, Any>) {
+    assertNullProperties(
+        properties,
+        "ratanumero",
+        "sijaintiraide",
+        "sijaintiraide_kuvaus",
+        "sijaintiraide_tyyppi",
+        "ratakilometri",
+        "ratametri",
+        "ratemetri_desimaalit",
+    )
+}
+
+private fun assertNullProperties(properties: Map<String, Any>, vararg propertyNames: String) {
+    propertyNames.forEach { name ->
+        assertEquals(null, properties[name])
+    }
+}
 
 @Service
 class FrameConverterTestDataServiceV1 @Autowired constructor(
