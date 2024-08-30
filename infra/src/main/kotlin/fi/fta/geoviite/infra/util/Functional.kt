@@ -5,3 +5,8 @@ fun <T> produceIfNot(condition: Boolean, producer: () -> T): T? =
 
 fun <T> produceIf(condition: Boolean, producer: () -> T): T? =
     if (condition) producer() else null
+
+inline fun <T> T?.alsoIfNull(action: () -> Unit): T? {
+    if (this == null) action()
+    return this
+}

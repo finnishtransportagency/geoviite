@@ -11,7 +11,6 @@
             "unsupported-request-type": "Pyyntötyyppiä ei tueta.",
             "request-could-not-be-deserialized": "Pyynnön rakenne oli virheellinen.",
             "list-of-json-requests-could-not-be-deserialized": "JSON-pyyntölistan rakenne oli virheellinen.",
-            "invalid-json": "JSON-pyynnön rakenne oli virheellinen.",
             "search-radius-undefined": "Pyyntö sisälsi hakusääteen ilman arvoa (sade=null).",
             "search-radius-under-range": "Pyyntö sisälsi pienemmän hakusäteen kuin sallittu minimiarvo (1.0).",
             "search-radius-over-range": "Pyyntö sisälsi suuremman hakusäteen kuin sallittu maksimiarvo (1000.0).",

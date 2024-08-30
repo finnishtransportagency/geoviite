@@ -8,7 +8,7 @@ import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeatureCollection
 import fi.fta.geoviite.infra.authorization.AUTH_API_FRAME_CONVERTER
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.error.IntegrationApiException
+import fi.fta.geoviite.infra.error.IntegrationApiExceptionV1
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import org.springframework.beans.factory.annotation.Autowired
@@ -120,9 +120,9 @@ class FrameConverterControllerV1 @Autowired constructor(
                 frameConverterServiceV1::trackAddressToCoordinate,
             )
 
-            else -> throw IntegrationApiException(
+            else -> throw IntegrationApiExceptionV1(
                 message = "Unsupported request type",
-                localizedMessageKey = "unsupported-request-type",
+                error = FrameConverterErrorV1.UnsupportedRequestType,
             )
         }
     }

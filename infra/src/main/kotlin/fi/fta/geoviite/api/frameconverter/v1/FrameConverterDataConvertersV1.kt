@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.JsonDeserializer
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import fi.fta.geoviite.infra.error.IntegrationApiException
+import fi.fta.geoviite.infra.error.IntegrationApiExceptionV1
 import org.springframework.core.convert.converter.Converter
 import org.springframework.stereotype.Component
 import java.io.IOException
@@ -21,10 +21,10 @@ class FrameConverterRequestConverterV1(
         return try {
             objectMapper.readValue(source, FrameConverterRequestV1::class.java)
         } catch (e: IOException) {
-            throw IntegrationApiException(
+            throw IntegrationApiExceptionV1(
                 cause = e,
                 message = "Json structure was not wrapped in an array",
-                localizedMessageKey = "request-could-not-be-deserialized",
+                error = FrameConverterErrorV1.RequestCouldNotBeDeserialized,
             )
         }
     }
@@ -44,10 +44,10 @@ class FrameConverterListRequestConverterV1(
         return try {
             objectMapper.readValue(source, collectionType)
         } catch (e: IOException) {
-            throw IntegrationApiException(
+            throw IntegrationApiExceptionV1(
                 cause = e,
                 message = "Json structure was not wrapped in an array",
-                localizedMessageKey = "list-of-json-requests-could-not-be-deserialized",
+                error = FrameConverterErrorV1.ListOfJsonRequestsCouldNotBeDeserialized,
             )
         }
     }
@@ -78,9 +78,9 @@ class FrameConverterRequestDeserializerV1 : JsonDeserializer<FrameConverterReque
         }?.first
 
         if (clazz == null) {
-            throw IntegrationApiException(
+            throw IntegrationApiExceptionV1(
                 message = "Request object type could not be determined, missing parameters?",
-                localizedMessageKey = "bad-request",
+                error = FrameConverterErrorV1.BadRequest,
             )
         }
 
