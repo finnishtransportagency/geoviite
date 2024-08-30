@@ -186,8 +186,8 @@ fun findSuggestedSwitchJointMatches(
         .slice(possibleSegmentIndices)
         .map { segment -> segment to segment.getClosestPointM(jointLocation).first }
 
-    val jointDistanceToAlignment = possibleSegments.minOf { (segment, segmentM) ->
-        lineLength(segment.seekPointAtM(segmentM).point, jointLocation)
+    val jointDistanceToAlignment = possibleSegments.minOf { (segment, closestSegmentAlignmentM) ->
+        lineLength(segment.seekPointAtM(closestSegmentAlignmentM).point, jointLocation)
     }
 
     return possibleSegments.flatMapIndexed { index, (segment, closestSegmentAlignmentM) ->

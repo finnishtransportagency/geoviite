@@ -124,37 +124,51 @@ export function useRateLimitedLoaderWithStatus<TEntity>(
     return [entity, loaderStatus];
 }
 
+/***
+ *
+ * @param policy 'queue' to run excess requests in the order they were made, 'stack' in inverse order
+ * @param maxRequestsInFlight Maximum number of requests before any more requests are delayed
+ * @return loader call, with optional freshness callback. Freshness is checked only on delayed requests, only before
+ * the call: Stale requests are not made.
+ */
 export function useLimitedRequestsInFlight<TEntity>(
-    policy: 'queue' | 'stack' = 'queue',
+    policy: 'queue' | 'stack' = 'stack',
     maxRequestsInFlight: number = 1,
-): (loader: () => Promise<TEntity>) => Promise<TEntity> {
+): (loader: () => Promise<TEntity>, requestIsFresh?: () => boolean) => Promise<TEntity> {
     const requestQueue = useRef<
         {
             loader: () => Promise<TEntity>;
             resolve: (value: TEntity | PromiseLike<TEntity>) => void;
             reject: (reason?: never) => void;
+            requestIsFresh?: () => boolean;
         }[]
     >([]);
     const inFlight = useRef(0);
     const drainQueue = () => {
         const next = policy === 'queue' ? requestQueue.current.shift() : requestQueue.current.pop();
         if (next) {
-            inFlight.current++;
-            next.loader()
-                .then(next.resolve, next.reject)
-                .finally(() => {
-                    inFlight.current--;
-                    drainQueue();
-                });
+            if (next.requestIsFresh && !next.requestIsFresh()) {
+                // ignore stale request
+                drainQueue();
+            } else {
+                inFlight.current++;
+                next.loader()
+                    .then(next.resolve, next.reject)
+                    .finally(() => {
+                        inFlight.current--;
+                        drainQueue();
+                    });
+            }
         }
     };
-    return (loader: () => Promise<TEntity>): Promise<TEntity> => {
+    return (loader: () => Promise<TEntity>, requestIsFresh?: () => boolean): Promise<TEntity> => {
         if (inFlight.current >= maxRequestsInFlight) {
             return new Promise((resolve, reject) => {
                 requestQueue.current.push({
                     loader,
                     resolve,
                     reject,
+                    requestIsFresh,
                 });
             });
         } else {

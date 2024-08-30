@@ -99,7 +99,8 @@ import { getSuggestedSwitchesForLayoutSwitchPlacing } from 'linking/linking-api'
 import { pointString } from 'common/common-api';
 import { useLimitedRequestsInFlight } from 'utils/react-utils';
 import { AsyncCache, asyncCache } from 'cache/cache';
-import { grid, gridPositionEquals } from 'utils/math-utils';
+import { grid, pointEquals } from 'utils/math-utils';
+import { useSwitchLinking } from 'map/layers/switch/switch-linking';
 
 declare global {
     interface Window {
@@ -178,145 +179,6 @@ function getDomainViewportByOlView(map: OlMap): MapViewport {
 
 export type ScreenPoint = Brand<Point, 'ScreenPoint'>;
 
-export const SUGGESTED_SWITCHES_GRID_SIZE = 5;
-
-type ScreenGrid = {
-    cellIndex: Point;
-    positionInCell: Point;
-};
-
-function useOnHoverPixel(
-    _setHoveredLocation: (point: Point) => void,
-    setHoveredPixelLocation: (point: ScreenPoint) => void,
-    olMapContainer: React.RefObject<HTMLDivElement>,
-    olMap: OlMap | undefined,
-    hoveredPixelLocation: ScreenPoint | undefined,
-    linkingState: LinkingState | undefined,
-    positionInSuggestedSwitchGrid: React.MutableRefObject<ScreenGrid | undefined>,
-    layoutContext: LayoutContext,
-    suggestSwitchAndDisplaySwitchLinkingLayer: (
-        suggestedSwitch: SuggestedSwitch | undefined,
-    ) => void,
-): (newHoveredLocation: Point, pixelPosition: ScreenPoint) => void {
-    const requestLoadingSuggestedSwitch = useLimitedRequestsInFlight<
-        (SuggestedSwitch | undefined)[]
-    >('stack', 2);
-
-    const suggestedSwitchCache = React.useRef<{
-        cache: AsyncCache<string, (undefined | SuggestedSwitch)[]>;
-        resolution: number;
-        center: Point;
-    }>();
-
-    const view = olMap?.getView();
-    const viewCenterX = view?.getCenter()?.[0];
-    const viewCenterY = view?.getCenter()?.[1];
-    const viewResolution = view?.getResolution();
-    React.useEffect(() => {
-        if (
-            view &&
-            viewCenterX !== undefined &&
-            viewCenterY !== undefined &&
-            viewResolution !== undefined
-        ) {
-            const current = suggestedSwitchCache.current;
-            if (
-                current === undefined ||
-                current.resolution !== viewResolution ||
-                viewCenterX !== current.center.x ||
-                viewCenterY !== current.center.y
-            ) {
-                suggestedSwitchCache.current = {
-                    cache: asyncCache(),
-                    resolution: viewResolution,
-                    center: { x: viewCenterX, y: viewCenterY },
-                };
-            }
-        }
-    }, [viewCenterX, viewCenterY, viewResolution]);
-
-    return (hoveredLocation: Point, pixelPosition: ScreenPoint) => {
-        _setHoveredLocation(hoveredLocation);
-        setHoveredPixelLocation(pixelPosition);
-
-        const container = olMapContainer.current;
-        if (
-            olMap !== undefined &&
-            hoveredPixelLocation !== undefined &&
-            container !== null &&
-            (linkingState?.type === LinkingType.PlacingSwitch ||
-                linkingState?.type === LinkingType.SuggestingSwitchPlace)
-        ) {
-            const rect = container.getBoundingClientRect();
-            const pixel = {
-                x: hoveredPixelLocation.x - rect.x,
-                y: hoveredPixelLocation.y - rect.y,
-            };
-            const suggestedSwitchesGrid = grid(SUGGESTED_SWITCHES_GRID_SIZE, pixel);
-            positionInSuggestedSwitchGrid.current = suggestedSwitchesGrid;
-            const cache = suggestedSwitchCache.current;
-            if (cache !== undefined) {
-                const points = [...Array(SUGGESTED_SWITCHES_GRID_SIZE)].flatMap((_, yIndex) =>
-                    [...Array(SUGGESTED_SWITCHES_GRID_SIZE)].map((_, xIndex) =>
-                        coordsToPoint(
-                            olMap.getCoordinateFromPixel([
-                                suggestedSwitchesGrid.cellIndex.x * SUGGESTED_SWITCHES_GRID_SIZE +
-                                    xIndex,
-                                suggestedSwitchesGrid.cellIndex.y * SUGGESTED_SWITCHES_GRID_SIZE +
-                                    yIndex,
-                            ]),
-                        ),
-                    ),
-                );
-                const key = pointString(suggestedSwitchesGrid.cellIndex);
-                cache.cache
-                    .getImmutable(key, () =>
-                        requestLoadingSuggestedSwitch(() =>
-                            getSuggestedSwitchesForLayoutSwitchPlacing(
-                                layoutContext.branch,
-                                points,
-                                linkingState.layoutSwitch.id,
-                            ),
-                        ),
-                    )
-                    .then((tileSwitches) => {
-                        // need to store full hovered pixel location as well as validity stuff in ref so that we can check
-                        // for all of it whether it's current here, but for now...
-                        if (
-                            cache === suggestedSwitchCache.current &&
-                            positionInSuggestedSwitchGrid.current &&
-                            gridPositionEquals(
-                                suggestedSwitchesGrid,
-                                positionInSuggestedSwitchGrid.current,
-                            )
-                        ) {
-                            const switchIndexInCell =
-                                suggestedSwitchesGrid.positionInCell.y *
-                                    SUGGESTED_SWITCHES_GRID_SIZE +
-                                suggestedSwitchesGrid.positionInCell.x;
-                            const suggested = tileSwitches[switchIndexInCell];
-                            if (
-                                suggested &&
-                                hoveredLocation &&
-                                suggested.joints[0] !== undefined &&
-                                getPlanarDistance(suggested.joints[0].location, hoveredLocation) <
-                                    10
-                            ) {
-                                suggestSwitchAndDisplaySwitchLinkingLayer(
-                                    tileSwitches[switchIndexInCell],
-                                );
-                            } else {
-                                suggestSwitchAndDisplaySwitchLinkingLayer(undefined);
-                            }
-                        }
-                    });
-            }
-        } else {
-            positionInSuggestedSwitchGrid.current = undefined;
-        }
-    };
-}
-
 const MapView: React.FC<MapViewProps> = ({
     map,
     selection,
@@ -354,8 +216,6 @@ const MapView: React.FC<MapViewProps> = ({
 
     const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
 
-    const positionInSuggestedSwitchGrid = React.useRef<ScreenGrid>();
-
     const suggestSwitchAndDisplaySwitchLinkingLayer = (
         suggestedSwitch: SuggestedSwitch | undefined,
     ) => {
@@ -363,14 +223,13 @@ const MapView: React.FC<MapViewProps> = ({
         showLayers(['switch-linking-layer']);
     };
 
-    const setHoveredLocation = useOnHoverPixel(
+    const { setHoveredLocation, isLoadingSwitchSuggestion } = useSwitchLinking(
         _setHoveredLocation,
         setHoveredPixelLocation,
         olMapContainer,
         olMap,
         hoveredPixelLocation,
         linkingState,
-        positionInSuggestedSwitchGrid,
         layoutContext,
         suggestSwitchAndDisplaySwitchLinkingLayer,
     );
@@ -952,6 +811,25 @@ const MapView: React.FC<MapViewProps> = ({
                     <Spinner />
                 </div>
             )}
+
+            {isLoadingSwitchSuggestion &&
+                hoveredPixelLocation &&
+                (() => {
+                    const rect = olMapContainer.current?.getBoundingClientRect();
+                    return rect === undefined ? (
+                        <React.Fragment />
+                    ) : (
+                        <div
+                            style={{
+                                position: 'absolute',
+                                left: `${hoveredPixelLocation.x - rect.left - 30}px`,
+                                top: `${hoveredPixelLocation.y - rect.top - 30}px`,
+                            }}
+                            qa-id="map-loading-switch-suggestion-spinner">
+                            <Spinner />
+                        </div>
+                    );
+                })()}
         </div>
     );
 };
