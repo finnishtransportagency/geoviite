@@ -55,7 +55,7 @@ class LayoutKmPostDaoIT @Autowired constructor(
         val allPosts = fetchTrackNumberKmPosts(OFFICIAL, trackNumberId)
         assertEquals(2, allPosts.size)
         assertMatches(post1, allPosts[0])
-        assertMatches(post2, allPosts[1]) // The order should be by post-number, not insert order
+        assertMatches(post2, allPosts[1])
     }
 
     @Test
