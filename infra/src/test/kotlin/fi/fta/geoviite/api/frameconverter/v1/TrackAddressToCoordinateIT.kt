@@ -857,13 +857,7 @@ class TrackAddressToCoordinateIT @Autowired constructor(
         assertEquals(0.0, properties.get("y"))
         assertEquals(0.0, properties.get("valimatka"))
 
-        assertEquals(null, properties.get("ratanumero"))
-        assertEquals(null, properties.get("sijaintiraide"))
-        assertEquals(null, properties.get("sijaintiraide_kuvaus"))
-        assertEquals(null, properties.get("sijaintiraide_tyyppi"))
-        assertEquals(null, properties.get("ratakilometri"))
-        assertEquals(null, properties.get("ratametri"))
-        assertEquals(null, properties.get("ratametri_desimaalit"))
+        assertNullDetailedProperties(properties)
     }
 
     @Test
@@ -902,19 +896,10 @@ class TrackAddressToCoordinateIT @Autowired constructor(
         assertEquals(400.0, coordinatesOnTrack[0])
         assertEquals(0.0, coordinatesOnTrack[1])
 
-        val properties = featureCollection.features[0].properties
+        val properties = featureCollection.features[0].properties!!
 
-        assertEquals(null, properties?.get("x"))
-        assertEquals(null, properties?.get("y"))
-        assertEquals(null, properties?.get("valimatka"))
-
-        assertEquals(null, properties?.get("ratanumero"))
-        assertEquals(null, properties?.get("sijaintiraide"))
-        assertEquals(null, properties?.get("sijaintiraide_kuvaus"))
-        assertEquals(null, properties?.get("sijaintiraide_tyyppi"))
-        assertEquals(null, properties?.get("ratakilometri"))
-        assertEquals(null, properties?.get("ratametri"))
-        assertEquals(null, properties?.get("ratametri_desimaalit"))
+        assertNullSimpleProperties(properties)
+        assertNullDetailedProperties(properties)
     }
 
     @Test
@@ -954,19 +939,17 @@ class TrackAddressToCoordinateIT @Autowired constructor(
         assertEquals("Point", featureCollection.features[0].geometry?.type)
         assertEquals(0, (featureCollection.features[0].geometry?.coordinates as List<*>).size)
 
-        val properties = featureCollection.features[0].properties
+        val properties = featureCollection.features[0].properties!!
 
-        assertEquals(null, properties?.get("x"))
-        assertEquals(null, properties?.get("y"))
-        assertEquals(null, properties?.get("valimatka"))
+        assertNullSimpleProperties(properties)
 
-        assertEquals(geocodableTrack.trackNumber.number.toString(), properties?.get("ratanumero"))
-        assertEquals(geocodableTrack.locationTrack.name.toString(), properties?.get("sijaintiraide"))
-        assertEquals(trackDescription, properties?.get("sijaintiraide_kuvaus"))
-        assertEquals("kujaraide", properties?.get("sijaintiraide_tyyppi"))
-        assertEquals(0, properties?.get("ratakilometri"))
-        assertEquals(300, properties?.get("ratametri") as? Int)
-        assertEquals(0, properties?.get("ratametri_desimaalit") as? Int)
+        assertEquals(geocodableTrack.trackNumber.number.toString(), properties["ratanumero"])
+        assertEquals(geocodableTrack.locationTrack.name.toString(), properties["sijaintiraide"])
+        assertEquals(trackDescription, properties["sijaintiraide_kuvaus"])
+        assertEquals("kujaraide", properties["sijaintiraide_tyyppi"])
+        assertEquals(0, properties["ratakilometri"])
+        assertEquals(300, properties["ratametri"] as Int)
+        assertEquals(0, properties["ratametri_desimaalit"] as Int)
     }
 
     @Test
