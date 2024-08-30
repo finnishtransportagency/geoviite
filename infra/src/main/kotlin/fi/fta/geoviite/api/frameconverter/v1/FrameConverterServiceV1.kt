@@ -306,13 +306,13 @@ class FrameConverterServiceV1 @Autowired constructor(
     ): List<CoordinateToTrackAddressResponseV1> {
         val featureGeometry = createFeatureGeometry(request.responseSettings, nearestMatch.closestPointOnTrack)
 
-        val featureMatchDataSimple = createBasicFeatureMatchDataOrNull(
+        val featureMatchSimple = createSimpleFeatureMatchOrNull(
             request.responseSettings,
             nearestMatch.closestPointOnTrack,
             nearestMatch.distanceToClosestPoint,
         )
 
-        val conversionDetails = createDetailedFeatureMatchDataOrNull(
+        val conversionDetails = createDetailedFeatureMatchOrNull(
             request.responseSettings,
             layoutContext,
             nearestMatch.locationTrack,
@@ -325,8 +325,8 @@ class FrameConverterServiceV1 @Autowired constructor(
                 geometry = featureGeometry,
                 properties = CoordinateToTrackAddressResponsePropertiesV1(
                     identifier = request.identifier,
-                    featureMatchDataSimple = featureMatchDataSimple,
-                    featureMatchDataDetails = conversionDetails,
+                    featureMatchSimple = featureMatchSimple,
+                    featureMatchDetails = conversionDetails,
                 )
             )
         )
@@ -340,13 +340,13 @@ class FrameConverterServiceV1 @Autowired constructor(
     ): TrackAddressToCoordinateResponseV1 {
         val featureGeometry = createFeatureGeometry(request.responseSettings, addressPoint.point)
 
-        val featureMatchDataSimple = createBasicFeatureMatchDataOrNull(
+        val featureMatchSimple = createSimpleFeatureMatchOrNull(
             request.responseSettings,
             addressPoint.point,
             distanceToClosestPoint = 0.0, // The point should be directly on the track so there's no distance to it.
         )
 
-        val conversionDetails = createDetailedFeatureMatchDataOrNull(
+        val conversionDetails = createDetailedFeatureMatchOrNull(
             request.responseSettings,
             layoutContext,
             locationTrack,
@@ -358,20 +358,20 @@ class FrameConverterServiceV1 @Autowired constructor(
             geometry = featureGeometry,
             properties = TrackAddressToCoordinateResponsePropertiesV1(
                 identifier = request.identifier,
-                featureMatchDataSimple = featureMatchDataSimple,
-                featureMatchDataDetails = conversionDetails,
+                featureMatchSimple = featureMatchSimple,
+                featureMatchDetails = conversionDetails,
             )
         )
     }
 
-    private fun createDetailedFeatureMatchDataOrNull(
+    private fun createDetailedFeatureMatchOrNull(
         responseSettings: FrameConverterResponseSettingsV1,
         layoutContext: LayoutContext,
         locationTrack: LocationTrack,
         trackNumber: TrackNumber,
         trackMeter: TrackMeter,
-    ): FeatureMatchDataDetailsV1? {
-        return if (FrameConverterResponseSettingV1.FeatureMatchDataDetails in responseSettings) {
+    ): FeatureMatchDetailsV1? {
+        return if (FrameConverterResponseSettingV1.FeatureMatchDetails in responseSettings) {
             val locationTrackDescription = locationTrackService.getFullDescription(
                 layoutContext = layoutContext,
                 locationTrack = locationTrack,
@@ -381,7 +381,7 @@ class FrameConverterServiceV1 @Autowired constructor(
             val (trackMeterIntegers, trackMeterDecimals) = splitBigDecimal(trackMeter.meters)
             val translatedLocationTrackType = translateLocationTrackType(locationTrack).lowercase()
 
-            FeatureMatchDataDetailsV1(
+            FeatureMatchDetailsV1(
                 trackNumber = trackNumber,
                 locationTrackName = locationTrack.name,
                 locationTrackDescription = locationTrackDescription,
@@ -421,7 +421,7 @@ private fun createFeatureGeometry(
     responseSettings: FrameConverterResponseSettingsV1,
     point: AlignmentPoint,
 ): GeoJsonGeometryPoint {
-    return if (FrameConverterResponseSettingV1.FeatureGeometryData in responseSettings) {
+    return if (FrameConverterResponseSettingV1.FeatureGeometry in responseSettings) {
         GeoJsonGeometryPoint(
             coordinates = listOf(
                 point.x,
@@ -433,13 +433,13 @@ private fun createFeatureGeometry(
     }
 }
 
-private fun createBasicFeatureMatchDataOrNull(
+private fun createSimpleFeatureMatchOrNull(
     responseSettings: FrameConverterResponseSettingsV1,
     point: AlignmentPoint,
     distanceToClosestPoint: Double,
-): FeatureMatchDataSimpleV1? {
-    return if (FrameConverterResponseSettingV1.FeatureMatchDataSimple in responseSettings) {
-        FeatureMatchDataSimpleV1(
+): FeatureMatchSimpleV1? {
+    return if (FrameConverterResponseSettingV1.FeatureMatchSimple in responseSettings) {
+        FeatureMatchSimpleV1(
             x = point.x,
             y = point.y,
             distanceFromRequestPoint = distanceToClosestPoint,
