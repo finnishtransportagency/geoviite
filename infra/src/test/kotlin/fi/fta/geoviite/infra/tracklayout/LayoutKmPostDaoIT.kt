@@ -14,7 +14,6 @@ import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import fi.fta.geoviite.infra.tracklayout.LayoutState.NOT_IN_USE
-import fi.fta.geoviite.infra.tracklayout.LayoutState.PLANNED
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -51,21 +50,12 @@ class LayoutKmPostDaoIT @Autowired constructor(
             state = NOT_IN_USE,
             draft = false,
         )
-        val post3 = kmPost(
-            trackNumberId = trackNumberId,
-            km = KmNumber(124),
-            gkLocation = GeometryPoint(25500010.0, 6675000.0, Srid(3879)),
-            state = PLANNED,
-            draft = false,
-        )
         insertAndVerify(post1)
         insertAndVerify(post2)
-        insertAndVerify(post3)
         val allPosts = fetchTrackNumberKmPosts(OFFICIAL, trackNumberId)
-        assertEquals(3, allPosts.size)
+        assertEquals(2, allPosts.size)
         assertMatches(post1, allPosts[0])
-        assertMatches(post2, allPosts[2]) // The order should be by post-number, not insert order
-        assertMatches(post3, allPosts[1])
+        assertMatches(post2, allPosts[1]) // The order should be by post-number, not insert order
     }
 
     @Test

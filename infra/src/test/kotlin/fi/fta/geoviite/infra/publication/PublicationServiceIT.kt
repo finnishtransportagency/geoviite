@@ -55,6 +55,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -902,11 +903,11 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun `Validating official switch should work`() {
-        val switchId = switchDao.insert(switch(123, draft = false)).id
+        val switchId = switchDao.insert(switch(123, draft = false, stateCategory = EXISTING,)).id
 
         val validation = publicationService.validateSwitches(MainLayoutContext.official, listOf(switchId))
         assertEquals(1, validation.size)
-        assertEquals(3, validation[0].errors.size)
+        assertEquals(2, validation[0].errors.size)
     }
 
     @Test
@@ -1116,8 +1117,8 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun `Publication rejects duplicate switch names`() {
-        switchDao.insert(switch(123, name = "SW123", draft = false))
-        val draftSwitchId = switchDao.insert(switch(123, name = "SW123", draft = true)).id
+        switchDao.insert(switch(123, name = "SW123", draft = false, stateCategory = EXISTING,))
+        val draftSwitchId = switchDao.insert(switch(123, name = "SW123", draft = true, stateCategory = EXISTING,)).id
         val exception = assertThrows<DuplicateNameInPublicationException> {
             publish(publicationService, switches = listOf(draftSwitchId))
         }
@@ -1762,7 +1763,7 @@ class PublicationServiceIT @Autowired constructor(
                 TrackLayoutSwitchSaveRequest(
                     SwitchName("TEST 2"),
                     IntId(2),
-                    LayoutStateCategory.FUTURE_EXISTING,
+                    LayoutStateCategory.NOT_EXISTING,
                     IntId(2),
                     true,
                 ),
@@ -1780,7 +1781,7 @@ class PublicationServiceIT @Autowired constructor(
             changes.getValue(switch.id as IntId),
             latestPub.publicationTime,
             previousPub.publicationTime,
-            Operation.MODIFY,
+            Operation.DELETE,
             trackNumberDao.fetchTrackNumberNames()
         ) { _, _ -> null }
         assertEquals(5, diff.size)

@@ -87,14 +87,15 @@ enum class RatkoAssetGeometryType(@get:JsonValue val value: String) {
 }
 
 enum class RatkoAssetState(@get:JsonValue val value: String, val category: LayoutStateCategory? = null) {
-    PLANNED("PLANNED", LayoutStateCategory.FUTURE_EXISTING), // RATAVAGE -prosessin kautta suunniteltu
+    @Suppress("unused")
+    PLANNED("PLANNED"), // RATAVAGE -prosessin kautta suunniteltu
     IN_USE(
         "IN USE",
         LayoutStateCategory.EXISTING
     ), // liikennöinti ilman rajoituksia, kunnossapitäjä kunnossapitourakoitsija
 
     @Suppress("unused")
-    SUGGESTED("SUGGESTED", LayoutStateCategory.FUTURE_EXISTING),
+    SUGGESTED("SUGGESTED"),
 
     BUILT("BUILT", LayoutStateCategory.EXISTING), // rakennettu
 

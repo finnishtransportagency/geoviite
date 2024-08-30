@@ -16,13 +16,11 @@ fun mapToRatkoLocationTrackState(layoutState: LocationTrackState) = when (layout
     LocationTrackState.BUILT -> RatkoLocationTrackState.BUILT
     LocationTrackState.DELETED -> RatkoLocationTrackState.DELETED
     LocationTrackState.NOT_IN_USE -> RatkoLocationTrackState.NOT_IN_USE
-    LocationTrackState.PLANNED -> RatkoLocationTrackState.PLANNED
     LocationTrackState.IN_USE -> RatkoLocationTrackState.IN_USE
 }
 
 fun mapToRatkoRouteNumberState(layoutState: LayoutState) = when (layoutState) {
     LayoutState.NOT_IN_USE -> RatkoRouteNumberState(RatkoRouteNumberStateType.NOT_IN_USE)
-    LayoutState.PLANNED -> RatkoRouteNumberState(RatkoRouteNumberStateType.VALID)
     LayoutState.IN_USE -> RatkoRouteNumberState(RatkoRouteNumberStateType.VALID)
     // There is no DELETED or corresponding state in Ratko, so it will be NOT_VALID
     LayoutState.DELETED -> RatkoRouteNumberState(RatkoRouteNumberStateType.NOT_VALID)
@@ -56,7 +54,6 @@ fun mapToRatkoSwitchState(
     layoutStateCategory: LayoutStateCategory,
     ratkoSwitchState: RatkoAssetState?,
 ) = if (ratkoSwitchState == null || layoutStateCategory != ratkoSwitchState.category) when (layoutStateCategory) {
-    LayoutStateCategory.FUTURE_EXISTING -> RatkoAssetState.PLANNED
     LayoutStateCategory.EXISTING -> RatkoAssetState.IN_USE
     LayoutStateCategory.NOT_EXISTING -> RatkoAssetState.DELETED
 }

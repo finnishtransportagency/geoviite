@@ -122,6 +122,7 @@ fun switchAndMatchingAlignments(
             TrackLayoutSwitchJoint(number, point, null)
         },
         draft = draft,
+        stateCategory = LayoutStateCategory.EXISTING,
     )
     return switch to alignments
 }
