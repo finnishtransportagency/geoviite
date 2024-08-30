@@ -28,7 +28,6 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.alsoIfNull
 import fi.fta.geoviite.infra.util.produceIf
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.web.servlet.View
 import java.math.BigDecimal
 import java.math.RoundingMode
 
