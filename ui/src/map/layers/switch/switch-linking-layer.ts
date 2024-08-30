@@ -52,7 +52,7 @@ const layerName: MapLayerName = 'switch-linking-layer';
 
 export function createSwitchLinkingLayer(
     existingOlLayer: VectorLayer<Feature<OlPoint>> | undefined,
-    selection: Selection,
+    _selection: Selection,
     linkingState: LinkingSwitch | SuggestingSwitchPlace | undefined,
     onLoadingData: (loading: boolean) => void,
 ): MapLayer {

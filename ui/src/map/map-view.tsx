@@ -28,13 +28,7 @@ import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
 import { highlightTool } from 'map/tools/highlight-tool';
 import { LineString, Point as OlPoint, Polygon } from 'ol/geom';
-import {
-    LinkingState,
-    LinkingSwitch,
-    LinkingType,
-    LinkPoint,
-    SuggestedSwitch,
-} from 'linking/linking-model';
+import { LinkingState, LinkingSwitch, LinkPoint, SuggestedSwitch } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
 import { GeometryPlanLayout, LAYOUT_SRID } from 'track-layout/track-layout-model';
@@ -55,7 +49,7 @@ import { createGeometryKmPostLayer } from 'map/layers/geometry/geometry-km-post-
 import { createKmPostLayer } from 'map/layers/km-post/km-post-layer';
 import { createAlignmentLinkingLayer } from 'map/layers/alignment/alignment-linking-layer';
 import { createPlanAreaLayer } from 'map/layers/geometry/plan-area-layer';
-import { getPlanarDistance, pointToCoords } from 'map/layers/utils/layer-utils';
+import { pointToCoords } from 'map/layers/utils/layer-utils';
 import { createGeometrySwitchLayer } from 'map/layers/geometry/geometry-switch-layer';
 import { createSwitchLayer } from 'map/layers/switch/switch-layer';
 import {
@@ -77,7 +71,7 @@ import { createDuplicateTracksHighlightLayer } from 'map/layers/highlight/duplic
 import { createMissingLinkingHighlightLayer } from 'map/layers/highlight/missing-linking-highlight-layer';
 import { createMissingProfileHighlightLayer } from 'map/layers/highlight/missing-profile-highlight-layer';
 import { createTrackNumberEndPointAddressesLayer } from 'map/layers/highlight/track-number-end-point-addresses-layer';
-import { coordsToPoint, Point, Rectangle } from 'model/geometry';
+import { Point, Rectangle } from 'model/geometry';
 import { createPlanSectionHighlightLayer } from 'map/layers/highlight/plan-section-highlight-layer';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
@@ -95,12 +89,7 @@ import { createLocationTrackSplitAlignmentLayer } from 'map/layers/alignment/loc
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import Feature from 'ol/Feature';
 import { Brand } from 'common/brand';
-import { getSuggestedSwitchesForLayoutSwitchPlacing } from 'linking/linking-api';
-import { pointString } from 'common/common-api';
-import { useLimitedRequestsInFlight } from 'utils/react-utils';
-import { AsyncCache, asyncCache } from 'cache/cache';
-import { grid, pointEquals } from 'utils/math-utils';
-import { useSwitchLinking } from 'map/layers/switch/switch-linking';
+import { useSwitchSuggestionOnHover } from 'map/layers/switch/switch-suggestion-on-hover';
 
 declare global {
     interface Window {
@@ -223,12 +212,11 @@ const MapView: React.FC<MapViewProps> = ({
         showLayers(['switch-linking-layer']);
     };
 
-    const { setHoveredLocation, isLoadingSwitchSuggestion } = useSwitchLinking(
+    const { setHoveredLocation, isLoadingSwitchSuggestion } = useSwitchSuggestionOnHover(
         _setHoveredLocation,
         setHoveredPixelLocation,
         olMapContainer,
         olMap,
-        hoveredPixelLocation,
         linkingState,
         layoutContext,
         suggestSwitchAndDisplaySwitchLinkingLayer,

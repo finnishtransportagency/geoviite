@@ -37,34 +37,16 @@ function tilePoints(olMap: OlMap, suggestedSwitchesGridCellIndex: Point): Point[
     );
 }
 
-export function useSwitchLinking(
-    _setHoveredLocation: (point: Point) => void,
-    setHoveredPixelLocation: (point: ScreenPoint) => void,
-    olMapContainer: React.RefObject<HTMLDivElement>,
+function useSuggestedSwitchesCache(
     olMap: OlMap | undefined,
-    hoveredPixelLocation: ScreenPoint | undefined,
-    linkingState: LinkingState | undefined,
-    layoutContext: LayoutContext,
-    suggestSwitchAndDisplaySwitchLinkingLayer: (
-        suggestedSwitch: SuggestedSwitch | undefined,
-    ) => void,
-): {
-    setHoveredLocation: (newHoveredLocation: Point, pixelPosition: ScreenPoint) => void;
-    isLoadingSwitchSuggestion: boolean;
-} {
-    const [isLoadingSwitchSuggestion, setIsLoadingSwitchSuggestion] = React.useState(false);
-    const positionInSuggestedSwitchGrid = React.useRef<ScreenGrid>();
-
-    const requestLoadingSuggestedSwitch = useLimitedRequestsInFlight<
-        (SuggestedSwitch | undefined)[]
-    >('stack', 1);
-
+): React.MutableRefObject<SuggestedSwitchCache | undefined> {
     const suggestedSwitchCache = React.useRef<SuggestedSwitchCache>();
 
     const view = olMap?.getView();
     const viewCenterX = view?.getCenter()?.[0];
     const viewCenterY = view?.getCenter()?.[1];
     const viewResolution = view?.getResolution();
+
     React.useEffect(() => {
         if (
             view &&
@@ -87,13 +69,36 @@ export function useSwitchLinking(
             }
         }
     }, [viewCenterX, viewCenterY, viewResolution]);
+    return suggestedSwitchCache;
+}
 
-    function processLoadedTileSwitches(
+type SwitchCacheTile = (SuggestedSwitch | undefined)[];
+
+export function useSwitchSuggestionOnHover(
+    _setHoveredLocation: (point: Point) => void,
+    setHoveredPixelLocation: (point: ScreenPoint) => void,
+    olMapContainer: React.RefObject<HTMLDivElement>,
+    olMap: OlMap | undefined,
+    linkingState: LinkingState | undefined,
+    layoutContext: LayoutContext,
+    suggestSwitchAndDisplaySwitchLinkingLayer: (
+        suggestedSwitch: SuggestedSwitch | undefined,
+    ) => void,
+): {
+    setHoveredLocation: (newHoveredLocation: Point, pixelPosition: ScreenPoint) => void;
+    isLoadingSwitchSuggestion: boolean;
+} {
+    const [isLoadingSwitchSuggestion, setIsLoadingSwitchSuggestion] = React.useState(false);
+    const positionInSuggestedSwitchGrid = React.useRef<ScreenGrid>();
+    const requestLoadingSuggestedSwitch = useLimitedRequestsInFlight<SwitchCacheTile>('stack', 1);
+    const suggestedSwitchCache = useSuggestedSwitchesCache(olMap);
+
+    function processTile(
         suggestedSwitchCacheAtRequestTime: SuggestedSwitchCache,
         suggestedSwitchesGrid: { cellIndex: Point; positionInCell: Point },
-        tileSwitches: (SuggestedSwitch | undefined)[],
+        tile: SwitchCacheTile,
         hoveredLocation: Point,
-    ): void {
+    ) {
         if (
             suggestedSwitchCacheAtRequestTime === suggestedSwitchCache.current &&
             positionInSuggestedSwitchGrid.current !== undefined &&
@@ -103,17 +108,17 @@ export function useSwitchLinking(
             )
         ) {
             setIsLoadingSwitchSuggestion(false);
-            const switchIndexInCell =
+            const switchIndexInTile =
                 suggestedSwitchesGrid.positionInCell.y * SUGGESTED_SWITCHES_GRID_SIZE +
                 suggestedSwitchesGrid.positionInCell.x;
-            const suggested = tileSwitches[switchIndexInCell];
+            const suggested = tile[switchIndexInTile];
             if (
                 suggested &&
                 hoveredLocation &&
                 suggested.joints[0] !== undefined &&
                 getPlanarDistance(suggested.joints[0].location, hoveredLocation) < 10
             ) {
-                suggestSwitchAndDisplaySwitchLinkingLayer(tileSwitches[switchIndexInCell]);
+                suggestSwitchAndDisplaySwitchLinkingLayer(tile[switchIndexInTile]);
             } else {
                 suggestSwitchAndDisplaySwitchLinkingLayer(undefined);
             }
@@ -129,15 +134,14 @@ export function useSwitchLinking(
             const container = olMapContainer.current;
             if (
                 olMap !== undefined &&
-                hoveredPixelLocation !== undefined &&
                 container !== null &&
                 (linkingState?.type === LinkingType.PlacingSwitch ||
                     linkingState?.type === LinkingType.SuggestingSwitchPlace)
             ) {
                 const rect = container.getBoundingClientRect();
                 const pixel = {
-                    x: hoveredPixelLocation.x - rect.x,
-                    y: hoveredPixelLocation.y - rect.y,
+                    x: pixelPosition.x - rect.x,
+                    y: pixelPosition.y - rect.y,
                 };
                 const suggestedSwitchesGrid = grid(SUGGESTED_SWITCHES_GRID_SIZE, pixel);
                 positionInSuggestedSwitchGrid.current = suggestedSwitchesGrid;
@@ -159,7 +163,7 @@ export function useSwitchLinking(
                             ),
                         )
                         .then((tileSwitches) => {
-                            processLoadedTileSwitches(
+                            processTile(
                                 cache,
                                 suggestedSwitchesGrid,
                                 tileSwitches,
