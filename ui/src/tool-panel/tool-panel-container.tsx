@@ -4,6 +4,7 @@ import { useCommonDataAppSelector, useTrackLayoutAppSelector } from 'store/hooks
 import { trackLayoutActionCreators as TrackLayoutActions } from 'track-layout/track-layout-slice';
 import { createDelegates } from 'store/store-utils';
 import { HighlightedAlignment } from 'tool-panel/alignment-plan-section-infobox-content';
+import { LinkingType } from 'linking/linking-model';
 
 type ToolPanelContainerProps = {
     setHoveredOverItem: (item: HighlightedAlignment | undefined) => void;
@@ -21,41 +22,25 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
     const switchIds = store.selection.selectedItems.switches;
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
-    /*const startSwitchLinking = React.useCallback(function (
-        suggestedSwitch: SuggestedSwitch,
-        layoutSwitch: LayoutSwitch,
-    ) {
-        delegates.onSelect({
-            suggestedSwitches: [suggestedSwitch],
-        });
-        delegates.startSwitchLinking(suggestedSwitch);
-        delegates.onSelect({
-            switches: [layoutSwitch.id],
-        });
-        delegates.showLayers(['switch-linking-layer']);
-    }, []);*/
-
     const infoboxVisibilities = useTrackLayoutAppSelector((state) => state.infoboxVisibilities);
     /*
     React.useEffect(() => {
         const linkingState = store.linkingState;
-        if (linkingState?.type == LinkingType.PlacingSwitch && linkingState.location) {
-            getSuggestedSwitchesForLayoutSwitchPlacing(
-                store.layoutContext.branch,
-                linkingState.location,
-                linkingState.layoutSwitch.id,
-            ).then((suggestedSwitch) => {
-                delegates.stopLinking();
-
-                if (suggestedSwitch) {
-                    startSwitchLinking(suggestedSwitch, linkingState.layoutSwitch);
-                } else {
-                    delegates.hideLayers(['switch-linking-layer']);
-                }
+        if (linkingState?.type == LinkingType.SuggestingSwitchPlace) {
+            const suggestedSwitch = linkingState.suggestedSwitch;
+            const layoutSwitch = linkingState.layoutSwitch;
+            delegates.onSelect({
+                suggestedSwitches: [suggestedSwitch],
             });
+            delegates.startSwitchLinking(suggestedSwitch);
+            delegates.onSelect({
+                switches: [layoutSwitch.id],
+            });
+            delegates.showLayers(['switch-linking-layer']);
         }
     }, [store.linkingState]);
 */
+
     return (
         <ToolPanel
             infoboxVisibilities={infoboxVisibilities}

@@ -20,6 +20,7 @@ export type AsyncCache<TKey, TVal> = {
         getter: (ids: TId[]) => Promise<(id: TId) => TVal>,
     ): Promise<TVal[]>;
     remove: (key: TKey) => void;
+    peek: Map<TKey, Promise<TVal>>;
 };
 
 export function cache<TKey, TVal>(maxSize?: number): Cache<TKey, TVal> {
@@ -123,5 +124,6 @@ export function asyncCache<TKey, TVal>(): AsyncCache<TKey, TVal> {
             getCached(changeTime, key, getter),
         remove: (key: TKey) => cache.delete(key),
         getMany,
+        peek: cache,
     };
 }

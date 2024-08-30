@@ -161,7 +161,7 @@ export type PlacingSwitch = LinkingBaseType & {
 export type SuggestingSwitchPlace = LinkingBaseType & {
     type: LinkingType.SuggestingSwitchPlace;
     layoutSwitch: LayoutSwitch;
-    suggestedSwitch: SuggestedSwitch;
+    suggestedSwitch: SuggestedSwitch | undefined;
 };
 
 export type LinkingKmPost = LinkingBaseType & {

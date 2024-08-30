@@ -185,6 +185,138 @@ type ScreenGrid = {
     positionInCell: Point;
 };
 
+function useOnHoverPixel(
+    _setHoveredLocation: (point: Point) => void,
+    setHoveredPixelLocation: (point: ScreenPoint) => void,
+    olMapContainer: React.RefObject<HTMLDivElement>,
+    olMap: OlMap | undefined,
+    hoveredPixelLocation: ScreenPoint | undefined,
+    linkingState: LinkingState | undefined,
+    positionInSuggestedSwitchGrid: React.MutableRefObject<ScreenGrid | undefined>,
+    layoutContext: LayoutContext,
+    suggestSwitchAndDisplaySwitchLinkingLayer: (
+        suggestedSwitch: SuggestedSwitch | undefined,
+    ) => void,
+): (newHoveredLocation: Point, pixelPosition: ScreenPoint) => void {
+    const requestLoadingSuggestedSwitch = useLimitedRequestsInFlight<
+        (SuggestedSwitch | undefined)[]
+    >('stack', 2);
+
+    const suggestedSwitchCache = React.useRef<{
+        cache: AsyncCache<string, (undefined | SuggestedSwitch)[]>;
+        resolution: number;
+        center: Point;
+    }>();
+
+    const view = olMap?.getView();
+    const viewCenterX = view?.getCenter()?.[0];
+    const viewCenterY = view?.getCenter()?.[1];
+    const viewResolution = view?.getResolution();
+    React.useEffect(() => {
+        if (
+            view &&
+            viewCenterX !== undefined &&
+            viewCenterY !== undefined &&
+            viewResolution !== undefined
+        ) {
+            const current = suggestedSwitchCache.current;
+            if (
+                current === undefined ||
+                current.resolution !== viewResolution ||
+                viewCenterX !== current.center.x ||
+                viewCenterY !== current.center.y
+            ) {
+                suggestedSwitchCache.current = {
+                    cache: asyncCache(),
+                    resolution: viewResolution,
+                    center: { x: viewCenterX, y: viewCenterY },
+                };
+            }
+        }
+    }, [viewCenterX, viewCenterY, viewResolution]);
+
+    return (hoveredLocation: Point, pixelPosition: ScreenPoint) => {
+        _setHoveredLocation(hoveredLocation);
+        setHoveredPixelLocation(pixelPosition);
+
+        const container = olMapContainer.current;
+        if (
+            olMap !== undefined &&
+            hoveredPixelLocation !== undefined &&
+            container !== null &&
+            (linkingState?.type === LinkingType.PlacingSwitch ||
+                linkingState?.type === LinkingType.SuggestingSwitchPlace)
+        ) {
+            const rect = container.getBoundingClientRect();
+            const pixel = {
+                x: hoveredPixelLocation.x - rect.x,
+                y: hoveredPixelLocation.y - rect.y,
+            };
+            const suggestedSwitchesGrid = grid(SUGGESTED_SWITCHES_GRID_SIZE, pixel);
+            positionInSuggestedSwitchGrid.current = suggestedSwitchesGrid;
+            const cache = suggestedSwitchCache.current;
+            if (cache !== undefined) {
+                const points = [...Array(SUGGESTED_SWITCHES_GRID_SIZE)].flatMap((_, yIndex) =>
+                    [...Array(SUGGESTED_SWITCHES_GRID_SIZE)].map((_, xIndex) =>
+                        coordsToPoint(
+                            olMap.getCoordinateFromPixel([
+                                suggestedSwitchesGrid.cellIndex.x * SUGGESTED_SWITCHES_GRID_SIZE +
+                                    xIndex,
+                                suggestedSwitchesGrid.cellIndex.y * SUGGESTED_SWITCHES_GRID_SIZE +
+                                    yIndex,
+                            ]),
+                        ),
+                    ),
+                );
+                const key = pointString(suggestedSwitchesGrid.cellIndex);
+                cache.cache
+                    .getImmutable(key, () =>
+                        requestLoadingSuggestedSwitch(() =>
+                            getSuggestedSwitchesForLayoutSwitchPlacing(
+                                layoutContext.branch,
+                                points,
+                                linkingState.layoutSwitch.id,
+                            ),
+                        ),
+                    )
+                    .then((tileSwitches) => {
+                        // need to store full hovered pixel location as well as validity stuff in ref so that we can check
+                        // for all of it whether it's current here, but for now...
+                        if (
+                            cache === suggestedSwitchCache.current &&
+                            positionInSuggestedSwitchGrid.current &&
+                            gridPositionEquals(
+                                suggestedSwitchesGrid,
+                                positionInSuggestedSwitchGrid.current,
+                            )
+                        ) {
+                            const switchIndexInCell =
+                                suggestedSwitchesGrid.positionInCell.y *
+                                    SUGGESTED_SWITCHES_GRID_SIZE +
+                                suggestedSwitchesGrid.positionInCell.x;
+                            const suggested = tileSwitches[switchIndexInCell];
+                            if (
+                                suggested &&
+                                hoveredLocation &&
+                                suggested.joints[0] !== undefined &&
+                                getPlanarDistance(suggested.joints[0].location, hoveredLocation) <
+                                    10
+                            ) {
+                                suggestSwitchAndDisplaySwitchLinkingLayer(
+                                    tileSwitches[switchIndexInCell],
+                                );
+                            } else {
+                                suggestSwitchAndDisplaySwitchLinkingLayer(undefined);
+                            }
+                        }
+                    });
+            }
+        } else {
+            positionInSuggestedSwitchGrid.current = undefined;
+        }
+    };
+}
+
 const MapView: React.FC<MapViewProps> = ({
     map,
     selection,
@@ -224,36 +356,6 @@ const MapView: React.FC<MapViewProps> = ({
 
     const positionInSuggestedSwitchGrid = React.useRef<ScreenGrid>();
 
-    const suggestedSwitchCache = React.useRef<{
-        cache: AsyncCache<string, (undefined | SuggestedSwitch)[]>;
-        resolution: number;
-        center: Point;
-    }>();
-
-    React.useEffect(
-        () => {
-            const view = olMap?.getView();
-            const centerCoords = view?.getCenter();
-            const resolution = view?.getResolution();
-            if (view && centerCoords && resolution) {
-                const current = suggestedSwitchCache.current;
-                const center = coordsToPoint(centerCoords);
-                if (
-                    current === undefined ||
-                    current.resolution !== resolution ||
-                    center.x !== current.center.x ||
-                    center.y !== current.center.y
-                ) {
-                    suggestedSwitchCache.current = {
-                        cache: asyncCache(),
-                        resolution,
-                        center,
-                    };
-                }
-            }
-        } /* no deps list: we're checking for the update deliberately on every render */,
-    );
-
     const suggestSwitchAndDisplaySwitchLinkingLayer = (
         suggestedSwitch: SuggestedSwitch | undefined,
     ) => {
@@ -261,88 +363,17 @@ const MapView: React.FC<MapViewProps> = ({
         showLayers(['switch-linking-layer']);
     };
 
-    const requestLoadingSuggestedSwitch = useLimitedRequestsInFlight<
-        (SuggestedSwitch | undefined)[]
-    >('stack', 5);
-
-    const setHoveredLocation = (newHoveredLocation: Point, pixelPosition: ScreenPoint) => {
-        _setHoveredLocation(newHoveredLocation);
-        setHoveredPixelLocation(pixelPosition);
-
-        const container = olMapContainer.current;
-        if (
-            olMap !== undefined &&
-            hoveredPixelLocation !== undefined &&
-            container !== null &&
-            (linkingState?.type === LinkingType.PlacingSwitch ||
-                linkingState?.type === LinkingType.SuggestingSwitchPlace)
-        ) {
-            const rect = container.getBoundingClientRect();
-            const pixel = {
-                x: hoveredPixelLocation.x - rect.x,
-                y: hoveredPixelLocation.y - rect.y,
-            };
-            const suggestedSwitchesGrid = grid(SUGGESTED_SWITCHES_GRID_SIZE, pixel);
-            positionInSuggestedSwitchGrid.current = suggestedSwitchesGrid;
-            const points = [...Array(SUGGESTED_SWITCHES_GRID_SIZE)].flatMap((_, yIndex) =>
-                [...Array(SUGGESTED_SWITCHES_GRID_SIZE)].map((_, xIndex) =>
-                    coordsToPoint(
-                        olMap.getCoordinateFromPixel([
-                            suggestedSwitchesGrid.cellIndex.x * SUGGESTED_SWITCHES_GRID_SIZE +
-                                xIndex,
-                            suggestedSwitchesGrid.cellIndex.y * SUGGESTED_SWITCHES_GRID_SIZE +
-                                yIndex,
-                        ]),
-                    ),
-                ),
-            );
-            const key = pointString(suggestedSwitchesGrid.cellIndex);
-            const cache = suggestedSwitchCache.current;
-            if (cache !== undefined) {
-                cache.cache
-                    .getImmutable(key, () =>
-                        requestLoadingSuggestedSwitch(() =>
-                            getSuggestedSwitchesForLayoutSwitchPlacing(
-                                layoutContext.branch,
-                                points,
-                                linkingState.layoutSwitch.id,
-                            ),
-                        ),
-                    )
-                    .then((tileSwitches) => {
-                        // need to store full hovered pixel location as well as validity stuff in ref so that we can check
-                        // for all of it whether it's current here, but for now...
-                        if (
-                            cache === suggestedSwitchCache.current &&
-                            positionInSuggestedSwitchGrid.current &&
-                            gridPositionEquals(
-                                suggestedSwitchesGrid,
-                                positionInSuggestedSwitchGrid.current,
-                            )
-                        ) {
-                            const switchIndexInCell =
-                                suggestedSwitchesGrid.positionInCell.y *
-                                    SUGGESTED_SWITCHES_GRID_SIZE +
-                                suggestedSwitchesGrid.positionInCell.x;
-                            const suggested = tileSwitches[switchIndexInCell];
-                            if (
-                                suggested &&
-                                hoveredLocation &&
-                                suggested.joints[0] !== undefined &&
-                                getPlanarDistance(suggested.joints[0].location, hoveredLocation) <
-                                    10
-                            ) {
-                                suggestSwitchAndDisplaySwitchLinkingLayer(
-                                    tileSwitches[switchIndexInCell],
-                                );
-                            }
-                        }
-                    });
-            }
-        } else {
-            positionInSuggestedSwitchGrid.current = undefined;
-        }
-    };
+    const setHoveredLocation = useOnHoverPixel(
+        _setHoveredLocation,
+        setHoveredPixelLocation,
+        olMapContainer,
+        olMap,
+        hoveredPixelLocation,
+        linkingState,
+        positionInSuggestedSwitchGrid,
+        layoutContext,
+        suggestSwitchAndDisplaySwitchLinkingLayer,
+    );
 
     const onLayerLoading = (name: MapLayerName, isLoading: boolean) => {
         setLayersLoadingData((prevLoadingLayers) => {

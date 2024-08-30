@@ -421,6 +421,7 @@ class LayoutSwitchDao(
     }
 
     data class LocationTrackIdentifiers(
+        val id: IntId<LocationTrack>,
         val rowVersion: LayoutRowVersion<LocationTrack>,
         val externalId: Oid<LocationTrack>?,
     )
@@ -428,26 +429,33 @@ class LayoutSwitchDao(
     fun findLocationTracksLinkedToSwitch(
         layoutContext: LayoutContext,
         switchId: IntId<TrackLayoutSwitch>,
-    ): List<LocationTrackIdentifiers> = findLocationTracksLinkedToSwitches(layoutContext, listOf(switchId))
+    ): List<LocationTrackIdentifiers> =
+        findLocationTracksLinkedToSwitches(layoutContext, listOf(switchId))[switchId] ?: listOf()
 
     fun findLocationTracksLinkedToSwitches(
         layoutContext: LayoutContext,
         switchIds: List<IntId<TrackLayoutSwitch>>,
-    ): List<LocationTrackIdentifiers> {
-        if (switchIds.isEmpty()) return emptyList()
+    ): Map<IntId<TrackLayoutSwitch>, List<LocationTrackIdentifiers>> {
+        if (switchIds.isEmpty()) return emptyMap()
 
-        val sql = """ 
-            select 
-              location_track.row_id,
-              location_track.row_version,
-              location_track.external_id
-            from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) location_track
-            where location_track.topology_start_switch_id in (:switch_ids)
-              or location_track.topology_end_switch_id in (:switch_ids)
-              or exists (select * from layout.segment_version sv
-                           where sv.switch_id in (:switch_ids)
-                             and sv.alignment_id = location_track.alignment_id
-                             and sv.alignment_version = location_track.alignment_version)
+        val sql = """
+            select switch_id, location_track.official_id, row_id, row_version, external_id
+              from (
+                select topology_start_switch_id as switch_id, official_id
+                  from layout.location_track
+                  where topology_start_switch_id = any (array [:switch_ids])
+                union
+                select topology_end_switch_id as switch_id, official_id
+                  from layout.location_track
+                  where topology_end_switch_id = any (array [:switch_ids])
+                union
+                select switch_id, location_track.official_id
+                  from layout.location_track
+                    join layout.segment_version using (alignment_id, alignment_version)
+                  where switch_id = any (array [:switch_ids])
+              ) location_track
+                cross join lateral layout.location_track_in_layout_context(:publication_state::layout.publication_state,
+                                                                           :design_id, official_id);
         """.trimIndent()
         val params = mapOf(
             "switch_ids" to switchIds.map { it.intValue },
@@ -455,11 +463,14 @@ class LayoutSwitchDao(
             "design_id" to layoutContext.branch.designId?.intValue,
         )
         return jdbcTemplate.query(sql, params) { rs, _ ->
-            LocationTrackIdentifiers(
+            rs.getIntId<TrackLayoutSwitch>("switch_id") to LocationTrackIdentifiers(
+                id = rs.getIntId("official_id"),
                 rowVersion = rs.getLayoutRowVersion("row_id", "row_version"),
                 externalId = rs.getOidOrNull("external_id"),
             )
-        }.also { logger.daoAccess(FETCH, "LocationTracks linked to switch",
+        }.groupBy({ it.first }, { it.second }).also {
+            logger.daoAccess(
+                FETCH, "LocationTracks linked to switch",
             switchIds,
         ) }
     }
@@ -473,6 +484,7 @@ class LayoutSwitchDao(
         assertMainBranch(layoutBranch)
         val sql = """ 
             select distinct
+              location_track.official_id,
               location_track.id, 
               location_track.version,
               location_track.external_id
@@ -500,6 +512,7 @@ class LayoutSwitchDao(
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
             LocationTrackIdentifiers(
+                id = rs.getIntId("official_id"),
                 rowVersion = rs.getLayoutRowVersion("id", "version"),
                 externalId = rs.getOidOrNull("external_id"),
             )
@@ -538,16 +551,18 @@ class LayoutSwitchDao(
         maxDistance: Double = 1.0,
     ): List<IntId<TrackLayoutSwitch>> {
         val sql = """
-            select distinct switch.official_id as switch_id
-              from layout.segment_version
-                join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
-                join layout.switch_joint on
-                  postgis.st_contains(postgis.st_expand(segment_geometry.bounding_box, :dist), switch_joint.location)
-                  and postgis.st_distance(segment_geometry.geometry, switch_joint.location) < :dist
-                join layout.switch_in_layout_context('DRAFT', :design_id) switch on switch_joint.switch_id = switch.row_id
-              where segment_version.alignment_id = :alignmentId
-                and segment_version.alignment_version = :alignmentVersion
-                and switch.state_category != 'NOT_EXISTING';
+            select switch_id
+              from (
+                select distinct switch_joint.switch_id as switch_id
+                  from layout.segment_version
+                    join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+                    join layout.switch_joint on
+                    postgis.st_dwithin(segment_geometry.geometry, switch_joint.location, :dist)
+                  where segment_version.alignment_id = :alignmentId
+                    and segment_version.alignment_version = :alignmentVersion
+              ) segment_switch,
+                layout.switch_in_layout_context('DRAFT', :design_id, switch_id) switch
+              where switch.state_category != 'NOT_EXISTING';
         """.trimIndent()
         return jdbcTemplate.query(
             sql,

@@ -62,10 +62,9 @@ fun lineIntersection(start1: IPoint, end1: IPoint, start2: IPoint, end2: IPoint)
 
 enum class IntersectType { BEFORE, WITHIN, AFTER }
 data class Intersection(val point: Point, val segment1Portion: Double, val segment2Portion: Double) {
-    val inSegment1 by lazy { getIntersectType(segment1Portion) }
-    val inSegment2 by lazy { getIntersectType(segment2Portion) }
-    val relativeDistance1 by lazy { toRelativeDistance(segment1Portion) }
-    val relativeDistance2 by lazy { toRelativeDistance(segment2Portion) }
+    val inSegment1 = getIntersectType(segment1Portion)
+    val inSegment2 = getIntersectType(segment2Portion)
+    val relativeDistance2 = toRelativeDistance(segment2Portion)
 
     fun linesIntersect() = inSegment1 == IntersectType.WITHIN && inSegment2 == IntersectType.WITHIN
 }

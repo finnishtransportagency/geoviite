@@ -543,6 +543,7 @@ class LocationTrackService(
         val markedDuplicateVersions = dao.fetchDuplicateVersions(layoutContext, track.id as IntId)
         val tracksLinkedThroughSwitch = switchDao
             .findLocationTracksLinkedToSwitches(layoutContext, track.switchIds)
+            .values.flatten()
             .map(LayoutSwitchDao.LocationTrackIdentifiers::rowVersion)
         val duplicateTracksAndAlignments = (markedDuplicateVersions + tracksLinkedThroughSwitch)
             .distinct()
@@ -792,19 +793,19 @@ private fun findBestTopologySwitchFromSegments(
     ownSwitches: Set<DomainId<TrackLayoutSwitch>>,
     nearbyTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     newSwitch: TopologyLinkFindingSwitch?,
-): TopologyLocationTrackSwitch? = nearbyTracks.flatMap { (_, otherAlignment) ->
-    otherAlignment.segments.flatMap { segment ->
+): TopologyLocationTrackSwitch? = nearbyTracks.asSequence().flatMap { (_, otherAlignment) ->
+    otherAlignment.segments.asSequence().flatMap { segment ->
         if (segment.switchId !is IntId || ownSwitches.contains(segment.switchId) || segment.switchId == newSwitch?.id) {
-            listOf()
+            sequenceOf()
         } else {
-            listOfNotNull(
+            sequenceOf(
                 segment.startJointNumber?.let { number ->
                     pickIfClose(segment.switchId, number, target, segment.segmentStart)
                 },
                 segment.endJointNumber?.let { number ->
                     pickIfClose(segment.switchId, number, target, segment.segmentEnd)
                 },
-            )
+            ).filterNotNull()
         }
     } + (newSwitch?.joints?.mapNotNull { sj ->
         pickIfClose(newSwitch.id, sj.number, target, sj.location)

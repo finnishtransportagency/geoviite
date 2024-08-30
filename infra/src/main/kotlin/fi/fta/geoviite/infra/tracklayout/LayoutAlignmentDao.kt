@@ -696,7 +696,9 @@ class LayoutAlignmentDao(
                 resolution = rs.getInt("resolution"),
             )
         }
-        segmentGeometryCache.putAll(parseGeometries(rowResults))
+        val parsed = parseGeometries(rowResults)
+        segmentGeometryCache.putAll(parsed)
+        Thread { parsed.values.forEach { it.boundingBox; it.hashCode() } }
     }
 }
 

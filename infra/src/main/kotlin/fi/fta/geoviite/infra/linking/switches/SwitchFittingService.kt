@@ -450,7 +450,7 @@ private fun findTrackIntersectionsForGridPoints(
     val closestActualIntersections = grid.mapMulti(parallel = true) { gridPoint ->
         allActualIntersections.sortedWith(orderIntersectionsWithDesiredPoint(gridPoint)).take(2).toSet()
     }
-    val closestPointsAsIntersections = grid.mapMulti(parallel = true) { gridPoint ->
+    val closestPointsAsIntersections = grid.mapMulti { gridPoint ->
         trackPairs.mapNotNull { (track1, track2) -> getClosestPointAsIntersection(track1, track2, gridPoint) }.toSet()
     }
 
