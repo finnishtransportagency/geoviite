@@ -95,7 +95,7 @@ import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
-import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.util.SortOrder
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test

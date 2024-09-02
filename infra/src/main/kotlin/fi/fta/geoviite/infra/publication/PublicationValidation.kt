@@ -37,7 +37,7 @@ import fi.fta.geoviite.infra.tracklayout.TopologyLocationTrackSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
 import kotlin.math.PI
 

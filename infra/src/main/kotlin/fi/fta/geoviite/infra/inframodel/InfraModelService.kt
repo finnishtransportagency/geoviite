@@ -25,7 +25,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
-import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile

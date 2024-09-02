@@ -43,7 +43,7 @@ import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.HttpsUrl
-import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication

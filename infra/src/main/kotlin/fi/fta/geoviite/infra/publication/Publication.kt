@@ -20,7 +20,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.*
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
-import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import java.time.Instant
 
 enum class PublicationTableColumn {

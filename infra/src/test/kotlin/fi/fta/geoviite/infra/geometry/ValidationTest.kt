@@ -11,7 +11,7 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.math.rotateAroundOrigin
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
-import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import kotlin.math.PI

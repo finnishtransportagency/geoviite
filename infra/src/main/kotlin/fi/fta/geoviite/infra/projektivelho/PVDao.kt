@@ -18,7 +18,7 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.TECHNICS_FIELD
 import fi.fta.geoviite.infra.projektivelho.PVFetchStatus.WAITING
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.DbTable
-import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.util.getEnum
 import fi.fta.geoviite.infra.util.getFileName
 import fi.fta.geoviite.infra.util.getFreeTextOrNull

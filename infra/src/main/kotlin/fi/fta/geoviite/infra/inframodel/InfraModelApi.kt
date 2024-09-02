@@ -5,7 +5,7 @@ import fi.fta.geoviite.infra.error.HasLocalizedMessage
 import fi.fta.geoviite.infra.geometry.*
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
-import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.util.XmlCharset
 import java.time.Instant
 

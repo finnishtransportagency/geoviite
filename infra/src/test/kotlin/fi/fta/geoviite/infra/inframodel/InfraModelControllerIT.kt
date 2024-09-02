@@ -1,7 +1,7 @@
 package fi.fta.geoviite.infra.inframodel
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired

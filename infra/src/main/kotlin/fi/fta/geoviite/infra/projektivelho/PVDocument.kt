@@ -7,7 +7,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
-import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.util.assertSanitized
 import java.time.Instant
 
