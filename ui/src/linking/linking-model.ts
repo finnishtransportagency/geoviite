@@ -79,6 +79,7 @@ export type LinkPoint = {
     isEndPoint: boolean;
     direction: number | undefined;
     address: TrackMeter | undefined;
+    isInterpolated?: boolean;
 };
 
 export type ClusterPoint = {
