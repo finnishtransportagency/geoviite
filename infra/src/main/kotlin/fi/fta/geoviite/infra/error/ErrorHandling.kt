@@ -8,9 +8,9 @@ import com.auth0.jwt.exceptions.TokenExpiredException
 import com.fasterxml.jackson.core.JsonParseException
 import com.fasterxml.jackson.databind.exc.MismatchedInputException
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.localizationParams
-import fi.fta.geoviite.infra.localization.LocalizationKey
 import jakarta.xml.bind.UnmarshalException
 import org.geotools.api.referencing.operation.TransformException
 import org.postgresql.util.PSQLException
