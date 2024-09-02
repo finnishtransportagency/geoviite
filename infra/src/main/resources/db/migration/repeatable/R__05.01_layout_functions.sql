@@ -1,3 +1,4 @@
+-- increment this to force re-execution: 1
 create or replace function layout.infer_operation_from_state_transition(old_state layout.state, new_state layout.state)
   returns varchar as
 $$

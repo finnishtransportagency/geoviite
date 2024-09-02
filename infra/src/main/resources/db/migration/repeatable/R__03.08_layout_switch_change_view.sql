@@ -1,3 +1,4 @@
+-- increment this to force re-execution: 1
 drop view if exists layout.switch_change_view;
 create view layout.switch_change_view as
 (
