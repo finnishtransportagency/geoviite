@@ -117,7 +117,7 @@ class PublicationDaoIT @Autowired constructor(
 
     @Test
     fun switchPublicationCandidatesAreFound() {
-        val (_, switch) = insertAndCheck(switch(987, draft = false))
+        val (_, switch) = insertAndCheck(switch(draft = false))
         val (_, draft) = insertAndCheck(asMainDraft(switch).copy(name = SwitchName("${switch.name} DRAFT")))
         val candidates = publicationDao.fetchSwitchPublicationCandidates(PublicationInMain)
         assertEquals(1, candidates.size)
@@ -194,7 +194,7 @@ class PublicationDaoIT @Autowired constructor(
     fun allCalculatedChangesAreRecorded() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val locationTrackId = insertAndCheck(locationTrack(trackNumberId, draft = false)).first.id
-        val switchId = insertAndCheck(switch(234, draft = false)).first.id
+        val switchId = insertAndCheck(switch(draft = false)).first.id
 
         val switchJointChange = SwitchJointChange(
             JointNumber(1),
@@ -265,7 +265,7 @@ class PublicationDaoIT @Autowired constructor(
     @Test
     fun fetchOfficialSwitchTrackNumbers() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val (_, switch) = insertAndCheck(switch(234, name = "Foo", draft = false))
+        val (_, switch) = insertAndCheck(switch(name = "Foo", draft = false))
         val switchId = switch.id as IntId
         insertAndCheck(
             locationTrack(trackNumberId, draft = false).copy(
@@ -282,7 +282,7 @@ class PublicationDaoIT @Autowired constructor(
     @Test
     fun fetchDraftOnlySwitchTrackNumbers() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val (_, switch) = insertAndCheck(switch(345, name = "Foo", draft = true))
+        val (_, switch) = insertAndCheck(switch(name = "Foo", draft = true))
         val switchId = switch.id as IntId
         insertAndCheck(
             locationTrack(trackNumberId, draft = true).copy(
@@ -300,8 +300,8 @@ class PublicationDaoIT @Autowired constructor(
     @Test
     fun `fetchLinkedLocationTracks works on publication units`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val switchByAlignment = switchDao.insert(switch(1, draft = false)).id
-        val switchByTopo = switchDao.insert(switch(2, draft = false)).id
+        val switchByAlignment = switchDao.insert(switch(draft = false)).id
+        val switchByTopo = switchDao.insert(switch(draft = false)).id
         val dummyAlignment = alignmentDao.insert(alignment())
         val officialLinkedTopo = locationTrackDao.insert(
             locationTrack(

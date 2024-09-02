@@ -95,7 +95,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
     @Test
     fun updatingSwitchLinkingChangesSourceToGenerated() {
         val insertedSwitch = switchDao.fetch(
-            switchDao.insert(switch(665, draft = false)).rowVersion
+            switchDao.insert(switch(draft = false)).rowVersion
         )
         val fittedSwitch = FittedSwitch(
             joints = emptyList(),
@@ -152,7 +152,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             locationTrackAndAlignment(trackNumberId = mainDraftContext.createLayoutTrackNumber().id, segments = segments)
         ).id
 
-        val insertedSwitch = mainOfficialContext.insertAndFetch(switch(665))
+        val insertedSwitch = mainOfficialContext.insertAndFetch(switch())
 
         val linkingJoints = listOf(
             FittedSwitchJoint(
@@ -233,7 +233,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
             locationTrackAndAlignment(trackNumberId = mainDraftContext.createLayoutTrackNumber().id, segments = segments)
         ).id
 
-        val insertedSwitch = switchDao.fetch(switchDao.insert(switch(665, draft = false)).rowVersion)
+        val insertedSwitch = switchDao.fetch(switchDao.insert(switch(draft = false)).rowVersion)
 
         val linkingJoints = listOf(
             FittedSwitchJoint(
@@ -300,11 +300,9 @@ class SwitchLinkingServiceIT @Autowired constructor(
     }
 
     private fun createAndLinkSwitch(
-        seed: Int = 123768,
         linkedJoints: List<FittedSwitchJoint>,
     ): TrackLayoutSwitch {
         return switch(
-            seed = seed,
             joints = listOf(),
             stateCategory = LayoutStateCategory.EXISTING,
         )
@@ -400,7 +398,6 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         val linkedSwitch = createAndLinkSwitch(
-            seed = seed,
             linkedJoints = switchJoints,
         )
 
@@ -503,7 +500,6 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         val newSwitch = createAndLinkSwitch(
-            seed = 98765,
             linkedJoints = overlappingSwitchJoints,
         )
 
@@ -594,7 +590,6 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         val existingSwitch = createAndLinkSwitch(
-            seed = 98765_1,
             linkedJoints = existingSwitchJoints,
         )
 
@@ -622,7 +617,6 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         val linkedSwitchWithOverlap = createAndLinkSwitch(
-            seed = 98765_2,
             linkedJoints = overlappingSwitchJoints,
         )
 
@@ -711,12 +705,10 @@ class SwitchLinkingServiceIT @Autowired constructor(
             )
 
             val existingLayoutSwitch = createAndLinkSwitch(
-                seed = index,
                 linkedJoints = existingSwitchJoints,
             )
 
             val linkedSwitchWithOverlap = createAndLinkSwitch(
-                seed = 1000 + index,
                 linkedJoints = listOf(
                     FittedSwitchJoint(
                         firstJointNumber,
@@ -795,7 +787,6 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         val linkedSwitch = createAndLinkSwitch(
-            seed = 98765_1,
             linkedJoints = listOf(
                 FittedSwitchJoint(
                     JointNumber(1),
@@ -857,7 +848,6 @@ class SwitchLinkingServiceIT @Autowired constructor(
         )
 
         val linkedSwitchWithTooMuchOverlap = createAndLinkSwitch(
-            seed = 98765_2,
             linkedJoints = jointsForSwitchWithTooMuchOverlap,
         )
 
@@ -1325,7 +1315,7 @@ class SwitchLinkingServiceIT @Autowired constructor(
         val templateThroughTrackSegments = templateTrackSections[0].second.segments
         val templateBranchingTrackSegments = templateTrackSections[1].second.segments
         val switch = switchDao.insert(templateSwitch.copy(contextData = LayoutContextData.newOfficial(LayoutBranch.main)))
-        val someOtherSwitch = switchDao.insert(switch(123, draft = false))
+        val someOtherSwitch = switchDao.insert(switch(draft = false))
 
         val shift =
             templateThroughTrackSegments.last().segmentEnd.toPoint() - templateThroughTrackSegments.first().segmentStart.toPoint()
@@ -1450,7 +1440,6 @@ class SwitchLinkingServiceIT @Autowired constructor(
             .find { it.type.typeName == "YV60-300-1:9-O" }!!.id as IntId
         val switchId = switchDao.insert(
             switch(
-                seed = 123,
                 structureId = switchStructureId,
                 joints = listOf(switchJoint(Point(0.0, 0.0))),
                 draft = false,

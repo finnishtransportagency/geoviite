@@ -525,7 +525,6 @@ class PublicationValidationTest {
     @Test
     fun validationCatchesMisplacedTopologyLink() {
         val wrongPlaceSwitch = switch(
-            seed = 123,
             stateCategory = EXISTING,
             joints = listOf(
                 TrackLayoutSwitchJoint(JointNumber(1), Point(100.0, 100.0), null),
@@ -534,7 +533,6 @@ class PublicationValidationTest {
             draft = true,
         )
         val rightPlaceSwitch = switch(
-            seed = 124,
             stateCategory = EXISTING,
             joints = listOf(
                 TrackLayoutSwitchJoint(JointNumber(1), Point(200.0, 200.0), null),
@@ -909,7 +907,6 @@ class PublicationValidationTest {
         switchInPublication: Boolean = true,
     ): SegmentSwitch {
         val switch = switch(
-            seed = 123,
             id = if (switchDraft) IntId(2) else IntId(1),
             stateCategory = switchStateCategory,
             draft = switchDraft,

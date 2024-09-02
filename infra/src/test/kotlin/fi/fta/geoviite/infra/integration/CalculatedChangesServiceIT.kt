@@ -36,6 +36,7 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineService
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
+import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.addTopologyEndSwitchIntoLocationTrackAndUpdate
 import fi.fta.geoviite.infra.tracklayout.addTopologyStartSwitchIntoLocationTrackAndUpdate
@@ -1115,15 +1116,18 @@ class CalculatedChangesServiceIT @Autowired constructor(
             referenceLine(trackNumberId, draft = true),
             alignment(segment(Point(0.0, 0.0), Point(0.0, 20.0))),
         ).id
-        val switch = switchService.saveDraft(LayoutBranch.main, switch(123, draft = true)).id
+        val switch = switchService.saveDraft(
+            LayoutBranch.main,
+            switch(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null)), draft = true)
+        ).id
         val wibblyTrack = locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrack(trackNumberId, draft = true),
             alignment(
                 segment(Point(0.0, 0.0), Point(0.0, 10.0))
-                    .copy(switchId = switch, endJointNumber = JointNumber(5)),
+                    .copy(switchId = switch, endJointNumber = JointNumber(1)),
                 segment(Point(0.0, 10.00001), Point(0.0, 20.0))
-                    .copy(switchId = switch, startJointNumber = JointNumber(5))
+                    .copy(switchId = switch, startJointNumber = JointNumber(1))
             ),
         )
         val changes = getCalculatedChanges(

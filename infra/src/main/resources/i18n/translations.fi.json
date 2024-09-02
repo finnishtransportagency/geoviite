@@ -1454,7 +1454,6 @@
                     "not-official": "Sijaintiraide viittaa vaihteen {{switch}} luonnosriviin",
                     "not-published": "Sijaintiraide viittaa julkaisemattomaan luonnosvaihteeseen {{switch}}",
                     "state-category": {
-                        "FUTURE_EXISTING": "Sijaintiraide viittaa vaihteeseen {{switch}}, joka on tilakategoriassa \"Tuleva kohde\"",
                         "NOT_EXISTING": "Sijaintiraide viittaa vaihteeseen {{switch}}, joka on tilakategoriassa \"Poistunut kohde\""
                     },
                     "alignment-not-continuous": "Sijaintiraide on kytketty vaihteelle {{switch}} useammasta kuin yhdestä kohtaa",
@@ -1481,9 +1480,6 @@
             },
             "switch": {
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava vaihde ei ole luonnos",
-                "state-category": {
-                    "FUTURE_EXISTING": "Vaihde on tilakategoriassa \"Tulevaksi kohteeksi\""
-                },
                 "no-location": "Vaihdetta ei ole linkitetty paikannuspohjaan",
                 "location-track": {
                     "reference-deleted": "Poistettavaan vaihteeseen viittaa edelleen raiteita: {{locationTracks}}",

@@ -81,6 +81,7 @@ import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asDesignDraft
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.assertMatches
+import fi.fta.geoviite.infra.tracklayout.joints
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -162,7 +163,7 @@ class PublicationServiceIT @Autowired constructor(
         val trackNumbers = mainDraftContext.createLayoutTrackNumbers(2)
         val officialTrackNumberId = mainOfficialContext.createLayoutTrackNumber().id
 
-        val switches = mainDraftContext.insertMany(switch(111), switch(112))
+        val switches = mainDraftContext.insertMany(switch(), switch())
 
         val referenceLines = mainDraftContext.insertMany(
             referenceLineAndAlignment(officialTrackNumberId),
@@ -203,7 +204,7 @@ class PublicationServiceIT @Autowired constructor(
     fun `Fetching all publication candidates works`() {
         val trackNumber = mainDraftContext.createLayoutTrackNumber()
 
-        val switch = mainDraftContext.insert(switch(123))
+        val switch = mainDraftContext.insert(switch())
 
         val segment = segment(Point(0.0, 0.0), Point(1.0, 1.0), switchId = switch.id)
         val track1 = mainDraftContext.insert(locationTrackAndAlignment(trackNumber.id, segment))
@@ -235,7 +236,7 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun `Publication contains correct TrackNumber links for switches`() {
-        val switch = mainDraftContext.insert(switch(123))
+        val switch = mainDraftContext.insert(switch())
         val trackNumberIds = listOf(
             mainOfficialContext.createLayoutTrackNumber().id,
             mainOfficialContext.createLayoutTrackNumber().id,
@@ -453,7 +454,7 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun publishingNewSwitchWorks() {
-        val draftId = switchService.saveDraft(LayoutBranch.main, switch(123, draft = true)).id
+        val draftId = switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id
         assertNull(switchService.get(MainLayoutContext.official, draftId))
         assertEquals(draftId, switchService.getOrThrow(MainLayoutContext.draft, draftId).id)
 
@@ -474,7 +475,7 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun publishingSwitchChangesWorks() {
         val officialId = switchDao.insert(
-            switch(55, draft = false).copy(
+            switch(draft = false).copy(
                 name = SwitchName("TST 001"),
                 joints = listOf(switchJoint(1), switchJoint(3)),
             )
@@ -664,8 +665,8 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun revertingOnlyGivenChangesWorks() {
-        val switch1 = switchService.saveDraft(LayoutBranch.main, switch(123, draft = true)).id
-        val switch2 = switchService.saveDraft(LayoutBranch.main, switch(234, draft = true)).id
+        val switch1 = switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id
+        val switch2 = switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id
 
         val revertResult = publicationService.revertPublicationCandidates(
             LayoutBranch.main,
@@ -903,18 +904,18 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun `Validating official switch should work`() {
-        val switchId = switchDao.insert(switch(123, draft = false, stateCategory = EXISTING,)).id
+        val switchId = switchDao.insert(switch(draft = false, stateCategory = EXISTING,)).id
 
         val validation = publicationService.validateSwitches(MainLayoutContext.official, listOf(switchId))
         assertEquals(1, validation.size)
-        assertEquals(2, validation[0].errors.size)
+        assertEquals(1, validation[0].errors.size)
     }
 
     @Test
     fun `Validating multiple switches should work`() {
-        val switchId = switchDao.insert(switch(123, draft = false)).id
-        val switchId2 = switchDao.insert(switch(234, draft = false)).id
-        val switchId3 = switchDao.insert(switch(456, draft = false)).id
+        val switchId = switchDao.insert(switch(draft = false)).id
+        val switchId2 = switchDao.insert(switch(draft = false)).id
+        val switchId3 = switchDao.insert(switch(draft = false)).id
 
         val validationIds = publicationService
             .validateSwitches(MainLayoutContext.official, listOf(switchId, switchId2, switchId3))
@@ -961,14 +962,14 @@ class PublicationServiceIT @Autowired constructor(
         val newLocationTrack1 = locationTrackDao.insert(newLt).id
         val newLocationTrack2 = locationTrackDao.insert(newLt).id
 
-        switchDao.insert(switch(123, name = "SW", stateCategory = LayoutStateCategory.EXISTING, draft = false))
+        switchDao.insert(switch(name = "SW", stateCategory = LayoutStateCategory.EXISTING, draft = false))
         // one new switch trying to use an official one's name
         val draftSwitchId = switchDao.insert(
-            switch(123, name = "SW", stateCategory = LayoutStateCategory.EXISTING, draft = true)
+            switch(name = "SW", stateCategory = LayoutStateCategory.EXISTING, draft = true)
         ).id
 
         // two new switches both trying to use the same name
-        val newSwitch = switch(124, name = "NSW", stateCategory = LayoutStateCategory.EXISTING, draft = true)
+        val newSwitch = switch(name = "NSW", stateCategory = LayoutStateCategory.EXISTING, draft = true)
         val newSwitch1 = switchDao.insert(newSwitch).id
         val newSwitch2 = switchDao.insert(newSwitch).id
 
@@ -1117,8 +1118,8 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun `Publication rejects duplicate switch names`() {
-        switchDao.insert(switch(123, name = "SW123", draft = false, stateCategory = EXISTING,))
-        val draftSwitchId = switchDao.insert(switch(123, name = "SW123", draft = true, stateCategory = EXISTING,)).id
+        switchDao.insert(switch(name = "SW123", draft = false, stateCategory = EXISTING,))
+        val draftSwitchId = switchDao.insert(switch(name = "SW123", draft = true, stateCategory = EXISTING,)).id
         val exception = assertThrows<DuplicateNameInPublicationException> {
             publish(publicationService, switches = listOf(draftSwitchId))
         }
@@ -2323,7 +2324,6 @@ class PublicationServiceIT @Autowired constructor(
         )
         val switch = switchDao.insert(
             switch(
-                seed = 123,
                 joints = listOf(
                     TrackLayoutSwitchJoint(JointNumber(1), Point(4.2, 0.1), null)
                 ),
@@ -2391,7 +2391,6 @@ class PublicationServiceIT @Autowired constructor(
         )
         val switch = switchDao.insert(
             switch(
-                seed = 123,
                 joints = listOf(
                     TrackLayoutSwitchJoint(JointNumber(1), Point(4.2, 0.1), null)
                 ),
@@ -2679,7 +2678,10 @@ class PublicationServiceIT @Autowired constructor(
         val switchId = switchService.saveDraft(
             LayoutBranch.main,
             switch(
-                seed = 123,
+                name = "TV123",
+                joints = listOf(
+                    TrackLayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null),
+                ),
                 structureId = switchStructureDao
                     .fetchSwitchStructures()
                     .find { ss -> ss.type.typeName == "KRV43-233-1:9" }!!.id as IntId,
@@ -2753,7 +2755,10 @@ class PublicationServiceIT @Autowired constructor(
         val switchId = switchService.saveDraft(
             LayoutBranch.main,
             switch(
-                seed = 123,
+                name = "TV123",
+                joints = listOf(
+                    TrackLayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null),
+                ),
                 structureId = switchStructureYV60_300_1_9().id as IntId,
                 stateCategory = LayoutStateCategory.EXISTING,
                 draft = true,
@@ -3275,7 +3280,7 @@ class PublicationServiceIT @Autowired constructor(
         val referenceLine = designDraftContext.insert(referenceLine(trackNumber, alignmentVersion = alignment)).id
         val locationTrack = designDraftContext.insert(locationTrack(trackNumber, alignmentVersion = alignment)).id
         val kmPost = designDraftContext.insert(kmPost(trackNumber, KmNumber(1), Point(1.0, 1.0))).id
-        val switch = designDraftContext.insert(switch(123)).id
+        val switch = designDraftContext.insert(switch()).id
 
         publishAndVerify(
             testBranch,
@@ -3314,7 +3319,7 @@ class PublicationServiceIT @Autowired constructor(
         val referenceLine = testDraftContext.insert(referenceLine(trackNumber, alignmentVersion = alignment)).id
         val locationTrack = testDraftContext.insert(locationTrack(trackNumber, alignmentVersion = alignment)).id
         val kmPost = testDraftContext.insert(kmPost(trackNumber, KmNumber(1), Point(1.0, 1.0))).id
-        val switch = testDraftContext.insert(switch(123)).id
+        val switch = testDraftContext.insert(switch()).id
 
         publishAndVerify(
             testBranch,
@@ -3369,7 +3374,7 @@ class PublicationServiceIT @Autowired constructor(
         val referenceLine = mainOfficialContext.insert(referenceLine(trackNumber, alignmentVersion = alignment)).id
         val locationTrack = mainOfficialContext.insert(locationTrack(trackNumber, alignmentVersion = alignment)).id
         val kmPost = mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1), Point(1.0, 1.0))).id
-        val switch = mainOfficialContext.insert(switch(123)).id
+        val switch = mainOfficialContext.insert(switch()).id
 
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
         val testDraftContext = testDBService.testContext(testBranch, DRAFT)
@@ -3452,7 +3457,7 @@ class PublicationServiceIT @Autowired constructor(
         val referenceLine = mainOfficialContext.insert(referenceLine(trackNumber, alignmentVersion = alignment)).id
         val locationTrack = mainOfficialContext.insert(locationTrack(trackNumber, alignmentVersion = alignment)).id
         val kmPost = mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1), Point(1.0, 1.0))).id
-        val switch = mainOfficialContext.insert(switch(123)).id
+        val switch = mainOfficialContext.insert(switch()).id
 
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
         val testDraftContext = testDBService.testContext(testBranch, DRAFT)
@@ -3665,7 +3670,7 @@ class PublicationServiceIT @Autowired constructor(
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val switchId = switchDao.insert(
             switch(
-                seed = 123,
+                name = "TV123",
                 structureId = switchStructureYV60_300_1_9().id as IntId,
                 draft = false,
             ).copy(stateCategory = LayoutStateCategory.EXISTING)
@@ -3742,7 +3747,14 @@ class PublicationServiceIT @Autowired constructor(
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val switchId = switchDao.insert(
             switch(
-                seed = 123,
+                name = "TV123",
+                joints = listOf(
+                    TrackLayoutSwitchJoint(
+                        JointNumber(1),
+                        location = Point(0.0, 0.0),
+                        locationAccuracy = null,
+                    ),
+                ),
                 structureId = switchStructureYV60_300_1_9().id as IntId,
                 stateCategory = LayoutStateCategory.EXISTING,
                 draft = false

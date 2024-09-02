@@ -194,7 +194,20 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun switchesAreSortedByComparisonPoint() {
-        val idOfRandomSwitch = mainOfficialContext.createSwitch().id
+        val idOfRandomSwitch = mainOfficialContext.createSwitch(
+            joints = listOf(
+                TrackLayoutSwitchJoint(
+                    JointNumber(1),
+                    location = Point(428305.33617941965, 7210146.458099049),
+                    locationAccuracy = null,
+                ),
+                TrackLayoutSwitchJoint(
+                    JointNumber(5),
+                    location = Point(422222.2, 7222222.2),
+                    locationAccuracy = null,
+                )
+            )
+        ).id
 
         val idOfSwitchLocatedAtComparisonPoint = mainOfficialContext.insert(
             switch(
@@ -265,7 +278,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
         val tnId = mainDraftContext.createLayoutTrackNumber().id
         val switch = switchService.getOrThrow(
             MainLayoutContext.draft,
-            switchService.saveDraft(LayoutBranch.main, switch(1, draft = true)).id,
+            switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id,
         )
         val (_, withStartLink) = insertDraft(
             locationTrack(tnId, externalId = someOid(), draft = true).copy(
@@ -308,7 +321,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
     @Test
     fun shouldReturnLocationTracksThatAreLinkedToSwitchAtMoment() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val switchId = mainOfficialContext.insert(switch(1)).id
+        val switchId = mainOfficialContext.insert(switch()).id
 
         val locationTrack1Oid = someOid<LocationTrack>()
         val locationTrack1 = mainOfficialContext.insert(
@@ -378,7 +391,11 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun getSwitchLinksTopologicalConnections() {
-        val switch = switch(123, IntId(1), draft = false)
+        val switch = switch(
+            IntId(1),
+            joints = listOf(switchJoint(1, Point(1.0, 1.0))),
+            draft = false,
+        )
         val switchVersion = switchDao.insert(switch)
         val joint1Point = switch.getJoint(JointNumber(1))!!.location
         val (locationTrack, alignment) = locationTrackAndAlignment(

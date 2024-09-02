@@ -489,11 +489,13 @@ data class TestLayoutContext(
         createAndFetchLayoutTrackNumber().let { tn -> tn.number to tn.id as IntId }
 
     fun createSwitch(
-        stateCategory: LayoutStateCategory = LayoutStateCategory.EXISTING,
+        stateCategory: LayoutStateCategory = EXISTING,
+        joints: List<TrackLayoutSwitchJoint> = emptyList(),
     ): LayoutDaoResponse<TrackLayoutSwitch> = insert(
         switch(
             name = testService.getUnusedSwitchName().toString(),
             stateCategory = stateCategory,
+            joints = joints,
         )
     )
 

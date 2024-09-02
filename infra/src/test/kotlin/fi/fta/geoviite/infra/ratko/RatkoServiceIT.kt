@@ -853,7 +853,7 @@ class RatkoServiceIT @Autowired constructor(
     fun pushSwitch() {
         val trackNumber = establishedTrackNumber()
 
-        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumber.id)
+        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumber.id, "TV123")
 
         listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::acceptsNewLocationTrackGivingItOid)
         fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
@@ -954,11 +954,12 @@ class RatkoServiceIT @Autowired constructor(
 
     private fun setupDraftSwitchAndLocationTracks(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
+        switchName: String = "TV123",
     ): Triple<LayoutDaoResponse<TrackLayoutSwitch>, LayoutDaoResponse<LocationTrack>, LayoutDaoResponse<LocationTrack>> {
         val switch = switchService.saveDraft(
             LayoutBranch.main,
             switch(
-                seed = 123,
+                name = switchName,
                 joints = listOf(
                     switchJoint(124).copy(
                         number = JointNumber(1),

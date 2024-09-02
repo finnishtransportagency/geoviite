@@ -889,13 +889,14 @@ fun switchFromDbStructure(
     },
 )
 
+private var switchNameCounter = 0
+
 fun switch(
-    seed: Int = 1,
     structureId: IntId<SwitchStructure> = switchStructureYV60_300_1_9().id as IntId,
-    joints: List<TrackLayoutSwitchJoint> = joints(seed),
-    name: String = "TV$seed",
+    joints: List<TrackLayoutSwitchJoint> = listOf(),
+    name: String = "TV${switchNameCounter++}",
     externalId: String? = null,
-    stateCategory: LayoutStateCategory = getSomeValue(seed),
+    stateCategory: LayoutStateCategory = LayoutStateCategory.EXISTING,
     id: IntId<TrackLayoutSwitch>? = null,
     draft: Boolean = false,
     draftOfId: IntId<TrackLayoutSwitch>? = null,
