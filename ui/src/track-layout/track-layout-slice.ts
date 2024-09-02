@@ -305,8 +305,11 @@ const trackLayoutSlice = createSlice({
         },
 
         onClickLocation: (state: TrackLayoutState, action: PayloadAction<Point>): void => {
-            if (state.linkingState?.type == LinkingType.SuggestingSwitchPlace) {
-                //                state.linkingState.location = action.payload;
+            if (
+                state.linkingState?.type == LinkingType.SuggestingSwitchPlace &&
+                state.linkingState.suggestedSwitch !== undefined
+            ) {
+                state.linkingState.accepted = true;
             } else {
                 mapReducers.onClickLocation(state.map, action);
             }

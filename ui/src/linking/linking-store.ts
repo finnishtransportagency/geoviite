@@ -217,6 +217,7 @@ export const linkingReducers = {
                 layoutSwitch: state.linkingState.layoutSwitch,
                 state: 'preliminary',
                 issues: [],
+                accepted: false,
             };
     },
     startSwitchLinking: (

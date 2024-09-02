@@ -162,6 +162,7 @@ export type SuggestingSwitchPlace = LinkingBaseType & {
     type: LinkingType.SuggestingSwitchPlace;
     layoutSwitch: LayoutSwitch;
     suggestedSwitch: SuggestedSwitch | undefined;
+    accepted: boolean;
 };
 
 export type LinkingKmPost = LinkingBaseType & {

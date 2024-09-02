@@ -23,10 +23,14 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
     const changeTimes = useCommonDataAppSelector((state) => state.changeTimes);
 
     const infoboxVisibilities = useTrackLayoutAppSelector((state) => state.infoboxVisibilities);
-    /*
+
     React.useEffect(() => {
         const linkingState = store.linkingState;
-        if (linkingState?.type == LinkingType.SuggestingSwitchPlace) {
+        if (
+            linkingState?.type == LinkingType.SuggestingSwitchPlace &&
+            linkingState.suggestedSwitch !== undefined &&
+            linkingState.accepted
+        ) {
             const suggestedSwitch = linkingState.suggestedSwitch;
             const layoutSwitch = linkingState.layoutSwitch;
             delegates.onSelect({
@@ -39,7 +43,6 @@ const ToolPanelContainer: React.FC<ToolPanelContainerProps> = ({ setHoveredOverI
             delegates.showLayers(['switch-linking-layer']);
         }
     }, [store.linkingState]);
-*/
 
     return (
         <ToolPanel
