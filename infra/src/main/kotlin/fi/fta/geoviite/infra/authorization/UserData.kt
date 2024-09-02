@@ -1,10 +1,11 @@
 package fi.fta.geoviite.infra.authorization
 
 import com.fasterxml.jackson.annotation.JsonCreator
-import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
-import fi.fta.geoviite.infra.util.*
+import fi.fta.geoviite.infra.util.Code
+import fi.fta.geoviite.infra.util.assertLength
+import fi.fta.geoviite.infra.util.removeLogUnsafe
 import org.springframework.security.core.GrantedAuthority
 
 data class User(val details: UserDetails, val role: Role, val availableRoles: List<Role>)
@@ -25,9 +26,11 @@ data class Privilege(val code: Code) : GrantedAuthority {
 
 val userNameLength = 3..300
 
-data class UserName @JsonCreator(mode = DELEGATING) private constructor(private val value: String)
+data class UserName private constructor(private val value: String)
     : Comparable<UserName>, CharSequence by value {
     companion object {
+        @JvmStatic
+        @JsonCreator
         fun of(name: String) = UserName(removeLogUnsafe(name))
     }
     init { assertLength<UserName>(value, userNameLength) }
@@ -39,9 +42,11 @@ data class UserName @JsonCreator(mode = DELEGATING) private constructor(private 
 
 val authNameLength = 1..300
 
-data class AuthName @JsonCreator(mode = DELEGATING) private constructor(private val value: String)
+data class AuthName private constructor(private val value: String)
     : Comparable<AuthName>, CharSequence by value {
     companion object {
+        @JvmStatic
+        @JsonCreator
         fun of(name: String) = AuthName(removeLogUnsafe(name))
     }
     init { assertLength<AuthName>(value, authNameLength) }

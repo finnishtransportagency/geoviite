@@ -233,7 +233,7 @@ class PublicationDaoIT @Autowired constructor(
             ),
             indirectChanges = IndirectChanges(emptyList(), emptyList(), emptyList()),
         )
-        val publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines(""))
+        val publicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of(""))
         publicationDao.insertCalculatedChanges(publicationId, changes)
 
         val publishedTrackNumbers = publicationDao.fetchPublishedTrackNumbers(publicationId)
@@ -257,7 +257,7 @@ class PublicationDaoIT @Autowired constructor(
 
     @Test
     fun `Publication message is stored and fetched correctly`() {
-        val message = FreeTextWithNewLines("Test")
+        val message = FreeTextWithNewLines.of("Test")
         val publicationId = publicationDao.createPublication(LayoutBranch.main, message)
         assertEquals(message, publicationDao.getPublication(publicationId).message)
     }
@@ -393,10 +393,10 @@ class PublicationDaoIT @Autowired constructor(
     fun `fetchLatestPublicationDetails lists design publications in design mode`() {
         val someDesign = DesignBranch.of(layoutDesignDao.insert(layoutDesign("one")))
         val anotherDesign = DesignBranch.of(layoutDesignDao.insert(layoutDesign("two")))
-        publicationDao.createPublication(someDesign, FreeTextWithNewLines("in someDesign"))
-        publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines("in main"))
-        publicationDao.createPublication(anotherDesign, FreeTextWithNewLines("in anotherDesign"))
-        publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines("again in main"))
+        publicationDao.createPublication(someDesign, FreeTextWithNewLines.of("in someDesign"))
+        publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("in main"))
+        publicationDao.createPublication(anotherDesign, FreeTextWithNewLines.of("in anotherDesign"))
+        publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("again in main"))
         assertEquals(
             listOf("in anotherDesign", "in someDesign"),
             publicationDao.fetchLatestPublications(LayoutBranchType.DESIGN, 2).map { it.message.toString() }

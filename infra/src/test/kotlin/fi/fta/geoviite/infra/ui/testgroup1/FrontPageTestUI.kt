@@ -61,7 +61,7 @@ class FrontPageTestUI @Autowired constructor(
         )
         referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = alignmentVersion, draft = false))
 
-        val successfulPublicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines("successful"))
+        val successfulPublicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("successful"))
         publicationDao.insertCalculatedChanges(successfulPublicationId, changesTouchingTrackNumber(trackNumberId))
 
         trackNumberDao
@@ -69,7 +69,7 @@ class FrontPageTestUI @Autowired constructor(
             .copy(number = TrackNumber("updated name"))
             .let(trackNumberDao::update)
 
-        val failingPublicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines("failing test publication"))
+        val failingPublicationId = publicationDao.createPublication(LayoutBranch.main, FreeTextWithNewLines.of("failing test publication"))
         publicationDao.insertCalculatedChanges(failingPublicationId, changesTouchingTrackNumber(trackNumberId))
 
         val failedRatkoPushId = ratkoPushDao.startPushing(listOf(failingPublicationId))

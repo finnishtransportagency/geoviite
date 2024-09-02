@@ -46,21 +46,21 @@ class PublicationLogSearchTestUI @Autowired constructor(
                 content = publicationRequestIds(
                     trackNumbers = listOf(someTrackNumberId)
                 ),
-                message = FreeTextWithNewLines("some test publication 1"),
+                message = FreeTextWithNewLines.of("some test publication 1"),
             ),
 
             PublicationRequest(
                 content = publicationRequestIds(
                     referenceLines = listOf(mainDraftContext.insert(someReferenceLine.first, someReferenceLine.second).id)
                 ),
-                message = FreeTextWithNewLines("some test publication 2"),
+                message = FreeTextWithNewLines.of("some test publication 2"),
             ),
 
             PublicationRequest(
                 content = publicationRequestIds(
                     locationTracks = listOf(mainDraftContext.insert(someTrack).id)
                 ),
-                message = FreeTextWithNewLines("some test publication 3"),
+                message = FreeTextWithNewLines.of("some test publication 3"),
             )
         )
 

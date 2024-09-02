@@ -13,11 +13,11 @@ import fi.fta.geoviite.infra.geometry.Author
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometryService
+import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
 import fi.fta.geoviite.infra.geometry.PlanLayoutCache
 import fi.fta.geoviite.infra.geometry.PlanSource
 import fi.fta.geoviite.infra.geometry.Project
 import fi.fta.geoviite.infra.geometry.TransformationError
-import fi.fta.geoviite.infra.geometry.GeometryValidationIssue
 import fi.fta.geoviite.infra.geometry.getBoundingPolygonPointsFromAlignments
 import fi.fta.geoviite.infra.geometry.validate
 import fi.fta.geoviite.infra.localization.localizationParams
@@ -26,7 +26,6 @@ import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.util.LocalizationKey
-import fi.fta.geoviite.infra.util.normalizeLinebreaksToUnixFormat
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
@@ -176,9 +175,6 @@ class InfraModelService @Autowired constructor(
 
         val overrideCs = overrideParameters?.coordinateSystemSrid?.let(geographyService::getCoordinateSystem)
 
-        val messageWithNormalizedLinebreaks = extraInfoParameters
-            ?.message?.let { normalizeLinebreaksToUnixFormat(extraInfoParameters.message) }
-
         // Nullable fields that do not contain a default parameter via the elvis-operator are considered to be assignable
         // to null even if they have non-null values stored in the database.
         return plan.copy(
@@ -196,7 +192,7 @@ class InfraModelService @Autowired constructor(
             decisionPhase = extraInfoParameters?.decisionPhase,
             measurementMethod = extraInfoParameters?.measurementMethod,
             elevationMeasurementMethod = extraInfoParameters?.elevationMeasurementMethod,
-            message = messageWithNormalizedLinebreaks ?: plan.message,
+            message = extraInfoParameters?.message ?: plan.message,
             planTime = overrideParameters?.createdDate ?: plan.planTime,
             uploadTime = plan.uploadTime,
             source = overrideParameters?.source ?: plan.source,

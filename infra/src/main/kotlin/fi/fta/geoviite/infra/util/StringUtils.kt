@@ -42,8 +42,6 @@ fun removeLogUnsafe(input: String) = input.replace(UNSAFE_LOG_CHARACTERS, UNSAFE
 fun removeLinebreaks(input: String) = input.replace(lineBreakRegex, LINE_BREAK_REPLACEMENT)
 
 fun normalizeLinebreaksToUnixFormat(input: String) = input.replace(linebreakNormalizationRegex, UNIX_LINEBREAK)
-fun normalizeLinebreaksToUnixFormat(input: FreeTextWithNewLines) =
-    FreeTextWithNewLines(normalizeLinebreaksToUnixFormat(input.toString()))
 
 fun isSanitized(
     stringValue: String,

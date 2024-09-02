@@ -36,12 +36,16 @@ data class FreeText @JsonCreator(mode = DELEGATING) constructor(private val valu
     operator fun plus(addition: String) = FreeText("$value$addition")
 }
 
-data class FreeTextWithNewLines @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
+data class FreeTextWithNewLines private constructor(private val value: String) :
     Comparable<FreeTextWithNewLines>, CharSequence by value {
 
     companion object {
         const val ALLOWED_CHARACTERS = FreeText.ALLOWED_CHARACTERS + "\n"
         val sanitizer = Regex("^[$ALLOWED_CHARACTERS]*\$")
+
+        @JvmStatic
+        @JsonCreator
+        fun of(value: String) = FreeTextWithNewLines(normalizeLinebreaksToUnixFormat(value))
     }
 
     init { assertSanitized<FreeTextWithNewLines>(value, sanitizer) }

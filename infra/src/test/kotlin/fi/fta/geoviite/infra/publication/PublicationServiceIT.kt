@@ -738,7 +738,7 @@ class PublicationServiceIT @Autowired constructor(
             publicationRequest(locationTracks = splitSetup.trackIds)
         ).let { versions ->
             publicationService
-                .publishChanges(LayoutBranch.main, versions, getCalculatedChangesInRequest(versions), FreeTextWithNewLines(""))
+                .publishChanges(LayoutBranch.main, versions, getCalculatedChangesInRequest(versions), FreeTextWithNewLines.of(""))
                 .publicationId
         }
 
@@ -4137,7 +4137,7 @@ class PublicationServiceIT @Autowired constructor(
         layoutBranch,
         versions,
         calculatedChanges,
-        FreeTextWithNewLines("${this::class.simpleName}"),
+        FreeTextWithNewLines.of("${this::class.simpleName}"),
     )
 }
 
