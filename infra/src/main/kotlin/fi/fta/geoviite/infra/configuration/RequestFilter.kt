@@ -10,13 +10,20 @@ import correlationId
 import currentUser
 import currentUserRole
 import fi.fta.geoviite.infra.SpringContextUtility
-import fi.fta.geoviite.infra.authorization.*
+import fi.fta.geoviite.infra.authorization.AuthCode
+import fi.fta.geoviite.infra.authorization.AuthName
+import fi.fta.geoviite.infra.authorization.AuthorizationService
+import fi.fta.geoviite.infra.authorization.DESIRED_ROLE_COOKIE_NAME
+import fi.fta.geoviite.infra.authorization.IntegrationApiUserType
+import fi.fta.geoviite.infra.authorization.Role
+import fi.fta.geoviite.infra.authorization.User
+import fi.fta.geoviite.infra.authorization.UserDetails
+import fi.fta.geoviite.infra.authorization.UserName
+import fi.fta.geoviite.infra.authorization.isValidCode
 import fi.fta.geoviite.infra.error.ApiUnauthorizedException
 import fi.fta.geoviite.infra.error.createErrorResponse
 import fi.fta.geoviite.infra.logging.apiRequest
 import fi.fta.geoviite.infra.logging.apiResponse
-import fi.fta.geoviite.infra.util.Code
-import fi.fta.geoviite.infra.util.isValidCode
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -125,7 +132,7 @@ class RequestFilter @Autowired constructor(
         User(
             details = UserDetails(UserName.of("HEALTH_CHECK"), null, null, null),
             role = Role(
-                code = Code("health-check"),
+                code = AuthCode("health-check"),
                 privileges = listOf(),
             ),
             availableRoles = listOf()
@@ -224,7 +231,7 @@ class RequestFilter @Autowired constructor(
         return request.cookies?.firstOrNull { cookie ->
             cookie?.name == DESIRED_ROLE_COOKIE_NAME
         }?.let { desiredRoleCookie ->
-            val desiredRoleCode = Code(desiredRoleCookie.value)
+            val desiredRoleCode = AuthCode(desiredRoleCookie.value)
 
             availableRoles.find { availableRole ->
                 availableRole.code == desiredRoleCode
@@ -353,7 +360,7 @@ private fun jwtDataContent(dataToken: DecodedJWT) = JwtContent(
         .getMandatoryClaim(JwtClaim.ROLES)
         .split(",")
         .filter(::isValidCode)
-        .map(::Code),
+        .map(::AuthCode),
 )
 
 private fun extractJwtToken(request: HttpServletRequest, header: String): DecodedJWT {
@@ -370,7 +377,7 @@ private fun decodeJwt(token: String): DecodedJWT {
     }
 }
 
-data class JwtContent(val userDetails: UserDetails, val groupNames: List<Code>)
+data class JwtContent(val userDetails: UserDetails, val groupNames: List<AuthCode>)
 
 @Suppress("unused")
 enum class JwtClaim(val header: String) {

@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.util
 
+import fi.fta.geoviite.infra.authorization.AuthCode
 import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.DesignLayoutContext
 import fi.fta.geoviite.infra.common.FeatureTypeCode
@@ -235,9 +236,9 @@ fun <T> ResultSet.getLayoutRowVersionOrNull(rowIdName: String, versionName: Stri
 
 fun ResultSet.getIntNonNull(name: String) = getIntOrNull(name) ?: error("$name can't be null")
 
-fun ResultSet.getCode(name: String): Code = getCodeOrNull(name) ?: error("StringCode was null")
+fun ResultSet.getCode(name: String): AuthCode = getCodeOrNull(name) ?: error("StringCode was null")
 
-fun ResultSet.getCodeOrNull(name: String): Code? = getString(name)?.let(::Code)
+fun ResultSet.getCodeOrNull(name: String): AuthCode? = getString(name)?.let(::AuthCode)
 
 fun ResultSet.getFreeText(name: String): FreeText = verifyNotNull(name, ::getFreeTextOrNull)
 

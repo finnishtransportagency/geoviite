@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 
-class FeatureTypeCodeTest {
+class FeatureTypeAuthCodeTest {
 
     @Test
     fun featureTypeCodeAllowsValidValues() {

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.configuration.HTTP_HEADER_JWT_DATA
-import fi.fta.geoviite.infra.util.Code
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -15,7 +14,6 @@ import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import kotlin.test.assertEquals
-
 
 /*
 Generated via jwt.io
@@ -60,7 +58,7 @@ class AuthorizationIT @Autowired constructor(
 
     val testApi = TestApi(mapper, mockMvc)
 
-    val availableRoles = authorizationDao.getRolesByRoleCodes(listOf(Code("browser")))
+    val availableRoles = authorizationDao.getRolesByRoleCodes(listOf(AuthCode("browser")))
     val user by lazy {
         User(
             details = UserDetails(

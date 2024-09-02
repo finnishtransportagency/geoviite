@@ -1,6 +1,8 @@
-import RequestProperty.Type.*
+import RequestProperty.Type.CORRELATION_ID_HEADER
+import RequestProperty.Type.ROLE
+import RequestProperty.Type.USER
+import fi.fta.geoviite.infra.authorization.AuthCode
 import fi.fta.geoviite.infra.authorization.UserName
-import fi.fta.geoviite.infra.util.Code
 import org.apache.logging.log4j.ThreadContext
 
 private class RequestProperty<T>(val type: Type, private val init: (String) -> T) : IRequestProperty<T> {
@@ -17,7 +19,6 @@ private class RequestProperty<T>(val type: Type, private val init: (String) -> T
     enum class Type(val header: String) {
         CORRELATION_ID_HEADER("correlationId"), USER("user"), ROLE("role"),
     }
-
 }
 
 interface IRequestProperty<T> {
@@ -27,9 +28,8 @@ interface IRequestProperty<T> {
     fun getOrNull(): T?
 }
 
-
 val currentUser: IRequestProperty<UserName> = RequestProperty(USER, UserName::of)
-val currentUserRole: IRequestProperty<Code> = RequestProperty(ROLE, ::Code)
+val currentUserRole: IRequestProperty<AuthCode> = RequestProperty(ROLE, ::AuthCode)
 val correlationId: IRequestProperty<String> = RequestProperty(CORRELATION_ID_HEADER) { it }
 
 fun <T> withUser(user: UserName, op: () -> T): T {

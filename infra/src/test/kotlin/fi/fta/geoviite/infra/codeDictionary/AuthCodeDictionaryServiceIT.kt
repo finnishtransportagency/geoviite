@@ -12,7 +12,7 @@ import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class CodeDictionaryServiceIT @Autowired constructor(
+class AuthCodeDictionaryServiceIT @Autowired constructor(
     private val codeDictionaryService: CodeDictionaryService
 ): DBTestBase() {
 
