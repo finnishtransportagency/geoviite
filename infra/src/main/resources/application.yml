@@ -46,6 +46,15 @@ geoviite:
     distribution-name: "${CLOUDFRONT_DNS_NAME:}"
   scheduling:
     enabled: true
+    tasks:
+      create-element-listing-csv:
+        enabled: true
+      publication-geometry-change-remarks-update:
+        enabled: true
+      ratko-push:
+        enabled: true
+      ratko-operating-points-fetch:
+        enabled: true
   cache:
     enabled: true
     preload: true
@@ -77,6 +86,9 @@ geoviite:
   rail-network-export:
     schedule: "0 0 3 * * *"
     vertical-geometry-schedule: "0 0 4 * * *"
+  integration-api:
+    enabled: false
+    url-path-prefixes: [ ]
 
 server:
   compression:

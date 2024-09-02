@@ -297,8 +297,6 @@ class GeometryService @Autowired constructor(
         return ElementListingFile(FileName("${translation.t("data-products.element-list.element-list-title")} ${track.name}"), csvFileContent)
     }
 
-    @Scheduled(cron = "\${geoviite.rail-network-export.schedule}")
-    @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
     fun makeElementListingCsv() = runElementListGeneration {
         val translation = localizationService.getLocalization(LocalizationLanguage.FI)
         val geocodingContexts = geocodingService.getGeocodingContexts(MainLayoutContext.official)

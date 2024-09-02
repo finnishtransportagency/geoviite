@@ -1,25 +1,17 @@
 package fi.fta.geoviite.infra.configuration
 
 import fi.fta.geoviite.infra.geometry.GeometryDao
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
-import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.Duration
 import java.time.Instant
 
-const val CACHE_WARMUP_DELAY = 1000L
-const val CACHE_RELOAD_INTERVAL = 45 * 60 * 1000L
-
 @ConditionalOnWebApplication
 @Component
 class CachePreloader(
-    @Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boolean,
-    @Value("\${geoviite.cache.preload}") private val cachePreloadEnabled: Boolean,
     private val layoutTrackNumberDao: LayoutTrackNumberDao,
     private val layoutKmPostDao: LayoutKmPostDao,
     private val switchDao: LayoutSwitchDao,
@@ -30,28 +22,23 @@ class CachePreloader(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
-    fun scheduleLayoutAssetReload() {
-        if (cacheEnabled && cachePreloadEnabled) {
-            listOf(
-                layoutTrackNumberDao, referenceLineDao, locationTrackDao, switchDao, layoutKmPostDao
-            ).parallelStream().forEach { dao -> refreshCache(dao) }
-        }
+    fun loadLayoutCache() {
+        listOf(
+            layoutTrackNumberDao,
+            referenceLineDao,
+            locationTrackDao,
+            switchDao,
+            layoutKmPostDao,
+        ).parallelStream().forEach { dao -> refreshCache(dao) }
     }
 
-    @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
-    fun schedulePlanHeaderReload() {
-        if (cacheEnabled && cachePreloadEnabled) {
-            refreshCache("PlanHeader", geometryDao::preloadHeaderCache)
-        }
+    fun loadPlanHeaderCache() {
+        refreshCache("PlanHeader", geometryDao::preloadHeaderCache)
     }
 
-    @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
-    fun scheduleAlignmentReload() {
-        if (cacheEnabled && cachePreloadEnabled) {
-            refreshCache("SegmentGeometries", alignmentDao::preloadSegmentGeometries)
-            refreshCache("Alignment", alignmentDao::preloadAlignmentCache)
-        }
+    fun loadAlignmentCache() {
+        refreshCache("SegmentGeometries", alignmentDao::preloadSegmentGeometries)
+        refreshCache("Alignment", alignmentDao::preloadAlignmentCache)
     }
 
     private fun <T : LayoutAsset<T>> refreshCache(dao: LayoutAssetDao<T>) =

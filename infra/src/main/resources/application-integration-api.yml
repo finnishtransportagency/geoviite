@@ -13,3 +13,7 @@ geoviite:
     enabled: false
   projektivelho:
     enabled: false
+  integration-api:
+    enabled: true
+    url-path-prefixes:
+      - /rata-vkm

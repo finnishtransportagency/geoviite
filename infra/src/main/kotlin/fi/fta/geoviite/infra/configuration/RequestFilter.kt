@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.configuration
 
+import fi.fta.geoviite.api.configuration.IntegrationApiConfiguration
 import com.auth0.jwk.UrlJwkProvider
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
@@ -11,6 +12,7 @@ import currentUser
 import currentUserRole
 import fi.fta.geoviite.infra.SpringContextUtility
 import fi.fta.geoviite.infra.authorization.*
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.ApiUnauthorizedException
 import fi.fta.geoviite.infra.error.createErrorResponse
 import fi.fta.geoviite.infra.logging.apiRequest
@@ -59,6 +61,8 @@ class RequestFilter @Autowired constructor(
     @Value("\${geoviite.jwt.validation.enabled:true}") private val validationEnabled: Boolean,
     @Value("\${geoviite.jwt.validation.jwks-url:}") private val jwksUrl: String,
     @Value("\${geoviite.jwt.validation.elb-jwt-key-url:}") private val elbJwtUrl: String,
+
+    private val integrationApi: IntegrationApiConfiguration,
 ) : OncePerRequestFilter() {
 
     private val log: Logger = LoggerFactory.getLogger(this::class.java)
@@ -302,8 +306,9 @@ class RequestFilter @Autowired constructor(
     }
 
     private fun isIntegrationApiRequest(request: HttpServletRequest): Boolean {
-        return environment.activeProfiles.contains("integration-api") &&
-            request.requestURI.startsWith("/rata-vkm")
+        return integrationApi.enabled && integrationApi.urlPathPrefixes.any { prefix ->
+            request.requestURI.startsWith(prefix)
+        }
     }
 
     private fun determineIntegrationApiUserOrThrow(request: HttpServletRequest): User {
