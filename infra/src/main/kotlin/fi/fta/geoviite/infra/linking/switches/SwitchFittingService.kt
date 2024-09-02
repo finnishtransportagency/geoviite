@@ -644,7 +644,15 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
 ): PointAssociation<FittedSwitch> {
     val bboxExpansion = max(switchStructure.bbox.width, switchStructure.bbox.height) * 1.125
     val bbox = grid.bounds() + bboxExpansion
-    val croppedTracks = nearbyLocationTracks.map { (track, alignment) -> track to cropPoints(alignment, bbox) }
+    val center = grid.bounds().center
+    val croppedTracks = nearbyLocationTracks
+        .map { (track, alignment) -> track to cropPoints(alignment, bbox) }
+        .sortedBy { (_, alignment) ->
+            alignment.allAlignmentPoints
+                .map { p -> lineLength(p, center) }
+                .minOrNull() ?: Double.MAX_VALUE
+        }
+        .take(2)
 
     val intersections = findTrackIntersectionsForGridPoints(croppedTracks.map { it.second }, grid)
     val (sharedSwitchJoint, switchAlignmentsContainingSharedJoint) = getSharedSwitchJoint(switchStructure)
