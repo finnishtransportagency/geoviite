@@ -38,7 +38,6 @@ import fi.fta.geoviite.infra.math.round
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import fi.fta.geoviite.infra.tracklayout.LayoutState.NOT_IN_USE
-import fi.fta.geoviite.infra.tracklayout.LayoutState.PLANNED
 import java.math.BigDecimal
 import kotlin.math.max
 
@@ -234,7 +233,7 @@ fun getAlignmentType(typeCode: FeatureTypeCode?): MapAlignmentType = when (typeC
     else -> MapAlignmentType.LOCATION_TRACK
 }
 
-fun getLayoutStateOrDefault(planState: PlanState?) = planState?.let { state -> getLayoutState(state) } ?: PLANNED
+fun getLayoutStateOrDefault(planState: PlanState?) = planState?.let { state -> getLayoutState(state) } ?: IN_USE
 fun getLayoutState(planState: PlanState): LayoutState = when (planState) {
     ABANDONED -> DELETED
     DESTROYED -> DELETED

@@ -16,6 +16,7 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchOwner
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao.LocationTrackIdentifiers
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -54,7 +55,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun whenAddingSwitchShouldReturnIt() {
-        val switch = switch(draft = false)
+        val switch = switch(draft = false, stateCategory = EXISTING,)
         val id = switchDao.insert(switch).id
 
         val fetched = switchService.get(MainLayoutContext.official, id)!!
@@ -64,7 +65,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun someSwitchesAreReturnedEvenWithoutParameters() {
-        switchDao.insert(switch(draft = false))
+        switchDao.insert(switch(draft = false, stateCategory = EXISTING,))
         assertTrue(switchService.list(MainLayoutContext.official).isNotEmpty())
     }
 
@@ -76,6 +77,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
                 switchJoint(5, Point(428412.6499928745, 7210278.867815434)),
             ),
             draft = false,
+            stateCategory = EXISTING,
         )
         val id = switchDao.insert(switch).id
 
@@ -107,7 +109,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
     @Test
     fun switchIsReturnedByName() {
         val name = testDBService.getUnusedSwitchName()
-        val switch = switch(name = name.toString(), draft = false)
+        val switch = switch(name = name.toString(), draft = false, stateCategory = EXISTING,)
 
         val id = switchDao.insert(switch).id
 
@@ -176,7 +178,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
     @Test
     fun switchWithNoJointsIsReturnedFirst() {
         val idOfSwitchWithNoJoints = mainOfficialContext.insert(
-            switch(name = testDBService.getUnusedSwitchName().toString(), joints = listOf())
+            switch(name = testDBService.getUnusedSwitchName().toString(), stateCategory = EXISTING, joints = listOf())
         ).id
         val idOfRandomSwitch = mainOfficialContext.createSwitch().id
 
@@ -197,6 +199,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
         val idOfSwitchLocatedAtComparisonPoint = mainOfficialContext.insert(
             switch(
                 name = testDBService.getUnusedSwitchName().toString(),
+                stateCategory = EXISTING,
                 joints = listOf(
                     TrackLayoutSwitchJoint(
                         JointNumber(1),
@@ -225,7 +228,7 @@ class LayoutSwitchServiceIT @Autowired constructor(
 
     @Test
     fun switchIsReturnedBySwitchType() {
-        val switch = switch(draft = false)
+        val switch = switch(draft = false, stateCategory = EXISTING,)
         val structure = switchLibraryService.getSwitchStructure(switch.switchStructureId)
         val typeName = structure.type.typeName
 

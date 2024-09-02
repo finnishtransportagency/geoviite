@@ -141,7 +141,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
 
     const stateOptions = locationTrackStates
         .filter((ls) => !state.isNewLocationTrack || ls.value != 'DELETED')
-        .map((ls) => ({ ...ls, disabled: ls.value == 'PLANNED', qaId: ls.value }));
+        .map((ls) => ({ ...ls, qaId: ls.value }));
 
     const typeOptions = locationTrackTypes.map((ls) => ({ ...ls, qaId: ls.value }));
     const topologicalConnectivityOptions = topologicalConnectivityTypes.map((tc) => ({

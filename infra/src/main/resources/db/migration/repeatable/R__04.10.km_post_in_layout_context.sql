@@ -1,3 +1,4 @@
+-- increment this to force re-execution: 1
 drop function if exists layout.km_post_in_layout_context(layout.publication_state, int);
 drop function if exists layout.km_post_in_layout_context(layout.publication_state, int, int);
 

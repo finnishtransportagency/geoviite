@@ -37,6 +37,7 @@ import fi.fta.geoviite.infra.tracklayout.KmPostGkLocationSource
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
@@ -397,7 +398,7 @@ class LinkingServiceIT @Autowired constructor(
                 ).copy(sourceId = linkingReferenceLine.alignments[0].elements[0].id as IndexedId)
             )
         ).id
-        val linkedSwitch = mainDraftContext.insert(switch()).id
+        val linkedSwitch = mainDraftContext.insert(switch(stateCategory = LayoutStateCategory.EXISTING)).id
         val linkedLocationTrackAlongSwitch = mainDraftContext.insert(
             locationTrackAndAlignment(
                 trackNumberId, segment(Point(0.0, 0.0), Point(10.0, 0.0)).copy(

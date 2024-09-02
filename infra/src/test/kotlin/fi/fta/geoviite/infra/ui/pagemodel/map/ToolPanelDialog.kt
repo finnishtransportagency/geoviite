@@ -168,7 +168,6 @@ class E2ETrackNumberEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
 class E2EKmPostEditDialog(dialogBy: By = DIALOG_BY) : E2EDialog(dialogBy) {
 
     enum class State {
-        PLANNED,
         IN_USE,
         NOT_IN_USE,
     }

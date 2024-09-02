@@ -122,7 +122,6 @@ export const TrackNumberEditDialog: React.FC<TrackNumberEditDialogProps> = ({
         React.useState<boolean>(false);
 
     const trackNumberStateOptions = layoutStates
-        .filter((s) => s.value !== 'PLANNED')
         .map((s) =>
             s.value !== 'DELETED' || inEditTrackNumber !== undefined ? s : { ...s, disabled: true },
         )

@@ -559,7 +559,6 @@ class PublicationService @Autowired constructor(
         val kmPosts = validationContext.getKmPostsByTrackNumber(id)
         val referenceLine = validationContext.getReferenceLineByTrackNumber(id)
         val locationTracks = validationContext.getLocationTracksByTrackNumber(id)
-        val fieldIssues = validateDraftTrackNumberFields(trackNumber)
         val referenceIssues = validateTrackNumberReferences(trackNumber, referenceLine, kmPosts, locationTracks)
         val geocodingIssues = if (trackNumber.exists && referenceLine != null) {
             val geocodingContextCacheKey = validationContext.getGeocodingContextCacheKey(id)
@@ -571,7 +570,7 @@ class PublicationService @Autowired constructor(
             trackNumber = trackNumber,
             duplicates = validationContext.getTrackNumbersByNumber(trackNumber.number),
         )
-        return fieldIssues + referenceIssues + geocodingIssues + duplicateNameIssues
+        return referenceIssues + geocodingIssues + duplicateNameIssues
     }
 
     private fun validateKmPost(
@@ -582,7 +581,6 @@ class PublicationService @Autowired constructor(
         val trackNumberNumber = (trackNumber ?: kmPost.trackNumberId?.let(context::getDraftTrackNumber))?.number
         val referenceLine = trackNumber?.referenceLineId?.let(context::getReferenceLine)
 
-        val fieldIssues = validateDraftKmPostFields(kmPost)
         val referenceIssues = validateKmPostReferences(kmPost, trackNumber, referenceLine, trackNumberNumber)
 
         val geocodingIssues = if (kmPost.exists && trackNumber?.exists == true && referenceLine != null) {
@@ -594,7 +592,7 @@ class PublicationService @Autowired constructor(
         } else {
             listOf()
         }
-        fieldIssues + referenceIssues + geocodingIssues
+        referenceIssues + geocodingIssues
     }
 
     private fun validateSwitch(
@@ -605,7 +603,6 @@ class PublicationService @Autowired constructor(
         val linkedTracksAndAlignments = validationContext.getSwitchTracksWithAlignments(id)
         val linkedTracks = linkedTracksAndAlignments.map(Pair<LocationTrack, *>::first)
 
-        val fieldIssues = validateDraftSwitchFields(switch)
         val referenceIssues = validateSwitchLocationTrackLinkReferences(switch, linkedTracks)
 
         val locationIssues = if (switch.exists) validateSwitchLocation(switch) else emptyList()
@@ -614,7 +611,7 @@ class PublicationService @Autowired constructor(
         }
 
         val duplicationIssues = validateSwitchNameDuplication(switch, validationContext.getSwitchesByName(switch.name))
-        return fieldIssues + referenceIssues + structureIssues + duplicationIssues
+        return referenceIssues + structureIssues + duplicationIssues
     }
 
     private fun validateReferenceLine(
@@ -659,7 +656,6 @@ class PublicationService @Autowired constructor(
             ?.let { (track, alignment) ->
                 val trackNumber = validationContext.getTrackNumber(track.trackNumberId)
                 val trackNumberName = (trackNumber ?: validationContext.getDraftTrackNumber(track.trackNumberId))?.number
-                val fieldIssues = validateDraftLocationTrackFields(track)
 
                 val referenceIssues = validateLocationTrackReference(track, trackNumber, trackNumberName)
                 val segmentSwitches = validationContext.getSegmentSwitches(alignment)
@@ -707,8 +703,7 @@ class PublicationService @Autowired constructor(
                     tracksWithSameName,
                 )
 
-                (fieldIssues +
-                        referenceIssues +
+                (referenceIssues +
                         switchSegmentIssues +
                         topologicallyConnectedSwitchIssues +
                         duplicateIssues +

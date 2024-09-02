@@ -54,9 +54,6 @@ const val MAX_LAYOUT_POINT_ANGLE_CHANGE = PI / 2
 const val MAX_LAYOUT_METER_LENGTH = 2.0
 const val MAX_KM_POST_OFFSET = 10.0
 
-fun validateDraftTrackNumberFields(trackNumber: TrackLayoutTrackNumber): List<LayoutValidationIssue> =
-    listOfNotNull(validate(trackNumber.state.isPublishable()) { "$VALIDATION_TRACK_NUMBER.state.${trackNumber.state}" })
-
 fun validateTrackNumberReferences(
     trackNumber: TrackLayoutTrackNumber,
     referenceLine: ReferenceLine?,
@@ -99,10 +96,6 @@ fun validateTrackNumberNumberDuplication(
     }
 }
 
-//Location is validated by GeocodingContext
-fun validateDraftKmPostFields(kmPost: TrackLayoutKmPost): List<LayoutValidationIssue> =
-    listOfNotNull(validate(kmPost.state.isPublishable()) { "$VALIDATION_KM_POST.state.${kmPost.state}" })
-
 fun validateKmPostReferences(
     kmPost: TrackLayoutKmPost,
     trackNumber: TrackLayoutTrackNumber?,
@@ -121,10 +114,6 @@ fun validateKmPostReferences(
     validateWithParams(trackNumber == null || kmPost.trackNumberId == trackNumber.id) {
         "$VALIDATION_KM_POST.track-number.not-official" to localizationParams("trackNumber" to trackNumber?.number)
     },
-)
-
-fun validateDraftSwitchFields(switch: TrackLayoutSwitch): List<LayoutValidationIssue> = listOfNotNull(
-    validate(switch.stateCategory.isPublishable()) { "$VALIDATION_SWITCH.state-category.${switch.stateCategory}" },
 )
 
 fun validateSwitchLocationTrackLinkReferences(
@@ -526,10 +515,6 @@ fun validateDuplicateOfState(
     }
     return ownDuplicateOfErrors + otherDuplicateReferenceErrors
 }
-
-fun validateDraftLocationTrackFields(locationTrack: LocationTrack): List<LayoutValidationIssue> = listOfNotNull(
-    validate(locationTrack.state.isPublishable()) { "$VALIDATION_LOCATION_TRACK.state.${locationTrack.state}" },
-)
 
 fun validateReferenceLineReference(
     referenceLine: ReferenceLine,

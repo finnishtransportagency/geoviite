@@ -37,6 +37,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutRowId
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -507,6 +508,7 @@ data class TestLayoutContext(
                 .map { (jointNumber, position) ->
                     TrackLayoutSwitchJoint(number = jointNumber, location = position, locationAccuracy = null)
                 },
+            stateCategory = EXISTING,
         )).id
         val innerTrackIds = alignmentJointPositions.map { jointPositions ->
             insert(

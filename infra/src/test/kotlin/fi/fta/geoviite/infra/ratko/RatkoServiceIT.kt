@@ -952,42 +952,6 @@ class RatkoServiceIT @Autowired constructor(
         )
     }
 
-    @Test
-    fun changeSwitchStateCategory() {
-        val trackNumber = establishedTrackNumber()
-        val kmPost1 = kmPostService.saveDraft(
-            LayoutBranch.main,
-            kmPost(trackNumber.id, KmNumber(1), Point(2.0, 0.0), draft = true)
-        )
-        val kmPost2 = kmPostService.saveDraft(
-            LayoutBranch.main,
-            kmPost(trackNumber.id, KmNumber(2), Point(4.0, 0.0), draft = true)
-        )
-
-        val (switch, throughTrack, branchingTrack) = setupDraftSwitchAndLocationTracks(trackNumber.id)
-        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::acceptsNewLocationTrackGivingItOid)
-        fakeRatko.acceptsNewSwitchGivingItOid("3.4.5.6.7")
-
-        publishAndPush(
-            locationTracks = listOf(throughTrack.id, branchingTrack.id),
-            switches = listOf(switch.id),
-            kmPosts = listOf(kmPost1.id, kmPost2.id),
-        )
-        fakeRatko.hostPushedSwitch("3.4.5.6.7")
-        val officialSwitchVersion = switchDao.fetchVersionOrThrow(MainLayoutContext.official, switch.id)
-        switchService.saveDraft(
-            LayoutBranch.main,
-            switchDao.fetch(officialSwitchVersion).copy(stateCategory = LayoutStateCategory.FUTURE_EXISTING)
-        )
-        publishAndPush(switches = listOf(switch.id))
-        assertEquals(listOf<String>(), fakeRatko.getLocationTrackPointDeletions("1.2.3.4.5"))
-        assertEquals(listOf<String>(), fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6"))
-        assertEquals(listOf<List<RatkoPoint>>(), fakeRatko.getUpdatedLocationTrackPoints("1.2.3.4.5"))
-        assertEquals(listOf<List<RatkoPoint>>(), fakeRatko.getUpdatedLocationTrackPoints("2.3.4.5.6"))
-        val pushedSwitch = fakeRatko.getLastPushedSwitch("3.4.5.6.7")
-        assertEquals("FUTURE_EXISTING", pushedSwitch.state!!.category!!.name)
-    }
-
     private fun setupDraftSwitchAndLocationTracks(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): Triple<LayoutDaoResponse<TrackLayoutSwitch>, LayoutDaoResponse<LocationTrack>, LayoutDaoResponse<LocationTrack>> {

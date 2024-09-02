@@ -19,7 +19,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
-import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.FUTURE_EXISTING
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.NOT_EXISTING
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
@@ -58,20 +57,6 @@ class PublicationValidationTest {
     private val structure = switchStructureYV60_300_1_9()
 
     @Test
-    fun trackNumberFieldValidationCatchesCatchesPublishingPlanned() {
-        assertFieldError(
-            true,
-            trackNumber(state = LayoutState.PLANNED, draft = true),
-            "$VALIDATION_TRACK_NUMBER.state.PLANNED",
-        )
-        assertFieldError(
-            false,
-            trackNumber(state = LayoutState.IN_USE, draft = true),
-            "$VALIDATION_TRACK_NUMBER.state.PLANNED",
-        )
-    }
-
-    @Test
     fun trackNumberValidationCatchesLocationTrackReferencingDeletedTrackNumber() {
         val trackNumber = trackNumber(id = IntId(1), draft = true)
         val referenceLine = referenceLine(trackNumberId = trackNumber.id as IntId, id = IntId(1), draft = true)
@@ -97,13 +82,6 @@ class PublicationValidationTest {
             alignment.copy(state = LocationTrackState.IN_USE),
             "$VALIDATION_TRACK_NUMBER.location-track.reference-deleted",
         )
-    }
-
-    @Test
-    fun kmPostFieldValidationCatchesCatchesPublishingPlanned() {
-        val someKmPost = kmPost(IntId(1), KmNumber(1), draft = true)
-        assertFieldError(true, someKmPost.copy(state = LayoutState.PLANNED), "$VALIDATION_KM_POST.state.PLANNED")
-        assertFieldError(false, someKmPost.copy(state = LayoutState.IN_USE), "$VALIDATION_KM_POST.state.PLANNED")
     }
 
     @Test
@@ -147,22 +125,8 @@ class PublicationValidationTest {
     }
 
     @Test
-    fun switchFieldValidationCatchesCatchesPublishingPlanned() {
-        assertFieldError(
-            true,
-            switch(stateCategory = FUTURE_EXISTING, draft = true),
-            "$VALIDATION_SWITCH.state-category.FUTURE_EXISTING",
-        )
-        assertFieldError(
-            false,
-            switch(stateCategory = EXISTING, draft = true),
-            "$VALIDATION_SWITCH.state-category.EXISTING",
-        )
-    }
-
-    @Test
     fun switchValidationCatchesNonContinuousAlignment() {
-        val switch = switch(structureId = structure.id as IntId, id = IntId(1), draft = true)
+        val switch = switch(structureId = structure.id as IntId, id = IntId(1), draft = true, stateCategory = EXISTING)
         val good = locationTrackAndAlignment(
             trackNumberId = IntId(0),
             segment(Point(0.0, 0.0), Point(10.0, 10.0)).copy(
@@ -183,6 +147,7 @@ class PublicationValidationTest {
             segment(Point(20.0, 20.0), Point(30.0, 30.0)).copy(
                 switchId = switch.id as IntId, startJointNumber = switch.joints.first().number
             ),
+            state = LocationTrackState.IN_USE,
             draft = true,
         )
 
@@ -250,20 +215,6 @@ class PublicationValidationTest {
             false,
             alignment(someSegment()),
             "$VALIDATION_LOCATION_TRACK.empty-segments",
-        )
-    }
-
-    @Test
-    fun alignmentFieldValidationCatchesPublishingPlanned() {
-        assertFieldError(
-            true,
-            locationTrack(IntId(0), draft = true).copy(state = LocationTrackState.PLANNED),
-            "$VALIDATION_LOCATION_TRACK.state.PLANNED",
-        )
-        assertFieldError(
-            false,
-            locationTrack(IntId(0), draft = true).copy(state = LocationTrackState.IN_USE),
-            "$VALIDATION_LOCATION_TRACK.state.PLANNED",
         )
     }
 
@@ -575,6 +526,7 @@ class PublicationValidationTest {
     fun validationCatchesMisplacedTopologyLink() {
         val wrongPlaceSwitch = switch(
             seed = 123,
+            stateCategory = EXISTING,
             joints = listOf(
                 TrackLayoutSwitchJoint(JointNumber(1), Point(100.0, 100.0), null),
             ),
@@ -583,6 +535,7 @@ class PublicationValidationTest {
         )
         val rightPlaceSwitch = switch(
             seed = 124,
+            stateCategory = EXISTING,
             joints = listOf(
                 TrackLayoutSwitchJoint(JointNumber(1), Point(200.0, 200.0), null),
             ),
@@ -593,6 +546,7 @@ class PublicationValidationTest {
             IntId(0),
             segment(Point(150.0, 150.0), Point(200.0, 200.0)),
             draft = true,
+            state = LocationTrackState.IN_USE,
         )
         val lt = unlinkedTrack.first.copy(
             topologyStartSwitch = TopologyLocationTrackSwitch(wrongPlaceSwitch.id as IntId, JointNumber(1)),
@@ -976,18 +930,6 @@ class PublicationValidationTest {
             segments = listOf(segment),
         )
     }
-
-    private fun assertFieldError(hasError: Boolean, trackNumber: TrackLayoutTrackNumber, error: String) =
-        assertContainsError(hasError, validateDraftTrackNumberFields(trackNumber), error)
-
-    private fun assertFieldError(hasError: Boolean, kmPost: TrackLayoutKmPost, error: String) =
-        assertContainsError(hasError, validateDraftKmPostFields(kmPost), error)
-
-    private fun assertFieldError(hasError: Boolean, switch: TrackLayoutSwitch, error: String) =
-        assertContainsError(hasError, validateDraftSwitchFields(switch), error)
-
-    private fun assertFieldError(hasError: Boolean, track: LocationTrack, error: String) =
-        assertContainsError(hasError, validateDraftLocationTrackFields(track), error)
 
     private fun assertLocationTrackFieldError(hasError: Boolean, alignment: LayoutAlignment, error: String) =
         assertContainsError(hasError, validateLocationTrackAlignment(alignment), error)

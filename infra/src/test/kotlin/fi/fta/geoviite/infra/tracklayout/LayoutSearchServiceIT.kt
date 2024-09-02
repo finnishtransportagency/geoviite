@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
 import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -131,19 +132,19 @@ class LayoutSearchServiceIT @Autowired constructor(
 
         // Search scope origin track's start switch, should be included
         val topologyStartSwitchId = switchDao.fetch(
-            switchService.saveDraft(LayoutBranch.main, switch(name = "blaa V0001", draft = true)).rowVersion
+            switchService.saveDraft(LayoutBranch.main, switch(name = "blaa V0001", draft = true, stateCategory = EXISTING,)).rowVersion
         ).id as IntId
         // Search scope origin track's end switch, should be included
         val topologyEndSwitchId = switchDao.fetch(
-            switchService.saveDraft(LayoutBranch.main, switch(name = "blee V0002", draft = true)).rowVersion
+            switchService.saveDraft(LayoutBranch.main, switch(name = "blee V0002", draft = true, stateCategory = EXISTING,)).rowVersion
         ).id as IntId
         // Related to duplicate but not in search scope, should be left out of search results
         val duplicateStartSwitchId = switchDao.fetch(
-            switchService.saveDraft(LayoutBranch.main, switch(name = "bluu V0003", draft = true)).rowVersion
+            switchService.saveDraft(LayoutBranch.main, switch(name = "bluu V0003", draft = true, stateCategory = EXISTING,)).rowVersion
         ).id as IntId
         // Entirely unrelated, should be left out of search results
         switchDao.fetch(
-            switchService.saveDraft(LayoutBranch.main, switch(name = "bluu V0003", draft = true)).rowVersion
+            switchService.saveDraft(LayoutBranch.main, switch(name = "bluu V0003", draft = true, stateCategory = EXISTING,)).rowVersion
         ).id as IntId
 
         val lt1 = mainDraftContext.insert( // Location track search scope origin, should be included

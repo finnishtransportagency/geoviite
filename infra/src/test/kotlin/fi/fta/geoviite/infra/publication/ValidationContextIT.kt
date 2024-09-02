@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
@@ -124,10 +125,10 @@ class ValidationContextIT @Autowired constructor(
     @Test
     fun `ValidationContext returns correct versions for Switch`() {
         val switchName1 = testDBService.getUnusedSwitchName()
-        val (s1Id, s1OfficialVersion) = mainOfficialContext.insert(switch(name = switchName1.toString()))
+        val (s1Id, s1OfficialVersion) = mainOfficialContext.insert(switch(name = switchName1.toString(), stateCategory = EXISTING,))
         val (_, s1DraftVersion) = switchDao.insert(asMainDraft(switchDao.fetch(s1OfficialVersion)))
         val switchName2 = testDBService.getUnusedSwitchName()
-        val (s2Id, s2DraftVersion) = mainDraftContext.insert(switch(name = switchName2.toString()))
+        val (s2Id, s2DraftVersion) = mainDraftContext.insert(switch(name = switchName2.toString(), stateCategory = EXISTING,))
 
         assertEquals(
             switchDao.fetch(s1OfficialVersion),

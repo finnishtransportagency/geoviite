@@ -39,10 +39,8 @@ enum class LocationTrackState(val category: LayoutStateCategory) {
     BUILT(LayoutStateCategory.EXISTING),
     IN_USE(LayoutStateCategory.EXISTING),
     NOT_IN_USE(LayoutStateCategory.EXISTING),
-    PLANNED(LayoutStateCategory.FUTURE_EXISTING),
     DELETED(LayoutStateCategory.NOT_EXISTING);
 
-    fun isPublishable() = this != PLANNED
     fun isLinkable() = this == IN_USE || this == BUILT || this == NOT_IN_USE
     fun isRemoved() = this == DELETED
 }
@@ -50,18 +48,15 @@ enum class LocationTrackState(val category: LayoutStateCategory) {
 enum class LayoutState(val category: LayoutStateCategory) {
     IN_USE(LayoutStateCategory.EXISTING),
     NOT_IN_USE(LayoutStateCategory.EXISTING),
-    PLANNED(LayoutStateCategory.FUTURE_EXISTING),
     DELETED(LayoutStateCategory.NOT_EXISTING);
 
-    fun isPublishable() = this != PLANNED
     fun isLinkable() = this == IN_USE || this == NOT_IN_USE
     fun isRemoved() = this == DELETED
 }
 
 enum class LayoutStateCategory {
-    FUTURE_EXISTING, EXISTING, NOT_EXISTING;
+    EXISTING, NOT_EXISTING;
 
-    fun isPublishable() = this != FUTURE_EXISTING
     fun isLinkable() = this == EXISTING
     fun isRemoved() = this == NOT_EXISTING
 }
