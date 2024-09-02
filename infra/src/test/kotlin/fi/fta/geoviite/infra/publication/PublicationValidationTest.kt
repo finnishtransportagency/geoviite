@@ -126,7 +126,10 @@ class PublicationValidationTest {
 
     @Test
     fun switchValidationCatchesNonContinuousAlignment() {
-        val switch = switch(structureId = structure.id as IntId, id = IntId(1), draft = true, stateCategory = EXISTING)
+        val switch = switch(structureId = structure.id as IntId, id = IntId(1), draft = true, stateCategory = EXISTING, joints = listOf(
+            TrackLayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null),
+            TrackLayoutSwitchJoint(JointNumber(2), Point(0.0, 10.0), null),
+        ))
         val good = locationTrackAndAlignment(
             trackNumberId = IntId(0),
             segment(Point(0.0, 0.0), Point(10.0, 10.0)).copy(
@@ -910,6 +913,10 @@ class PublicationValidationTest {
             id = if (switchDraft) IntId(2) else IntId(1),
             stateCategory = switchStateCategory,
             draft = switchDraft,
+            joints = listOf(
+                TrackLayoutSwitchJoint(JointNumber(1), Point(10.0, 10.0), null),
+                TrackLayoutSwitchJoint(JointNumber(2), Point(20.0, 20.0), null),
+            ),
             draftOfId = if (switchDraft) IntId(1) else null,
         )
         val joint1 = switch.joints.first()
