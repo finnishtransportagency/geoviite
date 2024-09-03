@@ -563,6 +563,8 @@ class LocationTrackService(
         val tracksLinkedThroughSwitch =
             switchDao
                 .findLocationTracksLinkedToSwitches(layoutContext, track.switchIds)
+                .values
+                .flatten()
                 .map(LayoutSwitchDao.LocationTrackIdentifiers::rowVersion)
         val duplicateTracksAndAlignments =
             (markedDuplicateVersions + tracksLinkedThroughSwitch).distinct().map(::getWithAlignmentInternal).filter {
@@ -829,23 +831,25 @@ private fun findBestTopologySwitchFromSegments(
     newSwitch: TopologyLinkFindingSwitch?,
 ): TopologyLocationTrackSwitch? =
     nearbyTracks
+        .asSequence()
         .flatMap { (_, otherAlignment) ->
-            otherAlignment.segments.flatMap { segment ->
+            otherAlignment.segments.asSequence().flatMap { segment ->
                 if (
                     segment.switchId !is IntId ||
                         ownSwitches.contains(segment.switchId) ||
                         segment.switchId == newSwitch?.id
                 ) {
-                    listOf()
+                    sequenceOf()
                 } else {
-                    listOfNotNull(
-                        segment.startJointNumber?.let { number ->
-                            pickIfClose(segment.switchId, number, target, segment.segmentStart)
-                        },
-                        segment.endJointNumber?.let { number ->
-                            pickIfClose(segment.switchId, number, target, segment.segmentEnd)
-                        },
-                    )
+                    sequenceOf(
+                            segment.startJointNumber?.let { number ->
+                                pickIfClose(segment.switchId, number, target, segment.segmentStart)
+                            },
+                            segment.endJointNumber?.let { number ->
+                                pickIfClose(segment.switchId, number, target, segment.segmentEnd)
+                            },
+                        )
+                        .filterNotNull()
                 }
             } +
                 (newSwitch?.joints?.mapNotNull { sj -> pickIfClose(newSwitch.id, sj.number, target, sj.location) }

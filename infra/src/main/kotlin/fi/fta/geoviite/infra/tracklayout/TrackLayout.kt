@@ -22,6 +22,7 @@ import fi.fta.geoviite.infra.geometry.GeometryKmPost
 import fi.fta.geoviite.infra.geometry.GeometryPlan
 import fi.fta.geoviite.infra.geometry.GeometrySwitch
 import fi.fta.geoviite.infra.linking.SuggestedSwitch
+import fi.fta.geoviite.infra.linking.switches.SamplingGridPoints
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.lineLength
@@ -378,7 +379,7 @@ data class TrackLayoutSwitch(
         copy(contextData = contextData)
 }
 
-data class SwitchPlacingRequest(val point: Point, val layoutSwitchId: IntId<TrackLayoutSwitch>)
+data class SwitchPlacingRequest(val points: SamplingGridPoints, val layoutSwitchId: IntId<TrackLayoutSwitch>)
 
 data class TrackLayoutSwitchJoint(
     val number: JointNumber,
