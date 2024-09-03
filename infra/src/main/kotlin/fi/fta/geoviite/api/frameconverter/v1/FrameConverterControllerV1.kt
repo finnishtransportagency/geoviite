@@ -44,9 +44,11 @@ class FrameConverterApiObjectMapperV1 {
         "/rata-vkm/dev/",
         "/rata-vkm/v1/",
         "/rata-vkm/dev/v1/",
-    ],
+    ]
 )
-class FrameConverterControllerV1 @Autowired constructor(
+class FrameConverterControllerV1
+@Autowired
+constructor(
     private val objectMapper: ObjectMapper,
     private val frameConverterServiceV1: FrameConverterServiceV1,
     private val localizationService: LocalizationService,
@@ -54,76 +56,65 @@ class FrameConverterControllerV1 @Autowired constructor(
 
     @RequestMapping(method = [RequestMethod.GET, RequestMethod.POST], params = ["json"])
     fun multiInputTransform(
-        @RequestParam(name = "json") requests: List<FrameConverterRequestV1>?,
+        @RequestParam(name = "json") requests: List<FrameConverterRequestV1>?
     ): GeoJsonFeatureCollection {
         val parsedRequests = requests ?: emptyList()
 
-        return GeoJsonFeatureCollection(
-            features = parsedRequests.flatMap(::processRequest),
-        )
+        return GeoJsonFeatureCollection(features = parsedRequests.flatMap(::processRequest))
     }
 
     @RequestMapping(method = [RequestMethod.GET, RequestMethod.POST], params = ["!json", "x", "y"])
-    fun coordinateToTrackAddressRequest(
-        @RequestParam params: Map<String, String?>,
-    ): GeoJsonFeatureCollection {
+    fun coordinateToTrackAddressRequest(@RequestParam params: Map<String, String?>): GeoJsonFeatureCollection {
         val jsonString = objectMapper.writeValueAsString(params)
         val request = objectMapper.readValue(jsonString, CoordinateToTrackAddressRequestV1::class.java)
 
-        return GeoJsonFeatureCollection(
-            features = processRequest(request),
-        )
+        return GeoJsonFeatureCollection(features = processRequest(request))
     }
 
-    @RequestMapping(
-        method = [RequestMethod.GET, RequestMethod.POST],
-        params = ["!json", "ratanumero"],
-    )
-    fun trackAddressToCoordinateRequest(
-        @RequestParam params: Map<String, String?>,
-    ): GeoJsonFeatureCollection {
+    @RequestMapping(method = [RequestMethod.GET, RequestMethod.POST], params = ["!json", "ratanumero"])
+    fun trackAddressToCoordinateRequest(@RequestParam params: Map<String, String?>): GeoJsonFeatureCollection {
         val jsonString = objectMapper.writeValueAsString(params)
         val request = objectMapper.readValue(jsonString, TrackAddressToCoordinateRequestV1::class.java)
 
-        return GeoJsonFeatureCollection(
-            features = processRequest(request),
-        )
+        return GeoJsonFeatureCollection(features = processRequest(request))
     }
 
-    @RequestMapping(
-        method = [RequestMethod.GET, RequestMethod.POST],
-        params = ["!json"],
-    )
+    @RequestMapping(method = [RequestMethod.GET, RequestMethod.POST], params = ["!json"])
     fun invalidRequest(): GeoJsonFeatureCollection {
         return GeoJsonFeatureCollection(
-            features = GeoJsonFeatureErrorResponseV1(
-                identifier = null,
-                errorMessages = localizationService.getLocalization(LocalizationLanguage.FI).t(
-                    "integration-api.error.bad-request",
-                )
-            ).let(::listOf)
+            features =
+                GeoJsonFeatureErrorResponseV1(
+                        identifier = null,
+                        errorMessages =
+                            localizationService
+                                .getLocalization(LocalizationLanguage.FI)
+                                .t("integration-api.error.bad-request"),
+                    )
+                    .let(::listOf)
         )
     }
 
     private fun processRequest(request: FrameConverterRequestV1): List<GeoJsonFeature> {
         return when (request) {
+            is CoordinateToTrackAddressRequestV1 ->
+                processRequestHelper(
+                    request,
+                    frameConverterServiceV1::validateCoordinateToTrackAddressRequest,
+                    frameConverterServiceV1::coordinateToTrackAddress,
+                )
 
-            is CoordinateToTrackAddressRequestV1 -> processRequestHelper(
-                request,
-                frameConverterServiceV1::validateCoordinateToTrackAddressRequest,
-                frameConverterServiceV1::coordinateToTrackAddress,
-            )
+            is TrackAddressToCoordinateRequestV1 ->
+                processRequestHelper(
+                    request,
+                    frameConverterServiceV1::validateTrackAddressToCoordinateRequest,
+                    frameConverterServiceV1::trackAddressToCoordinate,
+                )
 
-            is TrackAddressToCoordinateRequestV1 -> processRequestHelper(
-                request,
-                frameConverterServiceV1::validateTrackAddressToCoordinateRequest,
-                frameConverterServiceV1::trackAddressToCoordinate,
-            )
-
-            else -> throw IntegrationApiExceptionV1(
-                message = "Unsupported request type",
-                error = FrameConverterErrorV1.UnsupportedRequestType,
-            )
+            else ->
+                throw IntegrationApiExceptionV1(
+                    message = "Unsupported request type",
+                    error = FrameConverterErrorV1.UnsupportedRequestType,
+                )
         }
     }
 
@@ -134,8 +125,6 @@ class FrameConverterControllerV1 @Autowired constructor(
     ): List<GeoJsonFeature> {
         val (validatedRequest, errorResponse) = validate(request)
 
-        return validatedRequest?.let { req -> process(MainLayoutContext.official, req) }
-            ?: errorResponse
+        return validatedRequest?.let { req -> process(MainLayoutContext.official, req) } ?: errorResponse
     }
-
 }

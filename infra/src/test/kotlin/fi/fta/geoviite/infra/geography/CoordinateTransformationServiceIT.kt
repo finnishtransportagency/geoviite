@@ -4,19 +4,19 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class CoordinateTransformationServiceIT @Autowired constructor(
-    private val transformationService: CoordinateTransformationService
-) : DBTestBase() {
+class CoordinateTransformationServiceIT
+@Autowired
+constructor(private val transformationService: CoordinateTransformationService) : DBTestBase() {
     @Test
     fun allCommonTransformationsCanBeCreated() {
         for (srid in geoviiteDefaultSrids) {
@@ -103,7 +103,8 @@ class CoordinateTransformationServiceIT @Autowired constructor(
         // Point is in western Åland, in case anybody decides to build a track there
         val point = Point(87158.652, 6699388.278)
         val transformedPoint = transformationService.transformCoordinate(LAYOUT_SRID, KKJ0_SRID, point)
-        // Expected values are from paikkatietoikkuna. The KKJ0 transform is less accurate than the rest,
+        // Expected values are from paikkatietoikkuna. The KKJ0 transform is less accurate than the
+        // rest,
         // hence the larger delta
         Assertions.assertEquals(585436.3916, transformedPoint.x, 0.01)
         Assertions.assertEquals(6679828.4162, transformedPoint.y, 0.01)

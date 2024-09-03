@@ -4,10 +4,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.reactive.function.client.WebClient
 
-class LocalHostWebClient(
-    val client: WebClient,
-) : WebClient by client
-
+class LocalHostWebClient(val client: WebClient) : WebClient by client
 
 @Configuration
 class LocalWebClientConfiguration {

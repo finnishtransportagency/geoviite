@@ -20,9 +20,7 @@ import org.springframework.core.DefaultParameterNameDiscoverer
  *    }
  * }
  */
-@Target(AnnotationTarget.FUNCTION)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class DisableLogging
+@Target(AnnotationTarget.FUNCTION) @Retention(AnnotationRetention.RUNTIME) annotation class DisableLogging
 
 /*
  * Annotate a function parameter which should not be automatically written to log
@@ -38,33 +36,21 @@ annotation class DisableLogging
  *    }
  * }
  */
-@Target(AnnotationTarget.VALUE_PARAMETER)
-@Retention(AnnotationRetention.RUNTIME)
-annotation class DoNotWriteToLog
+@Target(AnnotationTarget.VALUE_PARAMETER) @Retention(AnnotationRetention.RUNTIME) annotation class DoNotWriteToLog
 
 private val parameterNameDiscoverer = DefaultParameterNameDiscoverer()
 
 fun reflectedLogBefore(
     joinPoint: JoinPoint,
-    loggerMethod: (
-        methodName: String,
-        params: List<Pair<String, *>>,
-    ) -> Unit,
+    loggerMethod: (methodName: String, params: List<Pair<String, *>>) -> Unit,
 ) {
-    logInternal(
-        joinPoint = joinPoint,
-        loggerMethod = loggerMethod,
-    )
+    logInternal(joinPoint = joinPoint, loggerMethod = loggerMethod)
 }
 
 fun reflectedLogWithReturnValue(
     joinPoint: JoinPoint,
     returnValue: Any?,
-    loggerMethodWithReturnValue: (
-        methodName: String,
-        params: List<Pair<String, *>>,
-        returnValue: Any?,
-    ) -> Unit,
+    loggerMethodWithReturnValue: (methodName: String, params: List<Pair<String, *>>, returnValue: Any?) -> Unit,
 ) {
     logInternal(
         joinPoint = joinPoint,
@@ -92,17 +78,13 @@ private fun logInternal(
     }
 }
 
-private fun reflectParams(
-    joinPoint: JoinPoint,
-): List<Pair<String, *>> {
+private fun reflectParams(joinPoint: JoinPoint): List<Pair<String, *>> {
     val method = (joinPoint.signature as MethodSignature).method
     val parameterNames = parameterNameDiscoverer.getParameterNames(method) ?: emptyArray()
 
     return parameterNames
         .filterIndexed { index, _ ->
-            method.parameterAnnotations[index].none { annotation ->
-                annotation is DoNotWriteToLog
-            }
+            method.parameterAnnotations[index].none { annotation -> annotation is DoNotWriteToLog }
         }
         .zip(joinPoint.args)
 }

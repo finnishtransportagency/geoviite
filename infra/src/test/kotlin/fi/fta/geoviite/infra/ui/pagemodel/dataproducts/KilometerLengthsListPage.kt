@@ -5,7 +5,6 @@ import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementIfExists
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
-import getElements
 
 abstract class KilometerLengthsListPage : E2EViewFragment(By.className("data-product-view")) {
     fun openLocationTrackTab(): LocationTrackKilometerLengthsListPage {
@@ -38,25 +37,29 @@ class LocationTrackKilometerLengthsListPage : KilometerLengthsListPage() {
         locationTrack.selectFromDynamicByName(searchString)
     }
 
-    val downloadUrl: String get() = childElement(byQaId("km-lengths-csv-download")).getAttribute("href")
+    val downloadUrl: String
+        get() = childElement(byQaId("km-lengths-csv-download")).getAttribute("href")
 
     val entireRailNetworkKmLengthsRadioButton = getElementIfExists(byQaId("select-entire-rail-network"))
 }
 
-class LocationTrackKilometerLengthsList: E2ETable<LocationTrackKilometerLengthsListItem>(
-    tableBy = By.className("data-product-table__table-container"),
-    rowsBy = By.cssSelector("tbody tr")
-) {
+class LocationTrackKilometerLengthsList :
+    E2ETable<LocationTrackKilometerLengthsListItem>(
+        tableBy = By.className("data-product-table__table-container"),
+        rowsBy = By.cssSelector("tbody tr"),
+    ) {
     override fun getRowContent(row: WebElement) =
         LocationTrackKilometerLengthsListItem(row.findElements(By.tagName("td")), headerElements)
 }
 
 class LocationTrackKilometerLengthsListItem(val stationStart: String) {
-    constructor(columns: List<WebElement>, headers: List<WebElement>) : this(
-        stationStart = getColumnContent("km-length-header-station-start", columns, headers),
-    )
+    constructor(
+        columns: List<WebElement>,
+        headers: List<WebElement>,
+    ) : this(stationStart = getColumnContent("km-length-header-station-start", columns, headers))
 }
 
 class EntireNetworkKilometerLengthsListPage : KilometerLengthsListPage() {
-    val downloadUrl: String get() = childElement(byQaId("km-lengths-csv-download")).getAttribute("href")
+    val downloadUrl: String
+        get() = childElement(byQaId("km-lengths-csv-download")).getAttribute("href")
 }

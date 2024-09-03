@@ -10,6 +10,7 @@ import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import fi.fta.geoviite.infra.util.FreeText
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
@@ -18,23 +19,21 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class LayoutTrackNumberDaoIT @Autowired constructor(
-    private val trackNumberDao: LayoutTrackNumberDao,
-) : DBTestBase() {
+class LayoutTrackNumberDaoIT @Autowired constructor(private val trackNumberDao: LayoutTrackNumberDao) : DBTestBase() {
 
     @Test
     fun trackNumberIsStoredAndLoadedOk() {
-        val original = TrackLayoutTrackNumber(
-            number = testDBService.getUnusedTrackNumber(),
-            description = FreeText("empty-test-track-number"),
-            state = IN_USE,
-            externalId = null,
-            contextData = LayoutContextData.newDraft(LayoutBranch.main),
-        )
+        val original =
+            TrackLayoutTrackNumber(
+                number = testDBService.getUnusedTrackNumber(),
+                description = FreeText("empty-test-track-number"),
+                state = IN_USE,
+                externalId = null,
+                contextData = LayoutContextData.newDraft(LayoutBranch.main),
+            )
         val (id, version) = trackNumberDao.insert(original)
         val fromDb = trackNumberDao.fetch(version)
         assertEquals(id, fromDb.id)
@@ -95,9 +94,8 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
     fun listingTrackNumberVersionsWorks() {
         val officialVersion = mainOfficialContext.createLayoutTrackNumber()
         val undeletedDraftVersion = mainDraftContext.createLayoutTrackNumber()
-        val deleteStateDraftVersion = mainDraftContext.insert(
-            trackNumber(number = testDBService.getUnusedTrackNumber(), state = DELETED),
-        )
+        val deleteStateDraftVersion =
+            mainDraftContext.insert(trackNumber(number = testDBService.getUnusedTrackNumber(), state = DELETED))
         val deletedDraftId = mainDraftContext.createLayoutTrackNumber().id
         trackNumberDao.deleteDraft(LayoutBranch.main, deletedDraftId)
 
@@ -105,17 +103,17 @@ class LayoutTrackNumberDaoIT @Autowired constructor(
         assertContains(official, officialVersion)
         assertFalse(official.contains(undeletedDraftVersion))
         assertFalse(official.contains(deleteStateDraftVersion))
-        assertFalse(official.any { r -> r.id == deletedDraftId})
+        assertFalse(official.any { r -> r.id == deletedDraftId })
 
         val draftWithoutDeleted = trackNumberDao.fetchVersions(MainLayoutContext.draft, false)
         assertContains(draftWithoutDeleted, undeletedDraftVersion)
         assertFalse(draftWithoutDeleted.contains(deleteStateDraftVersion))
-        assertFalse(draftWithoutDeleted.any { r -> r.id == deletedDraftId})
+        assertFalse(draftWithoutDeleted.any { r -> r.id == deletedDraftId })
 
         val draftWithDeleted = trackNumberDao.fetchVersions(MainLayoutContext.draft, true)
         assertContains(draftWithDeleted, undeletedDraftVersion)
         assertContains(draftWithDeleted, deleteStateDraftVersion)
-        assertFalse(draftWithDeleted.any { r -> r.id == deletedDraftId})
+        assertFalse(draftWithDeleted.any { r -> r.id == deletedDraftId })
     }
 
     @Test

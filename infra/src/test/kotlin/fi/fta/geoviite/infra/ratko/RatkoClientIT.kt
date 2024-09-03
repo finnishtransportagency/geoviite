@@ -22,7 +22,9 @@ import org.springframework.test.context.ActiveProfiles
 @ActiveProfiles("dev", "test")
 @SpringBootTest
 @ConditionalOnBean(RatkoClient::class)
-class RatkoClientIT @Autowired constructor(
+class RatkoClientIT
+@Autowired
+constructor(
     private val ratkoClient: RatkoClient,
     private val switchLibraryService: SwitchLibraryService,
     private val fakeRatkoService: FakeRatkoService,
@@ -90,9 +92,7 @@ class RatkoClientIT @Autowired constructor(
 
     @Test
     fun `New bulk transfer can be started`() {
-        val split = splitTestDataService
-            .insertSplit()
-            .let(splitDao::getOrThrow)
+        val split = splitTestDataService.insertSplit().let(splitDao::getOrThrow)
 
         val expectedBulkTransferId = testDBService.getUnusedBulkTransferId()
 
@@ -105,9 +105,7 @@ class RatkoClientIT @Autowired constructor(
 
     @Test
     fun `Bulk transfer state can be polled`() {
-        val split = splitTestDataService
-            .insertSplit()
-            .let(splitDao::getOrThrow)
+        val split = splitTestDataService.insertSplit().let(splitDao::getOrThrow)
 
         val expectedBulkTransferId = testDBService.getUnusedBulkTransferId()
 

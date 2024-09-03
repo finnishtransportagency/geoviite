@@ -5,12 +5,12 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.integration.DatabaseLock
 import fi.fta.geoviite.infra.integration.LockDao
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
+import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
-import java.time.Duration
 
 private const val GEOMETRY_CHANGE_BATCH_SIZE = 10
 
@@ -49,11 +49,12 @@ class PublicationGeometryChangeRemarksUpdateService(
     }
 
     private fun processOne(unprocessedChange: PublicationDao.UnprocessedGeometryChange) {
-        val geocodingContext = geocodingService.getGeocodingContextAtMoment(
-            unprocessedChange.branch,
-            unprocessedChange.trackNumberId,
-            unprocessedChange.publicationTime,
-        )
+        val geocodingContext =
+            geocodingService.getGeocodingContextAtMoment(
+                unprocessedChange.branch,
+                unprocessedChange.trackNumberId,
+                unprocessedChange.publicationTime,
+            )
         publicationDao.upsertGeometryChangeSummaries(
             unprocessedChange.publicationId,
             unprocessedChange.locationTrackId,
@@ -65,7 +66,7 @@ class PublicationGeometryChangeRemarksUpdateService(
                     oldAlignment = alignmentDao.fetch(unprocessedChange.oldAlignmentVersion),
                     newAlignment = alignmentDao.fetch(unprocessedChange.newAlignmentVersion),
                 )
-            }
+            },
         )
     }
 }

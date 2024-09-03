@@ -24,13 +24,8 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 
 @GeoviiteController("/ratko")
-class RatkoController(
-    private val ratkoServiceParam: RatkoService?,
-    private val ratkoLocalService: RatkoLocalService,
-) {
-    private val ratkoService by lazy {
-        ratkoServiceParam ?: throw IntegrationNotConfiguredException(Integration.RATKO)
-    }
+class RatkoController(private val ratkoServiceParam: RatkoService?, private val ratkoLocalService: RatkoLocalService) {
+    private val ratkoService by lazy { ratkoServiceParam ?: throw IntegrationNotConfiguredException(Integration.RATKO) }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/push")
@@ -57,7 +52,7 @@ class RatkoController(
     @PreAuthorize(AUTH_VIEW_LAYOUT)
     @GetMapping("/errors/{publicationId}")
     fun getRatkoPushErrors(
-        @PathVariable("publicationId") publicationId: IntId<Publication>,
+        @PathVariable("publicationId") publicationId: IntId<Publication>
     ): ResponseEntity<RatkoPushErrorWithAsset> {
         return toResponse(ratkoLocalService.getRatkoPushError(publicationId))
     }

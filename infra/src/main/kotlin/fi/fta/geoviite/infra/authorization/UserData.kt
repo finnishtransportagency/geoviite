@@ -22,39 +22,38 @@ data class UserDetails(
 data class Role(val code: AuthCode, val privileges: List<Privilege>)
 
 data class Privilege(val code: AuthCode) : GrantedAuthority {
-    @JsonIgnore
-    override fun getAuthority(): String = code.toString()
+    @JsonIgnore override fun getAuthority(): String = code.toString()
 }
 
 val userNameLength = 3..300
 
-data class UserName private constructor(private val value: String)
-    : Comparable<UserName>, CharSequence by value {
+data class UserName private constructor(private val value: String) : Comparable<UserName>, CharSequence by value {
     companion object {
-        @JvmStatic
-        @JsonCreator
-        fun of(name: String) = UserName(removeLogUnsafe(name))
+        @JvmStatic @JsonCreator fun of(name: String) = UserName(removeLogUnsafe(name))
     }
-    init { assertLength<UserName>(value, userNameLength) }
 
-    @JsonValue
-    override fun toString(): String = value
+    init {
+        assertLength<UserName>(value, userNameLength)
+    }
+
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: UserName): Int = value.compareTo(other.value)
 }
 
 val authNameLength = 1..300
 
-data class AuthName private constructor(private val value: String)
-    : Comparable<AuthName>, CharSequence by value {
+data class AuthName private constructor(private val value: String) : Comparable<AuthName>, CharSequence by value {
     companion object {
-        @JvmStatic
-        @JsonCreator
-        fun of(name: String) = AuthName(removeLogUnsafe(name))
+        @JvmStatic @JsonCreator fun of(name: String) = AuthName(removeLogUnsafe(name))
     }
-    init { assertLength<AuthName>(value, authNameLength) }
 
-    @JsonValue
-    override fun toString(): String = value
+    init {
+        assertLength<AuthName>(value, authNameLength)
+    }
+
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: AuthName): Int = value.compareTo(other.value)
 }
 
@@ -65,10 +64,12 @@ data class AuthCode @JsonCreator(mode = DELEGATING) constructor(private val valu
         val sanitizer = Regex("^[A-Za-z0-9_\\-.]+\$")
     }
 
-    init { assertSanitized<AuthCode>(value, sanitizer) }
+    init {
+        assertSanitized<AuthCode>(value, sanitizer)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: AuthCode): Int = value.compareTo(other.value)
 }
 

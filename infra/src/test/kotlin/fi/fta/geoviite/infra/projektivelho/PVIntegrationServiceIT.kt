@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.projektivelho
 import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.Oid
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.MATERIAL
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryGroup.PROJECT
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.DOCUMENT_TYPE
@@ -12,20 +13,21 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.MATERIAL_STATE
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.PROJECT_STATE
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.TECHNICS_FIELD
 import fi.fta.geoviite.infra.util.FileName
-import fi.fta.geoviite.infra.localization.LocalizationKey
+import java.time.Instant
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest(properties = ["geoviite.projektivelho=true"])
-class PVIntegrationServiceIT @Autowired constructor(
+class PVIntegrationServiceIT
+@Autowired
+constructor(
     @Value("\${geoviite.projektivelho.test-port:12346}") private val projektiVelhoPort: Int,
     private val pvIntegrationService: PVIntegrationService,
     private val pvDao: PVDao,
@@ -41,120 +43,131 @@ class PVIntegrationServiceIT @Autowired constructor(
     }
 
     @Test
-    fun `Spinning up search works`(): Unit = fakeProjektiVelho().use { fakeProjektiVelho ->
-        fakeProjektiVelho.login()
-        fakeProjektiVelho.search()
-        val search = pvIntegrationService.search()
-        assertNotNull(search)
-        assertEquals(search.searchId, pvDao.fetchLatestActiveSearch()?.token)
-    }
+    fun `Spinning up search works`(): Unit =
+        fakeProjektiVelho().use { fakeProjektiVelho ->
+            fakeProjektiVelho.login()
+            fakeProjektiVelho.search()
+            val search = pvIntegrationService.search()
+            assertNotNull(search)
+            assertEquals(search.searchId, pvDao.fetchLatestActiveSearch()?.token)
+        }
 
     @Test
-    fun `Dictionary update works`(): Unit = fakeProjektiVelho().use { fakeProjektiVelho ->
-        fakeProjektiVelho.login()
-        PVDictionaryType.values().forEach { type ->
-            assertEquals(mapOf(), pvDao.fetchDictionary(type))
-        }
+    fun `Dictionary update works`(): Unit =
+        fakeProjektiVelho().use { fakeProjektiVelho ->
+            fakeProjektiVelho.login()
+            PVDictionaryType.values().forEach { type -> assertEquals(mapOf(), pvDao.fetchDictionary(type)) }
 
-        fakeProjektiVelho.fetchDictionaries(MATERIAL, materialDictionaries)
-        fakeProjektiVelho.fetchDictionaries(PROJECT, projectDictionaries)
-        pvIntegrationService.updateDictionaries()
-        PVDictionaryType.values().forEach { type ->
-            assertEquals(
-                (materialDictionaries + projectDictionaries)[type]!!.map { e -> e.code to e.name }.associate { it },
-                pvDao.fetchDictionary(type),
-            )
-        }
+            fakeProjektiVelho.fetchDictionaries(MATERIAL, materialDictionaries)
+            fakeProjektiVelho.fetchDictionaries(PROJECT, projectDictionaries)
+            pvIntegrationService.updateDictionaries()
+            PVDictionaryType.values().forEach { type ->
+                assertEquals(
+                    (materialDictionaries + projectDictionaries)[type]!!.map { e -> e.code to e.name }.associate { it },
+                    pvDao.fetchDictionary(type),
+                )
+            }
 
-        val materialDictionaries2: Map<PVDictionaryType, List<PVDictionaryEntry>> = mapOf(
-            DOCUMENT_TYPE to listOf(
-                PVDictionaryEntry("dokumenttityyppi/dt01", "test doc type 1"),
-                PVDictionaryEntry("dokumenttityyppi/dt02", "test doc type 2 altered"),
-                PVDictionaryEntry("dokumenttityyppi/dt03", "test doc type 3 added"),
-            ),
-            MATERIAL_STATE to listOf(
-                PVDictionaryEntry("aineistotila/tila01", "test mat state 1"),
-                PVDictionaryEntry("aineistotila/tila02", "test mat state 2 altered"),
-                PVDictionaryEntry("aineistotila/tila03", "test mat state 3 added"),
-            ),
-            MATERIAL_CATEGORY to listOf(
-                PVDictionaryEntry("aineistolaji/al00", "test mat category 0 altered"),
-                PVDictionaryEntry("aineistolaji/al01", "test mat category 1"),
-                PVDictionaryEntry("aineistolaji/al02", "test mat category 2 added"),
-            ),
-            MATERIAL_GROUP to listOf(
-                PVDictionaryEntry("aineistoryhma/ar00", "test mat group 0 altered"),
-                PVDictionaryEntry("aineistoryhma/ar01", "test mat group 1"),
-                PVDictionaryEntry("aineistoryhma/ar02", "test mat group 2 added"),
-            ),
-            TECHNICS_FIELD to listOf(
-                PVDictionaryEntry("tekniikka-ala/ta00", "test tech field 0"),
-                PVDictionaryEntry("tekniikka-ala/ta01", "test tech field 1 altered"),
-                PVDictionaryEntry("tekniikka-ala/ta02", "test tech field 2 added"),
-            ),
-        )
-        val projectDictionaries2: Map<PVDictionaryType, List<PVDictionaryEntry>> = mapOf(
-            PROJECT_STATE to listOf(
-                PVDictionaryEntry("tila/tila14", "test state 14 altered"),
-                PVDictionaryEntry("tila/tila15", "test state 15"),
-                PVDictionaryEntry("tila/tila15", "test state 16 added"),
-            ),
-        )
-        fakeProjektiVelho.fetchDictionaries(MATERIAL, materialDictionaries2)
-        fakeProjektiVelho.fetchDictionaries(PROJECT, projectDictionaries2)
-        pvIntegrationService.updateDictionaries()
-        PVDictionaryType.values().forEach { type ->
-            assertEquals(
-                (materialDictionaries2 + projectDictionaries2)[type]!!.map { e -> e.code to e.name }.associate { it },
-                pvDao.fetchDictionary(type),
-            )
+            val materialDictionaries2: Map<PVDictionaryType, List<PVDictionaryEntry>> =
+                mapOf(
+                    DOCUMENT_TYPE to
+                        listOf(
+                            PVDictionaryEntry("dokumenttityyppi/dt01", "test doc type 1"),
+                            PVDictionaryEntry("dokumenttityyppi/dt02", "test doc type 2 altered"),
+                            PVDictionaryEntry("dokumenttityyppi/dt03", "test doc type 3 added"),
+                        ),
+                    MATERIAL_STATE to
+                        listOf(
+                            PVDictionaryEntry("aineistotila/tila01", "test mat state 1"),
+                            PVDictionaryEntry("aineistotila/tila02", "test mat state 2 altered"),
+                            PVDictionaryEntry("aineistotila/tila03", "test mat state 3 added"),
+                        ),
+                    MATERIAL_CATEGORY to
+                        listOf(
+                            PVDictionaryEntry("aineistolaji/al00", "test mat category 0 altered"),
+                            PVDictionaryEntry("aineistolaji/al01", "test mat category 1"),
+                            PVDictionaryEntry("aineistolaji/al02", "test mat category 2 added"),
+                        ),
+                    MATERIAL_GROUP to
+                        listOf(
+                            PVDictionaryEntry("aineistoryhma/ar00", "test mat group 0 altered"),
+                            PVDictionaryEntry("aineistoryhma/ar01", "test mat group 1"),
+                            PVDictionaryEntry("aineistoryhma/ar02", "test mat group 2 added"),
+                        ),
+                    TECHNICS_FIELD to
+                        listOf(
+                            PVDictionaryEntry("tekniikka-ala/ta00", "test tech field 0"),
+                            PVDictionaryEntry("tekniikka-ala/ta01", "test tech field 1 altered"),
+                            PVDictionaryEntry("tekniikka-ala/ta02", "test tech field 2 added"),
+                        ),
+                )
+            val projectDictionaries2: Map<PVDictionaryType, List<PVDictionaryEntry>> =
+                mapOf(
+                    PROJECT_STATE to
+                        listOf(
+                            PVDictionaryEntry("tila/tila14", "test state 14 altered"),
+                            PVDictionaryEntry("tila/tila15", "test state 15"),
+                            PVDictionaryEntry("tila/tila15", "test state 16 added"),
+                        )
+                )
+            fakeProjektiVelho.fetchDictionaries(MATERIAL, materialDictionaries2)
+            fakeProjektiVelho.fetchDictionaries(PROJECT, projectDictionaries2)
+            pvIntegrationService.updateDictionaries()
+            PVDictionaryType.values().forEach { type ->
+                assertEquals(
+                    (materialDictionaries2 + projectDictionaries2)[type]!!
+                        .map { e -> e.code to e.name }
+                        .associate { it },
+                    pvDao.fetchDictionary(type),
+                )
+            }
         }
-    }
 
     @Test
-    fun `Importing through search happy case works`(): Unit = fakeProjektiVelho().use { fakeProjektiVelho ->
-        val searchId = PVId("123")
-        val documentOid = Oid<PVDocument>("1.2.3.4.5")
-        val assignmentOid = Oid<PVAssignment>("1.2.4.5.6")
-        val version = PVId("1")
-        val description = "description 1"
-        val documentType = materialDictionaries[DOCUMENT_TYPE]!!.first().code
-        val materialState = materialDictionaries[MATERIAL_STATE]!!.first().code
-        val materialGroup = materialDictionaries[MATERIAL_GROUP]!!.first().code
-        val materialCategory = materialDictionaries[MATERIAL_CATEGORY]!!.first().code
+    fun `Importing through search happy case works`(): Unit =
+        fakeProjektiVelho().use { fakeProjektiVelho ->
+            val searchId = PVId("123")
+            val documentOid = Oid<PVDocument>("1.2.3.4.5")
+            val assignmentOid = Oid<PVAssignment>("1.2.4.5.6")
+            val version = PVId("1")
+            val description = "description 1"
+            val documentType = materialDictionaries[DOCUMENT_TYPE]!!.first().code
+            val materialState = materialDictionaries[MATERIAL_STATE]!!.first().code
+            val materialGroup = materialDictionaries[MATERIAL_GROUP]!!.first().code
+            val materialCategory = materialDictionaries[MATERIAL_CATEGORY]!!.first().code
 
-        fakeProjektiVelho.login()
-        fakeProjektiVelho.fetchDictionaries(MATERIAL, materialDictionaries)
-        fakeProjektiVelho.fetchDictionaries(PROJECT, projectDictionaries)
-        fakeProjektiVelho.searchStatus(searchId)
-        fakeProjektiVelho.searchResults(searchId, listOf(PVApiMatch(documentOid, assignmentOid)))
-        fakeProjektiVelho.fileMetadata(
-            documentOid,
-            version,
-            description = description,
-            documentType = documentType,
-            materialState = materialState,
-            materialGroup = materialGroup,
-            materialCategory = materialCategory,
-        )
-        fakeProjektiVelho.fileContent(documentOid)
+            fakeProjektiVelho.login()
+            fakeProjektiVelho.fetchDictionaries(MATERIAL, materialDictionaries)
+            fakeProjektiVelho.fetchDictionaries(PROJECT, projectDictionaries)
+            fakeProjektiVelho.searchStatus(searchId)
+            fakeProjektiVelho.searchResults(searchId, listOf(PVApiMatch(documentOid, assignmentOid)))
+            fakeProjektiVelho.fileMetadata(
+                documentOid,
+                version,
+                description = description,
+                documentType = documentType,
+                materialState = materialState,
+                materialGroup = materialGroup,
+                materialCategory = materialCategory,
+            )
+            fakeProjektiVelho.fileContent(documentOid)
 
-        pvIntegrationService.updateDictionaries()
-        pvDao.insertFetchInfo(searchId, Instant.now().plusSeconds(3600))
-        val search = pvDao.fetchLatestActiveSearch()!!
-        val status = pvIntegrationService.getSearchStatusIfReady(search)!!
+            pvIntegrationService.updateDictionaries()
+            pvDao.insertFetchInfo(searchId, Instant.now().plusSeconds(3600))
+            val search = pvDao.fetchLatestActiveSearch()!!
+            val status = pvIntegrationService.getSearchStatusIfReady(search)!!
 
-        pvIntegrationService.importFilesFromProjektiVelho(search, status)
-        assertDocumentExists(
-            documentOid,
-            PVDocumentStatus.SUGGESTED,
-            description = description,
-            documentType = documentType,
-            materialState = materialState,
-            materialGroup = materialGroup,
-            materialCategory = materialCategory,
-        )
-    }
+            pvIntegrationService.importFilesFromProjektiVelho(search, status)
+            assertDocumentExists(
+                documentOid,
+                PVDocumentStatus.SUGGESTED,
+                description = description,
+                documentType = documentType,
+                materialState = materialState,
+                materialGroup = materialGroup,
+                materialCategory = materialCategory,
+            )
+        }
 
     @Test
     fun `Document count fetching works`() {
@@ -207,17 +220,22 @@ fun insertTestDictionary(pvDao: PVDao) {
 
 fun insertDocumentMetaWithStatus(pvDao: PVDao, oid: Oid<PVDocument>, status: PVDocumentStatus) =
     pvDao.insertDocumentMetadata(
-        oid = oid, assignmentOid = null, latestVersion = PVApiLatestVersion(
-            version = PVId("test"), name = FileName("test"), changeTime = Instant.now()
-        ), metadata = PVApiDocumentMetadata(
-            materialCategory = PVDictionaryCode("test"),
-            description = null,
-            materialGroup = PVDictionaryCode("test"),
-            materialState = PVDictionaryCode("test"),
-            documentType = PVDictionaryCode("test"),
-            technicalFields = emptyList(),
-            containsPersonalInfo = false
-        ), projectGroupOid = null, projectOid = null, status = status
+        oid = oid,
+        assignmentOid = null,
+        latestVersion = PVApiLatestVersion(version = PVId("test"), name = FileName("test"), changeTime = Instant.now()),
+        metadata =
+            PVApiDocumentMetadata(
+                materialCategory = PVDictionaryCode("test"),
+                description = null,
+                materialGroup = PVDictionaryCode("test"),
+                materialState = PVDictionaryCode("test"),
+                documentType = PVDictionaryCode("test"),
+                technicalFields = emptyList(),
+                containsPersonalInfo = false,
+            ),
+        projectGroupOid = null,
+        projectOid = null,
+        status = status,
     )
 
 private fun getTestDataDictionaryName(type: PVDictionaryType, code: PVDictionaryCode) =

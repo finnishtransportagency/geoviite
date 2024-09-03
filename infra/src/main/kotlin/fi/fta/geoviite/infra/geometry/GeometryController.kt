@@ -40,10 +40,9 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 
 @GeoviiteController("/geometry")
-class GeometryController @Autowired constructor(
-    private val geometryService: GeometryService,
-    private val planLayoutService: PlanLayoutService,
-) {
+class GeometryController
+@Autowired
+constructor(private val geometryService: GeometryService, private val planLayoutService: PlanLayoutService) {
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY_FILE)
     @GetMapping("/plan-headers")
@@ -77,7 +76,7 @@ class GeometryController @Autowired constructor(
     @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @GetMapping("/plan-headers", params = ["planIds"])
     fun getPlanHeaders(
-        @RequestParam("planIds", required = true) planIds: List<IntId<GeometryPlan>>,
+        @RequestParam("planIds", required = true) planIds: List<IntId<GeometryPlan>>
     ): List<GeometryPlanHeader> {
         return geometryService.getManyPlanHeaders(planIds)
     }
@@ -106,7 +105,7 @@ class GeometryController @Autowired constructor(
     @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @GetMapping("/switches/{switchId}/layout")
     fun getGeometrySwitchLayout(
-        @PathVariable("switchId") switchId: IntId<GeometrySwitch>,
+        @PathVariable("switchId") switchId: IntId<GeometrySwitch>
     ): ResponseEntity<TrackLayoutSwitch> {
         return toResponse(geometryService.getSwitchLayout(switchId))
     }
@@ -156,7 +155,7 @@ class GeometryController @Autowired constructor(
     @PreAuthorize(AUTH_VIEW_GEOMETRY)
     @PostMapping("/plans/linking-summaries")
     fun getLinkingSummaries(
-        @RequestBody planIds: List<IntId<GeometryPlan>>,
+        @RequestBody planIds: List<IntId<GeometryPlan>>
     ): Map<IntId<GeometryPlan>, GeometryPlanLinkingSummary> {
         return geometryService.getLinkingSummaries(planIds)
     }
@@ -207,14 +206,15 @@ class GeometryController @Autowired constructor(
         @RequestParam("lang") lang: LocalizationLanguage,
     ): ResponseEntity<ByteArray> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        val (filename, content) = geometryService.getElementListingCsv(
-            layoutContext = layoutContext,
-            trackId = id,
-            elementTypes = elementTypes,
-            startAddress = startAddress,
-            endAddress = endAddress,
-            lang = lang,
-        )
+        val (filename, content) =
+            geometryService.getElementListingCsv(
+                layoutContext = layoutContext,
+                trackId = id,
+                elementTypes = elementTypes,
+                startAddress = startAddress,
+                endAddress = endAddress,
+                lang = lang,
+            )
         return toFileDownloadResponse(filename.withSuffix(CSV), content.toByteArray(Charsets.UTF_8))
     }
 
@@ -224,16 +224,15 @@ class GeometryController @Autowired constructor(
         val elementListingFile = geometryService.getElementListingCsv()
         return elementListingFile?.let {
             toFileDownloadResponse(
-                elementListingFile.name.withSuffix(CSV), elementListingFile.content.toByteArray(Charsets.UTF_8)
+                elementListingFile.name.withSuffix(CSV),
+                elementListingFile.content.toByteArray(Charsets.UTF_8),
             )
         } ?: ResponseEntity(HttpStatus.NO_CONTENT)
     }
 
     @PreAuthorize(AUTH_VIEW_GEOMETRY_FILE)
     @GetMapping("/plans/{id}/vertical-geometry")
-    fun getPlanVerticalGeometryListing(
-        @PathVariable("id") id: IntId<GeometryPlan>,
-    ): List<VerticalGeometryListing> {
+    fun getPlanVerticalGeometryListing(@PathVariable("id") id: IntId<GeometryPlan>): List<VerticalGeometryListing> {
         return geometryService.getVerticalGeometryListing(id)
     }
 

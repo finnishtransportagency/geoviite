@@ -12,11 +12,14 @@ data class FreeText @JsonCreator(mode = DELEGATING) constructor(private val valu
         val sanitizer = Regex("^[$ALLOWED_CHARACTERS]*\$")
     }
 
-    init { assertSanitized<FreeText>(value, sanitizer) }
+    init {
+        assertSanitized<FreeText>(value, sanitizer)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: FreeText): Int = value.compareTo(other.value)
+
     operator fun plus(addition: String) = FreeText("$value$addition")
 }
 
@@ -27,15 +30,16 @@ data class FreeTextWithNewLines private constructor(private val value: String) :
         const val ALLOWED_CHARACTERS = FreeText.ALLOWED_CHARACTERS + "\n"
         val sanitizer = Regex("^[$ALLOWED_CHARACTERS]*\$")
 
-        @JvmStatic
-        @JsonCreator
-        fun of(value: String) = FreeTextWithNewLines(normalizeLinebreaksToUnixFormat(value))
+        @JvmStatic @JsonCreator fun of(value: String) = FreeTextWithNewLines(normalizeLinebreaksToUnixFormat(value))
     }
 
-    init { assertSanitized<FreeTextWithNewLines>(value, sanitizer) }
+    init {
+        assertSanitized<FreeTextWithNewLines>(value, sanitizer)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: FreeTextWithNewLines): Int = value.compareTo(other.value)
+
     operator fun plus(addition: String) = FreeTextWithNewLines("$value$addition")
 }

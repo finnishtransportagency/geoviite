@@ -1,20 +1,23 @@
 package fi.fta.geoviite.infra.util
 
 import correlationId
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
 private class Timer
+
 val logger: Logger = LoggerFactory.getLogger(Timer::class.java)
 
 fun <T> measureAndPrintLength(function: () -> T, title: String): T =
     measureLength({ duration -> printDuration(title, duration) }, function)
 
 fun operationId() = correlationId.getOrNull() ?: "DEFAULT"
+
 val collectedTimes: MutableMap<String, MutableMap<String, Duration>> = ConcurrentHashMap()
+
 fun logAndResetCollected() {
     val map = collectedTimes.remove(operationId())
     map?.forEach { (key: String, value: Duration) -> printDuration(key, value) }
@@ -38,7 +41,7 @@ fun <T> measureLength(timeConsumer: (duration: Duration) -> Unit, function: () -
 fun collectDuration(title: String, duration: Duration) {
     collectedTimes.compute(operationId()) { _, previousMap ->
         val map = previousMap ?: ConcurrentHashMap()
-        map.compute(title) { _, previousDuration -> previousDuration?.plus(duration) ?: duration}
+        map.compute(title) { _, previousDuration -> previousDuration?.plus(duration) ?: duration }
         map
     }
 }

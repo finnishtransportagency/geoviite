@@ -17,18 +17,18 @@ class SwitchOwnerDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(j
 
     @Cacheable(CACHE_COMMON_SWITCH_OWNER, sync = true)
     fun fetchSwitchOwners(): List<SwitchOwner> {
-        val sql = """
+        val sql =
+            """
             select
                 id,
                 name
             from common.switch_owner
-        """.trimIndent()
-        val switchOwners = jdbcTemplate.query(sql) { rs, _ ->
-            SwitchOwner(
-                id = rs.getIntId("id"),
-                name = MetaDataName(rs.getString("name")),
-            )
-        }
+        """
+                .trimIndent()
+        val switchOwners =
+            jdbcTemplate.query(sql) { rs, _ ->
+                SwitchOwner(id = rs.getIntId("id"), name = MetaDataName(rs.getString("name")))
+            }
         logger.daoAccess(AccessType.FETCH, SwitchOwner::class, switchOwners.map { it.id })
         return switchOwners
     }

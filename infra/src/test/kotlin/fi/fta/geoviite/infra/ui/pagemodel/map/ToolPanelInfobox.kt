@@ -1,42 +1,74 @@
 package fi.fta.geoviite.infra.ui.pagemodel.map
 
 import clickWhenClickable
+import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EInfoBox
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ERadio
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
-import fi.fta.geoviite.infra.ui.pagemodel.common.E2EDialog
 import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
 import org.openqa.selenium.support.pagefactory.ByChained
 import waitUntilExists
 
 class E2EGeometryPlanGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
-    val remarks: String get() = getValueForField("geometry-plan-remarks")
-    val author: String get() = getValueForField("geometry-plan-author")
-    val projectName: String get() = getValueForField("geometry-plan-project")
-    val fileName: String get() = getValueForField("geometry-plan-file")
-    val planPhase: String get() = getValueForField("geometry-plan-phase")
-    val decisionPhase: String get() = getValueForField("geometry-plan-decision")
-    val trackNumber: String get() = getValueWhenFieldHasValue("geometry-plan-track-number")
-    val startKmNumber: String get() = getValueForField("geometry-plan-start-km")
-    val endKmNumber: String get() = getValueForField("geometry-plan-end-km")
+    val remarks: String
+        get() = getValueForField("geometry-plan-remarks")
+
+    val author: String
+        get() = getValueForField("geometry-plan-author")
+
+    val projectName: String
+        get() = getValueForField("geometry-plan-project")
+
+    val fileName: String
+        get() = getValueForField("geometry-plan-file")
+
+    val planPhase: String
+        get() = getValueForField("geometry-plan-phase")
+
+    val decisionPhase: String
+        get() = getValueForField("geometry-plan-decision")
+
+    val trackNumber: String
+        get() = getValueWhenFieldHasValue("geometry-plan-track-number")
+
+    val startKmNumber: String
+        get() = getValueForField("geometry-plan-start-km")
+
+    val endKmNumber: String
+        get() = getValueForField("geometry-plan-end-km")
 }
 
 class E2EGeometryPlanQualityInfobox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
 
-    val source: String get() = getValueForField("geometry-plan-source")
-    val planTime: String get() = getValueForField("geometry-plan-plan-time")
-    val measurementMethod: String get() = getValueForField("geometry-plan-measurement-method")
-    val coordinateSystem: String get() = getValueForField("geometry-plan-coordinate-system")
-    val verticalGeometry: String get() = getValueForField("geometry-plan-vertical-geometry")
-    val cant: String get() = getValueForField("geometry-plan-cant")
-    val verticalCoordinateSystem: String get() = getValueForField("geometry-plan-vertical-coordinate-system")
+    val source: String
+        get() = getValueForField("geometry-plan-source")
+
+    val planTime: String
+        get() = getValueForField("geometry-plan-plan-time")
+
+    val measurementMethod: String
+        get() = getValueForField("geometry-plan-measurement-method")
+
+    val coordinateSystem: String
+        get() = getValueForField("geometry-plan-coordinate-system")
+
+    val verticalGeometry: String
+        get() = getValueForField("geometry-plan-vertical-geometry")
+
+    val cant: String
+        get() = getValueForField("geometry-plan-cant")
+
+    val verticalCoordinateSystem: String
+        get() = getValueForField("geometry-plan-vertical-coordinate-system")
 }
 
 class E2ELayoutKmPostGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
-    val name: String get() = getValueForField("km-post-km-number")
+    val name: String
+        get() = getValueForField("km-post-km-number")
 
-    val trackNumber: String get() = getValueWhenFieldHasValue("km-post-track-number")
+    val trackNumber: String
+        get() = getValueWhenFieldHasValue("km-post-track-number")
 
     fun zoomTo(): E2ELayoutKmPostGeneralInfoBox = apply {
         logger.info("Zoom to km post")
@@ -46,18 +78,32 @@ class E2ELayoutKmPostGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
 }
 
 class E2ELayoutKmPostLocationInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
-    val coordinates: String get() = getValueForField("km-post-coordinates")
+    val coordinates: String
+        get() = getValueForField("km-post-coordinates")
 }
 
 class E2ELocationTrackLocationInfobox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
-    val trackNumber: String get() = getValueForField("location-track-track-number")
-    val startLocation: String get() = getValueForField("location-track-start-track-meter")
-    val endLocation: String get() = getValueForField("location-track-end-track-meter")
+    val trackNumber: String
+        get() = getValueForField("location-track-track-number")
 
-    val trueLength: String get() = getValueForField("location-track-true-length")
-    val trueLengthDouble: Double? get() = Regex("[0-9.]*").find(trueLength)?.value?.toDouble()
-    val startCoordinates: String get() = getValueForField("location-track-start-coordinates")
-    val endCoordinates: String get() = getValueForField("location-track-end-coordinates")
+    val startLocation: String
+        get() = getValueForField("location-track-start-track-meter")
+
+    val endLocation: String
+        get() = getValueForField("location-track-end-track-meter")
+
+    val trueLength: String
+        get() = getValueForField("location-track-true-length")
+
+    val trueLengthDouble: Double?
+        get() = Regex("[0-9.]*").find(trueLength)?.value?.toDouble()
+
+    val startCoordinates: String
+        get() = getValueForField("location-track-start-coordinates")
+
+    val endCoordinates: String
+        get() = getValueForField("location-track-end-coordinates")
+
     fun waitForStartCoordinatesChange(value: String) =
         waitUntilValueChangesForField("location-track-start-coordinates", value)
 
@@ -70,10 +116,10 @@ class E2ELocationTrackLocationInfobox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
         childButton(byQaId("modify-start-or-end")).clickAndWaitToDisappear()
     }
 
-    fun startSplitting(): E2ELocationTrackSplittingInfobox { 
+    fun startSplitting(): E2ELocationTrackSplittingInfobox {
         logger.info("Start splitting")
         childButton(byQaId("start-splitting")).clickAndWaitToDisappear()
-        
+
         return E2ELocationTrackSplittingInfobox()
     }
 
@@ -85,19 +131,17 @@ class E2ELocationTrackLocationInfobox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     }
 }
 
-class E2ELocationTrackSplittingInfobox(infoboxBy: By = byQaId("location-track-splitting-infobox")) : E2EInfoBox(infoboxBy) {
+class E2ELocationTrackSplittingInfobox(infoboxBy: By = byQaId("location-track-splitting-infobox")) :
+    E2EInfoBox(infoboxBy) {
     fun setTargetTrackName(index: Int, trackName: String) = apply {
-        val targetTrackNameInput = childTextInput(
-            By.xpath("(//*[@qa-id='split-target-track-name'])[${index + 1}]")
-        )
+        val targetTrackNameInput = childTextInput(By.xpath("(//*[@qa-id='split-target-track-name'])[${index + 1}]"))
 
         targetTrackNameInput.replaceValue(trackName)
     }
 
     fun setTargetTrackDescription(index: Int, description: String) = apply {
-        val targetTrackNameInput = childTextInput(
-            By.xpath("(//*[@qa-id='split-target-track-description'])[${index + 1}]")
-        )
+        val targetTrackNameInput =
+            childTextInput(By.xpath("(//*[@qa-id='split-target-track-description'])[${index + 1}]"))
 
         targetTrackNameInput.replaceValue(description)
     }
@@ -117,20 +161,28 @@ class E2ELocationTrackSplittingInfobox(infoboxBy: By = byQaId("location-track-sp
     }
 
     fun waitUntilTargetTrackInputExists(index: Int) {
-        waitUntilExists(
-            By.xpath("(//*[@qa-id='split-target-track-name'])[${index + 1}]")
-        )
+        waitUntilExists(By.xpath("(//*[@qa-id='split-target-track-name'])[${index + 1}]"))
     }
 }
 
 class E2ELocationTrackGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
-    val oid: String get() = getValueForField("location-track-oid")
-    val name: String get() = getValueForField("location-track-name")
-    val state: String get() = getEnumValueForField("location-track-state")
-    val type: String get() = getEnumValueForField("location-track-type")
+    val oid: String
+        get() = getValueForField("location-track-oid")
 
-    val description: String get() = getValueWhenFieldHasValue("location-track-description")
-    val trackNumber: String get() = getValueWhenFieldHasValue("location-track-track-number")
+    val name: String
+        get() = getValueForField("location-track-name")
+
+    val state: String
+        get() = getEnumValueForField("location-track-state")
+
+    val type: String
+        get() = getEnumValueForField("location-track-type")
+
+    val description: String
+        get() = getValueWhenFieldHasValue("location-track-description")
+
+    val trackNumber: String
+        get() = getValueWhenFieldHasValue("location-track-track-number")
 
     fun waitUntilDescriptionChanges(value: String) = waitUntilValueChangesForField("location-track-description", value)
 
@@ -154,15 +206,25 @@ class E2ELocationTrackVerticalGeometryInfoBox(infoboxBy: By) : E2EInfoBox(infobo
 }
 
 class E2ELocationTrackLogInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
-    val created: String get() = getValueForField("location-track-created-date")
-    val changed: String get() = getValueForField("location-track-changed-date")
+    val created: String
+        get() = getValueForField("location-track-created-date")
+
+    val changed: String
+        get() = getValueForField("location-track-changed-date")
 }
 
 class E2ETrackNumberGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
-    val oid: String get() = getValueForField("track-number-oid")
-    val name: String get() = getValueForField("track-number-name")
-    val state: String get() = getValueForField("track-number-state")
-    val description: String get() = getValueForField("track-number-description")
+    val oid: String
+        get() = getValueForField("track-number-oid")
+
+    val name: String
+        get() = getValueForField("track-number-name")
+
+    val state: String
+        get() = getValueForField("track-number-state")
+
+    val description: String
+        get() = getValueForField("track-number-description")
 
     fun edit(): E2ETrackNumberEditDialog {
         logger.info("Enable track number editing")
@@ -173,11 +235,21 @@ class E2ETrackNumberGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
 }
 
 class E2ETrackNumberLocationInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
-    val startLocation: String get() = getValueForField("track-number-start-track-meter")
-    val endLocation: String get() = getValueForField("track-number-end-track-meter")
-    val trueLength: String get() = getValueForField("track-number-true-length")
-    val startCoordinates: String get() = getValueForField("track-number-start-coordinates")
-    val endCoordinates: String get() = getValueForField("track-number-end-coordinates")
+    val startLocation: String
+        get() = getValueForField("track-number-start-track-meter")
+
+    val endLocation: String
+        get() = getValueForField("track-number-end-track-meter")
+
+    val trueLength: String
+        get() = getValueForField("track-number-true-length")
+
+    val startCoordinates: String
+        get() = getValueForField("track-number-start-coordinates")
+
+    val endCoordinates: String
+        get() = getValueForField("track-number-end-coordinates")
+
     fun zoomTo(): E2ETrackNumberLocationInfoBox = apply {
         logger.info("Zoom to track number")
 
@@ -186,14 +258,22 @@ class E2ETrackNumberLocationInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
 }
 
 class E2ETrackNumberLogInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
-    val created: String get() = getValueForField("track-number-created-date")
-    val changed: String get() = getValueForField("track-number-changed-date")
+    val created: String
+        get() = getValueForField("track-number-created-date")
+
+    val changed: String
+        get() = getValueForField("track-number-changed-date")
 }
 
 class E2ELayoutSwitchGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
-    val name: String get() = getValueForField("switch-name")
-    val oid: String get() = getValueForField("switch-oid")
-    val category: String get() = getValueForField("switch-state-category")
+    val name: String
+        get() = getValueForField("switch-name")
+
+    val oid: String
+        get() = getValueForField("switch-oid")
+
+    val category: String
+        get() = getValueForField("switch-state-category")
 
     fun edit(): E2ELayoutSwitchEditDialog {
         logger.info("Enable switch editing")
@@ -210,22 +290,26 @@ class E2ELayoutSwitchGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
 }
 
 class E2ELayoutSwitchAdditionalInfoInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
-    val owner: String get() = getValueForField("switch-owner")
+    val owner: String
+        get() = getValueForField("switch-owner")
 }
 
 class E2ESwitchStructureGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
-    val type: String get() = childText(By.cssSelector("p"))
-    val hand: String get() = getValueForField("switch-hand")
-    val trap: String get() = getValueForField("switch-trap-point")
+    val type: String
+        get() = childText(By.cssSelector("p"))
+
+    val hand: String
+        get() = getValueForField("switch-hand")
+
+    val trap: String
+        get() = getValueForField("switch-trap-point")
 }
 
 class E2ESwitchCoordinatesInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
-    data class SwitchLineAndTrack(
-        val switchLine: String,
-        val switchTrack: String,
-    )
+    data class SwitchLineAndTrack(val switchLine: String, val switchTrack: String)
 
-    val coordinates: String get() = getValueForField("switch-coordinates")
+    val coordinates: String
+        get() = getValueForField("switch-coordinates")
 
     val jointAlignments: List<SwitchLineAndTrack>
         get() {
@@ -235,12 +319,15 @@ class E2ESwitchCoordinatesInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
         }
 
     fun jointAlignment(line: String) = jointAlignments.first { it.switchLine == line }
-
 }
 
 class E2EGeometryAlignmentGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
-    val name: String get() = getValueForField("geometry-alignment-name")
-    val trackNumber: String get() = getValueForField("geometry-alignment-track-number")
+    val name: String
+        get() = getValueForField("geometry-alignment-name")
+
+    val trackNumber: String
+        get() = getValueForField("geometry-alignment-track-number")
+
     fun zoomTo() = apply {
         logger.info("Zoom to geometry alignment")
 
@@ -256,21 +343,16 @@ abstract class E2ELinkingInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
     abstract fun link(): E2ELinkingInfoBox
 
     abstract fun linkTo(name: String): E2ELinkingInfoBox
-
 }
 
 class E2EGeometryKmPostLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(infoboxBy) {
     override val linked: String
-        get() = childText(
-            ByChained(byQaId("geometry-km-post-linked"), By.className("infobox__field-value"))
-        )
+        get() = childText(ByChained(byQaId("geometry-km-post-linked"), By.className("infobox__field-value")))
 
     override fun linkTo(name: String): E2EGeometryKmPostLinkingInfoBox = apply {
         logger.info("Link km post to $name")
         clickChild(
-            By.xpath(
-                "//li[@class='geometry-km-post-linking-infobox__layout-km-post' and //span[text() = '$name']]"
-            )
+            By.xpath("//li[@class='geometry-km-post-linking-infobox__layout-km-post' and //span[text() = '$name']]")
         )
     }
 
@@ -282,9 +364,7 @@ class E2EGeometryKmPostLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(infobox
     }
 
     val trackLayoutKmPosts: List<String>
-        get() = childTexts(
-            By.xpath(".//li[@class='geometry-km-post-linking-infobox__layout-km-post']")
-        )
+        get() = childTexts(By.xpath(".//li[@class='geometry-km-post-linking-infobox__layout-km-post']"))
 
     override fun initiateLinking(): E2ELinkingInfoBox = apply {
         logger.info("Initiate linking")
@@ -301,7 +381,9 @@ class E2EGeometryKmPostLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(infobox
 
 class E2EGeometryAlignmentLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(infoboxBy) {
 
-    private val alignmentTypeRadio: E2ERadio by lazy { childRadio(By.className("geometry-alignment-infobox__radio-buttons")) }
+    private val alignmentTypeRadio: E2ERadio by lazy {
+        childRadio(By.className("geometry-alignment-infobox__radio-buttons"))
+    }
 
     fun selectLocationTrackLinking() {
         logger.info("Select location track linking")
@@ -316,20 +398,15 @@ class E2EGeometryAlignmentLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(info
     }
 
     override val linked: String
-        get() = childText(
-            ByChained(byQaId("geometry-alignment-linked"), By.className("infobox__field-value"))
-        )
+        get() = childText(ByChained(byQaId("geometry-alignment-linked"), By.className("infobox__field-value")))
 
     val linkedReferenceLines: List<String>
-        get() = childTexts(
-            ByChained(byQaId("geometry-alignment-linked-reference-lines"), By.className("alignment-badge"))
-        )
+        get() =
+            childTexts(ByChained(byQaId("geometry-alignment-linked-reference-lines"), By.className("alignment-badge")))
 
     override fun linkTo(name: String): E2EGeometryAlignmentLinkingInfoBox = apply {
         logger.info("Link alignment to $name")
-        clickChild(
-            By.xpath("//li[@class='geometry-alignment-infobox__alignment' and div/span[text() = '$name']]")
-        )
+        clickChild(By.xpath("//li[@class='geometry-alignment-infobox__alignment' and div/span[text() = '$name']]"))
     }
 
     override fun initiateLinking(): E2ELinkingInfoBox = apply {
@@ -358,23 +435,23 @@ class E2EGeometryAlignmentLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(info
 }
 
 class E2EGeometrySwitchGeneralInfoBox(infoboxBy: By) : E2EInfoBox(infoboxBy) {
-    val name: String get() = getValueForField("geometry-switch-name")
-    val hand: String get() = getValueForField("geometry-switch-hand")
+    val name: String
+        get() = getValueForField("geometry-switch-name")
+
+    val hand: String
+        get() = getValueForField("geometry-switch-hand")
 
     fun zoomTo(): E2EGeometrySwitchGeneralInfoBox = apply {
         logger.info("Zoom to geometry switch")
 
         clickButton(byQaId("zoom-to-geometry-switch")).also { E2ETrackLayoutPage.finishLoading() }
     }
-
 }
 
 class E2EGeometrySwitchLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(infoboxBy) {
 
     override val linked: String
-        get() = childText(
-            ByChained(byQaId("geometry-switch-linked"), By.className("infobox__field-value"))
-        )
+        get() = childText(ByChained(byQaId("geometry-switch-linked"), By.className("infobox__field-value")))
 
     fun createNewTrackLayoutSwitch(): E2ELayoutSwitchEditDialog {
         logger.info("Create new layout switch")
@@ -386,9 +463,7 @@ class E2EGeometrySwitchLinkingInfoBox(infoboxBy: By) : E2ELinkingInfoBox(infobox
     override fun linkTo(name: String): E2EGeometrySwitchLinkingInfoBox = apply {
         logger.info("Link switch to $name")
 
-        clickChild(
-            By.xpath("//li[@class='geometry-switch-infobox__switch' and //span[text() = '$name']]")
-        )
+        clickChild(By.xpath("//li[@class='geometry-switch-infobox__switch' and //span[text() = '$name']]"))
     }
 
     override fun initiateLinking(): E2ELinkingInfoBox = apply {

@@ -5,9 +5,9 @@ import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
-import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.util.assertSanitized
 import java.time.Instant
 
@@ -20,12 +20,15 @@ enum class PVDocumentStatus {
 
 val pvProjectNameLength = 1..200
 val pvProjectNameRegex = Regex("^[A-ZÄÖÅa-zäöå0-9 \t_\\\\\\-–—+().,:;'/*!@\"£#$€\\[\\]{}=?^~<>]*\$")
-data class PVProjectName @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(private val value: String)
-    : Comparable<PVProjectName>, CharSequence by value {
-    init { assertSanitized<PVProjectName>(value, pvProjectNameRegex, pvProjectNameLength) }
 
-    @JsonValue
-    override fun toString(): String = value
+data class PVProjectName @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(private val value: String) :
+    Comparable<PVProjectName>, CharSequence by value {
+    init {
+        assertSanitized<PVProjectName>(value, pvProjectNameRegex, pvProjectNameLength)
+    }
+
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: PVProjectName): Int = value.compareTo(other.value)
 }
 

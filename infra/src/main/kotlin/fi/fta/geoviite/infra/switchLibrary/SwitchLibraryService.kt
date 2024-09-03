@@ -11,17 +11,14 @@ class SwitchLibraryService(
     private val switchStructureDao: SwitchStructureDao,
     private val switchOwnerDao: SwitchOwnerDao,
 ) {
-    private val structures: List<SwitchStructure> by lazy {
-        switchStructureDao.fetchSwitchStructures()
-    }
+    private val structures: List<SwitchStructure> by lazy { switchStructureDao.fetchSwitchStructures() }
 
     private val structuresById: Map<IntId<SwitchStructure>, SwitchStructure> by lazy {
-        structures.associateBy { switchStructure ->
-            switchStructure.id as IntId
-        }
+        structures.associateBy { switchStructure -> switchStructure.id as IntId }
     }
 
     fun getSwitchStructures(): List<SwitchStructure> = structures
+
     fun getSwitchStructuresById(): Map<IntId<SwitchStructure>, SwitchStructure> = structuresById
 
     fun getSwitchStructure(id: IntId<SwitchStructure>): SwitchStructure {
@@ -52,7 +49,7 @@ class SwitchLibraryService(
         if (existingSwitchStructure == null) {
             switchStructureDao.insertSwitchStructure(newSwitchStructure)
         } else {
-            val switchStructureWithExistingId = newSwitchStructure.copy(id =existingSwitchStructure.id)
+            val switchStructureWithExistingId = newSwitchStructure.copy(id = existingSwitchStructure.id)
             if (!existingSwitchStructure.isSame(switchStructureWithExistingId)) {
                 switchStructureDao.updateSwitchStructure(switchStructureWithExistingId)
             }
@@ -63,9 +60,10 @@ class SwitchLibraryService(
     fun replaceExistingSwitchStructures(newSwitchStructures: List<SwitchStructure>) {
         val existingSwitchStructures = switchStructureDao.fetchSwitchStructures()
         existingSwitchStructures.forEach { existingSwitchStructure ->
-            val existsInNewSet = newSwitchStructures.any { newSwitchStructure ->
-                newSwitchStructure.type == existingSwitchStructure.type
-            }
+            val existsInNewSet =
+                newSwitchStructures.any { newSwitchStructure ->
+                    newSwitchStructure.type == existingSwitchStructure.type
+                }
             if (!existsInNewSet) {
                 switchStructureDao.delete(existingSwitchStructure.id as IntId)
             }

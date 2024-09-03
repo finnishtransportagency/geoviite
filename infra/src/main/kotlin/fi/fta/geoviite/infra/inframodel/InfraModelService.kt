@@ -34,15 +34,18 @@ const val VALIDATION_LAYOUT_POINTS_RESOLUTION = 10
 
 val noFileValidationError = ParsingError(LocalizationKey(INFRAMODEL_PARSING_KEY_EMPTY))
 
-fun noFileValidationResponse(overrideParameters: OverrideParameters?) = ValidationResponse(
-    geometryValidationIssues = listOf(noFileValidationError),
-    geometryPlan = null,
-    planLayout = null,
-    source = overrideParameters?.source ?: PlanSource.GEOMETRIAPALVELU,
-)
+fun noFileValidationResponse(overrideParameters: OverrideParameters?) =
+    ValidationResponse(
+        geometryValidationIssues = listOf(noFileValidationError),
+        geometryPlan = null,
+        planLayout = null,
+        source = overrideParameters?.source ?: PlanSource.GEOMETRIAPALVELU,
+    )
 
 @GeoviiteService
-class InfraModelService @Autowired constructor(
+class InfraModelService
+@Autowired
+constructor(
     private val geometryService: GeometryService,
     private val layoutCache: PlanLayoutCache,
     private val geometryDao: GeometryDao,
@@ -64,9 +67,12 @@ class InfraModelService @Autowired constructor(
         extraInfo: ExtraInfoParameters?,
     ): RowVersion<GeometryPlan> {
         val geometryPlan = cleanMissingFeatureTypeCodes(parseInfraModel(file, overrides, extraInfo))
-        val transformedBoundingBox = geometryPlan.units.coordinateSystemSrid
-            ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
-            ?.let { transformation -> getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation) }
+        val transformedBoundingBox =
+            geometryPlan.units.coordinateSystemSrid
+                ?.let { planSrid -> coordinateTransformationService.getTransformation(planSrid, LAYOUT_SRID) }
+                ?.let { transformation ->
+                    getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, transformation)
+                }
 
         checkForDuplicateFile(file, geometryPlan.source)
 
@@ -80,13 +86,14 @@ class InfraModelService @Autowired constructor(
     ): GeometryPlan {
         val switchStructuresByType = switchLibraryService.getSwitchStructures().associateBy { it.type }
 
-        val parsed = parseInfraModelFile(
-            overrides?.source ?: PlanSource.GEOMETRIAPALVELU,
-            file,
-            geographyService.getCoordinateSystemNameToSridMapping(),
-            switchStructuresByType,
-            switchLibraryService.getInframodelAliases(),
-        )
+        val parsed =
+            parseInfraModelFile(
+                overrides?.source ?: PlanSource.GEOMETRIAPALVELU,
+                file,
+                geographyService.getCoordinateSystemNameToSridMapping(),
+                switchStructuresByType,
+                switchLibraryService.getInframodelAliases(),
+            )
         return overrideGeometryPlanWithParameters(parsed, overrides, extraInfo)
     }
 
@@ -100,10 +107,7 @@ class InfraModelService @Autowired constructor(
         }
     }
 
-    fun validateInfraModelFile(
-        file: InfraModelFile,
-        overrideParameters: OverrideParameters?
-    ): ValidationResponse {
+    fun validateInfraModelFile(file: InfraModelFile, overrideParameters: OverrideParameters?): ValidationResponse {
         return tryParsing(overrideParameters?.source) { validateInternal(file, overrideParameters) }
     }
 
@@ -114,29 +118,27 @@ class InfraModelService @Autowired constructor(
 
     private fun cleanMissingFeatureTypeCodes(plan: GeometryPlan): GeometryPlan {
         val codes = codeDictionaryService.getFeatureTypes().map(FeatureType::code)
-        val cleanedAlignments = plan.alignments.map { a ->
-            if (a.featureTypeCode != null && a.featureTypeCode !in codes) a.copy(featureTypeCode = null)
-            else a
-        }
+        val cleanedAlignments =
+            plan.alignments.map { a ->
+                if (a.featureTypeCode != null && a.featureTypeCode !in codes) a.copy(featureTypeCode = null) else a
+            }
         return if (cleanedAlignments != plan.alignments) plan.copy(alignments = cleanedAlignments) else plan
     }
 
     @Transactional(readOnly = true)
-    fun validateGeometryPlan(
-        planId: IntId<GeometryPlan>,
-        overrideParameters: OverrideParameters?,
-    ): ValidationResponse {
+    fun validateGeometryPlan(planId: IntId<GeometryPlan>, overrideParameters: OverrideParameters?): ValidationResponse {
         val geometryPlan = geometryService.getGeometryPlan(planId)
         val planWithParameters = overrideGeometryPlanWithParameters(geometryPlan, overrideParameters)
         return validateAndTransformToLayoutPlan(planWithParameters)
     }
 
     private fun validateAndTransformToLayoutPlan(plan: GeometryPlan): ValidationResponse {
-        val (planLayout: GeometryPlanLayout?, layoutCreationError: TransformationError?) = layoutCache.transformToLayoutPlan(
-            geometryPlan = plan,
-            includeGeometryData = true,
-            pointListStepLength = VALIDATION_LAYOUT_POINTS_RESOLUTION,
-        )
+        val (planLayout: GeometryPlanLayout?, layoutCreationError: TransformationError?) =
+            layoutCache.transformToLayoutPlan(
+                geometryPlan = plan,
+                includeGeometryData = true,
+                pointListStepLength = VALIDATION_LAYOUT_POINTS_RESOLUTION,
+            )
         val validationIssues = validateGeometryPlanContent(plan) + listOfNotNull(layoutCreationError)
         return ValidationResponse(validationIssues, plan, planLayout?.withLayoutGeometry(), plan.source)
     }
@@ -170,20 +172,22 @@ class InfraModelService @Autowired constructor(
             if (overrideParameters?.authorId is IntId<Author>) geometryDao.getAuthor(overrideParameters.authorId)
             else plan.author?.let { author -> geometryDao.findAuthor(author.companyName) ?: author }
 
-        val application = geometryDao.findApplication(plan.application.name, plan.application.version)
-            ?: plan.application
+        val application =
+            geometryDao.findApplication(plan.application.name, plan.application.version) ?: plan.application
 
         val overrideCs = overrideParameters?.coordinateSystemSrid?.let(geographyService::getCoordinateSystem)
 
-        // Nullable fields that do not contain a default parameter via the elvis-operator are considered to be assignable
+        // Nullable fields that do not contain a default parameter via the elvis-operator are
+        // considered to be assignable
         // to null even if they have non-null values stored in the database.
         return plan.copy(
-            units = plan.units.copy(
-                coordinateSystemSrid = overrideCs?.srid ?: plan.units.coordinateSystemSrid,
-                coordinateSystemName = overrideCs?.name ?: plan.units.coordinateSystemName,
-                verticalCoordinateSystem = overrideParameters?.verticalCoordinateSystem
-                    ?: plan.units.verticalCoordinateSystem,
-            ),
+            units =
+                plan.units.copy(
+                    coordinateSystemSrid = overrideCs?.srid ?: plan.units.coordinateSystemSrid,
+                    coordinateSystemName = overrideCs?.name ?: plan.units.coordinateSystemName,
+                    verticalCoordinateSystem =
+                        overrideParameters?.verticalCoordinateSystem ?: plan.units.verticalCoordinateSystem,
+                ),
             trackNumber = overrideParameters?.trackNumber ?: plan.trackNumber,
             project = planProject,
             author = planAuthor,

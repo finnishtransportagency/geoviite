@@ -13,9 +13,11 @@ data class LocalizationKey @JsonCreator(mode = DELEGATING) constructor(private v
         val allowedLength = 1..100
     }
 
-    init { assertSanitized<LocalizationKey>(value, sanitizer, allowedLength) }
+    init {
+        assertSanitized<LocalizationKey>(value, sanitizer, allowedLength)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: LocalizationKey): Int = value.compareTo(other.value)
 }

@@ -10,21 +10,25 @@ private class RequestProperty<T>(val type: Type, private val init: (String) -> T
 
     override fun clear() = ThreadContext.remove(type.header)
 
-    override fun get(): T = requireNotNull(getOrNull()) {
-        "Value for ${type.name} (header ${type.header}) not found in context"
-    }
+    override fun get(): T =
+        requireNotNull(getOrNull()) { "Value for ${type.name} (header ${type.header}) not found in context" }
 
     override fun getOrNull(): T? = ThreadContext.get(type.header)?.let(init)
 
     enum class Type(val header: String) {
-        CORRELATION_ID_HEADER("correlationId"), USER("user"), ROLE("role"),
+        CORRELATION_ID_HEADER("correlationId"),
+        USER("user"),
+        ROLE("role"),
     }
 }
 
 interface IRequestProperty<T> {
     fun set(newValue: T)
+
     fun clear()
+
     fun get(): T
+
     fun getOrNull(): T?
 }
 

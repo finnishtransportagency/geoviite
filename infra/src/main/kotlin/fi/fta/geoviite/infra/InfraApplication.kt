@@ -11,12 +11,7 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 
-@SpringBootApplication(
-    exclude = [
-        SecurityAutoConfiguration::class,
-        UserDetailsServiceAutoConfiguration::class,
-    ]
-)
+@SpringBootApplication(exclude = [SecurityAutoConfiguration::class, UserDetailsServiceAutoConfiguration::class])
 @EnableMethodSecurity
 @ComponentScan(basePackages = ["fi.fta.geoviite"])
 class InfraApplication

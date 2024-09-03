@@ -3,9 +3,13 @@ package fi.fta.geoviite.infra.ui.pagemodel.common
 import org.openqa.selenium.By
 
 open class E2EAccordion(accordionBy: By) : E2EViewFragment(accordionBy) {
-    enum class Toggle { OPEN, CLOSE }
+    enum class Toggle {
+        OPEN,
+        CLOSE,
+    }
 
-    val header: String get() = childText(By.className("accordion__header-title"))
+    val header: String
+        get() = childText(By.className("accordion__header-title"))
 
     fun toggleVisibility(): E2EAccordion = apply {
         logger.info("Toggle visibility")

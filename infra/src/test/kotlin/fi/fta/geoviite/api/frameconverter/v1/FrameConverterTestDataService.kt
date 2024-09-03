@@ -16,10 +16,10 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import fi.fta.geoviite.infra.tracklayout.segment
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.stereotype.Service
 import java.util.*
 import kotlin.test.assertEquals
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.stereotype.Service
 
 data class GeocodableTrack(
     val layoutContext: LayoutContext,
@@ -27,7 +27,6 @@ data class GeocodableTrack(
     val referenceLine: ReferenceLine,
     val locationTrack: LocationTrack,
 )
-
 
 fun assertNullSimpleProperties(properties: Map<String, Any>) {
     assertNullProperties(properties, "x", "y", "valimatka")
@@ -47,13 +46,13 @@ fun assertNullDetailedProperties(properties: Map<String, Any>) {
 }
 
 private fun assertNullProperties(properties: Map<String, Any>, vararg propertyNames: String) {
-    propertyNames.forEach { name ->
-        assertEquals(null, properties[name])
-    }
+    propertyNames.forEach { name -> assertEquals(null, properties[name]) }
 }
 
 @Service
-class FrameConverterTestDataServiceV1 @Autowired constructor(
+class FrameConverterTestDataServiceV1
+@Autowired
+constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val referenceLineDao: ReferenceLineDao,
     private val locationTrackDao: LocationTrackDao,
@@ -67,21 +66,23 @@ class FrameConverterTestDataServiceV1 @Autowired constructor(
         locationTrackType: LocationTrackType = LocationTrackType.MAIN,
         segments: List<LayoutSegment> = listOf(segment(Point(-10.0, 0.0), Point(10.0, 0.0))),
     ): GeocodableTrack {
-        val usedReferenceLineId = referenceLineId ?: layoutContext.insert(
-            referenceLineAndAlignment(
-                trackNumberId = trackNumberId,
-                segments = segments,
-            )
-        ).id
+        val usedReferenceLineId =
+            referenceLineId
+                ?: layoutContext
+                    .insert(referenceLineAndAlignment(trackNumberId = trackNumberId, segments = segments))
+                    .id
 
-        val locationTrackId = layoutContext.insert(
-            locationTrackAndAlignment(
-                trackNumberId = trackNumberId,
-                name = locationTrackName,
-                type = locationTrackType,
-                segments = segments,
-            )
-        ).id
+        val locationTrackId =
+            layoutContext
+                .insert(
+                    locationTrackAndAlignment(
+                        trackNumberId = trackNumberId,
+                        name = locationTrackName,
+                        type = locationTrackType,
+                        segments = segments,
+                    )
+                )
+                .id
 
         return GeocodableTrack(
             layoutContext = layoutContext.context,

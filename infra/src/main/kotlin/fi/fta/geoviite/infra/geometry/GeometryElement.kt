@@ -14,11 +14,13 @@ import java.math.BigDecimal
 import kotlin.math.PI
 import kotlin.math.min
 
-/**
- * Type enumeration for JSON & database representations
- **/
-
-enum class GeometryElementType { LINE, CURVE, CLOTHOID, BIQUADRATIC_PARABOLA }
+/** Type enumeration for JSON & database representations */
+enum class GeometryElementType {
+    LINE,
+    CURVE,
+    CLOTHOID,
+    BIQUADRATIC_PARABOLA,
+}
 
 interface ElementContent {
     val name: PlanElementName?
@@ -38,9 +40,10 @@ data class ElementData(
     override val length: BigDecimal,
 ) : ElementContent {
     init {
-        if (start == end) throw IllegalArgumentException(
-            "Element start and end should differ: name=$name oid=$oidPart start=$start end=$end"
-        )
+        if (start == end)
+            throw IllegalArgumentException(
+                "Element start and end should differ: name=$name oid=$oidPart start=$start end=$end"
+            )
     }
 }
 
@@ -74,22 +77,22 @@ data class CurveData(
 ) : CurveContent
 
 interface SpiralContent {
-    /** Direction of spiral curvature, relative to rail forward direction **/
+    /** Direction of spiral curvature, relative to rail forward direction * */
     val rotation: RotationDirection
 
-    /** Forward direction of the rail at segment start **/
+    /** Forward direction of the rail at segment start * */
     val directionStart: Angle?
 
-    /** Forward direction of the rail at segment end **/
+    /** Forward direction of the rail at segment end * */
     val directionEnd: Angle?
 
-    /** Spiral steepness at segment start, expressed as the circle radius of the curve **/
+    /** Spiral steepness at segment start, expressed as the circle radius of the curve * */
     val radiusStart: BigDecimal?
 
-    /** Spiral steepness at segment end, expressed as the circle radius of the curve **/
+    /** Spiral steepness at segment end, expressed as the circle radius of the curve * */
     val radiusEnd: BigDecimal?
 
-    /** Segment start & end point tangents' intersection **/
+    /** Segment start & end point tangents' intersection * */
     val pi: Point
 }
 
@@ -102,23 +105,20 @@ data class SpiralData(
     override val pi: Point,
 ) : SpiralContent
 
-/**
- * Geometry element is a single mathematically defined piece of the overall geometry building up an alignment
- */
+/** Geometry element is a single mathematically defined piece of the overall geometry building up an alignment */
 sealed class GeometryElement : ElementContent, SwitchContent {
     abstract val type: GeometryElementType
     abstract val id: DomainId<GeometryElement>
     abstract val calculatedLength: Double
 
-    @get:JsonIgnore
-    abstract val bounds: List<Point>
-    @get:JsonIgnore
-    abstract val startDirectionRads: Double
-    @get:JsonIgnore
-    abstract val endDirectionRads: Double
+    @get:JsonIgnore abstract val bounds: List<Point>
+    @get:JsonIgnore abstract val startDirectionRads: Double
+    @get:JsonIgnore abstract val endDirectionRads: Double
 
     abstract fun getCoordinateAt(distance: Double): Point
+
     abstract fun contentEquals(other: GeometryElement): Boolean
+
     abstract fun getLengthUntil(target: Point): Double
 }
 
@@ -135,6 +135,7 @@ data class GeometryLine(
     override val endDirectionRads: Double = directionBetweenPoints(start, end)
 
     override fun getCoordinateAt(distance: Double): Point = linePointAtDistance(start, end, distance)
+
     override fun contentEquals(other: GeometryElement): Boolean {
         return other is GeometryLine && other.elementData == elementData && switchData.contentEquals(other.switchData)
     }
@@ -159,19 +160,21 @@ data class GeometryCurve(
         val rotatedCenter = rotateAroundPoint(start, -directionStartToEnd, center)
         val rotatedEndPoint = rotateAroundPoint(start, -directionStartToEnd, end)
 
-        // Now the X ranges from start to end now and Y is flat. The farthest Y is at the center of the curve.
+        // Now the X ranges from start to end now and Y is flat. The farthest Y is at the center of
+        // the curve.
         val radiusOffset = Point(0.0, radius.toDouble())
         val rotatedCurvePoint = if (rotation == CW) rotatedCenter + radiusOffset else rotatedCenter - radiusOffset
 
-        // Define minimal bounding corners in this rotated coordinate system and then rotate them back
+        // Define minimal bounding corners in this rotated coordinate system and then rotate them
+        // back
         val rotatedCorners = boundingBoxAroundPoints(start, rotatedCurvePoint, rotatedEndPoint).corners
         rotatedCorners.map { point -> rotateAroundPoint(start, directionStartToEnd, point) }
     }
     override val startDirectionRads: Double by lazy {
-        rotateAngle(directionBetweenPoints(center, start), rotationDirectionSign * PI/2)
+        rotateAngle(directionBetweenPoints(center, start), rotationDirectionSign * PI / 2)
     }
     override val endDirectionRads: Double by lazy {
-        rotateAngle(directionBetweenPoints(center, end), rotationDirectionSign * PI/2)
+        rotateAngle(directionBetweenPoints(center, end), rotationDirectionSign * PI / 2)
     }
 
     override fun getCoordinateAt(distance: Double): Point {
@@ -181,11 +184,12 @@ data class GeometryCurve(
 
     private val rotationDirectionSign by lazy { if (rotation == CCW) 1 else -1 }
     private val chordDirection: Double by lazy { directionBetweenPoints(center, start) }
+
     override fun contentEquals(other: GeometryElement): Boolean {
-        return other is GeometryCurve
-                && other.elementData == elementData
-                && other.curveData == curveData
-                && switchData.contentEquals(other.switchData)
+        return other is GeometryCurve &&
+            other.elementData == elementData &&
+            other.curveData == curveData &&
+            switchData.contentEquals(other.switchData)
     }
 
     override fun getLengthUntil(target: Point): Double {
@@ -193,9 +197,7 @@ data class GeometryCurve(
         val toEnd = directionBetweenPoints(center, end)
         val toTarget = directionBetweenPoints(center, target)
         return if (isInsideArc(toStart, toEnd, toTarget)) {
-            val angleDiff =
-                if (rotation == CCW) angleDiffRads(toTarget, toStart)
-                else angleDiffRads(toStart, toTarget)
+            val angleDiff = if (rotation == CCW) angleDiffRads(toTarget, toStart) else angleDiffRads(toStart, toTarget)
             circleSubArcLength(radius.toDouble(), angleDiff)
         } else if (angleDiffRads(toStart, toTarget) <= angleDiffRads(toEnd, toTarget)) {
             0.0
@@ -205,14 +207,15 @@ data class GeometryCurve(
     }
 
     private fun isInsideArc(start: Double, end: Double, value: Double): Boolean =
-        if (rotation == CCW) angleIsBetween(start, end, value)
-        else angleIsBetween(end, start, value)
+        if (rotation == CCW) angleIsBetween(start, end, value) else angleIsBetween(end, start, value)
 }
 
 sealed class GeometrySpiral : SpiralContent, GeometryElement() {
     override val bounds: List<Point> by lazy {
-        // Rotate the curved end's point so that the flat part starts with positive X and curves up/down
-        // Define minimal bounding corners in this rotated coordinate system and then rotate them back
+        // Rotate the curved end's point so that the flat part starts with positive X and curves
+        // up/down
+        // Define minimal bounding corners in this rotated coordinate system and then rotate them
+        // back
         if (isSteepening) {
             val rotatedEnd = rotateAroundPoint(start, -startDirectionRads, end)
             val rotatedCorners = boundingBoxAroundPoints(start, rotatedEnd).corners
@@ -227,23 +230,26 @@ sealed class GeometrySpiral : SpiralContent, GeometryElement() {
     override val endDirectionRads: Double by lazy { directionBetweenPoints(pi, end) }
 
     /**
-     * We calculate everything from the first segment point along the spiral.
-     * This tells us if that's the start-point (steepening) or the end-point (flattening)
+     * We calculate everything from the first segment point along the spiral. This tells us if that's the start-point
+     * (steepening) or the end-point (flattening)
      */
     protected val isSteepening: Boolean by lazy {
         (radiusStart?.toDouble() ?: Double.POSITIVE_INFINITY) >= (radiusEnd?.toDouble() ?: Double.POSITIVE_INFINITY)
     }
 
     /**
-     * Ideal spiral turns counter-clockwise from spiral origin (goes along positive X, turning towards positive Y)
-     * This is the wrong direction if actual spiral is (steepening & clockwise) OR (flattening & counter-clockwise)
+     * Ideal spiral turns counter-clockwise from spiral origin (goes along positive X, turning towards positive Y) This
+     * is the wrong direction if actual spiral is (steepening & clockwise) OR (flattening & counter-clockwise)
      */
     protected val turnsClockwise: Boolean by lazy { (rotation == CW) == isSteepening }
 
     // In math, we always assume to start from straight line and go "into" the spiral.
-    // If we're going the other direction, we have to treat the end as the start-point and vice versa.
+    // If we're going the other direction, we have to treat the end as the start-point and vice
+    // versa.
     protected val segmentStart: Point by lazy { if (isSteepening) start else end }
-    protected val segmentStartRadius: Double? by lazy { if (isSteepening) radiusStart?.toDouble() else radiusEnd?.toDouble() }
+    protected val segmentStartRadius: Double? by lazy {
+        if (isSteepening) radiusStart?.toDouble() else radiusEnd?.toDouble()
+    }
     protected val segmentStartAngle: Double by lazy { if (isSteepening) startDirectionRads else endDirectionRads - PI }
 }
 
@@ -251,7 +257,7 @@ data class GeometryClothoid(
     private val elementData: ElementData,
     private val spiralData: SpiralData,
     private val switchData: SwitchData,
-    /** Clothoid flatness constant A = sqrt(R*L) **/
+    /** Clothoid flatness constant A = sqrt(R*L) * */
     val constant: BigDecimal,
     override val id: DomainId<GeometryElement> = StringId(),
 ) : ElementContent by elementData, SpiralContent by spiralData, SwitchContent by switchData, GeometrySpiral() {
@@ -279,11 +285,11 @@ data class GeometryClothoid(
     }
 
     override fun contentEquals(other: GeometryElement): Boolean {
-        return other is GeometryClothoid
-                && other.elementData == elementData
-                && other.spiralData == spiralData
-                && other.constant == constant
-                && switchData.contentEquals(other.switchData)
+        return other is GeometryClothoid &&
+            other.elementData == elementData &&
+            other.spiralData == spiralData &&
+            other.constant == constant &&
+            switchData.contentEquals(other.switchData)
     }
 
     fun segmentToClothoidDistance(segmentDistance: Double): Double {
@@ -311,9 +317,7 @@ data class GeometryClothoid(
         }
     }
 
-    /**
-     * The angle (radians) that the entire clothoid is turned (around the origin) from the X-axis
-     */
+    /** The angle (radians) that the entire clothoid is turned (around the origin) from the X-axis */
     private val clothoidAngle: Double by lazy {
         val spiralTwist = clothoidTwistAtLength(segmentStartRadius, clothoidSegmentOffset)
         val sign = if (turnsClockwise) 1 else -1
@@ -322,8 +326,8 @@ data class GeometryClothoid(
 
     /**
      * Distance between the clothoid origin and the closest point of segment (start or end, depending on direction).
-     * Offset = 0, if the spiral begins or ends at a straight line.
-     * Offset > 0, if the segment is from farther in the spiral, having curvature in both ends.
+     * Offset = 0, if the spiral begins or ends at a straight line. Offset > 0, if the segment is from farther in the
+     * spiral, having curvature in both ends.
      */
     private val clothoidSegmentOffset: Double by lazy {
         clothoidLengthAtRadius(constant.toDouble(), segmentStartRadius)
@@ -365,14 +369,15 @@ data class GeometryClothoid(
         } else {
             val halfPoint = (range.start + range.endInclusive) / 2
             splitLengthToMaxTwist(range.start..halfPoint, maxTwistRads) +
-                    splitLengthToMaxTwist(halfPoint..range.endInclusive, maxTwistRads)
+                splitLengthToMaxTwist(halfPoint..range.endInclusive, maxTwistRads)
         }
     }
 
     override fun getLengthUntil(target: Point): Double {
         for (segment in estimationSegments) {
             val closest = closestPointOnLine(segment.start, segment.end, target)
-            // If it's off from the end-side, move on to check the next segment. Otherwise, this is as close as it gets.
+            // If it's off from the end-side, move on to check the next segment. Otherwise, this is
+            // as close as it gets.
             if (closest != segment.end) {
                 val distancePortion = lineLength(segment.start, closest) / lineLength(segment.start, segment.end)
                 return min(calculatedLength, segment.startLength + segment.length * distancePortion)
@@ -394,7 +399,9 @@ data class BiquadraticParabola(
             throw IllegalArgumentException("Biquadratic parabola cannot be defined without a start- or end-radius.")
         }
         if (radiusStart != null && radiusEnd != null) {
-            throw IllegalArgumentException("Biquadratic parabola is not supported between curves (only on of start- and end-radius can be given).")
+            throw IllegalArgumentException(
+                "Biquadratic parabola is not supported between curves (only on of start- and end-radius can be given)."
+            )
         }
     }
 
@@ -416,15 +423,13 @@ data class BiquadraticParabola(
     }
 
     override fun contentEquals(other: GeometryElement): Boolean {
-        return other is BiquadraticParabola
-                && other.elementData == elementData
-                && other.spiralData == spiralData
-                && switchData.contentEquals(other.switchData)
+        return other is BiquadraticParabola &&
+            other.elementData == elementData &&
+            other.spiralData == spiralData &&
+            switchData.contentEquals(other.switchData)
     }
 
-    private val spiralRadiusChange: Double by lazy {
-        radiusStart?.toDouble() ?: (radiusEnd?.toDouble() ?: 0.0)
-    }
+    private val spiralRadiusChange: Double by lazy { radiusStart?.toDouble() ?: (radiusEnd?.toDouble() ?: 0.0) }
 
     // Calculate parabola spiral as if it were a line:
     // this is inaccurate, but only as much as the official length-to-point formula

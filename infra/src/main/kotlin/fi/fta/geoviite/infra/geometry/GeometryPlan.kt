@@ -31,13 +31,11 @@ import fi.fta.geoviite.infra.util.Page
 import java.time.Instant
 
 enum class PlanSource {
-    GEOMETRIAPALVELU, PAIKANNUSPALVELU,
+    GEOMETRIAPALVELU,
+    PAIKANNUSPALVELU,
 }
 
-/**
- * GeometryPlanHeader is a lightweight object to be us
- * ed as list items etc.
- */
+/** GeometryPlanHeader is a lightweight object to be us ed as list items etc. */
 data class GeometryPlanHeader(
     val id: IntId<GeometryPlan>,
     val version: RowVersion<GeometryPlan>,
@@ -71,7 +69,8 @@ data class GeometryPlanHeader(
 /**
  * Plan is a design for a portion of railways/roads/etc. that can go through various states of completion.
  *
- * It is typically handled as a single file, and can consists of a number of parallel ways (alignments), each with their own geometries.
+ * It is typically handled as a single file, and can consists of a number of parallel ways (alignments), each with their
+ * own geometries.
  */
 data class GeometryPlan(
     val source: PlanSource,
@@ -97,29 +96,22 @@ data class GeometryPlan(
     val id: DomainId<GeometryPlan> = StringId(),
     val dataType: DataType = DataType.TEMP,
 ) : Loggable {
-    @get:JsonIgnore
-    val bounds by lazy { boundingBoxCombining(alignments.mapNotNull { a -> a.bounds }) }
+    @get:JsonIgnore val bounds by lazy { boundingBoxCombining(alignments.mapNotNull { a -> a.bounds }) }
 
-    override fun toLog(): String = logFormat(
-        "id" to id,
-        "name" to fileName,
-        "source" to source,
-        "alignments" to alignments.map(GeometryAlignment::toLog),
-        "switches" to switches.map(GeometrySwitch::toLog),
-        "kmPosts" to kmPosts.map(GeometryKmPost::toLog),
-    )
+    override fun toLog(): String =
+        logFormat(
+            "id" to id,
+            "name" to fileName,
+            "source" to source,
+            "alignments" to alignments.map(GeometryAlignment::toLog),
+            "switches" to switches.map(GeometrySwitch::toLog),
+            "kmPosts" to kmPosts.map(GeometryKmPost::toLog),
+        )
 }
 
-data class GeometryPlanArea(
-    val id: DomainId<GeometryPlan>,
-    val fileName: FileName,
-    val polygon: List<Point>,
-)
+data class GeometryPlanArea(val id: DomainId<GeometryPlan>, val fileName: FileName, val polygon: List<Point>)
 
-data class GeometryPlanUnits(
-    val id: IntId<GeometryPlan>,
-    val units: GeometryUnits,
-)
+data class GeometryPlanUnits(val id: IntId<GeometryPlan>, val units: GeometryUnits)
 
 data class GeometryUnits(
     val coordinateSystemSrid: Srid?,

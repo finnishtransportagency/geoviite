@@ -1,9 +1,9 @@
 package fi.fta.geoviite.infra.jsonFormatting
 
 import fi.fta.geoviite.infra.aspects.GeoviiteController
+import java.time.Instant
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
-import java.time.Instant
 
 @GeoviiteController("/json-test-path")
 class JsonFormattingTestController {

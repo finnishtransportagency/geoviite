@@ -9,14 +9,14 @@ import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.FreeText
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.transaction.annotation.Transactional
-import java.time.Instant
 
 @GeoviiteService
 abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType : ILayoutAssetDao<ObjectType>>(
-    protected open val dao: DaoType,
+    protected open val dao: DaoType
 ) {
 
     protected open val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -88,23 +88,33 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         return publishInternal(branch, version.validatedAssetVersion)
     }
 
-    protected fun publishInternal(branch: LayoutBranch, version: LayoutRowVersion<ObjectType>): LayoutDaoResponse<ObjectType> {
+    protected fun publishInternal(
+        branch: LayoutBranch,
+        version: LayoutRowVersion<ObjectType>,
+    ): LayoutDaoResponse<ObjectType> {
         val draft = dao.fetch(version)
-        require(branch == draft.branch) { "Draft branch does not match the publishing operation: branch=$branch draft=$draft" }
+        require(branch == draft.branch) {
+            "Draft branch does not match the publishing operation: branch=$branch draft=$draft"
+        }
         require(draft.isDraft) { "Object to publish is not a draft: version=$version context=${draft.contextData}" }
         val published = asOfficial(branch, draft)
         require(!published.isDraft) { "Published object is still a draft: context=${published.contextData}" }
         verifyObjectIsExisting(published)
 
-        val publicationResponse = dao.update(published).also { r ->
-            require(r.id == draft.id) { "Publication response ID doesn't match object: id=${draft.id} updated=$r" }
-        }
-        // If draft row-id changed, the data was updated to the official row -> delete the now-redundant draft row
+        val publicationResponse =
+            dao.update(published).also { r ->
+                require(r.id == draft.id) { "Publication response ID doesn't match object: id=${draft.id} updated=$r" }
+            }
+        // If draft row-id changed, the data was updated to the official row -> delete the
+        // now-redundant draft row
         if (version.rowId != publicationResponse.rowVersion.rowId) {
             dao.deleteRow(version.rowId)
         }
-        // If main-draft was published and it came from a design row that wasn't updated, then that row is redundant too
-        if (draft.branch == LayoutBranch.main && draft.contextData.designRowId != publicationResponse.rowVersion.rowId) {
+        // If main-draft was published and it came from a design row that wasn't updated, then that
+        // row is redundant too
+        if (
+            draft.branch == LayoutBranch.main && draft.contextData.designRowId != publicationResponse.rowVersion.rowId
+        ) {
             draft.contextData.designRowId?.let(dao::deleteRow)
         }
         return publicationResponse
@@ -147,7 +157,8 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         versions: VersionsForMerging,
         objectFromBranch: ObjectType,
     ): LayoutDaoResponse<ObjectType> =
-        // The merge should overwrite any pre-existing main-draft row, or otherwise be saved as a new one
+        // The merge should overwrite any pre-existing main-draft row, or otherwise be saved as a
+        // new one
         if (versions.mainDraftVersion == null || versions.mainDraftVersion == versions.mainOfficialVersion) {
             dao.insert(asMainDraft(objectFromBranch))
         } else {
@@ -155,14 +166,15 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         }
 
     private fun verifyInsertResponse(officialId: IntId<ObjectType>?, response: LayoutDaoResponse<ObjectType>) {
-        if (officialId != null) require(response.id == officialId) {
-            "Insert response ID doesn't match object: officialId=$officialId updated=$response"
-        } else require(response.id.intValue == response.rowVersion.rowId.intValue) {
-            "Inserted new object refers to another official row: inserted=$response"
-        }
-        require(response.rowVersion.version == 1) {
-            "Inserted new row has a version over 1: inserted=$response"
-        }
+        if (officialId != null)
+            require(response.id == officialId) {
+                "Insert response ID doesn't match object: officialId=$officialId updated=$response"
+            }
+        else
+            require(response.id.intValue == response.rowVersion.rowId.intValue) {
+                "Inserted new object refers to another official row: inserted=$response"
+            }
+        require(response.rowVersion.version == 1) { "Inserted new row has a version over 1: inserted=$response" }
     }
 
     private fun verifyDraftUpdateResponse(
@@ -170,9 +182,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         previousVersion: LayoutRowVersion<ObjectType>,
         response: LayoutDaoResponse<ObjectType>,
     ) {
-        require(response.id == id) {
-            "Update response ID doesn't match object: id=$id updated=$response"
-        }
+        require(response.id == id) { "Update response ID doesn't match object: id=$id updated=$response" }
         require(response.rowVersion.rowId == previousVersion.rowId) {
             "Updated the wrong row (wrong context): id=$id previous=$previousVersion updated=$response"
         }
@@ -180,7 +190,7 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
             // We could do optimistic locking here by throwing
             logger.warn(
                 "Updated version isn't the next one: a concurrent change may have been overwritten: " +
-                        "id=$id previous=$previousVersion updated=$response"
+                    "id=$id previous=$previousVersion updated=$response"
             )
         }
     }

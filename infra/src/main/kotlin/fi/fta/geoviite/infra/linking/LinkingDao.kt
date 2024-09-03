@@ -11,15 +11,11 @@ import fi.fta.geoviite.infra.geometry.GeometryPlanLinkStatus
 import fi.fta.geoviite.infra.geometry.GeometrySwitchLinkStatus
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
-import fi.fta.geoviite.infra.math.BoundingBox
-import fi.fta.geoviite.infra.math.boundingBoxAroundPointsOrNull
-import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.getIndexedId
 import fi.fta.geoviite.infra.util.getIntArray
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdArray
-import fi.fta.geoviite.infra.util.getPoint
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
@@ -28,7 +24,10 @@ import org.springframework.transaction.annotation.Transactional
 @Component
 class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
-    fun fetchPlanLinkStatuses(layoutContext: LayoutContext, planIds: List<IntId<GeometryPlan>>): List<GeometryPlanLinkStatus> {
+    fun fetchPlanLinkStatuses(
+        layoutContext: LayoutContext,
+        planIds: List<IntId<GeometryPlan>>,
+    ): List<GeometryPlanLinkStatus> {
         logger.daoAccess(
             AccessType.FETCH,
             GeometryPlanLinkStatus::class,
@@ -54,7 +53,8 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         layoutContext: LayoutContext,
         planIds: List<IntId<GeometryPlan>>,
     ): Map<IntId<GeometryPlan>, List<GeometryAlignmentLinkStatus>> {
-        val sql = """
+        val sql =
+            """
           select
             plan_id,
             element.alignment_id,
@@ -83,28 +83,35 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
             where geometry_alignment.plan_id in (:plan_ids)
           group by plan_id, element.alignment_id, element.element_index
           order by plan_id, element.alignment_id, element.element_index;
-        """.trimIndent()
-        val params = mapOf(
-            "plan_ids" to planIds.map { it.intValue },
-            "publication_state" to layoutContext.state.name,
-            "design_id" to layoutContext.branch.designId?.intValue,
-        )
-
-        val elements = jdbcTemplate.query(sql, params) { rs, _ ->
-            val planId = rs.getIntId<GeometryPlan>("plan_id")
-            val alignmentId = rs.getIntId<GeometryAlignment>("alignment_id")
-            val geometryElementLinkStatus = GeometryElementLinkStatus(
-                id = rs.getIndexedId("alignment_id", "element_index"),
-                isLinked = rs.getBoolean("is_linked"),
-                linkedLocationTrackIds = rs.getIntIdArray("location_track_ids"),
-                linkedReferenceLineIds = rs.getIntIdArray("reference_line_ids"),
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "plan_ids" to planIds.map { it.intValue },
+                "publication_state" to layoutContext.state.name,
+                "design_id" to layoutContext.branch.designId?.intValue,
             )
-            Triple(planId, alignmentId, geometryElementLinkStatus)
-        }
-        return elements.groupBy { (planId) -> planId }.mapValues { byPlan ->
-                byPlan.value
-                    .groupBy({ (_, alignmentId, _) -> alignmentId }, { (_, _, element) -> element })
-                    .map { (alignmentId, elements) -> GeometryAlignmentLinkStatus(alignmentId, elements) }
+
+        val elements =
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                val planId = rs.getIntId<GeometryPlan>("plan_id")
+                val alignmentId = rs.getIntId<GeometryAlignment>("alignment_id")
+                val geometryElementLinkStatus =
+                    GeometryElementLinkStatus(
+                        id = rs.getIndexedId("alignment_id", "element_index"),
+                        isLinked = rs.getBoolean("is_linked"),
+                        linkedLocationTrackIds = rs.getIntIdArray("location_track_ids"),
+                        linkedReferenceLineIds = rs.getIntIdArray("reference_line_ids"),
+                    )
+                Triple(planId, alignmentId, geometryElementLinkStatus)
+            }
+        return elements
+            .groupBy { (planId) -> planId }
+            .mapValues { byPlan ->
+                byPlan.value.groupBy({ (_, alignmentId, _) -> alignmentId }, { (_, _, element) -> element }).map {
+                    (alignmentId, elements) ->
+                    GeometryAlignmentLinkStatus(alignmentId, elements)
+                }
             }
     }
 
@@ -112,7 +119,8 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         layoutContext: LayoutContext,
         planIds: List<IntId<GeometryPlan>>,
     ): Map<IntId<GeometryPlan>, List<GeometryKmPostLinkStatus>> {
-        val sql = """
+        val sql =
+            """
            select
               plan_id,
               geometry_km_post.id,
@@ -123,26 +131,32 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                 as km_post on geometry_km_post.id = km_post.geometry_km_post_id
               where plan_id in (:plan_ids)
               group by geometry_km_post.id
-        """.trimIndent()
-        val params = mapOf(
-            "plan_ids" to planIds.map { it.intValue },
-            "publication_state" to layoutContext.state.name,
-            "design_id" to layoutContext.branch.designId?.intValue,
-        )
-
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getIntId<GeometryPlan>("plan_id") to GeometryKmPostLinkStatus(
-                id = rs.getIntId("id"),
-                linkedKmPosts = rs.getIntArray("km_post_id_list").map { id -> IntId(id) },
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "plan_ids" to planIds.map { it.intValue },
+                "publication_state" to layoutContext.state.name,
+                "design_id" to layoutContext.branch.designId?.intValue,
             )
-        }.groupBy({ it.first }, { it.second })
+
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                rs.getIntId<GeometryPlan>("plan_id") to
+                    GeometryKmPostLinkStatus(
+                        id = rs.getIntId("id"),
+                        linkedKmPosts = rs.getIntArray("km_post_id_list").map { id -> IntId(id) },
+                    )
+            }
+            .groupBy({ it.first }, { it.second })
     }
 
     private fun fetchSwitchLinkStatuses(
         layoutContext: LayoutContext,
         planIds: List<IntId<GeometryPlan>>,
     ): Map<IntId<GeometryPlan>, List<GeometrySwitchLinkStatus>> {
-        val sql = """
+        val sql =
+            """
             select
               plan_id,
               switch.id,
@@ -173,20 +187,21 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
                 ) as is_linked
               from geometry.switch
               where switch.plan_id in (:plan_ids);
-        """.trimIndent()
+        """
+                .trimIndent()
 
-        val params = mapOf(
-            "plan_ids" to planIds.map { it.intValue },
-            "publication_state" to layoutContext.state.name,
-            "design_id" to layoutContext.branch.designId?.intValue,
-        )
-
-        return jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getIntId<GeometryPlan>("plan_id") to
-            GeometrySwitchLinkStatus(
-                id = rs.getIntId("id"),
-                isLinked = rs.getBoolean("is_linked"),
+        val params =
+            mapOf(
+                "plan_ids" to planIds.map { it.intValue },
+                "publication_state" to layoutContext.state.name,
+                "design_id" to layoutContext.branch.designId?.intValue,
             )
-        }.groupBy({ it.first }, { it.second })
+
+        return jdbcTemplate
+            .query(sql, params) { rs, _ ->
+                rs.getIntId<GeometryPlan>("plan_id") to
+                    GeometrySwitchLinkStatus(id = rs.getIntId("id"), isLinked = rs.getBoolean("is_linked"))
+            }
+            .groupBy({ it.first }, { it.second })
     }
 }

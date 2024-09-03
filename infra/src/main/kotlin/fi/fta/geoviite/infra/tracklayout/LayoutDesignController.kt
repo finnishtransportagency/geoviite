@@ -12,9 +12,7 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 
 @GeoviiteController("/track-layout/layout-design")
-class LayoutDesignController(
-    val layoutDesignService: LayoutDesignService,
-) {
+class LayoutDesignController(val layoutDesignService: LayoutDesignService) {
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
     @GetMapping("/")

@@ -13,10 +13,12 @@ data class SwitchName @JsonCreator(mode = DELEGATING) constructor(private val va
         val allowedLength = 1..50
     }
 
-    init { assertSanitized<SwitchName>(value, sanitizer, allowedLength, allowBlank = false) }
+    init {
+        assertSanitized<SwitchName>(value, sanitizer, allowedLength, allowBlank = false)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: SwitchName): Int = value.compareTo(other.value)
 
     fun equalsIgnoreCase(other: SwitchName): Boolean = value.equals(other.value, ignoreCase = true)

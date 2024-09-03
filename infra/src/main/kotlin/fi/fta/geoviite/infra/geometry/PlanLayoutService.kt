@@ -4,20 +4,19 @@ import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
-import java.util.stream.Collectors
 
 @GeoviiteService
-class PlanLayoutService(
-    private val planLayoutCache: PlanLayoutCache,
-    private val geometryDao: GeometryDao,
-) {
+class PlanLayoutService(private val planLayoutCache: PlanLayoutCache, private val geometryDao: GeometryDao) {
     fun getLayoutPlan(
         planVersion: RowVersion<GeometryPlan>,
         includeGeometryData: Boolean = true,
         pointListStepLength: Int = 1,
-    ): Pair<GeometryPlanLayout?, TransformationError?> = handlePointListStepLength(
-        planLayoutCache.getPlanLayout(planVersion, includeGeometryData), includeGeometryData, pointListStepLength
-    )
+    ): Pair<GeometryPlanLayout?, TransformationError?> =
+        handlePointListStepLength(
+            planLayoutCache.getPlanLayout(planVersion, includeGeometryData),
+            includeGeometryData,
+            pointListStepLength,
+        )
 
     fun getLayoutPlan(
         geometryPlanId: IntId<GeometryPlan>,

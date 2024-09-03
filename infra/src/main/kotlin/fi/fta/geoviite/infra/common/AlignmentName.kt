@@ -13,10 +13,13 @@ data class AlignmentName @JsonCreator(mode = DELEGATING) constructor(private val
         val allowedLength = 1..50
     }
 
-    init { assertSanitized<AlignmentName>(value, sanitizer, allowedLength, allowBlank = false) }
+    init {
+        assertSanitized<AlignmentName>(value, sanitizer, allowedLength, allowBlank = false)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: AlignmentName): Int = value.compareTo(other.value)
+
     fun padStart(length: Int, padChar: Char) = AlignmentName(value.padStart(length, padChar))
 }

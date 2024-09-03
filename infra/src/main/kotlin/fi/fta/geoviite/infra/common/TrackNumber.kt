@@ -13,9 +13,11 @@ data class TrackNumber @JsonCreator(mode = DELEGATING) constructor(val value: St
         val sanitizer = Regex("^[äÄöÖåÅA-Za-z0-9 ]+\$")
     }
 
-    init { assertSanitized<TrackNumber>(value, sanitizer, allowedLength, allowBlank = false) }
+    init {
+        assertSanitized<TrackNumber>(value, sanitizer, allowedLength, allowBlank = false)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: TrackNumber): Int = value.compareTo(other.value)
 }

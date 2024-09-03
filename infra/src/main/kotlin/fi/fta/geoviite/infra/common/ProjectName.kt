@@ -12,8 +12,9 @@ data class ProjectName @JsonCreator(mode = DELEGATING) constructor(private val v
         val sanitizer = Regex("^[A-ZÄÖÅa-zäöå0-9 _\\-/+&.,]+\$")
     }
 
-    init { assertSanitized<ProjectName>(value, sanitizer, allowedLength, allowBlank = false) }
+    init {
+        assertSanitized<ProjectName>(value, sanitizer, allowedLength, allowBlank = false)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
 }

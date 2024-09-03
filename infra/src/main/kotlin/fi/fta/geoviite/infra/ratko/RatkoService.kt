@@ -31,14 +31,14 @@ import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
+import java.time.Duration
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.scheduling.annotation.Scheduled
 import withUser
-import java.time.Duration
-import java.time.Instant
 
 open class RatkoPushException(
     val type: RatkoPushErrorType,
@@ -58,7 +58,9 @@ class RatkoTrackNumberPushException(exception: RatkoPushException, val trackNumb
 
 @GeoviiteService
 @ConditionalOnBean(RatkoClientConfiguration::class)
-class RatkoService @Autowired constructor(
+class RatkoService
+@Autowired
+constructor(
     private val ratkoClient: RatkoClient,
     private val ratkoLocationTrackService: RatkoLocationTrackService,
     private val ratkoRouteNumberService: RatkoRouteNumberService,
@@ -91,9 +93,7 @@ class RatkoService @Autowired constructor(
     }
 
     fun updateOperatingPointsFromRatko() {
-        lockDao.runWithLock(
-            DatabaseLock.RATKO_OPERATING_POINTS_FETCH, databaseLockDuration
-        ) {
+        lockDao.runWithLock(DatabaseLock.RATKO_OPERATING_POINTS_FETCH, databaseLockDuration) {
             val points = ratkoClient.fetchOperatingPoints()
             ratkoOperatingPointDao.updateOperatingPoints(points)
         }
@@ -104,7 +104,8 @@ class RatkoService @Autowired constructor(
 
         lockDao.runWithLock(DatabaseLock.RATKO, databaseLockDuration) {
 
-            // Kill off any pushes that have been stuck for too long, as it's likely failed and state is hanging in DB
+            // Kill off any pushes that have been stuck for too long, as it's likely failed and
+            // state is hanging in DB
             ratkoPushDao.finishStuckPushes()
 
             if (!retryFailed && previousPushStateIn(RatkoPushStatus.FAILED)) {
@@ -115,9 +116,11 @@ class RatkoService @Autowired constructor(
                 val lastPublicationMoment = ratkoPushDao.getLatestPushedPublicationMoment()
 
                 // Inclusive search, therefore the already pushed one is also returned
-                val publications = publicationService.fetchPublications(layoutBranch, lastPublicationMoment)
-                    .filter { it.publicationTime > lastPublicationMoment }
-                    .map { publicationService.getPublicationDetails(it.id) }
+                val publications =
+                    publicationService
+                        .fetchPublications(layoutBranch, lastPublicationMoment)
+                        .filter { it.publicationTime > lastPublicationMoment }
+                        .map { publicationService.getPublicationDetails(it.id) }
 
                 if (publications.isNotEmpty()) {
                     pushChanges(layoutBranch, publications)
@@ -138,18 +141,11 @@ class RatkoService @Autowired constructor(
             .filter { split -> split.publicationId != null && split.publicationTime != null }
             .sortedWith(compareBy { split -> split.publicationTime ?: Instant.MAX })
             .firstOrNull()
-            ?.let { split ->
-                pollBulkTransferStateUpdate(branch, split)
-            }
+            ?.let { split -> pollBulkTransferStateUpdate(branch, split) }
             .takeIf { split ->
-                split?.bulkTransferState in listOf(
-                    BulkTransferState.PENDING,
-                    BulkTransferState.TEMPORARY_FAILURE,
-                )
+                split?.bulkTransferState in listOf(BulkTransferState.PENDING, BulkTransferState.TEMPORARY_FAILURE)
             }
-            ?.let { split ->
-                beginNewBulkTransfer(branch, split)
-            }
+            ?.let { split -> beginNewBulkTransfer(branch, split) }
     }
 
     fun pollBulkTransferStateUpdate(branch: LayoutBranch, split: Split): Split {
@@ -197,39 +193,43 @@ class RatkoService @Autowired constructor(
                 "Push all publications before pushing location track point manually"
             }
 
-            check(ratkoClient.getRatkoOnlineStatus().isOnline) {
-                "Ratko is offline"
-            }
+            check(ratkoClient.getRatkoOnlineStatus().isOnline) { "Ratko is offline" }
 
-            // Here, we only care about current moment, but fix it to the latest publication DB time, pushed or not
+            // Here, we only care about current moment, but fix it to the latest publication DB
+            // time, pushed or not
             val latestPublicationMoment = ratkoPushDao.getLatestPublicationMoment()
-            val switchChanges = locationTrackChanges
-                .flatMap { locationTrackChange ->
-                    getSwitchChangesByLocationTrack(
-                        layoutBranch = branch,
-                        locationTrackId = locationTrackChange.locationTrackId,
-                        filterByKmNumbers = locationTrackChange.changedKmNumbers,
-                        moment = latestPublicationMoment,
-                    )
-                }.map { switchChange -> toFakePublishedSwitch(branch, switchChange, latestPublicationMoment) }
+            val switchChanges =
+                locationTrackChanges
+                    .flatMap { locationTrackChange ->
+                        getSwitchChangesByLocationTrack(
+                            layoutBranch = branch,
+                            locationTrackId = locationTrackChange.locationTrackId,
+                            filterByKmNumbers = locationTrackChange.changedKmNumbers,
+                            moment = latestPublicationMoment,
+                        )
+                    }
+                    .map { switchChange -> toFakePublishedSwitch(branch, switchChange, latestPublicationMoment) }
 
-            val publishedLocationTrackChanges = locationTrackChanges
-                .map { locationTrackChange ->
-                    val locationTrack = locationTrackService.getOfficialAtMoment(
-                        branch = branch,
-                        id = locationTrackChange.locationTrackId,
-                        moment = latestPublicationMoment,
-                    )
+            val publishedLocationTrackChanges =
+                locationTrackChanges.map { locationTrackChange ->
+                    val locationTrack =
+                        locationTrackService.getOfficialAtMoment(
+                            branch = branch,
+                            id = locationTrackChange.locationTrackId,
+                            moment = latestPublicationMoment,
+                        )
                     checkNotNull(locationTrack) {
                         "No location track exists with id ${locationTrackChange.locationTrackId} and timestamp $latestPublicationMoment"
                     }
 
-                    //Fake PublishedLocationTrack, Ratko integration is built around published items
+                    // Fake PublishedLocationTrack, Ratko integration is built around published
+                    // items
                     PublishedLocationTrack(
                         id = locationTrack.id as IntId,
-                        version = checkNotNull(locationTrack.version) {
-                            "Location track missing version, id=${locationTrackChange.locationTrackId}"
-                        },
+                        version =
+                            checkNotNull(locationTrack.version) {
+                                "Location track missing version, id=${locationTrackChange.locationTrackId}"
+                            },
                         name = locationTrack.name,
                         trackNumberId = locationTrack.trackNumberId,
                         operation = Operation.MODIFY,
@@ -237,19 +237,19 @@ class RatkoService @Autowired constructor(
                     )
                 }
 
-            val pushedLocationTrackOids = ratkoLocationTrackService.pushLocationTrackChangesToRatko(
-                branch,
-                publishedLocationTrackChanges,
-                latestPublicationMoment,
-            )
-
-            val distinctJoints = switchChanges.map { switchChange ->
-                switchChange.copy(
-                    changedJoints = switchChange.changedJoints.distinctBy { changedJoint ->
-                        changedJoint.number
-                    }
+            val pushedLocationTrackOids =
+                ratkoLocationTrackService.pushLocationTrackChangesToRatko(
+                    branch,
+                    publishedLocationTrackChanges,
+                    latestPublicationMoment,
                 )
-            }
+
+            val distinctJoints =
+                switchChanges.map { switchChange ->
+                    switchChange.copy(
+                        changedJoints = switchChange.changedJoints.distinctBy { changedJoint -> changedJoint.number }
+                    )
+                }
             ratkoAssetService.pushSwitchChangesToRatko(branch, distinctJoints, latestPublicationMoment)
 
             try {
@@ -273,17 +273,19 @@ class RatkoService @Autowired constructor(
         val ratkoPushId = ratkoPushDao.startPushing(publications.map { it.id })
         val lastPublicationTime = publications.maxOf { it.publicationTime }
         try {
-            val pushedRouteNumberOids = ratkoRouteNumberService.pushTrackNumberChangesToRatko(
-                layoutBranch,
-                publications.flatMap { it.allPublishedTrackNumbers },
-                lastPublicationTime,
-            )
+            val pushedRouteNumberOids =
+                ratkoRouteNumberService.pushTrackNumberChangesToRatko(
+                    layoutBranch,
+                    publications.flatMap { it.allPublishedTrackNumbers },
+                    lastPublicationTime,
+                )
 
-            val pushedLocationTrackOids = ratkoLocationTrackService.pushLocationTrackChangesToRatko(
-                layoutBranch,
-                publications.flatMap { it.allPublishedLocationTracks },
-                lastPublicationTime,
-            )
+            val pushedLocationTrackOids =
+                ratkoLocationTrackService.pushLocationTrackChangesToRatko(
+                    layoutBranch,
+                    publications.flatMap { it.allPublishedLocationTracks },
+                    lastPublicationTime,
+                )
 
             pushSwitchChanges(
                 layoutBranch = layoutBranch,
@@ -344,9 +346,10 @@ class RatkoService @Autowired constructor(
                     )
             }
 
-            //dummy check if Ratko is online
-            val pushStatus = if (ratkoClient.getRatkoOnlineStatus().isOnline) RatkoPushStatus.FAILED
-            else RatkoPushStatus.CONNECTION_ISSUE
+            // dummy check if Ratko is online
+            val pushStatus =
+                if (ratkoClient.getRatkoOnlineStatus().isOnline) RatkoPushStatus.FAILED
+                else RatkoPushStatus.CONNECTION_ISSUE
 
             ratkoPushDao.updatePushStatus(ratkoPushId, pushStatus)
 
@@ -360,19 +363,21 @@ class RatkoService @Autowired constructor(
         publishedLocationTracks: List<PublishedLocationTrack>,
         publicationTime: Instant,
     ) {
-        //Location track points are always removed per kilometre.
-        //However, there is a slight chance that points used by switches (according to Geoviite)
+        // Location track points are always removed per kilometre.
+        // However, there is a slight chance that points used by switches (according to Geoviite)
         // will not match with the ones in Ratko.
-        //Therefore, Geoviite will also update all switches with joints in the danger zone.
-        val locationTrackSwitchChanges = publishedLocationTracks
-            .flatMap { locationTrack ->
-                getSwitchChangesByLocationTrack(
-                    layoutBranch = layoutBranch,
-                    locationTrackId = locationTrack.id,
-                    filterByKmNumbers = locationTrack.changedKmNumbers,
-                    moment = publicationTime
-                )
-            }.map { switchChange -> toFakePublishedSwitch(layoutBranch, switchChange, publicationTime) }
+        // Therefore, Geoviite will also update all switches with joints in the danger zone.
+        val locationTrackSwitchChanges =
+            publishedLocationTracks
+                .flatMap { locationTrack ->
+                    getSwitchChangesByLocationTrack(
+                        layoutBranch = layoutBranch,
+                        locationTrackId = locationTrack.id,
+                        filterByKmNumbers = locationTrack.changedKmNumbers,
+                        moment = publicationTime,
+                    )
+                }
+                .map { switchChange -> toFakePublishedSwitch(layoutBranch, switchChange, publicationTime) }
 
         val switchChanges = publishedSwitches + locationTrackSwitchChanges
         ratkoAssetService.pushSwitchChangesToRatko(layoutBranch, switchChanges, publicationTime)
@@ -383,14 +388,18 @@ class RatkoService @Autowired constructor(
         locationTrackId: IntId<LocationTrack>,
         filterByKmNumbers: Collection<KmNumber>,
         moment: Instant,
-    ) = calculatedChangesService.getAllSwitchChangesByLocationTrackAtMoment(layoutBranch, locationTrackId, moment)
-        .map { switchChanges ->
-            switchChanges.copy(
-                changedJoints = switchChanges.changedJoints.filter { changedJoint ->
-                    filterByKmNumbers.contains(changedJoint.address.kmNumber)
-                }
-            )
-        }.filter { it.changedJoints.isNotEmpty() }
+    ) =
+        calculatedChangesService
+            .getAllSwitchChangesByLocationTrackAtMoment(layoutBranch, locationTrackId, moment)
+            .map { switchChanges ->
+                switchChanges.copy(
+                    changedJoints =
+                        switchChanges.changedJoints.filter { changedJoint ->
+                            filterByKmNumbers.contains(changedJoint.address.kmNumber)
+                        }
+                )
+            }
+            .filter { it.changedJoints.isNotEmpty() }
 
     private fun toFakePublishedSwitch(
         layoutBranch: LayoutBranch,
@@ -400,14 +409,14 @@ class RatkoService @Autowired constructor(
         val switch = switchService.getOfficialAtMoment(layoutBranch, switchChange.switchId, moment)
         checkNotNull(switch) { "No switch exists with id ${switchChange.switchId} and timestamp $moment" }
 
-        //Fake PublishedSwitch, Ratko integration is built around published items
+        // Fake PublishedSwitch, Ratko integration is built around published items
         return PublishedSwitch(
             id = switch.id as IntId,
             version = checkNotNull(switch.version) { "Switch missing version, id=${switchChange.switchId}" },
-            trackNumberIds = emptySet(), //Ratko integration doesn't care about this field
+            trackNumberIds = emptySet(), // Ratko integration doesn't care about this field
             name = switch.name,
             operation = Operation.MODIFY,
-            changedJoints = switchChange.changedJoints
+            changedJoints = switchChange.changedJoints,
         )
     }
 }

@@ -7,13 +7,13 @@ import fi.fta.geoviite.infra.geography.TriangulationDirection.TM35FIN_TO_KKJ
 import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
-import org.springframework.beans.factory.annotation.Autowired
 import java.util.concurrent.ConcurrentHashMap
+import org.springframework.beans.factory.annotation.Autowired
 
 @GeoviiteService
-class CoordinateTransformationService @Autowired constructor(
-    private val kkjTm35FinTriangulationDao: KkjTm35finTriangulationDao
-) {
+class CoordinateTransformationService
+@Autowired
+constructor(private val kkjTm35FinTriangulationDao: KkjTm35finTriangulationDao) {
     private val transformations = ConcurrentHashMap<Pair<Srid, Srid>, Transformation>()
 
     fun getLayoutTransformation(sourceSrid: Srid) = getTransformation(sourceSrid, LAYOUT_SRID)

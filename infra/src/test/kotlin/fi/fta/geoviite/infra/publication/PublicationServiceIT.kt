@@ -29,6 +29,7 @@ import fi.fta.geoviite.infra.linking.TrackLayoutKmPostSaveRequest
 import fi.fta.geoviite.infra.linking.TrackLayoutSwitchSaveRequest
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationParams
 import fi.fta.geoviite.infra.localization.LocalizationService
@@ -96,17 +97,7 @@ import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
-import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.util.SortOrder
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertDoesNotThrow
-import org.junit.jupiter.api.assertThrows
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.test.context.ActiveProfiles
-import publicationRequest
-import publish
 import java.math.BigDecimal
 import kotlin.math.absoluteValue
 import kotlin.test.assertContains
@@ -116,10 +107,21 @@ import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
+import org.junit.jupiter.api.assertThrows
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
+import publicationRequest
+import publish
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class PublicationServiceIT @Autowired constructor(
+class PublicationServiceIT
+@Autowired
+constructor(
     val publicationService: PublicationService,
     val publicationDao: PublicationDao,
     val alignmentDao: LayoutAlignmentDao,
@@ -146,15 +148,16 @@ class PublicationServiceIT @Autowired constructor(
     fun cleanup() {
         testDBService.clearPublicationTables()
         testDBService.clearLayoutTables()
-        val request = publicationService.collectPublicationCandidates(PublicationInMain).let {
-            PublicationRequestIds(
-                it.trackNumbers.map(TrackNumberPublicationCandidate::id),
-                it.locationTracks.map(LocationTrackPublicationCandidate::id),
-                it.referenceLines.map(ReferenceLinePublicationCandidate::id),
-                it.switches.map(SwitchPublicationCandidate::id),
-                it.kmPosts.map(KmPostPublicationCandidate::id),
-            )
-        }
+        val request =
+            publicationService.collectPublicationCandidates(PublicationInMain).let {
+                PublicationRequestIds(
+                    it.trackNumbers.map(TrackNumberPublicationCandidate::id),
+                    it.locationTracks.map(LocationTrackPublicationCandidate::id),
+                    it.referenceLines.map(ReferenceLinePublicationCandidate::id),
+                    it.switches.map(SwitchPublicationCandidate::id),
+                    it.kmPosts.map(KmPostPublicationCandidate::id),
+                )
+            }
         publicationService.revertPublicationCandidates(LayoutBranch.main, request)
     }
 
@@ -165,29 +168,33 @@ class PublicationServiceIT @Autowired constructor(
 
         val switches = mainDraftContext.insertMany(switch(), switch())
 
-        val referenceLines = mainDraftContext.insertMany(
-            referenceLineAndAlignment(officialTrackNumberId),
-            referenceLineAndAlignment(trackNumbers[0].id, segment(Point(1.0, 1.0), Point(2.0, 2.0))),
-            referenceLineAndAlignment(trackNumbers[1].id, segment(Point(5.0, 5.0), Point(6.0, 6.0))),
-        )
+        val referenceLines =
+            mainDraftContext.insertMany(
+                referenceLineAndAlignment(officialTrackNumberId),
+                referenceLineAndAlignment(trackNumbers[0].id, segment(Point(1.0, 1.0), Point(2.0, 2.0))),
+                referenceLineAndAlignment(trackNumbers[1].id, segment(Point(5.0, 5.0), Point(6.0, 6.0))),
+            )
 
-        val locationTracks = mainDraftContext.insertMany(
-            locationTrackAndAlignment(trackNumbers[0].id),
-            locationTrackAndAlignment(trackNumbers[0].id),
-        )
+        val locationTracks =
+            mainDraftContext.insertMany(
+                locationTrackAndAlignment(trackNumbers[0].id),
+                locationTrackAndAlignment(trackNumbers[0].id),
+            )
 
-        val kmPosts = mainDraftContext.insertMany(
-            kmPost(trackNumbers[0].id, KmNumber(1)),
-            kmPost(trackNumbers[0].id, KmNumber(2)),
-        )
+        val kmPosts =
+            mainDraftContext.insertMany(
+                kmPost(trackNumbers[0].id, KmNumber(1)),
+                kmPost(trackNumbers[0].id, KmNumber(2)),
+            )
 
-        val publicationRequestIds = PublicationRequestIds(
-            trackNumbers.map { it.id },
-            locationTracks.map { it.id },
-            referenceLines.map { it.id },
-            switches.map { it.id },
-            kmPosts.map { it.id },
-        )
+        val publicationRequestIds =
+            PublicationRequestIds(
+                trackNumbers.map { it.id },
+                locationTracks.map { it.id },
+                referenceLines.map { it.id },
+                switches.map { it.id },
+                kmPosts.map { it.id },
+            )
 
         val publicationVersions = publicationService.getValidationVersions(LayoutBranch.main, publicationRequestIds)
         val draftCalculatedChanges = getCalculatedChangesInRequest(publicationVersions)
@@ -224,7 +231,7 @@ class PublicationServiceIT @Autowired constructor(
 
     private fun <T> assertCandidatesContainCorrectVersions(
         candidates: List<PublicationCandidate<T>>,
-        vararg responses: LayoutDaoResponse<T>
+        vararg responses: LayoutDaoResponse<T>,
     ) {
         assertEquals(responses.size, candidates.size)
         responses.forEach { response ->
@@ -237,20 +244,16 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Publication contains correct TrackNumber links for switches`() {
         val switch = mainDraftContext.insert(switch())
-        val trackNumberIds = listOf(
-            mainOfficialContext.createLayoutTrackNumber().id,
-            mainOfficialContext.createLayoutTrackNumber().id,
-        )
-        val locationTracks = trackNumberIds.map { trackNumberId ->
-            val segment = segment(Point(0.0, 0.0), Point(1.0, 1.0), switchId = switch.id)
-            mainDraftContext.insert(locationTrackAndAlignment(trackNumberId, segment))
-        }
+        val trackNumberIds =
+            listOf(mainOfficialContext.createLayoutTrackNumber().id, mainOfficialContext.createLayoutTrackNumber().id)
+        val locationTracks =
+            trackNumberIds.map { trackNumberId ->
+                val segment = segment(Point(0.0, 0.0), Point(1.0, 1.0), switchId = switch.id)
+                mainDraftContext.insert(locationTrackAndAlignment(trackNumberId, segment))
+            }
 
-        val publicationResult = publish(
-            publicationService,
-            locationTracks = locationTracks.map { it.id },
-            switches = listOf(switch.id),
-        )
+        val publicationResult =
+            publish(publicationService, locationTracks = locationTracks.map { it.id }, switches = listOf(switch.id))
         val publish = publicationService.getPublicationDetails(publicationResult.publicationId!!)
         assertEquals(
             trackNumberIds.sortedBy { it.intValue },
@@ -293,10 +296,8 @@ class PublicationServiceIT @Autowired constructor(
         assertNull(mainOfficialContext.fetch(referenceLineId))
         assertNotNull(mainDraftContext.fetch(referenceLineId))
         // The first publication must be together with the track number
-        val publicationRequest = publicationRequest(
-            trackNumbers = listOf(trackNumberId),
-            referenceLines = listOf(referenceLineId),
-        )
+        val publicationRequest =
+            publicationRequest(trackNumbers = listOf(trackNumberId), referenceLines = listOf(referenceLineId))
         val versions = publicationService.getValidationVersions(LayoutBranch.main, publicationRequest)
         val draftCalculatedChanges = getCalculatedChangesInRequest(versions)
         val publication = testPublish(LayoutBranch.main, versions, draftCalculatedChanges)
@@ -308,13 +309,14 @@ class PublicationServiceIT @Autowired constructor(
         val publishedReferenceLine = referenceLineService.get(MainLayoutContext.official, referenceLineId)!!
 
         // Update can happen independently
-        val updateResponse = referenceLineService.updateTrackNumberReferenceLine(
-            LayoutBranch.main,
-            publishedReferenceLine.trackNumberId,
-            publishedReferenceLine.startAddress.copy(
-                meters = publishedReferenceLine.startAddress.meters.add(BigDecimal.ONE),
-            ),
-        )
+        val updateResponse =
+            referenceLineService.updateTrackNumberReferenceLine(
+                LayoutBranch.main,
+                publishedReferenceLine.trackNumberId,
+                publishedReferenceLine.startAddress.copy(
+                    meters = publishedReferenceLine.startAddress.meters.add(BigDecimal.ONE)
+                ),
+            )
         val pubReq2 = publicationRequest(referenceLines = listOf(updateResponse!!.id))
         val versions2 = publicationService.getValidationVersions(LayoutBranch.main, pubReq2)
         val draftCalculatedChanges2 = getCalculatedChangesInRequest(versions2)
@@ -348,25 +350,26 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun publishingReferenceLineChangesWorks() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val officialId = mainOfficialContext.insert(
-            referenceLineAndAlignment(
-                trackNumberId,
-                segment(Point(1.0, 1.0), Point(2.0, 2.0)),
-                startAddress = TrackMeter("0001", 10)
-            )
-        ).id
+        val officialId =
+            mainOfficialContext
+                .insert(
+                    referenceLineAndAlignment(
+                        trackNumberId,
+                        segment(Point(1.0, 1.0), Point(2.0, 2.0)),
+                        startAddress = TrackMeter("0001", 10),
+                    )
+                )
+                .id
 
         val (tmpLine, tmpAlignment) = referenceLineService.getWithAlignmentOrThrow(MainLayoutContext.draft, officialId)
         referenceLineService.saveDraft(
             LayoutBranch.main,
             tmpLine.copy(startAddress = TrackMeter("0002", 20)),
             tmpAlignment.copy(
-                segments = fixSegmentStarts(
-                    listOf(
-                        segment(Point(1.0, 1.0), Point(2.0, 2.0)),
-                        segment(Point(2.0, 2.0), Point(3.0, 3.0)),
+                segments =
+                    fixSegmentStarts(
+                        listOf(segment(Point(1.0, 1.0), Point(2.0, 2.0)), segment(Point(2.0, 2.0), Point(3.0, 3.0)))
                     )
-                ),
             ),
         )
         assertNotEquals(
@@ -401,26 +404,30 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun publishingLocationTrackChangesWorks() {
-        val trackNumberId = mainOfficialContext.createLayoutTrackNumberAndReferenceLine(
-            lineAlignment = alignment(segment(Point(0.0, 0.0), Point(4.0, 4.0))),
-        ).id
+        val trackNumberId =
+            mainOfficialContext
+                .createLayoutTrackNumberAndReferenceLine(
+                    lineAlignment = alignment(segment(Point(0.0, 0.0), Point(4.0, 4.0)))
+                )
+                .id
 
-        val officialId = mainOfficialContext.insert(
-            locationTrack(trackNumberId = trackNumberId, name = "test 01"),
-            alignment(segment(Point(1.0, 1.0), Point(2.0, 2.0))),
-        ).id
+        val officialId =
+            mainOfficialContext
+                .insert(
+                    locationTrack(trackNumberId = trackNumberId, name = "test 01"),
+                    alignment(segment(Point(1.0, 1.0), Point(2.0, 2.0))),
+                )
+                .id
 
         val (tmpTrack, tmpAlignment) = locationTrackService.getWithAlignmentOrThrow(MainLayoutContext.draft, officialId)
         locationTrackService.saveDraft(
             LayoutBranch.main,
             tmpTrack.copy(name = AlignmentName("DRAFT test 01")),
             tmpAlignment.copy(
-                segments = fixSegmentStarts(
-                    listOf(
-                        segment(Point(1.0, 1.0), Point(2.0, 2.0)),
-                        segment(Point(2.0, 2.0), Point(3.0, 3.0)),
+                segments =
+                    fixSegmentStarts(
+                        listOf(segment(Point(1.0, 1.0), Point(2.0, 2.0)), segment(Point(2.0, 2.0), Point(3.0, 3.0)))
                     )
-                ),
             ),
         )
         assertNotEquals(
@@ -474,19 +481,22 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun publishingSwitchChangesWorks() {
-        val officialId = switchDao.insert(
-            switch(draft = false).copy(
-                name = SwitchName("TST 001"),
-                joints = listOf(switchJoint(1), switchJoint(3)),
-            )
-        ).id
+        val officialId =
+            switchDao
+                .insert(
+                    switch(draft = false)
+                        .copy(name = SwitchName("TST 001"), joints = listOf(switchJoint(1), switchJoint(3)))
+                )
+                .id
 
         switchService.saveDraft(
             LayoutBranch.main,
-            switchService.getOrThrow(MainLayoutContext.draft, officialId).copy(
-                name = SwitchName("DRAFT TST 001"),
-                joints = listOf(switchJoint(2), switchJoint(3), switchJoint(4)),
-            )
+            switchService
+                .getOrThrow(MainLayoutContext.draft, officialId)
+                .copy(
+                    name = SwitchName("DRAFT TST 001"),
+                    joints = listOf(switchJoint(2), switchJoint(3), switchJoint(4)),
+                ),
         )
         assertNotEquals(
             switchService.getOrThrow(MainLayoutContext.official, officialId).name,
@@ -532,19 +542,19 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun publishingTrackNumberChangesWorks() {
-        val officialId = trackNumberDao.insert(
-            trackNumber(draft = false).copy(
-                number = testDBService.getUnusedTrackNumber(),
-                description = FreeText("Test 1"),
-            )
-        ).id
+        val officialId =
+            trackNumberDao
+                .insert(
+                    trackNumber(draft = false)
+                        .copy(number = testDBService.getUnusedTrackNumber(), description = FreeText("Test 1"))
+                )
+                .id
 
         trackNumberService.saveDraft(
             LayoutBranch.main,
-            trackNumberService.get(MainLayoutContext.draft, officialId)!!.copy(
-                number = testDBService.getUnusedTrackNumber(),
-                description = FreeText("Test 2"),
-            )
+            trackNumberService
+                .get(MainLayoutContext.draft, officialId)!!
+                .copy(number = testDBService.getUnusedTrackNumber(), description = FreeText("Test 2")),
         )
 
         assertNotEquals(
@@ -556,10 +566,7 @@ class PublicationServiceIT @Autowired constructor(
             FreeText("Test 1"),
             trackNumberService.getOrThrow(MainLayoutContext.official, officialId).description,
         )
-        assertEquals(
-            FreeText("Test 2"),
-            trackNumberService.getOrThrow(MainLayoutContext.draft, officialId).description,
-        )
+        assertEquals(FreeText("Test 2"), trackNumberService.getOrThrow(MainLayoutContext.draft, officialId).description)
 
         val publicationResult = publish(publicationService, trackNumbers = listOf(officialId))
 
@@ -598,11 +605,8 @@ class PublicationServiceIT @Autowired constructor(
 
         val publicationCountBeforePublishing = publicationService.fetchPublications(LayoutBranch.main).size
 
-        val publicationResult = publish(
-            publicationService,
-            trackNumbers = listOf(trackNumberId),
-            locationTracks = listOf(draftId),
-        )
+        val publicationResult =
+            publish(publicationService, trackNumbers = listOf(trackNumberId), locationTracks = listOf(draftId))
 
         val publicationCountAfterPublishing = publicationService.fetchPublications(LayoutBranch.main)
 
@@ -668,10 +672,11 @@ class PublicationServiceIT @Autowired constructor(
         val switch1 = switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id
         val switch2 = switchService.saveDraft(LayoutBranch.main, switch(draft = true)).id
 
-        val revertResult = publicationService.revertPublicationCandidates(
-            LayoutBranch.main,
-            PublicationRequestIds(listOf(), listOf(), listOf(), listOf(switch1), listOf())
-        )
+        val revertResult =
+            publicationService.revertPublicationCandidates(
+                LayoutBranch.main,
+                PublicationRequestIds(listOf(), listOf(), listOf(), listOf(switch1), listOf()),
+            )
 
         assertEquals(revertResult.switches, 1)
         assertNull(switchService.get(MainLayoutContext.draft, switch1))
@@ -684,8 +689,9 @@ class PublicationServiceIT @Autowired constructor(
         saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams)
 
         assertTrue {
-            splitDao.fetchUnfinishedSplits(LayoutBranch.main)
-                .any { split -> split.sourceLocationTrackId == splitSetup.sourceTrack.id }
+            splitDao.fetchUnfinishedSplits(LayoutBranch.main).any { split ->
+                split.sourceLocationTrackId == splitSetup.sourceTrack.id
+            }
         }
 
         publicationService.revertPublicationCandidates(
@@ -694,8 +700,9 @@ class PublicationServiceIT @Autowired constructor(
         )
 
         assertTrue {
-            splitDao.fetchUnfinishedSplits(LayoutBranch.main)
-                .none { split -> split.sourceLocationTrackId == splitSetup.sourceTrack.id }
+            splitDao.fetchUnfinishedSplits(LayoutBranch.main).none { split ->
+                split.sourceLocationTrackId == splitSetup.sourceTrack.id
+            }
         }
     }
 
@@ -708,8 +715,9 @@ class PublicationServiceIT @Autowired constructor(
         val endTargetTrack = splitSetup.targetTracks.last().first
 
         assertTrue {
-            splitDao.fetchUnfinishedSplits(LayoutBranch.main)
-                .any { split -> split.containsLocationTrack(endTargetTrack.id) }
+            splitDao.fetchUnfinishedSplits(LayoutBranch.main).any { split ->
+                split.containsLocationTrack(endTargetTrack.id)
+            }
         }
 
         publicationService.revertPublicationCandidates(
@@ -718,8 +726,9 @@ class PublicationServiceIT @Autowired constructor(
         )
 
         assertTrue {
-            splitDao.fetchUnfinishedSplits(LayoutBranch.main)
-                .none { split -> split.containsLocationTrack(endTargetTrack.id) }
+            splitDao.fetchUnfinishedSplits(LayoutBranch.main).none { split ->
+                split.containsLocationTrack(endTargetTrack.id)
+            }
         }
     }
 
@@ -728,20 +737,26 @@ class PublicationServiceIT @Autowired constructor(
         val splitSetup = simpleSplitSetup()
         saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams)
 
-        val splitBeforePublish = splitDao.fetchUnfinishedSplits(LayoutBranch.main).first { split ->
-            split.sourceLocationTrackId == splitSetup.sourceTrack.id
-        }
+        val splitBeforePublish =
+            splitDao.fetchUnfinishedSplits(LayoutBranch.main).first { split ->
+                split.sourceLocationTrackId == splitSetup.sourceTrack.id
+            }
 
         assertNull(splitBeforePublish.publicationId)
 
-        val publicationId = publicationService.getValidationVersions(
-            LayoutBranch.main,
-            publicationRequest(locationTracks = splitSetup.trackIds)
-        ).let { versions ->
+        val publicationId =
             publicationService
-                .publishChanges(LayoutBranch.main, versions, getCalculatedChangesInRequest(versions), FreeTextWithNewLines.of(""))
-                .publicationId
-        }
+                .getValidationVersions(LayoutBranch.main, publicationRequest(locationTracks = splitSetup.trackIds))
+                .let { versions ->
+                    publicationService
+                        .publishChanges(
+                            LayoutBranch.main,
+                            versions,
+                            getCalculatedChangesInRequest(versions),
+                            FreeTextWithNewLines.of(""),
+                        )
+                        .publicationId
+                }
 
         assertEquals(publicationId, splitDao.getOrThrow(splitBeforePublish.id).publicationId)
     }
@@ -752,10 +767,11 @@ class PublicationServiceIT @Autowired constructor(
         saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams)
 
         for (id in splitSetup.trackIds) {
-            val dependencies = publicationService.getRevertRequestDependencies(
-                LayoutBranch.main,
-                publicationRequest(locationTracks = listOf(id))
-            )
+            val dependencies =
+                publicationService.getRevertRequestDependencies(
+                    LayoutBranch.main,
+                    publicationRequest(locationTracks = listOf(id)),
+                )
 
             for (otherId in splitSetup.trackIds) {
                 assertContains(dependencies.locationTracks, otherId)
@@ -766,48 +782,40 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun trackNumberAndReferenceLineChangesDependOnEachOther() {
         val trackNumber = mainDraftContext.createLayoutTrackNumber().id
-        val referenceLine = referenceLineService.saveDraft(
-            LayoutBranch.main,
-            referenceLine(trackNumber, draft = true),
-        ).id
+        val referenceLine =
+            referenceLineService.saveDraft(LayoutBranch.main, referenceLine(trackNumber, draft = true)).id
         val publishBoth = publicationRequest(trackNumbers = listOf(trackNumber), referenceLines = listOf(referenceLine))
         assertEquals(
             publishBoth,
             publicationService.getRevertRequestDependencies(
                 LayoutBranch.main,
                 publicationRequest(trackNumbers = listOf(trackNumber)),
-            )
+            ),
         )
         assertEquals(
             publishBoth,
             publicationService.getRevertRequestDependencies(
                 LayoutBranch.main,
                 publicationRequest(referenceLines = listOf(referenceLine)),
-            )
+            ),
         )
     }
 
     @Test
     fun `Assets on draft only track number depend on its reference line`() {
         val trackNumber = mainDraftContext.createLayoutTrackNumber().id
-        val referenceLine = referenceLineService.saveDraft(
-            LayoutBranch.main,
-            referenceLine(trackNumber, draft = true),
-        ).id
-        val kmPost = kmPostService.saveDraft(
-            LayoutBranch.main,
-            kmPost(trackNumber, KmNumber(0), draft = true),
-        ).id
-        val locationTrack = locationTrackService.saveDraft(
-            LayoutBranch.main,
-            locationTrack(trackNumber, draft = true),
-        ).id
-        val publishAll = publicationRequest(
-            trackNumbers = listOf(trackNumber),
-            referenceLines = listOf(referenceLine),
-            kmPosts = listOf(kmPost),
-            locationTracks = listOf(locationTrack)
-        )
+        val referenceLine =
+            referenceLineService.saveDraft(LayoutBranch.main, referenceLine(trackNumber, draft = true)).id
+        val kmPost = kmPostService.saveDraft(LayoutBranch.main, kmPost(trackNumber, KmNumber(0), draft = true)).id
+        val locationTrack =
+            locationTrackService.saveDraft(LayoutBranch.main, locationTrack(trackNumber, draft = true)).id
+        val publishAll =
+            publicationRequest(
+                trackNumbers = listOf(trackNumber),
+                referenceLines = listOf(referenceLine),
+                kmPosts = listOf(kmPost),
+                locationTracks = listOf(locationTrack),
+            )
         assertEquals(
             publishAll,
             publicationService.getRevertRequestDependencies(
@@ -820,19 +828,15 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun kmPostsAndLocationTracksDependOnTheirTrackNumber() {
         val trackNumber = mainDraftContext.createLayoutTrackNumber().id
-        val locationTrack = locationTrackService.saveDraft(
-            LayoutBranch.main,
-            locationTrack(trackNumber, draft = true),
-        ).id
-        val kmPost = kmPostService.saveDraft(
-            LayoutBranch.main,
-            kmPost(trackNumber, KmNumber(0), draft = true),
-        ).id
-        val all = publicationRequest(
-            trackNumbers = listOf(trackNumber),
-            locationTracks = listOf(locationTrack),
-            kmPosts = listOf(kmPost),
-        )
+        val locationTrack =
+            locationTrackService.saveDraft(LayoutBranch.main, locationTrack(trackNumber, draft = true)).id
+        val kmPost = kmPostService.saveDraft(LayoutBranch.main, kmPost(trackNumber, KmNumber(0), draft = true)).id
+        val all =
+            publicationRequest(
+                trackNumbers = listOf(trackNumber),
+                locationTracks = listOf(locationTrack),
+                kmPosts = listOf(kmPost),
+            )
         assertEquals(
             all,
             publicationService.getRevertRequestDependencies(
@@ -846,10 +850,11 @@ class PublicationServiceIT @Autowired constructor(
     fun `should sort publications by publication time in descending order`() {
         val trackNumber1Id = mainDraftContext.createLayoutTrackNumber().id
         val trackNumber2Id = mainDraftContext.createLayoutTrackNumber().id
-        val publish1Result = publicationRequest(trackNumbers = listOf(trackNumber1Id, trackNumber2Id)).let { r ->
-            val versions = publicationService.getValidationVersions(LayoutBranch.main, r)
-            testPublish(LayoutBranch.main, versions, getCalculatedChangesInRequest(versions))
-        }
+        val publish1Result =
+            publicationRequest(trackNumbers = listOf(trackNumber1Id, trackNumber2Id)).let { r ->
+                val versions = publicationService.getValidationVersions(LayoutBranch.main, r)
+                testPublish(LayoutBranch.main, versions, getCalculatedChangesInRequest(versions))
+            }
 
         assertEquals(2, publish1Result.trackNumbers)
 
@@ -864,10 +869,11 @@ class PublicationServiceIT @Autowired constructor(
             LayoutBranch.main,
             trackNumber1.copy(number = TrackNumber(newTrackNumber1TrackNumber)),
         )
-        val publish2Result = publicationRequest(trackNumbers = listOf(trackNumber1Id)).let { r ->
-            val versions = publicationService.getValidationVersions(LayoutBranch.main, r)
-            testPublish(LayoutBranch.main, versions, getCalculatedChangesInRequest(versions))
-        }
+        val publish2Result =
+            publicationRequest(trackNumbers = listOf(trackNumber1Id)).let { r ->
+                val versions = publicationService.getValidationVersions(LayoutBranch.main, r)
+                testPublish(LayoutBranch.main, versions, getCalculatedChangesInRequest(versions))
+            }
 
         assertEquals(1, publish2Result.trackNumbers)
     }
@@ -875,20 +881,13 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Validating official location track should work`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
-        val (locationTrack, alignment) = locationTrackAndAlignment(
-            trackNumber,
-            segment(Point(4.0, 4.0), Point(5.0, 5.0)),
-            draft = false,
-        )
-        val locationTrackId = locationTrackDao.insert(
-            locationTrack.copy(
-                alignmentVersion = alignmentDao.insert(alignment)
-            )
-        )
+        val (locationTrack, alignment) =
+            locationTrackAndAlignment(trackNumber, segment(Point(4.0, 4.0), Point(5.0, 5.0)), draft = false)
+        val locationTrackId =
+            locationTrackDao.insert(locationTrack.copy(alignmentVersion = alignmentDao.insert(alignment)))
 
-        val validation = publicationService
-            .validateLocationTracks(MainLayoutContext.official, listOf(locationTrackId.id))
-            .first()
+        val validation =
+            publicationService.validateLocationTracks(MainLayoutContext.official, listOf(locationTrackId.id)).first()
         assertEquals(validation.errors.size, 1)
     }
 
@@ -896,15 +895,16 @@ class PublicationServiceIT @Autowired constructor(
     fun `Validating official track number should work`() {
         val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
 
-        val validation = publicationService
-            .validateTrackNumbersAndReferenceLines(MainLayoutContext.official, listOf(trackNumber))
-            .first()
+        val validation =
+            publicationService
+                .validateTrackNumbersAndReferenceLines(MainLayoutContext.official, listOf(trackNumber))
+                .first()
         assertEquals(validation.errors.size, 1)
     }
 
     @Test
     fun `Validating official switch should work`() {
-        val switchId = switchDao.insert(switch(draft = false, stateCategory = EXISTING,)).id
+        val switchId = switchDao.insert(switch(draft = false, stateCategory = EXISTING)).id
 
         val validation = publicationService.validateSwitches(MainLayoutContext.official, listOf(switchId))
         assertEquals(1, validation.size)
@@ -917,9 +917,10 @@ class PublicationServiceIT @Autowired constructor(
         val switchId2 = switchDao.insert(switch(draft = false)).id
         val switchId3 = switchDao.insert(switch(draft = false)).id
 
-        val validationIds = publicationService
-            .validateSwitches(MainLayoutContext.official, listOf(switchId, switchId2, switchId3))
-            .map { it.id }
+        val validationIds =
+            publicationService
+                .validateSwitches(MainLayoutContext.official, listOf(switchId, switchId2, switchId3))
+                .map { it.id }
         assertEquals(3, validationIds.size)
         assertContains(validationIds, switchId)
         assertContains(validationIds, switchId2)
@@ -928,7 +929,10 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun `Validating official km post should work`() {
-        val kmPostId = kmPostDao.insert(kmPost(mainOfficialContext.createLayoutTrackNumber().id, km = KmNumber.ZERO, draft = false)).id
+        val kmPostId =
+            kmPostDao
+                .insert(kmPost(mainOfficialContext.createLayoutTrackNumber().id, km = KmNumber.ZERO, draft = false))
+                .id
 
         val validation = publicationService.validateKmPosts(MainLayoutContext.official, listOf(kmPostId)).first()
         assertEquals(validation.errors.size, 1)
@@ -940,56 +944,59 @@ class PublicationServiceIT @Autowired constructor(
         val draftTrackNumberId = trackNumberDao.insert(trackNumber(number = TrackNumber("TN"), draft = true)).id
 
         val someAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
-        val referenceLineId = referenceLineDao.insert(
-            referenceLine(draftTrackNumberId, alignmentVersion = someAlignment, draft = true)
-        ).id
+        val referenceLineId =
+            referenceLineDao
+                .insert(referenceLine(draftTrackNumberId, alignmentVersion = someAlignment, draft = true))
+                .id
         locationTrackDao.insert(
             locationTrack(draftTrackNumberId, name = "LT", alignmentVersion = someAlignment, draft = false)
         )
         // one new draft location track trying to use an official one's name
-        val draftLocationTrackId = locationTrackDao.insert(
-            locationTrack(draftTrackNumberId, name = "LT", alignmentVersion = someAlignment, draft = true)
-        ).id
+        val draftLocationTrackId =
+            locationTrackDao
+                .insert(locationTrack(draftTrackNumberId, name = "LT", alignmentVersion = someAlignment, draft = true))
+                .id
 
         // two new location tracks stepping over each other's names
-        val newLt = locationTrack(
-            draftTrackNumberId,
-            name = "NLT",
-            alignmentVersion = someAlignment,
-            externalId = null,
-            draft = true,
-        )
+        val newLt =
+            locationTrack(
+                draftTrackNumberId,
+                name = "NLT",
+                alignmentVersion = someAlignment,
+                externalId = null,
+                draft = true,
+            )
         val newLocationTrack1 = locationTrackDao.insert(newLt).id
         val newLocationTrack2 = locationTrackDao.insert(newLt).id
 
         switchDao.insert(switch(name = "SW", stateCategory = LayoutStateCategory.EXISTING, draft = false))
         // one new switch trying to use an official one's name
-        val draftSwitchId = switchDao.insert(
-            switch(name = "SW", stateCategory = LayoutStateCategory.EXISTING, draft = true)
-        ).id
+        val draftSwitchId =
+            switchDao.insert(switch(name = "SW", stateCategory = LayoutStateCategory.EXISTING, draft = true)).id
 
         // two new switches both trying to use the same name
         val newSwitch = switch(name = "NSW", stateCategory = LayoutStateCategory.EXISTING, draft = true)
         val newSwitch1 = switchDao.insert(newSwitch).id
         val newSwitch2 = switchDao.insert(newSwitch).id
 
-        val validation = publicationService.validatePublicationCandidates(
-            publicationService.collectPublicationCandidates(PublicationInMain),
-            PublicationRequestIds(
-                trackNumbers = listOf(draftTrackNumberId),
-                locationTracks = listOf(draftLocationTrackId, newLocationTrack1, newLocationTrack2),
-                kmPosts = listOf(),
-                referenceLines = listOf(referenceLineId),
-                switches = listOf(draftSwitchId, newSwitch1, newSwitch2)
-            ),
-        )
+        val validation =
+            publicationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInMain),
+                PublicationRequestIds(
+                    trackNumbers = listOf(draftTrackNumberId),
+                    locationTracks = listOf(draftLocationTrackId, newLocationTrack1, newLocationTrack2),
+                    kmPosts = listOf(),
+                    referenceLines = listOf(referenceLineId),
+                    switches = listOf(draftSwitchId, newSwitch1, newSwitch2),
+                ),
+            )
 
         assertEquals(
             listOf(
                 LayoutValidationIssue(
                     LayoutValidationIssueType.ERROR,
                     "validation.layout.location-track.duplicate-name-official",
-                    mapOf("locationTrack" to AlignmentName("LT"), "trackNumber" to TrackNumber("TN"))
+                    mapOf("locationTrack" to AlignmentName("LT"), "trackNumber" to TrackNumber("TN")),
                 )
             ),
             validation.validatedAsPublicationUnit.locationTracks.find { lt -> lt.id == draftLocationTrackId }?.issues,
@@ -1000,7 +1007,7 @@ class PublicationServiceIT @Autowired constructor(
                 LayoutValidationIssue(
                     LayoutValidationIssueType.ERROR,
                     "validation.layout.location-track.duplicate-name-draft",
-                    mapOf("locationTrack" to AlignmentName("NLT"), "trackNumber" to TrackNumber("TN"))
+                    mapOf("locationTrack" to AlignmentName("NLT"), "trackNumber" to TrackNumber("TN")),
                 )
             },
             validation.validatedAsPublicationUnit.locationTracks
@@ -1013,7 +1020,7 @@ class PublicationServiceIT @Autowired constructor(
                 LayoutValidationIssue(
                     LayoutValidationIssueType.ERROR,
                     "validation.layout.switch.duplicate-name-official",
-                    mapOf("switch" to SwitchName("SW"))
+                    mapOf("switch" to SwitchName("SW")),
                 )
             ),
             validation.validatedAsPublicationUnit.switches
@@ -1027,7 +1034,7 @@ class PublicationServiceIT @Autowired constructor(
                 LayoutValidationIssue(
                     LayoutValidationIssueType.ERROR,
                     "validation.layout.switch.duplicate-name-draft",
-                    mapOf("switch" to SwitchName("NSW"))
+                    mapOf("switch" to SwitchName("NSW")),
                 )
             },
             validation.validatedAsPublicationUnit.switches
@@ -1041,7 +1048,7 @@ class PublicationServiceIT @Autowired constructor(
                 LayoutValidationIssue(
                     LayoutValidationIssueType.ERROR,
                     "validation.layout.track-number.duplicate-name-official",
-                    mapOf("trackNumber" to TrackNumber("TN"))
+                    mapOf("trackNumber" to TrackNumber("TN")),
                 )
             ),
             validation.validatedAsPublicationUnit.trackNumbers[0].issues,
@@ -1055,9 +1062,10 @@ class PublicationServiceIT @Autowired constructor(
 
         val someAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
         referenceLineDao.insert(referenceLine(draftTrackNumberId, alignmentVersion = someAlignment, draft = true)).id
-        val exception = assertThrows<DuplicateNameInPublicationException> {
-            publish(publicationService, trackNumbers = listOf(draftTrackNumberId))
-        }
+        val exception =
+            assertThrows<DuplicateNameInPublicationException> {
+                publish(publicationService, trackNumbers = listOf(draftTrackNumberId))
+            }
         assertEquals("error.publication.duplicate-name-on.track-number", exception.localizationKey.toString())
         assertEquals(mapOf("name" to "TN"), exception.localizationParams.params)
     }
@@ -1073,14 +1081,12 @@ class PublicationServiceIT @Autowired constructor(
         )
         val draftLt = locationTrack(trackNumberId, name = "LT", alignmentVersion = someAlignment, draft = true)
         val draftLocationTrackId = locationTrackDao.insert(draftLt).id
-        val exception = assertThrows<DuplicateLocationTrackNameInPublicationException> {
-            publish(publicationService, locationTracks = listOf(draftLocationTrackId))
-        }
+        val exception =
+            assertThrows<DuplicateLocationTrackNameInPublicationException> {
+                publish(publicationService, locationTracks = listOf(draftLocationTrackId))
+            }
         assertEquals("error.publication.duplicate-name-on.location-track", exception.localizationKey.toString())
-        assertEquals(
-            mapOf("locationTrack" to "LT", "trackNumber" to "TN"),
-            exception.localizationParams.params,
-        )
+        assertEquals(mapOf("locationTrack" to "LT", "trackNumber" to "TN"), exception.localizationParams.params)
     }
 
     @Test
@@ -1089,40 +1095,45 @@ class PublicationServiceIT @Autowired constructor(
         val someAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
         referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = someAlignment, draft = true)).id
 
-        val lt1 = locationTrack(
-            trackNumberId = trackNumberId,
-            name = "LT1",
-            alignmentVersion = someAlignment,
-            externalId = null,
-            draft = false,
-        )
+        val lt1 =
+            locationTrack(
+                trackNumberId = trackNumberId,
+                name = "LT1",
+                alignmentVersion = someAlignment,
+                externalId = null,
+                draft = false,
+            )
         val lt1OriginalVersion = locationTrackDao.insert(lt1).rowVersion
-        val lt1RenamedDraft = locationTrackDao.insert(
-            asMainDraft(locationTrackDao.fetch(lt1OriginalVersion).copy(name = AlignmentName("LT2")))
-        )
+        val lt1RenamedDraft =
+            locationTrackDao.insert(
+                asMainDraft(locationTrackDao.fetch(lt1OriginalVersion).copy(name = AlignmentName("LT2")))
+            )
 
-        val lt2 = locationTrack(
-            trackNumberId = trackNumberId,
-            name = "LT2",
-            alignmentVersion = someAlignment,
-            externalId = null,
-            draft = false,
-        )
+        val lt2 =
+            locationTrack(
+                trackNumberId = trackNumberId,
+                name = "LT2",
+                alignmentVersion = someAlignment,
+                externalId = null,
+                draft = false,
+            )
         val lt2OriginalVersion = locationTrackDao.insert(lt2).rowVersion
-        val lt2RenamedDraft = locationTrackDao.insert(
-            asMainDraft(locationTrackDao.fetch(lt2OriginalVersion).copy(name = AlignmentName("LT1")))
-        )
+        val lt2RenamedDraft =
+            locationTrackDao.insert(
+                asMainDraft(locationTrackDao.fetch(lt2OriginalVersion).copy(name = AlignmentName("LT1")))
+            )
 
         publish(publicationService, locationTracks = listOf(lt1RenamedDraft.id, lt2RenamedDraft.id))
     }
 
     @Test
     fun `Publication rejects duplicate switch names`() {
-        switchDao.insert(switch(name = "SW123", draft = false, stateCategory = EXISTING,))
-        val draftSwitchId = switchDao.insert(switch(name = "SW123", draft = true, stateCategory = EXISTING,)).id
-        val exception = assertThrows<DuplicateNameInPublicationException> {
-            publish(publicationService, switches = listOf(draftSwitchId))
-        }
+        switchDao.insert(switch(name = "SW123", draft = false, stateCategory = EXISTING))
+        val draftSwitchId = switchDao.insert(switch(name = "SW123", draft = true, stateCategory = EXISTING)).id
+        val exception =
+            assertThrows<DuplicateNameInPublicationException> {
+                publish(publicationService, switches = listOf(draftSwitchId))
+            }
         assertEquals("error.publication.duplicate-name-on.switch", exception.localizationKey.toString())
         assertEquals(mapOf("name" to "SW123"), exception.localizationParams.params)
     }
@@ -1131,27 +1142,26 @@ class PublicationServiceIT @Autowired constructor(
     fun `Publication validation rejects duplication by another referencing track`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val dummyAlignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))))
-        // Initial state, all official: Small duplicates middle, middle and big don't duplicate anything
-        val middleTrack = locationTrackDao.insert(
-            locationTrack(
-                trackNumberId,
-                name = "middle track",
-                alignmentVersion = dummyAlignment,
-                draft = false,
+        // Initial state, all official: Small duplicates middle, middle and big don't duplicate
+        // anything
+        val middleTrack =
+            locationTrackDao.insert(
+                locationTrack(trackNumberId, name = "middle track", alignmentVersion = dummyAlignment, draft = false)
             )
-        )
-        val smallTrack = locationTrackDao.insert(
-            locationTrack(
-                trackNumberId,
-                name = "small track",
-                duplicateOf = middleTrack.id,
-                alignmentVersion = dummyAlignment,
-                draft = false,
+        val smallTrack =
+            locationTrackDao.insert(
+                locationTrack(
+                    trackNumberId,
+                    name = "small track",
+                    duplicateOf = middleTrack.id,
+                    alignmentVersion = dummyAlignment,
+                    draft = false,
+                )
             )
-        )
-        val bigTrack = locationTrackDao.insert(
-            locationTrack(trackNumberId, name = "big track", alignmentVersion = dummyAlignment, draft = false)
-        )
+        val bigTrack =
+            locationTrackDao.insert(
+                locationTrack(trackNumberId, name = "big track", alignmentVersion = dummyAlignment, draft = false)
+            )
 
         // In new draft, middle wants to duplicate big (leading to: small->middle->big)
         locationTrackService.saveDraft(
@@ -1160,33 +1170,37 @@ class PublicationServiceIT @Autowired constructor(
         )
 
         fun getPublishingDuplicateWhileDuplicatedValidationError(
-            vararg publishableTracks: IntId<LocationTrack>,
+            vararg publishableTracks: IntId<LocationTrack>
         ): LayoutValidationIssue? {
-            val validation = publicationService.validatePublicationCandidates(
-                publicationService.collectPublicationCandidates(PublicationInMain),
-                PublicationRequestIds(
-                    trackNumbers = listOf(),
-                    locationTracks = listOf(*publishableTracks),
-                    kmPosts = listOf(),
-                    referenceLines = listOf(),
-                    switches = listOf()
-                ),
-            )
+            val validation =
+                publicationService.validatePublicationCandidates(
+                    publicationService.collectPublicationCandidates(PublicationInMain),
+                    PublicationRequestIds(
+                        trackNumbers = listOf(),
+                        locationTracks = listOf(*publishableTracks),
+                        kmPosts = listOf(),
+                        referenceLines = listOf(),
+                        switches = listOf(),
+                    ),
+                )
             val trackErrors = validation.validatedAsPublicationUnit.locationTracks[0].issues
             return trackErrors.find { error ->
-                error.localizationKey == LocalizationKey(
-                    "validation.layout.location-track.duplicate-of.publishing-duplicate-while-duplicated"
-                )
+                error.localizationKey ==
+                    LocalizationKey(
+                        "validation.layout.location-track.duplicate-of.publishing-duplicate-while-duplicated"
+                    )
             }
         }
 
-        // if we're only trying to publish the middle track, but the small is still duplicating it, we pop
+        // if we're only trying to publish the middle track, but the small is still duplicating it,
+        // we pop
         val duplicateError = getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id)
         assertNotNull(duplicateError, "small track duplicates to-be-published middle track which duplicates big track")
         assertEquals("small track", duplicateError.params.get("otherDuplicates"))
         assertEquals("big track", duplicateError.params.get("duplicateTrack"))
 
-        // if we have a draft of the small track that is not a duplicate of the middle track, but we're not publishing
+        // if we have a draft of the small track that is not a duplicate of the middle track, but
+        // we're not publishing
         // it in this unit, that doesn't fix the issue yet
         locationTrackService.saveDraft(
             LayoutBranch.main,
@@ -1197,33 +1211,36 @@ class PublicationServiceIT @Autowired constructor(
             "only saving a draft of small track",
         )
 
-        // but if we have the new non-duplicating small track in the same publication unit, it's fine
+        // but if we have the new non-duplicating small track in the same publication unit, it's
+        // fine
         assertNull(
             getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id, smallTrack.id),
             "publishing new small track",
         )
 
-        // finally, if we have a track whose official version doesn't duplicate the middle track, but the draft does,
+        // finally, if we have a track whose official version doesn't duplicate the middle track,
+        // but the draft does,
         // it's only bad if the draft is in the publication unit
-        val otherSmallTrack = locationTrackDao.insert(
-            locationTrack(
-                trackNumberId,
-                name = "other small track",
-                alignmentVersion = dummyAlignment,
-                draft = false,
+        val otherSmallTrack =
+            locationTrackDao.insert(
+                locationTrack(
+                    trackNumberId,
+                    name = "other small track",
+                    alignmentVersion = dummyAlignment,
+                    draft = false,
+                )
             )
-        )
         locationTrackService.saveDraft(
             LayoutBranch.main,
             locationTrackDao.fetch(otherSmallTrack.rowVersion).copy(duplicateOf = middleTrack.id),
         )
         assertNull(
             getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id, smallTrack.id),
-            "publishing new small track with other small track added"
+            "publishing new small track with other small track added",
         )
         assertNotNull(
             getPublishingDuplicateWhileDuplicatedValidationError(middleTrack.id, smallTrack.id, otherSmallTrack.id),
-            "publishing new small track with other small track added and in publication unit"
+            "publishing new small track with other small track added and in publication unit",
         )
     }
 
@@ -1269,24 +1286,23 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Track number diff finds all changed fields`() {
         val address = TrackMeter(0, 0)
-        val trackNumber = trackNumberService.get(
-            MainLayoutContext.draft,
-            trackNumberService.insert(
-                LayoutBranch.main,
-                TrackNumberSaveRequest(
-                    testDBService.getUnusedTrackNumber(),
-                    FreeText("TEST"),
-                    LayoutState.IN_USE,
-                    address,
-                )
-            ),
-        )
+        val trackNumber =
+            trackNumberService.get(
+                MainLayoutContext.draft,
+                trackNumberService.insert(
+                    LayoutBranch.main,
+                    TrackNumberSaveRequest(
+                        testDBService.getUnusedTrackNumber(),
+                        FreeText("TEST"),
+                        LayoutState.IN_USE,
+                        address,
+                    ),
+                ),
+            )
         val rl = referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumber!!.id as IntId)!!
         publishAndVerify(
-            LayoutBranch.main, publicationRequest(
-                trackNumbers = listOf(trackNumber.id as IntId),
-                referenceLines = listOf(rl.id as IntId),
-            )
+            LayoutBranch.main,
+            publicationRequest(trackNumbers = listOf(trackNumber.id as IntId), referenceLines = listOf(rl.id as IntId)),
         )
         trackNumberService.update(
             LayoutBranch.main,
@@ -1300,18 +1316,22 @@ class PublicationServiceIT @Autowired constructor(
         )
         publishAndVerify(LayoutBranch.main, publicationRequest(trackNumbers = listOf(trackNumber.id as IntId)))
         val thisAndPreviousPublication = publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
-        val changes = publicationDao.fetchPublicationTrackNumberChanges(
-            LayoutBranch.main,
-            thisAndPreviousPublication.first().id,
-            thisAndPreviousPublication.last().publicationTime,
-        )
+        val changes =
+            publicationDao.fetchPublicationTrackNumberChanges(
+                LayoutBranch.main,
+                thisAndPreviousPublication.first().id,
+                thisAndPreviousPublication.last().publicationTime,
+            )
 
-        val diff = publicationService.diffTrackNumber(
-            localizationService.getLocalization(LocalizationLanguage.FI),
-            changes.getValue(trackNumber.id as IntId),
-            thisAndPreviousPublication.first().publicationTime,
-            thisAndPreviousPublication.last().publicationTime,
-        ) { _, _ -> null }
+        val diff =
+            publicationService.diffTrackNumber(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                changes.getValue(trackNumber.id as IntId),
+                thisAndPreviousPublication.first().publicationTime,
+                thisAndPreviousPublication.last().publicationTime,
+            ) { _, _ ->
+                null
+            }
         assertEquals(3, diff.size)
         assertEquals("track-number", diff[0].propKey.key.toString())
         assertEquals("state", diff[1].propKey.key.toString())
@@ -1321,51 +1341,55 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Changing specific Track Number field returns only that field`() {
         val address = TrackMeter(0, 0)
-        val trackNumber = trackNumberService.getOrThrow(
-            MainLayoutContext.draft,
-            trackNumberService.insert(
-                LayoutBranch.main,
-                TrackNumberSaveRequest(
-                    testDBService.getUnusedTrackNumber(),
-                    FreeText("TEST"),
-                    LayoutState.IN_USE,
-                    address,
-                )
-            ),
-        )
+        val trackNumber =
+            trackNumberService.getOrThrow(
+                MainLayoutContext.draft,
+                trackNumberService.insert(
+                    LayoutBranch.main,
+                    TrackNumberSaveRequest(
+                        testDBService.getUnusedTrackNumber(),
+                        FreeText("TEST"),
+                        LayoutState.IN_USE,
+                        address,
+                    ),
+                ),
+            )
         val rl = referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumber.id as IntId)!!
         publishAndVerify(
-            LayoutBranch.main, publicationRequest(
-                trackNumbers = listOf(trackNumber.id as IntId),
-                referenceLines = listOf(rl.id as IntId),
-            )
+            LayoutBranch.main,
+            publicationRequest(trackNumbers = listOf(trackNumber.id as IntId), referenceLines = listOf(rl.id as IntId)),
         )
 
-        val idOfUpdated = trackNumberService.update(
-            LayoutBranch.main,
-            trackNumber.id as IntId,
-            TrackNumberSaveRequest(
-                number = trackNumber.number,
-                description = FreeText("TEST2"),
-                startAddress = address,
-                state = trackNumber.state,
-            ),
-        )
+        val idOfUpdated =
+            trackNumberService.update(
+                LayoutBranch.main,
+                trackNumber.id as IntId,
+                TrackNumberSaveRequest(
+                    number = trackNumber.number,
+                    description = FreeText("TEST2"),
+                    startAddress = address,
+                    state = trackNumber.state,
+                ),
+            )
         publishAndVerify(LayoutBranch.main, publicationRequest(trackNumbers = listOf(trackNumber.id as IntId)))
         val thisAndPreviousPublication = publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
-        val changes = publicationDao.fetchPublicationTrackNumberChanges(
-            LayoutBranch.main,
-            thisAndPreviousPublication.first().id,
-            thisAndPreviousPublication.last().publicationTime,
-        )
+        val changes =
+            publicationDao.fetchPublicationTrackNumberChanges(
+                LayoutBranch.main,
+                thisAndPreviousPublication.first().id,
+                thisAndPreviousPublication.last().publicationTime,
+            )
         val updatedTrackNumber = trackNumberService.getOrThrow(MainLayoutContext.official, idOfUpdated)
 
-        val diff = publicationService.diffTrackNumber(
-            localizationService.getLocalization(LocalizationLanguage.FI),
-            changes.getValue(trackNumber.id as IntId),
-            thisAndPreviousPublication.first().publicationTime,
-            thisAndPreviousPublication.last().publicationTime,
-        ) { _, _ -> null }
+        val diff =
+            publicationService.diffTrackNumber(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                changes.getValue(trackNumber.id as IntId),
+                thisAndPreviousPublication.first().publicationTime,
+                thisAndPreviousPublication.last().publicationTime,
+            ) { _, _ ->
+                null
+            }
         assertEquals(1, diff.size)
         assertEquals("description", diff[0].propKey.key.toString())
         assertEquals(trackNumber.description, diff[0].value.oldValue)
@@ -1374,100 +1398,116 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun `Location track diff finds all changed fields`() {
-        val duplicate = locationTrackDao.fetch(
-            locationTrackService.insert(
-                LayoutBranch.main,
-                LocationTrackSaveRequest(
-                    AlignmentName("TEST duplicate"),
-                    FreeText("Test"),
-                    DescriptionSuffixType.NONE,
-                    LocationTrackType.MAIN,
-                    LocationTrackState.IN_USE,
-                    mainDraftContext.createLayoutTrackNumber().id,
-                    null,
-                    TopologicalConnectivityType.NONE,
-                    IntId(1),
-                )
-            ).rowVersion
-        )
+        val duplicate =
+            locationTrackDao.fetch(
+                locationTrackService
+                    .insert(
+                        LayoutBranch.main,
+                        LocationTrackSaveRequest(
+                            AlignmentName("TEST duplicate"),
+                            FreeText("Test"),
+                            DescriptionSuffixType.NONE,
+                            LocationTrackType.MAIN,
+                            LocationTrackState.IN_USE,
+                            mainDraftContext.createLayoutTrackNumber().id,
+                            null,
+                            TopologicalConnectivityType.NONE,
+                            IntId(1),
+                        ),
+                    )
+                    .rowVersion
+            )
 
-        val duplicate2 = locationTrackDao.fetch(
-            locationTrackService.insert(
-                LayoutBranch.main,
-                LocationTrackSaveRequest(
-                    AlignmentName("TEST duplicate 2"),
-                    FreeText("Test"),
-                    DescriptionSuffixType.NONE,
-                    LocationTrackType.MAIN,
-                    LocationTrackState.IN_USE,
-                    mainDraftContext.createLayoutTrackNumber().id,
-                    null,
-                    TopologicalConnectivityType.NONE,
-                    IntId(1),
-                )
-            ).rowVersion
-        )
+        val duplicate2 =
+            locationTrackDao.fetch(
+                locationTrackService
+                    .insert(
+                        LayoutBranch.main,
+                        LocationTrackSaveRequest(
+                            AlignmentName("TEST duplicate 2"),
+                            FreeText("Test"),
+                            DescriptionSuffixType.NONE,
+                            LocationTrackType.MAIN,
+                            LocationTrackState.IN_USE,
+                            mainDraftContext.createLayoutTrackNumber().id,
+                            null,
+                            TopologicalConnectivityType.NONE,
+                            IntId(1),
+                        ),
+                    )
+                    .rowVersion
+            )
 
-        val locationTrack = locationTrackDao.fetch(
-            locationTrackService.insert(
-                LayoutBranch.main,
-                LocationTrackSaveRequest(
-                    AlignmentName("TEST"),
-                    FreeText("Test"),
-                    DescriptionSuffixType.NONE,
-                    LocationTrackType.MAIN,
-                    LocationTrackState.IN_USE,
-                    mainDraftContext.createLayoutTrackNumber().id,
-                    duplicate.id as IntId<LocationTrack>,
-                    TopologicalConnectivityType.NONE,
-                    IntId(1),
-                )
-            ).rowVersion
-        )
+        val locationTrack =
+            locationTrackDao.fetch(
+                locationTrackService
+                    .insert(
+                        LayoutBranch.main,
+                        LocationTrackSaveRequest(
+                            AlignmentName("TEST"),
+                            FreeText("Test"),
+                            DescriptionSuffixType.NONE,
+                            LocationTrackType.MAIN,
+                            LocationTrackState.IN_USE,
+                            mainDraftContext.createLayoutTrackNumber().id,
+                            duplicate.id as IntId<LocationTrack>,
+                            TopologicalConnectivityType.NONE,
+                            IntId(1),
+                        ),
+                    )
+                    .rowVersion
+            )
         publishAndVerify(
             LayoutBranch.main,
             publicationRequest(
-                locationTracks = listOf(
-                    locationTrack.id as IntId<LocationTrack>,
-                    duplicate.id as IntId<LocationTrack>,
-                    duplicate2.id as IntId<LocationTrack>,
-                )
-            )
+                locationTracks =
+                    listOf(
+                        locationTrack.id as IntId<LocationTrack>,
+                        duplicate.id as IntId<LocationTrack>,
+                        duplicate2.id as IntId<LocationTrack>,
+                    )
+            ),
         )
 
-        val updatedLocationTrack = locationTrackDao.fetch(
-            locationTrackService.update(
-                LayoutBranch.main,
-                locationTrack.id as IntId,
-                LocationTrackSaveRequest(
-                    name = AlignmentName("TEST2"),
-                    descriptionBase = FreeText("Test2"),
-                    descriptionSuffix = DescriptionSuffixType.SWITCH_TO_BUFFER,
-                    type = LocationTrackType.SIDE,
-                    state = LocationTrackState.NOT_IN_USE,
-                    trackNumberId = locationTrack.trackNumberId,
-                    duplicate2.id as IntId<LocationTrack>,
-                    topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
-                    IntId(1),
-                ),
-            ).rowVersion
-        )
+        val updatedLocationTrack =
+            locationTrackDao.fetch(
+                locationTrackService
+                    .update(
+                        LayoutBranch.main,
+                        locationTrack.id as IntId,
+                        LocationTrackSaveRequest(
+                            name = AlignmentName("TEST2"),
+                            descriptionBase = FreeText("Test2"),
+                            descriptionSuffix = DescriptionSuffixType.SWITCH_TO_BUFFER,
+                            type = LocationTrackType.SIDE,
+                            state = LocationTrackState.NOT_IN_USE,
+                            trackNumberId = locationTrack.trackNumberId,
+                            duplicate2.id as IntId<LocationTrack>,
+                            topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
+                            IntId(1),
+                        ),
+                    )
+                    .rowVersion
+            )
         publish(publicationService, locationTracks = listOf(updatedLocationTrack.id as IntId<LocationTrack>))
         val latestPubs = publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
         val latestPub = latestPubs.first()
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
-        val diff = publicationService.diffLocationTrack(
-            localizationService.getLocalization(LocalizationLanguage.FI),
-            changes.getValue(locationTrack.id as IntId<LocationTrack>),
-            null,
-            LayoutBranch.main,
-            latestPub.publicationTime,
-            previousPub.publicationTime,
-            trackNumberDao.fetchTrackNumberNames(),
-            emptySet(),
-        ) { _, _ -> null }
+        val diff =
+            publicationService.diffLocationTrack(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                changes.getValue(locationTrack.id as IntId<LocationTrack>),
+                null,
+                LayoutBranch.main,
+                latestPub.publicationTime,
+                previousPub.publicationTime,
+                trackNumberDao.fetchTrackNumberNames(),
+                emptySet(),
+            ) { _, _ ->
+                null
+            }
         assertEquals(6, diff.size)
         assertEquals("location-track", diff[0].propKey.key.toString())
         assertEquals("state", diff[1].propKey.key.toString())
@@ -1480,20 +1520,22 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Don't allow publishing a track that is a duplicate of an unpublished draft-only one`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val (draftOnlyTrack, draftOnlyAlignment) = locationTrackAndAlignment(
-            trackNumberId = trackNumberId,
-            segments = listOf(someSegment()),
-            duplicateOf = null,
-            draft = true,
-        )
+        val (draftOnlyTrack, draftOnlyAlignment) =
+            locationTrackAndAlignment(
+                trackNumberId = trackNumberId,
+                segments = listOf(someSegment()),
+                duplicateOf = null,
+                draft = true,
+            )
         val draftOnlyId = locationTrackService.saveDraft(LayoutBranch.main, draftOnlyTrack, draftOnlyAlignment).id
 
-        val (duplicateTrack, duplicateAlignment) = locationTrackAndAlignment(
-            trackNumberId = trackNumberId,
-            segments = listOf(someSegment()),
-            duplicateOf = draftOnlyId,
-            draft = true,
-        )
+        val (duplicateTrack, duplicateAlignment) =
+            locationTrackAndAlignment(
+                trackNumberId = trackNumberId,
+                segments = listOf(someSegment()),
+                duplicateOf = draftOnlyId,
+                draft = true,
+            )
         val duplicateId = locationTrackService.saveDraft(LayoutBranch.main, duplicateTrack, duplicateAlignment).id
 
         // Both tracks in validation set: this is fine
@@ -1503,17 +1545,10 @@ class PublicationServiceIT @Autowired constructor(
             )
         )
         // Only the target (main) track in set: this is also fine
-        assertFalse(
-            containsDuplicateOfNotPublishedError(
-                validateLocationTrack(toValidate = draftOnlyId, draftOnlyId)
-            )
-        )
-        // Only the duplicate track in set: this would result in official referring to draft through duplicateOf
-        assertTrue(
-            containsDuplicateOfNotPublishedError(
-                validateLocationTrack(toValidate = duplicateId, duplicateId)
-            )
-        )
+        assertFalse(containsDuplicateOfNotPublishedError(validateLocationTrack(toValidate = draftOnlyId, draftOnlyId)))
+        // Only the duplicate track in set: this would result in official referring to draft through
+        // duplicateOf
+        assertTrue(containsDuplicateOfNotPublishedError(validateLocationTrack(toValidate = duplicateId, duplicateId)))
     }
 
     private fun containsDuplicateOfNotPublishedError(errors: List<LayoutValidationIssue>) =
@@ -1526,56 +1561,64 @@ class PublicationServiceIT @Autowired constructor(
         toValidate: IntId<LocationTrack>,
         vararg publicationSet: IntId<LocationTrack>,
     ): List<LayoutValidationIssue> {
-        val candidates = publicationService
-            .collectPublicationCandidates(PublicationInMain)
-            .filter(publicationRequest(locationTracks = publicationSet.toList()))
+        val candidates =
+            publicationService
+                .collectPublicationCandidates(PublicationInMain)
+                .filter(publicationRequest(locationTracks = publicationSet.toList()))
         return publicationService
             .validateAsPublicationUnit(candidates, false)
-            .locationTracks.find { c -> c.id == toValidate }!!
+            .locationTracks
+            .find { c -> c.id == toValidate }!!
             .issues
     }
 
     @Test
     fun `Changing specific Location Track field returns only that field`() {
-        val saveReq = LocationTrackSaveRequest(
-            AlignmentName("TEST"),
-            FreeText("Test"),
-            DescriptionSuffixType.NONE,
-            LocationTrackType.MAIN,
-            LocationTrackState.IN_USE,
-            mainOfficialContext.createLayoutTrackNumber().id,
-            null,
-            TopologicalConnectivityType.NONE,
-            IntId(1)
-        )
+        val saveReq =
+            LocationTrackSaveRequest(
+                AlignmentName("TEST"),
+                FreeText("Test"),
+                DescriptionSuffixType.NONE,
+                LocationTrackType.MAIN,
+                LocationTrackState.IN_USE,
+                mainOfficialContext.createLayoutTrackNumber().id,
+                null,
+                TopologicalConnectivityType.NONE,
+                IntId(1),
+            )
 
-        val locationTrack = locationTrackDao.fetch(
-            locationTrackService.insert(LayoutBranch.main, saveReq).rowVersion
-        )
+        val locationTrack = locationTrackDao.fetch(locationTrackService.insert(LayoutBranch.main, saveReq).rowVersion)
         publish(publicationService, locationTracks = listOf(locationTrack.id as IntId<LocationTrack>))
 
-        val updatedLocationTrack = locationTrackDao.fetch(
-            locationTrackService.update(
-                LayoutBranch.main,
-                locationTrack.id as IntId, saveReq.copy(descriptionBase = FreeText("TEST2"))
-            ).rowVersion
-        )
+        val updatedLocationTrack =
+            locationTrackDao.fetch(
+                locationTrackService
+                    .update(
+                        LayoutBranch.main,
+                        locationTrack.id as IntId,
+                        saveReq.copy(descriptionBase = FreeText("TEST2")),
+                    )
+                    .rowVersion
+            )
         publish(publicationService, locationTracks = listOf(updatedLocationTrack.id as IntId<LocationTrack>))
         val latestPubs = publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
         val latestPub = latestPubs.first()
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
-        val diff = publicationService.diffLocationTrack(
-            localizationService.getLocalization(LocalizationLanguage.FI),
-            changes.getValue(locationTrack.id as IntId<LocationTrack>),
-            null,
-            LayoutBranch.main,
-            latestPub.publicationTime,
-            previousPub.publicationTime,
-            trackNumberDao.fetchTrackNumberNames(),
-            emptySet()
-        ) { _, _ -> null }
+        val diff =
+            publicationService.diffLocationTrack(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                changes.getValue(locationTrack.id as IntId<LocationTrack>),
+                null,
+                LayoutBranch.main,
+                latestPub.publicationTime,
+                previousPub.publicationTime,
+                trackNumberDao.fetchTrackNumberNames(),
+                emptySet(),
+            ) { _, _ ->
+                null
+            }
         assertEquals(1, diff.size)
         assertEquals("description-base", diff[0].propKey.key.toString())
         assertEquals(locationTrack.descriptionBase, diff[0].value.oldValue)
@@ -1584,75 +1627,82 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun `KM Post diff finds all changed fields`() {
-        val trackNumberSaveReq = TrackNumberSaveRequest(
-            testDBService.getUnusedTrackNumber(),
-            FreeText("TEST"),
-            LayoutState.IN_USE,
-            TrackMeter(0, 0),
-        )
-        val trackNumber = trackNumberService.getOrThrow(
-            MainLayoutContext.draft,
-            trackNumberService.insert(LayoutBranch.main, trackNumberSaveReq),
-        )
-        val trackNumber2 = trackNumberService.getOrThrow(
-            MainLayoutContext.draft,
-            trackNumberService.insert(
-                LayoutBranch.main,
-                trackNumberSaveReq.copy(testDBService.getUnusedTrackNumber(), FreeText("TEST 2")),
-            ),
-        )
+        val trackNumberSaveReq =
+            TrackNumberSaveRequest(
+                testDBService.getUnusedTrackNumber(),
+                FreeText("TEST"),
+                LayoutState.IN_USE,
+                TrackMeter(0, 0),
+            )
+        val trackNumber =
+            trackNumberService.getOrThrow(
+                MainLayoutContext.draft,
+                trackNumberService.insert(LayoutBranch.main, trackNumberSaveReq),
+            )
+        val trackNumber2 =
+            trackNumberService.getOrThrow(
+                MainLayoutContext.draft,
+                trackNumberService.insert(
+                    LayoutBranch.main,
+                    trackNumberSaveReq.copy(testDBService.getUnusedTrackNumber(), FreeText("TEST 2")),
+                ),
+            )
 
-        val kmPost = kmPostService.getOrThrow(
-            MainLayoutContext.draft,
-            kmPostService.insertKmPost(
-                LayoutBranch.main,
-                TrackLayoutKmPostSaveRequest(
-                    KmNumber(0),
-                    LayoutState.IN_USE,
-                    trackNumber.id as IntId,
-                    gkLocation = null,
-                    gkLocationSource = null,
-                    gkLocationConfirmed = false,
-                )
-            ),
-        )
+        val kmPost =
+            kmPostService.getOrThrow(
+                MainLayoutContext.draft,
+                kmPostService.insertKmPost(
+                    LayoutBranch.main,
+                    TrackLayoutKmPostSaveRequest(
+                        KmNumber(0),
+                        LayoutState.IN_USE,
+                        trackNumber.id as IntId,
+                        gkLocation = null,
+                        gkLocationSource = null,
+                        gkLocationConfirmed = false,
+                    ),
+                ),
+            )
         publish(
             publicationService,
             kmPosts = listOf(kmPost.id as IntId),
-            trackNumbers = listOf(trackNumber.id as IntId, trackNumber2.id as IntId)
+            trackNumbers = listOf(trackNumber.id as IntId, trackNumber2.id as IntId),
         )
-        val updatedKmPost = kmPostService.getOrThrow(
-            MainLayoutContext.draft,
-            kmPostService.updateKmPost(
-                LayoutBranch.main,
-                kmPost.id as IntId,
-                TrackLayoutKmPostSaveRequest(
-                    KmNumber(1),
-                    LayoutState.NOT_IN_USE,
-                    trackNumber2.id as IntId,
-                    gkLocation = null,
-                    gkLocationSource = null,
-                    gkLocationConfirmed = false,
+        val updatedKmPost =
+            kmPostService.getOrThrow(
+                MainLayoutContext.draft,
+                kmPostService.updateKmPost(
+                    LayoutBranch.main,
+                    kmPost.id as IntId,
+                    TrackLayoutKmPostSaveRequest(
+                        KmNumber(1),
+                        LayoutState.NOT_IN_USE,
+                        trackNumber2.id as IntId,
+                        gkLocation = null,
+                        gkLocationSource = null,
+                        gkLocationConfirmed = false,
+                    ),
                 ),
-            ),
-        )
+            )
         publish(publicationService, kmPosts = listOf(updatedKmPost.id as IntId))
 
         val latestPubs = publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
         val latestPub = latestPubs.first()
         val changes = publicationDao.fetchPublicationKmPostChanges(latestPub.id)
 
-        val diff = publicationService.diffKmPost(
-            localizationService.getLocalization(LocalizationLanguage.FI),
-            changes.getValue(kmPost.id as IntId),
-            latestPub.publicationTime,
-            latestPub.publicationTime.minusMillis(1),
-            trackNumberDao.fetchTrackNumberNames(),
-            { _, _ -> null },
-            { geographyService.getCoordinateSystem(it).name.toString() },
-        )
+        val diff =
+            publicationService.diffKmPost(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                changes.getValue(kmPost.id as IntId),
+                latestPub.publicationTime,
+                latestPub.publicationTime.minusMillis(1),
+                trackNumberDao.fetchTrackNumberNames(),
+                { _, _ -> null },
+                { geographyService.getCoordinateSystem(it).name.toString() },
+            )
         assertEquals(2, diff.size)
-        // assertEquals("track-number", diff[0].propKey) TODO Enable when track number switching works
+        // assertEquals("track-number", diff[0].propKey) TODO Enable when track number switching
+        // works
         assertEquals("km-post", diff[0].propKey.key.toString())
         assertEquals("state", diff[1].propKey.key.toString())
     }
@@ -1673,7 +1723,9 @@ class PublicationServiceIT @Autowired constructor(
         assertEquals(KmNumber(2), diff[0].value.newValue)
     }
 
-    private fun getLatestPublicationDiffForKmPost(id: IntId<TrackLayoutKmPost>): List<PublicationChange<out Comparable<Nothing>?>> {
+    private fun getLatestPublicationDiffForKmPost(
+        id: IntId<TrackLayoutKmPost>
+    ): List<PublicationChange<out Comparable<Nothing>?>> {
         val latestPubs = publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
         val latestPub = latestPubs.first()
         val changes = publicationDao.fetchPublicationKmPostChanges(latestPub.id)
@@ -1690,38 +1742,39 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun `Changing specific KM Post field returns only that field`() {
-        val saveReq = TrackLayoutKmPostSaveRequest(
-            KmNumber(0),
-            LayoutState.IN_USE,
-            mainOfficialContext.createLayoutTrackNumber().id,
-            gkLocation = null,
-            gkLocationSource = null,
-            gkLocationConfirmed = false,
-        )
+        val saveReq =
+            TrackLayoutKmPostSaveRequest(
+                KmNumber(0),
+                LayoutState.IN_USE,
+                mainOfficialContext.createLayoutTrackNumber().id,
+                gkLocation = null,
+                gkLocationSource = null,
+                gkLocationConfirmed = false,
+            )
 
-        val kmPost = kmPostService.getOrThrow(
-            MainLayoutContext.draft,
-            kmPostService.insertKmPost(LayoutBranch.main, saveReq),
-        )
+        val kmPost =
+            kmPostService.getOrThrow(MainLayoutContext.draft, kmPostService.insertKmPost(LayoutBranch.main, saveReq))
         publish(publicationService, kmPosts = listOf(kmPost.id as IntId))
-        val updatedKmPost = kmPostService.getOrThrow(
-            MainLayoutContext.draft,
-            kmPostService.updateKmPost(LayoutBranch.main, kmPost.id as IntId, saveReq.copy(kmNumber = KmNumber(1))),
-        )
+        val updatedKmPost =
+            kmPostService.getOrThrow(
+                MainLayoutContext.draft,
+                kmPostService.updateKmPost(LayoutBranch.main, kmPost.id as IntId, saveReq.copy(kmNumber = KmNumber(1))),
+            )
         publish(publicationService, kmPosts = listOf(updatedKmPost.id as IntId))
         val latestPubs = publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
         val latestPub = latestPubs.first()
         val changes = publicationDao.fetchPublicationKmPostChanges(latestPub.id)
 
-        val diff = publicationService.diffKmPost(
-            localizationService.getLocalization(LocalizationLanguage.FI),
-            changes.getValue(kmPost.id as IntId),
-            latestPub.publicationTime,
-            latestPub.publicationTime.minusMillis(1),
-            trackNumberDao.fetchTrackNumberNames(),
-            { _, _ -> null },
-            { geographyService.getCoordinateSystem(it).name.toString() },
-        )
+        val diff =
+            publicationService.diffKmPost(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                changes.getValue(kmPost.id as IntId),
+                latestPub.publicationTime,
+                latestPub.publicationTime.minusMillis(1),
+                trackNumberDao.fetchTrackNumberNames(),
+                { _, _ -> null },
+                { geographyService.getCoordinateSystem(it).name.toString() },
+            )
         assertEquals(1, diff.size)
         assertEquals("km-post", diff[0].propKey.key.toString())
         assertEquals(kmPost.kmNumber, diff[0].value.oldValue)
@@ -1730,46 +1783,50 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun `Switch diff finds all changed fields`() {
-        val trackNumberSaveReq = TrackNumberSaveRequest(
-            testDBService.getUnusedTrackNumber(),
-            FreeText("TEST"),
-            LayoutState.IN_USE,
-            TrackMeter(0, 0),
-        )
+        val trackNumberSaveReq =
+            TrackNumberSaveRequest(
+                testDBService.getUnusedTrackNumber(),
+                FreeText("TEST"),
+                LayoutState.IN_USE,
+                TrackMeter(0, 0),
+            )
         val tn1 = trackNumberService.insert(LayoutBranch.main, trackNumberSaveReq)
-        val tn2 = trackNumberService.insert(
-            LayoutBranch.main,
-            trackNumberSaveReq.copy(testDBService.getUnusedTrackNumber(), FreeText("TEST 2"))
-        )
+        val tn2 =
+            trackNumberService.insert(
+                LayoutBranch.main,
+                trackNumberSaveReq.copy(testDBService.getUnusedTrackNumber(), FreeText("TEST 2")),
+            )
 
-        val switch = switchService.getOrThrow(
-            MainLayoutContext.draft,
-            switchService.insertSwitch(
-                LayoutBranch.main,
-                TrackLayoutSwitchSaveRequest(
-                    SwitchName("TEST"),
-                    IntId(1),
-                    LayoutStateCategory.EXISTING,
-                    IntId(1),
-                    false,
-                )
-            ),
-        )
-        publish(publicationService, switches = listOf(switch.id as IntId), trackNumbers = listOf(tn1, tn2))
-        val updatedSwitch = switchService.getOrThrow(
-            MainLayoutContext.draft,
-            switchService.updateSwitch(
-                LayoutBranch.main,
-                switch.id as IntId,
-                TrackLayoutSwitchSaveRequest(
-                    SwitchName("TEST 2"),
-                    IntId(2),
-                    LayoutStateCategory.NOT_EXISTING,
-                    IntId(2),
-                    true,
+        val switch =
+            switchService.getOrThrow(
+                MainLayoutContext.draft,
+                switchService.insertSwitch(
+                    LayoutBranch.main,
+                    TrackLayoutSwitchSaveRequest(
+                        SwitchName("TEST"),
+                        IntId(1),
+                        LayoutStateCategory.EXISTING,
+                        IntId(1),
+                        false,
+                    ),
                 ),
-            ),
-        )
+            )
+        publish(publicationService, switches = listOf(switch.id as IntId), trackNumbers = listOf(tn1, tn2))
+        val updatedSwitch =
+            switchService.getOrThrow(
+                MainLayoutContext.draft,
+                switchService.updateSwitch(
+                    LayoutBranch.main,
+                    switch.id as IntId,
+                    TrackLayoutSwitchSaveRequest(
+                        SwitchName("TEST 2"),
+                        IntId(2),
+                        LayoutStateCategory.NOT_EXISTING,
+                        IntId(2),
+                        true,
+                    ),
+                ),
+            )
         publish(publicationService, switches = listOf(updatedSwitch.id as IntId))
 
         val latestPubs = publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
@@ -1777,14 +1834,17 @@ class PublicationServiceIT @Autowired constructor(
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
 
-        val diff = publicationService.diffSwitch(
-            localizationService.getLocalization(LocalizationLanguage.FI),
-            changes.getValue(switch.id as IntId),
-            latestPub.publicationTime,
-            previousPub.publicationTime,
-            Operation.DELETE,
-            trackNumberDao.fetchTrackNumberNames()
-        ) { _, _ -> null }
+        val diff =
+            publicationService.diffSwitch(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                changes.getValue(switch.id as IntId),
+                latestPub.publicationTime,
+                previousPub.publicationTime,
+                Operation.DELETE,
+                trackNumberDao.fetchTrackNumberNames(),
+            ) { _, _ ->
+                null
+            }
         assertEquals(5, diff.size)
         assertEquals("switch", diff[0].propKey.key.toString())
         assertEquals("state-category", diff[1].propKey.key.toString())
@@ -1795,27 +1855,21 @@ class PublicationServiceIT @Autowired constructor(
 
     @Test
     fun `Changing specific switch field returns only that field`() {
-        val saveReq = TrackLayoutSwitchSaveRequest(
-            SwitchName("TEST"),
-            IntId(1),
-            LayoutStateCategory.EXISTING,
-            IntId(1),
-            false,
-        )
+        val saveReq =
+            TrackLayoutSwitchSaveRequest(SwitchName("TEST"), IntId(1), LayoutStateCategory.EXISTING, IntId(1), false)
 
-        val switch = switchService.getOrThrow(
-            MainLayoutContext.draft,
-            switchService.insertSwitch(LayoutBranch.main, saveReq),
-        )
+        val switch =
+            switchService.getOrThrow(MainLayoutContext.draft, switchService.insertSwitch(LayoutBranch.main, saveReq))
         publish(publicationService, switches = listOf(switch.id as IntId))
-        val updatedSwitch = switchService.getOrThrow(
-            MainLayoutContext.draft,
-            switchService.updateSwitch(
-                LayoutBranch.main,
-                switch.id as IntId,
-                saveReq.copy(name = SwitchName("TEST 2")),
-            ),
-        )
+        val updatedSwitch =
+            switchService.getOrThrow(
+                MainLayoutContext.draft,
+                switchService.updateSwitch(
+                    LayoutBranch.main,
+                    switch.id as IntId,
+                    saveReq.copy(name = SwitchName("TEST 2")),
+                ),
+            )
         publish(publicationService, switches = listOf(updatedSwitch.id as IntId))
 
         val latestPubs = publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
@@ -1823,14 +1877,17 @@ class PublicationServiceIT @Autowired constructor(
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
 
-        val diff = publicationService.diffSwitch(
-            localizationService.getLocalization(LocalizationLanguage.FI),
-            changes.getValue(switch.id as IntId),
-            latestPub.publicationTime,
-            previousPub.publicationTime,
-            Operation.MODIFY,
-            trackNumberDao.fetchTrackNumberNames()
-        ) { _, _ -> null }
+        val diff =
+            publicationService.diffSwitch(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                changes.getValue(switch.id as IntId),
+                latestPub.publicationTime,
+                previousPub.publicationTime,
+                Operation.MODIFY,
+                trackNumberDao.fetchTrackNumberNames(),
+            ) { _, _ ->
+                null
+            }
         assertEquals(1, diff.size)
         assertEquals("switch", diff[0].propKey.key.toString())
         assertEquals(switch.name, diff[0].value.oldValue)
@@ -1838,78 +1895,73 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     private fun alignmentWithSwitchLinks(vararg switchIds: IntId<TrackLayoutSwitch>?): LayoutAlignment =
-        alignment(switchIds.mapIndexed { index, switchId ->
-            segment(Point(0.0, index * 1.0), Point(0.0, index * 1.0 + 1.0)).let { segment ->
-                if (switchId == null) {
-                    segment
-                } else {
-                    segment.copy(switchId = switchId, startJointNumber = JointNumber(1))
+        alignment(
+            switchIds.mapIndexed { index, switchId ->
+                segment(Point(0.0, index * 1.0), Point(0.0, index * 1.0 + 1.0)).let { segment ->
+                    if (switchId == null) {
+                        segment
+                    } else {
+                        segment.copy(switchId = switchId, startJointNumber = JointNumber(1))
+                    }
                 }
             }
-        })
+        )
 
     @Test
     fun `Location track switch link changes are reported`() {
-        val switchUnlinkedFromTopology = switchDao.insert(
-            switch(name = "sw-unlinked-from-topology", externalId = "1.1.1.1.1", draft = false)
-        )
-        val switchUnlinkedFromAlignment = switchDao.insert(
-            switch(name = "sw-unlinked-from-alignment", externalId = "1.1.1.1.2", draft = false)
-        )
-        val switchAddedToTopologyStart = switchDao.insert(
-            switch(name = "sw-added-to-topo-start", externalId = "1.1.1.1.3", draft = false)
-        )
-        val switchAddedToTopologyEnd = switchDao.insert(
-            switch(name = "sw-added-to-topo-end", externalId = "1.1.1.1.4", draft = false)
-        )
-        val switchAddedToAlignment = switchDao.insert(
-            switch(name = "sw-added-to-alignment", externalId = "1.1.1.1.5", draft = false)
-        )
-        val switchDeleted = switchDao.insert(
-            switch(name = "sw-deleted", externalId = "1.1.1.1.6", draft = false)
-        )
-        val switchMerelyRenamed = switchDao.insert(
-            switch(name = "sw-merely-renamed", externalId = "1.1.1.1.7", draft = false)
-        )
-        val originalSwitchReplacedWithNewSameName = switchDao.insert(
-            switch(name = "sw-replaced-with-new-same-name", externalId = "1.1.1.1.8", draft = false)
-        )
+        val switchUnlinkedFromTopology =
+            switchDao.insert(switch(name = "sw-unlinked-from-topology", externalId = "1.1.1.1.1", draft = false))
+        val switchUnlinkedFromAlignment =
+            switchDao.insert(switch(name = "sw-unlinked-from-alignment", externalId = "1.1.1.1.2", draft = false))
+        val switchAddedToTopologyStart =
+            switchDao.insert(switch(name = "sw-added-to-topo-start", externalId = "1.1.1.1.3", draft = false))
+        val switchAddedToTopologyEnd =
+            switchDao.insert(switch(name = "sw-added-to-topo-end", externalId = "1.1.1.1.4", draft = false))
+        val switchAddedToAlignment =
+            switchDao.insert(switch(name = "sw-added-to-alignment", externalId = "1.1.1.1.5", draft = false))
+        val switchDeleted = switchDao.insert(switch(name = "sw-deleted", externalId = "1.1.1.1.6", draft = false))
+        val switchMerelyRenamed =
+            switchDao.insert(switch(name = "sw-merely-renamed", externalId = "1.1.1.1.7", draft = false))
+        val originalSwitchReplacedWithNewSameName =
+            switchDao.insert(switch(name = "sw-replaced-with-new-same-name", externalId = "1.1.1.1.8", draft = false))
 
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
 
-        val originalLocationTrack = locationTrackService.saveDraft(
-            LayoutBranch.main,
-            locationTrack(
-                trackNumberId,
-                topologyStartSwitch = TopologyLocationTrackSwitch(switchUnlinkedFromTopology.id, JointNumber(1)),
-                draft = true,
-            ),
-            alignmentWithSwitchLinks(
-                switchUnlinkedFromAlignment.id,
-                switchDeleted.id,
-                switchMerelyRenamed.id,
-                originalSwitchReplacedWithNewSameName.id
-            ),
-        )
+        val originalLocationTrack =
+            locationTrackService.saveDraft(
+                LayoutBranch.main,
+                locationTrack(
+                    trackNumberId,
+                    topologyStartSwitch = TopologyLocationTrackSwitch(switchUnlinkedFromTopology.id, JointNumber(1)),
+                    draft = true,
+                ),
+                alignmentWithSwitchLinks(
+                    switchUnlinkedFromAlignment.id,
+                    switchDeleted.id,
+                    switchMerelyRenamed.id,
+                    originalSwitchReplacedWithNewSameName.id,
+                ),
+            )
         publish(publicationService, locationTracks = listOf(originalLocationTrack.id))
         switchService.saveDraft(
             LayoutBranch.main,
-            switchDao.fetch(switchDeleted.rowVersion).copy(stateCategory = LayoutStateCategory.NOT_EXISTING)
+            switchDao.fetch(switchDeleted.rowVersion).copy(stateCategory = LayoutStateCategory.NOT_EXISTING),
         )
         switchService.saveDraft(
             LayoutBranch.main,
             switchDao
                 .fetch(originalSwitchReplacedWithNewSameName.rowVersion)
-                .copy(stateCategory = LayoutStateCategory.NOT_EXISTING)
+                .copy(stateCategory = LayoutStateCategory.NOT_EXISTING),
         )
         switchService.saveDraft(
             LayoutBranch.main,
-            switchDao.fetch(switchMerelyRenamed.rowVersion).copy(name = SwitchName("sw-with-new-name"))
+            switchDao.fetch(switchMerelyRenamed.rowVersion).copy(name = SwitchName("sw-with-new-name")),
         )
-        val newSwitchReplacingOldWithSameName = switchService.saveDraft(
-            LayoutBranch.main,
-            switch(name = "sw-replaced-with-new-same-name", externalId = "1.1.1.1.9", draft = true)
-        )
+        val newSwitchReplacingOldWithSameName =
+            switchService.saveDraft(
+                LayoutBranch.main,
+                switch(name = "sw-replaced-with-new-same-name", externalId = "1.1.1.1.9", draft = true),
+            )
 
         locationTrackService.saveDraft(
             LayoutBranch.main,
@@ -1917,7 +1969,7 @@ class PublicationServiceIT @Autowired constructor(
                 .getOrThrow(MainLayoutContext.official, originalLocationTrack.id)
                 .copy(
                     topologyStartSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyStart.id, JointNumber(1)),
-                    topologyEndSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyEnd.id, JointNumber(1))
+                    topologyEndSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyEnd.id, JointNumber(1)),
                 ),
             alignmentWithSwitchLinks(
                 switchAddedToAlignment.id,
@@ -1929,28 +1981,32 @@ class PublicationServiceIT @Autowired constructor(
         publish(
             publicationService,
             locationTracks = listOf(originalLocationTrack.id),
-            switches = listOf(
-                switchDeleted.id,
-                switchMerelyRenamed.id,
-                originalSwitchReplacedWithNewSameName.id,
-                newSwitchReplacingOldWithSameName.id,
-            ),
+            switches =
+                listOf(
+                    switchDeleted.id,
+                    switchMerelyRenamed.id,
+                    originalSwitchReplacedWithNewSameName.id,
+                    newSwitchReplacingOldWithSameName.id,
+                ),
         )
         val latestPubs = publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
         val latestPub = latestPubs[0]
         val previousPub = latestPubs[1]
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
-        val diff = publicationService.diffLocationTrack(
-            localizationService.getLocalization(LocalizationLanguage.FI),
-            changes.getValue(originalLocationTrack.id),
-            publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(latestPub.id)[originalLocationTrack.id],
-            LayoutBranch.main,
-            latestPub.publicationTime,
-            previousPub.publicationTime,
-            trackNumberDao.fetchTrackNumberNames(),
-            setOf(),
-        ) { _, _ -> null }
+        val diff =
+            publicationService.diffLocationTrack(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                changes.getValue(originalLocationTrack.id),
+                publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(latestPub.id)[originalLocationTrack.id],
+                LayoutBranch.main,
+                latestPub.publicationTime,
+                previousPub.publicationTime,
+                trackNumberDao.fetchTrackNumberNames(),
+                setOf(),
+            ) { _, _ ->
+                null
+            }
         assertEquals(1, diff.size)
         assertEquals("linked-switches", diff[0].propKey.key.toString())
         assertEquals(
@@ -1958,78 +2014,70 @@ class PublicationServiceIT @Autowired constructor(
                 Vaihteiden sw-deleted, sw-replaced-with-new-same-name (1.1.1.1.8), sw-unlinked-from-alignment,
                 sw-unlinked-from-topology linkitys purettu. Vaihteet sw-added-to-alignment, sw-added-to-topo-end,
                 sw-added-to-topo-start, sw-replaced-with-new-same-name (1.1.1.1.9) linkitetty.
-            """.trimIndent().replace("\n", " "),
+            """
+                .trimIndent()
+                .replace("\n", " "),
             diff[0].remark,
         )
     }
 
     @Test
     fun `Location track switch link changes made in design are reported`() {
-        val switchUnlinkedFromTopology = switchDao.insert(
-            switch(name = "sw-unlinked-from-topology", externalId = "1.1.1.1.1", draft = false)
-        )
-        val switchUnlinkedFromAlignment = switchDao.insert(
-            switch(name = "sw-unlinked-from-alignment", externalId = "1.1.1.1.2", draft = false)
-        )
-        val switchAddedToTopologyStart = switchDao.insert(
-            switch(name = "sw-added-to-topo-start", externalId = "1.1.1.1.3", draft = false)
-        )
-        val switchAddedToTopologyEnd = switchDao.insert(
-            switch(name = "sw-added-to-topo-end", externalId = "1.1.1.1.4", draft = false)
-        )
-        val switchAddedToAlignment = switchDao.insert(
-            switch(name = "sw-added-to-alignment", externalId = "1.1.1.1.5", draft = false)
-        )
-        val switchDeleted = switchDao.insert(
-            switch(name = "sw-deleted", externalId = "1.1.1.1.6", draft = false)
-        )
-        val switchMerelyRenamed = switchDao.insert(
-            switch(name = "sw-merely-renamed", externalId = "1.1.1.1.7", draft = false)
-        )
-        val originalSwitchReplacedWithNewSameName = switchDao.insert(
-            switch(name = "sw-replaced-with-new-same-name", externalId = "1.1.1.1.8", draft = false)
-        )
+        val switchUnlinkedFromTopology =
+            switchDao.insert(switch(name = "sw-unlinked-from-topology", externalId = "1.1.1.1.1", draft = false))
+        val switchUnlinkedFromAlignment =
+            switchDao.insert(switch(name = "sw-unlinked-from-alignment", externalId = "1.1.1.1.2", draft = false))
+        val switchAddedToTopologyStart =
+            switchDao.insert(switch(name = "sw-added-to-topo-start", externalId = "1.1.1.1.3", draft = false))
+        val switchAddedToTopologyEnd =
+            switchDao.insert(switch(name = "sw-added-to-topo-end", externalId = "1.1.1.1.4", draft = false))
+        val switchAddedToAlignment =
+            switchDao.insert(switch(name = "sw-added-to-alignment", externalId = "1.1.1.1.5", draft = false))
+        val switchDeleted = switchDao.insert(switch(name = "sw-deleted", externalId = "1.1.1.1.6", draft = false))
+        val switchMerelyRenamed =
+            switchDao.insert(switch(name = "sw-merely-renamed", externalId = "1.1.1.1.7", draft = false))
+        val originalSwitchReplacedWithNewSameName =
+            switchDao.insert(switch(name = "sw-replaced-with-new-same-name", externalId = "1.1.1.1.8", draft = false))
 
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
 
-        val originalLocationTrack = locationTrackService.saveDraft(
-            LayoutBranch.main,
-            locationTrack(
-                trackNumberId,
-                topologyStartSwitch = TopologyLocationTrackSwitch(switchUnlinkedFromTopology.id, JointNumber(1)),
-                draft = true,
-            ),
-            alignmentWithSwitchLinks(
-                switchUnlinkedFromAlignment.id,
-                switchDeleted.id,
-                switchMerelyRenamed.id,
-                originalSwitchReplacedWithNewSameName.id
-            ),
-        )
-        publish(publicationService,  locationTracks = listOf(originalLocationTrack.id))
+        val originalLocationTrack =
+            locationTrackService.saveDraft(
+                LayoutBranch.main,
+                locationTrack(
+                    trackNumberId,
+                    topologyStartSwitch = TopologyLocationTrackSwitch(switchUnlinkedFromTopology.id, JointNumber(1)),
+                    draft = true,
+                ),
+                alignmentWithSwitchLinks(
+                    switchUnlinkedFromAlignment.id,
+                    switchDeleted.id,
+                    switchMerelyRenamed.id,
+                    originalSwitchReplacedWithNewSameName.id,
+                ),
+            )
+        publish(publicationService, locationTracks = listOf(originalLocationTrack.id))
 
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
 
         switchService.saveDraft(
             testBranch,
-            switchDao.fetch(switchDeleted.rowVersion).copy(stateCategory = LayoutStateCategory.NOT_EXISTING)
+            switchDao.fetch(switchDeleted.rowVersion).copy(stateCategory = LayoutStateCategory.NOT_EXISTING),
         )
         switchService.saveDraft(
             testBranch,
             switchDao
                 .fetch(originalSwitchReplacedWithNewSameName.rowVersion)
-                .copy(stateCategory = LayoutStateCategory.NOT_EXISTING)
+                .copy(stateCategory = LayoutStateCategory.NOT_EXISTING),
         )
         switchService.saveDraft(
             testBranch,
-            switchDao.fetch(switchMerelyRenamed.rowVersion).copy(name = SwitchName("sw-with-new-name"))
+            switchDao.fetch(switchMerelyRenamed.rowVersion).copy(name = SwitchName("sw-with-new-name")),
         )
-        val newSwitchReplacingOldWithSameName = testDBService.testContext(testBranch, DRAFT).insert(
-            switch(
-                name = "sw-replaced-with-new-same-name",
-                externalId = "1.1.1.1.9",
-            )
-        )
+        val newSwitchReplacingOldWithSameName =
+            testDBService
+                .testContext(testBranch, DRAFT)
+                .insert(switch(name = "sw-replaced-with-new-same-name", externalId = "1.1.1.1.9"))
 
         locationTrackService.saveDraft(
             testBranch,
@@ -2037,7 +2085,7 @@ class PublicationServiceIT @Autowired constructor(
                 .getOrThrow(MainLayoutContext.official, originalLocationTrack.id)
                 .copy(
                     topologyStartSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyStart.id, JointNumber(1)),
-                    topologyEndSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyEnd.id, JointNumber(1))
+                    topologyEndSwitch = TopologyLocationTrackSwitch(switchAddedToTopologyEnd.id, JointNumber(1)),
                 ),
             alignmentWithSwitchLinks(
                 switchAddedToAlignment.id,
@@ -2050,45 +2098,51 @@ class PublicationServiceIT @Autowired constructor(
             publicationService,
             testBranch,
             locationTracks = listOf(originalLocationTrack.id),
-            switches = listOf(
-                switchDeleted.id,
-                switchMerelyRenamed.id,
-                originalSwitchReplacedWithNewSameName.id,
-                newSwitchReplacingOldWithSameName.id,
-            ),
+            switches =
+                listOf(
+                    switchDeleted.id,
+                    switchMerelyRenamed.id,
+                    originalSwitchReplacedWithNewSameName.id,
+                    newSwitchReplacingOldWithSameName.id,
+                ),
         )
         locationTrackService.mergeToMainBranch(testBranch, originalLocationTrack.id)
         listOf(
-            switchDeleted.id,
-            switchMerelyRenamed.id,
-            originalSwitchReplacedWithNewSameName.id,
-            newSwitchReplacingOldWithSameName.id
-        ).forEach { id -> switchService.mergeToMainBranch(testBranch, id) }
-        publish(
-            publicationService,
-            locationTracks = listOf(originalLocationTrack.id),
-            switches = listOf(
                 switchDeleted.id,
                 switchMerelyRenamed.id,
                 originalSwitchReplacedWithNewSameName.id,
                 newSwitchReplacingOldWithSameName.id,
-            ),
+            )
+            .forEach { id -> switchService.mergeToMainBranch(testBranch, id) }
+        publish(
+            publicationService,
+            locationTracks = listOf(originalLocationTrack.id),
+            switches =
+                listOf(
+                    switchDeleted.id,
+                    switchMerelyRenamed.id,
+                    originalSwitchReplacedWithNewSameName.id,
+                    newSwitchReplacingOldWithSameName.id,
+                ),
         )
         val latestPubs = publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
         val latestPub = latestPubs[0]
         val previousPub = latestPubs[1]
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
-        val diff = publicationService.diffLocationTrack(
-            localizationService.getLocalization(LocalizationLanguage.FI),
-            changes.getValue(originalLocationTrack.id),
-            publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(latestPub.id)[originalLocationTrack.id],
-            LayoutBranch.main,
-            latestPub.publicationTime,
-            previousPub.publicationTime,
-            trackNumberDao.fetchTrackNumberNames(),
-            setOf(),
-        ) { _, _ -> null }
+        val diff =
+            publicationService.diffLocationTrack(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                changes.getValue(originalLocationTrack.id),
+                publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(latestPub.id)[originalLocationTrack.id],
+                LayoutBranch.main,
+                latestPub.publicationTime,
+                previousPub.publicationTime,
+                trackNumberDao.fetchTrackNumberNames(),
+                setOf(),
+            ) { _, _ ->
+                null
+            }
         assertEquals(1, diff.size)
         assertEquals("linked-switches", diff[0].propKey.key.toString())
         assertEquals(
@@ -2096,7 +2150,9 @@ class PublicationServiceIT @Autowired constructor(
                 Vaihteiden sw-deleted, sw-replaced-with-new-same-name (1.1.1.1.8), sw-unlinked-from-alignment,
                 sw-unlinked-from-topology linkitys purettu. Vaihteet sw-added-to-alignment, sw-added-to-topo-end,
                 sw-added-to-topo-start, sw-replaced-with-new-same-name (1.1.1.1.9) linkitetty.
-            """.trimIndent().replace("\n", " "),
+            """
+                .trimIndent()
+                .replace("\n", " "),
             diff[0].remark,
         )
     }
@@ -2104,26 +2160,25 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Location track geometry changes are reported`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        fun segmentWithCurveToMaxY(maxY: Double) = segment(
-            *(0..10)
-                .map { x -> Point(x.toDouble(), (5.0 - (x.toDouble() - 5.0).absoluteValue) / 10.0 * maxY) }
-                .toTypedArray(),
-        )
+        fun segmentWithCurveToMaxY(maxY: Double) =
+            segment(
+                *(0..10)
+                    .map { x -> Point(x.toDouble(), (5.0 - (x.toDouble() - 5.0).absoluteValue) / 10.0 * maxY) }
+                    .toTypedArray()
+            )
 
         val referenceLineAlignment = alignmentDao.insert(alignment(segmentWithCurveToMaxY(0.0)))
         referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = referenceLineAlignment, draft = false))
 
-        // track that had bump to y=-10 goes to having a bump to y=10, meaning the length and ends stay the same,
+        // track that had bump to y=-10 goes to having a bump to y=10, meaning the length and ends
+        // stay the same,
         // but the geometry changes
         val originalAlignment = alignment(segmentWithCurveToMaxY(-10.0))
         val newAlignment = alignment(segmentWithCurveToMaxY(10.0))
-        val originalLocationTrack = locationTrackDao.insert(
-            locationTrack(
-                trackNumberId,
-                alignmentVersion = alignmentDao.insert(originalAlignment),
-                draft = false,
+        val originalLocationTrack =
+            locationTrackDao.insert(
+                locationTrack(trackNumberId, alignmentVersion = alignmentDao.insert(originalAlignment), draft = false)
             )
-        )
         locationTrackService.saveDraft(
             LayoutBranch.main,
             asMainDraft(locationTrackDao.fetch(originalLocationTrack.rowVersion)),
@@ -2133,16 +2188,19 @@ class PublicationServiceIT @Autowired constructor(
         val latestPub = publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1)[0]
         val changes = publicationDao.fetchPublicationLocationTrackChanges(latestPub.id)
 
-        val diff = publicationService.diffLocationTrack(
-            localizationService.getLocalization(LocalizationLanguage.FI),
-            changes.getValue(originalLocationTrack.id),
-            publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(latestPub.id)[originalLocationTrack.id],
-            LayoutBranch.main,
-            latestPub.publicationTime,
-            latestPub.publicationTime,
-            trackNumberDao.fetchTrackNumberNames(),
-            setOf(KmNumber(0)),
-        ) { _, _ -> null }
+        val diff =
+            publicationService.diffLocationTrack(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                changes.getValue(originalLocationTrack.id),
+                publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(latestPub.id)[originalLocationTrack.id],
+                LayoutBranch.main,
+                latestPub.publicationTime,
+                latestPub.publicationTime,
+                trackNumberDao.fetchTrackNumberNames(),
+                setOf(KmNumber(0)),
+            ) { _, _ ->
+                null
+            }
         assertEquals(1, diff.size)
         assertEquals("Muutos välillä 0000+0001-0000+0009, sivusuuntainen muutos 10.0 m", diff[0].remark)
     }
@@ -2156,15 +2214,13 @@ class PublicationServiceIT @Autowired constructor(
             alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
         )
 
-        val locationTrack1 = locationTrackAndAlignment(trackNumberId1, draft = true).let { (lt, a) ->
-            locationTrackService.saveDraft(LayoutBranch.main, lt, a).id
-        }
+        val locationTrack1 =
+            locationTrackAndAlignment(trackNumberId1, draft = true).let { (lt, a) ->
+                locationTrackService.saveDraft(LayoutBranch.main, lt, a).id
+            }
 
-        val publish1 = publish(
-            publicationService,
-            trackNumbers = listOf(trackNumberId1),
-            locationTracks = listOf(locationTrack1),
-        )
+        val publish1 =
+            publish(publicationService, trackNumbers = listOf(trackNumberId1), locationTracks = listOf(locationTrack1))
 
         val trackNumberId2 = mainDraftContext.createLayoutTrackNumber().id
         referenceLineService.saveDraft(
@@ -2173,15 +2229,13 @@ class PublicationServiceIT @Autowired constructor(
             alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
         )
 
-        val locationTrack2 = locationTrackAndAlignment(trackNumberId2, draft = true).let { (lt, a) ->
-            locationTrackService.saveDraft(LayoutBranch.main, lt, a).id
-        }
+        val locationTrack2 =
+            locationTrackAndAlignment(trackNumberId2, draft = true).let { (lt, a) ->
+                locationTrackService.saveDraft(LayoutBranch.main, lt, a).id
+            }
 
-        val publish2 = publish(
-            publicationService,
-            trackNumbers = listOf(trackNumberId2),
-            locationTracks = listOf(locationTrack2),
-        )
+        val publish2 =
+            publish(publicationService, trackNumbers = listOf(trackNumberId2), locationTracks = listOf(locationTrack2))
 
         val publication1 = publicationDao.getPublication(publish1.publicationId!!)
         val publication2 = publicationDao.getPublication(publish2.publicationId!!)
@@ -2193,19 +2247,23 @@ class PublicationServiceIT @Autowired constructor(
         }
 
         assertTrue {
-            publicationService.fetchPublicationDetailsBetweenInstants(
-                LayoutBranch.main,
-                from = publication2.publicationTime.plusMillis(1)
-            ).isEmpty()
+            publicationService
+                .fetchPublicationDetailsBetweenInstants(
+                    LayoutBranch.main,
+                    from = publication2.publicationTime.plusMillis(1),
+                )
+                .isEmpty()
         }
 
         assertEquals(
             2,
-            publicationService.fetchPublicationDetailsBetweenInstants(
-                LayoutBranch.main,
-                from = publication1.publicationTime,
-                to = publication2.publicationTime.plusMillis(1),
-            ).size,
+            publicationService
+                .fetchPublicationDetailsBetweenInstants(
+                    LayoutBranch.main,
+                    from = publication1.publicationTime,
+                    to = publication2.publicationTime.plusMillis(1),
+                )
+                .size,
         )
     }
 
@@ -2218,15 +2276,13 @@ class PublicationServiceIT @Autowired constructor(
             alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
         )
 
-        val locationTrack1 = locationTrackAndAlignment(trackNumberId1, draft = true).let { (lt, a) ->
-            locationTrackService.saveDraft(LayoutBranch.main, lt, a).id
-        }
+        val locationTrack1 =
+            locationTrackAndAlignment(trackNumberId1, draft = true).let { (lt, a) ->
+                locationTrackService.saveDraft(LayoutBranch.main, lt, a).id
+            }
 
-        val publish1 = publish(
-            publicationService,
-            trackNumbers = listOf(trackNumberId1),
-            locationTracks = listOf(locationTrack1),
-        )
+        val publish1 =
+            publish(publicationService, trackNumbers = listOf(trackNumberId1), locationTracks = listOf(locationTrack1))
 
         val trackNumberId2 = mainDraftContext.createLayoutTrackNumber().id
         referenceLineService.saveDraft(
@@ -2235,28 +2291,26 @@ class PublicationServiceIT @Autowired constructor(
             alignment(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
         )
 
-        val locationTrack2 = locationTrackAndAlignment(trackNumberId2, draft = true).let { (lt, a) ->
-            locationTrackService.saveDraft(LayoutBranch.main, lt, a).id
-        }
+        val locationTrack2 =
+            locationTrackAndAlignment(trackNumberId2, draft = true).let { (lt, a) ->
+                locationTrackService.saveDraft(LayoutBranch.main, lt, a).id
+            }
 
-        val publish2 = publish(
-            publicationService,
-            trackNumbers = listOf(trackNumberId2),
-            locationTracks = listOf(locationTrack2),
-        )
+        val publish2 =
+            publish(publicationService, trackNumbers = listOf(trackNumberId2), locationTracks = listOf(locationTrack2))
 
         assertEquals(2, publicationService.fetchPublications(LayoutBranch.main).size)
 
         assertEquals(1, publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1).size)
         assertEquals(
             publish2.publicationId,
-            publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1)[0].id
+            publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1)[0].id,
         )
 
         assertEquals(2, publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2).size)
         assertEquals(
             publish1.publicationId,
-            publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 10)[1].id
+            publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 10)[1].id,
         )
 
         assertTrue { publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 0).isEmpty() }
@@ -2282,31 +2336,34 @@ class PublicationServiceIT @Autowired constructor(
 
         publish(publicationService, trackNumbers = listOf(trackNumberId2))
 
-        val rows1 = publicationService.fetchPublicationDetails(
-            LayoutBranch.main,
-            sortBy = PublicationTableColumn.NAME,
-            translation = localizationService.getLocalization(LocalizationLanguage.FI),
-        )
+        val rows1 =
+            publicationService.fetchPublicationDetails(
+                LayoutBranch.main,
+                sortBy = PublicationTableColumn.NAME,
+                translation = localizationService.getLocalization(LocalizationLanguage.FI),
+            )
 
         assertEquals(2, rows1.size)
         assertTrue { rows1[0].name.contains("1234") }
 
-        val rows2 = publicationService.fetchPublicationDetails(
-            LayoutBranch.main,
-            sortBy = PublicationTableColumn.NAME,
-            order = SortOrder.DESCENDING,
-            translation = localizationService.getLocalization(LocalizationLanguage.FI)
-        )
+        val rows2 =
+            publicationService.fetchPublicationDetails(
+                LayoutBranch.main,
+                sortBy = PublicationTableColumn.NAME,
+                order = SortOrder.DESCENDING,
+                translation = localizationService.getLocalization(LocalizationLanguage.FI),
+            )
 
         assertEquals(2, rows2.size)
         assertTrue { rows2[0].name.contains("4321") }
 
-        val rows3 = publicationService.fetchPublicationDetails(
-            LayoutBranch.main,
-            sortBy = PublicationTableColumn.PUBLICATION_TIME,
-            order = SortOrder.ASCENDING,
-            translation = localizationService.getLocalization(LocalizationLanguage.FI)
-        )
+        val rows3 =
+            publicationService.fetchPublicationDetails(
+                LayoutBranch.main,
+                sortBy = PublicationTableColumn.PUBLICATION_TIME,
+                order = SortOrder.ASCENDING,
+                translation = localizationService.getLocalization(LocalizationLanguage.FI),
+            )
 
         assertEquals(2, rows3.size)
         assertTrue { rows3[0].name.contains("1234") }
@@ -2322,35 +2379,35 @@ class PublicationServiceIT @Autowired constructor(
                 draft = false,
             )
         )
-        val switch = switchDao.insert(
-            switch(
-                joints = listOf(
-                    TrackLayoutSwitchJoint(JointNumber(1), Point(4.2, 0.1), null)
-                ),
-                draft = false,
+        val switch =
+            switchDao.insert(
+                switch(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(4.2, 0.1), null)), draft = false)
             )
-        )
-        val originalAlignment = alignment(
-            segment(Point(0.0, 0.0), Point(4.0, 0.0)),
-            segment(Point(4.0, 0.0), Point(10.0, 0.0)).copy(
-                switchId = switch.id,
-                startJointNumber = JointNumber(1),
-            ),
-        )
-        val locationTrack = locationTrackDao.insert(
-            locationTrack(trackNumberId, alignmentVersion = alignmentDao.insert(originalAlignment), draft = false)
-        )
+        val originalAlignment =
+            alignment(
+                segment(Point(0.0, 0.0), Point(4.0, 0.0)),
+                segment(Point(4.0, 0.0), Point(10.0, 0.0)).copy(switchId = switch.id, startJointNumber = JointNumber(1)),
+            )
+        val locationTrack =
+            locationTrackDao.insert(
+                locationTrack(trackNumberId, alignmentVersion = alignmentDao.insert(originalAlignment), draft = false)
+            )
         switchService.saveDraft(
             LayoutBranch.main,
-            switchDao.fetch(switch.rowVersion).copy(
-                joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(4.1, 0.2), null)),
-            ),
+            switchDao
+                .fetch(switch.rowVersion)
+                .copy(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(4.1, 0.2), null))),
         )
-        val updatedAlignment = alignment(
-            segment(Point(0.1, 0.0), Point(4.1, 0.0)),
-            segment(Point(4.1, 0.0), Point(10.1, 0.0)).copy(switchId = switch.id, startJointNumber = JointNumber(1))
+        val updatedAlignment =
+            alignment(
+                segment(Point(0.1, 0.0), Point(4.1, 0.0)),
+                segment(Point(4.1, 0.0), Point(10.1, 0.0)).copy(switchId = switch.id, startJointNumber = JointNumber(1)),
+            )
+        locationTrackService.saveDraft(
+            LayoutBranch.main,
+            locationTrackDao.fetch(locationTrack.rowVersion),
+            updatedAlignment,
         )
-        locationTrackService.saveDraft(LayoutBranch.main, locationTrackDao.fetch(locationTrack.rowVersion), updatedAlignment)
 
         publish(publicationService, switches = listOf(switch.id), locationTracks = listOf(locationTrack.id))
 
@@ -2359,18 +2416,21 @@ class PublicationServiceIT @Autowired constructor(
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
 
-        val diff = publicationService.diffSwitch(
-            localizationService.getLocalization(LocalizationLanguage.FI),
-            changes.getValue(switch.id),
-            latestPub.publicationTime,
-            previousPub.publicationTime,
-            Operation.MODIFY,
-            trackNumberDao.fetchTrackNumberNames()
-        ) { _, _ -> null }
+        val diff =
+            publicationService.diffSwitch(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                changes.getValue(switch.id),
+                latestPub.publicationTime,
+                previousPub.publicationTime,
+                Operation.MODIFY,
+                trackNumberDao.fetchTrackNumberNames(),
+            ) { _, _ ->
+                null
+            }
         assertEquals(2, diff.size)
         assertEquals(
             listOf("switch-joint-location", "switch-track-address").sorted(),
-            diff.map { it.propKey.key.toString() }.sorted()
+            diff.map { it.propKey.key.toString() }.sorted(),
         )
         val jointLocationDiff = diff.find { it.propKey.key.toString() == "switch-joint-location" }!!
         assertEquals("4.000 E, 0.000 N", jointLocationDiff.value.oldValue)
@@ -2389,37 +2449,33 @@ class PublicationServiceIT @Autowired constructor(
                 draft = false,
             )
         )
-        val switch = switchDao.insert(
-            switch(
-                joints = listOf(
-                    TrackLayoutSwitchJoint(JointNumber(1), Point(4.2, 0.1), null)
-                ),
-                draft = false,
+        val switch =
+            switchDao.insert(
+                switch(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(4.2, 0.1), null)), draft = false)
             )
-        )
-        val originalAlignment = alignment(
-            segment(Point(0.0, 0.0), Point(4.0, 0.0)),
-            segment(Point(4.0, 0.0), Point(10.0, 0.0)).copy(
-                switchId = switch.id,
-                startJointNumber = JointNumber(1),
-            ),
-        )
-        val locationTrack = locationTrackDao.insert(
-            locationTrack(trackNumberId, alignmentVersion = alignmentDao.insert(originalAlignment), draft = false)
-        )
+        val originalAlignment =
+            alignment(
+                segment(Point(0.0, 0.0), Point(4.0, 0.0)),
+                segment(Point(4.0, 0.0), Point(10.0, 0.0)).copy(switchId = switch.id, startJointNumber = JointNumber(1)),
+            )
+        val locationTrack =
+            locationTrackDao.insert(
+                locationTrack(trackNumberId, alignmentVersion = alignmentDao.insert(originalAlignment), draft = false)
+            )
 
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
 
         switchService.saveDraft(
             testBranch,
-            switchDao.fetch(switch.rowVersion).copy(
-                joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(4.1, 0.2), null)),
-            ),
+            switchDao
+                .fetch(switch.rowVersion)
+                .copy(joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(4.1, 0.2), null))),
         )
-        val updatedAlignment = alignment(
-            segment(Point(0.1, 0.0), Point(4.1, 0.0)),
-            segment(Point(4.1, 0.0), Point(10.1, 0.0)).copy(switchId = switch.id, startJointNumber = JointNumber(1))
-        )
+        val updatedAlignment =
+            alignment(
+                segment(Point(0.1, 0.0), Point(4.1, 0.0)),
+                segment(Point(4.1, 0.0), Point(10.1, 0.0)).copy(switchId = switch.id, startJointNumber = JointNumber(1)),
+            )
         locationTrackService.saveDraft(testBranch, locationTrackDao.fetch(locationTrack.rowVersion), updatedAlignment)
 
         publish(publicationService, testBranch, switches = listOf(switch.id), locationTracks = listOf(locationTrack.id))
@@ -2432,18 +2488,21 @@ class PublicationServiceIT @Autowired constructor(
         val previousPub = latestPubs.last()
         val changes = publicationDao.fetchPublicationSwitchChanges(latestPub.id)
 
-        val diff = publicationService.diffSwitch(
-            localizationService.getLocalization(LocalizationLanguage.FI),
-            changes.getValue(switch.id),
-            latestPub.publicationTime,
-            previousPub.publicationTime,
-            Operation.MODIFY,
-            trackNumberDao.fetchTrackNumberNames()
-        ) { _, _ -> null }
+        val diff =
+            publicationService.diffSwitch(
+                localizationService.getLocalization(LocalizationLanguage.FI),
+                changes.getValue(switch.id),
+                latestPub.publicationTime,
+                previousPub.publicationTime,
+                Operation.MODIFY,
+                trackNumberDao.fetchTrackNumberNames(),
+            ) { _, _ ->
+                null
+            }
         assertEquals(2, diff.size)
         assertEquals(
             listOf("switch-joint-location", "switch-track-address").sorted(),
-            diff.map { it.propKey.key.toString() }.sorted()
+            diff.map { it.propKey.key.toString() }.sorted(),
         )
         val jointLocationDiff = diff.find { it.propKey.key.toString() == "switch-joint-location" }!!
         assertEquals("4.000 E, 0.000 N", jointLocationDiff.value.oldValue)
@@ -2459,33 +2518,31 @@ class PublicationServiceIT @Autowired constructor(
     )
 
     private fun getTopologicalSwitchConnectionTestData(): TopologicalSwitchConnectionTestData {
-        val (topologyStartSwitchId, topologyStartSwitchInnerTrackIds) = mainDraftContext.createSwitchWithInnerTracks(
-            name = "Topological switch connection test start switch",
-            listOf(
-                JointNumber(1) to Point(0.0, 0.0),
-                JointNumber(3) to Point(1.0, 0.0),
-            ),
-        )
-        val (topologyEndSwitchId, topologyEndSwitchInnerTrackIds) = mainDraftContext.createSwitchWithInnerTracks(
-            name = "Topological switch connection test end switch",
-            listOf(
-                JointNumber(1) to Point(2.0, 0.0),
-                JointNumber(3) to Point(3.0, 0.0),
-            ),
-        )
+        val (topologyStartSwitchId, topologyStartSwitchInnerTrackIds) =
+            mainDraftContext.createSwitchWithInnerTracks(
+                name = "Topological switch connection test start switch",
+                listOf(JointNumber(1) to Point(0.0, 0.0), JointNumber(3) to Point(1.0, 0.0)),
+            )
+        val (topologyEndSwitchId, topologyEndSwitchInnerTrackIds) =
+            mainDraftContext.createSwitchWithInnerTracks(
+                name = "Topological switch connection test end switch",
+                listOf(JointNumber(1) to Point(2.0, 0.0), JointNumber(3) to Point(3.0, 0.0)),
+            )
 
         val locationTrackAlignment = alignment(segment(Point(1.0, 0.0), Point(2.0, 0.0)))
-        val locationTracksUnderTest = getTopologicalSwitchConnectionTestCases(
-            { mainOfficialContext.createLayoutTrackNumber().id },
-            TopologyLocationTrackSwitch(topologyStartSwitchId, JointNumber(1)),
-            TopologyLocationTrackSwitch(topologyEndSwitchId, JointNumber(3)),
-        )
+        val locationTracksUnderTest =
+            getTopologicalSwitchConnectionTestCases(
+                { mainOfficialContext.createLayoutTrackNumber().id },
+                TopologyLocationTrackSwitch(topologyStartSwitchId, JointNumber(1)),
+                TopologyLocationTrackSwitch(topologyEndSwitchId, JointNumber(3)),
+            )
 
-        val locationTrackIdsUnderTest = locationTracksUnderTest.map { locationTrack ->
-            locationTrack.copy(alignmentVersion = alignmentDao.insert(locationTrackAlignment))
-        }.map { locationTrack ->
-            locationTrackDao.insert(asMainDraft(locationTrack)).id to locationTrack
-        }
+        val locationTrackIdsUnderTest =
+            locationTracksUnderTest
+                .map { locationTrack ->
+                    locationTrack.copy(alignmentVersion = alignmentDao.insert(locationTrackAlignment))
+                }
+                .map { locationTrack -> locationTrackDao.insert(asMainDraft(locationTrack)).id to locationTrack }
 
         return TopologicalSwitchConnectionTestData(
             locationTracksUnderTest = locationTrackIdsUnderTest,
@@ -2499,18 +2556,20 @@ class PublicationServiceIT @Autowired constructor(
         stagedSwitches: List<IntId<TrackLayoutSwitch>> = listOf(),
         stagedTracks: List<IntId<LocationTrack>> = listOf(locationTrackId),
     ): LocationTrackPublicationCandidate {
-        val publicationRequestIds = PublicationRequestIds(
-            trackNumbers = listOf(),
-            locationTracks = stagedTracks,
-            referenceLines = listOf(),
-            switches = stagedSwitches,
-            kmPosts = listOf(),
-        )
+        val publicationRequestIds =
+            PublicationRequestIds(
+                trackNumbers = listOf(),
+                locationTracks = stagedTracks,
+                referenceLines = listOf(),
+                switches = stagedSwitches,
+                kmPosts = listOf(),
+            )
 
-        val validationResult = publicationService.validateAsPublicationUnit(
-            publicationService.collectPublicationCandidates(PublicationInMain).filter(publicationRequestIds),
-            allowMultipleSplits = false,
-        )
+        val validationResult =
+            publicationService.validateAsPublicationUnit(
+                publicationService.collectPublicationCandidates(PublicationInMain).filter(publicationRequestIds),
+                allowMultipleSplits = false,
+            )
 
         return validationResult.locationTracks.find { lt -> lt.id == locationTrackId }!!
     }
@@ -2519,29 +2578,29 @@ class PublicationServiceIT @Autowired constructor(
         LayoutValidationIssue(
             LayoutValidationIssueType.WARNING,
             "validation.layout.location-track.switch-linkage.switch-alignment-not-connected",
-            mapOf("locationTracks" to locationTrackNames, "switch" to switchName)
+            mapOf("locationTracks" to locationTrackNames, "switch" to switchName),
         )
 
-    private fun switchNotPublishedError(switchName: String) = LayoutValidationIssue(
-        LayoutValidationIssueType.ERROR,
-        "validation.layout.location-track.switch.not-published",
-        mapOf("switch" to switchName)
-    )
+    private fun switchNotPublishedError(switchName: String) =
+        LayoutValidationIssue(
+            LayoutValidationIssueType.ERROR,
+            "validation.layout.location-track.switch.not-published",
+            mapOf("switch" to switchName),
+        )
 
-    private fun switchFrontJointNotConnectedError(switchName: String) = LayoutValidationIssue(
-        LayoutValidationIssueType.WARNING,
-        "validation.layout.location-track.switch-linkage.front-joint-not-connected",
-        mapOf("switch" to switchName)
-    )
+    private fun switchFrontJointNotConnectedError(switchName: String) =
+        LayoutValidationIssue(
+            LayoutValidationIssueType.WARNING,
+            "validation.layout.location-track.switch-linkage.front-joint-not-connected",
+            mapOf("switch" to switchName),
+        )
 
     private fun assertValidationErrorsForEach(
         expecteds: List<List<LayoutValidationIssue>>,
         actuals: List<List<LayoutValidationIssue>>,
     ) {
         assertEquals(expecteds.size, actuals.size, "size equals")
-        expecteds.forEachIndexed { i, expected ->
-            assertValidationErrorContentEquals(expected, actuals[i], i)
-        }
+        expecteds.forEachIndexed { i, expected -> assertValidationErrorContentEquals(expected, actuals[i], i) }
     }
 
     private fun assertValidationErrorContentEquals(
@@ -2550,13 +2609,10 @@ class PublicationServiceIT @Autowired constructor(
         index: Int,
     ) {
         val allKeys = expected.map { it.localizationKey.toString() } + actual.map { it.localizationKey.toString() }
-        val commonPrefix = allKeys.reduce { acc, next ->
-            acc.take(acc.zip(next) { a, b -> a == b }.takeWhile { it }.count())
-        }
+        val commonPrefix =
+            allKeys.reduce { acc, next -> acc.take(acc.zip(next) { a, b -> a == b }.takeWhile { it }.count()) }
 
-        fun cleanupKey(key: LocalizationKey) = key.toString().let { k ->
-            if (commonPrefix.length > 3) "...$k" else k
-        }
+        fun cleanupKey(key: LocalizationKey) = key.toString().let { k -> if (commonPrefix.length > 3) "...$k" else k }
 
         assertEquals(
             expected.map { cleanupKey(it.localizationKey) }.sorted(),
@@ -2580,68 +2636,76 @@ class PublicationServiceIT @Autowired constructor(
         }
     }
 
-    private val topoTestDataContextOnLocationTrackValidationError = listOf(
-        validationError("validation.layout.location-track.no-context"),
-    )
-    private val topoTestDataStartSwitchNotPublishedError = switchNotPublishedError(
-        "Topological switch connection test start switch"
-    )
-    private val topoTestDataStartSwitchJointsNotConnectedError = switchAlignmentNotConnectedTrackValidationError(
-        "1-5-2", // alignment 1-3 is generated in the data, 1-5-2 is not
-        "Topological switch connection test start switch",
-    )
+    private val topoTestDataContextOnLocationTrackValidationError =
+        listOf(validationError("validation.layout.location-track.no-context"))
+    private val topoTestDataStartSwitchNotPublishedError =
+        switchNotPublishedError("Topological switch connection test start switch")
+    private val topoTestDataStartSwitchJointsNotConnectedError =
+        switchAlignmentNotConnectedTrackValidationError(
+            "1-5-2", // alignment 1-3 is generated in the data, 1-5-2 is not
+            "Topological switch connection test start switch",
+        )
     private val topoTestDataEndSwitchNotPublishedError =
         switchNotPublishedError("Topological switch connection test end switch")
-    private val topoTestDataEndSwitchJointsNotConnectedError = switchAlignmentNotConnectedTrackValidationError(
-        "1-5-2", // alignment 1-3 is generated in the data, 1-5-2 is not
-        "Topological switch connection test end switch",
-    )
-    private val topoTestDataEndSwitchFrontJointNotConnectedError = switchFrontJointNotConnectedError(
-        "Topological switch connection test end switch"
-    )
+    private val topoTestDataEndSwitchJointsNotConnectedError =
+        switchAlignmentNotConnectedTrackValidationError(
+            "1-5-2", // alignment 1-3 is generated in the data, 1-5-2 is not
+            "Topological switch connection test end switch",
+        )
+    private val topoTestDataEndSwitchFrontJointNotConnectedError =
+        switchFrontJointNotConnectedError("Topological switch connection test end switch")
 
     @Test
     fun `Location track validation should fail for unofficial and unstaged topologically linked switches`() {
         val topologyTestData = getTopologicalSwitchConnectionTestData()
-        val noStart = listOf(
-            topoTestDataStartSwitchNotPublishedError,
-            // no error about no track continuing from the front joint, because a track in fact does continue from it
-        )
-        val noEnd = listOf(
-            topoTestDataEndSwitchNotPublishedError,
-        )
-        val expected = listOf(
-            topoTestDataContextOnLocationTrackValidationError,
-            topoTestDataContextOnLocationTrackValidationError + noStart,
-            topoTestDataContextOnLocationTrackValidationError + noEnd,
-            topoTestDataContextOnLocationTrackValidationError + noStart + noEnd
-        )
-        val actual = topologyTestData.locationTracksUnderTest.map { (locationTrackId) ->
-            getLocationTrackValidationResult(locationTrackId).issues
-        }
+        val noStart =
+            listOf(
+                topoTestDataStartSwitchNotPublishedError
+                // no error about no track continuing from the front joint, because a track in fact
+                // does continue from it
+            )
+        val noEnd = listOf(topoTestDataEndSwitchNotPublishedError)
+        val expected =
+            listOf(
+                topoTestDataContextOnLocationTrackValidationError,
+                topoTestDataContextOnLocationTrackValidationError + noStart,
+                topoTestDataContextOnLocationTrackValidationError + noEnd,
+                topoTestDataContextOnLocationTrackValidationError + noStart + noEnd,
+            )
+        val actual =
+            topologyTestData.locationTracksUnderTest.map { (locationTrackId) ->
+                getLocationTrackValidationResult(locationTrackId).issues
+            }
         assertValidationErrorsForEach(expected, actual)
     }
 
     @Test
     fun `Location track validation should succeed for unofficial, but staged topologically linked switches`() {
         val topologyTestData = getTopologicalSwitchConnectionTestData()
-        val noStart = listOf(
-            topoTestDataStartSwitchJointsNotConnectedError,
-            // no error about no track continuing from the front joint, because a track in fact does continue from it
-        )
-        val noEnd = listOf(
-            topoTestDataEndSwitchJointsNotConnectedError,
-            topoTestDataEndSwitchFrontJointNotConnectedError,
-        )
-        val expected = listOf(
-            topoTestDataContextOnLocationTrackValidationError,
-            topoTestDataContextOnLocationTrackValidationError + noStart,
-            topoTestDataContextOnLocationTrackValidationError + noEnd,
-            topoTestDataContextOnLocationTrackValidationError + noStart + noEnd
-        )
-        val actual = topologyTestData.locationTracksUnderTest.map { (locationTrackId) ->
-            getLocationTrackValidationResult(locationTrackId, topologyTestData.switchIdsUnderTest, topologyTestData.switchInnerTrackIds + locationTrackId).issues
-        }
+        val noStart =
+            listOf(
+                topoTestDataStartSwitchJointsNotConnectedError
+                // no error about no track continuing from the front joint, because a track in fact
+                // does continue from it
+            )
+        val noEnd =
+            listOf(topoTestDataEndSwitchJointsNotConnectedError, topoTestDataEndSwitchFrontJointNotConnectedError)
+        val expected =
+            listOf(
+                topoTestDataContextOnLocationTrackValidationError,
+                topoTestDataContextOnLocationTrackValidationError + noStart,
+                topoTestDataContextOnLocationTrackValidationError + noEnd,
+                topoTestDataContextOnLocationTrackValidationError + noStart + noEnd,
+            )
+        val actual =
+            topologyTestData.locationTracksUnderTest.map { (locationTrackId) ->
+                getLocationTrackValidationResult(
+                        locationTrackId,
+                        topologyTestData.switchIdsUnderTest,
+                        topologyTestData.switchInnerTrackIds + locationTrackId,
+                    )
+                    .issues
+            }
 
         assertValidationErrorsForEach(expected, actual)
     }
@@ -2650,91 +2714,91 @@ class PublicationServiceIT @Autowired constructor(
     fun `Location track validation should succeed for topologically linked official switches`() {
         val topologyTestData = getTopologicalSwitchConnectionTestData()
 
-        val noStart = listOf(
-            topoTestDataStartSwitchJointsNotConnectedError,
-            // no error about no track continuing from the front joint, because a track in fact does continue from it
-        )
-        val noEnd = listOf(
-            topoTestDataEndSwitchJointsNotConnectedError,
-            topoTestDataEndSwitchFrontJointNotConnectedError,
-        )
-        val expected = listOf(
-            topoTestDataContextOnLocationTrackValidationError,
-            topoTestDataContextOnLocationTrackValidationError + noStart,
-            topoTestDataContextOnLocationTrackValidationError + noEnd,
-            topoTestDataContextOnLocationTrackValidationError + noStart + noEnd
-        )
+        val noStart =
+            listOf(
+                topoTestDataStartSwitchJointsNotConnectedError
+                // no error about no track continuing from the front joint, because a track in fact
+                // does continue from it
+            )
+        val noEnd =
+            listOf(topoTestDataEndSwitchJointsNotConnectedError, topoTestDataEndSwitchFrontJointNotConnectedError)
+        val expected =
+            listOf(
+                topoTestDataContextOnLocationTrackValidationError,
+                topoTestDataContextOnLocationTrackValidationError + noStart,
+                topoTestDataContextOnLocationTrackValidationError + noEnd,
+                topoTestDataContextOnLocationTrackValidationError + noStart + noEnd,
+            )
 
-        publish(publicationService, switches = topologyTestData.switchIdsUnderTest, locationTracks = topologyTestData.switchInnerTrackIds)
-        val actual = topologyTestData.locationTracksUnderTest.map { (locationTrackId) ->
-            getLocationTrackValidationResult(locationTrackId).issues
-        }
+        publish(
+            publicationService,
+            switches = topologyTestData.switchIdsUnderTest,
+            locationTracks = topologyTestData.switchInnerTrackIds,
+        )
+        val actual =
+            topologyTestData.locationTracksUnderTest.map { (locationTrackId) ->
+                getLocationTrackValidationResult(locationTrackId).issues
+            }
         assertValidationErrorsForEach(expected, actual)
     }
 
     @Test
     fun `Switch validation checks duplicate tracks through non-math joints`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val switchId = switchService.saveDraft(
-            LayoutBranch.main,
-            switch(
-                name = "TV123",
-                joints = listOf(
-                    TrackLayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null),
+        val switchId =
+            switchService
+                .saveDraft(
+                    LayoutBranch.main,
+                    switch(
+                        name = "TV123",
+                        joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null)),
+                        structureId =
+                            switchStructureDao
+                                .fetchSwitchStructures()
+                                .find { ss -> ss.type.typeName == "KRV43-233-1:9" }!!
+                                .id as IntId,
+                        stateCategory = LayoutStateCategory.EXISTING,
+                        draft = true,
+                    ),
+                )
+                .id
+        val locationTrack1 =
+            locationTrackService.saveDraft(
+                LayoutBranch.main,
+                locationTrack(trackNumberId, draft = true),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(2.0, 2.0)),
+                    segment(Point(2.0, 2.0), Point(5.0, 5.0))
+                        .copy(switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(5)),
+                    segment(Point(5.0, 5.0), Point(8.0, 8.0))
+                        .copy(switchId = switchId, startJointNumber = JointNumber(5), endJointNumber = JointNumber(2)),
+                    segment(Point(8.0, 8.0), Point(10.0, 10.0)),
                 ),
-                structureId = switchStructureDao
-                    .fetchSwitchStructures()
-                    .find { ss -> ss.type.typeName == "KRV43-233-1:9" }!!.id as IntId,
-                stateCategory = LayoutStateCategory.EXISTING,
-                draft = true,
             )
-        ).id
-        val locationTrack1 = locationTrackService.saveDraft(
-            LayoutBranch.main,
-            locationTrack(trackNumberId, draft = true),
-            alignment(
-                segment(Point(0.0, 0.0), Point(2.0, 2.0)),
-                segment(Point(2.0, 2.0), Point(5.0, 5.0)).copy(
-                    switchId = switchId,
-                    startJointNumber = JointNumber(1),
-                    endJointNumber = JointNumber(5),
-                ),
-                segment(Point(5.0, 5.0), Point(8.0, 8.0)).copy(
-                    switchId = switchId,
-                    startJointNumber = JointNumber(5),
-                    endJointNumber = JointNumber(2),
-                ),
-                segment(Point(8.0, 8.0), Point(10.0, 10.0)),
-            ),
-        )
 
-        fun otherAlignment() = alignment(
-            segment(Point(10.0, 0.0), Point(8.0, 2.0)),
-            segment(Point(8.0, 2.0), Point(5.0, 5.0)).copy(
-                switchId = switchId,
-                startJointNumber = JointNumber(4),
-                endJointNumber = JointNumber(5),
-            ),
-            segment(Point(5.0, 5.0), Point(2.0, 8.0)).copy(
-                switchId = switchId,
-                startJointNumber = JointNumber(5),
-                endJointNumber = JointNumber(3),
-            ),
-            segment(Point(2.0, 8.0), Point(0.0, 10.0)),
-        )
+        fun otherAlignment() =
+            alignment(
+                segment(Point(10.0, 0.0), Point(8.0, 2.0)),
+                segment(Point(8.0, 2.0), Point(5.0, 5.0))
+                    .copy(switchId = switchId, startJointNumber = JointNumber(4), endJointNumber = JointNumber(5)),
+                segment(Point(5.0, 5.0), Point(2.0, 8.0))
+                    .copy(switchId = switchId, startJointNumber = JointNumber(5), endJointNumber = JointNumber(3)),
+                segment(Point(2.0, 8.0), Point(0.0, 10.0)),
+            )
 
         val locationTrack2 = locationTrack(trackNumberId, draft = true)
         val locationTrack3 = locationTrack(trackNumberId, draft = true)
         val locationTrack2Id = locationTrackService.saveDraft(LayoutBranch.main, locationTrack2, otherAlignment())
         val locationTrack3Id = locationTrackService.saveDraft(LayoutBranch.main, locationTrack3, otherAlignment())
 
-        val validated = publicationService.validatePublicationCandidates(
-            publicationService.collectPublicationCandidates(PublicationInMain),
-            publicationRequestIds(
-                locationTracks = listOf(locationTrack1.id, locationTrack2Id.id, locationTrack3Id.id),
-                switches = listOf(switchId),
-            ),
-        )
+        val validated =
+            publicationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInMain),
+                publicationRequestIds(
+                    locationTracks = listOf(locationTrack1.id, locationTrack2Id.id, locationTrack3Id.id),
+                    switches = listOf(switchId),
+                ),
+            )
         val switchValidation = validated.validatedAsPublicationUnit.switches[0].issues
         assertContains(
             switchValidation,
@@ -2742,7 +2806,8 @@ class PublicationServiceIT @Autowired constructor(
                 LayoutValidationIssueType.WARNING,
                 "validation.layout.switch.track-linkage.multiple-tracks-through-joint",
                 mapOf(
-                    "locationTracks" to "3 (${locationTrack2.name}, ${locationTrack3.name}), 4 (${locationTrack2.name}, ${locationTrack3.name})",
+                    "locationTracks" to
+                        "3 (${locationTrack2.name}, ${locationTrack3.name}), 4 (${locationTrack2.name}, ${locationTrack3.name})",
                     "switch" to "TV123",
                 ),
             ),
@@ -2752,54 +2817,65 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Switch validation requires a track to continue from the front joint`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val switchId = switchService.saveDraft(
-            LayoutBranch.main,
-            switch(
-                name = "TV123",
-                joints = listOf(
-                    TrackLayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null),
-                ),
-                structureId = switchStructureYV60_300_1_9().id as IntId,
-                stateCategory = LayoutStateCategory.EXISTING,
-                draft = true,
-            )
-        ).id
-        val trackOn152Alignment = locationTrackService.saveDraft(
-            LayoutBranch.main,
-            locationTrack(trackNumberId, draft = true),
-            alignment(
-                segment(Point(0.0, 0.0), Point(5.0, 0.0)).copy(
-                    switchId = switchId,
-                    startJointNumber = JointNumber(1),
-                    endJointNumber = JointNumber(5),
-                ),
-                segment(Point(5.0, 0.0), Point(10.0, 0.0)).copy(
-                    switchId = switchId,
-                    startJointNumber = JointNumber(5),
-                    endJointNumber = JointNumber(2),
-                ),
-            ),
-        ).id
-        val trackOn13Alignment = locationTrackService.saveDraft(
-            LayoutBranch.main,
-            locationTrack(trackNumberId, draft = true),
-            alignment(
-                segment(Point(0.0, 0.0), Point(10.0, 2.0)).copy(
-                    switchId = switchId,
-                    startJointNumber = JointNumber(5),
-                    endJointNumber = JointNumber(3),
-                ),
-            ),
-        ).id
+        val switchId =
+            switchService
+                .saveDraft(
+                    LayoutBranch.main,
+                    switch(
+                        name = "TV123",
+                        joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(0.0, 0.0), null)),
+                        structureId = switchStructureYV60_300_1_9().id as IntId,
+                        stateCategory = LayoutStateCategory.EXISTING,
+                        draft = true,
+                    ),
+                )
+                .id
+        val trackOn152Alignment =
+            locationTrackService
+                .saveDraft(
+                    LayoutBranch.main,
+                    locationTrack(trackNumberId, draft = true),
+                    alignment(
+                        segment(Point(0.0, 0.0), Point(5.0, 0.0))
+                            .copy(
+                                switchId = switchId,
+                                startJointNumber = JointNumber(1),
+                                endJointNumber = JointNumber(5),
+                            ),
+                        segment(Point(5.0, 0.0), Point(10.0, 0.0))
+                            .copy(
+                                switchId = switchId,
+                                startJointNumber = JointNumber(5),
+                                endJointNumber = JointNumber(2),
+                            ),
+                    ),
+                )
+                .id
+        val trackOn13Alignment =
+            locationTrackService
+                .saveDraft(
+                    LayoutBranch.main,
+                    locationTrack(trackNumberId, draft = true),
+                    alignment(
+                        segment(Point(0.0, 0.0), Point(10.0, 2.0))
+                            .copy(
+                                switchId = switchId,
+                                startJointNumber = JointNumber(5),
+                                endJointNumber = JointNumber(3),
+                            )
+                    ),
+                )
+                .id
 
         fun errorsWhenValidatingSwitchWithTracks(vararg locationTracks: IntId<LocationTrack>) =
-            publicationService.validatePublicationCandidates(
-                publicationService.collectPublicationCandidates(PublicationInMain),
-                publicationRequestIds(
-                    locationTracks = locationTracks.toList(),
-                    switches = listOf(switchId),
-                ),
-            ).validatedAsPublicationUnit.switches[0].issues
+            publicationService
+                .validatePublicationCandidates(
+                    publicationService.collectPublicationCandidates(PublicationInMain),
+                    publicationRequestIds(locationTracks = locationTracks.toList(), switches = listOf(switchId)),
+                )
+                .validatedAsPublicationUnit
+                .switches[0]
+                .issues
 
         assertContains(
             errorsWhenValidatingSwitchWithTracks(trackOn152Alignment, trackOn13Alignment),
@@ -2810,15 +2886,18 @@ class PublicationServiceIT @Autowired constructor(
             ),
         )
 
-        val topoTrackMarkedAsDuplicate = locationTrackService.saveDraft(
-            LayoutBranch.main,
-            locationTrack(
-                trackNumberId = trackNumberId,
-                topologyStartSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1)),
-                duplicateOf = trackOn13Alignment,
-                draft = true,
-            )
-        ).id
+        val topoTrackMarkedAsDuplicate =
+            locationTrackService
+                .saveDraft(
+                    LayoutBranch.main,
+                    locationTrack(
+                        trackNumberId = trackNumberId,
+                        topologyStartSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1)),
+                        duplicateOf = trackOn13Alignment,
+                        draft = true,
+                    ),
+                )
+                .id
 
         assertContains(
             errorsWhenValidatingSwitchWithTracks(trackOn152Alignment, trackOn13Alignment, topoTrackMarkedAsDuplicate),
@@ -2829,29 +2908,32 @@ class PublicationServiceIT @Autowired constructor(
             ),
         )
 
-        val goodTopoTrack = locationTrackService.saveDraft(
-            LayoutBranch.main,
-            locationTrack(
-                trackNumberId,
-                topologyStartSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1)),
-                draft = true,
-            )
-        ).id
+        val goodTopoTrack =
+            locationTrackService
+                .saveDraft(
+                    LayoutBranch.main,
+                    locationTrack(
+                        trackNumberId,
+                        topologyStartSwitch = TopologyLocationTrackSwitch(switchId, JointNumber(1)),
+                        draft = true,
+                    ),
+                )
+                .id
 
-        val errors = errorsWhenValidatingSwitchWithTracks(
-            trackOn152Alignment,
-            trackOn13Alignment,
-            topoTrackMarkedAsDuplicate,
-            goodTopoTrack,
-        )
+        val errors =
+            errorsWhenValidatingSwitchWithTracks(
+                trackOn152Alignment,
+                trackOn13Alignment,
+                topoTrackMarkedAsDuplicate,
+                goodTopoTrack,
+            )
         assertFalse(
             errors.any { e ->
-                e.localizationKey.contains(
-                    "validation.layout.switch.track-linkage.front-joint-not-connected"
-                ) || e.localizationKey.contains(
-                    "validation.layout.switch.track-linkage.front-joint-only-duplicate-connected"
-                )
-            },
+                e.localizationKey.contains("validation.layout.switch.track-linkage.front-joint-not-connected") ||
+                    e.localizationKey.contains(
+                        "validation.layout.switch.track-linkage.front-joint-only-duplicate-connected"
+                    )
+            }
         )
     }
 
@@ -2862,17 +2944,18 @@ class PublicationServiceIT @Autowired constructor(
         saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams)
         publish(publicationService, locationTracks = splitSetup.trackIds)
 
-        val draft = locationTrackService.saveDraft(
-            LayoutBranch.main,
-            locationTrackDao.getOrThrow(MainLayoutContext.draft, splitSetup.targetTracks.first().first.id)
-        )
+        val draft =
+            locationTrackService.saveDraft(
+                LayoutBranch.main,
+                locationTrackDao.getOrThrow(MainLayoutContext.draft, splitSetup.targetTracks.first().first.id),
+            )
 
         val errors = validateLocationTracks(listOf(draft.id))
         assertContains(
             errors,
             validationError(
                 "validation.layout.split.track-split-in-progress",
-                "sourceName" to locationTrackDao.fetch(splitSetup.sourceTrack.rowVersion).name
+                "sourceName" to locationTrackDao.fetch(splitSetup.sourceTrack.rowVersion).name,
             ),
         )
     }
@@ -2886,10 +2969,11 @@ class PublicationServiceIT @Autowired constructor(
 
         splitDao.updateSplit(splitId, bulkTransferState = BulkTransferState.DONE)
 
-        val draft = locationTrackService.saveDraft(
-            LayoutBranch.main,
-            locationTrackDao.getOrThrow(MainLayoutContext.draft, splitSetup.targetTracks.first().first.id),
-        )
+        val draft =
+            locationTrackService.saveDraft(
+                LayoutBranch.main,
+                locationTrackDao.getOrThrow(MainLayoutContext.draft, splitSetup.targetTracks.first().first.id),
+            )
 
         val errors = validateLocationTracks(listOf(draft.id))
         assertTrue { errors.isEmpty() }
@@ -2902,17 +2986,18 @@ class PublicationServiceIT @Autowired constructor(
         saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams)
         publish(publicationService, locationTracks = splitSetup.trackIds)
 
-        val draft = locationTrackService.saveDraft(
-            LayoutBranch.main,
-            locationTrackDao.getOrThrow(MainLayoutContext.draft, splitSetup.sourceTrack.id),
-        )
+        val draft =
+            locationTrackService.saveDraft(
+                LayoutBranch.main,
+                locationTrackDao.getOrThrow(MainLayoutContext.draft, splitSetup.sourceTrack.id),
+            )
 
         val errors = validateLocationTracks(listOf(draft.id))
         assertContains(
             errors,
             validationError(
                 "validation.layout.split.track-split-in-progress",
-                "sourceName" to locationTrackDao.fetch(draft.rowVersion).name
+                "sourceName" to locationTrackDao.fetch(draft.rowVersion).name,
             ),
         )
     }
@@ -2926,10 +3011,11 @@ class PublicationServiceIT @Autowired constructor(
 
         splitDao.updateSplit(splitId, bulkTransferState = BulkTransferState.DONE)
 
-        val draft = locationTrackService.saveDraft(
-            LayoutBranch.main,
-            locationTrackDao.getOrThrow(MainLayoutContext.draft, splitSetup.sourceTrack.id),
-        )
+        val draft =
+            locationTrackService.saveDraft(
+                LayoutBranch.main,
+                locationTrackDao.getOrThrow(MainLayoutContext.draft, splitSetup.sourceTrack.id),
+            )
 
         val errors = validateLocationTracks(listOf(draft.id))
         assertTrue { errors.isEmpty() }
@@ -2947,9 +3033,7 @@ class PublicationServiceIT @Autowired constructor(
             LayoutValidationIssue(
                 LayoutValidationIssueType.ERROR,
                 LocalizationKey("validation.layout.split.source-not-deleted"),
-                localizationParams(
-                    "sourceName" to locationTrackDao.fetch(splitSetup.sourceTrack.rowVersion).name
-                ),
+                localizationParams("sourceName" to locationTrackDao.fetch(splitSetup.sourceTrack.rowVersion).name),
             ),
         )
     }
@@ -2958,9 +3042,7 @@ class PublicationServiceIT @Autowired constructor(
     fun `split location track validation should fail if a target is on a different track number`() {
         val splitSetup = simpleSplitSetup()
         val startTarget = locationTrackDao.fetch(splitSetup.targetTracks.first().first.rowVersion)
-        locationTrackDao.update(
-            startTarget.copy(trackNumberId = mainDraftContext.createLayoutTrackNumber().id)
-        )
+        locationTrackDao.update(startTarget.copy(trackNumberId = mainDraftContext.createLayoutTrackNumber().id))
 
         saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams)
 
@@ -2986,10 +3068,11 @@ class PublicationServiceIT @Autowired constructor(
 
         saveSplit(locationTrackResponse.rowVersion)
 
-        val validation = publicationService.validatePublicationCandidates(
-            publicationService.collectPublicationCandidates(PublicationInMain),
-            publicationRequestIds(locationTracks = listOf(locationTrackResponse.id), kmPosts = listOf(kmPostId)),
-        )
+        val validation =
+            publicationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInMain),
+                publicationRequestIds(locationTracks = listOf(locationTrackResponse.id), kmPosts = listOf(kmPostId)),
+            )
 
         val errors = validation.validatedAsPublicationUnit.kmPosts.flatMap { it.issues }
 
@@ -2997,7 +3080,7 @@ class PublicationServiceIT @Autowired constructor(
             errors,
             validationError(
                 "validation.layout.split.affected-split-in-progress",
-                "sourceName" to locationTrackDao.fetch(locationTrackResponse.rowVersion).name
+                "sourceName" to locationTrackDao.fetch(locationTrackResponse.rowVersion).name,
             ),
         )
     }
@@ -3006,20 +3089,23 @@ class PublicationServiceIT @Autowired constructor(
     fun `reference line split validation should fail on unfinished split`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
-        val referenceLineVersion = mainOfficialContext.insert(referenceLine(trackNumberId), alignment)
-            .let { v -> referenceLineService.saveDraft(LayoutBranch.main, referenceLineDao.fetch(v.rowVersion)) }
+        val referenceLineVersion =
+            mainOfficialContext.insert(referenceLine(trackNumberId), alignment).let { v ->
+                referenceLineService.saveDraft(LayoutBranch.main, referenceLineDao.fetch(v.rowVersion))
+            }
 
         val locationTrackResponse = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
 
         saveSplit(locationTrackResponse.rowVersion)
 
-        val validation = publicationService.validatePublicationCandidates(
-            publicationService.collectPublicationCandidates(PublicationInMain),
-            publicationRequestIds(
-                locationTracks = listOf(locationTrackResponse.id),
-                referenceLines = listOf(referenceLineVersion.id),
+        val validation =
+            publicationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInMain),
+                publicationRequestIds(
+                    locationTracks = listOf(locationTrackResponse.id),
+                    referenceLines = listOf(referenceLineVersion.id),
+                ),
             )
-        )
 
         val errors = validation.validatedAsPublicationUnit.referenceLines.flatMap { it.issues }
 
@@ -3027,7 +3113,7 @@ class PublicationServiceIT @Autowired constructor(
             errors,
             validationError(
                 "validation.layout.split.affected-split-in-progress",
-                "sourceName" to locationTrackDao.fetch(locationTrackResponse.rowVersion).name
+                "sourceName" to locationTrackDao.fetch(locationTrackResponse.rowVersion).name,
             ),
         )
     }
@@ -3038,7 +3124,7 @@ class PublicationServiceIT @Autowired constructor(
         val alignment = alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0)))
 
         val referenceLine = mainOfficialContext.insert(referenceLine(trackNumberId), alignment)
-        val locationTrackResponse =  mainDraftContext.insert(locationTrack(trackNumberId), alignment)
+        val locationTrackResponse = mainDraftContext.insert(locationTrack(trackNumberId), alignment)
 
         referenceLineDao.fetch(referenceLine.rowVersion).also { d ->
             referenceLineService.saveDraft(LayoutBranch.main, d)
@@ -3049,10 +3135,11 @@ class PublicationServiceIT @Autowired constructor(
             splitDao.updateSplit(split.id, bulkTransferState = BulkTransferState.DONE)
         }
 
-        val validation = publicationService.validatePublicationCandidates(
-            publicationService.collectPublicationCandidates(PublicationInMain),
-            publicationRequestIds(referenceLines = listOf(referenceLine.id))
-        )
+        val validation =
+            publicationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInMain),
+                publicationRequestIds(referenceLines = listOf(referenceLine.id)),
+            )
 
         val errors = validation.validatedAsPublicationUnit.referenceLines.flatMap { it.issues }
 
@@ -3063,103 +3150,79 @@ class PublicationServiceIT @Autowired constructor(
     fun `split geometry validation should fail on geometry changes in source track`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
 
-        mainOfficialContext.insert(
-            referenceLine(trackNumberId),
-            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        )
+        mainOfficialContext.insert(referenceLine(trackNumberId), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
 
-        val sourceTrackResponse = mainOfficialContext.insert(
-            locationTrack(trackNumberId),
-            alignment(
-                segment(Point(0.0, 0.0), Point(5.0, 0.0)),
-                segment(Point(5.0, 0.0), Point(10.0, 0.0)),
-            ),
-        )
+        val sourceTrackResponse =
+            mainOfficialContext.insert(
+                locationTrack(trackNumberId),
+                alignment(segment(Point(0.0, 0.0), Point(5.0, 0.0)), segment(Point(5.0, 0.0), Point(10.0, 0.0))),
+            )
 
-        val updatedSourceTrackResponse = alignmentDao
-            .insert(alignment(
-                segment(Point(0.0, 0.0), Point(5.0, 5.0)),
-                segment(Point(5.0, 5.0), Point(10.0, 0.0)),
-            ))
-            .let { newAlignment ->
-                val lt = locationTrackDao.fetch(sourceTrackResponse.rowVersion).copy(
-                    state = LocationTrackState.DELETED,
-                    alignmentVersion = newAlignment,
+        val updatedSourceTrackResponse =
+            alignmentDao
+                .insert(
+                    alignment(segment(Point(0.0, 0.0), Point(5.0, 5.0)), segment(Point(5.0, 5.0), Point(10.0, 0.0)))
                 )
+                .let { newAlignment ->
+                    val lt =
+                        locationTrackDao
+                            .fetch(sourceTrackResponse.rowVersion)
+                            .copy(state = LocationTrackState.DELETED, alignmentVersion = newAlignment)
 
-                locationTrackService.saveDraft(LayoutBranch.main, lt)
-            }
+                    locationTrackService.saveDraft(LayoutBranch.main, lt)
+                }
 
         assertEquals(sourceTrackResponse.id, updatedSourceTrackResponse.id)
         assertNotEquals(sourceTrackResponse.rowVersion, updatedSourceTrackResponse.rowVersion)
 
-        val startTargetTrackId = mainDraftContext.insert(
-            locationTrack(trackNumberId),
-            alignment(segment(Point(0.0, 0.0), Point(5.0, 0.0))),
-        ).id
+        val startTargetTrackId =
+            mainDraftContext
+                .insert(locationTrack(trackNumberId), alignment(segment(Point(0.0, 0.0), Point(5.0, 0.0))))
+                .id
 
-        val endTargetTrackId = mainDraftContext.insert(
-            locationTrack(trackNumberId),
-            alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
-        ).id
+        val endTargetTrackId =
+            mainDraftContext
+                .insert(locationTrack(trackNumberId), alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0))))
+                .id
 
-        saveSplit(
-            updatedSourceTrackResponse.rowVersion,
-            listOf(startTargetTrackId to 0..0, endTargetTrackId to 1..1),
-        )
+        saveSplit(updatedSourceTrackResponse.rowVersion, listOf(startTargetTrackId to 0..0, endTargetTrackId to 1..1))
 
         val errors = validateLocationTracks(sourceTrackResponse.id, startTargetTrackId, endTargetTrackId)
 
-        assertTrue {
-            errors.any {
-                it.localizationKey == LocalizationKey("validation.layout.split.geometry-changed")
-            }
-        }
+        assertTrue { errors.any { it.localizationKey == LocalizationKey("validation.layout.split.geometry-changed") } }
     }
 
     @Test
     fun `split geometry validation should fail on geometry changes in target track`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
 
-        mainOfficialContext.insert(
-            referenceLine(trackNumberId),
-            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        )
+        mainOfficialContext.insert(referenceLine(trackNumberId), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
 
-        val sourceTrackResponse = mainOfficialContext.insert(
-            locationTrack(trackNumberId),
-            alignment(
-                segment(Point(0.0, 0.0), Point(5.0, 0.0)),
-                segment(Point(5.0, 0.0), Point(10.0, 0.0)),
-            ),
-        ).let { response ->
-            val lt = locationTrackDao.fetch(response.rowVersion).copy(
-                state = LocationTrackState.DELETED
-            )
-            locationTrackService.saveDraft(LayoutBranch.main, lt)
-        }
+        val sourceTrackResponse =
+            mainOfficialContext
+                .insert(
+                    locationTrack(trackNumberId),
+                    alignment(segment(Point(0.0, 0.0), Point(5.0, 0.0)), segment(Point(5.0, 0.0), Point(10.0, 0.0))),
+                )
+                .let { response ->
+                    val lt = locationTrackDao.fetch(response.rowVersion).copy(state = LocationTrackState.DELETED)
+                    locationTrackService.saveDraft(LayoutBranch.main, lt)
+                }
 
-        val startTargetTrackId = mainDraftContext.insert(
-            locationTrack(trackNumberId),
-            alignment(segment(Point(0.0, 0.0), Point(5.0, 10.0))),
-        ).id
+        val startTargetTrackId =
+            mainDraftContext
+                .insert(locationTrack(trackNumberId), alignment(segment(Point(0.0, 0.0), Point(5.0, 10.0))))
+                .id
 
-        val endTargetTrackId = mainDraftContext.insert(
-            locationTrack(trackNumberId),
-            alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
-        ).id
+        val endTargetTrackId =
+            mainDraftContext
+                .insert(locationTrack(trackNumberId), alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0))))
+                .id
 
-        saveSplit(
-            sourceTrackResponse.rowVersion,
-            listOf(startTargetTrackId to 0..0, endTargetTrackId to 1..1),
-        )
+        saveSplit(sourceTrackResponse.rowVersion, listOf(startTargetTrackId to 0..0, endTargetTrackId to 1..1))
 
         val errors = validateLocationTracks(sourceTrackResponse.id, startTargetTrackId, endTargetTrackId)
-        assertTrue {
-            errors.any {
-                it.localizationKey == LocalizationKey("validation.layout.split.geometry-changed")
-            }
-        }
+        assertTrue { errors.any { it.localizationKey == LocalizationKey("validation.layout.split.geometry-changed") } }
     }
 
     @Test
@@ -3183,28 +3246,25 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Split validation should respect allowMultipleSplits`() {
         val splitSetup = simpleSplitSetup()
-        val split = saveSplit(
-            sourceTrackVersion = splitSetup.sourceTrack.rowVersion,
-            targetTracks = splitSetup.targetParams,
-        ).let(splitDao::getOrThrow)
+        val split =
+            saveSplit(sourceTrackVersion = splitSetup.sourceTrack.rowVersion, targetTracks = splitSetup.targetParams)
+                .let(splitDao::getOrThrow)
 
         val splitSetup2 = simpleSplitSetup()
-        val split2 = saveSplit(
-            sourceTrackVersion = splitSetup2.sourceTrack.rowVersion,
-            targetTracks = splitSetup2.targetParams,
-        ).let(splitDao::getOrThrow)
+        val split2 =
+            saveSplit(sourceTrackVersion = splitSetup2.sourceTrack.rowVersion, targetTracks = splitSetup2.targetParams)
+                .let(splitDao::getOrThrow)
 
         val trackValidationVersions = splitSetup.trackValidationVersions + splitSetup2.trackValidationVersions
 
         assertContains(
-            validateSplitContent(trackValidationVersions, emptyList(), listOf(split, split2), false)
-                .map { it.second },
+            validateSplitContent(trackValidationVersions, emptyList(), listOf(split, split2), false).map { it.second },
             validationError("validation.layout.split.multiple-splits-not-allowed"),
         )
         assertTrue(
             validateSplitContent(trackValidationVersions, emptyList(), listOf(split, split2), true)
                 .map { it.second }
-                .none { error -> error == validationError("validation.layout.split.multiple-splits-not-allowed") },
+                .none { error -> error == validationError("validation.layout.split.multiple-splits-not-allowed") }
         )
     }
 
@@ -3212,19 +3272,18 @@ class PublicationServiceIT @Autowired constructor(
     fun `Split validation should fail if switches are missing`() {
         val splitSetup = simpleSplitSetup()
         val switch = mainOfficialContext.createSwitch()
-        val split = saveSplit(
-            sourceTrackVersion = splitSetup.sourceTrack.rowVersion,
-            targetTracks = splitSetup.targetParams,
-            switches = listOf(switch.id),
-        ).let(splitDao::getOrThrow)
+        val split =
+            saveSplit(
+                    sourceTrackVersion = splitSetup.sourceTrack.rowVersion,
+                    targetTracks = splitSetup.targetParams,
+                    switches = listOf(switch.id),
+                )
+                .let(splitDao::getOrThrow)
 
         assertContains(
-            validateSplitContent(
-                splitSetup.trackValidationVersions,
-                emptyList(),
-                listOf(split),
-                false,
-            ).map { it.second },
+            validateSplitContent(splitSetup.trackValidationVersions, emptyList(), listOf(split), false).map {
+                it.second
+            },
             validationError("validation.layout.split.split-missing-switches"),
         )
     }
@@ -3233,19 +3292,22 @@ class PublicationServiceIT @Autowired constructor(
     fun `Split validation should fail if only switches are staged`() {
         val splitSetup = simpleSplitSetup()
         val switch = mainOfficialContext.createSwitch()
-        val split = saveSplit(
-            sourceTrackVersion = splitSetup.sourceTrack.rowVersion,
-            targetTracks = splitSetup.targetParams,
-            switches = listOf(switch.id),
-        ).let(splitDao::getOrThrow)
+        val split =
+            saveSplit(
+                    sourceTrackVersion = splitSetup.sourceTrack.rowVersion,
+                    targetTracks = splitSetup.targetParams,
+                    switches = listOf(switch.id),
+                )
+                .let(splitDao::getOrThrow)
 
         assertContains(
             validateSplitContent(
-                emptyList(),
-                listOf(ValidationVersion(switch.id, switch.rowVersion)),
-                listOf(split),
-                false,
-            ).map { it.second },
+                    emptyList(),
+                    listOf(ValidationVersion(switch.id, switch.rowVersion)),
+                    listOf(split),
+                    false,
+                )
+                .map { it.second },
             validationError("validation.layout.split.split-missing-location-tracks"),
         )
     }
@@ -3254,20 +3316,23 @@ class PublicationServiceIT @Autowired constructor(
     fun `Split validation should not fail if switches and location tracks are staged`() {
         val splitSetup = simpleSplitSetup()
         val switch = mainOfficialContext.createSwitch()
-        val split = saveSplit(
-            sourceTrackVersion = splitSetup.sourceTrack.rowVersion,
-            targetTracks = splitSetup.targetParams,
-            switches = listOf(switch.id),
-        ).let(splitDao::getOrThrow)
+        val split =
+            saveSplit(
+                    sourceTrackVersion = splitSetup.sourceTrack.rowVersion,
+                    targetTracks = splitSetup.targetParams,
+                    switches = listOf(switch.id),
+                )
+                .let(splitDao::getOrThrow)
 
         assertEquals(
             0,
             validateSplitContent(
-                splitSetup.trackValidationVersions,
-                listOf(ValidationVersion(switch.id, switch.rowVersion)),
-                listOf(split),
-                false,
-            ).size,
+                    splitSetup.trackValidationVersions,
+                    listOf(ValidationVersion(switch.id, switch.rowVersion)),
+                    listOf(split),
+                    false,
+                )
+                .size,
         )
     }
 
@@ -3310,6 +3375,7 @@ class PublicationServiceIT @Autowired constructor(
             ),
         )
     }
+
     @Test
     fun `create in design and update once in design before publishing in main`() {
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
@@ -3381,39 +3447,27 @@ class PublicationServiceIT @Autowired constructor(
 
         testDraftContext.insert(
             asDesignDraft(
-                mainOfficialContext
-                    .fetch(trackNumber)!!
-                    .copy(number = TrackNumber("edited")),
+                mainOfficialContext.fetch(trackNumber)!!.copy(number = TrackNumber("edited")),
                 testBranch.designId,
             )
         )
         testDraftContext.insert(
             asDesignDraft(
-                mainOfficialContext
-                    .fetch(referenceLine)!!
-                    .copy(startAddress = TrackMeter("0001+0123")),
+                mainOfficialContext.fetch(referenceLine)!!.copy(startAddress = TrackMeter("0001+0123")),
                 testBranch.designId,
             )
         )
         testDraftContext.insert(
             asDesignDraft(
-                mainOfficialContext
-                    .fetch(locationTrack)!!
-                    .copy(name = AlignmentName("edited")),
+                mainOfficialContext.fetch(locationTrack)!!.copy(name = AlignmentName("edited")),
                 testBranch.designId,
             )
         )
         testDraftContext.insert(
-            asDesignDraft(
-                mainOfficialContext.fetch(kmPost)!!.copy(kmNumber = KmNumber(123)),
-                testBranch.designId,
-            )
+            asDesignDraft(mainOfficialContext.fetch(kmPost)!!.copy(kmNumber = KmNumber(123)), testBranch.designId)
         )
         testDraftContext.insert(
-            asDesignDraft(
-                mainOfficialContext.fetch(switch)!!.copy(name = SwitchName("edited")),
-                testBranch.designId,
-            )
+            asDesignDraft(mainOfficialContext.fetch(switch)!!.copy(name = SwitchName("edited")), testBranch.designId)
         )
 
         publishAndVerify(
@@ -3470,13 +3524,14 @@ class PublicationServiceIT @Autowired constructor(
         testDraftContext.insert(asDesignDraft(mainOfficialContext.fetch(switch)!!, testBranch.designId))
 
         publishAndVerify(
-            testBranch, publicationRequest(
+            testBranch,
+            publicationRequest(
                 trackNumbers = listOf(trackNumber),
                 referenceLines = listOf(referenceLine),
                 kmPosts = listOf(kmPost),
                 locationTracks = listOf(locationTrack),
                 switches = listOf(switch),
-            )
+            ),
         )
 
         testDraftContext.insert(asDesignDraft(testOfficialContext.fetch(trackNumber)!!, testBranch.designId))
@@ -3486,13 +3541,14 @@ class PublicationServiceIT @Autowired constructor(
         testDraftContext.insert(asDesignDraft(testOfficialContext.fetch(switch)!!, testBranch.designId))
 
         publishAndVerify(
-            testBranch, publicationRequest(
+            testBranch,
+            publicationRequest(
                 trackNumbers = listOf(trackNumber),
                 referenceLines = listOf(referenceLine),
                 kmPosts = listOf(kmPost),
                 locationTracks = listOf(locationTrack),
                 switches = listOf(switch),
-            )
+            ),
         )
 
         trackNumberService.mergeToMainBranch(testBranch, trackNumber)
@@ -3502,13 +3558,14 @@ class PublicationServiceIT @Autowired constructor(
         switchService.mergeToMainBranch(testBranch, switch)
 
         publishAndVerify(
-            LayoutBranch.main, publicationRequest(
+            LayoutBranch.main,
+            publicationRequest(
                 trackNumbers = listOf(trackNumber),
                 referenceLines = listOf(referenceLine),
                 kmPosts = listOf(kmPost),
                 locationTracks = listOf(locationTrack),
                 switches = listOf(switch),
-            )
+            ),
         )
     }
 
@@ -3518,7 +3575,7 @@ class PublicationServiceIT @Autowired constructor(
         mainOfficialContext.insert(
             referenceLine(
                 trackNumber,
-                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
+                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0)))),
             )
         )
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
@@ -3526,28 +3583,28 @@ class PublicationServiceIT @Autowired constructor(
 
         val switch = testDraftContext.insert(switch()).id
 
-        val locationTrack = testDraftContext.insert(
-            locationTrackAndAlignment(
-                trackNumber,
-                segment(Point(0.0, 0.0), Point(10.0, 10.0)).copy(startJointNumber = JointNumber(1), switchId = switch)
-            )
-        ).id
+        val locationTrack =
+            testDraftContext
+                .insert(
+                    locationTrackAndAlignment(
+                        trackNumber,
+                        segment(Point(0.0, 0.0), Point(10.0, 10.0))
+                            .copy(startJointNumber = JointNumber(1), switchId = switch),
+                    )
+                )
+                .id
 
         publishAndVerify(
-            testBranch, publicationRequest(
-                locationTracks = listOf(locationTrack),
-                switches = listOf(switch),
-            )
+            testBranch,
+            publicationRequest(locationTracks = listOf(locationTrack), switches = listOf(switch)),
         )
 
         locationTrackService.mergeToMainBranch(testBranch, locationTrack)
         switchService.mergeToMainBranch(testBranch, switch)
 
         publishAndVerify(
-            MainBranch.instance, publicationRequest(
-                locationTracks = listOf(locationTrack),
-                switches = listOf(switch),
-            )
+            MainBranch.instance,
+            publicationRequest(locationTracks = listOf(locationTrack), switches = listOf(switch)),
         )
     }
 
@@ -3557,7 +3614,7 @@ class PublicationServiceIT @Autowired constructor(
         mainOfficialContext.insert(
             referenceLine(
                 trackNumber,
-                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))))
+                alignmentVersion = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0)))),
             )
         )
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
@@ -3565,25 +3622,28 @@ class PublicationServiceIT @Autowired constructor(
 
         val switch = mainOfficialContext.insert(switch()).id
 
-        val locationTrack = mainOfficialContext.insert(
-            locationTrackAndAlignment(
-                trackNumber,
-                segment(Point(0.0, 0.0), Point(10.0, 10.0)).copy(startJointNumber = JointNumber(1), switchId = switch)
-            )
-        ).id
+        val locationTrack =
+            mainOfficialContext
+                .insert(
+                    locationTrackAndAlignment(
+                        trackNumber,
+                        segment(Point(0.0, 0.0), Point(10.0, 10.0))
+                            .copy(startJointNumber = JointNumber(1), switchId = switch),
+                    )
+                )
+                .id
 
-        val editedAlignmentVersion = alignmentDao.insert(
-            alignment(
-                segment(Point(0.0, 0.0), Point(10.0, 10.0)).copy(
-                    endJointNumber = JointNumber(1),
-                    switchId = switch
+        val editedAlignmentVersion =
+            alignmentDao.insert(
+                alignment(
+                    segment(Point(0.0, 0.0), Point(10.0, 10.0)).copy(endJointNumber = JointNumber(1), switchId = switch)
                 )
             )
-        )
         testDraftContext.insert(
-            asDesignDraft(mainOfficialContext
-                .fetch(locationTrack)!!
-                .copy(alignmentVersion = editedAlignmentVersion), testBranch.designId)
+            asDesignDraft(
+                mainOfficialContext.fetch(locationTrack)!!.copy(alignmentVersion = editedAlignmentVersion),
+                testBranch.designId,
+            )
         )
 
         publishAndVerify(testBranch, publicationRequest(locationTracks = listOf(locationTrack)))
@@ -3596,10 +3656,11 @@ class PublicationServiceIT @Autowired constructor(
 
     private fun validateLocationTracks(locationTracks: List<IntId<LocationTrack>>): List<LayoutValidationIssue> {
         val publicationRequest = publicationRequestIds(locationTracks = locationTracks)
-        val validation = publicationService.validatePublicationCandidates(
-            publicationService.collectPublicationCandidates(PublicationInMain),
-            publicationRequest,
-        )
+        val validation =
+            publicationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(PublicationInMain),
+                publicationRequest,
+            )
 
         return validation.validatedAsPublicationUnit.locationTracks.flatMap { it.issues }
     }
@@ -3632,35 +3693,23 @@ class PublicationServiceIT @Autowired constructor(
     }
 
     private fun simpleSplitSetup(
-        sourceLocationTrackState: LocationTrackState = LocationTrackState.DELETED,
+        sourceLocationTrackState: LocationTrackState = LocationTrackState.DELETED
     ): SplitSetup {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.insert(
-            referenceLine(trackNumberId),
-            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        )
+        mainOfficialContext.insert(referenceLine(trackNumberId), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
 
         val startSegment = segment(Point(0.0, 0.0), Point(5.0, 0.0))
         val endSegment = segment(Point(5.0, 0.0), Point(10.0, 0.0))
-        val sourceTrack = mainOfficialContext.insert(
-            locationTrack(trackNumberId),
-            alignment(startSegment, endSegment),
-        )
+        val sourceTrack = mainOfficialContext.insert(locationTrack(trackNumberId), alignment(startSegment, endSegment))
 
-        val draftSource = locationTrackDao
-            .fetch(sourceTrack.rowVersion)
-            .copy(state = sourceLocationTrackState)
-            .let { d -> locationTrackService.saveDraft(LayoutBranch.main, d) }
+        val draftSource =
+            locationTrackDao.fetch(sourceTrack.rowVersion).copy(state = sourceLocationTrackState).let { d ->
+                locationTrackService.saveDraft(LayoutBranch.main, d)
+            }
 
-        val startTrack = mainDraftContext.insert(
-            locationTrack(trackNumberId),
-            alignment(startSegment),
-        )
+        val startTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment(startSegment))
 
-        val endTrack = mainDraftContext.insert(
-            locationTrack(trackNumberId),
-            alignment(endSegment),
-        )
+        val endTrack = mainDraftContext.insert(locationTrack(trackNumberId), alignment(endSegment))
 
         return SplitSetup(draftSource, listOf(startTrack to 0..0, endTrack to 1..1))
     }
@@ -3668,170 +3717,219 @@ class PublicationServiceIT @Autowired constructor(
     @Test
     fun `Location track validation catches only switch topology errors related to its own changes`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val switchId = switchDao.insert(
-            switch(
-                name = "TV123",
-                structureId = switchStructureYV60_300_1_9().id as IntId,
-                draft = false,
-            ).copy(stateCategory = LayoutStateCategory.EXISTING)
-        ).id
-        val officialTrackOn152 = locationTrackDao.insert(
-            locationTrack(
-                trackNumberId = trackNumberId,
-                alignmentVersion = alignmentDao.insert(
-                    alignment(
-                        segment(Point(0.0, 5.0), Point(0.0, 0.0)),
-                        segment(Point(0.0, 0.0), Point(5.0, 0.0)).copy(
-                            switchId = switchId,
-                            startJointNumber = JointNumber(1),
-                            endJointNumber = JointNumber(5),
+        val switchId =
+            switchDao
+                .insert(
+                    switch(name = "TV123", structureId = switchStructureYV60_300_1_9().id as IntId, draft = false)
+                        .copy(stateCategory = LayoutStateCategory.EXISTING)
+                )
+                .id
+        val officialTrackOn152 =
+            locationTrackDao.insert(
+                locationTrack(
+                    trackNumberId = trackNumberId,
+                    alignmentVersion =
+                        alignmentDao.insert(
+                            alignment(
+                                segment(Point(0.0, 5.0), Point(0.0, 0.0)),
+                                segment(Point(0.0, 0.0), Point(5.0, 0.0))
+                                    .copy(
+                                        switchId = switchId,
+                                        startJointNumber = JointNumber(1),
+                                        endJointNumber = JointNumber(5),
+                                    ),
+                                segment(Point(5.0, 0.0), Point(10.0, 0.0))
+                                    .copy(
+                                        switchId = switchId,
+                                        startJointNumber = JointNumber(5),
+                                        endJointNumber = JointNumber(2),
+                                    ),
+                            )
                         ),
-                        segment(Point(5.0, 0.0), Point(10.0, 0.0)).copy(
-                            switchId = switchId,
-                            startJointNumber = JointNumber(5),
-                            endJointNumber = JointNumber(2),
-                        ),
-                    )
-                ),
-                draft = false,
+                    draft = false,
+                )
             )
-        )
-        val officialTrackOn13 = locationTrackDao.insert(
-            locationTrack(
-                trackNumberId = trackNumberId,
-                alignmentVersion = alignmentDao.insert(
-                    alignment(
-                        segment(Point(0.0, 0.0), Point(10.0, 2.0)).copy(
-                            switchId = switchId,
-                            startJointNumber = JointNumber(1),
-                            endJointNumber = JointNumber(3),
+        val officialTrackOn13 =
+            locationTrackDao.insert(
+                locationTrack(
+                    trackNumberId = trackNumberId,
+                    alignmentVersion =
+                        alignmentDao.insert(
+                            alignment(
+                                segment(Point(0.0, 0.0), Point(10.0, 2.0))
+                                    .copy(
+                                        switchId = switchId,
+                                        startJointNumber = JointNumber(1),
+                                        endJointNumber = JointNumber(3),
+                                    )
+                            )
                         ),
-                    )
-                ),
-                draft = false,
+                    draft = false,
+                )
             )
+        locationTrackService.saveDraft(
+            LayoutBranch.main,
+            locationTrackDao.fetch(officialTrackOn152.rowVersion).copy(state = LocationTrackState.DELETED),
         )
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            locationTrackDao.fetch(officialTrackOn152.rowVersion).copy(state = LocationTrackState.DELETED)
-        )
-        locationTrackService.saveDraft(
-            LayoutBranch.main,
-            locationTrackDao.fetch(officialTrackOn13.rowVersion).copy(state = LocationTrackState.DELETED)
+            locationTrackDao.fetch(officialTrackOn13.rowVersion).copy(state = LocationTrackState.DELETED),
         )
 
         val errorsWhenDeletingStraightTrack = getLocationTrackValidationResult(officialTrackOn152.id).issues
-        assertTrue(errorsWhenDeletingStraightTrack.any { error ->
-            error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected") &&
-                    error.params.get("locationTracks") == "1-5-2" && error.params.get("switch") == "TV123"
-        })
-        assertTrue(errorsWhenDeletingStraightTrack.any { error ->
-            error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.front-joint-not-connected") &&
+        assertTrue(
+            errorsWhenDeletingStraightTrack.any { error ->
+                error.localizationKey ==
+                    LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected") &&
+                    error.params.get("locationTracks") == "1-5-2" &&
                     error.params.get("switch") == "TV123"
-        })
+            }
+        )
+        assertTrue(
+            errorsWhenDeletingStraightTrack.any { error ->
+                error.localizationKey ==
+                    LocalizationKey("validation.layout.location-track.switch-linkage.front-joint-not-connected") &&
+                    error.params.get("switch") == "TV123"
+            }
+        )
 
-        val errorsWhenDeletingBranchingTrack = publicationService.validatePublicationCandidates(
-            publicationService.collectPublicationCandidates(PublicationInMain),
-            publicationRequestIds(locationTracks = listOf(officialTrackOn13.id)),
-        ).validatedAsPublicationUnit.locationTracks[0].issues
-        assertTrue(errorsWhenDeletingBranchingTrack.any { error ->
-            error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected") &&
-                    error.params.get("locationTracks") == "1-3" && error.params.get("switch") == "TV123"
-        })
-        assertFalse(errorsWhenDeletingBranchingTrack.any { error ->
-            error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.front-joint-not-connected") })
+        val errorsWhenDeletingBranchingTrack =
+            publicationService
+                .validatePublicationCandidates(
+                    publicationService.collectPublicationCandidates(PublicationInMain),
+                    publicationRequestIds(locationTracks = listOf(officialTrackOn13.id)),
+                )
+                .validatedAsPublicationUnit
+                .locationTracks[0]
+                .issues
+        assertTrue(
+            errorsWhenDeletingBranchingTrack.any { error ->
+                error.localizationKey ==
+                    LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected") &&
+                    error.params.get("locationTracks") == "1-3" &&
+                    error.params.get("switch") == "TV123"
+            }
+        )
+        assertFalse(
+            errorsWhenDeletingBranchingTrack.any { error ->
+                error.localizationKey ==
+                    LocalizationKey("validation.layout.location-track.switch-linkage.front-joint-not-connected")
+            }
+        )
     }
 
     @Test
     fun `Location track validation catches track removal causing switches to go unlinked`() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val switchId = switchDao.insert(
-            switch(
-                name = "TV123",
-                joints = listOf(
-                    TrackLayoutSwitchJoint(
-                        JointNumber(1),
-                        location = Point(0.0, 0.0),
-                        locationAccuracy = null,
-                    ),
-                ),
-                structureId = switchStructureYV60_300_1_9().id as IntId,
-                stateCategory = LayoutStateCategory.EXISTING,
-                draft = false
-            )
-        ).id
-        val officialTrackOn152 = locationTrackDao.insert(
-            locationTrack(
-                trackNumberId = trackNumberId,
-                alignmentVersion = alignmentDao.insert(
-                    alignment(
-                        segment(Point(0.0, 0.0), Point(5.0, 0.0)).copy(
-                            switchId = switchId,
-                            startJointNumber = JointNumber(1),
-                            endJointNumber = JointNumber(5),
-                        ),
-                        segment(Point(5.0, 0.0), Point(10.0, 0.0)).copy(
-                            switchId = switchId,
-                            startJointNumber = JointNumber(5),
-                            endJointNumber = JointNumber(2),
-                        ),
+        val switchId =
+            switchDao
+                .insert(
+                    switch(
+                        name = "TV123",
+                        joints =
+                            listOf(
+                                TrackLayoutSwitchJoint(
+                                    JointNumber(1),
+                                    location = Point(0.0, 0.0),
+                                    locationAccuracy = null,
+                                )
+                            ),
+                        structureId = switchStructureYV60_300_1_9().id as IntId,
+                        stateCategory = LayoutStateCategory.EXISTING,
+                        draft = false,
                     )
-                ),
-                draft = false,
+                )
+                .id
+        val officialTrackOn152 =
+            locationTrackDao.insert(
+                locationTrack(
+                    trackNumberId = trackNumberId,
+                    alignmentVersion =
+                        alignmentDao.insert(
+                            alignment(
+                                segment(Point(0.0, 0.0), Point(5.0, 0.0))
+                                    .copy(
+                                        switchId = switchId,
+                                        startJointNumber = JointNumber(1),
+                                        endJointNumber = JointNumber(5),
+                                    ),
+                                segment(Point(5.0, 0.0), Point(10.0, 0.0))
+                                    .copy(
+                                        switchId = switchId,
+                                        startJointNumber = JointNumber(5),
+                                        endJointNumber = JointNumber(2),
+                                    ),
+                            )
+                        ),
+                    draft = false,
+                )
             )
-        )
         locationTrackService.saveDraft(
             LayoutBranch.main,
-            locationTrackDao.fetch(officialTrackOn152.rowVersion).copy(state = LocationTrackState.DELETED)
+            locationTrackDao.fetch(officialTrackOn152.rowVersion).copy(state = LocationTrackState.DELETED),
         )
         locationTrackDao.insert(
             locationTrack(
                 trackNumberId,
-                alignmentVersion = alignmentDao.insert(
-                    alignment(
-                        segment(Point(0.0, 0.0), Point(10.0, 2.0)).copy(
-                            switchId = switchId,
-                            startJointNumber = JointNumber(1),
-                            endJointNumber = JointNumber(3),
-                        ),
-                    )
-                ),
+                alignmentVersion =
+                    alignmentDao.insert(
+                        alignment(
+                            segment(Point(0.0, 0.0), Point(10.0, 2.0))
+                                .copy(
+                                    switchId = switchId,
+                                    startJointNumber = JointNumber(1),
+                                    endJointNumber = JointNumber(3),
+                                )
+                        )
+                    ),
                 draft = false,
             )
         )
 
-        val locationTrackDeletionErrors = publicationService.validatePublicationCandidates(
-            publicationService.collectPublicationCandidates(PublicationInMain),
-            publicationRequestIds(locationTracks = listOf(officialTrackOn152.id)),
-        ).validatedAsPublicationUnit.locationTracks[0].issues
-        assertTrue(locationTrackDeletionErrors.any { error ->
-            error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected") &&
-                    error.params.get("locationTracks") == "1-5-2" && error.params.get("switch") == "TV123"
-        })
-        // but it's OK if we link a replacement track
-        val replacementTrack = locationTrackService.saveDraft(
-            LayoutBranch.main,
-            locationTrack(trackNumberId, draft = true),
-            alignment(
-                segment(Point(0.0, 0.0), Point(5.0, 0.0)).copy(
-                    switchId = switchId,
-                    startJointNumber = JointNumber(1),
-                    endJointNumber = JointNumber(5),
-                ),
-                segment(Point(5.0, 0.0), Point(10.0, 0.0)).copy(
-                    switchId = switchId,
-                    startJointNumber = JointNumber(5),
-                    endJointNumber = JointNumber(2),
-                ),
-            ),
+        val locationTrackDeletionErrors =
+            publicationService
+                .validatePublicationCandidates(
+                    publicationService.collectPublicationCandidates(PublicationInMain),
+                    publicationRequestIds(locationTracks = listOf(officialTrackOn152.id)),
+                )
+                .validatedAsPublicationUnit
+                .locationTracks[0]
+                .issues
+        assertTrue(
+            locationTrackDeletionErrors.any { error ->
+                error.localizationKey ==
+                    LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected") &&
+                    error.params.get("locationTracks") == "1-5-2" &&
+                    error.params.get("switch") == "TV123"
+            }
         )
-        val errorsWithReplacementTrackLinked = publicationService.validatePublicationCandidates(
-            publicationService.collectPublicationCandidates(PublicationInMain),
-            publicationRequestIds(locationTracks = listOf(officialTrackOn152.id, replacementTrack.id)),
-        ).validatedAsPublicationUnit.locationTracks[0].issues
-        assertFalse(errorsWithReplacementTrackLinked.any { error ->
-            error.localizationKey == LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected")
-        })
+        // but it's OK if we link a replacement track
+        val replacementTrack =
+            locationTrackService.saveDraft(
+                LayoutBranch.main,
+                locationTrack(trackNumberId, draft = true),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(5.0, 0.0))
+                        .copy(switchId = switchId, startJointNumber = JointNumber(1), endJointNumber = JointNumber(5)),
+                    segment(Point(5.0, 0.0), Point(10.0, 0.0))
+                        .copy(switchId = switchId, startJointNumber = JointNumber(5), endJointNumber = JointNumber(2)),
+                ),
+            )
+        val errorsWithReplacementTrackLinked =
+            publicationService
+                .validatePublicationCandidates(
+                    publicationService.collectPublicationCandidates(PublicationInMain),
+                    publicationRequestIds(locationTracks = listOf(officialTrackOn152.id, replacementTrack.id)),
+                )
+                .validatedAsPublicationUnit
+                .locationTracks[0]
+                .issues
+        assertFalse(
+            errorsWithReplacementTrackLinked.any { error ->
+                error.localizationKey ==
+                    LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected")
+            }
+        )
     }
 
     @Test
@@ -3839,12 +3937,12 @@ class PublicationServiceIT @Autowired constructor(
         val splitSetup = simpleSplitSetup()
         saveSplit(splitSetup.sourceTrack.rowVersion, splitSetup.targetParams)
 
-        val publicationId = publicationService.getValidationVersions(
-            LayoutBranch.main,
-            publicationRequest(locationTracks = splitSetup.trackIds)
-        ).let { versions ->
-            testPublish(LayoutBranch.main, versions, getCalculatedChangesInRequest(versions)).publicationId
-        }
+        val publicationId =
+            publicationService
+                .getValidationVersions(LayoutBranch.main, publicationRequest(locationTracks = splitSetup.trackIds))
+                .let { versions ->
+                    testPublish(LayoutBranch.main, versions, getCalculatedChangesInRequest(versions)).publicationId
+                }
 
         val splitInPublication = publicationService.getSplitInPublication(publicationId!!)
         assertNotNull(splitInPublication)
@@ -3864,25 +3962,18 @@ class PublicationServiceIT @Autowired constructor(
         insertPublicationGroupTestData()
 
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.insert(
-            referenceLine(trackNumberId),
-            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        )
+        mainOfficialContext.insert(referenceLine(trackNumberId), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
 
-        val someTrack = mainDraftContext.insert(
-            locationTrack(trackNumberId),
-            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        )
+        val someTrack =
+            mainDraftContext.insert(locationTrack(trackNumberId), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
 
-        val someDuplicateTrack = mainDraftContext.insert(
-            locationTrack(trackNumberId = trackNumberId, duplicateOf = someTrack.id),
-            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        )
+        val someDuplicateTrack =
+            mainDraftContext.insert(
+                locationTrack(trackNumberId = trackNumberId, duplicateOf = someTrack.id),
+                alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+            )
 
-        val someTrackIds = listOf(
-            someTrack.id,
-            someDuplicateTrack.id,
-        )
+        val someTrackIds = listOf(someTrack.id, someDuplicateTrack.id)
 
         val someSwitchId = mainDraftContext.createSwitch().id
 
@@ -3903,10 +3994,11 @@ class PublicationServiceIT @Autowired constructor(
     fun `Publication group should be set for assets related to a split`() {
         (1..4).forEach { testIndex ->
             val testData = insertPublicationGroupTestData()
-            val splits = splitService.findUnfinishedSplits(
-                LayoutBranch.main,
-                locationTrackIds = listOf(testData.sourceLocationTrackId)
-            )
+            val splits =
+                splitService.findUnfinishedSplits(
+                    LayoutBranch.main,
+                    locationTrackIds = listOf(testData.sourceLocationTrackId),
+                )
 
             assertEquals(1, splits.size)
             val splitId = splits[0].id
@@ -3936,9 +4028,7 @@ class PublicationServiceIT @Autowired constructor(
 
             publicationCandidates.switches
                 .filter { candidate -> candidate.id in testData.switchIds }
-                .also { filteredCandidates ->
-                    assertEquals(amountOfSwitchesInCurrentTest, filteredCandidates.size)
-                }
+                .also { filteredCandidates -> assertEquals(amountOfSwitchesInCurrentTest, filteredCandidates.size) }
                 .forEach { candidate -> assertEquals(splitId, candidate.publicationGroup?.id) }
         }
     }
@@ -3954,22 +4044,23 @@ class PublicationServiceIT @Autowired constructor(
             assertEquals(null, split.publicationId)
         }
 
-        val publicationId = publicationService.getValidationVersions(
-            LayoutBranch.main,
-            publicationRequest(locationTracks = splitSetup.trackIds)
-        ).let { versions ->
-            testPublish(LayoutBranch.main, versions, getCalculatedChangesInRequest(versions)).publicationId
-        }
+        val publicationId =
+            publicationService
+                .getValidationVersions(LayoutBranch.main, publicationRequest(locationTracks = splitSetup.trackIds))
+                .let { versions ->
+                    testPublish(LayoutBranch.main, versions, getCalculatedChangesInRequest(versions)).publicationId
+                }
 
         splitDao.get(splitId).let { split ->
             assertNotNull(split)
             assertEquals(publicationId, split.publicationId)
         }
 
-        val (targetTrackToModify, targetAlignment) = locationTrackService.getWithAlignmentOrThrow(
-            MainLayoutContext.draft,
-            splitSetup.targetTracks.first().first.id,
-        )
+        val (targetTrackToModify, targetAlignment) =
+            locationTrackService.getWithAlignmentOrThrow(
+                MainLayoutContext.draft,
+                splitSetup.targetTracks.first().first.id,
+            )
         locationTrackService.saveDraft(
             LayoutBranch.main,
             draftAsset = targetTrackToModify.copy(name = AlignmentName("Some other draft name")),
@@ -3981,7 +4072,8 @@ class PublicationServiceIT @Autowired constructor(
             publicationRequestIds(locationTracks = listOf(targetTrackToModify.id as IntId)),
         )
 
-        // Split should be found and not be deleted even after reverting the draft change to the modified locationTrack.
+        // Split should be found and not be deleted even after reverting the draft change to the
+        // modified locationTrack.
         assertNotNull(splitDao.get(splitId))
     }
 
@@ -3991,21 +4083,21 @@ class PublicationServiceIT @Autowired constructor(
 
         val someSwitch = mainDraftContext.createSwitch()
 
-        val splitId = saveSplit(
-            sourceTrackVersion = splitSetup.sourceTrack.rowVersion,
-            targetTracks = splitSetup.targetParams,
-            switches = listOf(someSwitch.id),
-        )
-
-        publicationService.getValidationVersions(
-            LayoutBranch.main,
-            publicationRequest(
-                locationTracks = splitSetup.trackIds,
+        val splitId =
+            saveSplit(
+                sourceTrackVersion = splitSetup.sourceTrack.rowVersion,
+                targetTracks = splitSetup.targetParams,
                 switches = listOf(someSwitch.id),
             )
-        ).let { versions ->
-            testPublish(LayoutBranch.main, versions, getCalculatedChangesInRequest(versions)).publicationId
-        }
+
+        publicationService
+            .getValidationVersions(
+                LayoutBranch.main,
+                publicationRequest(locationTracks = splitSetup.trackIds, switches = listOf(someSwitch.id)),
+            )
+            .let { versions ->
+                testPublish(LayoutBranch.main, versions, getCalculatedChangesInRequest(versions)).publicationId
+            }
 
         switchService.get(MainLayoutContext.draft, someSwitch.id).let { publishedSwitch ->
             assertNotNull(publishedSwitch)
@@ -4019,12 +4111,11 @@ class PublicationServiceIT @Autowired constructor(
 
         publicationService.revertPublicationCandidates(
             LayoutBranch.main,
-            publicationRequestIds(
-                switches = listOf(someSwitch.id)
-            )
+            publicationRequestIds(switches = listOf(someSwitch.id)),
         )
 
-        // Split should be found and not be deleted even after reverting the draft change to the modified switch.
+        // Split should be found and not be deleted even after reverting the draft change to the
+        // modified switch.
         assertNotNull(splitDao.get(splitId))
     }
 
@@ -4043,7 +4134,8 @@ class PublicationServiceIT @Autowired constructor(
     fun `location track created in design is reported as created`() {
         val trackNumber = mainOfficialContext.insert(trackNumber()).id
         val testBranch = DesignBranch.of(layoutDesignDao.insert(layoutDesign()))
-        val locationTrack = testDBService.testContext(testBranch, DRAFT).insert(locationTrack(trackNumber), alignment()).id
+        val locationTrack =
+            testDBService.testContext(testBranch, DRAFT).insert(locationTrack(trackNumber), alignment()).id
         publish(publicationService, testBranch, locationTracks = listOf(locationTrack))
         locationTrackService.mergeToMainBranch(testBranch, locationTrack)
         publish(publicationService, locationTracks = listOf(locationTrack))
@@ -4083,38 +4175,30 @@ class PublicationServiceIT @Autowired constructor(
 
     private fun insertPublicationGroupTestData(): PublicationGroupTestData {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        mainOfficialContext.insert(
-            referenceLine(trackNumberId),
-            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        )
+        mainOfficialContext.insert(referenceLine(trackNumberId), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
 
         // Due to using splitDao.saveSplit and not actually running a split,
         // the sourceTrack is created as a draft as well.
-        val sourceTrack = mainDraftContext.insert(
-            locationTrack(trackNumberId),
-            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
-        )
+        val sourceTrack =
+            mainDraftContext.insert(locationTrack(trackNumberId), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
 
-        val middleTrack = mainDraftContext.insert(
-            locationTrack(trackNumberId),
-            alignment(segment(Point(2.0, 0.0), Point(3.0, 0.0))),
-        )
+        val middleTrack =
+            mainDraftContext.insert(locationTrack(trackNumberId), alignment(segment(Point(2.0, 0.0), Point(3.0, 0.0))))
 
-        val endTrack = mainDraftContext.insert(
-            locationTrack(trackNumberId),
-            alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0))),
-        )
+        val endTrack =
+            mainDraftContext.insert(locationTrack(trackNumberId), alignment(segment(Point(5.0, 0.0), Point(10.0, 0.0))))
 
-        val someSwitches = (0..5).map {
-            mainDraftContext.createSwitch().id
-        }
+        val someSwitches = (0..5).map { mainDraftContext.createSwitch().id }
 
-        val someDuplicates = (0..4).map { i ->
-            mainDraftContext.insert(
-                locationTrack(trackNumberId = trackNumberId, duplicateOf = sourceTrack.id),
-                alignment(segment(Point(i.toDouble(), 0.0), Point(i + 0.75, 0.0))),
-            ).id
-        }
+        val someDuplicates =
+            (0..4).map { i ->
+                mainDraftContext
+                    .insert(
+                        locationTrack(trackNumberId = trackNumberId, duplicateOf = sourceTrack.id),
+                        alignment(segment(Point(i.toDouble(), 0.0), Point(i + 0.75, 0.0))),
+                    )
+                    .id
+            }
 
         splitDao.saveSplit(
             sourceTrack.rowVersion,
@@ -4128,14 +4212,7 @@ class PublicationServiceIT @Autowired constructor(
 
         return PublicationGroupTestData(
             sourceLocationTrackId = sourceTrack.id,
-            allLocationTrackIds = listOf(
-                listOf(
-                    sourceTrack.id,
-                    middleTrack.id,
-                    endTrack.id,
-                ),
-                someDuplicates,
-            ).flatten(),
+            allLocationTrackIds = listOf(listOf(sourceTrack.id, middleTrack.id, endTrack.id), someDuplicates).flatten(),
             switchIds = someSwitches,
             duplicateLocationTrackIds = someDuplicates,
         )
@@ -4145,12 +4222,13 @@ class PublicationServiceIT @Autowired constructor(
         layoutBranch: LayoutBranch,
         versions: ValidationVersions,
         calculatedChanges: CalculatedChanges,
-    ): PublicationResult = publicationService.publishChanges(
-        layoutBranch,
-        versions,
-        calculatedChanges,
-        FreeTextWithNewLines.of("${this::class.simpleName}"),
-    )
+    ): PublicationResult =
+        publicationService.publishChanges(
+            layoutBranch,
+            versions,
+            calculatedChanges,
+            FreeTextWithNewLines.of("${this::class.simpleName}"),
+        )
 }
 
 fun publicationRequestIds(
@@ -4215,9 +4293,7 @@ private fun assertEqualsCalculatedChanges(
     )
 
     calculatedChanges.indirectChanges.switchChanges.forEach { calculatedSwitch ->
-        val switch = publicationDetails.indirectChanges.switches.find { s ->
-            s.id == calculatedSwitch.switchId
-        }
+        val switch = publicationDetails.indirectChanges.switches.find { s -> s.id == calculatedSwitch.switchId }
         assertNotNull(switch)
         assertEquals(switch.changedJoints, calculatedSwitch.changedJoints)
     }
@@ -4241,10 +4317,13 @@ private fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> verifyVersionsAreDrafts(
     dao: S,
     versions: List<ValidationVersion<T>>,
 ) {
-    versions.map { v -> v.validatedAssetVersion }.map(dao::fetch).forEach { asset ->
-        assertTrue(asset.isDraft)
-        assertEquals(branch, asset.branch)
-    }
+    versions
+        .map { v -> v.validatedAssetVersion }
+        .map(dao::fetch)
+        .forEach { asset ->
+            assertTrue(asset.isDraft)
+            assertEquals(branch, asset.branch)
+        }
 }
 
 private fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> verifyPublishingWorks(
@@ -4307,10 +4386,7 @@ fun <T : LayoutAsset<T>, S : LayoutAssetDao<T>> publishAndCheck(
     assertFalse(publishedItem.isDraft)
     assertEquals(id, published.id)
     assertEquals(id.intValue, published.rowVersion.rowId.intValue)
-    assertEquals(
-        MainOfficialContextData(StoredContextIdHolder(published.rowVersion)),
-        publishedItem.contextData,
-    )
+    assertEquals(MainOfficialContextData(StoredContextIdHolder(published.rowVersion)), publishedItem.contextData)
 
     return published to publishedItem
 }
@@ -4344,31 +4420,25 @@ private fun getTopologicalSwitchConnectionTestCases(
     topologyEndSwitch: TopologyLocationTrackSwitch,
 ): List<LocationTrack> {
     return listOf(
-        locationTrack(
-            trackNumberId = trackNumberGenerator(),
-            draft = true,
-        ),
-
+        locationTrack(trackNumberId = trackNumberGenerator(), draft = true),
         locationTrack(
             trackNumberId = trackNumberGenerator(),
             topologicalConnectivity = TopologicalConnectivityType.START,
             topologyStartSwitch = topologyStartSwitch,
             draft = true,
         ),
-
         locationTrack(
             trackNumberId = trackNumberGenerator(),
             topologicalConnectivity = TopologicalConnectivityType.END,
             topologyEndSwitch = topologyEndSwitch,
             draft = true,
         ),
-
         locationTrack(
             trackNumberId = trackNumberGenerator(),
             topologicalConnectivity = TopologicalConnectivityType.START_AND_END,
             topologyStartSwitch = topologyStartSwitch,
             topologyEndSwitch = topologyEndSwitch,
             draft = true,
-        )
+        ),
     )
 }

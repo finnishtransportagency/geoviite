@@ -9,7 +9,8 @@ const val UNIX_LINEBREAK = "\n"
 const val LEGACY_LINEBREAK = "\r" // Possibly used in older files were text may be copied and pasted from.
 const val WINDOWS_LINEBREAK = "\r\n"
 
-// Order matters due to both Windows style & legacy linebreaks containing the same special character.
+// Order matters due to both Windows style & legacy linebreaks containing the same special
+// character.
 val linebreakNormalizationRegex = Regex("$WINDOWS_LINEBREAK|$LEGACY_LINEBREAK")
 
 const val UNSAFE_REPLACEMENT = "�"
@@ -43,14 +44,10 @@ fun removeLinebreaks(input: String) = input.replace(lineBreakRegex, LINE_BREAK_R
 
 fun normalizeLinebreaksToUnixFormat(input: String) = input.replace(linebreakNormalizationRegex, UNIX_LINEBREAK)
 
-fun isSanitized(
-    stringValue: String,
-    regex: Regex,
-    length: ClosedRange<Int>? = null,
-    allowBlank: Boolean = true,
-) = (length == null || stringValue.length in length)
-        && (allowBlank || stringValue.isNotBlank())
-        && stringValue.matches(regex)
+fun isSanitized(stringValue: String, regex: Regex, length: ClosedRange<Int>? = null, allowBlank: Boolean = true) =
+    (length == null || stringValue.length in length) &&
+        (allowBlank || stringValue.isNotBlank()) &&
+        stringValue.matches(regex)
 
 inline fun <reified T> assertSanitized(
     stringValue: String,

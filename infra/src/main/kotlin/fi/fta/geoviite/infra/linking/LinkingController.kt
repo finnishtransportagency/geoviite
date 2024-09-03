@@ -34,10 +34,9 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 
 @GeoviiteController("/linking")
-class LinkingController @Autowired constructor(
-    private val linkingService: LinkingService,
-    private val switchLinkingService: SwitchLinkingService,
-) {
+class LinkingController
+@Autowired
+constructor(private val linkingService: LinkingService, private val switchLinkingService: SwitchLinkingService) {
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/{$LAYOUT_BRANCH}/reference-lines/geometry")
@@ -148,11 +147,12 @@ class LinkingController @Autowired constructor(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestParam("location") location: Point,
         @RequestParam("layoutSwitchId") layoutSwitchId: IntId<TrackLayoutSwitch>,
-    ): ResponseEntity<SuggestedSwitch> = toResponse(
-        switchLinkingService
-            .getSuggestedSwitches(branch, listOf(SwitchPlacingRequest(location, layoutSwitchId)))
-            .firstOrNull()
-    )
+    ): ResponseEntity<SuggestedSwitch> =
+        toResponse(
+            switchLinkingService
+                .getSuggestedSwitches(branch, listOf(SwitchPlacingRequest(location, layoutSwitchId)))
+                .firstOrNull()
+        )
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/{$LAYOUT_BRANCH}/switches/{switchId}/geometry")
