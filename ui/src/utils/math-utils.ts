@@ -207,3 +207,15 @@ export function portion(start: Point, end: Point, point: Point) {
 export function clamp(val: number, min: number, max: number): number {
     return val < min ? min : val > max ? max : val;
 }
+
+export function grid(gridSize: number, point: Point): { cellIndex: Point; positionInCell: Point } {
+    const xIndex = Math.trunc(point.x / gridSize);
+    const yIndex = Math.trunc(point.y / gridSize);
+    const xPos = point.x % gridSize;
+    const yPos = point.y % gridSize;
+    return { cellIndex: { x: xIndex, y: yIndex }, positionInCell: { x: xPos, y: yPos } };
+}
+
+export function pointEquals(a: Point, b: Point): boolean {
+    return a.x === b.x && a.y === b.y;
+}

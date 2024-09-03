@@ -68,6 +68,10 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
     const locationTrackBadgeOnClickHandler = (locationTrackId: LocationTrackId) =>
         onSelectLocationTrackBadge ? () => onSelectLocationTrackBadge(locationTrackId) : undefined;
 
+    function getLocationTrackIdsForJointNumbers(jointNumbers: JointNumber[]) {
+        return getMatchingLocationTrackIdsForJointNumbers(jointNumbers, jointConnections);
+    }
+
     function getLocationTracksForJointNumbers(jointNumbers: JointNumber[]) {
         const locationTrackIds = getMatchingLocationTrackIdsForJointNumbers(
             jointNumbers,
@@ -105,7 +109,27 @@ const SwitchJointInfobox: React.FC<SwitchJointInfobox> = ({
                                 {a.jointNumbers.map((j) => switchJointNumberToString(j)).join('-')}
                             </dt>
                             <dd className={styles['switch-joint-infobox__location-tracks']}>
-                                <div>{getLocationTracksForJointNumbers(a.jointNumbers)}</div>
+                                <div>
+                                    {getLocationTracksForJointNumbers(a.jointNumbers)}{' '}
+                                    {jointConnections.some((jc) =>
+                                        jc.accurateMatches.some(
+                                            (am) => am.matchDistance !== undefined,
+                                        ),
+                                    )
+                                        ? jointConnections
+                                              .filter((jc) => a.jointNumbers.includes(jc.number))
+                                              .flatMap((jc) => jc.accurateMatches)
+                                              .filter((am) =>
+                                                  getLocationTrackIdsForJointNumbers(
+                                                      a.jointNumbers,
+                                                  ).includes(am.locationTrackId),
+                                              )
+                                              .map((am) => am.matchDistance)
+                                              .filter(filterNotEmpty)
+                                              .reduce((a, b) => a + b, 0)
+                                              .toFixed(2)
+                                        : ''}
+                                </div>
                             </dd>
                         </React.Fragment>
                     );

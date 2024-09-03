@@ -8,6 +8,7 @@ import {
 } from 'track-layout/track-layout-model';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { expectDefined } from 'utils/type-utils';
+import { getPlanarDistance } from 'map/layers/utils/layer-utils';
 
 export enum SwitchTypeMatch {
     Exact,
@@ -108,6 +109,7 @@ export function suggestedSwitchJointsAsLayoutSwitchJointConnections(
             .map(({ locationTrackId, location }) => ({
                 locationTrackId,
                 location,
+                matchDistance: getPlanarDistance(location, joint.location),
             })),
     }));
 }

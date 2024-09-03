@@ -54,6 +54,7 @@ export type LinkingState =
     | LinkingGeometryWithEmptyAlignment
     | LinkingAlignment
     | PlacingSwitch
+    | SuggestingSwitchPlace
     | LinkingSwitch
     | LinkingKmPost;
 
@@ -158,6 +159,13 @@ export type PlacingSwitch = LinkingBaseType & {
     location?: Point;
 };
 
+export type SuggestingSwitchPlace = LinkingBaseType & {
+    type: LinkingType.SuggestingSwitchPlace;
+    layoutSwitch: LayoutSwitch;
+    suggestedSwitch: SuggestedSwitch | undefined;
+    accepted: boolean;
+};
+
 export type LinkingKmPost = LinkingBaseType & {
     type: LinkingType.LinkingKmPost;
     geometryKmPostId: GeometryKmPostId;
@@ -182,13 +190,14 @@ export type KmPostEditFields = KmPostSimpleFields & {
 };
 
 export enum LinkingType {
-    LinkingGeometryWithAlignment,
-    LinkingAlignment,
-    LinkingGeometryWithEmptyAlignment,
-    LinkingSwitch,
-    PlacingSwitch,
-    LinkingKmPost,
-    UnknownAlignment,
+    LinkingGeometryWithAlignment = 'LinkingGeometryWithAlignment',
+    LinkingAlignment = 'LinkingAlignment',
+    LinkingGeometryWithEmptyAlignment = 'LinkingGeometryWithEmptyAlignment',
+    LinkingSwitch = 'LinkingSwitch',
+    SuggestingSwitchPlace = 'SuggestingSwitchPlace',
+    PlacingSwitch = 'PlacingSwitch',
+    LinkingKmPost = 'LinkingKmPost',
+    UnknownAlignment = 'UnknownAlignment',
 }
 
 export type IntervalRequest = {
@@ -352,4 +361,15 @@ export type TrackSwitchRelinkingResultType = 'RELINKED' | 'NOT_AUTOMATICALLY_LIN
 export type TrackSwitchRelinkingResult = {
     id: LayoutSwitchId;
     outcome: TrackSwitchRelinkingResultType;
+};
+
+export type SwitchLinkingSamplingGrid = {
+    center: Point;
+    xSteps: number[];
+    ySteps: number[];
+};
+
+export type SuggestedSwitchesAtGridPoints = {
+    suggestedSwitches: SuggestedSwitch[];
+    gridSwitchIndices: (number | null)[];
 };

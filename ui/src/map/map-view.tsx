@@ -3,6 +3,7 @@ import OlMap from 'ol/Map';
 import {
     OnClickLocationFunction,
     OnHighlightItemsFunction,
+    OnHoverLocationFunction,
     OnSelectFunction,
     Selection,
 } from 'selection/selection-model';
@@ -27,7 +28,7 @@ import { calculateMapTiles } from 'map/map-utils';
 import { defaults as defaultControls, ScaleLine } from 'ol/control';
 import { highlightTool } from 'map/tools/highlight-tool';
 import { LineString, Point as OlPoint, Polygon } from 'ol/geom';
-import { LinkingState, LinkingSwitch, LinkPoint } from 'linking/linking-model';
+import { LinkingState, LinkingSwitch, LinkPoint, SuggestedSwitch } from 'linking/linking-model';
 import { pointLocationTool } from 'map/tools/point-location-tool';
 import { LocationHolderView } from 'map/location-holder/location-holder-view';
 import { GeometryPlanLayout, LAYOUT_SRID } from 'track-layout/track-layout-model';
@@ -87,6 +88,8 @@ import { layersCoveringLayers } from 'map/map-store';
 import { createLocationTrackSplitAlignmentLayer } from 'map/layers/alignment/location-track-split-alignment-layer';
 import { MapLayerMenu } from 'map/layer-menu/map-layer-menu';
 import Feature from 'ol/Feature';
+import { Brand } from 'common/brand';
+import { useSwitchSuggestionOnHover } from 'map/layers/switch/switch-suggestion-on-hover';
 
 declare global {
     interface Window {
@@ -104,6 +107,7 @@ export type MapViewProps = {
     changeTimes: ChangeTimes;
     onHighlightItems: OnHighlightItemsFunction;
     onClickLocation: OnClickLocationFunction;
+    onHoverLocation: OnHoverLocationFunction;
     onViewportUpdate: (viewport: MapViewport) => void;
     onShownLayerItemsChange: (items: OptionalShownItems) => void;
     onSetLayoutPoint: (linkPoint: LinkPoint) => void;
@@ -117,6 +121,8 @@ export type MapViewProps = {
     onMapLayerChange: (change: MapLayerMenuChange) => void;
     mapLayerMenuGroups: MapLayerMenuGroups;
     visibleLayerNames: MapLayerName[];
+    suggestSwitch: (suggestedSwitch: SuggestedSwitch | undefined) => void;
+    showLayers: (layers: MapLayerName[]) => void;
 };
 
 export type ClickType = 'all' | 'geometryPoint' | 'layoutPoint' | 'remove';
@@ -160,6 +166,8 @@ function getDomainViewportByOlView(map: OlMap): MapViewport {
     };
 }
 
+export type ScreenPoint = Brand<Point, 'ScreenPoint'>;
+
 const MapView: React.FC<MapViewProps> = ({
     map,
     selection,
@@ -178,6 +186,9 @@ const MapView: React.FC<MapViewProps> = ({
     onShownLayerItemsChange,
     onHighlightItems,
     onClickLocation,
+    onHoverLocation,
+    suggestSwitch,
+    showLayers,
     onMapLayerChange,
     mapLayerMenuGroups,
     visibleLayerNames,
@@ -189,9 +200,27 @@ const MapView: React.FC<MapViewProps> = ({
     const olMapContainer = React.useRef<HTMLDivElement>(null);
     const [visibleLayers, setVisibleLayers] = React.useState<MapLayer[]>([]);
     const [measurementToolActive, setMeasurementToolActive] = React.useState(false);
-    const [hoveredLocation, setHoveredLocation] = React.useState<Point>();
+    const [hoveredLocation, _setHoveredLocation] = React.useState<Point>();
+    const [hoveredPixelLocation, setHoveredPixelLocation] = React.useState<ScreenPoint>();
 
     const [layersLoadingData, setLayersLoadingData] = React.useState<MapLayerName[]>([]);
+
+    const suggestSwitchAndDisplaySwitchLinkingLayer = (
+        suggestedSwitch: SuggestedSwitch | undefined,
+    ) => {
+        suggestSwitch(suggestedSwitch);
+        showLayers(['switch-linking-layer']);
+    };
+
+    const { setHoveredLocation, isLoadingSwitchSuggestion } = useSwitchSuggestionOnHover(
+        _setHoveredLocation,
+        setHoveredPixelLocation,
+        olMapContainer,
+        olMap,
+        linkingState,
+        layoutContext,
+        suggestSwitchAndDisplaySwitchLinkingLayer,
+    );
 
     const onLayerLoading = (name: MapLayerName, isLoading: boolean) => {
         setLayersLoadingData((prevLoadingLayers) => {
@@ -664,7 +693,10 @@ const MapView: React.FC<MapViewProps> = ({
         const toolActivateOptions: MapToolActivateOptions = {
             onSelect: onSelect,
             onHighlightItems: onHighlightItems,
-            onHoverLocation: (p) => setHoveredLocation(p),
+            onHoverLocation: (p, px) => {
+                setHoveredLocation(p, px);
+                onHoverLocation(p, px);
+            },
             onClickLocation: onClickLocation,
         };
 
@@ -767,6 +799,25 @@ const MapView: React.FC<MapViewProps> = ({
                     <Spinner />
                 </div>
             )}
+
+            {isLoadingSwitchSuggestion &&
+                hoveredPixelLocation &&
+                (() => {
+                    const rect = olMapContainer.current?.getBoundingClientRect();
+                    return rect === undefined ? (
+                        <React.Fragment />
+                    ) : (
+                        <div
+                            style={{
+                                position: 'absolute',
+                                left: `${hoveredPixelLocation.x - rect.left - 30}px`,
+                                top: `${hoveredPixelLocation.y - rect.top - 30}px`,
+                            }}
+                            qa-id="map-loading-switch-suggestion-spinner">
+                            <Spinner />
+                        </div>
+                    );
+                })()}
         </div>
     );
 };

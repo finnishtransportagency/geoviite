@@ -22,6 +22,7 @@ import {
 import { ensureAllKeys } from 'utils/type-utils';
 import { Point } from 'model/geometry';
 import { PublicationId, PublicationSearch } from 'publication/publication-model';
+import { ScreenPoint } from 'map/map-view';
 
 export type SelectionMode = 'alignment' | 'segment' | 'point' | 'switch' | 'trackNumber';
 
@@ -122,6 +123,6 @@ export type OnHighlightItemsOptions = {
 
 export type OnHighlightItemsFunction = (options: OnHighlightItemsOptions) => void;
 
-export type OnHoverLocationFunction = (location: Point) => void;
+export type OnHoverLocationFunction = (location: Point, pixelPosition: ScreenPoint) => void;
 
 export type OnClickLocationFunction = (location: Point) => void;

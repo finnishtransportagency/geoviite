@@ -19,6 +19,7 @@ import {
     LinkingGeometryWithAlignmentParameters,
     LinkingGeometryWithEmptyAlignmentParameters,
     SuggestedSwitch,
+    SuggestedSwitchesAtGridPoints,
     SwitchRelinkingValidationResult,
     TrackSwitchRelinkingResult,
 } from 'linking/linking-model';
@@ -213,18 +214,26 @@ export async function getPlanLinkStatuses(
         .then((tracks) => tracks.filter(filterNotEmpty));
 }
 
-export async function getSuggestedSwitchForLayoutSwitchPlacing(
-    layoutBranch: LayoutBranch,
-    point: Point,
-    layoutSwitchId: LayoutSwitchId,
-): Promise<SuggestedSwitch | undefined> {
-    return getSuggestedSwitch(
-        layoutBranch,
-        queryParams({
-            location: pointString(point),
-            layoutSwitchId,
-        }),
+function uncompressSuggestedSwitchesAtGridPoints(
+    switches: SuggestedSwitchesAtGridPoints,
+): (SuggestedSwitch | undefined)[] {
+    return switches.gridSwitchIndices.map((i) =>
+        i == null ? undefined : switches.suggestedSwitches[i],
     );
+}
+
+export async function getSuggestedSwitchesForLayoutSwitchPlacing(
+    layoutBranch: LayoutBranch,
+    points: Point[],
+    switchId: LayoutSwitchId,
+): Promise<(SuggestedSwitch | undefined)[]> {
+    const params = queryParams({
+        points: points.map((p) => pointString(p)),
+        switchId,
+    });
+    return getNonNull<SuggestedSwitchesAtGridPoints>(
+        `${linkingUri(layoutBranch, 'switches', 'suggested')}${params}`,
+    ).then((switches) => uncompressSuggestedSwitchesAtGridPoints(switches));
 }
 
 export async function getSuggestedSwitchForGeometrySwitch(

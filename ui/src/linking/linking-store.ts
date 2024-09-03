@@ -205,6 +205,21 @@ export const linkingReducers = {
             issues: [],
         };
     },
+    suggestSwitch: (state: TrackLayoutState, { payload }: PayloadAction<SuggestedSwitch>): void => {
+        state.layoutContext = draftLayoutContext(state.layoutContext);
+        if (
+            state.linkingState?.type == LinkingType.PlacingSwitch ||
+            state.linkingState?.type == LinkingType.SuggestingSwitchPlace
+        )
+            state.linkingState = {
+                type: LinkingType.SuggestingSwitchPlace,
+                suggestedSwitch: payload,
+                layoutSwitch: state.linkingState.layoutSwitch,
+                state: 'preliminary',
+                issues: [],
+                accepted: false,
+            };
+    },
     startSwitchLinking: (
         state: TrackLayoutState,
         { payload }: PayloadAction<SuggestedSwitch>,
@@ -297,6 +312,7 @@ function validateLinkingState(state: LinkingState): LinkingState {
         case LinkingType.LinkingSwitch:
             return validateLinkingSwitch(state);
         case LinkingType.PlacingSwitch:
+        case LinkingType.SuggestingSwitchPlace:
         case LinkingType.LinkingKmPost:
         case LinkingType.UnknownAlignment:
             return state;
