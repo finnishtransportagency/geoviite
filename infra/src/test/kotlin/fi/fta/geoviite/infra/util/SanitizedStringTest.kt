@@ -1,11 +1,12 @@
 package fi.fta.geoviite.infra.util
 
-import fi.fta.geoviite.infra.authorization.AuthCode
 import fi.fta.geoviite.infra.error.InputValidationException
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 val allowedFreeTextCases = listOf(
     "",
@@ -62,5 +63,30 @@ class SanitizedStringTest {
     fun `FreeTextWithNewLines canonizes line breaks`() {
         val text = FreeTextWithNewLines.of("Windows\r\nline break")
         assertEquals("Windows\nline break", text.toString())
+    }
+
+    @Test
+    fun `StringSanitizer allows only legal characters`() {
+        val legalCharacters = "ABCFÖ1-3_"
+        val legalLength = 1..10
+        val sanitizer = StringSanitizer(SanitizedStringTest::class, legalCharacters, legalLength)
+        assertSanitized(sanitizer, "ABCFÖ123_")
+        assertSanitized(sanitizer, "C_2")
+        assertNotSanitized(sanitizer, "AGB", "AB")
+        assertNotSanitized(sanitizer, "abc2Af", "2A")
+        assertNotSanitized(sanitizer, "4", "")
+        assertNotSanitized(sanitizer, "A-B", "AB")
+    }
+
+    private fun assertSanitized(sanitizer: StringSanitizer, value: String) {
+        assertTrue(sanitizer.isSanitized(value))
+        assertDoesNotThrow { sanitizer.assertSanitized(value) }
+        assertEquals(value, sanitizer.sanitize(value))
+    }
+
+    private fun assertNotSanitized(sanitizer: StringSanitizer, value: String, sanitizedValue: String) {
+        assertFalse(sanitizer.isSanitized(value))
+        assertThrows<InputValidationException> { sanitizer.assertSanitized(value) }
+        assertEquals(sanitizedValue, sanitizer.sanitize(value))
     }
 }

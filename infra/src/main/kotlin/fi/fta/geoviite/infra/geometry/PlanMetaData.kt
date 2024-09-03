@@ -55,7 +55,7 @@ data class MetaDataName @JsonCreator(mode = DELEGATING) constructor(private val 
         fun ofUnsafe(value: String) = MetaDataName(sanitizer.sanitize(value))
     }
 
-    init { CompanyName.sanitizer.assertSanitized(value) }
+    init { sanitizer.assertSanitized(value) }
 
     @JsonValue
     override fun toString(): String = value

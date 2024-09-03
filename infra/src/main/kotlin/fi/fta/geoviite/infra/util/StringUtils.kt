@@ -7,8 +7,8 @@ const val UNIX_LINEBREAK = "\n"
 const val LEGACY_LINEBREAK = "\r" // Possibly used in older files were text may be copied and pasted from.
 const val WINDOWS_LINEBREAK = "\r\n"
 
-const val UNSAFE_REPLACEMENT = "�"
-const val LINE_BREAK_REPLACEMENT = "\\n"
+const val UNSAFE_REPLACEMENT = "�" // Replace unsafe characters with a clear placeholder
+const val LINE_BREAK_REPLACEMENT = "\\n" // Escape line breaks to prevent log forging
 
 const val SAFE_LOG_CHARACTERS = "A-ZÄÖÅa-zäöå0-9 _\\\\\\-–—+(){}.,´`'\"/*#<>\\[\\]:;!?&=€$£@%~$UNSAFE_REPLACEMENT"
 
