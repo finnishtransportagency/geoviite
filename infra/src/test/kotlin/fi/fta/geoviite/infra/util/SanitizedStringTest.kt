@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.util
 
+import fi.fta.geoviite.infra.authorization.AuthCode
 import fi.fta.geoviite.infra.error.InputValidationException
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -30,29 +31,29 @@ class SanitizedStringTest {
 
     @Test
     fun `Code can't contain illegal chars`() {
-        assertDoesNotThrow { Code("LEGAL-M123.3_0") }
-        assertThrows<InputValidationException> { Code("") }
-        assertThrows<InputValidationException> { Code("Ä1") }
-        assertThrows<InputValidationException> { Code("A A") }
-        assertThrows<InputValidationException> { Code("ILLEGAL'") }
-        assertThrows<InputValidationException> { Code("ILLEGAL`") }
-        assertThrows<InputValidationException> { Code("ILLEGAL´") }
-        assertThrows<InputValidationException> { Code("ILLEGAL*") }
-        assertThrows<InputValidationException> { Code("ILLEGAL+") }
-        assertThrows<InputValidationException> { Code("ILLEGAL(") }
-        assertThrows<InputValidationException> { Code("ILLEGAL)") }
-        assertThrows<InputValidationException> { Code("ILLEGAL<") }
-        assertThrows<InputValidationException> { Code("ILLEGAL>") }
-        assertThrows<InputValidationException> { Code("ILLEGAL!") }
-        assertThrows<InputValidationException> { Code("ILLEGAL=") }
-        assertThrows<InputValidationException> { Code("ILLEGAL?") }
-        assertThrows<InputValidationException> { Code("ILLEGAL/") }
-        assertThrows<InputValidationException> { Code("ILLEGAL:") }
-        assertThrows<InputValidationException> { Code("ILLEGAL;") }
-        assertThrows<InputValidationException> { Code("ILLEGAL\\") }
-        assertThrows<InputValidationException> { Code("ILLEGAL\"") }
-        assertThrows<InputValidationException> { Code("ILLEGAL\n") }
-        assertThrows<InputValidationException> { Code("ILLEGAL\tCode") }
+        assertDoesNotThrow { AuthCode("LEGAL-M123.3_0") }
+        assertThrows<InputValidationException> { AuthCode("") }
+        assertThrows<InputValidationException> { AuthCode("Ä1") }
+        assertThrows<InputValidationException> { AuthCode("A A") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL'") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL`") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL´") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL*") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL+") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL(") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL)") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL<") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL>") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL!") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL=") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL?") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL/") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL:") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL;") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL\\") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL\"") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL\n") }
+        assertThrows<InputValidationException> { AuthCode("ILLEGAL\tCode") }
     }
 
     @Test

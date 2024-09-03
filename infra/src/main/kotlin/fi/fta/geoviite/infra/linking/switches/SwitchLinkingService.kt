@@ -17,8 +17,8 @@ import fi.fta.geoviite.infra.linking.FittedSwitchJointMatch
 import fi.fta.geoviite.infra.linking.GeometrySwitchFittingFailure
 import fi.fta.geoviite.infra.linking.GeometrySwitchFittingSuccess
 import fi.fta.geoviite.infra.linking.GeometrySwitchSuggestionFailure
-import fi.fta.geoviite.infra.linking.GeometrySwitchSuggestionSuccess
 import fi.fta.geoviite.infra.linking.GeometrySwitchSuggestionResult
+import fi.fta.geoviite.infra.linking.GeometrySwitchSuggestionSuccess
 import fi.fta.geoviite.infra.linking.SuggestedSwitch
 import fi.fta.geoviite.infra.linking.SwitchLinkingJoint
 import fi.fta.geoviite.infra.linking.SwitchLinkingTopologicalTrackLink
@@ -965,4 +965,3 @@ private fun combineAdjacentSegmentJointNumbers(
     acc.addAll(segments)
     acc
 }
-

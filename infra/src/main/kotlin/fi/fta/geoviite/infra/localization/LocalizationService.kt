@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonValue
 import com.fasterxml.jackson.databind.json.JsonMapper
 import fi.fta.geoviite.infra.aspects.GeoviiteService
-import fi.fta.geoviite.infra.util.LocalizationKey
 import org.springframework.beans.factory.annotation.Value
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap

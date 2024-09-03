@@ -18,7 +18,7 @@ import kotlin.text.Charsets.UTF_8
 @ActiveProfiles("dev", "test", "backend")
 @SpringBootTest
 @AutoConfigureMockMvc
-class CodeDictionaryControllerIT @Autowired constructor(
+class AuthCodeDictionaryControllerIT @Autowired constructor(
     val objectMapper: ObjectMapper,
     val mockMvc: MockMvc,
 ): DBTestBase() {

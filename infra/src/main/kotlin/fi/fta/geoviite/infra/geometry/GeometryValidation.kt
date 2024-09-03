@@ -12,7 +12,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.calculateSwitchLocationDelta
 import fi.fta.geoviite.infra.switchLibrary.transformSwitchPoint
 import fi.fta.geoviite.infra.tracklayout.REFERENCE_LINE_TYPE_CODE
-import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import java.math.BigDecimal
 import kotlin.math.abs
 import kotlin.math.sin

@@ -1,6 +1,6 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
-import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.localization.LocalizationKey
 
 enum class FrameConverterErrorV1(private val localizationSuffix: String) {
     FeaturesNotFound("features-not-found"),

@@ -1,8 +1,9 @@
-package fi.fta.geoviite.infra.util
+package fi.fta.geoviite.infra.localization
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
+import fi.fta.geoviite.infra.util.assertSanitized
 
 data class LocalizationKey @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
     Comparable<LocalizationKey>, CharSequence by value {

@@ -4,22 +4,6 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonValue
 
-data class Code @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
-    Comparable<Code>, CharSequence by value {
-
-    companion object {
-        val sanitizer = Regex("^[A-Za-z0-9_\\-.]+\$")
-    }
-
-    init { assertSanitized<Code>(value, sanitizer) }
-
-    @JsonValue
-    override fun toString(): String = value
-    override fun compareTo(other: Code): Int = value.compareTo(other.value)
-}
-
-fun isValidCode(source: String): Boolean = isSanitized(source, Code.sanitizer, allowBlank = false)
-
 data class FreeText @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
     Comparable<FreeText>, CharSequence by value {
 
