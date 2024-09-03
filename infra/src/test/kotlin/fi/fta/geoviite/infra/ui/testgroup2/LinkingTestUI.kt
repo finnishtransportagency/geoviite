@@ -664,7 +664,6 @@ class LinkingTestUI @Autowired constructor(
     @Test
     fun `Delete track layout switch`() {
         val switchToDelete = switch(
-            seed = 123,
             name = "switch to delete",
             joints = listOf(
                 switchJoint(1, Point(DEFAULT_BASE_POINT + Point(1.0, 1.0))),
@@ -677,7 +676,6 @@ class LinkingTestUI @Autowired constructor(
         // unrelated switch
         switchDao.insert(
             switch(
-                seed = 124,
                 name = "unrelated switch",
                 joints = listOf(
                     switchJoint(1, Point(DEFAULT_BASE_POINT + Point(6.0, 1.0))),

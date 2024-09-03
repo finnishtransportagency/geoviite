@@ -66,7 +66,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun draftAndOfficialSwitchesHaveSameOfficialId() {
-        val dbSwitch = insertAndVerify(switch(123, draft = false))
+        val dbSwitch = insertAndVerify(switch(draft = false))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbSwitch)))
 
         assertNotEquals(dbSwitch, dbDraft)
@@ -120,7 +120,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun draftSwitchesAreIncludedInDraftListingsOnly() {
-        val dbSwitch = insertAndVerify(switch(456, draft = false))
+        val dbSwitch = insertAndVerify(switch(draft = false))
         val dbDraft = insertAndVerify(alter(createAndVerifyDraft(dbSwitch)))
 
         val officials = switchService.list(MainLayoutContext.official)
@@ -172,7 +172,7 @@ class LayoutContextDataIT @Autowired constructor(
 
     @Test
     fun switchCanOnlyHaveOneDraft() {
-        val switch = insertAndVerify(switch(9, draft = false))
+        val switch = insertAndVerify(switch(draft = false))
 
         val draft1 = asMainDraft(switch)
         val draft2 = asMainDraft(switch)

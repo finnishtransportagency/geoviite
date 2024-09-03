@@ -63,7 +63,7 @@ class RatkoClientIT @Autowired constructor(
     fun shouldUpdateRatkoSwitchProperties() {
         val oid = "1.2.3.4.5"
         fakeRatko.hasSwitch(ratkoSwitch(oid))
-        val layoutSwitch = switch(123, externalId = oid, draft = false)
+        val layoutSwitch = switch(externalId = oid, draft = false)
         val basicUpdateSwitch = createRatkoBasicUpdateSwitch(layoutSwitch)
         ratkoClient.updateAssetProperties(RatkoOid(oid), basicUpdateSwitch.properties)
     }
