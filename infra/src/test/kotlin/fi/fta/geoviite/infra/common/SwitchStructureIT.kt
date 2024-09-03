@@ -130,33 +130,11 @@ class SwitchStructureIT @Autowired constructor(
         val seq = System.currentTimeMillis()
         val switchType = SwitchType("YV60-$seq-1:9")
         val switchStructure = YV60_300A_1_9_O().copy(
-            type = switchType
+            type = switchType,
         )
-        val versionId = switchStructureDao.insertSwitchStructure(
-            switchStructure
-        )
+        val versionId = switchStructureDao.insertSwitchStructure(switchStructure)
 
-        val modifiedSwitchStructure = YV60_300A_1_9_O().let { struct ->
-            struct.copy(
-                type = switchType,
-                alignments = struct.alignments.mapIndexed{index, alignment ->
-                    if (index==0)
-                        alignment.copy(
-                            elements = alignment.elements.mapIndexed{index, element ->
-                                if (index==0)
-                                    SwitchElementLine(
-                                        id = element.id,
-                                        start = element.start + 10.0,
-                                        end = element.end)
-                                else
-                                    element
-                            }
-                        )
-                    else
-                        alignment
-                }
-            )
-        }
+        val modifiedSwitchStructure = modifyStructure(YV60_300A_1_9_O(), switchType)
 
         val versionBeforeUpsert = switchStructureDao.fetchSwitchStructureVersion(versionId.id)
         val existingSwitchStructure = switchStructureDao.fetchSwitchStructure(versionBeforeUpsert)
@@ -266,27 +244,7 @@ class SwitchStructureIT @Autowired constructor(
     fun `Should produce different hashcode when switch structures are modified`() {
         val firstSet = switchStructures
         val modifiedSet = firstSet.mapIndexed { index, struct ->
-            if (index>0)
-                struct
-            else
-                struct.copy(
-                    alignments = struct.alignments.mapIndexed{index, alignment ->
-                        if (index==0)
-                            alignment.copy(
-                                elements = alignment.elements.mapIndexed{index, element ->
-                                    if (index==0)
-                                        SwitchElementLine(
-                                            id = element.id,
-                                            start = element.start + 10.0,
-                                            end = element.end)
-                                    else
-                                        element
-                                }
-                            )
-                        else
-                            alignment
-                    }
-                )
+            struct.takeIf { index > 0 } ?: modifyStructure(struct)
         }
 
         assertNotEquals(
@@ -308,4 +266,19 @@ class SwitchStructureIT @Autowired constructor(
         )
     }
 
+    private fun modifyStructure(struct: SwitchStructure, switchType: SwitchType = struct.type) =
+        struct.copy(
+            type = switchType,
+            alignments = struct.alignments.mapIndexed { alignmentIndex, alignment ->
+                alignment.takeIf { alignmentIndex > 0 } ?: alignment.copy(
+                    elements = alignment.elements.mapIndexed { elementIndex, element ->
+                        element.takeIf { elementIndex > 0 } ?: SwitchElementLine(
+                            id = element.id,
+                            start = element.start + 10.0,
+                            end = element.end,
+                        )
+                    },
+                )
+            },
+        )
 }

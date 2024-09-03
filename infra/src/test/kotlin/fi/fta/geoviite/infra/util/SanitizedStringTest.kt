@@ -1,23 +1,24 @@
 package fi.fta.geoviite.infra.util
 
-import fi.fta.geoviite.infra.authorization.AuthCode
 import fi.fta.geoviite.infra.error.InputValidationException
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 val allowedFreeTextCases = listOf(
     "",
     "Legal Free text: * -> 'asdf' (Äö/å) _-–\\ +123465790?!",
     "legal with quote\"",
+    "legal ´`@%=",
+    "legal \tName",
 )
 
 val illegalFreeTextCases = listOf(
-    "Illegal`",
-    "Illegal´",
-    "Illegal=",
-    "Illegal\tName",
+    "Illegal^",
+    "Illegal|",
 )
 
 val freeTextWithNewLineCases = listOf(
@@ -28,33 +29,6 @@ val freeTextWithNewLineCases = listOf(
 )
 
 class SanitizedStringTest {
-
-    @Test
-    fun `Code can't contain illegal chars`() {
-        assertDoesNotThrow { AuthCode("LEGAL-M123.3_0") }
-        assertThrows<InputValidationException> { AuthCode("") }
-        assertThrows<InputValidationException> { AuthCode("Ä1") }
-        assertThrows<InputValidationException> { AuthCode("A A") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL'") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL`") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL´") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL*") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL+") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL(") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL)") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL<") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL>") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL!") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL=") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL?") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL/") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL:") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL;") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL\\") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL\"") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL\n") }
-        assertThrows<InputValidationException> { AuthCode("ILLEGAL\tCode") }
-    }
 
     @Test
     fun `FreeText can't contain illegal chars`() {
@@ -89,5 +63,30 @@ class SanitizedStringTest {
     fun `FreeTextWithNewLines canonizes line breaks`() {
         val text = FreeTextWithNewLines.of("Windows\r\nline break")
         assertEquals("Windows\nline break", text.toString())
+    }
+
+    @Test
+    fun `StringSanitizer allows only legal characters`() {
+        val legalCharacters = "ABCFÖ1-3_"
+        val legalLength = 1..10
+        val sanitizer = StringSanitizer(SanitizedStringTest::class, legalCharacters, legalLength)
+        assertSanitized(sanitizer, "ABCFÖ123_")
+        assertSanitized(sanitizer, "C_2")
+        assertNotSanitized(sanitizer, "AGB", "AB")
+        assertNotSanitized(sanitizer, "abc2Af", "2A")
+        assertNotSanitized(sanitizer, "4", "")
+        assertNotSanitized(sanitizer, "A-B", "AB")
+    }
+
+    private fun assertSanitized(sanitizer: StringSanitizer, value: String) {
+        assertTrue(sanitizer.isSanitized(value))
+        assertDoesNotThrow { sanitizer.assertSanitized(value) }
+        assertEquals(value, sanitizer.sanitize(value))
+    }
+
+    private fun assertNotSanitized(sanitizer: StringSanitizer, value: String, sanitizedValue: String) {
+        assertFalse(sanitizer.isSanitized(value))
+        assertThrows<InputValidationException> { sanitizer.assertSanitized(value) }
+        assertEquals(sanitizedValue, sanitizer.sanitize(value))
     }
 }

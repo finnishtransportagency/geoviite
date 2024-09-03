@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DISABLED
 import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.math.round
-import fi.fta.geoviite.infra.util.assertSanitized
+import fi.fta.geoviite.infra.util.StringSanitizer
 import fi.fta.geoviite.infra.util.formatForException
 import java.math.BigDecimal
 import java.math.RoundingMode.DOWN
@@ -29,7 +29,8 @@ data class KmNumber @JsonCreator(mode = DISABLED) constructor(
 
     companion object {
         private val extensionLength = 1..2
-        private val extensionSanitizer = Regex("^[A-Z]*\$")
+        private const val EXTENSION_CHARACTERS = "A-Z"
+        private val extensionSanitizer = StringSanitizer(KmNumber::class, EXTENSION_CHARACTERS, extensionLength)
         val ZERO = KmNumber(0)
     }
 
@@ -41,9 +42,7 @@ data class KmNumber @JsonCreator(mode = DISABLED) constructor(
     override fun toString(): String = stringValue
 
     init {
-        extension?.let {
-            assertSanitized<KmNumber>(it, extensionSanitizer, extensionLength, allowBlank = false)
-        }
+        extension?.let(extensionSanitizer::assertSanitized)
     }
 
     override fun compareTo(other: KmNumber): Int = stringValue.compareTo(other.stringValue)

@@ -18,14 +18,12 @@ import fi.fta.geoviite.infra.projektivelho.PVDocumentStatus
 import fi.fta.geoviite.infra.projektivelho.PVId
 import fi.fta.geoviite.infra.projektivelho.PVProject
 import fi.fta.geoviite.infra.projektivelho.PVProjectGroup
-import fi.fta.geoviite.infra.projektivelho.PVProjectName
 import fi.fta.geoviite.infra.projektivelho.materialDictionaries
 import fi.fta.geoviite.infra.projektivelho.projectDictionaries
 import fi.fta.geoviite.infra.ui.SeleniumTest
 import fi.fta.geoviite.infra.ui.pagemodel.common.waitAndClearToast
 import fi.fta.geoviite.infra.ui.pagemodel.inframodel.E2EProjektiVelhoListItem
-import fi.fta.geoviite.infra.util.FileName
-import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.util.UnsafeString
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -98,10 +96,6 @@ class ProjektiVelhoTestUI @Autowired constructor(
             )
 
             fakeProjektiVelho.login()
-            fakeProjektiVelho.redirect(documentOid)
-            fakeProjektiVelho.redirect(projectOid)
-            fakeProjektiVelho.redirect(projectGroupOid)
-            fakeProjektiVelho.redirect(assignmentOid)
             startGeoviite()
             val velhoPage = goToInfraModelPage().openVelhoWaitingForApprovalList()
             velhoPage
@@ -126,7 +120,7 @@ class ProjektiVelhoTestUI @Autowired constructor(
         assignmentOid: Oid<PVAssignment> = Oid("3.4.5.6.7"),
     ): RowVersion<PVDocument> {
         val someProperties = PVApiProperties(
-            name = PVProjectName("testi_projekti"),
+            name = UnsafeString("testi_projekti"),
             state = PVDictionaryCode("tila/tila14"),
         )
 
@@ -168,11 +162,11 @@ class ProjektiVelhoTestUI @Autowired constructor(
                 technicalFields = listOf(PVDictionaryCode("tekniikka-ala/ta00")),
                 materialCategory = PVDictionaryCode("aineistolaji/al00"),
                 containsPersonalInfo = false,
-                description = FreeText("goo goo ga ga")
+                description = UnsafeString("goo goo ga ga")
             ),
             latestVersion = PVApiLatestVersion(
                 version = PVId("123456"),
-                name = FileName("foo bar.xml"),
+                name = UnsafeString("foo bar.xml"),
                 changeTime = Instant.parse("2023-03-04T05:06:07.089Z"),
             ),
             status = PVDocumentStatus.SUGGESTED,

@@ -1,15 +1,66 @@
 package fi.fta.geoviite.infra.inframodel
 
-import fi.fta.geoviite.infra.common.*
+import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.FeatureTypeCode
+import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.KmNumber
+import fi.fta.geoviite.infra.common.ProjectName
+import fi.fta.geoviite.infra.common.Srid
+import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.error.InframodelParsingException
 import fi.fta.geoviite.infra.error.InputValidationException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
-import fi.fta.geoviite.infra.geometry.*
+import fi.fta.geoviite.infra.geometry.Application
+import fi.fta.geoviite.infra.geometry.Author
+import fi.fta.geoviite.infra.geometry.BiquadraticParabola
+import fi.fta.geoviite.infra.geometry.CantRotationPoint
+import fi.fta.geoviite.infra.geometry.CantTransitionType
 import fi.fta.geoviite.infra.geometry.CantTransitionType.BIQUADRATIC_PARABOLA
 import fi.fta.geoviite.infra.geometry.CantTransitionType.LINEAR
-import fi.fta.geoviite.infra.geometry.PlanState.*
-import fi.fta.geoviite.infra.math.*
-import fi.fta.geoviite.infra.switchLibrary.*
+import fi.fta.geoviite.infra.geometry.CompanyName
+import fi.fta.geoviite.infra.geometry.CurveData
+import fi.fta.geoviite.infra.geometry.ElementData
+import fi.fta.geoviite.infra.geometry.GeometryAlignment
+import fi.fta.geoviite.infra.geometry.GeometryCant
+import fi.fta.geoviite.infra.geometry.GeometryCantPoint
+import fi.fta.geoviite.infra.geometry.GeometryClothoid
+import fi.fta.geoviite.infra.geometry.GeometryCurve
+import fi.fta.geoviite.infra.geometry.GeometryElement
+import fi.fta.geoviite.infra.geometry.GeometryKmPost
+import fi.fta.geoviite.infra.geometry.GeometryLine
+import fi.fta.geoviite.infra.geometry.GeometryPlan
+import fi.fta.geoviite.infra.geometry.GeometryProfile
+import fi.fta.geoviite.infra.geometry.GeometrySwitch
+import fi.fta.geoviite.infra.geometry.GeometrySwitchJoint
+import fi.fta.geoviite.infra.geometry.GeometrySwitchTypeName
+import fi.fta.geoviite.infra.geometry.GeometryUnits
+import fi.fta.geoviite.infra.geometry.MetaDataName
+import fi.fta.geoviite.infra.geometry.PlanSource
+import fi.fta.geoviite.infra.geometry.PlanState
+import fi.fta.geoviite.infra.geometry.PlanState.ABANDONED
+import fi.fta.geoviite.infra.geometry.PlanState.DESTROYED
+import fi.fta.geoviite.infra.geometry.PlanState.EXISTING
+import fi.fta.geoviite.infra.geometry.PlanState.PROPOSED
+import fi.fta.geoviite.infra.geometry.Project
+import fi.fta.geoviite.infra.geometry.SpiralData
+import fi.fta.geoviite.infra.geometry.SwitchData
+import fi.fta.geoviite.infra.geometry.VICircularCurve
+import fi.fta.geoviite.infra.geometry.VIPoint
+import fi.fta.geoviite.infra.geometry.VerticalIntersection
+import fi.fta.geoviite.infra.math.Angle
+import fi.fta.geoviite.infra.math.AngularUnit
+import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.directionBetweenPoints
+import fi.fta.geoviite.infra.math.radsToAngle
+import fi.fta.geoviite.infra.math.toAngle
+import fi.fta.geoviite.infra.switchLibrary.SwitchHand
+import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.switchLibrary.SwitchType
+import fi.fta.geoviite.infra.switchLibrary.switchTypeRequiresHandedness
+import fi.fta.geoviite.infra.switchLibrary.tryParseSwitchType
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.formatForException
@@ -98,9 +149,9 @@ fun toGvtPlan(
             description = project.desc?.let(::tryParseFreeText),
         ),
         application = Application(
-            name = MetaDataName(application.name),
-            manufacturer = MetaDataName(application.manufacturer),
-            version = MetaDataName(application.version),
+            name = MetaDataName.ofUnsafe(application.name),
+            manufacturer = MetaDataName.ofUnsafe(application.manufacturer),
+            version = MetaDataName.ofUnsafe(application.version),
         ),
         author = author.company?.let(::tryParseCompanyName)?.let(::Author),
         planTime = author.timeStamp?.let(::parseTime),
@@ -126,7 +177,6 @@ fun <T> mandatorySection(name: String, section: T?): T = section ?: throw Infram
     message = "Plan is missing mandatory section: $name",
     localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.missing-section.$name",
 )
-
 
 fun parseUnits(
     coordinateSystem: InfraModelCoordinateSystem,
@@ -618,10 +668,10 @@ fun tryParseKmNumber(text: String): KmNumber? = if (text == "AKM" || text == "AP
     null
 }
 
-fun tryParseCompanyName(text: String): CompanyName? = tryParseText(text, ::CompanyName)
-fun tryParseAlignmentName(text: String): AlignmentName? = tryParseText(text, ::AlignmentName)
-fun tryParseSwitchName(text: String): SwitchName? = tryParseText(text, ::SwitchName)
-fun tryParsePlanElementName(text: String): PlanElementName? = tryParseText(text, ::PlanElementName)
+fun tryParseCompanyName(text: String): CompanyName? = tryParseText(text, CompanyName::ofUnsafe)
+fun tryParseAlignmentName(text: String): AlignmentName? = tryParseText(text, AlignmentName::ofUnsafe)
+fun tryParseSwitchName(text: String): SwitchName? = tryParseText(text, SwitchName::ofUnsafe)
+fun tryParsePlanElementName(text: String): PlanElementName? = tryParseText(text, PlanElementName::ofUnsafe)
 
 fun emptyName() = PlanElementName("")
 fun tryParseFreeText(text: String): FreeText? = tryParseText(text, ::FreeText)

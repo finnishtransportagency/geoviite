@@ -1,12 +1,14 @@
 package fi.fta.geoviite.infra.projektivelho
 
+import com.fasterxml.jackson.core.JsonGenerator
+import com.fasterxml.jackson.databind.JsonSerializer
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializerProvider
+import com.fasterxml.jackson.databind.module.SimpleModule
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.inframodel.TESTFILE_CLOTHOID_AND_PARABOLA
 import fi.fta.geoviite.infra.inframodel.classpathResourceToString
-import fi.fta.geoviite.infra.util.FileName
-import fi.fta.geoviite.infra.util.FreeText
-import fi.fta.geoviite.infra.util.HttpsUrl
+import fi.fta.geoviite.infra.util.UnsafeString
 import org.mockserver.client.ForwardChainExpectation
 import org.mockserver.integration.ClientAndServer
 import org.mockserver.matchers.MatchType
@@ -20,9 +22,19 @@ import java.time.Instant
 const val SAMPLE_TOKEN =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
 
+private class UnsafeSerializer : JsonSerializer<UnsafeString>() {
+    override fun serialize(value: UnsafeString, gen: JsonGenerator, serializers: SerializerProvider) {
+        gen.writeString(value.unsafeValue)
+    }
+}
 class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper) : AutoCloseable {
     private val mockServer: ClientAndServer = ClientAndServer.startClientAndServer(port)
 
+    init {
+        val module = SimpleModule("TestUnsafeSerializer")
+        module.addSerializer(UnsafeString::class.java, UnsafeSerializer())
+        jsonMapper.registerModule(module)
+    }
     override fun close() {
         mockServer.stop()
     }
@@ -40,7 +52,7 @@ class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper) : AutoCloseable
         )
     }
 
-    fun fetchDictionaries(group: PVDictionaryGroup, dictionaries: Map<PVDictionaryType, List<PVDictionaryEntry>>) {
+    fun fetchDictionaries(group: PVDictionaryGroup, dictionaries: Map<PVDictionaryType, List<PVApiDictionaryEntry>>) {
         get(encodingGroupUrl(group), Times.exactly(1)).respond(
             okJson(
                 """{
@@ -54,7 +66,7 @@ class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper) : AutoCloseable
         )
     }
 
-    private fun dictionaryJson(type: PVDictionaryType, entries: List<PVDictionaryEntry>): String {
+    private fun dictionaryJson(type: PVDictionaryType, entries: List<PVApiDictionaryEntry>): String {
         return """
             "${encodingTypeDictionary(type)}": {
               "uusin-nimikkeistoversio": 1,
@@ -67,7 +79,7 @@ class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper) : AutoCloseable
         """.trimIndent()
     }
 
-    private fun dictionaryEntryJson(entry: PVDictionaryEntry): String = """
+    private fun dictionaryEntryJson(entry: PVApiDictionaryEntry): String = """
         "${entry.code}": {
           "otsikko": "${entry.name}",
           "aineistoryhmat": [
@@ -105,9 +117,9 @@ class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper) : AutoCloseable
         get("$FILE_DATA_PATH/$oid").respond(
             okJsonSerialized(
                 PVApiDocument(
-                    latestVersion = PVApiLatestVersion(version, FileName("test.xml"), Instant.now()),
+                    latestVersion = PVApiLatestVersion(version, UnsafeString("test.xml"), Instant.now()),
                     metadata = PVApiDocumentMetadata(
-                        description = FreeText(description),
+                        description = UnsafeString(description),
                         documentType = documentType,
                         materialState = materialState,
                         materialCategory = materialCategory,
@@ -132,16 +144,6 @@ class FakeProjektiVelho(port: Int, val jsonMapper: ObjectMapper) : AutoCloseable
         post("/oauth2/token").respond(
             okJsonSerialized(
                 PVAccessToken(PVBearerToken(SAMPLE_TOKEN), 3600, BearerTokenType.Bearer)
-            )
-        )
-    }
-
-    fun redirect(oid: Oid<*>) {
-        get("$REDIRECT_PATH/${oid}").respond(
-            okJsonSerialized(
-                PVApiRedirect(
-                    PVMasterSystem("master"), PVTargetCategory("category"), HttpsUrl("https://fake-pv.fi/redir/$oid")
-                )
             )
         )
     }

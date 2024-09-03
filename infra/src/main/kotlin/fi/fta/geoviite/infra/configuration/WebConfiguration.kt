@@ -36,14 +36,13 @@ import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryCode
-import fi.fta.geoviite.infra.projektivelho.PVDictionaryName
 import fi.fta.geoviite.infra.projektivelho.PVId
-import fi.fta.geoviite.infra.projektivelho.PVTargetCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.HttpsUrl
+import fi.fta.geoviite.infra.util.UnsafeString
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
@@ -77,6 +76,8 @@ class WebConfig(
 
         registry.addStringConstructorConverter(::CoordinateSystemName)
         registry.addStringConstructorConverter(::FeatureTypeCode)
+
+        registry.addStringConstructorConverter(::UnsafeString)
 
         logger.info("Registering geometry name converters")
         registry.addStringConstructorConverter(::FileName)
@@ -128,8 +129,6 @@ class WebConfig(
         logger.info("Registering ProjektiVelho sanitized string converters")
         registry.addStringConstructorConverter(::PVId)
         registry.addStringConstructorConverter(::PVDictionaryCode)
-        registry.addStringConstructorConverter(::PVDictionaryName)
-        registry.addStringConstructorConverter(::PVTargetCategory)
 
         logger.info("Registering localization language converters")
         registry.addStringConstructorConverter { enumCaseInsensitive<LocalizationLanguage>(it) }
