@@ -1082,7 +1082,7 @@ constructor(
     }
 
     @Test
-    fun `validateRelinkingTrack relinks switches that don't end up linked to the original track as well`() {
+    fun `validateRelinkingTrack warns about switches getting unlinked`() {
         val trackNumberId =
             mainOfficialContext
                 .createLayoutTrackNumberAndReferenceLine(alignment(segment(Point(0.0, 0.0), Point(200.0, 0.0))))
@@ -1164,7 +1164,16 @@ constructor(
                                 localizationKey =
                                     LocalizationKey("validation.layout.switch.track-linkage.front-joint-not-connected"),
                                 params = LocalizationParams(mapOf("switch" to "somewhere else")),
-                            )
+                            ),
+                            LayoutValidationIssue(
+                                LayoutValidationIssueType.ERROR,
+                                localizationKey =
+                                    LocalizationKey("validation.layout.split.track-links-missing-after-relinking"),
+                                params =
+                                    LocalizationParams(
+                                        mapOf("switchName" to "somewhere else", "sourceName" to "topoTrack")
+                                    ),
+                            ),
                         ),
                 ),
             ),
@@ -1505,12 +1514,8 @@ constructor(
                     LayoutBranch.main,
                     locationTrack(trackNumberId, name = "through track", draft = true),
                     alignment(
-                        segment(
-                            Point(0.0, 0.0),
-                            Point(40.0, 0.0),
-                            switchId = switchId,
-                            startJointNumber = JointNumber(1),
-                        )
+                        segment(Point(0.0, 0.0), Point(40.0, 0.0))
+                            .copy(switchId = switchId, startJointNumber = JointNumber(1))
                     ),
                 )
                 .id

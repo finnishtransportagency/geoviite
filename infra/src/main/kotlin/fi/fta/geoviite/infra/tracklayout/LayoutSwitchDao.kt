@@ -448,6 +448,7 @@ class LayoutSwitchDao(
     }
 
     data class LocationTrackIdentifiers(
+        val id: IntId<LocationTrack>,
         val rowVersion: LayoutRowVersion<LocationTrack>,
         val externalId: Oid<LocationTrack>?,
     )
@@ -455,27 +456,34 @@ class LayoutSwitchDao(
     fun findLocationTracksLinkedToSwitch(
         layoutContext: LayoutContext,
         switchId: IntId<TrackLayoutSwitch>,
-    ): List<LocationTrackIdentifiers> = findLocationTracksLinkedToSwitches(layoutContext, listOf(switchId))
+    ): List<LocationTrackIdentifiers> =
+        findLocationTracksLinkedToSwitches(layoutContext, listOf(switchId))[switchId] ?: listOf()
 
     fun findLocationTracksLinkedToSwitches(
         layoutContext: LayoutContext,
         switchIds: List<IntId<TrackLayoutSwitch>>,
-    ): List<LocationTrackIdentifiers> {
-        if (switchIds.isEmpty()) return emptyList()
+    ): Map<IntId<TrackLayoutSwitch>, List<LocationTrackIdentifiers>> {
+        if (switchIds.isEmpty()) return emptyMap()
 
         val sql =
-            """ 
-            select 
-              location_track.row_id,
-              location_track.row_version,
-              location_track.external_id
-            from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id) location_track
-            where location_track.topology_start_switch_id in (:switch_ids)
-              or location_track.topology_end_switch_id in (:switch_ids)
-              or exists (select * from layout.segment_version sv
-                           where sv.switch_id in (:switch_ids)
-                             and sv.alignment_id = location_track.alignment_id
-                             and sv.alignment_version = location_track.alignment_version)
+            """
+            select switch_id, location_track.official_id, row_id, row_version, external_id
+              from (
+                select topology_start_switch_id as switch_id, official_id
+                  from layout.location_track
+                  where topology_start_switch_id = any (array [:switch_ids])
+                union
+                select topology_end_switch_id as switch_id, official_id
+                  from layout.location_track
+                  where topology_end_switch_id = any (array [:switch_ids])
+                union
+                select switch_id, location_track.official_id
+                  from layout.location_track
+                    join layout.segment_version using (alignment_id, alignment_version)
+                  where switch_id = any (array [:switch_ids])
+              ) location_track
+                cross join lateral layout.location_track_in_layout_context(:publication_state::layout.publication_state,
+                                                                           :design_id, location_track.official_id);
         """
                 .trimIndent()
         val params =
@@ -486,11 +494,14 @@ class LayoutSwitchDao(
             )
         return jdbcTemplate
             .query(sql, params) { rs, _ ->
-                LocationTrackIdentifiers(
-                    rowVersion = rs.getLayoutRowVersion("row_id", "row_version"),
-                    externalId = rs.getOidOrNull("external_id"),
-                )
+                rs.getIntId<TrackLayoutSwitch>("switch_id") to
+                    LocationTrackIdentifiers(
+                        id = rs.getIntId("official_id"),
+                        rowVersion = rs.getLayoutRowVersion("row_id", "row_version"),
+                        externalId = rs.getOidOrNull("external_id"),
+                    )
             }
+            .groupBy({ it.first }, { it.second })
             .also { logger.daoAccess(FETCH, "LocationTracks linked to switch", switchIds) }
     }
 
@@ -504,6 +515,7 @@ class LayoutSwitchDao(
         val sql =
             """ 
             select distinct
+              location_track.official_id,
               location_track.id, 
               location_track.version,
               location_track.external_id
@@ -534,6 +546,7 @@ class LayoutSwitchDao(
         return jdbcTemplate
             .query(sql, params) { rs, _ ->
                 LocationTrackIdentifiers(
+                    id = rs.getIntId("official_id"),
                     rowVersion = rs.getLayoutRowVersion("id", "version"),
                     externalId = rs.getOidOrNull("external_id"),
                 )
