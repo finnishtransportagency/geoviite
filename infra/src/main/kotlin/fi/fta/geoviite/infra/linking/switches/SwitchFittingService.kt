@@ -38,7 +38,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchPositionTransformation
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.switchLibrary.calculateSwitchLocationDeltaOrNull
+import fi.fta.geoviite.infra.switchLibrary.calculateSwitchLocationDelta
 import fi.fta.geoviite.infra.switchLibrary.transformSwitchPoint
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.IAlignment
@@ -171,7 +171,7 @@ fun calculateLayoutSwitchJoints(
         geomSwitch.joints.map { geomJoint ->
             SwitchJoint(number = geomJoint.number, location = toLayoutCoordinate.transform(geomJoint.location))
         }
-    val switchLocationDelta = calculateSwitchLocationDeltaOrNull(layoutJointPoints, switchStructure)
+    val switchLocationDelta = calculateSwitchLocationDelta(layoutJointPoints, switchStructure)
     return if (switchLocationDelta != null) {
         switchStructure.alignmentJoints.map { joint ->
             SwitchJoint(number = joint.number, location = transformSwitchPoint(switchLocationDelta, joint.location))
@@ -549,7 +549,7 @@ fun findTransformations(
         )
         .mapNotNull { (from, to) ->
             val testJoints = listOf(joint.copy(location = from.toPoint()), farthestJoint.copy(location = to.toPoint()))
-            calculateSwitchLocationDeltaOrNull(testJoints, switchStructure)
+            calculateSwitchLocationDelta(testJoints, switchStructure)
         }
 }
 

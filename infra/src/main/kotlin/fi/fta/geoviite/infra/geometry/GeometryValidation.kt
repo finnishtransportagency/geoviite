@@ -789,7 +789,7 @@ fun validateSwitch(
 
 fun validateSwitchGeometry(switch: GeometrySwitch, switchStructure: SwitchStructure): List<SwitchDefinitionError> {
     val joints: List<GeometrySwitchJoint> = switch.joints
-    val positionTransformation = if (joints.size > 1) getSwitchPositionTransformation(switchStructure, joints) else null
+    val positionTransformation = if (joints.size > 1) calculateSwitchLocationDelta(joints, switchStructure) else null
     return if (positionTransformation == null) {
         listOfNotNull(
             validate(joints.size <= 1) { SwitchDefinitionError("location-difference", OBSERVATION_MAJOR, switch.name) }
@@ -871,13 +871,6 @@ fun validateSwitchAlignments(
         )
     }
 }
-
-fun getSwitchPositionTransformation(switchStructure: SwitchStructure, joints: List<GeometrySwitchJoint>) =
-    try {
-        calculateSwitchLocationDelta(joints, switchStructure)
-    } catch (e: Exception) {
-        null
-    }
 
 fun collectAlignmentSwitchJoints(switchId: DomainId<GeometrySwitch>, alignment: GeometryAlignment): AlignmentSwitch? {
     return alignment.elements
