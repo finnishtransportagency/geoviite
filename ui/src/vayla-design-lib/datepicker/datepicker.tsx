@@ -11,9 +11,11 @@ import { formatDateShort } from 'utils/date-utils';
 import { parse, isValid } from 'date-fns';
 import { useCloneRef } from 'utils/react-utils';
 
+export type DatePickerDateSource = 'PICKER' | 'TEXT';
+
 type DatePickerProps = {
     value: Date | undefined;
-    onChange: (date: Date | undefined) => void;
+    onChange: (date: Date | undefined, source: DatePickerDateSource) => void;
     wide?: boolean;
     minDate?: Date;
     maxDate?: Date;
@@ -153,7 +155,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, .
             <DatePickerInput
                 openDatePicker={() => setOpen(true)}
                 date={value}
-                setDate={onChange}
+                setDate={(date) => onChange(date, 'TEXT')}
                 wide={wide}
                 ref={ref}
                 {...props}
@@ -169,7 +171,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ onChange, value, wide, .
                         locale={fi}
                         selected={value}
                         onChange={(date) => {
-                            onChange(date ?? undefined);
+                            onChange(date ?? undefined, 'PICKER');
                         }}
                         onChangeRaw={() => setOpen(false)}
                         onClickOutside={() => setOpen(false)}
