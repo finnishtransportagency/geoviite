@@ -4,10 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonValue
-import fi.fta.geoviite.infra.util.assertLength
-import fi.fta.geoviite.infra.util.assertSanitized
-import fi.fta.geoviite.infra.util.isSanitized
-import fi.fta.geoviite.infra.util.removeLogUnsafe
+import fi.fta.geoviite.infra.util.StringSanitizer
 import org.springframework.security.core.GrantedAuthority
 
 data class User(val details: UserDetails, val role: Role, val availableRoles: List<Role>)
@@ -22,38 +19,43 @@ data class UserDetails(
 data class Role(val code: AuthCode, val privileges: List<Privilege>)
 
 data class Privilege(val code: AuthCode) : GrantedAuthority {
-    @JsonIgnore override fun getAuthority(): String = code.toString()
+    @JsonIgnore
+    override fun getAuthority(): String = code.toString()
 }
 
-val userNameLength = 3..300
-
-data class UserName private constructor(private val value: String) : Comparable<UserName>, CharSequence by value {
+data class UserName private constructor(private val value: String)
+    : Comparable<UserName>, CharSequence by value {
     companion object {
-        @JvmStatic @JsonCreator fun of(name: String) = UserName(removeLogUnsafe(name))
+        val allowedLength = 3..300
+        const val ALLOWED_CHARACTERS = "A-Za-z0-9_\\-"
+        val sanitizer = StringSanitizer(UserName::class, ALLOWED_CHARACTERS, allowedLength)
+
+        @JvmStatic
+        @JsonCreator
+        fun of(name: String) = UserName(sanitizer.sanitize(name))
     }
+    init { sanitizer.assertSanitized(value) }
 
-    init {
-        assertLength<UserName>(value, userNameLength)
-    }
-
-    @JsonValue override fun toString(): String = value
-
+    @JsonValue
+    override fun toString(): String = value
     override fun compareTo(other: UserName): Int = value.compareTo(other.value)
 }
 
-val authNameLength = 1..300
-
-data class AuthName private constructor(private val value: String) : Comparable<AuthName>, CharSequence by value {
+data class AuthName private constructor(private val value: String)
+    : Comparable<AuthName>, CharSequence by value {
     companion object {
-        @JvmStatic @JsonCreator fun of(name: String) = AuthName(removeLogUnsafe(name))
+        val allowedLength = 1..300
+        const val ALLOWED_CHARACTERS = "A-ZÄÖÅa-zäöå0-9 _\\-+:.,'/"
+        val sanitizer = StringSanitizer(UserName::class, ALLOWED_CHARACTERS, allowedLength)
+
+        @JvmStatic
+        @JsonCreator
+        fun of(name: String) = AuthName(sanitizer.sanitize(name))
     }
+    init { sanitizer.assertSanitized(value) }
 
-    init {
-        assertLength<AuthName>(value, authNameLength)
-    }
-
-    @JsonValue override fun toString(): String = value
-
+    @JsonValue
+    override fun toString(): String = value
     override fun compareTo(other: AuthName): Int = value.compareTo(other.value)
 }
 
@@ -61,16 +63,16 @@ data class AuthCode @JsonCreator(mode = DELEGATING) constructor(private val valu
     Comparable<AuthCode>, CharSequence by value {
 
     companion object {
-        val sanitizer = Regex("^[A-Za-z0-9_\\-.]+\$")
+        const val ALLOWED_CHARACTERS = "A-Za-z0-9_\\-."
+        val allowedLength = 1..20
+        val sanitizer = StringSanitizer(AuthCode::class, ALLOWED_CHARACTERS, allowedLength)
     }
 
-    init {
-        assertSanitized<AuthCode>(value, sanitizer)
-    }
+    init { sanitizer.assertSanitized(value) }
 
-    @JsonValue override fun toString(): String = value
-
+    @JsonValue
+    override fun toString(): String = value
     override fun compareTo(other: AuthCode): Int = value.compareTo(other.value)
 }
 
-fun isValidCode(source: String): Boolean = isSanitized(source, AuthCode.sanitizer, allowBlank = false)
+fun isValidCode(source: String): Boolean = AuthCode.sanitizer.isSanitized(source)

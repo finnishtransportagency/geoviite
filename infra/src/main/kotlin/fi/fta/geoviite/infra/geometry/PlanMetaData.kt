@@ -7,14 +7,9 @@ import fi.fta.geoviite.infra.common.DomainId
 import fi.fta.geoviite.infra.common.ProjectName
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.util.FreeText
-import fi.fta.geoviite.infra.util.assertSanitized
+import fi.fta.geoviite.infra.util.StringSanitizer
 
-enum class PlanState {
-    ABANDONED,
-    DESTROYED,
-    EXISTING,
-    PROPOSED,
-}
+enum class PlanState { ABANDONED, DESTROYED, EXISTING, PROPOSED }
 
 enum class PlanPhase {
     RAILWAY_PLAN,
@@ -26,11 +21,7 @@ enum class PlanPhase {
     REMOVED_FROM_USE,
 }
 
-enum class PlanDecisionPhase {
-    APPROVED_PLAN,
-    UNDER_CONSTRUCTION,
-    IN_USE,
-}
+enum class PlanDecisionPhase { APPROVED_PLAN, UNDER_CONSTRUCTION, IN_USE }
 
 data class Project(val name: ProjectName, val description: FreeText?, val id: DomainId<Project> = StringId())
 
@@ -43,21 +34,29 @@ data class Application(
 
 data class Author(val companyName: CompanyName, val id: DomainId<Author> = StringId())
 
-val metaDataNameLength = 1..100
-val metaDataNameRegex = Regex("^[A-ZÄÖÅa-zäöå0-9 _\\-/+&,.:()]+\$")
-
 data class CompanyName @JsonCreator(mode = DELEGATING) constructor(private val value: String) : CharSequence by value {
-    init {
-        assertSanitized<CompanyName>(value, metaDataNameRegex, metaDataNameLength)
+    companion object {
+        val sanitizer = MetaDataName.sanitizer
+        fun ofUnsafe(value: String) = CompanyName(sanitizer.sanitize(value))
     }
 
-    @JsonValue override fun toString(): String = value
+    init { sanitizer.assertSanitized(value) }
+
+    @JsonValue
+    override fun toString(): String = value
 }
 
 data class MetaDataName @JsonCreator(mode = DELEGATING) constructor(private val value: String) : CharSequence by value {
-    init {
-        assertSanitized<MetaDataName>(value, metaDataNameRegex, metaDataNameLength)
+
+    companion object {
+        val allowedLength = 1..100
+        const val ALLOWED_CHARACTERS = "A-ZÄÖÅa-zäöå0-9 _\\-/+&,.:()"
+        val sanitizer = StringSanitizer(MetaDataName::class, ALLOWED_CHARACTERS, allowedLength)
+        fun ofUnsafe(value: String) = MetaDataName(sanitizer.sanitize(value))
     }
 
-    @JsonValue override fun toString(): String = value
+    init { sanitizer.assertSanitized(value) }
+
+    @JsonValue
+    override fun toString(): String = value
 }
