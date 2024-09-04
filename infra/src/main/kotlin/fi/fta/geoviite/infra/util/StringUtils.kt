@@ -32,7 +32,7 @@ inline fun <reified T> parsePrefixed(prefix: String, value: String): String =
 fun formatForException(input: String, maxLength: Int = DEFAULT_EXCEPTION_MAX_LENGTH) = formatForLog(input, maxLength)
 
 fun sanitize(input: String, regex: Regex, maxLength: Int?): String =
-    (if (maxLength != null) limitLength(input, maxLength) else input).replace(regex, "")
+    input.replace(regex, "").let { s -> if (maxLength != null) s.take(maxLength) else s }
 
 fun formatForLog(input: String, maxLength: Int = DEFAULT_LOG_MAX_LENGTH): String =
     "\"${limitLength(input, maxLength).let(::removeLogUnsafe).let(::removeLinebreaks)}\""
