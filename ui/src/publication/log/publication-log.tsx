@@ -2,7 +2,12 @@ import * as React from 'react';
 import styles from './publication-log.scss';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'vayla-design-lib/link/link';
-import { DatePicker, END_OF_CENTURY, START_OF_2022 } from 'vayla-design-lib/datepicker/datepicker';
+import {
+    DatePicker,
+    DatePickerDateSource,
+    END_OF_CENTURY,
+    START_OF_2022,
+} from 'vayla-design-lib/datepicker/datepicker';
 import { parseISOOrUndefined } from 'utils/date-utils';
 import { endOfDay, startOfDay } from 'date-fns';
 import { getPublicationsAsTableItems, getPublicationsCsvUri } from 'publication/publication-api';
@@ -11,6 +16,7 @@ import { Button } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
 import {
     InitiallyUnsorted,
+    PublicationDetailsTableSortField,
     PublicationDetailsTableSortInformation,
 } from 'publication/table/publication-table-utils';
 import { FieldLayout } from 'vayla-design-lib/field-layout/field-layout';
@@ -25,9 +31,31 @@ import { defaultPublicationSearch } from 'publication/publication-utils';
 import { DOWNLOAD_PUBLICATION } from 'user/user-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { debounceAsync } from 'utils/async-utils';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
+import { SortDirection } from 'utils/table-utils';
+
+type TableFetchFn = (
+    from?: Date,
+    to?: Date,
+    sortBy?: PublicationDetailsTableSortField,
+    order?: SortDirection,
+) => Promise<Page<PublicationTableItem>>;
 
 let fetchId = 0;
 const debouncedGetPublicationsAsTableItems = debounceAsync(getPublicationsAsTableItems, 500);
+
+const publicationTableFetchFunctionByDateSource = (
+    dateChangeType: DatePickerDateSource,
+): TableFetchFn => {
+    switch (dateChangeType) {
+        case 'TEXT':
+            return debouncedGetPublicationsAsTableItems;
+        case 'PICKER':
+            return getPublicationsAsTableItems;
+        default:
+            return exhaustiveMatchingGuard(dateChangeType);
+    }
+};
 
 const PublicationLog: React.FC = () => {
     const { t } = useTranslation();
@@ -58,22 +86,35 @@ const PublicationLog: React.FC = () => {
         updatePublicationsTable(
             storedStartDate ?? parseISOOrUndefined(defaultPublicationSearch.startDate),
             storedEndDate ?? parseISOOrUndefined(defaultPublicationSearch.endDate),
+            getPublicationsAsTableItems,
         );
     }, []);
 
-    const setStartDate = (newStartDate: Date | undefined) => {
+    const setStartDate = (newStartDate: Date | undefined, source: DatePickerDateSource) => {
         trackLayoutActionDelegates.setSelectedPublicationSearchStartDate(
             newStartDate?.toISOString(),
         );
-        updatePublicationsTable(newStartDate, storedEndDate);
+        updatePublicationsTable(
+            newStartDate,
+            storedEndDate,
+            publicationTableFetchFunctionByDateSource(source),
+        );
     };
 
-    const setEndDate = (newEndDate: Date | undefined) => {
+    const setEndDate = (newEndDate: Date | undefined, source: DatePickerDateSource) => {
         trackLayoutActionDelegates.setSelectedPublicationSearchEndDate(newEndDate?.toISOString());
-        updatePublicationsTable(storedStartDate, newEndDate);
+        updatePublicationsTable(
+            storedStartDate,
+            newEndDate,
+            publicationTableFetchFunctionByDateSource(source),
+        );
     };
 
-    const updatePublicationsTable = (startDate: Date | undefined, endDate: Date | undefined) => {
+    const updatePublicationsTable = (
+        startDate: Date | undefined,
+        endDate: Date | undefined,
+        fetchFn: TableFetchFn,
+    ) => {
         const datesAreValid = startDate && endDate;
         if (!datesAreValid) {
             clearPublicationsTable();
@@ -83,7 +124,7 @@ const PublicationLog: React.FC = () => {
         setIsLoading(true);
         const currentFetchId = ++fetchId;
 
-        debouncedGetPublicationsAsTableItems(
+        fetchFn(
             startDate && startOfDay(startDate),
             endDate && endOfDay(endDate),
             sortInfo.propName,
@@ -134,7 +175,7 @@ const PublicationLog: React.FC = () => {
                         value={
                             <DatePicker
                                 value={storedStartDate}
-                                onChange={setStartDate}
+                                onChange={(date, source) => setStartDate(date, source)}
                                 minDate={START_OF_2022}
                                 maxDate={END_OF_CENTURY}
                                 qa-id={'publication-log-start-date-input'}
@@ -146,7 +187,7 @@ const PublicationLog: React.FC = () => {
                         value={
                             <DatePicker
                                 value={storedEndDate}
-                                onChange={setEndDate}
+                                onChange={(date, source) => setEndDate(date, source)}
                                 minDate={START_OF_2022}
                                 maxDate={END_OF_CENTURY}
                                 qa-id={'publication-log-end-date-input'}
