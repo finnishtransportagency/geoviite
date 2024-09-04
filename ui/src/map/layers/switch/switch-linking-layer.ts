@@ -25,6 +25,8 @@ function createSwitchFeatures(
 ): Feature<OlPoint>[] {
     const features: Feature<OlPoint>[] = [];
 
+    console.log('sugg', suggestedSwitch);
+
     //    if (doDisplay) {
     suggestedSwitch.joints.forEach((joint) => {
         const f = new Feature({

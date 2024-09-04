@@ -51,6 +51,7 @@ export const ButtonExamples: React.FC = () => {
                             (sizeName: keyof typeof ButtonSize | undefined) => {
                                 const size = sizeName && ButtonSize[sizeName];
                                 const key = variant + size;
+                                const buttonLabel = size != ButtonSize.X_SMALL ? 'Button' : '';
                                 return (
                                     <tr key={key}>
                                         <td>{variantName}</td>
@@ -63,7 +64,7 @@ export const ButtonExamples: React.FC = () => {
                                                     isProcessing || buttonProcessing == key
                                                 }
                                                 onClick={() => toggleProcessing(key)}>
-                                                Button
+                                                {buttonLabel}
                                             </Button>
                                         </td>
                                         <td>
@@ -72,7 +73,7 @@ export const ButtonExamples: React.FC = () => {
                                                 variant={variant}
                                                 disabled
                                                 isProcessing={isProcessing}>
-                                                Button
+                                                {buttonLabel}
                                             </Button>
                                         </td>
                                         <td>
@@ -84,7 +85,7 @@ export const ButtonExamples: React.FC = () => {
                                                     isProcessing || buttonProcessing == key + 'icon'
                                                 }
                                                 onClick={() => toggleProcessing(key + 'icon')}>
-                                                Button
+                                                {buttonLabel}
                                             </Button>
                                         </td>
                                         <td>
@@ -94,7 +95,7 @@ export const ButtonExamples: React.FC = () => {
                                                 disabled
                                                 icon={Icons.Append}
                                                 isProcessing={isProcessing}>
-                                                Button
+                                                {buttonLabel}
                                             </Button>
                                         </td>
                                         <td>
@@ -133,7 +134,7 @@ export const ButtonExamples: React.FC = () => {
                                                         'Item 1',
                                                     ),
                                                 ]}>
-                                                Button
+                                                {buttonLabel}
                                             </SplitButton>
                                         </td>
                                         <td>
@@ -144,7 +145,7 @@ export const ButtonExamples: React.FC = () => {
                                                 icon={Icons.Append}
                                                 isProcessing={isProcessing}
                                                 menuItems={[]}>
-                                                Button
+                                                {buttonLabel}
                                             </SplitButton>
                                         </td>
                                     </tr>
