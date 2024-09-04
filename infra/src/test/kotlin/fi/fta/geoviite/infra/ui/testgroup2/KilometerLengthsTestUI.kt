@@ -16,18 +16,20 @@ import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.ui.LocalHostWebClient
 import fi.fta.geoviite.infra.ui.SeleniumTest
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
-class KilometerLengthsTestUI @Autowired constructor(
+class KilometerLengthsTestUI
+@Autowired
+constructor(
     private val trackNumberDao: LayoutTrackNumberDao,
     private val locationTrackDao: LocationTrackDao,
     private val referenceLineDao: ReferenceLineDao,
@@ -45,12 +47,7 @@ class KilometerLengthsTestUI @Autowired constructor(
         val alignment = alignmentDao.insert(alignment(segment(Point(0.0, 0.0), Point(4000.0, 0.0))))
         referenceLineDao.insert(referenceLine(trackNumberId, alignmentVersion = alignment, draft = false))
         locationTrackDao.insert(
-            locationTrack(
-                trackNumberId = trackNumberId,
-                name = "foo bar",
-                alignmentVersion = alignment,
-                draft = false,
-            )
+            locationTrack(trackNumberId = trackNumberId, name = "foo bar", alignmentVersion = alignment, draft = false)
         )
         kmPostDao.insert(kmPost(trackNumberId, KmNumber(1), Point(900.0, 1.0), draft = false))
         kmPostDao.insert(kmPost(trackNumberId, KmNumber(2), Point(2000.0, -1.0), draft = false))
@@ -84,5 +81,4 @@ class KilometerLengthsTestUI @Autowired constructor(
         assertNotNull(csv)
         Assertions.assertTrue(csv.isNotEmpty())
     }
-
 }

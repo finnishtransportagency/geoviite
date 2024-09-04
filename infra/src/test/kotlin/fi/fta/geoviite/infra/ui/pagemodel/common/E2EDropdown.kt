@@ -8,7 +8,6 @@ import org.openqa.selenium.support.pagefactory.ByChained
 import org.openqa.selenium.support.ui.ExpectedConditions
 import tryWait
 import waitUntilInvisible
-import waitUntilTextExists
 import waitUntilVisible
 
 private val CONTAINER_BY: By = By.className("dropdown__list-container")
@@ -20,18 +19,14 @@ class E2EDropdownList :
         CONTAINER_BY,
         By.className("dropdown__list-item"),
         selectedItemBy = null, // Add selectedItemBy if ever needed, as dropdowns can have selected items too
-        ) {
+    ) {
     override fun getItemContent(item: WebElement): E2EDropdownListItem {
         return E2EDropdownListItem(item.text, item.getAttribute("qa-id"))
     }
 
-    fun selectByQaId(qaId: String) = apply {
-        select { i -> i.qaId == qaId }
-    }
+    fun selectByQaId(qaId: String) = apply { select { i -> i.qaId == qaId } }
 
-    fun selectByName(name: String) = apply {
-        select { i -> i.name.contains(name) }
-    }
+    fun selectByName(name: String) = apply { select { i -> i.name.contains(name) } }
 }
 
 class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
@@ -40,13 +35,13 @@ class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
 
     private val input: E2ETextInput = childTextInput(inputBy)
 
-    private val optionsList: E2EDropdownList by lazy {
-        E2EDropdownList()
-    }
+    private val optionsList: E2EDropdownList by lazy { E2EDropdownList() }
 
-    val options: List<E2EDropdownListItem> get() = optionsList.items
+    val options: List<E2EDropdownListItem>
+        get() = optionsList.items
 
-    val value: String get() = input.value
+    val value: String
+        get() = input.value
 
     fun open(): E2EDropdown = apply {
         logger.info("Open dropdown")
@@ -82,9 +77,11 @@ class E2EDropdown(dropdownBy: By) : E2EViewFragment(dropdownBy) {
         tryWait(
             ExpectedConditions.textToBePresentInElementLocated(
                 ByChained(CONTAINER_BY, By.className("dropdown__list-item"), By.className("dropdown__list-item-text")),
-                name
+                name,
             )
-        ) { "Option list does not contain item $name" }
+        ) {
+            "Option list does not contain item $name"
+        }
 
         optionsList.selectByName(name)
     }

@@ -13,12 +13,12 @@ enum class PVDictionaryGroup {
 }
 
 enum class PVDictionaryType(val group: PVDictionaryGroup) {
-    DOCUMENT_TYPE (MATERIAL), // dokumenttityyppi
-    MATERIAL_STATE (MATERIAL), // aineistotila
-    MATERIAL_CATEGORY (MATERIAL), // aineistolaji
-    MATERIAL_GROUP (MATERIAL), // ainestoryhmä
-    TECHNICS_FIELD (MATERIAL), // teknikka-ala
-    PROJECT_STATE (PROJECT), // projektin tila
+    DOCUMENT_TYPE(MATERIAL), // dokumenttityyppi
+    MATERIAL_STATE(MATERIAL), // aineistotila
+    MATERIAL_CATEGORY(MATERIAL), // aineistolaji
+    MATERIAL_GROUP(MATERIAL), // ainestoryhmä
+    TECHNICS_FIELD(MATERIAL), // teknikka-ala
+    PROJECT_STATE(PROJECT), // projektin tila
 }
 
 data class PVDictionaryCode @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(private val value: String) :
@@ -30,15 +30,17 @@ data class PVDictionaryCode @JsonCreator(mode = JsonCreator.Mode.DELEGATING) con
         val sanitizer = StringSanitizer(PVDictionaryCode::class, ALLOWED_CHARACTERS, allowedLength)
     }
 
-    init { sanitizer.assertSanitized(value) }
+    init {
+        sanitizer.assertSanitized(value)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: PVDictionaryCode): Int = value.compareTo(other.value)
 }
 
-data class PVDictionaryName @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(private val value: String)
-    : Comparable<PVDictionaryName>, CharSequence by value {
+data class PVDictionaryName @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(private val value: String) :
+    Comparable<PVDictionaryName>, CharSequence by value {
 
     companion object {
         val allowedLength = 1..100
@@ -46,11 +48,13 @@ data class PVDictionaryName @JsonCreator(mode = JsonCreator.Mode.DELEGATING) con
         val sanitizer = StringSanitizer(PVDictionaryName::class, ALLOWED_CHARACTERS, allowedLength)
     }
 
-    init { sanitizer.assertSanitized(value) }
+    init {
+        sanitizer.assertSanitized(value)
+    }
 
-    constructor(unsafeString: UnsafeString): this(sanitizer.sanitize(unsafeString.unsafeValue))
+    constructor(unsafeString: UnsafeString) : this(sanitizer.sanitize(unsafeString.unsafeValue))
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: PVDictionaryName): Int = value.compareTo(other.value)
 }

@@ -95,10 +95,13 @@ class LocationTrackController(
     ): ResponseEntity<AlignmentStartAndEndWithId<*>> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         val locationTrackAndAlignment = locationTrackService.getWithAlignment(context, id)
-        return toResponse(locationTrackAndAlignment?.let { (locationTrack, alignment) ->
-            geocodingService.getLocationTrackStartAndEnd(context, locationTrack, alignment)
-                ?.let { AlignmentStartAndEndWithId(locationTrack.id as IntId, it.start, it.end) }
-        })
+        return toResponse(
+            locationTrackAndAlignment?.let { (locationTrack, alignment) ->
+                geocodingService.getLocationTrackStartAndEnd(context, locationTrack, alignment)?.let {
+                    AlignmentStartAndEndWithId(locationTrack.id as IntId, it.start, it.end)
+                }
+            }
+        )
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -111,8 +114,9 @@ class LocationTrackController(
         val context = LayoutContext.of(layoutBranch, publicationState)
         return ids.mapNotNull { id ->
             locationTrackService.getWithAlignment(context, id)?.let { (locationTrack, alignment) ->
-                geocodingService.getLocationTrackStartAndEnd(context, locationTrack, alignment)
-                    ?.let { AlignmentStartAndEndWithId(locationTrack.id as IntId, it.start, it.end) }
+                geocodingService.getLocationTrackStartAndEnd(context, locationTrack, alignment)?.let {
+                    AlignmentStartAndEndWithId(locationTrack.id as IntId, it.start, it.end)
+                }
             }
         }
     }
@@ -149,9 +153,8 @@ class LocationTrackController(
     ): List<LocationTrackDescription> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         return ids.mapNotNull { id ->
-            id.let { locationTrackService.get(context, it) }?.let { lt ->
-                LocationTrackDescription(id, locationTrackService.getFullDescription(context, lt, lang))
-            }
+            id.let { locationTrackService.get(context, it) }
+                ?.let { lt -> LocationTrackDescription(id, locationTrackService.getFullDescription(context, lt, lang)) }
         }
     }
 
@@ -215,9 +218,7 @@ class LocationTrackController(
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
     @GetMapping("/location-tracks/{$LAYOUT_BRANCH}/draft/non-linked")
-    fun getNonLinkedLocationTracks(
-        @PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch,
-    ): List<LocationTrack> {
+    fun getNonLinkedLocationTracks(@PathVariable(LAYOUT_BRANCH) layoutBranch: LayoutBranch): List<LocationTrack> {
         return locationTrackService.listNonLinked(layoutBranch)
     }
 

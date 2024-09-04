@@ -17,7 +17,8 @@ const val DEFAULT_EXCEPTION_MAX_LENGTH = 100
 
 val lineBreakRegex = Regex("[\n\r\t]")
 val logUnsafeRegex = Regex("[^$SAFE_LOG_CHARACTERS]")
-// Order matters due to both Windows style & legacy linebreaks containing the same special character.
+// Order matters due to both Windows style & legacy linebreaks containing the same special
+// character.
 val linebreakNormalizationRegex = Regex("$WINDOWS_LINEBREAK|$LEGACY_LINEBREAK")
 
 inline fun <reified T> parsePrefixedInt(prefix: String, value: String): Int =
@@ -48,18 +49,10 @@ fun normalizeLinebreaksToUnixFormat(input: String) = input.replace(linebreakNorm
 fun isSanitized(stringValue: String, regex: Regex, length: ClosedRange<Int>? = null) =
     (length == null || stringValue.length in length) && stringValue.matches(regex)
 
-inline fun <reified T> assertSanitized(
-    stringValue: String,
-    regex: Regex,
-    length: IntRange? = null,
-) = assertSanitized(T::class, stringValue, regex, length)
+inline fun <reified T> assertSanitized(stringValue: String, regex: Regex, length: IntRange? = null) =
+    assertSanitized(T::class, stringValue, regex, length)
 
-fun assertSanitized(
-    type: KClass<*>,
-    stringValue: String,
-    regex: Regex,
-    length: IntRange? = null,
-) {
+fun assertSanitized(type: KClass<*>, stringValue: String, regex: Regex, length: IntRange? = null) {
     length?.let { l -> assertLength(type, stringValue, l) }
     assertInput(type, stringValue.matches(regex), stringValue) {
         "Invalid characters in ${type.simpleName}: ${formatForException(stringValue)}"

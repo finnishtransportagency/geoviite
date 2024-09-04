@@ -28,10 +28,16 @@ class MapAlignmentController(private val mapAlignmentService: MapAlignmentServic
         @RequestParam("bbox") bbox: BoundingBox,
         @RequestParam("resolution") resolution: Int,
         @RequestParam("type") type: AlignmentFetchType? = null,
-        @RequestParam("includeSegmentEndPoints") includeSegmentEndPoints: Boolean = false
+        @RequestParam("includeSegmentEndPoints") includeSegmentEndPoints: Boolean = false,
     ): List<AlignmentPolyLine<*>> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        return mapAlignmentService.getAlignmentPolyLines(layoutContext, bbox, resolution, type ?: ALL, includeSegmentEndPoints)
+        return mapAlignmentService.getAlignmentPolyLines(
+            layoutContext,
+            bbox,
+            resolution,
+            type ?: ALL,
+            includeSegmentEndPoints,
+        )
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)

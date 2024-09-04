@@ -3,15 +3,12 @@ package fi.fta.geoviite.infra.ui.pagemodel.inframodel
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EViewFragment
 import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementIfExists
-import getElements
 import org.openqa.selenium.By
 
 class E2EInfraModelPage : E2EViewFragment(By.className("infra-model-main")) {
 
     val infraModelsList: E2EInfraModelTable by lazy {
-        childComponent(
-            By.className("infra-model-list-search-result__table"), ::E2EInfraModelTable
-        )
+        childComponent(By.className("infra-model-list-search-result__table"), ::E2EInfraModelTable)
     }
 
     fun upload(file: String): E2EInfraModelForm {

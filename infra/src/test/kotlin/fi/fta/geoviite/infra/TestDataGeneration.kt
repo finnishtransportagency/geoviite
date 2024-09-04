@@ -13,6 +13,4 @@ inline fun <reified T : Enum<T>> getSomeNullableValue(index: Int): T? {
     return values[index % values.size]
 }
 
-fun <T> getSomeOid(seed: Int): Oid<T> = Oid(
-    "${abs(seed % 1000)}.${abs(seed * 2 % 1000)}.${abs(seed * 3 % 1000)}"
-)
+fun <T> getSomeOid(seed: Int): Oid<T> = Oid("${abs(seed % 1000)}.${abs(seed * 2 % 1000)}.${abs(seed * 3 % 1000)}")

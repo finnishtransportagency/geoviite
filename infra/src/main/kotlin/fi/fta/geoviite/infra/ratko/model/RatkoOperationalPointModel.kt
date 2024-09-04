@@ -10,7 +10,8 @@ enum class OperationalPointType {
     LPO, // Liikennepaikan osa
     OLP, // Osiin jaettu liikennepaikka
     SEIS, // Seisake
-    LVH; // Linjavaihde
+    LVH,
+    // Linjavaihde
 }
 
 abstract class AbstractRatkoOperatingPoint(
@@ -44,19 +45,24 @@ data class RatkoOperatingPoint(
 fun parseAsset(asset: RatkoOperatingPointAsset): RatkoOperatingPointParse? {
     val externalId = Oid<RatkoOperatingPoint>(asset.id)
     val type = asset.getEnumProperty<OperationalPointType>("operational_point_type")
-    val soloPoint = asset.locations?.get(0)?.nodecollection?.nodes?.find { node ->
-        node.nodeType == RatkoNodeType.SOLO_POINT
-    }?.point
+    val soloPoint =
+        asset.locations
+            ?.get(0)
+            ?.nodecollection
+            ?.nodes
+            ?.find { node -> node.nodeType == RatkoNodeType.SOLO_POINT }
+            ?.point
     val location = soloPoint?.geometry?.coordinates?.let { cs -> Point(cs[0], cs[1]) }
     val trackNumberExternalId: Oid<RatkoRouteNumber>? = soloPoint?.routenumber?.toString()?.let(::Oid)
-    return if (type == null || location == null || trackNumberExternalId == null) null else RatkoOperatingPointParse(
-        externalId = externalId,
-        name = asset.getStringProperty("name") ?: "",
-        abbreviation = asset.getStringProperty("operational_point_abbreviation") ?: "",
-        uicCode = asset.getStringProperty("operational_point_code") ?: "",
-        type = type,
-        location = location,
-        trackNumberExternalId = trackNumberExternalId
-    )
+    return if (type == null || location == null || trackNumberExternalId == null) null
+    else
+        RatkoOperatingPointParse(
+            externalId = externalId,
+            name = asset.getStringProperty("name") ?: "",
+            abbreviation = asset.getStringProperty("operational_point_abbreviation") ?: "",
+            uicCode = asset.getStringProperty("operational_point_code") ?: "",
+            type = type,
+            location = location,
+            trackNumberExternalId = trackNumberExternalId,
+        )
 }
-

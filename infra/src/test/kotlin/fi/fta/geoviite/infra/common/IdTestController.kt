@@ -3,29 +3,17 @@ package fi.fta.geoviite.infra.common
 import fi.fta.geoviite.infra.aspects.GeoviiteController
 import org.springframework.web.bind.annotation.*
 
-data class IdTestObject(
-    val id: DomainId<IdTestObject>,
-)
+data class IdTestObject(val id: DomainId<IdTestObject>)
 
-data class StringIdTestObject(
-    val id: StringId<IdTestObject>,
-)
+data class StringIdTestObject(val id: StringId<IdTestObject>)
 
-data class IntIdTestObject(
-    val id: IntId<IdTestObject>,
-)
+data class IntIdTestObject(val id: IntId<IdTestObject>)
 
-data class IndexedIdTestObject(
-    val id: IndexedId<IdTestObject>,
-)
+data class IndexedIdTestObject(val id: IndexedId<IdTestObject>)
 
-data class OidTestObject(
-    val id: Oid<OidTestObject>,
-)
+data class OidTestObject(val id: Oid<OidTestObject>)
 
-data class SridTestObject(
-    val id: Srid,
-)
+data class SridTestObject(val id: Srid)
 
 const val ID_TEST_URL = "/id-test"
 

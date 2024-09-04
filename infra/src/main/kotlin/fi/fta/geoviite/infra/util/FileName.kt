@@ -15,9 +15,8 @@ data class FileName @JsonCreator(mode = DELEGATING) constructor(private val valu
 
     companion object {
         /**
-         * Bytes of character in canonical decomposition form differ from the default form
-         * (precomposed). We encountered these in some IM files, probably produced by
-         * some 3D design software.
+         * Bytes of character in canonical decomposition form differ from the default form (precomposed). We encountered
+         * these in some IM files, probably produced by some 3D design software.
          *
          * https://www.ibm.com/docs/en/cobol-zos/6.3?topic=functions-ulength
          */
@@ -28,21 +27,23 @@ data class FileName @JsonCreator(mode = DELEGATING) constructor(private val valu
         val sanitizer = StringSanitizer(FileName::class, ALLOWED_CHARACTERS, allowedLength)
     }
 
-    init { sanitizer.assertSanitized(value) }
+    init {
+        sanitizer.assertSanitized(value)
+    }
 
     constructor(file: MultipartFile) : this(file.originalFilename?.takeIf(String::isNotBlank) ?: file.name)
-    constructor(unsafeString: UnsafeString) : this(
-        if (unsafeString.unsafeValue.isBlank()) "-"
-        else sanitizer.sanitize(unsafeString.unsafeValue)
-    )
 
-    @JsonValue
-    override fun toString(): String = value
+    constructor(
+        unsafeString: UnsafeString
+    ) : this(if (unsafeString.unsafeValue.isBlank()) "-" else sanitizer.sanitize(unsafeString.unsafeValue))
+
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: FileName): Int = value.compareTo(other.value)
 
     fun withSuffix(suffix: KnownFileSuffix): FileName =
-        suffix.name.lowercase().let { suffixName ->
-            if (value.endsWith(".$suffixName", true)) value
-            else "$value.$suffixName"
-        }.let(::FileName)
+        suffix.name
+            .lowercase()
+            .let { suffixName -> if (value.endsWith(".$suffixName", true)) value else "$value.$suffixName" }
+            .let(::FileName)
 }

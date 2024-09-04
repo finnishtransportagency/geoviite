@@ -9,17 +9,9 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.util.FileName
 
-data class TrackMeterHeight(
-    val m: Double,
-    val meter: Double,
-    val height: Double?,
-    val point: Point,
-)
-data class KmHeights(
-    val kmNumber: KmNumber,
-    val trackMeterHeights: List<TrackMeterHeight>,
-    val endM: Double,
-)
+data class TrackMeterHeight(val m: Double, val meter: Double, val height: Double?, val point: Point)
+
+data class KmHeights(val kmNumber: KmNumber, val trackMeterHeights: List<TrackMeterHeight>, val endM: Double)
 
 data class PlanLinkingSummaryItem(
     val startM: Double,
@@ -30,4 +22,3 @@ data class PlanLinkingSummaryItem(
     val verticalCoordinateSystem: VerticalCoordinateSystem?,
     val elevationMeasurementMethod: ElevationMeasurementMethod?,
 )
-

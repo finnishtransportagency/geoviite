@@ -19,10 +19,13 @@ plugins {
     id("com.github.jk1.dependency-license-report") version "2.5"
     kotlin("jvm") version "1.9.23"
     kotlin("plugin.spring") version "1.9.23"
+    id("com.ncorti.ktfmt.gradle") version "0.20.1"
 }
 
 group = "fi.fta.geoviite"
+
 version = "SNAPSHOT"
+
 java.sourceCompatibility = JavaVersion.VERSION_17
 
 repositories {
@@ -30,20 +33,22 @@ repositories {
     mavenCentral()
 }
 
-configurations {
-    all {
-        exclude("org.springframework.boot", "spring-boot-starter-logging")
-    }
+ktfmt {
+    blockIndent = 4
+    continuationIndent = 4
+    maxWidth = 120
+    manageTrailingCommas = true
 }
 
+configurations { all { exclude("org.springframework.boot", "spring-boot-starter-logging") } }
+
 ext["selenium.version"] = "4.23.1"
+
 dependencies {
     // Version overrides for transitive deps (due to known vulnerabilities)
 
     // Actual deps
-    implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.705") {
-        exclude("commons-logging", "commons-logging")
-    }
+    implementation("com.amazonaws:aws-java-sdk-cloudfront:1.12.705") { exclude("commons-logging", "commons-logging") }
     implementation("org.bouncycastle:bcpkix-jdk18on:1.78.1")
     implementation("org.springframework.boot:spring-boot-starter-actuator")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
@@ -60,7 +65,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.1.0")
     implementation("org.flywaydb:flyway-core:9.22.3")
     // v enable once going to Flyway 10.0 (requires Spring Boot 2.7.18)
-    //implementation("org.flywaydb:flyway-database-postgresql:10.0.0")
+    // implementation("org.flywaydb:flyway-database-postgresql:10.0.0")
     implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
     implementation("org.geotools:gt-main:$geotoolsVersion") {
         // Excluded as the license (JDL or JRL) compatibility is unconfirmed. We don't need this.
@@ -94,18 +99,19 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion")
     testImplementation("org.seleniumhq.selenium:selenium-java:4.23.1")
-    //Do not update to version 5.15.0 as it causes StackOverflowError.
-    //See: https://github.com/mock-server/mockserver/issues/1660
+    // Do not update to version 5.15.0 as it causes StackOverflowError.
+    // See: https://github.com/mock-server/mockserver/issues/1660
     testImplementation("org.mock-server:mockserver-netty:5.15.0")
     testImplementation("org.apache.httpcomponents.client5:httpclient5:5.3.1")
 }
 
 licenseReport {
     renderers = arrayOf<ReportRenderer>(InventoryHtmlReportRenderer("report.html", "Backend"))
-    filters = arrayOf<DependencyFilter>(
-        LicenseBundleNormalizer(),
-        // ExcludeTransitiveDependenciesFilter(),
-    )
+    filters =
+        arrayOf<DependencyFilter>(
+            LicenseBundleNormalizer()
+            // ExcludeTransitiveDependenciesFilter(),
+        )
     allowedLicensesFile = File("$projectDir/allowed-licenses.json")
 }
 
@@ -115,6 +121,7 @@ tasks.withType<KotlinCompile> {
         jvmTarget = "17"
     }
 }
+
 tasks.withType<Jar> {
     from("${rootProject.projectDir}/..") {
         include("LICENSE.txt")
@@ -127,13 +134,11 @@ tasks.withType<Test> {
     systemProperty("browser.name", System.getProperty("browser.name"))
     systemProperty("browser.headless", System.getProperty("browser.headless"))
     testLogging.exceptionFormat = FULL
-    //testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED)
+    // testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED)
     testLogging.events = mutableSetOf(FAILED, PASSED, SKIPPED, STANDARD_OUT, STANDARD_ERROR)
 }
 
-tasks.register<Test>("integrationtest") {
-    useJUnitPlatform()
-}
+tasks.register<Test>("integrationtest") { useJUnitPlatform() }
 
 tasks.register<Test>("integrationtest-without-cache") {
     systemProperty("geoviite.cache.enabled", false)

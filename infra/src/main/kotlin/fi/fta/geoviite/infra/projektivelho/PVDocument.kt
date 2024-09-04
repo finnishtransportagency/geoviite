@@ -5,9 +5,9 @@ import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.util.FileName
 import fi.fta.geoviite.infra.util.FreeText
-import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.util.StringSanitizer
 import fi.fta.geoviite.infra.util.UnsafeString
 import java.time.Instant
@@ -19,23 +19,24 @@ enum class PVDocumentStatus {
     ACCEPTED,
 }
 
-data class PVProjectName @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(private val value: String)
-    : Comparable<PVProjectName>, CharSequence by value {
+data class PVProjectName @JsonCreator(mode = JsonCreator.Mode.DELEGATING) constructor(private val value: String) :
+    Comparable<PVProjectName>, CharSequence by value {
 
     companion object {
         val length = 1..200
         val sanitizer = StringSanitizer(PVProjectName::class, FreeText.ALLOWED_CHARACTERS, length)
     }
 
-    init { sanitizer.assertSanitized(value) }
+    init {
+        sanitizer.assertSanitized(value)
+    }
 
-    constructor(unsafeString: UnsafeString) : this(
-        if (unsafeString.unsafeValue.isBlank()) "-"
-        else sanitizer.sanitize(unsafeString.unsafeValue)
-    )
+    constructor(
+        unsafeString: UnsafeString
+    ) : this(if (unsafeString.unsafeValue.isBlank()) "-" else sanitizer.sanitize(unsafeString.unsafeValue))
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: PVProjectName): Int = value.compareTo(other.value)
 }
 

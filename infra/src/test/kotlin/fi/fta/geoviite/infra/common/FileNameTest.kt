@@ -16,5 +16,4 @@ class FileNameTest {
         // Three byte version of umlauts, these may exist in some file names
         assertDoesNotThrow { FileName("aaäöåÄÖÅ") }
     }
-
 }

@@ -14,6 +14,9 @@ import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.PROJECT_STATE
 import fi.fta.geoviite.infra.projektivelho.PVDictionaryType.TECHNICS_FIELD
 import fi.fta.geoviite.infra.util.UnsafeString
 import fi.fta.geoviite.infra.util.formatForLog
+import java.time.Duration
+import java.time.Instant
+import java.util.concurrent.atomic.AtomicReference
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -24,9 +27,6 @@ import org.springframework.web.reactive.function.BodyInserters
 import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
-import java.time.Duration
-import java.time.Instant
-import java.util.concurrent.atomic.AtomicReference
 
 val defaultBlockTimeout: Duration = fi.fta.geoviite.infra.ratko.defaultResponseTimeout.plusMinutes(1L)
 val reloginOffsetSeconds: Long = 60
@@ -52,11 +52,9 @@ const val PROJECT_GROUP_PATH = "$PROJECT_REGISTRY_V1_PATH/projektijoukko"
 
 @Component
 @ConditionalOnBean(PVClientConfiguration::class)
-class PVClient @Autowired constructor(
-    val pvWebClient: PVWebClient,
-    val pvLoginWebClient: PVLoginWebClient,
-    val jsonMapper: ObjectMapper,
-) {
+class PVClient
+@Autowired
+constructor(val pvWebClient: PVWebClient, val pvLoginWebClient: PVLoginWebClient, val jsonMapper: ObjectMapper) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
     private val accessToken: AtomicReference<PVAccessToken?> = AtomicReference(null)
 
@@ -67,13 +65,11 @@ class PVClient @Autowired constructor(
             .body(BodyInserters.fromFormData("grant_type", "client_credentials"))
             .retrieve()
             .bodyToMono<PVAccessToken>()
-            .block(defaultBlockTimeout)
-            ?: throw IllegalStateException("ProjektiVelho login failed")
+            .block(defaultBlockTimeout) ?: throw IllegalStateException("ProjektiVelho login failed")
     }
 
     fun postXmlFileSearch(fetchStartTime: Instant, startOid: Oid<PVDocument>?): PVApiSearchStatus {
-        logger.integrationCall("postXmlFileSearch",
-            "fetchStartTime" to fetchStartTime, "startOid" to startOid)
+        logger.integrationCall("postXmlFileSearch", "fetchStartTime" to fetchStartTime, "startOid" to startOid)
         val json = jsonMapper.writeValueAsString(searchJson(fetchStartTime, startOid, 100))
         return postMandatoryReturn<String, PVApiSearchStatus>("$XML_FILE_SEARCH_PATH?tagi=aineisto", json)
     }
@@ -100,8 +96,9 @@ class PVClient @Autowired constructor(
 
     fun fetchFileContent(oid: Oid<PVDocument>, version: PVId): String? {
         logger.integrationCall("fetchFileContent", "oid" to oid, "version" to version)
-        return getOptional<String>("$FILE_DATA_PATH/${oid}/dokumentti?versio=${version}")
-            .also { content -> if (content == null) logger.warn("File content was null! oid=$oid") }
+        return getOptional<String>("$FILE_DATA_PATH/${oid}/dokumentti?versio=${version}").also { content ->
+            if (content == null) logger.warn("File content was null! oid=$oid")
+        }
     }
 
     fun fetchDictionaries(): Map<PVDictionaryType, List<PVApiDictionaryEntry>> =
@@ -150,8 +147,10 @@ class PVClient @Autowired constructor(
 
     private inline fun <reified T> get404toNull(message: String): (ex: WebClientResponseException) -> Mono<T> = { ex ->
         if (ex.statusCode.value() == 404) {
-            logger.warn("Could not GET ${T::class.simpleName} from ProjektiVelho: " +
-                    "$message status=${ex.statusCode} result=${ex.message?.let(::formatForLog) ?: "" }")
+            logger.warn(
+                "Could not GET ${T::class.simpleName} from ProjektiVelho: " +
+                    "$message status=${ex.statusCode} result=${ex.message?.let(::formatForLog) ?: "" }"
+            )
             Mono.empty()
         } else Mono.error(ex)
     }
@@ -164,64 +163,72 @@ class PVClient @Autowired constructor(
     private inline fun <reified Out : Any> getOptional(
         uri: String,
         crossinline onError: (ex: WebClientResponseException) -> Mono<Out> = { ex -> Mono.error(ex) },
-    ): Out? = pvWebClient
-        .get()
-        .uri(uri)
-        .headers(::setBearerAuth)
-        .retrieve()
-        .bodyToMono<Out>()
-        .onErrorResume(WebClientResponseException::class.java) { ex -> onError(ex) }
-        .block(defaultBlockTimeout)
+    ): Out? =
+        pvWebClient
+            .get()
+            .uri(uri)
+            .headers(::setBearerAuth)
+            .retrieve()
+            .bodyToMono<Out>()
+            .onErrorResume(WebClientResponseException::class.java) { ex -> onError(ex) }
+            .block(defaultBlockTimeout)
 
     private inline fun <reified In : Any, reified Out : Any> postMandatoryReturn(
         uri: String,
         body: In,
         crossinline onError: (ex: WebClientResponseException) -> Mono<Out> = { ex -> Mono.error(ex) },
-    ): Out = requireNotNull(postOptionalReturn(uri, body, onError)) {
-        "POST failed with null result: inType=${In::class.simpleName} outType=${Out::class.simpleName} uri=$uri"
-    }
+    ): Out =
+        requireNotNull(postOptionalReturn(uri, body, onError)) {
+            "POST failed with null result: inType=${In::class.simpleName} outType=${Out::class.simpleName} uri=$uri"
+        }
 
     private inline fun <reified In : Any, reified Out : Any> postOptionalReturn(
         uri: String,
         body: In,
         crossinline onError: (ex: WebClientResponseException) -> Mono<Out> = { ex -> Mono.error(ex) },
-    ): Out? = pvWebClient
-        .post()
-        .uri(uri)
-        .headers(::setBearerAuth)
-        .body(BodyInserters.fromValue(body))
-        .retrieve()
-        .bodyToMono<Out>()
-        .onErrorResume(WebClientResponseException::class.java) { ex -> onError(ex) }
-        .block(defaultBlockTimeout)
+    ): Out? =
+        pvWebClient
+            .post()
+            .uri(uri)
+            .headers(::setBearerAuth)
+            .body(BodyInserters.fromValue(body))
+            .retrieve()
+            .bodyToMono<Out>()
+            .onErrorResume(WebClientResponseException::class.java) { ex -> onError(ex) }
+            .block(defaultBlockTimeout)
 
     private fun setBearerAuth(headers: HttpHeaders) = headers.setBearerAuth(fetchAccessToken(Instant.now()).toString())
 
     private fun fetchAccessToken(currentTime: Instant) =
-        accessToken.updateAndGet { token ->
-            if (token == null || token.expireTime.isBefore(currentTime.plusSeconds(reloginOffsetSeconds))) {
-                login()
-            } else token
-        }?.accessToken ?: throw IllegalStateException("ProjektiVelho login token can't be null after login")
+        accessToken
+            .updateAndGet { token ->
+                if (token == null || token.expireTime.isBefore(currentTime.plusSeconds(reloginOffsetSeconds))) {
+                    login()
+                } else token
+            }
+            ?.accessToken ?: throw IllegalStateException("ProjektiVelho login token can't be null after login")
 }
 
-fun encodingTypeDictionary(type: PVDictionaryType) =
-    "${encodingGroupPath(type.group)}/${encodingTypePath(type)}"
+fun encodingTypeDictionary(type: PVDictionaryType) = "${encodingGroupPath(type.group)}/${encodingTypePath(type)}"
 
-fun encodingGroupUrl(group: PVDictionaryGroup) = when (group) {
-    MATERIAL -> MATERIAL_DICTIONARIES_PATH
-    PROJECT -> PROJECT_DICTIONARIES_PATH
-}
+fun encodingGroupUrl(group: PVDictionaryGroup) =
+    when (group) {
+        MATERIAL -> MATERIAL_DICTIONARIES_PATH
+        PROJECT -> PROJECT_DICTIONARIES_PATH
+    }
 
-fun encodingGroupPath(group: PVDictionaryGroup) = when(group) {
-    MATERIAL -> "aineisto"
-    PROJECT -> "projekti"
-}
-fun encodingTypePath(type: PVDictionaryType) = when(type) {
-    DOCUMENT_TYPE -> "dokumenttityyppi"
-    MATERIAL_STATE -> "aineistotila"
-    MATERIAL_CATEGORY -> "aineistolaji"
-    MATERIAL_GROUP -> "aineistoryhma"
-    TECHNICS_FIELD -> "tekniikka-ala"
-    PROJECT_STATE -> "tila"
-}
+fun encodingGroupPath(group: PVDictionaryGroup) =
+    when (group) {
+        MATERIAL -> "aineisto"
+        PROJECT -> "projekti"
+    }
+
+fun encodingTypePath(type: PVDictionaryType) =
+    when (type) {
+        DOCUMENT_TYPE -> "dokumenttityyppi"
+        MATERIAL_STATE -> "aineistotila"
+        MATERIAL_CATEGORY -> "aineistolaji"
+        MATERIAL_GROUP -> "aineistoryhma"
+        TECHNICS_FIELD -> "tekniikka-ala"
+        PROJECT_STATE -> "tila"
+    }

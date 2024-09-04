@@ -6,11 +6,7 @@ import com.fasterxml.jackson.annotation.JsonValue
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.util.StringSanitizer
 
-data class CoordinateSystem(
-    val srid: Srid,
-    val name: CoordinateSystemName,
-    val aliases: List<CoordinateSystemName>,
-)
+data class CoordinateSystem(val srid: Srid, val name: CoordinateSystemName, val aliases: List<CoordinateSystemName>)
 
 data class CoordinateSystemName @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
     CharSequence by value {
@@ -21,16 +17,19 @@ data class CoordinateSystemName @JsonCreator(mode = DELEGATING) constructor(priv
         val sanitizer = StringSanitizer(CoordinateSystemName::class, ALLOWED_CHARACTERS, allowedLength)
     }
 
-    init { sanitizer.assertSanitized(value) }
+    init {
+        sanitizer.assertSanitized(value)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
+
     fun uppercase(): CoordinateSystemName = CoordinateSystemName(value.uppercase())
 }
 
-fun mapByNameOrAlias(coordinateSystems: List<CoordinateSystem>) = coordinateSystems
-    .flatMap { cs ->
-        val allNames = cs.aliases + cs.aliases.map(CoordinateSystemName::uppercase) + cs.name + cs.name.uppercase()
-        allNames.distinct().map { name -> name to cs.srid }
-    }
-    .associate { it }
+fun mapByNameOrAlias(coordinateSystems: List<CoordinateSystem>) =
+    coordinateSystems
+        .flatMap { cs ->
+            val allNames = cs.aliases + cs.aliases.map(CoordinateSystemName::uppercase) + cs.name + cs.name.uppercase()
+            allNames.distinct().map { name -> name to cs.srid }
+        }
+        .associate { it }

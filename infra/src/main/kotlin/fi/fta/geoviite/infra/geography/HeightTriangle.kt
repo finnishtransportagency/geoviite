@@ -10,7 +10,7 @@ data class HeightTriangle(
     val corner3: Point,
     val corner1Diff: Double,
     val corner2Diff: Double,
-    val corner3Diff: Double
+    val corner3Diff: Double,
 ) {
     private val polygon by lazy { toJtsGeoPolygon(listOf(corner1, corner2, corner3, corner1), LAYOUT_SRID) }
     val corner1XZ: Point by lazy { Point(corner1.x, corner1Diff) }

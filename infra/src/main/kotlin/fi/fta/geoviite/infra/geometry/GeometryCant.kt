@@ -7,11 +7,16 @@ import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.math.biquadraticSTransition
 import java.math.BigDecimal
 
-enum class CantRotationPoint { LEFT, RIGHT, INSIDE_RAIL, CENTER }
+enum class CantRotationPoint {
+    LEFT,
+    RIGHT,
+    INSIDE_RAIL,
+    CENTER,
+}
 
 enum class CantTransitionType {
     LINEAR,
-    BIQUADRATIC_PARABOLA
+    BIQUADRATIC_PARABOLA,
 }
 
 data class GeometryCant(
@@ -38,10 +43,13 @@ fun calculateGeometryPointCantValue(previous: GeometryCantPoint, next: GeometryC
     val offset = station - previous.station.toDouble()
     val lengthBtwStations: Double = (next.station - previous.station).toDouble()
     val cantTotalDelta = (next.appliedCant - previous.appliedCant).toDouble()
-    val cantDelta = if (lengthBtwStations <= 0.0) 0.0 else when (previous.transitionType) {
-        LINEAR -> cantTotalDelta * (offset / lengthBtwStations)
-        BIQUADRATIC_PARABOLA -> biquadraticSTransition(offset, cantTotalDelta, lengthBtwStations)
-    }
+    val cantDelta =
+        if (lengthBtwStations <= 0.0) 0.0
+        else
+            when (previous.transitionType) {
+                LINEAR -> cantTotalDelta * (offset / lengthBtwStations)
+                BIQUADRATIC_PARABOLA -> biquadraticSTransition(offset, cantTotalDelta, lengthBtwStations)
+            }
     return previous.appliedCant.toDouble() + cantDelta
 }
 

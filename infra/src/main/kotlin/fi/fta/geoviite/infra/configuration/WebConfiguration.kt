@@ -60,7 +60,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 @Configuration
 class WebConfig(
     private val frameConverterRequestConverterV1: FrameConverterRequestConverterV1,
-    private val frameConverterListRequestConverterV1: FrameConverterListRequestConverterV1
+    private val frameConverterListRequestConverterV1: FrameConverterListRequestConverterV1,
 ) : WebMvcConfigurer {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 

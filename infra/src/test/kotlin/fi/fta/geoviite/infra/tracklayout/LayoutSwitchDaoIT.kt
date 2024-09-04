@@ -8,6 +8,8 @@ import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import kotlin.test.assertContains
+import kotlin.test.assertNull
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
@@ -17,14 +19,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.dao.DuplicateKeyException
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
-import kotlin.test.assertNull
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class LayoutSwitchDaoIT @Autowired constructor(
-    private val switchDao: LayoutSwitchDao,
-) : DBTestBase() {
+class LayoutSwitchDaoIT @Autowired constructor(private val switchDao: LayoutSwitchDao) : DBTestBase() {
 
     @BeforeEach
     fun cleanup() {
@@ -49,10 +47,12 @@ class LayoutSwitchDaoIT @Autowired constructor(
 
     @Test
     fun switchesAreStoredAndLoadedOk() {
-        (1..10).map { switch(draft = false) }.forEach { switch ->
-            val rowVersion = switchDao.insert(switch).rowVersion
-            assertMatches(switch, switchDao.fetch(rowVersion))
-        }
+        (1..10)
+            .map { switch(draft = false) }
+            .forEach { switch ->
+                val rowVersion = switchDao.insert(switch).rowVersion
+                assertMatches(switch, switchDao.fetch(rowVersion))
+            }
     }
 
     @Test
@@ -107,9 +107,7 @@ class LayoutSwitchDaoIT @Autowired constructor(
         val switch = switch(draft = false)
         val insertedSwitch = switchDao.insert(switch)
 
-        assertThrows<DeletingFailureException> {
-            switchDao.deleteDraft(LayoutBranch.main, insertedSwitch.id)
-        }
+        assertThrows<DeletingFailureException> { switchDao.deleteDraft(LayoutBranch.main, insertedSwitch.id) }
     }
 
     @Test
@@ -129,7 +127,7 @@ class LayoutSwitchDaoIT @Autowired constructor(
         val draftWithoutDeleted = switchDao.fetchVersions(MainLayoutContext.draft, false)
         assertContains(draftWithoutDeleted, undeletedDraft)
         assertFalse(draftWithoutDeleted.contains(deleteStateDraft))
-        assertFalse(draftWithoutDeleted.any { r -> r.id == deletedDraft.id})
+        assertFalse(draftWithoutDeleted.any { r -> r.id == deletedDraft.id })
 
         val draftWithDeleted = switchDao.fetchVersions(MainLayoutContext.draft, true)
         assertContains(draftWithDeleted, undeletedDraft)
@@ -152,7 +150,8 @@ class LayoutSwitchDaoIT @Autowired constructor(
         Thread.sleep(1) // Ensure that they get different timestamps
 
         val switch1MainV2 = testDBService.update(switch1MainV1).rowVersion
-        val switch1DesignV2 = designOfficialContext.copyFrom(switch1MainV1, officialRowId = switch1MainV1.rowId).rowVersion
+        val switch1DesignV2 =
+            designOfficialContext.copyFrom(switch1MainV1, officialRowId = switch1MainV1.rowId).rowVersion
         val switch2DesignV2 = testDBService.update(switch2DesignV1).rowVersion
         switchDao.deleteRow(switch3DesignV1.rowId)
         val v2Time = switchDao.fetchChangeTime()

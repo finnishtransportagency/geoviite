@@ -24,7 +24,8 @@ enum class FrameConverterErrorV1(private val localizationSuffix: String) {
     InvalidTrackAddress("invalid-track-address"),
     TrackNumberNotFound("track-number-not-found");
 
-    val localizationKey: LocalizationKey get() = LocalizationKey("$BASE.$localizationSuffix")
+    val localizationKey: LocalizationKey
+        get() = LocalizationKey("$BASE.$localizationSuffix")
 
     companion object {
         private const val BASE: String = "integration-api.error"

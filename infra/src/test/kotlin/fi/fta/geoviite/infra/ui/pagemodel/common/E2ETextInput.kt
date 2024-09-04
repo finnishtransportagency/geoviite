@@ -12,9 +12,11 @@ class E2ETextInput(private val inputBy: By) {
 
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    private val webElement: WebElement get() = getElementWhenVisible(inputBy)
+    private val webElement: WebElement
+        get() = getElementWhenVisible(inputBy)
 
-    val value: String get() = webElement.getAttribute("value")
+    val value: String
+        get() = webElement.getAttribute("value")
 
     fun replaceValue(text: String): E2ETextInput = apply {
         clear()

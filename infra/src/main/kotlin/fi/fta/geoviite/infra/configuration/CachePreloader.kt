@@ -1,16 +1,15 @@
 package fi.fta.geoviite.infra.configuration
 
 import fi.fta.geoviite.infra.geometry.GeometryDao
-import fi.fta.geoviite.infra.switchLibrary.SwitchStructureDao
 import fi.fta.geoviite.infra.tracklayout.*
+import java.time.Duration
+import java.time.Instant
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import java.time.Duration
-import java.time.Instant
 
 const val CACHE_WARMUP_DELAY = 1000L
 const val CACHE_RELOAD_INTERVAL = 45 * 60 * 1000L
@@ -33,9 +32,9 @@ class CachePreloader(
     @Scheduled(fixedDelay = CACHE_RELOAD_INTERVAL, initialDelay = CACHE_WARMUP_DELAY)
     fun scheduleLayoutAssetReload() {
         if (cacheEnabled && cachePreloadEnabled) {
-            listOf(
-                layoutTrackNumberDao, referenceLineDao, locationTrackDao, switchDao, layoutKmPostDao
-            ).parallelStream().forEach { dao -> refreshCache(dao) }
+            listOf(layoutTrackNumberDao, referenceLineDao, locationTrackDao, switchDao, layoutKmPostDao)
+                .parallelStream()
+                .forEach { dao -> refreshCache(dao) }
         }
     }
 

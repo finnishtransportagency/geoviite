@@ -14,7 +14,8 @@ class XMLUtilsTest {
 
     @Test
     fun importingUTF16FileWithBOMWorks() {
-        val utf16file = ByteOrderMark.UTF_16BE.bytes +
+        val utf16file =
+            ByteOrderMark.UTF_16BE.bytes +
                 "<?xml version=\"1.0\" encoding=\"UTF-16\"?>".toByteArray(charset = Charsets.UTF_16BE)
         assertDoesNotThrow { xmlBytesToString(utf16file) }
     }

@@ -11,9 +11,9 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.util.StringSanitizer
 import fi.fta.geoviite.infra.util.UnsafeString
 import fi.fta.geoviite.infra.util.assertLength
-import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
+import org.slf4j.LoggerFactory
 
 private val logger = LoggerFactory.getLogger(PVClient::class.java)
 
@@ -26,25 +26,30 @@ data class PVId @JsonCreator(mode = DELEGATING) constructor(private val value: S
         val sanitizer = StringSanitizer(PVId::class, ALLOWED_CHARACTERS, allowedLength)
     }
 
-    init { sanitizer.assertSanitized(value) }
+    init {
+        sanitizer.assertSanitized(value)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: PVId): Int = value.compareTo(other.value)
 }
-enum class PVApiSearchState { kaynnistetty, kaynnissa, valmis, virhe }
+
+enum class PVApiSearchState {
+    kaynnistetty,
+    kaynnissa,
+    valmis,
+    virhe,
+}
 
 data class PVApiSearchStatus(
     @JsonProperty("tila") val state: PVApiSearchState,
     @JsonProperty("hakutunniste") val searchId: PVId,
     @JsonProperty("alkuaika") val startTime: Instant,
-    @JsonProperty("hakutunniste-voimassa") val validFor: Long
+    @JsonProperty("hakutunniste-voimassa") val validFor: Long,
 )
 
-data class PVApiDictionaryEntry(
-    val code: PVDictionaryCode,
-    val name: UnsafeString,
-) {
+data class PVApiDictionaryEntry(val code: PVDictionaryCode, val name: UnsafeString) {
     constructor(code: String, name: String) : this(PVDictionaryCode(code), UnsafeString(name))
 }
 
@@ -54,10 +59,11 @@ data class PVApiMatch(
     val oid: Oid<PVDocument>,
     @JsonProperty("luontikohdeluokan-oid") val assignmentOid: Oid<PVAssignment>,
 )
+
 data class PVApiLatestVersion(
     @JsonProperty("versio") val version: PVId,
     @JsonProperty("nimi") val name: UnsafeString,
-    @JsonProperty("muokattu") val changeTime: Instant
+    @JsonProperty("muokattu") val changeTime: Instant,
 )
 
 data class PVApiDocumentMetadata(
@@ -67,12 +73,12 @@ data class PVApiDocumentMetadata(
     @JsonProperty("dokumenttityyppi") val documentType: PVDictionaryCode,
     @JsonProperty("ryhma") val materialGroup: PVDictionaryCode,
     @JsonProperty("tekniikka-alat") val technicalFields: List<PVDictionaryCode>,
-    @JsonProperty("sisaltaa-henkilotietoja") val containsPersonalInfo: Boolean?
+    @JsonProperty("sisaltaa-henkilotietoja") val containsPersonalInfo: Boolean?,
 )
 
 data class PVApiDocument(
     @JsonProperty("tuorein-versio") val latestVersion: PVApiLatestVersion,
-    @JsonProperty("metatiedot") val metadata: PVApiDocumentMetadata
+    @JsonProperty("metatiedot") val metadata: PVApiDocumentMetadata,
 )
 
 data class PVApiProperties(
@@ -103,12 +109,7 @@ data class PVApiAssignment(
     @JsonProperty("muokattu") val modified: Instant?,
 )
 
-data class PVSearch(
-    val id: IntId<PVSearch>,
-    val token: PVId,
-    val state: PVFetchStatus,
-    val validUntil: Instant,
-)
+data class PVSearch(val id: IntId<PVSearch>, val token: PVId, val state: PVFetchStatus, val validUntil: Instant)
 
 enum class PVFetchStatus {
     WAITING,
@@ -118,20 +119,25 @@ enum class PVFetchStatus {
 }
 
 val pvBearerTokenLength = 1..5000
+
 data class PVBearerToken @JsonCreator(mode = DELEGATING) constructor(private val value: String) :
     Comparable<PVBearerToken>, CharSequence by value {
 
-    @get:JsonIgnore
-    val decoded by lazy { JWT.decode(value) }
+    @get:JsonIgnore val decoded by lazy { JWT.decode(value) }
 
-    init { assertLength(PVBearerToken::class, value, pvBearerTokenLength) }
+    init {
+        assertLength(PVBearerToken::class, value, pvBearerTokenLength)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: PVBearerToken): Int = value.compareTo(other.value)
 }
 
-enum class BearerTokenType { Bearer }
+enum class BearerTokenType {
+    Bearer
+}
+
 data class PVAccessToken(
     @JsonProperty("access_token") val accessToken: PVBearerToken,
     @JsonProperty("expires_in") val expiresIn: Long,
@@ -140,7 +146,8 @@ data class PVAccessToken(
     private val issueTime: Instant = accessToken.decoded.issuedAtAsInstant ?: Instant.now()
 
     @get:JsonIgnore
-    val expireTime: Instant get() = accessToken.decoded.expiresAtAsInstant ?: issueTime.plusSeconds(expiresIn)
+    val expireTime: Instant
+        get() = accessToken.decoded.expiresAtAsInstant ?: issueTime.plusSeconds(expiresIn)
 
     init {
         accessToken.decoded.let { t ->
@@ -158,15 +165,21 @@ data class PVAccessToken(
             if (t.issuedAtAsInstant == null) {
                 logger.warn("ProjektiVelho API token does not have issued time available")
             } else if (Duration.between(t.issuedAtAsInstant, Instant.now()).abs() > Duration.ofSeconds(60)) {
-                logger.warn("ProjektiVelho API token is not issued in 1 minute. The server time might differ from the client.")
+                logger.warn(
+                    "ProjektiVelho API token is not issued in 1 minute. The server time might differ from the client."
+                )
             }
             if (t.expiresAtAsInstant == null) {
-                logger.warn("ProjektiVelho API token does not have expiry time available: defaulting to now()+expiresIn")
+                logger.warn(
+                    "ProjektiVelho API token does not have expiry time available: defaulting to now()+expiresIn"
+                )
             }
         }
         if (issueTime.plusSeconds(expiresIn) != expireTime) {
-            logger.warn("ProjektiVelho API token expiry does not match expiresIn value:" +
-                    " issued=${issueTime} expires=${expireTime} expiresIn=$expiresIn")
+            logger.warn(
+                "ProjektiVelho API token expiry does not match expiresIn value:" +
+                    " issued=${issueTime} expires=${expireTime} expiresIn=$expiresIn"
+            )
         }
     }
 }

@@ -95,14 +95,14 @@ class LayoutSwitchController(
         @RequestParam("bbox") bbox: BoundingBox?,
     ): List<ValidatedAsset<TrackLayoutSwitch>> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        val switches = if (ids != null) {
-            switchService.getMany(layoutContext, ids)
-        } else {
-            switchService.list(layoutContext, false)
-        }
-        val switchIds = switches
-            .filter { switch -> switchMatchesBbox(switch, bbox, false) }
-            .map { sw -> sw.id as IntId }
+        val switches =
+            if (ids != null) {
+                switchService.getMany(layoutContext, ids)
+            } else {
+                switchService.list(layoutContext, false)
+            }
+        val switchIds =
+            switches.filter { switch -> switchMatchesBbox(switch, bbox, false) }.map { sw -> sw.id as IntId }
         return publicationService.validateSwitches(layoutContext, switchIds)
     }
 

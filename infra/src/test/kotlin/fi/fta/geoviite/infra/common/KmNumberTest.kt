@@ -1,11 +1,11 @@
 package fi.fta.geoviite.infra.common
 
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Test
 
 class KmNumberTest {
 
@@ -66,53 +66,29 @@ class KmNumberTest {
 
     @Test
     fun floorWorks() {
-        assertEquals(
-            TrackMeter(123, 1.5, 1),
-            TrackMeter(123, 1.567, 3).floor(1),
-        )
-        assertEquals(
-            TrackMeter(123, 1.5, 1),
-            TrackMeter(123, 1.5, 1).floor(1),
-        )
-        assertEquals(
-            TrackMeter(123, 1.5, 1),
-            TrackMeter(123, 1.50, 2).floor(1),
-        )
+        assertEquals(TrackMeter(123, 1.5, 1), TrackMeter(123, 1.567, 3).floor(1))
+        assertEquals(TrackMeter(123, 1.5, 1), TrackMeter(123, 1.5, 1).floor(1))
+        assertEquals(TrackMeter(123, 1.5, 1), TrackMeter(123, 1.50, 2).floor(1))
     }
 
     @Test
     fun ceilWorks() {
-        assertEquals(
-            TrackMeter(123, 1.6, 1),
-            TrackMeter(123, 1.567, 3).ceil(1),
-        )
-        assertEquals(
-            TrackMeter(123, 1.5, 1),
-            TrackMeter(123, 1.5, 1).ceil(1),
-        )
-        assertEquals(
-            TrackMeter(123, 1.5, 1),
-            TrackMeter(123, 1.50, 2).ceil(1),
-        )
+        assertEquals(TrackMeter(123, 1.6, 1), TrackMeter(123, 1.567, 3).ceil(1))
+        assertEquals(TrackMeter(123, 1.5, 1), TrackMeter(123, 1.5, 1).ceil(1))
+        assertEquals(TrackMeter(123, 1.5, 1), TrackMeter(123, 1.50, 2).ceil(1))
     }
+
     @Test
     fun roundDecimalsWork() {
-        assertEquals(
-            TrackMeter(123, 1.6, 1),
-            TrackMeter(123, 1.567, 3).round(1),
-        )
+        assertEquals(TrackMeter(123, 1.6, 1), TrackMeter(123, 1.567, 3).round(1))
     }
 
     @Test
     fun addressesWorkInRanges() {
-        assertTrue(TrackMeter(704, 87) in
-                TrackMeter(704, 85.123, 3)..TrackMeter(704, 87.123, 3))
-        assertTrue(TrackMeter(704, 87) in
-                TrackMeter(704, 87)..TrackMeter(704, 87))
-        assertTrue(TrackMeter(704, 87) in
-                TrackMeter(704, 9)..TrackMeter(704, 123))
-        assertTrue(TrackMeter(704, 87) in
-                TrackMeter(703, 999.123, 3)..TrackMeter(705, 7.123, 3))
+        assertTrue(TrackMeter(704, 87) in TrackMeter(704, 85.123, 3)..TrackMeter(704, 87.123, 3))
+        assertTrue(TrackMeter(704, 87) in TrackMeter(704, 87)..TrackMeter(704, 87))
+        assertTrue(TrackMeter(704, 87) in TrackMeter(704, 9)..TrackMeter(704, 123))
+        assertTrue(TrackMeter(704, 87) in TrackMeter(703, 999.123, 3)..TrackMeter(705, 7.123, 3))
     }
 
     @Test

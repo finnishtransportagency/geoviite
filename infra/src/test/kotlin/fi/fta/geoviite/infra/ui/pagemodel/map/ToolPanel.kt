@@ -45,7 +45,7 @@ class E2EToolPanel(parentView: E2EViewFragment) : E2EViewFragment(parentView, By
         infoBox("location-track-log-infobox", ::E2ELocationTrackLogInfoBox)
     }
 
-    //re-used old qa-id so don't worry
+    // re-used old qa-id so don't worry
     val trackNumberLog: E2ETrackNumberLogInfoBox by lazy {
         infoBox("track-number-log-infobox", ::E2ETrackNumberLogInfoBox)
     }

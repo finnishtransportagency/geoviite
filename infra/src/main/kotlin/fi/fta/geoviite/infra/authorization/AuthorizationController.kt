@@ -30,15 +30,13 @@ class AuthorizationController @Autowired constructor(private val signer: CookieS
 
     @PreAuthorize(AUTH_BASIC)
     @PostMapping("/desired-role")
-    fun setDesiredRole(
-        @RequestParam("code") code: AuthCode,
-        response: HttpServletResponse,
-    ): AuthCode {
-        val roleCookie = Cookie(DESIRED_ROLE_COOKIE_NAME, code.toString()).apply {
-            path = "/"
-            isHttpOnly = true
-            secure = true
-        }
+    fun setDesiredRole(@RequestParam("code") code: AuthCode, response: HttpServletResponse): AuthCode {
+        val roleCookie =
+            Cookie(DESIRED_ROLE_COOKIE_NAME, code.toString()).apply {
+                path = "/"
+                isHttpOnly = true
+                secure = true
+            }
 
         response.addCookie(roleCookie)
         return code
@@ -57,10 +55,7 @@ class AuthorizationController @Autowired constructor(private val signer: CookieS
         httpHeaders.add("Set-Cookie", cloudFrontCookies.keyPairId)
         httpHeaders.add("Location", "https://${cloudFrontCookies.domain}/$trimmedRedirectPath")
 
-        return ResponseEntity
-            .status(HttpStatus.FOUND)
-            .headers(httpHeaders)
-            .body(cloudFrontCookies)
+        return ResponseEntity.status(HttpStatus.FOUND).headers(httpHeaders).body(cloudFrontCookies)
     }
 
     @PreAuthorize(AUTH_BASIC)

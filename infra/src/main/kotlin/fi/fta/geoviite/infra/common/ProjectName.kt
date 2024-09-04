@@ -11,11 +11,13 @@ data class ProjectName @JsonCreator(mode = DELEGATING) constructor(private val v
         val allowedLength = 1..100
         const val ALLOWED_CHARACTERS = "A-ZÄÖÅa-zäöå0-9 _\\-/+&.,"
         val sanitizer = StringSanitizer(ProjectName::class, ALLOWED_CHARACTERS, allowedLength)
+
         fun ofUnsafe(value: String) = ProjectName(sanitizer.sanitize(value))
     }
 
-    init { sanitizer.assertSanitized(value) }
+    init {
+        sanitizer.assertSanitized(value)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
 }

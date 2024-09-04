@@ -3,11 +3,11 @@ package fi.fta.geoviite.infra.geometry
 import fi.fta.geoviite.infra.common.RotationDirection.CCW
 import fi.fta.geoviite.infra.common.RotationDirection.CW
 import fi.fta.geoviite.infra.math.*
+import kotlin.math.*
+import kotlin.test.assertFalse
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import kotlin.math.*
-import kotlin.test.assertFalse
 
 const val COMPARE_DELTA = 0.000001
 
@@ -15,11 +15,14 @@ class GeometryElementTest {
 
     @Test
     fun lineCalculationWorks() {
-        assertGeometryValid(line(
-            length = 121.133,
-            start = Point(x = 2497947.988500, y = 6661582.954000),
-            end = Point(x = 2497847.364500, y = 6661515.514000),
-        ), accuracy = 0.001)
+        assertGeometryValid(
+            line(
+                length = 121.133,
+                start = Point(x = 2497947.988500, y = 6661582.954000),
+                end = Point(x = 2497847.364500, y = 6661515.514000),
+            ),
+            accuracy = 0.001,
+        )
     }
 
     @Test
@@ -37,24 +40,34 @@ class GeometryElementTest {
 
     @Test
     fun curveCalculationWorksCcw() {
-        assertGeometryValid(curve(
-            length = 37.654, rotation = CCW,
-            radius = 1070.0, chord = 37.651564,
-            start = Point(x = 2499138.729000, y = 6662277.682000),
-            end = Point(x = 2499109.274000, y = 6662254.229000),
-            center = Point(x = 2499790.389000, y = 6661429.013000),
-        ), accuracy = 0.001)
+        assertGeometryValid(
+            curve(
+                length = 37.654,
+                rotation = CCW,
+                radius = 1070.0,
+                chord = 37.651564,
+                start = Point(x = 2499138.729000, y = 6662277.682000),
+                end = Point(x = 2499109.274000, y = 6662254.229000),
+                center = Point(x = 2499790.389000, y = 6661429.013000),
+            ),
+            accuracy = 0.001,
+        )
     }
 
     @Test
     fun curveCalculationWorksCw() {
-        assertGeometryValid(curve(
-            length = 204.018, rotation = CW,
-            radius = 806.0, chord = 203.473678,
-            start = Point(x = 2498762.696000, y = 6661941.804000),
-            end = Point(x = 2498585.977000, y = 6661840.948000),
-            center = Point(x = 2498278.021000, y = 6662585.797000),
-        ), accuracy = 0.001)
+        assertGeometryValid(
+            curve(
+                length = 204.018,
+                rotation = CW,
+                radius = 806.0,
+                chord = 203.473678,
+                start = Point(x = 2498762.696000, y = 6661941.804000),
+                end = Point(x = 2498585.977000, y = 6661840.948000),
+                center = Point(x = 2498278.021000, y = 6662585.797000),
+            ),
+            accuracy = 0.001,
+        )
     }
 
     @Test
@@ -80,38 +93,56 @@ class GeometryElementTest {
 
     @Test
     fun clothoidCalculationWorksFlatteningBetweenCurvesCw() {
-        assertGeometryValid(clothoid(
-            constant = 404.795,
-            length = 103.0, rotation = CW,
-            dirStartGrads = 100.0 - 290.647958, dirEndGrads = 100.0 - 295.27125,
-            radiusStart = 2559.0, radiusEnd = 981.0,
-            start = Point(x = 2485163.625000, y = 6663015.781500),
-            end = Point(x = 2485061.340000, y = 6663003.865000)
-        ), accuracy = 0.001)
+        assertGeometryValid(
+            clothoid(
+                constant = 404.795,
+                length = 103.0,
+                rotation = CW,
+                dirStartGrads = 100.0 - 290.647958,
+                dirEndGrads = 100.0 - 295.27125,
+                radiusStart = 2559.0,
+                radiusEnd = 981.0,
+                start = Point(x = 2485163.625000, y = 6663015.781500),
+                end = Point(x = 2485061.340000, y = 6663003.865000),
+            ),
+            accuracy = 0.001,
+        )
     }
 
     @Test
     fun clothoidCalculationWorksFlatteningCw() {
-        assertGeometryValid(clothoid(
-            constant = 377.831,
-            length = 178.0, rotation = CW,
-            dirStartGrads = 100.0 - 255.173986, dirEndGrads = 100.0 - 262.238719,
-            radiusStart = 802.0, radiusEnd = null,
-            start = Point(x = 2500648.286000, y = 6663306.527500),
-            end = Point(x = 2500504.550000, y = 6663201.697000)
-        ), accuracy = 0.001)
+        assertGeometryValid(
+            clothoid(
+                constant = 377.831,
+                length = 178.0,
+                rotation = CW,
+                dirStartGrads = 100.0 - 255.173986,
+                dirEndGrads = 100.0 - 262.238719,
+                radiusStart = 802.0,
+                radiusEnd = null,
+                start = Point(x = 2500648.286000, y = 6663306.527500),
+                end = Point(x = 2500504.550000, y = 6663201.697000),
+            ),
+            accuracy = 0.001,
+        )
     }
 
     @Test
     fun clothoidCalculationWorksSteepeningCcw() {
-        assertGeometryValid(clothoid(
-            constant = 375.819,
-            length = 132.0, rotation = CCW,
-            dirStartGrads = 100.0 - 262.238719, dirEndGrads = 100.0 - 258.311905,
-            radiusStart = null, radiusEnd = 1070.0,
-            start = Point(x = 2499246.623000, y = 6662353.689000),
-            end = Point(x = 2499138.729000, y = 6662277.682000)
-        ), accuracy = 0.001)
+        assertGeometryValid(
+            clothoid(
+                constant = 375.819,
+                length = 132.0,
+                rotation = CCW,
+                dirStartGrads = 100.0 - 262.238719,
+                dirEndGrads = 100.0 - 258.311905,
+                radiusStart = null,
+                radiusEnd = 1070.0,
+                start = Point(x = 2499246.623000, y = 6662353.689000),
+                end = Point(x = 2499138.729000, y = 6662277.682000),
+            ),
+            accuracy = 0.001,
+        )
     }
 
     @Test
@@ -129,7 +160,8 @@ class GeometryElementTest {
 
     @Test
     fun clothoidFlatteningVariationsCalculationWorks() {
-        // Flattening curves: start curved outside origin, straighten out as it heads in, ending at origin
+        // Flattening curves: start curved outside origin, straighten out as it heads in, ending at
+        // origin
         assertGrowsConsistently(clothoidToOrigin(CW, 0.0), positiveX = true, positiveY = true)
         assertGrowsConsistently(clothoidToOrigin(CCW, 0.0), positiveX = true, positiveY = false)
         assertGrowsConsistently(clothoidToOrigin(CW, 100.0), positiveX = false, positiveY = true)
@@ -142,24 +174,36 @@ class GeometryElementTest {
 
     @Test
     fun biquadraticParabolaCalculationWorksL162FlatteningCcw() {
-        assertGeometryValid(biquadraticParabola(
-            length = 162.0, rotation = CCW,
-            dirStartGrads = 100.0 - 283.253815, dirEndGrads = 100.0 - 279.117589,
-            radiusStart = 1244.0, radiusEnd = null,
-            start = Point(x = 2485815.150000, y = 6663189.957500),
-            end = Point(x = 2485660.856000, y = 6663140.695000)
-        ), accuracy = 0.1) // Poor accuracy in this calculation type
+        assertGeometryValid(
+            biquadraticParabola(
+                length = 162.0,
+                rotation = CCW,
+                dirStartGrads = 100.0 - 283.253815,
+                dirEndGrads = 100.0 - 279.117589,
+                radiusStart = 1244.0,
+                radiusEnd = null,
+                start = Point(x = 2485815.150000, y = 6663189.957500),
+                end = Point(x = 2485660.856000, y = 6663140.695000),
+            ),
+            accuracy = 0.1,
+        ) // Poor accuracy in this calculation type
     }
 
     @Test
     fun biquadraticParabolaCalculationWorksL100SteepeningCw() {
-        assertGeometryValid(biquadraticParabola(
-            length = 100.0, rotation = CW,
-            dirStartGrads = 100.0 - 279.117589, dirEndGrads = 100.0 - 280.361230,
-            radiusStart = null, radiusEnd = 2559.0,
-            start = Point(x = 2485660.856000, y = 6663140.695000),
-            end = Point(x = 2485566.007000, y = 6663109.018500)
-        ), accuracy = 0.1) // Poor accuracy in this calculation type
+        assertGeometryValid(
+            biquadraticParabola(
+                length = 100.0,
+                rotation = CW,
+                dirStartGrads = 100.0 - 279.117589,
+                dirEndGrads = 100.0 - 280.361230,
+                radiusStart = null,
+                radiusEnd = 2559.0,
+                start = Point(x = 2485660.856000, y = 6663140.695000),
+                end = Point(x = 2485566.007000, y = 6663109.018500),
+            ),
+            accuracy = 0.1,
+        ) // Poor accuracy in this calculation type
     }
 
     @Test
@@ -177,7 +221,8 @@ class GeometryElementTest {
 
     @Test
     fun biquadraticParabolaFlatteningVariationsCalculationWorks() {
-        // Flattening curves: start curved outside origin, straighten out as it heads in, ending at origin
+        // Flattening curves: start curved outside origin, straighten out as it heads in, ending at
+        // origin
         assertGrowsConsistently(biquadraticParabolaToOrigin(CW, 0.0), positiveX = true, positiveY = true)
         assertGrowsConsistently(biquadraticParabolaToOrigin(CCW, 0.0), positiveX = true, positiveY = false)
         assertGrowsConsistently(biquadraticParabolaToOrigin(CW, 100.0), positiveX = false, positiveY = true)
@@ -312,12 +357,14 @@ class GeometryElementTest {
     @Test
     fun curveLengthUntilWorksCw() {
         val radius = 100.0
-        val curve = curve(
-            rotation = CW, radius = radius,
-            start = Point(x = 200.0, y = 100.0),
-            end = Point(x = 100.0, y = 0.0),
-            center = Point(x = 100.0, y = 100.0),
-        )
+        val curve =
+            curve(
+                rotation = CW,
+                radius = radius,
+                start = Point(x = 200.0, y = 100.0),
+                end = Point(x = 100.0, y = 0.0),
+                center = Point(x = 100.0, y = 100.0),
+            )
 
         assertLengthUntilExact(curve, curve.start, 0.0)
         assertLengthUntilExact(curve, curve.end, circleArcLength(radius) / 4)
@@ -333,12 +380,14 @@ class GeometryElementTest {
     fun curveLengthUntilWorksCcw() {
         val radius = 100.0
         val center = Point(x = 100.0, y = 100.0)
-        val curve = curve(
-            rotation = CCW, radius = radius,
-            start = pointInDirection(center, radius, 3 * PI / 4),
-            end = pointInDirection(center, radius, -3 * PI / 4),
-            center = center,
-        )
+        val curve =
+            curve(
+                rotation = CCW,
+                radius = radius,
+                start = pointInDirection(center, radius, 3 * PI / 4),
+                end = pointInDirection(center, radius, -3 * PI / 4),
+                center = center,
+            )
 
         assertLengthUntilExact(curve, curve.start, 0.0)
         assertLengthUntilExact(curve, curve.end, circleArcLength(radius) / 4)
@@ -352,13 +401,17 @@ class GeometryElementTest {
 
     @Test
     fun biquadraticParabolaLengthUntilWorksCw() {
-        val parabola = biquadraticParabola(
-            length = 100.0, rotation = CW,
-            dirStartGrads = 100.0 - 279.117589, dirEndGrads = 100.0 - 280.361230,
-            radiusStart = null, radiusEnd = 2559.0,
-            start = Point(x = 2485660.856000, y = 6663140.695000),
-            end = Point(x = 2485566.007000, y = 6663109.018500),
-        )
+        val parabola =
+            biquadraticParabola(
+                length = 100.0,
+                rotation = CW,
+                dirStartGrads = 100.0 - 279.117589,
+                dirEndGrads = 100.0 - 280.361230,
+                radiusStart = null,
+                radiusEnd = 2559.0,
+                start = Point(x = 2485660.856000, y = 6663140.695000),
+                end = Point(x = 2485566.007000, y = 6663109.018500),
+            )
         assertEquals(0.0, parabola.getLengthUntil(parabola.start), COMPARE_DELTA)
         assertEquals(parabola.calculatedLength, parabola.getLengthUntil(parabola.end), 0.1)
         assertLengthUntilAlongElement(parabola, 0.1)
@@ -366,13 +419,17 @@ class GeometryElementTest {
 
     @Test
     fun biquadraticParabolaLengthUntilWorksCcw() {
-        val parabola = biquadraticParabola(
-            length = 162.0, rotation = CCW,
-            dirStartGrads = 100.0 - 283.253815, dirEndGrads = 100.0 - 279.117589,
-            radiusStart = 1244.0, radiusEnd = null,
-            start = Point(x = 2485815.150000, y = 6663189.957500),
-            end = Point(x = 2485660.856000, y = 6663140.695000),
-        )
+        val parabola =
+            biquadraticParabola(
+                length = 162.0,
+                rotation = CCW,
+                dirStartGrads = 100.0 - 283.253815,
+                dirEndGrads = 100.0 - 279.117589,
+                radiusStart = 1244.0,
+                radiusEnd = null,
+                start = Point(x = 2485815.150000, y = 6663189.957500),
+                end = Point(x = 2485660.856000, y = 6663140.695000),
+            )
         assertEquals(0.0, parabola.getLengthUntil(parabola.start), COMPARE_DELTA)
         assertEquals(parabola.calculatedLength, parabola.getLengthUntil(parabola.end), 0.1)
         assertLengthUntilAlongElement(parabola, 0.1)
@@ -380,13 +437,17 @@ class GeometryElementTest {
 
     @Test
     fun clothoidLengthUntilWorksCw() {
-        val clothoid = clothoid(
-            constant = 404.795, rotation = CW,
-            dirStartGrads = 100.0 - 290.647958, dirEndGrads = 100.0 - 295.27125,
-            radiusStart = 2559.0, radiusEnd = 981.0,
-            start = Point(x = 2485163.625000, y = 6663015.781500),
-            end = Point(x = 2485061.340000, y = 6663003.865000),
-        )
+        val clothoid =
+            clothoid(
+                constant = 404.795,
+                rotation = CW,
+                dirStartGrads = 100.0 - 290.647958,
+                dirEndGrads = 100.0 - 295.27125,
+                radiusStart = 2559.0,
+                radiusEnd = 981.0,
+                start = Point(x = 2485163.625000, y = 6663015.781500),
+                end = Point(x = 2485061.340000, y = 6663003.865000),
+            )
         assertEquals(0.0, clothoid.getLengthUntil(clothoid.start), COMPARE_DELTA)
         assertEquals(clothoid.calculatedLength, clothoid.getLengthUntil(clothoid.end), 0.001)
         assertLengthUntilAlongElement(clothoid, 0.001)
@@ -394,13 +455,17 @@ class GeometryElementTest {
 
     @Test
     fun clothoidLengthUntilWorksCcw() {
-        val clothoid = clothoid(
-            constant = 375.819, rotation = CCW,
-            dirStartGrads = 100.0 - 262.238719, dirEndGrads = 100.0 - 258.311905,
-            radiusStart = null, radiusEnd = 1070.0,
-            start = Point(x = 2499246.623000, y = 6662353.689000),
-            end = Point(x = 2499138.729000, y = 6662277.682000),
-        )
+        val clothoid =
+            clothoid(
+                constant = 375.819,
+                rotation = CCW,
+                dirStartGrads = 100.0 - 262.238719,
+                dirEndGrads = 100.0 - 258.311905,
+                radiusStart = null,
+                radiusEnd = 1070.0,
+                start = Point(x = 2499246.623000, y = 6662353.689000),
+                end = Point(x = 2499138.729000, y = 6662277.682000),
+            )
         assertEquals(0.0, clothoid.getLengthUntil(clothoid.start), COMPARE_DELTA)
         assertEquals(clothoid.calculatedLength, clothoid.getLengthUntil(clothoid.end), 0.001)
         assertLengthUntilAlongElement(clothoid, 0.001)
@@ -432,11 +497,11 @@ class GeometryElementTest {
             val offsetFromStart = current - element.getCoordinateAt(0.0)
             assertTrue(
                 abs(offsetFromStart.x) <= maxDist,
-                "Step $dist: X-offset=abs(${current.x}) should be less than ${element.length.toDouble()}*$portion=$maxDist"
+                "Step $dist: X-offset=abs(${current.x}) should be less than ${element.length.toDouble()}*$portion=$maxDist",
             )
             assertTrue(
                 abs(offsetFromStart.y) <= maxDist,
-                "Step $dist: Y-offset=abs(${current.y}) should be less than ${element.length.toDouble()}*$portion=$maxDist"
+                "Step $dist: Y-offset=abs(${current.y}) should be less than ${element.length.toDouble()}*$portion=$maxDist",
             )
             previous = current
         }
@@ -449,8 +514,10 @@ class GeometryElementTest {
         var distance = 0.0
         while (distance <= element.calculatedLength) {
             val point = element.getCoordinateAt(distance)
-            assertTrue(bbox.contains(point),
-                "Bounding box should contain all element points: bbox=$bbox point=$point element=$element")
+            assertTrue(
+                bbox.contains(point),
+                "Bounding box should contain all element points: bbox=$bbox point=$point element=$element",
+            )
             distance += step
         }
 

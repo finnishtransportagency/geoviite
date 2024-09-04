@@ -14,14 +14,17 @@ data class LocalizationKey @JsonCreator(mode = DELEGATING) constructor(private v
         val sanitizer = StringSanitizer(LocalizationKey::class, ALLOWED_CHARACTERS, allowedLength)
     }
 
-    init { sanitizer.assertSanitized(value) }
+    init {
+        sanitizer.assertSanitized(value)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: LocalizationKey): Int = value.compareTo(other.value)
 }
 
-data class LocalizationParams @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+data class LocalizationParams
+@JsonCreator(mode = JsonCreator.Mode.DELEGATING)
 constructor(@JsonValue val params: Map<String, String>) {
 
     companion object {
@@ -31,7 +34,9 @@ constructor(@JsonValue val params: Map<String, String>) {
         val empty = LocalizationParams(emptyMap())
     }
 
-    init { params.forEach { (key, _) -> keySanitizer.sanitize(key) } }
+    init {
+        params.forEach { (key, _) -> keySanitizer.sanitize(key) }
+    }
 
     fun get(key: String) = params[key] ?: ""
 }

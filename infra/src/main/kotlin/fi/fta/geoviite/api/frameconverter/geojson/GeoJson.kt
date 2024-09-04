@@ -20,7 +20,7 @@ abstract class GeoJsonFeature {
 abstract class GeoJsonGeometry
 
 enum class GeoJsonGeometryType {
-    Point,
+    Point
 }
 
 data class GeoJsonGeometryPoint(

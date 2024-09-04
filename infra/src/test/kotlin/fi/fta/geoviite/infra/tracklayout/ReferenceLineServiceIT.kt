@@ -28,7 +28,9 @@ import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class ReferenceLineServiceIT @Autowired constructor(
+class ReferenceLineServiceIT
+@Autowired
+constructor(
     private val trackNumberService: LayoutTrackNumberService,
     private val referenceLineService: ReferenceLineService,
     private val trackNumberDao: LayoutTrackNumberDao,
@@ -38,9 +40,10 @@ class ReferenceLineServiceIT @Autowired constructor(
     @Test
     fun creatingAndDeletingUnpublishedReferenceLineWithAlignmentWorks() {
         val trackNumberId = createTrackNumber() // automatically creates first version of reference line
-        val (savedLine, savedAlignment) = requireNotNull(
-            referenceLineService.getByTrackNumberWithAlignment(MainLayoutContext.draft, trackNumberId)
-        ) { "Reference line was not automatically created" }
+        val (savedLine, savedAlignment) =
+            requireNotNull(referenceLineService.getByTrackNumberWithAlignment(MainLayoutContext.draft, trackNumberId)) {
+                "Reference line was not automatically created"
+            }
         assertTrue(alignmentExists(savedLine.alignmentVersion!!.id))
         assertEquals(savedLine.alignmentVersion?.id, savedAlignment.id as IntId)
         assertThrows<DataIntegrityViolationException> {
@@ -74,8 +77,8 @@ class ReferenceLineServiceIT @Autowired constructor(
         val referenceLineId = referenceLine?.id as IntId
 
         val address = address(2)
-        val updateResponse = referenceLineService
-            .updateTrackNumberReferenceLine(LayoutBranch.main, trackNumberId, address)
+        val updateResponse =
+            referenceLineService.updateTrackNumberReferenceLine(LayoutBranch.main, trackNumberId, address)
         assertEquals(referenceLineId, updateResponse?.id)
         val updatedLine = referenceLineService.get(MainLayoutContext.draft, referenceLineId)!!
         assertEquals(address, updatedLine.startAddress)
@@ -92,11 +95,12 @@ class ReferenceLineServiceIT @Autowired constructor(
     fun updatingThroughTrackNumberCreatesDraft() {
         val trackNumberId = createAndPublishTrackNumber() // First version is created automatically
 
-        val referenceLineId = referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumberId)!!.id as IntId
+        val referenceLineId =
+            referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumberId)!!.id as IntId
         val (publishResponse, published) = publishAndVerify(trackNumberId, referenceLineId)
 
-        val editResponse = referenceLineService
-            .updateTrackNumberReferenceLine(LayoutBranch.main, trackNumberId, TrackMeter(3, 5))
+        val editResponse =
+            referenceLineService.updateTrackNumberReferenceLine(LayoutBranch.main, trackNumberId, TrackMeter(3, 5))
         assertEquals(publishResponse.id, editResponse?.id)
         assertNotEquals(publishResponse.rowVersion.rowId, editResponse?.rowVersion?.rowId)
 
@@ -105,8 +109,8 @@ class ReferenceLineServiceIT @Autowired constructor(
         // Creating a draft should duplicate the alignment
         assertNotEquals(published.alignmentVersion!!.id, editedDraft.alignmentVersion!!.id)
 
-        val editResponse2 = referenceLineService
-            .updateTrackNumberReferenceLine(LayoutBranch.main, trackNumberId, TrackMeter(8, 9))
+        val editResponse2 =
+            referenceLineService.updateTrackNumberReferenceLine(LayoutBranch.main, trackNumberId, TrackMeter(8, 9))
         assertEquals(publishResponse.id, editResponse2?.id)
         assertNotEquals(publishResponse.rowVersion.rowId, editResponse2?.rowVersion?.rowId)
 
@@ -121,12 +125,12 @@ class ReferenceLineServiceIT @Autowired constructor(
     fun savingCreatesDraft() {
         val trackNumberId = createAndPublishTrackNumber() // First version is created automatically
 
-        val referenceLineId = referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumberId)!!.id as IntId
+        val referenceLineId =
+            referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumberId)!!.id as IntId
         val (publishResponse, published) = publishAndVerify(trackNumberId, referenceLineId)
 
-        val editedVersion = referenceLineService.saveDraft(
-            LayoutBranch.main, published.copy(startAddress = TrackMeter(1, 1)),
-        )
+        val editedVersion =
+            referenceLineService.saveDraft(LayoutBranch.main, published.copy(startAddress = TrackMeter(1, 1)))
         assertEquals(publishResponse.id, editedVersion.id)
         assertNotEquals(publishResponse.rowVersion.rowId, editedVersion.rowVersion.rowId)
 
@@ -135,10 +139,8 @@ class ReferenceLineServiceIT @Autowired constructor(
         // Creating a draft should duplicate the alignment
         assertNotEquals(published.alignmentVersion!!.id, editedDraft.alignmentVersion!!.id)
 
-        val editedVersion2 = referenceLineService.saveDraft(
-            LayoutBranch.main,
-            editedDraft.copy(startAddress = TrackMeter(2, 2)),
-        )
+        val editedVersion2 =
+            referenceLineService.saveDraft(LayoutBranch.main, editedDraft.copy(startAddress = TrackMeter(2, 2)))
         assertEquals(publishResponse.id, editedVersion2.id)
         assertNotEquals(publishResponse.rowVersion.rowId, editedVersion2.rowVersion.rowId)
 
@@ -153,7 +155,8 @@ class ReferenceLineServiceIT @Autowired constructor(
     fun savingWithAlignmentCreatesDraft() {
         val trackNumberId = createAndPublishTrackNumber() // First version is created automatically
 
-        val referenceLineId = referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumberId)!!.id as IntId
+        val referenceLineId =
+            referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumberId)!!.id as IntId
         val (publishResponse, published) = publishAndVerify(trackNumberId, referenceLineId)
 
         val alignmentTmp = alignment(segment(2, 10.0, 20.0, 10.0, 20.0))
@@ -190,15 +193,20 @@ class ReferenceLineServiceIT @Autowired constructor(
     fun `should throw exception when there are switches linked to reference line`() {
         val trackNumberId = mainDraftContext.createLayoutTrackNumber().id
 
-        val (referenceLine, alignment) = referenceLineAndAlignment(
-            trackNumberId = trackNumberId,
-            segments = listOf(
-                segment(
-                    Point(0.0, 0.0), Point(1.0, 1.0), switchId = IntId(100), startJointNumber = JointNumber(1)
-                ),
-            ),
-            draft = false,
-        )
+        val (referenceLine, alignment) =
+            referenceLineAndAlignment(
+                trackNumberId = trackNumberId,
+                segments =
+                    listOf(
+                        segment(
+                            Point(0.0, 0.0),
+                            Point(1.0, 1.0),
+                            switchId = IntId(100),
+                            startJointNumber = JointNumber(1),
+                        )
+                    ),
+                draft = false,
+            )
 
         assertThrows<IllegalArgumentException> {
             referenceLineService.saveDraft(LayoutBranch.main, referenceLine, alignment)
@@ -224,16 +232,15 @@ class ReferenceLineServiceIT @Autowired constructor(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         referenceLineId: IntId<ReferenceLine>,
     ): Pair<LayoutDaoResponse<ReferenceLine>, ReferenceLine> {
-        val (draft, draftAlignment) = referenceLineService
-            .getWithAlignmentOrThrow(MainLayoutContext.draft, referenceLineId)
+        val (draft, draftAlignment) =
+            referenceLineService.getWithAlignmentOrThrow(MainLayoutContext.draft, referenceLineId)
         assertTrue(draft.isDraft)
         assertEquals(draft, referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumberId))
         assertNull(referenceLineService.getByTrackNumber(MainLayoutContext.official, trackNumberId))
 
         val publishedVersion = publish(draft.id as IntId)
-        val (published, publishedAlignment) = referenceLineService.getWithAlignmentOrThrow(
-            MainLayoutContext.official, publishedVersion.id
-        )
+        val (published, publishedAlignment) =
+            referenceLineService.getWithAlignmentOrThrow(MainLayoutContext.official, publishedVersion.id)
         val publishedByTrackNumber = referenceLineService.getByTrackNumber(MainLayoutContext.official, trackNumberId)
         assertEquals(published, publishedByTrackNumber)
         assertFalse(published.isDraft)
@@ -252,25 +259,27 @@ class ReferenceLineServiceIT @Autowired constructor(
             ?: throw IllegalStateException("Exists-check failed")
     }
 
-    private fun createAndPublishTrackNumber() = createTrackNumber().let { id ->
-        val version = trackNumberDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
-        trackNumberService.publish(LayoutBranch.main, ValidationVersion(id, version)).id
-    }
+    private fun createAndPublishTrackNumber() =
+        createTrackNumber().let { id ->
+            val version = trackNumberDao.fetchVersionOrThrow(MainLayoutContext.draft, id)
+            trackNumberService.publish(LayoutBranch.main, ValidationVersion(id, version)).id
+        }
 
-    private fun createTrackNumber() = trackNumberService.insert(
-        LayoutBranch.main,
-        TrackNumberSaveRequest(
-            number = testDBService.getUnusedTrackNumber(),
-            description = FreeText(trackNumberDescription),
-            state = LayoutState.IN_USE,
-            startAddress = TrackMeter.ZERO,
+    private fun createTrackNumber() =
+        trackNumberService.insert(
+            LayoutBranch.main,
+            TrackNumberSaveRequest(
+                number = testDBService.getUnusedTrackNumber(),
+                description = FreeText(trackNumberDescription),
+                state = LayoutState.IN_USE,
+                startAddress = TrackMeter.ZERO,
+            ),
         )
-    )
 
     private fun address(seed: Int = 0) = TrackMeter(KmNumber(seed), seed * 100)
 
-    private fun publish(id: IntId<ReferenceLine>) = referenceLineDao
-        .fetchPublicationVersions(LayoutBranch.main, listOf(id))
-        .first()
-        .let { version -> referenceLineService.publish(LayoutBranch.main, version) }
+    private fun publish(id: IntId<ReferenceLine>) =
+        referenceLineDao.fetchPublicationVersions(LayoutBranch.main, listOf(id)).first().let { version ->
+            referenceLineService.publish(LayoutBranch.main, version)
+        }
 }

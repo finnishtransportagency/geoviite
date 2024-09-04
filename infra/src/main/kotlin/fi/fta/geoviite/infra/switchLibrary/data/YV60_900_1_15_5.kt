@@ -4,87 +4,45 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.switchLibrary.*
 
-fun YV60_900_1_15_5_O() = SwitchStructure(
-    type = SwitchType("YV60-900-1:15,5-O"),
-    presentationJointNumber = JointNumber(1),
-    joints = listOf(
-        SwitchJoint(
-            JointNumber(1),
-            Point(0.0, 0.0)
-        ),
-        SwitchJoint(
-            JointNumber(5),
-            Point(30.060, 0.0)
-        ),
-        SwitchJoint(
-            JointNumber(2),
-            Point(59.100, 0.0)
-        ),
-        SwitchJoint(
-            JointNumber(3),
-            Point(59.040, -1.870)
-        )
-    ),
-    alignments = listOf(
-        SwitchAlignment(
-            jointNumbers = listOf(
-                JointNumber(1),
-                JointNumber(5),
-                JointNumber(2)
+fun YV60_900_1_15_5_O() =
+    SwitchStructure(
+        type = SwitchType("YV60-900-1:15,5-O"),
+        presentationJointNumber = JointNumber(1),
+        joints =
+            listOf(
+                SwitchJoint(JointNumber(1), Point(0.0, 0.0)),
+                SwitchJoint(JointNumber(5), Point(30.060, 0.0)),
+                SwitchJoint(JointNumber(2), Point(59.100, 0.0)),
+                SwitchJoint(JointNumber(3), Point(59.040, -1.870)),
             ),
-            elements = listOf(
-                SwitchElementLine(
-                    start = Point(0.0, 0.0),
-                    end = Point(30.060, 0.0),
+        alignments =
+            listOf(
+                SwitchAlignment(
+                    jointNumbers = listOf(JointNumber(1), JointNumber(5), JointNumber(2)),
+                    elements =
+                        listOf(
+                            SwitchElementLine(start = Point(0.0, 0.0), end = Point(30.060, 0.0)),
+                            SwitchElementLine(start = Point(30.060, 0.0), end = Point(59.100, 0.0)),
+                        ),
                 ),
-                SwitchElementLine(
-                    start = Point(30.060, 0.0),
-                    end = Point(59.100, 0.0),
-                )
-            )
-        ),
-        SwitchAlignment(
-            jointNumbers = listOf(
-                JointNumber(1),
-                JointNumber(3)
+                SwitchAlignment(
+                    jointNumbers = listOf(JointNumber(1), JointNumber(3)),
+                    elements =
+                        listOf(
+                            SwitchElementLine(start = Point(0.0, 0.0), end = Point(1.058, 0.0)),
+                            SwitchElementCurve(start = Point(1.058, 0.0), end = Point(59.002, -1.867), radius = 900.0),
+                            SwitchElementLine(start = Point(59.002, -1.867), end = Point(59.040, -1.870)),
+                        ),
+                ),
             ),
-            elements = listOf(
-                SwitchElementLine(
-                    start = Point(0.0, 0.0),
-                    end = Point(1.058, 0.0),
-                ),
-
-                SwitchElementCurve(
-                    start = Point(1.058, 0.0),
-                    end = Point(59.002, -1.867),
-                    radius = 900.0
-                ),
-                SwitchElementLine(
-                    start = Point(59.002, -1.867),
-                    end = Point(59.040, -1.870),
-                )
-            )
-        )
     )
-)
 
+fun YV60_900_1_15_5_V() = YV60_900_1_15_5_O().flipAlongYAxis().copy(type = SwitchType("YV60-900-1:15,5-V"))
 
-fun YV60_900_1_15_5_V() = YV60_900_1_15_5_O().flipAlongYAxis().copy(
-    type = SwitchType("YV60-900-1:15,5-V")
-)
+fun YV60_900A_1_15_5_O() = YV60_900_1_15_5_O().copy(type = SwitchType("YV60-900A-1:15,5-O"))
 
-fun YV60_900A_1_15_5_O() = YV60_900_1_15_5_O().copy(
-    type = SwitchType("YV60-900A-1:15,5-O")
-)
+fun YV60_900A_1_15_5_V() = YV60_900_1_15_5_V().copy(type = SwitchType("YV60-900A-1:15,5-V"))
 
-fun YV60_900A_1_15_5_V() = YV60_900_1_15_5_V().copy(
-    type = SwitchType("YV60-900A-1:15,5-V")
-)
+fun YV60_900E_1_15_5_O() = YV60_900_1_15_5_O().copy(type = SwitchType("YV60-900E-1:15,5-O"))
 
-fun YV60_900E_1_15_5_O() = YV60_900_1_15_5_O().copy(
-    type = SwitchType("YV60-900E-1:15,5-O")
-)
-
-fun YV60_900E_1_15_5_V() = YV60_900_1_15_5_V().copy(
-    type = SwitchType("YV60-900E-1:15,5-V")
-)
+fun YV60_900E_1_15_5_V() = YV60_900_1_15_5_V().copy(type = SwitchType("YV60-900E-1:15,5-V"))

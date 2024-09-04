@@ -16,9 +16,7 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 
 @GeoviiteController("/location-track-split")
-class SplitController(
-    private val splitService: SplitService,
-) {
+class SplitController(private val splitService: SplitService) {
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
     @PostMapping("/{$LAYOUT_BRANCH}")

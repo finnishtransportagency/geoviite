@@ -77,9 +77,11 @@ class ReferenceLineController(
         @PathVariable("id") id: IntId<ReferenceLine>,
     ): ResponseEntity<AlignmentStartAndEnd> {
         val layoutContext = LayoutContext.of(branch, publicationState)
-        return toResponse(referenceLineService.getWithAlignment(layoutContext, id)?.let { (referenceLine, alignment) ->
-            geocodingService.getReferenceLineStartAndEnd(layoutContext, referenceLine, alignment)
-        })
+        return toResponse(
+            referenceLineService.getWithAlignment(layoutContext, id)?.let { (referenceLine, alignment) ->
+                geocodingService.getReferenceLineStartAndEnd(layoutContext, referenceLine, alignment)
+            }
+        )
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
