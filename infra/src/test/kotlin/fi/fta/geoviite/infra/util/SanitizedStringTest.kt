@@ -70,12 +70,21 @@ class SanitizedStringTest {
         val legalCharacters = "ABCFÖ1-3_"
         val legalLength = 1..10
         val sanitizer = StringSanitizer(SanitizedStringTest::class, legalCharacters, legalLength)
+        // Legal characters pass
         assertSanitized(sanitizer, "ABCFÖ123_")
         assertSanitized(sanitizer, "C_2")
+        // Wrong characters filtered out
         assertNotSanitized(sanitizer, "AGB", "AB")
         assertNotSanitized(sanitizer, "abc2Af", "2A")
         assertNotSanitized(sanitizer, "4", "")
         assertNotSanitized(sanitizer, "A-B", "AB")
+        // OK length
+        assertSanitized(sanitizer, "A")
+        assertSanitized(sanitizer, "AAAAAAAAAA")
+        // Too long
+        assertNotSanitized(sanitizer, "AAAAAAAAAAA", "AAAAAAAAAA")
+        // Too short - cannot be fixed by filtering
+        assertNotSanitized(sanitizer, "", "")
     }
 
     private fun assertSanitized(sanitizer: StringSanitizer, value: String) {
