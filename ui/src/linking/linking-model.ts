@@ -297,6 +297,7 @@ export type SwitchLinkingJoint = {
     segmentIndex: number;
     m: number;
     location: Point;
+    distanceToAlignment: number;
 };
 
 export type SwitchLinkingTrackLinks = {

@@ -219,15 +219,3 @@ export function grid(gridSize: number, point: Point): { cellIndex: Point; positi
 export function pointEquals(a: Point, b: Point): boolean {
     return a.x === b.x && a.y === b.y;
 }
-
-export function grid(gridSize: number, point: Point): { cellIndex: Point; positionInCell: Point } {
-    const xIndex = Math.trunc(point.x / gridSize);
-    const yIndex = Math.trunc(point.y / gridSize);
-    const xPos = point.x % gridSize;
-    const yPos = point.y % gridSize;
-    return { cellIndex: { x: xIndex, y: yIndex }, positionInCell: { x: xPos, y: yPos } };
-}
-
-export function pointEquals(a: Point, b: Point): boolean {
-    return a.x === b.x && a.y === b.y;
-}

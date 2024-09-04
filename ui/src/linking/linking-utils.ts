@@ -8,7 +8,6 @@ import {
 } from 'track-layout/track-layout-model';
 import { getLocationTracks } from 'track-layout/layout-location-track-api';
 import { expectDefined } from 'utils/type-utils';
-import { getPlanarDistance } from 'map/layers/utils/layer-utils';
 
 export enum SwitchTypeMatch {
     Exact,
@@ -99,6 +98,7 @@ export function suggestedSwitchJointsAsLayoutSwitchJointConnections(
             number: sj.number,
             locationTrackId,
             location: sj.location,
+            distanceToAlignment: sj.distanceToAlignment,
         })),
     );
     return ss.joints.map((joint) => ({
@@ -106,10 +106,10 @@ export function suggestedSwitchJointsAsLayoutSwitchJointConnections(
         locationAccuracy: joint.locationAccuracy,
         accurateMatches: tracks
             .filter(({ number }) => number === joint.number)
-            .map(({ locationTrackId, location }) => ({
+            .map(({ locationTrackId, location, distanceToAlignment }) => ({
                 locationTrackId,
                 location,
-                matchDistance: getPlanarDistance(location, joint.location),
+                matchDistance: distanceToAlignment,
             })),
     }));
 }

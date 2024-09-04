@@ -50,9 +50,9 @@ import fi.fta.geoviite.infra.tracklayout.LayoutRowVersion
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
-import kotlin.math.max
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.transaction.annotation.Transactional
+import kotlin.math.max
 
 private const val TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT = 0.5
 const val TOLERANCE_JOINT_LOCATION_NEW_POINT = 0.01
@@ -490,10 +490,8 @@ private fun findTrackIntersectionsForGridPoints(
         grid.mapMulti(parallel = true) { gridPoint ->
             val trackAlignments2 =
                 trackAlignments.filter { alignment ->
-                    (alignment.allAlignmentPoints.map { p -> lineLength(p, gridPoint) }.minOrNull()
-                        ?: Double.MAX_VALUE) < 0.5
+                    alignment.allAlignmentPoints.any { p -> lineLength(p, gridPoint) < 0.5 }
                 }
-            // .take(2)
             val trackPairs2 = pairsOf(trackAlignments2)
             val allActualIntersections2 = trackPairs2.flatMap { (track1, track2) -> findIntersections(track1, track2) }
 
@@ -502,7 +500,16 @@ private fun findTrackIntersectionsForGridPoints(
     val closestPointsAsIntersections =
         grid.mapMulti { gridPoint ->
             trackPairs
-                .mapNotNull { (track1, track2) -> getClosestPointAsIntersection(track1, track2, gridPoint) }
+                .mapNotNull { (track1, track2) ->
+                    if (
+                        track1.allAlignmentPoints.any { p -> lineLength(p, gridPoint) < 0.5 } &&
+                            track2.allAlignmentPoints.any { p -> lineLength(p, gridPoint) < 0.5 }
+                    ) {
+                        getClosestPointAsIntersection(track1, track2, gridPoint)
+                    } else {
+                        null
+                    }
+                }
                 .toSet()
         }
 
