@@ -18,7 +18,8 @@ import org.springframework.transaction.annotation.Transactional
 class HeightTriangleDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
 
     fun fetchTriangles(boundingPolygon: List<Point>): List<HeightTriangle> {
-        val sql = """
+        val sql =
+            """
             select tn.coord1_id, 
                    t1.n2000 - t1.n60  as corner1_difference, 
                    postgis.st_x(t1.point_transformed) as x1, 
@@ -40,34 +41,35 @@ class HeightTriangleDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBas
               tn.polygon_transformed,
               postgis.st_polygonfromtext(:bounding_polygon, :srid)
             )  
-        """.trimIndent()
-        val params = mapOf(
-            "bounding_polygon" to create2DPolygonString(boundingPolygon),
-            "srid" to LAYOUT_SRID.code,
-        )
+        """
+                .trimIndent()
+        val params = mapOf("bounding_polygon" to create2DPolygonString(boundingPolygon), "srid" to LAYOUT_SRID.code)
 
-        val triangles = jdbcTemplate.query(sql, params) { rs, _ ->
-            HeightTriangle(
-                corner1 = rs.getPoint("x1", "y1"),
-                corner2 = rs.getPoint("x2", "y2"),
-                corner3 = rs.getPoint("x3", "y3"),
-                corner1Diff = rs.getDouble("corner1_difference"),
-                corner2Diff = rs.getDouble("corner2_difference"),
-                corner3Diff = rs.getDouble("corner3_difference")
-            )
-        }
+        val triangles =
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                HeightTriangle(
+                    corner1 = rs.getPoint("x1", "y1"),
+                    corner2 = rs.getPoint("x2", "y2"),
+                    corner3 = rs.getPoint("x3", "y3"),
+                    corner1Diff = rs.getDouble("corner1_difference"),
+                    corner2Diff = rs.getDouble("corner2_difference"),
+                    corner3Diff = rs.getDouble("corner3_difference"),
+                )
+            }
         logger.daoAccess(AccessType.FETCH, HeightTriangle::class)
         return triangles
     }
 
     fun fetchTriangulationNetworkBounds(): BoundingBox {
         logger.daoAccess(AccessType.FETCH, BoundingBox::class)
-        //language=SQL
-        val sql = """
+        // language=SQL
+        val sql =
+            """
             select postgis.st_astext(postgis.st_extent(polygon_transformed)) bounds
             from common.n60_n2000_triangulation_network
-        """.trimIndent()
-        return jdbcTemplate.queryOne(sql, mapOf<String,Any>()) { rs, _ ->
+        """
+                .trimIndent()
+        return jdbcTemplate.queryOne(sql, mapOf<String, Any>()) { rs, _ ->
             boundingBoxAroundPoints(parse2DPolygon(rs.getString("bounds")))
         }
     }

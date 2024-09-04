@@ -7,22 +7,19 @@ import fi.fta.geoviite.infra.ui.util.byQaId
 import org.openqa.selenium.By
 import org.openqa.selenium.WebElement
 
-class E2EProjektiVelhoPage : E2ETable<E2EProjektiVelhoListItem>(
-    tableBy = byQaId("main-content-container"),
-    rowsBy = By.cssSelector(".projektivelho-file-list table tbody tr"),
-) {
+class E2EProjektiVelhoPage :
+    E2ETable<E2EProjektiVelhoListItem>(
+        tableBy = byQaId("main-content-container"),
+        rowsBy = By.cssSelector(".projektivelho-file-list table tbody tr"),
+    ) {
     fun goToInfraModelList(): E2EInfraModelPage {
         clickChild(byQaId("infra-model-nav-tab-plan"))
         return E2EInfraModelPage()
     }
 
-    fun openWaitingForApprovalList(): E2EProjektiVelhoPage = apply {
-        clickChild(byQaId("infra-model-nav-tab-waiting"))
-    }
+    fun openWaitingForApprovalList(): E2EProjektiVelhoPage = apply { clickChild(byQaId("infra-model-nav-tab-waiting")) }
 
-    fun openRejectedList(): E2EProjektiVelhoPage = apply {
-        clickChild(byQaId("infra-model-nav-tab-rejected"))
-    }
+    fun openRejectedList(): E2EProjektiVelhoPage = apply { clickChild(byQaId("infra-model-nav-tab-rejected")) }
 
     fun rejectFirstMatching(by: (item: E2EProjektiVelhoListItem) -> Boolean) = apply {
         clickChild(byQaId("pv-reject-button"))
@@ -50,7 +47,10 @@ data class E2EProjektiVelhoListItem(
     val documentDescription: String,
     val documentModified: String,
 ) {
-    constructor(columns: List<WebElement>, headers: List<WebElement>) : this(
+    constructor(
+        columns: List<WebElement>,
+        headers: List<WebElement>,
+    ) : this(
         projectName = getColumnContent("projektivelho.project-name", columns, headers),
         documentName = getColumnContent("projektivelho.document-name", columns, headers),
         documentDescription = getColumnContent("projektivelho.document-description", columns, headers),

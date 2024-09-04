@@ -9,7 +9,7 @@ class BoundingBoxTest {
     fun boxCornersAreCorrect() {
         assertEquals(
             listOf(Point(1.0, 3.0), Point(2.0, 3.0), Point(2.0, 4.0), Point(1.0, 4.0)),
-            BoundingBox(1.0..2.0, 3.0..4.0).corners
+            BoundingBox(1.0..2.0, 3.0..4.0).corners,
         )
     }
 
@@ -74,39 +74,28 @@ class BoundingBoxTest {
 
     @Test
     fun createFromPointListOfOne() {
-        val bbox = boundingBoxAroundPoints(listOf(
-            Point(10.0, 10.0),
-        ))
+        val bbox = boundingBoxAroundPoints(listOf(Point(10.0, 10.0)))
         assertApproximatelyEquals(Point(10.0, 10.0), bbox.min)
         assertApproximatelyEquals(Point(10.0, 10.0), bbox.max)
     }
 
     @Test
     fun createFromPointList() {
-        val bbox = boundingBoxAroundPoints(listOf(
-            Point(10.0, -10.0),
-            Point(-20.0, 20.0)
-        ))
+        val bbox = boundingBoxAroundPoints(listOf(Point(10.0, -10.0), Point(-20.0, 20.0)))
         assertApproximatelyEquals(Point(-20.0, -10.0), bbox.min)
         assertApproximatelyEquals(Point(10.0, 20.0), bbox.max)
     }
 
     @Test
     fun expandBoundingBox() {
-        val bbox = boundingBoxAroundPoints(listOf(
-            Point(10.0, 10.0),
-            Point(20.0, 30.0)
-        )) + 5.0;
+        val bbox = boundingBoxAroundPoints(listOf(Point(10.0, 10.0), Point(20.0, 30.0))) + 5.0
         assertApproximatelyEquals(Point(5.0, 5.0), bbox.min)
         assertApproximatelyEquals(Point(25.0, 35.0), bbox.max)
     }
 
     @Test
     fun expandBoundingBoxByRatio() {
-        val bbox = boundingBoxAroundPoints(listOf(
-            Point(10.0, 10.0),
-            Point(20.0, 30.0)
-        )) * 1.5;
+        val bbox = boundingBoxAroundPoints(listOf(Point(10.0, 10.0), Point(20.0, 30.0))) * 1.5
         assertApproximatelyEquals(Point(10 - 2.5, 10 - 5.0), bbox.min)
         assertApproximatelyEquals(Point(20 + 2.5, 30 + 5.0), bbox.max)
     }
@@ -114,16 +103,15 @@ class BoundingBoxTest {
     @Test
     fun readCenter() {
         val bbox = BoundingBox(Point(0.0, 0.0), Point(10.0, 30.0))
-        assertEquals(Point(5.0, 15.0), bbox.center);
+        assertEquals(Point(5.0, 15.0), bbox.center)
     }
 
     @Test
     fun centerAt() {
-        val bbox = BoundingBox(Point(0.0, 0.0), Point(10.0, 10.0))
-            .centerAt(Point(20.0, 30.0))
+        val bbox = BoundingBox(Point(0.0, 0.0), Point(10.0, 10.0)).centerAt(Point(20.0, 30.0))
 
-        assertEquals(Point(15.0, 25.0), bbox.min);
-        assertEquals(Point(25.0, 35.0), bbox.max);
-        assertEquals(Point(20.0, 30.0), bbox.center);
+        assertEquals(Point(15.0, 25.0), bbox.min)
+        assertEquals(Point(25.0, 35.0), bbox.max)
+        assertEquals(Point(20.0, 30.0), bbox.center)
     }
 }

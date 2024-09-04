@@ -1,3 +1,4 @@
+-- increment this to force re-execution: 1
 drop function if exists layout.track_number_in_layout_context(layout.publication_state, int);
 drop function if exists layout.track_number_in_layout_context(layout.publication_state, int, int);
 drop function if exists layout.track_number_is_in_layout_context(layout.publication_state, int, layout.track_number);

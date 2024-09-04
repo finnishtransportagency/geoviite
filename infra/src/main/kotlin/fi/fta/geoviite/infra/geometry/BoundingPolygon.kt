@@ -13,14 +13,12 @@ fun getBoundingPolygonPointsFromAlignments(
     transformation: Transformation,
 ): List<Point> = tryCreateBoundingPolygonPoints(collectAnglePoints(alignments), transformation)
 
-fun tryCreateBoundingPolygonPoints(
-    anglePoints: List<IPoint>,
-    transformation: Transformation,
-): List<Point> = try {
-    createBoundingPolygonPoints(anglePoints, transformation)
-} catch (e: Exception) {
-    listOf()
-}
+fun tryCreateBoundingPolygonPoints(anglePoints: List<IPoint>, transformation: Transformation): List<Point> =
+    try {
+        createBoundingPolygonPoints(anglePoints, transformation)
+    } catch (e: Exception) {
+        listOf()
+    }
 
 fun createBoundingPolygonPoints(points: List<IPoint>, transformation: Transformation): List<Point> {
     val bounds = boundingPolygonPointsByConvexHull(points, transformation.sourceSrid)

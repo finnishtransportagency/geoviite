@@ -14,9 +14,11 @@ data class JointNumber @JsonCreator(mode = DISABLED) constructor(val intValue: I
         private const val JOINT_PREFIX = "JOINT_"
     }
 
-    init { require(intValue >= 0) { "Invalid joint number: \"$intValue\"" } }
+    init {
+        require(intValue >= 0) { "Invalid joint number: \"$intValue\"" }
+    }
 
-    @JsonValue
-    override fun toString(): String = JOINT_PREFIX + intValue
+    @JsonValue override fun toString(): String = JOINT_PREFIX + intValue
+
     override fun compareTo(other: JointNumber): Int = intValue.compareTo(other.intValue)
 }

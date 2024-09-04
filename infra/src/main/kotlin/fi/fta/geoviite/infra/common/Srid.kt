@@ -9,8 +9,7 @@ import fi.fta.geoviite.infra.util.parsePrefixedInt
 
 data class Srid @JsonCreator(mode = DISABLED) constructor(val code: Int) {
 
-    @JsonCreator(mode = DELEGATING)
-    constructor(value: String) : this(parsePrefixedInt<Srid>(SRID_PREFIX, value))
+    @JsonCreator(mode = DELEGATING) constructor(value: String) : this(parsePrefixedInt<Srid>(SRID_PREFIX, value))
 
     companion object {
         private const val SRID_PREFIX = "EPSG:"
@@ -18,11 +17,10 @@ data class Srid @JsonCreator(mode = DISABLED) constructor(val code: Int) {
     }
 
     init {
-        assertInput<Srid>(code in sridRange, code.toString()) {
+        assertInput(Srid::class, code in sridRange, code.toString()) {
             "SRID (EPSG code) $code outside allowed range $sridRange"
         }
     }
 
-    @JsonValue
-    override fun toString(): String = SRID_PREFIX + code
+    @JsonValue override fun toString(): String = SRID_PREFIX + code
 }

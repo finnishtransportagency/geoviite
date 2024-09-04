@@ -6,6 +6,9 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.Range
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.util.logger
+import java.util.concurrent.ConcurrentHashMap
+import kotlin.concurrent.getOrSet
+import kotlin.math.round
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem
 import org.geotools.api.referencing.operation.MathTransform
 import org.geotools.geometry.jts.GeometryBuilder
@@ -14,15 +17,12 @@ import org.geotools.geometry.jts.JTSFactoryFinder
 import org.geotools.referencing.CRS
 import org.geotools.referencing.GeodeticCalculator
 import org.locationtech.jts.algorithm.ConvexHull
-import org.locationtech.jts.geom.GeometryFactory
-import org.locationtech.jts.geom.PrecisionModel
-import java.util.concurrent.ConcurrentHashMap
-import kotlin.concurrent.getOrSet
-import kotlin.math.round
 import org.locationtech.jts.geom.Coordinate as JtsCoordinate
+import org.locationtech.jts.geom.GeometryFactory
 import org.locationtech.jts.geom.LineString as JtsLineString
 import org.locationtech.jts.geom.Point as JtsPoint
 import org.locationtech.jts.geom.Polygon as JtsPolygon
+import org.locationtech.jts.geom.PrecisionModel
 
 val FINNISH_GK_LONGITUDE_RANGE = 19..31
 
@@ -36,12 +36,12 @@ fun geotoolsTransformation(sourceSrid: Srid, targetSrid: Srid): Transformation =
     }
 
 /**
- * GeoTools will lazily intialize some classes, which can be an issue if the first invocation comes from a
- * thread in ForkJoinPool as they have a different classloader. To ensure that the classes are properly loaded,
- * call this method from the main thread before launching Geoviite.
+ * GeoTools will lazily intialize some classes, which can be an issue if the first invocation comes from a thread in
+ * ForkJoinPool as they have a different classloader. To ensure that the classes are properly loaded, call this method
+ * from the main thread before launching Geoviite.
  *
- * For details, see Spring issue: https://github.com/spring-projects/spring-boot/issues/39843
- * Also https://extranet.vayla.fi/jira/browse/GVT-2698 for more specifics on geoviite
+ * For details, see Spring issue: https://github.com/spring-projects/spring-boot/issues/39843 Also
+ * https://extranet.vayla.fi/jira/browse/GVT-2698 for more specifics on geoviite
  */
 fun initGeotools() {
     logger.info("Initializing GeoTools (preload default crs)")
@@ -52,7 +52,7 @@ fun transformNonKKJCoordinate(sourceSrid: Srid, targetSrid: Srid, point: IPoint)
     return geotoolsTransformation(sourceSrid, targetSrid).transform(point)
 }
 
-fun getFinnishGKCoordinateProjectionByLongitude(longitude:Double): Srid {
+fun getFinnishGKCoordinateProjectionByLongitude(longitude: Double): Srid {
     val nearestLongitude = round(longitude).toInt()
     require(FINNISH_GK_LONGITUDE_RANGE.contains(nearestLongitude)) {
         "Cannot get Finnish GK coordinate projection by longitude $nearestLongitude"
@@ -74,6 +74,7 @@ fun calculateDistance(srid: Srid, vararg points: IPoint): Double = calculateDist
 
 private object GeodeticCalculatorCache {
     val cache: ThreadLocal<Map<CoordinateReferenceSystem, GeodeticCalculator>> = ThreadLocal()
+
     fun get(crs: CoordinateReferenceSystem) = cache.getOrSet { HashMap() }.getOrElse(crs) { GeodeticCalculator(crs) }
 }
 
@@ -91,6 +92,7 @@ fun calculateDistance(points: List<IPoint>, ref: CoordinateReferenceSystem): Dou
 }
 
 private val crsCache: MutableMap<Srid, CoordinateReferenceSystem> = ConcurrentHashMap()
+
 private fun crs(srid: Srid): CoordinateReferenceSystem = crsCache.getOrPut(srid) { CRS.decode(srid.toString()) }
 
 private val geometryFactory = JTSFactoryFinder.getGeometryFactory()
@@ -103,8 +105,7 @@ internal fun toJtsGeoPolygon(points: List<IPoint>, srid: Srid): JtsPolygon {
     }
 }
 
-internal fun toJtsGeoPoint(point: IPoint, srid: Srid): JtsPoint =
-    toJtsGeoPoint(toJtsCoordinate(point, crs(srid)))
+internal fun toJtsGeoPoint(point: IPoint, srid: Srid): JtsPoint = toJtsGeoPoint(toJtsCoordinate(point, crs(srid)))
 
 private fun toJtsGeoPoint(point: IPoint, ref: CoordinateReferenceSystem): JtsPoint =
     toJtsGeoPoint(toJtsCoordinate(point, ref))
@@ -157,11 +158,19 @@ fun boundingPolygonPointsByConvexHull(points: List<IPoint>, srid: Srid): List<Po
 }
 
 class CoordinateTransformationException(message: String, cause: Throwable? = null) : Exception(message, cause) {
-    constructor(point: JtsPoint, sourceSrid: Srid, targetSrid: Srid, cause: Throwable? = null) :
-        this("Could not transform coordinate: x=${point.x} y=${point.y} source=$sourceSrid target=$targetSrid", cause)
+    constructor(
+        point: JtsPoint,
+        sourceSrid: Srid,
+        targetSrid: Srid,
+        cause: Throwable? = null,
+    ) : this("Could not transform coordinate: x=${point.x} y=${point.y} source=$sourceSrid target=$targetSrid", cause)
 
-    constructor(order: CRS.AxisOrder, x: Double, y: Double, crs: String) :
-        this("Cannot determine coordinate axis order x=$x y=$y crs=$crs order=$order")
+    constructor(
+        order: CRS.AxisOrder,
+        x: Double,
+        y: Double,
+        crs: String,
+    ) : this("Cannot determine coordinate axis order x=$x y=$y crs=$crs order=$order")
 }
 
 sealed class Transformation {
@@ -174,11 +183,12 @@ sealed class Transformation {
         if (sourceSrid == targetSrid) point.toPoint()
         else toGvtPoint(transformJts(toJtsGeoPoint(point, sourceCrs)), targetCrs)
 
-    fun transformJts(point: JtsPoint): JtsPoint = try {
-        if (sourceSrid == targetSrid) point else transformJtsInternal(point)
-    } catch (e: Exception) {
-        throw CoordinateTransformationException(point, sourceSrid, targetSrid, e)
-    }
+    fun transformJts(point: JtsPoint): JtsPoint =
+        try {
+            if (sourceSrid == targetSrid) point else transformJtsInternal(point)
+        } catch (e: Exception) {
+            throw CoordinateTransformationException(point, sourceSrid, targetSrid, e)
+        }
 
     protected abstract fun transformJtsInternal(point: JtsPoint): JtsPoint
 }
@@ -186,8 +196,7 @@ sealed class Transformation {
 data class GeotoolsTransformation(override val sourceSrid: Srid, override val targetSrid: Srid) : Transformation() {
     private val math: MathTransform = CRS.findMathTransform(sourceCrs, targetCrs)
 
-    override fun transformJtsInternal(point: JtsPoint): JtsPoint =
-        JTS.transform(point, math) as JtsPoint
+    override fun transformJtsInternal(point: JtsPoint): JtsPoint = JTS.transform(point, math) as JtsPoint
 }
 
 data class KKJToTM35FINTransformation(
@@ -198,9 +207,7 @@ data class KKJToTM35FINTransformation(
     private val kkjToYkj = GeotoolsTransformation(sourceSrid, KKJ3_YKJ_SRID)
 
     init {
-        require(isKKJ(sourceSrid)) {
-            "This transformation is only for KKJ coordinates: sourceSrid=$sourceSrid"
-        }
+        require(isKKJ(sourceSrid)) { "This transformation is only for KKJ coordinates: sourceSrid=$sourceSrid" }
         val expected = KKJ3_YKJ_SRID to ETRS89_TM35FIN_SRID
         val actual = kkjToTm35FinTriangulation.sourceSrid to kkjToTm35FinTriangulation.targetSrid
         require(expected == actual) {
@@ -208,9 +215,8 @@ data class KKJToTM35FINTransformation(
         }
     }
 
-    override fun transformJtsInternal(point: JtsPoint): JtsPoint = point
-        .let(kkjToYkj::transformJts)
-        .let(kkjToTm35FinTriangulation::transformJts)
+    override fun transformJtsInternal(point: JtsPoint): JtsPoint =
+        point.let(kkjToYkj::transformJts).let(kkjToTm35FinTriangulation::transformJts)
 }
 
 data class TM35FINToKKJTransformation(
@@ -221,9 +227,7 @@ data class TM35FINToKKJTransformation(
     private val ykjToKkj = GeotoolsTransformation(KKJ3_YKJ_SRID, targetSrid)
 
     init {
-        require(isKKJ(targetSrid)) {
-            "This transformation is only for KKJ coordinates: targetSrid=$targetSrid"
-        }
+        require(isKKJ(targetSrid)) { "This transformation is only for KKJ coordinates: targetSrid=$targetSrid" }
         val expected = ETRS89_TM35FIN_SRID to KKJ3_YKJ_SRID
         val actual = tm35FinToYkjTriangulation.sourceSrid to tm35FinToYkjTriangulation.targetSrid
         require(expected == actual) {
@@ -231,9 +235,8 @@ data class TM35FINToKKJTransformation(
         }
     }
 
-    override fun transformJtsInternal(point: JtsPoint): JtsPoint = point
-        .let(tm35FinToYkjTriangulation::transformJts)
-        .let(ykjToKkj::transformJts)
+    override fun transformJtsInternal(point: JtsPoint): JtsPoint =
+        point.let(tm35FinToYkjTriangulation::transformJts).let(ykjToKkj::transformJts)
 }
 
 fun interface ToGkFinTransformation {

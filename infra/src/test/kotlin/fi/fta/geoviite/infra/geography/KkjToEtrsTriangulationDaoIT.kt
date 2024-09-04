@@ -12,9 +12,8 @@ import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class KkjToEtrsTriangulationDaoIT @Autowired constructor(
-    val kkjTm35FinTriangulationDao: KkjTm35finTriangulationDao,
-) : DBTestBase() {
+class KkjToEtrsTriangulationDaoIT @Autowired constructor(val kkjTm35FinTriangulationDao: KkjTm35finTriangulationDao) :
+    DBTestBase() {
 
     @Test
     fun fetchesTriangleInsideTriangulationNetwork() {

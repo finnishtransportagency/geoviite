@@ -39,7 +39,7 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchJoint
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchPositionTransformation
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
-import fi.fta.geoviite.infra.switchLibrary.calculateSwitchLocationDeltaOrNull
+import fi.fta.geoviite.infra.switchLibrary.calculateSwitchLocationDelta
 import fi.fta.geoviite.infra.switchLibrary.transformSwitchPoint
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.IAlignment
@@ -131,8 +131,8 @@ constructor(
         geometryDao
             .getLocationTracksLinkedThroughGeometryElementToSwitch(branch, switchId)
             // we might be able to link a geometry switch to whatever tracks are there at its
-            // location, but it's always
-            // been a requirement that at least some track geometry should be linked as well
+            // location, but it's always been a requirement that at least some track geometry should
+            // be linked as well
             .takeIf { tracks -> tracks.isNotEmpty() }
             ?: throw GeometrySwitchFittingException(GeometrySwitchSuggestionFailureReason.RELATED_TRACKS_NOT_LINKED)
 
@@ -159,7 +159,7 @@ fun calculateLayoutSwitchJoints(
         geomSwitch.joints.map { geomJoint ->
             SwitchJoint(number = geomJoint.number, location = toLayoutCoordinate.transform(geomJoint.location))
         }
-    val switchLocationDelta = calculateSwitchLocationDeltaOrNull(layoutJointPoints, switchStructure)
+    val switchLocationDelta = calculateSwitchLocationDelta(layoutJointPoints, switchStructure)
     return if (switchLocationDelta != null) {
         switchStructure.alignmentJoints.map { joint ->
             SwitchJoint(number = joint.number, location = transformSwitchPoint(switchLocationDelta, joint.location))
@@ -169,6 +169,14 @@ fun calculateLayoutSwitchJoints(
     }
 }
 
+data class PossibleSegment(
+    val segment: ISegment,
+    val segmentIndex: Int,
+    val closestPointM: Double,
+    val closestSegmentPointIndex: Int,
+    val jointDistanceToSegment: Double,
+)
+
 fun findSuggestedSwitchJointMatches(
     joint: SwitchJoint,
     locationTrack: LocationTrack,
@@ -176,32 +184,39 @@ fun findSuggestedSwitchJointMatches(
     tolerance: Double,
 ): List<FittedSwitchJointMatch> {
     val jointLocation = joint.location
+    val maxMatchableDistance = max(TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT, tolerance)
 
     val closestSegmentIndex = alignment.findClosestSegmentIndex(jointLocation) ?: return listOf()
-    val possibleSegmentIndices =
-        IntRange(
-            (closestSegmentIndex - 1).coerceAtLeast(0),
-            (closestSegmentIndex + 1).coerceAtMost(alignment.segments.lastIndex),
-        )
+    val firstPossibleSegmentIndex = (closestSegmentIndex - 1).coerceAtLeast(0)
 
     val possibleSegments =
-        alignment.segments.slice(possibleSegmentIndices).map { segment ->
-            segment to segment.getClosestPointM(jointLocation).first
-        }
+        alignment.segments
+            .subList(firstPossibleSegmentIndex, (closestSegmentIndex + 2).coerceAtMost(alignment.segments.size))
+            .mapIndexed { index, segment ->
+                val closestPointM = segment.getClosestPointM(jointLocation).first
+                val pointSeekResult = segment.seekPointAtM(closestPointM)
+                val closestSegmentPointIndex = pointSeekResult.index
+                val jointDistanceToSegment = lineLength(pointSeekResult.point, jointLocation)
+                PossibleSegment(
+                    segment,
+                    index + firstPossibleSegmentIndex + alignment.cropStartSegmentIndex,
+                    closestPointM,
+                    closestSegmentPointIndex,
+                    jointDistanceToSegment,
+                )
+            }
+            .filter { segment -> segment.jointDistanceToSegment < maxMatchableDistance }
 
-    val jointDistanceToAlignment =
-        possibleSegments.minOf { (segment, closestSegmentAlignmentM) ->
-            lineLength(segment.seekPointAtM(closestSegmentAlignmentM).point, jointLocation)
-        }
-
-    // pure optimization: bail out without expensive calculations if we're too far
-    if (jointDistanceToAlignment > max(TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT, tolerance)) {
+    if (possibleSegments.isEmpty()) {
         return listOf()
     }
 
-    return possibleSegments.flatMapIndexed { index, (segment, closestSegmentAlignmentM) ->
-        val segmentIndex = possibleSegmentIndices.first + index + alignment.cropStartSegmentIndex
-        val closestSegmentPointIndex = segment.seekPointAtM(closestSegmentAlignmentM).index
+    val jointDistanceToAlignment = possibleSegments.minOf { segment -> segment.jointDistanceToSegment }
+
+    return possibleSegments.flatMap { possibleSegment ->
+        val segmentIndex = possibleSegment.segmentIndex
+        val segment = possibleSegment.segment
+        val closestSegmentPointIndex = possibleSegment.closestSegmentPointIndex
 
         fun takeSegmentLineMatches(points: List<SegmentPoint>): Sequence<Pair<Point, Double>> =
             points
@@ -468,17 +483,8 @@ private fun findTrackIntersectionsForGridPoints(
     trackAlignments: List<IAlignment>,
     grid: SamplingGridPoints,
 ): PointAssociation<TrackIntersection> {
-    //    trackAlignments
-    //    .sortedBy { alignment ->
-    //        alignment.allAlignmentPoints
-    //            .map { p -> lineLength(p, center) }
-    //            .minOrNull() ?: Double.MAX_VALUE
-    //    }
-    //        .take(2)
-    //    val trackPairs = pairsOf(trackAlignments)
-    //    val allActualIntersections = trackPairs.flatMap { (track1, track2) ->
-    //        findIntersections(track1, track2)
-    //    }
+    val trackPairs = pairsOf(trackAlignments)
+    val allActualIntersections = trackPairs.flatMap { (track1, track2) -> findIntersections(track1, track2) }
 
     val closestActualIntersections =
         grid.mapMulti(parallel = true) { gridPoint ->
@@ -495,15 +501,7 @@ private fun findTrackIntersectionsForGridPoints(
         }
     val closestPointsAsIntersections =
         grid.mapMulti { gridPoint ->
-            val trackAlignments2 =
-                trackAlignments
-                    .sortedBy { alignment ->
-                        alignment.allAlignmentPoints.map { p -> lineLength(p, gridPoint) }.minOrNull()
-                            ?: Double.MAX_VALUE
-                    }
-                    .take(2)
-            val trackPairs2 = pairsOf(trackAlignments2)
-            trackPairs2
+            trackPairs
                 .mapNotNull { (track1, track2) -> getClosestPointAsIntersection(track1, track2, gridPoint) }
                 .toSet()
         }
@@ -580,7 +578,7 @@ fun findTransformations(
         )
         .mapNotNull { (from, to) ->
             val testJoints = listOf(joint.copy(location = from.toPoint()), farthestJoint.copy(location = to.toPoint()))
-            calculateSwitchLocationDeltaOrNull(testJoints, switchStructure)
+            calculateSwitchLocationDelta(testJoints, switchStructure)
         }
 }
 
@@ -670,16 +668,16 @@ fun getSuggestedSwitchScore(
     }
 }
 
-private fun selectBestSuggestedSwitch(
-    switchSuggestions: List<FittedSwitch>,
+private fun selectBestSuggestedSwitchTransformation(
+    switchSuggestions: Set<Pair<SwitchPositionTransformation, FittedSwitch>>,
     switchStructure: SwitchStructure,
     farthestJoint: SwitchJoint,
     desiredLocation: IPoint,
-): FittedSwitch {
+): SwitchPositionTransformation {
     assert(switchSuggestions.isNotEmpty()) { "switchSuggestions.isNotEmpty()" }
 
     val maxFarthestJointDistance =
-        switchSuggestions.maxOf { suggestedSwitch ->
+        switchSuggestions.maxOf { (_, suggestedSwitch) ->
             suggestedSwitch.joints.maxOf { joint ->
                 if (joint.number == farthestJoint.number) {
                     lineLength(desiredLocation, joint.location)
@@ -687,15 +685,17 @@ private fun selectBestSuggestedSwitch(
             }
         }
 
-    return switchSuggestions.maxBy { suggestedSwitch ->
-        getSuggestedSwitchScore(
-            suggestedSwitch,
-            switchStructure,
-            farthestJoint,
-            maxFarthestJointDistance,
-            desiredLocation,
-        )
-    }
+    return switchSuggestions
+        .maxBy { (fit, suggestedSwitch) ->
+            getSuggestedSwitchScore(
+                suggestedSwitch,
+                switchStructure,
+                farthestJoint,
+                maxFarthestJointDistance,
+                desiredLocation,
+            )
+        }
+        .first
 }
 
 fun createFittedSwitchByPoint(
@@ -735,17 +735,20 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
                     sharedSwitchJoint,
                     switchStructure,
                 )
+                .map { transformation -> intersection to transformation }
                 .toSet()
         }
-        .aggregateByPoint(parallel = true) { point, transformations ->
-            selectBestSuggestedSwitch(
-                transformations.map { transformation ->
-                    fitSwitch(transformation, croppedTracks, switchStructure, LocationAccuracy.GEOMETRY_CALCULATED)
-                },
-                switchStructure,
-                farthestJoint,
-                point,
-            )
+        .map(parallel = true) { (intersection, transformation) ->
+            val tracks =
+                croppedTracks.filter { (_, alignment) ->
+                    alignment.id == intersection.alignment1.id || alignment.id == intersection.alignment2.id
+                }
+            transformation to fitSwitch(transformation, tracks, switchStructure, LocationAccuracy.GEOMETRY_CALCULATED)
+        }
+        .aggregateByPoint(parallel = true) { point, fits ->
+            val bestTransformation =
+                selectBestSuggestedSwitchTransformation(fits, switchStructure, farthestJoint, point)
+            fitSwitch(bestTransformation, croppedTracks, switchStructure, LocationAccuracy.GEOMETRY_CALCULATED)
         }
 }
 

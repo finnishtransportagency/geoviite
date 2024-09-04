@@ -1,27 +1,21 @@
 package fi.fta.geoviite.infra.ui.pagemodel.common
 
-import browser
 import clickWhenClickable
 import defaultWait
 import exists
-import fi.fta.geoviite.infra.authorization.DESIRED_ROLE_COOKIE_NAME
-import fi.fta.geoviite.infra.ui.util.byQaId
 import getElementWhenExists
 import getElementWhenVisible
 import getElementsWhenExists
 import getElementsWhenVisible
+import java.time.Duration
 import org.openqa.selenium.By
-import org.openqa.selenium.WebDriver
 import org.openqa.selenium.WebElement
 import org.openqa.selenium.support.pagefactory.ByChained
-import org.openqa.selenium.support.ui.WebDriverWait
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import waitUntilExists
 import waitUntilInvisible
 import waitUntilVisible
-import java.time.Duration
-
 
 abstract class E2EViewFragment(protected val viewBy: By) {
     constructor(parent: E2EViewFragment, by: By) : this(ByChained(parent.viewBy, by))
@@ -59,10 +53,10 @@ abstract class E2EViewFragment(protected val viewBy: By) {
     protected fun childTexts(by: By, timeout: Duration = defaultWait): List<String> =
         childElements(by, timeout).map(WebElement::getText)
 
-    //This will not check for element's visibility
+    // This will not check for element's visibility
     protected fun findElement(by: By, timeout: Duration = defaultWait): WebElement = getElementWhenExists(by, timeout)
 
-    //This will not check for elements' visibility
+    // This will not check for elements' visibility
     protected fun findElements(by: By, timeout: Duration = defaultWait): List<WebElement> =
         getElementsWhenExists(by, timeout)
 
@@ -72,7 +66,7 @@ abstract class E2EViewFragment(protected val viewBy: By) {
     protected fun waitUntilChildInvisible(by: By, timeout: Duration = defaultWait): Unit =
         waitUntilInvisible(childBy(by), timeout)
 
-    //This will not check for child's visibility
+    // This will not check for child's visibility
     protected fun waitUntilChildExists(by: By, timeout: Duration = defaultWait): Unit =
         waitUntilExists(childBy(by), timeout)
 

@@ -56,12 +56,13 @@ fun split2DPointValues(valuesString: String): List<Point> {
 fun get3DMLineStringContent(string: String): List<String> =
     split3DMPointValues(dropWktType(string, LINESTRING_TYPE_3DM))
 
-fun split3DMPointValues(valuesString: String): List<String> = try {
-    valuesString.split(POINT_SEPARATOR)
-} catch (e: NumberFormatException) {
-    logger.error("tried=$valuesString")
-    throw e
-}
+fun split3DMPointValues(valuesString: String): List<String> =
+    try {
+        valuesString.split(POINT_SEPARATOR)
+    } catch (e: NumberFormatException) {
+        logger.error("tried=$valuesString")
+        throw e
+    }
 
 fun parse2DPointValues(pointString: String): Point {
     val values = splitPointValues(pointString, 2)
@@ -73,25 +74,22 @@ fun parse3DMPointValue(pointString: String): Point3DM {
     return Point3DM(values[0], values[1], values[2])
 }
 
-fun splitPointValues(pointString: String, count: Int): List<Double> = pointString
-    .split(COORDINATE_SEPARATOR)
-    .also { values -> require(values.size == count) { "Invalid point value count: ${values.size} <> $count" } }
-    .map(String::toDouble)
+fun splitPointValues(pointString: String, count: Int): List<Double> =
+    pointString
+        .split(COORDINATE_SEPARATOR)
+        .also { values -> require(values.size == count) { "Invalid point value count: ${values.size} <> $count" } }
+        .map(String::toDouble)
 
 fun parseSegmentPoint(pointString: String, zValue: Double?, cantValue: Double?): SegmentPoint {
     val values = splitPointValues(pointString, 3)
-    return SegmentPoint(
-        x = values[0],
-        y = values[1],
-        m = values[2],
-        z = zValue,
-        cant = cantValue,
-    )
+    return SegmentPoint(x = values[0], y = values[1], m = values[2], z = zValue, cant = cantValue)
 }
 
 private fun dropWktType(wkt: String, typeString: String, parenthesis: Int = 1): String {
     val actualTypeString = wkt.substringBefore("(")
-    require(typeString == actualTypeString.trim()) { "WKT type does not match: expected=$typeString actual=$actualTypeString" }
+    require(typeString == actualTypeString.trim()) {
+        "WKT type does not match: expected=$typeString actual=$actualTypeString"
+    }
     return wkt.substring(actualTypeString.length + parenthesis, wkt.length - parenthesis)
 }
 

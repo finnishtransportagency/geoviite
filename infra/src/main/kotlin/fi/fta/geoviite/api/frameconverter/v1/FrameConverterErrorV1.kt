@@ -1,6 +1,6 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
-import fi.fta.geoviite.infra.util.LocalizationKey
+import fi.fta.geoviite.infra.localization.LocalizationKey
 
 enum class FrameConverterErrorV1(private val localizationSuffix: String) {
     FeaturesNotFound("features-not-found"),
@@ -24,7 +24,8 @@ enum class FrameConverterErrorV1(private val localizationSuffix: String) {
     InvalidTrackAddress("invalid-track-address"),
     TrackNumberNotFound("track-number-not-found");
 
-    val localizationKey: LocalizationKey get() = LocalizationKey("$BASE.$localizationSuffix")
+    val localizationKey: LocalizationKey
+        get() = LocalizationKey("$BASE.$localizationSuffix")
 
     companion object {
         private const val BASE: String = "integration-api.error"

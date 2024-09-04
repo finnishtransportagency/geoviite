@@ -8,7 +8,8 @@ import waitUntilTextIs
 
 abstract class E2EInfoBox(infoboxBy: By) : E2EViewFragment(infoboxBy) {
 
-    protected val title: String get() = childText(By.className("infobox__title"))
+    protected val title: String
+        get() = childText(By.className("infobox__title"))
 
     private fun getValueBy(fieldQaId: String) = ByChained(byQaId(fieldQaId), By.className("infobox__field-value"))
 

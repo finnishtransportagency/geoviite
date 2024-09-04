@@ -19,13 +19,14 @@ fun publicationRequest(
     switches: List<IntId<TrackLayoutSwitch>> = listOf(),
     referenceLines: List<IntId<ReferenceLine>> = listOf(),
     locationTracks: List<IntId<LocationTrack>> = listOf(),
-) = PublicationRequestIds(
-    trackNumbers = trackNumbers,
-    kmPosts = kmPosts,
-    switches = switches,
-    referenceLines = referenceLines,
-    locationTracks = locationTracks,
-)
+) =
+    PublicationRequestIds(
+        trackNumbers = trackNumbers,
+        kmPosts = kmPosts,
+        switches = switches,
+        referenceLines = referenceLines,
+        locationTracks = locationTracks,
+    )
 
 fun validationVersions(
     trackNumbers: List<LayoutDaoResponse<TrackLayoutTrackNumber>> = listOf(),
@@ -34,15 +35,16 @@ fun validationVersions(
     locationTracks: List<LayoutDaoResponse<LocationTrack>> = listOf(),
     switches: List<LayoutDaoResponse<TrackLayoutSwitch>> = listOf(),
     branch: LayoutBranch = LayoutBranch.main,
-) = ValidationVersions(
-    branch = branch,
-    trackNumbers = trackNumbers.map { (id, version) -> ValidationVersion(id, version) },
-    referenceLines = referenceLines.map { (id, version) -> ValidationVersion(id, version) },
-    kmPosts = kmPosts.map { (id, version) -> ValidationVersion(id, version) },
-    locationTracks = locationTracks.map { (id, version) -> ValidationVersion(id, version) },
-    switches = switches.map { (id, version) -> ValidationVersion(id, version) },
-    splits = listOf(),
-)
+) =
+    ValidationVersions(
+        branch = branch,
+        trackNumbers = trackNumbers.map { (id, version) -> ValidationVersion(id, version) },
+        referenceLines = referenceLines.map { (id, version) -> ValidationVersion(id, version) },
+        kmPosts = kmPosts.map { (id, version) -> ValidationVersion(id, version) },
+        locationTracks = locationTracks.map { (id, version) -> ValidationVersion(id, version) },
+        switches = switches.map { (id, version) -> ValidationVersion(id, version) },
+        splits = listOf(),
+    )
 
 fun publish(
     publicationService: PublicationService,
@@ -52,11 +54,12 @@ fun publish(
     switches: List<IntId<TrackLayoutSwitch>> = listOf(),
     referenceLines: List<IntId<ReferenceLine>> = listOf(),
     locationTracks: List<IntId<LocationTrack>> = listOf(),
-) = publish(
-    publicationService,
-    publicationRequest(trackNumbers, kmPosts, switches, referenceLines, locationTracks),
-    branch
-)
+) =
+    publish(
+        publicationService,
+        publicationRequest(trackNumbers, kmPosts, switches, referenceLines, locationTracks),
+        branch,
+    )
 
 fun publish(
     publicationService: PublicationService,
@@ -65,5 +68,5 @@ fun publish(
 ): PublicationResult {
     val versions = publicationService.getValidationVersions(branch, request)
     val calculatedChanges = publicationService.getCalculatedChanges(versions)
-    return publicationService.publishChanges(branch, versions, calculatedChanges, FreeTextWithNewLines("Test"))
+    return publicationService.publishChanges(branch, versions, calculatedChanges, FreeTextWithNewLines.of("Test"))
 }

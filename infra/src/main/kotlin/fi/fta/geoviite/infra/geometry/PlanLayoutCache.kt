@@ -13,21 +13,18 @@ import fi.fta.geoviite.infra.geography.HeightTriangle
 import fi.fta.geoviite.infra.geography.HeightTriangleDao
 import fi.fta.geoviite.infra.geography.ToGkFinTransformation
 import fi.fta.geoviite.infra.geography.Transformation
+import fi.fta.geoviite.infra.localization.LocalizationKey
 import fi.fta.geoviite.infra.tracklayout.GeometryPlanLayout
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.toTrackLayout
-import fi.fta.geoviite.infra.util.LocalizationKey
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
 const val INFRAMODEL_TRANSFORMATION_KEY_PARENT = "error.infra-model.transformation"
 
-data class TransformationError(
-    private val key: String,
-    private val units: GeometryUnits,
-): GeometryValidationIssue {
+data class TransformationError(private val key: String, private val units: GeometryUnits) : GeometryValidationIssue {
     override val issueType = GeometryIssueType.TRANSFORMATION_ERROR
     override val localizationKey = LocalizationKey("$INFRAMODEL_TRANSFORMATION_KEY_PARENT.$key")
     val srid = units.coordinateSystemSrid
@@ -85,7 +82,9 @@ class PlanLayoutCache(
     ): () -> Pair<GeometryPlanLayout?, TransformationError?> {
         val srid = geometryPlan.units.coordinateSystemSrid
         if (srid == null) {
-            logger.warn("Not converting plan to layout as there is no SRID: id=${geometryPlan.id} file=${geometryPlan.fileName}")
+            logger.warn(
+                "Not converting plan to layout as there is no SRID: id=${geometryPlan.id} file=${geometryPlan.fileName}"
+            )
             return { null to TransformationError("srid-missing", geometryPlan.units) }
         }
         val planToLayoutTransformation = coordinateTransformationService.getTransformation(srid, LAYOUT_SRID)
@@ -94,39 +93,42 @@ class PlanLayoutCache(
         val polygon = getBoundingPolygonPointsFromAlignments(geometryPlan.alignments, planToLayoutTransformation)
 
         if (polygon.isEmpty()) {
-            logger.warn("Not converting plan to layout as bounds could not be resolved: id=${geometryPlan.id} file=${geometryPlan.fileName}")
+            logger.warn(
+                "Not converting plan to layout as bounds could not be resolved: id=${geometryPlan.id} file=${geometryPlan.fileName}"
+            )
             return { null to TransformationError("bounds-resolution-failed", geometryPlan.units) }
         } else if (!polygon.all { point -> validHeightTriangulationArea.contains(point) }) {
-            logger.warn("Not converting plan to layout as bounds are outside height triangulation network: id=${geometryPlan.id} file=${geometryPlan.fileName}")
+            logger.warn(
+                "Not converting plan to layout as bounds are outside height triangulation network: id=${geometryPlan.id} file=${geometryPlan.fileName}"
+            )
             return { null to TransformationError("bounds-outside-finland", geometryPlan.units) }
         }
         val heightTriangles = heightTriangleDao.fetchTriangles(polygon)
-        val trackNumberId = geometryPlan.trackNumber
-            ?.let { trackNumberDao.list(MainLayoutContext.official, geometryPlan.trackNumber) }
-            ?.firstOrNull()
-            ?.id as? IntId
+        val trackNumberId =
+            geometryPlan.trackNumber
+                ?.let { trackNumberDao.list(MainLayoutContext.official, geometryPlan.trackNumber) }
+                ?.firstOrNull()
+                ?.id as? IntId
 
-        fun transform() = transformToLayoutPlan(
-            geometryPlan,
-            trackNumberId,
-            includeGeometryData,
-            pointListStepLength,
-            planToLayoutTransformation,
-            heightTriangles,
-            planToGkTransformation,
-            logger
-        )
-        // caching is optional because some callers just want the transformation, but don't have a saved plan
-        return if (planVersion == null) ::transform else { ->
-            cache.get(PlanLayoutCacheKey(planVersion, includeGeometryData)) { transform() }
-        }
+        fun transform() =
+            transformToLayoutPlan(
+                geometryPlan,
+                trackNumberId,
+                includeGeometryData,
+                pointListStepLength,
+                planToLayoutTransformation,
+                heightTriangles,
+                planToGkTransformation,
+                logger,
+            )
+        // caching is optional because some callers just want the transformation, but don't have a
+        // saved plan
+        return if (planVersion == null) ::transform
+        else { -> cache.get(PlanLayoutCacheKey(planVersion, includeGeometryData)) { transform() } }
     }
 }
 
-data class PlanLayoutCacheKey(
-    val planVersion: RowVersion<GeometryPlan>,
-    val includeGeometryData: Boolean,
-)
+data class PlanLayoutCacheKey(val planVersion: RowVersion<GeometryPlan>, val includeGeometryData: Boolean)
 
 private fun transformToLayoutPlan(
     geometryPlan: GeometryPlan,
@@ -149,18 +151,20 @@ private fun transformToLayoutPlan(
             planToGkTransformation = planToGkTransformation,
         ) to null
     } catch (e: CoordinateTransformationException) {
-        logger.warn("Could not convert plan coordinates: " +
-            "id=${geometryPlan.id} " +
-            "srid=${geometryPlan.units.coordinateSystemSrid} " +
-            "file=${geometryPlan.fileName}",
+        logger.warn(
+            "Could not convert plan coordinates: " +
+                "id=${geometryPlan.id} " +
+                "srid=${geometryPlan.units.coordinateSystemSrid} " +
+                "file=${geometryPlan.fileName}",
             e,
         )
         null to TransformationError("coordinate-transformation-failed", geometryPlan.units)
     } catch (e: Exception) {
-        logger.warn("Failed to convert plan to layout form: " +
-            "id=${geometryPlan.id} " +
-            "srid=${geometryPlan.units.coordinateSystemSrid} " +
-            "file=${geometryPlan.fileName}",
+        logger.warn(
+            "Failed to convert plan to layout form: " +
+                "id=${geometryPlan.id} " +
+                "srid=${geometryPlan.units.coordinateSystemSrid} " +
+                "file=${geometryPlan.fileName}",
             e,
         )
         null to TransformationError("plan-transformation-failed", geometryPlan.units)

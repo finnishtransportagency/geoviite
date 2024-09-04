@@ -251,17 +251,14 @@
             "BUILT": "Rakennettu",
             "IN_USE": "Käytössä",
             "NOT_IN_USE": "Käytöstä poistettu",
-            "PLANNED": "Suunniteltu",
             "DELETED": "Poistettu"
         },
         "layout-state": {
             "IN_USE": "Käytössä",
             "NOT_IN_USE": "Käytöstä poistettu",
-            "PLANNED": "Suunniteltu",
             "DELETED": "Poistettu"
         },
         "layout-state-category": {
-            "FUTURE_EXISTING": "Tuleva kohde",
             "EXISTING": "Olemassa oleva kohde",
             "NOT_EXISTING": "Poistunut kohde"
         },
@@ -1388,9 +1385,6 @@
             "track-number": {
                 "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava ratanumero ei ole luonnos",
-                "state": {
-                    "PLANNED": "Ratanumero on tilassa \"Suunniteltu\""
-                },
                 "reference-line": {
                     "not-published": "Ratanumeron pituusmittauslinja ei ole mukana julkaisussa"
                 },
@@ -1406,16 +1400,12 @@
             "km-post": {
                 "no-context": "Ratanumerolta ei voida laskea tasametripisteitä koska siltä puuttuu tietoja",
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava tasakilometripiste ei ole luonnos",
-                "state": {
-                    "PLANNED": "Tasakilometripiste on tilassa \"Suunniteltu\""
-                },
                 "no-location": "Tasakilometripisteelle ei ole linkitetty sijaintia.",
                 "track-number": {
                     "null": "Tasakilometripisteeltä puuttuu ratanumero tai se ei ole mukana julkaisussa",
                     "not-official": "Tasakilometripiste viittaa ratanumeron {{trackNumber}} luonnosriviin",
                     "not-published": "Tasakilometripiste viittaa julkaisemattomaan ratanumeroon {{trackNumber}}",
                     "state": {
-                        "PLANNED": "Tasakilometripiste viittaa ratanumeroon {{trackNumber}} joka on tilassa \"Suunniteltu\"",
                         "DELETED": "Tasakilometripiste viittaa ratanumeroon {{trackNumber}} joka on tilassa \"Poistettu\""
                     }
                 },
@@ -1439,7 +1429,6 @@
                 "no-context": "Sijaintiraiteelle ei voida laskea tasametripisteitä koska siitä puuttuu tietoja",
                 "duplicate-of": {
                     "state": {
-                        "PLANNED": "Raiteen duplikaatti {{duplicateTrack}} on tilassa \"Suunniteltu\". Duplikaattitietoa ei tarvita.",
                         "DELETED": "Raiteen duplikaatti {{duplicateTrack}} on poistettu. Duplikaattitietoa ei enää tarvita."
                     },
                     "not-official": "Raide viittaa duplikaattiraiteen {{duplicateTrack}} luonnosriviin",
@@ -1454,14 +1443,10 @@
                     "not-continuous": "Sijaintiraiteen pisteet eivät ole jatkuvia (kulma on liian suuri pisteiden välillä)"
                 },
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava sijaintiraide ei ole luonnos",
-                "state": {
-                    "PLANNED": "Sijaintiraide on tilassa \"Suunniteltu\""
-                },
                 "track-number": {
                     "not-official": "Sijaintiraide viittaa ratanumeron {{trackNumber}} luonnosriviin",
                     "not-published": "Sijaintiraide viittaa ratanumeroon {{trackNumber}}, joka ei ole mukana julkaisussa",
                     "state": {
-                        "PLANNED": "Sijaintiraide viittaa ratanumeroon {{trackNumber}} joka on tilassa \"Suunniteltu\"",
                         "DELETED": "Sijaintiraide viittaa ratanumeroon {{trackNumber}} joka on tilassa \"Poistettu\""
                     }
                 },
@@ -1469,7 +1454,6 @@
                     "not-official": "Sijaintiraide viittaa vaihteen {{switch}} luonnosriviin",
                     "not-published": "Sijaintiraide viittaa julkaisemattomaan luonnosvaihteeseen {{switch}}",
                     "state-category": {
-                        "FUTURE_EXISTING": "Sijaintiraide viittaa vaihteeseen {{switch}}, joka on tilakategoriassa \"Tuleva kohde\"",
                         "NOT_EXISTING": "Sijaintiraide viittaa vaihteeseen {{switch}}, joka on tilakategoriassa \"Poistunut kohde\""
                     },
                     "alignment-not-continuous": "Sijaintiraide on kytketty vaihteelle {{switch}} useammasta kuin yhdestä kohtaa",
@@ -1496,9 +1480,6 @@
             },
             "switch": {
                 "not-draft": "Virhe julkaisun sisällössä: julkaistava vaihde ei ole luonnos",
-                "state-category": {
-                    "FUTURE_EXISTING": "Vaihde on tilakategoriassa \"Tulevaksi kohteeksi\""
-                },
                 "no-location": "Vaihdetta ei ole linkitetty paikannuspohjaan",
                 "location-track": {
                     "reference-deleted": "Poistettavaan vaihteeseen viittaa edelleen raiteita: {{locationTracks}}",

@@ -1,9 +1,9 @@
 package fi.fta.geoviite.infra.math
 
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
 import kotlin.math.PI
 import kotlin.math.sqrt
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Test
 
 class PointTest {
 
@@ -33,14 +33,22 @@ class PointTest {
         assertApproximatelyEquals(startPoint + Point(0.0, -1.0), pointInDirection(startPoint, 1.0, 1.5 * PI))
         assertApproximatelyEquals(startPoint + Point(1.0, 0.0), pointInDirection(startPoint, 1.0, 2 * PI))
 
-        assertApproximatelyEquals(startPoint + Point(sqrt(0.5), sqrt(0.5)),
-            pointInDirection(startPoint, 1.0, 0.25 * PI))
-        assertApproximatelyEquals(startPoint + Point(-sqrt(0.5), sqrt(0.5)),
-            pointInDirection(startPoint, 1.0, 0.75 * PI))
-        assertApproximatelyEquals(startPoint + Point(-sqrt(0.5), -sqrt(0.5)),
-            pointInDirection(startPoint, 1.0, 1.25 * PI))
-        assertApproximatelyEquals(startPoint + Point(sqrt(0.5), -sqrt(0.5)),
-            pointInDirection(startPoint, 1.0, 1.75 * PI))
+        assertApproximatelyEquals(
+            startPoint + Point(sqrt(0.5), sqrt(0.5)),
+            pointInDirection(startPoint, 1.0, 0.25 * PI),
+        )
+        assertApproximatelyEquals(
+            startPoint + Point(-sqrt(0.5), sqrt(0.5)),
+            pointInDirection(startPoint, 1.0, 0.75 * PI),
+        )
+        assertApproximatelyEquals(
+            startPoint + Point(-sqrt(0.5), -sqrt(0.5)),
+            pointInDirection(startPoint, 1.0, 1.25 * PI),
+        )
+        assertApproximatelyEquals(
+            startPoint + Point(sqrt(0.5), -sqrt(0.5)),
+            pointInDirection(startPoint, 1.0, 1.75 * PI),
+        )
 
         assertApproximatelyEquals(startPoint + Point(2.5, 0.0), pointInDirection(startPoint, 2.5, 0.0))
         assertApproximatelyEquals(startPoint + Point(0.0, 10.1), pointInDirection(startPoint, 10.1, 0.5 * PI))

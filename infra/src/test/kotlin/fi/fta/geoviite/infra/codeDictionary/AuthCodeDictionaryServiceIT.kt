@@ -9,12 +9,10 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 
-
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class CodeDictionaryServiceIT @Autowired constructor(
-    private val codeDictionaryService: CodeDictionaryService
-): DBTestBase() {
+class AuthCodeDictionaryServiceIT @Autowired constructor(private val codeDictionaryService: CodeDictionaryService) :
+    DBTestBase() {
 
     @Test
     fun fetchFeatureTypesWorks() {

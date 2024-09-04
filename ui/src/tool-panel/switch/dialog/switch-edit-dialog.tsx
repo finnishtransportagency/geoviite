@@ -119,7 +119,7 @@ export const SwitchEditDialog = ({
 
     const stateCategoryOptions = layoutStateCategories
         .filter((sc) => isExistingSwitch || sc.value != 'NOT_EXISTING')
-        .map((sc) => ({ ...sc, disabled: sc.value === 'FUTURE_EXISTING', qaId: sc.value }));
+        .map((sc) => ({ ...sc, qaId: sc.value }));
 
     const conflictingSwitch = useLoader(async () => {
         if (validateSwitchName(switchName).length == 0) {

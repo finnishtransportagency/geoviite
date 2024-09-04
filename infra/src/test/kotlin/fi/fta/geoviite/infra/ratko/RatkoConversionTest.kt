@@ -12,9 +12,9 @@ import fi.fta.geoviite.infra.ratko.model.mapToRatkoLocationTrackType
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
-import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.junit.jupiter.api.Test
 
 class RatkoConversionTest {
 
@@ -46,48 +46,49 @@ class RatkoConversionTest {
 
     @Test
     fun `should not return locations with empty nodes`() {
-        val jointChanges = listOf(
-            SwitchJointChange(
-                number = JointNumber(1),
-                isRemoved = false,
-                address = TrackMeter("0000+0000"),
-                locationTrackExternalId = Oid("11.11111.1111"),
-                locationTrackId = IntId(1),
-                point = Point(0.0, 2.0),
-                trackNumberExternalId = Oid("00.00000.0000"),
-                trackNumberId = IntId(0)
-            ),
-            SwitchJointChange(
-                number = JointNumber(5),
-                isRemoved = false,
-                address = TrackMeter("0000+0000"),
-                locationTrackExternalId = Oid("11.11111.1111"),
-                locationTrackId = IntId(1),
-                point = Point(0.0, 1.0),
-                trackNumberExternalId = Oid("00.00000.0000"),
-                trackNumberId = IntId(0)
-            ),
-            SwitchJointChange(
-                number = JointNumber(2),
-                isRemoved = false,
-                address = TrackMeter("0000+0000"),
-                locationTrackExternalId = Oid("11.11111.1111"),
-                locationTrackId = IntId(1),
-                point = Point(0.0, 0.0),
-                trackNumberExternalId = Oid("00.00000.0000"),
-                trackNumberId = IntId(0)
-            ),
-            SwitchJointChange(
-                number = JointNumber(5),
-                isRemoved = false,
-                address = TrackMeter("0000+0000"),
-                locationTrackExternalId = Oid("22.22222.2222"),
-                locationTrackId = IntId(2),
-                point = Point(0.0, 1.0),
-                trackNumberExternalId = Oid("00.00000.0000"),
-                trackNumberId = IntId(0)
-            ),
-        )
+        val jointChanges =
+            listOf(
+                SwitchJointChange(
+                    number = JointNumber(1),
+                    isRemoved = false,
+                    address = TrackMeter("0000+0000"),
+                    locationTrackExternalId = Oid("11.11111.1111"),
+                    locationTrackId = IntId(1),
+                    point = Point(0.0, 2.0),
+                    trackNumberExternalId = Oid("00.00000.0000"),
+                    trackNumberId = IntId(0),
+                ),
+                SwitchJointChange(
+                    number = JointNumber(5),
+                    isRemoved = false,
+                    address = TrackMeter("0000+0000"),
+                    locationTrackExternalId = Oid("11.11111.1111"),
+                    locationTrackId = IntId(1),
+                    point = Point(0.0, 1.0),
+                    trackNumberExternalId = Oid("00.00000.0000"),
+                    trackNumberId = IntId(0),
+                ),
+                SwitchJointChange(
+                    number = JointNumber(2),
+                    isRemoved = false,
+                    address = TrackMeter("0000+0000"),
+                    locationTrackExternalId = Oid("11.11111.1111"),
+                    locationTrackId = IntId(1),
+                    point = Point(0.0, 0.0),
+                    trackNumberExternalId = Oid("00.00000.0000"),
+                    trackNumberId = IntId(0),
+                ),
+                SwitchJointChange(
+                    number = JointNumber(5),
+                    isRemoved = false,
+                    address = TrackMeter("0000+0000"),
+                    locationTrackExternalId = Oid("22.22222.2222"),
+                    locationTrackId = IntId(2),
+                    point = Point(0.0, 1.0),
+                    trackNumberExternalId = Oid("00.00000.0000"),
+                    trackNumberId = IntId(0),
+                ),
+            )
 
         val locations = convertToRatkoAssetLocations(jointChanges, SwitchBaseType.KRV)
 

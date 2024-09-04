@@ -13,8 +13,9 @@ data class FeatureTypeCode @JsonCreator(mode = DELEGATING) constructor(private v
         private val allowedLength = 3..3
     }
 
-    init { assertSanitized<FeatureTypeCode>(value, sanitizer, allowedLength) }
+    init {
+        assertSanitized<FeatureTypeCode>(value, sanitizer, allowedLength)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
 }

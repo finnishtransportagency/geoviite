@@ -3,9 +3,9 @@ package fi.fta.geoviite.infra.util
 import currentUser
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import java.sql.ResultSet
 import org.springframework.jdbc.core.ParameterizedPreparedStatementSetter
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
-import java.sql.ResultSet
 
 inline fun <reified T> NamedParameterJdbcTemplate.queryNotNull(
     sql: String,

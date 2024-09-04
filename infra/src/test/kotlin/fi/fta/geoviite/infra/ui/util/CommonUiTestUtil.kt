@@ -10,9 +10,11 @@ val dateFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
 val dateTimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH.mm")
 
 fun currentLocalDateFormatted(): String = LocalDate.now().format(dateFormat)
+
 fun currentLocalDateTimeFormatted(): String = LocalDateTime.now().format(dateTimeFormat)
 
 fun localDateFromString(date: String): LocalDateTime = LocalDate.parse(date, dateFormat).atStartOfDay()
+
 fun localDateTimeFromString(dateTime: String): LocalDateTime = LocalDateTime.parse(dateTime, dateTimeFormat)
 
 fun pointToCoordinateString(point: AlignmentPoint) = pointToCoordinateString(point.x, point.y)
@@ -23,5 +25,5 @@ fun pointToCoordinateString(x: Double, y: Double) = "${asThreeDecimalPlaces(x)} 
 
 fun metersToDouble(meters: String) = meters.substringBefore(' ').toDouble()
 
-//UI uses '.' instead of ','
+// UI uses '.' instead of ','
 private fun asThreeDecimalPlaces(v: Double) = String.format("%.3f", v).replace(",", ".")

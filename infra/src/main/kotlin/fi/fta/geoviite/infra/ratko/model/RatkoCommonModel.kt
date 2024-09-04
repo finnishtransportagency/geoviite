@@ -27,30 +27,19 @@ data class RatkoOid<T>(val id: String) {
     override fun toString() = id
 }
 
-@JsonInclude(JsonInclude.Include.NON_NULL)
-data class RatkoMetadata(
-    val sourceName: String = GEOVIITE_NAME,
-)
+@JsonInclude(JsonInclude.Include.NON_NULL) data class RatkoMetadata(val sourceName: String = GEOVIITE_NAME)
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-data class RatkoNodes(
-    val nodes: Collection<RatkoNode> = listOf(),
-    val type: RatkoNodesType,
-) {
-    @JsonIgnore
-    fun getStartNode() = nodes.find { it.nodeType == RatkoNodeType.START_POINT }
+data class RatkoNodes(val nodes: Collection<RatkoNode> = listOf(), val type: RatkoNodesType) {
+    @JsonIgnore fun getStartNode() = nodes.find { it.nodeType == RatkoNodeType.START_POINT }
 
-    @JsonIgnore
-    fun getEndNode() = nodes.find { it.nodeType == RatkoNodeType.END_POINT }
+    @JsonIgnore fun getEndNode() = nodes.find { it.nodeType == RatkoNodeType.END_POINT }
 
     fun withoutGeometries() = this.copy(nodes = nodes.map { it.withoutGeometry() })
 }
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-data class RatkoNode(
-    val nodeType: RatkoNodeType,
-    val point: RatkoPoint,
-) {
+data class RatkoNode(val nodeType: RatkoNodeType, val point: RatkoPoint) {
     fun withoutGeometry() = this.copy(point = point.withoutGeometry())
 }
 
@@ -70,14 +59,11 @@ private const val MAX_METERS_SCALE = 3
 
 private fun limitScale(meters: BigDecimal) =
     if (meters.scale() < 0) meters.setScale(0)
-    else if (meters.scale() > MAX_METERS_SCALE) meters.setScale(MAX_METERS_SCALE, RoundingMode.DOWN)
-    else meters
+    else if (meters.scale() > MAX_METERS_SCALE) meters.setScale(MAX_METERS_SCALE, RoundingMode.DOWN) else meters
 
-//^[0-9]{4}\+[0-9]{4}(\.[0-9]{1,15})?$
-class RatkoTrackMeter private constructor(
-    override val kmNumber: KmNumber,
-    override val meters: BigDecimal,
-) : ITrackMeter {
+// ^[0-9]{4}\+[0-9]{4}(\.[0-9]{1,15})?$
+class RatkoTrackMeter private constructor(override val kmNumber: KmNumber, override val meters: BigDecimal) :
+    ITrackMeter {
 
     companion object {
         @JvmStatic
@@ -86,7 +72,7 @@ class RatkoTrackMeter private constructor(
             val trackMeter = TrackMeter(kmM)
             return RatkoTrackMeter(
                 kmNumber = trackMeter.kmNumber,
-                meters = limitScale(trackMeter.meters.stripTrailingZeros())
+                meters = limitScale(trackMeter.meters.stripTrailingZeros()),
             )
         }
     }
@@ -99,23 +85,26 @@ class RatkoTrackMeter private constructor(
         }
     }
 
-    @JsonValue
-    override fun toString() = formatTrackMeter(kmNumber, meters)
+    @JsonValue override fun toString() = formatTrackMeter(kmNumber, meters)
 }
 
 class RatkoGeometry(val type: RatkoGeometryType, coordinates: List<Double>, crs: RatkoCrs) {
     val coordinates: List<Double> =
         if (crs.properties.name != RATKO_SRID)
-            transformNonKKJCoordinate(crs.properties.name, RATKO_SRID, Point(coordinates[0], coordinates[1]))
-                .let { listOf(it.x, it.y) }
+            transformNonKKJCoordinate(crs.properties.name, RATKO_SRID, Point(coordinates[0], coordinates[1])).let {
+                listOf(it.x, it.y)
+            }
         else coordinates
 
     val crs: RatkoCrs = RatkoCrs()
 
-    constructor(point: IPoint) : this(
+    constructor(
+        point: IPoint
+    ) : this(
         type = RatkoGeometryType.POINT,
-        coordinates = transformNonKKJCoordinate(LAYOUT_SRID, RATKO_SRID, Point(point.x, point.y)).let { listOf(it.x, it.y) },
-        crs = RatkoCrs()
+        coordinates =
+            transformNonKKJCoordinate(LAYOUT_SRID, RATKO_SRID, Point(point.x, point.y)).let { listOf(it.x, it.y) },
+        crs = RatkoCrs(),
     )
 }
 
@@ -132,12 +121,8 @@ enum class RatkoNodeType(@get:JsonValue val value: String) {
     JOINT_B("joint_point_B"),
     JOINT_C("joint_point_C"),
     JOINT_D("joint_point_D"),
-
-    @Suppress("unused")
-    MIDDLE_POINT("middle_point"),
-
-    @Suppress("unused")
-    SOLO_POINT("solo_point"),
+    @Suppress("unused") MIDDLE_POINT("middle_point"),
+    @Suppress("unused") SOLO_POINT("solo_point"),
 }
 
 enum class RatkoPointStates(@get:JsonValue val state: String) {
@@ -153,15 +138,9 @@ enum class RatkoNodesType(@get:JsonValue val value: String) {
     JOINTS("joint_points"),
     START_AND_END("start_and_end"),
     END("end"),
-
-    @Suppress("unused")
-    START("start"),
-
-    @Suppress("unused")
-    START_MIDDLE_END("start_middle_end"),
-
-    @Suppress("unused")
-    POINT("point"),
+    @Suppress("unused") START("start"),
+    @Suppress("unused") START_MIDDLE_END("start_middle_end"),
+    @Suppress("unused") POINT("point"),
 }
 
 enum class RatkoMeasurementMethod(@get:JsonValue val value: String) {
@@ -170,7 +149,7 @@ enum class RatkoMeasurementMethod(@get:JsonValue val value: String) {
     TRACK_INSPECTION("TRACK INSPECTION"),
     DIGITALIZED_AERIAL_IMAGE("DIGITIZED AERIAL IMAGE"),
     UNVERIFIED_DESIGNED_GEOMETRY("UNVERIFIED DESIGNED GEOMETRY"),
-    UNKNOWN("UNKNOWN")
+    UNKNOWN("UNKNOWN"),
 }
 
 enum class RatkoAssetGeomAccuracyType(@get:JsonValue val value: String) {
@@ -184,22 +163,10 @@ enum class RatkoAssetGeomAccuracyType(@get:JsonValue val value: String) {
 
 enum class RatkoAccuracyType(@get:JsonValue val value: String) {
     GEOMETRY_CALCULATED("GEOMETRY CALCULATED"),
-
-    @Suppress("unused")
-    DESIGNED_TRACK_ADDRESS("DESIGNED TRACKADDRESS"),
-
-    @Suppress("unused")
-    MEASURED_TRACK_ADDRESS("MEASURED TRACKADDRESS"),
-
-    @Suppress("unused")
-    OFFICIALLY_MEASURED_GEODETICALLY("OFFICIALLY MEASURED GEODETICALLY"),
-
-    @Suppress("unused")
-    MEASURED_GEODETICALLY("MEASURED GEODETICALLY"),
-
-    @Suppress("unused")
-    DIGITALIZED_AERIAL_IMAGE("DIGITIZED AERIAL IMAGE"),
-
-    @Suppress("unused")
-    ESTIMATED_TRACK_ADDRESS("ESTIMATED TRACKADDRESS"),
+    @Suppress("unused") DESIGNED_TRACK_ADDRESS("DESIGNED TRACKADDRESS"),
+    @Suppress("unused") MEASURED_TRACK_ADDRESS("MEASURED TRACKADDRESS"),
+    @Suppress("unused") OFFICIALLY_MEASURED_GEODETICALLY("OFFICIALLY MEASURED GEODETICALLY"),
+    @Suppress("unused") MEASURED_GEODETICALLY("MEASURED GEODETICALLY"),
+    @Suppress("unused") DIGITALIZED_AERIAL_IMAGE("DIGITIZED AERIAL IMAGE"),
+    @Suppress("unused") ESTIMATED_TRACK_ADDRESS("ESTIMATED TRACKADDRESS"),
 }

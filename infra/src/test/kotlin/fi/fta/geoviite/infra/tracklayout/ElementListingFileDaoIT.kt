@@ -2,21 +2,20 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.util.FileName
+import java.time.Instant
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import java.time.Instant
-import kotlin.test.assertEquals
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class ElementListingFileDaoIT @Autowired constructor(
-    private val elementListingFileDao: ElementListingFileDao,
-): DBTestBase() {
+class ElementListingFileDaoIT @Autowired constructor(private val elementListingFileDao: ElementListingFileDao) :
+    DBTestBase() {
 
     @BeforeEach
     fun setUp() {
@@ -28,27 +27,33 @@ class ElementListingFileDaoIT @Autowired constructor(
         assertNull(elementListingFileDao.getElementListingFile())
         assertEquals(Instant.EPOCH, elementListingFileDao.getLastFileListingTime())
 
-        val originalFile = ElementListingFile(
-            name = FileName("test file name 1"),
-            content = """
+        val originalFile =
+            ElementListingFile(
+                name = FileName("test file name 1"),
+                content =
+                    """
                 col1, col2, col3
                 abc, def, ghi
                 123, 456, 789
-            """.trimIndent()
-        )
+            """
+                        .trimIndent(),
+            )
         elementListingFileDao.upsertElementListingFile(originalFile)
         assertEquals(originalFile, elementListingFileDao.getElementListingFile())
         val originalChangeTime = elementListingFileDao.getLastFileListingTime()
         assertTrue(originalChangeTime > Instant.EPOCH)
 
-        val updatedFile = ElementListingFile(
-            name = FileName("new test file name 2"),
-            content = """
+        val updatedFile =
+            ElementListingFile(
+                name = FileName("new test file name 2"),
+                content =
+                    """
                 col1, col2, col3
                 abc2, def2, ghi2
                 something, else, here 
-            """.trimIndent()
-        )
+            """
+                        .trimIndent(),
+            )
         elementListingFileDao.upsertElementListingFile(updatedFile)
         assertEquals(updatedFile, elementListingFileDao.getElementListingFile())
         val updatedChangeTime = elementListingFileDao.getLastFileListingTime()

@@ -22,15 +22,11 @@ data class KkjTm35finTriangle(
     val sourceSrid: Srid,
 ) {
 
-    val polygon by lazy {
-        toJtsGeoPolygon(listOf(corner1, corner2, corner3, corner1), sourceSrid)
-    }
+    val polygon by lazy { toJtsGeoPolygon(listOf(corner1, corner2, corner3, corner1), sourceSrid) }
 
-    fun intersects(point: JtsPoint): Boolean =
-        polygon.intersects(point)
+    fun intersects(point: JtsPoint): Boolean = polygon.intersects(point)
 
-    fun intersects(poly: JtsPolygon): Boolean =
-        polygon.intersects(poly)
+    fun intersects(poly: JtsPolygon): Boolean = polygon.intersects(poly)
 }
 
 data class KkjTm35FinTriangulationNetwork(
@@ -38,29 +34,29 @@ data class KkjTm35FinTriangulationNetwork(
     val sourceSrid: Srid,
     val targetSrid: Srid,
 ) {
-    constructor(triangles: List<KkjTm35finTriangle>, sourceSrid: Srid, targetSrid: Srid) :
-        this(triangulationNetworkToRTree(triangles), sourceSrid, targetSrid)
+    constructor(
+        triangles: List<KkjTm35finTriangle>,
+        sourceSrid: Srid,
+        targetSrid: Srid,
+    ) : this(triangulationNetworkToRTree(triangles), sourceSrid, targetSrid)
 
     init {
-        require(!network.isEmpty) {
-            "Trying to build empty KKJx ($sourceSrid) to $targetSrid triangulation network"
-        }
+        require(!network.isEmpty) { "Trying to build empty KKJx ($sourceSrid) to $targetSrid triangulation network" }
     }
 
-    fun transformJts(point: JtsPoint): JtsPoint =
-        transformPointInTriangle(point, findTriangle(point))
+    fun transformJts(point: JtsPoint): JtsPoint = transformPointInTriangle(point, findTriangle(point))
 
-    fun findTriangle(jtsPoint: JtsPoint): KkjTm35finTriangle = requireNotNull(
-        network
-            .search(Geometries.point(jtsPoint.x, jtsPoint.y))
-            .find { triangle -> triangle.value().intersects(jtsPoint) }
-            ?.value()
-    ) { "Point was not inside the triangulation network: jtsPoint=$jtsPoint" }
+    fun findTriangle(jtsPoint: JtsPoint): KkjTm35finTriangle =
+        requireNotNull(
+            network
+                .search(Geometries.point(jtsPoint.x, jtsPoint.y))
+                .find { triangle -> triangle.value().intersects(jtsPoint) }
+                ?.value()
+        ) {
+            "Point was not inside the triangulation network: jtsPoint=$jtsPoint"
+        }
 
-    private fun transformPointInTriangle(
-        point: JtsPoint,
-        triangle: KkjTm35finTriangle,
-    ): JtsPoint {
+    private fun transformPointInTriangle(point: JtsPoint, triangle: KkjTm35finTriangle): JtsPoint {
         val x = (triangle.a2 * point.y) + (triangle.a1 * point.x) + triangle.deltaE
         val y = (triangle.b2 * point.y) + (triangle.b1 * point.x) + triangle.deltaN
         return toJtsGeoPoint(Coordinate(x, y))

@@ -17,20 +17,19 @@ import org.springframework.test.context.ActiveProfiles
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class ReferenceLineDaoIT @Autowired constructor(
-    private val alignmentDao: LayoutAlignmentDao,
-    private val referenceLineDao: ReferenceLineDao,
-) : DBTestBase() {
+class ReferenceLineDaoIT
+@Autowired
+constructor(private val alignmentDao: LayoutAlignmentDao, private val referenceLineDao: ReferenceLineDao) :
+    DBTestBase() {
 
     @Test
     fun referenceLineSaveAndLoadWorks() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val alignment = alignment()
         val alignmentVersion = alignmentDao.insert(alignment)
-        val referenceLine = referenceLine(trackNumberId, alignment, draft = false).copy(
-            startAddress = TrackMeter(KmNumber(10), 125.5, 3),
-            alignmentVersion = alignmentVersion,
-        )
+        val referenceLine =
+            referenceLine(trackNumberId, alignment, draft = false)
+                .copy(startAddress = TrackMeter(KmNumber(10), 125.5, 3), alignmentVersion = alignmentVersion)
 
         assertEquals(DataType.TEMP, referenceLine.dataType)
         val (id, version) = referenceLineDao.insert(referenceLine)
@@ -40,9 +39,7 @@ class ReferenceLineDaoIT @Autowired constructor(
         assertEquals(DataType.STORED, fromDb.dataType)
         assertMatches(referenceLine, fromDb, contextMatch = false)
 
-        val updatedLine = fromDb.copy(
-            startAddress = TrackMeter(KmNumber(12), 321),
-        )
+        val updatedLine = fromDb.copy(startAddress = TrackMeter(KmNumber(12), 321))
         val (updatedId, updatedVersion) = referenceLineDao.update(updatedLine)
         assertEquals(id, updatedId)
         assertEquals(updatedVersion.rowId, version.rowId)
@@ -58,13 +55,14 @@ class ReferenceLineDaoIT @Autowired constructor(
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
         val tempAlignment = alignment(segment(Point(1.0, 1.0), Point(2.0, 2.0)))
         val alignmentVersion = alignmentDao.insert(tempAlignment)
-        val tempTrack = referenceLine(
-            trackNumberId = trackNumberId,
-            startAddress = TrackMeter(12, 13),
-            alignment = tempAlignment,
-            alignmentVersion = alignmentVersion,
-            draft = false,
-        )
+        val tempTrack =
+            referenceLine(
+                trackNumberId = trackNumberId,
+                startAddress = TrackMeter(12, 13),
+                alignment = tempAlignment,
+                alignmentVersion = alignmentVersion,
+                draft = false,
+            )
         val (id, insertVersion) = referenceLineDao.insert(tempTrack)
         val inserted = referenceLineDao.fetch(insertVersion)
         assertMatches(tempTrack, inserted, contextMatch = false)

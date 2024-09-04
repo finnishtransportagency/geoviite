@@ -2,6 +2,7 @@ package fi.fta.geoviite.infra.configuration
 
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
+import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -12,8 +13,6 @@ import org.springframework.cache.caffeine.CaffeineCacheManager
 import org.springframework.cache.support.NoOpCacheManager
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import java.time.Duration
-
 
 const val CACHE_GEOMETRY_PLAN = "geometry-plan"
 const val CACHE_GEOMETRY_SWITCH = "geometry-switch"
@@ -39,9 +38,9 @@ val staticDataCacheDuration: Duration = Duration.ofHours(24)
 
 @EnableCaching
 @Configuration
-class CacheConfiguration @Autowired constructor(
-    @Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boolean,
-) {
+class CacheConfiguration
+@Autowired
+constructor(@Value("\${geoviite.cache.enabled}") private val cacheEnabled: Boolean) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     private val healthCheckLifetime: Duration = Duration.ofSeconds(10)
@@ -68,7 +67,6 @@ class CacheConfiguration @Autowired constructor(
 
             manager.registerCustomCache(CACHE_PUBLISHED_LOCATION_TRACKS, cache(500, staticDataCacheDuration))
             manager.registerCustomCache(CACHE_PUBLISHED_SWITCHES, cache(500, staticDataCacheDuration))
-
 
             manager
         } else {

@@ -85,7 +85,7 @@ fun assertMatches(original: GeometryAlignment, fromDb: GeometryAlignment) {
         val elementFromDb = fromDb.elements[index]
         assertTrue(
             convertedElement.contentEquals(elementFromDb),
-            "Contents should be equal: \n\texpect=$convertedElement. \n\tactual=$elementFromDb"
+            "Contents should be equal: \n\texpect=$convertedElement. \n\tactual=$elementFromDb",
         )
     }
 }

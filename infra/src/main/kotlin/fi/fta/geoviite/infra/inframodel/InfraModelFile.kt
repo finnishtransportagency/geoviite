@@ -6,27 +6,22 @@ import fi.fta.geoviite.infra.logging.Loggable
 import fi.fta.geoviite.infra.util.FileName
 import org.apache.commons.codec.digest.DigestUtils
 
-data class InfraModelFile(
-    val name: FileName,
-    val content: String,
-) : Loggable {
+data class InfraModelFile(val name: FileName, val content: String) : Loggable {
     val hash: String by lazy { DigestUtils.md5Hex(content) }
 
     init {
         require(!containsIdentifyingInfo(content)) { "Identifying info must be censored from IM before storing" }
-        if (content.isBlank()) throw InframodelParsingException(
-            message = "File \"${name}\" is empty",
-            localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.empty",
-        )
+        if (content.isBlank())
+            throw InframodelParsingException(
+                message = "File \"${name}\" is empty",
+                localizedMessageKey = "$INFRAMODEL_PARSING_KEY_PARENT.empty",
+            )
     }
 
     override fun toLog(): String = logFormat("name" to name, "hash" to hash)
 }
 
-data class InfraModelFileWithSource(
-    val file: InfraModelFile,
-    val source: PlanSource
-)
+data class InfraModelFileWithSource(val file: InfraModelFile, val source: PlanSource)
 
 private val authorTagRegex = Regex("<Author [^>]*>")
 private val createdByRegex = Regex("createdBy=\"[^\"]+\"")
@@ -35,18 +30,17 @@ const val EMPTY_CREATED_BY = "createdBy=\"\""
 const val EMPTY_CREATED_BY_EMAIL = "createdByEmail=\"\""
 
 fun containsIdentifyingInfo(content: String): Boolean =
-    getAuthorTag(content)
-        ?.let { tag -> tag.contains(createdByRegex) || tag.contains(createdByEmailRegex) }
-        ?: false
+    getAuthorTag(content)?.let { tag -> tag.contains(createdByRegex) || tag.contains(createdByEmailRegex) } ?: false
 
 fun censorAuthorIdentifyingInfo(content: String): String {
     val originalAuthorTag = getAuthorTag(content)
     return if (originalAuthorTag == null) {
         content
     } else {
-        val censoredTag: String = originalAuthorTag
-            .replace(createdByRegex, EMPTY_CREATED_BY)
-            .replace(createdByEmailRegex, EMPTY_CREATED_BY_EMAIL)
+        val censoredTag: String =
+            originalAuthorTag
+                .replace(createdByRegex, EMPTY_CREATED_BY)
+                .replace(createdByEmailRegex, EMPTY_CREATED_BY_EMAIL)
         content.replace(originalAuthorTag, censoredTag)
     }
 }

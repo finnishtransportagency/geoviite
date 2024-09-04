@@ -15,8 +15,9 @@ enum class TriangulationDirection(val direction: String, val source: Srid, val t
     TM35FIN_TO_KKJ("TM35FIN_TO_KKJ", ETRS89_TM35FIN_SRID, KKJ3_YKJ_SRID),
 }
 
-//language=SQL
-val KKJ_TO_TM35FIN_SQL = """
+// language=SQL
+val KKJ_TO_TM35FIN_SQL =
+    """
   select
     postgis.st_x(t1.coord_kkj) as x1,
     postgis.st_y(t1.coord_kkj) as y1,
@@ -30,10 +31,12 @@ val KKJ_TO_TM35FIN_SQL = """
     inner join common.kkj_etrs_triangle_corner_point t2 on kkj_etrs_triangulation_network.coord2_id = t2.id
     inner join common.kkj_etrs_triangle_corner_point t3 on kkj_etrs_triangulation_network.coord3_id = t3.id
   where kkj_etrs_triangulation_network.direction = 'KKJ_TO_TM35FIN'
-""".trimIndent()
+"""
+        .trimIndent()
 
-//language=SQL
-val TM35FIN_TO_KKJ_SQL = """
+// language=SQL
+val TM35FIN_TO_KKJ_SQL =
+    """
   select
     postgis.st_x(t1.coord_etrs) as x1,
     postgis.st_y(t1.coord_etrs) as y1,
@@ -47,32 +50,35 @@ val TM35FIN_TO_KKJ_SQL = """
     inner join common.kkj_etrs_triangle_corner_point t2 on kkj_etrs_triangulation_network.coord2_id = t2.id
     inner join common.kkj_etrs_triangle_corner_point t3 on kkj_etrs_triangulation_network.coord3_id = t3.id
   where kkj_etrs_triangulation_network.direction = 'TM35FIN_TO_KKJ'
-""".trimIndent()
+"""
+        .trimIndent()
 
 @Component
 class KkjTm35finTriangulationDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcTemplateParam) {
     @Cacheable(CACHE_KKJ_TM35FIN_TRIANGULATION_NETWORK, sync = true)
     fun fetchTriangulationNetwork(direction: TriangulationDirection): KkjTm35FinTriangulationNetwork {
         logger.daoAccess(AccessType.FETCH, HeightTriangle::class)
-        val sql = when (direction) {
-            TriangulationDirection.KKJ_TO_TM35FIN -> KKJ_TO_TM35FIN_SQL
-            TriangulationDirection.TM35FIN_TO_KKJ -> TM35FIN_TO_KKJ_SQL
-        }
+        val sql =
+            when (direction) {
+                TriangulationDirection.KKJ_TO_TM35FIN -> KKJ_TO_TM35FIN_SQL
+                TriangulationDirection.TM35FIN_TO_KKJ -> TM35FIN_TO_KKJ_SQL
+            }
 
-        val triangles = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, i ->
-            KkjTm35finTriangle(
-                corner1 = rs.getPoint("x1", "y1"),
-                corner2 = rs.getPoint("x2", "y2"),
-                corner3 = rs.getPoint("x3", "y3"),
-                a1 = rs.getDouble("a1"),
-                a2 = rs.getDouble("a2"),
-                deltaE = rs.getDouble("delta_e"),
-                b1 = rs.getDouble("b1"),
-                b2 = rs.getDouble("b2"),
-                deltaN = rs.getDouble("delta_n"),
-                sourceSrid = direction.source,
-            )
-        }
+        val triangles =
+            jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, i ->
+                KkjTm35finTriangle(
+                    corner1 = rs.getPoint("x1", "y1"),
+                    corner2 = rs.getPoint("x2", "y2"),
+                    corner3 = rs.getPoint("x3", "y3"),
+                    a1 = rs.getDouble("a1"),
+                    a2 = rs.getDouble("a2"),
+                    deltaE = rs.getDouble("delta_e"),
+                    b1 = rs.getDouble("b1"),
+                    b2 = rs.getDouble("b2"),
+                    deltaN = rs.getDouble("delta_n"),
+                    sourceSrid = direction.source,
+                )
+            }
         return KkjTm35FinTriangulationNetwork(triangles, direction.source, direction.target)
     }
 }

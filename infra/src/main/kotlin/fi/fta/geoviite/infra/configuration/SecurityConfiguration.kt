@@ -10,7 +10,6 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy.STATELESS
 import org.springframework.security.web.SecurityFilterChain
 
-
 @ConditionalOnWebApplication
 @EnableWebSecurity
 @Configuration
@@ -26,7 +25,8 @@ class SecurityConfiguration {
             .cors { it.disable() }
             // Disable CSRF: JWT is stored in ALB -> session not configured here
             .csrf { it.disable() }
-            // Disable SecurityContextPersistenceFilter which by default would replace the security context set up in
+            // Disable SecurityContextPersistenceFilter which by default would replace the security
+            // context set up in
             // RequestFilter with an empty one
             .securityContext { it.disable() }
             // Set session management to stateless

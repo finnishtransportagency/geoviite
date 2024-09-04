@@ -2,12 +2,12 @@ package fi.fta.geoviite.infra.ui.testgroup1
 
 import fi.fta.geoviite.infra.tracklayout.locationTrackAndAlignment
 import fi.fta.geoviite.infra.ui.SeleniumTest
+import kotlin.test.assertEquals
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertEquals
 
 @ActiveProfiles("dev", "test", "e2e")
 @SpringBootTest
@@ -21,19 +21,10 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
     @Test
     fun `Narrow search results`() {
         val tnId = mainDraftContext.createLayoutTrackNumber().id
-        val ltNames = listOf(
-            "test-lt A1" to "test-desc-1",
-            "test-lt B2" to "test-desc-2",
-            "test-lt B3" to "test-desc-3",
-        )
+        val ltNames =
+            listOf("test-lt A1" to "test-desc-1", "test-lt B2" to "test-desc-2", "test-lt B3" to "test-desc-3")
         ltNames.forEach { (name, desc) ->
-            mainOfficialContext.insert(
-                locationTrackAndAlignment(
-                    trackNumberId = tnId,
-                    name = name,
-                    description = desc,
-                )
-            )
+            mainOfficialContext.insert(locationTrackAndAlignment(trackNumberId = tnId, name = name, description = desc))
         }
 
         startGeoviite()
@@ -52,13 +43,14 @@ class SearchTestUI @Autowired constructor() : SeleniumTest() {
     @Test
     fun `Search opens specific location track`() {
         val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
-        val (track, _) = mainOfficialContext.insertAndFetch(
-            locationTrackAndAlignment(
-                trackNumberId = trackNumberId,
-                name = "test-lt specific 001",
-                description = "specific track selection test track 001",
+        val (track, _) =
+            mainOfficialContext.insertAndFetch(
+                locationTrackAndAlignment(
+                    trackNumberId = trackNumberId,
+                    name = "test-lt specific 001",
+                    description = "specific track selection test track 001",
+                )
             )
-        )
 
         startGeoviite()
         val mapPage = goToMap()

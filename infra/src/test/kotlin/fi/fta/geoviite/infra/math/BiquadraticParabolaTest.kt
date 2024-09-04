@@ -17,7 +17,6 @@ class BiquadraticParabolaTest {
         assertApproximatelyEquals(Point(250.0, 9.115), biquadraticParabola(250.0), accuracy)
     }
 
-
     @Test
     fun pointAtDistanceWorksForNegativeR1000L250() {
         val accuracy = 0.001
@@ -38,18 +37,24 @@ class BiquadraticParabolaTest {
         var previousD = -1.0
         for (x in 0..180) {
             val currentD = biquadraticSTransition(x.toDouble(), totalD, length)
-            val linearTransitionValue = (x.toDouble()/length)*totalD
+            val linearTransitionValue = (x.toDouble() / length) * totalD
             assertTrue(currentD > previousD, "D value should grow: $currentD > $previousD")
-            if (x <= length/2) {
-                assertTrue(currentD in 0.0..linearTransitionValue,
-                    "D on 1st half should be lower than linear: 0.0 < $currentD < $linearTransitionValue")
+            if (x <= length / 2) {
+                assertTrue(
+                    currentD in 0.0..linearTransitionValue,
+                    "D on 1st half should be lower than linear: 0.0 < $currentD < $linearTransitionValue",
+                )
             } else {
-                assertTrue(currentD in linearTransitionValue..totalD,
-                    "D on 2nd half should be greater than linear: $linearTransitionValue < $currentD < $totalD")
+                assertTrue(
+                    currentD in linearTransitionValue..totalD,
+                    "D on 2nd half should be greater than linear: $linearTransitionValue < $currentD < $totalD",
+                )
             }
             previousD = currentD
         }
     }
 
-    private fun biquadraticParabolaFunction(R: Double, L: Double) = { d: Double -> biquadraticParabolaPointAtOffset(d, R, L) }
+    private fun biquadraticParabolaFunction(R: Double, L: Double) = { d: Double ->
+        biquadraticParabolaPointAtOffset(d, R, L)
+    }
 }

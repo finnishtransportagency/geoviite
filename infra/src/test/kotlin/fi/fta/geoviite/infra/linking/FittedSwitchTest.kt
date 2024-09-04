@@ -16,15 +16,15 @@ import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.locationTrack
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
-import org.junit.jupiter.api.Test
 import kotlin.math.absoluteValue
 import kotlin.test.fail
+import org.junit.jupiter.api.Test
 
 class FittedSwitchTest {
     private val switchStructure = switchStructureYV60_300_1_9()
-    private val switchAlignment_1_5_2 = switchStructure.alignments.find { alignment ->
-        alignment.jointNumbers.contains(JointNumber(5))
-    } ?: error("Invalid switch structure")
+    private val switchAlignment_1_5_2 =
+        switchStructure.alignments.find { alignment -> alignment.jointNumbers.contains(JointNumber(5)) }
+            ?: error("Invalid switch structure")
 
     private fun transformPoint(
         point: IPoint,
@@ -39,7 +39,8 @@ class FittedSwitchTest {
         translation: Point,
         rotation: Double,
     ): LayoutAlignment {
-        val points = listOf<Point>() +
+        val points =
+            listOf<Point>() +
                 Point(-300.0, 0.0) +
                 switchAlignment.elements.map { element -> element.start } +
                 switchAlignment.elements.last().end +
@@ -47,16 +48,17 @@ class FittedSwitchTest {
         val transformedPoints = points.map { point -> transformPoint(point, translation, rotation) }
 
         return alignment(
-            segments = (0 until transformedPoints.lastIndex).map { index ->
-                segment(
-                    transformedPoints[index],
-                    transformedPoints[index + 1],
-                )
-            },
+            segments =
+                (0 until transformedPoints.lastIndex).map { index ->
+                    segment(transformedPoints[index], transformedPoints[index + 1])
+                }
         )
     }
 
-    private enum class SegmentEndPoint { START, END }
+    private enum class SegmentEndPoint {
+        START,
+        END,
+    }
 
     private fun assertSuggestedSwitchContainsMatch(
         switchSuggestion: FittedSwitch,
@@ -65,11 +67,12 @@ class FittedSwitchTest {
         m: Double,
         endPoint: SegmentEndPoint,
     ) {
-        val joint = switchSuggestion.joints.find { joint -> joint.number == jointNumber }
-            ?: throw Exception("Switch structure does not contain joint ${jointNumber.intValue}")
-        if (!joint.matches.any { match ->
-                match.locationTrackId == alignmentId && (m - match.m).absoluteValue < 0.01
-            }) {
+        val joint =
+            switchSuggestion.joints.find { joint -> joint.number == jointNumber }
+                ?: throw Exception("Switch structure does not contain joint ${jointNumber.intValue}")
+        if (
+            !joint.matches.any { match -> match.locationTrackId == alignmentId && (m - match.m).absoluteValue < 0.01 }
+        ) {
             fail("Didn't found a match from joint ${jointNumber.intValue}: alignmentId $alignmentId, m $m, $endPoint")
         }
     }
@@ -80,32 +83,32 @@ class FittedSwitchTest {
         val translation = Point(2000.0, 3000.0)
 
         val trackId: IntId<LocationTrack> = IntId(1)
-        val alignmentContainingSwitchSegments = createAlignmentBySwitchAlignment(
-            switchAlignment_1_5_2,
-            translation = translation,
-            rotation = rotation,
-        )
-        val locationTrack = locationTrack(IntId(0), alignment = alignmentContainingSwitchSegments, trackId, draft = false)
+        val alignmentContainingSwitchSegments =
+            createAlignmentBySwitchAlignment(switchAlignment_1_5_2, translation = translation, rotation = rotation)
+        val locationTrack =
+            locationTrack(IntId(0), alignment = alignmentContainingSwitchSegments, trackId, draft = false)
 
-        val suggestedSwitch = fitSwitch(
-            jointsInLayoutSpace = listOf(
-                SwitchJoint(
-                    JointNumber(1),
-                    alignmentContainingSwitchSegments.segments[1].alignmentPoints.first().toPoint()
-                ),
-                SwitchJoint(
-                    JointNumber(5),
-                    alignmentContainingSwitchSegments.segments[2].alignmentPoints.first().toPoint()
-                ),
-                SwitchJoint(
-                    JointNumber(2),
-                    alignmentContainingSwitchSegments.segments[3].alignmentPoints.first().toPoint()
-                ),
-            ),
-            switchStructure,
-            alignments = listOf(locationTrack to cropNothing(alignmentContainingSwitchSegments)),
-            locationAccuracy = null,
-        )
+        val suggestedSwitch =
+            fitSwitch(
+                jointsInLayoutSpace =
+                    listOf(
+                        SwitchJoint(
+                            JointNumber(1),
+                            alignmentContainingSwitchSegments.segments[1].alignmentPoints.first().toPoint(),
+                        ),
+                        SwitchJoint(
+                            JointNumber(5),
+                            alignmentContainingSwitchSegments.segments[2].alignmentPoints.first().toPoint(),
+                        ),
+                        SwitchJoint(
+                            JointNumber(2),
+                            alignmentContainingSwitchSegments.segments[3].alignmentPoints.first().toPoint(),
+                        ),
+                    ),
+                switchStructure,
+                alignments = listOf(locationTrack to cropNothing(alignmentContainingSwitchSegments)),
+                locationAccuracy = null,
+            )
 
         assertSuggestedSwitchContainsMatch(
             suggestedSwitch,

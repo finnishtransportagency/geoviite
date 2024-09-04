@@ -21,13 +21,15 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
+import java.time.Instant
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import java.time.Instant
 
 @GeoviiteService
 @ConditionalOnBean(RatkoClientConfiguration::class)
-class RatkoAssetService @Autowired constructor(
+class RatkoAssetService
+@Autowired
+constructor(
     private val ratkoClient: RatkoClient,
     private val switchLibraryService: SwitchLibraryService,
     private val switchDao: LayoutSwitchDao,
@@ -42,13 +44,15 @@ class RatkoAssetService @Autowired constructor(
             .groupBy { it.id }
             .map { (_, switches) ->
                 val newestVersion = switches.maxBy { it.version.version }.version
-                switchDao.fetch(newestVersion) to switches
-                    .flatMap { it.changedJoints }
-                    .reversed()
-                    //We assume that publishedSwitches are ordered by publication time
-                    //therefore if there are multiple changes for the same joint, the "last" one is what we want
-                    .distinctBy { it.number to it.locationTrackId }
-                    .reversed()
+                switchDao.fetch(newestVersion) to
+                    switches
+                        .flatMap { it.changedJoints }
+                        .reversed()
+                        // We assume that publishedSwitches are ordered by publication time
+                        // therefore if there are multiple changes for the same joint, the "last"
+                        // one is what we want
+                        .distinctBy { it.number to it.locationTrackId }
+                        .reversed()
             }
             .sortedBy { (switch, _) -> sortByDeletedStateFirst(switch.stateCategory) }
             .forEach { (layoutSwitch, changedJoints) ->
@@ -61,10 +65,9 @@ class RatkoAssetService @Autowired constructor(
                                 layoutSwitch = layoutSwitch,
                                 existingRatkoSwitch = existingRatkoSwitch,
                                 jointChanges = changedJoints,
-                                moment = publicationTime
+                                moment = publicationTime,
                             )
-                        }
-                        ?: createSwitch(layoutSwitch, changedJoints)
+                        } ?: createSwitch(layoutSwitch, changedJoints)
                 } catch (ex: RatkoPushException) {
                     throw RatkoSwitchPushException(ex, layoutSwitch)
                 }
@@ -85,18 +88,18 @@ class RatkoAssetService @Autowired constructor(
         val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
         val switchOwner = layoutSwitch.ownerId?.let { switchLibraryService.getSwitchOwner(layoutSwitch.ownerId) }
 
-        val updatedRatkoSwitch = convertToRatkoSwitch(
-            layoutSwitch = layoutSwitch,
-            switchStructure = switchStructure,
-            switchOwner = switchOwner,
-            existingRatkoSwitch = existingRatkoSwitch,
-        )
+        val updatedRatkoSwitch =
+            convertToRatkoSwitch(
+                layoutSwitch = layoutSwitch,
+                switchStructure = switchStructure,
+                switchOwner = switchOwner,
+                existingRatkoSwitch = existingRatkoSwitch,
+            )
 
         val existingLocations = existingRatkoSwitch.locations ?: emptyList()
 
-        val includeBaseLocations = layoutSwitch.joints.any { lj ->
-            jointChanges.none { jc -> jc.number == lj.number && !jc.isRemoved }
-        }
+        val includeBaseLocations =
+            layoutSwitch.joints.any { lj -> jointChanges.none { jc -> jc.number == lj.number && !jc.isRemoved } }
 
         val baseRatkoLocations =
             if (includeBaseLocations && existingLocations.isNotEmpty())
@@ -138,14 +141,19 @@ class RatkoAssetService @Autowired constructor(
         switchStructure: SwitchStructure,
         moment: Instant,
     ): List<RatkoAssetLocation> {
-        val linkedLocationTracks = switchDao.findLocationTracksLinkedToSwitchAtMoment(
-            layoutBranch = layoutBranch,
-            switchId = switchId,
-            topologyJointNumber = switchStructure.presentationJointNumber,
-            moment = moment
-        ).map { ids ->
-            checkNotNull(ids.externalId) { "Official LocationTrack must have an external ID, id=${ids.rowVersion}" }
-        }
+        val linkedLocationTracks =
+            switchDao
+                .findLocationTracksLinkedToSwitchAtMoment(
+                    layoutBranch = layoutBranch,
+                    switchId = switchId,
+                    topologyJointNumber = switchStructure.presentationJointNumber,
+                    moment = moment,
+                )
+                .map { ids ->
+                    checkNotNull(ids.externalId) {
+                        "Official LocationTrack must have an external ID, id=${ids.rowVersion}"
+                    }
+                }
 
         return existingRatkoLocations
             .map { location ->
@@ -154,21 +162,20 @@ class RatkoAssetService @Autowired constructor(
                     .filter { node -> node.point.state?.name == RatkoPointStates.VALID }
                     .filterNot { node ->
                         jointChanges.any { jointChange ->
-                            val nodeType = mapGeometryTypeToNodeType(
-                                mapJointNumberToGeometryType(jointChange.number, switchStructure.baseType)
-                            )
+                            val nodeType =
+                                mapGeometryTypeToNodeType(
+                                    mapJointNumberToGeometryType(jointChange.number, switchStructure.baseType)
+                                )
 
                             checkNotNull(jointChange.locationTrackExternalId) {
                                 "Cannot push switch changes with missing location track oid, $jointChange"
                             }
 
-                            jointChange.locationTrackExternalId.toString() == node.point.locationtrack?.id
-                                    && nodeType == node.nodeType
+                            jointChange.locationTrackExternalId.toString() == node.point.locationtrack?.id &&
+                                nodeType == node.nodeType
                         }
                     }
-                    .let { nodes ->
-                        location.copy(nodecollection = location.nodecollection.copy(nodes = nodes))
-                    }
+                    .let { nodes -> location.copy(nodecollection = location.nodecollection.copy(nodes = nodes)) }
             }
             .filter { location -> location.nodecollection.nodes.isNotEmpty() }
     }
@@ -192,31 +199,29 @@ class RatkoAssetService @Autowired constructor(
             val changedSwitchLocations = generateSwitchLocations(jointChanges, switchStructure)
 
             val ratkoSwitchLocations =
-                (baseRatkoLocations + changedSwitchLocations)
-                    .sortedBy (::sortJointAToTop)
-                    .mapIndexed { index, ratkoAssetLocation ->
-                        ratkoAssetLocation.copy(priority = index + 1)
-                    }
+                (baseRatkoLocations + changedSwitchLocations).sortedBy(::sortJointAToTop).mapIndexed {
+                    index,
+                    ratkoAssetLocation ->
+                    ratkoAssetLocation.copy(priority = index + 1)
+                }
 
             ratkoClient.replaceAssetLocations(switchOid, ratkoSwitchLocations)
         }
     }
 
-    private fun sortJointAToTop(location: RatkoAssetLocation):Int {
-        val containsJointA = location.nodecollection.nodes.any { node ->
-            node.nodeType == RatkoNodeType.JOINT_A
-        }
+    private fun sortJointAToTop(location: RatkoAssetLocation): Int {
+        val containsJointA = location.nodecollection.nodes.any { node -> node.nodeType == RatkoNodeType.JOINT_A }
         return if (containsJointA) -1 else 1
     }
 
     private fun updateSwitchProperties(
         switchOid: RatkoOid<RatkoSwitchAsset>,
         currentRatkoSwitch: RatkoSwitchAsset,
-        updatedRatkoSwitch: RatkoSwitchAsset
+        updatedRatkoSwitch: RatkoSwitchAsset,
     ) {
         ratkoClient.updateAssetProperties(switchOid, updatedRatkoSwitch.properties)
 
-        //Switch state is only touched by Geoviite when the category is different
+        // Switch state is only touched by Geoviite when the category is different
         if (updatedRatkoSwitch.state != currentRatkoSwitch.state) {
             ratkoClient.updateAssetState(switchOid, updatedRatkoSwitch.state)
         }
@@ -226,11 +231,12 @@ class RatkoAssetService @Autowired constructor(
         val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
         val switchOwner = layoutSwitch.ownerId?.let { switchLibraryService.getSwitchOwner(layoutSwitch.ownerId) }
 
-        val ratkoSwitch = convertToRatkoSwitch(
-            layoutSwitch = layoutSwitch,
-            switchStructure = switchStructure,
-            switchOwner = switchOwner,
-        )
+        val ratkoSwitch =
+            convertToRatkoSwitch(
+                layoutSwitch = layoutSwitch,
+                switchStructure = switchStructure,
+                switchOwner = switchOwner,
+            )
 
         val switchOid = ratkoClient.newAsset<RatkoSwitchAsset>(ratkoSwitch)
         checkNotNull(switchOid) { "Did not receive oid from Ratko for switch $ratkoSwitch" }
@@ -252,9 +258,6 @@ class RatkoAssetService @Autowired constructor(
     ): List<RatkoAssetLocation> {
         val changedJointsOnly = jointChanges.filterNot { it.isRemoved }
 
-        return convertToRatkoAssetLocations(
-            jointChanges = changedJointsOnly,
-            switchType = switchStructure.baseType,
-        )
+        return convertToRatkoAssetLocations(jointChanges = changedJointsOnly, switchType = switchStructure.baseType)
     }
 }

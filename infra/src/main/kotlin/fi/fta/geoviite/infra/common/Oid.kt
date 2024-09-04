@@ -12,8 +12,9 @@ data class Oid<T> @JsonCreator(mode = DELEGATING) constructor(private val value:
         private val sanitizer = Regex("^\\d+(\\.\\d+){2,9}\$")
     }
 
-    init { assertSanitized<Oid<T>>(value, sanitizer, allowedLength, allowBlank = false) }
+    init {
+        assertSanitized<Oid<T>>(value, sanitizer, allowedLength)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
 }

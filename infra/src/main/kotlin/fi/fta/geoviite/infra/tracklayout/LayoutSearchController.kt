@@ -23,9 +23,7 @@ data class TrackLayoutSearchResult(
 )
 
 @GeoviiteController("/track-layout/search")
-class LayoutSearchController(
-    private val searchService: LayoutSearchService,
-) {
+class LayoutSearchController(private val searchService: LayoutSearchService) {
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
     @GetMapping("/{$LAYOUT_BRANCH}/{$PUBLICATION_STATE}", params = ["searchTerm", "limitPerResultType"])

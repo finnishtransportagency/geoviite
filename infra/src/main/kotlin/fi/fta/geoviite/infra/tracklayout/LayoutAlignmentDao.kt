@@ -11,14 +11,14 @@ import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.util.*
 import fi.fta.geoviite.infra.util.DbTable.LAYOUT_ALIGNMENT
+import java.sql.ResultSet
+import java.util.stream.Collectors
+import kotlin.math.abs
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
-import java.sql.ResultSet
-import java.util.stream.Collectors
-import kotlin.math.abs
 
 const val ALIGNMENT_CACHE_SIZE = 10000L
 const val GEOMETRY_CACHE_SIZE = 500000L
@@ -48,38 +48,39 @@ class LayoutAlignmentDao(
 
     @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun fetch(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment =
-        if (cacheEnabled) alignmentsCache.get(alignmentVersion, ::fetchInternal)
-        else fetchInternal(alignmentVersion)
+        if (cacheEnabled) alignmentsCache.get(alignmentVersion, ::fetchInternal) else fetchInternal(alignmentVersion)
 
     @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     fun fetchMany(versions: List<RowVersion<LayoutAlignment>>): Map<RowVersion<LayoutAlignment>, LayoutAlignment> =
         versions.associateWith(::fetch)
 
     private fun fetchInternal(alignmentVersion: RowVersion<LayoutAlignment>): LayoutAlignment {
-        val sql = """
+        val sql =
+            """
             select id, version
             from layout.alignment_version
             where id = :id 
               and version = :version
               and deleted = false
-        """.trimIndent()
-        val params = mapOf(
-            "id" to alignmentVersion.id.intValue,
-            "version" to alignmentVersion.version,
-        )
-        return getOne(alignmentVersion.id, jdbcTemplate.query(sql, params) { rs, _ ->
-            LayoutAlignment(
-                dataType = DataType.STORED,
-                id = rs.getIntId("id"),
-                segments = fetchSegments(alignmentVersion),
+        """
+                .trimIndent()
+        val params = mapOf("id" to alignmentVersion.id.intValue, "version" to alignmentVersion.version)
+        return getOne(
+                alignmentVersion.id,
+                jdbcTemplate.query(sql, params) { rs, _ ->
+                    LayoutAlignment(
+                        dataType = DataType.STORED,
+                        id = rs.getIntId("id"),
+                        segments = fetchSegments(alignmentVersion),
+                    )
+                },
             )
-        }).also { alignment ->
-            logger.daoAccess(AccessType.FETCH, LayoutAlignment::class, alignment.id)
-        }
+            .also { alignment -> logger.daoAccess(AccessType.FETCH, LayoutAlignment::class, alignment.id) }
     }
 
     fun preloadAlignmentCache() {
-        val sql = """
+        val sql =
+            """
           select 
             sv.alignment_id,
             sv.alignment_version,
@@ -97,40 +98,45 @@ class LayoutAlignmentDao(
             left join layout.segment_version sv on sv.alignment_id = a.id and sv.alignment_version = a.version
           where sv.segment_index is not null
           order by sv.alignment_id, sv.segment_index
-        """.trimIndent()
+        """
+                .trimIndent()
 
         data class AlignmentData(val version: RowVersion<LayoutAlignment>)
 
-        val dataTriple = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            val alignmentData = AlignmentData(
-                version = rs.getRowVersion("alignment_id", "alignment_version"),
-            )
-            val segmentData = SegmentData(
-                id = rs.getIndexedId("alignment_id", "segment_index"),
-                start = rs.getDouble("start"),
-                sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
-                sourceStart = rs.getDoubleOrNull("source_start"),
-                switchId = rs.getIntIdOrNull("switch_id"),
-                startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
-                endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
-                source = rs.getEnum("source"),
-            )
-            val geometryId = rs.getIntId<SegmentGeometry>("geometry_id")
-            Triple(alignmentData, segmentData, geometryId)
-        }
+        val dataTriple =
+            jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+                val alignmentData = AlignmentData(version = rs.getRowVersion("alignment_id", "alignment_version"))
+                val segmentData =
+                    SegmentData(
+                        id = rs.getIndexedId("alignment_id", "segment_index"),
+                        start = rs.getDouble("start"),
+                        sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
+                        sourceStart = rs.getDoubleOrNull("source_start"),
+                        switchId = rs.getIntIdOrNull("switch_id"),
+                        startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
+                        endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
+                        source = rs.getEnum("source"),
+                    )
+                val geometryId = rs.getIntId<SegmentGeometry>("geometry_id")
+                Triple(alignmentData, segmentData, geometryId)
+            }
         val groupedByAlignment = dataTriple.groupBy({ (a, _, _) -> a }, { (_, s, gId) -> s to gId })
-        val alignments = groupedByAlignment.entries.parallelStream().map { (alignmentData, segmentDatas) ->
-            alignmentData.version to LayoutAlignment(
-                id = alignmentData.version.id,
-                segments = createSegments(segmentDatas),
-            )
-        }.collect(Collectors.toList()).associate { it }
+        val alignments =
+            groupedByAlignment.entries
+                .parallelStream()
+                .map { (alignmentData, segmentDatas) ->
+                    alignmentData.version to
+                        LayoutAlignment(id = alignmentData.version.id, segments = createSegments(segmentDatas))
+                }
+                .collect(Collectors.toList())
+                .associate { it }
         alignmentsCache.putAll(alignments)
     }
 
     @Transactional
     fun insert(alignment: LayoutAlignment): RowVersion<LayoutAlignment> {
-        val sql = """
+        val sql =
+            """
             insert into layout.alignment(
                 bounding_box,
                 segment_count,
@@ -142,12 +148,15 @@ class LayoutAlignmentDao(
                 :length
             )
             returning id, version
-        """.trimIndent()
-        val params = mapOf(
-            "polygon_string" to alignment.boundingBox?.let { bbox -> create2DPolygonString(bbox.polygonFromCorners) },
-            "segment_count" to alignment.segments.size,
-            "length" to alignment.length,
-        )
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "polygon_string" to
+                    alignment.boundingBox?.let { bbox -> create2DPolygonString(bbox.polygonFromCorners) },
+                "segment_count" to alignment.segments.size,
+                "length" to alignment.length,
+            )
         jdbcTemplate.setUser()
         val id: RowVersion<LayoutAlignment> =
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
@@ -160,8 +169,10 @@ class LayoutAlignmentDao(
     @Transactional
     fun update(alignment: LayoutAlignment): RowVersion<LayoutAlignment> {
         val alignmentId =
-            if (alignment.id is IntId) alignment.id else throw IllegalArgumentException("Cannot update an alignment that isn't in DB already")
-        val sql = """
+            if (alignment.id is IntId) alignment.id
+            else throw IllegalArgumentException("Cannot update an alignment that isn't in DB already")
+        val sql =
+            """
             update layout.alignment 
             set 
                 bounding_box = postgis.st_polygonfromtext(:polygon_string, 3067),
@@ -169,17 +180,20 @@ class LayoutAlignmentDao(
                 length = :length
             where id = :id
             returning id, version
-        """.trimIndent()
-        val params = mapOf(
-            "id" to alignmentId.intValue,
-            "polygon_string" to alignment.boundingBox?.let { bbox -> create2DPolygonString(bbox.polygonFromCorners) },
-            "segment_count" to alignment.segments.size,
-            "length" to alignment.length,
-        )
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "id" to alignmentId.intValue,
+                "polygon_string" to
+                    alignment.boundingBox?.let { bbox -> create2DPolygonString(bbox.polygonFromCorners) },
+                "segment_count" to alignment.segments.size,
+                "length" to alignment.length,
+            )
         jdbcTemplate.setUser()
-        val result: RowVersion<LayoutAlignment> = jdbcTemplate.queryForObject(sql, params) { rs, _ ->
-            rs.getRowVersion("id", "version")
-        } ?: throw IllegalStateException("Failed to get new version for Track Layout Alignment")
+        val result: RowVersion<LayoutAlignment> =
+            jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion("id", "version") }
+                ?: throw IllegalStateException("Failed to get new version for Track Layout Alignment")
         logger.daoAccess(AccessType.UPDATE, LayoutAlignment::class, result.id)
         upsertSegments(result, alignment.segments)
         return result
@@ -190,32 +204,32 @@ class LayoutAlignmentDao(
         val sql = "delete from layout.alignment where id = :id returning id"
         val params = mapOf("id" to id.intValue)
         jdbcTemplate.setUser()
-        val deletedRowId = getOne(id, jdbcTemplate.query(sql, params) { rs, _ ->
-            rs.getIntId<LayoutAlignment>("id")
-        })
+        val deletedRowId = getOne(id, jdbcTemplate.query(sql, params) { rs, _ -> rs.getIntId<LayoutAlignment>("id") })
         logger.daoAccess(AccessType.DELETE, LayoutAlignment::class, deletedRowId)
         return deletedRowId
     }
 
     @Transactional
     fun deleteOrphanedAlignments(): List<IntId<LayoutAlignment>> {
-        val sql = """
+        val sql =
+            """
            delete
            from layout.alignment alignment
            where not exists(select 1 from layout.reference_line where reference_line.alignment_id = alignment.id)
              and not exists(select 1 from layout.location_track where location_track.alignment_id = alignment.id)
            returning alignment.id
-       """.trimIndent()
+       """
+                .trimIndent()
         jdbcTemplate.setUser()
-        val deletedAlignments = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            rs.getIntId<LayoutAlignment>("id")
-        }
+        val deletedAlignments =
+            jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ -> rs.getIntId<LayoutAlignment>("id") }
         logger.daoAccess(AccessType.DELETE, LayoutAlignment::class, deletedAlignments)
         return deletedAlignments
     }
 
     private fun fetchSegments(alignmentVersion: RowVersion<LayoutAlignment>): List<LayoutSegment> {
-        val sql = """
+        val sql =
+            """
             select 
               alignment_id,
               segment_index,
@@ -232,24 +246,25 @@ class LayoutAlignmentDao(
             where alignment_id = :alignment_id
               and alignment_version = :alignment_version
             order by alignment_id, segment_index
-        """.trimIndent()
-        val params = mapOf(
-            "alignment_id" to alignmentVersion.id.intValue,
-            "alignment_version" to alignmentVersion.version,
-        )
+        """
+                .trimIndent()
+        val params =
+            mapOf("alignment_id" to alignmentVersion.id.intValue, "alignment_version" to alignmentVersion.version)
 
-        return createSegments(jdbcTemplate.query(sql, params) { rs, _ ->
-            SegmentData(
-                id = rs.getIndexedId("alignment_id", "segment_index"),
-                start = rs.getDouble("start"),
-                sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
-                sourceStart = rs.getDoubleOrNull("source_start"),
-                switchId = rs.getIntIdOrNull("switch_id"),
-                startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
-                endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
-                source = rs.getEnum("source"),
-            ) to rs.getIntId("geometry_id")
-        })
+        return createSegments(
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                SegmentData(
+                    id = rs.getIndexedId("alignment_id", "segment_index"),
+                    start = rs.getDouble("start"),
+                    sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
+                    sourceStart = rs.getDoubleOrNull("source_start"),
+                    switchId = rs.getIntIdOrNull("switch_id"),
+                    startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
+                    endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
+                    source = rs.getEnum("source"),
+                ) to rs.getIntId("geometry_id")
+            }
+        )
     }
 
     private fun createSegments(segmentResults: List<Pair<SegmentData, IntId<SegmentGeometry>>>): List<LayoutSegment> {
@@ -260,22 +275,22 @@ class LayoutAlignmentDao(
             require(abs(start - data.start) < LAYOUT_M_DELTA) {
                 "Segment start value does not match the calculated one: stored=${data.start} calc=$start"
             }
-            val geometry = requireNotNull(geometries[geometryId]) {
-                "Fetching geometry failed for segment: id=${data.id} geometryId=$geometryId"
-            }
+            val geometry =
+                requireNotNull(geometries[geometryId]) {
+                    "Fetching geometry failed for segment: id=${data.id} geometryId=$geometryId"
+                }
             LayoutSegment(
-                id = data.id,
-                sourceId = data.sourceId,
-                sourceStart = data.sourceStart,
-                switchId = data.switchId,
-                startJointNumber = data.startJointNumber,
-                endJointNumber = data.endJointNumber,
-                source = data.source,
-                geometry = geometry,
-                startM = start,
-            ).also {
-                start += geometry.length
-            }
+                    id = data.id,
+                    sourceId = data.sourceId,
+                    sourceStart = data.sourceStart,
+                    switchId = data.switchId,
+                    startJointNumber = data.startJointNumber,
+                    endJointNumber = data.endJointNumber,
+                    source = data.source,
+                    geometry = geometry,
+                    startM = start,
+                )
+                .also { start += geometry.length }
         }
     }
 
@@ -284,8 +299,9 @@ class LayoutAlignmentDao(
         metadataExternalId: Oid<*>?,
         boundingBox: BoundingBox?,
     ): List<SegmentGeometryAndMetadata> {
-        //language=SQL
-        val sql = """
+        // language=SQL
+        val sql =
+            """
             with
               segment_range as (
                 select
@@ -407,47 +423,55 @@ class LayoutAlignmentDao(
             where range.max_index >= segment.from_segment
               and range.min_index <= segment.to_segment
             order by segment.from_segment, segment.to_segment
-        """.trimIndent()
-        val params = mapOf(
-            "alignment_id" to alignmentVersion.id.intValue,
-            "alignment_version" to alignmentVersion.version,
-            "external_id" to metadataExternalId,
-            "use_bounding_box" to (boundingBox != null),
-            "x_min" to boundingBox?.min?.x,
-            "y_min" to boundingBox?.min?.y,
-            "x_max" to boundingBox?.max?.x,
-            "y_max" to boundingBox?.max?.y,
-            "layout_srid" to LAYOUT_SRID.code,
-        )
-        val result = jdbcTemplate.query(sql, params) { rs, _ ->
-            val fromSegment = rs.getInt("from_segment")
-            val toSegment = rs.getInt("to_segment")
-            val startPoint = rs.getDoubleOrNull("start_m")?.let { m ->
-                rs.getPointOrNull("start_x", "start_y")?.let { point ->
-                    AlignmentPoint(point.x, point.y, 0.0, m, 0.0) }
-            }
-            val endPoint = rs.getDoubleOrNull("end_m")?.let { m ->
-                rs.getPointOrNull("end_x", "end_y")?.let { point ->
-                    AlignmentPoint(point.x, point.y, 0.0, m, 0.0) }
-            }
-            SegmentGeometryAndMetadata(
-                planId = rs.getIntIdOrNull("plan_id"),
-                fileName = rs.getFileNameOrNull("file_name"),
-                alignmentId = rs.getIntIdOrNull("geom_alignment_id"),
-                alignmentName = rs.getString("alignment_name")?.let(::AlignmentName),
-                startPoint = startPoint,
-                endPoint = endPoint,
-                isLinked = rs.getBoolean("is_linked"),
-                id = StringId("${alignmentVersion.id.intValue}_${fromSegment}_${toSegment}")
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "alignment_id" to alignmentVersion.id.intValue,
+                "alignment_version" to alignmentVersion.version,
+                "external_id" to metadataExternalId,
+                "use_bounding_box" to (boundingBox != null),
+                "x_min" to boundingBox?.min?.x,
+                "y_min" to boundingBox?.min?.y,
+                "x_max" to boundingBox?.max?.x,
+                "y_max" to boundingBox?.max?.y,
+                "layout_srid" to LAYOUT_SRID.code,
             )
-        }
+        val result =
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                val fromSegment = rs.getInt("from_segment")
+                val toSegment = rs.getInt("to_segment")
+                val startPoint =
+                    rs.getDoubleOrNull("start_m")?.let { m ->
+                        rs.getPointOrNull("start_x", "start_y")?.let { point ->
+                            AlignmentPoint(point.x, point.y, 0.0, m, 0.0)
+                        }
+                    }
+                val endPoint =
+                    rs.getDoubleOrNull("end_m")?.let { m ->
+                        rs.getPointOrNull("end_x", "end_y")?.let { point ->
+                            AlignmentPoint(point.x, point.y, 0.0, m, 0.0)
+                        }
+                    }
+                SegmentGeometryAndMetadata(
+                    planId = rs.getIntIdOrNull("plan_id"),
+                    fileName = rs.getFileNameOrNull("file_name"),
+                    alignmentId = rs.getIntIdOrNull("geom_alignment_id"),
+                    alignmentName = rs.getString("alignment_name")?.let(::AlignmentName),
+                    startPoint = startPoint,
+                    endPoint = endPoint,
+                    isLinked = rs.getBoolean("is_linked"),
+                    id = StringId("${alignmentVersion.id.intValue}_${fromSegment}_${toSegment}"),
+                )
+            }
         logger.daoAccess(AccessType.UPDATE, SegmentGeometryAndMetadata::class, alignmentVersion)
         return result
     }
 
     fun fetchMetadata(alignmentVersion: RowVersion<LayoutAlignment>): List<LayoutSegmentMetadata> {
-        //language=SQL
-        val sql = """
+        // language=SQL
+        val sql =
+            """
             select
               postgis.st_x(postgis.st_startpoint(segment_geometry.geometry)) as start_point_x,
               postgis.st_y(postgis.st_startpoint(segment_geometry.geometry)) as start_point_y,
@@ -466,12 +490,11 @@ class LayoutAlignmentDao(
             where segment_version.alignment_id = :alignment_id 
               and segment_version.alignment_version = :alignment_version
             order by alignment.id, segment_version.segment_index
-        """.trimIndent()
+        """
+                .trimIndent()
 
-        val params = mapOf(
-            "alignment_id" to alignmentVersion.id.intValue,
-            "alignment_version" to alignmentVersion.version,
-        )
+        val params =
+            mapOf("alignment_id" to alignmentVersion.id.intValue, "alignment_version" to alignmentVersion.version)
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
             LayoutSegmentMetadata(
@@ -481,7 +504,7 @@ class LayoutAlignmentDao(
                 planTime = rs.getInstantOrNull("plan_time"),
                 measurementMethod = rs.getEnumOrNull<MeasurementMethod>("measurement_method"),
                 fileName = rs.getString("file_name")?.let(::FileName),
-                originalSrid = rs.getSridOrNull("srid")
+                originalSrid = rs.getSridOrNull("srid"),
             )
         }
     }
@@ -490,8 +513,9 @@ class LayoutAlignmentDao(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
     ): List<MapSegmentProfileInfo<T>> {
-        //language=SQL
-        val sql = """
+        // language=SQL
+        val sql =
+            """
             select
               location_track_v.official_id,
               segment_version.alignment_id,
@@ -512,17 +536,19 @@ class LayoutAlignmentDao(
                   segment_geometry.bounding_box
                 )
               order by segment_version.segment_index
-        """.trimIndent()
+        """
+                .trimIndent()
 
-        val params = mapOf(
-            "x_min" to bbox.min.x,
-            "y_min" to bbox.min.y,
-            "x_max" to bbox.max.x,
-            "y_max" to bbox.max.y,
-            "layout_srid" to LAYOUT_SRID.code,
-            "publication_state" to layoutContext.state.name,
-            "design_id" to layoutContext.branch.designId?.intValue,
-        )
+        val params =
+            mapOf(
+                "x_min" to bbox.min.x,
+                "y_min" to bbox.min.y,
+                "x_max" to bbox.max.x,
+                "y_max" to bbox.max.y,
+                "layout_srid" to LAYOUT_SRID.code,
+                "publication_state" to layoutContext.state.name,
+                "design_id" to layoutContext.branch.designId?.intValue,
+            )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->
             val startM = rs.getDouble("start")
@@ -531,18 +557,20 @@ class LayoutAlignmentDao(
                 alignmentId = rs.getIndexedId("alignment_id", "segment_index"),
                 segmentStartM = startM,
                 segmentEndM = startM + rs.getDouble("max_m"),
-                hasProfile = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system") != null
+                hasProfile = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system") != null,
             )
         }
     }
 
     private fun upsertSegments(alignmentId: RowVersion<LayoutAlignment>, segments: List<LayoutSegment>) {
         if (segments.isNotEmpty()) {
-            val newGeometryIds = insertSegmentGeometries(segments.mapNotNull { s ->
-                if (s.geometry.id is StringId) s.geometry else null
-            })
-            //language=SQL
-            val sqlIndexed = """
+            val newGeometryIds =
+                insertSegmentGeometries(
+                    segments.mapNotNull { s -> if (s.geometry.id is StringId) s.geometry else null }
+                )
+            // language=SQL
+            val sqlIndexed =
+                """
                 insert into layout.segment_version(
                   alignment_id,
                   alignment_version,
@@ -558,7 +586,8 @@ class LayoutAlignmentDao(
                   geometry_id
                 )
                 values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::layout.geometry_source, ?) 
-              """.trimIndent()
+              """
+                    .trimIndent()
             // This uses indexed parameters (rather than named ones),
             // since named parameter template's batch-method is considerably slower
             jdbcTemplate.batchUpdateIndexed(sqlIndexed, segments) { ps, (index, s) ->
@@ -573,8 +602,9 @@ class LayoutAlignmentDao(
                 ps.setNullableInt(9, s.endJointNumber?.intValue)
                 ps.setNullableDouble(10, s.sourceStart)
                 ps.setString(11, s.source.name)
-                val geometryId = if (s.geometry.id is IntId) s.geometry.id
-                else requireNotNull(newGeometryIds[s.geometry.id]) { "SegmentGeometry not stored: id=${s.id}" }
+                val geometryId =
+                    if (s.geometry.id is IntId) s.geometry.id
+                    else requireNotNull(newGeometryIds[s.geometry.id]) { "SegmentGeometry not stored: id=${s.id}" }
                 ps.setInt(12, geometryId.intValue)
             }
         }
@@ -584,18 +614,23 @@ class LayoutAlignmentDao(
     //  There is no guarantee of result set order (though it's usually the insert order)
     //  If we could calculate the hash prior to saving we could use that to identify the mapping
     private fun insertSegmentGeometries(
-        geometries: List<SegmentGeometry>,
+        geometries: List<SegmentGeometry>
     ): Map<StringId<SegmentGeometry>, IntId<SegmentGeometry>> {
         require(geometries.all { geom -> geom.segmentStart.m == 0.0 }) {
             "Geometries in DB must be set to startM=0.0, so they remain valid if an earlier segment changes"
         }
-        require(geometries.all { geom ->
-            val calculatedLength = calculateDistance(geom.segmentPoints, LAYOUT_SRID)
-            val maxDelta = calculatedLength * 0.01
-            abs(calculatedLength - geom.segmentEnd.m) <= maxDelta
-        }) { "Geometries in DB should have (approximately) endM=length" }
-        //language=SQL
-        val sql = """
+        require(
+            geometries.all { geom ->
+                val calculatedLength = calculateDistance(geom.segmentPoints, LAYOUT_SRID)
+                val maxDelta = calculatedLength * 0.01
+                abs(calculatedLength - geom.segmentEnd.m) <= maxDelta
+            }
+        ) {
+            "Geometries in DB should have (approximately) endM=length"
+        }
+        // language=SQL
+        val sql =
+            """
           insert into layout.segment_geometry(
             resolution,
             geometry,
@@ -611,32 +646,35 @@ class LayoutAlignmentDao(
           on conflict (hash) do update
           set resolution = segment_geometry.resolution -- no-op update so that returns clause works on conflict as well
           returning id
-        """.trimIndent()
+        """
+                .trimIndent()
         return geometries.associate { geometry ->
-            val params = mapOf(
-                "resolution" to geometry.resolution,
-                "line_string" to create3DMLineString(geometry.segmentPoints),
-                "srid" to LAYOUT_SRID.code,
-                "height_values" to createListString(geometry.segmentPoints) { p -> p.z },
-                "cant_values" to createListString(geometry.segmentPoints) { p -> p.cant },
-            )
-            jdbcTemplate.query(sql, params) { rs, _ ->
-                geometry.id as StringId to rs.getIntId<SegmentGeometry>("id")
-            }.first()
+            val params =
+                mapOf(
+                    "resolution" to geometry.resolution,
+                    "line_string" to create3DMLineString(geometry.segmentPoints),
+                    "srid" to LAYOUT_SRID.code,
+                    "height_values" to createListString(geometry.segmentPoints) { p -> p.z },
+                    "cant_values" to createListString(geometry.segmentPoints) { p -> p.cant },
+                )
+            jdbcTemplate
+                .query(sql, params) { rs, _ -> geometry.id as StringId to rs.getIntId<SegmentGeometry>("id") }
+                .first()
         }
     }
 
     private fun fetchSegmentGeometries(
-        ids: List<IntId<SegmentGeometry>>,
+        ids: List<IntId<SegmentGeometry>>
     ): Map<IntId<SegmentGeometry>, SegmentGeometry> {
         return segmentGeometryCache.getAll(ids) { fetchIds -> fetchSegmentGeometriesInternal(fetchIds) }
     }
 
     private fun fetchSegmentGeometriesInternal(
-        ids: Set<IntId<SegmentGeometry>>,
+        ids: Set<IntId<SegmentGeometry>>
     ): Map<IntId<SegmentGeometry>, SegmentGeometry> {
         return if (ids.isNotEmpty()) {
-            val sql = """
+            val sql =
+                """
                   select 
                     id,
                     postgis.st_astext(geometry) as geometry_wkt,
@@ -651,23 +689,26 @@ class LayoutAlignmentDao(
                     end as cant_values
                   from layout.segment_geometry
                   where id in (:ids)
-                """.trimIndent()
+                """
+                    .trimIndent()
             val params = mapOf("ids" to ids.map(IntId<SegmentGeometry>::intValue))
-            val rowResults = jdbcTemplate.query(sql, params) { rs, _ ->
-                GeometryRowResult(
-                    id = rs.getIntId("id"),
-                    wktString = rs.getString("geometry_wkt"),
-                    heightString = rs.getString("height_values"),
-                    cantString = rs.getString("cant_values"),
-                    resolution = rs.getInt("resolution"),
-                )
-            }
+            val rowResults =
+                jdbcTemplate.query(sql, params) { rs, _ ->
+                    GeometryRowResult(
+                        id = rs.getIntId("id"),
+                        wktString = rs.getString("geometry_wkt"),
+                        heightString = rs.getString("height_values"),
+                        cantString = rs.getString("cant_values"),
+                        resolution = rs.getInt("resolution"),
+                    )
+                }
             parseGeometries(rowResults)
         } else mapOf()
     }
 
     fun preloadSegmentGeometries() {
-        val sql = """
+        val sql =
+            """
           select 
             geom.id,
             postgis.st_astext(geom.geometry) as geometry_wkt,
@@ -685,20 +726,20 @@ class LayoutAlignmentDao(
             left join layout.segment_geometry geom on geom.id = sv.geometry_id
           where geom.id is not null
           group by geom.id
-        """.trimIndent()
+        """
+                .trimIndent()
 
-        val rowResults = jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
-            GeometryRowResult(
-                id = rs.getIntId("id"),
-                wktString = rs.getString("geometry_wkt"),
-                heightString = rs.getString("height_values"),
-                cantString = rs.getString("cant_values"),
-                resolution = rs.getInt("resolution"),
-            )
-        }
-        val parsed = parseGeometries(rowResults)
-        segmentGeometryCache.putAll(parsed)
-        Thread { parsed.values.forEach { it.boundingBox; it.hashCode() } }
+        val rowResults =
+            jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+                GeometryRowResult(
+                    id = rs.getIntId("id"),
+                    wktString = rs.getString("geometry_wkt"),
+                    heightString = rs.getString("height_values"),
+                    cantString = rs.getString("cant_values"),
+                    resolution = rs.getInt("resolution"),
+                )
+            }
+        segmentGeometryCache.putAll(parseGeometries(rowResults))
     }
 }
 
@@ -711,22 +752,26 @@ data class GeometryRowResult(
 )
 
 private fun parseGeometries(rowResults: List<GeometryRowResult>): Map<IntId<SegmentGeometry>, SegmentGeometry> =
-    rowResults.parallelStream().map { row ->
-        SegmentGeometry(
-            id = row.id,
-            segmentPoints = parseSegmentPointsWkt(row.wktString, row.heightString, row.cantString),
-            resolution = row.resolution,
-        )
-    }.collect(Collectors.toMap({ g -> g.id as IntId }, { it }))
+    rowResults
+        .parallelStream()
+        .map { row ->
+            SegmentGeometry(
+                id = row.id,
+                segmentPoints = parseSegmentPointsWkt(row.wktString, row.heightString, row.cantString),
+                resolution = row.resolution,
+            )
+        }
+        .collect(Collectors.toMap({ g -> g.id as IntId }, { it }))
 
 private fun getSegmentPointsWkt(
     rs: ResultSet,
     geometryColumn: String,
     heightColumn: String? = null,
     cantColumn: String? = null,
-): List<SegmentPoint> = rs.getString(geometryColumn)?.let { wktString ->
-    parseSegmentPointsWkt(wktString, heightColumn?.let(rs::getString), cantColumn?.let(rs::getString))
-} ?: emptyList()
+): List<SegmentPoint> =
+    rs.getString(geometryColumn)?.let { wktString ->
+        parseSegmentPointsWkt(wktString, heightColumn?.let(rs::getString), cantColumn?.let(rs::getString))
+    } ?: emptyList()
 
 private fun parseSegmentPointsWkt(
     geometryWkt: String,
@@ -742,15 +787,16 @@ fun parseSegmentPointLineString(
     lineString: String,
     heights: List<Double?>?,
     cants: List<Double?>?,
-): List<SegmentPoint> = get3DMLineStringContent(lineString).let { pointStrings ->
-    require(heights == null || heights.size == pointStrings.size) {
-        "Height value count should match point count: points=${pointStrings.size} heights=${heights?.size}"
+): List<SegmentPoint> =
+    get3DMLineStringContent(lineString).let { pointStrings ->
+        require(heights == null || heights.size == pointStrings.size) {
+            "Height value count should match point count: points=${pointStrings.size} heights=${heights?.size}"
+        }
+        require(cants == null || cants.size == pointStrings.size) {
+            "Cant value count should match point count: points=${pointStrings.size} cants=${cants?.size}"
+        }
+        pointStrings.mapIndexed { i, p -> parseSegmentPoint(p, heights?.get(i), cants?.get(i)) }
     }
-    require(cants == null || cants.size == pointStrings.size) {
-        "Cant value count should match point count: points=${pointStrings.size} cants=${cants?.size}"
-    }
-    pointStrings.mapIndexed { i, p -> parseSegmentPoint(p, heights?.get(i), cants?.get(i)) }
-}
 
 private fun parseNullableDoubleList(listString: String?): List<Double?>? =
     listString?.split(",")?.map(String::toDoubleOrNull)

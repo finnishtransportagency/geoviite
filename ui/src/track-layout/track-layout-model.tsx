@@ -27,9 +27,9 @@ import { GeometryPlanLinkStatus } from 'linking/linking-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { Brand } from 'common/brand';
 
-export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'PLANNED' | 'DELETED';
-export type LocationTrackState = 'BUILT' | 'IN_USE' | 'NOT_IN_USE' | 'PLANNED' | 'DELETED';
-export type LayoutStateCategory = 'EXISTING' | 'NOT_EXISTING' | 'FUTURE_EXISTING';
+export type LayoutState = 'IN_USE' | 'NOT_IN_USE' | 'DELETED';
+export type LocationTrackState = 'BUILT' | 'IN_USE' | 'NOT_IN_USE' | 'DELETED';
+export type LayoutStateCategory = 'EXISTING' | 'NOT_EXISTING';
 
 export const LAYOUT_SRID: Srid = 'EPSG:3067';
 

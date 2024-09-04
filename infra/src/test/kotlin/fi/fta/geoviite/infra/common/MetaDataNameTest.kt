@@ -20,5 +20,4 @@ class MetaDataNameTest {
         assertDoesNotThrow { MetaDataName("ÄÖ") }
         assertDoesNotThrow { MetaDataName("21.2 / (Jan 31 2022 16:48:38)") }
     }
-
 }

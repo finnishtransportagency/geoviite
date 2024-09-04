@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException
 import fi.fta.geoviite.infra.InfraApplication
 import fi.fta.geoviite.infra.TestApi
+import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
@@ -14,22 +15,14 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
-import kotlin.test.assertNotNull
 
 private const val API_URI = "/rata-vkm/v1"
 
 @ActiveProfiles("dev", "test", "integration-api")
-@SpringBootTest(
-    classes = [InfraApplication::class],
-    properties = ["geoviite.skip-auth=false"],
-)
+@SpringBootTest(classes = [InfraApplication::class], properties = ["geoviite.skip-auth=false"])
 @AutoConfigureMockMvc
-class FrameConverterAuthIT @Autowired constructor(
-    mockMvc: MockMvc,
-) {
-    private val mapper = ObjectMapper().apply {
-        setSerializationInclusion(JsonInclude.Include.NON_NULL)
-    }
+class FrameConverterAuthIT @Autowired constructor(mockMvc: MockMvc) {
+    private val mapper = ObjectMapper().apply { setSerializationInclusion(JsonInclude.Include.NON_NULL) }
 
     val testApi = TestApi(mapper, mockMvc)
 
@@ -88,14 +81,12 @@ class FrameConverterAuthIT @Autowired constructor(
         apiUri: String = API_URI,
         expectedStatus: HttpStatus = HttpStatus.OK,
     ): TestGeoJsonFeatureCollection? {
-        return testApi
-            .doPostWithParams(apiUri, emptyMap(), expectedStatus, headers)
-            .let { body ->
-                try {
-                    mapper.readValue(body, TestGeoJsonFeatureCollection::class.java)
-                } catch (e: ValueInstantiationException) {
-                    null
-                }
+        return testApi.doPostWithParams(apiUri, emptyMap(), expectedStatus, headers).let { body ->
+            try {
+                mapper.readValue(body, TestGeoJsonFeatureCollection::class.java)
+            } catch (e: ValueInstantiationException) {
+                null
             }
+        }
     }
 }

@@ -14,7 +14,7 @@ import fi.fta.geoviite.infra.geography.GeometryPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
 import fi.fta.geoviite.infra.tracklayout.LayoutState.NOT_IN_USE
-import fi.fta.geoviite.infra.tracklayout.LayoutState.PLANNED
+import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -24,48 +24,38 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
-import kotlin.test.assertContains
 
 @ActiveProfiles("dev", "test")
 @SpringBootTest
-class LayoutKmPostDaoIT @Autowired constructor(
-    private val kmPostDao: LayoutKmPostDao,
-) : DBTestBase() {
+class LayoutKmPostDaoIT @Autowired constructor(private val kmPostDao: LayoutKmPostDao) : DBTestBase() {
 
     @Test
     fun kmPostsAreStoredAndLoadedOk() {
         val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
-        val post1 = kmPost(
-            trackNumberId = trackNumberId,
-            km = KmNumber(123),
-            gkLocation = GeometryPoint(25500000.0, 6675000.0, Srid(3879)),
-            state = IN_USE,
-            draft = false,
-            gkLocationConfirmed = true,
-            gkLocationSource = KmPostGkLocationSource.FROM_GEOMETRY,
-        )
-        val post2 = kmPost(
-            trackNumberId = trackNumberId,
-            km = KmNumber(125),
-            gkLocation = GeometryPoint(25500005.0, 6675005.0, Srid(3879)),
-            state = NOT_IN_USE,
-            draft = false,
-        )
-        val post3 = kmPost(
-            trackNumberId = trackNumberId,
-            km = KmNumber(124),
-            gkLocation = GeometryPoint(25500010.0, 6675000.0, Srid(3879)),
-            state = PLANNED,
-            draft = false,
-        )
+        val post1 =
+            kmPost(
+                trackNumberId = trackNumberId,
+                km = KmNumber(123),
+                gkLocation = GeometryPoint(25500000.0, 6675000.0, Srid(3879)),
+                state = IN_USE,
+                draft = false,
+                gkLocationConfirmed = true,
+                gkLocationSource = KmPostGkLocationSource.FROM_GEOMETRY,
+            )
+        val post2 =
+            kmPost(
+                trackNumberId = trackNumberId,
+                km = KmNumber(125),
+                gkLocation = GeometryPoint(25500005.0, 6675005.0, Srid(3879)),
+                state = NOT_IN_USE,
+                draft = false,
+            )
         insertAndVerify(post1)
         insertAndVerify(post2)
-        insertAndVerify(post3)
         val allPosts = fetchTrackNumberKmPosts(OFFICIAL, trackNumberId)
-        assertEquals(3, allPosts.size)
+        assertEquals(2, allPosts.size)
         assertMatches(post1, allPosts[0])
-        assertMatches(post2, allPosts[2]) // The order should be by post-number, not insert order
-        assertMatches(post3, allPosts[1])
+        assertMatches(post2, allPosts[1])
     }
 
     @Test
@@ -131,21 +121,19 @@ class LayoutKmPostDaoIT @Autowired constructor(
         val postThreeOnlyDraft = kmPostDao.insert(kmPost(trackNumberId, KmNumber(3), draft = true))
         val postFourOnlyOfficial = kmPostDao.insert(kmPost(trackNumberId, KmNumber(4), draft = false))
 
-        val versionsEmpty = kmPostDao.fetchVersionsForPublication(
-            LayoutBranch.main,
-            listOf(trackNumberId),
-            listOf(),
-        )[trackNumberId]!!
-        val versionsOnlyOne = kmPostDao.fetchVersionsForPublication(
-            LayoutBranch.main,
-            listOf(trackNumberId),
-            listOf(postOneOfficial.id),
-        )[trackNumberId]!!
-        val versionsOneAndThree = kmPostDao.fetchVersionsForPublication(
-            LayoutBranch.main,
-            listOf(trackNumberId),
-            listOf(postOneOfficial.id, postThreeOnlyDraft.id),
-        )[trackNumberId]!!
+        val versionsEmpty =
+            kmPostDao.fetchVersionsForPublication(LayoutBranch.main, listOf(trackNumberId), listOf())[trackNumberId]!!
+        val versionsOnlyOne =
+            kmPostDao
+                .fetchVersionsForPublication(LayoutBranch.main, listOf(trackNumberId), listOf(postOneOfficial.id))[
+                    trackNumberId]!!
+        val versionsOneAndThree =
+            kmPostDao
+                .fetchVersionsForPublication(
+                    LayoutBranch.main,
+                    listOf(trackNumberId),
+                    listOf(postOneOfficial.id, postThreeOnlyDraft.id),
+                )[trackNumberId]!!
 
         assertEquals(setOf(postOneOfficial, postTwoOfficial, postFourOnlyOfficial), versionsEmpty.toSet())
         assertEquals(setOf(postOneDraft, postTwoOfficial, postFourOnlyOfficial), versionsOnlyOne.toSet())
@@ -197,7 +185,8 @@ class LayoutKmPostDaoIT @Autowired constructor(
         Thread.sleep(1) // Ensure that they get different timestamps
 
         val kmPost1MainV2 = testDBService.update(kmPost1MainV1).rowVersion
-        val kmPost1DesignV2 = designOfficialContext.copyFrom(kmPost1MainV1, officialRowId = kmPost1MainV1.rowId).rowVersion
+        val kmPost1DesignV2 =
+            designOfficialContext.copyFrom(kmPost1MainV1, officialRowId = kmPost1MainV1.rowId).rowVersion
         val kmPost2DesignV2 = testDBService.update(kmPost2DesignV1).rowVersion
         kmPostDao.deleteRow(kmPost3DesignV1.rowId)
         val v2Time = kmPostDao.fetchChangeTime()
@@ -261,9 +250,8 @@ class LayoutKmPostDaoIT @Autowired constructor(
         val undeletedDraftVersion = mainDraftContext.insert(kmPost(tnId, KmNumber(1)))
         val deleteStateDraftVersion = mainDraftContext.insert(kmPost(tnId, KmNumber(2), state = DELETED))
         val changeTrackNumberOriginal = mainOfficialContext.insert(kmPost(tnId, KmNumber(3)))
-        val changeTrackNumberChanged = testDBService.createDraft(changeTrackNumberOriginal.rowVersion) { kmp ->
-            kmp.copy(trackNumberId = tnId2)
-        }
+        val changeTrackNumberChanged =
+            testDBService.createDraft(changeTrackNumberOriginal.rowVersion) { kmp -> kmp.copy(trackNumberId = tnId2) }
         val deletedDraftId = mainDraftContext.insert(kmPost(tnId, KmNumber(4))).id
         kmPostDao.deleteDraft(LayoutBranch.main, deletedDraftId)
 
@@ -271,22 +259,19 @@ class LayoutKmPostDaoIT @Autowired constructor(
             listOf(changeTrackNumberOriginal),
             kmPostDao.fetchVersions(MainLayoutContext.official, false, tnId),
         )
-        assertEquals(
-            listOf(undeletedDraftVersion),
-            kmPostDao.fetchVersions(MainLayoutContext.draft, false, tnId),
-        )
+        assertEquals(listOf(undeletedDraftVersion), kmPostDao.fetchVersions(MainLayoutContext.draft, false, tnId))
 
         assertEquals(
             listOf(undeletedDraftVersion, deleteStateDraftVersion).toSet(),
             kmPostDao.fetchVersions(MainLayoutContext.draft, true, tnId).toSet(),
         )
-        assertEquals(
-            listOf(changeTrackNumberChanged),
-            kmPostDao.fetchVersions(MainLayoutContext.draft, true, tnId2),
-        )
+        assertEquals(listOf(changeTrackNumberChanged), kmPostDao.fetchVersions(MainLayoutContext.draft, true, tnId2))
     }
 
-    private fun insertOfficial(tnId: IntId<TrackLayoutTrackNumber>, kmNumber: Int): LayoutDaoResponse<TrackLayoutKmPost> {
+    private fun insertOfficial(
+        tnId: IntId<TrackLayoutTrackNumber>,
+        kmNumber: Int,
+    ): LayoutDaoResponse<TrackLayoutKmPost> {
         return kmPostDao.insert(kmPost(tnId, KmNumber(kmNumber), draft = false))
     }
 
@@ -310,8 +295,9 @@ class LayoutKmPostDaoIT @Autowired constructor(
         publicationState: PublicationState,
         trackNumberId: IntId<TrackLayoutTrackNumber>,
     ): List<TrackLayoutKmPost> {
-        return kmPostDao
-            .fetchVersions(MainLayoutContext.of(publicationState), false, trackNumberId, null)
-            .map { (_, rowVersion) -> kmPostDao.fetch(rowVersion) }
+        return kmPostDao.fetchVersions(MainLayoutContext.of(publicationState), false, trackNumberId, null).map {
+            (_, rowVersion) ->
+            kmPostDao.fetch(rowVersion)
+        }
     }
 }

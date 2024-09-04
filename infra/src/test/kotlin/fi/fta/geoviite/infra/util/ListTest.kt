@@ -1,8 +1,7 @@
 package fi.fta.geoviite.infra.util
 
-import fi.fta.geoviite.infra.util.rangesOfConsecutiveIndicesOf
-import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import org.junit.jupiter.api.Test
 
 class ListTest {
 

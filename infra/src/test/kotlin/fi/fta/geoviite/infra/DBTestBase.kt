@@ -13,12 +13,15 @@ const val TEST_USER = "TEST_USER"
 
 abstract class DBTestBase(val testUser: String = TEST_USER) {
 
-    @Autowired
-    var testDBServiceIn: TestDBService? = null
+    @Autowired var testDBServiceIn: TestDBService? = null
 
     val testDBService by lazy { testDBServiceIn ?: error("Test data service not initialized") }
-    val jdbc: NamedParameterJdbcTemplate get() = testDBService.jdbc
-    val transaction: TransactionTemplate get() = testDBService.transaction
+    val jdbc: NamedParameterJdbcTemplate
+        get() = testDBService.jdbc
+
+    val transaction: TransactionTemplate
+        get() = testDBService.transaction
+
     val mainDraftContext by lazy { testDBService.testContext(LayoutBranch.main, PublicationState.DRAFT) }
     val mainOfficialContext by lazy { testDBService.testContext(LayoutBranch.main, PublicationState.OFFICIAL) }
 

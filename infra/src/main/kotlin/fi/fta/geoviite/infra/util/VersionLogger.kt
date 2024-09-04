@@ -13,14 +13,18 @@ class VersionLogger(val jdbcTemplate: NamedParameterJdbcTemplate?) {
 
     @PostConstruct
     fun logVersion() {
-        val sql = """
+        val sql =
+            """
            select 
              version() as postgres_version,
              postgis.postgis_full_version() as postgis_version;
-       """.trimIndent()
-        jdbcTemplate?.let { jdbc -> jdbc.queryForObject(sql, mapOf<String, Any>()) { rs, _ ->
-            logger.info("PostgreSQL Version: ${rs.getString("postgres_version")}")
-            logger.info("PostGIS Version: ${rs.getString("postgis_version")}")
-        } }
+       """
+                .trimIndent()
+        jdbcTemplate?.let { jdbc ->
+            jdbc.queryForObject(sql, mapOf<String, Any>()) { rs, _ ->
+                logger.info("PostgreSQL Version: ${rs.getString("postgres_version")}")
+                logger.info("PostGIS Version: ${rs.getString("postgis_version")}")
+            }
+        }
     }
 }

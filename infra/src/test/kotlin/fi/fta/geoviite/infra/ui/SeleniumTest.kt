@@ -5,13 +5,13 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2EAppBar
 import fi.fta.geoviite.infra.ui.pagemodel.common.E2ERole
 import fi.fta.geoviite.infra.ui.pagemodel.frontpage.E2EFrontPage
+import java.util.*
 import openBrowser
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.extension.ExtendWith
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
-import java.util.*
 
 const val UI_TEST_USER = "UI_TEST_USER"
 
@@ -19,8 +19,7 @@ const val UI_TEST_USER = "UI_TEST_USER"
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 open class SeleniumTest : DBTestBase(UI_TEST_USER) {
 
-    @Value("\${geoviite.e2e.url}")
-    val startUrlProp: String? = null
+    @Value("\${geoviite.e2e.url}") val startUrlProp: String? = null
     val startUrl: String by lazy { requireNotNull(startUrlProp) }
 
     protected val logger: Logger = LoggerFactory.getLogger(this::class.java)
@@ -35,7 +34,8 @@ open class SeleniumTest : DBTestBase(UI_TEST_USER) {
             return E2EFrontPage()
         }
 
-    val navigationBar: E2EAppBar get() = E2EAppBar()
+    val navigationBar: E2EAppBar
+        get() = E2EAppBar()
 
     fun startGeoviite() {
         logger.info("Navigate to Geoviite $startUrl")
