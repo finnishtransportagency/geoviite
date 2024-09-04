@@ -120,8 +120,8 @@ enum class LocationTrackType {
     MAIN, // Pääraide
     SIDE, // Sivuraide
     TRAP, // Turvaraide: Turvaraide on raide, jonka tarkoitus on ohjata liikkuva kalusto riittävän
-          // etäälle siitä raiteesta, jota turvaraide suojaa.
-          // https://fi.wikipedia.org/wiki/Turvavaihde
+    // etäälle siitä raiteesta, jota turvaraide suojaa.
+    // https://fi.wikipedia.org/wiki/Turvavaihde
     CHORD, // Kujaraide: Kujaraide on raide, joka ei ole sivu-, eikä pääraide.
 }
 

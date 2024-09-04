@@ -12,13 +12,16 @@ data class SwitchName @JsonCreator(mode = DELEGATING) constructor(private val va
         val allowedLength = 1..50
         const val ALLOWED_CHARACTERS = "A-ZÄÖÅa-zäöå0-9 \\-_/,."
         val sanitizer = StringSanitizer(SwitchName::class, ALLOWED_CHARACTERS, allowedLength)
+
         fun ofUnsafe(value: String) = SwitchName(sanitizer.sanitize(value))
     }
 
-    init { sanitizer.assertSanitized(value) }
+    init {
+        sanitizer.assertSanitized(value)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: SwitchName): Int = value.compareTo(other.value)
 
     fun equalsIgnoreCase(other: SwitchName): Boolean = value.equals(other.value, ignoreCase = true)

@@ -8,11 +8,13 @@ data class PlanElementName(val value: String) : CharSequence by value {
         val allowedLength = 0..100
         const val ALLOWED_CHARACTERS = "A-Za-zÄÖÅäöå0-9 \\-+_/!?§"
         val sanitizer = StringSanitizer(PlanElementName::class, ALLOWED_CHARACTERS, allowedLength)
+
         fun ofUnsafe(value: String) = PlanElementName(sanitizer.sanitize(value))
     }
 
-    init { sanitizer.sanitize(value) }
+    init {
+        sanitizer.sanitize(value)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
 }

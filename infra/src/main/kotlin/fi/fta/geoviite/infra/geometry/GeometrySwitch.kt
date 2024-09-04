@@ -26,10 +26,10 @@ data class GeometrySwitch(
     fun getJoint(location: Point, delta: Double): GeometrySwitchJoint? =
         joints.find { j -> j.location.isSame(location, delta) }
 
-    fun getJoint(number: JointNumber): GeometrySwitchJoint? =
-        joints.find { j -> j.number == number }
+    fun getJoint(number: JointNumber): GeometrySwitchJoint? = joints.find { j -> j.number == number }
 
-    override fun toLog(): String = logFormat("id" to id, "name" to name, "joints" to joints.map { j -> j.number.intValue })
+    override fun toLog(): String =
+        logFormat("id" to id, "name" to name, "joints" to joints.map { j -> j.number.intValue })
 }
 
 data class GeometrySwitchJoint(override val number: JointNumber, override val location: Point) : ISwitchJoint
@@ -43,9 +43,11 @@ data class GeometrySwitchTypeName @JsonCreator(mode = DELEGATING) constructor(pr
         private val sanitizer = StringSanitizer(GeometrySwitchTypeName::class, ALLOWED_CHARACTERS, allowedLength)
     }
 
-    init { sanitizer.assertSanitized(value) }
+    init {
+        sanitizer.assertSanitized(value)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: GeometrySwitchTypeName): Int = value.compareTo(other.value)
 }

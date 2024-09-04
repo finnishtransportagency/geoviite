@@ -44,9 +44,8 @@ class LinkingDaoIT @Autowired constructor(private val linkingDao: LinkingDao) : 
         points.forEach { point ->
             val diff = lineLength(point.kkjPointTransformed, point.tm35Point)
             assertTrue(
-                diff <
-                    10, // This needs a little slack, since postgis transform isn't accurate. That's
-                        // why the network exists.
+                diff < 10, // This needs a little slack, since postgis transform isn't accurate. That's
+                // why the network exists.
                 "Triangulation corner points should be (approximately) the same in both coordinate systems: diff=$diff point=$point",
             )
         }

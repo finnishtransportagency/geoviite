@@ -264,7 +264,8 @@ fun ResultSet.getUnsafeStringOrNull(name: String): UnsafeString? = getString(nam
 
 fun ResultSet.getPVDictionaryName(name: String): PVDictionaryName = verifyNotNull(name, ::getPVDictionaryNameOrNull)
 
-fun ResultSet.getPVDictionaryNameOrNull(name: String): PVDictionaryName? = getUnsafeStringOrNull(name)?.let(::PVDictionaryName)
+fun ResultSet.getPVDictionaryNameOrNull(name: String): PVDictionaryName? =
+    getUnsafeStringOrNull(name)?.let(::PVDictionaryName)
 
 fun ResultSet.getPVProjectName(name: String): PVProjectName = verifyNotNull(name, ::getPVProjectNameOrNull)
 

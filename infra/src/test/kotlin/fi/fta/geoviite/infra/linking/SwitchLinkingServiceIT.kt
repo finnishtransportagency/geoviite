@@ -382,7 +382,7 @@ constructor(
                         Point(40.0, 0.0),
                         Point(60.0, 0.0),
                     ), // Example: first switch joint (5) -> end joint (2), will be split when
-                       // linking the overlapping switch
+                    // linking the overlapping switch
                     segment(
                         Point(60.0, 0.0),
                         Point(80.0, 0.0),
@@ -1631,7 +1631,7 @@ constructor(
                 "fooSwitch",
                 switchStructure,
                 0.01, // avoid plan1's bounding box becoming degenerate by slightly rotating the
-                      // main track
+                // main track
                 Point(50.0, 50.0),
             )
 

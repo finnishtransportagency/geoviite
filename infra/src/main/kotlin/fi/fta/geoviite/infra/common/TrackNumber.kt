@@ -14,9 +14,11 @@ data class TrackNumber @JsonCreator(mode = DELEGATING) constructor(val value: St
         val sanitizer = StringSanitizer(TrackNumber::class, ALLOWED_CHARACTERS, allowedLength)
     }
 
-    init { sanitizer.assertSanitized(value) }
+    init {
+        sanitizer.assertSanitized(value)
+    }
 
-    @JsonValue
-    override fun toString(): String = value
+    @JsonValue override fun toString(): String = value
+
     override fun compareTo(other: TrackNumber): Int = value.compareTo(other.value)
 }

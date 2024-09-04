@@ -769,7 +769,7 @@ constructor(
                             }
                         }
                         .distinct(), // don't bother sending segment boundary sides with the same
-                                     // location and height
+                    // location and height
                     endM,
                 )
             }
