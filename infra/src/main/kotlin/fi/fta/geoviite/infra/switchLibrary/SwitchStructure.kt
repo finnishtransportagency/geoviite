@@ -281,21 +281,10 @@ data class SwitchStructure(
 /** Contains information how the geometry of a switch is transformed from an ideal switch (from the switch library). */
 data class SwitchPositionTransformation(val translation: Point, val rotation: Angle, val rotationReferencePoint: Point)
 
-fun calculateSwitchLocationDeltaOrNull(
-    joints: List<ISwitchJoint>,
-    switchStructure: SwitchStructure,
-): SwitchPositionTransformation? {
-    return try {
-        calculateSwitchLocationDelta(joints, switchStructure)
-    } catch (e: InvalidJointsException) {
-        null
-    }
-}
-
 fun calculateSwitchLocationDelta(
     joints: List<ISwitchJoint>,
     switchStructure: SwitchStructure,
-): SwitchPositionTransformation {
+): SwitchPositionTransformation? {
     val jointPairs =
         joints.mapNotNull { joint ->
             val matchingStructureJoint =
@@ -303,17 +292,14 @@ fun calculateSwitchLocationDelta(
             if (matchingStructureJoint != null) Pair(joint, matchingStructureJoint) else null
         }
 
-    if (jointPairs.size < 2) {
-        throw InvalidJointsException("Switch angle cannot be calculated by ${jointPairs.size} common joints!")
-    }
-
     if (
-        abs(
-            lineLength(jointPairs[0].first.location, jointPairs[1].first.location) -
-                lineLength(jointPairs[0].second.location, jointPairs[1].second.location)
-        ) > 0.1
+        jointPairs.size < 2 ||
+            abs(
+                lineLength(jointPairs[0].first.location, jointPairs[1].first.location) -
+                    lineLength(jointPairs[0].second.location, jointPairs[1].second.location)
+            ) > 0.1
     ) {
-        throw InvalidJointsException("Given joints do not match to the given switch structure!")
+        return null
     }
 
     val angleDelta =
