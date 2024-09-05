@@ -3,7 +3,11 @@ import styles from './preview-view.scss';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { formatDateFull } from 'utils/date-utils';
 import { useTranslation } from 'react-i18next';
-import { PublicationStage, LayoutValidationIssue } from 'publication/publication-model';
+import {
+    PublicationStage,
+    LayoutValidationIssue,
+    PublicationValidationState,
+} from 'publication/publication-model';
 import { createClassName } from 'vayla-design-lib/utils';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
@@ -19,6 +23,7 @@ import { PreviewTableEntry } from 'preview/preview-table';
 import { BoundingBox } from 'model/geometry';
 import { RevertRequestSource } from 'preview/preview-view-revert-request';
 import { PublicationGroupAmounts } from 'publication/publication-utils';
+import { exhaustiveMatchingGuard } from 'utils/type-utils';
 
 const conditionalMenuOption = (
     condition: unknown | undefined,
@@ -33,7 +38,7 @@ export type PreviewTableItemProps = {
     publicationGroupAmounts: PublicationGroupAmounts;
     displayedTotalPublicationAssetAmount: number;
     onShowOnMap: (bbox: BoundingBox) => void;
-    isValidating: (item: PreviewTableEntry) => boolean;
+    validationState: PublicationValidationState;
     canRevertChanges: boolean;
 };
 
@@ -45,7 +50,7 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
     publicationGroupAmounts,
     displayedTotalPublicationAssetAmount,
     onShowOnMap,
-    isValidating,
+    validationState,
     canRevertChanges,
 }) => {
     const { t } = useTranslation();
@@ -175,23 +180,28 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
             : []),
     ];
 
-    return (
-        <React.Fragment>
-            <tr className={'preview-table-item'}>
-                <td>{tableEntry.uiName}</td>
-                <td>{tableEntry.trackNumber ? tableEntry.trackNumber : ''}</td>
-                <td>
-                    {tableEntry.operation
-                        ? t(`enum.publish-operation.${tableEntry.operation}`)
-                        : ''}
-                </td>
-                <td>{formatDateFull(tableEntry.changeTime)}</td>
-                <td>{tableEntry.userName}</td>
-                {isValidating(tableEntry) ? (
+    const validationStateCell = (() => {
+        switch (validationState) {
+            case 'IN_PROGRESS':
+                return (
                     <td>
                         <Spinner />
                     </td>
-                ) : (
+                );
+
+            case 'API_CALL_ERROR':
+                return (
+                    <td>
+                        <span
+                            title={t('preview-table.api-error-icon-hover-text')}
+                            className={styles['preview-table-item__error-status']}>
+                            <Icons.StatusError color={IconColor.INHERIT} size={IconSize.SMALL} />
+                        </span>
+                    </td>
+                );
+
+            case 'API_CALL_OK':
+                return (
                     <td
                         className={statusCellClassName}
                         onClick={() => setIsErrorRowExpanded(!isErrorRowExpanded)}>
@@ -218,7 +228,26 @@ export const PreviewTableItem: React.FC<PreviewTableItemProps> = ({
                             )}
                         </span>
                     </td>
-                )}
+                );
+
+            default:
+                return exhaustiveMatchingGuard(validationState);
+        }
+    })();
+
+    return (
+        <React.Fragment>
+            <tr className={'preview-table-item'}>
+                <td>{tableEntry.uiName}</td>
+                <td>{tableEntry.trackNumber ? tableEntry.trackNumber : ''}</td>
+                <td>
+                    {tableEntry.operation
+                        ? t(`enum.publish-operation.${tableEntry.operation}`)
+                        : ''}
+                </td>
+                <td>{formatDateFull(tableEntry.changeTime)}</td>
+                <td>{tableEntry.userName}</td>
+                {validationStateCell}
                 <td className={'preview-table-item preview-table-item__actions--cell'}>
                     <Button
                         qa-id={'stage-change-button'}

@@ -64,8 +64,7 @@ export type BasePublicationCandidate = {
     operation: Operation;
     publicationGroup?: PublicationGroup;
     issues: LayoutValidationIssue[];
-    validated: boolean;
-    pendingValidation: boolean;
+    validationState: PublicationValidationState;
     stage: PublicationStage;
     designRowReferrer: DesignRowReferrer;
 };
@@ -242,6 +241,8 @@ export type PublicationChange = {
     remark?: string;
     enumKey?: string;
 };
+
+export type PublicationValidationState = 'IN_PROGRESS' | 'API_CALL_OK' | 'API_CALL_ERROR';
 
 export type ValidatedAsset<Id extends AssetId> = {
     id: Id;

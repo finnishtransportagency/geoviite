@@ -1307,7 +1307,8 @@
         "errors-status-text": "virheitä ({{errors}} kpl)",
         "warnings-status-text": "varoituksia ({{warnings}} kpl)",
         "errors-group-title": "Virheitä",
-        "warnings-group-title": "Varoituksia"
+        "warnings-group-title": "Varoituksia",
+        "api-error-icon-hover-text": "Validointipyynnössä tapahtui virhe"
     },
     "preview-footer": {
         "reject-changes": "Hylkää muutokset",
