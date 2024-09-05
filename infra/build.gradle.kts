@@ -87,7 +87,7 @@ dependencies {
     implementation("com.auth0:jwks-rsa:0.22.1")
     implementation("com.auth0:java-jwt:4.4.0")
     implementation("io.netty:netty-resolver-dns-native-macos:4.1.109.Final:osx-aarch_64")
-    implementation("org.postgresql:postgresql:42.7.3")
+    implementation("org.postgresql:postgresql:42.7.4")
     implementation("jakarta.activation:jakarta.activation-api:2.1.3")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.2")
     implementation("com.github.davidmoten:rtree2:0.9.3")
