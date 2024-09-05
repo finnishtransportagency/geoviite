@@ -125,6 +125,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
     const [showPreview, setShowPreview] = React.useState<boolean>(true);
 
+    const latestValidationIdRef = React.useRef<number>(0);
     const [showValidationStatusSpinner, setShowValidationStatusSpinner] =
         React.useState<boolean>(true);
 
@@ -200,12 +201,18 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                 });
             }
 
+            const validationId = latestValidationIdRef.current + 1;
+            latestValidationIdRef.current = validationId;
             setShowValidationStatusSpinner(true);
 
             return validateDebounced(
                 props.layoutContext.branch,
                 props.stagedPublicationCandidateReferences,
-            ).finally(() => setShowValidationStatusSpinner(false));
+            ).finally(() => {
+                if (latestValidationIdRef.current === validationId) {
+                    setShowValidationStatusSpinner(false);
+                }
+            });
         }, [props.stagedPublicationCandidateReferences, publicationCandidates]) ??
         emptyValidatedPublicationCandidates();
 
@@ -529,8 +536,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                     ? officialLayoutContext(props.layoutContext)
                                     : draftMainLayoutContext()
                                 : mapDisplayTransitionSide === 'WITH_CHANGES'
-                                  ? draftLayoutContext(props.layoutContext)
-                                  : officialLayoutContext(props.layoutContext)
+                                ? draftLayoutContext(props.layoutContext)
+                                : officialLayoutContext(props.layoutContext)
                         }
                     />
                 </MapContext.Provider>
