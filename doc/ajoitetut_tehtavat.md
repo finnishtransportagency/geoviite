@@ -86,7 +86,7 @@ Vastaavasti PT sekä cron-ajoituksia voi hyödyntää samalla tehtävälle.
         initial-delay: PT2M
         interval: PT1H
         
-      tehtava1:
+      toinen-tehtava:
         enabled: true
         initial-delay: PT30S
         cron: "0 0 3 * * *" # (Huom: Ajoitus riippuu suoritusympäristön aikavyöhykkeestä)
