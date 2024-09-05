@@ -693,16 +693,16 @@ fun getSuggestedSwitchScore(
     }
 }
 
-private fun selectBestSuggestedSwitchTransformation(
-    switchSuggestions: Set<Pair<SwitchPositionTransformation, FittedSwitch>>,
+private fun selectBestSuggestedSwitch(
+    switchSuggestions: Set<FittedSwitch>,
     switchStructure: SwitchStructure,
     farthestJoint: SwitchJoint,
     desiredLocation: IPoint,
-): SwitchPositionTransformation {
+): FittedSwitch {
     assert(switchSuggestions.isNotEmpty()) { "switchSuggestions.isNotEmpty()" }
 
     val maxFarthestJointDistance =
-        switchSuggestions.maxOf { (_, suggestedSwitch) ->
+        switchSuggestions.maxOf { suggestedSwitch ->
             suggestedSwitch.joints.maxOf { joint ->
                 if (joint.number == farthestJoint.number) {
                     lineLength(desiredLocation, joint.location)
@@ -710,18 +710,10 @@ private fun selectBestSuggestedSwitchTransformation(
             }
         }
 
-    return switchSuggestions
-        .maxBy { (_, suggestedSwitch) ->
-            getSuggestedSwitchScore(
-                    suggestedSwitch,
-                    switchStructure,
-                    farthestJoint,
-                    maxFarthestJointDistance,
-                    desiredLocation,
-                )
-                .sumOf { it.sum() }
-        }
-        .first
+    return switchSuggestions.maxBy { fittedSwitch ->
+        getSuggestedSwitchScore(fittedSwitch, switchStructure, farthestJoint, maxFarthestJointDistance, desiredLocation)
+            .sumOf { it.sum() }
+    }
 }
 
 fun createFittedSwitchByPoint(
@@ -772,13 +764,10 @@ fun findBestSwitchFitForAllPointsInSamplingGrid(
         }
     val fits =
         transformations.map(parallel = true) { transformation ->
-            transformation to
-                fitSwitch(transformation, croppedTracks, switchStructure, LocationAccuracy.GEOMETRY_CALCULATED)
+            fitSwitch(transformation, croppedTracks, switchStructure, LocationAccuracy.GEOMETRY_CALCULATED)
         }
     return fits.aggregateByPoint(parallel = true) { point, pointFits ->
-        val bestTransformation =
-            selectBestSuggestedSwitchTransformation(pointFits, switchStructure, farthestJoint, point)
-        fitSwitch(bestTransformation, croppedTracks, switchStructure, LocationAccuracy.GEOMETRY_CALCULATED)
+        selectBestSuggestedSwitch(pointFits, switchStructure, farthestJoint, point)
     }
 }
 
