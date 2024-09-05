@@ -187,33 +187,10 @@ private fun findSuggestedSwitchJointMatches(
     tolerance: Double,
 ): List<FittedSwitchJointMatch> {
     val jointLocation = joint.location
-    val maxMatchableDistance = max(TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT, tolerance)
-
-    val closestSegmentIndex = alignment.findClosestSegmentIndex(jointLocation) ?: return listOf()
-    val firstPossibleSegmentIndex = (closestSegmentIndex - 1).coerceAtLeast(0)
-
-    val possibleSegments =
-        alignment.segments
-            .subList(firstPossibleSegmentIndex, (closestSegmentIndex + 2).coerceAtMost(alignment.segments.size))
-            .mapIndexed { index, segment ->
-                val closestPointM = segment.getClosestPointM(jointLocation).first
-                val pointSeekResult = segment.seekPointAtM(closestPointM)
-                val closestSegmentPointIndex = pointSeekResult.index
-                val jointDistanceToSegment = lineLength(pointSeekResult.point, jointLocation)
-                PossibleSegment(
-                    segment,
-                    index + firstPossibleSegmentIndex + alignment.cropStartSegmentIndex,
-                    closestPointM,
-                    closestSegmentPointIndex,
-                    jointDistanceToSegment,
-                )
-            }
-            .filter { segment -> segment.jointDistanceToSegment < maxMatchableDistance }
-
+    val possibleSegments = findPossiblyMatchableSegments(alignment, jointLocation, tolerance)
     if (possibleSegments.isEmpty()) {
         return listOf()
     }
-
     val jointDistanceToAlignment = possibleSegments.minOf { segment -> segment.jointDistanceToSegment }
 
     return possibleSegments.flatMap { possibleSegment ->
@@ -271,6 +248,33 @@ private fun findSuggestedSwitchJointMatches(
                 }
                 .toList()
     }
+}
+
+private fun findPossiblyMatchableSegments(
+    alignment: CroppedAlignment,
+    jointLocation: Point,
+    tolerance: Double,
+): List<PossibleSegment> {
+    val maxMatchableDistance = max(TOLERANCE_JOINT_LOCATION_SEGMENT_END_POINT, tolerance)
+    val closestSegmentIndex = alignment.findClosestSegmentIndex(jointLocation) ?: return listOf()
+    val firstPossibleSegmentIndex = (closestSegmentIndex - 1).coerceAtLeast(0)
+
+    return alignment.segments
+        .subList(firstPossibleSegmentIndex, (closestSegmentIndex + 2).coerceAtMost(alignment.segments.size))
+        .mapIndexed { index, segment ->
+            val closestPointM = segment.getClosestPointM(jointLocation).first
+            val pointSeekResult = segment.seekPointAtM(closestPointM)
+            val closestSegmentPointIndex = pointSeekResult.index
+            val jointDistanceToSegment = lineLength(pointSeekResult.point, jointLocation)
+            PossibleSegment(
+                segment,
+                index + firstPossibleSegmentIndex + alignment.cropStartSegmentIndex,
+                closestPointM,
+                closestSegmentPointIndex,
+                jointDistanceToSegment,
+            )
+        }
+        .filter { segment -> segment.jointDistanceToSegment < maxMatchableDistance }
 }
 
 private fun takeSegmentLineMatchesAroundPoint(
