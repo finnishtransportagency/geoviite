@@ -13,27 +13,23 @@ import org.springframework.stereotype.Component
 )
 class CachePreloadScheduler @Autowired constructor(private val cachePreloadService: CachePreloadService) {
 
-    @Scheduled(
-        initialDelayString = "\${geoviite.cache.tasks.preload.initial-delay}",
-        fixedDelayString = "\${geoviite.cache.tasks.preload.interval}",
-    )
-    fun scheduleLayoutAssetReload() {
+    companion object {
+        const val CONFIG_INITIAL_DELAY = "\${geoviite.cache.tasks.preload.initial-delay}"
+        const val CONFIG_INTERVAL = "\${geoviite.cache.tasks.preload.interval}"
+    }
+
+    @Scheduled(initialDelayString = CONFIG_INITIAL_DELAY, fixedDelayString = CONFIG_INTERVAL)
+    private fun scheduleLayoutAssetReload() {
         cachePreloadService.loadLayoutCache()
     }
 
-    @Scheduled(
-        initialDelayString = "\${geoviite.cache.tasks.preload.initial-delay}",
-        fixedDelayString = "\${geoviite.cache.tasks.preload.interval}",
-    )
-    fun schedulePlanHeaderReload() {
+    @Scheduled(initialDelayString = CONFIG_INITIAL_DELAY, fixedDelayString = CONFIG_INTERVAL)
+    private fun schedulePlanHeaderReload() {
         cachePreloadService.loadPlanHeaderCache()
     }
 
-    @Scheduled(
-        initialDelayString = "\${geoviite.cache.tasks.preload.initial-delay}",
-        fixedDelayString = "\${geoviite.cache.tasks.preload.interval}",
-    )
-    fun scheduleAlignmentReload() {
+    @Scheduled(initialDelayString = CONFIG_INITIAL_DELAY, fixedDelayString = CONFIG_INTERVAL)
+    private fun scheduleAlignmentReload() {
         cachePreloadService.loadAlignmentCache()
     }
 }
