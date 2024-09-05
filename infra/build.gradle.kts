@@ -26,7 +26,10 @@ group = "fi.fta.geoviite"
 
 version = "SNAPSHOT"
 
-java.sourceCompatibility = JavaVersion.VERSION_17
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    toolchain { languageVersion.set(JavaLanguageVersion.of(17)) }
+}
 
 repositories {
     maven(url = "https://repo.osgeo.org/repository/release")
