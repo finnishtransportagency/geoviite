@@ -151,15 +151,7 @@ constructor(private val linkingService: LinkingService, private val switchLinkin
         @RequestParam("location") location: Point,
         @RequestParam("layoutSwitchId") layoutSwitchId: IntId<TrackLayoutSwitch>,
     ): ResponseEntity<SuggestedSwitch> =
-        toResponse(
-            switchLinkingService
-                .getSuggestedSwitches(
-                    branch,
-                    listOf(SwitchPlacingRequest(SamplingGridPoints(listOf(location)), layoutSwitchId)),
-                )[0]
-                .keys()
-                .firstOrNull()
-        )
+        toResponse(switchLinkingService.getSuggestedSwitch(branch, location, layoutSwitchId))
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
     @GetMapping("/{$LAYOUT_BRANCH}/switches/suggested", params = ["points", "switchId"])
@@ -170,7 +162,8 @@ constructor(private val linkingService: LinkingService, private val switchLinkin
     ): SuggestedSwitchesAtGridPoints {
         val suggestedSwitches =
             switchLinkingService
-                .getSuggestedSwitches(branch, listOf(SwitchPlacingRequest(SamplingGridPoints(points), switchId)))[0]
+                .getSuggestedSwitches(branch, listOf(SwitchPlacingRequest(SamplingGridPoints(points), switchId)))
+                .first()
         return matchSamplingGridToQueryPoints(suggestedSwitches, points)
     }
 

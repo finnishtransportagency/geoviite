@@ -157,7 +157,8 @@ constructor(
 
     @Transactional(readOnly = true)
     fun getSuggestedSwitch(branch: LayoutBranch, point: Point, switchId: IntId<TrackLayoutSwitch>): SuggestedSwitch? =
-        getSuggestedSwitches(branch, listOf(SwitchPlacingRequest(SamplingGridPoints(point), switchId)))[0]
+        getSuggestedSwitches(branch, listOf(SwitchPlacingRequest(SamplingGridPoints(point), switchId)))
+            .first()
             .keys()
             .firstOrNull()
 
