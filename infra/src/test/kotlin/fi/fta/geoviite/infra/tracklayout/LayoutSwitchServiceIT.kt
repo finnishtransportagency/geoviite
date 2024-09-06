@@ -394,13 +394,21 @@ constructor(
 
         assertTrue(
             linkedLocationTracks.contains(
-                LocationTrackIdentifiers(rowVersion = locationTrack1.rowVersion, externalId = locationTrack1Oid)
+                LocationTrackIdentifiers(
+                    id = locationTrack1.id,
+                    rowVersion = locationTrack1.rowVersion,
+                    externalId = locationTrack1Oid,
+                )
             )
         )
 
         assertTrue(
             linkedLocationTracks.contains(
-                LocationTrackIdentifiers(rowVersion = locationTrack3.rowVersion, externalId = locationTrack3Oid)
+                LocationTrackIdentifiers(
+                    id = locationTrack3.id,
+                    rowVersion = locationTrack3.rowVersion,
+                    externalId = locationTrack3Oid,
+                )
             )
         )
 
@@ -458,7 +466,7 @@ constructor(
     ): Pair<LocationTrack, LocationTrackIdentifiers> {
         val (id, version) = locationTrackService.saveDraft(LayoutBranch.main, locationTrack, alignment)
         val track = locationTrackService.getOrThrow(MainLayoutContext.draft, id)
-        val identifiers = LocationTrackIdentifiers(version, locationTrack.externalId)
+        val identifiers = LocationTrackIdentifiers(id, version, locationTrack.externalId)
         return track to identifiers
     }
 

@@ -331,23 +331,22 @@ class LocationTrackService(
     fun listNearWithAlignments(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
-    ): List<Pair<LocationTrack, LayoutAlignment>> {
-        return dao.listNear(layoutContext, bbox).let(::associateWithAlignments)
-    }
+    ): List<Pair<LocationTrack, LayoutAlignment>> =
+        dao.listNear(layoutContext, bbox).let(::associateWithAlignments).filter { (_, alignment) ->
+            alignment.segments.any { segment ->
+                bbox.intersects(segment.boundingBox) && segment.segmentPoints.any(bbox::contains)
+            }
+        }
 
     @Transactional(readOnly = true)
     fun getLocationTracksNear(
         layoutContext: LayoutContext,
         location: IPoint,
-    ): List<Pair<LocationTrack, LayoutAlignment>> {
-        val searchArea =
-            BoundingBox(Point(0.0, 0.0), Point(TRACK_SEARCH_AREA_SIZE, TRACK_SEARCH_AREA_SIZE)).centerAt(location)
-        return listNearWithAlignments(layoutContext, searchArea).filter { (_, alignment) ->
-            alignment.segments.any { segment ->
-                searchArea.intersects(segment.boundingBox) && segment.segmentPoints.any(searchArea::contains)
-            }
-        }
-    }
+    ): List<Pair<LocationTrack, LayoutAlignment>> =
+        listNearWithAlignments(
+            layoutContext,
+            BoundingBox(Point(0.0, 0.0), Point(TRACK_SEARCH_AREA_SIZE, TRACK_SEARCH_AREA_SIZE)).centerAt(location),
+        )
 
     @Transactional(readOnly = true)
     fun getMetadataSections(
@@ -563,6 +562,8 @@ class LocationTrackService(
         val tracksLinkedThroughSwitch =
             switchDao
                 .findLocationTracksLinkedToSwitches(layoutContext, track.switchIds)
+                .values
+                .flatten()
                 .map(LayoutSwitchDao.LocationTrackIdentifiers::rowVersion)
         val duplicateTracksAndAlignments =
             (markedDuplicateVersions + tracksLinkedThroughSwitch).distinct().map(::getWithAlignmentInternal).filter {
