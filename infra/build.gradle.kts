@@ -11,14 +11,14 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_OUT
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val geotoolsVersion = "31.3"
-val kotlinVersion = "1.9.22"
+val kotlinVersion = "1.9.25"
 
 plugins {
-    id("org.springframework.boot") version "3.2.5"
-    id("io.spring.dependency-management") version "1.1.4"
-    id("com.github.jk1.dependency-license-report") version "2.5"
-    kotlin("jvm") version "1.9.23"
-    kotlin("plugin.spring") version "1.9.23"
+    id("org.springframework.boot") version "3.3.3"
+    id("io.spring.dependency-management") version "1.1.6"
+    id("com.github.jk1.dependency-license-report") version "2.9"
+    kotlin("jvm") version "1.9.25"
+    kotlin("plugin.spring") version "1.9.25"
     id("com.ncorti.ktfmt.gradle") version "0.20.1"
 }
 
@@ -26,7 +26,10 @@ group = "fi.fta.geoviite"
 
 version = "SNAPSHOT"
 
-java.sourceCompatibility = JavaVersion.VERSION_17
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    toolchain { languageVersion.set(JavaLanguageVersion.of(17)) }
+}
 
 repositories {
     maven(url = "https://repo.osgeo.org/repository/release")
@@ -60,8 +63,8 @@ dependencies {
     runtimeOnly("org.springframework.boot:spring-boot-properties-migrator")
     implementation("org.jetbrains.kotlin:kotlin-reflect:$kotlinVersion")
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlinVersion")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.0")
-    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.17.0")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.2")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.17.2")
     implementation("com.zaxxer:HikariCP:5.1.0")
     implementation("org.flywaydb:flyway-core:9.22.3")
     // v enable once going to Flyway 10.0 (requires Spring Boot 2.7.18)
@@ -79,12 +82,12 @@ dependencies {
         // jgridshift doesn't provide licensing information. We don't need it.
         exclude("it.geosolutions.jgridshift", "jgridshift-core")
     }
-    implementation("org.apache.commons:commons-csv:1.10.0")
+    implementation("org.apache.commons:commons-csv:1.11.0")
     implementation("commons-io:commons-io:2.16.1")
     implementation("com.auth0:jwks-rsa:0.22.1")
     implementation("com.auth0:java-jwt:4.4.0")
     implementation("io.netty:netty-resolver-dns-native-macos:4.1.109.Final:osx-aarch_64")
-    implementation("org.postgresql:postgresql:42.7.3")
+    implementation("org.postgresql:postgresql:42.7.4")
     implementation("jakarta.activation:jakarta.activation-api:2.1.3")
     implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.2")
     implementation("com.github.davidmoten:rtree2:0.9.3")
