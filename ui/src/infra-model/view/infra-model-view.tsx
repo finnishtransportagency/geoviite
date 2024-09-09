@@ -73,7 +73,9 @@ export const InfraModelView: React.FC<InfraModelViewProps> = (props: InfraModelV
     };
 
     const onProgressClick = () => {
-        getFieldValidationWarnings().length || !planLayout
+        getFieldValidationWarnings().length > 0 ||
+        getFieldValidationIssues().length > 0 ||
+        !planLayout
             ? setShowCriticalWarning(true)
             : onSaveClick();
     };

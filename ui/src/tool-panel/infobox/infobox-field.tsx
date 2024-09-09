@@ -54,15 +54,17 @@ const InfoboxField: React.FC<InfoboxFieldProps> = ({
             </div>
             {props.onEdit && !iconHidden && (
                 <PrivilegeRequired privilege={EDIT_LAYOUT}>
-                    <Button
-                        title={iconTitle}
-                        disabled={iconDisabled || !props.onEdit}
-                        icon={Icons.Edit}
-                        variant={ButtonVariant.GHOST}
-                        size={ButtonSize.SMALL}
-                        onClick={() => !iconDisabled && props.onEdit && props.onEdit()}
-                        qa-id={`${qaId}-edit`}
-                    />
+                    <span qa-id={`${qaId}-edit`}>
+                        <Button
+                            title={iconTitle}
+                            disabled={iconDisabled || !props.onEdit}
+                            icon={Icons.Edit}
+                            variant={ButtonVariant.GHOST}
+                            size={ButtonSize.SMALL}
+                            onClick={() => !iconDisabled && props.onEdit && props.onEdit()}
+                            qa-id={`infobox-edit-button`}
+                        />
+                    </span>
                 </PrivilegeRequired>
             )}
         </div>
