@@ -37,7 +37,7 @@ abstract class E2EInfoBox(infoboxBy: By) : E2EViewFragment(infoboxBy) {
     protected fun editFields(): E2EInfoBox = apply {
         logger.info("Enable editing")
 
-        clickChild(By.className("infobox__edit-icon"))
+        clickChild(byQaId("infobox-edit-button"))
     }
 
     protected fun waitUntilValueChangesForField(fieldQaId: String, targetValue: String): E2EInfoBox = apply {

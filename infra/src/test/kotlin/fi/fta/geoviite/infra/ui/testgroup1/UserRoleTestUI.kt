@@ -28,7 +28,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.openqa.selenium.By
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
@@ -173,7 +172,7 @@ fun assertTrackLayoutPageEditButtonsInvisible(trackLayoutPage: E2ETrackLayoutPag
 
     waitUntilNotExist(byQaId("open-preview-view"))
     waitUntilNotExist(byQaId("tool-bar.new"))
-    waitUntilNotExist(By.cssSelector(".infobox__edit-icon"))
+    waitUntilNotExist(byQaId("infobox-edit-button"))
 }
 
 fun assertTrackLayoutPageEditButtonsVisible(trackLayoutPage: E2ETrackLayoutPage, trackNumber: TrackNumber) {
@@ -183,7 +182,7 @@ fun assertTrackLayoutPageEditButtonsVisible(trackLayoutPage: E2ETrackLayoutPage,
     waitUntilExists(byQaId("design-mode-tab"))
     waitUntilExists(byQaId("open-preview-view"))
     waitUntilExists(byQaId("tool-bar.new"))
-    waitUntilExists(By.cssSelector(".infobox__edit-icon"))
+    waitUntilExists(byQaId("infobox-edit-button"))
 }
 
 fun assertInfraModelPage(role: E2ERole) {

@@ -126,5 +126,5 @@ internal class E2EFormGroupField(by: By) : E2EViewFragment(by) {
         waitUntilFieldIs(value)
     }
 
-    private fun toggleEdit() = clickChild(By.xpath("div[@class='formgroup__edit-icon']/div"))
+    private fun toggleEdit() = clickChild(By.xpath("div[@class='formgroup__edit-icon']/button"))
 }

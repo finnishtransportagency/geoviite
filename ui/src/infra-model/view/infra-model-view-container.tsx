@@ -22,6 +22,7 @@ export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = (
     const delegates = React.useMemo(() => createDelegates(infraModelActionCreators), []);
 
     const [isLoading, setLoading] = React.useState(false);
+    const [isSaving, setSaving] = React.useState(false);
 
     const generalProps = {
         ...infraModelState,
@@ -30,12 +31,15 @@ export const InfraModelViewContainer: React.FC<InfraModelViewContainerProps> = (
         onSelect: delegates.onSelect,
         changeTimes: changeTimes,
         isLoading: isLoading,
+        isSaving: isSaving,
+        clearInfraModelState: delegates.clearInfraModelState,
         onClose: () => navigate('inframodel-list'),
     };
 
     const loaderProps = {
         ...generalProps,
         setLoading: setLoading,
+        setSaving: setSaving,
         onValidation: delegates.onPlanValidated,
     };
 

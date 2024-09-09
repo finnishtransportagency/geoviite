@@ -1,8 +1,9 @@
 import React from 'react';
 import styles from './formgroup.module.scss';
-import { Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { Icons } from 'vayla-design-lib/icon/Icon';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_GEOMETRY_FILE } from 'user/user-model';
+import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
 
 type InfoboxFieldProps = {
     label: string;
@@ -12,6 +13,7 @@ type InfoboxFieldProps = {
     inEditMode?: boolean;
     onEdit?: () => void;
     onClose?: () => void;
+    disabled?: boolean;
 };
 
 const FormgroupField: React.FC<InfoboxFieldProps> = ({
@@ -20,6 +22,7 @@ const FormgroupField: React.FC<InfoboxFieldProps> = ({
     children,
     inEditMode = false,
     qaId,
+    disabled = false,
     ...props
 }: InfoboxFieldProps) => {
     return (
@@ -29,15 +32,22 @@ const FormgroupField: React.FC<InfoboxFieldProps> = ({
             <div className={styles['formgroup__edit-icon']}>
                 {!inEditMode && props.onEdit && (
                     <PrivilegeRequired privilege={EDIT_GEOMETRY_FILE}>
-                        <div onClick={() => props.onEdit && props.onEdit()}>
-                            <Icons.Edit size={IconSize.SMALL} />
-                        </div>
+                        <Button
+                            variant={ButtonVariant.GHOST}
+                            icon={Icons.Edit}
+                            disabled={disabled}
+                            size={ButtonSize.SMALL}
+                            onClick={() => props.onEdit && props.onEdit()}
+                        />
                     </PrivilegeRequired>
                 )}
                 {inEditMode && props.onClose && (
-                    <div onClick={() => props.onClose && props.onClose()}>
-                        <Icons.Tick size={IconSize.SMALL} />
-                    </div>
+                    <Button
+                        variant={ButtonVariant.GHOST}
+                        icon={Icons.Tick}
+                        size={ButtonSize.SMALL}
+                        onClick={() => props.onClose && props.onClose()}
+                    />
                 )}
             </div>
         </div>
