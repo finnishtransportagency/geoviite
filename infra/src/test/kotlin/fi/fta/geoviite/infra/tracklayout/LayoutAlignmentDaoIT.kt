@@ -291,10 +291,11 @@ constructor(
         val version = alignmentDao.insert(alignment)
         locationTrackDao.insert(locationTrack(trackNumberId, alignmentVersion = version, draft = false))
 
+        val boundingBox = boundingBoxAroundPoints((points + points2 + points3 + points4 + points5).toList())
         val profileInfo =
             alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
                 MainLayoutContext.official,
-                boundingBoxAroundPoints((points + points2 + points3 + points4 + points5).toList()),
+                boundingBox,
             )
         assertEquals(5, profileInfo.size)
         assertTrue(profileInfo[0].hasProfile)
@@ -302,6 +303,25 @@ constructor(
         assertFalse(profileInfo[2].hasProfile)
         assertFalse(profileInfo[3].hasProfile)
         assertTrue(profileInfo[4].hasProfile)
+
+        val onlyProfileless =
+            alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
+                MainLayoutContext.official,
+                boundingBox,
+                false,
+            )
+        assertEquals(3, onlyProfileless.size)
+        assertEquals(profileInfo.slice(1..3), onlyProfileless)
+
+        val onlyProfileful =
+            alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
+                MainLayoutContext.official,
+                boundingBox,
+                true,
+            )
+
+        assertEquals(2, onlyProfileful.size)
+        assertEquals(listOf(profileInfo[0], profileInfo[4]), onlyProfileful)
     }
 
     private fun alignmentWithZAndCant(alignmentSeed: Int, segmentCount: Int = 20) =
