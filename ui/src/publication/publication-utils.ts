@@ -56,7 +56,7 @@ export const countPublicationGroupAmounts = (
         const publicationGroupId = candidate.publicationGroup?.id;
 
         if (publicationGroupId) {
-            publicationGroupId in groupSizes
+            groupSizes[publicationGroupId] !== undefined
                 ? (groupSizes[publicationGroupId] += 1)
                 : (groupSizes[publicationGroupId] = 1);
         }
