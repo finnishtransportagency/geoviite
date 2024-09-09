@@ -71,19 +71,19 @@ export const createPublicationCandidateReference = (
 ): PublicationCandidateReference => {
     switch (type) {
         case DraftChangeType.TRACK_NUMBER:
-            return {id: brand(id), type};
+            return { id: brand(id), type };
 
         case DraftChangeType.LOCATION_TRACK:
-            return {id: brand(id), type};
+            return { id: brand(id), type };
 
         case DraftChangeType.REFERENCE_LINE:
-            return {id: brand(id), type};
+            return { id: brand(id), type };
 
         case DraftChangeType.SWITCH:
-            return {id: brand(id), type};
+            return { id: brand(id), type };
 
         case DraftChangeType.KM_POST:
-            return {id: brand(id), type};
+            return { id: brand(id), type };
 
         default:
             return exhaustiveMatchingGuard(type);
@@ -109,10 +109,10 @@ export const addValidationState = (
 
         return validatedCandidate
             ? {
-                ...candidate,
-                issues: validatedCandidate.issues,
-                validationState: 'API_CALL_OK',
-            }
+                  ...candidate,
+                  issues: validatedCandidate.issues,
+                  validationState: 'API_CALL_OK',
+              }
             : candidate;
     });
 };
