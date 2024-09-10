@@ -572,11 +572,21 @@ constructor(
                 .rowVersion
         assertEquals(
             listOf(draftTrackVersion),
-            locationTrackDao.fetchVersionsNear(MainLayoutContext.draft, boundingBoxAroundPoint(Point(0.0, 0.0), 1.0)),
+            locationTrackDao.fetchVersionsNear(
+                MainLayoutContext.draft,
+                false,
+                null,
+                boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
+            ),
         )
         assertEquals(
             listOf(officialTrackVersion),
-            locationTrackDao.fetchVersionsNear(MainLayoutContext.official, boundingBoxAroundPoint(Point(0.0, 0.0), 1.0)),
+            locationTrackDao.fetchVersionsNear(
+                MainLayoutContext.official,
+                false,
+                null,
+                boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
+            ),
         )
     }
 
@@ -599,20 +609,37 @@ constructor(
             listOf<LayoutRowVersion<LocationTrack>>(),
             locationTrackDao.fetchVersionsNear(
                 MainLayoutContext.official,
+                false,
+                null,
                 boundingBoxAroundPoint(Point(0.0, 10.0), 1.0),
             ),
         )
         assertEquals(
             listOf(draftTrackVersion),
-            locationTrackDao.fetchVersionsNear(MainLayoutContext.draft, boundingBoxAroundPoint(Point(0.0, 10.0), 1.0)),
+            locationTrackDao.fetchVersionsNear(
+                MainLayoutContext.draft,
+                false,
+                null,
+                boundingBoxAroundPoint(Point(0.0, 10.0), 1.0),
+            ),
         )
         assertEquals(
             listOf(officialTrackVersion),
-            locationTrackDao.fetchVersionsNear(MainLayoutContext.official, boundingBoxAroundPoint(Point(0.0, 0.0), 1.0)),
+            locationTrackDao.fetchVersionsNear(
+                MainLayoutContext.official,
+                false,
+                null,
+                boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
+            ),
         )
         assertEquals(
             listOf<LayoutRowVersion<LocationTrack>>(),
-            locationTrackDao.fetchVersionsNear(MainLayoutContext.draft, boundingBoxAroundPoint(Point(0.0, 0.0), 1.0)),
+            locationTrackDao.fetchVersionsNear(
+                MainLayoutContext.draft,
+                false,
+                null,
+                boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
+            ),
         )
     }
 
