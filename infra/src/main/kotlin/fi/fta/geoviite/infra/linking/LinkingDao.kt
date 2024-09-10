@@ -35,7 +35,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
             "planIds" to planIds,
         )
 
-        val alignmentStatuses = fetchAlignmentLinkStatus(layoutContext, planIds = planIds)
+        val alignmentStatuses = fetchAlignmentLinkStatuses(layoutContext, planIds = planIds)
         val switchStatuses = fetchSwitchLinkStatuses(layoutContext, planIds = planIds)
         val kmPostStatuses = fetchKmPostLinkStatuses(layoutContext, planIds = planIds)
 
@@ -49,7 +49,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         }
     }
 
-    private fun fetchAlignmentLinkStatus(
+    private fun fetchAlignmentLinkStatuses(
         layoutContext: LayoutContext,
         planIds: List<IntId<GeometryPlan>>,
     ): Map<IntId<GeometryPlan>, List<GeometryAlignmentLinkStatus>> {
@@ -78,7 +78,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
               on reference_line.alignment_id = segment_version.alignment_id
                 and reference_line.alignment_version = segment_version.alignment_version
             left join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) reference_track_number
-              on reference_line.track_number_id = reference_track_number.row_id
+              on reference_line.track_number_id = reference_track_number.official_id
                 and reference_track_number.state != 'DELETED'
             where geometry_alignment.plan_id in (:plan_ids)
           group by plan_id, element.alignment_id, element.element_index
