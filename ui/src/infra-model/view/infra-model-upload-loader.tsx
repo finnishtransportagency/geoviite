@@ -24,6 +24,8 @@ export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ 
     const overrideParams = props.overrideInfraModelParameters;
 
     React.useEffect(() => {
+        props.clearInfraModelState();
+
         // Convert serializable file to native file
         if (props.file) {
             const file = convertToNativeFile(props.file);
