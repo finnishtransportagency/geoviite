@@ -55,5 +55,5 @@ export const InfraModelImportLoader: React.FC<InfraModelImportLoaderProps> = ({ 
             .then((response) => response !== undefined)
             .finally(() => props.setSaving(false));
     };
-    return <InfraModelView {...props} fileSource={'IMPORT'} onSave={onSave} />;
+    return <InfraModelView {...props} fileSource={'PV_IMPORT'} onSave={onSave} />;
 };
