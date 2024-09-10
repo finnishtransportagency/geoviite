@@ -62,7 +62,7 @@ type InframodelViewFormContainerProps = {
     validationIssues: FieldValidationIssue<
         ExtraInfraModelParameters & OverrideInfraModelParameters
     >[];
-    upLoading: boolean;
+    isSaving: boolean;
     geometryPlan: GeometryPlan;
     onInfraModelOverrideParametersChange: (
         overrideInfraModelParameters: OverrideInfraModelParameters,
@@ -108,7 +108,7 @@ function profileInformationAvailable(alignments: GeometryAlignment[]): boolean {
 const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
     changeTimes,
     validationIssues,
-    upLoading,
+    isSaving,
     geometryPlan,
     onInfraModelOverrideParametersChange,
     onInfraModelExtraParametersChange,
@@ -253,7 +253,7 @@ const InfraModelForm: React.FC<InframodelViewFormContainerProps> = ({
 
     return (
         <React.Fragment>
-            {upLoading && <div> {t('im-form.uploading-file-msg')}</div>}
+            {isSaving && <div> {t('im-form.uploading-file-msg')}</div>}
             <PrivilegeRequired privilege={EDIT_GEOMETRY_FILE}>
                 <Formgroup>
                     <FieldLayout

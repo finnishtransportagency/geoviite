@@ -67,7 +67,7 @@ export const InfraModelUploadLoader: React.FC<InfraModelUploadLoaderProps> = ({ 
 
     return (
         <>
-            <InfraModelView {...props} fileSource={'UPLOAD'} onSave={onSave} />
+            <InfraModelView {...props} fileSource={'FILE_UPLOAD'} onSave={onSave} />
 
             {showFileHandlingFailed && (
                 <CharsetSelectDialog
