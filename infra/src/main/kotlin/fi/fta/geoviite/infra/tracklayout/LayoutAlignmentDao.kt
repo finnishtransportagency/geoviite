@@ -512,6 +512,7 @@ class LayoutAlignmentDao(
     fun <T> fetchProfileInfoForSegmentsInBoundingBox(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
+        hasProfileInfo: Boolean? = null,
     ): List<MapSegmentProfileInfo<T>> {
         // language=SQL
         val sql =
@@ -523,8 +524,10 @@ class LayoutAlignmentDao(
               segment_version.start,
               postgis.st_m(postgis.st_endpoint(segment_geometry.geometry)) max_m,
               plan.vertical_coordinate_system
-              from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
-                  location_track_v
+              from layout.location_track_in_layout_context(:publication_state::layout.publication_state,
+                                                           :design_id) location_track_v
+                join layout.alignment layout_alignment on location_track_v.alignment_id = layout_alignment.id and
+                                                          location_track_v.alignment_version = layout_alignment.version
                 inner join layout.segment_version on
                     location_track_v.alignment_id = segment_version.alignment_id and
                     location_track_v.alignment_version = segment_version.alignment_version
@@ -533,9 +536,15 @@ class LayoutAlignmentDao(
                 left join geometry.plan on alignment.plan_id = plan.id
               where postgis.st_intersects(
                   postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                  layout_alignment.bounding_box
+                )
+                and postgis.st_intersects(
+                  postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
                   segment_geometry.bounding_box
                 )
-              order by segment_version.segment_index
+                and ((:has_profile_info::boolean is null) or
+                       (:has_profile_info = (plan.vertical_coordinate_system is not null)))
+              order by segment_version.segment_index;
         """
                 .trimIndent()
 
@@ -548,6 +557,7 @@ class LayoutAlignmentDao(
                 "layout_srid" to LAYOUT_SRID.code,
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue,
+                "has_profile_info" to hasProfileInfo,
             )
 
         return jdbcTemplate.query(sql, params) { rs, _ ->

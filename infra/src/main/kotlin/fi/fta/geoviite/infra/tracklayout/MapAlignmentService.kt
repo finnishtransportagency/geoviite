@@ -92,8 +92,7 @@ class MapAlignmentService(
         bbox: BoundingBox,
     ): List<MapAlignmentHighlight<LocationTrack>> {
         return alignmentDao
-            .fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(layoutContext, bbox)
-            .filter { !it.hasProfile }
+            .fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(layoutContext, bbox, false)
             .groupBy { it.id }
             .map { (id, profileInfos) ->
                 MapAlignmentHighlight(
