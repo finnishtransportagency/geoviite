@@ -3,7 +3,7 @@ FROM postgres:16.3-alpine
 # The available postgres versions can be checked with:
 # aws rds describe-db-engine-versions --engine aurora-postgresql --query '*[].[EngineVersion]' --output text --profile geoviite-kehitys --region eu-west-1
 
-# Also check that posgres and postgis versions are compatible with Aurora, so that dev uses the same version as prod
+# Also check that Postgres and PostGIS versions are compatible with Aurora, so that dev uses the same version as prod
 # https://docs.aws.amazon.com/AmazonRDS/latest/AuroraPostgreSQLReleaseNotes/AuroraPostgreSQL.Extensions.html
 ENV POSTGIS_VERSION=3.4.2
 
