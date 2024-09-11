@@ -8,10 +8,13 @@ import fi.fta.geoviite.infra.common.VerticalCoordinateSystem
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.CoordinateSystemName
 import fi.fta.geoviite.infra.geometry.GeometryDao
+import fi.fta.geoviite.infra.geometry.GeometryProfile
+import fi.fta.geoviite.infra.geometry.VIPoint
 import fi.fta.geoviite.infra.geometry.geometryAlignment
 import fi.fta.geoviite.infra.geometry.infraModelFile
 import fi.fta.geoviite.infra.geometry.line
 import fi.fta.geoviite.infra.geometry.plan
+import fi.fta.geoviite.infra.inframodel.PlanElementName
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
@@ -234,6 +237,7 @@ constructor(
         val points3 = arrayOf(Point(10.0, 12.0), Point(10.0, 13.0))
         val points4 = arrayOf(Point(10.0, 13.0), Point(10.0, 14.0))
         val points5 = arrayOf(Point(10.0, 14.0), Point(10.0, 15.0))
+        val points6 = arrayOf(Point(10.0, 15.0), Point(10.0, 16.0))
 
         val (trackNumber, trackNumberId) = mainOfficialContext.createTrackNumberAndId()
         val planVersion =
@@ -246,7 +250,19 @@ constructor(
                                 geometryAlignment(
                                     name = "test-alignment-name",
                                     elements = listOf(line(Point(1.0, 1.0), Point(3.0, 3.0))),
-                                )
+                                    profile =
+                                        GeometryProfile(
+                                            PlanElementName("profile"),
+                                            listOf(
+                                                VIPoint(PlanElementName("point1"), Point(0.0, 0.0)),
+                                                VIPoint(PlanElementName("point2"), Point(1.0, 1.0)),
+                                            ),
+                                        ),
+                                ),
+                                geometryAlignment(
+                                    name = "alignment-missing-profile",
+                                    elements = listOf(line(Point(1.0, 1.0), Point(3.0, 3.0))),
+                                ),
                             ),
                         coordinateSystemName = CoordinateSystemName("testcrs"),
                         verticalCoordinateSystem = VerticalCoordinateSystem.N2000,
@@ -257,6 +273,8 @@ constructor(
         val plan = geometryDao.fetchPlan(planVersion)
         val geometryAlignment = plan.alignments.first()
         val geometryElement = geometryAlignment.elements.first()
+        val geometryAlignmentWithCrsButNoProfile = plan.alignments[1]
+        val geometryElementWithCrsButNoProfile = geometryAlignmentWithCrsButNoProfile.elements.first()
 
         val planVersionWithoutCrs =
             geometryDao.insertPlan(
@@ -287,6 +305,7 @@ constructor(
                 segment(points = points3, source = GeometrySource.GENERATED),
                 segment(points = points4, source = GeometrySource.PLAN, sourceId = geometryElementWithoutCrs),
                 segment(points = points5, source = GeometrySource.PLAN, sourceId = geometryElement),
+                segment(points = points6, source = GeometrySource.PLAN, sourceId = geometryElementWithCrsButNoProfile),
             )
         val version = alignmentDao.insert(alignment)
         locationTrackDao.insert(locationTrack(trackNumberId, alignmentVersion = version, draft = false))
@@ -297,12 +316,8 @@ constructor(
                 MainLayoutContext.official,
                 boundingBox,
             )
-        assertEquals(5, profileInfo.size)
-        assertTrue(profileInfo[0].hasProfile)
-        assertFalse(profileInfo[1].hasProfile)
-        assertFalse(profileInfo[2].hasProfile)
-        assertFalse(profileInfo[3].hasProfile)
-        assertTrue(profileInfo[4].hasProfile)
+        assertEquals(6, profileInfo.size)
+        assertEquals(listOf(true, false, false, false, true, false), profileInfo.map { it.hasProfile })
 
         val onlyProfileless =
             alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
@@ -310,8 +325,7 @@ constructor(
                 boundingBox,
                 false,
             )
-        assertEquals(3, onlyProfileless.size)
-        assertEquals(profileInfo.slice(1..3), onlyProfileless)
+        assertEquals(profileInfo.slice(1..3) + profileInfo[5], onlyProfileless)
 
         val onlyProfileful =
             alignmentDao.fetchProfileInfoForSegmentsInBoundingBox<LocationTrack>(
