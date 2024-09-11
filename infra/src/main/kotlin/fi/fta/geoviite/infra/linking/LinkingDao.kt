@@ -35,7 +35,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
             "planIds" to planIds,
         )
 
-        val alignmentStatuses = fetchAlignmentLinkStatus(layoutContext, planIds = planIds)
+        val alignmentStatuses = fetchAlignmentLinkStatuses(layoutContext, planIds = planIds)
         val switchStatuses = fetchSwitchLinkStatuses(layoutContext, planIds = planIds)
         val kmPostStatuses = fetchKmPostLinkStatuses(layoutContext, planIds = planIds)
 
@@ -49,7 +49,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
         }
     }
 
-    private fun fetchAlignmentLinkStatus(
+    private fun fetchAlignmentLinkStatuses(
         layoutContext: LayoutContext,
         planIds: List<IntId<GeometryPlan>>,
     ): Map<IntId<GeometryPlan>, List<GeometryAlignmentLinkStatus>> {
@@ -78,7 +78,7 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
               on reference_line.alignment_id = segment_version.alignment_id
                 and reference_line.alignment_version = segment_version.alignment_version
             left join layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id) reference_track_number
-              on reference_line.track_number_id = reference_track_number.row_id
+              on reference_line.track_number_id = reference_track_number.official_id
                 and reference_track_number.state != 'DELETED'
             where geometry_alignment.plan_id in (:plan_ids)
           group by plan_id, element.alignment_id, element.element_index
@@ -157,36 +157,51 @@ class LinkingDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdbcT
     ): Map<IntId<GeometryPlan>, List<GeometrySwitchLinkStatus>> {
         val sql =
             """
-            select
-              plan_id,
-              switch.id,
-              exists(
-                  select *
-                    from geometry.element
-                    where element.switch_id = switch.id
-                      and exists(
-                        select *
-                          from layout.segment_version
-                          where segment_version.geometry_element_index = element.element_index
-                            and segment_version.geometry_alignment_id = element.alignment_id
-                            and segment_version.switch_id is not null
-                            and exists(select *
-                                         from layout.location_track,
-                                           layout.location_track_is_in_layout_context(
-                                            :publication_state::layout.publication_state, :design_id, location_track)
-                                          where location_track.state != 'DELETED'
-                                           and location_track.alignment_id = segment_version.alignment_id
-                                           and location_track.alignment_version = segment_version.alignment_version
-                            )
-                            and exists(select *
-                                         from layout.switch_in_layout_context(:publication_state::layout.publication_state,
-                                                                              :design_id,
-                                                                              segment_version.switch_id)
-                                         where state_category != 'NOT_EXISTING')
-                      )
-                ) as is_linked
+            with all_switch_links_in_plans as (
+              select
+                switch.id as geometry_switch_id,
+                segment_version.alignment_id,
+                segment_version.alignment_version,
+                segment_version.switch_id as layout_switch_id
+                from geometry.switch
+                  join geometry.element on element.switch_id = switch.id
+                  join layout.segment_version on segment_version.geometry_element_index = element.element_index
+                  and segment_version.geometry_alignment_id = element.alignment_id
+                  and segment_version.switch_id is not null
+                where switch.plan_id in (:plan_ids)
+            ),
+              with_ok_layout_alignment as (
+                select unnest(geometry_switch_ids) as geometry_switch_id,
+                       unnest(layout_switch_ids) as layout_switch_id
+                  from (
+                    select array_agg(geometry_switch_id) as geometry_switch_ids,
+                           array_agg(layout_switch_id) as layout_switch_ids
+                      from all_switch_links_in_plans link
+                      group by alignment_id, alignment_version
+                      having exists(select *
+                                      from layout.location_track, layout.location_track_is_in_layout_context(
+                                          :publication_state::layout.publication_state, :design_id, location_track)
+                                      where location_track.state != 'DELETED'
+                                        and location_track.alignment_id = link.alignment_id
+                                        and location_track.alignment_version = link.alignment_version)
+                  ) alignment_checked
+              ),
+              with_ok_layout_switch as (
+                select distinct unnest(geometry_switch_ids) as geometry_switch_id
+                  from (
+                    select array_agg(geometry_switch_id) as geometry_switch_ids
+                      from with_ok_layout_alignment link
+                      group by layout_switch_id
+                      having exists(select *
+                                      from layout.switch_in_layout_context(:publication_state::layout.publication_state,
+                                                                           :design_id,
+                                                                           layout_switch_id)
+                                      where state_category != 'NOT_EXISTING')
+                  ) switch_checked
+              )
+            select plan_id, id, exists(select * from with_ok_layout_switch ok where ok.geometry_switch_id = switch.id) as is_linked
               from geometry.switch
-              where switch.plan_id in (:plan_ids);
+              where plan_id in (:plan_ids);
         """
                 .trimIndent()
 
