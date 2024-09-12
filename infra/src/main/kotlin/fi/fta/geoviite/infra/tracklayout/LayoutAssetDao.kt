@@ -12,6 +12,7 @@ import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.AccessType.DELETE
+import fi.fta.geoviite.infra.logging.AccessType.UPDATE
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.DaoBase
@@ -29,11 +30,11 @@ import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.requireOne
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.Timestamp
-import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
+import java.sql.Timestamp
+import java.time.Instant
 
 data class LayoutDaoResponse<T>(val id: IntId<T>, val rowVersion: LayoutRowVersion<T>)
 
@@ -47,6 +48,11 @@ interface LayoutAssetWriter<T : LayoutAsset<T>> {
     fun deleteDraft(branch: LayoutBranch, id: IntId<T>): LayoutDaoResponse<T>
 
     fun deleteDrafts(branch: LayoutBranch): List<LayoutDaoResponse<T>>
+
+    fun updateImplementedDesignDraftReferences(
+        designRowId: LayoutRowId<T>,
+        officialRowId: LayoutRowId<T>,
+    ): LayoutDaoResponse<T>?
 }
 
 @Transactional(readOnly = true)
@@ -339,6 +345,34 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
                 logger.daoAccess(DELETE, table.fullName, deleted)
                 deleted
             }
+    }
+
+    override fun updateImplementedDesignDraftReferences(
+        designRowId: LayoutRowId<T>,
+        officialRowId: LayoutRowId<T>,
+    ): LayoutDaoResponse<T>? {
+        val sql =
+            """
+            update ${table.fullName} set
+              design_row_id = null,
+              official_row_id = :official_row_id
+            where draft = true
+              and design_id is not null
+              and design_row_id = :design_row_id
+            returning 
+              official_id,
+              id as row_id,
+              version as row_version
+        """
+                .trimIndent()
+        jdbcTemplate.setUser()
+        val params = mapOf("official_row_id" to officialRowId.intValue, "design_row_id" to officialRowId.intValue)
+        return jdbcTemplate
+            .query<LayoutDaoResponse<T>>(sql, params) { rs, _ ->
+                rs.getDaoResponse("official_id", "row_id", "row_version")
+            }
+            .singleOrNull()
+            ?.also { updated -> logger.daoAccess(UPDATE, table.fullName, updated) }
     }
 
     @Transactional
