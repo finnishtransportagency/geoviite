@@ -86,9 +86,7 @@ constructor(
                 GeoJsonFeatureErrorResponseV1(
                         identifier = null,
                         errorMessages =
-                            localizationService
-                                .getLocalization(LocalizationLanguage.FI)
-                                .t("integration-api.error.bad-request"),
+                            localizationService.getLocalization(LocalizationLanguage.FI).t("ext-api.error.bad-request"),
                     )
                     .let(::listOf)
         )

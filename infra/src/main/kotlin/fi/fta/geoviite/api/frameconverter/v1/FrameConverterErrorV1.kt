@@ -28,6 +28,6 @@ enum class FrameConverterErrorV1(private val localizationSuffix: String) {
         get() = LocalizationKey("$BASE.$localizationSuffix")
 
     companion object {
-        private const val BASE: String = "integration-api.error"
+        private const val BASE: String = "ext-api.error"
     }
 }
