@@ -301,7 +301,7 @@ constructor(
     }
 
     private fun isIntegrationApiRequest(request: HttpServletRequest): Boolean {
-        return environment.activeProfiles.contains("integration-api") && request.requestURI.startsWith("/rata-vkm")
+        return environment.activeProfiles.contains("ext-api") && request.requestURI.startsWith("/rata-vkm")
     }
 
     private fun determineIntegrationApiUserOrThrow(request: HttpServletRequest): User {

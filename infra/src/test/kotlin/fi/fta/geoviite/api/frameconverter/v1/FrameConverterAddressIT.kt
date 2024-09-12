@@ -15,7 +15,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 
-@ActiveProfiles("dev", "test", "integration-api")
+@ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
 class FrameConverterAddressIT @Autowired constructor(mockMvc: MockMvc) : DBTestBase() {
