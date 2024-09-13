@@ -115,7 +115,7 @@ geoviite:
         initial-delay: PT5M
         interval: PT15M
 
-  integration-api:
+  ext-api:
     enabled: false
     url-path-prefixes: [ ]
 
