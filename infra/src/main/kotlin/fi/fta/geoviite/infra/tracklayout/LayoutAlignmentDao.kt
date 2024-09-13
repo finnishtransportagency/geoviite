@@ -566,7 +566,8 @@ class LayoutAlignmentDao(
                   ) location_track using (alignment_id, alignment_version)
                   where ((:has_profile_info::boolean is null) or :has_profile_info = has_profile_info)
                   group by official_id, alignment_id, alignment_version
-              ) grouped;
+              ) grouped
+              order by official_id, segment_index;
         """
                 .trimIndent()
 
