@@ -8,7 +8,6 @@ import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import java.time.Duration
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
@@ -28,7 +27,6 @@ class PublicationGeometryChangeRemarksUpdateService(
         publicationDao.fetchUnprocessedGeometryChangeRemarks(publicationId).forEach(::processOne)
     }
 
-    @Scheduled(initialDelay = 1000 * 30, fixedDelay = 24 * 60 * 60 * 1000)
     fun updateUnprocessedGeometryChangeRemarks() {
         lockDao.runWithLock(DatabaseLock.PUBLICATION_GEOMETRY_CHANGE_CALCULATION, Duration.ofMinutes(60)) {
             var unprocessedRemarksWereLeft = true

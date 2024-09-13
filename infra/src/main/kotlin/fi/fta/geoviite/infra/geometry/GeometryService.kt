@@ -52,7 +52,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.transaction.annotation.Transactional
 import withUser
 
@@ -310,8 +309,6 @@ constructor(
         )
     }
 
-    @Scheduled(cron = "\${geoviite.rail-network-export.schedule}")
-    @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
     fun makeElementListingCsv() = runElementListGeneration {
         val translation = localizationService.getLocalization(LocalizationLanguage.FI)
         val geocodingContexts = geocodingService.getGeocodingContexts(MainLayoutContext.official)
@@ -408,8 +405,6 @@ constructor(
         return name to csvFileContent.toByteArray()
     }
 
-    @Scheduled(cron = "\${geoviite.rail-network-export.vertical-geometry-schedule}")
-    @Scheduled(initialDelay = 1000 * 300, fixedDelay = Long.MAX_VALUE)
     fun makeEntireVerticalGeometryListingCsv() = runVerticalGeometryListGeneration {
         val geocodingContexts = geocodingService.getGeocodingContexts(MainLayoutContext.official)
         val verticalGeometryListingWithTrackNumbers =
