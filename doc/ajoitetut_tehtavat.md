@@ -8,17 +8,16 @@ tiedostohierarkiassa. Scheduler-luokat esimerkiksi tietylle Spring-palvelulle (S
 ajoitetun tehtävän hallinnan ja vastaavasti *Task-luokat ovat yksittäisiä tehtäviä varten, mutta nämäkin tyypillisesti
 kutsuvat jonkin Spring-palvelun funktiota.
 
-Valinta Scheduler-luokan tai useamman Task-luokan välillä riippuu
-kontekstista. Järkevät kokonaisuudet tai samoja ajoituksia käyttävät ajoitetut tehtävät on yleensä järkevämpää koostaa
-yhteen Scheduler-luokkaan. Vastaavasti esimerkiksi tietotuotteiden luonnit ovat usein yksiselitteisempiä ymmärtää omina
-tehtävinään, jolloin käytettäisiin Task-luokkia niitä varten.
+Valinta Scheduler-luokan tai useamman Task-luokan välillä riippuu kontekstista. Järkevät kokonaisuudet tai samoja
+ajoituksia käyttävät ajoitetut tehtävät on yleensä järkevämpää koostaa yhteen Scheduler-luokkaan. Vastaavasti
+esimerkiksi tietotuotteiden luonnit ovat usein yksiselitteisempiä ymmärtää omina tehtävinään, jolloin käytettäisiin
+Task-luokkia niitä varten.
 
 ## Asetustiedostot
 
-Tavoitteena olisi, että ajoitetut tehtävät olisi
-mahdollista kytkeä päälle sekä pois riippuen sovelluksen suorituksessa käytettävistä Spring-profiileista, sillä eri
-suoritustilanteissa ei haluta kaikkien ajoitettujen tehtävien suorittamista. Esimerkiksi testien suorituksen aikana ei
-tyypillisesti kaivata tietotuotteen automaattista luontia.
+Tavoitteena voisi pitää, että ajoitetut tehtävät olisi mahdollista kytkeä päälle sekä pois riippuen sovelluksen
+suorituksessa käytettävistä Spring-profiileista, sillä eri suoritustilanteissa ei haluta kaikkien ajoitettujen tehtävien
+suorittamista. Esimerkiksi testien suorituksen aikana ei tyypillisesti kaivata tietotuotteen automaattista luontia.
 
 Spring-profiilien asetukset näiden ajoitettujen tehtävien
 suoritukselle löytyvät tiedostohierarkiasta kahdesta paikasta (huomaa polussa siis main/test-ero):
