@@ -72,8 +72,7 @@ const addCandidateTypeAndState = (
     return {
         ...unknownCandidate,
         type,
-        validated: false,
-        pendingValidation: true,
+        validationState: 'IN_PROGRESS',
         stage: PublicationStage.UNSTAGED,
     } as PublicationCandidate;
 };

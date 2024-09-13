@@ -29,6 +29,7 @@ import {
     DraftChangeType,
     PublicationCandidate,
     LayoutValidationIssue,
+    PublicationValidationState,
 } from 'publication/publication-model';
 import { ChangesBeingReverted, PreviewOperations } from 'preview/preview-view';
 import { BoundingBox } from 'model/geometry';
@@ -53,7 +54,7 @@ export type PreviewTableEntry = {
     publishCandidate: PublicationCandidate;
     type: DraftChangeType;
     issues: LayoutValidationIssue[];
-    pendingValidation: boolean;
+    validationState: PublicationValidationState;
     boundingBox?: BoundingBox;
 } & ChangeTableEntry;
 
@@ -67,8 +68,8 @@ type PreviewTableProps = {
     publicationGroupAmounts: PublicationGroupAmounts;
     displayedTotalPublicationAssetAmount: number;
     previewOperations: PreviewOperations;
-    validationInProgress: boolean;
-    isRowValidating: (tableEntry: PreviewTableEntry) => boolean;
+    tableValidationState: PublicationValidationState;
+    tableEntryValidationState: (tableEntry: PreviewTableEntry) => PublicationValidationState;
     canRevertChanges: boolean;
 };
 
@@ -82,8 +83,8 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     displayedTotalPublicationAssetAmount,
     previewOperations,
     onShowOnMap,
-    validationInProgress,
-    isRowValidating,
+    tableValidationState,
+    tableEntryValidationState,
     canRevertChanges,
 }) => {
     const { t } = useTranslation();
@@ -147,7 +148,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
             boundingBox,
             issues: candidate.issues,
             type: candidate.type,
-            pendingValidation: candidate.pendingValidation,
+            validationState: candidate.validationState,
         };
     });
 
@@ -179,7 +180,9 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
     return (
         <div
             className={styles['preview-table__container']}
-            qa-id={validationInProgress ? 'table-validation-in-progress' : undefined}>
+            qa-id={
+                tableValidationState === 'IN_PROGRESS' ? 'table-validation-in-progress' : undefined
+            }>
             <Table wide>
                 <thead className={styles['preview-table__header']}>
                     <tr>
@@ -212,7 +215,7 @@ const PreviewTable: React.FC<PreviewTableProps> = ({
                                     displayedTotalPublicationAssetAmount={
                                         displayedTotalPublicationAssetAmount
                                     }
-                                    isValidating={isRowValidating}
+                                    validationState={tableEntryValidationState(entry)}
                                     canRevertChanges={canRevertChanges}
                                 />
                             }
