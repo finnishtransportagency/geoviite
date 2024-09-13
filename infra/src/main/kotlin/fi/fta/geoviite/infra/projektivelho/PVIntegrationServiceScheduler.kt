@@ -15,7 +15,7 @@ class PVIntegrationServiceScheduler @Autowired constructor(private val pvIntegra
         initialDelayString = "\${geoviite.projektivelho.tasks.search-poll.initial-delay}",
         fixedRateString = "\${geoviite.projektivelho.tasks.search-poll.interval}",
     )
-    fun scheduledSearch() {
+    private fun scheduledSearch() {
         pvIntegrationService.search()
     }
 
@@ -23,7 +23,7 @@ class PVIntegrationServiceScheduler @Autowired constructor(private val pvIntegra
         initialDelayString = "\${geoviite.projektivelho.tasks.result-poll.initial-delay}",
         fixedRateString = "\${geoviite.projektivelho.tasks.result-poll.interval}",
     )
-    fun scheduledPollAndFetchIfWaiting() {
+    private fun scheduledPollAndFetchIfWaiting() {
         pvIntegrationService.pollAndFetchIfWaiting()
     }
 }

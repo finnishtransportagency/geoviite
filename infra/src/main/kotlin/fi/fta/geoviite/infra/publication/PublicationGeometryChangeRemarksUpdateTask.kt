@@ -19,7 +19,7 @@ constructor(private val publicationGeometryChangeRemarksUpdateService: Publicati
         initialDelayString = "\${geoviite.data-products.tasks.publication-geometry-remarks-update.initial-delay}",
         fixedDelayString = "\${geoviite.data-products.tasks.publication-geometry-remarks-update.interval}",
     )
-    fun scheduledUpdateUnprocessedGeometryChangeRemarks() {
+    private fun scheduledUpdateUnprocessedGeometryChangeRemarks() {
         publicationGeometryChangeRemarksUpdateService.updateUnprocessedGeometryChangeRemarks()
     }
 }
