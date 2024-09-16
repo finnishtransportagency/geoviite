@@ -1,6 +1,7 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
+import fi.fta.geoviite.infra.common.DesignBranch
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -12,6 +13,7 @@ import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
+import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.util.FreeText
 import java.math.BigDecimal
 import kotlin.test.assertEquals
@@ -53,7 +55,7 @@ constructor(
                 LayoutState.IN_USE,
                 TrackMeter(KmNumber(5555), 5.5, 1),
             )
-        val id = trackNumberService.insert(LayoutBranch.main, saveRequest)
+        val id = trackNumberService.insert(LayoutBranch.main, saveRequest).id
         val trackNumber = trackNumberService.get(MainLayoutContext.draft, id)!!
 
         assertNull(trackNumber.externalId)
@@ -269,6 +271,104 @@ constructor(
         )
     }
 
+    @Test
+    fun `Publishing a track number from design with a draft leaves the correct rows and references`() {
+        val designBranch = testDBService.createDesignBranch()
+        val trackNumber = testDBService.getUnusedTrackNumber()
+
+        val designDraft1 =
+            trackNumberService.insert(designBranch, trackNumberSaveRequest(trackNumber, "$trackNumber v1"))
+        val tnId = designDraft1.id
+        assertVersionReferences(designBranch, tnId, designDraft = designDraft1.rowVersion)
+
+        val designOfficial = trackNumberService.publish(designBranch, ValidationVersion(tnId, designDraft1.rowVersion))
+        assertVersionReferences(designBranch, tnId, designOfficial = designOfficial.rowVersion)
+
+        val mainDraft = trackNumberService.mergeToMainBranch(designBranch, tnId)
+        assertVersionReferences(
+            designBranch,
+            tnId,
+            mainDraft = mainDraft.rowVersion,
+            designOfficial = designOfficial.rowVersion,
+        )
+
+        val designDraft2 =
+            trackNumberService.update(designBranch, tnId, trackNumberSaveRequest(trackNumber, "$trackNumber v2"))
+        assertVersionReferences(
+            designBranch,
+            tnId,
+            mainDraft = mainDraft.rowVersion,
+            designOfficial = designOfficial.rowVersion,
+            designDraft = designDraft2.rowVersion,
+        )
+
+        val mainOfficial =
+            trackNumberService.publish(LayoutBranch.main, ValidationVersion(mainDraft.id, mainDraft.rowVersion))
+        assertVersionReferences(
+            designBranch,
+            tnId,
+            mainOfficial = mainOfficial.rowVersion,
+            // draft version is updated by the publication, fixing references
+            designDraft = designDraft2.rowVersion.next(),
+        )
+    }
+
+    private fun assertVersionReferences(
+        designBranch: DesignBranch,
+        id: IntId<TrackLayoutTrackNumber>,
+        mainOfficial: LayoutRowVersion<TrackLayoutTrackNumber>? = null,
+        mainDraft: LayoutRowVersion<TrackLayoutTrackNumber>? = null,
+        designOfficial: LayoutRowVersion<TrackLayoutTrackNumber>? = null,
+        designDraft: LayoutRowVersion<TrackLayoutTrackNumber>? = null,
+    ) {
+        val description =
+            "expectedVersions={mainOfficial=$mainOfficial mainDraft=$mainDraft designOfficial=$designOfficial designDraft=$designDraft}"
+        assertVersionMatch(
+            description = "Main official version incorrect: $description",
+            expected = mainOfficial,
+            actual = trackNumberDao.fetchVersion(LayoutBranch.main.official, id),
+        )
+        assertVersionMatch(
+            description = "Main draft version incorrect: $description",
+            expected = mainDraft ?: mainOfficial,
+            actual = trackNumberDao.fetchVersion(LayoutBranch.main.draft, id),
+        )
+        assertVersionMatch(
+            description = "Design official version incorrect: $description",
+            expected = designOfficial ?: mainOfficial,
+            actual = trackNumberDao.fetchVersion(designBranch.official, id),
+        )
+        assertVersionMatch(
+            description = "Design draft version incorrect: $description",
+            expected = designDraft ?: designOfficial ?: mainOfficial,
+            actual = trackNumberDao.fetchVersion(designBranch.draft, id),
+        )
+        mainOfficial?.let(trackNumberDao::fetch)?.let { trackNumber ->
+            assertEquals(id, trackNumber.id)
+            assertEquals(null, trackNumber.contextData.officialRowId)
+            assertEquals(null, trackNumber.contextData.designRowId)
+        }
+        mainDraft?.let(trackNumberDao::fetch)?.let { trackNumber ->
+            assertEquals(id, trackNumber.id)
+            assertEquals(mainOfficial?.rowId, trackNumber.contextData.officialRowId)
+            assertEquals(designOfficial?.rowId, trackNumber.contextData.designRowId)
+        }
+        designOfficial?.let(trackNumberDao::fetch)?.let { trackNumber ->
+            assertEquals(id, trackNumber.id)
+            assertEquals(mainOfficial?.rowId, trackNumber.contextData.officialRowId)
+            assertEquals(null, trackNumber.contextData.designRowId)
+        }
+        designDraft?.let(trackNumberDao::fetch)?.let { trackNumber ->
+            assertEquals(id, trackNumber.id)
+            assertEquals(mainOfficial?.rowId, trackNumber.contextData.officialRowId)
+            assertEquals(designOfficial?.rowId, trackNumber.contextData.designRowId)
+        }
+    }
+
+    fun <T> assertVersionMatch(description: String, expected: LayoutRowVersion<T>?, actual: LayoutRowVersion<T>?) {
+        assertEquals(expected = expected, actual = actual, message = "$description expected=$expected actual=$actual")
+    }
+
     fun createTrackNumberAndReferenceLineAndAlignment():
         Triple<TrackLayoutTrackNumber, ReferenceLine, LayoutAlignment> {
         val saveRequest =
@@ -278,7 +378,7 @@ constructor(
                 LayoutState.IN_USE,
                 TrackMeter(KmNumber(5555), 5.5, 1),
             )
-        val id = trackNumberService.insert(LayoutBranch.main, saveRequest)
+        val id = trackNumberService.insert(LayoutBranch.main, saveRequest).id
         val trackNumber = trackNumberService.get(MainLayoutContext.draft, id)!!
 
         val (referenceLine, alignment) =

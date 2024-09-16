@@ -83,7 +83,7 @@ class LayoutTrackNumberController(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @RequestBody saveRequest: TrackNumberSaveRequest,
     ): IntId<TrackLayoutTrackNumber> {
-        return trackNumberService.insert(branch, saveRequest)
+        return trackNumberService.insert(branch, saveRequest).id
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)
@@ -93,7 +93,7 @@ class LayoutTrackNumberController(
         @PathVariable id: IntId<TrackLayoutTrackNumber>,
         @RequestBody saveRequest: TrackNumberSaveRequest,
     ): IntId<TrackLayoutTrackNumber> {
-        return trackNumberService.update(branch, id, saveRequest)
+        return trackNumberService.update(branch, id, saveRequest).id
     }
 
     @PreAuthorize(AUTH_EDIT_LAYOUT)

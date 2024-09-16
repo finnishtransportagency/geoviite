@@ -82,7 +82,6 @@ import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.asDesignDraft
 import fi.fta.geoviite.infra.tracklayout.asMainDraft
 import fi.fta.geoviite.infra.tracklayout.assertMatches
-import fi.fta.geoviite.infra.tracklayout.joints
 import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.locationTrack
@@ -95,6 +94,7 @@ import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackNumber
+import fi.fta.geoviite.infra.tracklayout.trackNumberSaveRequest
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.SortOrder
@@ -1285,20 +1285,17 @@ constructor(
 
     @Test
     fun `Track number diff finds all changed fields`() {
-        val address = TrackMeter(0, 0)
-        val trackNumber =
-            trackNumberService.get(
-                MainLayoutContext.draft,
-                trackNumberService.insert(
+        val (trackNumberId, trackNumber) =
+            trackNumberService
+                .insert(
                     LayoutBranch.main,
-                    TrackNumberSaveRequest(
-                        testDBService.getUnusedTrackNumber(),
-                        FreeText("TEST"),
-                        LayoutState.IN_USE,
-                        address,
+                    trackNumberSaveRequest(
+                        number = testDBService.getUnusedTrackNumber(),
+                        description = "TEST",
+                        state = LayoutState.IN_USE,
                     ),
-                ),
-            )
+                )
+                .let { r -> r.id to trackNumberDao.fetch(r.rowVersion) }
         val rl = referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumber!!.id as IntId)!!
         publishAndVerify(
             LayoutBranch.main,
@@ -1306,11 +1303,10 @@ constructor(
         )
         trackNumberService.update(
             LayoutBranch.main,
-            trackNumber.id as IntId,
-            TrackNumberSaveRequest(
+            trackNumberId,
+            trackNumberSaveRequest(
                 number = TrackNumber(trackNumber.number.value + " T"),
-                description = trackNumber.description + "_TEST",
-                startAddress = TrackMeter(0, 0),
+                description = "${trackNumber.description}_TEST",
                 state = LayoutState.NOT_IN_USE,
             ),
         )
@@ -1340,20 +1336,17 @@ constructor(
 
     @Test
     fun `Changing specific Track Number field returns only that field`() {
-        val address = TrackMeter(0, 0)
-        val trackNumber =
-            trackNumberService.getOrThrow(
-                MainLayoutContext.draft,
-                trackNumberService.insert(
+        val (trackNumberId, trackNumber) =
+            trackNumberService
+                .insert(
                     LayoutBranch.main,
-                    TrackNumberSaveRequest(
-                        testDBService.getUnusedTrackNumber(),
-                        FreeText("TEST"),
-                        LayoutState.IN_USE,
-                        address,
+                    trackNumberSaveRequest(
+                        number = testDBService.getUnusedTrackNumber(),
+                        description = "TEST",
+                        state = LayoutState.IN_USE,
                     ),
-                ),
-            )
+                )
+                .let { r -> r.id to trackNumberDao.fetch(r.rowVersion) }
         val rl = referenceLineService.getByTrackNumber(MainLayoutContext.draft, trackNumber.id as IntId)!!
         publishAndVerify(
             LayoutBranch.main,
@@ -1361,16 +1354,17 @@ constructor(
         )
 
         val idOfUpdated =
-            trackNumberService.update(
-                LayoutBranch.main,
-                trackNumber.id as IntId,
-                TrackNumberSaveRequest(
-                    number = trackNumber.number,
-                    description = FreeText("TEST2"),
-                    startAddress = address,
-                    state = trackNumber.state,
-                ),
-            )
+            trackNumberService
+                .update(
+                    LayoutBranch.main,
+                    trackNumberId,
+                    trackNumberSaveRequest(
+                        number = trackNumber.number,
+                        description = "TEST2",
+                        state = trackNumber.state,
+                    ),
+                )
+                .id
         publishAndVerify(LayoutBranch.main, publicationRequest(trackNumbers = listOf(trackNumber.id as IntId)))
         val thisAndPreviousPublication = publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 2)
         val changes =
@@ -1627,26 +1621,20 @@ constructor(
 
     @Test
     fun `KM Post diff finds all changed fields`() {
-        val trackNumberSaveReq =
-            TrackNumberSaveRequest(
-                testDBService.getUnusedTrackNumber(),
-                FreeText("TEST"),
-                LayoutState.IN_USE,
-                TrackMeter(0, 0),
-            )
-        val trackNumber =
-            trackNumberService.getOrThrow(
-                MainLayoutContext.draft,
-                trackNumberService.insert(LayoutBranch.main, trackNumberSaveReq),
-            )
-        val trackNumber2 =
-            trackNumberService.getOrThrow(
-                MainLayoutContext.draft,
-                trackNumberService.insert(
+        val trackNumberId =
+            trackNumberService
+                .insert(
                     LayoutBranch.main,
-                    trackNumberSaveReq.copy(testDBService.getUnusedTrackNumber(), FreeText("TEST 2")),
-                ),
-            )
+                    trackNumberSaveRequest(number = testDBService.getUnusedTrackNumber(), description = "TEST"),
+                )
+                .id
+        val trackNumber2Id =
+            trackNumberService
+                .insert(
+                    LayoutBranch.main,
+                    trackNumberSaveRequest(number = testDBService.getUnusedTrackNumber(), description = "TEST 2"),
+                )
+                .id
 
         val kmPost =
             kmPostService.getOrThrow(
@@ -1656,7 +1644,7 @@ constructor(
                     TrackLayoutKmPostSaveRequest(
                         KmNumber(0),
                         LayoutState.IN_USE,
-                        trackNumber.id as IntId,
+                        trackNumberId,
                         gkLocation = null,
                         gkLocationSource = null,
                         gkLocationConfirmed = false,
@@ -1666,7 +1654,7 @@ constructor(
         publish(
             publicationService,
             kmPosts = listOf(kmPost.id as IntId),
-            trackNumbers = listOf(trackNumber.id as IntId, trackNumber2.id as IntId),
+            trackNumbers = listOf(trackNumberId, trackNumber2Id),
         )
         val updatedKmPost =
             kmPostService.getOrThrow(
@@ -1677,7 +1665,7 @@ constructor(
                     TrackLayoutKmPostSaveRequest(
                         KmNumber(1),
                         LayoutState.NOT_IN_USE,
-                        trackNumber2.id as IntId,
+                        trackNumber2Id,
                         gkLocation = null,
                         gkLocationSource = null,
                         gkLocationConfirmed = false,
@@ -1790,12 +1778,14 @@ constructor(
                 LayoutState.IN_USE,
                 TrackMeter(0, 0),
             )
-        val tn1 = trackNumberService.insert(LayoutBranch.main, trackNumberSaveReq)
+        val tn1 = trackNumberService.insert(LayoutBranch.main, trackNumberSaveReq).id
         val tn2 =
-            trackNumberService.insert(
-                LayoutBranch.main,
-                trackNumberSaveReq.copy(testDBService.getUnusedTrackNumber(), FreeText("TEST 2")),
-            )
+            trackNumberService
+                .insert(
+                    LayoutBranch.main,
+                    trackNumberSaveReq.copy(testDBService.getUnusedTrackNumber(), FreeText("TEST 2")),
+                )
+                .id
 
         val switch =
             switchService.getOrThrow(

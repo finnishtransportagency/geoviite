@@ -255,8 +255,7 @@ constructor(
     private fun alignmentExists(id: IntId<LayoutAlignment>): Boolean {
         val sql = "select exists(select 1 from layout.alignment where id = :id) as exists"
         val params = mapOf("id" to id.intValue)
-        return jdbc.queryForObject(sql, params) { rs, _ -> rs.getBoolean("exists") }
-            ?: throw IllegalStateException("Exists-check failed")
+        return jdbc.queryForObject(sql, params) { rs, _ -> rs.getBoolean("exists") } ?: error { "Exists-check failed" }
     }
 
     private fun createAndPublishTrackNumber() =
@@ -266,15 +265,17 @@ constructor(
         }
 
     private fun createTrackNumber() =
-        trackNumberService.insert(
-            LayoutBranch.main,
-            TrackNumberSaveRequest(
-                number = testDBService.getUnusedTrackNumber(),
-                description = FreeText(trackNumberDescription),
-                state = LayoutState.IN_USE,
-                startAddress = TrackMeter.ZERO,
-            ),
-        )
+        trackNumberService
+            .insert(
+                LayoutBranch.main,
+                TrackNumberSaveRequest(
+                    number = testDBService.getUnusedTrackNumber(),
+                    description = FreeText(trackNumberDescription),
+                    state = LayoutState.IN_USE,
+                    startAddress = TrackMeter.ZERO,
+                ),
+            )
+            .id
 
     private fun address(seed: Int = 0) = TrackMeter(KmNumber(seed), seed * 100)
 

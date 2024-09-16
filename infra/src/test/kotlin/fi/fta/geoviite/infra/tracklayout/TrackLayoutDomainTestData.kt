@@ -23,6 +23,7 @@ import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.getSomeNullableValue
 import fi.fta.geoviite.infra.linking.FittedSwitchJointMatch
 import fi.fta.geoviite.infra.linking.SuggestedSwitchJointMatchType
+import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.linking.fixSegmentStarts
 import fi.fta.geoviite.infra.map.AlignmentHeader
 import fi.fta.geoviite.infra.map.MapAlignmentSource
@@ -252,6 +253,19 @@ fun trackNumber(
         state = state,
         externalId = externalId,
         contextData = contextData,
+    )
+
+fun trackNumberSaveRequest(
+    number: TrackNumber = TrackNumber("100"),
+    description: String = "Test Track number $number",
+    state: LayoutState = LayoutState.IN_USE,
+    startAddress: TrackMeter = TrackMeter.ZERO,
+) =
+    TrackNumberSaveRequest(
+        number = number,
+        description = FreeText(description),
+        state = state,
+        startAddress = startAddress,
     )
 
 fun referenceLineAndAlignment(

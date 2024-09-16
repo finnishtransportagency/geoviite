@@ -218,6 +218,6 @@ constructor(
                     TrackMeter(KmNumber(5555), 5.5, 1),
                 )
             }
-            .map { saveRequest -> trackNumberService.insert(LayoutBranch.main, saveRequest) }
+            .map { saveRequest -> trackNumberService.insert(LayoutBranch.main, saveRequest).id }
     }
 }
