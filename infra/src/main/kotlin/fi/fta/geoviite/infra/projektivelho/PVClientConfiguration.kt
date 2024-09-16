@@ -26,7 +26,7 @@ class PVWebClient(val client: WebClient) : WebClient by client
 class PVLoginWebClient(val client: WebClient) : WebClient by client
 
 @Configuration
-@ConditionalOnProperty(prefix = "geoviite.projektivelho", name = ["enabled"], havingValue = "true")
+@ConditionalOnProperty(name = ["geoviite.projektivelho.enabled"], havingValue = "true", matchIfMissing = false)
 class PVClientConfiguration
 @Autowired
 constructor(

@@ -1,0 +1,38 @@
+geoviite:
+  scheduling:
+    enabled: true
+
+  cache:
+    enabled: true
+    tasks:
+      preload:
+        enabled: true
+
+  data:
+    import: false
+
+  data-products:
+    tasks:
+      create-element-listing-csv:
+        enabled: false
+
+      create-vertical-geometry-listing-csv:
+        enabled: false
+
+      publication-geometry-remarks-update:
+        enabled: false
+
+  jwt:
+    validation:
+      enabled: false
+
+  ratko:
+    enabled: false
+
+  projektivelho:
+    enabled: false
+
+  ext-api:
+    enabled: true
+    url-path-prefixes:
+      - /rata-vkm

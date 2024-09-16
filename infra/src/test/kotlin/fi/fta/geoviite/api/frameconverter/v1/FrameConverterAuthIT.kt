@@ -18,7 +18,7 @@ import org.springframework.test.web.servlet.MockMvc
 
 private const val API_URI = "/rata-vkm/v1"
 
-@ActiveProfiles("dev", "test", "integration-api")
+@ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class], properties = ["geoviite.skip-auth=false"])
 @AutoConfigureMockMvc
 class FrameConverterAuthIT @Autowired constructor(mockMvc: MockMvc) {

@@ -32,10 +32,10 @@ export const conditionallyUpdateCandidates = (
 export const stageTransform = (
     newStage: PublicationStage,
 ): ((candidate: PublicationCandidate) => PublicationCandidate) => {
-    return (candidate) => ({
+    return (candidate): PublicationCandidate => ({
         ...candidate,
         stage: newStage,
-        pendingValidation: true,
+        validationState: 'IN_PROGRESS',
     });
 };
 
@@ -102,7 +102,7 @@ export const addValidationState = (
     publicationCandidates: PublicationCandidate[],
     validationGroup: PublicationCandidate[],
 ): PublicationCandidate[] => {
-    return publicationCandidates.map((candidate) => {
+    return publicationCandidates.map((candidate): PublicationCandidate => {
         const validatedCandidate = validationGroup.find((validatedCandidate) =>
             candidateIdAndTypeMatches(validatedCandidate, candidate),
         );
@@ -111,7 +111,7 @@ export const addValidationState = (
             ? {
                   ...candidate,
                   issues: validatedCandidate.issues,
-                  pendingValidation: false,
+                  validationState: 'API_CALL_OK',
               }
             : candidate;
     });
@@ -120,8 +120,15 @@ export const addValidationState = (
 // TODO GVT-2421: Only needed while we don't do real validation
 export const pretendValidated = (candidate: PublicationCandidate): PublicationCandidate => ({
     ...candidate,
-    validated: true,
-    pendingValidation: false,
+    validationState: 'API_CALL_OK',
+    issues: [],
+});
+
+export const setValidationStateToApiError = (
+    candidate: PublicationCandidate,
+): PublicationCandidate => ({
+    ...candidate,
+    validationState: 'API_CALL_ERROR',
     issues: [],
 });
 

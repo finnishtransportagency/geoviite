@@ -17,7 +17,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 class InfraApplication
 
 @Configuration
-@ConditionalOnProperty(prefix = "geoviite.scheduling", name = ["enabled"], havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = ["geoviite.scheduling.enabled"], havingValue = "true", matchIfMissing = true)
 @EnableScheduling
 class InfraScheduling
 

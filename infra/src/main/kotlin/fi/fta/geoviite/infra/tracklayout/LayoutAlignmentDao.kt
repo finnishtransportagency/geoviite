@@ -517,34 +517,57 @@ class LayoutAlignmentDao(
         // language=SQL
         val sql =
             """
-            select
-              location_track_v.official_id,
-              segment_version.alignment_id,
-              segment_version.segment_index,
-              segment_version.start,
-              postgis.st_m(postgis.st_endpoint(segment_geometry.geometry)) max_m,
-              plan.vertical_coordinate_system
-              from layout.location_track_in_layout_context(:publication_state::layout.publication_state,
-                                                           :design_id) location_track_v
-                join layout.alignment layout_alignment on location_track_v.alignment_id = layout_alignment.id and
-                                                          location_track_v.alignment_version = layout_alignment.version
-                inner join layout.segment_version on
-                    location_track_v.alignment_id = segment_version.alignment_id and
-                    location_track_v.alignment_version = segment_version.alignment_version
-                inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
-                left join geometry.alignment on alignment.id = segment_version.geometry_alignment_id
-                left join geometry.plan on alignment.plan_id = plan.id
-              where postgis.st_intersects(
-                  postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                  layout_alignment.bounding_box
-                )
-                and postgis.st_intersects(
-                  postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                  segment_geometry.bounding_box
-                )
-                and ((:has_profile_info::boolean is null) or
-                       (:has_profile_info = (plan.vertical_coordinate_system is not null)))
-              order by segment_version.segment_index;
+            with applicable_alignment_segments as (
+              select segment_version.alignment_id,
+                     segment_version.alignment_version,
+                     segment_version.segment_index,
+                     segment_version.start,
+                     postgis.st_m(postgis.st_endpoint(segment_geometry.geometry)) as max_m,
+                     (plan.vertical_coordinate_system is not null)
+                       and exists(select *
+                                  from geometry.vertical_intersection vi
+                                  where vi.alignment_id = alignment.id) as has_profile_info
+                from layout.alignment layout_alignment
+                  inner join layout.segment_version on
+                      layout_alignment.id = segment_version.alignment_id and
+                      layout_alignment.version = segment_version.alignment_version
+                  inner join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+                  left join geometry.alignment on alignment.id = segment_version.geometry_alignment_id
+                  left join geometry.plan on alignment.plan_id = plan.id
+                where postgis.st_intersects(
+                    postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                    layout_alignment.bounding_box
+                  )
+                  and postgis.st_intersects(
+                    postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                    segment_geometry.bounding_box
+                  )
+            )
+            select official_id,
+                   alignment_id,
+                   unnest(segment_indices) as segment_index,
+                   unnest(starts) as start,
+                   unnest(max_ms) as max_m,
+                   unnest(has_profile_infos) as has_profile_info
+              from (
+                select official_id,
+                       alignment_id,
+                       array_agg(segment_index) as segment_indices,
+                       array_agg(start) as starts,
+                       array_agg(max_m) as max_ms,
+                       array_agg(has_profile_info) as has_profile_infos
+                  from applicable_alignment_segments
+                    join (
+                    select *
+                      from layout.location_track, layout.location_track_is_in_layout_context(
+                          :publication_state::layout.publication_state,
+                          :design_id, location_track)
+                      where location_track.state != 'DELETED'
+                  ) location_track using (alignment_id, alignment_version)
+                  where ((:has_profile_info::boolean is null) or :has_profile_info = has_profile_info)
+                  group by official_id, alignment_id, alignment_version
+              ) grouped
+              order by official_id, segment_index;
         """
                 .trimIndent()
 
@@ -567,7 +590,7 @@ class LayoutAlignmentDao(
                 alignmentId = rs.getIndexedId("alignment_id", "segment_index"),
                 segmentStartM = startM,
                 segmentEndM = startM + rs.getDouble("max_m"),
-                hasProfile = rs.getEnumOrNull<VerticalCoordinateSystem>("vertical_coordinate_system") != null,
+                hasProfile = rs.getBoolean("has_profile_info"),
             )
         }
     }

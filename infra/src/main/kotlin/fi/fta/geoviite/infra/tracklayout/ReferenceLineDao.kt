@@ -266,7 +266,11 @@ class ReferenceLineDao(
     }
 
     // TODO: No IT test runs this
-    fun fetchVersionsNear(layoutContext: LayoutContext, bbox: BoundingBox): List<LayoutRowVersion<ReferenceLine>> {
+    fun fetchVersionsNear(
+        layoutContext: LayoutContext,
+        bbox: BoundingBox,
+        includeDeleted: Boolean,
+    ): List<LayoutRowVersion<ReferenceLine>> {
         val sql =
             """
             select
@@ -276,12 +280,17 @@ class ReferenceLineDao(
                 select distinct alignment_id, alignment_version
                   from layout.segment_geometry
                     join layout.segment_version on segment_geometry.id = geometry_id
+                    join layout.alignment
+                      on segment_version.alignment_version = alignment.version
+                        and segment_version.alignment_id = alignment.id
                   where postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
-                                              bounding_box)
+                                              segment_geometry.bounding_box)
+                    and postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                                              alignment.bounding_box)
               ) sv
                 join layout.reference_line_in_layout_context(:publication_state::layout.publication_state, :design_id) rl using (alignment_id, alignment_version)
                 cross join lateral layout.track_number_in_layout_context(:publication_state::layout.publication_state, :design_id, rl.track_number_id) tn
-              where tn.state != 'DELETED';
+              where (:include_deleted or tn.state != 'DELETED');
         """
                 .trimIndent()
 
@@ -294,6 +303,7 @@ class ReferenceLineDao(
                 "layout_srid" to LAYOUT_SRID.code,
                 "publication_state" to layoutContext.state.name,
                 "design_id" to layoutContext.branch.designId?.intValue,
+                "include_deleted" to includeDeleted,
             )
 
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("row_id", "row_version") }

@@ -222,7 +222,7 @@ constructor(
     ): Map<IntId<LocationTrack>, Pair<LocationTrack, LayoutAlignment>> {
         fun indexTracksInBounds(boundingBox: BoundingBox?) =
             boundingBox
-                ?.let { bounds -> locationTrackDao.fetchVersionsNear(branch.draft, bounds) }
+                ?.let { bounds -> locationTrackDao.fetchVersionsNear(branch.draft, false, null, bounds) }
                 ?.map(locationTrackService::getWithAlignment)
                 ?.associate { trackAndAlignment -> trackAndAlignment.first.id as IntId to trackAndAlignment } ?: mapOf()
 

@@ -6,8 +6,6 @@ spring:
 geoviite:
   scheduling:
     enabled: false
-  cache:
-    preload: false
   data:
     import: false
   skip-auth: true

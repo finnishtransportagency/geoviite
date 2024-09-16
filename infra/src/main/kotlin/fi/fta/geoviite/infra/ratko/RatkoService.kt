@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.ratko
 
 import fi.fta.geoviite.infra.aspects.GeoviiteService
-import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -37,8 +36,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import org.springframework.scheduling.annotation.Scheduled
-import withUser
 
 open class RatkoPushException(val type: RatkoPushErrorType, val operation: RatkoOperation, cause: Exception? = null) :
     RuntimeException(cause)
@@ -72,21 +69,7 @@ constructor(
     private val splitService: SplitService,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
-    private val ratkoSchedulerUserName = UserName.of("RATKO_SCHEDULER")
     private val databaseLockDuration = Duration.ofMinutes(120)
-
-    @Scheduled(cron = "0 * * * * *")
-    fun scheduledRatkoPush() {
-        withUser(ratkoSchedulerUserName) {
-            // Don't retry failed on auto-push
-            pushChangesToRatko(LayoutBranch.main, retryFailed = false)
-        }
-    }
-
-    @Scheduled(cron = "0 30 3 * * *")
-    fun scheduledRatkoOperatingPointsFetch() {
-        withUser(ratkoSchedulerUserName, ::updateOperatingPointsFromRatko)
-    }
 
     fun updateOperatingPointsFromRatko() {
         lockDao.runWithLock(DatabaseLock.RATKO_OPERATING_POINTS_FETCH, databaseLockDuration) {

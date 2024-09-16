@@ -433,9 +433,14 @@ class LocationTrackDao(
     }
 
     fun listNear(context: LayoutContext, bbox: BoundingBox): List<LocationTrack> =
-        fetchVersionsNear(context, bbox).map(::fetch)
+        fetchVersionsNear(context, false, null, bbox).map(::fetch)
 
-    fun fetchVersionsNear(context: LayoutContext, bbox: BoundingBox): List<LayoutRowVersion<LocationTrack>> {
+    fun fetchVersionsNear(
+        context: LayoutContext,
+        includeDeleted: Boolean,
+        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
+        bbox: BoundingBox,
+    ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """
             select row_id, row_version
@@ -446,6 +451,9 @@ class LocationTrackDao(
                     select distinct alignment_id, alignment_version
                       from layout.segment_version
                         join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
+                        join layout.alignment
+                          on segment_version.alignment_id = alignment.id
+                            and segment_version.alignment_version = alignment.version
                       where postgis.st_intersects(
                           postgis.st_makeenvelope(
                               :x_min, :y_min,
@@ -454,7 +462,17 @@ class LocationTrackDao(
                             ),
                           segment_geometry.bounding_box
                         )
+                        and postgis.st_intersects(
+                          postgis.st_makeenvelope(
+                              :x_min, :y_min,
+                              :x_max, :y_max,
+                              :layout_srid
+                            ),
+                          alignment.bounding_box
+                        )
                   ) in_box using (alignment_id, alignment_version)
+                where (:track_number_id::int is null or track_number_id = :track_number_id)
+                    and (:include_deleted or state != 'DELETED')
               ) location_track
                 join lateral (
                 select *
@@ -473,6 +491,8 @@ class LocationTrackDao(
                 "layout_srid" to LAYOUT_SRID.code,
                 "publication_state" to context.state.name,
                 "design_id" to context.branch.designId?.intValue,
+                "include_deleted" to includeDeleted,
+                "track_number_id" to trackNumberId?.intValue,
             )
 
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("row_id", "row_version") }

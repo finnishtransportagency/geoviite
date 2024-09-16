@@ -165,7 +165,8 @@ class MapAlignmentService(
         resolution: Int,
         includeSegmentEndPoints: Boolean,
     ): List<AlignmentPolyLine<LocationTrack>> =
-        locationTrackService.listWithAlignments(layoutContext, includeDeleted = false).map { (track, alignment) ->
+        locationTrackService.listWithAlignments(layoutContext, includeDeleted = false, boundingBox = bbox).map {
+            (track, alignment) ->
             toAlignmentPolyLine(track.id, LOCATION_TRACK, alignment, resolution, bbox, includeSegmentEndPoints)
         }
 
@@ -176,13 +177,14 @@ class MapAlignmentService(
         includeSegmentEndPoints: Boolean,
     ): List<AlignmentPolyLine<*>> {
         val trackNumbers = trackNumberService.mapById(layoutContext)
-        return referenceLineService.listWithAlignments(layoutContext, includeDeleted = false).mapNotNull {
-            (line, alignment) ->
-            val trackNumber = trackNumbers[line.trackNumberId]
-            if (trackNumber != null)
-                toAlignmentPolyLine(line.id, REFERENCE_LINE, alignment, resolution, bbox, includeSegmentEndPoints)
-            else null
-        }
+        return referenceLineService
+            .listWithAlignments(layoutContext, includeDeleted = false, boundingBox = bbox)
+            .mapNotNull { (line, alignment) ->
+                val trackNumber = trackNumbers[line.trackNumberId]
+                if (trackNumber != null)
+                    toAlignmentPolyLine(line.id, REFERENCE_LINE, alignment, resolution, bbox, includeSegmentEndPoints)
+                else null
+            }
     }
 
     private fun getLocationTrackMissingLinkings(

@@ -181,7 +181,11 @@ class ReferenceLineService(
         includeDeleted: Boolean = false,
         boundingBox: BoundingBox? = null,
     ): List<Pair<ReferenceLine, LayoutAlignment>> {
-        return dao.list(layoutContext, includeDeleted)
+        return (if (boundingBox == null) {
+                dao.list(layoutContext, includeDeleted)
+            } else {
+                dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted).map(dao::fetch)
+            })
             .let { list -> filterByBoundingBox(list, boundingBox) }
             .let(::associateWithAlignments)
     }
@@ -216,7 +220,7 @@ class ReferenceLineService(
     }
 
     fun listNear(layoutContext: LayoutContext, bbox: BoundingBox): List<ReferenceLine> {
-        return dao.fetchVersionsNear(layoutContext, bbox).map(dao::fetch)
+        return dao.fetchVersionsNear(layoutContext, bbox, false).map(dao::fetch)
     }
 
     override fun mergeToMainBranch(

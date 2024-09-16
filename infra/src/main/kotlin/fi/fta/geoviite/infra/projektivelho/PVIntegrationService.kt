@@ -28,7 +28,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
-import org.springframework.scheduling.annotation.Scheduled
 import withUser
 
 val PROJEKTIVELHO_INTEGRATION_USERNAME = UserName.of("PROJEKTIVELHO_IMPORT")
@@ -56,10 +55,6 @@ constructor(
             lockDao.runWithLock(DatabaseLock.PROJEKTIVELHO, databaseLockDuration) { op() }
         }
 
-    @Scheduled(
-        initialDelayString = "\${geoviite.projektivelho.search-poll.initial}",
-        fixedRateString = "\${geoviite.projektivelho.search-poll.rate}",
-    )
     fun search(): PVApiSearchStatus? = runIntegration {
         logger.info("Poll to launch new search")
         val currentSearch = pvDao.fetchLatestActiveSearch()
@@ -79,10 +74,6 @@ constructor(
         }
     }
 
-    @Scheduled(
-        initialDelayString = "\${geoviite.projektivelho.result-poll.initial}",
-        fixedRateString = "\${geoviite.projektivelho.result-poll.rate}",
-    )
     fun pollAndFetchIfWaiting() = runIntegration {
         logger.info("Poll for search results")
         pvDao.fetchLatestActiveSearch()?.let { latestSearch ->

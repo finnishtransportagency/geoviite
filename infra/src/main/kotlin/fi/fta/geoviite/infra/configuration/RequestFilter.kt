@@ -9,7 +9,9 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import correlationId
 import currentUser
 import currentUserRole
+import fi.fta.geoviite.api.configuration.ExtApiConfiguration
 import fi.fta.geoviite.infra.SpringContextUtility
+import fi.fta.geoviite.infra.authorization.*
 import fi.fta.geoviite.infra.authorization.AuthCode
 import fi.fta.geoviite.infra.authorization.AuthName
 import fi.fta.geoviite.infra.authorization.AuthorizationService
@@ -68,6 +70,7 @@ constructor(
     @Value("\${geoviite.jwt.validation.enabled:true}") private val validationEnabled: Boolean,
     @Value("\${geoviite.jwt.validation.jwks-url:}") private val jwksUrl: String,
     @Value("\${geoviite.jwt.validation.elb-jwt-key-url:}") private val elbJwtUrl: String,
+    private val extApi: ExtApiConfiguration,
 ) : OncePerRequestFilter() {
 
     private val log: Logger = LoggerFactory.getLogger(this::class.java)
@@ -301,7 +304,7 @@ constructor(
     }
 
     private fun isIntegrationApiRequest(request: HttpServletRequest): Boolean {
-        return environment.activeProfiles.contains("integration-api") && request.requestURI.startsWith("/rata-vkm")
+        return extApi.enabled && extApi.urlPathPrefixes.any { prefix -> request.requestURI.startsWith(prefix) }
     }
 
     private fun determineIntegrationApiUserOrThrow(request: HttpServletRequest): User {

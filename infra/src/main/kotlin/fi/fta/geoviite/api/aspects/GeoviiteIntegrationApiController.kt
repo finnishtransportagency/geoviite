@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
-@Profile("integration-api")
+@Profile("ext-api")
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
 @RestController

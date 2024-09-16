@@ -20,6 +20,8 @@ import {
     PublicationCandidateReference,
     PublicationGroup,
     PublicationStage,
+    PublicationValidationState,
+    ValidatedPublicationCandidates,
 } from 'publication/publication-model';
 import PreviewTable from 'preview/preview-table';
 import { PreviewConfirmRevertChangesDialog } from 'preview/preview-confirm-revert-changes-dialog';
@@ -36,6 +38,7 @@ import {
     noCalculatedChanges,
     pretendValidated,
     PublicationAssetChangeAmounts,
+    setValidationStateToApiError,
     stageTransform,
 } from 'publication/publication-utils';
 import {
@@ -126,8 +129,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     const [showPreview, setShowPreview] = React.useState<boolean>(true);
 
     const latestValidationIdRef = React.useRef<number>(0);
-    const [showValidationStatusSpinner, setShowValidationStatusSpinner] =
-        React.useState<boolean>(true);
+    const [publicationValidationState, setPublicationValidationState] =
+        React.useState<PublicationValidationState>('IN_PROGRESS');
 
     const [publicationCandidates, setPublicationCandidates] = React.useState<
         PublicationCandidate[]
@@ -142,7 +145,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
         setDesignPublicationMode(newMode);
         if (newMode === 'PUBLISH_CHANGES') {
             // TODO GVT-2421: No ability to validate when moving changes to main yet; just pretend everything is OK
-            setShowValidationStatusSpinner(false);
+            setPublicationValidationState('API_CALL_OK');
         }
     };
 
@@ -192,7 +195,7 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
     );
 
     const validatedPublicationCandidates =
-        useLoader(() => {
+        useLoader((): Promise<ValidatedPublicationCandidates> => {
             if (designPublicationMode == 'MERGE_TO_MAIN') {
                 // TODO GVT-2421: No ability to validate when moving changes to main yet; just pretend everything is OK
                 return Promise.resolve({
@@ -203,16 +206,31 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
 
             const validationId = latestValidationIdRef.current + 1;
             latestValidationIdRef.current = validationId;
-            setShowValidationStatusSpinner(true);
+            setPublicationValidationState('IN_PROGRESS');
 
             return validateDebounced(
                 props.layoutContext.branch,
                 props.stagedPublicationCandidateReferences,
-            ).finally(() => {
-                if (latestValidationIdRef.current === validationId) {
-                    setShowValidationStatusSpinner(false);
-                }
-            });
+            )
+                .then((result) => {
+                    if (latestValidationIdRef.current === validationId) {
+                        setPublicationValidationState('API_CALL_OK');
+                    }
+
+                    return result;
+                })
+                .catch((_err) => {
+                    setPublicationValidationState('API_CALL_ERROR');
+
+                    return Promise.resolve({
+                        validatedAsPublicationUnit: stagedPublicationCandidates.map(
+                            setValidationStateToApiError,
+                        ),
+                        allChangesValidated: publicationCandidates.map(
+                            setValidationStateToApiError,
+                        ),
+                    });
+                });
         }, [props.stagedPublicationCandidateReferences, publicationCandidates]) ??
         emptyValidatedPublicationCandidates();
 
@@ -473,8 +491,12 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                             : publicationAssetChangeAmounts.unstaged
                                     }
                                     previewOperations={previewOperations}
-                                    validationInProgress={showValidationStatusSpinner}
-                                    isRowValidating={(item) => item.pendingValidation}
+                                    tableValidationState={publicationValidationState}
+                                    tableEntryValidationState={(item) => {
+                                        return publicationValidationState === 'API_CALL_ERROR'
+                                            ? 'API_CALL_ERROR'
+                                            : item.validationState;
+                                    }}
                                     canRevertChanges={canRevertChanges}
                                 />
                             </section>
@@ -505,8 +527,8 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                                         publicationAssetChangeAmounts.staged
                                     }
                                     previewOperations={previewOperations}
-                                    validationInProgress={showValidationStatusSpinner}
-                                    isRowValidating={() => showValidationStatusSpinner}
+                                    tableValidationState={publicationValidationState}
+                                    tableEntryValidationState={() => publicationValidationState}
                                     canRevertChanges={canRevertChanges}
                                 />
                             </section>
@@ -551,7 +573,9 @@ export const PreviewView: React.FC<PreviewProps> = (props: PreviewProps) => {
                         clearStagedCandidates();
                     }}
                     stagedPublicationCandidates={stagedPublicationCandidates}
-                    disablePublication={showValidationStatusSpinner || hasDesignDraftsInDesign}
+                    disablePublication={
+                        publicationValidationState !== 'API_CALL_OK' || hasDesignDraftsInDesign
+                    }
                     designPublicationMode={designPublicationMode}
                 />
             </div>

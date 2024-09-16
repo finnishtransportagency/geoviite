@@ -1,5 +1,5 @@
 {
-    "integration-api": {
+    "ext-api": {
         "error": {
             "features-not-found": "Annetun (alku)pisteen parametreilla ei löytynyt tietoja.",
             "missing-x-coordinate": "Pyyntö ei sisältänyt x-koordinaattia.",
@@ -1307,7 +1307,8 @@
         "errors-status-text": "virheitä ({{errors}} kpl)",
         "warnings-status-text": "varoituksia ({{warnings}} kpl)",
         "errors-group-title": "Virheitä",
-        "warnings-group-title": "Varoituksia"
+        "warnings-group-title": "Varoituksia",
+        "api-error-icon-hover-text": "Validointipyynnössä tapahtui virhe"
     },
     "preview-footer": {
         "reject-changes": "Hylkää muutokset",

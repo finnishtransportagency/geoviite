@@ -49,7 +49,7 @@ private data class TestCoordinateToTrackAddressRequest(
     val palautusarvot: List<Int>? = null,
 )
 
-@ActiveProfiles("dev", "test", "integration-api")
+@ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
 class CoordinateToTrackAddressIT
