@@ -25,7 +25,7 @@ export function ratkoPushInProgress(status: RatkoPushStatus | undefined) {
 export const ratkoPushSucceeded = (status: RatkoPushStatus | undefined) =>
     status === RatkoPushStatus.SUCCESSFUL;
 
-export type RatkoPushErrorType = 'PROPERTIES' | 'GEOMETRY' | 'LOCATION' | 'STATE';
+export type RatkoPushErrorType = 'PROPERTIES' | 'GEOMETRY' | 'LOCATION' | 'STATE' | 'INTERNAL';
 
 export type RatkoPushErrorOperation = 'CREATE' | 'DELETE' | 'UPDATE';
 

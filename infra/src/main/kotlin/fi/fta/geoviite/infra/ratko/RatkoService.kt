@@ -40,21 +40,17 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.scheduling.annotation.Scheduled
 import withUser
 
-open class RatkoPushException(
-    val type: RatkoPushErrorType,
-    val operation: RatkoOperation,
-    val responseBody: String,
-    cause: Exception? = null,
-) : RuntimeException(cause)
+open class RatkoPushException(val type: RatkoPushErrorType, val operation: RatkoOperation, cause: Exception? = null) :
+    RuntimeException(cause)
 
 class RatkoSwitchPushException(exception: RatkoPushException, val switch: TrackLayoutSwitch) :
-    RatkoPushException(exception.type, exception.operation, exception.responseBody, exception)
+    RatkoPushException(exception.type, exception.operation, exception)
 
 class RatkoLocationTrackPushException(exception: RatkoPushException, val locationTrack: LocationTrack) :
-    RatkoPushException(exception.type, exception.operation, exception.responseBody, exception)
+    RatkoPushException(exception.type, exception.operation, exception)
 
 class RatkoTrackNumberPushException(exception: RatkoPushException, val trackNumber: TrackLayoutTrackNumber) :
-    RatkoPushException(exception.type, exception.operation, exception.responseBody, exception)
+    RatkoPushException(exception.type, exception.operation, exception)
 
 @GeoviiteService
 @ConditionalOnBean(RatkoClientConfiguration::class)
@@ -322,7 +318,6 @@ constructor(
                         ex.operation,
                         RatkoAssetType.TRACK_NUMBER,
                         ex.trackNumber.id as IntId,
-                        ex.responseBody,
                     )
 
                 is RatkoLocationTrackPushException ->
@@ -332,7 +327,6 @@ constructor(
                         ex.operation,
                         RatkoAssetType.LOCATION_TRACK,
                         ex.locationTrack.id as IntId,
-                        ex.responseBody,
                     )
 
                 is RatkoSwitchPushException ->
@@ -342,7 +336,6 @@ constructor(
                         ex.operation,
                         RatkoAssetType.SWITCH,
                         ex.switch.id as IntId,
-                        ex.responseBody,
                     )
             }
 
