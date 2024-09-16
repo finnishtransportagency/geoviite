@@ -18,12 +18,12 @@ import { useAppNavigate } from 'common/navigate';
 import { defaultPublicationSearch } from 'publication/publication-utils';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { getLatestPublications } from 'publication/publication-api';
-import { TimeStamp } from 'common/common-model';
+import { LayoutBranch, TimeStamp } from 'common/common-model';
 import {
     ProgressIndicatorType,
     ProgressIndicatorWrapper,
 } from 'vayla-design-lib/progress/progress-indicator-wrapper';
-import { LayoutBranchType } from 'publication/publication-model';
+import { LayoutBranchType, PublicationDetails } from 'publication/publication-model';
 
 type PublishListProps = {
     publicationChangeTime: TimeStamp;
@@ -71,6 +71,26 @@ const parseRatkoOfflineStatus = (ratkoStatus: { statusCode: number }) => {
     }
 };
 
+function latestFailureByLayoutBranch(
+    allPublicationForBranchType: PublicationDetails[],
+): PublicationDetails[] {
+    const failures = allPublicationForBranchType.filter((publication) =>
+        ratkoPushFailed(publication.ratkoPushStatus),
+    );
+    // Design publications are independent from each other, but only per design branch, so only show the latest
+    // failure per design branch. Or if this is the main branch's publication card, only the latest one for that.
+    return [
+        ...failures
+            .reduce((mapByPublication, publication) => {
+                if (!mapByPublication.has(publication.layoutBranch)) {
+                    mapByPublication.set(publication.layoutBranch, publication);
+                }
+                return mapByPublication;
+            }, new Map<LayoutBranch, PublicationDetails>())
+            .values(),
+    ].sort((a, b) => compareTimestamps(b.publicationTime, a.publicationTime));
+}
+
 export const MAX_LISTED_PUBLICATIONS = 8;
 
 const PublicationCard: React.FC<PublishListProps> = ({
@@ -111,9 +131,7 @@ const PublicationCard: React.FC<PublishListProps> = ({
         ratkoPushSucceeded(publication.ratkoPushStatus),
     );
 
-    const latestFailures = allPublications.filter((publication) =>
-        ratkoPushFailed(publication.ratkoPushStatus),
-    );
+    const latestFailures = latestFailureByLayoutBranch(allPublications);
     const ratkoConnectionError =
         ratkoStatus && !ratkoStatus.isOnline && ratkoStatus.statusCode >= 300;
 
