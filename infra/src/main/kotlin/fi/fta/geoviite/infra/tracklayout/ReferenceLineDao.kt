@@ -265,11 +265,10 @@ class ReferenceLineDao(
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getDaoResponse("official_id", "row_id", "row_version") }
     }
 
-    // TODO: No IT test runs this
     fun fetchVersionsNear(
         layoutContext: LayoutContext,
         bbox: BoundingBox,
-        includeDeleted: Boolean,
+        includeDeleted: Boolean = false,
     ): List<LayoutRowVersion<ReferenceLine>> {
         val sql =
             """

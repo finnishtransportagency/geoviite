@@ -40,6 +40,7 @@ constructor(
     private val locationTrackDao: LocationTrackDao,
     private val layoutDesignDao: LayoutDesignDao,
 ) : DBTestBase() {
+
     @BeforeEach
     fun cleanup() {
         testDBService.clearLayoutTables()
@@ -572,20 +573,53 @@ constructor(
                 .rowVersion
         assertEquals(
             listOf(draftTrackVersion),
-            locationTrackDao.fetchVersionsNear(
-                MainLayoutContext.draft,
-                false,
-                null,
-                boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
-            ),
+            locationTrackDao.fetchVersionsNear(MainLayoutContext.draft, boundingBoxAroundPoint(Point(0.0, 0.0), 1.0)),
         )
         assertEquals(
             listOf(officialTrackVersion),
+            locationTrackDao.fetchVersionsNear(MainLayoutContext.official, boundingBoxAroundPoint(Point(0.0, 0.0), 1.0)),
+        )
+    }
+
+    @Test
+    fun `fetchVersionsNear() can return deleted and filter by trackNumberId`() {
+        testDBService.clearLayoutTables()
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val deletedTrack =
+            mainOfficialContext
+                .insert(
+                    locationTrack(trackNumber, state = LocationTrackState.DELETED),
+                    alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+                )
+                .rowVersion
+        val anotherTrackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        val onAnotherTrackNumber =
+            mainOfficialContext
+                .insert(locationTrack(anotherTrackNumber), alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))))
+                .rowVersion
+        assertEquals(
+            emptyList<LayoutRowVersion<LocationTrack>>(),
             locationTrackDao.fetchVersionsNear(
                 MainLayoutContext.official,
-                false,
-                null,
                 boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
+                trackNumberId = trackNumber,
+            ),
+        )
+        assertEquals(
+            listOf(deletedTrack),
+            locationTrackDao.fetchVersionsNear(
+                MainLayoutContext.official,
+                boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
+                includeDeleted = true,
+                trackNumberId = trackNumber,
+            ),
+        )
+        assertEquals(
+            listOf(onAnotherTrackNumber),
+            locationTrackDao.fetchVersionsNear(
+                MainLayoutContext.official,
+                boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
+                trackNumberId = anotherTrackNumber,
             ),
         )
     }
@@ -609,36 +643,36 @@ constructor(
             listOf<LayoutRowVersion<LocationTrack>>(),
             locationTrackDao.fetchVersionsNear(
                 MainLayoutContext.official,
+                boundingBoxAroundPoint(Point(0.0, 10.0), 1.0),
                 false,
                 null,
-                boundingBoxAroundPoint(Point(0.0, 10.0), 1.0),
             ),
         )
         assertEquals(
             listOf(draftTrackVersion),
             locationTrackDao.fetchVersionsNear(
                 MainLayoutContext.draft,
+                boundingBoxAroundPoint(Point(0.0, 10.0), 1.0),
                 false,
                 null,
-                boundingBoxAroundPoint(Point(0.0, 10.0), 1.0),
             ),
         )
         assertEquals(
             listOf(officialTrackVersion),
             locationTrackDao.fetchVersionsNear(
                 MainLayoutContext.official,
+                boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
                 false,
                 null,
-                boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
             ),
         )
         assertEquals(
             listOf<LayoutRowVersion<LocationTrack>>(),
             locationTrackDao.fetchVersionsNear(
                 MainLayoutContext.draft,
+                boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
                 false,
                 null,
-                boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
             ),
         )
     }
