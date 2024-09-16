@@ -163,8 +163,11 @@ constructor(
             val allPoints = listOf(addresses.startPoint) + midPoints + listOf(addresses.endPoint)
             createLocationTrackMetadata(branch, layoutLocationTrackWithOid, allPoints, trackNumberOid, moment)
         } catch (ex: Exception) {
-            if (ex is RatkoPushException) throw ex
-            else throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.CREATE, ex)
+            if (ex is RatkoPushException) {
+                throw ex
+            } else {
+                throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.CREATE, ex)
+            }
         }
     }
 
@@ -298,8 +301,11 @@ constructor(
 
             ratkoClient.deleteLocationTrackPoints(RatkoOid(layoutLocationTrack.externalId), null)
         } catch (ex: Exception) {
-            if (ex is RatkoPushException) throw ex
-            else throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.DELETE, ex)
+            if (ex is RatkoPushException) {
+                throw ex
+            } else {
+                throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.DELETE, ex)
+            }
         }
     }
 
@@ -363,8 +369,11 @@ constructor(
                 changedKmNumbers = changedKmNumbers,
             )
         } catch (ex: Exception) {
-            if (ex is RatkoPushException) throw ex
-            else throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.UPDATE, ex)
+            if (ex is RatkoPushException) {
+                throw ex
+            } else {
+                throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.UPDATE, ex)
+            }
         }
     }
 

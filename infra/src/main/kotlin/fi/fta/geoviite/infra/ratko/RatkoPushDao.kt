@@ -144,7 +144,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
     fun <T> insertRatkoPushError(
         ratkoPushId: IntId<RatkoPush>,
         ratkoPushErrorType: RatkoPushErrorType,
-        operation: RatkoOperation?,
+        operation: RatkoOperation,
         assetType: RatkoAssetType,
         assetId: IntId<T>,
     ): IntId<RatkoPushError<T>> {
@@ -174,7 +174,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
             mapOf(
                 "ratko_push_id" to ratkoPushId.intValue,
                 "error_type" to ratkoPushErrorType.name,
-                "operation" to operation?.name,
+                "operation" to operation.name,
                 "track_number_id" to if (assetType == RatkoAssetType.TRACK_NUMBER) assetId.intValue else null,
                 "location_track_id" to if (assetType == RatkoAssetType.LOCATION_TRACK) assetId.intValue else null,
                 "switch_id" to if (assetType == RatkoAssetType.SWITCH) assetId.intValue else null,

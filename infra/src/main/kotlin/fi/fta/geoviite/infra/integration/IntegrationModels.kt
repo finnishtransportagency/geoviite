@@ -44,7 +44,7 @@ data class RatkoPushErrorWithAsset(
     val id: IntId<RatkoPushError<*>>,
     val ratkoPushId: IntId<RatkoPush>,
     val errorType: RatkoPushErrorType,
-    val operation: RatkoOperation?,
+    val operation: RatkoOperation,
     val assetType: RatkoAssetType,
     val asset: LayoutAsset<*>,
 )

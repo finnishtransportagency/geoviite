@@ -71,7 +71,7 @@ constructor(
                                 moment = publicationTime,
                             )
                         }
-                        ?: if (layoutSwitch.stateCategory !== LayoutStateCategory.EXISTING) {
+                        ?: if (layoutSwitch.stateCategory == LayoutStateCategory.EXISTING) {
                             createSwitch(layoutSwitch, changedJoints)
                         } else {
                             null
