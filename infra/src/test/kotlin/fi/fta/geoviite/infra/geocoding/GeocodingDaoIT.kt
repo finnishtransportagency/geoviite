@@ -17,7 +17,6 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import fi.fta.geoviite.infra.tracklayout.alignment
 import fi.fta.geoviite.infra.tracklayout.geocodingContextCacheKey
 import fi.fta.geoviite.infra.tracklayout.kmPost
-import fi.fta.geoviite.infra.tracklayout.layoutDesign
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.referenceLineAndAlignment
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -142,7 +141,7 @@ constructor(
 
     @Test
     fun `Cache keys are correctly fetched by moment`() {
-        val designBranch = LayoutBranch.design(designDao.insert(layoutDesign()))
+        val designBranch = testDBService.createDesignBranch()
         val officialDesignContext = testDBService.testContext(designBranch, OFFICIAL)
         val designDraftContext = testDBService.testContext(designBranch, DRAFT)
 
