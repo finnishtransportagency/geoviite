@@ -108,7 +108,7 @@ geoviite:
       enabled: true
 
       search-poll:
-        #      initial-delay: PT1H
+        initial-delay: PT1H
         interval: PT4H
 
       result-poll:
