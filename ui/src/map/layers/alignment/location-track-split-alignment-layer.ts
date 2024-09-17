@@ -106,15 +106,12 @@ function interpolateWithPrecedingPointOnAlignment(
     index: number,
     alignmentM: number,
 ): AlignmentPoint[] {
-    return index <= 0 || index >= points.length
+    const preceding = points[index - 1];
+    const here = points[index];
+    // check vs points being too close to avoid bad precision in interpolation
+    return preceding === undefined || here === undefined || here.m - preceding.m < 0.0001
         ? []
-        : [
-              linearlyInterpolateAlignmentPoint(
-                  expectDefined(points[index - 1]),
-                  expectDefined(points[index]),
-                  alignmentM,
-              ),
-          ];
+        : [linearlyInterpolateAlignmentPoint(preceding, here, alignmentM)];
 }
 
 function linearlyInterpolateAlignmentPoint(
