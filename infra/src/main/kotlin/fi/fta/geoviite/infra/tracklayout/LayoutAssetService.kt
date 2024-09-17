@@ -108,9 +108,11 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
                 require(r.id == draft.id) { "Publication response ID doesn't match object: id=${draft.id} updated=$r" }
             }
         val publishedRowId = publicationResponse.rowVersion.rowId
+        println("publishedRowId: $publishedRowId")
         // If draft row-id changed, the data was updated to the official row -> delete the
         // now-redundant draft row
         if (draftVersion.rowId != publishedRowId) {
+            println("deleting draft: ${draftVersion.rowId}")
             dao.deleteRow(draftVersion.rowId)
         }
 
@@ -118,10 +120,12 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
         draft.contextData.designRowId
             ?.takeIf { draft.branch == LayoutBranch.main }
             ?.let { designRowId ->
-                // If the design row didn't become the main-row, it's redundant
-                if (designRowId != publishedRowId) dao.deleteRow(designRowId)
+                println("updating design draft references: $designRowId -> $publishedRowId")
                 // Update potential draft-design references to point to the new main row
                 dao.updateImplementedDesignDraftReferences(designRowId, publishedRowId)
+                // If the design row didn't become the main-row, it's redundant
+                println("deleting design official: $designRowId")
+                if (designRowId != publishedRowId) dao.deleteRow(designRowId)
             }
 
         return publicationResponse

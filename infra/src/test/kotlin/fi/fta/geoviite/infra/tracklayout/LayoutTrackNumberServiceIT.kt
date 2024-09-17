@@ -20,6 +20,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
@@ -272,7 +273,7 @@ constructor(
     }
 
     @Test
-    fun `Publishing a track number from design with a draft leaves the correct rows and references`() {
+    fun `Publishing a new track number from design with a draft leaves the correct rows and references`() {
         val designBranch = testDBService.createDesignBranch()
         val trackNumber = testDBService.getUnusedTrackNumber()
 
@@ -302,12 +303,76 @@ constructor(
             designDraft = designDraft2.rowVersion,
         )
 
-        val mainOfficial =
-            trackNumberService.publish(LayoutBranch.main, ValidationVersion(mainDraft.id, mainDraft.rowVersion))
+        val mainOfficial = trackNumberService.publish(LayoutBranch.main, ValidationVersion(tnId, mainDraft.rowVersion))
         assertVersionReferences(
             designBranch,
             tnId,
             mainOfficial = mainOfficial.rowVersion,
+            // draft version is updated by the publication, fixing references
+            designDraft = designDraft2.rowVersion.next(),
+        )
+    }
+
+    @Test
+    fun `Publishing an edited track number from design with a draft leaves the correct rows and references`() {
+        val designBranch = testDBService.createDesignBranch()
+        val trackNumber = testDBService.getUnusedTrackNumber()
+
+        val mainDraft1 =
+            trackNumberService.insert(LayoutBranch.main, trackNumberSaveRequest(trackNumber, "$trackNumber v1"))
+        val tnId = mainDraft1.id
+        assertVersionReferences(designBranch, tnId, mainDraft = mainDraft1.rowVersion)
+
+        val mainOfficial1 =
+            trackNumberService.publish(LayoutBranch.main, ValidationVersion(tnId, mainDraft1.rowVersion))
+        referenceLineService.getByTrackNumber(MainLayoutContext.draft, tnId).let { rl ->
+            referenceLineService.publish(LayoutBranch.main, ValidationVersion(rl!!.id as IntId, rl.version!!))
+        }
+        assertVersionReferences(designBranch, tnId, mainOfficial = mainOfficial1.rowVersion)
+
+        val designDraft1 =
+            trackNumberService.update(designBranch, tnId, trackNumberSaveRequest(trackNumber, "$trackNumber v2"))
+        assertVersionReferences(
+            designBranch,
+            tnId,
+            mainOfficial = mainOfficial1.rowVersion,
+            designDraft = designDraft1.rowVersion,
+        )
+
+        val designOfficial = trackNumberService.publish(designBranch, ValidationVersion(tnId, designDraft1.rowVersion))
+        assertVersionReferences(
+            designBranch,
+            tnId,
+            mainOfficial = mainOfficial1.rowVersion,
+            designOfficial = designOfficial.rowVersion,
+        )
+
+        val mainDraft2 = trackNumberService.mergeToMainBranch(designBranch, tnId)
+        assertVersionReferences(
+            designBranch,
+            tnId,
+            mainOfficial = mainOfficial1.rowVersion,
+            mainDraft = mainDraft2.rowVersion,
+            designOfficial = designOfficial.rowVersion,
+        )
+
+        val designDraft2 =
+            trackNumberService.update(designBranch, tnId, trackNumberSaveRequest(trackNumber, "$trackNumber v3"))
+        assertVersionReferences(
+            designBranch,
+            tnId,
+            mainOfficial = mainOfficial1.rowVersion,
+            mainDraft = mainDraft2.rowVersion,
+            designOfficial = designOfficial.rowVersion,
+            designDraft = designDraft2.rowVersion,
+        )
+
+        val mainOfficial2 =
+            trackNumberService.publish(LayoutBranch.main, ValidationVersion(tnId, mainDraft2.rowVersion))
+        assertVersionReferences(
+            designBranch,
+            tnId,
+            mainOfficial = mainOfficial2.rowVersion,
             // draft version is updated by the publication, fixing references
             designDraft = designDraft2.rowVersion.next(),
         )
@@ -345,21 +410,25 @@ constructor(
         )
         mainOfficial?.let(trackNumberDao::fetch)?.let { trackNumber ->
             assertEquals(id, trackNumber.id)
+            assertFalse(trackNumber.isDraft)
             assertEquals(null, trackNumber.contextData.officialRowId)
             assertEquals(null, trackNumber.contextData.designRowId)
         }
         mainDraft?.let(trackNumberDao::fetch)?.let { trackNumber ->
             assertEquals(id, trackNumber.id)
+            assertTrue(trackNumber.isDraft)
             assertEquals(mainOfficial?.rowId, trackNumber.contextData.officialRowId)
             assertEquals(designOfficial?.rowId, trackNumber.contextData.designRowId)
         }
         designOfficial?.let(trackNumberDao::fetch)?.let { trackNumber ->
             assertEquals(id, trackNumber.id)
+            assertFalse(trackNumber.isDraft)
             assertEquals(mainOfficial?.rowId, trackNumber.contextData.officialRowId)
             assertEquals(null, trackNumber.contextData.designRowId)
         }
         designDraft?.let(trackNumberDao::fetch)?.let { trackNumber ->
             assertEquals(id, trackNumber.id)
+            assertTrue(trackNumber.isDraft)
             assertEquals(mainOfficial?.rowId, trackNumber.contextData.officialRowId)
             assertEquals(designOfficial?.rowId, trackNumber.contextData.designRowId)
         }

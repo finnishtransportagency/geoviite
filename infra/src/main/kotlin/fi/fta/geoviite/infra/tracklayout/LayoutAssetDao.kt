@@ -30,11 +30,11 @@ import fi.fta.geoviite.infra.util.queryOne
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.requireOne
 import fi.fta.geoviite.infra.util.setUser
+import java.sql.Timestamp
+import java.time.Instant
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
-import java.sql.Timestamp
-import java.time.Instant
 
 data class LayoutDaoResponse<T>(val id: IntId<T>, val rowVersion: LayoutRowVersion<T>)
 
@@ -366,7 +366,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
         """
                 .trimIndent()
         jdbcTemplate.setUser()
-        val params = mapOf("official_row_id" to officialRowId.intValue, "design_row_id" to officialRowId.intValue)
+        val params = mapOf("official_row_id" to officialRowId.intValue, "design_row_id" to designRowId.intValue)
         return jdbcTemplate
             .query<LayoutDaoResponse<T>>(sql, params) { rs, _ ->
                 rs.getDaoResponse("official_id", "row_id", "row_version")
