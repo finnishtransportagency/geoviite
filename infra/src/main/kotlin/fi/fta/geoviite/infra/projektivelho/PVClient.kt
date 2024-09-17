@@ -45,7 +45,7 @@ const val MATERIAL_DICTIONARIES_PATH = "$DICTIONARIES_PATH/aineisto/aineisto"
 const val PROJECT_DICTIONARIES_PATH = "$DICTIONARIES_PATH/projekti/projekti"
 const val REDIRECT_PATH = "$METADATA_API_V2_PATH/ohjaa"
 
-const val PROJECT_REGISTRY_V1_PATH = "/projektirekisteri/api/v1"
+const val PROJECT_REGISTRY_V1_PATH = "/projektirekisteri/api/v2"
 const val ASSIGNMENT_PATH = "$PROJECT_REGISTRY_V1_PATH/toimeksianto"
 const val PROJECT_PATH = "$PROJECT_REGISTRY_V1_PATH/projekti"
 const val PROJECT_GROUP_PATH = "$PROJECT_REGISTRY_V1_PATH/projektijoukko"
