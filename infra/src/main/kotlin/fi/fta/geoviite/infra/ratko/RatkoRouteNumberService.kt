@@ -8,6 +8,8 @@ import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.assertMainBranch
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.integration.RatkoOperation
+import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.publication.PublishedTrackNumber
 import fi.fta.geoviite.infra.ratko.model.RatkoNodes
 import fi.fta.geoviite.infra.ratko.model.RatkoOid
@@ -62,7 +64,12 @@ constructor(
                                 changedKmNumbers = changedKmNumbers,
                             )
                         }
-                    } ?: createRouteNumber(branch, trackNumber, publicationTime)
+                    }
+                        ?: if (trackNumber.state != LayoutState.DELETED) {
+                            createRouteNumber(branch, trackNumber, publicationTime)
+                        } else {
+                            null
+                        }
                 } catch (ex: RatkoPushException) {
                     throw RatkoTrackNumberPushException(ex, trackNumber)
                 }
@@ -77,14 +84,19 @@ constructor(
     }
 
     private fun deleteRouteNumber(trackNumber: TrackLayoutTrackNumber, existingRatkoRouteNumber: RatkoRouteNumber) {
-        requireNotNull(trackNumber.externalId) { "Cannot delete route number without oid, id=${trackNumber.id}" }
+        try {
+            requireNotNull(trackNumber.externalId) { "Cannot delete route number without oid, id=${trackNumber.id}" }
 
-        val deletedEndsPoints = existingRatkoRouteNumber.nodecollection?.let(::toNodeCollectionMarkingEndpointsNotInUse)
+            val deletedEndsPoints =
+                existingRatkoRouteNumber.nodecollection?.let(::toNodeCollectionMarkingEndpointsNotInUse)
 
-        updateRouteNumberProperties(trackNumber, deletedEndsPoints)
+            updateRouteNumberProperties(trackNumber, deletedEndsPoints)
 
-        val routeNumberOid = RatkoOid<RatkoRouteNumber>(trackNumber.externalId)
-        ratkoClient.deleteRouteNumberPoints(routeNumberOid, null)
+            val routeNumberOid = RatkoOid<RatkoRouteNumber>(trackNumber.externalId)
+            ratkoClient.deleteRouteNumberPoints(routeNumberOid, null)
+        } catch (ex: Exception) {
+            throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.DELETE, ex)
+        }
     }
 
     private fun updateRouteNumber(
@@ -94,35 +106,40 @@ constructor(
         moment: Instant,
         changedKmNumbers: Set<KmNumber>,
     ) {
-        require(trackNumber.id is IntId) { "Only layout route numbers can be updated, id=${trackNumber.id}" }
-        requireNotNull(trackNumber.externalId) { "Cannot update route number without oid, id=${trackNumber.id}" }
+        try {
+            require(trackNumber.id is IntId) { "Only layout route numbers can be updated, id=${trackNumber.id}" }
+            requireNotNull(trackNumber.externalId) { "Cannot update route number without oid, id=${trackNumber.id}" }
 
-        val addresses =
-            geocodingService.getGeocodingContextAtMoment(branch, trackNumber.id, moment)?.referenceLineAddresses
-        checkNotNull(addresses) { "Cannot calculate addresses for track number, id=${trackNumber.id}" }
+            val addresses =
+                geocodingService.getGeocodingContextAtMoment(branch, trackNumber.id, moment)?.referenceLineAddresses
+            checkNotNull(addresses) { "Cannot calculate addresses for track number, id=${trackNumber.id}" }
 
-        val existingStartNode = existingRatkoRouteNumber.nodecollection?.getStartNode()
-        val existingEndNode = existingRatkoRouteNumber.nodecollection?.getEndNode()
+            val existingStartNode = existingRatkoRouteNumber.nodecollection?.getStartNode()
+            val existingEndNode = existingRatkoRouteNumber.nodecollection?.getEndNode()
 
-        val routeNumberOid = RatkoOid<RatkoRouteNumber>(trackNumber.externalId)
-        val endPointNodeCollection =
-            getEndPointNodeCollection(
-                alignmentAddresses = addresses,
-                changedKmNumbers = changedKmNumbers,
-                existingStartNode = existingStartNode,
-                existingEndNode = existingEndNode,
+            val routeNumberOid = RatkoOid<RatkoRouteNumber>(trackNumber.externalId)
+            val endPointNodeCollection =
+                getEndPointNodeCollection(
+                    alignmentAddresses = addresses,
+                    changedKmNumbers = changedKmNumbers,
+                    existingStartNode = existingStartNode,
+                    existingEndNode = existingEndNode,
+                )
+
+            // Update route number end points before deleting anything, otherwise old end points
+            // will
+            // stay in use
+            updateRouteNumberProperties(trackNumber, endPointNodeCollection)
+
+            deleteRouteNumberPoints(routeNumberOid, changedKmNumbers)
+
+            updateRouteNumberGeometry(
+                routeNumberOid = routeNumberOid,
+                newPoints = addresses.midPoints.filter { p -> changedKmNumbers.contains(p.address.kmNumber) },
             )
-
-        // Update route number end points before deleting anything, otherwise old end points will
-        // stay in use
-        updateRouteNumberProperties(trackNumber, endPointNodeCollection)
-
-        deleteRouteNumberPoints(routeNumberOid, changedKmNumbers)
-
-        updateRouteNumberGeometry(
-            routeNumberOid = routeNumberOid,
-            newPoints = addresses.midPoints.filter { p -> changedKmNumbers.contains(p.address.kmNumber) },
-        )
+        } catch (ex: Exception) {
+            throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.UPDATE, ex)
+        }
     }
 
     private fun deleteRouteNumberPoints(routeNumberOid: RatkoOid<RatkoRouteNumber>, changedKmNumbers: Set<KmNumber>) =
@@ -137,17 +154,23 @@ constructor(
         }
 
     private fun createRouteNumber(branch: LayoutBranch, trackNumber: TrackLayoutTrackNumber, moment: Instant) {
-        require(trackNumber.id is IntId) { "Only layout route numbers can be updated, id=${trackNumber.id}" }
+        try {
+            require(trackNumber.id is IntId) { "Only layout route numbers can be updated, id=${trackNumber.id}" }
 
-        val addresses =
-            geocodingService.getGeocodingContextAtMoment(branch, trackNumber.id, moment)?.referenceLineAddresses
-        checkNotNull(addresses) { "Cannot calculate addresses for track number, id=${trackNumber.id}" }
+            val addresses =
+                geocodingService.getGeocodingContextAtMoment(branch, trackNumber.id, moment)?.referenceLineAddresses
+            checkNotNull(addresses) { "Cannot calculate addresses for track number, id=${trackNumber.id}" }
 
-        val ratkoNodes = convertToRatkoNodeCollection(addresses)
-        val ratkoRouteNumber = convertToRatkoRouteNumber(trackNumber, ratkoNodes)
-        val routeNumberOid = ratkoClient.newRouteNumber(ratkoRouteNumber)
-        checkNotNull(routeNumberOid) { "Did not receive oid from Ratko for track number $ratkoRouteNumber" }
-        createRouteNumberPoints(routeNumberOid, addresses.midPoints)
+            val ratkoNodes = convertToRatkoNodeCollection(addresses)
+            val ratkoRouteNumber = convertToRatkoRouteNumber(trackNumber, ratkoNodes)
+            val routeNumberOid = ratkoClient.newRouteNumber(ratkoRouteNumber)
+            checkNotNull(routeNumberOid) { "Did not receive oid from Ratko for track number $ratkoRouteNumber" }
+            if (trackNumber.state != LayoutState.DELETED) {
+                createRouteNumberPoints(routeNumberOid, addresses.midPoints)
+            }
+        } catch (ex: Exception) {
+            throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.CREATE, ex)
+        }
     }
 
     private fun createRouteNumberPoints(

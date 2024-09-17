@@ -1643,7 +1643,14 @@
         "mark-as-successful": "Merkitse kohteiden siirto onnistuneeksi",
         "transfer-starts-shortly": "Vienti käynnistyy automaattisesti hetken kuluttua",
         "bulk-transfer-marked-as-successful": "Kohteiden siirto merkitty onnistuneeksi",
-        "ratko-push-connection-issue": "Yhteysvirhe Ratko-viennissä"
+        "push-error": {
+            "connection-issue": "Yhteysvirhe Ratko-viennissä",
+            "internal-error": "Geoviitteen sisäinen virhe Ratko-viennissä. Ota yhteyttä kehitystiimiin.",
+            "location-track": "Sijaintiraiteen ({{name}})",
+            "track-number": "Ratanumeron ({{name}})",
+            "switch": "Vaihteen ({{name}})",
+            "failed": "epäonnistui"
+        }
     },
     "split-details-dialog": {
         "title": "Raiteen jakamisen tiedot",

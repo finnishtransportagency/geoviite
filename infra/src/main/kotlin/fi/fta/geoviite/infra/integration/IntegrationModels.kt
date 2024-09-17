@@ -9,6 +9,7 @@ enum class RatkoPushErrorType {
     LOCATION,
     GEOMETRY,
     STATE,
+    INTERNAL,
 }
 
 enum class RatkoOperation {

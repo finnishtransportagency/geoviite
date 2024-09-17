@@ -226,7 +226,6 @@ constructor(
             RatkoOperation.UPDATE,
             RatkoAssetType.LOCATION_TRACK,
             locationTrackId,
-            "Response body",
         )
         ratkoPushDao.insertRatkoPushError(
             ratkoPushId,
@@ -234,7 +233,6 @@ constructor(
             RatkoOperation.CREATE,
             RatkoAssetType.TRACK_NUMBER,
             trackNumberId,
-            "Response body",
         )
         ratkoPushDao.updatePushStatus(ratkoPushId, status = RatkoPushStatus.FAILED)
         val ratkoPushError = ratkoPushDao.getLatestRatkoPushErrorFor(publicationId)

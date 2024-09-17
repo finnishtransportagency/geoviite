@@ -3,6 +3,8 @@ package fi.fta.geoviite.infra.ratko
 import fi.fta.geoviite.infra.aspects.GeoviiteService
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.integration.RatkoOperation
+import fi.fta.geoviite.infra.integration.RatkoPushErrorType
 import fi.fta.geoviite.infra.integration.SwitchJointChange
 import fi.fta.geoviite.infra.publication.PublishedSwitch
 import fi.fta.geoviite.infra.ratko.model.RatkoAssetLocation
@@ -18,6 +20,7 @@ import fi.fta.geoviite.infra.ratko.model.mapJointNumberToGeometryType
 import fi.fta.geoviite.infra.switchLibrary.SwitchBaseType
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
@@ -67,7 +70,12 @@ constructor(
                                 jointChanges = changedJoints,
                                 moment = publicationTime,
                             )
-                        } ?: createSwitch(layoutSwitch, changedJoints)
+                        }
+                        ?: if (layoutSwitch.stateCategory == LayoutStateCategory.EXISTING) {
+                            createSwitch(layoutSwitch, changedJoints)
+                        } else {
+                            null
+                        }
                 } catch (ex: RatkoPushException) {
                     throw RatkoSwitchPushException(ex, layoutSwitch)
                 }
@@ -81,56 +89,64 @@ constructor(
         jointChanges: List<SwitchJointChange>,
         moment: Instant,
     ) {
-        require(layoutSwitch.id is IntId) { "Cannot push draft switches to Ratko, $layoutSwitch" }
-        requireNotNull(layoutSwitch.externalId) { "Cannot update switch without oid, id=${layoutSwitch.id}" }
-        val switchOid = RatkoOid<RatkoSwitchAsset>(layoutSwitch.externalId)
+        try {
+            require(layoutSwitch.id is IntId) { "Cannot push draft switches to Ratko, $layoutSwitch" }
+            requireNotNull(layoutSwitch.externalId) { "Cannot update switch without oid, id=${layoutSwitch.id}" }
+            val switchOid = RatkoOid<RatkoSwitchAsset>(layoutSwitch.externalId)
 
-        val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
-        val switchOwner = layoutSwitch.ownerId?.let { switchLibraryService.getSwitchOwner(layoutSwitch.ownerId) }
+            val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
+            val switchOwner = layoutSwitch.ownerId?.let { switchLibraryService.getSwitchOwner(layoutSwitch.ownerId) }
 
-        val updatedRatkoSwitch =
-            convertToRatkoSwitch(
-                layoutSwitch = layoutSwitch,
-                switchStructure = switchStructure,
-                switchOwner = switchOwner,
-                existingRatkoSwitch = existingRatkoSwitch,
+            val updatedRatkoSwitch =
+                convertToRatkoSwitch(
+                    layoutSwitch = layoutSwitch,
+                    switchStructure = switchStructure,
+                    switchOwner = switchOwner,
+                    existingRatkoSwitch = existingRatkoSwitch,
+                )
+
+            val existingLocations = existingRatkoSwitch.locations ?: emptyList()
+
+            val includeBaseLocations =
+                layoutSwitch.joints.any { lj -> jointChanges.none { jc -> jc.number == lj.number && !jc.isRemoved } }
+
+            val baseRatkoLocations =
+                if (includeBaseLocations && existingLocations.isNotEmpty())
+                    getBaseRatkoSwitchLocations(
+                        layoutBranch = layoutBranch,
+                        switchId = layoutSwitch.id,
+                        existingRatkoLocations = existingLocations,
+                        jointChanges = jointChanges,
+                        switchStructure = switchStructure,
+                        moment = moment,
+                    )
+                else emptyList()
+
+            updateSwitchProperties(
+                switchOid = switchOid,
+                currentRatkoSwitch = existingRatkoSwitch,
+                updatedRatkoSwitch = updatedRatkoSwitch,
             )
 
-        val existingLocations = existingRatkoSwitch.locations ?: emptyList()
+            updateSwitchLocations(
+                switchOid = switchOid,
+                baseRatkoLocations = baseRatkoLocations,
+                jointChanges = jointChanges,
+                switchStructure = switchStructure,
+            )
 
-        val includeBaseLocations =
-            layoutSwitch.joints.any { lj -> jointChanges.none { jc -> jc.number == lj.number && !jc.isRemoved } }
-
-        val baseRatkoLocations =
-            if (includeBaseLocations && existingLocations.isNotEmpty())
-                getBaseRatkoSwitchLocations(
-                    layoutBranch = layoutBranch,
-                    switchId = layoutSwitch.id,
-                    existingRatkoLocations = existingLocations,
-                    jointChanges = jointChanges,
-                    switchStructure = switchStructure,
-                    moment = moment,
-                )
-            else emptyList()
-
-        updateSwitchProperties(
-            switchOid = switchOid,
-            currentRatkoSwitch = existingRatkoSwitch,
-            updatedRatkoSwitch = updatedRatkoSwitch,
-        )
-
-        updateSwitchLocations(
-            switchOid = switchOid,
-            baseRatkoLocations = baseRatkoLocations,
-            jointChanges = jointChanges,
-            switchStructure = switchStructure,
-        )
-
-        updateSwitchGeoms(
-            switchOid = switchOid,
-            switchBaseType = switchStructure.baseType,
-            joints = layoutSwitch.joints,
-        )
+            updateSwitchGeoms(
+                switchOid = switchOid,
+                switchBaseType = switchStructure.baseType,
+                joints = layoutSwitch.joints,
+            )
+        } catch (ex: Exception) {
+            if (ex is RatkoPushException) {
+                throw ex
+            } else {
+                throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.UPDATE, ex)
+            }
+        }
     }
 
     private fun getBaseRatkoSwitchLocations(
@@ -228,28 +244,36 @@ constructor(
     }
 
     private fun createSwitch(layoutSwitch: TrackLayoutSwitch, jointChanges: List<SwitchJointChange>) {
-        val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
-        val switchOwner = layoutSwitch.ownerId?.let { switchLibraryService.getSwitchOwner(layoutSwitch.ownerId) }
+        try {
+            val switchStructure = switchLibraryService.getSwitchStructure(layoutSwitch.switchStructureId)
+            val switchOwner = layoutSwitch.ownerId?.let { switchLibraryService.getSwitchOwner(layoutSwitch.ownerId) }
 
-        val ratkoSwitch =
-            convertToRatkoSwitch(
-                layoutSwitch = layoutSwitch,
-                switchStructure = switchStructure,
-                switchOwner = switchOwner,
+            val ratkoSwitch =
+                convertToRatkoSwitch(
+                    layoutSwitch = layoutSwitch,
+                    switchStructure = switchStructure,
+                    switchOwner = switchOwner,
+                )
+
+            val switchOid = ratkoClient.newAsset<RatkoSwitchAsset>(ratkoSwitch)
+            checkNotNull(switchOid) { "Did not receive oid from Ratko for switch $ratkoSwitch" }
+
+            generateSwitchLocations(jointChanges, switchStructure).also { switchLocations ->
+                ratkoClient.replaceAssetLocations(switchOid, switchLocations)
+            }
+
+            updateSwitchGeoms(
+                switchOid = switchOid,
+                switchBaseType = switchStructure.baseType,
+                joints = layoutSwitch.joints,
             )
-
-        val switchOid = ratkoClient.newAsset<RatkoSwitchAsset>(ratkoSwitch)
-        checkNotNull(switchOid) { "Did not receive oid from Ratko for switch $ratkoSwitch" }
-
-        generateSwitchLocations(jointChanges, switchStructure).also { switchLocations ->
-            ratkoClient.replaceAssetLocations(switchOid, switchLocations)
+        } catch (ex: Exception) {
+            if (ex is RatkoPushException) {
+                throw ex
+            } else {
+                throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.CREATE, ex)
+            }
         }
-
-        updateSwitchGeoms(
-            switchOid = switchOid,
-            switchBaseType = switchStructure.baseType,
-            joints = layoutSwitch.joints,
-        )
     }
 
     private fun generateSwitchLocations(

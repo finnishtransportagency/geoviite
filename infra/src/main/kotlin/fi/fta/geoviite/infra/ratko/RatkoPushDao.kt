@@ -147,7 +147,6 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
         operation: RatkoOperation,
         assetType: RatkoAssetType,
         assetId: IntId<T>,
-        responseBody: String,
     ): IntId<RatkoPushError<T>> {
         // language=SQL
         val sql =
@@ -158,8 +157,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
               location_track_id,
               switch_id,
               error_type,
-              operation,
-              response_body
+              operation
             )
             values(
               :ratko_push_id, 
@@ -167,8 +165,7 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
               :location_track_id, 
               :switch_id,
               :error_type::integrations.ratko_push_error_type, 
-              :operation::integrations.ratko_push_error_operation,
-              :response_body
+              :operation::integrations.ratko_push_error_operation
             )
             returning id
         """
@@ -181,7 +178,6 @@ class RatkoPushDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(jdb
                 "track_number_id" to if (assetType == RatkoAssetType.TRACK_NUMBER) assetId.intValue else null,
                 "location_track_id" to if (assetType == RatkoAssetType.LOCATION_TRACK) assetId.intValue else null,
                 "switch_id" to if (assetType == RatkoAssetType.SWITCH) assetId.intValue else null,
-                "response_body" to responseBody,
             )
 
         return jdbcTemplate

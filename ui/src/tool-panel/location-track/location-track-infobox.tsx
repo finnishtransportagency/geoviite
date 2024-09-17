@@ -157,7 +157,7 @@ const LocationTrackInfobox: React.FC<LocationTrackInfoboxProps> = ({
                 visibilityChange={visibilityChange}
                 setConfirmingDraftDelete={setConfirmingDraftDelete}
             />
-            {layoutContext.branch == 'MAIN' && (
+            {layoutContext.branch === 'MAIN' && layoutContext.publicationState === 'OFFICIAL' && (
                 <LocationTrackRatkoSyncInfobox
                     layoutContext={layoutContext}
                     locationTrackId={locationTrack.id}

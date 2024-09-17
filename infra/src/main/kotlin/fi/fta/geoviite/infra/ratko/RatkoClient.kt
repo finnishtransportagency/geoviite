@@ -459,15 +459,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             .toBodilessEntity()
             .onErrorResume(WebClientResponseException::class.java) {
                 if (HttpStatus.NOT_FOUND == it.statusCode || HttpStatus.BAD_REQUEST == it.statusCode) Mono.empty()
-                else
-                    Mono.error(
-                        RatkoPushException(
-                            RatkoPushErrorType.GEOMETRY,
-                            RatkoOperation.DELETE,
-                            it.responseBodyAsString,
-                            it,
-                        )
-                    )
+                else Mono.error(RatkoPushException(RatkoPushErrorType.GEOMETRY, RatkoOperation.DELETE, it))
             }
             .block(defaultBlockTimeout)
     }
@@ -491,7 +483,7 @@ class RatkoClient @Autowired constructor(val client: RatkoWebClient) {
             { response ->
                 response.bodyToMono<String>().switchIfEmpty(Mono.just("")).flatMap { body ->
                     logger.error("Error during Ratko push! HTTP Status code: ${response.statusCode()}, body: $body")
-                    Mono.error(RatkoPushException(errorType, operation, body))
+                    Mono.error(RatkoPushException(errorType, operation))
                 }
             },
         )
