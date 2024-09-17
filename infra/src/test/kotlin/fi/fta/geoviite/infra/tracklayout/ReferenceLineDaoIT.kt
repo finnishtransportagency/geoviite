@@ -5,9 +5,13 @@ import fi.fta.geoviite.infra.common.DataType
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.error.NoSuchEntityException
+import fi.fta.geoviite.infra.main
 import fi.fta.geoviite.infra.math.Point
+import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -94,5 +98,80 @@ constructor(private val alignmentDao: LayoutAlignmentDao, private val referenceL
         assertEquals(draft1, referenceLineDao.fetch(draftVersion1))
         assertEquals(draft2, referenceLineDao.fetch(draftVersion2))
         assertThrows<NoSuchEntityException> { referenceLineDao.fetch(draftVersion2.next()) }
+    }
+
+    @Test
+    fun `fetchVersionsNear() filters by context, bbox and includeDeleted`() {
+        testDBService.clearLayoutTables()
+
+        val design = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(design, PublicationState.OFFICIAL)
+        val existingMainAndNearby =
+            mainOfficialContext
+                .insert(
+                    referenceLineAndAlignment(
+                        mainOfficialContext.createLayoutTrackNumber().id,
+                        segment(Point(0.0, 0.0), Point(1.0, 0.0)),
+                    )
+                )
+                .rowVersion
+        val existingMainButDistant =
+            mainOfficialContext
+                .insert(
+                    referenceLineAndAlignment(
+                        mainOfficialContext.createLayoutTrackNumber().id,
+                        segment(Point(0.0, 100.0), Point(1.0, 100.0)),
+                    )
+                )
+                .rowVersion
+        val nearbyAndMainButDeleted =
+            mainOfficialContext
+                .insert(
+                    referenceLineAndAlignment(
+                        mainOfficialContext.insert(trackNumber(TrackNumber("123"), state = LayoutState.DELETED)).id,
+                        segment(Point(0.0, 0.0), Point(1.0, 0.0)),
+                    )
+                )
+                .rowVersion
+        val existingAndNearbyInDesign =
+            mainOfficialContext
+                .insert(
+                    referenceLineAndAlignment(
+                        designOfficialContext.createLayoutTrackNumber().id,
+                        segment(Point(0.0, 0.0), Point(1.0, 0.0)),
+                    )
+                )
+                .rowVersion
+
+        assertEquals(
+            listOf(existingMainAndNearby),
+            referenceLineDao.fetchVersionsNear(
+                mainOfficialContext.context,
+                boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
+            ),
+        )
+        assertEquals(
+            listOf(existingMainButDistant),
+            referenceLineDao.fetchVersionsNear(
+                mainOfficialContext.context,
+                boundingBoxAroundPoint(Point(0.0, 100.0), 1.0),
+            ),
+        )
+        assertEquals(
+            setOf(existingMainAndNearby, nearbyAndMainButDeleted),
+            referenceLineDao
+                .fetchVersionsNear(
+                    mainOfficialContext.context,
+                    boundingBoxAroundPoint(Point(0.0, 0.0), 1.0),
+                    includeDeleted = true,
+                )
+                .toSet(),
+        )
+        assertEquals(
+            setOf(existingMainAndNearby, existingAndNearbyInDesign),
+            referenceLineDao
+                .fetchVersionsNear(designOfficialContext.context, boundingBoxAroundPoint(Point(0.0, 0.0), 1.0))
+                .toSet(),
+        )
     }
 }

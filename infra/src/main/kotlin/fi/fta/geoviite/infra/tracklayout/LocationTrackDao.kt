@@ -433,13 +433,13 @@ class LocationTrackDao(
     }
 
     fun listNear(context: LayoutContext, bbox: BoundingBox): List<LocationTrack> =
-        fetchVersionsNear(context, false, null, bbox).map(::fetch)
+        fetchVersionsNear(context, bbox).map(::fetch)
 
     fun fetchVersionsNear(
         context: LayoutContext,
-        includeDeleted: Boolean,
-        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
         bbox: BoundingBox,
+        includeDeleted: Boolean = false,
+        trackNumberId: IntId<TrackLayoutTrackNumber>? = null,
     ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """
@@ -478,7 +478,7 @@ class LocationTrackDao(
                 select *
                   from layout.location_track_in_layout_context(:publication_state::layout.publication_state,
                                                                :design_id, location_track.official_id)
-                  where state != 'DELETED') in_layout_context using (row_id, row_version);
+                                                               ) in_layout_context using (row_id, row_version);
         """
                 .trimIndent()
 

@@ -238,6 +238,8 @@ class TestDBService(
         return SwitchName(getUniqueName(DbTable.LAYOUT_SWITCH, SwitchName.allowedLength.last))
     }
 
+    fun getUnusedDesignName() = getUniqueName(DbTable.LAYOUT_DESIGN, 50) // arbitrary length limit, fix in GVT-2719
+
     fun getUnusedProjectName(): ProjectName = ProjectName(getUniqueName(DbTable.GEOMETRY_PLAN_PROJECT, 100))
 
     fun getUnusedAuthorCompanyName(): CompanyName = CompanyName(getUniqueName(DbTable.GEOMETRY_PLAN_AUTHOR, 100))
@@ -314,7 +316,7 @@ class TestDBService(
         return dao.update(mutate(dao.fetch(rowVersion)))
     }
 
-    fun createLayoutDesign(): IntId<LayoutDesign> = layoutDesignDao.insert(layoutDesign())
+    fun createLayoutDesign(): IntId<LayoutDesign> = layoutDesignDao.insert(layoutDesign(getUnusedDesignName()))
 
     fun createDesignBranch(): DesignBranch = LayoutBranch.design(createLayoutDesign())
 

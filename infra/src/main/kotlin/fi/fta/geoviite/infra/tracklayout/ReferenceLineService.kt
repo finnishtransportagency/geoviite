@@ -220,7 +220,7 @@ class ReferenceLineService(
     }
 
     fun listNear(layoutContext: LayoutContext, bbox: BoundingBox): List<ReferenceLine> {
-        return dao.fetchVersionsNear(layoutContext, bbox, false).map(dao::fetch)
+        return dao.fetchVersionsNear(layoutContext, bbox, includeDeleted = false).map(dao::fetch)
     }
 
     override fun mergeToMainBranch(

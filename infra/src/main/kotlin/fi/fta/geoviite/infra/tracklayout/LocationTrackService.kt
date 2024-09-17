@@ -270,7 +270,7 @@ class LocationTrackService(
         return if (boundingBox == null) {
                 dao.list(layoutContext, includeDeleted, trackNumberId)
             } else {
-                dao.fetchVersionsNear(layoutContext, includeDeleted, trackNumberId, boundingBox).map(dao::fetch)
+                dao.fetchVersionsNear(layoutContext, boundingBox, includeDeleted, trackNumberId).map(dao::fetch)
             }
             .let { list -> filterByBoundingBox(list, boundingBox) }
             .let(::associateWithAlignments)
@@ -609,7 +609,7 @@ class LocationTrackService(
         layoutContext: LayoutContext,
         targetPoint: LayoutPoint,
     ): List<Pair<LocationTrack, LayoutAlignment>> {
-        return dao.fetchVersionsNear(layoutContext, false, null, boundingBoxAroundPoint(targetPoint, 1.0))
+        return dao.fetchVersionsNear(layoutContext, boundingBoxAroundPoint(targetPoint, 1.0))
             .map { version -> getWithAlignmentInternal(version) }
             .filter { (track, alignment) -> alignment.segments.isNotEmpty() && track.exists }
     }
