@@ -787,13 +787,13 @@ class GeocodingTest {
         val point = AlignmentPoint(0.0, 0.0, 0.0, 0.0, null)
         assertEquals(
             AddressPoint(point, TrackMeter("1234+1234")),
-            AddressPoint(point, TrackMeter("1234+1234")).withIntegerPrecision(),
+            AddressPoint(point, TrackMeter("1234+1234")).withIntegerPrecision(AddressRoundingMode.FLOOR),
         )
         assertEquals(
             AddressPoint(point, TrackMeter("1234+1234")),
-            AddressPoint(point, TrackMeter("1234+1234.000")).withIntegerPrecision(),
+            AddressPoint(point, TrackMeter("1234+1234.000")).withIntegerPrecision(AddressRoundingMode.FLOOR),
         )
-        assertNull(AddressPoint(point, TrackMeter("1234+1234.123")).withIntegerPrecision())
+        assertNull(AddressPoint(point, TrackMeter("1234+1234.123")).withIntegerPrecision(AddressRoundingMode.FLOOR))
     }
 
     private fun assertProjectionLinesMatch(result: List<ProjectionLine>, vararg expected: Pair<TrackMeter, Line>) {
