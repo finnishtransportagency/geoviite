@@ -25,14 +25,14 @@ import fi.fta.geoviite.infra.tracklayout.kmPost
 import fi.fta.geoviite.infra.tracklayout.referenceLine
 import fi.fta.geoviite.infra.tracklayout.segment
 import fi.fta.geoviite.infra.tracklayout.toSegmentPoints
+import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.math.BigDecimal
 import kotlin.math.PI
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 
 const val DELTA = 0.000001
 
@@ -787,13 +787,13 @@ class GeocodingTest {
         val point = AlignmentPoint(0.0, 0.0, 0.0, 0.0, null)
         assertEquals(
             AddressPoint(point, TrackMeter("1234+1234")),
-            AddressPoint(point, TrackMeter("1234+1234")).withIntegerPrecision(AddressRoundingMode.FLOOR),
+            AddressPoint(point, TrackMeter("1234+1234")).withIntegerPrecision(),
         )
         assertEquals(
             AddressPoint(point, TrackMeter("1234+1234")),
-            AddressPoint(point, TrackMeter("1234+1234.000")).withIntegerPrecision(AddressRoundingMode.FLOOR),
+            AddressPoint(point, TrackMeter("1234+1234.000")).withIntegerPrecision(),
         )
-        assertNull(AddressPoint(point, TrackMeter("1234+1234.123")).withIntegerPrecision(AddressRoundingMode.FLOOR))
+        assertNull(AddressPoint(point, TrackMeter("1234+1234.123")).withIntegerPrecision())
     }
 
     private fun assertProjectionLinesMatch(result: List<ProjectionLine>, vararg expected: Pair<TrackMeter, Line>) {
