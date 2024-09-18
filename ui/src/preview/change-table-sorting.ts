@@ -1,4 +1,8 @@
-import { Operation, LayoutValidationIssue } from 'publication/publication-model';
+import {
+    Operation,
+    LayoutValidationIssue,
+    validationIssueIsError,
+} from 'publication/publication-model';
 import { fieldComparator } from 'utils/array-utils';
 import { nextSortDirection, SortDirection } from 'utils/table-utils';
 
@@ -18,9 +22,9 @@ export type SortInformation = {
 };
 
 const includesErrors = (issues: LayoutValidationIssue[]) =>
-    issues.some((err) => err.type == 'ERROR');
+    issues.some((err) => validationIssueIsError(err.type));
 const includesWarnings = (issues: LayoutValidationIssue[]) =>
-    issues.some((err) => err.type == 'WARNING');
+    issues.some((err) => !validationIssueIsError(err.type));
 const issueSeverityPriority = (issues: LayoutValidationIssue[]) => {
     let priority = 0;
     if (includesErrors(issues)) priority += 2;

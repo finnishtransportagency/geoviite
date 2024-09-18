@@ -1,10 +1,13 @@
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.publication.PublicationRequestIds
 import fi.fta.geoviite.infra.publication.PublicationResult
 import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.ValidationTarget
 import fi.fta.geoviite.infra.publication.ValidationVersion
 import fi.fta.geoviite.infra.publication.ValidationVersions
+import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
 import fi.fta.geoviite.infra.tracklayout.LayoutDaoResponse
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.ReferenceLine
@@ -34,10 +37,10 @@ fun validationVersions(
     kmPosts: List<LayoutDaoResponse<TrackLayoutKmPost>> = listOf(),
     locationTracks: List<LayoutDaoResponse<LocationTrack>> = listOf(),
     switches: List<LayoutDaoResponse<TrackLayoutSwitch>> = listOf(),
-    branch: LayoutBranch = LayoutBranch.main,
+    target: ValidationTarget = draftTransitionOrOfficialState(PublicationState.DRAFT, LayoutBranch.main),
 ) =
     ValidationVersions(
-        branch = branch,
+        target = target,
         trackNumbers = trackNumbers.map { (id, version) -> ValidationVersion(id, version) },
         referenceLines = referenceLines.map { (id, version) -> ValidationVersion(id, version) },
         kmPosts = kmPosts.map { (id, version) -> ValidationVersion(id, version) },

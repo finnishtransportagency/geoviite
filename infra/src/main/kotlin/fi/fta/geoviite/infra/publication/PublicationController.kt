@@ -54,7 +54,7 @@ constructor(
         @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
         @PathVariable("from_state") fromState: PublicationState,
     ): PublicationCandidates {
-        return publicationService.collectPublicationCandidates(LayoutContextTransition.of(branch, fromState))
+        return publicationService.collectPublicationCandidates(publicationInOrMergeFromBranch(branch, fromState))
     }
 
     @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
@@ -65,6 +65,18 @@ constructor(
     ): ValidatedPublicationCandidates {
         return publicationService.validatePublicationCandidates(
             publicationService.collectPublicationCandidates(LayoutContextTransition.publicationIn(branch)),
+            request,
+        )
+    }
+
+    @PreAuthorize(AUTH_VIEW_LAYOUT_DRAFT)
+    @PostMapping("/{$LAYOUT_BRANCH}/validate-merge-to-main")
+    fun validateMergeToMain(
+        @PathVariable(LAYOUT_BRANCH) branch: LayoutBranch,
+        @RequestBody request: PublicationRequestIds,
+    ): ValidatedPublicationCandidates {
+        return publicationService.validatePublicationCandidates(
+            publicationService.collectPublicationCandidates(LayoutContextTransition.mergeToMainFrom(branch)),
             request,
         )
     }

@@ -4,6 +4,7 @@ import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.switchLibrary.SwitchLibraryService
@@ -164,8 +165,10 @@ constructor(
         referenceLines: List<IntId<ReferenceLine>> = listOf(),
         switches: List<IntId<TrackLayoutSwitch>> = listOf(),
         kmPosts: List<IntId<TrackLayoutKmPost>> = listOf(),
-    ): ValidationContext =
-        ValidationContext(
+    ): ValidationContext {
+        val target = draftTransitionOrOfficialState(PublicationState.DRAFT, branch)
+        val candidateContext = target.candidateContext
+        return ValidationContext(
             trackNumberDao = trackNumberDao,
             referenceLineDao = referenceLineDao,
             kmPostDao = kmPostDao,
@@ -178,13 +181,14 @@ constructor(
             splitService = splitService,
             publicationSet =
                 ValidationVersions(
-                    branch = branch,
-                    trackNumbers = trackNumberDao.fetchPublicationVersions(branch, trackNumbers),
-                    referenceLines = referenceLineDao.fetchPublicationVersions(branch, referenceLines),
-                    kmPosts = kmPostDao.fetchPublicationVersions(branch, kmPosts),
-                    locationTracks = locationTrackDao.fetchPublicationVersions(branch, locationTracks),
-                    switches = switchDao.fetchPublicationVersions(branch, switches),
+                    target = target,
+                    trackNumbers = trackNumberDao.fetchCandidateVersions(candidateContext, trackNumbers),
+                    referenceLines = referenceLineDao.fetchCandidateVersions(candidateContext, referenceLines),
+                    kmPosts = kmPostDao.fetchCandidateVersions(candidateContext, kmPosts),
+                    locationTracks = locationTrackDao.fetchCandidateVersions(candidateContext, locationTracks),
+                    switches = switchDao.fetchCandidateVersions(candidateContext, switches),
                     splits = splitService.fetchPublicationVersions(branch, locationTracks, switches),
                 ),
         )
+    }
 }

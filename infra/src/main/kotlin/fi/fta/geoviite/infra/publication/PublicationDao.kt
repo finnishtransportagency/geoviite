@@ -356,18 +356,18 @@ class PublicationDao(
     /**
      * @param switchIds Switches whose linked tracks to find.
      * @param locationTrackIdsInPublicationUnit Optionally specify the location tracks in the publication unit. Leave
-     *   null to have all draft location tracks considered in the publication unit.
+     *   null to have all candidate location tracks considered in the publication unit.
      * @param includeDeleted Filters location tracks, not switches
      */
     fun fetchLinkedLocationTracks(
-        layoutBranch: LayoutBranch,
+        target: ValidationTarget,
         switchIds: List<IntId<TrackLayoutSwitch>>,
         locationTrackIdsInPublicationUnit: List<IntId<LocationTrack>>? = null,
         includeDeleted: Boolean = false,
     ): Map<IntId<TrackLayoutSwitch>, Set<LayoutDaoResponse<LocationTrack>>> {
         if (switchIds.isEmpty()) return mapOf()
 
-        val draftTrackIncludedCondition =
+        val candidateTrackIncludedCondition =
             if (locationTrackIdsInPublicationUnit == null) "true"
             else if (locationTrackIdsInPublicationUnit.isEmpty()) "false" else "lt.official_id in (:location_track_ids)"
 
@@ -379,12 +379,14 @@ class PublicationDao(
               lt.row_version,
               array_agg(distinct switch_id) as switch_ids
               from (select *
-                    from layout.location_track_in_layout_context('OFFICIAL', :design_id) lt
-                     where not ($draftTrackIncludedCondition)
+                    from layout.location_track_in_layout_context(:base_state::layout.publication_state,
+                                                                 :base_design_id) lt
+                     where not ($candidateTrackIncludedCondition)
                     union all
                     select *
-                    from layout.location_track_in_layout_context('DRAFT', :design_id) lt
-                     where ($draftTrackIncludedCondition)
+                    from layout.location_track_in_layout_context(:candidate_state::layout.publication_state,
+                                                                 :candidate_design_id) lt
+                     where ($candidateTrackIncludedCondition)
                     ) lt
               join (
                 select location_track.id as row_id, sv_switch.switch_id
@@ -413,11 +415,10 @@ class PublicationDao(
                 .trimIndent()
         val params =
             mapOf(
-                "design_id" to layoutBranch.designId?.intValue,
                 "switch_ids" to switchIds.map(IntId<TrackLayoutSwitch>::intValue),
                 "location_track_ids" to locationTrackIdsInPublicationUnit?.map(IntId<*>::intValue),
                 "include_deleted" to includeDeleted,
-            )
+            ) + target.sqlParameters()
         val result = mutableMapOf<IntId<TrackLayoutSwitch>, Set<LayoutDaoResponse<LocationTrack>>>()
         jdbcTemplate
             .query(sql, params) { rs, _ ->
@@ -432,19 +433,24 @@ class PublicationDao(
         return result
     }
 
-    fun fetchOfficialDuplicateTrackVersions(
-        layoutBranch: LayoutBranch,
+    fun fetchBaseDuplicateTrackVersions(
+        baseContext: LayoutContext,
         ids: List<IntId<LocationTrack>>,
     ): Map<IntId<LocationTrack>, List<LayoutDaoResponse<LocationTrack>>> {
         val sql =
             """
             select official_id, row_id, row_version, duplicate_of_location_track_id
-            from layout.location_track_in_layout_context('OFFICIAL', :design_id)
+            from layout.location_track_in_layout_context(:publication_state::layout.publication_state, :design_id)
             where duplicate_of_location_track_id in (:ids)
               and state != 'DELETED'
         """
                 .trimIndent()
-        val params = mapOf("ids" to ids.map { id -> id.intValue }, "design_id" to layoutBranch.designId?.intValue)
+        val params =
+            mapOf(
+                "ids" to ids.map { id -> id.intValue },
+                "publication_state" to baseContext.state.name,
+                "design_id" to baseContext.branch.designId?.intValue,
+            )
         val rows =
             jdbcTemplate.query(sql, params) { rs, _ ->
                 val duplicateOfId = rs.getIntId<LocationTrack>("duplicate_of_location_track_id")

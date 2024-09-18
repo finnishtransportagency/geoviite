@@ -460,12 +460,12 @@ constructor(
     }
 
     private fun publishTrackNumber(id: IntId<TrackLayoutTrackNumber>) =
-        trackNumberDao.fetchPublicationVersions(LayoutBranch.main, listOf(id)).first().let { version ->
+        trackNumberDao.fetchCandidateVersions(MainLayoutContext.draft, listOf(id)).first().let { version ->
             trackNumberService.publish(LayoutBranch.main, version)
         }
 
     private fun publishReferenceLine(id: IntId<ReferenceLine>): LayoutDaoResponse<ReferenceLine> =
-        referenceLineDao.fetchPublicationVersions(LayoutBranch.main, listOf(id)).first().let { version ->
+        referenceLineDao.fetchCandidateVersions(MainLayoutContext.draft, listOf(id)).first().let { version ->
             referenceLineService.publish(LayoutBranch.main, version)
         }
 }

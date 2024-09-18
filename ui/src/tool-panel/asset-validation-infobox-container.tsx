@@ -5,7 +5,7 @@ import { AssetId, LayoutContext, TimeStamp } from 'common/common-model';
 import { getKmPostValidation } from 'track-layout/layout-km-post-api';
 import { getSwitchValidation } from 'track-layout/layout-switch-api';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import { ValidatedAsset } from 'publication/publication-model';
+import { ValidatedAsset, validationIssueIsError } from 'publication/publication-model';
 import {
     LayoutKmPostId,
     LayoutSwitchId,
@@ -57,8 +57,8 @@ export const AssetValidationInfoboxContainer: React.FC<AssetValidationInfoboxPro
         layoutContext.branch,
         changeTime,
     ]);
-    const errors = validation?.errors.filter((err) => err.type === 'ERROR') || [];
-    const warnings = validation?.errors.filter((err) => err.type === 'WARNING') || [];
+    const errors = validation?.errors.filter((err) => validationIssueIsError(err.type)) || [];
+    const warnings = validation?.errors.filter((err) => !validationIssueIsError(err.type)) || [];
 
     return (
         <AssetValidationInfobox

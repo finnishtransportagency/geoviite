@@ -768,7 +768,7 @@ constructor(
         )
 
     private fun publish(id: IntId<LocationTrack>): LayoutDaoResponse<LocationTrack> =
-        locationTrackDao.fetchPublicationVersions(LayoutBranch.main, listOf(id)).first().let { version ->
+        locationTrackDao.fetchCandidateVersions(MainLayoutContext.draft, listOf(id)).first().let { version ->
             locationTrackService.publish(LayoutBranch.main, version)
         }
 }

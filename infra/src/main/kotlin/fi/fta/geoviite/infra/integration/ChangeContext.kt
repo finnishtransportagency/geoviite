@@ -1,5 +1,6 @@
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
+import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geocoding.GeocodingContextCacheKey
 import fi.fta.geoviite.infra.geocoding.GeocodingService
@@ -43,16 +44,14 @@ class ChangeContext(
 }
 
 inline fun <reified T : LayoutAsset<T>> createTypedContext(
-    branch: LayoutBranch,
+    baseContext: LayoutContext,
     dao: LayoutAssetDao<T>,
     versions: List<ValidationVersion<T>>,
 ): TypedChangeContext<T> =
     createTypedContext(
         dao,
-        { id -> dao.fetchVersion(branch.official, id) },
-        { id ->
-            versions.find { v -> v.officialId == id }?.validatedAssetVersion ?: dao.fetchVersion(branch.official, id)
-        },
+        { id -> dao.fetchVersion(baseContext, id) },
+        { id -> versions.find { v -> v.officialId == id }?.validatedAssetVersion ?: dao.fetchVersion(baseContext, id) },
     )
 
 inline fun <reified T : LayoutAsset<T>> createTypedContext(

@@ -554,8 +554,8 @@ class LayoutSwitchDao(
             .also { logger.daoAccess(FETCH, "LocationTracks linked to switch at moment", switchId) }
     }
 
-    fun findOfficialNameDuplicates(
-        layoutBranch: LayoutBranch,
+    fun findNameDuplicates(
+        context: LayoutContext,
         names: List<SwitchName>,
     ): Map<SwitchName, List<LayoutDaoResponse<TrackLayoutSwitch>>> {
         return if (names.isEmpty()) {
@@ -564,12 +564,17 @@ class LayoutSwitchDao(
             val sql =
                 """
                 select official_id, row_id, row_version, name
-                from layout.switch_in_layout_context('OFFICIAL', :design_id)
+                from layout.switch_in_layout_context(:publication_state::layout.publication_state, :design_id)
                 where name in (:names)
                   and state_category != 'NOT_EXISTING'
             """
                     .trimIndent()
-            val params = mapOf("names" to names, "design_id" to layoutBranch.designId?.intValue)
+            val params =
+                mapOf(
+                    "names" to names,
+                    "publication_state" to context.state.name,
+                    "design_id" to context.branch.designId?.intValue,
+                )
             val found =
                 jdbcTemplate.query(sql, params) { rs, _ ->
                     val version = rs.getDaoResponse<TrackLayoutSwitch>("official_id", "row_id", "row_version")

@@ -280,7 +280,7 @@ constructor(
     private fun address(seed: Int = 0) = TrackMeter(KmNumber(seed), seed * 100)
 
     private fun publish(id: IntId<ReferenceLine>) =
-        referenceLineDao.fetchPublicationVersions(LayoutBranch.main, listOf(id)).first().let { version ->
+        referenceLineDao.fetchCandidateVersions(MainLayoutContext.draft, listOf(id)).first().let { version ->
             referenceLineService.publish(LayoutBranch.main, version)
         }
 }

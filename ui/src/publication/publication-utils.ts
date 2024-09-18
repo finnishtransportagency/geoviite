@@ -1,13 +1,13 @@
 import { subMonths } from 'date-fns';
 import {
+    CalculatedChanges,
+    DraftChangeType,
+    PublicationCandidate,
+    PublicationCandidateId,
+    PublicationCandidateReference,
     PublicationGroupId,
     PublicationSearch,
     PublicationStage,
-    PublicationCandidate,
-    PublicationCandidateReference,
-    DraftChangeType,
-    PublicationCandidateId,
-    CalculatedChanges,
 } from 'publication/publication-model';
 import { currentDay } from 'utils/date-utils';
 import { candidateIdAndTypeMatches } from 'preview/preview-view-filters';
@@ -116,13 +116,6 @@ export const addValidationState = (
             : candidate;
     });
 };
-
-// TODO GVT-2421: Only needed while we don't do real validation
-export const pretendValidated = (candidate: PublicationCandidate): PublicationCandidate => ({
-    ...candidate,
-    validationState: 'API_CALL_OK',
-    issues: [],
-});
 
 export const setValidationStateToApiError = (
     candidate: PublicationCandidate,

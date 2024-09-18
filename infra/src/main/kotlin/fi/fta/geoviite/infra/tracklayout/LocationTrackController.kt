@@ -19,7 +19,10 @@ import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.publication.PublicationService
+import fi.fta.geoviite.infra.publication.ValidateTransition
 import fi.fta.geoviite.infra.publication.ValidatedAsset
+import fi.fta.geoviite.infra.publication.draftTransitionOrOfficialState
+import fi.fta.geoviite.infra.publication.publicationInOrMergeFromBranch
 import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.toResponse
 import org.springframework.http.ResponseEntity
@@ -165,8 +168,10 @@ class LocationTrackController(
         @PathVariable(PUBLICATION_STATE) publicationState: PublicationState,
         @PathVariable("id") id: IntId<LocationTrack>,
     ): ResponseEntity<ValidatedAsset<LocationTrack>> {
-        val context = LayoutContext.of(layoutBranch, publicationState)
-        return publicationService.validateLocationTracks(context, listOf(id)).firstOrNull().let(::toResponse)
+        return publicationService
+            .validateLocationTracks(draftTransitionOrOfficialState(publicationState, layoutBranch), listOf(id))
+            .firstOrNull()
+            .let(::toResponse)
     }
 
     @PreAuthorize(AUTH_VIEW_DRAFT_OR_OFFICIAL_BY_PUBLICATION_STATE)
@@ -178,7 +183,8 @@ class LocationTrackController(
     ): List<SwitchValidationWithSuggestedSwitch> {
         val context = LayoutContext.of(layoutBranch, publicationState)
         val switchSuggestions = switchLinkingService.getTrackSwitchSuggestions(context, id)
-        val switchValidation = publicationService.validateSwitches(context, switchSuggestions.map { (id, _) -> id })
+        val target = ValidateTransition(publicationInOrMergeFromBranch(layoutBranch, publicationState))
+        val switchValidation = publicationService.validateSwitches(target, switchSuggestions.map { (id, _) -> id })
         return switchValidation.map { validatedAsset ->
             SwitchValidationWithSuggestedSwitch(
                 validatedAsset.id,

@@ -887,7 +887,12 @@ constructor(
             locationTrackDao.insert(locationTrack.copy(alignmentVersion = alignmentDao.insert(alignment)))
 
         val validation =
-            publicationService.validateLocationTracks(MainLayoutContext.official, listOf(locationTrackId.id)).first()
+            publicationService
+                .validateLocationTracks(
+                    draftTransitionOrOfficialState(OFFICIAL, LayoutBranch.main),
+                    listOf(locationTrackId.id),
+                )
+                .first()
         assertEquals(validation.errors.size, 1)
     }
 
@@ -897,7 +902,10 @@ constructor(
 
         val validation =
             publicationService
-                .validateTrackNumbersAndReferenceLines(MainLayoutContext.official, listOf(trackNumber))
+                .validateTrackNumbersAndReferenceLines(
+                    draftTransitionOrOfficialState(OFFICIAL, LayoutBranch.main),
+                    listOf(trackNumber),
+                )
                 .first()
         assertEquals(validation.errors.size, 1)
     }
@@ -906,7 +914,11 @@ constructor(
     fun `Validating official switch should work`() {
         val switchId = switchDao.insert(switch(draft = false, stateCategory = EXISTING)).id
 
-        val validation = publicationService.validateSwitches(MainLayoutContext.official, listOf(switchId))
+        val validation =
+            publicationService.validateSwitches(
+                draftTransitionOrOfficialState(OFFICIAL, LayoutBranch.main),
+                listOf(switchId),
+            )
         assertEquals(1, validation.size)
         assertEquals(1, validation[0].errors.size)
     }
@@ -919,7 +931,10 @@ constructor(
 
         val validationIds =
             publicationService
-                .validateSwitches(MainLayoutContext.official, listOf(switchId, switchId2, switchId3))
+                .validateSwitches(
+                    draftTransitionOrOfficialState(OFFICIAL, LayoutBranch.main),
+                    listOf(switchId, switchId2, switchId3),
+                )
                 .map { it.id }
         assertEquals(3, validationIds.size)
         assertContains(validationIds, switchId)
@@ -934,7 +949,10 @@ constructor(
                 .insert(kmPost(mainOfficialContext.createLayoutTrackNumber().id, km = KmNumber.ZERO, draft = false))
                 .id
 
-        val validation = publicationService.validateKmPosts(MainLayoutContext.official, listOf(kmPostId)).first()
+        val validation =
+            publicationService
+                .validateKmPosts(draftTransitionOrOfficialState(OFFICIAL, LayoutBranch.main), listOf(kmPostId))
+                .first()
         assertEquals(validation.errors.size, 1)
     }
 
@@ -994,7 +1012,7 @@ constructor(
         assertEquals(
             listOf(
                 LayoutValidationIssue(
-                    LayoutValidationIssueType.ERROR,
+                    LayoutValidationIssueType.FATAL,
                     "validation.layout.location-track.duplicate-name-official",
                     mapOf("locationTrack" to AlignmentName("LT"), "trackNumber" to TrackNumber("TN")),
                 )
@@ -1005,7 +1023,7 @@ constructor(
         assertEquals(
             List(2) {
                 LayoutValidationIssue(
-                    LayoutValidationIssueType.ERROR,
+                    LayoutValidationIssueType.FATAL,
                     "validation.layout.location-track.duplicate-name-draft",
                     mapOf("locationTrack" to AlignmentName("NLT"), "trackNumber" to TrackNumber("TN")),
                 )
@@ -1018,7 +1036,7 @@ constructor(
         assertEquals(
             listOf(
                 LayoutValidationIssue(
-                    LayoutValidationIssueType.ERROR,
+                    LayoutValidationIssueType.FATAL,
                     "validation.layout.switch.duplicate-name-official",
                     mapOf("switch" to SwitchName("SW")),
                 )
@@ -1032,7 +1050,7 @@ constructor(
         assertEquals(
             List(2) {
                 LayoutValidationIssue(
-                    LayoutValidationIssueType.ERROR,
+                    LayoutValidationIssueType.FATAL,
                     "validation.layout.switch.duplicate-name-draft",
                     mapOf("switch" to SwitchName("NSW")),
                 )
@@ -1046,7 +1064,7 @@ constructor(
         assertEquals(
             listOf(
                 LayoutValidationIssue(
-                    LayoutValidationIssueType.ERROR,
+                    LayoutValidationIssueType.FATAL,
                     "validation.layout.track-number.duplicate-name-official",
                     mapOf("trackNumber" to TrackNumber("TN")),
                 )
@@ -3672,6 +3690,7 @@ constructor(
         val sourceTrack: LayoutDaoResponse<LocationTrack>,
         val targetTracks: List<Pair<LayoutDaoResponse<LocationTrack>, IntRange>>,
     ) {
+
         val targetParams: List<Pair<IntId<LocationTrack>, IntRange>> =
             targetTracks.map { (track, range) -> track.id to range }
 
@@ -4154,6 +4173,118 @@ constructor(
         publish(publicationService, kmPosts = listOf(kmPost))
         val latestPub = publicationService.fetchLatestPublicationDetails(LayoutBranchType.MAIN, 1)
         assertEquals(Operation.CREATE, latestPub[0].kmPosts[0].operation)
+    }
+
+    @Test
+    fun `duplicate km posts are fatal in validation`() {
+        val trackNumber = mainOfficialContext.createLayoutTrackNumber().id
+        mainOfficialContext.insert(kmPost(trackNumber, KmNumber(1)))
+        mainOfficialContext.insert(referenceLineAndAlignment(trackNumber, segment(Point(0.0, 0.0), Point(2.0, 2.0))))
+        val design = testDBService.createDesignBranch()
+        val designKmPost = testDBService.testContext(design, OFFICIAL).insert(kmPost(trackNumber, KmNumber(1)))
+        val transition = ValidateTransition(LayoutContextTransition.mergeToMainFrom(design))
+        val validation = publicationService.validateKmPosts(transition, listOf(designKmPost.id)).first()
+
+        assertTrue(
+            validation.errors.any {
+                it.type == LayoutValidationIssueType.FATAL &&
+                    it.localizationKey == LocalizationKey("$VALIDATION_GEOCODING.duplicate-km-posts")
+            }
+        )
+    }
+
+    @Test
+    fun `duplicate switch names are found in merge to main`() {
+        mainDraftContext.insert(switch(name = "ABC V123"))
+        val design = testDBService.createDesignBranch()
+        val designSwitch = testDBService.testContext(design, OFFICIAL).insert(switch(name = "ABC V123"))
+        val transition = ValidateTransition(LayoutContextTransition.mergeToMainFrom(design))
+        val validation = publicationService.validateSwitches(transition, listOf(designSwitch.id)).first()
+        assertTrue(
+            validation.errors.any {
+                it.type == LayoutValidationIssueType.FATAL &&
+                    it.localizationKey == LocalizationKey("validation.layout.switch.duplicate-name-draft-in-main")
+            }
+        )
+    }
+
+    @Test
+    fun `duplicate track numbers are found in merge to main`() {
+        mainDraftContext.insert(trackNumber(number = TrackNumber("123")))
+        val design = testDBService.createDesignBranch()
+        val designTrackNumber =
+            testDBService.testContext(design, OFFICIAL).insert(trackNumber(number = TrackNumber("123")))
+        val transition = ValidateTransition(LayoutContextTransition.mergeToMainFrom(design))
+        val validation =
+            publicationService.validateTrackNumbersAndReferenceLines(transition, listOf(designTrackNumber.id)).first()
+        assertTrue(
+            validation.errors.any {
+                it.type == LayoutValidationIssueType.FATAL &&
+                    it.localizationKey == LocalizationKey("validation.layout.track-number.duplicate-name-draft-in-main")
+            }
+        )
+    }
+
+    @Test
+    fun `duplicate location track from draft mode are found`() {
+        val trackNumber = mainOfficialContext.insert(trackNumber()).id
+        mainDraftContext.insert(
+            locationTrackAndAlignment(
+                trackNumber,
+                name = "ABC 123",
+                segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+            )
+        )
+        val design = testDBService.createDesignBranch()
+        val designLocationTrack =
+            testDBService
+                .testContext(design, OFFICIAL)
+                .insert(
+                    locationTrackAndAlignment(
+                        trackNumber,
+                        name = "ABC 123",
+                        segments = listOf(segment(Point(0.0, 0.0), Point(1.0, 1.0))),
+                    )
+                )
+        val transition = ValidateTransition(LayoutContextTransition.mergeToMainFrom(design))
+        val validation = publicationService.validateLocationTracks(transition, listOf(designLocationTrack.id)).first()
+        assertTrue(
+            validation.errors.any {
+                it.type == LayoutValidationIssueType.FATAL &&
+                    it.localizationKey == LocalizationKey("$VALIDATION_LOCATION_TRACK.duplicate-name-draft-in-main")
+            }
+        )
+    }
+
+    @Test
+    fun `reference lines are validated on merge to main`() {
+        val design = testDBService.createDesignBranch()
+        val designOfficialContext = testDBService.testContext(design, OFFICIAL)
+        val trackNumberId = designOfficialContext.insert(trackNumber()).id
+        val referenceLineId =
+            designOfficialContext
+                .insert(
+                    // segment with bendy alignment
+                    referenceLineAndAlignment(trackNumberId, segment(Point(0.0, 0.0), Point(1.0, 0.0), Point(0.0, 1.0)))
+                )
+                .id
+        val validated =
+            publicationService.validatePublicationCandidates(
+                publicationService.collectPublicationCandidates(MergeFromDesign(design)),
+                PublicationRequestIds(
+                    trackNumbers = listOf(trackNumberId),
+                    locationTracks = listOf(),
+                    kmPosts = listOf(),
+                    referenceLines = listOf(referenceLineId),
+                    switches = listOf(),
+                ),
+            )
+        val referenceLineIssues = validated.validatedAsPublicationUnit.referenceLines[0].issues
+        assertEquals(1, referenceLineIssues.size)
+        assertEquals(
+            LocalizationKey("validation.layout.reference-line.points.not-continuous"),
+            referenceLineIssues[0].localizationKey,
+        )
     }
 
     data class PublicationGroupTestData(

@@ -65,9 +65,9 @@ interface LayoutAssetReader<T : LayoutAsset<T>> {
 
     fun fetchVersions(layoutContext: LayoutContext, includeDeleted: Boolean): List<LayoutDaoResponse<T>>
 
-    fun fetchPublicationVersions(branch: LayoutBranch): List<ValidationVersion<T>>
+    fun fetchCandidateVersions(candidateContext: LayoutContext): List<ValidationVersion<T>>
 
-    fun fetchPublicationVersions(branch: LayoutBranch, ids: List<IntId<T>>): List<ValidationVersion<T>>
+    fun fetchCandidateVersions(candidateContext: LayoutContext, ids: List<IntId<T>>): List<ValidationVersion<T>>
 
     fun fetchVersion(layoutContext: LayoutContext, id: IntId<T>): LayoutRowVersion<T>?
 
@@ -118,19 +118,19 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
 
     abstract fun preloadCache()
 
-    private val allPublicationVersionsSql =
+    private val allCandidateVersionsSql =
         """
         select
           official_id,
           id as row_id,
           version as row_version
         from ${table.fullName}
-        where draft
+        where draft = (:publication_state::layout.publication_state = 'DRAFT')
           and design_id is not distinct from :design_id
     """
             .trimIndent()
 
-    private val publicationVersionsSql =
+    private val candidateVersionsSql =
         """
         select
           official_id,
@@ -138,21 +138,27 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
           version as row_version
         from ${table.fullName}
         where official_id in (:ids)
-          and draft
+          and draft = (:publication_state::layout.publication_state = 'DRAFT')
           and design_id is not distinct from :design_id
     """
             .trimIndent()
 
-    override fun fetchPublicationVersions(branch: LayoutBranch): List<ValidationVersion<T>> {
+    override fun fetchCandidateVersions(candidateContext: LayoutContext): List<ValidationVersion<T>> {
         return jdbcTemplate.query<ValidationVersion<T>>(
-            allPublicationVersionsSql,
-            mapOf("design_id" to branch.designId?.intValue),
+            allCandidateVersionsSql,
+            mapOf(
+                "publication_state" to candidateContext.state.name,
+                "design_id" to candidateContext.branch.designId?.intValue,
+            ),
         ) { rs, _ ->
             ValidationVersion(rs.getIntId("official_id"), rs.getLayoutRowVersion("row_id", "row_version"))
         }
     }
 
-    override fun fetchPublicationVersions(branch: LayoutBranch, ids: List<IntId<T>>): List<ValidationVersion<T>> {
+    override fun fetchCandidateVersions(
+        candidateContext: LayoutContext,
+        ids: List<IntId<T>>,
+    ): List<ValidationVersion<T>> {
         // Empty lists don't play nice in the SQL, but the result would be empty anyhow
         if (ids.isEmpty()) return listOf()
         val distinctIds = ids.distinct()
@@ -161,9 +167,14 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
                 "Requested publication versions with duplicate ids: duplicated=${ids.size - distinctIds.size} requested=$ids"
             )
         }
-        val params = mapOf("ids" to distinctIds.map { id -> id.intValue }, "design_id" to branch.designId?.intValue)
+        val params =
+            mapOf(
+                "ids" to distinctIds.map { id -> id.intValue },
+                "publication_state" to candidateContext.state.name,
+                "design_id" to candidateContext.branch.designId?.intValue,
+            )
         return jdbcTemplate
-            .query<ValidationVersion<T>>(publicationVersionsSql, params) { rs, _ ->
+            .query<ValidationVersion<T>>(candidateVersionsSql, params) { rs, _ ->
                 ValidationVersion(rs.getIntId("official_id"), rs.getLayoutRowVersion("row_id", "row_version"))
             }
             .also { found ->

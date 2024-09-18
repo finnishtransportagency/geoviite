@@ -21,6 +21,7 @@ import fi.fta.geoviite.infra.math.angleDiffRads
 import fi.fta.geoviite.infra.math.directionBetweenPoints
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
+import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.FATAL
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.WARNING
 import fi.fta.geoviite.infra.switchLibrary.SwitchConnectivity
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
@@ -80,26 +81,15 @@ fun validateTrackNumberReferences(
 fun validateTrackNumberNumberDuplication(
     trackNumber: TrackLayoutTrackNumber,
     duplicates: List<TrackLayoutTrackNumber>,
+    validationTargetType: ValidationTargetType,
 ): List<LayoutValidationIssue> {
     return if (trackNumber.exists) {
-        val officialDuplicateExists = duplicates.any { d -> d.id != trackNumber.id && d.isOfficial }
-        val draftDuplicateExists = duplicates.any { d -> d.id != trackNumber.id && d.isDraft }
-
-        listOfNotNull(
-            if (!draftDuplicateExists && officialDuplicateExists)
-                LayoutValidationIssue(
-                    ERROR,
-                    "$VALIDATION_TRACK_NUMBER.duplicate-name-official",
-                    mapOf("trackNumber" to trackNumber.number),
-                )
-            else null,
-            if (draftDuplicateExists)
-                LayoutValidationIssue(
-                    ERROR,
-                    "$VALIDATION_TRACK_NUMBER.duplicate-name-draft",
-                    mapOf("trackNumber" to trackNumber.number),
-                )
-            else null,
+        validateNameDuplication(
+            VALIDATION_TRACK_NUMBER,
+            validationTargetType,
+            duplicates.any { d -> d.id != trackNumber.id && d.isOfficial },
+            duplicates.any { d -> d.id != trackNumber.id && d.isDraft },
+            "trackNumber" to trackNumber.number,
         )
     } else {
         emptyList()
@@ -116,7 +106,11 @@ fun validateKmPostReferences(
         validateWithParams(trackNumber != null) {
             "$VALIDATION_KM_POST.track-number.not-published" to localizationParams("trackNumber" to trackNumberNumber)
         },
-        validateWithParams(referenceLine != null) {
+        // if the reference line doesn't exist, geocoding context validation doesn't happen, and
+        // that would cause duplicate km post validation to also be skipped, which then would let us
+        // get into a state where we hit the duplicate database constraint on km posts instead,
+        // hence this check also has to be fatal
+        validateWithParams(referenceLine != null, FATAL) {
             "$VALIDATION_KM_POST.reference-line.not-published" to localizationParams("trackNumber" to trackNumberNumber)
         },
         validateWithParams(!kmPost.exists || trackNumber == null || trackNumber.state.isLinkable()) {
@@ -146,21 +140,36 @@ fun validateSwitchLocationTrackLinkReferences(
 fun validateSwitchLocation(switch: TrackLayoutSwitch): List<LayoutValidationIssue> =
     listOfNotNull(validate(switch.joints.isNotEmpty()) { "$VALIDATION_SWITCH.no-location" })
 
+private fun validateNameDuplication(
+    messagePrefix: String,
+    validationTargetType: ValidationTargetType,
+    officialDuplicateExists: Boolean,
+    draftDuplicateExists: Boolean,
+    vararg params: Pair<String, Any?>,
+): List<LayoutValidationIssue> {
+    val isMergingToMain = validationTargetType == ValidationTargetType.MERGING_TO_MAIN
+    val key =
+        if (isMergingToMain && draftDuplicateExists) "duplicate-name-draft-in-main"
+        else if (draftDuplicateExists) "duplicate-name-draft"
+        else if (officialDuplicateExists) "duplicate-name-official" else null
+    return if (key == null) emptyList()
+    else {
+        listOf(validationFatal("$messagePrefix.$key", *params))
+    }
+}
+
 fun validateSwitchNameDuplication(
     switch: TrackLayoutSwitch,
     duplicates: List<TrackLayoutSwitch>,
+    validationTargetType: ValidationTargetType,
 ): List<LayoutValidationIssue> {
     return if (switch.exists) {
-        val officialDuplicateExists = duplicates.any { d -> d.id != switch.id && d.isOfficial }
-        val draftDuplicateExists = duplicates.any { d -> d.id != switch.id && d.isDraft }
-
-        listOfNotNull(
-            validateWithParams(draftDuplicateExists || !officialDuplicateExists) {
-                "$VALIDATION_SWITCH.duplicate-name-official" to localizationParams("switch" to switch.name)
-            },
-            validateWithParams(!draftDuplicateExists) {
-                "$VALIDATION_SWITCH.duplicate-name-draft" to localizationParams("switch" to switch.name)
-            },
+        validateNameDuplication(
+            VALIDATION_SWITCH,
+            validationTargetType,
+            duplicates.any { d -> d.id != switch.id && d.isOfficial },
+            duplicates.any { d -> d.id != switch.id && d.isDraft },
+            "switch" to switch.name,
         )
     } else {
         emptyList()
@@ -171,23 +180,18 @@ fun validateLocationTrackNameDuplication(
     track: LocationTrack,
     trackNumber: TrackNumber?,
     duplicates: List<LocationTrack>,
+    validationTargetType: ValidationTargetType,
 ): List<LayoutValidationIssue> {
     return if (track.exists && duplicates.any { d -> d.id != track.id }) {
-        // Location track names must be unique within the same track number, but there can be
-        // location tracks with the
-        // same name on other track numbers
-        val officialDuplicateExists =
-            duplicates.any { d -> d.id != track.id && d.isOfficial && d.trackNumberId == track.trackNumberId }
-        val draftDuplicateExists =
-            duplicates.any { d -> d.id != track.id && d.isDraft && d.trackNumberId == track.trackNumberId }
-        val localizationParams = localizationParams("locationTrack" to track.name, "trackNumber" to trackNumber)
-        return listOfNotNull(
-            validateWithParams(draftDuplicateExists || !officialDuplicateExists) {
-                "$VALIDATION_LOCATION_TRACK.duplicate-name-official" to localizationParams
-            },
-            validateWithParams(!draftDuplicateExists) {
-                "$VALIDATION_LOCATION_TRACK.duplicate-name-draft" to localizationParams
-            },
+        validateNameDuplication(
+            VALIDATION_LOCATION_TRACK,
+            validationTargetType,
+            // Location track names must be unique within the same track number, but there can be
+            // location tracks with the same name on other track numbers
+            duplicates.any { d -> d.id != track.id && d.isOfficial && d.trackNumberId == track.trackNumberId },
+            duplicates.any { d -> d.id != track.id && d.isDraft && d.trackNumberId == track.trackNumberId },
+            "locationTrack" to track.name,
+            "trackNumber" to trackNumber,
         )
     } else emptyList()
 }
@@ -776,7 +780,7 @@ fun validateGeocodingContext(
                     )
 
                 KmPostRejectedReason.DUPLICATE ->
-                    LayoutValidationIssue(ERROR, "$VALIDATION_GEOCODING.duplicate-km-posts", kmPostLocalizationParams)
+                    LayoutValidationIssue(FATAL, "$VALIDATION_GEOCODING.duplicate-km-posts", kmPostLocalizationParams)
             }
         }
 
@@ -1004,6 +1008,9 @@ fun <T> combineVersions(
     val validationVersions = validations.map { it.validatedAssetVersion }
     return (officialVersions + validationVersions).distinct()
 }
+
+fun validationFatal(key: String, vararg params: Pair<String, Any?>): LayoutValidationIssue =
+    LayoutValidationIssue(FATAL, key, params.associate { it })
 
 fun validationError(key: String, vararg params: Pair<String, Any?>): LayoutValidationIssue =
     LayoutValidationIssue(ERROR, key, params.associate { it })
