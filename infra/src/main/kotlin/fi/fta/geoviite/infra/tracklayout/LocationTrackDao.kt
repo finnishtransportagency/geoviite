@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.geometry.MetaDataName
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.math.BoundingBox
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.publication.ValidationTarget
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getBboxOrNull
@@ -436,6 +437,48 @@ class LocationTrackDao(
                 "names" to names.map { name -> name.toString().lowercase() }.joinToString(","),
             )
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getDaoResponse("official_id", "row_id", "row_version") }
+    }
+
+    fun fetchVersionsAround(
+        context: LayoutContext,
+        point: IPoint,
+        maxDistance: Double,
+    ): List<LayoutRowVersion<LocationTrack>> {
+        val sql =
+            """
+            select location_track.official_id, location_track.id, location_track.version
+              from (
+                select *
+                  from layout.location_track, layout.location_track_is_in_layout_context(
+                      :publication_state::layout.publication_state,
+                      :design_id, location_track)
+              ) location_track
+                join layout.alignment on alignment_id = alignment.id and alignment_version = alignment.version
+              where postgis.st_intersects(
+                  postgis.st_expand(postgis.st_point(:x, :y, :layout_srid), :max_distance),
+                  alignment.bounding_box
+                )
+                and exists(select *
+                             from layout.segment_version
+                               join layout.segment_geometry on geometry_id = segment_geometry.id
+                             where alignment_id = alignment.id
+                               and alignment_version = alignment.version
+                               and postgis.st_dwithin(postgis.st_point(:x, :y, :layout_srid), segment_geometry.geometry,
+                                                      :max_distance));
+        """
+                .trimIndent()
+
+        val params =
+            mapOf(
+                "x" to point.x,
+                "y" to point.y,
+                "max_distance" to maxDistance,
+                "layout_srid" to LAYOUT_SRID.code,
+                "publication_state" to context.state.name,
+                "design_id" to context.branch.designId?.intValue,
+            )
+
+        return jdbcTemplate.query(sql, params) { rs, _ -> rs.getLayoutRowVersion("id", "version") }
     }
 
     fun listNear(context: LayoutContext, bbox: BoundingBox): List<LocationTrack> =
