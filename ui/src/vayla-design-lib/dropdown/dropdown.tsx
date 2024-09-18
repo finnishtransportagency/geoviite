@@ -90,6 +90,10 @@ function nameStartsWith<TItemValue>(option: Item<TItemValue>, searchTerm: string
     return option.name.toUpperCase().startsWith(searchTerm.toUpperCase());
 }
 
+export function nameIncludes<TItemValue>(option: Item<TItemValue>, searchTerm: string) {
+    return option.name.toUpperCase().includes(searchTerm.toUpperCase());
+}
+
 export const Dropdown = function <TItemValue>({
     size = DropdownSize.MEDIUM,
     filter = nameStartsWith,
