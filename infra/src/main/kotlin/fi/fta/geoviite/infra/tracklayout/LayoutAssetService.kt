@@ -90,13 +90,15 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
 
     protected fun publishInternal(
         branch: LayoutBranch,
-        version: LayoutRowVersion<ObjectType>,
+        draftVersion: LayoutRowVersion<ObjectType>,
     ): LayoutDaoResponse<ObjectType> {
-        val draft = dao.fetch(version)
+        val draft = dao.fetch(draftVersion)
         require(branch == draft.branch) {
             "Draft branch does not match the publishing operation: branch=$branch draft=$draft"
         }
-        require(draft.isDraft) { "Object to publish is not a draft: version=$version context=${draft.contextData}" }
+        require(draft.isDraft) {
+            "Object to publish is not a draft: draftVersion=$draftVersion context=${draft.contextData}"
+        }
         val published = asOfficial(branch, draft)
         require(!published.isDraft) { "Published object is still a draft: context=${published.contextData}" }
         verifyObjectIsExisting(published)
@@ -105,18 +107,23 @@ abstract class LayoutAssetService<ObjectType : LayoutAsset<ObjectType>, DaoType 
             dao.update(published).also { r ->
                 require(r.id == draft.id) { "Publication response ID doesn't match object: id=${draft.id} updated=$r" }
             }
+        val publishedRowId = publicationResponse.rowVersion.rowId
         // If draft row-id changed, the data was updated to the official row -> delete the
         // now-redundant draft row
-        if (version.rowId != publicationResponse.rowVersion.rowId) {
-            dao.deleteRow(version.rowId)
+        if (draftVersion.rowId != publishedRowId) {
+            dao.deleteRow(draftVersion.rowId)
         }
-        // If main-draft was published and it came from a design row that wasn't updated, then that
-        // row is redundant too
-        if (
-            draft.branch == LayoutBranch.main && draft.contextData.designRowId != publicationResponse.rowVersion.rowId
-        ) {
-            draft.contextData.designRowId?.let(dao::deleteRow)
-        }
+
+        // When a design row is implemented into main-official, it ceases to be a part of the design
+        draft.contextData.designRowId
+            ?.takeIf { draft.branch == LayoutBranch.main }
+            ?.let { designRowId ->
+                // Update potential draft-design references to point to the new main row
+                dao.updateImplementedDesignDraftReferences(designRowId, publishedRowId)
+                // If the design row didn't become the main-row, it's redundant
+                if (designRowId != publishedRowId) dao.deleteRow(designRowId)
+            }
+
         return publicationResponse
     }
 

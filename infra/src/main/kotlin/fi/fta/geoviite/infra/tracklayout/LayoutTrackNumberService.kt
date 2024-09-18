@@ -24,8 +24,8 @@ import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.math.roundTo3Decimals
 import fi.fta.geoviite.infra.util.CsvEntry
 import fi.fta.geoviite.infra.util.printCsv
-import java.util.stream.Collectors
 import org.springframework.transaction.annotation.Transactional
+import java.util.stream.Collectors
 
 const val KM_LENGTHS_CSV_TRANSLATION_PREFIX = "data-products.km-lengths.csv"
 
@@ -45,7 +45,7 @@ class LayoutTrackNumberService(
 ) : LayoutAssetService<TrackLayoutTrackNumber, LayoutTrackNumberDao>(dao) {
 
     @Transactional
-    fun insert(branch: LayoutBranch, saveRequest: TrackNumberSaveRequest): IntId<TrackLayoutTrackNumber> {
+    fun insert(branch: LayoutBranch, saveRequest: TrackNumberSaveRequest): LayoutDaoResponse<TrackLayoutTrackNumber> {
         val draftSaveResponse =
             saveDraftInternal(
                 branch,
@@ -58,7 +58,7 @@ class LayoutTrackNumberService(
                 ),
             )
         referenceLineService.addTrackNumberReferenceLine(branch, draftSaveResponse.id, saveRequest.startAddress)
-        return draftSaveResponse.id
+        return draftSaveResponse
     }
 
     @Transactional
@@ -66,7 +66,7 @@ class LayoutTrackNumberService(
         branch: LayoutBranch,
         id: IntId<TrackLayoutTrackNumber>,
         saveRequest: TrackNumberSaveRequest,
-    ): IntId<TrackLayoutTrackNumber> {
+    ): LayoutDaoResponse<TrackLayoutTrackNumber> {
         val original = dao.getOrThrow(branch.draft, id)
         val draftSaveResponse =
             saveDraftInternal(
@@ -78,7 +78,7 @@ class LayoutTrackNumberService(
                 ),
             )
         referenceLineService.updateTrackNumberReferenceLine(branch, id, saveRequest.startAddress)
-        return draftSaveResponse.id
+        return draftSaveResponse
     }
 
     @Transactional
