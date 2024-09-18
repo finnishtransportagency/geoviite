@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
+import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.error.PublicationFailureException
 import fi.fta.geoviite.infra.error.SplitFailureException
 import fi.fta.geoviite.infra.geocoding.AddressPoint
@@ -298,19 +299,20 @@ class SplitService(
         target: SplitTarget,
         context: ValidationContext,
     ): Pair<List<AddressPoint>?, List<AddressPoint>?> {
-        val sourceMRange = getMRange(sourceTrack.getAlignmentVersionOrThrow(), target.segmentIndices)
+        val addressRange =
+            context.getGeocodingContext(sourceTrack.trackNumberId)?.let { ctx ->
+                getAddressRange(ctx, sourceTrack.getAlignmentVersionOrThrow(), target.segmentIndices)
+            }
         val sourceAddresses =
-            sourceMRange?.let { range ->
-                context.getAddressPoints(sourceTrack)?.integerPrecisionPoints?.filter { p -> p.point.m in range }
+            addressRange?.let { range ->
+                context.getAddressPoints(sourceTrack)?.integerPrecisionPoints?.filter { p -> p.address in range }
             }
 
-        val targetAddressStart = sourceAddresses?.firstOrNull()?.address
-        val targetAddressEnd = sourceAddresses?.lastOrNull()?.address
         val targetAddresses =
-            if (targetAddressStart != null && targetAddressEnd != null) {
+            if (addressRange != null) {
                 context.getAddressPoints(target.locationTrackId)?.integerPrecisionPoints?.let { points ->
                     if (target.operation == SplitTargetOperation.TRANSFER) {
-                        points.filter { p -> p.address in targetAddressStart..targetAddressEnd }
+                        points.filter { p -> p.address in addressRange }
                     } else {
                         points
                     }
@@ -322,15 +324,28 @@ class SplitService(
         return sourceAddresses to targetAddresses
     }
 
-    private fun getMRange(
+    private fun getAddressRange(
+        geocodingContext: GeocodingContext,
         alignmentVersion: RowVersion<LayoutAlignment>,
         segmentIndices: IntRange,
-    ): ClosedFloatingPointRange<Double>? {
+    ): ClosedRange<TrackMeter>? {
         val sourceAlignment = alignmentDao.fetch(alignmentVersion)
-        val sourceStartM = sourceAlignment.getSegmentStartM(segmentIndices.first)
-        val sourceEndM = sourceAlignment.getSegmentEndM(segmentIndices.last)
-        return if (sourceStartM != null && sourceEndM != null) {
-            sourceStartM..sourceEndM
+        val sourceStart =
+            sourceAlignment.segments
+                .getOrNull(segmentIndices.first)
+                ?.segmentStart
+                ?.let(geocodingContext::getAddress)
+                ?.first
+                ?.ceil()
+        val sourceEnd =
+            sourceAlignment.segments
+                .getOrNull(segmentIndices.last)
+                ?.segmentEnd
+                ?.let(geocodingContext::getAddress)
+                ?.first
+                ?.floor()
+        return if (sourceStart != null && sourceEnd != null) {
+            sourceStart..sourceEnd
         } else {
             null
         }

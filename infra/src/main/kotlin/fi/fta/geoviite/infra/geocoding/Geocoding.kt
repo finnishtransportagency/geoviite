@@ -39,14 +39,26 @@ import kotlin.math.abs
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+enum class AddressRoundingMode {
+    FLOOR,
+    CEILING,
+}
+
 data class AddressPoint(val point: AlignmentPoint, val address: TrackMeter) {
     fun isSame(other: AddressPoint) = address.isSame(other.address) && point.isSame(other.point)
 
-    fun withIntegerPrecision(): AddressPoint? =
+    fun withIntegerPrecision(rounding: AddressRoundingMode): AddressPoint? =
         if (address.hasIntegerPrecision()) {
             this
         } else if (address.matchesIntegerValue()) {
-            AddressPoint(point = point, address = address.floor())
+            AddressPoint(
+                point = point,
+                address =
+                    when (rounding) {
+                        AddressRoundingMode.FLOOR -> address.floor()
+                        AddressRoundingMode.CEILING -> address.ceil()
+                    },
+            )
         } else {
             null
         }
@@ -65,7 +77,15 @@ data class AlignmentAddresses(
     @get:JsonIgnore
     val integerPrecisionPoints: List<AddressPoint> by lazy {
         // midPoints are even anyhow, so just transform start/end
-        listOfNotNull(startPoint.withIntegerPrecision()) + midPoints + listOfNotNull(endPoint.withIntegerPrecision())
+        val start =
+            startPoint.withIntegerPrecision(AddressRoundingMode.CEILING)?.takeIf { s ->
+                midPoints.isEmpty() || s.address < midPoints.first().address
+            }
+        val end =
+            endPoint.withIntegerPrecision(AddressRoundingMode.FLOOR)?.takeIf { e ->
+                midPoints.isEmpty() || e.address > midPoints.last().address
+            }
+        listOfNotNull(start) + midPoints + listOfNotNull(end)
     }
 }
 
