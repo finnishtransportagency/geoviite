@@ -16,7 +16,6 @@ import fi.fta.geoviite.infra.geocoding.GeocodingService
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
 import fi.fta.geoviite.infra.math.Point
-import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
@@ -55,9 +54,10 @@ constructor(
     ): List<GeoJsonFeature> {
         val searchPoint = Point(request.x, request.y)
         val nearbyLocationTracks =
-            locationTrackService.listNearWithAlignments(
+            locationTrackService.listAroundWithAlignments(
                 layoutContext = layoutContext,
-                bbox = boundingBoxAroundPoint(searchPoint, request.searchRadius), // TODO GVT-2687 Radius != Bounding box
+                point = searchPoint,
+                maxDistance = request.searchRadius,
             )
 
         val trackNumbers = request.trackNumberName?.let { trackNumberService.mapById(layoutContext) } ?: emptyMap()
