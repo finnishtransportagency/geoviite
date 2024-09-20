@@ -111,6 +111,8 @@ constructor(override val kmNumber: KmNumber, override val meters: BigDecimal) : 
         }
 
         fun isMetersValid(v: Double) = isMetersValid(BigDecimal.valueOf(v))
+
+        fun isMetersValid(v: Int) = isMetersValid(v.toBigDecimal())
     }
 
     init {

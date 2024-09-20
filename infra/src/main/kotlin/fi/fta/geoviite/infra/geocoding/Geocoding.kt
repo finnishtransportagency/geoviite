@@ -164,21 +164,34 @@ data class GeocodingContext(
     }
     val allKms: List<KmNumber> by lazy { referencePoints.map(GeocodingReferencePoint::kmNumber).distinct() }
 
-    val startProjection: ProjectionLine by lazy {
-        val address = TrackMeter(referencePoints.first().kmNumber, referencePoints.first().meters)
-        val projectionLine = polyLineEdges.first().crossSectionAt(0.0)
-        ProjectionLine(address, projectionLine, 0.0)
+    val startProjection: ProjectionLine? by lazy {
+        val meters = referencePoints.first().meters
+        if (!TrackMeter.isMetersValid(meters)) null
+        else {
+            val address = TrackMeter(referencePoints.first().kmNumber, referencePoints.first().meters)
+            val projectionLine = polyLineEdges.first().crossSectionAt(0.0)
+            ProjectionLine(address, projectionLine, 0.0)
+        }
     }
 
-    val endProjection: ProjectionLine by lazy {
+    val endProjection: ProjectionLine? by lazy {
         val meters = referenceLineGeometry.length - referencePoints.last().let { p -> p.distance - p.meters.toDouble() }
-        val address = TrackMeter(referencePoints.last().kmNumber, meters, referencePoints.first().meters.scale())
-        val projectionLine = polyLineEdges.last().crossSectionAt(referenceLineGeometry.length)
-        ProjectionLine(address, projectionLine, referenceLineGeometry.length)
+        if (!TrackMeter.isMetersValid(meters)) null
+        else {
+            val address = TrackMeter(referencePoints.last().kmNumber, meters, referencePoints.first().meters.scale())
+            val projectionLine = polyLineEdges.last().crossSectionAt(referenceLineGeometry.length)
+            ProjectionLine(address, projectionLine, referenceLineGeometry.length)
+        }
     }
 
-    fun getProjectionLine(address: TrackMeter): ProjectionLine? =
-        if (address.decimalCount() == 0 || address <= startProjection.address || address >= endProjection.address) {
+    fun getProjectionLine(address: TrackMeter): ProjectionLine? {
+        val startProjection = startProjection
+        val endProjection = endProjection
+        return if (startProjection == null || endProjection == null) {
+            null
+        } else if (
+            address.decimalCount() == 0 || address <= startProjection.address || address >= endProjection.address
+        ) {
             findCachedProjectionLine(address)
         } else
             findCachedProjectionLine(address.floor())?.let { previous ->
@@ -187,13 +200,22 @@ data class GeocodingContext(
                     ProjectionLine(address, edge.crossSectionAt(distance), distance)
                 }
             }
+    }
 
-    private fun findCachedProjectionLine(address: TrackMeter) =
-        if (address !in startProjection.address..endProjection.address) null
+    private fun findCachedProjectionLine(address: TrackMeter): ProjectionLine? {
+        val startProjection = startProjection
+        val endProjection = endProjection
+        return if (
+            startProjection == null ||
+                endProjection == null ||
+                address !in startProjection.address..endProjection.address
+        )
+            null
         else if (address == startProjection.address) startProjection
         else if (address == endProjection.address) endProjection
         else if (projectionLines.isEmpty()) null
         else projectionLines.binarySearch { line -> line.address.compareTo(address) }.let(projectionLines::getOrNull)
+    }
 
     companion object {
         fun create(
@@ -525,6 +547,13 @@ private fun createProjectionLines(
         val minMeter = point.meters.setScale(0, RoundingMode.CEILING).toInt()
         val maxDistance = (addressPoints.getOrNull(index + 1)?.distance?.minus(MIN_METER_LENGTH) ?: endDistance)
         val maxMeter = (point.meters.toDouble() + maxDistance - point.distance).toInt()
+
+        // If the km posts or reference line are sufficiently broken to cause invalid track meters
+        // somewhere, it's probably bad enough that looking up track addresses is not useful, so we
+        // just bail out here.
+        if (!TrackMeter.isMetersValid(minMeter.toBigDecimal()) || !TrackMeter.isMetersValid(maxMeter.toBigDecimal())) {
+            return listOf()
+        }
 
         (minMeter..maxMeter step 1).map { meter ->
             val distance = point.distance + (meter.toDouble() - point.meters.toDouble())

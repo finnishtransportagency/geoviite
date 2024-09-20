@@ -228,10 +228,11 @@ class GeocodingTest {
     fun projectionLinesAndReverseGeocodingAgree() {
         val projections = (listOf(context.startProjection) + context.projectionLines + listOf(context.endProjection))
         projections.forEachIndexed { index, proj ->
+            assertNotNull(proj) // not a test assert, but they should in fact be not null
             if (index > 0)
                 assertTrue(
-                    projections[index - 1].address <= proj.address,
-                    "Projections should be in increasing order: index=$index prev=${projections[index-1].address} next=${proj.address}",
+                    projections[index - 1]!!.address <= proj.address,
+                    "Projections should be in increasing order: index=$index prev=${projections[index-1]!!.address} next=${proj.address}",
                 )
             val decimals = proj.address.decimalCount()
             assertEquals(proj.address, context.getAddress(proj.projection.start, decimals)!!.first)
@@ -794,6 +795,19 @@ class GeocodingTest {
             AddressPoint(point, TrackMeter("1234+1234.000")).withIntegerPrecision(),
         )
         assertNull(AddressPoint(point, TrackMeter("1234+1234.123")).withIntegerPrecision())
+    }
+
+    @Test
+    fun `getTrackLocation simply fails if projection lines would be invalid`() {
+        val referenceLineAlignment = LayoutAlignment(listOf(segment(Point(0.0, 0.0), Point(15000.0, 0.0))))
+        val result =
+            GeocodingContext.create(
+                trackNumber = TrackNumber("001"),
+                startAddress = TrackMeter(KmNumber(10), 100),
+                referenceLineGeometry = referenceLineAlignment,
+                kmPosts = listOf(),
+            )
+        assertNull(result.geocodingContext.getProjectionLine(TrackMeter(KmNumber(0), 100)))
     }
 
     private fun assertProjectionLinesMatch(result: List<ProjectionLine>, vararg expected: Pair<TrackMeter, Line>) {
