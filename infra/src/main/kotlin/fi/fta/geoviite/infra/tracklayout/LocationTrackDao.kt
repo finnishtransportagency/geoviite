@@ -492,42 +492,34 @@ class LocationTrackDao(
     ): List<LayoutRowVersion<LocationTrack>> {
         val sql =
             """
-            select row_id, row_version
+            select id as row_id, version as row_version
               from (
-                select official_id, id as row_id, version as row_version
-                  from layout.location_track
-                    join (
-                    select distinct alignment_id, alignment_version
-                      from layout.segment_version
-                        join layout.segment_geometry on segment_version.geometry_id = segment_geometry.id
-                        join layout.alignment
-                          on segment_version.alignment_id = alignment.id
-                            and segment_version.alignment_version = alignment.version
-                      where postgis.st_intersects(
-                          postgis.st_makeenvelope(
-                              :x_min, :y_min,
-                              :x_max, :y_max,
-                              :layout_srid
-                            ),
-                          segment_geometry.bounding_box
-                        )
-                        and postgis.st_intersects(
-                          postgis.st_makeenvelope(
-                              :x_min, :y_min,
-                              :x_max, :y_max,
-                              :layout_srid
-                            ),
-                          alignment.bounding_box
-                        )
-                  ) in_box using (alignment_id, alignment_version)
-                where (:track_number_id::int is null or track_number_id = :track_number_id)
-                    and (:include_deleted or state != 'DELETED')
-              ) location_track
-                join lateral (
                 select *
-                  from layout.location_track_in_layout_context(:publication_state::layout.publication_state,
-                                                               :design_id, location_track.official_id)
-                                                               ) in_layout_context using (row_id, row_version);
+                  from layout.location_track, layout.location_track_is_in_layout_context(
+                      :publication_state::layout.publication_state,
+                      :design_id, location_track)
+              ) location_track
+              where (:track_number_id::int is null or track_number_id = :track_number_id)
+                and (:include_deleted or state != 'DELETED')
+                and exists(
+                  select *
+                    from layout.alignment
+                    where location_track.alignment_id = alignment.id
+                      and location_track.alignment_version = alignment.version
+                      and postgis.st_intersects(postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                                                alignment.bounding_box)
+                      and exists(
+                        select *
+                          from layout.segment_version
+                            join layout.segment_geometry on geometry_id = segment_geometry.id
+                          where location_track.alignment_id = segment_version.alignment_id
+                            and location_track.alignment_version = segment_version.alignment_version
+                            and postgis.st_intersects(
+                              postgis.st_makeenvelope(:x_min, :y_min, :x_max, :y_max, :layout_srid),
+                              segment_geometry.bounding_box
+                            )
+                      )
+                );
         """
                 .trimIndent()
 
