@@ -140,12 +140,10 @@ constructor(
                 switchBaseType = switchStructure.baseType,
                 joints = layoutSwitch.joints,
             )
+        } catch (ex: RatkoPushException) {
+            throw ex
         } catch (ex: Exception) {
-            if (ex is RatkoPushException) {
-                throw ex
-            } else {
-                throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.UPDATE, ex)
-            }
+            throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.UPDATE, ex)
         }
     }
 
@@ -267,12 +265,10 @@ constructor(
                 switchBaseType = switchStructure.baseType,
                 joints = layoutSwitch.joints,
             )
+        } catch (ex: RatkoPushException) {
+            throw ex
         } catch (ex: Exception) {
-            if (ex is RatkoPushException) {
-                throw ex
-            } else {
-                throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.CREATE, ex)
-            }
+            throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.CREATE, ex)
         }
     }
 

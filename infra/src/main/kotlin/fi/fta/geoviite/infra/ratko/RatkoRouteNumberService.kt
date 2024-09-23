@@ -94,6 +94,8 @@ constructor(
 
             val routeNumberOid = RatkoOid<RatkoRouteNumber>(trackNumber.externalId)
             ratkoClient.deleteRouteNumberPoints(routeNumberOid, null)
+        } catch (ex: RatkoPushException) {
+            throw ex
         } catch (ex: Exception) {
             throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.DELETE, ex)
         }
@@ -137,6 +139,8 @@ constructor(
                 routeNumberOid = routeNumberOid,
                 newPoints = addresses.midPoints.filter { p -> changedKmNumbers.contains(p.address.kmNumber) },
             )
+        } catch (ex: RatkoPushException) {
+            throw ex
         } catch (ex: Exception) {
             throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.UPDATE, ex)
         }
@@ -168,6 +172,8 @@ constructor(
             if (trackNumber.state != LayoutState.DELETED) {
                 createRouteNumberPoints(routeNumberOid, addresses.midPoints)
             }
+        } catch (ex: RatkoPushException) {
+            throw ex
         } catch (ex: Exception) {
             throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.CREATE, ex)
         }

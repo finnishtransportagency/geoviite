@@ -1644,12 +1644,12 @@
         "transfer-starts-shortly": "Vienti käynnistyy automaattisesti hetken kuluttua",
         "bulk-transfer-marked-as-successful": "Kohteiden siirto merkitty onnistuneeksi",
         "push-error": {
+            "location-track": "Sijaintiraiteen",
+            "track-number": "Ratanumeron",
+            "switch": "Vaihteen",
             "connection-issue": "Yhteysvirhe Ratko-viennissä",
-            "internal-error": "Geoviitteen sisäinen virhe Ratko-viennissä. Ota yhteyttä kehitystiimiin.",
-            "location-track": "Sijaintiraiteen ({{name}})",
-            "track-number": "Ratanumeron ({{name}})",
-            "switch": "Vaihteen ({{name}})",
-            "failed": "epäonnistui"
+            "internal-error": "SISÄINEN VIRHE: {{assetType}} ({{name}}) {{operation}} epäonnistui. Ota yhteyttä {{geoviiteSupportEmail}}",
+            "ratko-error": "{{assetType}} ({{name}}) {{errorType}} {{operation}} epäonnistui"
         }
     },
     "split-details-dialog": {
@@ -1683,9 +1683,9 @@
         "connection-error-status-code": "Ratkoon ei saada yhteyttä. Virhe Ratko-yhteydessä ({{code}}). ",
         "integration-error-status-code": "Vika Ratko-integraatiossa ({{code}}) ",
         "temporary-error-status-code": "Tilapäinen vika Ratko-integraatiossa ({{code}}). Yritä myöhemmin uudelleen.",
-        "contact-geoviite-support": "Ota yhteyttä geoviite.support@solita.fi",
-        "contact-ratko-support": "Ota yhteyttä vayla.asiakkaat.fi@cgi.com",
-        "contact-ratko-support-if-needed": "Tilanteen jatkuessa ota yhteyttä vayla.asiakkaat.fi@cgi.com"
+        "contact-geoviite-support": "Ota yhteyttä {{geoviiteSupportEmail}}",
+        "contact-ratko-support": "Ota yhteyttä {{ratkoSupportEmail}}",
+        "contact-ratko-support-if-needed": "Tilanteen jatkuessa ota yhteyttä {{ratkoSupportEmail}}"
     },
     "publishing": {
         "publish-to-ratko": "Vie Ratkoon",
