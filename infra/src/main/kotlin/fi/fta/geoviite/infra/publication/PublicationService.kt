@@ -868,7 +868,8 @@ constructor(
         return publicationDao.getPublication(id).let { publication ->
             splitService.getSplitIdByPublicationId(id)?.let { splitId ->
                 val split = splitService.getOrThrow(splitId)
-                val sourceLocationTrack = locationTrackDao.fetch(split.sourceLocationTrackVersion)
+                val (sourceLocationTrack, sourceAlignment) =
+                    locationTrackService.getWithAlignment(split.sourceLocationTrackVersion)
                 val targetLocationTracks =
                     publicationDao
                         .fetchPublishedLocationTracks(id)
@@ -876,6 +877,7 @@ constructor(
                         .distinct()
                         .mapNotNull { v ->
                             createSplitTargetInPublication(
+                                sourceAlignment = sourceAlignment,
                                 rowVersion = v,
                                 publicationBranch = publication.layoutBranch,
                                 publicationTime = publication.publicationTime,
@@ -894,6 +896,7 @@ constructor(
     }
 
     private fun createSplitTargetInPublication(
+        sourceAlignment: LayoutAlignment,
         rowVersion: LayoutRowVersion<LocationTrack>,
         publicationBranch: LayoutBranch,
         publicationTime: Instant,
@@ -903,12 +906,21 @@ constructor(
         return split.getTargetLocationTrack(track.id as IntId)?.let { target ->
             val ctx =
                 geocodingService.getGeocodingContextAtMoment(publicationBranch, track.trackNumberId, publicationTime)
+
+            val (startPoint, endPoint) =
+                when (target.operation) {
+                    SplitTargetOperation.TRANSFER ->
+                        sourceAlignment.segments[target.segmentIndices.first].segmentStart to
+                            sourceAlignment.segments[target.segmentIndices.last].segmentEnd
+                    else -> alignment.start to alignment.end
+                }
+
             return SplitTargetInPublication(
                 id = track.id,
                 name = track.name,
                 oid = track.externalId,
-                startAddress = alignment.start?.let { start -> ctx?.getAddress(start)?.first },
-                endAddress = alignment.end?.let { end -> ctx?.getAddress(end)?.first },
+                startAddress = startPoint?.let { start -> ctx?.getAddress(start)?.first },
+                endAddress = endPoint?.let { end -> ctx?.getAddress(end)?.first },
                 operation = target.operation,
             )
         }
