@@ -8,6 +8,7 @@ import { RatkoAssetType, RatkoPushErrorAsset } from 'ratko/ratko-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { useLayoutDesign } from 'track-layout/track-layout-react-utils';
 import { getChangeTimes } from 'common/change-time-api';
+import { GEOVIITE_SUPPORT_EMAIL } from 'publication/card/publication-card';
 
 type RatkoPushErrorDetailsProps = {
     failedPublication: PublicationDetails;
@@ -55,11 +56,20 @@ export const RatkoPushErrorDetails: React.FC<RatkoPushErrorDetailsProps> = ({
 
     const isInternalError = error.errorType === 'INTERNAL';
 
-    const ratkoErrorString = `${t(assetTranslationKeyByType(error), { name: assetNameByType(error) })} ${t(
-        `enum.ratko-push-error-type.${error.errorType}`,
-    )} ${t(`enum.ratko-push-error-operation.${error.operation}`)} ${t('publication-card.push-error.failed')}`;
+    const ratkoErrorString = t('publication-card.push-error.ratko-error', {
+        assetType: t(assetTranslationKeyByType(error)),
+        errorType: t(`enum.ratko-push-error-type.${error.errorType}`),
+        name: assetNameByType(error),
+        operation: t(`enum.ratko-push-error-operation.${error.operation}`),
+    });
 
-    const internalErrorString = t('publication-card.push-error.internal-error');
+    const internalErrorString = t('publication-card.push-error.internal-error', {
+        assetType: t(assetTranslationKeyByType(error)),
+        errorType: t(`enum.ratko-push-error-type.${error.errorType}`),
+        name: assetNameByType(error),
+        operation: t(`enum.ratko-push-error-operation.${error.operation}`),
+        geoviiteSupportEmail: GEOVIITE_SUPPORT_EMAIL,
+    });
 
     return (
         <div className={styles['ratko-push-error']}>

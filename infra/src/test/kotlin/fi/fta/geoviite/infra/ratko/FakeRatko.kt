@@ -84,6 +84,16 @@ class FakeRatko(port: Int) {
         }
     }
 
+    fun acceptsNewRouteNumbersWithoutPointsGivingThemOids(oids: List<String>) {
+        patch("/api/infra/v1.0/routenumbers/geom", oids).respond(ok())
+
+        oids.forEach { oid ->
+            post("/api/infra/v1.0/routenumber/points/$oid", times = Times.exactly(0)).respond(ok())
+            post("/api/infra/v1.0/routenumbers", mapOf("id" to oid)).respond(okJson(mapOf("id" to oid)))
+            post("/api/infra/v1.0/routenumbers", times = Times.once()).respond(okJson(mapOf("id" to oid)))
+        }
+    }
+
     fun acceptsNewLocationTrackGivingItOid(oid: String) {
         post("/api/infra/v1.0/locationtracks", mapOf<String, String>(), MatchType.STRICT, Times.once())
             .respond(okJson(mapOf("id" to oid)))
@@ -96,12 +106,33 @@ class FakeRatko(port: Int) {
             .respond(okJson(listOf(mapOf("id" to oid))))
     }
 
+    fun acceptsNewLocationTrackWithoutPointsGivingItOid(oid: String) {
+        post("/api/infra/v1.0/locationtracks", mapOf<String, String>(), MatchType.STRICT, Times.once())
+            .respond(okJson(mapOf("id" to oid)))
+        put("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(ok())
+        get("/api/locations/v1.1/locationtracks/${oid}", Times.once()).respond(okJson(listOf<Unit>()))
+        post("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
+        patch("/api/infra/v1.0/points/${oid}", times = Times.exactly(0)).respond(ok())
+        post("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(okJson(mapOf("id" to oid)))
+        post("/api/assets/v1.2", mapOf("type" to RatkoAssetType.METADATA.value))
+            .respond(okJson(listOf(mapOf("id" to oid))))
+    }
+
     fun acceptsNewSwitchGivingItOid(oid: String) {
         post("/api/assets/v1.2", mapOf("type" to "turnout", "id" to oid)).respond(okJson(listOf(mapOf("id" to oid))))
         put("/api/assets/v1.2/${oid}/locations").respond(ok())
         put("/api/assets/v1.2/${oid}/geoms").respond(ok())
         put("/api/assets/v1.2/${oid}/properties").respond(ok())
         post("/api/assets/v1.2", mapOf("type" to "turnout"), MatchType.STRICT, times = Times.once())
+            .respond(okJson(listOf(mapOf("id" to oid))))
+    }
+
+    fun acceptsNewSwitchWithoutDataGivingItOid(oid: String) {
+        post("/api/assets/v1.2", mapOf("type" to "turnout", "id" to oid)).respond(okJson(listOf(mapOf("id" to oid))))
+        put("/api/assets/v1.2/${oid}/locations", Times.exactly(0)).respond(ok())
+        put("/api/assets/v1.2/${oid}/geoms", times = Times.exactly(0)).respond(ok())
+        put("/api/assets/v1.2/${oid}/properties", times = Times.exactly(0)).respond(ok())
+        post("/api/assets/v1.2", mapOf("type" to "turnout"), MatchType.STRICT)
             .respond(okJson(listOf(mapOf("id" to oid))))
     }
 
@@ -228,6 +259,11 @@ class FakeRatko(port: Int) {
             )
             .last()
             .bodyAsString!!
+
+    fun hostLocationTrackOid(oid: String) {
+        put("/api/infra/v1.0/locationtracks", mapOf("id" to oid)).respond(ok())
+        get("/api/locations/v1.1/locationtracks/${oid}").respond(ok())
+    }
 
     fun hostPushedLocationTrack(oid: String) {
         val tree = jsonMapper.readTree(lastPushedLocationTrackBody(oid))

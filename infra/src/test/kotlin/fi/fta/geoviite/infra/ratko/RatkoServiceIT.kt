@@ -45,6 +45,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutKmPostService
 import fi.fta.geoviite.infra.tracklayout.LayoutSegment
 import fi.fta.geoviite.infra.tracklayout.LayoutState
+import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchService
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
@@ -259,7 +260,7 @@ constructor(
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
         fakeRatko.hostPushedLocationTrack("2.3.4.5.6")
         val officialVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.official, locationTrackOriginal.id)
-        val createdPush = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")
+        val createdPush = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")!!
         assertEquals("abcde", createdPush.name)
         assertEquals("cdefg", createdPush.description)
         assertEquals(RatkoAssetState.BUILT.name, createdPush.state.name)
@@ -272,7 +273,7 @@ constructor(
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
 
         assertEquals(listOf(""), fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6"))
-        val deletedPush = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")
+        val deletedPush = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")!!
         assertEquals(RatkoLocationTrackState.DELETED.name, deletedPush.state.name)
     }
 
@@ -315,7 +316,7 @@ constructor(
             ),
         )
         publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
-        val pushed = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")
+        val pushed = fakeRatko.getLastPushedLocationTrack("2.3.4.5.6")!!
         val createdPoints = fakeRatko.getCreatedLocationTrackPoints("2.3.4.5.6")
         val updatedPoints = fakeRatko.getUpdatedLocationTrackPoints("2.3.4.5.6")
         val deletedPoints = fakeRatko.getLocationTrackPointDeletions("2.3.4.5.6")
@@ -460,6 +461,41 @@ constructor(
         assertTrue(createdPoints[0].subList(1, 8).all { p -> p.geometry!!.coordinates[1] > 0.0 })
         assertEquals(List(9) { 0.0 }, updatedPoints[0].map { p -> p.geometry!!.coordinates[1] })
         assertEquals(listOf("0000"), deletedPoints)
+    }
+
+    @Test
+    fun `push new deleted location track without points`() {
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        val trackNumberId =
+            layoutTrackNumberDao
+                .insert(trackNumber(trackNumber, description = "augh", externalId = Oid("1.2.3.4.5"), draft = false))
+                .id
+        insertSomeOfficialReferenceLineFor(trackNumberId)
+
+        val locationTrackOriginal =
+            locationTrackService.saveDraft(
+                LayoutBranch.main,
+                locationTrack(
+                    trackNumberId,
+                    name = "abcde",
+                    description = "cdefg",
+                    type = LocationTrackType.CHORD,
+                    externalId = null,
+                    draft = true,
+                    state = LocationTrackState.DELETED,
+                ),
+                alignment(segment(Point(0.0, 0.0), Point(1.0, 0.0), Point(5.0, 3.0), Point(9.0, 0.0), Point(10.0, 0.0))),
+            )
+        fakeRatko.acceptsNewLocationTrackWithoutPointsGivingItOid("2.3.4.5.6")
+        publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
+        fakeRatko.hostLocationTrackOid("2.3.4.5.6")
+        val officialVersion = locationTrackDao.fetchVersionOrThrow(MainLayoutContext.official, locationTrackOriginal.id)
+        locationTrackService.saveDraft(
+            LayoutBranch.main,
+            asMainDraft(locationTrackDao.fetch(officialVersion)),
+            alignment(segment(Point(0.0, 0.0), Point(10.0, 0.0))),
+        )
+        publishAndPush(locationTracks = listOf(locationTrackOriginal.id))
     }
 
     @Test
@@ -681,6 +717,43 @@ constructor(
     }
 
     @Test
+    fun `push new deleted track number and reference line without points`() {
+        val trackNumber = testDBService.getUnusedTrackNumber()
+        val originalTrackNumber =
+            trackNumberService.saveDraft(
+                LayoutBranch.main,
+                trackNumber(
+                    trackNumber,
+                    description = "augh",
+                    externalId = null,
+                    draft = true,
+                    state = LayoutState.DELETED,
+                ),
+            )
+        val originalReferenceLineDaoResponse =
+            referenceLineService.saveDraft(
+                LayoutBranch.main,
+                referenceLine(originalTrackNumber.id, draft = true),
+                alignment(
+                    segment(
+                        Point(0.0, 0.0),
+                        Point(10.0, 0.0),
+                        Point(20.0, 1.0), // reference line has bump
+                        Point(30.0, 0.0),
+                        Point(40.0, 0.0),
+                    )
+                ),
+            )
+
+        fakeRatko.acceptsNewRouteNumbersWithoutPointsGivingThemOids(listOf("1.2.3.4.5"))
+        publishAndPush(
+            trackNumbers = listOf(originalTrackNumber.id),
+            referenceLines = listOf(originalReferenceLineDaoResponse.id),
+        )
+        fakeRatko.hasRouteNumber(ratkoRouteNumber("1.2.3.4.5"))
+    }
+
+    @Test
     fun removeKmPostBeforeSwitch() {
         val trackNumber = testDBService.getUnusedTrackNumber()
         val trackNumberId =
@@ -856,6 +929,23 @@ constructor(
     }
 
     @Test
+    fun `push new deleted switch without data`() {
+        val trackNumber = establishedTrackNumber()
+
+        val (switch, throughTrack, branchingTrack) =
+            setupDraftSwitchAndLocationTracks(
+                trackNumber.id,
+                "TV123",
+                switchStateCategory = LayoutStateCategory.NOT_EXISTING,
+            )
+
+        listOf("1.2.3.4.5", "2.3.4.5.6").forEach(fakeRatko::acceptsNewLocationTrackGivingItOid)
+        fakeRatko.acceptsNewSwitchWithoutDataGivingItOid("3.4.5.6.7")
+
+        publishAndPush(locationTracks = listOf(throughTrack.id, branchingTrack.id), switches = listOf(switch.id))
+    }
+
+    @Test
     fun moveSwitch() {
         val trackNumber = establishedTrackNumber()
 
@@ -929,6 +1019,7 @@ constructor(
     private fun setupDraftSwitchAndLocationTracks(
         trackNumberId: IntId<TrackLayoutTrackNumber>,
         switchName: String = "TV123",
+        switchStateCategory: LayoutStateCategory = LayoutStateCategory.EXISTING,
     ): Triple<
         LayoutDaoResponse<TrackLayoutSwitch>,
         LayoutDaoResponse<LocationTrack>,
@@ -953,6 +1044,7 @@ constructor(
                                 ),
                         ),
                     draft = true,
+                    stateCategory = switchStateCategory,
                 ),
             )
         val throughTrack =

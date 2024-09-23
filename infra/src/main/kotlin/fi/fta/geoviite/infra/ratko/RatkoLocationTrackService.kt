@@ -162,12 +162,10 @@ constructor(
             val layoutLocationTrackWithOid = layoutLocationTrack.copy(externalId = Oid(locationTrackOid.id))
             val allPoints = listOf(addresses.startPoint) + midPoints + listOf(addresses.endPoint)
             createLocationTrackMetadata(branch, layoutLocationTrackWithOid, allPoints, trackNumberOid, moment)
+        } catch (ex: RatkoPushException) {
+            throw ex
         } catch (ex: Exception) {
-            if (ex is RatkoPushException) {
-                throw ex
-            } else {
-                throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.CREATE, ex)
-            }
+            throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.CREATE, ex)
         }
     }
 
@@ -300,12 +298,10 @@ constructor(
             )
 
             ratkoClient.deleteLocationTrackPoints(RatkoOid(layoutLocationTrack.externalId), null)
+        } catch (ex: RatkoPushException) {
+            throw ex
         } catch (ex: Exception) {
-            if (ex is RatkoPushException) {
-                throw ex
-            } else {
-                throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.DELETE, ex)
-            }
+            throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.DELETE, ex)
         }
     }
 
@@ -368,12 +364,10 @@ constructor(
                 moment = moment,
                 changedKmNumbers = changedKmNumbers,
             )
+        } catch (ex: RatkoPushException) {
+            throw ex
         } catch (ex: Exception) {
-            if (ex is RatkoPushException) {
-                throw ex
-            } else {
-                throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.UPDATE, ex)
-            }
+            throw RatkoPushException(RatkoPushErrorType.INTERNAL, RatkoOperation.UPDATE, ex)
         }
     }
 

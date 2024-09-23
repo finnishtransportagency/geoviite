@@ -33,12 +33,18 @@ type PublishListProps = {
     branchType: LayoutBranchType;
 };
 
+const RATKO_SUPPORT_EMAIL = 'vayla.asiakkaat.fi@cgi.com';
+export const GEOVIITE_SUPPORT_EMAIL = 'geoviite.support@solita.fi';
+
 const parseRatkoConnectionError = (errorType: string, ratkoStatusCode: number, contact: string) => {
     return (
         <span>
             {i18n.t(`error-in-ratko-connection.${errorType}`, { code: ratkoStatusCode })}
             <br />
-            {i18n.t(`error-in-ratko-connection.${contact}`)}
+            {i18n.t(`error-in-ratko-connection.${contact}`, {
+                geoviiteSupportEmail: GEOVIITE_SUPPORT_EMAIL,
+                ratkoSupportEmail: RATKO_SUPPORT_EMAIL,
+            })}
         </span>
     );
 };
