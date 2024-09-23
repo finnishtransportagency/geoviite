@@ -929,7 +929,7 @@ constructor(
     }
 
     @Test
-    fun `push new deleted switch without points`() {
+    fun `push new deleted switch without data`() {
         val trackNumber = establishedTrackNumber()
 
         val (switch, throughTrack, branchingTrack) =
