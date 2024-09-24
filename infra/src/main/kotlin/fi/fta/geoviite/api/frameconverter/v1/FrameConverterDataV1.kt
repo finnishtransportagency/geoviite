@@ -19,29 +19,6 @@ import fi.fta.geoviite.infra.util.FreeText
 
 typealias FrameConverterIdentifierV1 = FreeText
 
-// typealias FrameConverterResponseSettingsV1 = Set<FrameConverterResponseSettingV1>
-
-/// **
-// * @property FeatureMatchSimple Response will include all fields from [FeatureMatchBasicV1]
-// * @property FeatureGeometry Response will include geometry data, such as [GeoJsonGeometryPoint]
-// * @property FeatureMatchDetails Response will include detailed data depending on request, such as
-// *   [FeatureMatchDetailsV1]
-// * @property INVALID Response will include an error when this value was mapped to the set of
-// response settings.
-// */
-// enum class FrameConverterResponseSettingV1(val code: Int) {
-//    FeatureMatchSimple(1),
-//    FeatureGeometry(5),
-//    FeatureMatchDetails(10),
-//    INVALID(-1);
-//
-//    companion object {
-//        private val map = entries.associateBy(FrameConverterResponseSettingV1::code)
-//
-//        fun fromValue(type: Int) = map[type] ?: INVALID
-//    }
-// }
-
 data class FrameConverterStringV1(val value: String) {
     init {
         require(value.length <= MAX_LENGTH) { "String field length must be at most $MAX_LENGTH characters" }
