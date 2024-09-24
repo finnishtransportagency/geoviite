@@ -20,7 +20,6 @@ enum class FrameConverterErrorV1(private val localizationSuffix: String) {
     InvalidTrackNumberName("invalid-track-number-name"),
     InvalidLocationTrackName("invalid-location-track-name"),
     InvalidLocationTrackType("invalid-location-track-type"),
-    InvalidResponseSettings("invalid-response-settings"),
     InvalidTrackAddress("invalid-track-address"),
     TrackNumberNotFound("track-number-not-found");
 

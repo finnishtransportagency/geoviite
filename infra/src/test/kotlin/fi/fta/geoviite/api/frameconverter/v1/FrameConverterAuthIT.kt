@@ -16,7 +16,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 
-private const val API_URI = "/rata-vkm/v1"
+private val API_URLS = listOf("/rata-vkm/v1/rataosoitteet", "/rata-vkm/v1/koordinaatit")
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class], properties = ["geoviite.skip-auth=false"])
@@ -30,7 +30,9 @@ class FrameConverterAuthIT @Autowired constructor(mockMvc: MockMvc) {
     fun `Unset api host should not work`() {
         val headers = HttpHeaders()
 
-        fetchAuthorizedFeatureCollectionOrNull(headers, expectedStatus = HttpStatus.UNAUTHORIZED)
+        API_URLS.forEach { apiUrl ->
+            fetchAuthorizedFeatureCollectionOrNull(headers, apiUrl, expectedStatus = HttpStatus.UNAUTHORIZED)
+        }
     }
 
     @Test
@@ -38,7 +40,9 @@ class FrameConverterAuthIT @Autowired constructor(mockMvc: MockMvc) {
         val headers = HttpHeaders()
         headers.set("X-Forwarded-Host", "")
 
-        fetchAuthorizedFeatureCollectionOrNull(headers, expectedStatus = HttpStatus.UNAUTHORIZED)
+        API_URLS.forEach { apiUrl ->
+            fetchAuthorizedFeatureCollectionOrNull(headers, apiUrl, expectedStatus = HttpStatus.UNAUTHORIZED)
+        }
     }
 
     @Test
@@ -46,7 +50,9 @@ class FrameConverterAuthIT @Autowired constructor(mockMvc: MockMvc) {
         val headers = HttpHeaders()
         headers.set("X-Forwarded-Host", "asd.something.test")
 
-        fetchAuthorizedFeatureCollectionOrNull(headers, expectedStatus = HttpStatus.UNAUTHORIZED)
+        API_URLS.forEach { apiUrl ->
+            fetchAuthorizedFeatureCollectionOrNull(headers, apiUrl, expectedStatus = HttpStatus.UNAUTHORIZED)
+        }
     }
 
     @Test
@@ -54,7 +60,9 @@ class FrameConverterAuthIT @Autowired constructor(mockMvc: MockMvc) {
         val headers = HttpHeaders()
         headers.set("X-Forwarded-Host", "http://asd.example.test")
 
-        fetchAuthorizedFeatureCollectionOrNull(headers, expectedStatus = HttpStatus.UNAUTHORIZED)
+        API_URLS.forEach { apiUrl ->
+            fetchAuthorizedFeatureCollectionOrNull(headers, apiUrl, expectedStatus = HttpStatus.UNAUTHORIZED)
+        }
     }
 
     @Test
@@ -62,9 +70,10 @@ class FrameConverterAuthIT @Autowired constructor(mockMvc: MockMvc) {
         val headers = HttpHeaders()
         headers.set("X-Forwarded-Host", "avoinapi.example.test")
 
-        val featureCollection = fetchAuthorizedFeatureCollectionOrNull(headers)
-
-        assertNotNull(featureCollection!!.features[0].properties?.get("virheet"))
+        API_URLS.forEach { apiUrl ->
+            val featureCollection = fetchAuthorizedFeatureCollectionOrNull(headers, apiUrl)
+            assertNotNull(featureCollection!!.features[0].properties?.get("virheet"))
+        }
     }
 
     @Test
@@ -72,16 +81,18 @@ class FrameConverterAuthIT @Autowired constructor(mockMvc: MockMvc) {
         val headers = HttpHeaders()
         headers.set("X-Forwarded-Host", "api.example.test")
 
-        val featureCollection = fetchAuthorizedFeatureCollectionOrNull(headers)
-        assertNotNull(featureCollection!!.features[0].properties?.get("virheet"))
+        API_URLS.forEach { apiUrl ->
+            val featureCollection = fetchAuthorizedFeatureCollectionOrNull(headers, apiUrl)
+            assertNotNull(featureCollection!!.features[0].properties?.get("virheet"))
+        }
     }
 
     private fun fetchAuthorizedFeatureCollectionOrNull(
         headers: HttpHeaders,
-        apiUri: String = API_URI,
+        apiUrl: String,
         expectedStatus: HttpStatus = HttpStatus.OK,
     ): TestGeoJsonFeatureCollection? {
-        return testApi.doPostWithParams(apiUri, emptyMap(), expectedStatus, headers).let { body ->
+        return testApi.doGetWithParams(apiUrl, emptyMap(), expectedStatus, headers).let { body ->
             try {
                 mapper.readValue(body, TestGeoJsonFeatureCollection::class.java)
             } catch (e: ValueInstantiationException) {

@@ -1,102 +1,103 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.module.SimpleModule
-import fi.fta.geoviite.api.aspects.GeoviiteIntegrationApiController
+import com.fasterxml.jackson.module.kotlin.readValue
+import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeature
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeatureCollection
 import fi.fta.geoviite.infra.authorization.AUTH_API_FRAME_CONVERTER
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
-import fi.fta.geoviite.infra.error.IntegrationApiExceptionV1
-import fi.fta.geoviite.infra.localization.LocalizationLanguage
-import fi.fta.geoviite.infra.localization.LocalizationService
+import fi.fta.geoviite.infra.error.ExtApiExceptionV1
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.ExampleObject
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.context.annotation.Bean
-import org.springframework.context.annotation.Configuration
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
 import org.springframework.security.access.prepost.PreAuthorize
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestMethod
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
 
-@Configuration
-class FrameConverterApiObjectMapperV1 {
-
-    @Bean
-    fun objectMapper(builder: Jackson2ObjectMapperBuilder): ObjectMapper {
-        val module = SimpleModule()
-        module.addDeserializer(FrameConverterRequestV1::class.java, FrameConverterRequestDeserializerV1())
-        return builder.build<ObjectMapper>().registerModule(module)
-    }
-}
-
 @PreAuthorize(AUTH_API_FRAME_CONVERTER)
-@GeoviiteIntegrationApiController(
-    [
-        "/rata-vkm",
-        "/rata-vkm/dev",
-        "/rata-vkm/v1",
-        "/rata-vkm/dev/v1",
-
-        // Trailing slashes are also supported in the frame converter.
-        "/rata-vkm/",
-        "/rata-vkm/dev/",
-        "/rata-vkm/v1/",
-        "/rata-vkm/dev/v1/",
-    ]
-)
+@GeoviiteExtApiController(["/rata-vkm/v1", "/rata-vkm/dev/v1"])
+@Tag(name = "Rata-VKM", description = "Rata VKM APIs")
 class FrameConverterControllerV1
 @Autowired
-constructor(
-    private val objectMapper: ObjectMapper,
-    private val frameConverterServiceV1: FrameConverterServiceV1,
-    private val localizationService: LocalizationService,
-) {
+constructor(private val objectMapper: ObjectMapper, private val frameConverterServiceV1: FrameConverterServiceV1) {
 
-    @RequestMapping(method = [RequestMethod.GET, RequestMethod.POST], params = ["json"])
-    fun multiInputTransform(
-        @RequestParam(name = "json") requests: List<FrameConverterRequestV1>?
-    ): GeoJsonFeatureCollection {
-        val parsedRequests = requests ?: emptyList()
-
-        return GeoJsonFeatureCollection(features = parsedRequests.flatMap(::processRequest))
-    }
-
-    @RequestMapping(method = [RequestMethod.GET, RequestMethod.POST], params = ["!json", "x", "y"])
-    fun coordinateToTrackAddressRequest(@RequestParam params: Map<String, String?>): GeoJsonFeatureCollection {
-        val jsonString = objectMapper.writeValueAsString(params)
-        val request = objectMapper.readValue(jsonString, CoordinateToTrackAddressRequestV1::class.java)
-
-        return GeoJsonFeatureCollection(features = processRequest(request))
-    }
-
-    @RequestMapping(method = [RequestMethod.GET, RequestMethod.POST], params = ["!json", "ratanumero"])
-    fun trackAddressToCoordinateRequest(@RequestParam params: Map<String, String?>): GeoJsonFeatureCollection {
+    @Operation(
+        responses =
+            [
+                ApiResponse(
+                    content =
+                        arrayOf(
+                            Content(
+                                mediaType = "application/json",
+                                examples =
+                                    arrayOf(
+                                        ExampleObject(
+                                            name = "toto",
+                                            externalValue =
+                                                "http://localhost:8080/static/example-request-coordinate-to-track-address.json",
+                                        )
+                                    ),
+                            )
+                        )
+                )
+            ]
+    )
+    @GetMapping("/koordinaatit", "/koordinaatit/")
+    fun trackAddressToCoordinateRequestSingle(@RequestParam params: Map<String, String?>): GeoJsonFeatureCollection {
         val jsonString = objectMapper.writeValueAsString(params)
         val request = objectMapper.readValue(jsonString, TrackAddressToCoordinateRequestV1::class.java)
+        val queryParams = objectMapper.readValue(jsonString, FrameConverterQueryParamsV1::class.java)
 
-        return GeoJsonFeatureCollection(features = processRequest(request))
+        return GeoJsonFeatureCollection(features = processRequest(request, queryParams))
     }
 
-    @RequestMapping(method = [RequestMethod.GET, RequestMethod.POST], params = ["!json"])
-    fun invalidRequest(): GeoJsonFeatureCollection {
-        return GeoJsonFeatureCollection(
-            features =
-                GeoJsonFeatureErrorResponseV1(
-                        identifier = null,
-                        errorMessages =
-                            localizationService.getLocalization(LocalizationLanguage.FI).t("ext-api.error.bad-request"),
-                    )
-                    .let(::listOf)
-        )
+    @PostMapping("/koordinaatit", "/koordinaatit/")
+    fun trackAddressToCoordinateRequestBatch(
+        @RequestParam params: Map<String, String?>,
+        @RequestBody requests: List<TrackAddressToCoordinateRequestV1>,
+    ): GeoJsonFeatureCollection {
+        val jsonString = objectMapper.writeValueAsString(params)
+        val queryParams = objectMapper.readValue(jsonString, FrameConverterQueryParamsV1::class.java)
+
+        return GeoJsonFeatureCollection(features = requests.flatMap { req -> processRequest(req, queryParams) })
     }
 
-    private fun processRequest(request: FrameConverterRequestV1): List<GeoJsonFeature> {
+    @GetMapping("/rataosoitteet", "/rataosoitteet/")
+    fun coordinateToTrackAddressRequestSingle(@RequestParam params: Map<String, String?>): GeoJsonFeatureCollection {
+        val jsonString = objectMapper.writeValueAsString(params)
+        val request = objectMapper.readValue(jsonString, CoordinateToTrackAddressRequestV1::class.java)
+        val queryParams = objectMapper.readValue(jsonString, FrameConverterQueryParamsV1::class.java)
+
+        return GeoJsonFeatureCollection(features = processRequest(request, queryParams))
+    }
+
+    @PostMapping("/rataosoitteet", "/rataosoitteet/")
+    fun coordinateToTrackAddressRequestBatch(
+        @RequestBody requests: List<CoordinateToTrackAddressRequestV1>,
+        @RequestParam params: Map<String, String?>,
+    ): GeoJsonFeatureCollection {
+        val jsonString = objectMapper.writeValueAsString(params)
+        val queryParams = objectMapper.readValue(jsonString, FrameConverterQueryParamsV1::class.java)
+
+        return GeoJsonFeatureCollection(features = requests.flatMap { req -> processRequest(req, queryParams) })
+    }
+
+    private fun processRequest(
+        request: FrameConverterRequestV1,
+        params: FrameConverterQueryParamsV1,
+    ): List<GeoJsonFeature> {
         return when (request) {
             is CoordinateToTrackAddressRequestV1 ->
                 processRequestHelper(
                     request,
+                    params,
                     frameConverterServiceV1::validateCoordinateToTrackAddressRequest,
                     frameConverterServiceV1::coordinateToTrackAddress,
                 )
@@ -104,12 +105,13 @@ constructor(
             is TrackAddressToCoordinateRequestV1 ->
                 processRequestHelper(
                     request,
+                    params,
                     frameConverterServiceV1::validateTrackAddressToCoordinateRequest,
                     frameConverterServiceV1::trackAddressToCoordinate,
                 )
 
             else ->
-                throw IntegrationApiExceptionV1(
+                throw ExtApiExceptionV1(
                     message = "Unsupported request type",
                     error = FrameConverterErrorV1.UnsupportedRequestType,
                 )
@@ -118,11 +120,12 @@ constructor(
 
     private inline fun <T, V> processRequestHelper(
         request: T,
-        validate: (T) -> Pair<V?, List<GeoJsonFeatureErrorResponseV1>>,
-        process: (LayoutContext, V) -> List<GeoJsonFeature>,
+        params: FrameConverterQueryParamsV1,
+        validate: (T, FrameConverterQueryParamsV1) -> Pair<V?, List<GeoJsonFeatureErrorResponseV1>>,
+        process: (LayoutContext, V, FrameConverterQueryParamsV1) -> List<GeoJsonFeature>,
     ): List<GeoJsonFeature> {
-        val (validatedRequest, errorResponse) = validate(request)
+        val (validatedRequest, errorResponse) = validate(request, params)
 
-        return validatedRequest?.let { req -> process(MainLayoutContext.official, req) } ?: errorResponse
+        return validatedRequest?.let { req -> process(MainLayoutContext.official, req, params) } ?: errorResponse
     }
 }

@@ -53,6 +53,7 @@ import org.springframework.http.converter.HttpMessageConverter
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
 import org.springframework.web.servlet.config.annotation.EnableWebMvc
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 
 @ConditionalOnWebApplication
@@ -63,6 +64,11 @@ class WebConfig(
     private val frameConverterListRequestConverterV1: FrameConverterListRequestConverterV1,
 ) : WebMvcConfigurer {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
+
+    // TODO This should only be active with ext-api. Also verify .yml-config files.
+    override fun addResourceHandlers(registry: ResourceHandlerRegistry) {
+        registry.addResourceHandler("/static/**").addResourceLocations("classpath:/static/")
+    }
 
     override fun addFormatters(registry: FormatterRegistry) {
         logger.info("Registering sanitized string converters")
@@ -141,8 +147,9 @@ class WebConfig(
     override fun configureMessageConverters(converters: MutableList<HttpMessageConverter<*>?>) {
         val builder = Jackson2ObjectMapperBuilder().featuresToDisable(WRITE_DATES_AS_TIMESTAMPS)
         builder.serializationInclusion(JsonInclude.Include.NON_NULL)
-        converters.add(MappingJackson2HttpMessageConverter(builder.build()))
+
         converters.add(ByteArrayHttpMessageConverter())
+        converters.add(MappingJackson2HttpMessageConverter(builder.build()))
     }
 }
 

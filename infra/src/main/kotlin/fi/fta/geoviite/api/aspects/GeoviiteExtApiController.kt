@@ -19,16 +19,14 @@ import org.springframework.web.bind.annotation.RestController
 @Retention(AnnotationRetention.RUNTIME)
 @RestController
 @RequestMapping
-annotation class GeoviiteIntegrationApiController(
-    @get:AliasFor(annotation = RequestMapping::class) val path: Array<String>
-)
+annotation class GeoviiteExtApiController(@get:AliasFor(annotation = RequestMapping::class) val path: Array<String>)
 
 @Aspect
 @Component
 class GeoviiteIntegrationApiControllerAspect {
     private val loggerCache = ConcurrentHashMap<Class<*>, Logger>()
 
-    @Before("within(@GeoviiteIntegrationApiController *)")
+    @Before("within(@GeoviiteExtApiController *)")
     fun logBefore(joinPoint: JoinPoint) {
         val targetClass = joinPoint.target::class.java
         val logger = loggerCache.computeIfAbsent(targetClass) { classRef -> LoggerFactory.getLogger(classRef) }
