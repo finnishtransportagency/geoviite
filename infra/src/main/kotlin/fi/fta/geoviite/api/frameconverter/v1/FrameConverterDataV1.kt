@@ -1,5 +1,6 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonUnwrapped
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
@@ -8,35 +9,15 @@ import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonGeometry
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonGeometryPoint
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonProperties
 import fi.fta.geoviite.infra.common.AlignmentName
+import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.math.IPoint
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.FreeText
 
 typealias FrameConverterIdentifierV1 = FreeText
-
-typealias FrameConverterResponseSettingsV1 = Set<FrameConverterResponseSettingV1>
-
-/**
- * @property FeatureMatchSimple Response will include all fields from [FeatureMatchSimpleV1]
- * @property FeatureGeometry Response will include geometry data, such as [GeoJsonGeometryPoint]
- * @property FeatureMatchDetails Response will include detailed data depending on request, such as
- *   [FeatureMatchDetailsV1]
- * @property INVALID Response will include an error when this value was mapped to the set of response settings.
- */
-enum class FrameConverterResponseSettingV1(val code: Int) {
-    FeatureMatchSimple(1),
-    FeatureGeometry(5),
-    FeatureMatchDetails(10),
-    INVALID(-1);
-
-    companion object {
-        private val map = entries.associateBy(FrameConverterResponseSettingV1::code)
-
-        fun fromValue(type: Int) = map[type] ?: INVALID
-    }
-}
 
 data class FrameConverterStringV1(val value: String) {
     init {
@@ -51,6 +32,16 @@ data class FrameConverterStringV1(val value: String) {
         const val MAX_LENGTH = 200
     }
 }
+
+data class FrameConverterQueryParamsV1(
+    @JsonProperty("koordinaatisto") val coordinateSystem: Srid = Srid(3067),
+    @JsonProperty("geometriatiedot") val featureGeometry: Boolean = false,
+    @JsonProperty("perustiedot") val featureBasic: Boolean = true,
+    @JsonProperty("lisatiedot") val featureDetails: Boolean = true,
+)
+
+data class FrameConverterCoordinateV1(@JsonIgnore val srid: Srid, override val x: Double, override val y: Double) :
+    IPoint
 
 /**
  * Maps Finnish track type names to internally used type. There is additional mapping to the even more specific domain
@@ -99,7 +90,6 @@ sealed class FrameConverterRequestV1
  * @property trackNumberName User provided track number name filter, optional.
  * @property locationTrackName User provided location track name filter, optional.
  * @property locationTrackType User provided location track type filter, optional.
- * @property responseSettings User provided array of integers, which map to enum values, optional, has defaults.
  */
 data class CoordinateToTrackAddressRequestV1(
     @JsonProperty("tunniste") val identifier: FrameConverterIdentifierV1? = null,
@@ -115,10 +105,6 @@ data class CoordinateToTrackAddressRequestV1(
     @JsonProperty("sijaintiraide_tyyppi")
     @JsonDeserialize(using = FrameConverterLocationTrackTypeDeserializerV1::class)
     val locationTrackType: FrameConverterLocationTrackTypeV1? = null,
-    @JsonProperty("palautusarvot")
-    @JsonDeserialize(using = FrameConverterResponseSettingsDeserializerV1::class)
-    val responseSettings: FrameConverterResponseSettingsV1 =
-        setOf(FrameConverterResponseSettingV1.FeatureMatchSimple, FrameConverterResponseSettingV1.FeatureMatchDetails),
 ) : FrameConverterRequestV1()
 
 /**
@@ -127,13 +113,11 @@ data class CoordinateToTrackAddressRequestV1(
  */
 data class ValidCoordinateToTrackAddressRequestV1(
     val identifier: FrameConverterIdentifierV1?,
-    val x: Double,
-    val y: Double,
+    val searchCoordinate: FrameConverterCoordinateV1,
     val searchRadius: Double,
     val trackNumberName: TrackNumber?,
     val locationTrackName: AlignmentName?,
     val locationTrackType: LocationTrackType?,
-    val responseSettings: FrameConverterResponseSettingsV1,
 ) : FrameConverterRequestV1()
 
 /**
@@ -147,14 +131,12 @@ data class CoordinateToTrackAddressResponseV1(
 
 /**
  * @property identifier User provided optional request identifier.
- * @property featureMatchSimple Fields included in the output when responseSettings of the request contain
- *   [FrameConverterResponseSettingV1.FeatureMatchSimple].
- * @property featureMatchDetails Fields included in the output when responseSettings of the request contain
- *   [FrameConverterResponseSettingV1.FeatureMatchDetails].
+ * @property featureMatchSimple Fields included in the output when [FrameConverterQueryParamsV1.featureBasic] is true
+ * @property featureMatchDetails Fields included in the output when [FrameConverterQueryParamsV1.featureDetails] is true
  */
 data class CoordinateToTrackAddressResponsePropertiesV1(
     @JsonProperty("tunniste") val identifier: FrameConverterIdentifierV1? = null,
-    @JsonUnwrapped val featureMatchSimple: FeatureMatchSimpleV1? = null,
+    @JsonUnwrapped val featureMatchSimple: FeatureMatchBasicV1? = null,
     @JsonUnwrapped val featureMatchDetails: FeatureMatchDetailsV1? = null,
 ) : GeoJsonProperties()
 
@@ -163,16 +145,12 @@ data class CoordinateToTrackAddressResponsePropertiesV1(
  * @property y The y coordinate on the alignment of the matched location track in ETRS-TM35FIN (EPSG:3067)
  * @property distanceFromRequestPoint Calculated distance from user-specified coordinate in meters.
  */
-data class FeatureMatchSimpleV1(
-    val x: Double,
-    val y: Double,
+data class FeatureMatchBasicV1(
+    @JsonUnwrapped val coordinate: FrameConverterCoordinateV1,
     @JsonProperty("valimatka") val distanceFromRequestPoint: Double,
 )
 
-/**
- * Returned within properties when responseSettings of a request contain
- * [FrameConverterResponseSettingV1.FeatureMatchDetails].
- */
+/** Returned within properties when [FrameConverterQueryParamsV1.featureDetails] is true */
 data class FeatureMatchDetailsV1(
     @JsonProperty("ratanumero") val trackNumber: TrackNumber,
     @JsonProperty("sijaintiraide") val locationTrackName: AlignmentName,
@@ -190,7 +168,6 @@ data class FeatureMatchDetailsV1(
  * @property trackMeter User provided track meter on the specified track kilometer, required for valid requests.
  * @property locationTrackName User provided location track name filter, optional.
  * @property locationTrackType User provided location track type filter, optional.
- * @property responseSettings User provided array of integers, which map to enum values, optional, has defaults.
  */
 data class TrackAddressToCoordinateRequestV1(
     @JsonProperty("tunniste") val identifier: FrameConverterIdentifierV1? = null,
@@ -205,10 +182,6 @@ data class TrackAddressToCoordinateRequestV1(
     @JsonProperty("sijaintiraide_tyyppi")
     @JsonDeserialize(using = FrameConverterLocationTrackTypeDeserializerV1::class)
     val locationTrackType: FrameConverterLocationTrackTypeV1? = null,
-    @JsonProperty("palautusarvot")
-    @JsonDeserialize(using = FrameConverterResponseSettingsDeserializerV1::class)
-    val responseSettings: FrameConverterResponseSettingsV1 =
-        setOf(FrameConverterResponseSettingV1.FeatureMatchSimple, FrameConverterResponseSettingV1.FeatureMatchDetails),
 ) : FrameConverterRequestV1()
 
 /**
@@ -221,7 +194,6 @@ data class ValidTrackAddressToCoordinateRequestV1(
     val trackAddress: TrackMeter,
     val locationTrackName: AlignmentName?,
     val locationTrackType: LocationTrackType?,
-    val responseSettings: FrameConverterResponseSettingsV1,
 ) : FrameConverterRequestV1()
 
 /**
@@ -235,13 +207,11 @@ data class TrackAddressToCoordinateResponseV1(
 
 /**
  * @property identifier User provided optional request identifier.
- * @property featureMatchSimple Fields included in the output when responseSettings of the request contain
- *   [FrameConverterResponseSettingV1.FeatureMatchSimple]
- * @property featureMatchDetails Fields included in the output when responseSettings of the request contain
- *   [FrameConverterResponseSettingV1.FeatureMatchDetails]
+ * @property featureMatchBasic Fields included in the output when [FrameConverterQueryParamsV1.featureBasic] is true
+ * @property featureMatchDetails Fields included in the output when [FrameConverterQueryParamsV1.featureDetails] is true
  */
 data class TrackAddressToCoordinateResponsePropertiesV1(
     @JsonProperty("tunniste") val identifier: FrameConverterIdentifierV1? = null,
-    @JsonUnwrapped val featureMatchSimple: FeatureMatchSimpleV1? = null,
+    @JsonUnwrapped val featureMatchBasic: FeatureMatchBasicV1? = null,
     @JsonUnwrapped val featureMatchDetails: FeatureMatchDetailsV1? = null,
 ) : GeoJsonProperties()

@@ -1,57 +1,58 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
-import TestGeoJsonFeatureCollection
-import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
-import fi.fta.geoviite.infra.TestApi
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
+
+private val BASE_URLS = listOf("/rata-vkm", "/rata-vkm/v1", "/rata-vkm/dev", "/rata-vkm/dev/v1")
+private val PARTIAL_API_PATHS = listOf("/rataosoitteet", "/koordinaatit")
+
+private val API_URLS = BASE_URLS.flatMap { base -> PARTIAL_API_PATHS.map { apiPath -> "$base$apiPath" } }
+private val API_URLS_WITH_TRAILING_SLASHES = API_URLS.map { url -> "$url/" }
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
 @AutoConfigureMockMvc
 class FrameConverterAddressIT @Autowired constructor(mockMvc: MockMvc) : DBTestBase() {
 
-    private val mapper = ObjectMapper().apply { setSerializationInclusion(JsonInclude.Include.NON_NULL) }
-
-    val testApi = TestApi(mapper, mockMvc)
+    private val api = FrameConverterTestApiService(mockMvc)
 
     @Test
-    fun `All supported URL paths should work`() {
-        listOf(
-                "/rata-vkm",
-                "/rata-vkm/v1",
-                "/rata-vkm/dev",
-                "/rata-vkm/dev/v1",
+    fun `GET URLs should work`() {
+        API_URLS.forEach { url ->
+            val featureCollection = api.fetchFeatureCollectionSingle(url)
+            assertNotNull(featureCollection.features[0].properties?.get("virheet"), "$url did not work")
+        }
+    }
 
-                // Trailing slashes should also work.
-                "/rata-vkm/",
-                "/rata-vkm/v1/",
-                "/rata-vkm/dev/",
-                "/rata-vkm/dev/v1/",
-            )
-            .forEach { uri ->
-                mapOf(
-                        "GET" to testApi.doGetWithParams(uri, mapOf(), HttpStatus.OK),
-                        "POST" to testApi.doPostWithParams(uri, mapOf(), HttpStatus.OK),
-                    )
-                    .forEach { (method, request) ->
-                        val featureCollection =
-                            request.let { body -> mapper.readValue(body, TestGeoJsonFeatureCollection::class.java) }
+    @Test
+    fun `GET URLs with trailing slashes should work`() {
+        API_URLS_WITH_TRAILING_SLASHES.forEach { url ->
+            val featureCollection = api.fetchFeatureCollectionSingle(url)
+            assertNotNull(featureCollection.features[0].properties?.get("virheet"), "$url did not work")
+        }
+    }
 
-                        assertNotNull(
-                            featureCollection.features[0].properties?.get("virheet"),
-                            "method=$method, uri=$uri",
-                        )
-                    }
-            }
+    @Test
+    fun `POST URLs should work`() {
+        API_URLS.forEach { url ->
+            val featureCollection = api.fetchFeatureCollectionBatch(url, listOf())
+            assertEquals(featureCollection.features.size, 0, "$url did not work")
+        }
+    }
+
+    @Test
+    fun `POST URLs with trailing slashes should work`() {
+        API_URLS_WITH_TRAILING_SLASHES.forEach { url ->
+            val featureCollection = api.fetchFeatureCollectionBatch(url, listOf())
+            assertEquals(featureCollection.features.size, 0, "$url did not work")
+        }
     }
 }

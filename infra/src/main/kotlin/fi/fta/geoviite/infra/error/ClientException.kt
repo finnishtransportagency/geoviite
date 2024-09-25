@@ -207,7 +207,7 @@ class DuplicateDesignNameException(name: String, cause: Throwable? = null) :
         localizedMessageParams = localizationParams("name" to name),
     )
 
-class IntegrationApiExceptionV1(
+class ExtApiExceptionV1(
     message: String,
     cause: Throwable? = null,
     error: FrameConverterErrorV1,

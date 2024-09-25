@@ -7,7 +7,7 @@ import org.springframework.transaction.annotation.Transactional
 const val LDAP_GROUP_GEOVIITE_PREFIX = "geoviite_"
 const val DESIRED_ROLE_COOKIE_NAME = "desiredRole"
 
-enum class IntegrationApiUserType(val roleCode: AuthCode) {
+enum class ExtApiUserType(val roleCode: AuthCode) {
     LOCAL(AuthCode("api-private")),
     PUBLIC(AuthCode("api-public")),
     PRIVATE(AuthCode("api-private")),

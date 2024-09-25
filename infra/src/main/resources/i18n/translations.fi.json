@@ -18,7 +18,6 @@
             "invalid-track-number-name": "Pyyntö sisälsi virheellisen ratanumero-asetuksen.",
             "invalid-location-track-name": "Pyyntö sisälsi virheellisen sijaintiraide-asetuksen.",
             "invalid-location-track-type": "Pyyntö sisälsi virheellisen sijaintiraide_tyyppi-asetuksen. Sallitut arvot ovat pääraide, sivuraide, kujaraide, turvaraide.",
-            "invalid-response-settings": "Pyyntö sisälsi virheellisen palautusarvo-asetuksen. Sallitut arvot ovat (1, 5, 10).",
             "invalid-track-address": "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen).",
             "track-number-not-found": "Pyynnön ratanumeroa ei löydetty."
         }
