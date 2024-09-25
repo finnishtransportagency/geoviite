@@ -11,7 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 
-private val BASE_URLS = listOf("/rata-vkm", "/rata-vkm/v1", "/rata-vkm/dev", "/rata-vkm/dev/v1")
+private val BASE_URLS = listOf("/rata-vkm/v1", "/rata-vkm/dev/v1")
 private val PARTIAL_API_PATHS = listOf("/rataosoitteet", "/koordinaatit")
 
 private val API_URLS = BASE_URLS.flatMap { base -> PARTIAL_API_PATHS.map { apiPath -> "$base$apiPath" } }
