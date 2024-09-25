@@ -907,20 +907,29 @@ constructor(
             val ctx =
                 geocodingService.getGeocodingContextAtMoment(publicationBranch, track.trackNumberId, publicationTime)
 
-            val (startPoint, endPoint) =
-                when (target.operation) {
-                    SplitTargetOperation.TRANSFER ->
-                        sourceAlignment.segments[target.segmentIndices.first].segmentStart to
-                            sourceAlignment.segments[target.segmentIndices.last].segmentEnd
-                    else -> alignment.start to alignment.end
-                }
+            val startBySegments =
+                requireNotNull(
+                    sourceAlignment.segments[target.segmentIndices.first].segmentStart.let { point ->
+                        ctx?.getAddress(point)?.first
+                    }
+                )
+            val endBySegments =
+                requireNotNull(
+                    sourceAlignment.segments[target.segmentIndices.last].segmentEnd.let { point ->
+                        ctx?.getAddress(point)?.first
+                    }
+                )
+            val startByTargetAlignment = requireNotNull(alignment.start?.let { point -> ctx?.getAddress(point)?.first })
+            val endByTargetAlignment = requireNotNull(alignment.end?.let { point -> ctx?.getAddress(point)?.first })
+            val startAddress = listOf(startBySegments, startByTargetAlignment).maxOrNull()
+            val endAddress = listOf(endBySegments, endByTargetAlignment).minOrNull()
 
             return SplitTargetInPublication(
                 id = track.id,
                 name = track.name,
                 oid = track.externalId,
-                startAddress = startPoint?.let { start -> ctx?.getAddress(start)?.first },
-                endAddress = endPoint?.let { end -> ctx?.getAddress(end)?.first },
+                startAddress = startAddress,
+                endAddress = endAddress,
                 operation = target.operation,
             )
         }
