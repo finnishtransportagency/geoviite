@@ -141,9 +141,8 @@ class WebConfig(
     override fun configureMessageConverters(converters: MutableList<HttpMessageConverter<*>?>) {
         val builder = Jackson2ObjectMapperBuilder().featuresToDisable(WRITE_DATES_AS_TIMESTAMPS)
         builder.serializationInclusion(JsonInclude.Include.NON_NULL)
-
-        converters.add(ByteArrayHttpMessageConverter())
         converters.add(MappingJackson2HttpMessageConverter(builder.build()))
+        converters.add(ByteArrayHttpMessageConverter())
     }
 }
 
