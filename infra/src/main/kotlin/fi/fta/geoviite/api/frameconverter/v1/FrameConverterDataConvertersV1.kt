@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.JsonDeserializer
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import fi.fta.geoviite.infra.error.IntegrationApiExceptionV1
+import fi.fta.geoviite.infra.error.ExtApiExceptionV1
 import java.io.IOException
 import kotlin.reflect.KClass
 import org.springframework.core.convert.converter.Converter
@@ -20,7 +20,7 @@ class FrameConverterRequestConverterV1(private val objectMapper: ObjectMapper) :
         return try {
             objectMapper.readValue(source, FrameConverterRequestV1::class.java)
         } catch (e: IOException) {
-            throw IntegrationApiExceptionV1(
+            throw ExtApiExceptionV1(
                 cause = e,
                 message = "Json structure was not wrapped in an array",
                 error = FrameConverterErrorV1.RequestCouldNotBeDeserialized,
@@ -40,7 +40,7 @@ class FrameConverterListRequestConverterV1(private val objectMapper: ObjectMappe
         return try {
             objectMapper.readValue(source, collectionType)
         } catch (e: IOException) {
-            throw IntegrationApiExceptionV1(
+            throw ExtApiExceptionV1(
                 cause = e,
                 message = "Json structure was not wrapped in an array",
                 error = FrameConverterErrorV1.ListOfJsonRequestsCouldNotBeDeserialized,
@@ -72,7 +72,7 @@ class FrameConverterRequestDeserializerV1 : JsonDeserializer<FrameConverterReque
         val clazz = classMap.firstOrNull { (_, keys) -> keys.all { key -> node.has(key) } }?.first
 
         if (clazz == null) {
-            throw IntegrationApiExceptionV1(
+            throw ExtApiExceptionV1(
                 message = "Request object type could not be determined, missing parameters?",
                 error = FrameConverterErrorV1.BadRequest,
             )
@@ -86,13 +86,6 @@ class FrameConverterStringDeserializerV1 : JsonDeserializer<FrameConverterString
     override fun deserialize(p: JsonParser?, ctxt: DeserializationContext?): FrameConverterStringV1 {
         val value = p?.valueAsString ?: ""
         return FrameConverterStringV1(value)
-    }
-}
-
-class FrameConverterResponseSettingsDeserializerV1 : JsonDeserializer<Set<FrameConverterResponseSettingV1>>() {
-    override fun deserialize(parser: JsonParser, ctxt: DeserializationContext): Set<FrameConverterResponseSettingV1> {
-        val intArray = parser.readValueAs(Array<Int>::class.java)
-        return intArray.map { FrameConverterResponseSettingV1.fromValue(it) }.toSet()
     }
 }
 

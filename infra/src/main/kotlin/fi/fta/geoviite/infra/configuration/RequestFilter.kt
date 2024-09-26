@@ -11,12 +11,11 @@ import currentUser
 import currentUserRole
 import fi.fta.geoviite.api.configuration.ExtApiConfiguration
 import fi.fta.geoviite.infra.SpringContextUtility
-import fi.fta.geoviite.infra.authorization.*
 import fi.fta.geoviite.infra.authorization.AuthCode
 import fi.fta.geoviite.infra.authorization.AuthName
 import fi.fta.geoviite.infra.authorization.AuthorizationService
 import fi.fta.geoviite.infra.authorization.DESIRED_ROLE_COOKIE_NAME
-import fi.fta.geoviite.infra.authorization.IntegrationApiUserType
+import fi.fta.geoviite.infra.authorization.ExtApiUserType
 import fi.fta.geoviite.infra.authorization.Role
 import fi.fta.geoviite.infra.authorization.User
 import fi.fta.geoviite.infra.authorization.UserDetails
@@ -97,14 +96,14 @@ constructor(
         )
     }
 
-    private fun integrationApiUser(userType: IntegrationApiUserType): User {
+    private fun extApiUser(userType: ExtApiUserType): User {
         val activeRole =
             authorizationService.getRole(userType.roleCode)
-                ?: throw ApiUnauthorizedException("Could not determine integration api user role.")
+                ?: throw ApiUnauthorizedException("Could not determine ext api user role.")
 
         val userDetails =
             when (userType) {
-                IntegrationApiUserType.LOCAL ->
+                ExtApiUserType.LOCAL ->
                     UserDetails(
                         userName = UserName.of("API_LOCAL"),
                         firstName = AuthName.of("Local"),
@@ -112,7 +111,7 @@ constructor(
                         organization = AuthName.of("Geoviite"),
                     )
 
-                IntegrationApiUserType.PUBLIC ->
+                ExtApiUserType.PUBLIC ->
                     UserDetails(
                         userName = UserName.of("API_PUBLIC"),
                         firstName = AuthName.of("Public"),
@@ -120,7 +119,7 @@ constructor(
                         organization = AuthName.of("Geoviite"),
                     )
 
-                IntegrationApiUserType.PRIVATE ->
+                ExtApiUserType.PRIVATE ->
                     UserDetails(
                         userName = UserName.of("API_PRIVATE"),
                         firstName = AuthName.of("Private"),
@@ -181,8 +180,8 @@ constructor(
         val headers = request.headerNames.toList()
 
         return if (skipAuth) {
-            if (isIntegrationApiRequest(request)) {
-                integrationApiUser(IntegrationApiUserType.LOCAL)
+            if (isExtApiRequest(request)) {
+                extApiUser(ExtApiUserType.LOCAL)
             } else {
                 val availableRolesForLocalUser =
                     authorizationService.getRoles(authorizationService.defaultRoleCodeOrder)
@@ -194,8 +193,8 @@ constructor(
             }
         } else if (request.requestURI == "/actuator/health" && headers.none { h -> h.startsWith("x-iam") }) {
             healthCheckUser
-        } else if (isIntegrationApiRequest(request)) {
-            determineIntegrationApiUserOrThrow(request)
+        } else if (isExtApiRequest(request)) {
+            determineExtApiUserOrThrow(request)
         } else {
             val content = getJwtData(request)
 
@@ -303,11 +302,11 @@ constructor(
         return Algorithm.ECDSA256(publicKey, null)
     }
 
-    private fun isIntegrationApiRequest(request: HttpServletRequest): Boolean {
+    private fun isExtApiRequest(request: HttpServletRequest): Boolean {
         return extApi.enabled && extApi.urlPathPrefixes.any { prefix -> request.requestURI.startsWith(prefix) }
     }
 
-    private fun determineIntegrationApiUserOrThrow(request: HttpServletRequest): User {
+    private fun determineExtApiUserOrThrow(request: HttpServletRequest): User {
         return request
             .getHeader("x-forwarded-host")
             ?.takeIf { it.isNotEmpty() }
@@ -315,8 +314,8 @@ constructor(
             ?.firstOrNull()
             ?.let { firstSubDomain ->
                 when (firstSubDomain) {
-                    "avoinapi" -> integrationApiUser(IntegrationApiUserType.PUBLIC)
-                    "api" -> integrationApiUser(IntegrationApiUserType.PRIVATE)
+                    "avoinapi" -> extApiUser(ExtApiUserType.PUBLIC)
+                    "api" -> extApiUser(ExtApiUserType.PRIVATE)
 
                     else ->
                         throw ApiUnauthorizedException("Could not determine integration api user type (invalid host).")

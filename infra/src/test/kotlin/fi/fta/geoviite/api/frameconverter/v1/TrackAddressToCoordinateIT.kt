@@ -1,11 +1,8 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
 import TestGeoJsonFeatureCollection
-import com.fasterxml.jackson.annotation.JsonInclude
-import com.fasterxml.jackson.databind.ObjectMapper
 import fi.fta.geoviite.infra.DBTestBase
 import fi.fta.geoviite.infra.InfraApplication
-import fi.fta.geoviite.infra.TestApi
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
@@ -29,7 +26,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 
-private const val API_URL = "/rata-vkm/v1"
+private const val API_COORDINATES: FrameConverterUrl = "/rata-vkm/v1/koordinaatit"
 
 // Purposefully different data structure as the actual logic to imitate a user.
 private data class TestTrackAddressToCoordinateRequest(
@@ -39,8 +36,7 @@ private data class TestTrackAddressToCoordinateRequest(
     val ratametri: Int? = null,
     val sijaintiraide: String? = null,
     val sijaintiraide_tyyppi: String? = null,
-    val palautusarvot: List<Int>? = null,
-)
+) : FrameConverterTestRequest()
 
 @ActiveProfiles("dev", "test", "ext-api")
 @SpringBootTest(classes = [InfraApplication::class])
@@ -54,9 +50,7 @@ constructor(
     val locationTrackService: LocationTrackService,
 ) : DBTestBase() {
 
-    private val mapper = ObjectMapper().apply { setSerializationInclusion(JsonInclude.Include.NON_NULL) }
-
-    val testApi = TestApi(mapper, mockMvc)
+    private val api = FrameConverterTestApiService(mockMvc)
 
     @BeforeEach
     fun cleanup() {
@@ -67,28 +61,11 @@ constructor(
     fun `Partially valid request should result in a descriptive error`() {
         val params = mapOf("ratanumero" to "123", "ratakilometri" to "0")
 
-        val requests =
-            listOf(
-                testApi.doGetWithParams(API_URL, params, HttpStatus.OK),
-                testApi.doPostWithParams(API_URL, params, HttpStatus.OK),
-            )
+        val featureCollection = api.fetchFeatureCollectionSingle(API_COORDINATES, params)
 
-        requests.forEach { request ->
-            val featureCollection =
-                request.let { body -> mapper.readValue(body, TestGeoJsonFeatureCollection::class.java) }
-
-            val errorString = featureCollection.features[0].properties?.get("virheet")!! as String
-            assertTrue("Pyynnön ratanumeroa ei löydetty" in errorString)
-            assertTrue("Pyyntö ei sisältänyt ratametriä" in errorString)
-        }
-    }
-
-    @Test
-    fun `Invalid request with JSON should result in an error`() {
-        val params = mapOf("json" to "")
-
-        testApi.doGetWithParams(API_URL, params, HttpStatus.BAD_REQUEST)
-        testApi.doPostWithParams(API_URL, params, HttpStatus.BAD_REQUEST)
+        val errorString = featureCollection.features[0].properties?.get("virheet")!! as String
+        assertTrue("Pyynnön ratanumeroa ei löydetty" in errorString)
+        assertTrue("Pyyntö ei sisältänyt ratametriä" in errorString)
     }
 
     private fun assertSimpleFeatureCollection(featureCollection: TestGeoJsonFeatureCollection) {
@@ -113,76 +90,61 @@ constructor(
         frameConverterTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId)
 
         val request = TestTrackAddressToCoordinateRequest(ratametri = 0, ratanumero = trackNumberName)
-
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
 
         assertSimpleFeatureCollection(featureCollection)
         assertEquals("Pyyntö ei sisältänyt ratakilometriä.", featureCollection.features[0].properties?.get("virheet"))
     }
 
-    //    TODO Enable after GVT-2757?
-    //    @Test
-    //    fun `Track kilometer under range in a request should result in an error`() {
-    //        val layoutContext = mainOfficialContext
-    //        val trackNumberName = testDBService.getUnusedTrackNumber().value
-    //
-    //        val trackNumber =
-    // layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id
-    //            .let { trackNumberId ->
-    //                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
-    //            }
-    //
-    //        frameConverterTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as
-    // IntId)
-    //
-    //        val request = TestTrackAddressToCoordinateRequest(
-    //            ratakilometri = -1,
-    //            ratametri = 0,
-    //            ratanumero = trackNumberName,
-    //        )
-    //
-    //        val featureCollection = fetchFeatureCollection(API_URL,
-    // createJsonRequestParams(request))
-    //
-    //        assertSimpleFeatureCollection(featureCollection)
-    //        assertEquals(
-    //            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä
-    // oli virheellinen).",
-    //            featureCollection.features[0].properties?.get("virheet"),
-    //        )
-    //    }
+    /* TODO Enable after GVT-2757?
+    @Test
+    fun `Track kilometer under range in a request should result in an error`() {
+        val layoutContext = mainOfficialContext
+        val trackNumberName = testDBService.getUnusedTrackNumber().value
 
-    //    TODO Enable after GVT-2757?
-    //    @Test
-    //    fun `Track kilometer over range in a request should result in an error`() {
-    //        val layoutContext = mainOfficialContext
-    //        val trackNumberName = testDBService.getUnusedTrackNumber().value
-    //
-    //        val trackNumber =
-    // layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id
-    //            .let { trackNumberId ->
-    //                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
-    //            }
-    //
-    //        frameConverterTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as
-    // IntId)
-    //
-    //        val request = TestTrackAddressToCoordinateRequest(
-    //            ratakilometri = 10000,
-    //            ratametri = 0,
-    //            ratanumero = trackNumberName,
-    //        )
-    //
-    //        val featureCollection = fetchFeatureCollection(API_URL,
-    // createJsonRequestParams(request))
-    //
-    //        assertSimpleFeatureCollection(featureCollection)
-    //        assertEquals(
-    //            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä
-    // oli virheellinen)",
-    //            featureCollection.features[0].properties?.get("virheet"),
-    //        )
-    //    }
+        val trackNumber =
+            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
+            }
+
+        frameConverterTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId)
+
+        val request =
+            TestTrackAddressToCoordinateRequest(ratakilometri = -1, ratametri = 0, ratanumero = trackNumberName)
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+
+        assertSimpleFeatureCollection(featureCollection)
+        assertEquals(
+            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen).",
+            featureCollection.features[0].properties?.get("virheet"),
+        )
+    } */
+
+    /* TODO Enable after GVT-2757?
+    @Test
+    fun `Track kilometer over range in a request should result in an error`() {
+        val layoutContext = mainOfficialContext
+        val trackNumberName = testDBService.getUnusedTrackNumber().value
+
+        val trackNumber =
+            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
+                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
+            }
+
+        frameConverterTestDataService.insertGeocodableTrack(trackNumberId = trackNumber.id as IntId)
+
+        val request =
+            TestTrackAddressToCoordinateRequest(ratakilometri = 10000, ratametri = 0, ratanumero = trackNumberName)
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
+
+        assertSimpleFeatureCollection(featureCollection)
+        assertEquals(
+            "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen)",
+            featureCollection.features[0].properties?.get("virheet"),
+        )
+    } */
 
     @Test
     fun `Missing track meter in a request should result in an error`() {
@@ -198,7 +160,7 @@ constructor(
 
         val request = TestTrackAddressToCoordinateRequest(ratakilometri = 123, ratanumero = trackNumberName)
 
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
 
         assertSimpleFeatureCollection(featureCollection)
         assertEquals("Pyyntö ei sisältänyt ratametriä.", featureCollection.features[0].properties?.get("virheet"))
@@ -219,7 +181,7 @@ constructor(
         val request =
             TestTrackAddressToCoordinateRequest(ratakilometri = 123, ratametri = -10001, ratanumero = trackNumberName)
 
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
 
         assertSimpleFeatureCollection(featureCollection)
         assertEquals(
@@ -243,7 +205,7 @@ constructor(
         val request =
             TestTrackAddressToCoordinateRequest(ratakilometri = 123, ratametri = 10000, ratanumero = trackNumberName)
 
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
 
         assertSimpleFeatureCollection(featureCollection)
         assertEquals(
@@ -286,7 +248,7 @@ constructor(
                     sijaintiraide = trackUnderTest.locationTrack.name.toString(),
                 )
 
-            val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+            val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
             val properties = featureCollection.features[0].properties
 
             assertSimpleFeatureCollection(featureCollection)
@@ -339,7 +301,7 @@ constructor(
                     sijaintiraide_tyyppi = locationTrackTypeName,
                 )
 
-            val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+            val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
             val properties = featureCollection.features[0].properties
 
             assertSimpleFeatureCollection(featureCollection)
@@ -373,7 +335,7 @@ constructor(
         val request =
             TestTrackAddressToCoordinateRequest(ratakilometri = 0, ratametri = 0, ratanumero = trackNumberName)
 
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
         val properties = featureCollection.features[0].properties
 
         assertSimpleFeatureCollection(featureCollection)
@@ -418,7 +380,7 @@ constructor(
         val request =
             TestTrackAddressToCoordinateRequest(ratakilometri = 0, ratametri = 500, ratanumero = trackNumberName)
 
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
         assertEquals(amountOfLocationTracks, featureCollection.features.size)
 
         val locationTrackNamesUnderTest = tracksUnderTest.map { track -> track.locationTrack.name.toString() }
@@ -470,7 +432,7 @@ constructor(
         val request =
             TestTrackAddressToCoordinateRequest(ratakilometri = 0, ratametri = 500, ratanumero = trackNumberName)
 
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
         assertEquals(3, featureCollection.features.size)
 
         assertEquals(
@@ -546,7 +508,7 @@ constructor(
                 ),
             )
 
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(requests))
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, requests)
 
         assertEquals("FeatureCollection", featureCollection.type)
         assertEquals(4, featureCollection.features.size)
@@ -589,73 +551,7 @@ constructor(
 
         val params = mapOf("ratanumero" to trackNumberName, "ratakilometri" to "0", "ratametri" to "400")
 
-        testApi.doGetWithParams(API_URL, params, HttpStatus.OK)
-        testApi.doPostWithParams(API_URL, params, HttpStatus.OK)
-    }
-
-    @Test
-    fun `Valid single request with JSON should succeed`() {
-        val layoutContext = mainOfficialContext
-        val trackNumberName = testDBService.getUnusedTrackNumber().value
-
-        val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
-                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
-            }
-
-        val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
-
-        frameConverterTestDataService.insertGeocodableTrack(
-            trackNumberId = trackNumber.id as IntId,
-            segments = segments,
-        )
-
-        val request =
-            TestTrackAddressToCoordinateRequest(ratanumero = trackNumberName, ratakilometri = 0, ratametri = 400)
-
-        testApi.doGetWithParams(API_URL, createJsonRequestParams(request), HttpStatus.OK)
-        testApi.doPostWithParams(API_URL, createJsonRequestParams(request), HttpStatus.OK)
-    }
-
-    @Test
-    fun `Valid JSON request with multiple requests should fully succeed with both GET and POST method types`() {
-        val layoutContext = mainOfficialContext
-        val trackNumberName = testDBService.getUnusedTrackNumber().value
-
-        val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
-                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
-            }
-
-        val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
-
-        frameConverterTestDataService.insertGeocodableTrack(
-            trackNumberId = trackNumber.id as IntId,
-            segments = segments,
-        )
-
-        val requests =
-            (0..1000 step 100).map { trackMeter ->
-                TestTrackAddressToCoordinateRequest(
-                    ratanumero = trackNumberName,
-                    ratakilometri = 0,
-                    ratametri = trackMeter,
-                )
-            }
-
-        listOf(
-                testApi.doGetWithParams(API_URL, createJsonRequestParams(requests), HttpStatus.OK).let { body ->
-                    mapper.readValue(body, TestGeoJsonFeatureCollection::class.java)
-                },
-                testApi.doPostWithParams(API_URL, createJsonRequestParams(requests), HttpStatus.OK).let { body ->
-                    mapper.readValue(body, TestGeoJsonFeatureCollection::class.java)
-                },
-            )
-            .forEach { featureCollection ->
-                assertEquals(featureCollection.features.size, requests.size)
-
-                featureCollection.features.forEach { feature -> assertNull(feature.properties?.get("virheet")) }
-            }
+        api.fetchFeatureCollectionSingle(API_COORDINATES, params, HttpStatus.OK)
     }
 
     @Test
@@ -685,14 +581,14 @@ constructor(
                 ),
             )
 
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(requests))
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, requests)
 
         assertEquals(identifiers[0], featureCollection.features[0].properties?.get("tunniste"), "key=tunniste")
         assertEquals(identifiers[1], featureCollection.features[1].properties?.get("tunniste"), "key=tunniste")
     }
 
     @Test
-    fun `Basic request should default to return data with responseSettings 1 and 10`() {
+    fun `Basic request should default to return feature with basic and detailed data`() {
         val layoutContext = mainOfficialContext
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
@@ -713,7 +609,7 @@ constructor(
         val request =
             TestTrackAddressToCoordinateRequest(ratanumero = trackNumberName, ratakilometri = 0, ratametri = 400)
 
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
 
         val expectedProperties =
             mapOf(
@@ -749,7 +645,7 @@ constructor(
     }
 
     @Test
-    fun `Request with empty but assigned responseSettings should succeed but not return any actual data`() {
+    fun `Request with all-false response data settings should succeed but not return any actual data`() {
         val layoutContext = mainOfficialContext
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
@@ -766,14 +662,17 @@ constructor(
         )
 
         val request =
-            TestTrackAddressToCoordinateRequest(
-                ratanumero = trackNumberName,
-                ratakilometri = 0,
-                ratametri = 400,
-                palautusarvot = listOf(), // The responseSettings under test.
+            TestTrackAddressToCoordinateRequest(ratanumero = trackNumberName, ratakilometri = 0, ratametri = 400)
+
+        // The thingy under test.
+        val params =
+            mapOf(
+                RESPONSE_GEOMETRY_KEY to false,
+                RESPONSE_BASIC_FEATURE_KEY to false,
+                RESPONSE_DETAILED_FEATURE_KEY to false,
             )
 
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request, params)
 
         assertEquals("FeatureCollection", featureCollection.type)
         assertEquals(1, featureCollection.features.size)
@@ -785,7 +684,7 @@ constructor(
     }
 
     @Test
-    fun `Response output data setting 1 works`() {
+    fun `Response output can be set to only return basic feature data`() {
         val layoutContext = mainOfficialContext
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
@@ -802,14 +701,12 @@ constructor(
         )
 
         val request =
-            TestTrackAddressToCoordinateRequest(
-                ratanumero = trackNumberName,
-                ratakilometri = 0,
-                ratametri = 400,
-                palautusarvot = listOf(1), // The responseSettings under test.
-            )
+            TestTrackAddressToCoordinateRequest(ratanumero = trackNumberName, ratakilometri = 0, ratametri = 400)
 
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+        // The thingy under test.
+        val params = mapOf(RESPONSE_DETAILED_FEATURE_KEY to false)
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request, params)
 
         assertEquals(1, featureCollection.features.size)
         assertEquals("Point", featureCollection.features[0].geometry?.type)
@@ -825,7 +722,7 @@ constructor(
     }
 
     @Test
-    fun `Response output data setting 5 works`() {
+    fun `Response output can be set to only return geometry data`() {
         val layoutContext = mainOfficialContext
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
@@ -842,14 +739,17 @@ constructor(
         )
 
         val request =
-            TestTrackAddressToCoordinateRequest(
-                ratanumero = trackNumberName,
-                ratakilometri = 0,
-                ratametri = 400,
-                palautusarvot = listOf(5), // The responseSettings under test.
+            TestTrackAddressToCoordinateRequest(ratanumero = trackNumberName, ratakilometri = 0, ratametri = 400)
+
+        // The thingy under test.
+        val params =
+            mapOf(
+                RESPONSE_GEOMETRY_KEY to true,
+                RESPONSE_DETAILED_FEATURE_KEY to false,
+                RESPONSE_BASIC_FEATURE_KEY to false,
             )
 
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request, params)
 
         assertEquals(1, featureCollection.features.size)
         assertEquals("Point", featureCollection.features[0].geometry?.type)
@@ -868,7 +768,7 @@ constructor(
     }
 
     @Test
-    fun `Response output data setting 10 works`() {
+    fun `Response output can be set to only return detailed feature data`() {
         val layoutContext = mainOfficialContext
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
@@ -896,14 +796,12 @@ constructor(
                 .toString()
 
         val request =
-            TestTrackAddressToCoordinateRequest(
-                ratanumero = trackNumberName,
-                ratakilometri = 0,
-                ratametri = 300,
-                palautusarvot = listOf(10), // The responseSettings under test.
-            )
+            TestTrackAddressToCoordinateRequest(ratanumero = trackNumberName, ratakilometri = 0, ratametri = 300)
 
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+        // The thingy under test.
+        val params = mapOf(RESPONSE_BASIC_FEATURE_KEY to false)
+
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request, params)
 
         assertEquals(1, featureCollection.features.size)
         assertEquals("Point", featureCollection.features[0].geometry?.type)
@@ -951,14 +849,17 @@ constructor(
                 .toString()
 
         val request =
-            TestTrackAddressToCoordinateRequest(
-                ratanumero = trackNumberName,
-                ratakilometri = 0,
-                ratametri = 275,
-                palautusarvot = listOf(10, 1, 5), // The responseSettings under test.
+            TestTrackAddressToCoordinateRequest(ratanumero = trackNumberName, ratakilometri = 0, ratametri = 275)
+
+        // The thingy under test.
+        val params =
+            mapOf(
+                RESPONSE_GEOMETRY_KEY to true,
+                RESPONSE_BASIC_FEATURE_KEY to true,
+                RESPONSE_DETAILED_FEATURE_KEY to true,
             )
 
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request, params)
 
         assertEquals(1, featureCollection.features.size)
         assertEquals("Point", featureCollection.features[0].geometry?.type)
@@ -983,42 +884,6 @@ constructor(
         assertEquals(0, properties["ratakilometri"])
         assertEquals(request.ratametri, properties["ratametri"] as? Int)
         assertEquals(0, properties["ratametri_desimaalit"] as? Int)
-    }
-
-    @Test
-    fun `Invalid responseSettings should result in an error`() {
-        val layoutContext = mainOfficialContext
-        val trackNumberName = testDBService.getUnusedTrackNumber().value
-
-        val trackNumber =
-            layoutTrackNumberDao.insert(trackNumber(TrackNumber(trackNumberName))).id.let { trackNumberId ->
-                layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!!
-            }
-
-        val segments = listOf(segment(Point(0.0, 0.0), Point(1000.0, 0.0)))
-
-        frameConverterTestDataService.insertGeocodableTrack(
-            trackNumberId = trackNumber.id as IntId,
-            locationTrackType = LocationTrackType.CHORD,
-            segments = segments,
-        )
-
-        val request =
-            TestTrackAddressToCoordinateRequest(
-                ratanumero = trackNumberName,
-                ratakilometri = 0,
-                ratametri = 275,
-                palautusarvot = listOf(3), // The responseSettings under test.
-            )
-
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
-
-        val properties = featureCollection.features[0].properties
-
-        assertEquals(
-            "Pyyntö sisälsi virheellisen palautusarvo-asetuksen. Sallitut arvot ovat (1, 5, 10).",
-            properties?.get("virheet"),
-        )
     }
 
     @Test
@@ -1047,7 +912,7 @@ constructor(
                 sijaintiraide_tyyppi = "something",
             )
 
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
 
         val properties = featureCollection.features[0].properties
 
@@ -1083,7 +948,7 @@ constructor(
                 sijaintiraide = "@",
             )
 
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
 
         val properties = featureCollection.features[0].properties
 
@@ -1115,25 +980,10 @@ constructor(
                 ratametri = 275,
             )
 
-        val featureCollection = fetchFeatureCollection(API_URL, createJsonRequestParams(request))
+        val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
 
         val properties = featureCollection.features[0].properties
 
         assertEquals("Pyyntö sisälsi virheellisen ratanumero-asetuksen.", properties?.get("virheet"))
-    }
-
-    // TODO Pull to somewhere else
-    private fun fetchFeatureCollection(url: String, params: Map<String, String>): TestGeoJsonFeatureCollection {
-        return testApi.doPostWithParams(url, params, HttpStatus.OK).let { body ->
-            mapper.readValue(body, TestGeoJsonFeatureCollection::class.java)
-        }
-    }
-
-    private fun createJsonRequestParams(request: TestTrackAddressToCoordinateRequest): Map<String, String> {
-        return mapOf("json" to mapper.writeValueAsString(listOf(request)))
-    }
-
-    private fun createJsonRequestParams(requests: List<TestTrackAddressToCoordinateRequest>): Map<String, String> {
-        return mapOf("json" to mapper.writeValueAsString(requests))
     }
 }

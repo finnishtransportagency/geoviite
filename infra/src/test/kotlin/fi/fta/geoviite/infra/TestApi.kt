@@ -52,11 +52,13 @@ class TestApi(val mapper: ObjectMapper, val mockMvc: MockMvc) {
         url: String,
         params: Map<String, String>,
         expectedStatus: HttpStatus,
+        body: String? = null,
         headers: HttpHeaders = HttpHeaders(),
     ): String {
         val request = MockMvcRequestBuilders.post(url)
-        params.forEach { (key, value) -> request.param(key, value) }
         request.headers(headers)
+        params.forEach { (key, value) -> request.param(key, value) }
+        body?.let { contentString -> request.content(contentString) }
 
         return mockMvc
             .perform(request)
