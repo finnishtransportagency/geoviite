@@ -2582,11 +2582,11 @@ constructor(
         return validationResult.locationTracks.find { lt -> lt.id == locationTrackId }!!
     }
 
-    private fun switchAlignmentNotConnectedTrackValidationError(locationTrackNames: String, switchName: String) =
+    private fun switchAlignmentNotConnectedTrackValidationError(alignments: String, switchName: String) =
         LayoutValidationIssue(
             LayoutValidationIssueType.WARNING,
             "validation.layout.location-track.switch-linkage.switch-alignment-not-connected",
-            mapOf("locationTracks" to locationTrackNames, "switch" to switchName),
+            mapOf("alignments" to alignments, "switch" to switchName),
         )
 
     private fun switchNotPublishedError(switchName: String) =
@@ -2812,12 +2812,8 @@ constructor(
             switchValidation,
             LayoutValidationIssue(
                 LayoutValidationIssueType.WARNING,
-                "validation.layout.switch.track-linkage.multiple-tracks-through-joint",
-                mapOf(
-                    "locationTracks" to
-                        "3 (${locationTrack2.name}, ${locationTrack3.name}), 4 (${locationTrack2.name}, ${locationTrack3.name})",
-                    "switch" to "TV123",
-                ),
+                "validation.layout.switch.track-linkage.switch-alignment-multiply-connected",
+                mapOf("locationTracks" to "4-5-3 (${locationTrack2.name}, ${locationTrack3.name})", "switch" to "TV123"),
             ),
         )
     }
@@ -3790,7 +3786,7 @@ constructor(
             errorsWhenDeletingStraightTrack.any { error ->
                 error.localizationKey ==
                     LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected") &&
-                    error.params.get("locationTracks") == "1-5-2" &&
+                    error.params.get("alignments") == "1-5-2" &&
                     error.params.get("switch") == "TV123"
             }
         )
@@ -3815,7 +3811,7 @@ constructor(
             errorsWhenDeletingBranchingTrack.any { error ->
                 error.localizationKey ==
                     LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected") &&
-                    error.params.get("locationTracks") == "1-3" &&
+                    error.params.get("alignments") == "1-3" &&
                     error.params.get("switch") == "TV123"
             }
         )
@@ -3908,7 +3904,7 @@ constructor(
             locationTrackDeletionErrors.any { error ->
                 error.localizationKey ==
                     LocalizationKey("validation.layout.location-track.switch-linkage.switch-alignment-not-connected") &&
-                    error.params.get("locationTracks") == "1-5-2" &&
+                    error.params.get("alignments") == "1-5-2" &&
                     error.params.get("switch") == "TV123"
             }
         )

@@ -1467,9 +1467,10 @@
                     "front-joint-not-connected": "Vaihteen {{switch}} etujatkokselta ei jatku raidetta",
                     "front-joint-only-duplicate-connected": "Vaihteen {{switch}} etujatkokselta jatkuu vain duplikaatiksi merkittyjä raiteita",
                     "switch-no-alignments-connected": "Raiteen muutoksen myötä vaihteen {{switch}} läpi ei kulje raiteita",
-                    "switch-alignment-not-connected": "Joitakin vaihteen {{switch}} linjoja ei ole liitetty raiteelle: {{locationTracks}}",
+                    "switch-alignment-not-connected": "Joitakin vaihteen {{switch}} linjoja ei ole liitetty raiteelle: {{alignments}}",
                     "switch-alignment-only-connected-to-duplicate": "Joitakin vaihteen {{switch}} linjoja on liitetty ainoastaan duplikaatiksi merkityille raiteille: {{locationTracks}}",
-                    "multiple-tracks-through-joint": "Joistain vaihteen {{switch}} pisteistä menee läpi enemmän kuin yksi raide: {{locationTracks}}"
+                    "switch-alignment-partially-connected": "Jotkin vaihteen {{switch}} linjoista on liitetty raiteelle vain yhdellä vaihdepisteellä: {{locationTracks}}",
+                    "switch-alignment-multiply-connected": "Jotkin vaihteen {{switch}} linjoista on liitetty useammalle kuin yhdelle raiteelle: {{locationTracks}}"
                 },
                 "duplicate-name-official": "Sijaintiraiteen nimi {{locationTrack}} on jo käytössä toisella ratanumeron {{trackNumber}} sijaintiraiteella",
                 "duplicate-name-draft": "Muutosjoukossa on monta sijaintiraidetta nimellä {{locationTrack}} ratanumerolla {{trackNumber}}",
@@ -1498,9 +1499,10 @@
                     "front-joint-not-connected": "Vaihteen etujatkokselta ei jatku raidetta",
                     "front-joint-only-duplicate-connected": "Vaihteen etujatkokselta jatkuu vain duplikaatiksi merkittyjä raiteita",
                     "switch-no-alignments-connected": "Vaihteen läpi ei kulje raiteita",
-                    "switch-alignment-not-connected": "Joitakin vaihteen linjoja ei ole liitetty raiteelle: {{locationTracks}}",
+                    "switch-alignment-not-connected": "Joitakin vaihteen linjoja ei ole liitetty raiteelle: {{alignments}}",
                     "switch-alignment-only-connected-to-duplicate": "Joitakin vaihteen linjoja on liitetty ainoastaan duplikaatiksi merkityille raiteille: {{locationTracks}}",
-                    "multiple-tracks-through-joint": "Joistain vaihteen pisteistä menee läpi enemmän kuin yksi raide: {{locationTracks}}",
+                    "switch-alignment-partially-connected": "Jotkin vaihteen linjoista on liitetty raiteelle vain yhdellä vaihdepisteellä: {{locationTracks}}",
+                    "switch-alignment-multiply-connected": "Jotkin vaihteen linjoista on liitetty useammalle kuin yhdelle raiteelle: {{locationTracks}}",
                     "relinking-failed": "Vaihteen {{switch}} uudelleenlinkitys epäonnistui"
                 }
             },
