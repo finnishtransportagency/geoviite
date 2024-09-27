@@ -129,11 +129,20 @@ export const KmPostEditDialogGkLocationSection: React.FC<
             : parseGk(kmPost.gkSrid, kmPost.gkLocationX, kmPost.gkLocationY);
     const layoutLocation = gkLocation ? transformGkToLayout(gkLocation) : undefined;
     const gkLocationEnabled = state.gkLocationEnabled;
+    const fieldsEnabled = role !== 'LINKING' && gkLocationEnabled;
+    const gkLocationEntered = geometryKmPostGkLocation !== undefined || layoutLocation != undefined;
 
     const coordinateSystems = useCoordinateSystems(GK_FIN_COORDINATE_SYSTEMS.map(([srid]) => srid));
 
-    const gkLocationEntered = geometryKmPostGkLocation !== undefined || layoutLocation != undefined;
-    const fieldsEnabled = role !== 'LINKING' && gkLocationEnabled;
+    const layoutLocationString = () => {
+        if (gkLocationEnabled && layoutLocation) {
+            return formatToTM35FINString(layoutLocation);
+        } else if (gkLocationEnabled && gkLocation && !layoutLocation) {
+            return t('km-post-dialog.gk-location.out-of-bounds');
+        } else {
+            return '-';
+        }
+    };
 
     return (
         <>
@@ -256,15 +265,7 @@ export const KmPostEditDialogGkLocationSection: React.FC<
             <FieldLayout
                 label={t('km-post-dialog.gk-location.location-in-layout')}
                 disabled={!fieldsEnabled}
-                value={
-                    gkLocationEnabled
-                        ? layoutLocation === undefined
-                            ? gkLocation
-                                ? t('km-post-dialog.gk-location.out-of-bounds')
-                                : '-'
-                            : formatToTM35FINString(layoutLocation)
-                        : '-'
-                }
+                value={layoutLocationString()}
             />
         </>
     );
