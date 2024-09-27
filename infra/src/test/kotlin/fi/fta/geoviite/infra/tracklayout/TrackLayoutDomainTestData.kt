@@ -90,6 +90,40 @@ fun switchStructureYV60_300_1_9(): SwitchStructure {
     )
 }
 
+fun switchStructureRR54_4x1_9() =
+    SwitchStructure(
+        id = IntId(133),
+        type = SwitchType("RR54-4x1:9"),
+        presentationJointNumber = JointNumber(5),
+        joints =
+            listOf(
+                SwitchJoint(JointNumber(1), Point(-5.075, -1.142)),
+                SwitchJoint(JointNumber(5), Point(0.0, 0.0)),
+                SwitchJoint(JointNumber(2), Point(5.075, 1.142)),
+                SwitchJoint(JointNumber(4), Point(-5.075, 1.142)),
+                SwitchJoint(JointNumber(3), Point(5.075, -1.142)),
+            ),
+        alignments =
+            listOf(
+                SwitchAlignment(
+                    jointNumbers = listOf(JointNumber(1), JointNumber(5), JointNumber(2)),
+                    elements =
+                        listOf(
+                            SwitchElementLine(IndexedId(3, 1), Point(-5.075, -1.142), Point(0.0, 0.0)),
+                            SwitchElementLine(IndexedId(3, 2), Point(0.0, 0.0), Point(5.075, 1.142)),
+                        ),
+                ),
+                SwitchAlignment(
+                    jointNumbers = listOf(JointNumber(4), JointNumber(5), JointNumber(3)),
+                    elements =
+                        listOf(
+                            SwitchElementLine(IndexedId(4, 1), Point(-5.075, 1.142), Point(0.0, 0.0)),
+                            SwitchElementLine(IndexedId(4, 2), Point(0.0, 0.0), Point(-5.075, 1.142)),
+                        ),
+                ),
+            ),
+    )
+
 fun switchAndMatchingAlignments(
     trackNumberId: IntId<TrackLayoutTrackNumber>,
     structure: SwitchStructure,

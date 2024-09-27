@@ -23,6 +23,8 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.ERROR
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.FATAL
 import fi.fta.geoviite.infra.publication.LayoutValidationIssueType.WARNING
+import fi.fta.geoviite.infra.switchLibrary.LinkableSwitchAlignment
+import fi.fta.geoviite.infra.switchLibrary.SwitchAlignment
 import fi.fta.geoviite.infra.switchLibrary.SwitchConnectivity
 import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.switchConnectivity
@@ -322,21 +324,12 @@ fun validateSwitchTopologicalConnectivity(
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     validatingTrack: LocationTrack?,
 ): List<LayoutValidationIssue> {
-    val connectivity = switchConnectivity(structure)
-    val nonDuplicateTracks = locationTracks.filter { (locationTrack, _) -> locationTrack.duplicateOf == null }
-    val nonDuplicateTracksThroughJoints = getTracksThroughJoints(structure, nonDuplicateTracks, switch)
-    return listOfNotNull(
-        validateFrontJointTopology(switch, structure, locationTracks, validatingTrack),
-        validateExcessTracksThroughJoint(connectivity, nonDuplicateTracksThroughJoints, switch.name, validatingTrack),
-        validateSwitchAlignmentTopology(
-            switch.id,
-            structure,
-            connectivity,
-            locationTracks,
-            switch.name,
-            validatingTrack,
-        ),
-    )
+    val existingTracks = locationTracks.filter { it.first.exists }
+    return listOf(
+            listOfNotNull(validateFrontJointTopology(switch, structure, existingTracks, validatingTrack)),
+            validateSwitchAlignmentTopology(switch.id, structure, existingTracks, switch.name, validatingTrack),
+        )
+        .flatten()
 }
 
 fun switchOrTrackLinkageKey(validatingTrack: LocationTrack?) =
@@ -346,30 +339,34 @@ private fun getTracksThroughJoints(
     structure: SwitchStructure,
     tracks: List<Pair<LocationTrack, LayoutAlignment>>,
     switch: TrackLayoutSwitch,
-): Map<JointNumber, List<LocationTrack>> {
-    val tracksThroughJoint =
-        structure.joints
-            .map { it.number }
-            .associateWith { jointNumber ->
-                tracks
-                    .filter { (_, alignment) ->
-                        val jointLinkedIndexRange =
-                            alignment.segments.mapIndexedNotNull { i, segment ->
-                                if (
-                                    segment.switchId == switch.id &&
-                                        (segment.startJointNumber == jointNumber ||
-                                            segment.endJointNumber == jointNumber)
-                                )
-                                    i
-                                else null
-                            }
-                        jointLinkedIndexRange.isNotEmpty() &&
-                            jointLinkedIndexRange.first() > 0 &&
-                            jointLinkedIndexRange.last() < alignment.segments.lastIndex
-                    }
-                    .map { (locationTrack, _) -> locationTrack }
-            }
-    return tracksThroughJoint
+): Map<JointNumber, List<LocationTrack>> =
+    structure.joints
+        .map { it.number }
+        .associateWith { jointNumber -> getTracksThroughJoint(tracks, switch, jointNumber) }
+
+private fun getTracksThroughJoint(
+    tracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    switch: TrackLayoutSwitch,
+    jointNumber: JointNumber,
+) =
+    tracks
+        .filter { (_, alignment) -> trackPassesThroughJoint(alignment, switch, jointNumber) }
+        .map { (locationTrack, _) -> locationTrack }
+
+private fun trackPassesThroughJoint(
+    alignment: LayoutAlignment,
+    switch: TrackLayoutSwitch,
+    jointNumber: JointNumber,
+): Boolean {
+    val startJointLinkIndex =
+        alignment.segments.indexOfFirst { segment ->
+            segment.switchId == switch.id && segment.startJointNumber == jointNumber
+        }
+    val endJointLinkIndex =
+        alignment.segments.indexOfFirst { segment ->
+            segment.switchId == switch.id && segment.endJointNumber == jointNumber
+        }
+    return startJointLinkIndex > 0 || (endJointLinkIndex != -1 && endJointLinkIndex < alignment.segments.lastIndex)
 }
 
 private fun validateFrontJointTopology(
@@ -409,126 +406,178 @@ private fun validateFrontJointTopology(
     }
 }
 
-private fun validateExcessTracksThroughJoint(
-    connectivity: SwitchConnectivity,
-    tracksThroughJoint: Map<JointNumber, List<LocationTrack>>,
-    switchName: SwitchName,
-    validatingTrack: LocationTrack?,
-): LayoutValidationIssue? {
-    val excesses =
-        tracksThroughJoint.filter { (joint, tracks) -> joint != connectivity.sharedPassThroughJoint && tracks.size > 1 }
-    val someoneElseIsResponsible =
-        validatingTrack?.let { excesses.values.flatten().none { excess -> excess.id == validatingTrack.id } } ?: false
-
-    return validateWithParams(excesses.isEmpty() || someoneElseIsResponsible, WARNING) {
-        val trackNames =
-            excesses.entries
-                .sortedBy { (jointNumber, _) -> jointNumber.intValue }
-                .joinToString { (jointNumber, tracks) ->
-                    "${jointNumber.intValue} (${tracks.sortedBy { it.name }.joinToString { it.name }})"
-                }
-
-        "${switchOrTrackLinkageKey(validatingTrack)}.multiple-tracks-through-joint" to
-            localizationParams("locationTracks" to trackNames, "switch" to switchName.toString())
-    }
-}
-
-private fun alignmentsAreLinked(
-    switchAlignment: List<JointNumber>,
-    trackAlignment: LayoutAlignment,
+private fun findValidatingTrackSwitchAlignment(
     switchId: DomainId<TrackLayoutSwitch>,
-): Boolean {
-    val hasStart = alignmentHasSwitchJointLink(trackAlignment, switchId, switchAlignment.first())
-    val hasEnd = alignmentHasSwitchJointLink(trackAlignment, switchId, switchAlignment.last())
-    return hasStart && hasEnd
-}
+    validatingTrack: LocationTrack?,
+    locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
+    connectivity: SwitchConnectivity,
+): SwitchAlignment? =
+    locationTracks
+        .find { (track) -> track.id == validatingTrack?.id }
+        ?.let { trackAndAlignment ->
+            connectivity.alignments
+                // with really bad linking, this could be ambiguous, and the choice of finding the
+                // first one arbitrary; but that shouldn't really happen
+                .find { switchAlignment ->
+                    alignmentLinkingQuality(switchId, switchAlignment, listOf(trackAndAlignment)).hasSomethingLinked()
+                }
+                ?.originalAlignment
+        }
+
+private fun summarizeSwitchAlignmentLocationTrackLinks(links: List<Pair<LocationTrack, SwitchAlignment>>): String =
+    links
+        .groupBy { it.second }
+        .entries
+        .joinToString(", ") { (originalAlignment, linksOnAlignment) ->
+            val alignmentString = originalAlignment.jointNumbers.joinToString("-") { j -> j.intValue.toString() }
+            val tracksString = linksOnAlignment.map { it.first.name.toString() }.sorted().distinct().joinToString(", ")
+            "$alignmentString ($tracksString)"
+        }
 
 fun validateSwitchAlignmentTopology(
     switchId: DomainId<TrackLayoutSwitch>,
     switchStructure: SwitchStructure,
-    connectivity: SwitchConnectivity,
     locationTracks: List<Pair<LocationTrack, LayoutAlignment>>,
     switchName: SwitchName,
     validatingTrack: LocationTrack?,
-): LayoutValidationIssue? {
-    val unlinkedConnectivityAlignments = collectUnlinkedAlignments(switchId, connectivity, locationTracks).toSet()
-    // The alignment can be connected through the switch or ending in the middle of it. Check both.
-    val noAlignmentsLinked =
-        unlinkedConnectivityAlignments.size == connectivity.alignmentJoints.size &&
-            locationTracks.none { (_, alignment) ->
-                trackMatchesStructureAlignment(switchId, alignment, switchStructure)
-            }
-    return if (noAlignmentsLinked) {
-        validateWithParams(false, ERROR) {
+): List<LayoutValidationIssue> {
+    val connectivity = switchConnectivity(switchStructure)
+    val linkingQuality =
+        connectivity.alignments.map { alignment -> alignmentLinkingQuality(switchId, alignment, locationTracks) }
+    val validatingTrackSwitchAlignment =
+        findValidatingTrackSwitchAlignment(switchId, validatingTrack, locationTracks, connectivity)
+    val switchHasTopologicalConnections =
+        locationTracks.any { (track) ->
+            track.topologyStartSwitch?.switchId == switchId || track.topologyEndSwitch?.switchId == switchId
+        }
+
+    val qualitiesToValidate =
+        linkingQuality.filter { quality ->
+            validatingTrackSwitchAlignment == null || quality.originalAlignment == validatingTrackSwitchAlignment
+        }
+
+    val notLinked = qualitiesToValidate.filter { !it.hasSomethingLinked() }
+    val linkedOnlyToDuplicates =
+        qualitiesToValidate
+            .filter { it.nonDuplicateTracks.isEmpty() }
+            .flatMap { alignment -> alignment.duplicateTracks.map { dup -> dup to alignment.originalAlignment } }
+    val linkedPartially =
+        qualitiesToValidate.flatMap { alignment ->
+            alignment.partiallyLinked.map { part -> part to alignment.originalAlignment }
+        }
+    val linkedMultiply =
+        qualitiesToValidate
+            .filter { it.nonDuplicateTracks.size > 1 }
+            .flatMap { alignment -> alignment.nonDuplicateTracks.map { track -> track to alignment.originalAlignment } }
+
+    return listOfNotNull(
+        validateWithParams(linkingQuality.any { it.hasSomethingLinked() } || switchHasTopologicalConnections, ERROR) {
             "${switchOrTrackLinkageKey(validatingTrack)}.switch-no-alignments-connected" to
                 localizationParams("switch" to switchName.toString())
-        }
-    } else {
-        val nonDuplicateTracks = locationTracks.filter { (lt) -> lt.duplicateOf == null }
-        val switchAlignmentsUnlinkedToNonduplicates =
-            collectUnlinkedAlignments(switchId, connectivity, nonDuplicateTracks)
-        val switchAlignmentsLinkedToOnlyDuplicates =
-            switchAlignmentsUnlinkedToNonduplicates.subtract(unlinkedConnectivityAlignments)
-
-        // trackLinkedAlignmentsJoints splits up switch alignments going through the center on rail
-        // crossings; but it's
-        // possible that the alignment was supposed to actually go through the entire crossing. So,
-        // if the switch has any
-        // unlinked alignments, a track alignment that's only linked to a split alignment could in
-        // fact be the cause, so
-        // we need to check the unsplit switch alignments instead.
-        val trackBeingValidatedIsConnectedToFullAlignment =
-            nonDuplicateTracks
-                .find { (lt) -> lt == validatingTrack }
-                ?.let { (_, alignment) -> trackMatchesStructureAlignment(switchId, alignment, switchStructure) }
-                ?: false
-
+        },
         validateWithParams(
-            switchAlignmentsUnlinkedToNonduplicates.isEmpty() || trackBeingValidatedIsConnectedToFullAlignment,
+            (linkingQuality.none { it.hasSomethingLinked() } && !switchHasTopologicalConnections) ||
+                notLinked.isEmpty(),
             WARNING,
         ) {
-            val alignmentsString =
-                switchAlignmentsUnlinkedToNonduplicates.joinToString { alignment ->
-                    alignment.joinToString("-") { joint -> joint.intValue.toString() }
-                }
-            val key =
-                if (switchAlignmentsLinkedToOnlyDuplicates.isEmpty()) {
-                    "${switchOrTrackLinkageKey(validatingTrack)}.switch-alignment-not-connected"
-                } else {
-                    "${switchOrTrackLinkageKey(validatingTrack)}.switch-alignment-only-connected-to-duplicate"
-                }
-
-            key to localizationParams("locationTracks" to alignmentsString, "switch" to switchName.toString())
-        }
-    }
+            "${switchOrTrackLinkageKey(validatingTrack)}.switch-alignment-not-connected" to
+                localizationParams(
+                    "switch" to switchName.toString(),
+                    "alignments" to
+                        notLinked.joinToString(", ") { q ->
+                            q.switchAlignment.joints.joinToString("-") { it.intValue.toString() }
+                        },
+                )
+        },
+        validateWithParams(linkedOnlyToDuplicates.isEmpty(), WARNING) {
+            "${switchOrTrackLinkageKey(validatingTrack)}.switch-alignment-only-connected-to-duplicate" to
+                localizationParams(
+                    "switch" to switchName.toString(),
+                    "locationTracks" to summarizeSwitchAlignmentLocationTrackLinks(linkedOnlyToDuplicates),
+                )
+        },
+        validateWithParams(linkedPartially.isEmpty(), WARNING) {
+            "${switchOrTrackLinkageKey(validatingTrack)}.switch-alignment-partially-connected" to
+                localizationParams(
+                    "switch" to switchName.toString(),
+                    "locationTracks" to summarizeSwitchAlignmentLocationTrackLinks(linkedPartially),
+                )
+        },
+        validateWithParams(linkedMultiply.isEmpty(), WARNING) {
+            "${switchOrTrackLinkageKey(validatingTrack)}.switch-alignment-multiply-connected" to
+                localizationParams(
+                    "switch" to switchName.toString(),
+                    "locationTracks" to summarizeSwitchAlignmentLocationTrackLinks(linkedMultiply),
+                )
+        },
+    )
 }
 
-private fun collectUnlinkedAlignments(
+private data class SwitchAlignmentLinkingQuality(
+    val switchAlignment: LinkableSwitchAlignment,
+    val nonDuplicateTracks: List<LocationTrack>,
+    val duplicateTracks: List<LocationTrack>,
+    val fullyLinked: List<LocationTrack>,
+    val partiallyLinked: List<LocationTrack>,
+) {
+
+    val originalAlignment = switchAlignment.originalAlignment
+
+    fun hasSomethingLinked() = nonDuplicateTracks.isNotEmpty() || duplicateTracks.isNotEmpty()
+}
+
+private fun alignmentLinkingQuality(
     switchId: DomainId<TrackLayoutSwitch>,
-    connectivity: SwitchConnectivity,
+    switchAlignment: LinkableSwitchAlignment,
     tracks: List<Pair<LocationTrack, LayoutAlignment>>,
-): List<List<JointNumber>> =
-    connectivity.alignmentJoints.filter { switchAlignment ->
-        tracks.none { (_, alignment) -> alignmentsAreLinked(switchAlignment, alignment, switchId) }
+): SwitchAlignmentLinkingQuality {
+    val nonDuplicateTracks = mutableListOf<LocationTrack>()
+    val duplicateTracks = mutableListOf<LocationTrack>()
+    val fullyLinked = mutableListOf<LocationTrack>()
+    val partiallyLinked = mutableListOf<LocationTrack>()
+
+    tracks.forEach { (track, trackAlignment) ->
+        val trackAlignmentSwitchJointLinks =
+            trackAlignment.segments
+                .filter { it.switchId == switchId }
+                .flatMap { listOf(it.startJointNumber, it.endJointNumber) }
+                .filterNotNull()
+                .toSet()
+        val hasStart = trackAlignmentSwitchJointLinks.contains(switchAlignment.joints.first())
+        val hasEnd = trackAlignmentSwitchJointLinks.contains(switchAlignment.joints.last())
+        val trackAlignmentHasOtherLinks =
+            trackAlignmentSwitchJointLinks.subtract(switchAlignment.joints.toSet()).isNotEmpty()
+
+        val isPartiallyLinkedWithoutOtherLinks = (hasStart || hasEnd) && !trackAlignmentHasOtherLinks
+        val isFullyLinkedToSplitAlignment = hasStart && hasEnd
+        val isFullyLinkedToOriginalAlignment =
+            trackAlignmentSwitchJointLinks.contains(switchAlignment.originalAlignment.jointNumbers.first()) &&
+                trackAlignmentSwitchJointLinks.contains(switchAlignment.originalAlignment.jointNumbers.last())
+        val isFullyLinked = isFullyLinkedToOriginalAlignment || isFullyLinkedToSplitAlignment
+
+        if (isPartiallyLinkedWithoutOtherLinks || isFullyLinked) {
+            if (isFullyLinked) {
+                fullyLinked.add(track)
+            } else {
+                partiallyLinked.add(track)
+            }
+
+            if (track.duplicateOf == null) {
+                nonDuplicateTracks.add(track)
+            } else {
+                duplicateTracks.add(track)
+            }
+        }
     }
 
-private fun trackMatchesStructureAlignment(
-    switchId: DomainId<TrackLayoutSwitch>,
-    alignment: LayoutAlignment,
-    structure: SwitchStructure,
-): Boolean =
-    structure.alignments.any { structureAlignment ->
-        alignmentsAreLinked(structureAlignment.jointNumbers, alignment, switchId)
-    }
-
-private fun alignmentHasSwitchJointLink(
-    alignment: LayoutAlignment,
-    switchId: DomainId<TrackLayoutSwitch>,
-    jointNumber: JointNumber,
-) =
-    alignment.segments.any { segment ->
-        segment.switchId == switchId && jointNumber in listOfNotNull(segment.startJointNumber, segment.endJointNumber)
-    }
+    return SwitchAlignmentLinkingQuality(
+        switchAlignment,
+        nonDuplicateTracks,
+        duplicateTracks,
+        fullyLinked,
+        partiallyLinked,
+    )
+}
 
 fun validateDuplicateOfState(
     locationTrack: LocationTrack,

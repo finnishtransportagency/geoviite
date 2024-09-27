@@ -1011,7 +1011,10 @@ constructor(
                                     LocalizationKey(
                                         "validation.layout.switch.track-linkage.switch-alignment-only-connected-to-duplicate"
                                     ),
-                                params = LocalizationParams(mapOf("locationTracks" to "1-3", "switch" to "ok but val")),
+                                params =
+                                    LocalizationParams(
+                                        mapOf("locationTracks" to "1-3 (bad branching track)", "switch" to "ok but val")
+                                    ),
                             )
                         ),
                 ),
