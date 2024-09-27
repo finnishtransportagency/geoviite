@@ -80,28 +80,21 @@ internal fun validateTargetGeometry(
     return if (targetPoints == null || sourcePoints == null) {
         LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.no-geometry")
     } else {
-        targetPoints
-            .withIndex()
-            .firstNotNullOfOrNull { (targetIndex, targetPoint) ->
-                val sourcePoint = sourcePoints.getOrNull(targetIndex)
-                if (sourcePoint?.address != targetPoint.address) {
-                    LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.trackmeters-changed")
-                } else if (operation != SplitTargetOperation.TRANSFER && !targetPoint.point.isSame(sourcePoint.point)) {
-                    LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.geometry-changed")
-                } else if (
-                    operation == SplitTargetOperation.TRANSFER &&
-                        lineLength(targetPoint.point, sourcePoint.point) > MAX_SPLIT_POINT_OFFSET
-                ) {
-                    LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.transfer-geometry-changed")
-                } else {
-                    null
-                }
+        targetPoints.withIndex().firstNotNullOfOrNull { (targetIndex, targetPoint) ->
+            val sourcePoint = sourcePoints.getOrNull(targetIndex)
+            if (sourcePoint?.address != targetPoint.address) {
+                LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.trackmeters-changed")
+            } else if (operation != SplitTargetOperation.TRANSFER && !targetPoint.point.isSame(sourcePoint.point)) {
+                LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.geometry-changed")
+            } else if (
+                operation == SplitTargetOperation.TRANSFER &&
+                    lineLength(targetPoint.point, sourcePoint.point) > MAX_SPLIT_POINT_OFFSET
+            ) {
+                LayoutValidationIssue(ERROR, "$VALIDATION_SPLIT.transfer-geometry-changed")
+            } else {
+                null
             }
-            ?.also { error ->
-                println(
-                    "error=$error targetPoints=(${targetPoints.take(3)}..${targetPoints.takeLast(3)}) sourcePoints=(${sourcePoints.take(3)}..${sourcePoints.takeLast(3)})"
-                )
-            }
+        }
     }
 }
 

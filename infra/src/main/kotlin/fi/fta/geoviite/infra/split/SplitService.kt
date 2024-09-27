@@ -38,9 +38,9 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.tracklayout.topologicalConnectivityTypeOf
 import fi.fta.geoviite.infra.util.produceIf
-import java.time.Instant
 import org.springframework.http.HttpStatus
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @GeoviiteService
 class SplitService(
@@ -331,9 +331,6 @@ class SplitService(
             } else {
                 null
             }
-        println(
-            "addressRange=$sourceAddressPointRange sourceAddresses=(${sourceAddresses?.firstOrNull()}..${sourceAddresses?.last()}) targetAddresses=(${targetAddresses?.firstOrNull()}..${targetAddresses?.last()})"
-        )
 
         return sourceAddresses to targetAddresses
     }
