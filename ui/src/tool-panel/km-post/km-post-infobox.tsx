@@ -318,6 +318,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     kmPostId={kmPost.id}
                     onClose={closeEditDialog}
                     onSave={handleKmPostSave}
+                    geometryKmPostGkLocation={kmPost.gkLocation}
                     role={'MODIFY'}
                 />
             )}

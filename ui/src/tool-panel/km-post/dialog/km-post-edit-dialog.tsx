@@ -87,7 +87,10 @@ export const KmPostEditDialogContainer: React.FC<KmPostEditDialogContainerProps>
 
 export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostEditDialogProps) => {
     const { t } = useTranslation();
-    const [state, dispatcher] = React.useReducer(reducer, initialKmPostEditState);
+    const [state, dispatcher] = React.useReducer(reducer, {
+        ...initialKmPostEditState,
+        gkLocationEnabled: !!props.geometryKmPostGkLocation,
+    });
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
     const kmPostStateOptions = layoutStates
         .filter((ls) => !state.isNewKmPost || ls.value != 'DELETED')
@@ -111,9 +114,6 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
             getKmPost(props.kmPostId, draftLayoutContext(props.layoutContext))
                 .then((kmPost) => {
                     if (kmPost) {
-                        stateActions.setGkLocationEnabled(
-                            props.role !== 'CREATE' && !!kmPost.gkLocation,
-                        );
                         stateActions.onKmPostLoaded(kmPost);
                         firstInputRef.current?.focus();
                     } else {
