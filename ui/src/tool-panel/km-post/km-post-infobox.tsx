@@ -34,6 +34,7 @@ import { Link } from 'vayla-design-lib/link/link';
 import { createDelegates } from 'store/store-utils';
 import { getGeometryPlan } from 'geometry/geometry-api';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
+import styles from './km-post-infobox.scss';
 
 type KmPostInfoboxProps = {
     layoutContext: LayoutContext;
@@ -226,6 +227,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                                         'tool-panel.km-post.layout.gk-coordinates.source-from-geometry',
                                     )}{' '}
                                     <Link
+                                        className={styles['km-post-infobox__plan-link']}
                                         onClick={() => {
                                             if (infoboxExtras?.sourceGeometryPlanId) {
                                                 delegates.onSelect({
@@ -316,6 +318,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     kmPostId={kmPost.id}
                     onClose={closeEditDialog}
                     onSave={handleKmPostSave}
+                    role={'MODIFY'}
                 />
             )}
         </React.Fragment>

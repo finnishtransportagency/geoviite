@@ -80,16 +80,20 @@ $dropdown-border-error: 2px;
 .dropdown--disabled {
     .dropdown__header {
         @include dropdown-shadow($color: colors.$color-white-darker, $width: 1px, $has-icon: false);
-        color: colors.$color-black-lighter;
+        color: colors.$color-white-darker;
         cursor: default;
     }
 
     .dropdown__icon {
-        fill: colors.$color-black-lighter;
+        fill: colors.$color-white-darker;
     }
 
     .dropdown__input {
         background: colors.$color-white-default;
+
+        &:disabled {
+            color: colors.$color-black-lighter;
+        }
     }
 }
 

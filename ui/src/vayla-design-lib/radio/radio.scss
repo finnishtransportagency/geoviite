@@ -61,6 +61,10 @@
 .radio__label-text {
     @include typography.typography-body;
     margin-left: 8px;
+
+    &--disabled {
+        color: colors.$color-black-lighter;
+    }
 }
 
 // Hover state

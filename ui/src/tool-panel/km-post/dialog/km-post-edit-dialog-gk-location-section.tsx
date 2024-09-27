@@ -21,6 +21,8 @@ import { GeometryPoint, Point } from 'model/geometry';
 import styles from 'tool-panel/km-post/dialog/km-post-edit-dialog.scss';
 import { Srid } from 'common/common-model';
 import { parseFloatOrUndefined } from 'utils/string-utils';
+import { KmPostEditDialogRole } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
+import { Switch } from 'vayla-design-lib/switch/switch';
 
 // GK-FIN coordinate systems currently only used for the live display of layout coordinates when editing km post
 // positions manually
@@ -42,6 +44,7 @@ type KmPostEditDialogGkLocationSectionProps = {
     hasErrors: (prop: keyof KmPostEditFields) => boolean;
     getVisibleErrorsByProp: (prop: keyof KmPostEditFields) => string[];
     geometryKmPostGkLocation?: GeometryPoint;
+    role: KmPostEditDialogRole;
 };
 
 function gkLocationSourceI18nKey(source: GkLocationSource) {
@@ -75,8 +78,11 @@ function parseGk(
     }
 }
 
+const findProjection = (srid: Srid): string | undefined =>
+    GK_FIN_COORDINATE_SYSTEMS.find(([s]) => s === srid)?.[1];
+
 function transformGkToLayout(point: GeometryPoint): Point | undefined {
-    const projection = GK_FIN_COORDINATE_SYSTEMS.find(([srid]) => srid === point.srid)?.[1];
+    const projection = findProjection(point.srid);
     if (projection === undefined) {
         return undefined;
     } else {
@@ -89,6 +95,20 @@ function transformGkToLayout(point: GeometryPoint): Point | undefined {
     }
 }
 
+const gkLocationSourceTranslationKey = (
+    source: GkLocationSource | undefined,
+    gkLocationEnabled: boolean,
+    dialogRole: KmPostEditDialogRole,
+) => {
+    if (!gkLocationEnabled || source === undefined) {
+        return 'km-post-dialog.gk-location.source-none';
+    } else if (dialogRole === 'LINKING') {
+        return gkLocationSourceI18nKey('FROM_GEOMETRY');
+    } else {
+        return gkLocationSourceI18nKey(source);
+    }
+};
+
 export const KmPostEditDialogGkLocationSection: React.FC<
     KmPostEditDialogGkLocationSectionProps
 > = ({
@@ -98,33 +118,72 @@ export const KmPostEditDialogGkLocationSection: React.FC<
     hasErrors,
     getVisibleErrorsByProp,
     geometryKmPostGkLocation,
+    role,
 }) => {
     const { t } = useTranslation();
 
-    const displayGkLocationSource = (source: GkLocationSource | undefined) =>
-        source === undefined ? '' : t(gkLocationSourceI18nKey(source));
-
     const kmPost = state.kmPost;
-    const gkLocation = parseGk(kmPost.gkSrid, kmPost.gkLocationX, kmPost.gkLocationY);
+    const gkLocation =
+        role === 'LINKING'
+            ? geometryKmPostGkLocation
+            : parseGk(kmPost.gkSrid, kmPost.gkLocationX, kmPost.gkLocationY);
     const layoutLocation = gkLocation ? transformGkToLayout(gkLocation) : undefined;
+    const gkLocationEnabled = state.gkLocationEnabled;
 
     const coordinateSystems = useCoordinateSystems(GK_FIN_COORDINATE_SYSTEMS.map(([srid]) => srid));
 
     const gkLocationEntered = geometryKmPostGkLocation !== undefined || layoutLocation != undefined;
+    const fieldsEnabled = role !== 'LINKING' && gkLocationEnabled;
 
     return (
         <>
-            <Heading size={HeadingSize.SUB}>{t('km-post-dialog.gk-location.title')}</Heading>
+            <Heading size={HeadingSize.SUB}>
+                <span className={styles['km-post-edit-dialog__location-header-container']}>
+                    {t('km-post-dialog.gk-location.title')}
+                    <Switch
+                        checked={gkLocationEnabled}
+                        onCheckedChange={() =>
+                            stateActions.setGkLocationEnabled(!gkLocationEnabled)
+                        }
+                        disabled={role === 'LINKING'}
+                    />
+                </span>
+            </Heading>
             <FieldLayout
-                label={t('km-post-dialog.gk-location.location-field')}
+                label={`${t('km-post-dialog.gk-location.coordinate-system-field')} *`}
+                disabled={!fieldsEnabled}
+                errors={getVisibleErrorsByProp('gkSrid')}
+                value={
+                    <Dropdown
+                        options={(coordinateSystems ?? []).map((system) => ({
+                            value: system.srid,
+                            name: formatWithSrid(system),
+                            qaId: system.srid,
+                        }))}
+                        wide
+                        disabled={!fieldsEnabled}
+                        value={gkLocationEnabled ? state.kmPost.gkSrid : undefined}
+                        canUnselect
+                        onChange={(srid) => updateProp('gkSrid', srid)}
+                        hasError={hasErrors('gkSrid')}
+                        onBlur={() => stateActions.onCommitField('gkSrid')}
+                    />
+                }
+            />
+            <FieldLayout
+                label={`${t('km-post-dialog.gk-location.location-field')} *`}
+                disabled={!fieldsEnabled}
                 value={
                     <div className={styles['km-post-edit-dialog__location']}>
                         <div className={styles['km-post-edit-dialog__location-axis']}>
                             <TextField
                                 qa-id="km-post-gk-location-n"
-                                value={state.kmPost?.gkLocationY}
+                                value={gkLocationEnabled ? state.kmPost?.gkLocationY : ''}
                                 onChange={(e) => updateProp('gkLocationY', e.target.value)}
-                                onBlur={() => stateActions.onCommitField('gkLocationY')}
+                                disabled={!fieldsEnabled}
+                                onBlur={() => {
+                                    stateActions.onCommitField('gkLocationY');
+                                }}
                                 hasError={hasErrors('gkLocationY')}
                                 wide
                                 className={styles['km-post-edit-dialog__location-axis-field']}
@@ -136,9 +195,12 @@ export const KmPostEditDialogGkLocationSection: React.FC<
                         <div className={styles['km-post-edit-dialog__location-axis']}>
                             <TextField
                                 qa-id="km-post-gk-location-e"
-                                value={state.kmPost?.gkLocationX}
+                                value={gkLocationEnabled ? state.kmPost?.gkLocationX : ''}
+                                disabled={!fieldsEnabled}
                                 onChange={(e) => updateProp('gkLocationX', e.target.value)}
-                                onBlur={() => stateActions.onCommitField('gkLocationX')}
+                                onBlur={() => {
+                                    stateActions.onCommitField('gkLocationX');
+                                }}
                                 hasError={hasErrors('gkLocationX')}
                                 wide
                                 className={styles['km-post-edit-dialog__location-axis-field']}
@@ -155,35 +217,26 @@ export const KmPostEditDialogGkLocationSection: React.FC<
                 ].filter(filterUnique)}
             />
             <FieldLayout
-                label={t('km-post-dialog.gk-location.coordinate-system-field')}
-                value={
-                    <Dropdown
-                        options={(coordinateSystems ?? []).map((system) => ({
-                            value: system.srid,
-                            name: formatWithSrid(system),
-                            qaId: system.srid,
-                        }))}
-                        value={state.kmPost.gkSrid}
-                        onChange={(srid) => updateProp('gkSrid', srid)}
-                    />
-                }
-            />
-            <FieldLayout
-                label={t('km-post-dialog.gk-location.confirmed-field')}
+                label={`${t('km-post-dialog.gk-location.confirmed-field')} *`}
+                disabled={!fieldsEnabled}
                 value={
                     <div className={styles['km-post-edit-dialog__confirmed']}>
                         <Radio
-                            checked={state.kmPost.gkLocationConfirmed === true && gkLocationEntered}
+                            checked={
+                                (state.kmPost.gkLocationConfirmed === true || !gkLocationEntered) &&
+                                gkLocationEnabled
+                            }
                             onChange={() => updateProp('gkLocationConfirmed', true)}
-                            disabled={!gkLocationEntered}>
+                            disabled={!fieldsEnabled}>
                             {t('km-post-dialog.gk-location.confirmed')}
                         </Radio>
                         <Radio
                             checked={
-                                state.kmPost.gkLocationConfirmed === false || !gkLocationEntered
+                                (state.kmPost.gkLocationConfirmed === false && gkLocationEntered) ||
+                                !gkLocationEnabled
                             }
                             onChange={() => updateProp('gkLocationConfirmed', false)}
-                            disabled={!gkLocationEntered}>
+                            disabled={!fieldsEnabled}>
                             {t('km-post-dialog.gk-location.not-confirmed')}
                         </Radio>
                     </div>
@@ -191,16 +244,28 @@ export const KmPostEditDialogGkLocationSection: React.FC<
             />
             <FieldLayout
                 label={t('km-post-dialog.gk-location.source')}
-                value={displayGkLocationSource(gkLocationSource(state))}
+                disabled={!fieldsEnabled}
+                value={t(
+                    gkLocationSourceTranslationKey(
+                        gkLocationSource(state),
+                        gkLocationEnabled,
+                        role,
+                    ),
+                )}
             />
-            <Heading size={HeadingSize.SUB}>
-                {t('km-post-dialog.gk-location.location-in-layout')}
-            </Heading>
-            <div className="field-layout__value">
-                {layoutLocation === undefined
-                    ? t('km-post-dialog.gk-location.location-not-defined')
-                    : formatToTM35FINString(layoutLocation)}
-            </div>
+            <FieldLayout
+                label={t('km-post-dialog.gk-location.location-in-layout')}
+                disabled={!fieldsEnabled}
+                value={
+                    gkLocationEnabled
+                        ? layoutLocation === undefined
+                            ? gkLocation
+                                ? t('km-post-dialog.gk-location.out-of-bounds')
+                                : '-'
+                            : formatToTM35FINString(layoutLocation)
+                        : '-'
+                }
+            />
         </>
     );
 };
