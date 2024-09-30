@@ -708,14 +708,17 @@ class PublicationDao(
                 and not exists(
                   select *
                   from publication.switch psw
+                    join publication.publication psw_publication on psw.publication_id = psw_publication.id
                   where psw.switch_id = switch_version.id
+                    and psw_publication.design_id is not distinct from publication.design_id
                     and direct_change
                     and (psw.switch_version = switch_version.version and psw.publication_id > plt.publication_id
                       or psw.switch_version > switch_version.version and psw.publication_id <= plt.publication_id))
-                and (:publicationId::integer is null or :publicationId = publication.id)
+                and case when :publicationId::integer is not null
+                      then :publicationId = publication.id
+                      else :design_id is not distinct from publication.design_id end
                 and (:from::timestamptz is null or :from <= publication_time)
                 and (:to::timestamptz is null or :to >= publication_time)
-                and (case when :publicationId::integer is not null then :design_id is not distinct from publication.design_id end)
         """
                 .trimIndent()
 
