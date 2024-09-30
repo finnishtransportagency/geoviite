@@ -32,12 +32,12 @@ import fi.fta.geoviite.infra.tracklayout.LAYOUT_M_DELTA
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.SegmentPoint
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.math.BigDecimal
 import java.math.RoundingMode
 import kotlin.math.PI
 import kotlin.math.abs
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 
 data class AddressPoint(val point: AlignmentPoint, val address: TrackMeter) {
     fun isSame(other: AddressPoint) = address.isSame(other.address) && point.isSame(other.point)
@@ -64,8 +64,17 @@ data class AlignmentAddresses(
 
     @get:JsonIgnore
     val integerPrecisionPoints: List<AddressPoint> by lazy {
-        // midPoints are even anyhow, so just transform start/end
-        listOfNotNull(startPoint.withIntegerPrecision()) + midPoints + listOfNotNull(endPoint.withIntegerPrecision())
+        // midPoints are even anyhow, so just drop zero decimals from start/end
+        val start =
+            startPoint.withIntegerPrecision()?.takeIf { s ->
+                midPoints.isEmpty() || s.address < midPoints.first().address
+            }
+        val end =
+            endPoint.withIntegerPrecision()?.takeIf { e ->
+                (start == null || e.address > start.address) &&
+                    (midPoints.isEmpty() || e.address > midPoints.last().address)
+            }
+        listOfNotNull(start) + midPoints + listOfNotNull(end)
     }
 }
 
@@ -372,6 +381,25 @@ data class GeocodingContext(
 
     val referenceLineAddresses by lazy {
         checkNotNull(getAddressPoints(referenceLineGeometry)) { "Can't resolve reference line addresses" }
+    }
+
+    fun getPartialAddressRange(
+        sourceAlignment: LayoutAlignment,
+        segmentIndices: IntRange,
+    ): Pair<AddressPoint, AddressPoint>? {
+        assert(segmentIndices.first >= 0 && segmentIndices.last <= sourceAlignment.segments.lastIndex) {
+            "Segment indices out of bounds: indices=$segmentIndices segments=${sourceAlignment.segments.size}"
+        }
+        val startSegment = sourceAlignment.segments[segmentIndices.first]
+        val endSegment = sourceAlignment.segments[segmentIndices.last]
+        val sourceStart = startSegment.segmentStart.toAlignmentPoint(0.0).let(::toAddressPoint)?.first
+        val endSegmentStart = endSegment.startM - startSegment.startM
+        val sourceEnd = endSegment.segmentEnd.toAlignmentPoint(endSegmentStart).let(::toAddressPoint)?.first
+        return if (sourceStart != null && sourceEnd != null) {
+            sourceStart to sourceEnd
+        } else {
+            null
+        }
     }
 
     private fun toAddressPoint(point: AlignmentPoint, decimals: Int = DEFAULT_TRACK_METER_DECIMALS) =

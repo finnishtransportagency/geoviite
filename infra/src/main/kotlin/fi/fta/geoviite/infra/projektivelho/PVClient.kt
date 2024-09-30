@@ -149,7 +149,7 @@ constructor(val pvWebClient: PVWebClient, val pvLoginWebClient: PVLoginWebClient
         if (ex.statusCode.value() == 404) {
             logger.warn(
                 "Could not GET ${T::class.simpleName} from ProjektiVelho: " +
-                    "$message status=${ex.statusCode} result=${ex.message?.let(::formatForLog) ?: "" }"
+                    "$message status=${ex.statusCode} result=${ex.message.let(::formatForLog)}"
             )
             Mono.empty()
         } else Mono.error(ex)
