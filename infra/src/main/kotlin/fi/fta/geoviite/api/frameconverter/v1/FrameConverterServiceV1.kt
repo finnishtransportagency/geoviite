@@ -289,7 +289,7 @@ constructor(
         return listOf(
             GeoJsonFeatureErrorResponseV1(
                 identifier = identifier,
-                errorMessages = errors.joinToString(" ") { error -> translation.t(error.localizationKey) },
+                errorMessages = errors.map { error -> translation.t(error.localizationKey) },
             )
         )
     }
