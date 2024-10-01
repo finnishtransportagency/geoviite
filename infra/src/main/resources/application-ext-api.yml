@@ -34,5 +34,16 @@ geoviite:
 
   ext-api:
     enabled: true
+    static-url: '/rata-vkm/static/**'
+    static-resources: 'classpath:/static/frameconverter/'
     url-path-prefixes:
       - /rata-vkm
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: true
+    url: /rata-vkm/static/openapi-rata-vkm-v1.yml
+    path: /rata-vkm/swagger-ui.html
+    defaultModelsExpandDepth: -1

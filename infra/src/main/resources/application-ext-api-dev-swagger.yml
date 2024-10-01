@@ -1,0 +1,8 @@
+geoviite:
+  ext-api:
+    static-url: '/rata-vkm/dev/static/**'
+
+springdoc:
+  swagger-ui:
+    url: /rata-vkm/dev/static/openapi-rata-vkm-v1-dev.yml
+    path: /rata-vkm/dev/swagger-ui.html

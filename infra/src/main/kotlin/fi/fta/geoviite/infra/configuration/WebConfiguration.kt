@@ -2,8 +2,6 @@ package fi.fta.geoviite.infra.configuration
 
 import com.fasterxml.jackson.annotation.JsonInclude
 import com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS
-import fi.fta.geoviite.api.frameconverter.v1.FrameConverterListRequestConverterV1
-import fi.fta.geoviite.api.frameconverter.v1.FrameConverterRequestConverterV1
 import fi.fta.geoviite.infra.authorization.AuthCode
 import fi.fta.geoviite.infra.authorization.AuthName
 import fi.fta.geoviite.infra.authorization.UserName
@@ -45,6 +43,7 @@ import fi.fta.geoviite.infra.util.HttpsUrl
 import fi.fta.geoviite.infra.util.UnsafeString
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication
 import org.springframework.context.annotation.Configuration
 import org.springframework.format.FormatterRegistry
@@ -53,16 +52,25 @@ import org.springframework.http.converter.HttpMessageConverter
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
 import org.springframework.web.servlet.config.annotation.EnableWebMvc
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
 
 @ConditionalOnWebApplication
 @EnableWebMvc
 @Configuration
 class WebConfig(
-    private val frameConverterRequestConverterV1: FrameConverterRequestConverterV1,
-    private val frameConverterListRequestConverterV1: FrameConverterListRequestConverterV1,
+    @Value("\${geoviite.ext-api.enabled:false}") val extApiEnabled: Boolean,
+    @Value("\${geoviite.ext-api.static-url:}") val extApiStaticUrl: String,
+    @Value("\${geoviite.ext-api.static-resources:}") val extApiStaticResourcesPath: String,
 ) : WebMvcConfigurer {
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
+
+    override fun addResourceHandlers(registry: ResourceHandlerRegistry) {
+        if (extApiEnabled && extApiStaticUrl.isNotEmpty() && extApiStaticResourcesPath.isNotEmpty()) {
+            logger.info("Static file serving enabled, url=$extApiStaticUrl, resources=$extApiStaticResourcesPath")
+            registry.addResourceHandler(extApiStaticUrl).addResourceLocations(extApiStaticResourcesPath)
+        }
+    }
 
     override fun addFormatters(registry: FormatterRegistry) {
         logger.info("Registering sanitized string converters")
@@ -132,17 +140,14 @@ class WebConfig(
 
         logger.info("Registering localization language converters")
         registry.addStringConstructorConverter { enumCaseInsensitive<LocalizationLanguage>(it) }
-
-        logger.info("Registering frame converter json request converters")
-        registry.addConverter(frameConverterRequestConverterV1)
-        registry.addConverter(frameConverterListRequestConverterV1)
     }
 
     override fun configureMessageConverters(converters: MutableList<HttpMessageConverter<*>?>) {
         val builder = Jackson2ObjectMapperBuilder().featuresToDisable(WRITE_DATES_AS_TIMESTAMPS)
         builder.serializationInclusion(JsonInclude.Include.NON_NULL)
-        converters.add(MappingJackson2HttpMessageConverter(builder.build()))
+
         converters.add(ByteArrayHttpMessageConverter())
+        converters.add(MappingJackson2HttpMessageConverter(builder.build()))
     }
 }
 

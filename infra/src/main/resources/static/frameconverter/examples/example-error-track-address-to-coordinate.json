@@ -1,0 +1,18 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "geometry": {
+                "type": "Point",
+                "coordinates": []
+            },
+            "properties": {
+                "virheet": [
+                    "Pyyntö ei sisältänyt ratakilometriä.",
+                    "Pyyntö ei sisältänyt ratametriä."
+                ]
+            },
+            "type": "Feature"
+        }
+    ]
+}

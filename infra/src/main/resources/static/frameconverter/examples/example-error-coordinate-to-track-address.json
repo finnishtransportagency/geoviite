@@ -1,0 +1,15 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "geometry": {
+                "type": "Point",
+                "coordinates": []
+            },
+            "properties": {
+                "virheet": "Annetun (alku)pisteen parametreilla ei löytynyt tietoja."
+            },
+            "type": "Feature"
+        }
+    ]
+}
