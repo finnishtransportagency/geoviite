@@ -1,0 +1,24 @@
+{
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "geometry": {
+                "type": "Point",
+                "coordinates": []
+            },
+            "properties": {
+                "x": 259348.20489785323,
+                "y": 6804094.514968412,
+                "valimatka": 2.0372681319713593E-10,
+                "ratanumero": "002",
+                "sijaintiraide": "002",
+                "sijaintiraide_kuvaus": "Lielahti-Kokemäki-Pori-Mäntyluoto",
+                "sijaintiraide_tyyppi": "pääraide",
+                "ratakilometri": 270,
+                "ratametri": 300,
+                "ratametri_desimaalit": 0
+            },
+            "type": "Feature"
+        }
+    ]
+}

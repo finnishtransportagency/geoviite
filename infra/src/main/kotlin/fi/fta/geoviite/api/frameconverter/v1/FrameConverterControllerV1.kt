@@ -8,6 +8,7 @@ import fi.fta.geoviite.infra.authorization.AUTH_API_FRAME_CONVERTER
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.error.ExtApiExceptionV1
+import java.util.stream.Collectors
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
@@ -38,7 +39,7 @@ constructor(private val objectMapper: ObjectMapper, private val frameConverterSe
         val jsonString = objectMapper.writeValueAsString(params)
         val queryParams = objectMapper.readValue(jsonString, FrameConverterQueryParamsV1::class.java)
 
-        return GeoJsonFeatureCollection(features = requests.flatMap { req -> processRequest(req, queryParams) })
+        return GeoJsonFeatureCollection(features = processRequestsInParallel(requests, queryParams))
     }
 
     @GetMapping("/rataosoitteet", "/rataosoitteet/")
@@ -52,13 +53,24 @@ constructor(private val objectMapper: ObjectMapper, private val frameConverterSe
 
     @PostMapping("/rataosoitteet", "/rataosoitteet/")
     fun coordinateToTrackAddressRequestBatch(
-        @RequestBody requests: List<CoordinateToTrackAddressRequestV1>,
         @RequestParam params: Map<String, String?>,
+        @RequestBody requests: List<CoordinateToTrackAddressRequestV1>,
     ): GeoJsonFeatureCollection {
         val jsonString = objectMapper.writeValueAsString(params)
         val queryParams = objectMapper.readValue(jsonString, FrameConverterQueryParamsV1::class.java)
 
-        return GeoJsonFeatureCollection(features = requests.flatMap { req -> processRequest(req, queryParams) })
+        return GeoJsonFeatureCollection(features = processRequestsInParallel(requests, queryParams))
+    }
+
+    private fun processRequestsInParallel(
+        requests: List<FrameConverterRequestV1>,
+        queryParams: FrameConverterQueryParamsV1,
+    ): List<GeoJsonFeature> {
+        return requests
+            .parallelStream()
+            .map { req -> processRequest(req, queryParams) }
+            .collect(Collectors.toList())
+            .flatten()
     }
 
     private fun processRequest(

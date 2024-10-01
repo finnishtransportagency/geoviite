@@ -124,3 +124,7 @@ server:
     enabled: true
     mime-types: application/json,text/plain,text/csv
     min-response-size: 1KB
+
+springdoc:
+  swagger-ui:
+    enabled: false
