@@ -65,8 +65,8 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
         () => getLayoutDesigns(getChangeTimes().layoutDesign),
         [getChangeTimes().layoutDesign],
     );
-    const designNameErrors = validateDesignName(name, nameCommitted);
-    if (!nameCommitted && name.length > 1 && designNameErrors.length === 0) {
+    const designNameErrors = validateDesignName(name.trim(), nameCommitted);
+    if (!nameCommitted && name.trim().length > 1 && designNameErrors.length === 0) {
         setNameCommitted(true);
     }
     const designNameNotUnique =
@@ -101,7 +101,10 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
                             isProcessing={saving}
                             onClick={() => {
                                 if (name && selectedDate) {
-                                    onSave(existingDesign?.id, saveRequest(name, selectedDate));
+                                    onSave(
+                                        existingDesign?.id,
+                                        saveRequest(name.trim(), selectedDate),
+                                    );
                                 }
                             }}>
                             {t('button.save')}
