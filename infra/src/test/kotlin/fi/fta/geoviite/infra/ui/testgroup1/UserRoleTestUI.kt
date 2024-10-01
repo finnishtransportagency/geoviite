@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.common.TrackNumber
 import fi.fta.geoviite.infra.tracklayout.DesignState
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignmentDao
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignDao
+import fi.fta.geoviite.infra.tracklayout.LayoutDesignName
 import fi.fta.geoviite.infra.tracklayout.LayoutDesignSaveRequest
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
@@ -20,7 +21,6 @@ import fi.fta.geoviite.infra.ui.testdata.HelsinkiTestData.Companion.westReferenc
 import fi.fta.geoviite.infra.ui.util.assertZeroBrowserConsoleErrors
 import fi.fta.geoviite.infra.ui.util.assertZeroErrorToasts
 import fi.fta.geoviite.infra.ui.util.byQaId
-import fi.fta.geoviite.infra.util.FreeText
 import java.time.LocalDate
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -58,7 +58,9 @@ constructor(
         referenceLineDao.insert(referenceLineAndAlignment.first.copy(alignmentVersion = alignmentVersion))
 
         val designName = "test design"
-        layoutDesignDao.insert(LayoutDesignSaveRequest(FreeText(designName), LocalDate.now(), DesignState.ACTIVE))
+        layoutDesignDao.insert(
+            LayoutDesignSaveRequest(LayoutDesignName(designName), LocalDate.now(), DesignState.ACTIVE)
+        )
 
         startGeoviite()
 

@@ -1146,7 +1146,7 @@ fun layoutDesign(
     name: String = "foo",
     estimatedCompletion: LocalDate = LocalDate.parse("2022-02-02"),
     designState: DesignState = DesignState.ACTIVE,
-) = LayoutDesignSaveRequest(FreeText(name), estimatedCompletion, designState)
+) = LayoutDesignSaveRequest(LayoutDesignName(name), estimatedCompletion, designState)
 
 fun <T> someRowVersion() = RowVersion(IntId<T>(1), 1)
 

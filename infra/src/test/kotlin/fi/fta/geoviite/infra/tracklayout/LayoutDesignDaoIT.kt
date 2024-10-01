@@ -1,7 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.DBTestBase
-import fi.fta.geoviite.infra.util.FreeText
 import java.time.LocalDate
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -31,14 +30,14 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
         layoutDesignDao.update(
             update.id,
             LayoutDesignSaveRequest(
-                name = FreeText("abc"),
+                name = LayoutDesignName("abc"),
                 estimatedCompletion = LocalDate.parse("2024-01-02"),
                 designState = update.designState,
             ),
         )
         assertEquals(
             listOf(
-                update.copy(name = FreeText("abc"), estimatedCompletion = LocalDate.parse("2024-01-02")),
+                update.copy(name = LayoutDesignName("abc"), estimatedCompletion = LocalDate.parse("2024-01-02")),
                 insertAsIs,
             ),
             layoutDesignDao.list().sortedBy(LayoutDesign::name),
@@ -85,7 +84,7 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
                 layoutDesignDao.update(
                     design.id,
                     LayoutDesignSaveRequest(
-                        name = FreeText("boo too far"),
+                        name = LayoutDesignName("boo too far"),
                         estimatedCompletion = design.estimatedCompletion,
                         designState = design.designState,
                     ),
@@ -98,7 +97,7 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
                 layoutDesignDao.update(
                     design.id,
                     LayoutDesignSaveRequest(
-                        name = FreeText("BOO TOO FAR"),
+                        name = LayoutDesignName("BOO TOO FAR"),
                         estimatedCompletion = design.estimatedCompletion,
                         designState = design.designState,
                     ),
@@ -110,7 +109,7 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
             layoutDesignDao.update(
                 design.id,
                 LayoutDesignSaveRequest(
-                    name = FreeText("way too far"),
+                    name = LayoutDesignName("way too far"),
                     estimatedCompletion = design.estimatedCompletion,
                     designState = design.designState,
                 ),
@@ -180,5 +179,5 @@ class LayoutDesignDaoIT @Autowired constructor(private val layoutDesignDao: Layo
         name: String,
         estimatedCompletion: LocalDate = LocalDate.parse("2035-01-02"),
         designState: DesignState = DesignState.ACTIVE,
-    ) = LayoutDesignSaveRequest(FreeText(name), estimatedCompletion, designState)
+    ) = LayoutDesignSaveRequest(LayoutDesignName(name), estimatedCompletion, designState)
 }
