@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
+import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState.DRAFT
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.SwitchName
@@ -99,6 +100,8 @@ import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.SortOrder
 import java.math.BigDecimal
+import java.sql.Timestamp
+import java.time.Instant
 import kotlin.math.absoluteValue
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
@@ -1914,6 +1917,155 @@ constructor(
                 }
             }
         )
+
+    @Test
+    fun `fetchPublicationLocationTrackSwitchLinkChanges() in main does not include switch changes in designs`() {
+        val switch = switchDao.insert(switch(name = "sw", externalId = "1.1.1.1.2", draft = false)).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
+        val locationTrackId =
+            locationTrackService
+                .saveDraft(
+                    LayoutBranch.main,
+                    locationTrack(trackNumberId, draft = true),
+                    alignmentWithSwitchLinks(switch),
+                )
+                .id
+
+        val firstMainPublicationId =
+            publish(publicationService, locationTracks = listOf(locationTrackId))
+                .also { result -> setPublicationTime(result.publicationId!!, Instant.parse("2024-01-02T00:00:00Z")) }
+                .publicationId!!
+
+        val designBranch = testDBService.createDesignBranch()
+        switchService.saveDraft(
+            designBranch,
+            switchDao.getOrThrow(MainLayoutContext.official, switch).copy(name = SwitchName("sw-edited-in-design")),
+        )
+
+        locationTrackService.saveDraft(
+            designBranch,
+            locationTrackDao.getOrThrow(MainLayoutContext.official, locationTrackId),
+            alignmentWithSwitchLinks(),
+        )
+
+        publish(
+                publicationService,
+                branch = designBranch,
+                locationTracks = listOf(locationTrackId),
+                switches = listOf(switch),
+            )
+            .also { result -> setPublicationTime(result.publicationId!!, Instant.parse("2024-01-03T00:00:00Z")) }
+            .publicationId!!
+
+        locationTrackService.saveDraft(
+            LayoutBranch.main,
+            locationTrackDao.getOrThrow(MainLayoutContext.official, locationTrackId),
+            alignmentWithSwitchLinks(),
+        )
+        val secondMainPublicationId =
+            publish(publicationService, locationTracks = listOf(locationTrackId))
+                .also { result -> setPublicationTime(result.publicationId!!, Instant.parse("2024-01-04T00:00:00Z")) }
+                .publicationId!!
+
+        val fullInterval =
+            publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(
+                null,
+                LayoutBranch.main,
+                Instant.parse("2024-01-02T00:00:00Z"),
+                Instant.parse("2024-01-04T00:00:00Z"),
+            )
+        val expect = expectLocationTrackSwitchLinkChanges(locationTrackId)
+        val switchChangeIds = switch to SwitchChangeIds("sw", Oid("1.1.1.1.2"))
+        val expectedFirstPublicationInMain = expect(firstMainPublicationId, mapOf(), mapOf(switchChangeIds))
+        val expectedSecondPublicationInMain = expect(secondMainPublicationId, mapOf(switchChangeIds), mapOf())
+        assertEquals(fullInterval, mapOf(expectedFirstPublicationInMain, expectedSecondPublicationInMain))
+    }
+
+    @Test
+    fun `fetchPublicationLocationTrackSwitchLinkChanges() can filter by design branch and is not confused by design publications`() {
+        val switchAddedAndRemoved =
+            switchDao.insert(switch(name = "sw-added-and-later-removed", externalId = "1.1.1.1.2", draft = false)).id
+        val switchFurtherAddedInMain =
+            switchDao.insert(switch(name = "sw-later-added-in-main", externalId = "1.1.1.1.5", draft = false)).id
+        val switchFurtherAddedInDesign =
+            switchDao.insert(switch(name = "sw-later-added-in-design", externalId = "1.1.1.1.6", draft = false)).id
+        val trackNumberId = mainOfficialContext.createLayoutTrackNumber().id
+        val locationTrackId =
+            locationTrackService
+                .saveDraft(
+                    LayoutBranch.main,
+                    locationTrack(trackNumberId, draft = true),
+                    alignmentWithSwitchLinks(switchAddedAndRemoved),
+                )
+                .id
+
+        val firstMainPublicationId =
+            publish(publicationService, locationTracks = listOf(locationTrackId))
+                .also { result -> setPublicationTime(result.publicationId!!, Instant.parse("2024-01-02T00:00:00Z")) }
+                .publicationId!!
+
+        // confuser design publication in the middle, to test filtering
+        val designBranch = testDBService.createDesignBranch()
+        locationTrackService.saveDraft(
+            designBranch,
+            locationTrackDao.getOrThrow(MainLayoutContext.official, locationTrackId),
+            alignmentWithSwitchLinks(switchFurtherAddedInDesign),
+        )
+        publish(publicationService, branch = designBranch, locationTracks = listOf(locationTrackId))
+            .also { result -> setPublicationTime(result.publicationId!!, Instant.parse("2024-01-03T00:00:00Z")) }
+            .publicationId!!
+
+        locationTrackService.saveDraft(
+            LayoutBranch.main,
+            locationTrackDao.getOrThrow(MainLayoutContext.official, locationTrackId),
+            alignmentWithSwitchLinks(switchFurtherAddedInMain),
+        )
+        val secondMainPublicationId =
+            publish(publicationService, locationTracks = listOf(locationTrackId))
+                .also { result -> setPublicationTime(result.publicationId!!, Instant.parse("2024-01-04T00:00:00Z")) }
+                .publicationId!!
+
+        val firstInterval =
+            publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(
+                null,
+                LayoutBranch.main,
+                Instant.parse("2024-01-01T00:00:00Z"),
+                Instant.parse("2024-01-02T00:00:00Z"),
+            )
+        val fullInterval =
+            publicationDao.fetchPublicationLocationTrackSwitchLinkChanges(
+                null,
+                LayoutBranch.main,
+                Instant.parse("2024-01-02T00:00:00Z"),
+                Instant.parse("2024-01-04T00:00:00Z"),
+            )
+        val expect = expectLocationTrackSwitchLinkChanges(locationTrackId)
+        val expectedFirstPublicationInMain =
+            expect(
+                firstMainPublicationId,
+                mapOf(),
+                mapOf(switchAddedAndRemoved to SwitchChangeIds("sw-added-and-later-removed", Oid("1.1.1.1.2"))),
+            )
+        val expectedSecondPublicationInMain =
+            expect(
+                secondMainPublicationId,
+                mapOf(switchAddedAndRemoved to SwitchChangeIds("sw-added-and-later-removed", Oid("1.1.1.1.2"))),
+                mapOf(switchFurtherAddedInMain to SwitchChangeIds("sw-later-added-in-main", Oid("1.1.1.1.5"))),
+            )
+        assertEquals(mapOf(expectedFirstPublicationInMain), firstInterval)
+        assertEquals(mapOf(expectedFirstPublicationInMain, expectedSecondPublicationInMain), fullInterval)
+    }
+
+    private fun expectLocationTrackSwitchLinkChanges(
+        locationTrackId: IntId<LocationTrack>
+    ): (
+        publicationId: IntId<Publication>,
+        old: Map<IntId<TrackLayoutSwitch>, SwitchChangeIds>,
+        new: Map<IntId<TrackLayoutSwitch>, SwitchChangeIds>,
+    ) -> Pair<IntId<Publication>, Map<IntId<LocationTrack>, LocationTrackPublicationSwitchLinkChanges>> =
+        { publicationId, old, new ->
+            publicationId to mapOf(locationTrackId to LocationTrackPublicationSwitchLinkChanges(old, new))
+        }
 
     @Test
     fun `Location track switch link changes are reported`() {
@@ -4345,6 +4497,12 @@ constructor(
             versions,
             calculatedChanges,
             FreeTextWithNewLines.of("${this::class.simpleName}"),
+        )
+
+    private fun setPublicationTime(publicationId: IntId<Publication>, time: Instant) =
+        jdbc.update(
+            "update publication.publication set publication_time = :time where id = :id",
+            mapOf("id" to publicationId.intValue, "time" to Timestamp.from(time)),
         )
 }
 
