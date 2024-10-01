@@ -75,6 +75,7 @@
                 "TrackNumber": "Ratanumeron tunnus {{value}} on virheellinen",
                 "KmNumber": "Tasakilometripisteen tunnus {{value}} on virheellinen",
                 "JointNumber": "Vaihdepisteen numero {{value}} on virheellinen",
+                "LayoutDesignName": "Työtilan nimi {{value}} on virheellinen",
                 "FileName": "Tiedoston nimessä on virhe",
                 "AngularUnit": "Suuntakulmien yksikkömäärityksessä on virhe, tai se uupuu kokonaan",
                 "LinearUnit": "Pituuksien yksikkömäärityksessä on virhe, tai se uupuu kokonaan",
@@ -1860,7 +1861,10 @@
             "guide": "Poistettua työtilaa ei voi palauttaa eikä sen sisältöä muokata.",
             "confirm": "Haluatko poistaa työtilan <strong>{{name}}<strong>?"
         },
-        "name-not-unique": "Nimi on jo käytössä"
+        "name-not-unique": "Nimi on jo käytössä",
+        "name-too-short": "Nimi on liian lyhyt",
+        "name-too-long": "Nimi on liian pitkä",
+        "name-invalid": "Nimi sisältää kiellettyjä merkkejä"
     },
     "switch-delete-dialog": {
         "title": "Poistetaanko luonnos?",

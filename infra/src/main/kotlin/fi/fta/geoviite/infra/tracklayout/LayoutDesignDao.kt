@@ -9,7 +9,6 @@ import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.DaoBase
 import fi.fta.geoviite.infra.util.DbTable
 import fi.fta.geoviite.infra.util.getEnum
-import fi.fta.geoviite.infra.util.getFreeText
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getLocalDate
 import fi.fta.geoviite.infra.util.getRowVersion
@@ -38,7 +37,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
         return jdbcTemplate.queryOne(sql, mapOf("id" to id.intValue)) { rs, _ ->
             LayoutDesign(
                 rs.getIntId("id"),
-                rs.getFreeText("name"),
+                LayoutDesignName(rs.getString("name")),
                 rs.getLocalDate("estimated_completion"),
                 rs.getEnum("design_state"),
             )
@@ -61,7 +60,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
         ) { rs, _ ->
             LayoutDesign(
                 rs.getIntId("id"),
-                rs.getFreeText("name"),
+                LayoutDesignName(rs.getString("name")),
                 rs.getLocalDate("estimated_completion"),
                 rs.getEnum("design_state"),
             )
@@ -91,7 +90,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
                 .trimIndent()
         val response =
             jdbcTemplate.queryForObject(sql, params) { rs, _ -> rs.getRowVersion<LayoutDesign>("id", "version") }
-                ?: throw IllegalStateException("Failed to generate ID for new row version of updated layout design")
+                ?: error { "Failed to generate ID for new row version of updated layout design" }
         logger.daoAccess(AccessType.UPDATE, LayoutDesign::class, response)
         return response.id
     }
@@ -116,7 +115,7 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
                 ),
             ) { rs, _ ->
                 rs.getRowVersion<LayoutDesign>("id", "version")
-            } ?: throw IllegalStateException("Failed to generate ID for new layout design")
+            } ?: error { "Failed to generate ID for new layout design" }
         logger.daoAccess(AccessType.INSERT, LayoutDesign::class, response)
         return response.id
     }
@@ -126,14 +125,14 @@ class LayoutDesignDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : DaoBase(
     }
 }
 
-private val duplicateSwitchErrorRegex = Regex("""Key \(lower\(name\)\)=\(([^,]+)\) conflicts with existing key""")
+private val duplicateNameErrorRegex = Regex("""Key \(lower\(name::text\)\)=\(([^,]+)\) conflicts with existing key""")
 
 fun asDuplicateNameException(e: DataIntegrityViolationException): DuplicateDesignNameException? =
     e.cause
         .let { cause -> cause as? PSQLException }
         ?.let { cause -> getPSQLExceptionConstraintAndDetailOrRethrow(cause) }
         ?.let { (constraint, detail) ->
-            duplicateSwitchErrorRegex
+            duplicateNameErrorRegex
                 .matchAt(detail, 0)
                 ?.let { match -> match.groups[1]?.value }
                 ?.let { name -> constraint to name }
