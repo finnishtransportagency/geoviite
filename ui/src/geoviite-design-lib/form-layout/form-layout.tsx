@@ -6,6 +6,7 @@ export type FormLayoutProps = {
     children?: React.ReactNode;
     dualColumn?: boolean;
     isProcessing?: boolean;
+    errorAtBottom?: boolean;
 };
 
 export type FormLayoutColumnProps = {
@@ -17,6 +18,7 @@ export const FormLayout: React.FC<FormLayoutProps> = (props: FormLayoutProps) =>
         styles['form-layout'],
         props.isProcessing && styles['form-layout--is-processing'],
         props.dualColumn && styles['form-layout--double-column'],
+        props.errorAtBottom && styles['form-layout--error-at-bottom'],
     );
 
     return (

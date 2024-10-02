@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogVariant } from 'geoviite-design-lib/dialog/dialog';
+import { Dialog, DialogVariant, DialogWidth } from 'geoviite-design-lib/dialog/dialog';
 import { useTranslation } from 'react-i18next';
 import { Button, ButtonVariant } from 'vayla-design-lib/button/button';
 import { FormLayout, FormLayoutColumn } from 'geoviite-design-lib/form-layout/form-layout';
@@ -41,12 +41,15 @@ import { useTrackLayoutAppSelector } from 'store/hooks';
 import { KmPostEditDialogGkLocationSection } from 'tool-panel/km-post/dialog/km-post-edit-dialog-gk-location-section';
 import { GeometryPoint } from 'model/geometry';
 
+export type KmPostEditDialogRole = 'MODIFY' | 'CREATE' | 'LINKING';
+
 type KmPostEditDialogContainerProps = {
     kmPostId?: LayoutKmPostId;
     onClose: () => void;
     onSave?: (kmPostId: LayoutKmPostId) => void;
     prefilledTrackNumberId?: LayoutTrackNumberId;
     geometryKmPostGkLocation?: GeometryPoint;
+    role: KmPostEditDialogRole;
 };
 
 type KmPostEditDialogProps = {
@@ -57,6 +60,8 @@ type KmPostEditDialogProps = {
     prefilledTrackNumberId?: LayoutTrackNumberId;
     onEditKmPost: (id?: LayoutKmPostId) => void;
     geometryKmPostGkLocation?: GeometryPoint;
+    geometryKmPostLocation?: GeometryPoint;
+    role: KmPostEditDialogRole;
 };
 
 export const KmPostEditDialogContainer: React.FC<KmPostEditDialogContainerProps> = (
@@ -75,13 +80,17 @@ export const KmPostEditDialogContainer: React.FC<KmPostEditDialogContainerProps>
             onEditKmPost={setEditKmPostId}
             prefilledTrackNumberId={props.prefilledTrackNumberId}
             geometryKmPostGkLocation={props.geometryKmPostGkLocation}
+            role={props.role}
         />
     );
 };
 
 export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostEditDialogProps) => {
     const { t } = useTranslation();
-    const [state, dispatcher] = React.useReducer(reducer, initialKmPostEditState);
+    const [state, dispatcher] = React.useReducer(reducer, {
+        ...initialKmPostEditState,
+        gkLocationEnabled: !!props.geometryKmPostGkLocation,
+    });
     const stateActions = createDelegatesWithDispatcher(dispatcher, actions);
     const kmPostStateOptions = layoutStates
         .filter((ls) => !state.isNewKmPost || ls.value != 'DELETED')
@@ -228,26 +237,24 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                         : t('km-post-dialog.title-edit')
                 }
                 onClose={close}
+                width={DialogWidth.TWO_COLUMNS}
                 footerContent={
                     <React.Fragment>
                         {state.existingKmPost?.editState === 'CREATED' && !state.isNewKmPost && (
-                            <Button
-                                onClick={() =>
-                                    props.kmPostId
-                                        ? setDraftDeleteConfirmationVisible(true)
-                                        : undefined
-                                }
-                                icon={Icons.Delete}
-                                variant={ButtonVariant.WARNING}>
-                                {t('button.delete-draft')}
-                            </Button>
+                            <div className={dialogStyles['dialog__footer-content--left-aligned']}>
+                                <Button
+                                    onClick={() =>
+                                        props.kmPostId
+                                            ? setDraftDeleteConfirmationVisible(true)
+                                            : undefined
+                                    }
+                                    icon={Icons.Delete}
+                                    variant={ButtonVariant.WARNING}>
+                                    {t('button.delete-draft')}
+                                </Button>
+                            </div>
                         )}
-                        <div
-                            className={
-                                state.existingKmPost?.editState === 'CREATED'
-                                    ? dialogStyles['dialog__footer-content--right-aligned']
-                                    : dialogStyles['dialog__footer-content--centered']
-                            }>
+                        <div className={dialogStyles['dialog__footer-content--centered']}>
                             <Button
                                 variant={ButtonVariant.SECONDARY}
                                 disabled={state.isSaving}
@@ -272,7 +279,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                         </div>
                     </React.Fragment>
                 }>
-                <FormLayout>
+                <FormLayout dualColumn>
                     <FormLayoutColumn>
                         <Heading size={HeadingSize.SUB}>
                             {t('km-post-dialog.general-title')}
@@ -337,6 +344,8 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             }
                             errors={getVisibleErrorsByProp('state')}
                         />
+                    </FormLayoutColumn>
+                    <FormLayoutColumn>
                         <KmPostEditDialogGkLocationSection
                             getVisibleErrorsByProp={getVisibleErrorsByProp}
                             hasErrors={hasErrors}
@@ -344,6 +353,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             stateActions={stateActions}
                             updateProp={updateProp}
                             geometryKmPostGkLocation={props.geometryKmPostGkLocation}
+                            role={props.role}
                         />
                     </FormLayoutColumn>
                 </FormLayout>

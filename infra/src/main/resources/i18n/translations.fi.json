@@ -300,7 +300,6 @@
     "app-bar": {
         "frontpage": "Etusivu",
         "track-layout": "Kartta",
-        "register": "Rekisteri",
         "infra-model": "InfraModel",
         "components": "Components",
         "localization": "Localization",
@@ -1793,8 +1792,9 @@
             "source-from-geometry": "Linkitetty geometriasta",
             "source-from-layout": "Konvertoitu paikannuspohjasta",
             "source-manual": "Operaattorin asettama",
+            "source-none": "-",
             "location-in-layout": "Sijainti paikannuspohjassa (TM35FIN)",
-            "location-not-defined": "Sijaintia ei ole määritelty"
+            "out-of-bounds": "Sijainti ei ole laskettavissa"
         }
     },
     "km-post-delete-dialog": {

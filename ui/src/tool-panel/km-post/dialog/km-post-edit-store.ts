@@ -23,6 +23,7 @@ export type KmPostEditState = {
     geometryKmPostLocation?: GeometryPoint;
     kmPost: KmPostEditFields;
     isSaving: boolean;
+    gkLocationEnabled: boolean;
     validationIssues: FieldValidationIssue<KmPostEditFields>[];
     committedFields: (keyof KmPostEditFields)[];
     allFieldsCommitted: boolean;
@@ -32,6 +33,7 @@ export const initialKmPostEditState: KmPostEditState = {
     isNewKmPost: false,
     existingKmPost: undefined,
     geometryKmPostLocation: undefined,
+    gkLocationEnabled: true,
     kmPost: {
         kmNumber: '',
         gkLocationX: '',
@@ -53,12 +55,18 @@ function newLinkingKmPost(
         kmNumber: '',
         state: undefined,
         trackNumberId: trackNumberId,
-        gkLocationX: '',
-        gkLocationY: '',
-        gkSrid: undefined,
+        gkLocationX: geometryKmPostLocation ? geometryKmPostLocation.x.toString(10) : '',
+        gkLocationY: geometryKmPostLocation ? geometryKmPostLocation.y.toString(10) : '',
+        gkSrid: geometryKmPostLocation ? geometryKmPostLocation.srid : undefined,
         gkLocationConfirmed: geometryKmPostLocation !== undefined ? true : undefined,
     };
 }
+
+const isGkProp = (prop: keyof KmPostEditFields): boolean =>
+    prop === 'gkLocationX' ||
+    prop === 'gkLocationY' ||
+    prop === 'gkSrid' ||
+    prop === 'gkLocationConfirmed';
 
 function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmPostEditFields>[] {
     let errors: {
@@ -66,16 +74,29 @@ function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmP
         reason: string;
         type: FieldValidationIssueType;
     }[] = [
-        ...['kmNumber', 'state', 'trackNumberId']
-            .map((prop: 'kmNumber' | 'state' | 'trackNumberId') => {
-                if (isNilOrBlank(state.kmPost[prop])) {
-                    return {
-                        field: prop,
-                        reason: 'mandatory-field',
-                        type: FieldValidationIssueType.ERROR,
-                    };
-                }
-            })
+        ...['kmNumber', 'state', 'trackNumberId', 'gkLocationX', 'gkLocationY', 'gkSrid']
+            .map(
+                (
+                    prop:
+                        | 'kmNumber'
+                        | 'state'
+                        | 'trackNumberId'
+                        | 'gkLocationX'
+                        | 'gkLocationY'
+                        | 'gkSrid',
+                ) => {
+                    if (
+                        ((isGkProp(prop) && state.gkLocationEnabled) || !isGkProp(prop)) &&
+                        isNilOrBlank(state.kmPost[prop])
+                    ) {
+                        return {
+                            field: prop,
+                            reason: 'mandatory-field',
+                            type: FieldValidationIssueType.ERROR,
+                        };
+                    }
+                },
+            )
             .filter(filterNotEmpty),
     ];
 
@@ -89,7 +110,10 @@ function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmP
         errors = [...errors, ...getErrorForKmPostExistsOnTrack()];
     }
 
-    if (state.kmPost.gkLocationX !== '' || state.kmPost.gkLocationY !== '') {
+    if (
+        (state.gkLocationEnabled && state.kmPost.gkLocationX !== '') ||
+        state.kmPost.gkLocationY !== ''
+    ) {
         if (!isValidGkCoordinate(state.kmPost.gkLocationX)) {
             errors = [...errors, ...getGkCoordinateDoesNotParseError('gkLocationX')];
         } else if (!isFaithfullySaveableAsFloat(state.kmPost.gkLocationX)) {
@@ -101,6 +125,7 @@ function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmP
             errors = [...errors, ...getGkCoordinateIsNotFaithfullySaveableError('gkLocationY')];
         }
     }
+
     return errors;
 }
 
@@ -168,6 +193,7 @@ const kmPostEditSlice = createSlice({
             state.geometryKmPostLocation = payload.geometryKmPostLocation;
             state.kmPost = newLinkingKmPost(payload.trackNumberId, payload.geometryKmPostLocation);
             state.validationIssues = validateLinkingKmPost(state);
+            state.gkLocationEnabled = payload.geometryKmPostLocation !== undefined;
         },
         onKmPostLoaded: (
             state: KmPostEditState,
@@ -228,12 +254,34 @@ const kmPostEditSlice = createSlice({
             state.trackNumberKmPost = tnKmPost;
             state.validationIssues = validateLinkingKmPost(state);
         },
+        setGkLocationEnabled: (
+            state: KmPostEditState,
+            { payload: gkLocationEnabled }: PayloadAction<boolean>,
+        ): void => {
+            state.gkLocationEnabled = gkLocationEnabled;
+            state.validationIssues = validateLinkingKmPost(state);
+        },
     },
 });
 
 export function canSaveKmPost(state: KmPostEditState): boolean {
-    return state.kmPost && !state.validationIssues.length && !state.isSaving;
+    return (
+        state.kmPost &&
+        !state.validationIssues.length &&
+        !state.isSaving &&
+        (state.gkLocationEnabled ? hasValidGkLocation(state) : true)
+    );
 }
+
+const hasValidGkLocation = (state: KmPostEditState): boolean =>
+    state.kmPost.gkLocationX !== '' &&
+    state.kmPost.gkLocationY !== '' &&
+    state.kmPost.gkSrid !== undefined &&
+    state.kmPost.gkLocationConfirmed !== undefined &&
+    isValidGkCoordinate(state.kmPost.gkLocationX) &&
+    isValidGkCoordinate(state.kmPost.gkLocationY) &&
+    isFaithfullySaveableAsFloat(state.kmPost.gkLocationX) &&
+    isFaithfullySaveableAsFloat(state.kmPost.gkLocationY);
 
 export function isValidKmNumber(kmNumber: string): boolean {
     if (kmNumber.length <= 4) {
@@ -287,13 +335,14 @@ export function saveGkPointToEditingGkPoint(point: GeometryPoint): {
 }
 
 export function kmPostGkPointDiffersFromOriginal(
-    editing: Pick<KmPostEditFields, 'gkLocationX' | 'gkLocationY'>,
+    editing: Pick<KmPostEditFields, 'gkLocationX' | 'gkLocationY' | 'gkSrid'>,
     original: GeometryPoint,
 ) {
     const originalAsEditing = saveGkPointToEditingGkPoint(original);
     return (
         originalAsEditing.gkLocationX !== editing.gkLocationX ||
-        originalAsEditing.gkLocationY !== editing.gkLocationY
+        originalAsEditing.gkLocationY !== editing.gkLocationY ||
+        original.srid !== editing.gkSrid
     );
 }
 
@@ -317,8 +366,9 @@ export function kmPostSaveRequest(state: KmPostEditState): KmPostSaveRequest {
     const typedSimpleFields: KmPostSimpleFields = { ...simpleFields };
     return {
         ...typedSimpleFields,
-        gkLocation: editingGkPointToSavePoint(state),
-        gkLocationSource: gkLocationSource(state),
+        gkLocation: state.gkLocationEnabled ? editingGkPointToSavePoint(state) : undefined,
+        gkLocationSource: state.gkLocationEnabled ? gkLocationSource(state) : undefined,
+        gkLocationConfirmed: state.gkLocationEnabled ? state.kmPost.gkLocationConfirmed : false,
     };
 }
 

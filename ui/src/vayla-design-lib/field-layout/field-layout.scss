@@ -7,10 +7,18 @@
     margin-bottom: 10px;
 }
 
+.field-layout__value--disabled {
+    color: colors.$color-black-lighter;
+}
+
 .field-layout__label {
     @include typography.typography-caption-strong;
     color: colors.$color-black-light;
     padding: 3px 0;
+
+    &--disabled {
+        color: colors.$color-black-lighter;
+    }
 }
 
 .field-layout--has-error .field-layout__label {

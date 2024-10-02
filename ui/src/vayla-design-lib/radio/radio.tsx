@@ -14,13 +14,18 @@ export const Radio: React.FC<RadioProps> = ({ children, qaId, ...props }: RadioP
         props.disabled && styles['radio--disabled'],
         touched && styles['radio--touched'],
     );
+    const childrenClassName = createClassName(
+        styles['radio__label-text'],
+        props.disabled && styles['radio__label-text--disabled'],
+    );
+
     return (
         <label qa-id={qaId} className={className} onClick={() => setTouched(true)}>
             <input {...props} type="radio" className={styles.radio__input} />
             <span className={styles.radio__visualization}>
                 <span className={styles['radio__checked-marker']} />
             </span>
-            {children && <span className={styles['radio__label-text']}>{children}</span>}
+            {children && <span className={childrenClassName}>{children}</span>}
         </label>
     );
 };

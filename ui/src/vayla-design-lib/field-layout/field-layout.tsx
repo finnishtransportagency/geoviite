@@ -8,6 +8,7 @@ export type FieldLayoutProps = {
     help?: React.ReactNode;
     warnings?: string[];
     errors?: string[];
+    disabled?: boolean;
     children?: React.ReactNode;
 };
 
@@ -17,10 +18,18 @@ export const FieldLayout: React.FC<FieldLayoutProps> = (props: FieldLayoutProps)
         props.errors?.length && styles['field-layout--has-error'],
     );
 
+    const labelClassName = createClassName(
+        styles['field-layout__label'],
+        props.disabled && styles['field-layout__label--disabled'],
+    );
+    const valueClassName = createClassName(
+        props.disabled && styles['field-layout__value--disabled'],
+    );
+
     return (
         <div className={className}>
-            <div className={styles['field-layout__label']}>{props.label}</div>
-            <div className="field-layout__value">{props.value}</div>
+            <div className={labelClassName}>{props.label}</div>
+            <div className={valueClassName}>{props.value}</div>
             <div className={styles['field-layout__help']}>{props.help}</div>
             {props.errors && (
                 <div className={styles['field-layout__errors']}>

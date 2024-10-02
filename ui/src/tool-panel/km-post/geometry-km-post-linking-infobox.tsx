@@ -271,6 +271,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                     onSave={handleKmPostSave}
                     prefilledTrackNumberId={geometryKmPost.trackNumberId}
                     geometryKmPostGkLocation={geometryKmPost.gkLocation}
+                    role={'LINKING'}
                 />
             )}
         </React.Fragment>
