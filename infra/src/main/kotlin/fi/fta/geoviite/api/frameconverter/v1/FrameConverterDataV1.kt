@@ -1,5 +1,7 @@
 package fi.fta.geoviite.api.frameconverter.v1
 
+import com.fasterxml.jackson.annotation.JsonCreator
+import com.fasterxml.jackson.annotation.JsonCreator.Mode.DELEGATING
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.annotation.JsonUnwrapped
@@ -19,7 +21,21 @@ import fi.fta.geoviite.infra.util.FreeText
 
 typealias FrameConverterIdentifierV1 = FreeText
 
-data class FrameConverterStringV1(val value: String) {
+const val COORDINATE_SYSTEM_PARAM = "koordinaatisto"
+const val FEATURE_GEOMETRY_PARAM = "geometriatiedot"
+const val FEATURE_BASIC_PARAM = "perustiedot"
+const val FEATURE_DETAILS_PARAM = "lisatiedot"
+
+const val IDENTIFIER_PARAM = "tunniste"
+const val SEARCH_RADIUS_PARAM = "sade"
+const val TRACK_NUMBER_NAME_PARAM = "ratanumero"
+const val LOCATION_TRACK_NAME_PARAM = "sijaintiraide"
+const val LOCATION_TRACK_TYPE_PARAM = "sijaintiraide_tyyppi"
+const val TRACK_KILOMETER_PARAM = "ratakilometri"
+const val TRACK_METER_PARAM = "ratametri"
+
+data class FrameConverterStringV1 @JsonCreator(mode = DELEGATING) constructor(val value: String) {
+
     init {
         require(value.length <= MAX_LENGTH) { "String field length must be at most $MAX_LENGTH characters" }
     }
@@ -34,11 +50,30 @@ data class FrameConverterStringV1(val value: String) {
 }
 
 data class FrameConverterQueryParamsV1(
-    @JsonProperty("koordinaatisto") val coordinateSystem: Srid = Srid(3067),
-    @JsonProperty("geometriatiedot") val featureGeometry: Boolean = false,
-    @JsonProperty("perustiedot") val featureBasic: Boolean = true,
-    @JsonProperty("lisatiedot") val featureDetails: Boolean = true,
-)
+    @JsonProperty(COORDINATE_SYSTEM_PARAM) val coordinateSystem: Srid = DEFAULT_COORDINATE_SYSTEM,
+    @JsonProperty(FEATURE_GEOMETRY_PARAM) val featureGeometry: Boolean = DEFAULT_FEATURE_GEOMETRY,
+    @JsonProperty(FEATURE_BASIC_PARAM) val featureBasic: Boolean = DEFAULT_FEATURE_BASIC,
+    @JsonProperty(FEATURE_DETAILS_PARAM) val featureDetails: Boolean = DEFAULT_FEATURE_DETAILS,
+) {
+    companion object {
+        val DEFAULT_COORDINATE_SYSTEM = Srid(3067)
+        const val DEFAULT_FEATURE_GEOMETRY = false
+        const val DEFAULT_FEATURE_BASIC = true
+        const val DEFAULT_FEATURE_DETAILS = true
+    }
+
+    constructor(
+        coordinateSystem: Srid?,
+        featureGeometry: Boolean?,
+        featureBasic: Boolean?,
+        featureDetails: Boolean?,
+    ) : this(
+        coordinateSystem = coordinateSystem ?: DEFAULT_COORDINATE_SYSTEM,
+        featureGeometry = featureGeometry ?: DEFAULT_FEATURE_GEOMETRY,
+        featureBasic = featureBasic ?: DEFAULT_FEATURE_BASIC,
+        featureDetails = featureDetails ?: DEFAULT_FEATURE_DETAILS,
+    )
+}
 
 data class FrameConverterCoordinateV1(@JsonIgnore val srid: Srid, override val x: Double, override val y: Double) :
     IPoint
@@ -47,6 +82,7 @@ data class FrameConverterCoordinateV1(@JsonIgnore val srid: Srid, override val x
  * Maps Finnish track type names to internally used type. There is additional mapping to the even more specific domain
  * type [LocationTrackType] during request validation.
  */
+@JsonDeserialize(using = FrameConverterLocationTrackTypeDeserializerV1::class)
 enum class FrameConverterLocationTrackTypeV1(val value: String) {
     MAIN("pääraide"),
     SIDE("sivuraide"),
@@ -92,20 +128,35 @@ sealed class FrameConverterRequestV1
  * @property locationTrackType User provided location track type filter, optional.
  */
 data class CoordinateToTrackAddressRequestV1(
-    @JsonProperty("tunniste") val identifier: FrameConverterIdentifierV1? = null,
+    @JsonProperty(IDENTIFIER_PARAM) val identifier: FrameConverterIdentifierV1? = null,
     val x: Double? = null,
     val y: Double? = null,
-    @JsonProperty("sade") val searchRadius: Double? = 100.0,
-    @JsonProperty("ratanumero")
-    @JsonDeserialize(using = FrameConverterStringDeserializerV1::class)
-    val trackNumberName: FrameConverterStringV1? = null,
-    @JsonProperty("sijaintiraide")
-    @JsonDeserialize(using = FrameConverterStringDeserializerV1::class)
-    val locationTrackName: FrameConverterStringV1? = null,
-    @JsonProperty("sijaintiraide_tyyppi")
-    @JsonDeserialize(using = FrameConverterLocationTrackTypeDeserializerV1::class)
-    val locationTrackType: FrameConverterLocationTrackTypeV1? = null,
-) : FrameConverterRequestV1()
+    @JsonProperty(SEARCH_RADIUS_PARAM) val searchRadius: Double? = DEFAULT_SEARCH_RADIUS,
+    @JsonProperty(TRACK_NUMBER_NAME_PARAM) val trackNumberName: FrameConverterStringV1? = null,
+    @JsonProperty(LOCATION_TRACK_NAME_PARAM) val locationTrackName: FrameConverterStringV1? = null,
+    @JsonProperty(LOCATION_TRACK_TYPE_PARAM) val locationTrackType: FrameConverterLocationTrackTypeV1? = null,
+) : FrameConverterRequestV1() {
+    companion object {
+        const val DEFAULT_SEARCH_RADIUS = 100.0
+    }
+
+    constructor(
+        x: Double?,
+        y: Double?,
+        searchRadius: Double?,
+        trackNumberName: FrameConverterStringV1?,
+        locationTrackName: FrameConverterStringV1?,
+        locationTrackType: FrameConverterLocationTrackTypeV1?,
+    ) : this(
+        identifier = null,
+        x = x,
+        y = y,
+        searchRadius = searchRadius ?: DEFAULT_SEARCH_RADIUS,
+        trackNumberName = trackNumberName,
+        locationTrackName = locationTrackName,
+        locationTrackType = locationTrackType,
+    )
+}
 
 /**
  * Valid version of the coordinate to track meter request is created during processing, it is not created for an invalid
@@ -135,14 +186,16 @@ data class CoordinateToTrackAddressResponseV1(
  * @property featureMatchDetails Fields included in the output when [FrameConverterQueryParamsV1.featureDetails] is true
  */
 data class CoordinateToTrackAddressResponsePropertiesV1(
-    @JsonProperty("tunniste") val identifier: FrameConverterIdentifierV1? = null,
+    @JsonProperty(IDENTIFIER_PARAM) val identifier: FrameConverterIdentifierV1? = null,
     @JsonUnwrapped val featureMatchSimple: FeatureMatchBasicV1? = null,
     @JsonUnwrapped val featureMatchDetails: FeatureMatchDetailsV1? = null,
 ) : GeoJsonProperties()
 
 /**
- * @property x The x coordinate on the alignment of the matched location track ETRS-TM35FIN (EPSG:3067)
- * @property y The y coordinate on the alignment of the matched location track in ETRS-TM35FIN (EPSG:3067)
+ * @property FrameConverterCoordinateV1.x The x coordinate on the alignment of the matched location track ETRS-TM35FIN
+ *   (EPSG:3067)
+ * @property FrameConverterCoordinateV1.y The y coordinate on the alignment of the matched location track in
+ *   ETRS-TM35FIN (EPSG:3067)
  * @property distanceFromRequestPoint Calculated distance from user-specified coordinate in meters.
  */
 data class FeatureMatchBasicV1(
@@ -170,19 +223,28 @@ data class FeatureMatchDetailsV1(
  * @property locationTrackType User provided location track type filter, optional.
  */
 data class TrackAddressToCoordinateRequestV1(
-    @JsonProperty("tunniste") val identifier: FrameConverterIdentifierV1? = null,
-    @JsonProperty("ratanumero")
-    @JsonDeserialize(using = FrameConverterStringDeserializerV1::class)
-    val trackNumberName: FrameConverterStringV1? = null,
-    @JsonProperty("ratakilometri") val trackKilometer: Int? = null,
-    @JsonProperty("ratametri") val trackMeter: Int? = null,
-    @JsonProperty("sijaintiraide")
-    @JsonDeserialize(using = FrameConverterStringDeserializerV1::class)
-    val locationTrackName: FrameConverterStringV1? = null,
-    @JsonProperty("sijaintiraide_tyyppi")
-    @JsonDeserialize(using = FrameConverterLocationTrackTypeDeserializerV1::class)
-    val locationTrackType: FrameConverterLocationTrackTypeV1? = null,
-) : FrameConverterRequestV1()
+    @JsonProperty(IDENTIFIER_PARAM) val identifier: FrameConverterIdentifierV1? = null,
+    @JsonProperty(TRACK_NUMBER_NAME_PARAM) val trackNumberName: FrameConverterStringV1? = null,
+    @JsonProperty(TRACK_KILOMETER_PARAM) val trackKilometer: Int? = null,
+    @JsonProperty(TRACK_METER_PARAM) val trackMeter: Int? = null,
+    @JsonProperty(LOCATION_TRACK_NAME_PARAM) val locationTrackName: FrameConverterStringV1? = null,
+    @JsonProperty(LOCATION_TRACK_TYPE_PARAM) val locationTrackType: FrameConverterLocationTrackTypeV1? = null,
+) : FrameConverterRequestV1() {
+    constructor(
+        trackNumberName: FrameConverterStringV1?,
+        trackKilometer: Int?,
+        trackMeter: Int?,
+        locationTrackName: FrameConverterStringV1?,
+        locationTrackType: FrameConverterLocationTrackTypeV1?,
+    ) : this(
+        identifier = null,
+        trackNumberName = trackNumberName,
+        trackKilometer = trackKilometer,
+        trackMeter = trackMeter,
+        locationTrackName = locationTrackName,
+        locationTrackType = locationTrackType,
+    )
+}
 
 /**
  * Valid version of the track meter to coordinate request is created during processing, it is not created for an invalid
@@ -211,7 +273,7 @@ data class TrackAddressToCoordinateResponseV1(
  * @property featureMatchDetails Fields included in the output when [FrameConverterQueryParamsV1.featureDetails] is true
  */
 data class TrackAddressToCoordinateResponsePropertiesV1(
-    @JsonProperty("tunniste") val identifier: FrameConverterIdentifierV1? = null,
+    @JsonProperty(IDENTIFIER_PARAM) val identifier: FrameConverterIdentifierV1? = null,
     @JsonUnwrapped val featureMatchBasic: FeatureMatchBasicV1? = null,
     @JsonUnwrapped val featureMatchDetails: FeatureMatchDetailsV1? = null,
 ) : GeoJsonProperties()
