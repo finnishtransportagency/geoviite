@@ -28,6 +28,12 @@ data class GeocodableTrack(
     val locationTrack: LocationTrack,
 )
 
+fun assertContainsErrorMessage(expectedErrorMessage: String, errorMessages: Any?, contextMessage: String = "") {
+    assert((errorMessages as List<*>).contains(expectedErrorMessage)) {
+        "$expectedErrorMessage is not in the list of errors $contextMessage"
+    }
+}
+
 fun assertNullSimpleProperties(properties: Map<String, Any>) {
     assertNullProperties(properties, "x", "y", "valimatka")
 }

@@ -63,9 +63,9 @@ constructor(
 
         val featureCollection = api.fetchFeatureCollectionSingle(API_COORDINATES, params)
 
-        val errorString = featureCollection.features[0].properties?.get("virheet")!! as String
-        assertTrue("Pyynnön ratanumeroa ei löydetty" in errorString)
-        assertTrue("Pyyntö ei sisältänyt ratametriä" in errorString)
+        val errors = featureCollection.features[0].properties?.get("virheet")
+        assertContainsErrorMessage("Pyynnön ratanumeroa ei löydetty.", errors)
+        assertContainsErrorMessage("Pyyntö ei sisältänyt ratametriä.", errors)
     }
 
     private fun assertSimpleFeatureCollection(featureCollection: TestGeoJsonFeatureCollection) {
@@ -93,7 +93,10 @@ constructor(
         val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
 
         assertSimpleFeatureCollection(featureCollection)
-        assertEquals("Pyyntö ei sisältänyt ratakilometriä.", featureCollection.features[0].properties?.get("virheet"))
+        assertContainsErrorMessage(
+            "Pyyntö ei sisältänyt ratakilometriä.",
+            featureCollection.features[0].properties?.get("virheet"),
+        )
     }
 
     /* TODO Enable after GVT-2757?
@@ -163,7 +166,10 @@ constructor(
         val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
 
         assertSimpleFeatureCollection(featureCollection)
-        assertEquals("Pyyntö ei sisältänyt ratametriä.", featureCollection.features[0].properties?.get("virheet"))
+        assertContainsErrorMessage(
+            "Pyyntö ei sisältänyt ratametriä.",
+            featureCollection.features[0].properties?.get("virheet"),
+        )
     }
 
     @Test
@@ -184,7 +190,7 @@ constructor(
         val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
 
         assertSimpleFeatureCollection(featureCollection)
-        assertEquals(
+        assertContainsErrorMessage(
             "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen).",
             featureCollection.features[0].properties?.get("virheet"),
         )
@@ -208,7 +214,7 @@ constructor(
         val featureCollection = api.fetchFeatureCollectionBatch(API_COORDINATES, request)
 
         assertSimpleFeatureCollection(featureCollection)
-        assertEquals(
+        assertContainsErrorMessage(
             "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen).",
             featureCollection.features[0].properties?.get("virheet"),
         )
@@ -339,7 +345,10 @@ constructor(
         val properties = featureCollection.features[0].properties
 
         assertSimpleFeatureCollection(featureCollection)
-        assertEquals("Annetun (alku)pisteen parametreilla ei löytynyt tietoja.", properties?.get("virheet"))
+        assertContainsErrorMessage(
+            "Annetun (alku)pisteen parametreilla ei löytynyt tietoja.",
+            properties?.get("virheet"),
+        )
     }
 
     @Test
@@ -514,7 +523,7 @@ constructor(
         assertEquals(4, featureCollection.features.size)
 
         assertEquals(requests[0].tunniste, featureCollection.features[0].properties?.get("tunniste"))
-        assertEquals(
+        assertContainsErrorMessage(
             "Annetun (alku)pisteen parametreilla ei löytynyt tietoja.",
             featureCollection.features[0].properties?.get("virheet"),
         )
@@ -526,7 +535,7 @@ constructor(
         assertNull(featureCollection.features[2].properties?.get("virheet"))
 
         assertEquals(requests[2].tunniste, featureCollection.features[3].properties?.get("tunniste"))
-        assertEquals(
+        assertContainsErrorMessage(
             "Pyyntö sisälsi virheellisen ratanumero-asetuksen.",
             featureCollection.features[3].properties?.get("virheet"),
         )
@@ -916,7 +925,7 @@ constructor(
 
         val properties = featureCollection.features[0].properties
 
-        assertEquals(
+        assertContainsErrorMessage(
             "Pyyntö sisälsi virheellisen sijaintiraide_tyyppi-asetuksen. Sallitut arvot ovat pääraide, sivuraide, kujaraide, turvaraide.",
             properties?.get("virheet"),
         )
@@ -952,7 +961,7 @@ constructor(
 
         val properties = featureCollection.features[0].properties
 
-        assertEquals("Pyyntö sisälsi virheellisen sijaintiraide-asetuksen.", properties?.get("virheet"))
+        assertContainsErrorMessage("Pyyntö sisälsi virheellisen sijaintiraide-asetuksen.", properties?.get("virheet"))
     }
 
     @Test
@@ -984,6 +993,6 @@ constructor(
 
         val properties = featureCollection.features[0].properties
 
-        assertEquals("Pyyntö sisälsi virheellisen ratanumero-asetuksen.", properties?.get("virheet"))
+        assertContainsErrorMessage("Pyyntö sisälsi virheellisen ratanumero-asetuksen.", properties?.get("virheet"))
     }
 }

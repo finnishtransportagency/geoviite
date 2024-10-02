@@ -84,7 +84,10 @@ constructor(
         assertEquals("Point", featureCollection.features[0].geometry?.type)
         assertEquals(emptyList<Double>(), featureCollection.features[0].geometry?.coordinates)
 
-        assertEquals("Pyyntö ei sisältänyt x-koordinaattia.", featureCollection.features[0].properties?.get("virheet"))
+        assertContainsErrorMessage(
+            "Pyyntö ei sisältänyt x-koordinaattia.",
+            featureCollection.features[0].properties?.get("virheet"),
+        )
     }
 
     @Test
@@ -99,7 +102,10 @@ constructor(
         assertEquals("Point", featureCollection.features[0].geometry?.type)
         assertEquals(emptyList<Double>(), featureCollection.features[0].geometry?.coordinates)
 
-        assertEquals("Pyyntö ei sisältänyt y-koordinaattia.", featureCollection.features[0].properties?.get("virheet"))
+        assertContainsErrorMessage(
+            "Pyyntö ei sisältänyt y-koordinaattia.",
+            featureCollection.features[0].properties?.get("virheet"),
+        )
     }
 
     @Test
@@ -116,7 +122,10 @@ constructor(
 
         val properties = featureCollection.features[0].properties
 
-        assertEquals("Annetun (alku)pisteen parametreilla ei löytynyt tietoja.", properties?.get("virheet"))
+        assertContainsErrorMessage(
+            "Annetun (alku)pisteen parametreilla ei löytynyt tietoja.",
+            properties?.get("virheet"),
+        )
     }
 
     @Test
@@ -139,7 +148,10 @@ constructor(
 
             val properties = feature.properties
 
-            assertEquals("Annetun (alku)pisteen parametreilla ei löytynyt tietoja.", properties?.get("virheet"))
+            assertContainsErrorMessage(
+                "Annetun (alku)pisteen parametreilla ei löytynyt tietoja.",
+                properties?.get("virheet"),
+            )
         }
     }
 
@@ -162,13 +174,13 @@ constructor(
         val expectedErrorMessage = "Annetun (alku)pisteen parametreilla ei löytynyt tietoja."
 
         assertEquals(requests[0].tunniste, featureCollection.features[0].properties?.get("tunniste"))
-        assertEquals(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[0].properties?.get("virheet"))
 
         assertEquals(requests[1].tunniste, featureCollection.features[1].properties?.get("tunniste"))
         assertEquals(null, featureCollection.features[1].properties?.get("virheet"))
 
         assertEquals(requests[2].tunniste, featureCollection.features[2].properties?.get("tunniste"))
-        assertEquals(expectedErrorMessage, featureCollection.features[2].properties?.get("virheet"))
+        assertContainsErrorMessage(expectedErrorMessage, featureCollection.features[2].properties?.get("virheet"))
     }
 
     @Test
@@ -282,7 +294,11 @@ constructor(
             assertEquals(1, featureCollection.features.size, "request=${request.tunniste}")
 
             val properties = featureCollection.features[0].properties
-            assertEquals(expectedError, properties?.get("virheet"), "request=${request.tunniste}")
+            if (expectedError == null) {
+                assertEquals(expectedError, properties?.get("virheet"), "request=${request.tunniste}")
+            } else {
+                assertContainsErrorMessage(expectedError, properties?.get("virheet"), "request=${request.tunniste}")
+            }
         }
     }
 
@@ -569,7 +585,10 @@ constructor(
 
         val properties = featureCollection.features[0].properties
 
-        assertEquals("Pyyntö sisälsi pienemmän hakusäteen kuin sallittu minimiarvo (1.0).", properties?.get("virheet"))
+        assertContainsErrorMessage(
+            "Pyyntö sisälsi pienemmän hakusäteen kuin sallittu minimiarvo (1.0).",
+            properties?.get("virheet"),
+        )
     }
 
     @Test
@@ -582,7 +601,7 @@ constructor(
 
         val properties = featureCollection.features[0].properties
 
-        assertEquals(
+        assertContainsErrorMessage(
             "Pyyntö sisälsi suuremman hakusäteen kuin sallittu maksimiarvo (1000.0).",
             properties?.get("virheet"),
         )
@@ -598,7 +617,7 @@ constructor(
 
         val properties = featureCollection.features[0].properties
 
-        assertEquals(
+        assertContainsErrorMessage(
             "Pyyntö sisälsi virheellisen sijaintiraide_tyyppi-asetuksen. Sallitut arvot ovat pääraide, sivuraide, kujaraide, turvaraide.",
             properties?.get("virheet"),
         )
@@ -614,7 +633,7 @@ constructor(
 
         val properties = featureCollection.features[0].properties
 
-        assertEquals("Pyyntö sisälsi virheellisen sijaintiraide-asetuksen.", properties?.get("virheet"))
+        assertContainsErrorMessage("Pyyntö sisälsi virheellisen sijaintiraide-asetuksen.", properties?.get("virheet"))
     }
 
     @Test
@@ -631,7 +650,7 @@ constructor(
         val featureCollection = api.fetchFeatureCollectionBatch(API_TRACK_ADDRESSES, request)
         val properties = featureCollection.features[0].properties
 
-        assertEquals("Pyyntö sisälsi virheellisen ratanumero-asetuksen.", properties?.get("virheet"))
+        assertContainsErrorMessage("Pyyntö sisälsi virheellisen ratanumero-asetuksen.", properties?.get("virheet"))
     }
 
     private fun insertGeocodableTrack(

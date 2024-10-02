@@ -70,13 +70,13 @@ data class GeoJsonFeatureErrorResponseV1(
 ) : GeoJsonFeature() {
     constructor(
         identifier: FrameConverterIdentifierV1?,
-        errorMessages: String,
+        errorMessages: List<String>,
     ) : this(properties = GeoJsonFeatureErrorResponsePropertiesV1(identifier = identifier, errors = errorMessages))
 }
 
 data class GeoJsonFeatureErrorResponsePropertiesV1(
     @JsonProperty("tunniste") val identifier: FrameConverterIdentifierV1? = null,
-    @JsonProperty("virheet") val errors: String = "",
+    @JsonProperty("virheet") val errors: List<String> = emptyList(),
 ) : GeoJsonProperties()
 
 /** Marker class for multiple request types. */
