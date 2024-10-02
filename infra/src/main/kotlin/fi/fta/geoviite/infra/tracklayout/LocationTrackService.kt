@@ -408,7 +408,7 @@ class LocationTrackService(
         val translation = localizationService.getLocalization(lang)
 
         return when (locationTrack.descriptionSuffix) {
-            DescriptionSuffixType.NONE -> locationTrack.descriptionBase
+            DescriptionSuffixType.NONE -> locationTrack.descriptionBase.let { it -> FreeText(it.toString()) }
 
             DescriptionSuffixType.SWITCH_TO_BUFFER ->
                 FreeText(

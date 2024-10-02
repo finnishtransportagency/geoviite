@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.tracklayout.LayoutStateCategory.EXISTING
 import fi.fta.geoviite.infra.util.FreeText
@@ -213,7 +214,7 @@ constructor(
             .map { trackNumber ->
                 TrackNumberSaveRequest(
                     trackNumber,
-                    FreeText("some description"),
+                    TrackNumberDescription("some description"),
                     layoutState,
                     TrackMeter(KmNumber(5555), 5.5, 1),
                 )

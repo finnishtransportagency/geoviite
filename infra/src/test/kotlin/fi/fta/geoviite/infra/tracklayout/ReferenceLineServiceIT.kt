@@ -7,11 +7,11 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.publication.ValidationVersion
-import fi.fta.geoviite.infra.util.FreeText
 import org.junit.jupiter.api.Assertions.assertDoesNotThrow
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -270,7 +270,7 @@ constructor(
                 LayoutBranch.main,
                 TrackNumberSaveRequest(
                     number = testDBService.getUnusedTrackNumber(),
-                    description = FreeText(trackNumberDescription),
+                    description = TrackNumberDescription(trackNumberDescription),
                     state = LayoutState.IN_USE,
                     startAddress = TrackMeter.ZERO,
                 ),

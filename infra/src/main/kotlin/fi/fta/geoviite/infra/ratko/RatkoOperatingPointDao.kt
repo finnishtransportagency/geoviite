@@ -154,8 +154,8 @@ class RatkoOperatingPointDao(jdbcTemplateParam: NamedParameterJdbcTemplate?) : D
               postgis.st_y(location) as y,
               track_number_id
             from layout.operating_point
-              where name ilike concat('%', :searchTerm, '%')
-              or abbreviation ilike concat('%', :searchTerm, '%')
+              where name ilike concat('%', regexp_replace(:searchTerm, '%|_', '\\\&'), '%') 
+              or abbreviation ilike concat('%', regexp_replace(:searchTerm, '%|_', '\\\&'), '%')
               or external_id = :searchTerm
             order by name
             limit :resultLimit

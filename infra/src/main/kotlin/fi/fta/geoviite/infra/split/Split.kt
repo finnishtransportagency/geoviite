@@ -3,6 +3,7 @@ package fi.fta.geoviite.infra.split
 import com.fasterxml.jackson.annotation.JsonIgnore
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
+import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.publication.LayoutValidationIssue
 import fi.fta.geoviite.infra.publication.Publication
@@ -13,7 +14,6 @@ import fi.fta.geoviite.infra.tracklayout.ReferenceLine
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import fi.fta.geoviite.infra.util.FreeText
 import java.time.Instant
 
 class BulkTransfer
@@ -128,7 +128,7 @@ data class SplitRequestTarget(
     val duplicateTrack: SplitRequestTargetDuplicate?,
     val startAtSwitchId: IntId<TrackLayoutSwitch>?,
     val name: AlignmentName,
-    val descriptionBase: FreeText,
+    val descriptionBase: LocationTrackDescriptionBase,
     val descriptionSuffix: DescriptionSuffixType,
 ) {
     fun getOperation(): SplitTargetOperation =

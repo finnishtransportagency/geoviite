@@ -8,7 +8,7 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
-import fi.fta.geoviite.infra.util.FreeText
+import fi.fta.geoviite.infra.common.TrackNumberDescription
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
@@ -140,7 +140,8 @@ constructor(
         val kmPostId = mainOfficialContext.insert(kmPost(trackNumberId, KmNumber(123))).id
 
         mainDraftContext.insert(
-            asMainDraft(mainOfficialContext.fetch(trackNumberId)!!).copy(description = FreeText("edited in main"))
+            asMainDraft(mainOfficialContext.fetch(trackNumberId)!!)
+                .copy(description = TrackNumberDescription("edited in main"))
         )
         mainDraftContext.insert(
             asMainDraft(mainOfficialContext.fetch(referenceLineId)!!).copy(startAddress = TrackMeter("0000+0123"))
@@ -161,7 +162,7 @@ constructor(
                             asDesignDraft(
                                 mainOfficialContext
                                     .fetch(trackNumberId)!!
-                                    .copy(description = FreeText("edited in design")),
+                                    .copy(description = TrackNumberDescription("edited in design")),
                                 someDesignBranch.designId,
                             )
                         )

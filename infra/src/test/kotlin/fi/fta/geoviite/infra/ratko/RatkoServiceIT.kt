@@ -7,11 +7,13 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.MeasurementMethod
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.geometry.GeometryDao
 import fi.fta.geoviite.infra.geometry.geometryAlignment
 import fi.fta.geoviite.infra.geometry.lineFromOrigin
@@ -72,7 +74,6 @@ import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.util.FileName
-import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.queryOne
 import java.time.Instant
@@ -203,7 +204,7 @@ constructor(
             originalTrackNumber.id,
             TrackNumberSaveRequest(
                 newTrackNumber,
-                FreeText("aoeu"),
+                TrackNumberDescription("aoeu"),
                 LayoutState.IN_USE,
                 TrackMeter(KmNumber("0123"), 0),
             ),
@@ -223,7 +224,7 @@ constructor(
             trackNumber.id,
             TrackNumberSaveRequest(
                 trackNumber.trackNumberObject.number,
-                FreeText("augh"),
+                TrackNumberDescription("augh"),
                 LayoutState.DELETED,
                 TrackMeter(KmNumber("0123"), 0),
             ),
@@ -309,7 +310,7 @@ constructor(
                 locationTrackDao
                     .fetch(officialVersion)
                     .copy(
-                        descriptionBase = FreeText("aoeu"),
+                        descriptionBase = LocationTrackDescriptionBase("aoeu"),
                         name = AlignmentName("uuba aaba"),
                         type = LocationTrackType.MAIN,
                     )

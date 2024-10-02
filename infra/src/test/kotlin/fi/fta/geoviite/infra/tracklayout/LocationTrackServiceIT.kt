@@ -6,6 +6,7 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
@@ -16,7 +17,6 @@ import fi.fta.geoviite.infra.math.BoundingBox
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.split.SplitService
 import fi.fta.geoviite.infra.split.SplitTestDataService
-import fi.fta.geoviite.infra.util.FreeText
 import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -757,7 +757,7 @@ constructor(
     private fun saveRequest(trackNumberId: IntId<TrackLayoutTrackNumber>, seed: Int) =
         LocationTrackSaveRequest(
             name = AlignmentName("TST-TRACK$seed"),
-            descriptionBase = FreeText("Description - $seed"),
+            descriptionBase = LocationTrackDescriptionBase("Description - $seed"),
             descriptionSuffix = DescriptionSuffixType.NONE,
             type = getSomeValue(seed),
             state = getSomeValue(seed),
