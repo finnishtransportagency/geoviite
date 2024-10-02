@@ -3,12 +3,16 @@ package fi.fta.geoviite.api.frameconverter.v1
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeature
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeatureCollection
+import fi.fta.geoviite.infra.aspects.DisableLogging
 import fi.fta.geoviite.infra.authorization.AUTH_API_FRAME_CONVERTER
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.error.ExtApiExceptionV1
-import java.util.stream.Collectors
+import fi.fta.geoviite.infra.logging.apiCall
+import fi.fta.geoviite.infra.logging.apiResult
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
@@ -19,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestParam
 @PreAuthorize(AUTH_API_FRAME_CONVERTER)
 @GeoviiteExtApiController(["/rata-vkm/v1", "/rata-vkm/dev/v1"])
 class FrameConverterControllerV1 @Autowired constructor(private val frameConverterServiceV1: FrameConverterServiceV1) {
+    val logger: Logger = LoggerFactory.getLogger(this::class.java)
+
     @GetMapping("/koordinaatit", "/koordinaatit/")
     fun trackAddressToCoordinateRequestSingle(
         @RequestParam(TRACK_NUMBER_NAME_PARAM, required = false) trackNumberName: FrameConverterStringV1?,
@@ -46,6 +52,7 @@ class FrameConverterControllerV1 @Autowired constructor(private val frameConvert
         return GeoJsonFeatureCollection(features = processRequest(request, queryParams))
     }
 
+    @DisableLogging
     @PostMapping("/koordinaatit", "/koordinaatit/")
     fun trackAddressToCoordinateRequestBatch(
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
@@ -54,8 +61,13 @@ class FrameConverterControllerV1 @Autowired constructor(private val frameConvert
         @RequestParam(FEATURE_DETAILS_PARAM, required = false) featureDetails: Boolean?,
         @RequestBody requests: List<TrackAddressToCoordinateRequestV1>,
     ): GeoJsonFeatureCollection {
+        logRequestAmount("trackAddressToCoordinateRequestBatch", requests)
+
         val queryParams = FrameConverterQueryParamsV1(coordinateSystem, featureGeometry, featureBasic, featureDetails)
-        return GeoJsonFeatureCollection(features = processRequestsInParallel(requests, queryParams))
+        val features = requests.flatMap { request -> processRequest(request, queryParams) }
+
+        logFeatureAmount("trackAddressToCoordinateRequestBatch", features)
+        return GeoJsonFeatureCollection(features = features)
     }
 
     @GetMapping("/rataosoitteet", "/rataosoitteet/")
@@ -87,6 +99,7 @@ class FrameConverterControllerV1 @Autowired constructor(private val frameConvert
         return GeoJsonFeatureCollection(features = processRequest(request, queryParams))
     }
 
+    @DisableLogging
     @PostMapping("/rataosoitteet", "/rataosoitteet/")
     fun coordinateToTrackAddressRequestBatch(
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
@@ -95,19 +108,13 @@ class FrameConverterControllerV1 @Autowired constructor(private val frameConvert
         @RequestParam(FEATURE_DETAILS_PARAM, required = false) featureDetails: Boolean?,
         @RequestBody requests: List<CoordinateToTrackAddressRequestV1>,
     ): GeoJsonFeatureCollection {
-        val queryParams = FrameConverterQueryParamsV1(coordinateSystem, featureGeometry, featureBasic, featureDetails)
-        return GeoJsonFeatureCollection(features = processRequestsInParallel(requests, queryParams))
-    }
+        logRequestAmount("coordinateToTrackAddressRequestBatch", requests)
 
-    private fun processRequestsInParallel(
-        requests: List<FrameConverterRequestV1>,
-        queryParams: FrameConverterQueryParamsV1,
-    ): List<GeoJsonFeature> {
-        return requests
-            .parallelStream()
-            .map { req -> processRequest(req, queryParams) }
-            .collect(Collectors.toList())
-            .flatten()
+        val queryParams = FrameConverterQueryParamsV1(coordinateSystem, featureGeometry, featureBasic, featureDetails)
+        val features = requests.flatMap { request -> processRequest(request, queryParams) }
+
+        logFeatureAmount("coordinateToTrackAddressRequestBatch", features)
+        return GeoJsonFeatureCollection(features = features)
     }
 
     private fun processRequest(
@@ -148,5 +155,16 @@ class FrameConverterControllerV1 @Autowired constructor(private val frameConvert
         val (validatedRequest, errorResponse) = validate(request, params)
 
         return validatedRequest?.let { req -> process(MainLayoutContext.official, req, params) } ?: errorResponse
+    }
+
+    private fun logRequestAmount(method: String, requests: List<FrameConverterRequestV1>) {
+        logger.apiCall(method, listOf("requestAmount" to requests.size))
+    }
+
+    private fun logFeatureAmount(method: String, features: List<GeoJsonFeature>) {
+        val errorAmount = features.count { feature -> GeoJsonFeatureErrorResponseV1::class.java.isInstance(feature) }
+        val successAmount = features.size - errorAmount
+
+        logger.apiResult(method, listOf("successAmount" to successAmount, "errorAmount" to errorAmount))
     }
 }

@@ -90,6 +90,10 @@ fun Logger.apiCall(method: String, params: List<Pair<String, *>>) {
     if (isInfoEnabled) info("method={} params={}", method, paramsToLog(params))
 }
 
+fun Logger.apiResult(method: String, params: List<Pair<String, *>>) {
+    if (isInfoEnabled) info("method={} result={}", method, paramsToLog(params))
+}
+
 fun Logger.serviceCall(method: String, params: List<Pair<String, *>>) {
     if (isDebugEnabled) debug("method={} params={}", method, paramsToLog(params))
 }
