@@ -41,7 +41,6 @@ geoviite:
 
 springdoc:
   api-docs:
-    enabled: false
     path: /rata-vkm/v3/api-docs
   swagger-ui:
     enabled: true

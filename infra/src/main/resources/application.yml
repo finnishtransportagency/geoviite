@@ -126,5 +126,7 @@ server:
     min-response-size: 1KB
 
 springdoc:
+  api-docs:
+    enabled: false
   swagger-ui:
     enabled: false
