@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.error.InputValidationException
 import fi.fta.geoviite.infra.geocoding.AddressAndM
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geocoding.GeocodingService
+import fi.fta.geoviite.infra.geography.CoordinateTransformationException
 import fi.fta.geoviite.infra.geography.transformNonKKJCoordinate
 import fi.fta.geoviite.infra.localization.LocalizationLanguage
 import fi.fta.geoviite.infra.localization.LocalizationService
@@ -48,7 +49,6 @@ constructor(
     private val locationTrackService: LocationTrackService,
     localizationService: LocalizationService,
 ) {
-
     val translation = localizationService.getLocalization(LocalizationLanguage.FI)
 
     fun coordinateToTrackAddress(
@@ -59,7 +59,15 @@ constructor(
         val searchPointInLayoutCoordinates =
             when (request.searchCoordinate.srid) {
                 LAYOUT_SRID -> request.searchCoordinate
-                else -> transformNonKKJCoordinate(request.searchCoordinate.srid, LAYOUT_SRID, request.searchCoordinate)
+                else ->
+                    try {
+                        transformNonKKJCoordinate(request.searchCoordinate.srid, LAYOUT_SRID, request.searchCoordinate)
+                    } catch (ex: CoordinateTransformationException) {
+                        return createErrorResponse(
+                            request.identifier,
+                            FrameConverterErrorV1.InputCoordinateTransformationFailed,
+                        )
+                    }
             }
 
         val nearbyLocationTracks =

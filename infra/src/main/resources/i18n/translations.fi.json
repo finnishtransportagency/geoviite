@@ -7,10 +7,7 @@
             "missing-track-kilometer": "Pyyntö ei sisältänyt ratakilometriä.",
             "missing-track-meter": "Pyyntö ei sisältänyt ratametriä.",
             "missing-track-number": "Pyyntö ei sisältänyt ratanumeroa.",
-            "bad-request": "Pyyntötyyppiä ei pystytty määrittämään.",
             "unsupported-request-type": "Pyyntötyyppiä ei tueta.",
-            "request-could-not-be-deserialized": "Pyynnön rakenne oli virheellinen.",
-            "list-of-json-requests-could-not-be-deserialized": "JSON-pyyntölistan rakenne oli virheellinen.",
             "search-radius-undefined": "Pyyntö sisälsi hakusääteen ilman arvoa (sade=null).",
             "search-radius-under-range": "Pyyntö sisälsi pienemmän hakusäteen kuin sallittu minimiarvo (1.0).",
             "search-radius-over-range": "Pyyntö sisälsi suuremman hakusäteen kuin sallittu maksimiarvo (1000.0).",
@@ -19,7 +16,8 @@
             "invalid-location-track-name": "Pyyntö sisälsi virheellisen sijaintiraide-asetuksen.",
             "invalid-location-track-type": "Pyyntö sisälsi virheellisen sijaintiraide_tyyppi-asetuksen. Sallitut arvot ovat pääraide, sivuraide, kujaraide, turvaraide.",
             "invalid-track-address": "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen).",
-            "track-number-not-found": "Pyynnön ratanumeroa ei löydetty."
+            "track-number-not-found": "Pyynnön ratanumeroa ei löydetty.",
+            "input-coordinate-transformation-failed": "Koordinaattimuunnos ei onnistunut. Onko koordinaatisto järkevä syötekoordinaatille?"
         }
     },
     "error": {
