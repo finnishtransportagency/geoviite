@@ -8,11 +8,13 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.geocoding.AddressPoint
 import fi.fta.geoviite.infra.geography.ETRS89_TM35FIN_SRID
 import fi.fta.geoviite.infra.geography.GeometryPoint
@@ -97,7 +99,7 @@ data class LocationTrackDescription(val id: IntId<LocationTrack>, val descriptio
 
 data class TrackLayoutTrackNumber(
     val number: TrackNumber,
-    val description: FreeText,
+    val description: TrackNumberDescription,
     val state: LayoutState,
     val externalId: Oid<TrackLayoutTrackNumber>?,
     @JsonIgnore override val contextData: LayoutContextData<TrackLayoutTrackNumber>,
@@ -272,7 +274,7 @@ data class SplittingInitializationParameters(
 
 data class LocationTrack(
     val name: AlignmentName,
-    val descriptionBase: FreeText,
+    val descriptionBase: LocationTrackDescriptionBase,
     val descriptionSuffix: DescriptionSuffixType,
     val type: LocationTrackType,
     val state: LocationTrackState,

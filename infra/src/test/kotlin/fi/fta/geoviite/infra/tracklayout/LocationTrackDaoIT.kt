@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.DesignLayoutContext
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutContext
+import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState
@@ -16,7 +17,6 @@ import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.boundingBoxAroundPoint
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType.MAIN
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType.SIDE
-import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.queryOne
 import kotlin.test.assertContains
@@ -54,7 +54,7 @@ constructor(
             locationTrack(mainOfficialContext.createLayoutTrackNumber().id, alignment, draft = false)
                 .copy(
                     name = AlignmentName("ORIG"),
-                    descriptionBase = FreeText("Oridinal location track"),
+                    descriptionBase = LocationTrackDescriptionBase("Oridinal location track"),
                     type = MAIN,
                     state = LocationTrackState.IN_USE,
                     alignmentVersion = alignmentVersion,
@@ -70,7 +70,7 @@ constructor(
         val updatedTrack =
             fromDb.copy(
                 name = AlignmentName("UPD"),
-                descriptionBase = FreeText("Updated location track"),
+                descriptionBase = LocationTrackDescriptionBase("Updated location track"),
                 type = SIDE,
                 state = LocationTrackState.NOT_IN_USE,
                 topologicalConnectivity = TopologicalConnectivityType.END,

@@ -11,6 +11,7 @@ import fi.fta.geoviite.infra.common.PublicationState
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.linking.FittedSwitch
 import fi.fta.geoviite.infra.linking.FittedSwitchJoint
 import fi.fta.geoviite.infra.linking.switches.SwitchLinkingService
@@ -57,7 +58,6 @@ import fi.fta.geoviite.infra.tracklayout.switch
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtEnd
 import fi.fta.geoviite.infra.tracklayout.switchLinkingAtStart
 import fi.fta.geoviite.infra.tracklayout.trackNumber
-import fi.fta.geoviite.infra.util.FreeText
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.*
@@ -842,7 +842,7 @@ constructor(
         val trackNumber = testData.trackNumber
         trackNumberservice.saveDraft(
             LayoutBranch.main,
-            trackNumber.copy(description = FreeText(UUID.randomUUID().toString())),
+            trackNumber.copy(description = TrackNumberDescription(UUID.randomUUID().toString())),
         )
 
         val changes = getCalculatedChanges(trackNumberIds = listOf(trackNumber.id as IntId))
@@ -912,7 +912,7 @@ constructor(
         val trackNumber = testData.trackNumber
         trackNumberservice.saveDraft(
             LayoutBranch.main,
-            trackNumber.copy(description = FreeText(UUID.randomUUID().toString())),
+            trackNumber.copy(description = TrackNumberDescription(UUID.randomUUID().toString())),
         )
 
         moveReferenceLineGeometryPointsAndUpdate(

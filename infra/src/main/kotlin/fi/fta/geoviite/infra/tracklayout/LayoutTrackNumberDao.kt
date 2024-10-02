@@ -2,12 +2,12 @@ package fi.fta.geoviite.infra.tracklayout
 
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.logging.AccessType
 import fi.fta.geoviite.infra.logging.daoAccess
 import fi.fta.geoviite.infra.util.LayoutAssetTable
 import fi.fta.geoviite.infra.util.getDaoResponse
 import fi.fta.geoviite.infra.util.getEnum
-import fi.fta.geoviite.infra.util.getFreeText
 import fi.fta.geoviite.infra.util.getInstant
 import fi.fta.geoviite.infra.util.getIntId
 import fi.fta.geoviite.infra.util.getIntIdOrNull
@@ -129,7 +129,7 @@ class LayoutTrackNumberDao(
     private fun getLayoutTrackNumber(rs: ResultSet): TrackLayoutTrackNumber =
         TrackLayoutTrackNumber(
             number = rs.getTrackNumber("number"),
-            description = rs.getFreeText("description"),
+            description = rs.getString("description").let(::TrackNumberDescription),
             state = rs.getEnum("state"),
             externalId = rs.getOidOrNull("external_id"),
             // TODO: GVT-2442 This should be non-null but we have a lot of tests that produce broken

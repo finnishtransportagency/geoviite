@@ -65,6 +65,7 @@ import { getLayoutDesign, updateLayoutDesign } from 'track-layout/layout-design-
 import { getChangeTimes, updateLayoutDesignChangeTime } from 'common/change-time-api';
 import { WorkspaceDialog } from 'tool-bar/workspace-dialog';
 import { WorkspaceDeleteConfirmDialog } from 'tool-bar/workspace-delete-confirm-dialog';
+import { ALIGNMENT_DESCRIPTION_REGEX } from 'tool-panel/location-track/dialog/location-track-validation';
 
 export type ToolbarParams = {
     onSelect: OnSelectFunction;
@@ -166,7 +167,7 @@ async function getOptions(
     searchTerm: string,
     locationTrackSearchScope: LocationTrackId | undefined,
 ): Promise<Item<SearchItemValue>[]> {
-    if (isNilOrBlank(searchTerm)) {
+    if (isNilOrBlank(searchTerm) || !searchTerm.match(ALIGNMENT_DESCRIPTION_REGEX)) {
         return Promise.resolve([]);
     }
 

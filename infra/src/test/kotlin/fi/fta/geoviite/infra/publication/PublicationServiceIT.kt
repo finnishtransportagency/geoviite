@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
+import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
@@ -17,6 +18,7 @@ import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
 import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
@@ -96,7 +98,6 @@ import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.trackNumberSaveRequest
-import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.SortOrder
 import java.math.BigDecimal
@@ -549,7 +550,10 @@ constructor(
             trackNumberDao
                 .insert(
                     trackNumber(draft = false)
-                        .copy(number = testDBService.getUnusedTrackNumber(), description = FreeText("Test 1"))
+                        .copy(
+                            number = testDBService.getUnusedTrackNumber(),
+                            description = TrackNumberDescription("Test 1"),
+                        )
                 )
                 .id
 
@@ -557,7 +561,7 @@ constructor(
             LayoutBranch.main,
             trackNumberService
                 .get(MainLayoutContext.draft, officialId)!!
-                .copy(number = testDBService.getUnusedTrackNumber(), description = FreeText("Test 2")),
+                .copy(number = testDBService.getUnusedTrackNumber(), description = TrackNumberDescription("Test 2")),
         )
 
         assertNotEquals(
@@ -566,10 +570,13 @@ constructor(
         )
 
         assertEquals(
-            FreeText("Test 1"),
+            TrackNumberDescription("Test 1"),
             trackNumberService.getOrThrow(MainLayoutContext.official, officialId).description,
         )
-        assertEquals(FreeText("Test 2"), trackNumberService.getOrThrow(MainLayoutContext.draft, officialId).description)
+        assertEquals(
+            TrackNumberDescription("Test 2"),
+            trackNumberService.getOrThrow(MainLayoutContext.draft, officialId).description,
+        )
 
         val publicationResult = publish(publicationService, trackNumbers = listOf(officialId))
 
@@ -623,7 +630,7 @@ constructor(
             trackNumberDao,
             trackNumberService,
             { trackNumber(testDBService.getUnusedTrackNumber(), draft = true) },
-            { orig -> asMainDraft(orig.copy(description = FreeText("${orig.description}_edit"))) },
+            { orig -> asMainDraft(orig.copy(description = TrackNumberDescription("${orig.description}_edit"))) },
         )
     }
 
@@ -656,7 +663,9 @@ constructor(
             locationTrackDao,
             locationTrackService,
             { locationTrack(tnId, draft = true) },
-            { orig -> asMainDraft(orig.copy(descriptionBase = FreeText("${orig.descriptionBase}_edit"))) },
+            { orig ->
+                asMainDraft(orig.copy(descriptionBase = LocationTrackDescriptionBase("${orig.descriptionBase}_edit")))
+            },
         )
     }
 
@@ -1407,8 +1416,8 @@ constructor(
             }
         assertEquals(1, diff.size)
         assertEquals("description", diff[0].propKey.key.toString())
-        assertEquals(trackNumber.description, diff[0].value.oldValue)
-        assertEquals(updatedTrackNumber.description, diff[0].value.newValue)
+        assertEquals(trackNumber.description.toString(), diff[0].value.oldValue.toString())
+        assertEquals(updatedTrackNumber.description.toString(), diff[0].value.newValue.toString())
     }
 
     @Test
@@ -1420,7 +1429,7 @@ constructor(
                         LayoutBranch.main,
                         LocationTrackSaveRequest(
                             AlignmentName("TEST duplicate"),
-                            FreeText("Test"),
+                            LocationTrackDescriptionBase("Test"),
                             DescriptionSuffixType.NONE,
                             LocationTrackType.MAIN,
                             LocationTrackState.IN_USE,
@@ -1440,7 +1449,7 @@ constructor(
                         LayoutBranch.main,
                         LocationTrackSaveRequest(
                             AlignmentName("TEST duplicate 2"),
-                            FreeText("Test"),
+                            LocationTrackDescriptionBase("Test"),
                             DescriptionSuffixType.NONE,
                             LocationTrackType.MAIN,
                             LocationTrackState.IN_USE,
@@ -1460,7 +1469,7 @@ constructor(
                         LayoutBranch.main,
                         LocationTrackSaveRequest(
                             AlignmentName("TEST"),
-                            FreeText("Test"),
+                            LocationTrackDescriptionBase("Test"),
                             DescriptionSuffixType.NONE,
                             LocationTrackType.MAIN,
                             LocationTrackState.IN_USE,
@@ -1492,7 +1501,7 @@ constructor(
                         locationTrack.id as IntId,
                         LocationTrackSaveRequest(
                             name = AlignmentName("TEST2"),
-                            descriptionBase = FreeText("Test2"),
+                            descriptionBase = LocationTrackDescriptionBase("Test2"),
                             descriptionSuffix = DescriptionSuffixType.SWITCH_TO_BUFFER,
                             type = LocationTrackType.SIDE,
                             state = LocationTrackState.NOT_IN_USE,
@@ -1592,7 +1601,7 @@ constructor(
         val saveReq =
             LocationTrackSaveRequest(
                 AlignmentName("TEST"),
-                FreeText("Test"),
+                LocationTrackDescriptionBase("Test"),
                 DescriptionSuffixType.NONE,
                 LocationTrackType.MAIN,
                 LocationTrackState.IN_USE,
@@ -1611,7 +1620,7 @@ constructor(
                     .update(
                         LayoutBranch.main,
                         locationTrack.id as IntId,
-                        saveReq.copy(descriptionBase = FreeText("TEST2")),
+                        saveReq.copy(descriptionBase = LocationTrackDescriptionBase("TEST2")),
                     )
                     .rowVersion
             )
@@ -1636,8 +1645,8 @@ constructor(
             }
         assertEquals(1, diff.size)
         assertEquals("description-base", diff[0].propKey.key.toString())
-        assertEquals(locationTrack.descriptionBase, diff[0].value.oldValue)
-        assertEquals(updatedLocationTrack.descriptionBase, diff[0].value.newValue)
+        assertEquals(locationTrack.descriptionBase.toString(), diff[0].value.oldValue.toString())
+        assertEquals(updatedLocationTrack.descriptionBase.toString(), diff[0].value.newValue.toString())
     }
 
     @Test
@@ -1795,7 +1804,7 @@ constructor(
         val trackNumberSaveReq =
             TrackNumberSaveRequest(
                 testDBService.getUnusedTrackNumber(),
-                FreeText("TEST"),
+                TrackNumberDescription("TEST"),
                 LayoutState.IN_USE,
                 TrackMeter(0, 0),
             )
@@ -1804,7 +1813,7 @@ constructor(
             trackNumberService
                 .insert(
                     LayoutBranch.main,
-                    trackNumberSaveReq.copy(testDBService.getUnusedTrackNumber(), FreeText("TEST 2")),
+                    trackNumberSaveReq.copy(testDBService.getUnusedTrackNumber(), TrackNumberDescription("TEST 2")),
                 )
                 .id
 
