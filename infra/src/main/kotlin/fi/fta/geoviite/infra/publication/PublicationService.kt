@@ -894,7 +894,8 @@ constructor(
         return publicationDao.getPublication(id).let { publication ->
             splitService.getSplitIdByPublicationId(id)?.let { splitId ->
                 val split = splitService.getOrThrow(splitId)
-                val sourceLocationTrack = locationTrackDao.fetch(split.sourceLocationTrackVersion)
+                val (sourceLocationTrack, sourceAlignment) =
+                    locationTrackService.getWithAlignment(split.sourceLocationTrackVersion)
                 val targetLocationTracks =
                     publicationDao
                         .fetchPublishedLocationTracks(id)
@@ -902,6 +903,7 @@ constructor(
                         .distinct()
                         .mapNotNull { v ->
                             createSplitTargetInPublication(
+                                sourceAlignment = sourceAlignment,
                                 rowVersion = v,
                                 publicationBranch = publication.layoutBranch,
                                 publicationTime = publication.publicationTime,
@@ -920,6 +922,7 @@ constructor(
     }
 
     private fun createSplitTargetInPublication(
+        sourceAlignment: LayoutAlignment,
         rowVersion: LayoutRowVersion<LocationTrack>,
         publicationBranch: LayoutBranch,
         publicationTime: Instant,
@@ -929,12 +932,30 @@ constructor(
         return split.getTargetLocationTrack(track.id as IntId)?.let { target ->
             val ctx =
                 geocodingService.getGeocodingContextAtMoment(publicationBranch, track.trackNumberId, publicationTime)
+
+            val startBySegments =
+                requireNotNull(
+                    sourceAlignment.segments[target.segmentIndices.first].segmentStart.let { point ->
+                        ctx?.getAddress(point)?.first
+                    }
+                )
+            val endBySegments =
+                requireNotNull(
+                    sourceAlignment.segments[target.segmentIndices.last].segmentEnd.let { point ->
+                        ctx?.getAddress(point)?.first
+                    }
+                )
+            val startByTargetAlignment = requireNotNull(alignment.start?.let { point -> ctx?.getAddress(point)?.first })
+            val endByTargetAlignment = requireNotNull(alignment.end?.let { point -> ctx?.getAddress(point)?.first })
+            val startAddress = listOf(startBySegments, startByTargetAlignment).maxOrNull()
+            val endAddress = listOf(endBySegments, endByTargetAlignment).minOrNull()
+
             return SplitTargetInPublication(
                 id = track.id,
                 name = track.name,
                 oid = track.externalId,
-                startAddress = alignment.start?.let { start -> ctx?.getAddress(start)?.first },
-                endAddress = alignment.end?.let { end -> ctx?.getAddress(end)?.first },
+                startAddress = startAddress,
+                endAddress = endAddress,
                 operation = target.operation,
             )
         }
