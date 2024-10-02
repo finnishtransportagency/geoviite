@@ -1,0 +1,39 @@
+@host = http://localhost:8080/rata-vkm/
+
+### Single conversion from coordinate to track address
+###
+### Additional param examples:
+### &sijaintiraide=002
+### &sijaintiraide_tyyppi=sivuraide
+### &koordinaatisto=EPSG%3A3067
+### &geometriatiedot=false
+### &perustiedot=true
+### &lisatiedot=true
+GET {{host}}/v1/rataosoitteet?x=259348.204&y=6804094.514
+X-Api-Key: {{ x-api-key }}
+
+### Single conversion from track address to coordinate
+
+### Additional param examples:
+### &sijaintiraide=002
+### &sijaintiraide_tyyppi=sivuraide
+### &koordinaatisto=EPSG%3A3067
+### &geometriatiedot=false
+### &perustiedot=true
+### &lisatiedot=true
+GET {{host}}/v1/koordinaatit?ratanumero=002&ratakilometri=270&ratametri=300
+X-Api-Key: {{ x-api-key }}
+
+### Batch conversion from track addresses to coordinates
+POST {{host}}/v1/koordinaatit
+Content-Type: application/json
+X-Api-Key: {{ x-api-key }}
+
+< example-request-track-address-to-coordinate.json
+
+### Batch conversion from coordinates to track addresses
+POST {{host}}/v1/rataosoitteet
+Content-Type: application/json
+X-Api-Key: {{ x-api-key }}
+
+< example-request-coordinate-to-track-address.json
