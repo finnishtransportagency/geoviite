@@ -23,7 +23,6 @@ class PublicationGeometryChangeRemarksUpdateService(
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
-    @Transactional
     fun processPublication(publicationId: IntId<Publication>) {
         publicationDao.fetchUnprocessedGeometryChangeRemarks(publicationId).forEach(::processOne)
     }
@@ -49,6 +48,7 @@ class PublicationGeometryChangeRemarksUpdateService(
     }
 
     private fun processOne(unprocessedChange: PublicationDao.UnprocessedGeometryChange) {
+        logger.info("Processing publication change remarks for location track ${unprocessedChange.locationTrackId} in publication ${unprocessedChange.publicationId}")
         val geocodingContext = geocodingService.getGeocodingContextAtMoment(
             unprocessedChange.trackNumberId,
             unprocessedChange.publicationTime,
