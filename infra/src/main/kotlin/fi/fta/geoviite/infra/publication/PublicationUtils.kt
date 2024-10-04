@@ -395,13 +395,16 @@ fun summarizeAlignmentChanges(
     val changedRanges = getChangedAlignmentRanges(oldAlignment, newAlignment)
     return changedRanges.mapNotNull { oldSegments ->
         val oldPoints = oldSegments.flatMap { segment -> segment.segmentPoints }
-        val changedPoints = oldPoints.mapIndexedNotNull { index, oldPoint ->
-            geocodingContext.getAddressAndM(oldPoint)?.let { (address, mOnReferenceLine) ->
+        val changedPoints = oldPoints
+            .mapIndexed { index, oldPoint -> index to oldPoint}
+            .parallelStream()
+            .map { (index, oldPoint) ->
+              geocodingContext.getAddressAndM(oldPoint)?.let { (address, mOnReferenceLine) ->
                 geocodingContext.getTrackLocation(newAlignment, address)?.let { newAddressPoint ->
                     ComparisonPoints(mOnReferenceLine, index, oldPoint, newAddressPoint.point)
                 }?.let { comparison -> if (comparison.roughDistance < changeThreshold) null else comparison }
             }
-        }
+        }.toList().filterNotNull()
         val changedPointsRangesFirstIndices =
             changedPoints
                 .zipWithNext { a, b -> b.mOnReferenceLine - a.mOnReferenceLine > MINIMUM_M_DISTANCE_SEPARATING_ALIGNMENT_CHANGE_SUMMARIES }
