@@ -527,9 +527,11 @@ constructor(
         message: FreeTextWithNewLines,
     ): PublicationResult {
         try {
-            return requireNotNull(
+            val result = requireNotNull(
                 transactionTemplate.execute { publishChangesTransaction(branch, versions, calculatedChanges, message) }
             )
+            result.publicationId?.let { publicationGeometryChangeRemarksUpdateService.processPublication(it) }
+            return result
         } catch (exception: DataIntegrityViolationException) {
             enrichDuplicateNameExceptionOrRethrow(branch, exception)
         }
@@ -572,7 +574,6 @@ constructor(
         val locationTracks = versions.locationTracks.map { v -> locationTrackService.publish(branch, v) }
         val publicationId = publicationDao.createPublication(branch, message)
         publicationDao.insertCalculatedChanges(publicationId, calculatedChanges)
-        publicationGeometryChangeRemarksUpdateService.processPublication(publicationId)
 
         splitService.publishSplit(versions.splits, locationTracks, publicationId)
 
