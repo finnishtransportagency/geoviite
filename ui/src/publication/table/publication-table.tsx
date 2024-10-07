@@ -10,6 +10,8 @@ import {
     PublicationDetailsTableSortInformation,
 } from './publication-table-utils';
 import { getSortDirectionIcon } from 'utils/table-utils';
+import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
+import { useState } from 'react';
 
 export type PublicationTableProps = {
     items: PublicationTableItem[];
@@ -47,12 +49,36 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
         </Th>
     );
 
+    const [itemDetailsVisible, setItemDetailsVisible] = useState<PublicationTableItem['id'][]>([]);
+
+    const publicationItemDetailsVisibilityToggle = (id: PublicationTableItem['id']) => {
+        if (!itemDetailsVisible.includes(id)) {
+            setItemDetailsVisible([...itemDetailsVisible, id]);
+        } else {
+            setItemDetailsVisible(itemDetailsVisible.filter((existingId) => existingId !== id));
+        }
+    };
+
+    const anyPublicationItemDetailsVisible = itemDetailsVisible.length > 0;
+    const toggleVisibilityOfAllDetails = () => {
+        if (anyPublicationItemDetailsVisible) {
+            setItemDetailsVisible([]);
+        } else {
+            setItemDetailsVisible(items.map((item) => item.id));
+        }
+    };
+
     return (
         <div className={styles['publication-table']}>
             <Table wide isLoading={isLoading}>
                 <thead className={styles['publication-table__table-header']}>
                     <tr>
-                        <Th />
+                        <Th>
+                            <AccordionToggle
+                                open={anyPublicationItemDetailsVisible}
+                                onToggle={() => toggleVisibilityOfAllDetails()}
+                            />
+                        </Th>
                         {sortableTableHeader(
                             PublicationDetailsTableSortField.NAME,
                             'publication-table.name',
@@ -101,6 +127,10 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                             changedKmNumbers={entry.changedKmNumbers}
                             message={entry.message}
                             propChanges={entry.propChanges}
+                            detailsVisible={itemDetailsVisible.includes(entry.id)}
+                            detailsVisibleToggle={() =>
+                                publicationItemDetailsVisibilityToggle(entry.id)
+                            }
                         />
                     ))}
                 </tbody>
