@@ -12,6 +12,8 @@ import { first } from 'utils/array-utils';
 
 type PublicationTableRowProps = {
     propChanges: PublicationChange[];
+    detailsVisible: boolean;
+    detailsVisibleToggle: () => void;
 } & PublicationTableItem;
 
 export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
@@ -25,11 +27,13 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
     message,
     ratkoPushTime,
     propChanges,
+    detailsVisible,
+    detailsVisibleToggle,
 }) => {
     const { t } = useTranslation();
     const messageRows = message.split('\n');
     const [messageExpanded, setMessageExpanded] = React.useState(false);
-    const [detailsVisible, setDetailsVisible] = React.useState<boolean>(false);
+    // const [detailsVisible, setDetailsVisible] = React.useState<boolean>(false);
     const contentClassNames = createClassName(
         styles['publication-table__message-content'],
         messageExpanded
@@ -46,13 +50,15 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
         detailsVisible && styles['publication-table__row-details--borderless'],
     );
 
+    console.log(detailsVisible);
+
     return (
         <React.Fragment>
             <tr className={rowClassNames}>
                 <td className={styles['publication-table__accordion-column']}>
                     <AccordionToggle
                         open={detailsVisible}
-                        onToggle={() => setDetailsVisible(!detailsVisible)}
+                        onToggle={() => detailsVisibleToggle()}
                     />
                 </td>
                 <td>{name}</td>
