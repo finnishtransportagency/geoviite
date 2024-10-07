@@ -3,7 +3,7 @@ package fi.fta.geoviite.api.frameconverter.v1
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeature
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeatureCollection
-import fi.fta.geoviite.infra.aspects.DisableLogging
+import fi.fta.geoviite.infra.aspects.DisableDefaultGeoviiteLogging
 import fi.fta.geoviite.infra.authorization.AUTH_API_FRAME_CONVERTER
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
@@ -52,7 +52,7 @@ class FrameConverterControllerV1 @Autowired constructor(private val frameConvert
         return GeoJsonFeatureCollection(features = processRequest(request, queryParams))
     }
 
-    @DisableLogging
+    @DisableDefaultGeoviiteLogging
     @PostMapping("/koordinaatit", "/koordinaatit/")
     fun trackAddressToCoordinateRequestBatch(
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
@@ -99,7 +99,7 @@ class FrameConverterControllerV1 @Autowired constructor(private val frameConvert
         return GeoJsonFeatureCollection(features = processRequest(request, queryParams))
     }
 
-    @DisableLogging
+    @DisableDefaultGeoviiteLogging
     @PostMapping("/rataosoitteet", "/rataosoitteet/")
     fun coordinateToTrackAddressRequestBatch(
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
