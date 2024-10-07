@@ -16,6 +16,10 @@ export const appPath = {
     'inframodel-rejected': '/infra-model/rejected',
 } as const;
 
+export const appHref = (path: string): string => {
+    return `/#${path}`;
+};
+
 export type AppNavigateFunction = <K extends keyof typeof appPath>(
     key: K,
     ...args: (typeof appPath)[K] extends (...args: unknown[]) => string

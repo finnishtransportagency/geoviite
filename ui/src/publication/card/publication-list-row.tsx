@@ -10,7 +10,7 @@ import { createClassName } from 'vayla-design-lib/utils';
 import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { AppNavigateFunction } from 'common/navigate';
+import { appHref, AppNavigateFunction, appPath } from 'common/navigate';
 import { Menu, menuOption, MenuSelectOption } from 'vayla-design-lib/menu/menu';
 import { SplitDetailsDialog } from 'publication/split/split-details-dialog';
 import { putBulkTransferState } from 'publication/split/split-api';
@@ -134,7 +134,8 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
                                     onClick={() => {
                                         setSelectedPublicationId(publication.id);
                                         navigate('publication-view', publication.id);
-                                    }}>
+                                    }}
+                                    href={appHref(appPath['publication-view'](publication.id))}>
                                     {text}
                                 </Link>
                             ) : (
