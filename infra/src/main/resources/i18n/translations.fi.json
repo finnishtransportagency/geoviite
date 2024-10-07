@@ -91,7 +91,8 @@
             "invalid-path": "Virhe: pyynnön polku oli virheellinen ({{method}})",
             "missing-parameter": "Virhe: pyynnöstä puuttuu vaadittu parametri ({{param}})",
             "invalid-body": "Virhe: pyynnön sisältöä ei voitu lukea",
-            "conversion-failed": "Virhe: Pyynnössä oli virheellinen arvo {{name}}"
+            "conversion-failed": "Virhe: Pyynnössä oli virheellinen arvo {{name}}",
+            "invalid-version": "Virhe: Käyttöliittymän versio ei vastaa palvelimen versiota"
         },
         "deleting": {
             "generic": "Poistamisessa tapahtui virhe",

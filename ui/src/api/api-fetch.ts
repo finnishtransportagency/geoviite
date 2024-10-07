@@ -6,6 +6,9 @@ import Cookies from 'js-cookie';
 import { LocalizationParams } from 'i18n/config';
 import i18next from 'i18next';
 import { TimeStamp } from 'common/common-model';
+import { appStore } from 'store/store';
+import { createDelegates } from 'store/store-utils';
+import { commonActionCreators } from 'common/common-slice';
 
 export const API_URI = '/api';
 
@@ -16,6 +19,21 @@ function getCsrfCookie(): string | undefined {
 }
 
 const TOKEN_EXPIRED = 'error.unauthorized.token-expired';
+const INVALID_VERSION = 'error.bad-request.invalid-version';
+
+const GEOVIITE_UI_VERSION_HEADER_KEY = 'x-geoviite-ui-version';
+
+let geoviiteUiVersion = '';
+const unsubscribeFromStateUpdates = appStore.subscribe(() => {
+    geoviiteUiVersion = appStore.getState().common.version ?? '';
+
+    // Only the version state update after the backend environment info has been fetched for the first time
+    // during loading is meaningful. After the version has been fetched, the ui bundle and environment info won't
+    // be updated without a page refresh.
+    if (geoviiteUiVersion.length > 0) {
+        unsubscribeFromStateUpdates();
+    }
+});
 
 const JSON_HEADERS: HeadersInit = {
     'Accept': 'application/json',
@@ -23,8 +41,18 @@ const JSON_HEADERS: HeadersInit = {
 };
 
 const createJsonHeaders = () => {
+    const headers = {
+        ...JSON_HEADERS,
+        [GEOVIITE_UI_VERSION_HEADER_KEY]: geoviiteUiVersion,
+    };
+
     const csrfToken = getCsrfCookie();
-    return csrfToken ? { ...JSON_HEADERS, 'X-XSRF-TOKEN': csrfToken } : JSON_HEADERS;
+    return csrfToken
+        ? {
+              ...headers,
+              'X-XSRF-TOKEN': csrfToken,
+          }
+        : { ...headers };
 };
 
 export type ApiError = {
@@ -61,6 +89,7 @@ export function queryParams(params: Record<string, unknown>): string {
 
 const wrapApiErrorResponse = Symbol('wrap api error response');
 type WrappedApiErrorResponse = { [k in typeof wrapApiErrorResponse]: ApiErrorResponse };
+
 function isWrappedApiError(x: unknown): x is WrappedApiErrorResponse {
     return typeof x === 'object' && x !== null && wrapApiErrorResponse in x;
 }
@@ -326,8 +355,14 @@ async function executeBodyRequestInternal<Output>(
             (response.headers.has('session-expired') ||
                 errorResponse.response.localizationKey === TOKEN_EXPIRED);
 
+        const versionMismatch =
+            response.status === 400 && errorResponse.response.localizationKey === INVALID_VERSION;
+
         if (retryOnTokenExpired && errorIsTokenExpiry) {
             return executeBodyRequestInternal(fetchFunction, false);
+        } else if (versionMismatch) {
+            createDelegates(commonActionCreators).setVersionStatus('reload');
+            return err(errorResponse.response);
         } else {
             if (errorIsTokenExpiry) Snackbar.sessionExpired();
             return err(errorResponse.response);
@@ -343,7 +378,10 @@ async function getFormResponse(
     return await fetch(path, {
         method: method,
         credentials: 'same-origin',
-        headers: { 'X-XSRF-TOKEN': getCsrfCookie() || '' },
+        headers: {
+            'X-XSRF-TOKEN': getCsrfCookie() || '',
+            [GEOVIITE_UI_VERSION_HEADER_KEY]: geoviiteUiVersion,
+        },
         body: data,
     });
 }

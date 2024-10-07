@@ -21,7 +21,9 @@ import fi.fta.geoviite.infra.authorization.User
 import fi.fta.geoviite.infra.authorization.UserDetails
 import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.authorization.isValidCode
+import fi.fta.geoviite.infra.environmentInfo.EnvironmentInfo
 import fi.fta.geoviite.infra.error.ApiUnauthorizedException
+import fi.fta.geoviite.infra.error.InvalidUiVersionException
 import fi.fta.geoviite.infra.error.createErrorResponse
 import fi.fta.geoviite.infra.logging.apiRequest
 import fi.fta.geoviite.infra.logging.apiResponse
@@ -53,6 +55,7 @@ const val HTTP_HEADER_REMOTE_IP = "X-FORWARDED-FOR"
 const val HTTP_HEADER_CORRELATION_ID = "X-Amzn-Trace-Id"
 const val HTTP_HEADER_JWT_DATA = "x-iam-data"
 const val HTTP_HEADER_JWT_ACCESS = "x-iam-accesstoken"
+const val HTTP_HEADER_GEOVIITE_UI_VERSION = "x-geoviite-ui-version"
 
 const val ALGORITHM_RS256 = "RS256"
 const val ALGORITHM_ES256 = "ES256"
@@ -70,6 +73,7 @@ constructor(
     @Value("\${geoviite.jwt.validation.jwks-url:}") private val jwksUrl: String,
     @Value("\${geoviite.jwt.validation.elb-jwt-key-url:}") private val elbJwtUrl: String,
     private val extApi: ExtApiConfiguration,
+    private val environmentInfo: EnvironmentInfo,
 ) : OncePerRequestFilter() {
 
     private val log: Logger = LoggerFactory.getLogger(this::class.java)
@@ -146,6 +150,15 @@ constructor(
         )
     }
 
+    fun checkUiRequestVersion(request: HttpServletRequest) {
+        val hasEmptyVersionHeader = request.getHeader(HTTP_HEADER_GEOVIITE_UI_VERSION).isNullOrEmpty()
+        val requestVersionMatches = request.getHeader(HTTP_HEADER_GEOVIITE_UI_VERSION) == environmentInfo.releaseVersion
+
+        if (!hasEmptyVersionHeader && !requestVersionMatches) {
+            throw InvalidUiVersionException()
+        }
+    }
+
     override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, chain: FilterChain) {
         val startTime = Instant.now()
         val requestIP = extractRequestIP(request)
@@ -161,6 +174,9 @@ constructor(
             log.apiRequest(request, requestIP)
             val auth = UsernamePasswordAuthenticationToken(user, "", user.role.privileges)
             SecurityContextHolder.getContext().authentication = auth
+
+            checkUiRequestVersion(request)
+
             chain.doFilter(request, response)
         } catch (ex: Exception) {
             val errorResponse = createErrorResponse(log, ex)
