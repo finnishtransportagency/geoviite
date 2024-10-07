@@ -1795,7 +1795,10 @@
             "source-manual": "Operaattorin asettama",
             "source-none": "-",
             "location-in-layout": "Sijainti paikannuspohjassa (TM35FIN)",
-            "out-of-bounds": "Sijainti ei ole laskettavissa"
+            "out-of-bounds": "Sijainti ei ole laskettavissa",
+            "location-converted": "Sijainti muunnettu koordinaatistosta {{originalCrs}}",
+            "original-crs": "Alkuperäinen koordinaatisto {{originalCrs}}",
+            "original-location": "Sijainti alkuperäisessä koordinaatistossa {{originalE}} E {{originalN}} N"
         }
     },
     "km-post-delete-dialog": {
