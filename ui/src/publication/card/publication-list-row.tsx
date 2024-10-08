@@ -7,21 +7,19 @@ import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { Spinner, SpinnerSize } from 'vayla-design-lib/spinner/spinner';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
 import { createClassName } from 'vayla-design-lib/utils';
-import { Link } from 'vayla-design-lib/link/link';
 import { formatDateFull } from 'utils/date-utils';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { appHref, AppNavigateFunction, appPath } from 'common/navigate';
 import { Menu, menuOption, MenuSelectOption } from 'vayla-design-lib/menu/menu';
 import { SplitDetailsDialog } from 'publication/split/split-details-dialog';
 import { putBulkTransferState } from 'publication/split/split-api';
 import { success } from 'geoviite-design-lib/snackbar/snackbar';
 import { getChangeTimes, updateSplitChangeTime } from 'common/change-time-api';
 import { useLayoutDesign } from 'track-layout/track-layout-react-utils';
+import { Link } from 'react-router-dom';
 
 type PublicationListRowProps = {
     publication: PublicationDetails;
     setSelectedPublicationId: (id: string) => void;
-    navigate: AppNavigateFunction;
 };
 
 const publicationStateIcon: React.FC<PublicationDetails> = (publication) => {
@@ -69,11 +67,7 @@ const bulkTransferStateIcon = (bulkTransferState: BulkTransferState | undefined)
     }
 };
 
-export const PublicationListRow: React.FC<PublicationListRowProps> = ({
-    publication,
-    setSelectedPublicationId,
-    navigate,
-}) => {
+export const PublicationListRow: React.FC<PublicationListRowProps> = ({ publication }) => {
     const { t } = useTranslation();
 
     const design = useLayoutDesign(getChangeTimes().layoutDesign, publication.layoutBranch)?.name;
@@ -130,14 +124,7 @@ export const PublicationListRow: React.FC<PublicationListRowProps> = ({
                         {(() => {
                             const text = formatDateFull(publication.publicationTime);
                             return publication.layoutBranch === 'MAIN' ? (
-                                <Link
-                                    onClick={() => {
-                                        setSelectedPublicationId(publication.id);
-                                        navigate('publication-view', publication.id);
-                                    }}
-                                    href={appHref(appPath['publication-view'](publication.id))}>
-                                    {text}
-                                </Link>
+                                <Link to={`/publications/${publication.id}`}>{text}</Link>
                             ) : (
                                 text
                             );
