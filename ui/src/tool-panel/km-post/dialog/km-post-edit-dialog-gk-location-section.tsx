@@ -28,13 +28,15 @@ import proj4 from 'proj4';
 
 // GK-FIN coordinate systems currently only used for the live display of layout coordinates when editing km post
 // positions manually
-const GK_FIN_COORDINATE_SYSTEMS: [Srid, string][] = [...Array(12)].map((_, meridianIndex) => {
-    const meridian = 19 + meridianIndex;
-    const falseNorthing = meridian * 1e6 + 0.5e6;
-    const srid = `EPSG:${3873 + meridianIndex}`;
-    const projection = `+proj=tmerc +lat_0=0 +lon_0=${meridian} +k=1 +x_0=${falseNorthing} +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs`;
-    return [srid, projection];
-});
+export const GK_FIN_COORDINATE_SYSTEMS: [Srid, string][] = [...Array(12)].map(
+    (_, meridianIndex) => {
+        const meridian = 19 + meridianIndex;
+        const falseNorthing = meridian * 1e6 + 0.5e6;
+        const srid = `EPSG:${3873 + meridianIndex}`;
+        const projection = `+proj=tmerc +lat_0=0 +lon_0=${meridian} +k=1 +x_0=${falseNorthing} +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs`;
+        return [srid, projection];
+    },
+);
 
 type KmPostEditDialogGkLocationSectionProps = {
     state: KmPostEditState;

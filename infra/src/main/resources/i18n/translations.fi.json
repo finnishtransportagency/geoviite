@@ -486,7 +486,8 @@
                 "change-info-heading": "Lokitiedot",
                 "no-kilometer-length": "Pituutta ei voida laskea",
                 "negative-kilometer-length": "Virheellinen sijainti",
-                "no-location": "Ei sijaintia"
+                "no-location": "Ei sijaintia",
+                "plan-crs": "Lähdekoordinaatisto"
             },
             "geometry": {
                 "general-title": "Raidegeometria: Tasakilometripiste",

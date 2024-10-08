@@ -369,6 +369,10 @@ export function kmPostSaveRequest(state: KmPostEditState): KmPostSaveRequest {
         gkLocation: state.gkLocationEnabled ? editingGkPointToSavePoint(state) : undefined,
         gkLocationSource: state.gkLocationEnabled ? gkLocationSource(state) : undefined,
         gkLocationConfirmed: state.gkLocationEnabled ? state.kmPost.gkLocationConfirmed : false,
+        sourceId:
+            gkLocationSource(state) === 'FROM_GEOMETRY'
+                ? state.existingKmPost?.sourceId
+                : undefined,
     };
 }
 

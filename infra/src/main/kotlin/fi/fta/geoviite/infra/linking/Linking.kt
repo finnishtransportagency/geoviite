@@ -171,6 +171,7 @@ data class TrackLayoutKmPostSaveRequest(
     val gkLocationConfirmed: Boolean,
     val gkLocationSource: KmPostGkLocationSource?,
     val gkLocation: GeometryPoint?,
+    val sourceId: IntId<GeometryKmPost>?,
 ) {
     init {
         gkLocation?.let { location ->

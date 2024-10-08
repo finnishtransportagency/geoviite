@@ -4,13 +4,18 @@ import { LayoutKmPost } from 'track-layout/track-layout-model';
 import InfoboxContent from 'tool-panel/infobox/infobox-content';
 import InfoboxField from 'tool-panel/infobox/infobox-field';
 import { useTranslation } from 'react-i18next';
-import { formatToGkFinString, formatToTM35FINString } from 'utils/geography-utils';
+import { formatToGkFinString, formatToTM35FINString, formatWithSrid } from 'utils/geography-utils';
 import InfoboxButtons from 'tool-panel/infobox/infobox-buttons';
 import { Button, ButtonSize, ButtonVariant } from 'vayla-design-lib/button/button';
-import { draftLayoutContext, LayoutContext, TimeStamp } from 'common/common-model';
+import {
+    CoordinateSystem,
+    draftLayoutContext,
+    LayoutContext,
+    TimeStamp,
+} from 'common/common-model';
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import KmPostDeleteConfirmationDialog from 'tool-panel/km-post/dialog/km-post-delete-confirmation-dialog';
-import { Icons } from 'vayla-design-lib/icon/Icon';
+import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { getKmPost, getKmPostInfoboxExtras } from 'track-layout/layout-km-post-api';
 import { LoaderStatus, useLoader, useLoaderWithStatus } from 'utils/react-utils';
 import { TrackNumberLinkContainer } from 'geoviite-design-lib/track-number/track-number-link';
@@ -35,6 +40,8 @@ import { createDelegates } from 'store/store-utils';
 import { getGeometryPlan } from 'geometry/geometry-api';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import styles from './km-post-infobox.scss';
+import { GK_FIN_COORDINATE_SYSTEMS } from 'tool-panel/km-post/dialog/km-post-edit-dialog-gk-location-section';
+import { createClassName } from 'vayla-design-lib/utils';
 
 type KmPostInfoboxProps = {
     layoutContext: LayoutContext;
@@ -47,6 +54,38 @@ type KmPostInfoboxProps = {
     visibilities: KmPostInfoboxVisibilities;
     onVisibilityChange: (visibilities: KmPostInfoboxVisibilities) => void;
     changeTimes: ChangeTimes;
+};
+
+const CoordinateSystemField: React.FC<{
+    kmPostCrs: CoordinateSystem | undefined;
+    planCrs: CoordinateSystem | undefined;
+}> = ({ kmPostCrs, planCrs }) => {
+    const { t } = useTranslation();
+
+    const transformed = planCrs && kmPostCrs && planCrs !== kmPostCrs;
+    const transformedFromNonGk =
+        planCrs && !GK_FIN_COORDINATE_SYSTEMS.find(([srid]) => srid === planCrs?.srid);
+    const titleIftransformed = t('km-post-dialog.gk-location.location-converted', {
+        originalCrs: planCrs ? formatWithSrid(planCrs) : '',
+    });
+
+    const classNme = createClassName(
+        styles['km-post-infobox__crs'],
+        transformedFromNonGk && styles['km-post-infobox__crs--warning'],
+    );
+
+    return (
+        <span title={transformed ? titleIftransformed : ''} className={classNme}>
+            <CoordinateSystemView coordinateSystem={kmPostCrs} />
+
+            {transformed &&
+                (transformedFromNonGk ? (
+                    <Icons.StatusError size={IconSize.SMALL} color={IconColor.INHERIT} />
+                ) : (
+                    <Icons.Info size={IconSize.SMALL} color={IconColor.INHERIT} />
+                ))}
+        </span>
+    );
 };
 
 const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
@@ -89,6 +128,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                 : getGeometryPlan(infoboxExtras.sourceGeometryPlanId),
         [infoboxExtras?.sourceGeometryPlanId],
     );
+    const geometryPlanCrs = useCoordinateSystem(geometryPlan?.units?.coordinateSystemSrid);
 
     const gkCoordinateSystem = useCoordinateSystem(kmPost.gkLocation?.srid);
 
@@ -193,7 +233,12 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     <InfoboxFieldWithEditLink
                         qaId="km-post-gk-coordinate-system"
                         label={t('tool-panel.km-post.layout.gk-coordinates.coordinate-system')}
-                        value={<CoordinateSystemView coordinateSystem={gkCoordinateSystem} />}
+                        value={
+                            <CoordinateSystemField
+                                kmPostCrs={gkCoordinateSystem}
+                                planCrs={geometryPlanCrs}
+                            />
+                        }
                     />
                     <InfoboxFieldWithEditLink
                         qaId="km-post-gk-coordinates"
