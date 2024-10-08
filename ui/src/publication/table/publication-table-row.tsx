@@ -50,8 +50,6 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
         detailsVisible && styles['publication-table__row-details--borderless'],
     );
 
-    console.log(detailsVisible);
-
     return (
         <React.Fragment>
             <tr className={rowClassNames}>
