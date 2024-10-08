@@ -1,10 +1,7 @@
-import {
-    Operation,
-    LayoutValidationIssue,
-    validationIssueIsError,
-} from 'publication/publication-model';
+import { LayoutValidationIssue, validationIssueIsError } from 'publication/publication-model';
 import { fieldComparator } from 'utils/array-utils';
 import { nextSortDirection, SortDirection } from 'utils/table-utils';
+import { publicationOperationCompare } from 'sorting/publication-sorting';
 
 export enum SortProps {
     NAME = 'NAME',
@@ -43,20 +40,11 @@ const issueListCompare = (
     const priorityBySeverity = issueSeverityPriority(b.issues) - issueSeverityPriority(a.issues);
     return priorityBySeverity !== 0 ? priorityBySeverity : b.issues.length - a.issues.length;
 };
-export const operationPriority = (operation: Operation | undefined) => {
-    if (operation === 'CREATE') return 4;
-    if (operation === 'MODIFY') return 3;
-    if (operation === 'DELETE') return 2;
-    if (operation === 'RESTORE') return 1;
-    return 0;
-};
-const operationCompare = (a: { operation: Operation }, b: { operation: Operation }) =>
-    operationPriority(b.operation) - operationPriority(a.operation);
 
 const sortFunctionsByPropName = {
     NAME: nameCompare,
     TRACK_NUMBER: trackNumberCompare,
-    OPERATION: operationCompare,
+    OPERATION: publicationOperationCompare,
     CHANGE_TIME: changeTimeCompare,
     USER_NAME: userNameCompare,
     ISSUES: issueListCompare,

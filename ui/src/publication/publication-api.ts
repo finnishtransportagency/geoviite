@@ -256,6 +256,7 @@ export const getPublicationAsTableItems = (id: PublicationId) =>
         `${PUBLICATION_URL}/${id}/table-rows${queryParams({ lang: i18next.language })}`,
     );
 
+export const MAX_RETURNED_PUBLICATION_LOG_ROWS = 500;
 export const getPublicationsAsTableItems = (
     from?: Date,
     to?: Date,
