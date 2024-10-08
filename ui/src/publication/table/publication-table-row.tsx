@@ -33,7 +33,6 @@ export const PublicationTableRow: React.FC<PublicationTableRowProps> = ({
     const { t } = useTranslation();
     const messageRows = message.split('\n');
     const [messageExpanded, setMessageExpanded] = React.useState(false);
-    // const [detailsVisible, setDetailsVisible] = React.useState<boolean>(false);
     const contentClassNames = createClassName(
         styles['publication-table__message-content'],
         messageExpanded
