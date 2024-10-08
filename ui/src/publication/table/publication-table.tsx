@@ -9,9 +9,10 @@ import {
     PublicationDetailsTableSortField,
     PublicationDetailsTableSortInformation,
 } from './publication-table-utils';
-import { getSortDirectionIcon } from 'utils/table-utils';
+import { getSortDirectionIcon, SortDirection } from 'utils/table-utils';
 import { AccordionToggle } from 'vayla-design-lib/accordion-toggle/accordion-toggle';
 import { useState } from 'react';
+import { negComparator } from 'utils/array-utils';
 
 export type PublicationTableProps = {
     items: PublicationTableItem[];
@@ -48,6 +49,15 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
             {t(translationKey)}
         </Th>
     );
+
+    const sortedPublicationTableItems =
+        sortInfo && sortInfo.direction !== SortDirection.UNSORTED
+            ? [...items].sort(
+                  sortInfo.direction == SortDirection.ASCENDING
+                      ? sortInfo.sortFunction
+                      : negComparator(sortInfo.sortFunction),
+              )
+            : [...items];
 
     const [itemDetailsVisible, setItemDetailsVisible] = useState<PublicationTableItem['id'][]>([]);
 
@@ -114,7 +124,7 @@ const PublicationTable: React.FC<PublicationTableProps> = ({
                     </tr>
                 </thead>
                 <tbody>
-                    {items.map((entry) => (
+                    {sortedPublicationTableItems.map((entry) => (
                         <PublicationTableRow
                             key={entry.id}
                             id={entry.id}
