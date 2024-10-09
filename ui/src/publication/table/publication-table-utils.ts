@@ -1,8 +1,8 @@
 import { nextSortDirection, SortDirection } from 'utils/table-utils';
 import { PublicationTableItem } from 'publication/publication-model';
 import { publicationOperationCompare } from 'sorting/publication-sorting';
-import { Range, TimeStamp, TrackNumber } from 'common/common-model';
-import { fieldComparator, timeStampComparator } from 'utils/array-utils';
+import { TimeStamp } from 'common/common-model';
+import { fieldComparator, multiFieldComparator, timeStampComparator } from 'utils/array-utils';
 
 export enum PublicationDetailsTableSortField {
     NAME = 'NAME',
@@ -31,15 +31,20 @@ const sortEmptyArraysAsLast = <T>(a: T[], b: T[]): number | undefined => {
     }
 };
 
+const changedKmNumbersGetter = (entry: PublicationTableItem) => {
+    return entry.changedKmNumbers.map((e) => `${e.min}-${e.max}`).join(',') || '';
+};
+
+const trackNumbersGetter = (entry: PublicationTableItem) => entry.trackNumbers.join(',') || '';
+
+const publicationTimeGetter = (entry: { publicationTime: TimeStamp }) => entry.publicationTime;
+
 const changedKmNumbersCompare = (a: PublicationTableItem, b: PublicationTableItem): number => {
     const emptyArraySortDirection = sortEmptyArraysAsLast(a.changedKmNumbers, b.changedKmNumbers);
 
     return emptyArraySortDirection
         ? emptyArraySortDirection
-        : fieldComparator(
-              (entry: { changedKmNumbers: Range<string>[] }) =>
-                  entry.changedKmNumbers.map((e) => `${e.min}-${e.max}`).join(',') || '',
-          )(a, b);
+        : multiFieldComparator(changedKmNumbersGetter, publicationTimeGetter)(a, b);
 };
 
 const trackNumbersCompare = (a: PublicationTableItem, b: PublicationTableItem): number => {
@@ -47,24 +52,34 @@ const trackNumbersCompare = (a: PublicationTableItem, b: PublicationTableItem): 
 
     return emptyArraySortDirection
         ? emptyArraySortDirection
-        : fieldComparator(
-              (entry: { trackNumbers: TrackNumber[] }) => entry.trackNumbers.join(',') || '',
-          )(a, b);
+        : multiFieldComparator(trackNumbersGetter, publicationTimeGetter)(a, b);
+};
+
+const publicationLogOperationCompare = (
+    a: PublicationTableItem,
+    b: PublicationTableItem,
+): number => {
+    const operationComparison = publicationOperationCompare(a, b);
+
+    return operationComparison !== 0
+        ? operationComparison
+        : fieldComparator(publicationTimeGetter)(a, b);
 };
 
 const publicationLogSortFunctions: Record<
     PublicationDetailsTableSortField,
     (a: PublicationTableItem, b: PublicationTableItem) => number
 > = {
-    NAME: fieldComparator((entry: { name: string }) => entry.name),
+    NAME: multiFieldComparator((entry: { name: string }) => entry.name, publicationTimeGetter),
     TRACK_NUMBERS: trackNumbersCompare,
     CHANGED_KM_NUMBERS: changedKmNumbersCompare,
-    OPERATION: publicationOperationCompare,
+    OPERATION: publicationLogOperationCompare,
     PUBLICATION_TIME: timeStampComparator(
-        (entry: { publicationTime: TimeStamp }) => entry.publicationTime,
+        (entry: { publicationTime: string }) => entry.publicationTime,
     ),
-    PUBLICATION_USER: fieldComparator(
+    PUBLICATION_USER: multiFieldComparator(
         (entry: { publicationUser: string }) => entry.publicationUser,
+        publicationTimeGetter,
     ),
     RATKO_PUSH_TIME: timeStampComparator(
         (entry: { ratkoPushTime: TimeStamp }) => entry.ratkoPushTime,
