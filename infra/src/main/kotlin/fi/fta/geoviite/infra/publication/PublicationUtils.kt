@@ -78,7 +78,7 @@ fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId, translation: 
                 "publication-table.operation" to { formatOperation(translation, it.operation) },
                 "publication-table.publication-time" to { formatInstant(it.publicationTime, timeZone) },
                 "publication-table.publication-user" to { "${it.publicationUser}" },
-                "publication-table.message" to { it.message },
+                "publication-table.message" to { it.message.escapeNewLines() },
                 "publication-table.pushed-to-ratko" to
                     {
                         it.ratkoPushTime?.let { pushTime -> formatInstant(pushTime, timeZone) } ?: translation.t("no")
