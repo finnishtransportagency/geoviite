@@ -1,5 +1,6 @@
 package fi.fta.geoviite.infra.tracklayout
 
+import fi.fta.geoviite.api.frameconverter.v1.ValidCoordinateToTrackAddressRequestV1
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.LayoutBranch
@@ -437,6 +438,105 @@ class LocationTrackDao(
                 "names" to names.map { name -> name.toString().lowercase() }.joinToString(","),
             )
         return jdbcTemplate.query(sql, params) { rs, _ -> rs.getDaoResponse("official_id", "row_id", "row_version") }
+    }
+
+    fun fetchVersionsForFrameConverterSearch(
+        context: LayoutContext,
+        requests: List<Pair<ValidCoordinateToTrackAddressRequestV1, IPoint>>,
+    ): List<LayoutRowVersion<LocationTrack>?> =
+        // need to chunk requests to ensure we don't hit postgres's request parameter count limits
+        requests.chunked(1000).flatMap { chunk -> fetchVersionsForFrameConverterSearchRequestChunk(context, chunk) }
+
+    fun fetchVersionsForFrameConverterSearchRequestChunk(
+        context: LayoutContext,
+        requests: List<Pair<ValidCoordinateToTrackAddressRequestV1, IPoint>>,
+    ): List<LayoutRowVersion<LocationTrack>?> {
+        // language=SQL
+        val sql =
+            """
+            with search_points as materialized (
+              select
+                generate_subscripts(array [:xs], 1) as request_number,
+                unnest(array [:xs]) as x,
+                unnest(array [:ys]) as y,
+                unnest(array [:max_distances]) as max_distance,
+                unnest(array [:location_track_names]) as location_track_name,
+                unnest(array [:location_track_types])::layout.track_type as location_track_type,
+                unnest(array [:track_numbers]) as track_number
+            ),
+              filtered_by_search_terms as (
+                select point.x as point_x, point.y as point_y, point.request_number, location_track.*
+                  from search_points point,
+                    lateral (
+                      select
+                        array_agg(location_track.id) as ids,
+                        array_agg(location_track.version) as versions,
+                        array_agg(location_track.alignment_id) as alignment_ids,
+                        array_agg(location_track.alignment_version) as alignment_versions
+                        from (
+                          select *
+                            from layout.location_track, layout.location_track_is_in_layout_context(
+                                :publication_state::layout.publication_state,
+                                :design_id, location_track)
+                        ) location_track
+                          join layout.alignment on alignment_id = alignment.id and alignment_version = alignment.version
+                        where (point.location_track_name is null or location_track.name = point.location_track_name)
+                          and (point.location_track_type is null or location_track.type = point.location_track_type)
+                          and (point.track_number is null or
+                               exists(select *
+                                        from layout.track_number_in_layout_context(
+                                            :publication_state::layout.publication_state,
+                                            :design_id,
+                                            location_track.track_number_id)
+                                        where number = point.track_number))
+                          and postgis.st_intersects(
+                            postgis.st_expand(postgis.st_point(point.x, point.y, :layout_srid), point.max_distance),
+                            alignment.bounding_box
+                          )
+                        group by point.request_number) location_track
+              )
+            select distinct on (request_number)
+              request_number,
+              id,
+              version
+              from (
+                select
+                  request_number,
+                  point_x,
+                  point_y,
+                  unnest(ids) as id,
+                  unnest(versions) as version,
+                  unnest(alignment_ids) as alignment_id,
+                  unnest(alignment_versions) as alignment_version
+                  from filtered_by_search_terms
+              ) t
+              order by request_number, (
+                select min(postgis.st_distance(postgis.st_point(point_x, point_y, :layout_srid), segment_geometry.geometry))
+                  from layout.segment_version
+                    join layout.segment_geometry on geometry_id = segment_geometry.id
+                  where segment_version.alignment_id = t.alignment_id and segment_version.alignment_version = t.alignment_version
+              );
+        """
+                .trimIndent()
+        val params =
+            mapOf(
+                "publication_state" to context.state.name,
+                "design_id" to context.branch.designId?.intValue,
+                "layout_srid" to LAYOUT_SRID.code,
+                "xs" to requests.map { it.second.x },
+                "ys" to requests.map { it.second.y },
+                "max_distances" to requests.map { it.first.searchRadius },
+                "location_track_names" to requests.map { it.first.locationTrackName?.toString() },
+                "location_track_types" to requests.map { it.first.locationTrackType?.toString() },
+                "track_numbers" to requests.map { it.first.trackNumberName?.toString() },
+            )
+        val result =
+            jdbcTemplate.query(sql, params) { rs, _ ->
+                rs.getInt("request_number") to rs.getLayoutRowVersion<LocationTrack>("id", "version")
+            }
+        val rv = MutableList<LayoutRowVersion<LocationTrack>?>(requests.size) { null }
+        result.forEach { (requestNumber, version) -> rv[requestNumber - 1] = version }
+        return rv
     }
 
     fun fetchVersionsAround(
