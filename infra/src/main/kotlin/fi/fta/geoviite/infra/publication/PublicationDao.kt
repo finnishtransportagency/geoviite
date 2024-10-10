@@ -613,9 +613,12 @@ class PublicationDao(
               postgis.st_x(postgis.st_endpoint(sg_last.geometry)) as end_x,
               postgis.st_y(postgis.st_endpoint(sg_last.geometry)) as end_y
             from publication.track_number
-              left join layout.track_number_version tn on tn.id = track_number.track_number_id and tn.version = track_number_version
+              left join layout.track_number_version tn
+                on tn.id = track_number.track_number_id
+                  and tn.version = track_number_version
+                  and tn.design_id is null
               left join publication.publication p on p.id = publication_id
-              left join layout.reference_line_at(p.publication_time) rl on rl.track_number_id = tn.id and rl.draft = false
+              left join layout.reference_line_at(p.publication_time) rl on rl.track_number_id = tn.id and rl.draft = false and rl.design_id is null
               left join layout.alignment_version av on av.id = rl.alignment_id and av.version = rl.alignment_version
               left join layout.segment_version sv_last on av.id = sv_last.alignment_id and av.version = sv_last.alignment_version and sv_last.segment_index = av.segment_count - 1
               left join layout.segment_geometry sg_last on sv_last.geometry_id = sg_last.id
@@ -624,7 +627,7 @@ class PublicationDao(
                   and ((track_number.direct_change = true and old_tn.version = track_number_version - 1) 
                     or (track_number.direct_change = false and old_tn.version = track_number_version)) 
                   and old_tn.draft = false and old_tn.design_id is null
-              left join layout.reference_line_at(:comparison_time) old_rl on old_rl.id = rl.id and old_rl.draft = false
+              left join layout.reference_line_at(:comparison_time) old_rl on old_rl.id = rl.id and old_rl.draft = false and old_rl.design_id is null
               left join layout.alignment_version old_av on old_av.id = old_rl.alignment_id and old_av.version = old_rl.alignment_version
               left join layout.segment_version old_sv_first on old_av.id = old_sv_first.alignment_id and old_av.version = old_sv_first.alignment_version and old_sv_first.segment_index = 0
               left join layout.segment_geometry old_sg_first on old_sv_first.geometry_id = old_sg_first.id
@@ -683,13 +686,16 @@ class PublicationDao(
                 join lateral
                 (select 'new' as change_side, topology_start_switch_id, topology_end_switch_id, alignment_id, alignment_version
                    from layout.location_track_version ltv
-                   where plt.location_track_id = ltv.id and plt.location_track_version = ltv.version
+                   where plt.location_track_id = ltv.id
+                     and plt.location_track_version = ltv.version
+                     and ltv.design_id is null
                  union all
                  select 'old', topology_start_switch_id, topology_end_switch_id, alignment_id, alignment_version
                    from layout.location_track_version ltv
                    where plt.location_track_id = ltv.id
                      and plt.location_track_version = ltv.version + 1
-                     and not ltv.draft) ltvs on (true)
+                     and not ltv.draft
+                     and ltv.design_id is null) ltvs on (true)
                 join lateral
                 (select distinct switch_id
                    from (
@@ -810,7 +816,9 @@ class PublicationDao(
               from publication.location_track
                 join publication.publication on location_track.publication_id = publication.id
                 left join layout.location_track_version ltv
-                          on location_track.location_track_id = ltv.id and location_track.location_track_version = ltv.version
+                          on location_track.location_track_id = ltv.id
+                            and location_track.location_track_version = ltv.version
+                            and ltv.design_id is null
                 left join layout.alignment_version av
                           on ltv.alignment_id = av.id and ltv.alignment_version = av.version
                 left join layout.segment_version sv_first
@@ -1048,6 +1056,7 @@ class PublicationDao(
               left join layout.km_post_version km_post_version
                       on km_post.km_post_id = km_post_version.id 
                         and km_post.km_post_version = km_post_version.version
+                        and km_post_version.design_id is null
               left join layout.km_post_version old_km_post_version
                       on old_km_post_version.id = km_post_version.id 
                         and old_km_post_version.version = km_post_version.version - 1 
@@ -1105,6 +1114,7 @@ class PublicationDao(
                 left join layout.reference_line_version rlv
                           on publication_rl.reference_line_id = rlv.id
                             and publication_rl.reference_line_version = rlv.version
+                            and rlv.design_id is null
                 left join layout.alignment_version av on rlv.alignment_id = av.id and rlv.alignment_version = av.version
                 left join layout.segment_version sv_first
                           on av.id = sv_first.alignment_id
@@ -1228,7 +1238,9 @@ class PublicationDao(
               location_tracks.lt_location_track_old_versions
               from publication.switch
                 left join layout.switch_version switch_version
-                          on switch.switch_id = switch_version.id and switch.switch_version = switch_version.version
+                          on switch.switch_id = switch_version.id
+                            and switch.switch_version = switch_version.version
+                            and switch_version.design_id is null
                 left join common.switch_structure switch_structure
                           on switch_structure.id = switch_version.switch_structure_id
                 left join common.switch_owner
@@ -1605,7 +1617,7 @@ class PublicationDao(
               array_remove(array_agg(pltk.km_number), null) as changed_km
             from publication.location_track plt
               inner join layout.location_track_version ltv
-                on plt.location_track_id = ltv.id and plt.location_track_version = ltv.version
+                on plt.location_track_id = ltv.id and plt.location_track_version = ltv.version and ltv.design_id is null
               inner join layout.location_track_change_view ltc
                 on ltc.id = plt.location_track_id and ltc.version = plt.location_track_version
               left join publication.location_track_km pltk
@@ -1654,7 +1666,7 @@ class PublicationDao(
               array_remove(array_agg(ptnk.km_number), null) as changed_km
               from publication.reference_line prl
                 inner join layout.reference_line_version rl
-                          on rl.id = prl.reference_line_id and rl.version = prl.reference_line_version
+                          on rl.id = prl.reference_line_id and rl.version = prl.reference_line_version and rl.design_id is null
                 left join prev_pub on true
                 left join publication.publication p
                           on p.id = prl.publication_id
@@ -1697,7 +1709,7 @@ class PublicationDao(
               kmp.track_number_id
             from publication.km_post pkp
               inner join layout.km_post_version kmp 
-                on pkp.km_post_id = kmp.id and pkp.km_post_version = kmp.version
+                on pkp.km_post_id = kmp.id and pkp.km_post_version = kmp.version and kmp.design_id is null
               inner join layout.km_post_change_view kpc
                 on kpc.id = pkp.km_post_id and kpc.version = pkp.km_post_version
             where publication_id = :publication_id
@@ -1732,7 +1744,7 @@ class PublicationDao(
               array_remove(array_agg(distinct lt.track_number_id), null) as track_number_ids
             from publication.switch ps
               inner join layout.switch_version sv
-                on ps.switch_id = sv.id and ps.switch_version = sv.version
+                on ps.switch_id = sv.id and ps.switch_version = sv.version and sv.design_id is null
               inner join layout.switch_change_view sc
                 on sc.id = ps.switch_id and sc.version = ps.switch_version
               left join publication.switch_location_tracks slt 
