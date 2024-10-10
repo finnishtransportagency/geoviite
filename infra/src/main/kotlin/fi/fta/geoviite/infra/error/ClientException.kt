@@ -207,6 +207,14 @@ class DuplicateDesignNameException(name: String, cause: Throwable? = null) :
         localizedMessageParams = localizationParams("name" to name),
     )
 
+class InvalidUiVersionException(cause: Throwable? = null) :
+    ClientException(
+        status = BAD_REQUEST,
+        message = "Invalid request: version mismatch",
+        cause = cause,
+        localizedMessageKey = "error.bad-request.invalid-version",
+    )
+
 class ExtApiExceptionV1(
     message: String,
     cause: Throwable? = null,
