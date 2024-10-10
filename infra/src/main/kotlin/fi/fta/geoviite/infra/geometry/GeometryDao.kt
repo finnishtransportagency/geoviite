@@ -672,7 +672,7 @@ constructor(
         } ?: throw IllegalStateException("Failed to get generated ID for new alignment")
     }
 
-    fun preloadHeaderCache() {
+    fun preloadHeaderCache(): Int {
         val sql =
             """
           select 
@@ -721,6 +721,7 @@ constructor(
                 .associateBy(GeometryPlanHeader::version)
         logger.daoAccess(FETCH, GeometryPlanHeader::class, headers.keys)
         headerCache.putAll(headers)
+        return headers.size
     }
 
     fun getPlanHeader(planId: IntId<GeometryPlan>) = getPlanHeader(fetchPlanVersion(planId))

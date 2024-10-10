@@ -22,11 +22,11 @@ import fi.fta.geoviite.infra.util.getLayoutRowVersion
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
 import fi.fta.geoviite.infra.util.toDbId
-import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 
 const val KM_POST_CACHE_SIZE = 10000L
 
@@ -189,7 +189,7 @@ class LayoutKmPostDao(
         }
     }
 
-    override fun preloadCache() {
+    override fun preloadCache(): Int {
         val sql =
             """
             select 
@@ -212,12 +212,10 @@ class LayoutKmPostDao(
         """
                 .trimIndent()
 
-        val posts =
-            jdbcTemplate
-                .query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutKmPost(rs) }
-                .associateBy(TrackLayoutKmPost::version)
+        val posts = jdbcTemplate.query(sql) { rs, _ -> getLayoutKmPost(rs) }.associateBy(TrackLayoutKmPost::version)
         logger.daoAccess(AccessType.FETCH, TrackLayoutKmPost::class, posts.keys)
         cache.putAll(posts)
+        return posts.size
     }
 
     private fun getLayoutKmPost(rs: ResultSet): TrackLayoutKmPost =

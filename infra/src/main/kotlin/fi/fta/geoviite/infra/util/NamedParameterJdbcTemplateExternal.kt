@@ -5,6 +5,7 @@ import fi.fta.geoviite.infra.authorization.UserName
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import java.sql.ResultSet
 import org.springframework.jdbc.core.ParameterizedPreparedStatementSetter
+import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 
 inline fun <reified T> NamedParameterJdbcTemplate.queryNotNull(
@@ -48,3 +49,6 @@ fun <T> NamedParameterJdbcTemplate.batchUpdate(
     items: List<T>,
     paramSetter: ParameterizedPreparedStatementSetter<T>,
 ): Array<IntArray> = jdbcTemplate.batchUpdate(sql, items, items.size, paramSetter)
+
+fun <T> NamedParameterJdbcTemplate.query(sql: String, rowMapper: RowMapper<T>) =
+    query(sql, emptyMap<String, Any>(), rowMapper)

@@ -157,7 +157,7 @@ class LocationTrackDao(
         }
     }
 
-    override fun preloadCache() {
+    override fun preloadCache(): Int {
         val sql =
             """
             select 
@@ -199,12 +199,10 @@ class LocationTrackDao(
         """
                 .trimIndent()
 
-        val tracks =
-            jdbcTemplate
-                .query(sql, mapOf<String, Any>()) { rs, _ -> getLocationTrack(rs) }
-                .associateBy(LocationTrack::version)
+        val tracks = jdbcTemplate.query(sql) { rs, _ -> getLocationTrack(rs) }.associateBy(LocationTrack::version)
         logger.daoAccess(AccessType.FETCH, LocationTrack::class, tracks.keys)
         cache.putAll(tracks)
+        return tracks.size
     }
 
     private fun getLocationTrack(rs: ResultSet): LocationTrack =

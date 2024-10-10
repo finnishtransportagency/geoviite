@@ -116,7 +116,7 @@ abstract class LayoutAssetDao<T : LayoutAsset<T>>(
 
     protected abstract fun fetchInternal(version: LayoutRowVersion<T>): T
 
-    abstract fun preloadCache()
+    abstract fun preloadCache(): Int
 
     private val allCandidateVersionsSql =
         """

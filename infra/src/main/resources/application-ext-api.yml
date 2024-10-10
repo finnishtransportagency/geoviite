@@ -7,6 +7,8 @@ geoviite:
     tasks:
       preload:
         enabled: true
+        geocoding-contexts: true
+        plan-headers: false
 
   data:
     import: false
