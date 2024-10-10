@@ -78,7 +78,7 @@ class LayoutAlignmentDao(
             .also { alignment -> logger.daoAccess(AccessType.FETCH, LayoutAlignment::class, alignment.id) }
     }
 
-    fun preloadAlignmentCache() {
+    fun preloadAlignmentCache(): Int {
         val sql =
             """
           select 
@@ -104,7 +104,7 @@ class LayoutAlignmentDao(
         data class AlignmentData(val version: RowVersion<LayoutAlignment>)
 
         val dataTriple =
-            jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+            jdbcTemplate.query(sql) { rs, _ ->
                 val alignmentData = AlignmentData(version = rs.getRowVersion("alignment_id", "alignment_version"))
                 val segmentData =
                     SegmentData(
@@ -131,6 +131,7 @@ class LayoutAlignmentDao(
                 .collect(Collectors.toList())
                 .associate { it }
         alignmentsCache.putAll(alignments)
+        return alignments.size
     }
 
     @Transactional
@@ -739,7 +740,7 @@ class LayoutAlignmentDao(
         } else mapOf()
     }
 
-    fun preloadSegmentGeometries() {
+    fun preloadSegmentGeometries(): Int {
         val sql =
             """
           select 
@@ -763,7 +764,7 @@ class LayoutAlignmentDao(
                 .trimIndent()
 
         val rowResults =
-            jdbcTemplate.query(sql, mapOf<String, Any>()) { rs, _ ->
+            jdbcTemplate.query(sql) { rs, _ ->
                 GeometryRowResult(
                     id = rs.getIntId("id"),
                     wktString = rs.getString("geometry_wkt"),
@@ -773,6 +774,7 @@ class LayoutAlignmentDao(
                 )
             }
         segmentGeometryCache.putAll(parseGeometries(rowResults))
+        return rowResults.size
     }
 }
 

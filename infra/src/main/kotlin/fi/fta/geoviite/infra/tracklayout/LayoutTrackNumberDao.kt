@@ -97,7 +97,7 @@ class LayoutTrackNumberDao(
         }
     }
 
-    override fun preloadCache() {
+    override fun preloadCache(): Int {
         val sql =
             """
             -- Draft vs Official reference line might duplicate the row, but results will be the same. Just pick one.
@@ -119,11 +119,10 @@ class LayoutTrackNumberDao(
         """
                 .trimIndent()
         val trackNumbers =
-            jdbcTemplate
-                .query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutTrackNumber(rs) }
-                .associateBy(TrackLayoutTrackNumber::version)
+            jdbcTemplate.query(sql) { rs, _ -> getLayoutTrackNumber(rs) }.associateBy(TrackLayoutTrackNumber::version)
         logger.daoAccess(AccessType.FETCH, TrackLayoutTrackNumber::class, trackNumbers.keys)
         cache.putAll(trackNumbers)
+        return trackNumbers.size
     }
 
     private fun getLayoutTrackNumber(rs: ResultSet): TrackLayoutTrackNumber =

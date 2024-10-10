@@ -356,7 +356,7 @@ class LayoutSwitchDao(
         }
     }
 
-    override fun preloadCache() {
+    override fun preloadCache(): Int {
         val sql =
             """
             select 
@@ -385,12 +385,10 @@ class LayoutSwitchDao(
         """
                 .trimIndent()
 
-        val switches =
-            jdbcTemplate
-                .query(sql, mapOf<String, Any>()) { rs, _ -> getLayoutSwitch(rs) }
-                .associateBy(TrackLayoutSwitch::version)
+        val switches = jdbcTemplate.query(sql) { rs, _ -> getLayoutSwitch(rs) }.associateBy(TrackLayoutSwitch::version)
         logger.daoAccess(FETCH, TrackLayoutSwitch::class, switches.keys)
         cache.putAll(switches)
+        return switches.size
     }
 
     private fun getLayoutSwitch(rs: ResultSet): TrackLayoutSwitch {

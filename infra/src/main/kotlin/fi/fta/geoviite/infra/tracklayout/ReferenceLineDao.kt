@@ -15,11 +15,11 @@ import fi.fta.geoviite.infra.util.getRowVersion
 import fi.fta.geoviite.infra.util.getTrackMeter
 import fi.fta.geoviite.infra.util.queryOptional
 import fi.fta.geoviite.infra.util.setUser
-import java.sql.ResultSet
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 
 const val REFERENCE_LINE_CACHE_SIZE = 1000L
 
@@ -66,7 +66,7 @@ class ReferenceLineDao(
         }
     }
 
-    override fun preloadCache() {
+    override fun preloadCache(): Int {
         val sql =
             """
             select
@@ -89,11 +89,10 @@ class ReferenceLineDao(
                 .trimIndent()
 
         val referenceLines =
-            jdbcTemplate
-                .query(sql, mapOf<String, Any>()) { rs, _ -> getReferenceLine(rs) }
-                .associateBy(ReferenceLine::version)
+            jdbcTemplate.query(sql) { rs, _ -> getReferenceLine(rs) }.associateBy(ReferenceLine::version)
         logger.daoAccess(AccessType.FETCH, ReferenceLine::class, referenceLines.keys)
         cache.putAll(referenceLines)
+        return referenceLines.size
     }
 
     private fun getReferenceLine(rs: ResultSet): ReferenceLine =
