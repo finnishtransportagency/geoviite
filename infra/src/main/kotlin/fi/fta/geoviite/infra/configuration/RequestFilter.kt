@@ -151,12 +151,11 @@ constructor(
     }
 
     fun checkUiRequestVersion(request: HttpServletRequest) {
-        val hasEmptyVersionHeader = request.getHeader(HTTP_HEADER_GEOVIITE_UI_VERSION).isNullOrEmpty()
-        val requestVersionMatches = request.getHeader(HTTP_HEADER_GEOVIITE_UI_VERSION) == environmentInfo.releaseVersion
-
-        if (!hasEmptyVersionHeader && !requestVersionMatches) {
-            throw InvalidUiVersionException()
-        }
+        request
+            .getHeader(HTTP_HEADER_GEOVIITE_UI_VERSION)
+            ?.takeIf(String::isNotEmpty)
+            ?.takeIf { requestVersion -> requestVersion != environmentInfo.releaseVersion }
+            ?.run { throw InvalidUiVersionException() }
     }
 
     override fun doFilterInternal(request: HttpServletRequest, response: HttpServletResponse, chain: FilterChain) {
