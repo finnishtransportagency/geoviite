@@ -23,17 +23,9 @@ const INVALID_VERSION = 'error.bad-request.invalid-version';
 
 const GEOVIITE_UI_VERSION_HEADER_KEY = 'x-geoviite-ui-version';
 
-let geoviiteUiVersion = '';
-const unsubscribeFromStateUpdates = appStore.subscribe(() => {
-    geoviiteUiVersion = appStore.getState().common.version ?? '';
-
-    // Only the version state update after the backend environment info has been fetched for the first time
-    // during loading is meaningful. After the version has been fetched, the ui bundle and environment info won't
-    // be updated without a page refresh.
-    if (geoviiteUiVersion.length > 0) {
-        unsubscribeFromStateUpdates();
-    }
-});
+const geoviiteUiVersion = (): string => {
+    return appStore.getState().common.version ?? '';
+};
 
 const JSON_HEADERS: HeadersInit = {
     'Accept': 'application/json',
@@ -41,9 +33,9 @@ const JSON_HEADERS: HeadersInit = {
 };
 
 const createJsonHeaders = () => {
-    const headers = {
+    const headers: HeadersInit = {
         ...JSON_HEADERS,
-        [GEOVIITE_UI_VERSION_HEADER_KEY]: geoviiteUiVersion,
+        [GEOVIITE_UI_VERSION_HEADER_KEY]: geoviiteUiVersion(),
     };
 
     const csrfToken = getCsrfCookie();
@@ -380,7 +372,7 @@ async function getFormResponse(
         credentials: 'same-origin',
         headers: {
             'X-XSRF-TOKEN': getCsrfCookie() || '',
-            [GEOVIITE_UI_VERSION_HEADER_KEY]: geoviiteUiVersion,
+            [GEOVIITE_UI_VERSION_HEADER_KEY]: geoviiteUiVersion(),
         },
         body: data,
     });
