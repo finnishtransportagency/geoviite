@@ -1798,8 +1798,7 @@
             "location-in-layout": "Sijainti paikannuspohjassa (TM35FIN)",
             "out-of-bounds": "Sijainti ei ole laskettavissa",
             "location-converted": "Sijainti muunnettu koordinaatistosta {{originalCrs}}",
-            "original-crs": "Alkuperäinen koordinaatisto {{originalCrs}}",
-            "original-location": "Sijainti alkuperäisessä koordinaatistossa {{originalE}} E {{originalN}} N"
+            "original-crs": "Alkuperäinen koordinaatisto {{originalCrs}}"
         }
     },
     "km-post-delete-dialog": {
