@@ -72,15 +72,14 @@ function validateTrackNumberEdit(
     state: TrackNumberEditState,
 ): FieldValidationIssue<TrackNumberSaveRequest>[] {
     const mandatoryFieldErrors = ['number', 'description', 'state', 'startAddress'].map(
-        (prop: keyof TrackNumberSaveRequest) => {
-            if (isNilOrBlank(state.request[prop])) {
-                return {
-                    field: prop,
-                    reason: `mandatory-field-${prop}`,
-                    type: FieldValidationIssueType.ERROR,
-                };
-            }
-        },
+        (prop: keyof TrackNumberSaveRequest) =>
+            isNilOrBlank(state.request[prop])
+                ? {
+                      field: prop,
+                      reason: `mandatory-field-${prop}`,
+                      type: FieldValidationIssueType.ERROR,
+                  }
+                : undefined,
     );
     const regexErrors = REGEX_VALIDATIONS.map((validation) => {
         const value = state.request[validation.field];

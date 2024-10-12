@@ -108,15 +108,15 @@ export const CalculatedChangesView: React.FC<CalculatedChangesProps> = ({
                 const calculatedChanges = Object.entries(groupedChanges)
                     .map(([key, changes]) => {
                         const trackNumber = trackNumbers.find((tn) => tn.id == key);
-                        if (trackNumber) {
-                            return {
-                                trackNumber: trackNumber,
-                                locationTracks: changes
-                                    .map((c) => c.locationTrack)
-                                    .filter(filterNotEmpty),
-                                switches: changes.map((c) => c.switch).filter(filterNotEmpty),
-                            };
-                        }
+                        return trackNumber
+                            ? {
+                                  trackNumber: trackNumber,
+                                  locationTracks: changes
+                                      .map((c) => c.locationTrack)
+                                      .filter(filterNotEmpty),
+                                  switches: changes.map((c) => c.switch).filter(filterNotEmpty),
+                              }
+                            : undefined;
                     })
                     .filter(filterNotEmpty);
 

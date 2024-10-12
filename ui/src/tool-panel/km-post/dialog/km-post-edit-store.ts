@@ -84,18 +84,15 @@ function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmP
                         | 'gkLocationX'
                         | 'gkLocationY'
                         | 'gkSrid',
-                ) => {
-                    if (
-                        ((isGkProp(prop) && state.gkLocationEnabled) || !isGkProp(prop)) &&
-                        isNilOrBlank(state.kmPost[prop])
-                    ) {
-                        return {
-                            field: prop,
-                            reason: 'mandatory-field',
-                            type: FieldValidationIssueType.ERROR,
-                        };
-                    }
-                },
+                ) =>
+                    ((isGkProp(prop) && state.gkLocationEnabled) || !isGkProp(prop)) &&
+                    isNilOrBlank(state.kmPost[prop])
+                        ? {
+                              field: prop,
+                              reason: 'mandatory-field',
+                              type: FieldValidationIssueType.ERROR,
+                          }
+                        : undefined,
             )
             .filter(filterNotEmpty),
     ];

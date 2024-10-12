@@ -81,15 +81,15 @@ function validateLinkingLocationTrack(
             'topologicalConnectivity',
             'ownerId',
         ]
-            .map((prop: keyof LocationTrackSaveRequest) => {
-                if (isNilOrBlank(saveRequest[prop])) {
-                    return {
-                        field: prop,
-                        reason: 'mandatory-field',
-                        type: FieldValidationIssueType.ERROR,
-                    };
-                }
-            })
+            .map((prop: keyof LocationTrackSaveRequest) =>
+                isNilOrBlank(saveRequest[prop])
+                    ? {
+                          field: prop,
+                          reason: 'mandatory-field',
+                          type: FieldValidationIssueType.ERROR,
+                      }
+                    : undefined,
+            )
             .filter(filterNotEmpty),
         ...validateLocationTrackName(saveRequest.name),
     ];

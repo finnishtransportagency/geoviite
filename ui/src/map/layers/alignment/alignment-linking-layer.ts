@@ -283,6 +283,7 @@ function getClusterPointStyle(
     else if (!layoutPointFound && !geometryPointFound) return clusterPointStyle;
     else if (layoutPointFound) return clusterPointLayoutSelectedStyle;
     else if (geometryPointFound) return clusterPointGeometrySelectedStyle;
+    else return undefined;
 }
 
 function createClusterPointFeatures(
@@ -571,14 +572,15 @@ function overlappingPoint(
         layoutPoint.y,
     );
     const buffer = 0.01;
-    if (distance <= buffer)
-        return {
-            id: geometryPoint.id + layoutPoint.id,
-            x: geometryPoint.x,
-            y: geometryPoint.y,
-            layoutPoint: layoutPoint,
-            geometryPoint: geometryPoint,
-        };
+    return distance <= buffer
+        ? {
+              id: geometryPoint.id + layoutPoint.id,
+              x: geometryPoint.x,
+              y: geometryPoint.y,
+              layoutPoint: layoutPoint,
+              geometryPoint: geometryPoint,
+          }
+        : undefined;
 }
 
 function createConnectingLineFeature(start: LinkPoint, end: LinkPoint): Feature<LineString> {

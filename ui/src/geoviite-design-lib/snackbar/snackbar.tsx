@@ -116,10 +116,12 @@ export function info(header: string, body?: string, opts?: SnackbarOptions): Id 
     );
 }
 
-function showInfoToast(toastContent: React.ReactNode, opts: SnackbarToastOptions) {
+function showInfoToast(toastContent: React.ReactNode, opts: SnackbarToastOptions): Id | undefined {
     const { id: toastId, replace, ...options } = opts;
 
-    if (!blockToasts) {
+    if (blockToasts) {
+        return undefined;
+    } else {
         const exists = toast.isActive(toastId);
 
         const toastOptions: ToastOptions = {
@@ -137,6 +139,8 @@ function showInfoToast(toastContent: React.ReactNode, opts: SnackbarToastOptions
             return toastId;
         } else if (!exists) {
             return toast.warn(toastContent, toastOptions);
+        } else {
+            return undefined;
         }
     }
 }
@@ -158,7 +162,9 @@ export function success(header: string, body?: string, opts?: SnackbarOptions): 
 function showSuccessToast(toastContent: React.ReactNode, opts: SnackbarToastOptions) {
     const { id: toastId, replace, ...options } = opts;
 
-    if (!blockToasts) {
+    if (blockToasts) {
+        return undefined;
+    } else {
         const exists = toast.isActive(toastId);
 
         const toastOptions: ToastOptions = {
@@ -177,6 +183,8 @@ function showSuccessToast(toastContent: React.ReactNode, opts: SnackbarToastOpti
             return toastId;
         } else if (!exists) {
             return toast.success(toastContent, toastOptions);
+        } else {
+            return undefined;
         }
     }
 }
@@ -195,7 +203,9 @@ export function error(header: string, body?: string, opts?: SnackbarOptions): Id
 function showErrorToast(toastContent: React.ReactNode, opts: SnackbarToastOptions) {
     const { id: toastId, replace, ...options } = opts;
 
-    if (!blockToasts) {
+    if (blockToasts) {
+        return undefined;
+    } else {
         const exists = toast.isActive(toastId);
 
         const toastOptions: ToastOptions = {
@@ -216,6 +226,8 @@ function showErrorToast(toastContent: React.ReactNode, opts: SnackbarToastOption
             return toastId;
         } else if (!exists) {
             return toast.error(toastContent, toastOptions);
+        } else {
+            return undefined;
         }
     }
 }

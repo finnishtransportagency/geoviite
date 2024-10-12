@@ -65,7 +65,7 @@ const bulkTransferStateIcon = (bulkTransferState: BulkTransferState | undefined)
         case 'IN_PROGRESS':
             return <Spinner size={SpinnerSize.SMALL} />;
         default:
-            exhaustiveMatchingGuard(bulkTransferState);
+            return exhaustiveMatchingGuard(bulkTransferState);
     }
 };
 

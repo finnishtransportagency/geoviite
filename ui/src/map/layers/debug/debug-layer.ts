@@ -61,6 +61,8 @@ function createDebugFeatures(points: DebugLayerPoint[]): Feature<OlPoint>[] {
                 );
 
                 return feature;
+            } else {
+                return undefined;
             }
         })
         .filter(filterNotEmpty);
