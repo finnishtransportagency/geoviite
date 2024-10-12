@@ -33,7 +33,7 @@ export const initialKmPostEditState: KmPostEditState = {
     isNewKmPost: false,
     existingKmPost: undefined,
     geometryKmPostLocation: undefined,
-    gkLocationEnabled: true,
+    gkLocationEnabled: false,
     kmPost: {
         kmNumber: '',
         gkLocationX: '',
@@ -206,6 +206,7 @@ const kmPostEditSlice = createSlice({
                     ? { gkLocationX: '', gkLocationY: '', gkSrid: undefined }
                     : saveGkPointToEditingGkPoint(existingKmPost.gkLocation)),
             };
+            state.gkLocationEnabled = existingKmPost.gkLocation !== undefined;
             state.validationIssues = validateLinkingKmPost(state);
         },
         onUpdateProp: function <TKey extends keyof KmPostEditFields>(
