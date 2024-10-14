@@ -463,6 +463,7 @@ export function createLinkPoints(
                     interpolateSegmentEndLinkPoint(type, id, previousPoint, point, endM),
                 );
             }
+            return undefined;
         });
 
         // Create the linkpoint from layout point

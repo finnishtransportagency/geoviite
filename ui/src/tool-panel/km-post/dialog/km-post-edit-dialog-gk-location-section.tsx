@@ -62,7 +62,7 @@ function gkLocationSourceI18nKey(source: GkLocationSource) {
             case 'MANUAL':
                 return 'manual';
             default:
-                exhaustiveMatchingGuard(source);
+                return exhaustiveMatchingGuard(source);
         }
     })();
     return `km-post-dialog.gk-location.source-${end}`;

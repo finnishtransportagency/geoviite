@@ -88,18 +88,16 @@ function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmP
         reason: string;
         type: FieldValidationIssueType;
     }[] = [
-        ...MANDATORY_FIELDS.map((prop) => {
-            if (
-                ((isGkProp(prop) && state.gkLocationEnabled) || !isGkProp(prop)) &&
-                isNilOrBlank(state.kmPost[prop])
-            ) {
-                return {
-                    field: prop,
-                    reason: 'mandatory-field',
-                    type: FieldValidationIssueType.ERROR,
-                };
-            }
-        }).filter(filterNotEmpty),
+        ...MANDATORY_FIELDS.map((prop) =>
+            ((isGkProp(prop) && state.gkLocationEnabled) || !isGkProp(prop)) &&
+            isNilOrBlank(state.kmPost[prop])
+                ? {
+                      field: prop,
+                      reason: 'mandatory-field',
+                      type: FieldValidationIssueType.ERROR,
+                  }
+                : undefined,
+        ).filter(filterNotEmpty),
     ];
 
     if (state.kmPost.kmNumber.length > 0) {

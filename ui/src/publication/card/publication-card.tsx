@@ -49,7 +49,7 @@ const parseRatkoConnectionError = (errorType: string, ratkoStatusCode: number, c
     );
 };
 
-const parseRatkoOfflineStatus = (ratkoStatus: { statusCode: number }) => {
+const parseRatkoOfflineStatus = (ratkoStatus: { statusCode: number }): JSX.Element => {
     if (ratkoStatus.statusCode >= 500) {
         return ratkoStatus.statusCode === 503
             ? parseRatkoConnectionError(
@@ -74,6 +74,8 @@ const parseRatkoOfflineStatus = (ratkoStatus: { statusCode: number }) => {
             ratkoStatus.statusCode,
             'contact-geoviite-support',
         );
+    } else {
+        return <React.Fragment />;
     }
 };
 

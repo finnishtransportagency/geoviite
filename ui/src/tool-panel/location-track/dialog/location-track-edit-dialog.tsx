@@ -324,7 +324,7 @@ export const LocationTrackEditDialog: React.FC<LocationTrackDialogProps> = (
             case 'SWITCH_TO_OWNERSHIP_BOUNDARY':
                 return switchToOwnershipBoundaryDescriptionSuffix();
             default:
-                exhaustiveMatchingGuard(mode);
+                return exhaustiveMatchingGuard(mode);
         }
     };
 
