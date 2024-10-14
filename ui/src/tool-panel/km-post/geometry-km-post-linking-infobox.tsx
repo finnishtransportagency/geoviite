@@ -276,7 +276,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                     onSave={handleKmPostSave}
                     prefilledTrackNumberId={geometryKmPost.trackNumberId}
                     geometryKmPostGkLocation={geometryKmPost.gkLocation}
-                    role={'LINKING'}
+                    editType={'LINKING'}
                     geometryPlanSrid={geometryPlan?.units?.coordinateSystemSrid}
                 />
             )}

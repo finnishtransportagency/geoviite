@@ -41,7 +41,7 @@ import { useTrackLayoutAppSelector } from 'store/hooks';
 import { KmPostEditDialogGkLocationSection } from 'tool-panel/km-post/dialog/km-post-edit-dialog-gk-location-section';
 import { GeometryPoint } from 'model/geometry';
 
-export type KmPostEditDialogRole = 'MODIFY' | 'CREATE' | 'LINKING';
+export type KmPostEditDialogType = 'MODIFY' | 'CREATE' | 'LINKING';
 
 type KmPostEditDialogContainerProps = {
     kmPostId?: LayoutKmPostId;
@@ -49,7 +49,7 @@ type KmPostEditDialogContainerProps = {
     onSave?: (kmPostId: LayoutKmPostId) => void;
     prefilledTrackNumberId?: LayoutTrackNumberId;
     geometryKmPostGkLocation?: GeometryPoint;
-    role: KmPostEditDialogRole;
+    editType: KmPostEditDialogType;
     geometryPlanSrid?: Srid;
 };
 
@@ -62,7 +62,7 @@ type KmPostEditDialogProps = {
     onEditKmPost: (id?: LayoutKmPostId) => void;
     geometryKmPostGkLocation?: GeometryPoint;
     geometryKmPostLocation?: GeometryPoint;
-    role: KmPostEditDialogRole;
+    editType: KmPostEditDialogType;
     geometryPlanSrid?: Srid;
 };
 
@@ -82,7 +82,7 @@ export const KmPostEditDialogContainer: React.FC<KmPostEditDialogContainerProps>
             onEditKmPost={setEditKmPostId}
             prefilledTrackNumberId={props.prefilledTrackNumberId}
             geometryKmPostGkLocation={props.geometryKmPostGkLocation}
-            role={props.role}
+            editType={props.editType}
             geometryPlanSrid={props.geometryPlanSrid}
         />
     );
@@ -356,7 +356,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             stateActions={stateActions}
                             updateProp={updateProp}
                             geometryKmPostGkLocation={props.geometryKmPostGkLocation}
-                            role={props.role}
+                            editType={props.editType}
                             geometryPlanSrid={props.geometryPlanSrid}
                         />
                     </FormLayoutColumn>

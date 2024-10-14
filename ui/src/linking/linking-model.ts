@@ -167,20 +167,23 @@ export type KmPostSimpleFields = {
     kmNumber: KmNumber;
     state?: LayoutState;
     trackNumberId?: LayoutTrackNumberId;
+};
+
+export type KmPostGkFields = {
+    gkSrid: Srid | undefined;
+    gkLocationX: string;
+    gkLocationY: string;
     gkLocationConfirmed?: boolean;
 };
 
 export type KmPostSaveRequest = KmPostSimpleFields & {
     gkLocation: GeometryPoint | undefined;
     gkLocationSource: GkLocationSource | undefined;
+    gkLocationConfirmed: boolean | undefined;
     sourceId: GeometryKmPostId | undefined;
 };
 
-export type KmPostEditFields = KmPostSimpleFields & {
-    gkSrid: Srid | undefined;
-    gkLocationX: string;
-    gkLocationY: string;
-};
+export type KmPostEditFields = KmPostSimpleFields & KmPostGkFields;
 
 export enum LinkingType {
     LinkingGeometryWithAlignment,
