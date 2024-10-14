@@ -67,7 +67,6 @@ import java.time.Instant
 import kotlin.reflect.KClass
 import kotlin.test.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate
 import org.springframework.transaction.support.TransactionTemplate
 
@@ -341,7 +340,7 @@ class TestDBService(
         mutate: (S) -> S = { it },
     ): LayoutDaoResponse<S> {
         val original = fetch(officialVersion)
-        assertTrue(original.isOfficial)
+        check(original.isOfficial) { "$original should be official" }
         val targetContext = testContext(targetBranch ?: original.branch, DRAFT)
         return targetContext.copyFrom(
             officialVersion,
