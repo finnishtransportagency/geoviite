@@ -619,7 +619,7 @@ export const ToolBar: React.FC<ToolbarParams> = ({
                 <KmPostEditDialogContainer
                     onClose={() => setShowAddKmPostDialog(false)}
                     onSave={handleKmPostSave}
-                    role={'CREATE'}
+                    editType={'CREATE'}
                 />
             )}
 
