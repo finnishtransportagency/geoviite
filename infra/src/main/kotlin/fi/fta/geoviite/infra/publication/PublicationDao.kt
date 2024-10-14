@@ -646,7 +646,7 @@ class PublicationDao(
                     TrackNumberChanges(
                         id,
                         trackNumber = rs.getChange("track_number", rs::getTrackNumberOrNull),
-                        description = rs.getChange("description", rs::getFreeTextOrNull),
+                        description = rs.getChange("description") { rs.getString(it)?.let(::TrackNumberDescription) },
                         state = rs.getChange("state") { rs.getEnumOrNull<LayoutState>(it) },
                         startAddress = rs.getChange("start_address", rs::getTrackMeterOrNull),
                         endPoint = rs.getChangePoint("end_x", "end_y"),
@@ -859,7 +859,8 @@ class PublicationDao(
                         id,
                         trackNumberId = rs.getChange("track_number_id", rs::getIntIdOrNull),
                         name = rs.getChange("name") { rs.getString(it)?.let(::AlignmentName) },
-                        descriptionBase = rs.getChange("description_base") { rs.getString(it)?.let(::FreeText) },
+                        descriptionBase =
+                            rs.getChange("description_base") { rs.getString(it)?.let(::LocationTrackDescriptionBase) },
                         descriptionSuffix =
                             rs.getChange("description_suffix") { rs.getEnumOrNull<DescriptionSuffixType>(it) },
                         endPoint = rs.getChangePoint("end_x", "end_y"),

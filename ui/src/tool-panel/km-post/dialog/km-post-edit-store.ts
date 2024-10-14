@@ -1,5 +1,10 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { KmPostEditFields, KmPostSaveRequest, KmPostSimpleFields } from 'linking/linking-model';
+import {
+    KmPostEditFields,
+    KmPostGkFields,
+    KmPostSaveRequest,
+    KmPostSimpleFields,
+} from 'linking/linking-model';
 import {
     GkLocationSource,
     LayoutKmPost,
@@ -68,36 +73,33 @@ const isGkProp = (prop: keyof KmPostEditFields): boolean =>
     prop === 'gkSrid' ||
     prop === 'gkLocationConfirmed';
 
+const MANDATORY_FIELDS = [
+    'kmNumber',
+    'state',
+    'trackNumberId',
+    'gkLocationX',
+    'gkLocationY',
+    'gkSrid',
+] as const;
+
 function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmPostEditFields>[] {
     let errors: {
         field: keyof KmPostEditFields;
         reason: string;
         type: FieldValidationIssueType;
     }[] = [
-        ...['kmNumber', 'state', 'trackNumberId', 'gkLocationX', 'gkLocationY', 'gkSrid']
-            .map(
-                (
-                    prop:
-                        | 'kmNumber'
-                        | 'state'
-                        | 'trackNumberId'
-                        | 'gkLocationX'
-                        | 'gkLocationY'
-                        | 'gkSrid',
-                ) => {
-                    if (
-                        ((isGkProp(prop) && state.gkLocationEnabled) || !isGkProp(prop)) &&
-                        isNilOrBlank(state.kmPost[prop])
-                    ) {
-                        return {
-                            field: prop,
-                            reason: 'mandatory-field',
-                            type: FieldValidationIssueType.ERROR,
-                        };
-                    }
-                },
-            )
-            .filter(filterNotEmpty),
+        ...MANDATORY_FIELDS.map((prop) => {
+            if (
+                ((isGkProp(prop) && state.gkLocationEnabled) || !isGkProp(prop)) &&
+                isNilOrBlank(state.kmPost[prop])
+            ) {
+                return {
+                    field: prop,
+                    reason: 'mandatory-field',
+                    type: FieldValidationIssueType.ERROR,
+                };
+            }
+        }).filter(filterNotEmpty),
     ];
 
     if (state.kmPost.kmNumber.length > 0) {
@@ -335,10 +337,7 @@ export function saveGkPointToEditingGkPoint(point: GeometryPoint): {
     return { gkLocationX: point.x.toString(), gkLocationY: point.y.toString(), gkSrid: point.srid };
 }
 
-export function kmPostGkPointDiffersFromOriginal(
-    editing: Pick<KmPostEditFields, 'gkLocationX' | 'gkLocationY' | 'gkSrid'>,
-    original: GeometryPoint,
-) {
+export function kmPostGkPointDiffersFromOriginal(editing: KmPostGkFields, original: GeometryPoint) {
     const originalAsEditing = saveGkPointToEditingGkPoint(original);
     return (
         originalAsEditing.gkLocationX !== editing.gkLocationX ||

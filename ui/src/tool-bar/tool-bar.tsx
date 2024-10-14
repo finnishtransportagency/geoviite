@@ -162,12 +162,16 @@ type SearchItemValue =
     | TrackNumberItemValue
     | OperatingPointItemValue;
 
+// The characters that alignment descriptions can contain is a superset of the characters that can be used in search,
+// and it's considered quite likely to stay that way even if allowed character sets for names etc. are changed.
+const SEARCH_REGEX = ALIGNMENT_DESCRIPTION_REGEX;
+
 async function getOptions(
     layoutContext: LayoutContext,
     searchTerm: string,
     locationTrackSearchScope: LocationTrackId | undefined,
 ): Promise<Item<SearchItemValue>[]> {
-    if (isNilOrBlank(searchTerm) || !searchTerm.match(ALIGNMENT_DESCRIPTION_REGEX)) {
+    if (isNilOrBlank(searchTerm) || !searchTerm.match(SEARCH_REGEX)) {
         return Promise.resolve([]);
     }
 
