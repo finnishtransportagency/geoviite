@@ -1680,6 +1680,7 @@ constructor(
                         gkLocation = null,
                         gkLocationSource = null,
                         gkLocationConfirmed = false,
+                        sourceId = null,
                     ),
                 ),
             )
@@ -1701,6 +1702,7 @@ constructor(
                         gkLocation = null,
                         gkLocationSource = null,
                         gkLocationConfirmed = false,
+                        sourceId = null,
                     ),
                 ),
             )
@@ -1770,6 +1772,7 @@ constructor(
                 gkLocation = null,
                 gkLocationSource = null,
                 gkLocationConfirmed = false,
+                sourceId = null,
             )
 
         val kmPost =

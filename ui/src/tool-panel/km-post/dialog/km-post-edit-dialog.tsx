@@ -36,7 +36,7 @@ import {
     getSaveDisabledReasons,
     useTrackNumbersIncludingDeleted,
 } from 'track-layout/track-layout-react-utils';
-import { draftLayoutContext, LayoutContext } from 'common/common-model';
+import { draftLayoutContext, LayoutContext, Srid } from 'common/common-model';
 import { useTrackLayoutAppSelector } from 'store/hooks';
 import { KmPostEditDialogGkLocationSection } from 'tool-panel/km-post/dialog/km-post-edit-dialog-gk-location-section';
 import { GeometryPoint } from 'model/geometry';
@@ -50,6 +50,7 @@ type KmPostEditDialogContainerProps = {
     prefilledTrackNumberId?: LayoutTrackNumberId;
     geometryKmPostGkLocation?: GeometryPoint;
     role: KmPostEditDialogRole;
+    geometryPlanSrid?: Srid;
 };
 
 type KmPostEditDialogProps = {
@@ -62,6 +63,7 @@ type KmPostEditDialogProps = {
     geometryKmPostGkLocation?: GeometryPoint;
     geometryKmPostLocation?: GeometryPoint;
     role: KmPostEditDialogRole;
+    geometryPlanSrid?: Srid;
 };
 
 export const KmPostEditDialogContainer: React.FC<KmPostEditDialogContainerProps> = (
@@ -81,6 +83,7 @@ export const KmPostEditDialogContainer: React.FC<KmPostEditDialogContainerProps>
             prefilledTrackNumberId={props.prefilledTrackNumberId}
             geometryKmPostGkLocation={props.geometryKmPostGkLocation}
             role={props.role}
+            geometryPlanSrid={props.geometryPlanSrid}
         />
     );
 };
@@ -354,6 +357,7 @@ export const KmPostEditDialog: React.FC<KmPostEditDialogProps> = (props: KmPostE
                             updateProp={updateProp}
                             geometryKmPostGkLocation={props.geometryKmPostGkLocation}
                             role={props.role}
+                            geometryPlanSrid={props.geometryPlanSrid}
                         />
                     </FormLayoutColumn>
                 </FormLayout>

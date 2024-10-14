@@ -15,7 +15,6 @@ import { KmPostEditFields } from 'linking/linking-model';
 import { useCoordinateSystem, useCoordinateSystems } from 'track-layout/track-layout-react-utils';
 import { GkLocationSource, LAYOUT_SRID } from 'track-layout/track-layout-model';
 import { exhaustiveMatchingGuard } from 'utils/type-utils';
-import proj4 from 'proj4';
 import { Dropdown } from 'vayla-design-lib/dropdown/dropdown';
 import { GeometryPoint, Point } from 'model/geometry';
 import styles from 'tool-panel/km-post/dialog/km-post-edit-dialog.scss';
@@ -23,16 +22,21 @@ import { Srid } from 'common/common-model';
 import { parseFloatOrUndefined } from 'utils/string-utils';
 import { KmPostEditDialogRole } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { Switch } from 'vayla-design-lib/switch/switch';
+import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
+import { createClassName } from 'vayla-design-lib/utils';
+import proj4 from 'proj4';
 
 // GK-FIN coordinate systems currently only used for the live display of layout coordinates when editing km post
 // positions manually
-const GK_FIN_COORDINATE_SYSTEMS: [Srid, string][] = [...Array(12)].map((_, meridianIndex) => {
-    const meridian = 19 + meridianIndex;
-    const falseNorthing = meridian * 1e6 + 0.5e6;
-    const srid = `EPSG:${3873 + meridianIndex}`;
-    const projection = `+proj=tmerc +lat_0=0 +lon_0=${meridian} +k=1 +x_0=${falseNorthing} +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs`;
-    return [srid, projection];
-});
+export const GK_FIN_COORDINATE_SYSTEMS: [Srid, string][] = [...Array(12)].map(
+    (_, meridianIndex) => {
+        const meridian = 19 + meridianIndex;
+        const falseNorthing = meridian * 1e6 + 0.5e6;
+        const srid = `EPSG:${3873 + meridianIndex}`;
+        const projection = `+proj=tmerc +lat_0=0 +lon_0=${meridian} +k=1 +x_0=${falseNorthing} +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs`;
+        return [srid, projection];
+    },
+);
 
 type KmPostEditDialogGkLocationSectionProps = {
     state: KmPostEditState;
@@ -45,6 +49,7 @@ type KmPostEditDialogGkLocationSectionProps = {
     getVisibleErrorsByProp: (prop: keyof KmPostEditFields) => string[];
     geometryKmPostGkLocation?: GeometryPoint;
     role: KmPostEditDialogRole;
+    geometryPlanSrid?: Srid;
 };
 
 function gkLocationSourceI18nKey(source: GkLocationSource) {
@@ -109,6 +114,46 @@ const gkLocationSourceTranslationKey = (
     }
 };
 
+const TransformedFromNonGkWarning: React.FC<{ originalSrid: Srid }> = ({ originalSrid }) => {
+    const { t } = useTranslation();
+
+    const originalCoordinateSystem = useCoordinateSystem(originalSrid);
+
+    const className = createClassName(
+        styles['km-post-edit-dialog__crs-transform-notice'],
+        styles['km-post-edit-dialog__crs-transform-notice--warning'],
+    );
+
+    return (
+        <span className={className}>
+            {t('km-post-dialog.gk-location.location-converted', {
+                originalCrs: originalCoordinateSystem
+                    ? formatWithSrid(originalCoordinateSystem)
+                    : '',
+            })}
+            <Icons.StatusError size={IconSize.SMALL} color={IconColor.INHERIT} />
+        </span>
+    );
+};
+
+const TransformedGkWarning: React.FC<{ originalSrid: Srid }> = ({ originalSrid }) => {
+    const { t } = useTranslation();
+
+    const originalCoordinateSystem = useCoordinateSystem(originalSrid);
+
+    return (
+        <span className={styles['km-post-edit-dialog__crs-transform-notice']}>
+            {t('km-post-dialog.gk-location.location-converted', {
+                originalCrs: originalCoordinateSystem
+                    ? formatWithSrid(originalCoordinateSystem)
+                    : '',
+            })}
+
+            <Icons.Info size={IconSize.SMALL} color={IconColor.INHERIT} />
+        </span>
+    );
+};
+
 export const KmPostEditDialogGkLocationSection: React.FC<
     KmPostEditDialogGkLocationSectionProps
 > = ({
@@ -119,20 +164,26 @@ export const KmPostEditDialogGkLocationSection: React.FC<
     getVisibleErrorsByProp,
     geometryKmPostGkLocation,
     role,
+    geometryPlanSrid,
 }) => {
     const { t } = useTranslation();
+    const isLinking = role === 'LINKING';
 
     const kmPost = state.kmPost;
-    const gkLocation =
-        role === 'LINKING'
-            ? geometryKmPostGkLocation
-            : parseGk(kmPost.gkSrid, kmPost.gkLocationX, kmPost.gkLocationY);
+    const gkLocation = parseGk(kmPost.gkSrid, kmPost.gkLocationX, kmPost.gkLocationY);
     const layoutLocation = gkLocation ? transformGkToLayout(gkLocation) : undefined;
     const gkLocationEnabled = state.gkLocationEnabled;
-    const fieldsEnabled = role !== 'LINKING' && gkLocationEnabled;
+    const fieldsEnabled = !isLinking && gkLocationEnabled;
     const gkLocationEntered = geometryKmPostGkLocation !== undefined || layoutLocation != undefined;
 
     const coordinateSystems = useCoordinateSystems(GK_FIN_COORDINATE_SYSTEMS.map(([srid]) => srid));
+    const isFromNonGkPlan =
+        geometryPlanSrid !== undefined &&
+        !GK_FIN_COORDINATE_SYSTEMS.find(([srid]) => srid === geometryPlanSrid);
+    const isFromDifferentGk =
+        geometryPlanSrid !== undefined &&
+        geometryPlanSrid !== state.kmPost.gkSrid &&
+        !!GK_FIN_COORDINATE_SYSTEMS.find(([srid]) => srid === geometryPlanSrid);
 
     const layoutLocationString = () => {
         if (gkLocationEnabled && layoutLocation) {
@@ -182,12 +233,21 @@ export const KmPostEditDialogGkLocationSection: React.FC<
             <FieldLayout
                 label={`${t('km-post-dialog.gk-location.location-field')} *`}
                 disabled={!fieldsEnabled}
+                help={
+                    isLinking && isFromNonGkPlan ? (
+                        <TransformedFromNonGkWarning originalSrid={geometryPlanSrid} />
+                    ) : isLinking && isFromDifferentGk ? (
+                        <TransformedGkWarning originalSrid={geometryPlanSrid} />
+                    ) : (
+                        <React.Fragment />
+                    )
+                }
                 value={
                     <div className={styles['km-post-edit-dialog__location']}>
                         <div className={styles['km-post-edit-dialog__location-axis']}>
                             <TextField
                                 qa-id="km-post-gk-location-n"
-                                value={gkLocationEnabled ? state.kmPost?.gkLocationY : ''}
+                                value={gkLocationEnabled ? state.kmPost.gkLocationY : ''}
                                 onChange={(e) => updateProp('gkLocationY', e.target.value)}
                                 disabled={!fieldsEnabled}
                                 onBlur={() => {
@@ -204,7 +264,7 @@ export const KmPostEditDialogGkLocationSection: React.FC<
                         <div className={styles['km-post-edit-dialog__location-axis']}>
                             <TextField
                                 qa-id="km-post-gk-location-e"
-                                value={gkLocationEnabled ? state.kmPost?.gkLocationX : ''}
+                                value={gkLocationEnabled ? state.kmPost.gkLocationX : ''}
                                 disabled={!fieldsEnabled}
                                 onChange={(e) => updateProp('gkLocationX', e.target.value)}
                                 onBlur={() => {

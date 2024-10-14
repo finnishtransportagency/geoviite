@@ -33,7 +33,7 @@ export const initialKmPostEditState: KmPostEditState = {
     isNewKmPost: false,
     existingKmPost: undefined,
     geometryKmPostLocation: undefined,
-    gkLocationEnabled: true,
+    gkLocationEnabled: false,
     kmPost: {
         kmNumber: '',
         gkLocationX: '',
@@ -206,6 +206,7 @@ const kmPostEditSlice = createSlice({
                     ? { gkLocationX: '', gkLocationY: '', gkSrid: undefined }
                     : saveGkPointToEditingGkPoint(existingKmPost.gkLocation)),
             };
+            state.gkLocationEnabled = existingKmPost.gkLocation !== undefined;
             state.validationIssues = validateLinkingKmPost(state);
         },
         onUpdateProp: function <TKey extends keyof KmPostEditFields>(
@@ -369,6 +370,10 @@ export function kmPostSaveRequest(state: KmPostEditState): KmPostSaveRequest {
         gkLocation: state.gkLocationEnabled ? editingGkPointToSavePoint(state) : undefined,
         gkLocationSource: state.gkLocationEnabled ? gkLocationSource(state) : undefined,
         gkLocationConfirmed: state.gkLocationEnabled ? state.kmPost.gkLocationConfirmed : false,
+        sourceId:
+            gkLocationSource(state) === 'FROM_GEOMETRY'
+                ? state.existingKmPost?.sourceId
+                : undefined,
     };
 }
 

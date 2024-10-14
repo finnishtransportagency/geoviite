@@ -50,6 +50,7 @@ class LayoutKmPostService(
                     gkLocationConfirmed = kmPost.gkLocationConfirmed,
                     gkLocationSource = kmPost.gkLocationSource,
                     gkLocation = kmPost.gkLocation,
+                    sourceId = kmPost.sourceId,
                 )
         return saveDraftInternal(branch, trackLayoutKmPost).id
     }

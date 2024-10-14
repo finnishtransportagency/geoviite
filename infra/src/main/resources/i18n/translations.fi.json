@@ -487,7 +487,8 @@
                 "change-info-heading": "Lokitiedot",
                 "no-kilometer-length": "Pituutta ei voida laskea",
                 "negative-kilometer-length": "Virheellinen sijainti",
-                "no-location": "Ei sijaintia"
+                "no-location": "Ei sijaintia",
+                "plan-crs": "Lähdekoordinaatisto"
             },
             "geometry": {
                 "general-title": "Raidegeometria: Tasakilometripiste",
@@ -1796,7 +1797,9 @@
             "source-manual": "Operaattorin asettama",
             "source-none": "-",
             "location-in-layout": "Sijainti paikannuspohjassa (TM35FIN)",
-            "out-of-bounds": "Sijainti ei ole laskettavissa"
+            "out-of-bounds": "Sijainti ei ole laskettavissa",
+            "location-converted": "Sijainti muunnettu koordinaatistosta {{originalCrs}}",
+            "original-crs": "Alkuperäinen koordinaatisto {{originalCrs}}"
         }
     },
     "km-post-delete-dialog": {

@@ -22,7 +22,11 @@ import { TextField, TextFieldVariant } from 'vayla-design-lib/text-field/text-fi
 import { KmPostEditDialogContainer } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { filterNotEmpty } from 'utils/array-utils';
 import { OnSelectFunction, OptionalUnselectableItemCollections } from 'selection/selection-model';
-import { refereshKmPostSelection, useTrackNumbers } from 'track-layout/track-layout-react-utils';
+import {
+    refereshKmPostSelection,
+    usePlanHeader,
+    useTrackNumbers,
+} from 'track-layout/track-layout-react-utils';
 import { PrivilegeRequired } from 'user/privilege-required';
 import { EDIT_LAYOUT } from 'user/user-model';
 
@@ -63,6 +67,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
         () => (planId ? getPlanLinkStatus(planId, layoutContext) : undefined),
         [planId, kmPostChangeTime, layoutContext],
     );
+    const geometryPlan = usePlanHeader(planId);
 
     const linkedLayoutKmPosts = useLoader(() => {
         if (!planStatus) return undefined;
@@ -272,6 +277,7 @@ const GeometryKmPostLinkingInfobox: React.FC<GeometryKmPostLinkingInfoboxProps> 
                     prefilledTrackNumberId={geometryKmPost.trackNumberId}
                     geometryKmPostGkLocation={geometryKmPost.gkLocation}
                     role={'LINKING'}
+                    geometryPlanSrid={geometryPlan?.units?.coordinateSystemSrid}
                 />
             )}
         </React.Fragment>
