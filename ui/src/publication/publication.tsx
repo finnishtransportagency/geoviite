@@ -15,6 +15,10 @@ import { getPublicationAsTableItems } from 'publication/publication-api';
 import { TimeStamp } from 'common/common-model';
 import { Spinner } from 'vayla-design-lib/spinner/spinner';
 import { useAppNavigate } from 'common/navigate';
+import {
+    InitiallyUnsorted,
+    PublicationDetailsTableSortInformation,
+} from 'publication/table/publication-table-utils';
 
 export type PublicationDetailsViewProps = {
     publication: PublicationDetails;
@@ -33,6 +37,8 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
     const unpublishedToRatko = !publication.ratkoPushStatus;
     const [publicationItems, setPublicationItems] = React.useState<PublicationTableItem[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
+    const [sortInfo, setSortInfo] =
+        React.useState<PublicationDetailsTableSortInformation>(InitiallyUnsorted);
 
     React.useEffect(() => {
         setIsLoading(true);
@@ -74,7 +80,12 @@ const PublicationDetailsView: React.FC<PublicationDetailsViewProps> = ({
                         </span>
                     )}
                 </div>
-                <PublicationTable isLoading={isLoading} items={publicationItems} />
+                <PublicationTable
+                    isLoading={isLoading}
+                    items={publicationItems}
+                    sortInfo={sortInfo}
+                    onSortChange={setSortInfo}
+                />
             </div>
             {(ratkoPushFailed(publication.ratkoPushStatus) || unpublishedToRatko) && (
                 <footer className={styles['publication-details__footer']}>

@@ -9,10 +9,7 @@ enum class FrameConverterErrorV1(private val localizationSuffix: String) {
     MissingTrackKilometer("missing-track-kilometer"),
     MissingTrackMeter("missing-track-meter"),
     MissingTrackNumber("missing-track-number"),
-    BadRequest("bad-request"),
     UnsupportedRequestType("unsupported-request-type"),
-    RequestCouldNotBeDeserialized("request-could-not-be-deserialized"),
-    ListOfJsonRequestsCouldNotBeDeserialized("list-of-json-requests-could-not-be-deserialized"),
     SearchRadiusUndefined("search-radius-undefined"),
     SearchRadiusUnderRange("search-radius-under-range"),
     SearchRadiusOverRange("search-radius-over-range"),
@@ -21,7 +18,8 @@ enum class FrameConverterErrorV1(private val localizationSuffix: String) {
     InvalidLocationTrackName("invalid-location-track-name"),
     InvalidLocationTrackType("invalid-location-track-type"),
     InvalidTrackAddress("invalid-track-address"),
-    TrackNumberNotFound("track-number-not-found");
+    TrackNumberNotFound("track-number-not-found"),
+    InputCoordinateTransformationFailed("input-coordinate-transformation-failed");
 
     val localizationKey: LocalizationKey
         get() = LocalizationKey("$BASE.$localizationSuffix")

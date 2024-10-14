@@ -43,15 +43,17 @@ constructor(private val kkjTm35FinTriangulationDao: KkjTm35finTriangulationDao) 
         getTransformation(sourceSrid, targetSrid).transform(point)
 
     fun getTransformationToGkFin(sourceSrid: Srid): ToGkFinTransformation {
-        if (isGkFinSrid(sourceSrid)) {
-            return ToGkFinTransformation { point: Point -> GeometryPoint(point, sourceSrid) }
-        }
         val toLayout = getTransformation(sourceSrid, LAYOUT_SRID)
         return ToGkFinTransformation { point: Point ->
             val layoutCoord = toLayout.transform(point)
             val etrs89Coord = transformNonKKJCoordinate(LAYOUT_SRID, ETRS89_SRID, layoutCoord)
             val gkSrid = getFinnishGKCoordinateProjectionByLongitude(etrs89Coord.x)
-            GeometryPoint(transformNonKKJCoordinate(LAYOUT_SRID, gkSrid, layoutCoord), gkSrid)
+
+            if (gkSrid == sourceSrid) {
+                GeometryPoint(point, sourceSrid)
+            } else {
+                GeometryPoint(transformNonKKJCoordinate(LAYOUT_SRID, gkSrid, layoutCoord), gkSrid)
+            }
         }
     }
 }

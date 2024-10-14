@@ -5,9 +5,11 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.LinkingFailureException
 import fi.fta.geoviite.infra.geography.CoordinateTransformationException
 import fi.fta.geoviite.infra.geography.GeometryPoint
@@ -40,7 +42,6 @@ import fi.fta.geoviite.infra.tracklayout.TrackLayoutKmPost
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitchJoint
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
-import fi.fta.geoviite.infra.util.FreeText
 
 enum class LocationTrackPointUpdateType {
     START_POINT,
@@ -65,7 +66,7 @@ data class EmptyAlignmentLinkingParameters<T>(
 
 data class LocationTrackSaveRequest(
     val name: AlignmentName,
-    val descriptionBase: FreeText,
+    val descriptionBase: LocationTrackDescriptionBase,
     val descriptionSuffix: DescriptionSuffixType,
     val type: LocationTrackType,
     val state: LocationTrackState,
@@ -153,7 +154,7 @@ data class TrackLayoutSwitchSaveRequest(
 
 data class TrackNumberSaveRequest(
     val number: TrackNumber,
-    val description: FreeText,
+    val description: TrackNumberDescription,
     val state: LayoutState,
     val startAddress: TrackMeter,
 ) {
@@ -170,6 +171,7 @@ data class TrackLayoutKmPostSaveRequest(
     val gkLocationConfirmed: Boolean,
     val gkLocationSource: KmPostGkLocationSource?,
     val gkLocation: GeometryPoint?,
+    val sourceId: IntId<GeometryKmPost>?,
 ) {
     init {
         gkLocation?.let { location ->

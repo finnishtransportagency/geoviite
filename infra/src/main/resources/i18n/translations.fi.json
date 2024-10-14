@@ -7,10 +7,7 @@
             "missing-track-kilometer": "Pyyntö ei sisältänyt ratakilometriä.",
             "missing-track-meter": "Pyyntö ei sisältänyt ratametriä.",
             "missing-track-number": "Pyyntö ei sisältänyt ratanumeroa.",
-            "bad-request": "Pyyntötyyppiä ei pystytty määrittämään.",
             "unsupported-request-type": "Pyyntötyyppiä ei tueta.",
-            "request-could-not-be-deserialized": "Pyynnön rakenne oli virheellinen.",
-            "list-of-json-requests-could-not-be-deserialized": "JSON-pyyntölistan rakenne oli virheellinen.",
             "search-radius-undefined": "Pyyntö sisälsi hakusääteen ilman arvoa (sade=null).",
             "search-radius-under-range": "Pyyntö sisälsi pienemmän hakusäteen kuin sallittu minimiarvo (1.0).",
             "search-radius-over-range": "Pyyntö sisälsi suuremman hakusäteen kuin sallittu maksimiarvo (1000.0).",
@@ -19,7 +16,8 @@
             "invalid-location-track-name": "Pyyntö sisälsi virheellisen sijaintiraide-asetuksen.",
             "invalid-location-track-type": "Pyyntö sisälsi virheellisen sijaintiraide_tyyppi-asetuksen. Sallitut arvot ovat pääraide, sivuraide, kujaraide, turvaraide.",
             "invalid-track-address": "Pyyntö sisälsi virheellisen rataosoitteen (eli ratakilometri+ratemetri yhdistelmä oli virheellinen).",
-            "track-number-not-found": "Pyynnön ratanumeroa ei löydetty."
+            "track-number-not-found": "Pyynnön ratanumeroa ei löydetty.",
+            "input-coordinate-transformation-failed": "Koordinaattimuunnos ei onnistunut. Onko koordinaatisto järkevä syötekoordinaatille?"
         }
     },
     "error": {
@@ -75,6 +73,7 @@
                 "TrackNumber": "Ratanumeron tunnus {{value}} on virheellinen",
                 "KmNumber": "Tasakilometripisteen tunnus {{value}} on virheellinen",
                 "JointNumber": "Vaihdepisteen numero {{value}} on virheellinen",
+                "LayoutDesignName": "Työtilan nimi {{value}} on virheellinen",
                 "FileName": "Tiedoston nimessä on virhe",
                 "AngularUnit": "Suuntakulmien yksikkömäärityksessä on virhe, tai se uupuu kokonaan",
                 "LinearUnit": "Pituuksien yksikkömäärityksessä on virhe, tai se uupuu kokonaan",
@@ -92,7 +91,8 @@
             "invalid-path": "Virhe: pyynnön polku oli virheellinen ({{method}})",
             "missing-parameter": "Virhe: pyynnöstä puuttuu vaadittu parametri ({{param}})",
             "invalid-body": "Virhe: pyynnön sisältöä ei voitu lukea",
-            "conversion-failed": "Virhe: Pyynnössä oli virheellinen arvo {{name}}"
+            "conversion-failed": "Virhe: Pyynnössä oli virheellinen arvo {{name}}",
+            "invalid-version": "Virhe: Käyttöliittymän versio ei vastaa palvelimen versiota"
         },
         "deleting": {
             "generic": "Poistamisessa tapahtui virhe",
@@ -391,7 +391,8 @@
         "deleted-successfully": "Sijaintiraide poistettu",
         "mandatory-field": "Pakollinen kenttä",
         "mandatory-fields-missing": "Pakollisia kenttiä puuttuu",
-        "invalid-description": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
+        "invalid-description-length": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
+        "invalid-description-characters": "Virheellinen kuvauksen perusosa",
         "invalid-name": "Virheellinen sijaintiraidetunnus",
         "save-in-progress": "Tallennetaan",
         "duplicate-of": "Duplikaatti raiteelle",
@@ -486,7 +487,8 @@
                 "change-info-heading": "Lokitiedot",
                 "no-kilometer-length": "Pituutta ei voida laskea",
                 "negative-kilometer-length": "Virheellinen sijainti",
-                "no-location": "Ei sijaintia"
+                "no-location": "Ei sijaintia",
+                "plan-crs": "Lähdekoordinaatisto"
             },
             "geometry": {
                 "general-title": "Raidegeometria: Tasakilometripiste",
@@ -742,7 +744,8 @@
                     "conflicts-with-split": "Tunnus on jo käytössä toisella katkaisukohdalla",
                     "conflicts-with-track": "Tunnus on jo käytössä toisella raiteella",
                     "mandatory-field": "Pakollinen kenttä",
-                    "invalid-description": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
+                    "invalid-description-length": "Kuvauksen perusosan tulee olla 4-256 merkkiä pitkä",
+                    "invalid-description-characters": "Virheellinen kuvauksen perusosa",
                     "invalid-name": "Virheellinen sijaintiraidetunnus",
                     "missing-fields": "Pakollisia tietoja puuttuu",
                     "switch-not-found": "Katkaisukohdan vaihde on poistettu. Poista katkaisukohta tai peruuta vaihteen poisto",
@@ -1794,7 +1797,9 @@
             "source-manual": "Operaattorin asettama",
             "source-none": "-",
             "location-in-layout": "Sijainti paikannuspohjassa (TM35FIN)",
-            "out-of-bounds": "Sijainti ei ole laskettavissa"
+            "out-of-bounds": "Sijainti ei ole laskettavissa",
+            "location-converted": "Sijainti muunnettu koordinaatistosta {{originalCrs}}",
+            "original-crs": "Alkuperäinen koordinaatisto {{originalCrs}}"
         }
     },
     "km-post-delete-dialog": {
@@ -1858,7 +1863,10 @@
             "guide": "Poistettua työtilaa ei voi palauttaa eikä sen sisältöä muokata.",
             "confirm": "Haluatko poistaa työtilan <strong>{{name}}<strong>?"
         },
-        "name-not-unique": "Nimi on jo käytössä"
+        "name-not-unique": "Nimi on jo käytössä",
+        "name-too-short": "Nimi on liian lyhyt",
+        "name-too-long": "Nimi on liian pitkä",
+        "name-invalid": "Nimi sisältää kiellettyjä merkkejä"
     },
     "switch-delete-dialog": {
         "title": "Poistetaanko luonnos?",

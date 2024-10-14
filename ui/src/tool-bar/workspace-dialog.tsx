@@ -23,6 +23,7 @@ import { formatISODate } from 'utils/date-utils';
 import { getChangeTimes } from 'common/change-time-api';
 import { LoaderStatus, useLoaderWithStatus } from 'utils/react-utils';
 import { isEqualIgnoreCase } from 'utils/string-utils';
+import { filterNotEmpty } from 'utils/array-utils';
 
 type WorkspaceDialogProps = {
     existingDesign?: LayoutDesign;
@@ -37,6 +38,15 @@ const saveRequest = (name: string, estimatedCompletion: Date): LayoutDesignSaveR
     designState: 'ACTIVE',
 });
 
+export const DESIGN_NAME_REGEX = /^[A-Za-zÄÖÅäöå0-9 \-+_!?.,"/()<>:&*#€$]*$/g;
+function validateDesignName(name: string, committed: boolean): string[] {
+    return [
+        committed && name.length < 2 ? 'name-too-short' : undefined,
+        name.length > 100 ? 'name-too-long' : undefined,
+        !name.match(DESIGN_NAME_REGEX) ? 'name-invalid' : undefined,
+    ].filter(filterNotEmpty);
+}
+
 export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
     existingDesign,
     onCancel,
@@ -49,16 +59,24 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
         existingDesign ? new Date(existingDesign?.estimatedCompletion) : undefined,
     );
     const [name, setName] = React.useState<string>(existingDesign?.name ?? '');
+    const [nameCommitted, setNameCommitted] = React.useState<boolean>(false);
 
     const [allDesigns, allDesignsFetchStatus] = useLoaderWithStatus(
         () => getLayoutDesigns(getChangeTimes().layoutDesign),
         [getChangeTimes().layoutDesign],
     );
+    const designNameErrors = validateDesignName(name.trim(), nameCommitted);
+    if (!nameCommitted && name.trim().length > 1 && designNameErrors.length === 0) {
+        setNameCommitted(true);
+    }
     const designNameNotUnique =
         allDesignsFetchStatus !== LoaderStatus.Ready ||
         allDesigns?.some(
             (design) => isEqualIgnoreCase(design.name, name) && design.id !== existingDesign?.id,
         );
+    const allErrors = designNameErrors
+        .map((e) => t(`workspace-dialog.${e}`))
+        .concat(designNameNotUnique ? [t('workspace-dialog.name-not-unique')] : []);
 
     return (
         <Dialog
@@ -78,12 +96,15 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
                             {t('button.cancel')}
                         </Button>
                         <Button
-                            disabled={!name || !selectedDate || designNameNotUnique || saving}
+                            disabled={!name || !selectedDate || allErrors.length > 0 || saving}
                             qa-id={'workspace-dialog-save'}
                             isProcessing={saving}
                             onClick={() => {
                                 if (name && selectedDate) {
-                                    onSave(existingDesign?.id, saveRequest(name, selectedDate));
+                                    onSave(
+                                        existingDesign?.id,
+                                        saveRequest(name.trim(), selectedDate),
+                                    );
                                 }
                             }}>
                             {t('button.save')}
@@ -102,9 +123,11 @@ export const WorkspaceDialog: React.FC<WorkspaceDialogProps> = ({
                                 value={name}
                                 onChange={(evt) => setName(evt.target.value)}
                                 qa-id={'workspace-dialog-name'}
+                                hasError={allErrors.length > 0}
+                                onBlur={() => setNameCommitted(true)}
                             />
                         }
-                        errors={designNameNotUnique ? [t('workspace-dialog.name-not-unique')] : []}
+                        errors={allErrors}
                     />
                     <FieldLayout
                         label={`${t('workspace-dialog.completion-date')} *`}

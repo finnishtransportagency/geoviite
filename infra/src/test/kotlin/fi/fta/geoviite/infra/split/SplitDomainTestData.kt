@@ -3,12 +3,12 @@ package fi.fta.geoviite.infra.split
 import fi.fta.geoviite.infra.common.AlignmentName
 import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
+import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.tracklayout.DescriptionSuffixType
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutSwitch
-import fi.fta.geoviite.infra.util.FreeText
 
 fun splitRequest(trackId: IntId<LocationTrack>, vararg targets: SplitRequestTarget): SplitRequest =
     SplitRequest(trackId, targets.toList())
@@ -25,7 +25,7 @@ fun targetRequest(
         duplicateTrack = duplicateTrackId?.let { id -> SplitRequestTargetDuplicate(id, operation) },
         startAtSwitchId = startAtSwitchId,
         name = AlignmentName(name),
-        descriptionBase = FreeText(descriptionBase),
+        descriptionBase = LocationTrackDescriptionBase(descriptionBase),
         descriptionSuffix = descriptionSuffix,
     )
 
@@ -52,7 +52,7 @@ fun targetParams(
                     },
                 startAtSwitchId = switchId,
                 name = AlignmentName(name),
-                descriptionBase = FreeText(descriptionBase),
+                descriptionBase = LocationTrackDescriptionBase(descriptionBase),
                 descriptionSuffix = descriptionSuffixType,
             ),
         duplicate =

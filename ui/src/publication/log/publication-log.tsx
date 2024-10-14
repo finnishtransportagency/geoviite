@@ -10,7 +10,11 @@ import {
 } from 'vayla-design-lib/datepicker/datepicker';
 import { parseISOOrUndefined } from 'utils/date-utils';
 import { endOfDay, startOfDay } from 'date-fns';
-import { getPublicationsAsTableItems, getPublicationsCsvUri } from 'publication/publication-api';
+import {
+    getPublicationsAsTableItems,
+    getPublicationsCsvUri,
+    MAX_RETURNED_PUBLICATION_LOG_ROWS,
+} from 'publication/publication-api';
 import PublicationTable from 'publication/table/publication-table';
 import { Button } from 'vayla-design-lib/button/button';
 import { Icons } from 'vayla-design-lib/icon/Icon';
@@ -44,16 +48,20 @@ type TableFetchFn = (
 let fetchId = 0;
 const debouncedGetPublicationsAsTableItems = debounceAsync(getPublicationsAsTableItems, 500);
 
-const publicationTableFetchFunctionByDateSource = (
-    dateChangeType: DatePickerDateSource,
+type DataSourceChangeMethod = DatePickerDateSource | 'SORTING_CHANGED';
+
+const publicationTableFetchFunctionByChangeMethod = (
+    changeMethod: DataSourceChangeMethod,
 ): TableFetchFn => {
-    switch (dateChangeType) {
+    switch (changeMethod) {
         case 'TEXT':
             return debouncedGetPublicationsAsTableItems;
         case 'PICKER':
             return getPublicationsAsTableItems;
+        case 'SORTING_CHANGED':
+            return getPublicationsAsTableItems;
         default:
-            return exhaustiveMatchingGuard(dateChangeType);
+            return exhaustiveMatchingGuard(changeMethod);
     }
 };
 
@@ -90,23 +98,35 @@ const PublicationLog: React.FC = () => {
         );
     }, []);
 
-    const setStartDate = (newStartDate: Date | undefined, source: DatePickerDateSource) => {
+    const updateTableSorting = (updatedSort: PublicationDetailsTableSortInformation) => {
+        setSortInfo(updatedSort);
+
+        if (pagedPublications?.items.length === MAX_RETURNED_PUBLICATION_LOG_ROWS) {
+            updatePublicationsTable(
+                storedStartDate,
+                storedEndDate,
+                publicationTableFetchFunctionByChangeMethod('SORTING_CHANGED'),
+            );
+        }
+    };
+
+    const setStartDate = (newStartDate: Date | undefined, source: DataSourceChangeMethod) => {
         trackLayoutActionDelegates.setSelectedPublicationSearchStartDate(
             newStartDate?.toISOString(),
         );
         updatePublicationsTable(
             newStartDate,
             storedEndDate,
-            publicationTableFetchFunctionByDateSource(source),
+            publicationTableFetchFunctionByChangeMethod(source),
         );
     };
 
-    const setEndDate = (newEndDate: Date | undefined, source: DatePickerDateSource) => {
+    const setEndDate = (newEndDate: Date | undefined, source: DataSourceChangeMethod) => {
         trackLayoutActionDelegates.setSelectedPublicationSearchEndDate(newEndDate?.toISOString());
         updatePublicationsTable(
             storedStartDate,
             newEndDate,
-            publicationTableFetchFunctionByDateSource(source),
+            publicationTableFetchFunctionByChangeMethod(source),
         );
     };
 
@@ -232,7 +252,7 @@ const PublicationLog: React.FC = () => {
                     isLoading={isLoading}
                     items={pagedPublications?.items || []}
                     sortInfo={sortInfo}
-                    onSortChange={setSortInfo}
+                    onSortChange={updateTableSorting}
                 />
             </div>
         </div>

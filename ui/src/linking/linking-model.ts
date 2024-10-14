@@ -173,6 +173,7 @@ export type KmPostSimpleFields = {
 export type KmPostSaveRequest = KmPostSimpleFields & {
     gkLocation: GeometryPoint | undefined;
     gkLocationSource: GkLocationSource | undefined;
+    sourceId: GeometryKmPostId | undefined;
 };
 
 export type KmPostEditFields = KmPostSimpleFields & {

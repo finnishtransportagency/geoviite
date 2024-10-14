@@ -1,7 +1,6 @@
 import React from 'react';
 import { PublicationDetails } from 'publication/publication-model';
 import { PublicationListRow } from 'publication/card/publication-list-row';
-import { useAppNavigate } from 'common/navigate';
 import { createDelegates } from 'store/store-utils';
 import { trackLayoutActionCreators } from 'track-layout/track-layout-slice';
 
@@ -10,8 +9,6 @@ type PublicationListProps = {
 };
 
 export const PublicationList: React.FC<PublicationListProps> = ({ publications }) => {
-    const navigate = useAppNavigate();
-
     const trackLayoutActionDelegates = React.useMemo(
         () => createDelegates(trackLayoutActionCreators),
         [],
@@ -23,7 +20,6 @@ export const PublicationList: React.FC<PublicationListProps> = ({ publications }
                 <PublicationListRow
                     key={publication.id}
                     publication={publication}
-                    navigate={navigate}
                     setSelectedPublicationId={trackLayoutActionDelegates.setSelectedPublicationId}
                 />
             ))}

@@ -59,6 +59,12 @@ class SanitizedStringTest {
     }
 
     @Test
+    fun `Escaping new lines from FreeTextWithNewLines produces escaped output`() {
+        val escapedNewLines = FreeTextWithNewLines.of("\nSome\n\nthing \n").escapeNewLines()
+        assertEquals("\\nSome\\n\\nthing \\n", escapedNewLines.toString())
+    }
+
+    @Test
     fun `StringSanitizer allows only legal characters`() {
         val legalCharacters = "ABCFÖ1-3_"
         val legalLength = 1..10

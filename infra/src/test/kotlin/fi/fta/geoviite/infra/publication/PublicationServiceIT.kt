@@ -9,6 +9,7 @@ import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.LayoutBranchType
+import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.MainBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
@@ -17,6 +18,7 @@ import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.DuplicateLocationTrackNameInPublicationException
 import fi.fta.geoviite.infra.error.DuplicateNameInPublicationException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
@@ -96,7 +98,6 @@ import fi.fta.geoviite.infra.tracklayout.switchJoint
 import fi.fta.geoviite.infra.tracklayout.switchStructureYV60_300_1_9
 import fi.fta.geoviite.infra.tracklayout.trackNumber
 import fi.fta.geoviite.infra.tracklayout.trackNumberSaveRequest
-import fi.fta.geoviite.infra.util.FreeText
 import fi.fta.geoviite.infra.util.FreeTextWithNewLines
 import fi.fta.geoviite.infra.util.SortOrder
 import java.math.BigDecimal
@@ -549,7 +550,10 @@ constructor(
             trackNumberDao
                 .insert(
                     trackNumber(draft = false)
-                        .copy(number = testDBService.getUnusedTrackNumber(), description = FreeText("Test 1"))
+                        .copy(
+                            number = testDBService.getUnusedTrackNumber(),
+                            description = TrackNumberDescription("Test 1"),
+                        )
                 )
                 .id
 
@@ -557,7 +561,7 @@ constructor(
             LayoutBranch.main,
             trackNumberService
                 .get(MainLayoutContext.draft, officialId)!!
-                .copy(number = testDBService.getUnusedTrackNumber(), description = FreeText("Test 2")),
+                .copy(number = testDBService.getUnusedTrackNumber(), description = TrackNumberDescription("Test 2")),
         )
 
         assertNotEquals(
@@ -566,10 +570,13 @@ constructor(
         )
 
         assertEquals(
-            FreeText("Test 1"),
+            TrackNumberDescription("Test 1"),
             trackNumberService.getOrThrow(MainLayoutContext.official, officialId).description,
         )
-        assertEquals(FreeText("Test 2"), trackNumberService.getOrThrow(MainLayoutContext.draft, officialId).description)
+        assertEquals(
+            TrackNumberDescription("Test 2"),
+            trackNumberService.getOrThrow(MainLayoutContext.draft, officialId).description,
+        )
 
         val publicationResult = publish(publicationService, trackNumbers = listOf(officialId))
 
@@ -623,7 +630,7 @@ constructor(
             trackNumberDao,
             trackNumberService,
             { trackNumber(testDBService.getUnusedTrackNumber(), draft = true) },
-            { orig -> asMainDraft(orig.copy(description = FreeText("${orig.description}_edit"))) },
+            { orig -> asMainDraft(orig.copy(description = TrackNumberDescription("${orig.description}_edit"))) },
         )
     }
 
@@ -656,7 +663,9 @@ constructor(
             locationTrackDao,
             locationTrackService,
             { locationTrack(tnId, draft = true) },
-            { orig -> asMainDraft(orig.copy(descriptionBase = FreeText("${orig.descriptionBase}_edit"))) },
+            { orig ->
+                asMainDraft(orig.copy(descriptionBase = LocationTrackDescriptionBase("${orig.descriptionBase}_edit")))
+            },
         )
     }
 
@@ -1292,7 +1301,9 @@ constructor(
             assertMatches(draft, published, contextMatch = false)
         }
 
-        assertEqualsCalculatedChanges(draftCalculatedChanges, publicationDetails)
+        if (layoutBranch == LayoutBranch.main) {
+            assertEqualsCalculatedChanges(draftCalculatedChanges, publicationDetails)
+        }
         return publicationResult
     }
 
@@ -1407,8 +1418,8 @@ constructor(
             }
         assertEquals(1, diff.size)
         assertEquals("description", diff[0].propKey.key.toString())
-        assertEquals(trackNumber.description, diff[0].value.oldValue)
-        assertEquals(updatedTrackNumber.description, diff[0].value.newValue)
+        assertEquals(trackNumber.description.toString(), diff[0].value.oldValue.toString())
+        assertEquals(updatedTrackNumber.description.toString(), diff[0].value.newValue.toString())
     }
 
     @Test
@@ -1420,7 +1431,7 @@ constructor(
                         LayoutBranch.main,
                         LocationTrackSaveRequest(
                             AlignmentName("TEST duplicate"),
-                            FreeText("Test"),
+                            LocationTrackDescriptionBase("Test"),
                             DescriptionSuffixType.NONE,
                             LocationTrackType.MAIN,
                             LocationTrackState.IN_USE,
@@ -1440,7 +1451,7 @@ constructor(
                         LayoutBranch.main,
                         LocationTrackSaveRequest(
                             AlignmentName("TEST duplicate 2"),
-                            FreeText("Test"),
+                            LocationTrackDescriptionBase("Test"),
                             DescriptionSuffixType.NONE,
                             LocationTrackType.MAIN,
                             LocationTrackState.IN_USE,
@@ -1460,7 +1471,7 @@ constructor(
                         LayoutBranch.main,
                         LocationTrackSaveRequest(
                             AlignmentName("TEST"),
-                            FreeText("Test"),
+                            LocationTrackDescriptionBase("Test"),
                             DescriptionSuffixType.NONE,
                             LocationTrackType.MAIN,
                             LocationTrackState.IN_USE,
@@ -1492,7 +1503,7 @@ constructor(
                         locationTrack.id as IntId,
                         LocationTrackSaveRequest(
                             name = AlignmentName("TEST2"),
-                            descriptionBase = FreeText("Test2"),
+                            descriptionBase = LocationTrackDescriptionBase("Test2"),
                             descriptionSuffix = DescriptionSuffixType.SWITCH_TO_BUFFER,
                             type = LocationTrackType.SIDE,
                             state = LocationTrackState.NOT_IN_USE,
@@ -1592,7 +1603,7 @@ constructor(
         val saveReq =
             LocationTrackSaveRequest(
                 AlignmentName("TEST"),
-                FreeText("Test"),
+                LocationTrackDescriptionBase("Test"),
                 DescriptionSuffixType.NONE,
                 LocationTrackType.MAIN,
                 LocationTrackState.IN_USE,
@@ -1611,7 +1622,7 @@ constructor(
                     .update(
                         LayoutBranch.main,
                         locationTrack.id as IntId,
-                        saveReq.copy(descriptionBase = FreeText("TEST2")),
+                        saveReq.copy(descriptionBase = LocationTrackDescriptionBase("TEST2")),
                     )
                     .rowVersion
             )
@@ -1636,8 +1647,8 @@ constructor(
             }
         assertEquals(1, diff.size)
         assertEquals("description-base", diff[0].propKey.key.toString())
-        assertEquals(locationTrack.descriptionBase, diff[0].value.oldValue)
-        assertEquals(updatedLocationTrack.descriptionBase, diff[0].value.newValue)
+        assertEquals(locationTrack.descriptionBase.toString(), diff[0].value.oldValue.toString())
+        assertEquals(updatedLocationTrack.descriptionBase.toString(), diff[0].value.newValue.toString())
     }
 
     @Test
@@ -1669,6 +1680,7 @@ constructor(
                         gkLocation = null,
                         gkLocationSource = null,
                         gkLocationConfirmed = false,
+                        sourceId = null,
                     ),
                 ),
             )
@@ -1690,6 +1702,7 @@ constructor(
                         gkLocation = null,
                         gkLocationSource = null,
                         gkLocationConfirmed = false,
+                        sourceId = null,
                     ),
                 ),
             )
@@ -1759,6 +1772,7 @@ constructor(
                 gkLocation = null,
                 gkLocationSource = null,
                 gkLocationConfirmed = false,
+                sourceId = null,
             )
 
         val kmPost =
@@ -1795,7 +1809,7 @@ constructor(
         val trackNumberSaveReq =
             TrackNumberSaveRequest(
                 testDBService.getUnusedTrackNumber(),
-                FreeText("TEST"),
+                TrackNumberDescription("TEST"),
                 LayoutState.IN_USE,
                 TrackMeter(0, 0),
             )
@@ -1804,7 +1818,7 @@ constructor(
             trackNumberService
                 .insert(
                     LayoutBranch.main,
-                    trackNumberSaveReq.copy(testDBService.getUnusedTrackNumber(), FreeText("TEST 2")),
+                    trackNumberSaveReq.copy(testDBService.getUnusedTrackNumber(), TrackNumberDescription("TEST 2")),
                 )
                 .id
 
@@ -3805,6 +3819,134 @@ constructor(
         publishAndVerify(testBranch, publicationRequest(locationTracks = listOf(locationTrack)))
         locationTrackService.mergeToMainBranch(testBranch, locationTrack)
         publishAndVerify(MainBranch.instance, publicationRequest(locationTracks = listOf(locationTrack)))
+    }
+
+    @Test
+    fun `changes published in design do not confuse publication change logs`() {
+        val trackNumber = mainDraftContext.insert(trackNumber(TrackNumber("original")))
+        val referenceLine =
+            mainDraftContext.insert(
+                referenceLine(trackNumber.id),
+                alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))),
+            )
+        val switch =
+            mainDraftContext.insert(
+                switch(
+                    name = "original",
+                    joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(5.0, 5.0), null)),
+                )
+            )
+        val locationTrack =
+            mainDraftContext.insert(
+                locationTrack(trackNumber.id, name = "original"),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(5.0, 5.0))
+                        .copy(switchId = switch.id, endJointNumber = JointNumber(1)),
+                    segment(Point(5.0, 5.0), Point(10.0, 10.0)),
+                ),
+            )
+        val kmPost =
+            mainDraftContext.insert(kmPost(trackNumber.id, km = KmNumber(124), roughLayoutLocation = Point(4.0, 4.0)))
+        val requestPublishEverything =
+            publicationRequest(
+                trackNumbers = listOf(trackNumber.id),
+                referenceLines = listOf(referenceLine.id),
+                locationTracks = listOf(locationTrack.id),
+                switches = listOf(switch.id),
+                kmPosts = listOf(kmPost.id),
+            )
+        val originalPublication = publishAndVerify(LayoutBranch.main, requestPublishEverything).publicationId!!
+        setPublicationTime(originalPublication, Instant.parse("2024-01-01T00:00:00Z"))
+
+        val designBranch = testDBService.createDesignBranch()
+
+        trackNumberService.saveDraft(
+            designBranch,
+            mainOfficialContext.fetch(trackNumber.id)!!.copy(number = TrackNumber("edited in design")),
+        )
+        referenceLineService.saveDraft(
+            designBranch,
+            mainOfficialContext.fetch(referenceLine.id)!!,
+            alignment(segment(Point(1.0, 0.0), Point(1.0, 10.0))),
+        )
+        locationTrackService.saveDraft(
+            designBranch,
+            mainOfficialContext.fetch(locationTrack.id)!!.copy(name = AlignmentName("edited in design")),
+        )
+        switchService.saveDraft(
+            designBranch,
+            mainOfficialContext.fetch(switch.id)!!.copy(name = SwitchName("edited in design")),
+        )
+        kmPostService.saveDraft(designBranch, mainOfficialContext.fetch(kmPost.id)!!.copy(kmNumber = KmNumber(101)))
+
+        publishAndVerify(designBranch, requestPublishEverything).also {
+            setPublicationTime(it.publicationId!!, Instant.parse("2024-01-02T00:00:00Z"))
+        }
+
+        publicationDao.fetchPublishedTrackNumbers(originalPublication).let { (directChanges, indirectChanges) ->
+            assertEquals(
+                listOf(trackNumberDao.fetchVersion(MainLayoutContext.official, trackNumber.id)),
+                directChanges.map { it.version },
+            )
+            assertEquals(listOf(), indirectChanges)
+        }
+        publicationDao
+            .fetchPublicationTrackNumberChanges(
+                LayoutBranch.main,
+                originalPublication,
+                Instant.parse("2023-01-01T00:00:00Z"),
+            )
+            .let { changes ->
+                assertEquals(1, changes.size)
+                val change = changes[trackNumber.id]!!
+                assertEquals(null, change.trackNumber.old)
+                assertEquals("original", change.trackNumber.new.toString())
+            }
+        publicationDao.fetchPublishedReferenceLines(originalPublication).let { published ->
+            assertEquals(
+                listOf(referenceLineDao.fetchVersion(MainLayoutContext.official, referenceLine.id)),
+                published.map { it.version },
+            )
+        }
+        publicationDao.fetchPublicationReferenceLineChanges(originalPublication).let { changes ->
+            assertEquals(1, changes.size)
+            val change = changes[referenceLine.id]!!
+            assertEquals(null, change.startPoint.old)
+            assertEquals(Point(0.0, 0.0), change.startPoint.new)
+        }
+        publicationDao.fetchPublishedLocationTracks(originalPublication).let { (directChanges, indirectChanges) ->
+            assertEquals(
+                listOf(locationTrackDao.fetchVersion(MainLayoutContext.official, locationTrack.id)),
+                directChanges.map { it.version },
+            )
+            assertEquals(listOf(), indirectChanges)
+        }
+        publicationDao.fetchPublicationLocationTrackChanges(originalPublication).let { changes ->
+            assertEquals(1, changes.size)
+            val change = changes[locationTrack.id]!!
+            assertEquals("original", change.name.new.toString())
+        }
+        publicationDao.fetchPublishedSwitches(originalPublication).let { (directChanges, indirectChanges) ->
+            assertEquals(
+                listOf(switchDao.fetchVersion(MainLayoutContext.official, switch.id)),
+                directChanges.map { it.version },
+            )
+            assertEquals(listOf(), indirectChanges)
+        }
+        publicationDao.fetchPublicationSwitchChanges(originalPublication).let { changes ->
+            assertEquals(1, changes.size)
+            val change = changes[switch.id]!!
+            assertEquals("original", change.name.new.toString())
+        }
+        publicationDao.fetchPublishedKmPosts(originalPublication).let { published ->
+            assertEquals(1, published.size)
+            assertEquals(KmNumber(124), published[0].kmNumber)
+        }
+        publicationDao.fetchPublicationKmPostChanges(originalPublication).let { changes ->
+            assertEquals(1, changes.size)
+            val change = changes[kmPost.id]!!
+            assertEquals(KmNumber(124), change.kmNumber.new)
+        }
     }
 
     private fun validateLocationTracks(vararg locationTracks: IntId<LocationTrack>): List<LayoutValidationIssue> =

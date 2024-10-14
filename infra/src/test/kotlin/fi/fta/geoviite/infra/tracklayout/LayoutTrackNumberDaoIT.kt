@@ -6,10 +6,10 @@ import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.PublicationState.OFFICIAL
+import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.tracklayout.LayoutState.DELETED
 import fi.fta.geoviite.infra.tracklayout.LayoutState.IN_USE
-import fi.fta.geoviite.infra.util.FreeText
 import kotlin.test.assertContains
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -29,7 +29,7 @@ class LayoutTrackNumberDaoIT @Autowired constructor(private val trackNumberDao: 
         val original =
             TrackLayoutTrackNumber(
                 number = testDBService.getUnusedTrackNumber(),
-                description = FreeText("empty-test-track-number"),
+                description = TrackNumberDescription("empty-test-track-number"),
                 state = IN_USE,
                 externalId = null,
                 contextData = LayoutContextData.newDraft(LayoutBranch.main),
@@ -66,14 +66,14 @@ class LayoutTrackNumberDaoIT @Autowired constructor(private val trackNumberDao: 
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
 
-        val tempDraft1 = asMainDraft(inserted).copy(description = FreeText("test 2"))
+        val tempDraft1 = asMainDraft(inserted).copy(description = TrackNumberDescription("test 2"))
         val draftVersion1 = trackNumberDao.insert(tempDraft1).rowVersion
         val draft1 = trackNumberDao.fetch(draftVersion1)
         assertMatches(tempDraft1, draft1, contextMatch = false)
         assertEquals(insertVersion, trackNumberDao.fetchVersion(MainLayoutContext.official, id))
         assertEquals(draftVersion1, trackNumberDao.fetchVersion(MainLayoutContext.draft, id))
 
-        val tempDraft2 = draft1.copy(description = FreeText("test 3"))
+        val tempDraft2 = draft1.copy(description = TrackNumberDescription("test 3"))
         val draftVersion2 = trackNumberDao.update(tempDraft2).rowVersion
         val draft2 = trackNumberDao.fetch(draftVersion2)
         assertMatches(tempDraft2, draft2, contextMatch = false)

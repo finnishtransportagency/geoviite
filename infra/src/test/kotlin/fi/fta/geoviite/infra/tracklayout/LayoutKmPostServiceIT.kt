@@ -168,6 +168,7 @@ constructor(
                 gkLocation = null,
                 gkLocationSource = null,
                 gkLocationConfirmed = false,
+                sourceId = null,
             )
         val kmPostId = kmPostService.insertKmPost(LayoutBranch.main, kmPost)
 

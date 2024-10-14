@@ -7,6 +7,7 @@ import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LayoutBranch
 import fi.fta.geoviite.infra.common.MainLayoutContext
 import fi.fta.geoviite.infra.common.TrackMeter
+import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.error.DeletingFailureException
 import fi.fta.geoviite.infra.error.NoSuchEntityException
 import fi.fta.geoviite.infra.geography.transformFromLayoutToGKCoordinate
@@ -14,7 +15,6 @@ import fi.fta.geoviite.infra.linking.TrackNumberSaveRequest
 import fi.fta.geoviite.infra.math.Point
 import fi.fta.geoviite.infra.math.assertApproximatelyEquals
 import fi.fta.geoviite.infra.publication.ValidationVersion
-import fi.fta.geoviite.infra.util.FreeText
 import java.math.BigDecimal
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -52,7 +52,7 @@ constructor(
         val saveRequest =
             TrackNumberSaveRequest(
                 testDBService.getUnusedTrackNumber(),
-                FreeText("description"),
+                TrackNumberDescription("description"),
                 LayoutState.IN_USE,
                 TrackMeter(KmNumber(5555), 5.5, 1),
             )
@@ -443,7 +443,7 @@ constructor(
         val saveRequest =
             TrackNumberSaveRequest(
                 testDBService.getUnusedTrackNumber(),
-                FreeText(trackNumberDescription),
+                TrackNumberDescription(trackNumberDescription),
                 LayoutState.IN_USE,
                 TrackMeter(KmNumber(5555), 5.5, 1),
             )

@@ -7,12 +7,14 @@ import fi.fta.geoviite.infra.common.IntId
 import fi.fta.geoviite.infra.common.JointNumber
 import fi.fta.geoviite.infra.common.KmNumber
 import fi.fta.geoviite.infra.common.LocationAccuracy
+import fi.fta.geoviite.infra.common.LocationTrackDescriptionBase
 import fi.fta.geoviite.infra.common.Oid
 import fi.fta.geoviite.infra.common.RowVersion
 import fi.fta.geoviite.infra.common.StringId
 import fi.fta.geoviite.infra.common.SwitchName
 import fi.fta.geoviite.infra.common.TrackMeter
 import fi.fta.geoviite.infra.common.TrackNumber
+import fi.fta.geoviite.infra.common.TrackNumberDescription
 import fi.fta.geoviite.infra.geocoding.GeocodingContext
 import fi.fta.geoviite.infra.geocoding.LayoutGeocodingContextCacheKey
 import fi.fta.geoviite.infra.geography.GeometryPoint
@@ -283,7 +285,7 @@ fun trackNumber(
 ) =
     TrackLayoutTrackNumber(
         number = number,
-        description = FreeText(description),
+        description = TrackNumberDescription(description),
         state = state,
         externalId = externalId,
         contextData = contextData,
@@ -297,7 +299,7 @@ fun trackNumberSaveRequest(
 ) =
     TrackNumberSaveRequest(
         number = number,
-        description = FreeText(description),
+        description = TrackNumberDescription(description),
         state = state,
         startAddress = startAddress,
     )
@@ -473,7 +475,7 @@ fun locationTrack(
 ) =
     LocationTrack(
         name = AlignmentName(name),
-        descriptionBase = FreeText(description),
+        descriptionBase = LocationTrackDescriptionBase(description),
         descriptionSuffix = DescriptionSuffixType.NONE,
         type = type,
         state = state,
@@ -1146,7 +1148,7 @@ fun layoutDesign(
     name: String = "foo",
     estimatedCompletion: LocalDate = LocalDate.parse("2022-02-02"),
     designState: DesignState = DesignState.ACTIVE,
-) = LayoutDesignSaveRequest(FreeText(name), estimatedCompletion, designState)
+) = LayoutDesignSaveRequest(LayoutDesignName(name), estimatedCompletion, designState)
 
 fun <T> someRowVersion() = RowVersion(IntId<T>(1), 1)
 
