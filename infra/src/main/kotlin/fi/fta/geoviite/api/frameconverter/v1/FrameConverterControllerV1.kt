@@ -3,7 +3,7 @@ package fi.fta.geoviite.api.frameconverter.v1
 import fi.fta.geoviite.api.aspects.GeoviiteExtApiController
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeature
 import fi.fta.geoviite.api.frameconverter.geojson.GeoJsonFeatureCollection
-import fi.fta.geoviite.infra.aspects.DisableLogging
+import fi.fta.geoviite.infra.aspects.DisableDefaultGeoviiteLogging
 import fi.fta.geoviite.infra.authorization.AUTH_API_FRAME_CONVERTER
 import fi.fta.geoviite.infra.common.LayoutContext
 import fi.fta.geoviite.infra.common.MainLayoutContext
@@ -11,6 +11,8 @@ import fi.fta.geoviite.infra.common.Srid
 import fi.fta.geoviite.infra.error.ExtApiExceptionV1
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.logging.apiResult
+import fi.fta.geoviite.infra.util.Either
+import fi.fta.geoviite.infra.util.processValidated
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -49,10 +51,12 @@ class FrameConverterControllerV1 @Autowired constructor(private val frameConvert
 
         val queryParams = FrameConverterQueryParamsV1(coordinateSystem, featureGeometry, featureBasic, featureDetails)
 
-        return GeoJsonFeatureCollection(features = processRequest(request, queryParams))
+        return GeoJsonFeatureCollection(
+            features = processTrackAddressToCoordinateRequests(listOf(request), queryParams).flatten()
+        )
     }
 
-    @DisableLogging
+    @DisableDefaultGeoviiteLogging
     @PostMapping("/koordinaatit", "/koordinaatit/")
     fun trackAddressToCoordinateRequestBatch(
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
@@ -64,7 +68,7 @@ class FrameConverterControllerV1 @Autowired constructor(private val frameConvert
         logRequestAmount("trackAddressToCoordinateRequestBatch", requests)
 
         val queryParams = FrameConverterQueryParamsV1(coordinateSystem, featureGeometry, featureBasic, featureDetails)
-        val features = requests.flatMap { request -> processRequest(request, queryParams) }
+        val features = processTrackAddressToCoordinateRequests(requests, queryParams).flatten()
 
         logFeatureAmount("trackAddressToCoordinateRequestBatch", features)
         return GeoJsonFeatureCollection(features = features)
@@ -96,10 +100,12 @@ class FrameConverterControllerV1 @Autowired constructor(private val frameConvert
 
         val queryParams = FrameConverterQueryParamsV1(coordinateSystem, featureGeometry, featureBasic, featureDetails)
 
-        return GeoJsonFeatureCollection(features = processRequest(request, queryParams))
+        return GeoJsonFeatureCollection(
+            features = processCoordinateToTrackAddressRequests(listOf(request), queryParams).flatten()
+        )
     }
 
-    @DisableLogging
+    @DisableDefaultGeoviiteLogging
     @PostMapping("/rataosoitteet", "/rataosoitteet/")
     fun coordinateToTrackAddressRequestBatch(
         @RequestParam(COORDINATE_SYSTEM_PARAM, required = false) coordinateSystem: Srid?,
@@ -111,51 +117,58 @@ class FrameConverterControllerV1 @Autowired constructor(private val frameConvert
         logRequestAmount("coordinateToTrackAddressRequestBatch", requests)
 
         val queryParams = FrameConverterQueryParamsV1(coordinateSystem, featureGeometry, featureBasic, featureDetails)
-        val features = requests.flatMap { request -> processRequest(request, queryParams) }
+        val features = processCoordinateToTrackAddressRequests(requests, queryParams).flatten()
 
         logFeatureAmount("coordinateToTrackAddressRequestBatch", features)
+
         return GeoJsonFeatureCollection(features = features)
     }
 
-    private fun processRequest(
-        request: FrameConverterRequestV1,
+    private fun processCoordinateToTrackAddressRequests(
+        requests: List<FrameConverterRequestV1>,
         params: FrameConverterQueryParamsV1,
-    ): List<GeoJsonFeature> {
-        return when (request) {
-            is CoordinateToTrackAddressRequestV1 ->
-                processRequestHelper(
-                    request,
-                    params,
-                    frameConverterServiceV1::validateCoordinateToTrackAddressRequest,
-                    frameConverterServiceV1::coordinateToTrackAddress,
-                )
+    ): List<List<GeoJsonFeature>> =
+        processRequests(
+            assertRequestType(requests),
+            params,
+            frameConverterServiceV1::validateCoordinateToTrackAddressRequest,
+            frameConverterServiceV1::coordinatesToTrackAddresses,
+        )
 
-            is TrackAddressToCoordinateRequestV1 ->
-                processRequestHelper(
-                    request,
-                    params,
-                    frameConverterServiceV1::validateTrackAddressToCoordinateRequest,
-                    frameConverterServiceV1::trackAddressToCoordinate,
-                )
+    private fun processTrackAddressToCoordinateRequests(
+        requests: List<FrameConverterRequestV1>,
+        params: FrameConverterQueryParamsV1,
+    ): List<List<GeoJsonFeature>> {
+        return processRequests(
+            assertRequestType(requests),
+            params,
+            frameConverterServiceV1::validateTrackAddressToCoordinateRequest,
+            frameConverterServiceV1::trackAddressesToCoordinates,
+        )
+    }
 
-            else ->
-                throw ExtApiExceptionV1(
-                    message = "Unsupported request type",
-                    error = FrameConverterErrorV1.UnsupportedRequestType,
-                )
+    private inline fun <reified Request : FrameConverterRequestV1> assertRequestType(requests: List<*>): List<Request> {
+        if (requests.any { it !is Request }) {
+            throw ExtApiExceptionV1(
+                message = "Unsupported request type",
+                error = FrameConverterErrorV1.UnsupportedRequestType,
+            )
         }
+        @Suppress("UNCHECKED_CAST")
+        return requests as List<Request>
     }
 
-    private inline fun <T, V> processRequestHelper(
-        request: T,
+    private fun <Request : FrameConverterRequestV1, ValidRequest> processRequests(
+        requests: List<Request>,
         params: FrameConverterQueryParamsV1,
-        validate: (T, FrameConverterQueryParamsV1) -> Pair<V?, List<GeoJsonFeatureErrorResponseV1>>,
-        process: (LayoutContext, V, FrameConverterQueryParamsV1) -> List<GeoJsonFeature>,
-    ): List<GeoJsonFeature> {
-        val (validatedRequest, errorResponse) = validate(request, params)
-
-        return validatedRequest?.let { req -> process(MainLayoutContext.official, req, params) } ?: errorResponse
-    }
+        validate: (Request, FrameConverterQueryParamsV1) -> Either<List<GeoJsonFeatureErrorResponseV1>, ValidRequest>,
+        process: (LayoutContext, List<ValidRequest>, FrameConverterQueryParamsV1) -> List<List<GeoJsonFeature>>,
+    ): List<List<GeoJsonFeature>> =
+        processValidated(
+            requests,
+            { request -> validate(request, params) },
+            { validRequests -> process(MainLayoutContext.official, validRequests, params) },
+        )
 
     private fun logRequestAmount(method: String, requests: List<FrameConverterRequestV1>) {
         logger.apiCall(method, listOf("requestAmount" to requests.size))

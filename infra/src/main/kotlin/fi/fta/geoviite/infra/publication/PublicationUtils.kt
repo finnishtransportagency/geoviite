@@ -78,7 +78,7 @@ fun asCsvFile(items: List<PublicationTableItem>, timeZone: ZoneId, translation: 
                 "publication-table.operation" to { formatOperation(translation, it.operation) },
                 "publication-table.publication-time" to { formatInstant(it.publicationTime, timeZone) },
                 "publication-table.publication-user" to { "${it.publicationUser}" },
-                "publication-table.message" to { it.message },
+                "publication-table.message" to { it.message.escapeNewLines() },
                 "publication-table.pushed-to-ratko" to
                     {
                         it.ratkoPushTime?.let { pushTime -> formatInstant(pushTime, timeZone) } ?: translation.t("no")
@@ -432,16 +432,23 @@ fun summarizeAlignmentChanges(
         .mapNotNull { oldSegments ->
             val oldPoints = oldSegments.flatMap { segment -> segment.segmentPoints }
             val changedPoints =
-                oldPoints.mapIndexedNotNull { index, oldPoint ->
-                    geocodingContext.getAddressAndM(oldPoint)?.let { (address, mOnReferenceLine) ->
-                        geocodingContext
-                            .getTrackLocation(newAlignment, address)
-                            ?.let { newAddressPoint ->
-                                ComparisonPoints(mOnReferenceLine, index, oldPoint, newAddressPoint.point)
-                            }
-                            ?.let { comparison -> if (comparison.roughDistance < changeThreshold) null else comparison }
+                oldPoints
+                    .mapIndexed { index, oldPoint -> index to oldPoint }
+                    .parallelStream()
+                    .map { (index, oldPoint) ->
+                        geocodingContext.getAddressAndM(oldPoint)?.let { (address, mOnReferenceLine) ->
+                            geocodingContext
+                                .getTrackLocation(newAlignment, address)
+                                ?.let { newAddressPoint ->
+                                    ComparisonPoints(mOnReferenceLine, index, oldPoint, newAddressPoint.point)
+                                }
+                                ?.let { comparison ->
+                                    if (comparison.roughDistance < changeThreshold) null else comparison
+                                }
+                        }
                     }
-                }
+                    .toList()
+                    .filterNotNull()
             val changedPointsRangesFirstIndices =
                 changedPoints
                     .zipWithNext { a, b ->

@@ -11,7 +11,7 @@ import org.springframework.core.DefaultParameterNameDiscoverer
  * @GeoviiteController("/some-base-path")
  * class SomeController {
  *    @GetMapping("/some-path")
- *    @DisableLogging
+ *    @DisableDefaultGeoviiteLogging
  *    fun someFunction(
  *        @RequestParam("someAutomaticallyLoggedParam") foo: Int,
  *        @RequestParam("someOtherNotLoggedParam") bar: Int,
@@ -20,7 +20,9 @@ import org.springframework.core.DefaultParameterNameDiscoverer
  *    }
  * }
  */
-@Target(AnnotationTarget.FUNCTION) @Retention(AnnotationRetention.RUNTIME) annotation class DisableLogging
+@Target(AnnotationTarget.FUNCTION)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class DisableDefaultGeoviiteLogging
 
 /*
  * Annotate a function parameter which should not be automatically written to log
@@ -67,7 +69,7 @@ private fun logInternal(
 ) {
     val method = (joinPoint.signature as MethodSignature).method
 
-    if (method.isAnnotationPresent(DisableLogging::class.java)) {
+    if (method.isAnnotationPresent(DisableDefaultGeoviiteLogging::class.java)) {
         return
     } else {
         val methodName = joinPoint.signature.name
