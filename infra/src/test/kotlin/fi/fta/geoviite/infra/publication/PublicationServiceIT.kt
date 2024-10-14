@@ -1418,8 +1418,8 @@ constructor(
             }
         assertEquals(1, diff.size)
         assertEquals("description", diff[0].propKey.key.toString())
-        assertEquals(trackNumber.description.toString(), diff[0].value.oldValue.toString())
-        assertEquals(updatedTrackNumber.description.toString(), diff[0].value.newValue.toString())
+        assertEquals(trackNumber.description, diff[0].value.oldValue)
+        assertEquals(updatedTrackNumber.description, diff[0].value.newValue)
     }
 
     @Test
@@ -1647,8 +1647,8 @@ constructor(
             }
         assertEquals(1, diff.size)
         assertEquals("description-base", diff[0].propKey.key.toString())
-        assertEquals(locationTrack.descriptionBase.toString(), diff[0].value.oldValue.toString())
-        assertEquals(updatedLocationTrack.descriptionBase.toString(), diff[0].value.newValue.toString())
+        assertEquals(locationTrack.descriptionBase, diff[0].value.oldValue)
+        assertEquals(updatedLocationTrack.descriptionBase, diff[0].value.newValue)
     }
 
     @Test

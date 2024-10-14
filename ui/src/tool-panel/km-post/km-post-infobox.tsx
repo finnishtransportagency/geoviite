@@ -364,7 +364,7 @@ const KmPostInfobox: React.FC<KmPostInfoboxProps> = ({
                     onClose={closeEditDialog}
                     onSave={handleKmPostSave}
                     geometryKmPostGkLocation={kmPost.gkLocation}
-                    role={'MODIFY'}
+                    editType={'MODIFY'}
                 />
             )}
         </React.Fragment>

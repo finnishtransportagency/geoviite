@@ -20,7 +20,7 @@ import { GeometryPoint, Point } from 'model/geometry';
 import styles from 'tool-panel/km-post/dialog/km-post-edit-dialog.scss';
 import { Srid } from 'common/common-model';
 import { parseFloatOrUndefined } from 'utils/string-utils';
-import { KmPostEditDialogRole } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
+import { KmPostEditDialogType } from 'tool-panel/km-post/dialog/km-post-edit-dialog';
 import { Switch } from 'vayla-design-lib/switch/switch';
 import { IconColor, Icons, IconSize } from 'vayla-design-lib/icon/Icon';
 import { createClassName } from 'vayla-design-lib/utils';
@@ -48,7 +48,7 @@ type KmPostEditDialogGkLocationSectionProps = {
     hasErrors: (prop: keyof KmPostEditFields) => boolean;
     getVisibleErrorsByProp: (prop: keyof KmPostEditFields) => string[];
     geometryKmPostGkLocation?: GeometryPoint;
-    role: KmPostEditDialogRole;
+    editType: KmPostEditDialogType;
     geometryPlanSrid?: Srid;
 };
 
@@ -103,7 +103,7 @@ function transformGkToLayout(point: GeometryPoint): Point | undefined {
 const gkLocationSourceTranslationKey = (
     source: GkLocationSource | undefined,
     gkLocationEnabled: boolean,
-    dialogRole: KmPostEditDialogRole,
+    dialogRole: KmPostEditDialogType,
 ) => {
     if (!gkLocationEnabled || source === undefined) {
         return 'km-post-dialog.gk-location.source-none';
@@ -163,11 +163,11 @@ export const KmPostEditDialogGkLocationSection: React.FC<
     hasErrors,
     getVisibleErrorsByProp,
     geometryKmPostGkLocation,
-    role,
+    editType,
     geometryPlanSrid,
 }) => {
     const { t } = useTranslation();
-    const isLinking = role === 'LINKING';
+    const isLinking = editType === 'LINKING';
 
     const kmPost = state.kmPost;
     const gkLocation = parseGk(kmPost.gkSrid, kmPost.gkLocationX, kmPost.gkLocationY);
@@ -205,7 +205,7 @@ export const KmPostEditDialogGkLocationSection: React.FC<
                         onCheckedChange={() =>
                             stateActions.setGkLocationEnabled(!gkLocationEnabled)
                         }
-                        disabled={role === 'LINKING'}
+                        disabled={editType === 'LINKING'}
                     />
                 </span>
             </Heading>
@@ -318,7 +318,7 @@ export const KmPostEditDialogGkLocationSection: React.FC<
                     gkLocationSourceTranslationKey(
                         gkLocationSource(state),
                         gkLocationEnabled,
-                        role,
+                        editType,
                     ),
                 )}
             />

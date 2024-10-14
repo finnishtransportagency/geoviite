@@ -53,6 +53,8 @@ geoviite:
     enabled: true
     tasks:
       preload:
+        geocoding-contexts: false
+        plan-headers: true
         enabled: true
         initial-delay: PT1S
         interval: PT45M

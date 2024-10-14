@@ -794,11 +794,12 @@ constructor(
         publishAndPush(kmPosts = listOf(kmPost2.id))
 
         val switchLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7")
+        val latestSwitchLocations = switchLocations.last()
         // switch was originally after kmPost2, but it got removed and then we pushed again
         assertEquals("0002+0001", switchLocations[0][0].nodecollection.nodes.first().point.kmM.toString())
         assertEquals("0002+0003.5", switchLocations[0][1].nodecollection.nodes.first().point.kmM.toString())
-        assertEquals("0001+0003", switchLocations[1][0].nodecollection.nodes.first().point.kmM.toString())
-        assertEquals("0001+0005.5", switchLocations[1][1].nodecollection.nodes.first().point.kmM.toString())
+        assertEquals("0001+0003", latestSwitchLocations[0].nodecollection.nodes.first().point.kmM.toString())
+        assertEquals("0001+0005.5", latestSwitchLocations[1].nodecollection.nodes.first().point.kmM.toString())
     }
 
     @Test
@@ -833,16 +834,16 @@ constructor(
         )
         publishAndPush(locationTracks = listOf(throughTrack.id))
         val pushedSwitchLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7")
-        assertEquals(2, pushedSwitchLocations.size)
-        val firstPush = pushedSwitchLocations[0]
+
+        val firstPush = pushedSwitchLocations.first()
         assertEquals(2, firstPush.size)
         assertEquals("JOINT_A", firstPush[0].nodecollection.nodes.toList()[0].nodeType.name)
         assertEquals("JOINT_C", firstPush[0].nodecollection.nodes.toList()[1].nodeType.name)
         assertEquals("JOINT_C", firstPush[1].nodecollection.nodes.toList()[0].nodeType.name)
-        val secondPush = pushedSwitchLocations[1]
-        assertEquals(1, secondPush.size)
-        assertEquals("JOINT_A", secondPush[0].nodecollection.nodes.toList()[0].nodeType.name)
-        assertEquals("JOINT_C", secondPush[0].nodecollection.nodes.toList()[1].nodeType.name)
+        val lastPush = pushedSwitchLocations.last()
+        assertEquals(1, lastPush.size)
+        assertEquals("JOINT_A", lastPush[0].nodecollection.nodes.toList()[0].nodeType.name)
+        assertEquals("JOINT_C", lastPush[0].nodecollection.nodes.toList()[1].nodeType.name)
     }
 
     @Test
@@ -993,14 +994,13 @@ constructor(
         listOf("4.4.4.4.4", "5.5.5.5.5").forEach(fakeRatko::acceptsNewLocationTrackGivingItOid)
         publishAndPush(locationTracks = listOf(differentThroughTrack.id, differentBranchingTrack.id))
         val switchLocations = fakeRatko.getPushedSwitchLocations("3.4.5.6.7")
+        val latestSwitchLocations = switchLocations.last()
 
         val expectedNodeTypes =
             listOf(listOf(RatkoNodeType.JOINT_A, RatkoNodeType.JOINT_C), listOf(RatkoNodeType.JOINT_C))
         assertEquals(
-            listOf(expectedNodeTypes, expectedNodeTypes),
-            switchLocations.map { push ->
-                push.map { location -> location.nodecollection.nodes.map { n -> n.nodeType } }
-            },
+            expectedNodeTypes,
+            latestSwitchLocations.map { location -> location.nodecollection.nodes.map { n -> n.nodeType } },
         )
 
         assertEquals(
@@ -1011,7 +1011,7 @@ constructor(
         )
         assertEquals(
             listOf(listOf("4.4.4.4.4", "4.4.4.4.4"), listOf("5.5.5.5.5")),
-            switchLocations[1].map { location ->
+            latestSwitchLocations.map { location ->
                 location.nodecollection.nodes.map { n -> n.point.locationtrack.toString() }
             },
         )

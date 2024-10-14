@@ -414,7 +414,7 @@ data class Change<T>(val old: T?, val new: T?)
 data class LocationTrackChanges(
     val id: IntId<LocationTrack>,
     val name: Change<AlignmentName>,
-    val descriptionBase: Change<FreeText>,
+    val descriptionBase: Change<LocationTrackDescriptionBase>,
     val descriptionSuffix: Change<DescriptionSuffixType>,
     val state: Change<LocationTrackState>,
     val duplicateOf: Change<IntId<LocationTrack>>,
@@ -459,7 +459,7 @@ data class ReferenceLineChanges(
 data class TrackNumberChanges(
     val id: IntId<TrackLayoutTrackNumber>,
     val trackNumber: Change<TrackNumber>,
-    val description: Change<FreeText>,
+    val description: Change<TrackNumberDescription>,
     val state: Change<LayoutState>,
     val startAddress: Change<TrackMeter>,
     val endPoint: Change<Point>,
