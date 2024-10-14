@@ -99,15 +99,15 @@ export function timeStampComparator<T>(
     };
 }
 
-export function multiFieldComparator<T, S>(
-    ...getters: ((obj: T) => S)[]
-): (v1: T, v2: T) => number {
-    return (v1: T, v2: T) => {
-        for (const getter of getters) {
-            const comp = compareByField(v1, v2, getter);
-            if (comp != 0) return comp;
-        }
-        return 0;
+export function multiFieldComparator<T extends unknown[], S>(
+    ...getters: { [K in keyof T]: (obj: T[K]) => S }
+): (v1: T[number], v2: T[number]) => number {
+    return (v1: T[number], v2: T[number]) => {
+        return getters.reduce((previousComparisonResult, nextGetter) => {
+            return previousComparisonResult !== 0
+                ? previousComparisonResult
+                : compareByField(v1, v2, nextGetter);
+        }, 0);
     };
 }
 
@@ -157,13 +157,10 @@ export function groupBy<T, K extends string | number>(
     array: T[],
     getKey: (item: T) => K,
 ): Record<K, T[]> {
-    return array.reduce(
-        (acc, item) => {
-            (acc[getKey(item)] ||= []).push(item);
-            return acc;
-        },
-        {} as Record<K, T[]>,
-    );
+    return array.reduce((acc, item) => {
+        (acc[getKey(item)] ||= []).push(item);
+        return acc;
+    }, {} as Record<K, T[]>);
 }
 
 /**

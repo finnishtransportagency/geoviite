@@ -100,11 +100,10 @@ export const MainContainer: React.FC = () => {
     const mapDelegates = createDelegates(trackLayoutActionCreators);
 
     const layoutMode = useTrackLayoutAppSelector((state) => state.layoutMode);
-    const versionInStore = useCommonDataAppSelector((state) => state.version);
+    const commonAppData = useCommonDataAppSelector((state) => state);
+    const versionInStore = commonAppData.version;
+    const versionStatus = commonAppData.versionStatus;
     const versionFromBackend = getEnvironmentInfo()?.releaseVersion;
-    const [versionStatus, setVersionStatus] = React.useState<'loading' | 'reload' | 'ok'>(
-        'loading',
-    );
     const delegates = React.useMemo(() => createDelegates(commonActionCreators), []);
 
     React.useEffect(() => {
@@ -119,7 +118,7 @@ export const MainContainer: React.FC = () => {
 
     React.useEffect(() => {
         if (typeof versionFromBackend == 'string') {
-            setVersionStatus(
+            delegates.setVersionStatus(
                 !versionInStore || versionInStore === versionFromBackend ? 'ok' : 'reload',
             );
 

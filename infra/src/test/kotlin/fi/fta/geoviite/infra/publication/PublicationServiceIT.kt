@@ -1301,7 +1301,9 @@ constructor(
             assertMatches(draft, published, contextMatch = false)
         }
 
-        assertEqualsCalculatedChanges(draftCalculatedChanges, publicationDetails)
+        if (layoutBranch == LayoutBranch.main) {
+            assertEqualsCalculatedChanges(draftCalculatedChanges, publicationDetails)
+        }
         return publicationResult
     }
 
@@ -3817,6 +3819,134 @@ constructor(
         publishAndVerify(testBranch, publicationRequest(locationTracks = listOf(locationTrack)))
         locationTrackService.mergeToMainBranch(testBranch, locationTrack)
         publishAndVerify(MainBranch.instance, publicationRequest(locationTracks = listOf(locationTrack)))
+    }
+
+    @Test
+    fun `changes published in design do not confuse publication change logs`() {
+        val trackNumber = mainDraftContext.insert(trackNumber(TrackNumber("original")))
+        val referenceLine =
+            mainDraftContext.insert(
+                referenceLine(trackNumber.id),
+                alignment(segment(Point(0.0, 0.0), Point(10.0, 10.0))),
+            )
+        val switch =
+            mainDraftContext.insert(
+                switch(
+                    name = "original",
+                    joints = listOf(TrackLayoutSwitchJoint(JointNumber(1), Point(5.0, 5.0), null)),
+                )
+            )
+        val locationTrack =
+            mainDraftContext.insert(
+                locationTrack(trackNumber.id, name = "original"),
+                alignment(
+                    segment(Point(0.0, 0.0), Point(5.0, 5.0))
+                        .copy(switchId = switch.id, endJointNumber = JointNumber(1)),
+                    segment(Point(5.0, 5.0), Point(10.0, 10.0)),
+                ),
+            )
+        val kmPost =
+            mainDraftContext.insert(kmPost(trackNumber.id, km = KmNumber(124), roughLayoutLocation = Point(4.0, 4.0)))
+        val requestPublishEverything =
+            publicationRequest(
+                trackNumbers = listOf(trackNumber.id),
+                referenceLines = listOf(referenceLine.id),
+                locationTracks = listOf(locationTrack.id),
+                switches = listOf(switch.id),
+                kmPosts = listOf(kmPost.id),
+            )
+        val originalPublication = publishAndVerify(LayoutBranch.main, requestPublishEverything).publicationId!!
+        setPublicationTime(originalPublication, Instant.parse("2024-01-01T00:00:00Z"))
+
+        val designBranch = testDBService.createDesignBranch()
+
+        trackNumberService.saveDraft(
+            designBranch,
+            mainOfficialContext.fetch(trackNumber.id)!!.copy(number = TrackNumber("edited in design")),
+        )
+        referenceLineService.saveDraft(
+            designBranch,
+            mainOfficialContext.fetch(referenceLine.id)!!,
+            alignment(segment(Point(1.0, 0.0), Point(1.0, 10.0))),
+        )
+        locationTrackService.saveDraft(
+            designBranch,
+            mainOfficialContext.fetch(locationTrack.id)!!.copy(name = AlignmentName("edited in design")),
+        )
+        switchService.saveDraft(
+            designBranch,
+            mainOfficialContext.fetch(switch.id)!!.copy(name = SwitchName("edited in design")),
+        )
+        kmPostService.saveDraft(designBranch, mainOfficialContext.fetch(kmPost.id)!!.copy(kmNumber = KmNumber(101)))
+
+        publishAndVerify(designBranch, requestPublishEverything).also {
+            setPublicationTime(it.publicationId!!, Instant.parse("2024-01-02T00:00:00Z"))
+        }
+
+        publicationDao.fetchPublishedTrackNumbers(originalPublication).let { (directChanges, indirectChanges) ->
+            assertEquals(
+                listOf(trackNumberDao.fetchVersion(MainLayoutContext.official, trackNumber.id)),
+                directChanges.map { it.version },
+            )
+            assertEquals(listOf(), indirectChanges)
+        }
+        publicationDao
+            .fetchPublicationTrackNumberChanges(
+                LayoutBranch.main,
+                originalPublication,
+                Instant.parse("2023-01-01T00:00:00Z"),
+            )
+            .let { changes ->
+                assertEquals(1, changes.size)
+                val change = changes[trackNumber.id]!!
+                assertEquals(null, change.trackNumber.old)
+                assertEquals("original", change.trackNumber.new.toString())
+            }
+        publicationDao.fetchPublishedReferenceLines(originalPublication).let { published ->
+            assertEquals(
+                listOf(referenceLineDao.fetchVersion(MainLayoutContext.official, referenceLine.id)),
+                published.map { it.version },
+            )
+        }
+        publicationDao.fetchPublicationReferenceLineChanges(originalPublication).let { changes ->
+            assertEquals(1, changes.size)
+            val change = changes[referenceLine.id]!!
+            assertEquals(null, change.startPoint.old)
+            assertEquals(Point(0.0, 0.0), change.startPoint.new)
+        }
+        publicationDao.fetchPublishedLocationTracks(originalPublication).let { (directChanges, indirectChanges) ->
+            assertEquals(
+                listOf(locationTrackDao.fetchVersion(MainLayoutContext.official, locationTrack.id)),
+                directChanges.map { it.version },
+            )
+            assertEquals(listOf(), indirectChanges)
+        }
+        publicationDao.fetchPublicationLocationTrackChanges(originalPublication).let { changes ->
+            assertEquals(1, changes.size)
+            val change = changes[locationTrack.id]!!
+            assertEquals("original", change.name.new.toString())
+        }
+        publicationDao.fetchPublishedSwitches(originalPublication).let { (directChanges, indirectChanges) ->
+            assertEquals(
+                listOf(switchDao.fetchVersion(MainLayoutContext.official, switch.id)),
+                directChanges.map { it.version },
+            )
+            assertEquals(listOf(), indirectChanges)
+        }
+        publicationDao.fetchPublicationSwitchChanges(originalPublication).let { changes ->
+            assertEquals(1, changes.size)
+            val change = changes[switch.id]!!
+            assertEquals("original", change.name.new.toString())
+        }
+        publicationDao.fetchPublishedKmPosts(originalPublication).let { published ->
+            assertEquals(1, published.size)
+            assertEquals(KmNumber(124), published[0].kmNumber)
+        }
+        publicationDao.fetchPublicationKmPostChanges(originalPublication).let { changes ->
+            assertEquals(1, changes.size)
+            val change = changes[kmPost.id]!!
+            assertEquals(KmNumber(124), change.kmNumber.new)
+        }
     }
 
     private fun validateLocationTracks(vararg locationTracks: IntId<LocationTrack>): List<LayoutValidationIssue> =
