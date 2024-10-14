@@ -82,8 +82,8 @@ class LayoutAlignmentDao(
         val sql =
             """
           select 
-            sv.alignment_id,
-            sv.alignment_version,
+            a.id alignment_id,
+            a.version alignment_version,
             sv.segment_index,
             sv.start,
             sv.geometry_alignment_id,
@@ -96,37 +96,42 @@ class LayoutAlignmentDao(
             sv.geometry_id
           from layout.alignment a
             left join layout.segment_version sv on sv.alignment_id = a.id and sv.alignment_version = a.version
-          where sv.segment_index is not null
-          order by sv.alignment_id, sv.segment_index
+          order by a.id, sv.segment_index
         """
                 .trimIndent()
 
         data class AlignmentData(val version: RowVersion<LayoutAlignment>)
 
-        val dataTriple =
+        val alignmentAndSegment =
             jdbcTemplate.query(sql) { rs, _ ->
                 val alignmentData = AlignmentData(version = rs.getRowVersion("alignment_id", "alignment_version"))
-                val segmentData =
-                    SegmentData(
-                        id = rs.getIndexedId("alignment_id", "segment_index"),
-                        start = rs.getDouble("start"),
-                        sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
-                        sourceStart = rs.getDoubleOrNull("source_start"),
-                        switchId = rs.getIntIdOrNull("switch_id"),
-                        startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
-                        endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
-                        source = rs.getEnum("source"),
-                    )
-                val geometryId = rs.getIntId<SegmentGeometry>("geometry_id")
-                Triple(alignmentData, segmentData, geometryId)
+                val segmentId = rs.getIndexedIdOrNull<LayoutSegment>("alignment_id", "segment_index")
+                val segment =
+                    segmentId?.let { sId ->
+                        SegmentData(
+                            id = sId,
+                            start = rs.getDouble("start"),
+                            sourceId = rs.getIndexedIdOrNull("geometry_alignment_id", "geometry_element_index"),
+                            sourceStart = rs.getDoubleOrNull("source_start"),
+                            switchId = rs.getIntIdOrNull("switch_id"),
+                            startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
+                            endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
+                            source = rs.getEnum("source"),
+                            rs.getIntId("geometry_id"),
+                        )
+                    }
+                alignmentData to segment
             }
-        val groupedByAlignment = dataTriple.groupBy({ (a, _, _) -> a }, { (_, s, gId) -> s to gId })
+        val groupedByAlignment = alignmentAndSegment.groupBy({ (a, _) -> a }, { (_, s) -> s })
         val alignments =
             groupedByAlignment.entries
                 .parallelStream()
                 .map { (alignmentData, segmentDatas) ->
                     alignmentData.version to
-                        LayoutAlignment(id = alignmentData.version.id, segments = createSegments(segmentDatas))
+                        LayoutAlignment(
+                            id = alignmentData.version.id,
+                            segments = createSegments(segmentDatas.filterNotNull()),
+                        )
                 }
                 .collect(Collectors.toList())
                 .associate { it }
@@ -263,22 +268,23 @@ class LayoutAlignmentDao(
                     startJointNumber = rs.getJointNumberOrNull("switch_start_joint_number"),
                     endJointNumber = rs.getJointNumberOrNull("switch_end_joint_number"),
                     source = rs.getEnum("source"),
-                ) to rs.getIntId("geometry_id")
+                    geometryId = rs.getIntId("geometry_id"),
+                )
             }
         )
     }
 
-    private fun createSegments(segmentResults: List<Pair<SegmentData, IntId<SegmentGeometry>>>): List<LayoutSegment> {
-        val geometries = fetchSegmentGeometries(segmentResults.map { (_, geometryId) -> geometryId }.distinct())
+    private fun createSegments(segmentResults: List<SegmentData>): List<LayoutSegment> {
+        val geometries = fetchSegmentGeometries(segmentResults.map { s -> s.geometryId }.distinct())
 
         var start = 0.0
-        return segmentResults.map { (data, geometryId) ->
+        return segmentResults.map { data ->
             require(abs(start - data.start) < LAYOUT_M_DELTA) {
                 "Segment start value does not match the calculated one: stored=${data.start} calc=$start"
             }
             val geometry =
-                requireNotNull(geometries[geometryId]) {
-                    "Fetching geometry failed for segment: id=${data.id} geometryId=$geometryId"
+                requireNotNull(geometries[data.geometryId]) {
+                    "Fetching geometry failed for segment: id=${data.id} geometryId=$data.geometryId"
                 }
             LayoutSegment(
                     id = data.id,
@@ -845,4 +851,5 @@ private data class SegmentData(
     val startJointNumber: JointNumber?,
     val endJointNumber: JointNumber?,
     val source: GeometrySource,
+    val geometryId: IntId<SegmentGeometry>,
 )
