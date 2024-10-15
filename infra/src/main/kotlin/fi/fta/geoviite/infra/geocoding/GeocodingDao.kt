@@ -73,7 +73,7 @@ class GeocodingDao(
               left join layout.km_post_in_layout_context(:publication_state::layout.publication_state, :design_id)
                 kmp on kmp.track_number_id = tn.official_id
                 and kmp.state = 'IN_USE'
-            where (:tn_id::int is null or :tn_id = tn.official_id)
+            where ((:tn_id::int is null and tn.state != 'DELETED') or :tn_id = tn.official_id)
             group by tn.official_id, tn.row_id, tn.row_version, rl.row_id, rl.row_version
         """
                 .trimIndent()
