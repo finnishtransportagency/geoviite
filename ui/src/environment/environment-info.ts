@@ -1,6 +1,5 @@
-import * as React from 'react';
-
-const environmentSettingsPromise = fetch('/api/environment').then((r) => r.json());
+import { useLoader } from 'utils/react-utils';
+import { getNonNull } from 'api/api-fetch';
 
 export type EnvironmentInfo = {
     releaseVersion: string;
@@ -9,11 +8,6 @@ export type EnvironmentInfo = {
 
 export type Environment = 'local' | 'dev' | 'test' | 'prod';
 
-export function getEnvironmentInfo() {
-    const [info, setInfo] = React.useState<EnvironmentInfo>();
-    React.useMemo(() => {
-        environmentSettingsPromise.then((response) => setInfo(response));
-    }, []);
-
-    return info;
+export function useEnvironmentInfo(): EnvironmentInfo | undefined {
+    return useLoader<EnvironmentInfo>(() => getNonNull<EnvironmentInfo>('/api/environment'), []);
 }
