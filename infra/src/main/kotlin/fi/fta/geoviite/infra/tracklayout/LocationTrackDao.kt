@@ -478,6 +478,7 @@ class LocationTrackDao(
                             from layout.location_track, layout.location_track_is_in_layout_context(
                                 :publication_state::layout.publication_state,
                                 :design_id, location_track)
+                          where state != 'DELETED'
                         ) location_track
                           join layout.alignment on alignment_id = alignment.id and alignment_version = alignment.version
                         where (point.location_track_name is null or location_track.name = point.location_track_name)
