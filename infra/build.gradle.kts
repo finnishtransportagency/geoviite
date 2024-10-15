@@ -67,9 +67,8 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.2")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.17.2")
     implementation("com.zaxxer:HikariCP:5.1.0")
-    implementation("org.flywaydb:flyway-core:9.22.3")
-    // v enable once going to Flyway 10.0 (requires Spring Boot 2.7.18)
-    // implementation("org.flywaydb:flyway-database-postgresql:10.0.0")
+    implementation("org.flywaydb:flyway-core:10.19.0")
+    implementation("org.flywaydb:flyway-database-postgresql:10.19.0")
     implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
     implementation("org.geotools:gt-main:$geotoolsVersion") {
         // Excluded as the license (JDL or JRL) compatibility is unconfirmed. We don't need this.
