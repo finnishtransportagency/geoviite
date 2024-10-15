@@ -90,7 +90,9 @@ data class GeocodingReferencePoint(
     val distance: Double,
     val kmPostOffset: Double,
     val intersectType: IntersectType,
-)
+) {
+    val distanceRounded = roundTo3Decimals(distance)
+}
 
 data class AddressAndM(val address: TrackMeter, val m: Double, val intersectType: IntersectType)
 
@@ -435,17 +437,26 @@ data class GeocodingContext(
     }
 
     fun getTrackLocation(alignment: IAlignment, address: TrackMeter): AddressPoint? {
+        return getTrackLocations(alignment, listOf(address))[0]
+    }
+
+    fun getTrackLocations(alignment: IAlignment, addresses: List<TrackMeter>): List<AddressPoint?> {
         val alignmentStart = alignment.start
         val alignmentEnd = alignment.end
         val startAddress = alignmentStart?.let(::getAddress)?.first
         val endAddress = alignmentEnd?.let(::getAddress)?.first
-        return if (startAddress == null || endAddress == null || address !in startAddress..endAddress) {
-            null
-        } else if (startAddress.isSame(address)) {
-            AddressPoint(alignmentStart, startAddress)
-        } else if (endAddress.isSame(address)) {
-            AddressPoint(alignmentEnd, endAddress)
-        } else getProjectionLine(address)?.let { projectionLine -> getProjectedAddressPoint(projectionLine, alignment) }
+        return addresses.map { address ->
+            if (startAddress == null || endAddress == null || address !in startAddress..endAddress) {
+                null
+            } else if (startAddress.isSame(address)) {
+                AddressPoint(alignmentStart, startAddress)
+            } else if (endAddress.isSame(address)) {
+                AddressPoint(alignmentEnd, endAddress)
+            } else
+                getProjectionLine(address)?.let { projectionLine ->
+                    getProjectedAddressPoint(projectionLine, alignment)
+                }
+        }
     }
 
     fun getStartAndEnd(alignment: IAlignment): AlignmentStartAndEnd {
@@ -477,7 +488,7 @@ data class GeocodingContext(
     private fun findPreviousPoint(targetDistance: Double): GeocodingReferencePoint {
         val target = roundTo3Decimals(targetDistance) // Round to 1mm to work around small imprecision
         if (target < BigDecimal.ZERO) throw GeocodingFailureException("Cannot geocode with negative distance")
-        return referencePoints.findLast { (_, _, distance: Double) -> roundTo3Decimals(distance) <= target }
+        return referencePoints.findLast { referencePoint -> referencePoint.distanceRounded <= target }
             ?: throw GeocodingFailureException("Target point is not withing the reference line length")
     }
 

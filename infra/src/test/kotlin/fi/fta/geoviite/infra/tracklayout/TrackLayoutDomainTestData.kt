@@ -48,7 +48,6 @@ import fi.fta.geoviite.infra.switchLibrary.SwitchStructure
 import fi.fta.geoviite.infra.switchLibrary.SwitchType
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.GENERATED
 import fi.fta.geoviite.infra.tracklayout.GeometrySource.PLAN
-import fi.fta.geoviite.infra.util.FreeText
 import java.time.LocalDate
 import kotlin.math.ceil
 import kotlin.random.Random
@@ -439,6 +438,7 @@ fun locationTrack(
     duplicateOf: IntId<LocationTrack>? = null,
     ownerId: IntId<LocationTrackOwner> = IntId(1),
     contextData: LayoutContextData<LocationTrack> = createMainContext(id, null, draft),
+    descriptionSuffix: DescriptionSuffixType = DescriptionSuffixType.NONE,
 ) =
     locationTrack(
         trackNumberId = trackNumberId,
@@ -455,6 +455,7 @@ fun locationTrack(
         topologyEndSwitch = topologyEndSwitch,
         duplicateOf = duplicateOf,
         ownerId = ownerId,
+        descriptionSuffix = descriptionSuffix,
     )
 
 fun locationTrack(
@@ -472,11 +473,12 @@ fun locationTrack(
     topologyEndSwitch: TopologyLocationTrackSwitch? = null,
     duplicateOf: IntId<LocationTrack>? = null,
     ownerId: IntId<LocationTrackOwner> = IntId(1),
+    descriptionSuffix: DescriptionSuffixType = DescriptionSuffixType.NONE,
 ) =
     LocationTrack(
         name = AlignmentName(name),
         descriptionBase = LocationTrackDescriptionBase(description),
-        descriptionSuffix = DescriptionSuffixType.NONE,
+        descriptionSuffix = descriptionSuffix,
         type = type,
         state = state,
         externalId = externalId,

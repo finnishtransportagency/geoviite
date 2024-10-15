@@ -12,7 +12,7 @@ import fi.fta.geoviite.infra.error.ExtApiExceptionV1
 import fi.fta.geoviite.infra.logging.apiCall
 import fi.fta.geoviite.infra.logging.apiResult
 import fi.fta.geoviite.infra.util.Either
-import fi.fta.geoviite.infra.util.processValidated
+import fi.fta.geoviite.infra.util.processRights
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -140,9 +140,9 @@ class FrameConverterControllerV1 @Autowired constructor(private val frameConvert
         params: FrameConverterQueryParamsV1,
     ): List<List<GeoJsonFeature>> {
         return processRequests(
-            assertRequestType(requests),
+            frameConverterServiceV1.validateTrackAddressToCoordinateRequests(assertRequestType(requests), params),
             params,
-            frameConverterServiceV1::validateTrackAddressToCoordinateRequest,
+            { validated, _ -> validated },
             frameConverterServiceV1::trackAddressesToCoordinates,
         )
     }
@@ -158,13 +158,13 @@ class FrameConverterControllerV1 @Autowired constructor(private val frameConvert
         return requests as List<Request>
     }
 
-    private fun <Request : FrameConverterRequestV1, ValidRequest> processRequests(
+    private fun <Request, ValidRequest> processRequests(
         requests: List<Request>,
         params: FrameConverterQueryParamsV1,
         validate: (Request, FrameConverterQueryParamsV1) -> Either<List<GeoJsonFeatureErrorResponseV1>, ValidRequest>,
         process: (LayoutContext, List<ValidRequest>, FrameConverterQueryParamsV1) -> List<List<GeoJsonFeature>>,
     ): List<List<GeoJsonFeature>> =
-        processValidated(
+        processRights(
             requests,
             { request -> validate(request, params) },
             { validRequests -> process(MainLayoutContext.official, validRequests, params) },
