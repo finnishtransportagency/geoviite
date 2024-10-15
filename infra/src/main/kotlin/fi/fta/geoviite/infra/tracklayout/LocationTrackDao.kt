@@ -454,16 +454,25 @@ class LocationTrackDao(
             """
             with search_points as materialized (
               select
-                generate_subscripts(array [:xs], 1) as request_number,
-                unnest(array [:xs]) as x,
-                unnest(array [:ys]) as y,
-                unnest(array [:max_distances]) as max_distance,
-                unnest(array [:location_track_names]) as location_track_name,
-                unnest(array [:location_track_types])::layout.track_type as location_track_type,
-                unnest(array [:track_numbers]) as track_number
+                request_number,
+                postgis.st_point(x, y, :layout_srid) as point,
+                max_distance,
+                location_track_name,
+                location_track_type,
+                track_number
+                from (
+                  select
+                    generate_subscripts(array [:xs], 1) as request_number,
+                    unnest(array [:xs]) as x,
+                    unnest(array [:ys]) as y,
+                    unnest(array [:max_distances]) as max_distance,
+                    unnest(array [:location_track_names]) as location_track_name,
+                    unnest(array [:location_track_types])::layout.track_type as location_track_type,
+                    unnest(array [:track_numbers]) as track_number
+                ) inputs
             ),
               filtered_by_search_terms as (
-                select point.x as point_x, point.y as point_y, point.request_number, location_track.*
+                select point.point, point.request_number, point.max_distance, location_track.*
                   from search_points point,
                     lateral (
                       select
@@ -487,9 +496,10 @@ class LocationTrackDao(
                                             :design_id,
                                             location_track.track_number_id)
                                         where number = point.track_number))
-                          and postgis.st_intersects(
-                            postgis.st_expand(postgis.st_point(point.x, point.y, :layout_srid), point.max_distance),
-                            alignment.bounding_box
+                          and postgis.st_dwithin(
+                            point.point,
+                            alignment.bounding_box,
+                            point.max_distance
                           )
                         group by point.request_number) location_track
               )
@@ -500,8 +510,8 @@ class LocationTrackDao(
               from (
                 select
                   request_number,
-                  point_x,
-                  point_y,
+                  point,
+                  max_distance,
                   unnest(ids) as id,
                   unnest(versions) as version,
                   unnest(alignment_ids) as alignment_id,
@@ -509,10 +519,11 @@ class LocationTrackDao(
                   from filtered_by_search_terms
               ) t
               order by request_number, (
-                select min(postgis.st_distance(postgis.st_point(point_x, point_y, :layout_srid), segment_geometry.geometry))
+                select min(postgis.st_distance(point, segment_geometry.geometry))
                   from layout.segment_version
                     join layout.segment_geometry on geometry_id = segment_geometry.id
                   where segment_version.alignment_id = t.alignment_id and segment_version.alignment_version = t.alignment_version
+                    and postgis.st_dwithin(point, segment_geometry.bounding_box, max_distance)
               );
         """
                 .trimIndent()
