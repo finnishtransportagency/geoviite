@@ -26,7 +26,7 @@ import {
     ReferenceLineId,
 } from 'track-layout/track-layout-model';
 import { GeometryKmPostId } from 'geometry/geometry-model';
-import { angleDiffRads, directionBetweenPoints, interpolateXY } from 'utils/math-utils';
+import { angleDiffRads, directionBetweenPoints } from 'utils/math-utils';
 import { exhaustiveMatchingGuard, expectDefined } from 'utils/type-utils';
 import { draftLayoutContext } from 'common/common-model';
 import { brand } from 'common/brand';
@@ -452,20 +452,6 @@ export function createLinkPoints(
     return points.flatMap((point, pIdx) => {
         const linkPoints: LinkPoint[] = [];
 
-        segmentEndMs.every((endM) => {
-            // Generate points for segment start/end markers if needed
-            if (endM <= point.m) return false;
-
-            // Only do the interpolated point if it's not in the actual points already
-            const previousPoint = points[pIdx - 1];
-            if (previousPoint && endM < point.m) {
-                linkPoints.push(
-                    interpolateSegmentEndLinkPoint(type, id, previousPoint, point, endM),
-                );
-            }
-            return undefined;
-        });
-
         // Create the linkpoint from layout point
         const direction =
             pIdx === 0
@@ -479,26 +465,6 @@ export function createLinkPoints(
 
         return linkPoints;
     });
-}
-
-function interpolateSegmentEndLinkPoint(
-    alignmentType: MapAlignmentType,
-    alignmentId: AlignmentId,
-    previous: AlignmentPoint,
-    next: AlignmentPoint,
-    newM: number,
-): LinkPoint {
-    const [x, y] = interpolateXY(previous, next, newM);
-    return createLinkPoint(
-        alignmentType,
-        alignmentId,
-        x,
-        y,
-        newM,
-        directionBetweenPoints(previous, next),
-        true,
-        false,
-    );
 }
 
 export function alignmentPointToLinkPoint(
