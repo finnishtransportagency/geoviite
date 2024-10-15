@@ -60,6 +60,8 @@ const val HTTP_HEADER_GEOVIITE_UI_VERSION = "x-geoviite-ui-version"
 const val ALGORITHM_RS256 = "RS256"
 const val ALGORITHM_ES256 = "ES256"
 
+const val API_PREFIX = "/api"
+
 val slowRequestThreshold: Duration = Duration.ofSeconds(5)
 
 @ConditionalOnWebApplication
@@ -174,9 +176,16 @@ constructor(
             val auth = UsernamePasswordAuthenticationToken(user, "", user.role.privileges)
             SecurityContextHolder.getContext().authentication = auth
 
-            checkUiRequestVersion(request)
+            val path = request.requestURI
 
-            chain.doFilter(request, response)
+            if (path.startsWith(API_PREFIX)) {
+                val newPath = path.replace(API_PREFIX, "")
+                request.getRequestDispatcher(newPath).forward(request, response)
+                return
+            } else {
+                checkUiRequestVersion(request)
+                chain.doFilter(request, response)
+            }
         } catch (ex: Exception) {
             val errorResponse = createErrorResponse(log, ex)
             response.contentType = errorResponse.headers.contentType?.toString() ?: MediaType.APPLICATION_JSON_VALUE

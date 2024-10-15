@@ -152,3 +152,13 @@ tasks.withType<AbstractArchiveTask> {
     isPreserveFileTimestamps = false
     isReproducibleFileOrder = true
 }
+
+tasks.register("downloadDependencies") {
+    doLast {
+        configurations.forEach { configuration ->
+            if (configuration.isCanBeResolved) {
+                configuration.resolve()
+            }
+        }
+    }
+}
