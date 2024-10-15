@@ -56,11 +56,14 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.web.servlet.config.annotation.EnableWebMvc
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
+import org.springframework.web.servlet.resource.PathResourceResolver
 
 @ConditionalOnWebApplication
 @EnableWebMvc
 @Configuration
 class WebConfig(
+    @Value("\${geoviite.static-url:}") val staticUrl: String,
+    @Value("\${geoviite.static-resources:}") val staticResourcesPath: String,
     @Value("\${geoviite.ext-api.enabled:false}") val extApiEnabled: Boolean,
     @Value("\${geoviite.ext-api.static-url:}") val extApiStaticUrl: String,
     @Value("\${geoviite.ext-api.static-resources:}") val extApiStaticResourcesPath: String,
@@ -68,6 +71,15 @@ class WebConfig(
     val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
     override fun addResourceHandlers(registry: ResourceHandlerRegistry) {
+        if (staticUrl.isNotEmpty() && staticResourcesPath.isNotEmpty()) {
+            logger.info("Static file serving enabled, url=$staticUrl, resources=$staticResourcesPath")
+            registry
+                .addResourceHandler(staticUrl)
+                .addResourceLocations(staticResourcesPath)
+                .resourceChain(true)
+                .addResolver(PathResourceResolver())
+        }
+
         if (extApiEnabled && extApiStaticUrl.isNotEmpty() && extApiStaticResourcesPath.isNotEmpty()) {
             logger.info("Static file serving enabled, url=$extApiStaticUrl, resources=$extApiStaticResourcesPath")
             registry.addResourceHandler(extApiStaticUrl).addResourceLocations(extApiStaticResourcesPath)

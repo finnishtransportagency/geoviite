@@ -1,0 +1,141 @@
+services:
+  backend-build:
+    image: ${IMAGE_BACKEND}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: geoviite-backend-build
+
+  frontend-build:
+    image: ${IMAGE_FRONTEND}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: geoviite-frontend-build
+
+  distribution-build:
+    image: ${IMAGE_DISTRIBUTION}
+    command: "echo Done" # We don't want the build container to start as a service.
+    depends_on:
+      backend-build:
+        condition: service_completed_successfully
+      frontend-build:
+        condition: service_completed_successfully
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: geoviite-distribution-build
+      args:
+        BUILD_VERSION: ${BUILD_VERSION}
+
+  db-service:
+    image: ${IMAGE_DB}
+    build: docker-images/geoviite-postgres
+    environment:
+      POSTGRES_USER: dev-geouser
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - ${HOST_PORT_DB}:5432
+    healthcheck:
+      test: [ "CMD", "pg_isready" ]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+
+  test-db-service:
+    image: ${IMAGE_DB}
+    build: docker-images/geoviite-postgres
+    environment:
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - ${HOST_PORT_DB_TEST}:5432
+    healthcheck:
+      test: [ "CMD", "pg_isready" ]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+
+  backend:
+    image: ${IMAGE_DISTRIBUTION}
+    depends_on:
+      distribution-build:
+        condition: service_completed_successfully
+      db-service:
+        condition: service_healthy
+    environment:
+      DB_URL: db-service/${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SPRING_PROFILES_ACTIVE: noauth,backend,static-fileserver
+    ports:
+      - 127.0.0.1:${HOST_PORT_GEOVIITE}:8080
+    healthcheck:
+      test: "wget --spider --quiet http://localhost:8080/actuator/health || exit 1"
+      interval: 5s
+      timeout: 1s
+      retries: 10
+
+  ext-api:
+    image: ${IMAGE_DISTRIBUTION}
+    depends_on:
+      distribution-build:
+        condition: service_completed_successfully
+      db-service:
+        condition: service_healthy
+    environment:
+      DB_URL: db-service/${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SPRING_PROFILES_ACTIVE: noauth,ext-api
+    ports:
+      - 127.0.0.1:${HOST_PORT_EXT_API}:8080
+    healthcheck:
+      test: "wget --spider --quiet http://localhost:8080/actuator/health || exit 1"
+      interval: 5s
+      timeout: 1s
+      retries: 10
+
+  e2e-backend:
+    image: ${IMAGE_DISTRIBUTION}
+    depends_on:
+      distribution-build:
+        condition: service_completed_successfully
+      test-db-service:
+        condition: service_healthy
+    environment:
+      DB_URL: test-db-service/${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SPRING_PROFILES_ACTIVE: e2e,noauth,backend
+    ports:
+      - 127.0.0.1:${HOST_PORT_GEOVIITE_E2E}:8080
+    healthcheck:
+      test: "wget --spider --quiet http://localhost:8080/actuator/health || exit 1"
+      interval: 5s
+      timeout: 1s
+      retries: 10
+
+  backend-unit-tests:
+    image: ${IMAGE_BACKEND}
+    command: ./gradlew --no-daemon --offline test --tests *Test
+    depends_on:
+      backend-build:
+        condition: service_completed_successfully
+
+  backend-integration-tests:
+    image: ${IMAGE_BACKEND}
+    command: |
+      ./gradlew --no-daemon --offline integrationtest --tests *IT &&
+      ./gradlew cleanTest integrationtest-without-cache --tests "*DaoIT"
+    depends_on:
+      backend-build:
+        condition: service_completed_successfully
+      test-db-service:
+        condition: service_healthy
+    environment:
+      DB_URL: test-db-service/${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}

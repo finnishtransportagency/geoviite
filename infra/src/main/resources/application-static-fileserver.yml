@@ -1,0 +1,3 @@
+geoviite:
+  static-url: '/app/**'
+  static-resources: 'classpath:/static/frontend/'
