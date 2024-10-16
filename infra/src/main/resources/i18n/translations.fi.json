@@ -1562,7 +1562,8 @@
         "calculated-change": "Laskennallinen muutos",
         "calculated-change-lowercase": "laskennallinen muutos",
         "truncated": "Käyttöliittymässä näytetään {{number}} ensimmäistä muutosta",
-        "changes": "Muutokset"
+        "changes": "Muutokset",
+        "loading": "Julkaisulokia ladataan"
     },
     "publication-details-table": {
         "property": "Muuttunut kohde",
@@ -1633,7 +1634,8 @@
         "start-date": "Alkupvm.",
         "end-date": "Loppupvm.",
         "export-csv": "Lataa CSV",
-        "end-before-start": "Loppupäivämäärä on ennen alkupäivämäärää"
+        "end-before-start": "Loppupäivämäärä on ennen alkupäivämäärää",
+        "search-range-too-long": "Hakuaikaväli on liian pitkä. Lyhennä hakuaikaväliä alle {{maxDays}} päivän mittaiseksi."
     },
     "publication-card": {
         "latest": "Viimeisimmät viedyt julkaisut",
