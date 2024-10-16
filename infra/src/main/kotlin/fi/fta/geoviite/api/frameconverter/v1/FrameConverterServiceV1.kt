@@ -24,10 +24,12 @@ import fi.fta.geoviite.infra.math.lineLength
 import fi.fta.geoviite.infra.tracklayout.AlignmentPoint
 import fi.fta.geoviite.infra.tracklayout.LAYOUT_SRID
 import fi.fta.geoviite.infra.tracklayout.LayoutAlignment
+import fi.fta.geoviite.infra.tracklayout.LayoutState
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberService
 import fi.fta.geoviite.infra.tracklayout.LocationTrack
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackService
+import fi.fta.geoviite.infra.tracklayout.LocationTrackState
 import fi.fta.geoviite.infra.tracklayout.LocationTrackType
 import fi.fta.geoviite.infra.tracklayout.TrackLayoutTrackNumber
 import fi.fta.geoviite.infra.util.Either
@@ -162,10 +164,9 @@ constructor(
                 val geocodingContext =
                     geocodingService.getGeocodingContext(layoutContext = layoutContext, trackNumberId = trackNumberId)
                 val tracksAndAlignments =
-                    locationTrackService.listWithAlignments(
-                        layoutContext = layoutContext,
-                        trackNumberId = trackNumberId,
-                    )
+                    locationTrackService
+                        .listWithAlignments(layoutContext = layoutContext, trackNumberId = trackNumberId)
+                        .filter { (locationTrack) -> locationTrack.state == LocationTrackState.IN_USE }
                 val trackDescriptions = getTrackDescriptions(params, tracksAndAlignments.map { (track) -> track })
                 TrackNumberRequests(geocodingContext, tracksAndAlignments, trackDescriptions, requests)
             }
@@ -322,7 +323,9 @@ constructor(
                 .mapNotNull { request -> createValidTrackNumberNameOrNull(request.trackNumberName).first }
                 .distinct()
                 .associateWith { trackNumber ->
-                    trackNumberService.find(MainLayoutContext.official, trackNumber).firstOrNull()
+                    trackNumberService.find(MainLayoutContext.official, trackNumber).firstOrNull {
+                        it.state == LayoutState.IN_USE
+                    }
                 }
         return requests
             .parallelStream()
