@@ -1772,6 +1772,8 @@
         "mandatory-fields-missing": "Pakollisia kenttiä puuttuu",
         "save-in-progress": "Tallennetaan",
         "km-post-regexp": "Tunnuksessa tulee olla 4 numeroa, tai 4 numeroa ja enintään 2 kirjainta (esim. 1234 tai 1234AA)",
+        "wrong-easting": "E-arvo ei ole annetulla GK-kaistalla",
+        "wrong-northing": "N-arvo ei ole Suomen alueella",
         "gk-coordinate-parse": "GK-sijainnin koordinaatin tulee olla luku",
         "gk-coordinate-saveable-as-float": "GK-sijainnin koordinaattia ei pystytä tallentamaan tällä tarkkuudella",
         "gk-coordinate-in-finland": "Syötetty sijainti ei ole Suomen GK-koordinaatistojen määrittämällä alueella",

@@ -16,10 +16,11 @@ import {
     isPropEditFieldCommitted,
     PropEdit,
 } from 'utils/validation-utils';
-import { isNilOrBlank } from 'utils/string-utils';
+import { isNilOrBlank, parseFloatOrUndefined } from 'utils/string-utils';
 import { filterNotEmpty } from 'utils/array-utils';
-import { GeometryPoint } from 'model/geometry';
+import { GeometryPoint, Point } from 'model/geometry';
 import { Srid } from 'common/common-model';
+import proj4 from 'proj4';
 
 export type KmPostEditState = {
     isNewKmPost: boolean;
@@ -51,6 +52,69 @@ export const initialKmPostEditState: KmPostEditState = {
     committedFields: [],
     allFieldsCommitted: false,
 };
+
+export const WGS_84_PROJECTION = '+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs';
+const SOUTHERNMOST_POINT_OF_FINLAND = 59.505;
+const NORTHMOST_POINT_OF_FINLAND = 70.092;
+const NORTHING_MARGIN = 0.1;
+const EASTING_MARGIN_BETWEEN_GKS = 0.01;
+
+// GK-FIN coordinate systems currently only used for the live display of layout coordinates when editing km post
+// positions manually
+export const GK_FIN_COORDINATE_SYSTEMS: [Srid, string][] = [...Array(12)].map(
+    (_, meridianIndex) => {
+        const meridian = 19 + meridianIndex;
+        const falseNorthing = meridian * 1e6 + 0.5e6;
+        const srid = `EPSG:${3873 + meridianIndex}`;
+        const projection = `+proj=tmerc +lat_0=0 +lon_0=${meridian} +k=1 +x_0=${falseNorthing} +y_0=0 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs`;
+        return [srid, projection];
+    },
+);
+
+export const findCorrectGkSrid = (point: GeometryPoint | undefined): Srid | undefined => {
+    const pointInWgs84 = pointToWgs84(point);
+    if (pointInWgs84) {
+        const gkNumber = Math.round(pointInWgs84.x) - 19;
+        return GK_FIN_COORDINATE_SYSTEMS[gkNumber]?.[0];
+    } else {
+        return undefined;
+    }
+};
+
+const isWithinEastingMargin = (point: GeometryPoint): boolean => {
+    const wgs84Point = pointToWgs84(point);
+    return (
+        !!wgs84Point &&
+        Math.abs(wgs84Point?.x - Math.round(wgs84Point?.x)) < 0.5 + EASTING_MARGIN_BETWEEN_GKS
+    );
+};
+
+const pointToWgs84 = (point: GeometryPoint | undefined): Point | undefined => {
+    const currentPointProjection = point
+        ? GK_FIN_COORDINATE_SYSTEMS.find(([srid]) => srid === point.srid)?.[1]
+        : undefined;
+    return point && currentPointProjection
+        ? proj4(currentPointProjection, WGS_84_PROJECTION).forward({
+              x: point.x,
+              y: point.y,
+          })
+        : undefined;
+};
+
+export function parseGk(
+    gkSrid: string | undefined,
+    xStr: string,
+    yStr: string,
+): GeometryPoint | undefined {
+    const foundGkSrid = GK_FIN_COORDINATE_SYSTEMS.find(([srid, _]) => srid === gkSrid)?.[0];
+    const x = parseFloatOrUndefined(xStr);
+    const y = parseFloatOrUndefined(yStr);
+    if (foundGkSrid === undefined || x === undefined || y === undefined) {
+        return undefined;
+    } else {
+        return { x, y, srid: foundGkSrid };
+    }
+}
 
 function newLinkingKmPost(
     trackNumberId: LayoutTrackNumberId | undefined,
@@ -111,8 +175,8 @@ function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmP
     }
 
     if (
-        (state.gkLocationEnabled && state.kmPost.gkLocationX !== '') ||
-        state.kmPost.gkLocationY !== ''
+        state.gkLocationEnabled &&
+        (state.kmPost.gkLocationX !== '' || state.kmPost.gkLocationY !== '')
     ) {
         if (!isValidGkCoordinate(state.kmPost.gkLocationX)) {
             errors = [...errors, ...getGkCoordinateDoesNotParseError('gkLocationX')];
@@ -123,6 +187,49 @@ function validateLinkingKmPost(state: KmPostEditState): FieldValidationIssue<KmP
             errors = [...errors, ...getGkCoordinateDoesNotParseError('gkLocationY')];
         } else if (!isFaithfullySaveableAsFloat(state.kmPost.gkLocationY)) {
             errors = [...errors, ...getGkCoordinateIsNotFaithfullySaveableError('gkLocationY')];
+        }
+
+        const gkPoint = parseGk(
+            state.kmPost.gkSrid,
+            state.kmPost.gkLocationX,
+            state.kmPost.gkLocationY,
+        );
+        if (
+            !isWithinEastingMargin({
+                x: 0,
+                y: 0,
+                srid: state.kmPost.gkSrid ?? '',
+                ...gkPoint,
+            })
+        ) {
+            errors = [
+                ...errors,
+                {
+                    field: 'gkLocationX',
+                    reason: 'wrong-easting',
+                    type: FieldValidationIssueType.ERROR,
+                },
+            ];
+        }
+        const pointInWgs84 = pointToWgs84({
+            x: 0,
+            y: 0,
+            srid: state.kmPost.gkSrid ?? '',
+            ...gkPoint,
+        });
+        if (
+            pointInWgs84 &&
+            (pointInWgs84.y < SOUTHERNMOST_POINT_OF_FINLAND - NORTHING_MARGIN ||
+                pointInWgs84.y > NORTHMOST_POINT_OF_FINLAND + NORTHING_MARGIN)
+        ) {
+            errors = [
+                ...errors,
+                {
+                    field: 'gkLocationY',
+                    reason: 'wrong-northing',
+                    type: FieldValidationIssueType.ERROR,
+                },
+            ];
         }
     }
 
@@ -227,6 +334,12 @@ const kmPostEditSlice = createSlice({
                 ) {
                     // Valid value entered for a field, mark that field as committed
                     state.committedFields = [...state.committedFields, propEdit.key];
+                    if (propEdit.key === 'gkSrid' && state.kmPost.gkLocationX !== '') {
+                        state.committedFields = [...state.committedFields, 'gkLocationX'];
+                    }
+                    if (propEdit.key === 'gkSrid' && state.kmPost.gkLocationY !== '') {
+                        state.committedFields = [...state.committedFields, 'gkLocationY'];
+                    }
                 }
             }
         },
@@ -240,7 +353,14 @@ const kmPostEditSlice = createSlice({
             state: KmPostEditState,
             { payload: key }: PayloadAction<TKey>,
         ) {
+            // Valid value entered for a field, mark that field as committed
             state.committedFields = [...state.committedFields, key];
+            if (key === 'gkSrid' && state.kmPost.gkLocationX !== '') {
+                state.committedFields = [...state.committedFields, 'gkLocationX'];
+            }
+            if (key === 'gkSrid' && state.kmPost.gkLocationY !== '') {
+                state.committedFields = [...state.committedFields, 'gkLocationY'];
+            }
         },
         validate: (state: KmPostEditState): void => {
             if (state.kmPost) {
