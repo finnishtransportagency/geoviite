@@ -13,6 +13,7 @@ import fi.fta.geoviite.infra.tracklayout.LayoutKmPostDao
 import fi.fta.geoviite.infra.tracklayout.LayoutSwitchDao
 import fi.fta.geoviite.infra.tracklayout.LayoutTrackNumberDao
 import fi.fta.geoviite.infra.tracklayout.LocationTrackDao
+import fi.fta.geoviite.infra.tracklayout.LocationTrackSpatialCache
 import fi.fta.geoviite.infra.tracklayout.ReferenceLineDao
 import java.time.Duration
 import java.time.Instant
@@ -30,6 +31,7 @@ class CachePreloadService(
     private val geometryDao: GeometryDao,
     private val geocodingCacheService: GeocodingCacheService,
     private val geocodingDao: GeocodingDao,
+    private val locationTrackSpatialCache: LocationTrackSpatialCache,
 ) {
     private val logger: Logger = LoggerFactory.getLogger(this::class.java)
 
@@ -56,6 +58,12 @@ class CachePreloadService(
                     .mapNotNull(geocodingCacheService::getGeocodingContext)
             contexts.parallelStream().forEach(GeocodingContext::preload)
             contexts.size
+        }
+    }
+
+    fun loadLocationTrackSpatialCache() {
+        refreshCache("LocationTrack.Spatial.MAIN_OFFICIAL") {
+            locationTrackSpatialCache.get(MainLayoutContext.official).size
         }
     }
 

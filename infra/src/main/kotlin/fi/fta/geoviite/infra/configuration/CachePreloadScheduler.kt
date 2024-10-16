@@ -32,6 +32,7 @@ constructor(
     private fun scheduleReload() {
         val startTime = System.currentTimeMillis()
         logger.info("Preloading caches: geocodingContexts=$preloadGeocodingContexts planHeaders=$preloadPlanHeaders")
+        // First stage caches that can be loaded in parallel
         listOf(
                 { cachePreloadService.loadAlignmentCache() },
                 { cachePreloadService.loadLayoutCache() },
@@ -39,7 +40,13 @@ constructor(
             )
             .parallelStream()
             .forEach { preload -> preload() }
-        if (preloadGeocodingContexts) cachePreloadService.loadGeocodingContextCache()
+        // Second stage caches that use the first stage and need to be loaded after them
+        listOf(
+                { cachePreloadService.loadLocationTrackSpatialCache() },
+                { if (preloadGeocodingContexts) cachePreloadService.loadGeocodingContextCache() },
+            )
+            .parallelStream()
+            .forEach { preload -> preload() }
         logger.info("Preloading caches done: duration=${System.currentTimeMillis() - startTime}ms")
     }
 }
