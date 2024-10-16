@@ -389,41 +389,54 @@ class LocationTrackService(
         else alignment.segments.lastOrNull()?.switchId
 
     @Transactional(readOnly = true)
+    fun getFullDescriptions(
+        layoutContext: LayoutContext,
+        locationTracks: List<LocationTrack>,
+        lang: LocalizationLanguage,
+    ): List<FreeText> {
+        val startAndEndSwitchIds =
+            locationTracks.map { locationTrack ->
+                locationTrack.alignmentVersion?.let { alignmentVersion ->
+                    val alignment = alignmentDao.fetch(alignmentVersion)
+                    getSwitchIdAtStart(alignment, locationTrack) to getSwitchIdAtEnd(alignment, locationTrack)
+                } ?: (null to null)
+            }
+        val switches =
+            switchDao
+                .getMany(layoutContext, startAndEndSwitchIds.flatMap { listOfNotNull(it.first, it.second) })
+                .associateBy { switch -> switch.id }
+
+        fun getSwitchShortName(switchId: IntId<TrackLayoutSwitch>) = switches[switchId]?.shortName
+        val translation = localizationService.getLocalization(lang)
+
+        return locationTracks.zip(startAndEndSwitchIds) { locationTrack, startAndEndSwitch ->
+            val startSwitchName = startAndEndSwitch.first?.let(::getSwitchShortName)
+            val endSwitchName = startAndEndSwitch.second?.let(::getSwitchShortName)
+
+            when (locationTrack.descriptionSuffix) {
+                DescriptionSuffixType.NONE -> FreeText(locationTrack.descriptionBase.toString())
+
+                DescriptionSuffixType.SWITCH_TO_BUFFER ->
+                    FreeText(
+                        "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.buffer")}"
+                    )
+
+                DescriptionSuffixType.SWITCH_TO_SWITCH ->
+                    FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: "???"} - ${endSwitchName ?: "???"}")
+
+                DescriptionSuffixType.SWITCH_TO_OWNERSHIP_BOUNDARY ->
+                    FreeText(
+                        "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.ownership-boundary")}"
+                    )
+            }
+        }
+    }
+
     fun getFullDescription(
         layoutContext: LayoutContext,
         locationTrack: LocationTrack,
         lang: LocalizationLanguage,
-    ): FreeText {
-        val alignmentVersion = locationTrack.alignmentVersion
-        val (startSwitch, endSwitch) =
-            alignmentVersion?.let {
-                val alignment = alignmentDao.fetch(alignmentVersion)
-                getSwitchIdAtStart(alignment, locationTrack) to getSwitchIdAtEnd(alignment, locationTrack)
-            } ?: (null to null)
-
-        fun getSwitchShortName(switchId: IntId<TrackLayoutSwitch>) = switchDao.get(layoutContext, switchId)?.shortName
-
-        val startSwitchName = startSwitch?.let(::getSwitchShortName)
-        val endSwitchName = endSwitch?.let(::getSwitchShortName)
-        val translation = localizationService.getLocalization(lang)
-
-        return when (locationTrack.descriptionSuffix) {
-            DescriptionSuffixType.NONE -> FreeText(locationTrack.descriptionBase.toString())
-
-            DescriptionSuffixType.SWITCH_TO_BUFFER ->
-                FreeText(
-                    "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.buffer")}"
-                )
-
-            DescriptionSuffixType.SWITCH_TO_SWITCH ->
-                FreeText("${locationTrack.descriptionBase} ${startSwitchName ?: "???"} - ${endSwitchName ?: "???"}")
-
-            DescriptionSuffixType.SWITCH_TO_OWNERSHIP_BOUNDARY ->
-                FreeText(
-                    "${locationTrack.descriptionBase} ${startSwitchName ?: endSwitchName ?: "???"} - ${translation.t("location-track-dialog.ownership-boundary")}"
-                )
-        }
-    }
+    ): FreeText = getFullDescriptions(layoutContext, listOf(locationTrack), lang).first()
 
     private fun getWithAlignmentInternalOrThrow(
         layoutContext: LayoutContext,

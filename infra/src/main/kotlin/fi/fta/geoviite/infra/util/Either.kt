@@ -46,7 +46,7 @@ fun <T, LeftValue, RightValue, Result> processPartitioned(
     processLefts: (lefts: List<LeftValue>) -> List<Result>,
     processRights: (rights: List<RightValue>) -> List<Result>,
 ): List<Result> {
-    val extractedSidesLeft = mutableListOf<Boolean>()
+    val extractedSidesLeft: MutableList<Boolean> = ArrayList(values.size)
     val lefts = mutableListOf<LeftValue>()
     val rights = mutableListOf<RightValue>()
     values.forEach { value ->
@@ -68,7 +68,7 @@ fun <T, LeftValue, RightValue, Result> processPartitioned(
         "expected ${lefts.size} results from processLefts, but got ${leftResults.size}"
     }
     assert(rights.size == rightResults.size) {
-        "expected ${rights.size} results from processLefts, but got ${rightResults.size}"
+        "expected ${rights.size} results from processRights, but got ${rightResults.size}"
     }
     var leftIndex = 0
     var rightIndex = 0
@@ -82,8 +82,19 @@ fun <T, LeftValue, RightValue, Result> processPartitioned(
  * on the Rights. process must return a list of the same length as it was passed in, and if it logically maps its inputs
  * to outputs element by element in the order they were passed in, so does this function.
  */
-fun <T, ValidInput, ErrorOrProcessedResult> processValidated(
+fun <T, ValidInput, ErrorOrProcessedResult> processRights(
     values: List<T>,
     extractSide: (value: T) -> Either<ErrorOrProcessedResult, ValidInput>,
     process: (input: List<ValidInput>) -> List<ErrorOrProcessedResult>,
 ): List<ErrorOrProcessedResult> = processPartitioned(values, extractSide, { it }, process)
+
+fun <T, ProcessableInput, Result> processNonNulls(
+    values: List<T>,
+    extractProcessable: (value: T) -> ProcessableInput?,
+    process: (input: List<ProcessableInput>) -> List<Result>,
+): List<Result?> =
+    processRights(
+        values,
+        { value -> extractProcessable(value).let { if (it == null) Left(null) else Right(it) } },
+        process,
+    )

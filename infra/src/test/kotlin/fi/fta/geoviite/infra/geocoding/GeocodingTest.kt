@@ -452,6 +452,13 @@ class GeocodingTest {
                 TrackMeter(2, "0.1") to Point(5.1, 5.1),
                 TrackMeter(2, "3.12") to Point(8.12, 8.12),
             )
+            .also { addressesAndLocations ->
+                context.getTrackLocations(trackAlignment, addressesAndLocations.map { it.first }).zip(
+                    addressesAndLocations
+                ) { addressPoint, addressAndLocation ->
+                    assertAddressPoint(addressPoint, addressAndLocation.first, addressAndLocation.second)
+                }
+            }
             .forEach { (address, location) ->
                 assertAddressPoint(context.getTrackLocation(trackAlignment, address), address, location)
             }
