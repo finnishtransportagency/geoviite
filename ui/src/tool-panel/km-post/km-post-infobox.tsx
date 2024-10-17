@@ -40,8 +40,8 @@ import { createDelegates } from 'store/store-utils';
 import { getGeometryPlan } from 'geometry/geometry-api';
 import CoordinateSystemView from 'geoviite-design-lib/coordinate-system/coordinate-system-view';
 import styles from './km-post-infobox.scss';
-import { GK_FIN_COORDINATE_SYSTEMS } from 'tool-panel/km-post/dialog/km-post-edit-dialog-gk-location-section';
 import { createClassName } from 'vayla-design-lib/utils';
+import { GK_FIN_COORDINATE_SYSTEMS } from 'tool-panel/km-post/dialog/km-post-edit-store';
 
 type KmPostInfoboxProps = {
     layoutContext: LayoutContext;
