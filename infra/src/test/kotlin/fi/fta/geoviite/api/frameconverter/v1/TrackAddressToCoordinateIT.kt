@@ -999,13 +999,13 @@ constructor(
     }
 
     @Test
-    fun `track number should be in use`() {
+    fun `track number should not be deleted`() {
         val layoutContext = mainOfficialContext
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
         val trackNumber =
             layoutTrackNumberDao
-                .insert(trackNumber(TrackNumber(trackNumberName), state = LayoutState.NOT_IN_USE))
+                .insert(trackNumber(TrackNumber(trackNumberName), state = LayoutState.DELETED))
                 .id
                 .let { trackNumberId -> layoutTrackNumberDao.get(layoutContext.context, trackNumberId)!! }
 
@@ -1028,7 +1028,7 @@ constructor(
     }
 
     @Test
-    fun `location track should be in use`() {
+    fun `location track should not be deleted`() {
         val layoutContext = mainOfficialContext
         val trackNumberName = testDBService.getUnusedTrackNumber().value
 
@@ -1044,7 +1044,7 @@ constructor(
                 trackNumberId = trackNumber.id as IntId,
                 locationTrackType = LocationTrackType.CHORD,
                 segments = segments,
-                state = LocationTrackState.NOT_IN_USE,
+                state = LocationTrackState.DELETED,
             )
 
         val request =
